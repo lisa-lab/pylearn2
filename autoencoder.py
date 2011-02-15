@@ -112,3 +112,66 @@ class DenoisingAutoencoder(Block):
         pairs = izip(self.inputs, self.reconstruction())
         ce = lambda x, z: x * tensor.log(z) + (1 - x) * tensor.log(1 - z)
         return [ce(inp, rec).sum(axis=1).mean() for inp, rec in pairs]
+
+class StackedDA(Block):
+    def __init__(self, inputs, **kwargs):
+        # TODO: Do we need anything else here?
+        super(StackedDA, self).__init__(inputs, **kwargs)
+
+    def alloc(cls, inputs, conf, rng=None):
+        if not hasattr(rng, 'randn'):
+            rng = numpy.random.RandomState(rng)
+        self = cls(inputs)
+        self._layers = []
+        _local = {}
+        # Make sure that if we have a sequence of encoder/decoder activations
+        # or corruptors, that we have exactly as many as len(conf['n_hid'])
+        for c in ['act_enc', 'act_dec', 'corruptor']:
+            if hasattr(conf[c], '__len__'):
+                assert len(conf['n_hid']) == len(conf[c])
+                _local[c] = conf[c]
+            else:
+                _local[c] = [conf[c]] * len(conf['n_hid'])
+        n_hids = conf['n_hid']
+        # The number of visible units in each layer is the initial input
+        # size and the first k-1 hidden unit sizes.
+        n_viss = [conf['n_vis']] + conf['n_hid'][:-1]
+        first = False
+        seq = izip(
+            xrange(len(n_hids)),
+            n_hids,
+            n_viss,
+            _local['act_encs'],
+            _local['act_decs'],
+            _local['corruptors']
+        )
+        # Create each layer.
+        for k, n_hid, n_vis, act_enc, act_dec, corr in seq:
+            # Create a local configuration dictionary for this layer.
+            lconf = {
+                'n_hid': n_hid,
+                'n_vis': n_vis,
+                'act_enc': act_enc,
+                'act_dec': act_dec,
+            }
+            # Prepare corrupted input.
+            # TODO: Maybe DenoisingAutoencoder should just take the
+            # corruptor object in the conf dictionary.
+            corrupted = corr(inputs)
+            if k == 0:
+                da = DenoisingAutoencoder.alloc(inputs, corrupted, lconf, rng)
+            else:
+                lastout = self._layers[-1].outputs
+                da = DenoisingAutoencoder.alloc(lastout, corrupted, lconf, rng)
+            self._layers.append(da)
+
+    def layers(self):
+        return list(self._layers)
+
+    def params(self):
+        # TODO: Rewrite this to be more readable (don't use reduce).
+        return reduce(lambda x, y: x + y, [l.params() for l in self._layers])
+
+    @property
+    def outputs(self):
+        return self._layers[-1].outputs
