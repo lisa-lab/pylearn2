@@ -33,7 +33,7 @@ class Corruptor(object):
         self.s_rng = RandomStreams(seed)
         self.conf = conf
 
-    def corrupted(self, inputs):
+    def __call__(self, inputs):
         """Symbolic expression denoting the corrupted inputs."""
         raise NotImplementedError()
 
@@ -42,7 +42,7 @@ class BinomialCorruptor(Corruptor):
     A binomial corruptor sets inputs to 0 with probability
     0 < `corruption_level` < 1.
     """
-    def corrupted(self, inputs):
+    def __call__(self, inputs):
         return [
             self.s_rng.binomial(
                 size=inp.shape,
@@ -58,7 +58,7 @@ class GaussianCorruptor(Corruptor):
     mean isotropic Gaussian noise with standard deviation
     `corruption_level`.
     """
-    def corrupted(self, inputs):
+    def __call__(self, inputs):
         return [
             self.s_rng.normal(
                 size=inp.shape,
