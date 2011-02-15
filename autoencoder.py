@@ -94,3 +94,21 @@ class DenoisingAutoencoder(Block):
     def outputs(self):
         """Output to pass on to layers above."""
         return [self.hidden_with_clean_input(v) for v in self.inputs]
+
+    def mse(self):
+        """
+        Symbolic expression for mean-squared error between the input and the
+        denoised reconstruction.
+        """
+        pairs = izip(self.inputs, self.reconstruction())
+        return [((inp - rec)**2).sum(axis=-1).mean() for inp, rec in pairs]
+
+    def cross_entropy(self):
+        """
+        Symbolic expression for elementwise cross-entropy between input
+        and reconstruction. Use for binary-valued features (but not for,
+        e.g., one-hot codes).
+        """
+        pairs = izip(self.inputs, self.reconstruction())
+        ce = lambda x, z: x * tensor.log(z) + (1 - x) * tensor.log(1 - z)
+        return [ce(inp, rec).sum(axis=1).mean() for inp, rec in pairs]
