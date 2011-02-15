@@ -1,4 +1,5 @@
 """Autoencoders, denoising autoencoders, and stacked DAEs."""
+from itertools import izip
 import numpy
 import theano
 from theano import tensor
@@ -86,7 +87,8 @@ class DenoisingAutoencoder(Block):
 
     def reconstruction(self):
         """Reconstructed inputs after corruption."""
-        return [self._hidden_activation(v) for v in self.inputs]
+        corrupted = self.hidden_with_corrupted_input()
+        return [self.visbias + tensor.dot(self.w_prime, c) for c in corrupted]
 
     @property
     def outputs(self):
