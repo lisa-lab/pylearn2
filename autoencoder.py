@@ -50,6 +50,9 @@ class DenoisingAutoencoder(Block):
             self.w_prime = self.weights.T
 
         def _resolve_callable(conf_attr):
+            if conf_attr is None:
+                # The identity function, for linear layers.
+                return lambda x: x
             # If it's a callable, use it directly.
             if hasattr(conf[conf_attr], '__call__'):
                 return conf[conf_attr]
