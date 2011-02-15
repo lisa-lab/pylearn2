@@ -90,7 +90,6 @@ class DenoisingAutoencoder(Block):
         corrupted = self.hidden_with_corrupted_input()
         return [self.visbias + tensor.dot(self.w_prime, c) for c in corrupted]
 
-    @property
     def outputs(self):
         """Output to pass on to layers above."""
         return [self.hidden_with_clean_input(v) for v in self.inputs]
@@ -172,6 +171,5 @@ class StackedDA(Block):
         # TODO: Rewrite this to be more readable (don't use reduce).
         return reduce(lambda x, y: x + y, [l.params() for l in self._layers])
 
-    @property
     def outputs(self):
         return self._layers[-1].outputs

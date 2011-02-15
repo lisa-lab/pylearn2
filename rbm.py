@@ -97,7 +97,6 @@ class RBM(Block):
 
         return self
 
-    @property
     def outputs(self):
         return (self.inputs)
 
