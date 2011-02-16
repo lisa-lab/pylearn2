@@ -29,10 +29,10 @@ class DenoisingAutoencoder(Block):
     @classmethod
     def alloc(cls, corruptor, conf, rng=None):
         """Allocate a denoising autoencoder object."""
-        self.corruptor = corruptor
         if not hasattr(rng, 'randn'):
             rng = numpy.random.RandomState(rng)
         self = cls()
+        self.corruptor = corruptor
         self.visbias = sharedX(
             numpy.zeros(conf['n_vis']),
             name='vb'
