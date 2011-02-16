@@ -173,13 +173,26 @@ class StackedDA(Block):
             self._layers.append(da)
 
     def layers(self):
+        """
+        The layers of this model: the individual denoising autoencoder
+        objects, which can be individually pre-trained.
+        """
         return list(self._layers)
 
     def params(self):
+        """
+        The parameters that are learned in this model, i.e. the concatenation
+        of all the layers' weights and biases.
+        """
         return sum([l.params() for l in self._layers], [])
 
     def __call__(self, inputs):
-        # TODO: write this.
-        pass
-
-
+        """
+        Forward propagate (symbolic) input through this module, obtaining
+        a representation to pass on to layers above.
+        """
+        transformed = inputs
+        # Pass the input through each layer of the hierarchy.
+        for layer in self._layers:
+            transformed = layer(transformed)
+        return transformed
