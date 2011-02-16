@@ -164,8 +164,7 @@ class StackedDA(Block):
         return list(self._layers)
 
     def params(self):
-        # TODO: Rewrite this to be more readable (don't use reduce).
-        return reduce(lambda x, y: x + y, [l.params() for l in self._layers])
+        return sum([l.params() for l in self._layers], [])
 
     def __call__(self, inputs):
         # TODO: write this.
