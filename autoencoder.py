@@ -80,6 +80,7 @@ class DenoisingAutoencoder(Block):
         ]
         if not conf['tied_weights']:
             self._params.append(self.w_prime)
+        return self
 
     def _hidden_activation(self, x):
         """Single input pattern/minibatch activation function."""
@@ -171,6 +172,7 @@ class StackedDA(Block):
             }
             da = DenoisingAutoencoder.alloc(corr, lconf, rng)
             self._layers.append(da)
+        return self
 
     def layers(self):
         """
