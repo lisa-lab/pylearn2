@@ -129,7 +129,7 @@ class StackedDA(Block):
         # TODO: Do we need anything else here?
         super(StackedDA, self).__init__(inputs, **kwargs)
 
-    def alloc(cls, conf, rng=None):
+    def alloc(cls, corruptors, conf, rng=None):
         """Allocate a stacked denoising autoencoder object."""
         if not hasattr(rng, 'randn'):
             rng = numpy.random.RandomState(rng)
@@ -138,7 +138,11 @@ class StackedDA(Block):
         _local = {}
         # Make sure that if we have a sequence of encoder/decoder activations
         # or corruptors, that we have exactly as many as len(conf['n_hid'])
-        for c in ['act_enc', 'act_dec', 'corruptor']:
+        if hasattr(corruptors, '__len__'):
+            assert len(conf['n_hid']) == len(corruptors)
+        else:
+            corruptors = [corruptors] * len(conf['n_hid'])
+        for c in ['act_enc', 'act_dec']:
             if hasattr(conf[c], '__len__'):
                 assert len(conf['n_hid']) == len(conf[c])
                 _local[c] = conf[c]
@@ -148,14 +152,13 @@ class StackedDA(Block):
         # The number of visible units in each layer is the initial input
         # size and the first k-1 hidden unit sizes.
         n_viss = [conf['n_vis']] + conf['n_hid'][:-1]
-        first = False
         seq = izip(
             xrange(len(n_hids)),
             n_hids,
             n_viss,
             _local['act_encs'],
             _local['act_decs'],
-            _local['corruptors']
+            corruptors
         )
         # Create each layer.
         for k, n_hid, n_vis, act_enc, act_dec, corr in seq:
