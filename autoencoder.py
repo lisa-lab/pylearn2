@@ -23,16 +23,16 @@ class DenoisingAutoencoder(Block):
     A denoising autoencoder learns a representation of the input by
     reconstructing a noisy version of it.
     """
-    def __init__(self, inputs, **kwargs):
+    def __init__(self, **kwargs):
         # TODO: Do we need anything else here?
-        super(DenoisingAutoencoder, self).__init__(inputs, **kwargs)
+        super(DenoisingAutoencoder, self).__init__(**kwargs)
 
     @classmethod
-    def alloc(cls, clean_inputs, corrupted_inputs, conf, rng=None):
+    def alloc(cls, corruptor, conf, rng=None):
+        self.corruptor = corruptor
         if not hasattr(rng, 'randn'):
             rng = numpy.random.RandomState(rng)
-        self = cls(clean_inputs)
-        self.corrupted = corrupted_inputs
+        self = cls()
         self.visbias = sharedX(
             numpy.zeros(conf['n_vis']),
             name='vb'
@@ -74,45 +74,45 @@ class DenoisingAutoencoder(Block):
         self.conf = conf
         self._params = [
             self.weights,
-            self.w_prime,
             self.visbias,
             self.hidbias
         ]
+        if not conf['tied_weights']:
+            self._params.append(self.w_prime)
+
     def _hidden_activation(self, x):
+        """Single input pattern/minibatch activation function."""
         return self.act_enc(self.hidbias + tensor.dot(self.weights, x))
 
-    def hidden_with_corrupted_input(self):
-        """Hidden unit activations when the input is corrupted."""
-        return [self._hidden_activation(v) for v in self.corrupted]
+    def hidden_repr(self, inputs):
+        """Hidden unit activations for each set of inputs."""
+        return [self._hidden_activation(v) for v in inputs]
 
-    def hidden_with_clean_input(self):
-        """Hidden unit activations when the input is corrupted."""
-        return [self._hidden_activation(v) for v in self.inputs]
-
-    def reconstruction(self):
+    def reconstruction(self, inputs):
         """Reconstructed inputs after corruption."""
-        corrupted = self.hidden_with_corrupted_input()
-        return [self.visbias + tensor.dot(self.w_prime, c) for c in corrupted]
+        corrupted = (self.corruptor(inp) for inp in inputs)
+        hiddens = self.hidden_repr(corrupted)
+        return [self.visbias + tensor.dot(self.w_prime, h) for h in hiddens]
 
-    def outputs(self):
+    def __call__(self, inputs):
         """Output to pass on to layers above."""
-        return [self.hidden_with_clean_input(v) for v in self.inputs]
+        return self.hidden_repr(inputs)
 
-    def mse(self):
+    def mse(self, inputs):
         """
         Symbolic expression for mean-squared error between the input and the
         denoised reconstruction.
         """
-        pairs = izip(self.inputs, self.reconstruction())
+        pairs = izip(inputs, self.reconstruction(inputs))
         return [((inp - rec)**2).sum(axis=-1).mean() for inp, rec in pairs]
 
-    def cross_entropy(self):
+    def cross_entropy(self, inputs):
         """
         Symbolic expression for elementwise cross-entropy between input
         and reconstruction. Use for binary-valued features (but not for,
         e.g., one-hot codes).
         """
-        pairs = izip(self.inputs, self.reconstruction())
+        pairs = izip(inputs, self.reconstruction(inputs))
         ce = lambda x, z: x * tensor.log(z) + (1 - x) * tensor.log(1 - z)
         return [ce(inp, rec).sum(axis=1).mean() for inp, rec in pairs]
 
@@ -121,10 +121,10 @@ class StackedDA(Block):
         # TODO: Do we need anything else here?
         super(StackedDA, self).__init__(inputs, **kwargs)
 
-    def alloc(cls, inputs, conf, rng=None):
+    def alloc(cls, conf, rng=None):
         if not hasattr(rng, 'randn'):
             rng = numpy.random.RandomState(rng)
-        self = cls(inputs)
+        self = cls()
         self._layers = []
         _local = {}
         # Make sure that if we have a sequence of encoder/decoder activations
@@ -157,15 +157,7 @@ class StackedDA(Block):
                 'act_enc': act_enc,
                 'act_dec': act_dec,
             }
-            # Prepare corrupted input.
-            # TODO: Maybe DenoisingAutoencoder should just take the
-            # corruptor object in the conf dictionary.
-            corrupted = corr(inputs)
-            if k == 0:
-                da = DenoisingAutoencoder.alloc(inputs, corrupted, lconf, rng)
-            else:
-                lastout = self._layers[-1].outputs
-                da = DenoisingAutoencoder.alloc(lastout, corrupted, lconf, rng)
+            da = DenoisingAutoencoder.alloc(corr, lconf, rng)
             self._layers.append(da)
 
     def layers(self):
@@ -175,5 +167,8 @@ class StackedDA(Block):
         # TODO: Rewrite this to be more readable (don't use reduce).
         return reduce(lambda x, y: x + y, [l.params() for l in self._layers])
 
-    def outputs(self):
-        return self._layers[-1].outputs
+    def __call__(self, inputs):
+        # TODO: write this.
+        pass
+
+
