@@ -5,10 +5,9 @@ import theano
 from theano import tensor
 
 #from pylearn.gd.sgd import sgd_updates
-#from pylearn.algorithms.mcRBM import contrastive_cost, contrastive_grad
 theano.config.warn.sum_div_dimshuffle_bug = False
 floatX = theano.config.floatX
-sharedX = lambda X, name : theano.shared(numpy.asarray(X, dtype=floatX), name=name)
+sharedX = lambda X, name: theano.shared(numpy.asarray(X, dtype=floatX), name=name)
 if 0:
     print 'WARNING: using SLOW rng'
     RandomStreams = tensor.shared_randomstreams.RandomStreams
@@ -29,6 +28,7 @@ class DenoisingAutoencoder(Block):
 
     @classmethod
     def alloc(cls, corruptor, conf, rng=None):
+        """Allocate a denoising autoencoder object."""
         self.corruptor = corruptor
         if not hasattr(rng, 'randn'):
             rng = numpy.random.RandomState(rng)
@@ -54,6 +54,7 @@ class DenoisingAutoencoder(Block):
                 .5 * rng.rand(conf['n_hid'], conf['n_vis']),
                 name='Wprime'
             )
+
         def _resolve_callable(conf_attr):
             if conf_attr is None:
                 # The identity function, for linear layers.
@@ -73,9 +74,9 @@ class DenoisingAutoencoder(Block):
         self.act_dec = _resolve_callable('act_dec')
         self.conf = conf
         self._params = [
-            self.weights,
             self.visbias,
             self.hidbias
+            self.weights,
         ]
         if not conf['tied_weights']:
             self._params.append(self.w_prime)
@@ -95,7 +96,10 @@ class DenoisingAutoencoder(Block):
         return [self.visbias + tensor.dot(self.w_prime, h) for h in hiddens]
 
     def __call__(self, inputs):
-        """Output to pass on to layers above."""
+        """
+        Forward propagate (symbolic) input through this module, obtaining
+        a representation to pass on to layers above.
+        """
         return self.hidden_repr(inputs)
 
     def mse(self, inputs):
@@ -117,11 +121,16 @@ class DenoisingAutoencoder(Block):
         return [ce(inp, rec).sum(axis=1).mean() for inp, rec in pairs]
 
 class StackedDA(Block):
+    """
+    A class representing a stacked model. Forward propagation passes
+    (symbolic) input through each layer sequentially.
+    """
     def __init__(self, inputs, **kwargs):
         # TODO: Do we need anything else here?
         super(StackedDA, self).__init__(inputs, **kwargs)
 
     def alloc(cls, conf, rng=None):
+        """Allocate a stacked denoising autoencoder object."""
         if not hasattr(rng, 'randn'):
             rng = numpy.random.RandomState(rng)
         self = cls()
