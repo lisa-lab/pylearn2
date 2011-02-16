@@ -125,9 +125,9 @@ class StackedDA(Block):
     A class representing a stacked model. Forward propagation passes
     (symbolic) input through each layer sequentially.
     """
-    def __init__(self, inputs, **kwargs):
+    def __init__(self, **kwargs):
         # TODO: Do we need anything else here?
-        super(StackedDA, self).__init__(inputs, **kwargs)
+        super(StackedDA, self).__init__(**kwargs)
 
     def alloc(cls, corruptors, conf, rng=None):
         """Allocate a stacked denoising autoencoder object."""
