@@ -49,7 +49,11 @@ class DenoisingAutoencoder(Block):
         self.s_rng = RandomStreams(seed)
         if conf['tied_weights']:
             self.w_prime = self.weights.T
-
+        else:
+            self.w_prime = sharedX(
+                .5 * rng.rand(conf['n_hid'], conf['n_vis']),
+                name='Wprime'
+            )
         def _resolve_callable(conf_attr):
             if conf_attr is None:
                 # The identity function, for linear layers.
