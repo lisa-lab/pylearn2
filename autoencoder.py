@@ -85,7 +85,7 @@ class DenoisingAutoencoder(Block):
         self.conf = conf
         self._params = [
             self.visbias,
-            self.hidbias
+            self.hidbias,
             self.weights,
         ]
         if not conf['tied_weights']:
