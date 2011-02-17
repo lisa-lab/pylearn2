@@ -200,9 +200,6 @@ class StackedDA(Block):
         The parameters that are learned in this model, i.e. the concatenation
         of all the layers' weights and biases.
         """
-        # TODO: docstring for the builtin sum() says that it is for numbers.
-        # Is it an implementation detail that it works with lists, or can
-        # this be relied upon?
         return sum([l.params() for l in self._layers], [])
 
     def __call__(self, inputs):
