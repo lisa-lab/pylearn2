@@ -162,7 +162,7 @@ class StackedDA(Block):
         else:
             corruptors = [corruptors] * len(conf['n_hid'])
         for c in ['act_enc', 'act_dec']:
-            if hasattr(conf[c], '__len__'):
+            if type(conf[c]) is not str and hasattr(conf[c], '__len__'):
                 assert len(conf['n_hid']) == len(conf[c])
                 _local[c] = conf[c]
             else:
