@@ -246,8 +246,9 @@ class DATrainer(Trainer):
 
         # Instantiate the class, finally.
         self = cls(model=model, cost=cost, conf=conf,
-                   learning_rates=learning_rates,
+                   learning_rates=learning_rates, annealed=annealed,
                    iteration=iteration, minibatch=minibatch)
+        return self
 
     def updates(self):
         """Compute the updates for each of the parameter variables."""
