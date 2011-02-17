@@ -126,7 +126,14 @@ class DenoisingAutoencoder(Block):
         denoised reconstruction.
         """
         pairs = izip(inputs, self.reconstruction(inputs))
-        return [((inp - rec)**2).sum(axis=-1).mean() for inp, rec in pairs]
+        # TODO: Think of something more sensible to do than sum(). On one
+        # hand, if we're treating everything in parallel it should return
+        # a list. On the other, we need a scalar for everything else to
+        # work.
+
+        # This will likely get refactored out into a "costs" module or
+        # something like that.
+        return sum([((inp - rec)**2).sum(axis=1).mean() for inp, rec in pairs])
 
     def cross_entropy(self, inputs):
         """
