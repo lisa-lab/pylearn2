@@ -98,7 +98,7 @@ class DenoisingAutoencoder(Block):
 
     def _hidden_activation(self, x):
         """Single input pattern/minibatch activation function."""
-        return self.act_enc(self.hidbias + tensor.dot(self.weights, x))
+        return self.act_enc(self.hidbias + tensor.dot(x, self.weights))
 
     def hidden_repr(self, inputs):
         """Hidden unit activations for each set of inputs."""
