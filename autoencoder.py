@@ -18,7 +18,7 @@ def safe_update(dict_to, dict_from):
     for key, val in dict(dict_from).iteritems():
         if key in dict_to:
             raise KeyError(key)
-        dict_to[key] = value
+        dict_to[key] = val
     return dict_to
 
 theano.config.warn.sum_div_dimshuffle_bug = False
