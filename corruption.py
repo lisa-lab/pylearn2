@@ -25,6 +25,7 @@ class Corruptor(object):
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
 
+    @classmethod
     def alloc(cls, conf, rng=None):
         if not hasattr(rng, 'randn'):
             rng = numpy.random.RandomState(rng)
@@ -32,6 +33,7 @@ class Corruptor(object):
         seed = int(rng.randint(2**30))
         self.s_rng = RandomStreams(seed)
         self.conf = conf
+        return self
 
     def __call__(self, inputs):
         """Symbolic expression denoting the corrupted inputs."""
