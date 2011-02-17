@@ -175,8 +175,8 @@ class StackedDA(Block):
             xrange(len(n_hids)),
             n_hids,
             n_viss,
-            _local['act_encs'],
-            _local['act_decs'],
+            _local['act_enc'],
+            _local['act_dec'],
             corruptors
         )
         # Create each layer.
