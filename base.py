@@ -36,6 +36,10 @@ class Block(object):
         are, in your judgment, typically learned in this
         model.
         """
+        # NOTE: We return list(self._params) rather than self._params
+        # in order to explicitly make a copy, so that the list isn't
+        # absentmindedly modified. If a user really knows what they're
+        # doing they can modify self._params.
         return list(self._params)
 
     def outputs(self):
