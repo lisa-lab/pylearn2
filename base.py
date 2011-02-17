@@ -53,8 +53,7 @@ class Trainer(object):
     """
     Basic abstract class for training
     """
-    def __init__(self, inputs, **kwargs):
-        self.inputs = inputs
+    def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
 
     def updates(self):
