@@ -4,6 +4,16 @@ import numpy
 import theano
 from theano import tensor
 
+def safe_update(dict_to, dict_from):
+    """
+    Like dict_to.update(dict_from), except don't overwrite any keys.
+    """
+    for key, val in dict(dict_from).iteritems():
+        if key in dict_to:
+            raise KeyError(key)
+        dict_to[key] = value
+    return dict_to
+
 #from pylearn.gd.sgd import sgd_updates
 theano.config.warn.sum_div_dimshuffle_bug = False
 floatX = theano.config.floatX
@@ -198,3 +208,50 @@ class StackedDA(Block):
         for layer in self._layers:
             transformed = layer(transformed)
         return transformed
+
+class DATrainer(Trainer):
+    @classmethod
+    def alloc(self, model, cost, dataset, conf):
+        # Take care of learning rate scales for individual parameters
+        learning_rates = {}
+        for parameter in model.params():
+            lr_name = '%s_lr' % parameter.name
+            try:
+                thislr = conf[lr_name]
+            except:
+                thislr = 1.
+            learning_rates[parameter] = sharedX(thislr, lr_name)
+
+        # A shared variable for storing the iteration number.
+        iteration = sharedX(0, 'iter')
+
+        # A shared variable for storing the annealed base learning rate, used
+        # to lower the learning rate gradually after a certain amount of time.
+        annealed = sharedX(1.0, 'annealed')
+
+        # Instantiate the class, finally.
+        self = cls(model=model, cost=cost, conf=conf,
+                   learning_rates=learning_rates,
+                   iteration=iteration)
+
+    def updates(self):
+        ups = {}
+        # Base learning rate per example.
+        base_lr = numpy.asarray(self.conf['base_lr'], dtype=floatX)
+
+        # Annealing coefficient. Here we're using a formula of
+        # base_lr * min(0.0, max(base_lr, lr_anneal_start / (iteration + 1))
+        frac = self.conf['lr_anneal_start'] / (self.iteration + 1.)
+        annealed = tensor.clip(
+            tensor.cast(frac, floatX), 0.0, base_lr),
+            0.0,    # minimum learning rate
+            base_lr # maximum learning rate
+        )
+
+        # Update the shared variable for the annealed learning rate.
+        ups[self.annealed] = annealed
+        ups[self.iteration] = self.iteration + 1
+
+        # Calculate the learning rates for each parameter, in the order
+        # they appear in model.params()
+        learn_rates = [annealed * self.lr_dict[p] for p in self.model.params()]
