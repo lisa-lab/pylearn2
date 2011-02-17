@@ -147,6 +147,7 @@ class StackedDA(Block):
         # TODO: Do we need anything else here?
         super(StackedDA, self).__init__(**kwargs)
 
+    @classmethod
     def alloc(cls, corruptors, conf, rng=None):
         """Allocate a stacked denoising autoencoder object."""
         if not hasattr(rng, 'randn'):
