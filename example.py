@@ -39,14 +39,7 @@ if __name__ == "__main__":
     trainer = DATrainer.alloc(da, cost_fn, minibatch, conf)
 
     # Finally, build a Theano function out of all this.
-    # NOTE: this could be incorporated into a method of the trainer
-    #       class, somehow. How would people feel about that?
-    #       James: are there disadvantages?
-    train_fn = theano.function(
-        [minibatch],              # The input you'll pass
-        trainer.cost([minibatch]),      # Whatever quantities you want returned
-        updates=trainer.updates() # How Theano should update shared vars
-    )
+    train_fn = trainer.function(minibatch)
 
     # Simulate some fake data.
     data = numpy.random.normal(size=(1000, 15))
@@ -67,7 +60,7 @@ if __name__ == "__main__":
 
     print "Transformed data:"
     print numpy.histogram(transform(data))
-
+    
     # We'll now create a stacked denoising autoencoder. First, we change
     # the number of hidden units to be a list. This tells the StackedDA
     # class how many layers to make.
@@ -89,10 +82,8 @@ if __name__ == "__main__":
     # We'll do roughly the same thing as above, but inside a loop over layers.
     thislayer_input = [minibatch]
     for trainer, layer in izip(trainers, sda.layers()):
-        # Compile a Theano function for training this layer.
-        thislayer_train_fn = theano.function([minibatch],
-                                             trainer.cost(thislayer_input),
-                                             updates=trainer.updates())
+        # Retrieve a Theano function for training this layer.
+        thislayer_train_fn = trainer.function(minibatch)
 
         # Train as before.
         for epoch in xrange(10):

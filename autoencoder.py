@@ -269,3 +269,9 @@ class DATrainer(Trainer):
         # Return the updates dictionary.
         return ups
 
+    def function(self, input):
+        """Compile the Theano training function associated with the trainer"""
+        return theano.function([input],                     # The symbolic input you'll pass
+                               self.cost([self.minibatch]), # Whatever quantities you want returned
+                               updates=self.updates()       # How Theano should update shared vars
+                               )
