@@ -23,6 +23,7 @@ class Block(object):
         self._params = []
         self.__dict__.update(kwargs)
 
+    @classmethod
     def alloc(cls, conf, rng=None):
         raise NotImplementedError('alloc')
 
