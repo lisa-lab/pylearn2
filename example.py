@@ -68,20 +68,13 @@ if __name__ == "__main__":
     sda_conf['n_hid'] = [20, 20, 10]
     sda = StackedDA.alloc(corruptor, sda_conf)
 
-    # To pretrain it, we'll create a DATrainer for each layer.
+    # To pretrain it, we'll use a DATrainer for each layer.
     trainers = []
-    inp = [minibatch]
-    for d in sda.layers():
-        cost_fn = MeanSquaredError.alloc(conf, d)
-        trainers.append(DATrainer.alloc(d, cost_fn, inp[0], sda_conf))
-        # Each time, we'll be passing the data through the layer to
-        # obtain a symbolic representation for the input to the next
-        # layer.
-        inp = d(inp)
-
-    # We'll do roughly the same thing as above, but inside a loop over layers.
     thislayer_input = [minibatch]
-    for trainer, layer in izip(trainers, sda.layers()):
+    for layer in sda.layers():
+        cost_fn = MeanSquaredError.alloc(sda_conf, layer)
+        trainer = DATrainer.alloc(layer, cost_fn, thislayer_input[0], sda_conf)
+        trainers.append(trainer)
         # Retrieve a Theano function for training this layer.
         thislayer_train_fn = trainer.function(minibatch)
 
