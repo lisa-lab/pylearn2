@@ -218,7 +218,12 @@ class StackedDA(Block):
 
 class DATrainer(Trainer):
     @classmethod
-    def alloc(self, model, cost, dataset, conf):
+    def alloc(cls, model, cost, minibatch, conf):
+        """
+        Takes a DenoisingAutoencoder object, a (symbolic) cost function
+        which takes the input and turns it into a scalar (somehow),
+        a (symbolic) minibatch, and a configuration dictionary.
+        """
         # Take care of learning rate scales for individual parameters
         learning_rates = {}
         for parameter in model.params():
@@ -234,14 +239,15 @@ class DATrainer(Trainer):
 
         # A shared variable for storing the annealed base learning rate, used
         # to lower the learning rate gradually after a certain amount of time.
-        annealed = sharedX(1.0, 'annealed')
+        annealed = sharedX(conf['base_lr'], 'annealed')
 
         # Instantiate the class, finally.
         self = cls(model=model, cost=cost, conf=conf,
                    learning_rates=learning_rates,
-                   iteration=iteration)
+                   iteration=iteration, minibatch=minibatch)
 
     def updates(self):
+        """Compute the updates for each of the parameter variables."""
         ups = {}
         # Base learning rate per example.
         base_lr = numpy.asarray(self.conf['base_lr'], dtype=floatX)
@@ -250,7 +256,7 @@ class DATrainer(Trainer):
         # base_lr * min(0.0, max(base_lr, lr_anneal_start / (iteration + 1))
         frac = self.conf['lr_anneal_start'] / (self.iteration + 1.)
         annealed = tensor.clip(
-            tensor.cast(frac, floatX), 0.0, base_lr),
+            tensor.cast(frac, floatX),
             0.0,    # minimum learning rate
             base_lr # maximum learning rate
         )
@@ -262,3 +268,14 @@ class DATrainer(Trainer):
         # Calculate the learning rates for each parameter, in the order
         # they appear in model.params()
         learn_rates = [annealed * self.lr_dict[p] for p in self.model.params()]
+        # Get the gradient w.r.t. cost of each parameter.
+        grads = [
+            tensor.grad(self.cost(self.minibatch), p)
+            for p in self.model.params()
+        ]
+        # Get the updates from sgd_updates, a PyLearn library function.
+        updates = dict(sgd_updates(self.model.params(), grads, learn_rates))
+
+        # Return the updates dictionary.
+        return ups
+
