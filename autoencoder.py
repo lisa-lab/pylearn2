@@ -106,7 +106,7 @@ class DenoisingAutoencoder(Block):
 
     def reconstruction(self, inputs):
         """Reconstructed inputs after corruption."""
-        corrupted = (self.corruptor(inp) for inp in inputs)
+        corrupted = self.corruptor(inputs)
         hiddens = self.hidden_repr(corrupted)
         return [
             self.act_dec(self.visbias + tensor.dot(h, self.w_prime))
