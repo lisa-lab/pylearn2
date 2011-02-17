@@ -187,6 +187,8 @@ class StackedDA(Block):
                 'n_vis': n_vis,
                 'act_enc': act_enc,
                 'act_dec': act_dec,
+                'irange': conf['irange'],
+                'tied_weights': conf['tied_weights'],
             }
             da = DenoisingAutoencoder.alloc(corr, lconf, rng)
             self._layers.append(da)
