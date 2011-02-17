@@ -271,14 +271,17 @@ class DATrainer(Trainer):
 
         # Calculate the learning rates for each parameter, in the order
         # they appear in model.params()
-        learn_rates = [annealed * self.lr_dict[p] for p in self.model.params()]
+        learn_rates = [annealed * self.learning_rates[p] for p in self.model.params()]
         # Get the gradient w.r.t. cost of each parameter.
         grads = [
-            tensor.grad(self.cost(self.minibatch), p)
+            tensor.grad(self.cost([self.minibatch]), p)
             for p in self.model.params()
         ]
         # Get the updates from sgd_updates, a PyLearn library function.
-        updates = dict(sgd_updates(self.model.params(), grads, learn_rates))
+        p_up = dict(sgd_updates(self.model.params(), grads, learn_rates))
+
+        # Add the things in p_up to ups
+        safe_update(ups, p_up)
 
         # Return the updates dictionary.
         return ups
