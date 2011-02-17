@@ -56,7 +56,7 @@ class DenoisingAutoencoder(Block):
             name='hb'
         )
         self.weights = sharedX(
-            .5 * rng.rand(conf['n_vis'], conf['n_hid']),
+            .5 * rng.rand(conf['n_vis'], conf['n_hid']) * conf['irange'],
             name='W'
         )
         seed = int(rng.randint(2**30))
