@@ -36,7 +36,7 @@ class Block(object):
         are, in your judgment, typically learned in this
         model.
         """
-        return self._params
+        return list(self._params)
 
     def outputs(self):
         """Output to pass on to layers above."""
