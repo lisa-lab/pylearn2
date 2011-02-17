@@ -1,8 +1,15 @@
 """Autoencoders, denoising autoencoders, and stacked DAEs."""
+# Standard library imports
 from itertools import izip
+
+# Third-party imports
 import numpy
 import theano
 from theano import tensor
+from pylearn.gd.sgd import sgd_updates
+
+# Local imports
+from base import Block, Trainer
 
 def safe_update(dict_to, dict_from):
     """
@@ -14,7 +21,6 @@ def safe_update(dict_to, dict_from):
         dict_to[key] = value
     return dict_to
 
-#from pylearn.gd.sgd import sgd_updates
 theano.config.warn.sum_div_dimshuffle_bug = False
 floatX = theano.config.floatX
 sharedX = lambda X, name: theano.shared(numpy.asarray(X, dtype=floatX), name=name)
@@ -24,8 +30,6 @@ if 0:
 else:
     import theano.sandbox.rng_mrg
     RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
-
-from base import Block
 
 class DenoisingAutoencoder(Block):
     """
@@ -196,6 +200,9 @@ class StackedDA(Block):
         The parameters that are learned in this model, i.e. the concatenation
         of all the layers' weights and biases.
         """
+        # TODO: docstring for the builtin sum() says that it is for numbers.
+        # Is it an implementation detail that it works with lists, or can
+        # this be relied upon?
         return sum([l.params() for l in self._layers], [])
 
     def __call__(self, inputs):
