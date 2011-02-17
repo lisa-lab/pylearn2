@@ -120,30 +120,6 @@ class DenoisingAutoencoder(Block):
         """
         return self.hidden_repr(inputs)
 
-    def mse(self, inputs):
-        """
-        Symbolic expression for mean-squared error between the input and the
-        denoised reconstruction.
-        """
-        pairs = izip(inputs, self.reconstruction(inputs))
-        # TODO: Think of something more sensible to do than sum(). On one
-        # hand, if we're treating everything in parallel it should return
-        # a list. On the other, we need a scalar for everything else to
-        # work.
-
-        # This will likely get refactored out into a "costs" module or
-        # something like that.
-        return sum([((inp - rec)**2).sum(axis=1).mean() for inp, rec in pairs])
-
-    def cross_entropy(self, inputs):
-        """
-        Symbolic expression for elementwise cross-entropy between input
-        and reconstruction. Use for binary-valued features (but not for,
-        e.g., one-hot codes).
-        """
-        pairs = izip(inputs, self.reconstruction(inputs))
-        ce = lambda x, z: x * tensor.log(z) + (1 - x) * tensor.log(1 - z)
-        return [ce(inp, rec).sum(axis=1).mean() for inp, rec in pairs]
 
 class StackedDA(Block):
     """

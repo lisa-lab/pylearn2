@@ -1,7 +1,14 @@
 """An example of how to use the library so far."""
+# Standard library imports
+from itertools import izip
+
+# Third-party imports
 import numpy
 import theano
 from theano import tensor
+
+# Local imports
+from costs import MeanSquaredError
 from corruption import GaussianCorruptor
 from autoencoder import DenoisingAutoencoder, DATrainer, StackedDA
 
@@ -28,7 +35,8 @@ if __name__ == "__main__":
     da = DenoisingAutoencoder.alloc(corruptor, conf)
 
     # Allocate a trainer, which tells us how to update our model.
-    trainer = DATrainer.alloc(da, da.mse, minibatch, conf)
+    cost_fn = MeanSquaredError.alloc(conf, da)
+    trainer = DATrainer.alloc(da, cost_fn, minibatch, conf)
 
     # Finally, build a Theano function out of all this.
     # NOTE: this could be incorporated into a method of the trainer
@@ -36,7 +44,7 @@ if __name__ == "__main__":
     #       James: are there disadvantages?
     train_fn = theano.function(
         [minibatch],              # The input you'll pass
-        da.mse([minibatch]),        # Whatever quantities you want returned
+        trainer.cost([minibatch]),      # Whatever quantities you want returned
         updates=trainer.updates() # How Theano should update shared vars
     )
 
@@ -71,7 +79,8 @@ if __name__ == "__main__":
     trainers = []
     inp = [minibatch]
     for d in sda.layers():
-        trainers.append(DATrainer.alloc(d, d.mse, inp[0], sda_conf))
+        cost_fn = MeanSquaredError.alloc(conf, d)
+        trainers.append(DATrainer.alloc(d, cost_fn, inp[0], sda_conf))
         # Each time, we'll be passing the data through the layer to
         # obtain a symbolic representation for the input to the next
         # layer.
@@ -79,10 +88,10 @@ if __name__ == "__main__":
 
     # We'll do roughly the same thing as above, but inside a loop over layers.
     thislayer_input = [minibatch]
-    for trainer, layer in zip(trainers, sda.layers()):
+    for trainer, layer in izip(trainers, sda.layers()):
         # Compile a Theano function for training this layer.
         thislayer_train_fn = theano.function([minibatch],
-                                             layer.mse(thislayer_input),
+                                             trainer.cost(thislayer_input),
                                              updates=trainer.updates())
 
         # Train as before.
