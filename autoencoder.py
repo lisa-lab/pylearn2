@@ -65,12 +65,12 @@ class DenoisingAutoencoder(Block):
             self.w_prime = self.weights.T
         else:
             self.w_prime = sharedX(
-                .5 * rng.rand(conf['n_hid'], conf['n_vis']),
+                .5 * rng.rand(conf['n_hid'], conf['n_vis']) * conf['irange'],
                 name='Wprime'
             )
 
         def _resolve_callable(conf_attr):
-            if conf_attr is None:
+            if conf[conf_attr] is None:
                 # The identity function, for linear layers.
                 return lambda x: x
             # If it's a callable, use it directly.
