@@ -2,10 +2,12 @@
 Corruptor classes: classes that encapsulate the noise process for the DAE
 training criterion.
 """
+# Third-party imports
 import numpy
 import theano
 from theano import tensor
 
+# Shortcuts
 theano.config.warn.sum_div_dimshuffle_bug = False
 floatX = theano.config.floatX
 sharedX = lambda X, name : theano.shared(numpy.asarray(X, dtype=floatX), name=name)
@@ -15,7 +17,7 @@ if 0:
 else:
     import theano.sandbox.rng_mrg
     RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
-
+    
 class Corruptor(object):
     """
     A corruptor object is allocated in the same fashion as other
@@ -70,3 +72,11 @@ class GaussianCorruptor(Corruptor):
             ) + inp
         for inp in inputs]
 
+##################################################
+def get(str):
+    """ Evaluate str into a corruptor object, if it exists """
+    obj = globals()[str]
+    if issubclass(obj, Corruptor):
+        return obj
+    else:
+        raise NameError(str)

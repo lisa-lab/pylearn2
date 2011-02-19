@@ -8,7 +8,7 @@ import theano
 from theano import tensor
 
 # Local imports
-from costs import MeanSquaredError
+from cost import MeanSquaredError
 from corruption import GaussianCorruptor
 from autoencoder import DenoisingAutoencoder, DATrainer, StackedDA
 
