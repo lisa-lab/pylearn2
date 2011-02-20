@@ -13,10 +13,13 @@ from corruption import GaussianCorruptor
 from autoencoder import DenoisingAutoencoder, DATrainer, StackedDA
 
 if __name__ == "__main__":
+    # Simulate some fake data.
+    data = numpy.random.normal(size=(1000, 15))
+
     conf = {
         'corruption_level': 0.1,
         'n_hid': 20,
-        'n_vis': 15,
+        'n_vis': data.shape[1],
         'lr_anneal_start': 100,
         'base_lr': 0.01,
         'tied_weights': True,
@@ -40,9 +43,6 @@ if __name__ == "__main__":
 
     # Finally, build a Theano function out of all this.
     train_fn = trainer.function(minibatch)
-
-    # Simulate some fake data.
-    data = numpy.random.normal(size=(1000, 15))
 
     # Suppose we want minibatches of size 10
     batchsize = 10
