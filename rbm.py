@@ -3,10 +3,13 @@ import theano
 from theano import tensor
 #from pylearn.gd.sgd import sgd_updates
 #from pylearn.algorithms.mcRBM import contrastive_cost, contrastive_grad
+
 from base import Block, Trainer
+from utils import sharedX
+
 theano.config.warn.sum_div_dimshuffle_bug = False
 floatX = theano.config.floatX
-sharedX = lambda X, name : theano.shared(numpy.asarray(X, dtype=floatX), name=name)
+
 if 0:
     print 'WARNING: using SLOW rng'
     RandomStreams = tensor.shared_randomstreams.RandomStreams
@@ -84,15 +87,18 @@ class RBM(Block):
         self.conf = conf
         self.visbias = sharedX(
             numpy.zeros(conf['n_vis']),
-            name='vb'
+            name='vb',
+            borrow=True
         )
         self.hidbias = sharedX(
             numpy.zeros(conf['n_hid']),
-            name='hb'
+            name='hb',
+            borrow=True
         )
         self.weights = sharedX(
             .5 * rng.rand(conf['n_vis'], conf['n_hid']),
-            name='W'
+            name='W',
+            borrow=True
         )
 
         return self

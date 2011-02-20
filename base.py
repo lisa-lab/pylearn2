@@ -7,7 +7,7 @@ from theano import tensor
 #from pylearn.algorithms.mcRBM import contrastive_cost, contrastive_grad
 theano.config.warn.sum_div_dimshuffle_bug = False
 floatX = theano.config.floatX
-sharedX = lambda X, name : theano.shared(numpy.asarray(X, dtype=floatX), name=name)
+
 if 0:
     print 'WARNING: using SLOW rng'
     RandomStreams = tensor.shared_randomstreams.RandomStreams

@@ -35,6 +35,11 @@ def get_value(variable):
     else:
         return variable
 
+def sharedX(value, name=None, borrow=False):
+    """Transform value into a shared variable of type floatX"""
+    return theano.shared(theano._asarray(value, dtype=floatX),
+            name=name, borrow=False)
+
 ##################################################
 # Datasets and contest facilities
 ##################################################
@@ -55,9 +60,9 @@ def load_data(conf):
     def shared_dataset(data_x):
         """Function that loads the dataset into shared variables"""
         if conf.get('normalize', True):
-            return theano.shared(numpy.asarray(data_x, dtype=floatX), borrow=True)
+            return sharedX(data_x, borrow=True)
         else:
-            return theano.shared(numpy.asarray(data_x), borrow=True)
+            return theano.shared(theano._asarray(data_x), borrow=True)
 
     if conf.get('normalize_on_the_fly', False):
         return [train_set, valid_set, test_set]

@@ -10,6 +10,7 @@ from pylearn.gd.sgd import sgd_updates
 
 # Local imports
 from base import Block, Trainer
+from utils import sharedX
 
 def safe_update(dict_to, dict_from):
     """
@@ -23,7 +24,7 @@ def safe_update(dict_to, dict_from):
 
 theano.config.warn.sum_div_dimshuffle_bug = False
 floatX = theano.config.floatX
-sharedX = lambda X, name: theano.shared(numpy.asarray(X, dtype=floatX), name=name)
+
 if 0:
     print 'WARNING: using SLOW rng'
     RandomStreams = tensor.shared_randomstreams.RandomStreams
@@ -49,15 +50,19 @@ class DenoisingAutoencoder(Block):
         self.corruptor = corruptor
         self.visbias = sharedX(
             numpy.zeros(conf['n_vis']),
-            name='vb'
+            name='vb',
+            borrow=True
         )
         self.hidbias = sharedX(
             numpy.zeros(conf['n_hid']),
-            name='hb'
+            name='hb',
+            borrow=True
         )
+        # TODO: use weight scaling factor if provided, Xavier's default else
         self.weights = sharedX(
             .5 * rng.rand(conf['n_vis'], conf['n_hid']) * conf['irange'],
-            name='W'
+            name='W',
+            borrow=True
         )
         seed = int(rng.randint(2**30))
         self.s_rng = RandomStreams(seed)
@@ -66,7 +71,8 @@ class DenoisingAutoencoder(Block):
         else:
             self.w_prime = sharedX(
                 .5 * rng.rand(conf['n_hid'], conf['n_vis']) * conf['irange'],
-                name='Wprime'
+                name='Wprime',
+                borrow=True
             )
 
         def _resolve_callable(conf_attr):
@@ -214,10 +220,7 @@ class DATrainer(Trainer):
         learning_rates = {}
         for parameter in model.params():
             lr_name = '%s_lr' % parameter.name
-            try:
-                thislr = conf[lr_name]
-            except:
-                thislr = 1.
+            thislr = conf.get(lr_name, 1.)
             learning_rates[parameter] = sharedX(thislr, lr_name)
 
         # A shared variable for storing the iteration number.
@@ -237,7 +240,7 @@ class DATrainer(Trainer):
         """Compute the updates for each of the parameter variables."""
         ups = {}
         # Base learning rate per example.
-        base_lr = numpy.asarray(self.conf['base_lr'], dtype=floatX)
+        base_lr = theano._asarray(self.conf['base_lr'], dtype=floatX)
 
         # Annealing coefficient. Here we're using a formula of
         # base_lr * min(0.0, max(base_lr, lr_anneal_start / (iteration + 1))
