@@ -56,3 +56,12 @@ class CrossEntropy(Cost):
         pairs = izip(inputs, self.reconstruction(inputs))
         ce = lambda x, z: x * tensor.log(z) + (1 - x) * tensor.log(1 - z)
         return sum([ce(inp, rec).sum(axis=1).mean() for inp, rec in pairs])
+    
+##################################################
+def get(str):
+    """ Evaluate str into a cost object, if it exists """
+    obj = globals()[str]
+    if issubclass(obj, Cost):
+        return obj
+    else:
+        raise NameError(str)
