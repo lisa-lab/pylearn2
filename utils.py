@@ -171,6 +171,7 @@ class BatchIterator(object):
         self.limit = [size // self.batchsize for size in set_sizes]
         self.counter = [0, 0, 0]
         self.index = 0
+        self.max_index = self.upper_bound // self.batchsize
 
         # Sampled random number generator
         pairs = izip(set_sizes, set_proba)
@@ -193,7 +194,7 @@ class BatchIterator(object):
         """
         Return the next minibatch for training according to sampling probabilities
         """
-        if (self.index > self.upper_bound):
+        if (self.index > self.max_index):
             raise StopIteration
         else:
             # Retrieve minibatch from chosen set
