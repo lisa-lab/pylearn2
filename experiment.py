@@ -34,7 +34,7 @@ def basic_trainer(conf):
     # Allocate an optimizer, which tells us how to update our model.
     cost_fn = cost.get(conf['cost_class'])(conf, da)([minibatch])
     trainer = SGDOptimizer(da, cost_fn, conf)
-    train_fn = trainer.function([minibatch])
+    train_fn = trainer.function([minibatch], name='train_fn')
 
     # Here's a manual training loop.
     start_time = time.clock()
@@ -54,7 +54,7 @@ def basic_trainer(conf):
     conf['training_time'] = (end_time - start_time) / 60.
 
     # Compute denoising error for valid and train datasets.
-    error_fn = theano.function([minibatch], cost_fn)
+    error_fn = theano.function([minibatch], cost_fn, name='error_fn')
 
     conf['error_valid'] = error_fn(data[1].value)
     conf['error_test'] = error_fn(data[2].value)
@@ -76,7 +76,8 @@ def submit(conf):
 
     # Create submission file
     minibatch = tensor.dmatrix()
-    transform = theano.function([minibatch], da([minibatch])[0])
+    transform = theano.function([minibatch], da([minibatch])[0],
+                                name='transform')
     utils.create_submission(conf, transform)
 
 
