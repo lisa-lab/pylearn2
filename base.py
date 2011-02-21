@@ -27,7 +27,13 @@ class Block(object):
     def alloc(cls, conf, rng=None):
         raise NotImplementedError('alloc')
 
-    def load(self, load_dir, load_filename):
+    @classmethod
+    def load(cls, filename, conf):
+        """Create a new object from saved parameters.
+
+        The parameters will be loaded from filename, and the options
+        (or hyper-parameters) are specified in conf.
+        """
         raise NotImplementedError('load')
 
     def params(self):
@@ -45,21 +51,18 @@ class Block(object):
     def __call__(self, inputs):
         raise NotImplementedError('__call__')
 
-class Trainer(object):
+
+class Optimizer(object):
     """
-    Basic abstract class for training
+    Basic abstract class for computing parameter updates of a model.
     """
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
 
-    @classmethod
-    def alloc(cls, conf, rng=None):
-        raise NotImplementedError('alloc')
-
     def updates(self):
-        """Do one step of training."""
+        """Return symbolic updates to apply"""
         raise NotImplementedError()
-    
+
     def function(self, input):
         """Return a compiled Theano function for training"""
         raise NotImplementedError()

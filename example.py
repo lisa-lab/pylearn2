@@ -10,7 +10,8 @@ from theano import tensor
 # Local imports
 from cost import MeanSquaredError
 from corruption import GaussianCorruptor
-from autoencoder import DenoisingAutoencoder, DATrainer, StackedDA
+from autoencoder import DenoisingAutoencoder, StackedDA
+from optimizer import SGDOptimizer
 
 if __name__ == "__main__":
     # Simulate some fake data.
@@ -37,12 +38,13 @@ if __name__ == "__main__":
     corruptor = GaussianCorruptor.alloc(conf)
     da = DenoisingAutoencoder.alloc(corruptor, conf)
 
-    # Allocate a trainer, which tells us how to update our model.
-    cost_fn = MeanSquaredError.alloc(conf, da)
-    trainer = DATrainer.alloc(da, cost_fn, minibatch, conf)
+    # Allocate an optimizer, which tells us how to update our model.
+    #TODO: build the cost another way
+    cost = MeanSquaredError.alloc(conf, da)([minibatch])
+    trainer = SGDOptimizer(da, cost, conf)
 
     # Finally, build a Theano function out of all this.
-    train_fn = trainer.function(minibatch)
+    train_fn = trainer.function([minibatch])
 
     # Suppose we want minibatches of size 10
     batchsize = 10
@@ -60,7 +62,7 @@ if __name__ == "__main__":
 
     print "Transformed data:"
     print numpy.histogram(transform(data))
-    
+
     # We'll now create a stacked denoising autoencoder. First, we change
     # the number of hidden units to be a list. This tells the StackedDA
     # class how many layers to make.
@@ -68,15 +70,15 @@ if __name__ == "__main__":
     sda_conf['n_hid'] = [20, 20, 10]
     sda = StackedDA.alloc(corruptor, sda_conf)
 
-    # To pretrain it, we'll use a DATrainer for each layer.
-    trainers = []
+    # To pretrain it, we'll use a different SGDOptimizer for each layer.
+    optimizers = []
     thislayer_input = [minibatch]
     for layer in sda.layers():
-        cost_fn = MeanSquaredError.alloc(sda_conf, layer)
-        trainer = DATrainer.alloc(layer, cost_fn, thislayer_input[0], sda_conf)
-        trainers.append(trainer)
+        cost = MeanSquaredError.alloc(sda_conf, layer)([thislayer_input[0]])
+        opt = SGDOptimizer(layer, cost, sda_conf)
+        optimizers.append(opt)
         # Retrieve a Theano function for training this layer.
-        thislayer_train_fn = trainer.function(minibatch)
+        thislayer_train_fn = opt.function([minibatch])
 
         # Train as before.
         for epoch in xrange(10):

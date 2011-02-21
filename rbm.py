@@ -4,7 +4,7 @@ from theano import tensor
 #from pylearn.gd.sgd import sgd_updates
 #from pylearn.algorithms.mcRBM import contrastive_cost, contrastive_grad
 
-from base import Block, Trainer
+from base import Block, Optimizer
 from utils import sharedX
 
 theano.config.warn.sum_div_dimshuffle_bug = False
@@ -106,7 +106,7 @@ class RBM(Block):
     def outputs(self):
         return (self.inputs)
 
-class RBMTrainer(Trainer):
+class RBMOptimizer(Trainer):
     @classmethod
     def alloc(cls, conf, rbm, sampler, visible_batch):
         # TODO: hyperparameters
