@@ -27,12 +27,12 @@ def basic_trainer(conf):
     minibatch = tensor.dmatrix()
 
     # Allocate a denoising autoencoder with a given noise corruption.
-    corruptor = corruption.get(conf['corruption_class']).alloc(conf)
-    da = DenoisingAutoencoder.alloc(corruptor, conf)
+    corruptor = corruption.get(conf['corruption_class'])(conf)
+    da = DenoisingAutoencoder(corruptor, conf)
 
     # Allocate a trainer, which tells us how to update our model.
-    cost_fn = cost.get(conf['cost_class']).alloc(conf, da)
-    trainer = DATrainer.alloc(da, cost_fn, minibatch, conf)
+    cost_fn = cost.get(conf['cost_class'])(conf, da)
+    trainer = DATrainer(da, cost_fn, minibatch, conf)
     train_fn = trainer.function(minibatch)
 
     # Here's a manual training loop.
@@ -68,8 +68,8 @@ def submit(conf):
     model trained according to conf parameters
     """
     # Load the model parameters
-    corruptor = corruption.get(conf['corruption_class']).alloc(conf)
-    da = DenoisingAutoencoder.alloc(corruptor, conf)
+    corruptor = corruption.get(conf['corruption_class'])(conf)
+    da = DenoisingAutoencoder(corruptor, conf)
     # TODO: Not implemented yet
     # da.load(exp['model_dir'], 'model.pkl')
 

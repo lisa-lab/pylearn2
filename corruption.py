@@ -20,25 +20,19 @@ if 0:
 else:
     import theano.sandbox.rng_mrg
     RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
-    
+
 class Corruptor(object):
     """
     A corruptor object is allocated in the same fashion as other
     objects in this file, with a 'conf' dictionary (or object
     supporting __getitem__) containing relevant hyperparameters.
     """
-    def __init__(self, **kwargs):
-        self.__dict__.update(kwargs)
-
-    @classmethod
-    def alloc(cls, conf, rng=None):
+    def __init__(self, conf, rng=None):
         if not hasattr(rng, 'randn'):
             rng = numpy.random.RandomState(rng)
-        self = cls()
         seed = int(rng.randint(2**30))
         self.s_rng = RandomStreams(seed)
         self.conf = conf
-        return self
 
     def __call__(self, inputs):
         """Symbolic expression denoting the corrupted inputs."""

@@ -26,16 +26,10 @@ class DenoisingAutoencoder(Block):
     A denoising autoencoder learns a representation of the input by
     reconstructing a noisy version of it.
     """
-    def __init__(self, **kwargs):
-        # TODO: Do we need anything else here?
-        super(DenoisingAutoencoder, self).__init__(**kwargs)
-
-    @classmethod
-    def alloc(cls, corruptor, conf, rng=None):
+    def __init__(self, corruptor, conf, rng=None):
         """Allocate a denoising autoencoder object."""
         if not hasattr(rng, 'randn'):
             rng = numpy.random.RandomState(rng)
-        self = cls()
         self.corruptor = corruptor
         self.visbias = sharedX(
             numpy.zeros(conf['n_vis']),
@@ -67,7 +61,7 @@ class DenoisingAutoencoder(Block):
         def _resolve_callable(conf_attr):
             if conf[conf_attr] is None:
                 # The identity function, for linear layers.
-                return lambda x: x
+                return None
             # If it's a callable, use it directly.
             if hasattr(conf[conf_attr], '__call__'):
                 return conf[conf_attr]
@@ -89,11 +83,14 @@ class DenoisingAutoencoder(Block):
         ]
         if not conf['tied_weights']:
             self._params.append(self.w_prime)
-        return self
 
     def _hidden_activation(self, x):
         """Single input pattern/minibatch activation function."""
-        return self.act_enc(self.hidbias + tensor.dot(x, self.weights))
+        if self.act_enc is None:
+            act_enc = lambda x: x
+        else:
+            act_enc = self.act_enc
+        return act_enc(self.hidbias + tensor.dot(x, self.weights))
 
     def hidden_repr(self, inputs):
         """Hidden unit activations for each set of inputs."""
@@ -103,8 +100,12 @@ class DenoisingAutoencoder(Block):
         """Reconstructed inputs after corruption."""
         corrupted = self.corruptor(inputs)
         hiddens = self.hidden_repr(corrupted)
+        if self.act_dec is None:
+            act_dec = lambda x: x
+        else:
+            act_dec = self.act_dec
         return [
-            self.act_dec(self.visbias + tensor.dot(h, self.w_prime))
+            act_dec(self.visbias + tensor.dot(h, self.w_prime))
             for h in hiddens
         ]
 
@@ -121,16 +122,10 @@ class StackedDA(Block):
     A class representing a stacked model. Forward propagation passes
     (symbolic) input through each layer sequentially.
     """
-    def __init__(self, **kwargs):
-        # TODO: Do we need anything else here?
-        super(StackedDA, self).__init__(**kwargs)
-
-    @classmethod
-    def alloc(cls, corruptors, conf, rng=None):
+    def __init__(self, corruptors, conf, rng=None):
         """Allocate a stacked denoising autoencoder object."""
         if not hasattr(rng, 'randn'):
             rng = numpy.random.RandomState(rng)
-        self = cls()
         self._layers = []
         _local = {}
         # Make sure that if we have a sequence of encoder/decoder activations
@@ -170,7 +165,6 @@ class StackedDA(Block):
             }
             da = DenoisingAutoencoder.alloc(corr, lconf, rng)
             self._layers.append(da)
-        return self
 
     def layers(self):
         """
