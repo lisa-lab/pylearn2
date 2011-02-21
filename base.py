@@ -40,8 +40,8 @@ class Trainer(object):
     def updates(self):
         """Do one step of training."""
         raise NotImplementedError()
-    
-    def function(self, input):
+
+    def function(self):
         """Return a compiled Theano function for training"""
         raise NotImplementedError()
 
