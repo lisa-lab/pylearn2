@@ -14,17 +14,11 @@ class Cost(object):
     objects in this file, with a 'conf' dictionary (or object
     supporting __getitem__) containing relevant hyperparameters.
     """
-    def __init__(self, **kwargs):
-        self.__dict__.update(kwargs)
-
-    @classmethod
-    def alloc(cls, conf, da):
-        self = cls()
+    def __init__(self, conf, da):
         self.reconstruction = da.reconstruction
         self.conf = conf
         # TODO: Do stuff depending on conf parameters (for example
         # use different cross-entropy if act_end == "tanh" or not)
-        return self
 
     def __call__(self, inputs):
         """Symbolic expression denoting the reconstruction error."""

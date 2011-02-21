@@ -34,12 +34,12 @@ if __name__ == "__main__":
     minibatch = tensor.dmatrix()
 
     # Allocate a denoising autoencoder with binomial noise corruption.
-    corruptor = GaussianCorruptor.alloc(conf)
-    da = DenoisingAutoencoder.alloc(corruptor, conf)
+    corruptor = GaussianCorruptor(conf)
+    da = DenoisingAutoencoder(corruptor, conf)
 
     # Allocate a trainer, which tells us how to update our model.
-    cost_fn = MeanSquaredError.alloc(conf, da)
-    trainer = DATrainer.alloc(da, cost_fn, minibatch, conf)
+    cost_fn = MeanSquaredError(conf, da)
+    trainer = DATrainer(da, cost_fn, minibatch, conf)
 
     # Finally, build a Theano function out of all this.
     train_fn = trainer.function(minibatch)
@@ -60,20 +60,20 @@ if __name__ == "__main__":
 
     print "Transformed data:"
     print numpy.histogram(transform(data))
-    
+
     # We'll now create a stacked denoising autoencoder. First, we change
     # the number of hidden units to be a list. This tells the StackedDA
     # class how many layers to make.
     sda_conf = conf.copy()
     sda_conf['n_hid'] = [20, 20, 10]
-    sda = StackedDA.alloc(corruptor, sda_conf)
+    sda = StackedDA(corruptor, sda_conf)
 
     # To pretrain it, we'll use a DATrainer for each layer.
     trainers = []
     thislayer_input = [minibatch]
     for layer in sda.layers():
-        cost_fn = MeanSquaredError.alloc(sda_conf, layer)
-        trainer = DATrainer.alloc(layer, cost_fn, thislayer_input[0], sda_conf)
+        cost_fn = MeanSquaredError(sda_conf, layer)
+        trainer = DATrainer(layer, cost_fn, thislayer_input[0], sda_conf)
         trainers.append(trainer)
         # Retrieve a Theano function for training this layer.
         thislayer_train_fn = trainer.function(minibatch)

@@ -37,16 +37,10 @@ class DenoisingAutoencoder(Block):
     A denoising autoencoder learns a representation of the input by
     reconstructing a noisy version of it.
     """
-    def __init__(self, **kwargs):
-        # TODO: Do we need anything else here?
-        super(DenoisingAutoencoder, self).__init__(**kwargs)
-
-    @classmethod
-    def alloc(cls, corruptor, conf, rng=None):
+    def __init__(self, corruptor, conf, rng=None):
         """Allocate a denoising autoencoder object."""
         if not hasattr(rng, 'randn'):
             rng = numpy.random.RandomState(rng)
-        self = cls()
         self.corruptor = corruptor
         self.visbias = sharedX(
             numpy.zeros(conf['n_vis']),
@@ -100,7 +94,6 @@ class DenoisingAutoencoder(Block):
         ]
         if not conf['tied_weights']:
             self._params.append(self.w_prime)
-        return self
 
     def _hidden_activation(self, x):
         """Single input pattern/minibatch activation function."""
@@ -132,16 +125,10 @@ class StackedDA(Block):
     A class representing a stacked model. Forward propagation passes
     (symbolic) input through each layer sequentially.
     """
-    def __init__(self, **kwargs):
-        # TODO: Do we need anything else here?
-        super(StackedDA, self).__init__(**kwargs)
-
-    @classmethod
-    def alloc(cls, corruptors, conf, rng=None):
+    def __init__(self, corruptors, conf, rng=None):
         """Allocate a stacked denoising autoencoder object."""
         if not hasattr(rng, 'randn'):
             rng = numpy.random.RandomState(rng)
-        self = cls()
         self._layers = []
         _local = {}
         # Make sure that if we have a sequence of encoder/decoder activations
@@ -181,7 +168,6 @@ class StackedDA(Block):
             }
             da = DenoisingAutoencoder.alloc(corr, lconf, rng)
             self._layers.append(da)
-        return self
 
     def layers(self):
         """
@@ -209,8 +195,7 @@ class StackedDA(Block):
         return transformed
 
 class DATrainer(Trainer):
-    @classmethod
-    def alloc(cls, model, cost, minibatch, conf):
+    def __init__(self, model, cost, minibatch, conf):
         """
         Takes a DenoisingAutoencoder object, a (symbolic) cost function
         which takes the input and turns it into a scalar (somehow),
@@ -231,10 +216,11 @@ class DATrainer(Trainer):
         annealed = sharedX(conf['base_lr'], 'annealed')
 
         # Instantiate the class, finally.
-        self = cls(model=model, cost=cost, conf=conf,
-                   learning_rates=learning_rates, annealed=annealed,
-                   iteration=iteration, minibatch=minibatch)
-        return self
+        self.__dict__.update(
+            dict(model=model, cost=cost, conf=conf,
+                 learning_rates=learning_rates, annealed=annealed,
+                 iteration=iteration, minibatch=minibatch)
+        )
 
     def updates(self):
         """Compute the updates for each of the parameter variables."""

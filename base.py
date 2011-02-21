@@ -19,17 +19,6 @@ class Block(object):
     """
     Basic building block for deep architectures.
     """
-    def __init__(self, **kwargs):
-        self._params = []
-        self.__dict__.update(kwargs)
-
-    @classmethod
-    def alloc(cls, conf, rng=None):
-        raise NotImplementedError('alloc')
-
-    def load(self, load_dir, load_filename):
-        raise NotImplementedError('load')
-
     def params(self):
         """
         Returns a list of *shared* learnable parameters that
@@ -49,13 +38,6 @@ class Trainer(object):
     """
     Basic abstract class for training
     """
-    def __init__(self, **kwargs):
-        self.__dict__.update(kwargs)
-
-    @classmethod
-    def alloc(cls, conf, rng=None):
-        raise NotImplementedError('alloc')
-
     def updates(self):
         """Do one step of training."""
         raise NotImplementedError()
