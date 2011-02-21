@@ -1,4 +1,8 @@
 """Base class for the components in other modules."""
+import cPickle
+import os.path
+from itertools import izip
+
 import theano
 from theano import tensor
 
@@ -32,6 +36,30 @@ class Block(object):
 
     def __call__(self, inputs):
         raise NotImplementedError('__call__')
+
+    def save(self, save_dir, save_file):
+        """
+        Dumps the entire object to a pickle file.
+        Individual classes should override __getstate__ and __setstate__
+        to deal with object versioning in the case of API changes.
+        """
+        if not os.path.exists(save_dir):
+            os.mkdir(save_dir)
+        elif not os.path.isdir(save_dir):
+            raise IOError('save_dir %s is not a directory' % save_dir)
+        else:
+            fhandle = open(os.path.join(save_dir, save_file), 'w')
+            cPickle.dump(self, fhandle, -1)
+
+    @classmethod
+    def load(cls, save_file):
+        """Load a serialized block."""
+        obj = cPickle.load(open(save_file))
+        if isinstance(obj, cls):
+            return obj
+        else:
+            raise TypeError('unpickled object was of wrong class: %s' %
+                            obj.__class__)
 
 class Trainer(object):
     """
