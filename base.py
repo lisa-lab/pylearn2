@@ -1,5 +1,4 @@
 """Base class for the components in other modules."""
-import numpy
 import theano
 from theano import tensor
 
