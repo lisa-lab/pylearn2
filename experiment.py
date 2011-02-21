@@ -42,8 +42,8 @@ def basic_trainer(conf):
     batchiter = BatchIterator(conf, data)
     for epoch in xrange(conf['epochs']):
         c = []
-        for minibatch in batchiter:
-            c.append(train_fn(minibatch))
+        for minibatch_ in batchiter:
+            c.append(train_fn(minibatch_))
         train_time = time.clock() - batch_time
         batch_time = time.clock()
         print 'Training epoch %d, time spent (min) %f, cost ' \
@@ -54,7 +54,7 @@ def basic_trainer(conf):
     conf['training_time'] = (end_time - start_time) / 60.
 
     # Compute denoising error for valid and train datasets.
-    error_fn = theano.function([minibatch], cost_fn([minibatch]))
+    error_fn = theano.function([minibatch], cost_fn)
 
     conf['error_valid'] = error_fn(data[1].value)
     conf['error_test'] = error_fn(data[2].value)
