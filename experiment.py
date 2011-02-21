@@ -12,7 +12,8 @@ from framework import utils
 from framework import cost
 from framework import corruption
 from framework.utils import BatchIterator
-from framework.autoencoder import DenoisingAutoencoder, DATrainer
+from framework.autoencoder import DenoisingAutoencoder
+from framework.optimizer import SGDOptimizer
 
 def basic_trainer(conf):
     """
@@ -30,10 +31,10 @@ def basic_trainer(conf):
     corruptor = corruption.get(conf['corruption_class'])(conf)
     da = DenoisingAutoencoder(corruptor, conf)
 
-    # Allocate a trainer, which tells us how to update our model.
-    cost_fn = cost.get(conf['cost_class'])(conf, da)
-    trainer = DATrainer(da, cost_fn, minibatch, conf)
-    train_fn = trainer.function(minibatch)
+    # Allocate an optimizer, which tells us how to update our model.
+    cost_fn = cost.get(conf['cost_class'])(conf, da)([minibatch])
+    trainer = SGDOptimizer(da, cost_fn, conf)
+    train_fn = trainer.function([minibatch])
 
     # Here's a manual training loop.
     start_time = time.clock()
@@ -105,7 +106,7 @@ if __name__ == "__main__":
             'randomize_valid' : True,
             'randomize_test' : True,
             'batchsize' : 20,
-            'epochs' : 50,
+            'epochs' : 1,
             'model_dir' : './outputs/',
             'submission_dir' : './outputs/'
             }
