@@ -81,6 +81,7 @@ class RBM(Block):
             name='W',
             borrow=True
         )
+        self._params = [self.visbias, self.hidbias, self.weights]
 
     def cd_updates(self, pos_v, neg_v, lr, other_cost=0):
         """
