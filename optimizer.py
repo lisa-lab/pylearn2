@@ -5,8 +5,8 @@ from theano import tensor
 from pylearn.gd.sgd import sgd_updates
 
 # Local imports
-from base import Optimizer
-from utils import safe_update, sharedX
+from framework.base import Optimizer
+from framework.utils import safe_update
 
 floatX = theano.config.floatX
 
@@ -68,11 +68,10 @@ class SGDOptimizer(Optimizer):
 
     def function(self, inputs, name=None):
         """Compile the Theano training function associated with the optimizer"""
-        return theano.function(
-                inputs,
-                self.cost,
-                updates=self.updates(),
-                name=name)
+        return theano.function(inputs,
+                               self.cost,
+                               updates=self.updates(),
+                               name=name)
 
 class RBMOptimizer(Optimizer):
     """TODO: This name really doesn't make sense."""
