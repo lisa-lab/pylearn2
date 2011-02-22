@@ -123,7 +123,7 @@ class RBM(Block):
         return tensor.cast(rng.uniform(size=shape) < v_mean, floatX)
 
     def input_to_h_from_v(self, v):
-        return self.hidbias + self.dot(v, self.weights)
+        return self.hidbias + tensor.dot(v, self.weights)
 
     def mean_h_given_v(self, v):
         """
@@ -137,7 +137,7 @@ class RBM(Block):
         Mean reconstruction of the visible units given a hidden unit
         configuration.
         """
-        return nnet.sigmoid(self.visbias + self.dot(h, self.weights.T))
+        return nnet.sigmoid(self.visbias + tensor.dot(h, self.weights.T))
 
     def free_energy_given_v(self, v):
         """
