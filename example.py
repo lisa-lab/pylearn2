@@ -36,12 +36,12 @@ if __name__ == "__main__":
 
     # Allocate a denoising autoencoder with binomial noise corruption.
     corruptor = GaussianCorruptor(conf)
-    da = DenoisingAutoencoder(corruptor, conf)
+    da = DenoisingAutoencoder(conf, corruptor)
 
     # Allocate an optimizer, which tells us how to update our model.
     # TODO: build the cost another way
     cost = MeanSquaredError(conf, da)([minibatch])
-    trainer = SGDOptimizer(da, cost, conf)
+    trainer = SGDOptimizer(conf, da, cost)
 
     # Finally, build a Theano function out of all this.
     train_fn = trainer.function([minibatch])
@@ -68,14 +68,14 @@ if __name__ == "__main__":
     # class how many layers to make.
     sda_conf = conf.copy()
     sda_conf['n_hid'] = [20, 20, 10]
-    sda = StackedDA(corruptor, sda_conf)
+    sda = StackedDA(sda_conf, corruptor)
 
     # To pretrain it, we'll use a different SGDOptimizer for each layer.
     optimizers = []
     thislayer_input = [minibatch]
     for layer in sda.layers():
         cost = MeanSquaredError(sda_conf, layer)([thislayer_input[0]])
-        opt = SGDOptimizer(layer, cost, sda_conf)
+        opt = SGDOptimizer(sda_conf, layer, cost)
         optimizers.append(opt)
         # Retrieve a Theano function for training this layer.
         thislayer_train_fn = opt.function([minibatch])

@@ -73,6 +73,3 @@ class Optimizer(object):
     def function(self, inputs):
         """Return a compiled Theano function for training"""
         raise NotImplementedError()
-
-    def save(self, save_dir, save_filename):
-        raise NotImplementedError('save')

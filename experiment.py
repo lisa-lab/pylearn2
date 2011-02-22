@@ -31,11 +31,11 @@ def train_da(conf):
 
     # Allocate a denoising autoencoder with a given noise corruption.
     corruptor = corruption.get(conf['corruption_class'])(conf)
-    da = DenoisingAutoencoder(corruptor, conf)
+    da = DenoisingAutoencoder(conf, corruptor)
 
     # Allocate an optimizer, which tells us how to update our model.
     cost_fn = cost.get(conf['cost_class'])(conf, da)([minibatch])
-    trainer = SGDOptimizer(da, cost_fn, conf)
+    trainer = SGDOptimizer(conf, da, cost_fn)
     train_fn = trainer.function([minibatch], name='train_fn')
 
     # Here's a manual training loop.

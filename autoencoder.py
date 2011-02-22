@@ -26,7 +26,7 @@ class DenoisingAutoencoder(Block):
     A denoising autoencoder learns a representation of the input by
     reconstructing a noisy version of it.
     """
-    def __init__(self, corruptor, conf, rng=None):
+    def __init__(self, conf, corruptor, rng=None):
         """Allocate a denoising autoencoder object."""
         if not hasattr(rng, 'randn'):
             rng = numpy.random.RandomState(rng)
@@ -122,7 +122,7 @@ class StackedDA(Block):
     A class representing a stacked model. Forward propagation passes
     (symbolic) input through each layer sequentially.
     """
-    def __init__(self, corruptors, conf, rng=None):
+    def __init__(self, conf, corruptors, rng=None):
         """Allocate a stacked denoising autoencoder object."""
         if not hasattr(rng, 'randn'):
             rng = numpy.random.RandomState(rng)
@@ -163,7 +163,7 @@ class StackedDA(Block):
                 'irange': conf['irange'],
                 'tied_weights': conf['tied_weights'],
             }
-            da = DenoisingAutoencoder(corr, lconf, rng)
+            da = DenoisingAutoencoder(lconf, corr, rng)
             self._layers.append(da)
 
     def layers(self):

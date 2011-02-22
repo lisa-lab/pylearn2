@@ -16,21 +16,21 @@ class SGDOptimizer(Optimizer):
     period.
     """
 
-    def __init__(self, params, cost, conf):
+    def __init__(self, conf, params, cost):
         """
-        :type params: Either a list of shared variables, or an object with
-            a 'params()' method returning such a list.
-        :param params: The parameters we want to update.
-
-        :type cost: A symbolic Theano variable.
-        :param cost: The cost to minimize.
-
         :type conf: Dictionary
         :param conf: Other configuration variables. Are supported:
             * base_lr: the base learning rate
             * <paramname>_lr: specific modifier of the learning rate applied
               on parameter <paramname>. Defaults to 1.
             * lr_anneal_start: Annealing coefficient.
+
+        :type params: Either a list of shared variables, or an object with
+            a 'params()' method returning such a list.
+        :param params: The parameters we want to update.
+
+        :type cost: A symbolic Theano variable.
+        :param cost: The cost to minimize.
 
         The formula to compute the effective learning rate on a parameter is:
         <paramname>_lr * min(0.0, max(base_lr, lr_anneal_start/(iteration+1)))
