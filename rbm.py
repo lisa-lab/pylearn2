@@ -169,7 +169,7 @@ class GaussianBinaryRBM(RBM):
         return self.hidbias + tensor.dot(v / self.sigma, self.weights)
 
     def mean_v_given_h(self, h):
-        return self.visbias + self.sigma * tensor.dot(self.weights, h)
+        return self.visbias + self.sigma * tensor.dot(h, self.weights.T)
 
     def free_energy_given_v(self, v):
         hid_inp = self.input_to_h_from_v(v)
