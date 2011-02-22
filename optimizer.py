@@ -5,8 +5,8 @@ from theano import tensor
 from pylearn.gd.sgd import sgd_updates
 
 # Local imports
-from framework.base import Optimizer
-from framework.utils import safe_update, sharedX
+from base import Optimizer
+from utils import safe_update, sharedX
 
 floatX = theano.config.floatX
 
@@ -43,45 +43,16 @@ class SGDOptimizer(Optimizer):
             self.params = params.params()
         self.cost = cost
         self.conf = conf
-
-        # Take care of learning rate scales for individual parameters
-        self.learning_rates = {}
-
-        for parameter in self.params:
-            lr_name = '%s_lr' % parameter.name
-            thislr = conf.get(lr_name, 1.)
-            self.learning_rates[parameter] = sharedX(thislr, lr_name)
-
-        # A shared variable for storing the iteration number.
-        self.iteration = sharedX(theano._asarray(0, dtype='int32'), name='iter')
-
-        # A shared variable for storing the annealed base learning rate, used
-        # to lower the learning rate gradually after a certain amount of time.
-        self.annealed = sharedX(conf['base_lr'], 'annealed')
+        self.learning_rates_setup(conf, params)
 
     def updates(self):
         """Compute the updates for each of the parameter variables."""
         ups = {}
-        # Base learning rate per example.
-        base_lr = theano._asarray(self.conf['base_lr'], dtype=floatX)
-
-        # Annealing coefficient. Here we're using a formula of
-        # base_lr * min(0.0, max(base_lr, lr_anneal_start / (iteration + 1))
-        frac = self.conf['lr_anneal_start'] / (self.iteration + 1.)
-        annealed = tensor.clip(
-            tensor.cast(frac, floatX),
-            0.0,    # minimum learning rate
-            base_lr # maximum learning rate
-        )
-
-        # Update the shared variable for the annealed learning rate.
-        ups[self.annealed] = annealed
-        ups[self.iteration] = self.iteration + 1
-
-        # Calculate the learning rates for each parameter, in the order
-        # they appear in self.params
-        learn_rates = [annealed * self.learning_rates[p] for p in self.params]
         # Get the gradient w.r.t. cost of each parameter.
+        l_ups, learn_rates = self.learning_rate_updates(self.conf, self.params)
+
+        # Add the learning rate/iteration updates
+        safe_update(ups, l_ups)
         grads = [
             tensor.grad(self.cost, p)
             for p in self.params
