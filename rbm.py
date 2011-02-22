@@ -152,3 +152,29 @@ class RBM(Block):
     def __call__(self, v):
         return self.mean_h_given_v(v)
 
+class GaussianBinaryRBM(RBM):
+    """An RBM with Gaussian visible units and binary hidden units."""
+    def __init__(self, conf, rng=None):
+        super(GaussianBinaryRBM, self).__init__(self, conf, rng)
+        self.sigma = sharedX(
+            numpy.ones(conf['n_vis']),
+            name='sigma',
+            borrow=True
+        )
+
+    def input_to_h_from_v(self, v):
+        return self.hidbias + tensor.dot(v / self.sigma, self.weights)
+
+    def mean_v_given_h(self, h):
+        return self.visbias + self.sigma * tensor.dot(self.weights, h)
+
+    def free_energy_given_v(self, v):
+        hid_inp = self.input_to_h_from_v(v)
+        squared_term = (self.visbias - v)**2 / self.sigma
+        return squared_term.sum(axis=1) - nnet.softplus(hid_inp).sum(axis=1)
+
+    def sample_visibles(self, params, shape, rng):
+        v_mean = params[0]
+        # zero mean, std sigma noise
+        zero_mean = rng.normal(size=shape) * self.sigma
+        return zero_mean + v_mean
