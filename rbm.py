@@ -98,9 +98,7 @@ class RBM(Block):
         )
         stepsizes = lr
         rval = dict(sgd_updates(self.params(), grads, stepsizes=stepsizes))
-        grad_shared_vars = [
-            sharedX(0 * p.get_value().copy(), '') for p in self.params()
-        ]
+        return rval
 
     def gibbs_step_for_v(self, v, rng):
         """
