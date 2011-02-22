@@ -6,8 +6,6 @@ from itertools import izip
 import theano
 from theano import tensor
 
-#from pylearn.gd.sgd import sgd_updates
-#from pylearn.algorithms.mcRBM import contrastive_cost, contrastive_grad
 theano.config.warn.sum_div_dimshuffle_bug = False
 floatX = theano.config.floatX
 
@@ -60,7 +58,6 @@ class Block(object):
         else:
             raise TypeError('unpickled object was of wrong class: %s' %
                             obj.__class__)
-
 
 class Optimizer(object):
     """

@@ -122,7 +122,6 @@ class DenoisingAutoencoder(Block):
         """
         return self.hidden_repr(inputs)
 
-
 class StackedDA(Block):
     """
     A class representing a stacked model. Forward propagation passes
