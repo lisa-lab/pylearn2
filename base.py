@@ -1,10 +1,11 @@
 """Base class for the components in other modules."""
 import cPickle
 import os.path
-from itertools import izip
 
 import theano
 from theano import tensor
+
+from utils import sharedX
 
 theano.config.warn.sum_div_dimshuffle_bug = False
 floatX = theano.config.floatX
@@ -74,3 +75,46 @@ class Optimizer(object):
     def function(self, inputs):
         """Return a compiled Theano function for training"""
         raise NotImplementedError()
+
+    def learning_rates_setup(self, conf, params):
+        """
+        Initializes parameter-specific learning rate dictionary and shared
+        variables for the annealed base learning rate and iteration number.
+        """
+        # Take care of learning rate scales for individual parameters
+        self.learning_rates = {}
+
+        for parameter in params:
+            lr_name = '%s_lr' % parameter.name
+            thislr = conf.get(lr_name, 1.)
+            self.learning_rates[parameter] = sharedX(thislr, lr_name)
+
+        # A shared variable for storing the iteration number.
+        self.iteration = sharedX(theano._asarray(0, dtype='int32'), name='iter')
+
+        # A shared variable for storing the annealed base learning rate, used
+        # to lower the learning rate gradually after a certain amount of time.
+        self.annealed = sharedX(conf['base_lr'], 'annealed')
+
+    def learning_rate_updates(self, conf, params):
+        ups = {}
+        # Base learning rate per example.
+        base_lr = theano._asarray(self.conf['base_lr'], dtype=floatX)
+
+        # Annealing coefficient. Here we're using a formula of
+        # base_lr * min(0.0, max(base_lr, lr_anneal_start / (iteration + 1))
+        frac = self.conf['lr_anneal_start'] / (self.iteration + 1.)
+        annealed = tensor.clip(
+            tensor.cast(frac, floatX),
+            0.0,    # minimum learning rate
+            base_lr # maximum learning rate
+        )
+
+        # Update the shared variable for the annealed learning rate.
+        ups[self.annealed] = annealed
+        ups[self.iteration] = self.iteration + 1
+
+        # Calculate the learning rates for each parameter, in the order
+        # they appear in self.params
+        learn_rates = [annealed * self.learning_rates[p] for p in params]
+        return ups, learn_rates
