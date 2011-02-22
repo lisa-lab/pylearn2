@@ -130,7 +130,7 @@ class RBM(Block):
         Mean values of the hidden units given a visible configuration.
         Threshold this in order to sample.
         """
-        return nnet.sigmoid(self._input_to_h_from_v(v))
+        return nnet.sigmoid(self.input_to_h_from_v(v))
 
     def mean_v_given_h(self, h):
         """
