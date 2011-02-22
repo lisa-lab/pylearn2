@@ -21,6 +21,7 @@ def basic_trainer(conf):
     to the parameters in conf, and save the learned model
     """
     # Load the dataset
+    print '... loading data'
     data = utils.load_data(conf)
     conf['n_vis'] = utils.get_constant(data[0].shape[1])
 
@@ -37,31 +38,35 @@ def basic_trainer(conf):
     train_fn = trainer.function([minibatch], name='train_fn')
 
     # Here's a manual training loop.
+    print '... training model'
     start_time = time.clock()
-    batch_time = time.clock()
+    batch_time = start_time
     batchiter = BatchIterator(conf, data)
     for epoch in xrange(conf['epochs']):
         c = []
-        for minibatch_ in batchiter:
-            c.append(train_fn(minibatch_))
+        for minibatch_data in batchiter:
+            c.append(train_fn(minibatch_data))
         train_time = time.clock() - batch_time
-        batch_time = time.clock()
-        print 'Training epoch %d, time spent (min) %f, cost ' \
+        batch_time += train_time
+        print '... training epoch %d, time spent (min) %f, cost' \
             % (epoch, train_time / 60.), numpy.mean(c)
 
     end_time = time.clock()
 
     conf['training_time'] = (end_time - start_time) / 60.
+    print '... training ended after %f min' % conf['training_time']
 
     # Compute denoising error for valid and train datasets.
     error_fn = theano.function([minibatch], cost_fn, name='error_fn')
 
     conf['error_valid'] = error_fn(data[1].value)
     conf['error_test'] = error_fn(data[2].value)
+    print '... final denoising error with valid is', conf['error_valid']
+    print '... final denoising error with test  is', conf['error_test']
 
     # Save model parameters
-    # TODO: Not implemented yet
-    # trainer.save(exp['model_dir'], 'model.pkl')
+    da.save(conf['saving_dir'], 'model.pkl')
+    print '... model has been saved into %smodel.pkl' % conf['saving_dir']
 
 def submit(conf):
     """
@@ -69,16 +74,14 @@ def submit(conf):
     model trained according to conf parameters
     """
     # Load the model parameters
-    corruptor = corruption.get(conf['corruption_class'])(conf)
-    da = DenoisingAutoencoder(corruptor, conf)
-    # TODO: Not implemented yet
-    # da.load(exp['model_dir'], 'model.pkl')
+    da = DenoisingAutoencoder.load(conf['saving_dir'], 'model.pkl')
 
     # Create submission file
     minibatch = tensor.dmatrix()
-    transform = theano.function([minibatch], da([minibatch])[0],
-                                name='transform')
-    utils.create_submission(conf, transform)
+    transform_fn = theano.function([minibatch],
+                                   da([minibatch])[0],
+                                   name='transform_fn')
+    utils.create_submission(conf, transform_fn)
 
 
 if __name__ == "__main__":
@@ -99,18 +102,18 @@ if __name__ == "__main__":
             # Experiment specific arguments
             'dataset' : 'ule',
             'expname' : 'myfirstexp',
-            'train_prop' : 1,
-            'valid_prop' : 0,
+            'train_prop' : 0,
+            'valid_prop' : 1,
             'test_prop' : 0,
             'normalize' : True,
             'normalize_on_the_fly' : False,
             'randomize_valid' : True,
             'randomize_test' : True,
-            'batchsize' : 20,
-            'epochs' : 1,
-            'model_dir' : './outputs/',
-            'submission_dir' : './outputs/'
+            'batch_size' : 20,
+            'epochs' : 2,
+            'saving_rate': 10,
+            'saving_dir' : './outputs/',
+            'submit_dir' : './outputs/'
             }
-
 
     basic_trainer(conf)

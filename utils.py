@@ -59,8 +59,6 @@ def load_data(conf):
     """
     Loads a specified dataset according to the parameters in the dictionary
     """
-    print '... loading data'
-
     expected = ['normalize',
                 'normalize_on_the_fly',
                 'randomize_valid',
@@ -161,27 +159,27 @@ class BatchIterator(object):
         # Compute maximum number of examples for training.
         set_proba = [conf['train_prop'], conf['valid_prop'], conf['test_prop']]
         set_sizes = [get_constant(data.shape[0]) for data in dataset]
-        self.upper_bound = numpy.dot(set_proba, set_sizes)
+        total_size = numpy.dot(set_proba, set_sizes)
 
         # Record other parameters.
-        self.batchsize = conf['batchsize']
+        self.batch_size = conf['batch_size']
         self.dataset = [get_value(data) for data in dataset]
 
         # Upper bounds for minibatch indexes
-        self.limit = [size // self.batchsize for size in set_sizes]
+        self.limit = [size // self.batch_size for size in set_sizes]
         self.counter = [0, 0, 0]
         self.index = 0
-        self.max_index = self.upper_bound // self.batchsize
+        self.max_index = total_size // self.batch_size
 
         # Sampled random number generator
         pairs = izip(set_sizes, set_proba)
-        sampling_proba = [s * p / float(self.upper_bound) for s, p in pairs]
+        sampling_proba = [s * p / float(total_size) for s, p in pairs]
         cumulative_proba = numpy.cumsum(sampling_proba)
-        def generator():
+        def _generator():
             x = numpy.random.random()
             return numpy.searchsorted(cumulative_proba, x)
 
-        self.generator = generator
+        self.generator = _generator
         # TODO: Record seed parameter for reproductability purposes ?
 
     def __iter__(self):
@@ -200,7 +198,7 @@ class BatchIterator(object):
             # Retrieve minibatch from chosen set
             chosen = self.generator()
             offset = self.counter[chosen]
-            minibatch = self.dataset[chosen][offset * self.batchsize:(offset + 1) * self.batchsize]
+            minibatch = self.dataset[chosen][offset * self.batch_size:(offset + 1) * self.batch_size]
             # Increment counters
             self.index += 1
             self.counter[chosen] = (self.counter[chosen] + 1) % self.limit[chosen]

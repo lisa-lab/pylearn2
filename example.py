@@ -39,8 +39,8 @@ if __name__ == "__main__":
     da = DenoisingAutoencoder(corruptor, conf)
 
     # Allocate an optimizer, which tells us how to update our model.
-    #TODO: build the cost another way
-    cost = MeanSquaredError.alloc(conf, da)([minibatch])
+    # TODO: build the cost another way
+    cost = MeanSquaredError(conf, da)([minibatch])
     trainer = SGDOptimizer(da, cost, conf)
 
     # Finally, build a Theano function out of all this.
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     optimizers = []
     thislayer_input = [minibatch]
     for layer in sda.layers():
-        cost = MeanSquaredError.alloc(sda_conf, layer)([thislayer_input[0]])
+        cost = MeanSquaredError(sda_conf, layer)([thislayer_input[0]])
         opt = SGDOptimizer(layer, cost, sda_conf)
         optimizers.append(opt)
         # Retrieve a Theano function for training this layer.

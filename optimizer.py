@@ -101,4 +101,3 @@ class SGDOptimizer(Optimizer):
                 updates=self.updates(),
                 name=name)
 
-
