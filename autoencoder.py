@@ -8,8 +8,8 @@ import theano
 from theano import tensor
 
 # Local imports
-from base import Block
-from utils import sharedX
+from .base import Block
+from .utils import sharedX
 
 theano.config.warn.sum_div_dimshuffle_bug = False
 floatX = theano.config.floatX

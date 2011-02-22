@@ -8,8 +8,8 @@ from theano import tensor
 from theano.tensor import nnet
 from pylearn.gd.sgd import sgd_updates
 
-from base import Block, Optimizer
-from utils import sharedX
+from .base import Block
+from .utils import sharedX
 
 theano.config.warn.sum_div_dimshuffle_bug = False
 floatX = theano.config.floatX

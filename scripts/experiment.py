@@ -1,6 +1,7 @@
 """An example of experiment made with the new library."""
 # Standard library imports
 import time
+import sys
 
 # Third-party imports
 import numpy
@@ -8,6 +9,15 @@ import theano
 from theano import tensor
 
 # Local imports
+try:
+    import framework
+except ImportError:
+    print >>sys.stderr, \
+            "Framework couldn't be imported. Make sure you have the " \
+            "repository root on your PYTHONPATH (or as your current " \
+            "working directory)"
+    sys.exit(1)
+
 from framework import utils
 from framework import cost
 from framework import corruption
@@ -53,7 +63,7 @@ def train_da(conf,data):
             saving_counter += 1
             if saving_counter % saving_rate == 0:
                 da.save(conf['saving_dir'], 'model-da-epoch-%02d.pkl' % epoch)
-                
+
         # Print training time + cost
         train_time = time.clock() - batch_time
         batch_time += train_time
@@ -75,7 +85,7 @@ def train_da(conf,data):
     # Save model parameters
     da.save(conf['saving_dir'], 'model-da-final.pkl')
     print '... model has been saved into %smodel.pkl' % conf['saving_dir']
-    
+
     # Return the learned transformation function
     return da.function()
 
@@ -86,7 +96,7 @@ def train_pca(conf, dataset):
     pca = PCA(conf)
     pca.train(utils.get_value(dataset))
     pca.save(conf['saving_dir'], 'model-pca.pkl')
-    
+
     # Return the learned transformation function
     return pca.function()
 
@@ -130,15 +140,15 @@ if __name__ == "__main__":
 
     data = utils.load_data(conf)
     data_blended = utils.blend(conf, data)
-    
+
     pca_fn = train_pca(conf, data_blended)
     data_after_pca = [utils.sharedX(pca_fn(utils.get_value(set)))
                       for set in data]
-    
+
     da_fn = train_da(conf, data_after_pca)
     data_after_da = [utils.sharedX(da_fn(utils.get_value(set)))
                      for set in data_after_pca]
-    
+
     # Make submission
     pca = PCA.load(conf['saving_dir'], 'model-pca.pkl')
     da = DenoisingAutoencoder.load(conf['saving_dir'], 'model-da-final.pkl')
