@@ -59,7 +59,7 @@ class DenoisingAutoencoder(Block):
             )
 
         def _resolve_callable(conf_attr):
-            if conf[conf_attr] is None:
+            if conf[conf_attr] is None or conf[conf_attr] == "linear":
                 # The identity function, for linear layers.
                 return None
             # If it's a callable, use it directly.
@@ -163,7 +163,7 @@ class StackedDA(Block):
                 'irange': conf['irange'],
                 'tied_weights': conf['tied_weights'],
             }
-            da = DenoisingAutoencoder.alloc(corr, lconf, rng)
+            da = DenoisingAutoencoder(corr, lconf, rng)
             self._layers.append(da)
 
     def layers(self):

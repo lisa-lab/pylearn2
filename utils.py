@@ -85,6 +85,8 @@ def load_data(conf):
 def create_submission(conf, get_representation):
     """
     Create submission files given a configuration dictionary and a computation function
+    
+    Note that it always reload the datasets to ensure valid & test are not permuted
     """
     # Load the dataset, without permuting valid and test
     kwargs = subdict(conf, ['dataset', 'normalize', 'normalize_on_the_fly'])
@@ -121,8 +123,13 @@ def create_submission(conf, get_representation):
     del test_repr
 
     # Write it in a .txt file
-    basename = os.path.join(conf['submission_dir'],
-                            conf['dataset'] + '_' + conf['expname'])
+    submit_dir = conf['submit_dir']
+    if not os.path.exists(submit_dir):
+        os.mkdir(submit_dir)
+    elif not os.path.isdir(submit_dir):
+        raise IOError('submit_dir %s is not a directory' % submit_dir)
+
+    basename = os.path.join(submit_dir, conf['dataset'] + '_' + conf['expname'])
     valid_file = open(basename + '_valid.prepro', 'w')
     test_file = open(basename + '_final.prepro', 'w')
 
@@ -134,9 +141,9 @@ def create_submission(conf, get_representation):
 
     print >> sys.stderr, "... done creating files"
 
-    os.system('zip %s %s %s' % (basename + '.zip',
-                                basename + '_valid.prepro',
-                                basename + '_final.prepro'))
+    os.system('zip -j %s %s %s' % (basename + '.zip',
+                                   basename + '_valid.prepro',
+                                   basename + '_final.prepro'))
 
     print >> sys.stderr, "... files compressed"
 

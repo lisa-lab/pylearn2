@@ -1,6 +1,7 @@
 """An example of experiment made with the new library."""
 # Standard library imports
 import time
+import os.path
 
 # Third-party imports
 import numpy
@@ -15,7 +16,7 @@ from framework.utils import BatchIterator
 from framework.autoencoder import DenoisingAutoencoder
 from framework.optimizer import SGDOptimizer
 
-def basic_trainer(conf):
+def train_da(conf):
     """
     This function basically train a denoising autoencoder according
     to the parameters in conf, and save the learned model
@@ -42,17 +43,26 @@ def basic_trainer(conf):
     start_time = time.clock()
     batch_time = start_time
     batchiter = BatchIterator(conf, data)
+    saving_counter = 0
+    saving_rate = conf.get('saving_rate',0)
     for epoch in xrange(conf['epochs']):
         c = []
         for minibatch_data in batchiter:
             c.append(train_fn(minibatch_data))
+
+        # Saving intermediate models
+        if saving_rate != 0:
+            saving_counter += 1
+            if saving_counter % saving_rate == 0:
+                da.save(conf['saving_dir'], 'model-epoch-%02d.pkl' % epoch)
+                
+        # Print training time + cost
         train_time = time.clock() - batch_time
         batch_time += train_time
         print '... training epoch %d, time spent (min) %f, cost' \
             % (epoch, train_time / 60.), numpy.mean(c)
 
     end_time = time.clock()
-
     conf['training_time'] = (end_time - start_time) / 60.
     print '... training ended after %f min' % conf['training_time']
 
@@ -65,7 +75,7 @@ def basic_trainer(conf):
     print '... final denoising error with test  is', conf['error_test']
 
     # Save model parameters
-    da.save(conf['saving_dir'], 'model.pkl')
+    da.save(conf['saving_dir'], 'model-final.pkl')
     print '... model has been saved into %smodel.pkl' % conf['saving_dir']
 
 def submit(conf):
@@ -74,7 +84,8 @@ def submit(conf):
     model trained according to conf parameters
     """
     # Load the model parameters
-    da = DenoisingAutoencoder.load(conf['saving_dir'], 'model.pkl')
+    save_file = os.path.join(conf['saving_dir'], 'model-final.pkl')
+    da = DenoisingAutoencoder.load(save_file)
 
     # Create submission file
     minibatch = tensor.dmatrix()
@@ -85,7 +96,7 @@ def submit(conf):
 
 
 if __name__ == "__main__":
-    conf = {# Network specific arguments
+    conf = {# DA specific arguments
             'corruption_level': 0.3,
             'n_hid': 500,
             #'n_vis': 15, # Determined by the datasize
@@ -93,27 +104,28 @@ if __name__ == "__main__":
             'base_lr': 0.01,
             'tied_weights': True,
             'act_enc': 'sigmoid',
-            'act_dec': 'sigmoid',
+            'act_dec': None,
             #'lr_hb': 0.10,
             #'lr_vb': 0.10,
             'irange': 0.001,
-            'cost_class' : 'CrossEntropy',
+            'cost_class' : 'MeanSquaredError',
             'corruption_class' : 'GaussianCorruptor',
             # Experiment specific arguments
-            'dataset' : 'ule',
+            'dataset' : 'avicenna',
             'expname' : 'myfirstexp',
-            'train_prop' : 0,
-            'valid_prop' : 1,
-            'test_prop' : 0,
-            'normalize' : True,
-            'normalize_on_the_fly' : False,
-            'randomize_valid' : True,
-            'randomize_test' : True,
             'batch_size' : 20,
-            'epochs' : 2,
-            'saving_rate': 10,
+            'epochs' : 5,
+            'train_prop' : 1,
+            'valid_prop' : 0,
+            'test_prop' : 0,
+            'normalize' : True, # (Optional, default = True)
+            'normalize_on_the_fly' : False, # (Optional, default = False)
+            'randomize_valid' : True, # (Optional, default = True)
+            'randomize_test' : True, # (Optional, default = True)
+            'saving_rate': 2, # (Optional, default = 0)
             'saving_dir' : './outputs/',
             'submit_dir' : './outputs/'
             }
 
-    basic_trainer(conf)
+    train_da(conf)
+    #submit(conf)

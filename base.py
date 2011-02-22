@@ -45,7 +45,7 @@ class Block(object):
         """
         if not os.path.exists(save_dir):
             os.mkdir(save_dir)
-        elif not os.path.isdir(save_dir):
+        if not os.path.isdir(save_dir):
             raise IOError('save_dir %s is not a directory' % save_dir)
         else:
             fhandle = open(os.path.join(save_dir, save_file), 'w')
