@@ -109,9 +109,9 @@ class RBM(Block):
         # TODO: factor further to extend to other kinds of hidden units
         #       (e.g. spike-and-slab)
         h_mean = self.mean_h_given_v(v)
-        h_mean_shape = self.conf['batchsize'], self.conf['n_hid']
+        h_mean_shape = self.conf['batch_size'], self.conf['n_hid']
         h_sample = tensor.cast(rng.uniform(size=h_mean_shape) < h_mean, floatX)
-        v_mean_shape = self.conf['batchsize'], self.conf['n_vis']
+        v_mean_shape = self.conf['batch_size'], self.conf['n_vis']
         # v_mean is always based on h_sample, not h_mean, because we don't
         # want h transmitting more than one bit of information per unit.
         v_mean = self.mean_v_given_h(h_sample)
