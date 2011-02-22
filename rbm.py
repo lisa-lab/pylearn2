@@ -7,7 +7,6 @@ import theano
 from theano import tensor
 from theano.tensor import nnet
 from pylearn.gd.sgd import sgd_updates
-from pylearn.algorithms.mcRBM import contrastive_grad
 
 from base import Block, Optimizer
 from utils import sharedX
@@ -83,21 +82,25 @@ class RBM(Block):
         )
         self._params = [self.visbias, self.hidbias, self.weights]
 
-    def cd_updates(self, pos_v, neg_v, lr, other_cost=0):
+    def ml_updates(self, pos_v, neg_v, lr, other_cost=0):
         """
         Get the contrastive gradients given positive and negative phase
         visible units, and do a gradient step on the parameters using
         the learning rates in `lr` (which is a list in the same order
         as self.params()).
         """
-        grads = contrastive_grad(
-            self.free_energy_given_v,
-            pos_v, neg_v,
-            wrt=self.params(),
-            other_cost=other_cost
-        )
+
+        # taking the mean over each term independently allows for different mini-batch sizes in
+        # the positive and negative phase.
+        ml_cost = self.free_energy_given_v(pos_v).mean() - \
+                  self.free_energy_given_v(neg_v).mean()
+        cost = ml_cost + other_cost
+
+        grads = tensor.grad(cost, self.params(), consider_constant=[pos_v, neg_v])
+
         stepsizes = lr
         rval = dict(sgd_updates(self.params(), grads, stepsizes=stepsizes))
+
         return rval
 
     def gibbs_step_for_v(self, v, rng):

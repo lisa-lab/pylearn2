@@ -91,7 +91,7 @@ class RBMOptimizer(Optimizer):
         # Add the model's parameter updates.
         pos_v = self.visible_batch
         neg_v = self.sampler.particles
-        safe_update(ups, self.model.cd_updates(pos_v, neg_v, learn_rates))
+        safe_update(ups, self.model.ml_updates(pos_v, neg_v, learn_rates))
 
         # Add the sampler's updates (negative phase particles, etc.).
         safe_update(ups, self.sampler.updates())
