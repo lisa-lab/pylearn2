@@ -27,7 +27,7 @@ def train_da(conf):
     conf['n_vis'] = utils.get_constant(data[0].shape[1])
 
     # A symbolic input representing your minibatch.
-    minibatch = tensor.dmatrix()
+    minibatch = tensor.matrix()
 
     # Allocate a denoising autoencoder with a given noise corruption.
     corruptor = corruption.get(conf['corruption_class'])(conf)
@@ -88,7 +88,7 @@ def submit(conf):
     da = DenoisingAutoencoder.load(save_file)
 
     # Create submission file
-    minibatch = tensor.dmatrix()
+    minibatch = tensor.matrix()
     transform_fn = theano.function([minibatch],
                                    da([minibatch])[0],
                                    name='transform_fn')

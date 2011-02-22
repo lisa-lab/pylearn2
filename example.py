@@ -32,7 +32,7 @@ if __name__ == "__main__":
     }
 
     # A symbolic input representing your minibatch.
-    minibatch = tensor.dmatrix()
+    minibatch = tensor.matrix()
 
     # Allocate a denoising autoencoder with binomial noise corruption.
     corruptor = GaussianCorruptor(conf)
