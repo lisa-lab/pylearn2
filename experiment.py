@@ -87,12 +87,18 @@ def submit(conf):
     save_file = os.path.join(conf['saving_dir'], 'model-final.pkl')
     da = DenoisingAutoencoder.load(save_file)
 
-    # Create submission file
+    # Create transformation function
     minibatch = tensor.matrix()
     transform_fn = theano.function([minibatch],
                                    da([minibatch])[0],
                                    name='transform_fn')
-    utils.create_submission(conf, transform_fn)
+    def _get_repr(x):
+        y = utils.pre_process(conf, x)
+        z = utils.post_process(conf, transform_fn(y))
+        return z
+    
+    # Create submission file
+    utils.create_submission(conf, _get_repr)
 
 
 if __name__ == "__main__":
@@ -118,14 +124,19 @@ if __name__ == "__main__":
             'train_prop' : 1,
             'valid_prop' : 0,
             'test_prop' : 0,
-            'normalize' : True, # (Optional, default = True)
-            'normalize_on_the_fly' : False, # (Optional, default = False)
-            'randomize_valid' : True, # (Optional, default = True)
-            'randomize_test' : True, # (Optional, default = True)
-            'saving_rate': 2, # (Optional, default = 0)
+            'normalize' : True, # (Default = True)
+            'normalize_on_the_fly' : False, # (Default = False)
+            'randomize_valid' : True, # (Default = True)
+            'randomize_test' : True, # (Default = True)
+            'saving_rate': 2, # (Default = 0)
             'saving_dir' : './outputs/',
-            'submit_dir' : './outputs/'
+            'submit_dir' : './outputs/',
+            'compute_alc' : False, # (Default = False)
+            # Pre-processing
+            'prep_pca' : 0, # (Default = 0)
+            # Post-processing
+            'post_pca' : 1, # (Default = 0)
             }
 
-    train_da(conf)
-    #submit(conf)
+    #train_da(conf)
+    submit(conf)

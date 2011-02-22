@@ -152,7 +152,6 @@ def create_submission(conf, get_representation):
 
     print >> sys.stderr, "... useless files deleted"
 
-
 ##################################################
 # Iterator objet for blending datasets
 ##################################################
@@ -211,3 +210,15 @@ class BatchIterator(object):
             self.counter[chosen] = (self.counter[chosen] + 1) % self.limit[chosen]
             # Return the computed minibatch
             return minibatch
+
+##################################################
+# Preprocessing and postprocessing facilities
+##################################################
+
+def pre_process(conf, data):
+    """Apply a list of preprocessing methods as recorded in conf"""
+    return data
+
+def post_process(conf, data):
+    """Apply a list of postprocessing methods as recorded in conf"""
+    return data

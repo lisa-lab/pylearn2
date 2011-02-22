@@ -1,9 +1,10 @@
 """Optimizers tell models how to update their parameters during learning."""
-import numpy
+# Third-party imports
 import theano
 from theano import tensor
 from pylearn.gd.sgd import sgd_updates
 
+# Local imports
 from framework.base import Optimizer
 from framework.utils import safe_update, sharedX
 
@@ -101,4 +102,3 @@ class SGDOptimizer(Optimizer):
                 self.cost,
                 updates=self.updates(),
                 name=name)
-
