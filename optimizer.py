@@ -73,3 +73,34 @@ class SGDOptimizer(Optimizer):
                 self.cost,
                 updates=self.updates(),
                 name=name)
+
+class RBMOptimizer(Optimizer):
+    """TODO: This name really doesn't make sense."""
+    def __init__(self, conf, model, sampler, visible_batch):
+        self.__dict__.update(dict(conf=conf, model=model, sampler=sampler,
+                                  visible_batch=visible_batch))
+        self.learning_rates_setup(conf, model.params())
+
+    def updates(self):
+        ups = {}
+        params = self.model.params()
+        l_ups, learn_rates = self.learning_rate_updates(self.conf, params)
+
+        # Add the learning rate, iteration, etc. updates.
+        safe_update(ups, l_ups)
+
+        # Add the model's parameter updates.
+        pos_v = self.visible_batch
+        neg_v = self.sampler.particles
+        safe_update(ups, self.model.cd_updates(pos_v, neg_v, learn_rates))
+
+        # Add the sampler's updates (negative phase particles, etc.).
+        safe_update(ups, self.sampler.updates())
+        return ups
+
+    def function(self, inputs, name=None):
+        rng = self.sampler.s_rng
+        return theano.function([inputs],
+                               self.model.reconstruction_error(inputs, rng),
+                               updates=self.updates(),
+                               name=name)
