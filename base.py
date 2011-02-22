@@ -1,10 +1,13 @@
 """Base class for the components in other modules."""
+# Standard library imports
 import cPickle
 import os.path
 
+# Third-party imports
 import theano
 from theano import tensor
 
+# Local imports
 from utils import sharedX
 
 theano.config.warn.sum_div_dimshuffle_bug = False
