@@ -1,3 +1,4 @@
+"""Optimizers tell models how to update their parameters during learning."""
 import numpy
 import theano
 from theano import tensor
