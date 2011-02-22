@@ -145,16 +145,20 @@ class RBM(Block):
         marginalizing over the hidden units.
         """
         sigmoid_arg = self.input_to_h_from_v(v)
-        return -(tensor.dot(v, self.visbias).sum(axis=1) +
+        return -(tensor.dot(v, self.visbias) +
                  nnet.softplus(sigmoid_arg).sum(axis=1))
 
     def __call__(self, v):
         return self.mean_h_given_v(v)
 
+    def reconstruction_error(self, v, rng):
+        sample, _locals = self.gibbs_step_for_v(v, rng)
+        return ((_locals['v_mean'] - v)**2).sum(axis=1).mean()
+
 class GaussianBinaryRBM(RBM):
     """An RBM with Gaussian visible units and binary hidden units."""
     def __init__(self, conf, rng=None):
-        super(GaussianBinaryRBM, self).__init__(self, conf, rng)
+        super(GaussianBinaryRBM, self).__init__(conf, rng)
         self.sigma = sharedX(
             numpy.ones(conf['n_vis']),
             name='sigma',
