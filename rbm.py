@@ -54,7 +54,7 @@ class PersistentCDSampler(Sampler):
             self.s_rng
         )
         if not hasattr(self.rbm, 'h_sample'):
-            self.rbm.h_sample = sharedX(numpy.zeros((0, 0), 'h_sample'))
+            self.rbm.h_sample = sharedX(numpy.zeros((0, 0)), 'h_sample')
         return {
             self.particles: new_particles,
             self.rbm.h_sample: _locals['h_mean']
