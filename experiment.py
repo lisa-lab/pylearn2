@@ -15,15 +15,14 @@ from framework import corruption
 from framework.utils import BatchIterator
 from framework.autoencoder import DenoisingAutoencoder
 from framework.optimizer import SGDOptimizer
+from posttraitement.pca import PCA
 
-def train_da(conf):
+def train_da(conf,data):
     """
     This function basically train a denoising autoencoder according
     to the parameters in conf, and save the learned model
     """
-    # Load the dataset
-    print '... loading data'
-    data = utils.load_data(conf)
+    # Set visible units size
     conf['n_vis'] = utils.get_constant(data[0].shape[1])
 
     # A symbolic input representing your minibatch.
@@ -54,7 +53,7 @@ def train_da(conf):
         if saving_rate != 0:
             saving_counter += 1
             if saving_counter % saving_rate == 0:
-                da.save(conf['saving_dir'], 'model-epoch-%02d.pkl' % epoch)
+                da.save(conf['saving_dir'], 'model-da-epoch-%02d.pkl' % epoch)
                 
         # Print training time + cost
         train_time = time.clock() - batch_time
@@ -75,36 +74,28 @@ def train_da(conf):
     print '... final denoising error with test  is', conf['error_test']
 
     # Save model parameters
-    da.save(conf['saving_dir'], 'model-final.pkl')
+    da.save(conf['saving_dir'], 'model-da-final.pkl')
     print '... model has been saved into %smodel.pkl' % conf['saving_dir']
-
-def submit(conf):
-    """
-    This function create a submission file with a
-    model trained according to conf parameters
-    """
-    # Load the model parameters
-    save_file = os.path.join(conf['saving_dir'], 'model-final.pkl')
-    da = DenoisingAutoencoder.load(save_file)
-
-    # Create transformation function
-    minibatch = tensor.matrix()
-    transform_fn = theano.function([minibatch],
-                                   da([minibatch])[0],
-                                   name='transform_fn')
-    def _get_repr(x):
-        y = utils.pre_process(conf, x)
-        z = utils.post_process(conf, transform_fn(y))
-        return z
     
-    # Create submission file
-    utils.create_submission(conf, _get_repr)
+    # Return the learned transformation function
+    return da.function()
+
+
+def train_pca(conf, dataset):
+    """Simple wraper to train a PCA and save its parameters"""
+    # Train the model
+    pca = PCA(conf)
+    pca.train(utils.get_value(dataset))
+    pca.save(conf['saving_dir'], 'model-pca.pkl')
+    
+    # Return the learned transformation function
+    return pca.function()
 
 
 if __name__ == "__main__":
     conf = {# DA specific arguments
-            'corruption_level': 0.3,
-            'n_hid': 500,
+            'corruption_level': 0.5,
+            'n_hid': 600,
             #'n_vis': 15, # Determined by the datasize
             'lr_anneal_start': 100,
             'base_lr': 0.01,
@@ -115,12 +106,12 @@ if __name__ == "__main__":
             #'lr_vb': 0.10,
             'irange': 0.001,
             'cost_class' : 'MeanSquaredError',
-            'corruption_class' : 'GaussianCorruptor',
+            'corruption_class' : 'BinomialCorruptor',
             # Experiment specific arguments
             'dataset' : 'avicenna',
             'expname' : 'myfirstexp',
-            'batch_size' : 20,
-            'epochs' : 5,
+            'batch_size' : 10,
+            'epochs' : 10,
             'train_prop' : 1,
             'valid_prop' : 0,
             'test_prop' : 0,
@@ -132,11 +123,25 @@ if __name__ == "__main__":
             'saving_dir' : './outputs/',
             'submit_dir' : './outputs/',
             'compute_alc' : False, # (Default = False)
-            # Pre-processing
-            'prep_pca' : 0, # (Default = 0)
-            # Post-processing
-            'post_pca' : 1, # (Default = 0)
+            # Arguments for PCA
+            'num_components': 75,
+            'min_variance': 0, # (Default = 0)
+            'whiten': True # (Default = False)
             }
 
-    #train_da(conf)
-    submit(conf)
+    data = utils.load_data(conf)
+    data_blended = utils.blend(conf, data)
+    
+    pca_fn = train_pca(conf, data_blended)
+    data_after_pca = [utils.sharedX(pca_fn(utils.get_value(set)))
+                      for set in data]
+    
+    da_fn = train_da(conf, data_after_pca)
+    data_after_da = [utils.sharedX(da_fn(utils.get_value(set)))
+                     for set in data_after_pca]
+    
+    # Make submission
+    pca = PCA.load(conf['saving_dir'], 'model-pca.pkl')
+    da = DenoisingAutoencoder.load(conf['saving_dir'], 'model-da-final.pkl')
+    #transform = theano.function([input], da(pca(input)))
+    #utils.create_submission(conf, transform)

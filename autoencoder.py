@@ -121,6 +121,11 @@ class DenoisingAutoencoder(Block):
         a representation to pass on to layers above.
         """
         return self.hidden_repr(inputs)
+    
+    def function(self):
+        """ Returns a compiled theano function to compute a representation """
+        inputs = tensor.matrix()
+        return theano.function([inputs], self(inputs), name='da_transform_fn')
 
 class StackedDA(Block):
     """
