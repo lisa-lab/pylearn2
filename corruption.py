@@ -43,15 +43,19 @@ class BinomialCorruptor(Corruptor):
     A binomial corruptor sets inputs to 0 with probability
     0 < `corruption_level` < 1.
     """
+    def _corrupt(self, x):
+        return self.s_rng.binomial(
+            size=x.shape,
+            n=1,
+            p=1 - self.conf['corruption_level'],
+            dtype=floatX
+        ) * x
+
     def __call__(self, inputs):
-        return [
-            self.s_rng.binomial(
-                size=inp.shape,
-                n=1,
-                p=1 - self.conf['corruption_level'],
-                dtype=floatX
-            ) * inp
-        for inp in inputs]
+        if isinstance(inputs, tensor.Variable):
+            return self._corrupt(inputs)
+        else:
+            return [self._corrupt(inp) for inp in inputs]
 
 class GaussianCorruptor(Corruptor):
     """
@@ -59,15 +63,18 @@ class GaussianCorruptor(Corruptor):
     mean isotropic Gaussian noise with standard deviation
     `corruption_level`.
     """
+    def _corrupt(self, x):
+        return self.s_rng.normal(
+            size=x.shape,
+            avg=0,
+            std=self.conf['corruption_level'],
+            dtype=floatX
+        ) + x
+
     def __call__(self, inputs):
-        return [
-            self.s_rng.normal(
-                size=inp.shape,
-                avg=0,
-                std=self.conf['corruption_level'],
-                dtype=floatX
-            ) + inp
-        for inp in inputs]
+        if isinstance(inputs, tensor.Variable):
+            return self._corrupt(inputs)
+        return [self._corrupt(inp) for inp in inputs]
 
 ##################################################
 def get(str):

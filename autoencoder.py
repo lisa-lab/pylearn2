@@ -94,7 +94,10 @@ class DenoisingAutoencoder(Block):
 
     def hidden_repr(self, inputs):
         """Hidden unit activations for each set of inputs."""
-        return [self._hidden_activation(v) for v in inputs]
+        if isinstance(inputs, tensor.Variable):
+            return self._hidden_activation(inputs)
+        else:
+            return [self._hidden_activation(v) for v in inputs]
 
     def reconstruction(self, inputs):
         """Reconstructed inputs after corruption."""
@@ -104,10 +107,13 @@ class DenoisingAutoencoder(Block):
             act_dec = lambda x: x
         else:
             act_dec = self.act_dec
-        return [
-            act_dec(self.visbias + tensor.dot(h, self.w_prime))
-            for h in hiddens
-        ]
+        if isinstance(inputs, tensor.Variable):
+            return act_dec(self.visbias + tensor.dot(inputs, self.w_prime))
+        else:
+            return [
+                act_dec(self.visbias + tensor.dot(h, self.w_prime))
+                for h in hiddens
+            ]
 
     def __call__(self, inputs):
         """
