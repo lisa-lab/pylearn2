@@ -38,7 +38,8 @@ def get_value(variable):
 def sharedX(value, name=None, borrow=False):
     """Transform value into a shared variable of type floatX"""
     return theano.shared(theano._asarray(value, dtype=floatX),
-            name=name, borrow=False)
+                         name=name,
+                         borrow=False)
 
 def safe_update(dict_to, dict_from):
     """
@@ -50,6 +51,9 @@ def safe_update(dict_to, dict_from):
         dict_to[key] = val
     return dict_to
 
+def ceil(x):
+    """ Ceiling function that returns an integer """
+    return int(numpy.ceil(x))
 
 ##################################################
 # Datasets and contest facilities
@@ -63,6 +67,7 @@ def load_data(conf):
                 'normalize_on_the_fly',
                 'randomize_valid',
                 'randomize_test']
+    print '... loading data'
     train_set, valid_set, test_set = load_ndarray_dataset(conf['dataset'], **subdict(conf, expected))
 
     # Allocate shared variables
@@ -165,21 +170,20 @@ class BatchIterator(object):
         # Compute maximum number of examples for training.
         set_proba = [conf['train_prop'], conf['valid_prop'], conf['test_prop']]
         set_sizes = [get_constant(data.shape[0]) for data in dataset]
-        total_size = numpy.dot(set_proba, set_sizes)
+        self.upper_bound = numpy.dot(set_proba, set_sizes)
 
         # Record other parameters.
         self.batch_size = conf['batch_size']
         self.dataset = [get_value(data) for data in dataset]
 
         # Upper bounds for minibatch indexes
-        self.limit = [size // self.batch_size for size in set_sizes]
+        self.limit = [ceil(size / float(self.batch_size)) for size in set_sizes]
         self.counter = [0, 0, 0]
         self.index = 0
-        self.max_index = total_size // self.batch_size
 
         # Sampled random number generator
         pairs = izip(set_sizes, set_proba)
-        sampling_proba = [s * p / float(total_size) for s, p in pairs]
+        sampling_proba = [s * p / float(self.upper_bound) for s, p in pairs]
         cumulative_proba = numpy.cumsum(sampling_proba)
         def _generator():
             x = numpy.random.random()
@@ -198,7 +202,7 @@ class BatchIterator(object):
         """
         Return the next minibatch for training according to sampling probabilities
         """
-        if (self.index > self.max_index):
+        if (self.index >= self.upper_bound):
             raise StopIteration
         else:
             # Retrieve minibatch from chosen set
@@ -206,19 +210,18 @@ class BatchIterator(object):
             offset = self.counter[chosen]
             minibatch = self.dataset[chosen][offset * self.batch_size:(offset + 1) * self.batch_size]
             # Increment counters
-            self.index += 1
+            self.index += minibatch.shape[0]
             self.counter[chosen] = (self.counter[chosen] + 1) % self.limit[chosen]
             # Return the computed minibatch
             return minibatch
-
+    
 ##################################################
-# Preprocessing and postprocessing facilities
+# Miscellaneous
 ##################################################
 
-def pre_process(conf, data):
-    """Apply a list of preprocessing methods as recorded in conf"""
-    return data
-
-def post_process(conf, data):
-    """Apply a list of postprocessing methods as recorded in conf"""
-    return data
+def blend(conf, data):
+    """ Randomized blending of datasets in data according to parameters in conf """
+    rows = []
+    for minibatch in BatchIterator(conf, data):
+        rows.append(minibatch)
+    return sharedX(numpy.concatenate(rows))
