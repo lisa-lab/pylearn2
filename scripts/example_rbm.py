@@ -21,7 +21,7 @@ if __name__ == "__main__":
 
     rbm = GaussianBinaryRBM(conf)
     sampler = PersistentCDSampler(conf, rbm, data[0:100], numpy.random)
-    minibatch = tensor.dmatrix()
+    minibatch = tensor.matrix()
     optimizer = RBMOptimizer(conf, rbm, sampler, minibatch)
     train_fn = optimizer.function(minibatch)
 
