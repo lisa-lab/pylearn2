@@ -146,21 +146,17 @@ if __name__ == "__main__":
     data_blended = utils.blend(conf, data)
     pca_fn = train_pca(conf, data_blended)
     del data_blended
-    
     #pca = PCA.load(conf['saving_dir'], 'model-pca.pkl')
     #pca_fn = pca.function('pca_transform_fn')
     
     data_after_pca = [utils.sharedX(pca_fn(utils.get_value(set)))
                       for set in data]
     del data
-    da_fn = train_da(conf, data_after_pca)
-
-    #da = DenoisingAutoencoder.load(conf['saving_dir'], 'model-da-final.pkl')
-    #da_fn da.function('da_transform_fn')
     
-    data_after_da = [utils.sharedX(da_fn(utils.get_value(set)))
-                     for set in data_after_pca]
-    del data_after_pca
+    da_fn = train_da(conf, data_after_pca)
+    #da = DenoisingAutoencoder.load(conf['saving_dir'], 'model-da-epoch-07.pkl')
+    #da_fn = da.function('da_transform_fn')
+    
     
     #input = tensor.matrix()
     #transform = theano.function([input], da(pca(input)))
