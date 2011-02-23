@@ -75,8 +75,9 @@ class RBM(Block):
             name='hb',
             borrow=True
         )
+        irange = conf.get('irange', 0.5)
         self.weights = sharedX(
-            .5 * rng.rand(conf['n_vis'], conf['n_hid']),
+            irange * rng.rand(conf['n_vis'], conf['n_hid']),
             name='W',
             borrow=True
         )
