@@ -7,9 +7,6 @@ import numpy
 import theano
 from theano import tensor
 
-# Local imports
-from utils import sharedX
-
 # Shortcuts
 theano.config.warn.sum_div_dimshuffle_bug = False
 floatX = theano.config.floatX
