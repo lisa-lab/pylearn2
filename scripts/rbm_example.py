@@ -2,9 +2,9 @@ import numpy
 import theano
 import matplotlib.pyplot as plt
 from theano import tensor
-from rbm import GaussianBinaryRBM, PersistentCDSampler
-from optimizer import RBMOptimizer
-from rbm_tools import compute_log_z, compute_nll
+from framework.rbm import GaussianBinaryRBM, PersistentCDSampler
+from framework.optimizer import RBMOptimizer
+from framework.rbm_tools import compute_log_z, compute_nll
 
 if __name__ == "__main__":
 
