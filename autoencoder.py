@@ -122,10 +122,10 @@ class DenoisingAutoencoder(Block):
         """
         return self.hidden_repr(inputs)
 
-    def function(self):
+    def function(self, name=None):
         """ Returns a compiled theano function to compute a representation """
         inputs = tensor.matrix()
-        return theano.function([inputs], self(inputs), name='da_transform_fn')
+        return theano.function([inputs], self(inputs), name=name)
 
 class StackedDA(Block):
     """
