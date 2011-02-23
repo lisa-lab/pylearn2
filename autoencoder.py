@@ -43,7 +43,7 @@ class DenoisingAutoencoder(Block):
         )
         # TODO: use weight scaling factor if provided, Xavier's default else
         self.weights = sharedX(
-            .5 * rng.rand(conf['n_vis'], conf['n_hid']) * conf['irange'],
+            (.5 - rng.rand(conf['n_vis'], conf['n_hid'])) * conf['irange'],
             name='W',
             borrow=True
         )
@@ -53,7 +53,7 @@ class DenoisingAutoencoder(Block):
             self.w_prime = self.weights.T
         else:
             self.w_prime = sharedX(
-                .5 * rng.rand(conf['n_hid'], conf['n_vis']) * conf['irange'],
+                (.5 - rng.rand(conf['n_hid'], conf['n_vis'])) * conf['irange'],
                 name='Wprime',
                 borrow=True
             )
