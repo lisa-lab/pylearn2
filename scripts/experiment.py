@@ -12,7 +12,7 @@ from theano import tensor
 try:
     import framework
 except ImportError:
-    print >>sys.stderr, \
+    print >> sys.stderr, \
             "Framework couldn't be imported. Make sure you have the " \
             "repository root on your PYTHONPATH (or as your current " \
             "working directory)"
@@ -152,5 +152,9 @@ if __name__ == "__main__":
     # Make submission
     pca = PCA.load(conf['saving_dir'], 'model-pca.pkl')
     da = DenoisingAutoencoder.load(conf['saving_dir'], 'model-da-final.pkl')
+    
+    input = tensor.matrix()
+    transform = theano.function([input], da(pca(input)))
+    utils.create_submission(conf, transform)
     #transform = theano.function([input], da(pca(input)))
     #utils.create_submission(conf, transform)
