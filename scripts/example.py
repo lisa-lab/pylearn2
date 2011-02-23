@@ -1,6 +1,6 @@
 """An example of how to use the library so far."""
 # Standard library imports
-from itertools import izip
+import sys
 
 # Third-party imports
 import numpy
