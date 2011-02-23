@@ -7,6 +7,15 @@ import numpy
 import theano
 from theano import tensor
 
+try:
+    import framework
+except ImportError:
+    print >>sys.stderr, \
+            "Framework couldn't be imported. Make sure you have the " \
+            "repository root on your PYTHONPATH (or as your current " \
+            "working directory)"
+    sys.exit(1)
+
 # Local imports
 from framework.cost import MeanSquaredError
 from framework.corruption import GaussianCorruptor
@@ -41,7 +50,7 @@ if __name__ == "__main__":
     # Allocate an optimizer, which tells us how to update our model.
     # TODO: build the cost another way
     cost = MeanSquaredError(conf, da)([minibatch])
-    trainer = SGDOptimizer(conf, da, cost)
+    trainer = SGDOptimizer(conf, da.params(), cost)
 
     # Finally, build a Theano function out of all this.
     train_fn = trainer.function([minibatch])
@@ -75,7 +84,7 @@ if __name__ == "__main__":
     thislayer_input = [minibatch]
     for layer in sda.layers():
         cost = MeanSquaredError(sda_conf, layer)([thislayer_input[0]])
-        opt = SGDOptimizer(sda_conf, layer, cost)
+        opt = SGDOptimizer(sda_conf, layer.params(), cost)
         optimizers.append(opt)
         # Retrieve a Theano function for training this layer.
         thislayer_train_fn = opt.function([minibatch])
