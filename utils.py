@@ -2,7 +2,7 @@
 Several utilities for experimenting upon utlc datasets
 """
 # Standard library imports
-import os, sys
+import os
 from itertools import repeat
 
 # Third-party imports
@@ -10,6 +10,9 @@ import numpy
 import theano
 from theano import tensor
 from pylearn.datasets.utlc import load_ndarray_dataset
+
+# Local imports
+from auc import embed
 
 ##################################################
 # Shortcuts and auxiliary functions
@@ -140,18 +143,44 @@ def create_submission(conf, get_representation):
     valid_file.close()
     test_file.close()
 
-    print >> sys.stderr, "... done creating files"
+    print "... done creating files"
 
     os.system('zip -j %s %s %s' % (basename + '.zip',
                                    basename + '_valid.prepro',
                                    basename + '_final.prepro'))
 
-    print >> sys.stderr, "... files compressed"
+    print "... files compressed"
 
     os.system('rm %s %s' % (basename + '_valid.prepro',
                             basename + '_final.prepro'))
 
-    print >> sys.stderr, "... useless files deleted"
+    print "... useless files deleted"
+    
+
+##################################################
+# Proxies for representation evaluations
+##################################################
+
+def compute_alc(valid_repr, test_repr):
+    """
+    Returns the ALC of the valid set VS test set
+    Note: This proxy won't work in the case of transductive learning
+    (This is an assumption) but it seems to be a good proxy in the
+    normal case (i.e only train on training set)
+    """
+
+    # Concatenate the two sets, and give different one hot labels for valid and test
+    n_valid  = valid_repr.shape[0]
+    n_test = test_repr.shape[0]
+
+    _labvalid = numpy.hstack((numpy.ones((n_valid,1)), numpy.zeros((n_valid,1))))
+    _labtest = numpy.hstack((numpy.zeros((n_test,1)), numpy.ones((n_test,1))))
+
+    dataset = numpy.vstack((valid_repr, test_repr))
+    label = numpy.vstack((_labvalid,_labtest))
+    
+    print '... computing the ALC'
+    return embed.score(dataset, label)
 
 ##################################################
 # Iterator objet for blending datasets
@@ -209,6 +238,7 @@ class BatchIterator(object):
 
 def blend(conf, data):
     """ Randomized blending of datasets in data according to parameters in conf """
+    # TODO: Implement this function more space-efficiently
     rows = []
     for minibatch in BatchIterator(conf, data):
         rows.append(minibatch)

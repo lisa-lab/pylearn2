@@ -62,7 +62,7 @@ def train_da(conf,data):
         if saving_rate != 0:
             saving_counter += 1
             if saving_counter % saving_rate == 0:
-                da.save(conf['saving_dir'], 'model-da-epoch-%02d.pkl' % epoch)
+                da.save(conf['models_dir'], 'model-da-epoch-%02d.pkl' % epoch)
 
         # Print training time + cost
         train_time = time.clock() - batch_time
@@ -83,8 +83,8 @@ def train_da(conf,data):
     print '... final denoising error with test  is', conf['error_test']
 
     # Save model parameters
-    da.save(conf['saving_dir'], 'model-da-final.pkl')
-    print '... model has been saved into %smodel.pkl' % conf['saving_dir']
+    da.save(conf['models_dir'], 'model-da-final.pkl')
+    print '... model has been saved into %s as model-da-final.pkl' % conf['models_dir']
 
     # Return the learned transformation function
     return da.function('da_transform_fn')
@@ -98,7 +98,7 @@ def train_pca(conf, dataset):
     pca.train(utils.get_value(dataset))
     
     print '... saving PCA'
-    pca.save(conf['saving_dir'], 'model-pca.pkl')
+    pca.save(conf['models_dir'], 'model-pca.pkl')
 
     # Return the learned transformation function
     return pca.function('pca_transform_fn')
@@ -132,9 +132,8 @@ if __name__ == "__main__":
             'randomize_valid' : True, # (Default = True)
             'randomize_test' : True, # (Default = True)
             'saving_rate': 2, # (Default = 0)
-            'saving_dir' : './outputs/',
+            'models_dir' : './outputs/',
             'submit_dir' : './outputs/',
-            'compute_alc' : False, # (Default = False)
             # Arguments for PCA
             'num_components': 75,
             'min_variance': 0, # (Default = 0)
@@ -146,18 +145,22 @@ if __name__ == "__main__":
     data_blended = utils.blend(conf, data)
     pca_fn = train_pca(conf, data_blended)
     del data_blended
-    #pca = PCA.load(conf['saving_dir'], 'model-pca.pkl')
+    pca = PCA.load(conf['models_dir'], 'model-pca.pkl')
     #pca_fn = pca.function('pca_transform_fn')
     
     data_after_pca = [utils.sharedX(pca_fn(utils.get_value(set)))
                       for set in data]
-    del data
     
     da_fn = train_da(conf, data_after_pca)
-    #da = DenoisingAutoencoder.load(conf['saving_dir'], 'model-da-epoch-07.pkl')
+    da = DenoisingAutoencoder.load(conf['models_dir'], 'model-da-final.pkl')
     #da_fn = da.function('da_transform_fn')
     
-    
-    #input = tensor.matrix()
-    #transform = theano.function([input], da(pca(input)))
+    input = tensor.matrix()
+    transform = theano.function([input], da(pca(input)))
     #utils.create_submission(conf, transform)
+    
+    valid_repr = transform(utils.get_value(data[1]))
+    test_repr = transform(utils.get_value(data[2]))
+    
+    alc = utils.compute_alc(valid_repr, test_repr)
+    print '... resulting alc is', alc
