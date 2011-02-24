@@ -26,7 +26,8 @@ from framework.autoencoder import DenoisingAutoencoder
 from framework.optimizer import SGDOptimizer
 from posttraitement.pca import PCA
 
-def train_da(conf,data):
+
+def train_da(conf, data):
     """
     This function basically train a denoising autoencoder according
     to the parameters in conf, and save the learned model
@@ -53,22 +54,46 @@ def train_da(conf,data):
     batchiter = BatchIterator(conf, data)
     saving_counter = 0
     saving_rate = conf.get('saving_rate',0)
+    alc_counter = 0
+    alc_rate = conf.get('alc_rate', 0)
+    best_alc_value = 0
+    best_alc_epoch = -1
+    last_alc_epoch = -1
     for epoch in xrange(conf['epochs']):
         c = []
         for minibatch_data in batchiter:
             c.append(train_fn(minibatch_data))
-
-        # Saving intermediate models
-        if saving_rate != 0:
-            saving_counter += 1
-            if saving_counter % saving_rate == 0:
-                da.save(conf['models_dir'], 'model-da-epoch-%02d.pkl' % epoch)
 
         # Print training time + cost
         train_time = time.clock() - batch_time
         batch_time += train_time
         print '... training epoch %d, time spent (min) %f, cost' \
             % (epoch, train_time / 60.), numpy.mean(c)
+
+        # Saving intermediate models
+        if saving_rate != 0:
+            saving_counter += 1
+            if saving_counter % saving_rate == 0:
+                da.save(conf['models_dir'], 'model-da-epoch-%02d.pkl' % epoch)
+        
+        # Keep track of the best alc computed
+        if alc_rate != 0:
+            alc_counter += 1
+            if alc_counter % alc_rate == 0:
+                alc = utils.lookup_alc(data, da.function())
+                last_alc_epoch = epoch
+                print '... training epoch %d, computed alc' % epoch, alc
+                if best_alc_value < alc:
+                    best_alc_value = alc
+                    best_alc_epoch = epoch
+
+    # Compute the ALC at the end of the training if requested
+    if conf.get('resulting_alc', False) and last_alc_epoch != epoch:
+        alc = utils.lookup_alc(data, da.function())
+        print '... training epoch %d, computed alc' % epoch, alc
+        if best_alc_value < alc:
+            best_alc_value = alc
+            best_alc_epoch = epoch
 
     end_time = time.clock()
     conf['training_time'] = (end_time - start_time) / 60.
@@ -81,7 +106,14 @@ def train_da(conf,data):
     conf['error_test'] = error_fn(data[2].value)
     print '... final denoising error with valid is', conf['error_valid']
     print '... final denoising error with test  is', conf['error_test']
-
+    
+    # Record the best alc obtained
+    if alc_rate != 0:
+        print '... best alc at epoch %d, with a value of' \
+            % best_alc_epoch, best_alc_value
+        conf['best_alc_value'] = best_alc_value
+        conf['best_alc_epoch'] = best_alc_epoch
+        
     # Save model parameters
     da.save(conf['models_dir'], 'model-da-final.pkl')
     print '... model has been saved into %s as model-da-final.pkl' % conf['models_dir']
@@ -95,7 +127,7 @@ def train_pca(conf, dataset):
     # Train the model
     print '... training PCA'
     pca = PCA(conf)
-    pca.train(utils.get_value(dataset))
+    pca.train(dataset.get_value())
     
     print '... saving PCA'
     pca.save(conf['models_dir'], 'model-pca.pkl')
@@ -110,7 +142,7 @@ if __name__ == "__main__":
             'n_hid': 600,
             #'n_vis': 15, # Determined by the datasize
             'lr_anneal_start': 100,
-            'base_lr': 0.01,
+            'base_lr': 0.001,
             'tied_weights': True,
             'act_enc': 'sigmoid',
             'act_dec': None,
@@ -121,17 +153,19 @@ if __name__ == "__main__":
             'corruption_class' : 'BinomialCorruptor',
             # Experiment specific arguments
             'dataset' : 'avicenna',
-            'expname' : 'myfirstexp',
+            'expname' : 'dummy',
             'batch_size' : 20,
             'epochs' : 10,
             'train_prop' : 1,
             'valid_prop' : 2,
-            'test_prop' : 0,
+            'test_prop' : 2,
             'normalize' : True, # (Default = True)
             'normalize_on_the_fly' : False, # (Default = False)
             'randomize_valid' : True, # (Default = True)
             'randomize_test' : True, # (Default = True)
             'saving_rate': 2, # (Default = 0)
+            'alc_rate' : 2, # (Default = 0)
+            'resulting_alc' : True, # (Default = False)
             'models_dir' : './outputs/',
             'submit_dir' : './outputs/',
             # Arguments for PCA
@@ -142,25 +176,23 @@ if __name__ == "__main__":
 
     data = utils.load_data(conf)
     
+    # Train a PCA
     data_blended = utils.blend(conf, data)
     pca_fn = train_pca(conf, data_blended)
     del data_blended
     pca = PCA.load(conf['models_dir'], 'model-pca.pkl')
-    #pca_fn = pca.function('pca_transform_fn')
+    pca_fn = pca.function('pca_transform_fn')
     
-    data_after_pca = [utils.sharedX(pca_fn(utils.get_value(set)))
+    data_after_pca = [utils.sharedX(pca_fn(set.get_value()))
                       for set in data]
     
+    # Train a DA over the computed representation
     da_fn = train_da(conf, data_after_pca)
+    del data_after_pca
     da = DenoisingAutoencoder.load(conf['models_dir'], 'model-da-final.pkl')
-    #da_fn = da.function('da_transform_fn')
+    da_fn = da.function('da_transform_fn')
     
+    # Stack both layers and create submission file
     input = tensor.matrix()
     transform = theano.function([input], da(pca(input)))
-    #utils.create_submission(conf, transform)
-    
-    valid_repr = transform(utils.get_value(data[1]))
-    test_repr = transform(utils.get_value(data[2]))
-    
-    alc = utils.compute_alc(valid_repr, test_repr)
-    print '... resulting alc is', alc
+    utils.create_submission(conf, transform)

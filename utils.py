@@ -8,7 +8,6 @@ from itertools import repeat
 # Third-party imports
 import numpy
 import theano
-from theano import tensor
 from pylearn.datasets.utlc import load_ndarray_dataset
 
 # Local imports
@@ -30,13 +29,6 @@ def subdict(d, keys):
 def get_constant(variable):
     """ Little hack to return the python value of a theano shared variable """
     return theano.function([], variable, mode=theano.compile.Mode(linker='py'))()
-
-def get_value(variable):
-    # TODO: I'm not sure this is the best way to do it
-    if isinstance(variable, tensor.sharedvar.TensorSharedVariable):
-        return variable.value
-    else:
-        return variable
 
 def sharedX(value, name=None, borrow=False):
     """Transform value into a shared variable of type floatX"""
@@ -98,8 +90,8 @@ def create_submission(conf, get_representation):
     train_set, valid_set, test_set = load_data(kwargs)
     
     # Valid and test representations
-    valid_repr = get_representation(get_value(valid_set))
-    test_repr = get_representation(get_value(test_set))
+    valid_repr = get_representation(get_constant(valid_set))
+    test_repr = get_representation(test_set.get_value())
 
     # If there are too much features, outputs kernel matrices
     if (valid_repr.shape[1] > valid_repr.shape[0]):
@@ -155,7 +147,6 @@ def create_submission(conf, get_representation):
                             basename + '_final.prepro'))
 
     print "... useless files deleted"
-    
 
 ##################################################
 # Proxies for representation evaluations
@@ -182,6 +173,12 @@ def compute_alc(valid_repr, test_repr):
     print '... computing the ALC'
     return embed.score(dataset, label)
 
+def lookup_alc(data, transform):
+    valid_repr = transform(data[1].get_value())
+    test_repr = transform(data[2].get_value())
+    
+    return compute_alc(valid_repr, test_repr)
+
 ##################################################
 # Iterator objet for blending datasets
 ##################################################
@@ -194,7 +191,8 @@ class BatchIterator(object):
     def __init__(self, conf, dataset):
         # Record external parameters
         self.batch_size = conf['batch_size']
-        self.dataset = map(get_value, dataset)
+        # TODO: If you have a better way to return dataset slices, I'll take it
+        self.dataset = [set.get_value() for set in dataset]
         
         # Compute maximum number of samples for one loop
         set_proba = [conf['train_prop'], conf['valid_prop'], conf['test_prop']]
@@ -223,7 +221,7 @@ class BatchIterator(object):
             # Retrieve minibatch from chosen set
             index = counter[chosen]
             minibatch = self.dataset[chosen][index * self.batch_size:(index + 1) * self.batch_size]
-            # Increment counters
+            # Increment the related counter
             counter[chosen] = (counter[chosen] + 1) % self.limit[chosen]
             # Return the computed minibatch
             yield minibatch
@@ -231,6 +229,14 @@ class BatchIterator(object):
     def __len__(self):
         """ Return length of the weighted union """
         return self.length
+    
+    def by_index(self):
+        """ Same generator as __iter__, but yield only the chosen indexes """
+        counter = [0, 0, 0]
+        for chosen in self.permut:
+            index = counter[chosen]
+            counter[chosen] = (counter[chosen] + 1) % self.limit[chosen]
+            yield chosen, index
     
 ##################################################
 # Miscellaneous
@@ -242,4 +248,4 @@ def blend(conf, data):
     rows = []
     for minibatch in BatchIterator(conf, data):
         rows.append(minibatch)
-    return sharedX(numpy.concatenate(rows))
+    return sharedX(numpy.concatenate(rows), borrow=True)
