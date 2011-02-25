@@ -43,19 +43,29 @@ class Sampler(object):
         raise NotImplementedError()
 
 class PersistentCDSampler(Sampler):
+    """
+    conf['pcd_steps'] determines the number of steps we run the chain for.
+    """
     def updates(self):
         """
         These are update formulas that deal with the Markov chain, not
         model parameters.
         """
-        new_particles, _locals = self.rbm.gibbs_step_for_v(
-            self.particles,
-            self.s_rng
-        )
+        if 'pcd_steps' in self.conf:
+            pcd_steps = self.conf['pcd_steps']
+        else:
+            pcd_steps = 1
+        particles = self.particles
+        # TODO: do this with scan?
+        for i in xrange(pcd_steps):
+            particles, _locals = self.rbm.gibbs_step_for_v(
+                particles,
+                self.s_rng
+            )
         if not hasattr(self.rbm, 'h_sample'):
             self.rbm.h_sample = sharedX(numpy.zeros((0, 0)), 'h_sample')
         return {
-            self.particles: new_particles,
+            self.particles: particles,
             self.rbm.h_sample: _locals['h_mean']
         }
 
@@ -182,6 +192,9 @@ class GaussianBinaryRBM(RBM):
 
     def sample_visibles(self, params, shape, rng):
         v_mean = params[0]
-        # zero mean, std sigma noise
-        zero_mean = rng.normal(size=shape) * self.sigma
-        return zero_mean + v_mean
+        if 'gbrbm_mean_vis' in self.conf and self.conf['gbrbm_mean_vis']:
+            return v_mean
+        else:
+            # zero mean, std sigma noise
+            zero_mean = rng.normal(size=shape) * self.sigma
+            return zero_mean + v_mean

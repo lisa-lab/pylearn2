@@ -16,7 +16,8 @@ if __name__ == "__main__":
         'rbm_seed': 1,
         'batch_size': 100,
         'base_lr': 0.01,
-        'lr_anneal_start': 200
+        'lr_anneal_start': 200,
+        'pcd_steps': 1,
     }
 
     rbm = GaussianBinaryRBM(conf)
