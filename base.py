@@ -46,7 +46,7 @@ class Block(object):
         to deal with object versioning in the case of API changes.
         """
         if not os.path.exists(save_dir):
-            os.mkdir(save_dir)
+            os.makedirs(save_dir)
         if not os.path.isdir(save_dir):
             raise IOError('save_dir %s is not a directory' % save_dir)
         else:
