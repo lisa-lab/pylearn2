@@ -18,6 +18,7 @@ class SupervisedCost(object):
         self.conf = conf
         # TODO: Do stuff depending on conf parameters (for example
         # use different cross-entropy if act_end == "tanh" or not)
+        self.model = model
 
     def __call__(self, *inputs):
         """Symbolic expression denoting the reconstruction error."""
