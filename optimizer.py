@@ -43,7 +43,7 @@ class SGDOptimizer(Optimizer):
             self.params = params.params()
         self.cost = cost
         self.conf = conf
-        self.learning_rates_setup(conf, params)
+        self.learning_rates_setup(conf, self.params)
 
     def updates(self):
         """Compute the updates for each of the parameter variables."""
