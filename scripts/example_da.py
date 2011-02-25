@@ -83,7 +83,8 @@ if __name__ == "__main__":
     optimizers = []
     thislayer_input = [minibatch]
     for layer in sda.layers():
-        cost = MeanSquaredError(sda_conf, layer)([thislayer_input[0]])
+        cost = MeanSquaredError(sda_conf, layer)(thislayer_input[0],
+                                                 layer.reconstruction(thislayer_input[0]))
         opt = SGDOptimizer(sda_conf, layer.params(), cost)
         optimizers.append(opt)
         # Retrieve a Theano function for training this layer.
