@@ -50,7 +50,6 @@ def train_da(conf, data):
     # Here's a manual training loop.
     print '... training model'
     start_time = time.clock()
-    batch_time = start_time
     batchiter = BatchIterator(conf, data)
     saving_counter = 0
     saving_rate = conf.get('saving_rate',0)
@@ -61,12 +60,12 @@ def train_da(conf, data):
     last_alc_epoch = -1
     for epoch in xrange(conf['epochs']):
         c = []
+        batch_time = time.clock()
         for minibatch_data in batchiter:
             c.append(train_fn(minibatch_data))
 
         # Print training time + cost
         train_time = time.clock() - batch_time
-        batch_time += train_time
         print '... training epoch %d, time spent (min) %f, cost' \
             % (epoch, train_time / 60.), numpy.mean(c)
 
@@ -138,8 +137,8 @@ def train_pca(conf, dataset):
 
 if __name__ == "__main__":
     conf = {# DA specific arguments
-            'corruption_level': 0.5,
-            'n_hid': 600,
+            'corruption_level': 0.1,
+            'n_hid': 200,
             #'n_vis': 15, # Determined by the datasize
             'lr_anneal_start': 100,
             'base_lr': 0.001,
@@ -163,8 +162,8 @@ if __name__ == "__main__":
             'normalize_on_the_fly' : False, # (Default = False)
             'randomize_valid' : True, # (Default = True)
             'randomize_test' : True, # (Default = True)
-            'saving_rate': 2, # (Default = 0)
-            'alc_rate' : 2, # (Default = 0)
+            'saving_rate': 1, # (Default = 0)
+            'alc_rate' : 1, # (Default = 0)
             'resulting_alc' : True, # (Default = False)
             'models_dir' : './outputs/',
             'submit_dir' : './outputs/',
@@ -189,7 +188,7 @@ if __name__ == "__main__":
     # Train a DA over the computed representation
     da_fn = train_da(conf, data_after_pca)
     del data_after_pca
-    da = DenoisingAutoencoder.load(conf['models_dir'], 'model-da-final.pkl')
+    da = DenoisingAutoencoder.load(conf['models_dir'], 'model-da-epoch-01.pkl')
     da_fn = da.function('da_transform_fn')
     
     # Stack both layers and create submission file
