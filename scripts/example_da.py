@@ -49,8 +49,8 @@ if __name__ == "__main__":
 
     # Allocate an optimizer, which tells us how to update our model.
     # TODO: build the cost another way
-    cost = MeanSquaredError(conf, da)([minibatch])
-    trainer = SGDOptimizer(conf, da.params(), cost)
+    cost = MeanSquaredError(conf, da)(minibatch, da.reconstruction(minibatch))
+    trainer = SGDOptimizer(conf, da, cost)
 
     # Finally, build a Theano function out of all this.
     train_fn = trainer.function([minibatch])

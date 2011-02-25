@@ -108,7 +108,7 @@ class DenoisingAutoencoder(Block):
         else:
             act_dec = self.act_dec
         if isinstance(inputs, tensor.Variable):
-            return act_dec(self.visbias + tensor.dot(inputs, self.w_prime))
+            return act_dec(self.visbias + tensor.dot(hiddens, self.w_prime))
         else:
             return [
                 act_dec(self.visbias + tensor.dot(h, self.w_prime))
