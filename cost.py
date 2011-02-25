@@ -59,7 +59,7 @@ class CrossEntropy(SupervisedCost):
 def get(str):
     """ Evaluate str into a cost object, if it exists """
     obj = globals()[str]
-    if issubclass(obj, Cost):
+    if issubclass(obj, SupervisedCost):
         return obj
     else:
         raise NameError(str)

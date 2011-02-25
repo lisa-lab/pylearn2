@@ -225,11 +225,11 @@ class BatchIterator(object):
             counter[chosen] = (counter[chosen] + 1) % self.limit[chosen]
             # Return the computed minibatch
             yield minibatch
-    
+
     def __len__(self):
         """ Return length of the weighted union """
         return self.length
-    
+
     def by_index(self):
         """ Same generator as __iter__, but yield only the chosen indexes """
         counter = [0, 0, 0]
@@ -237,7 +237,7 @@ class BatchIterator(object):
             index = counter[chosen]
             counter[chosen] = (counter[chosen] + 1) % self.limit[chosen]
             yield chosen, index
-    
+
 ##################################################
 # Miscellaneous
 ##################################################

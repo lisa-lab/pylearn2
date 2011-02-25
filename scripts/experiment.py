@@ -33,7 +33,7 @@ def train_da(conf, data):
     to the parameters in conf, and save the learned model
     """
     # Set visible units size
-    conf['n_vis'] = utils.get_constant(data[0].shape[1])
+    conf['n_vis'] = int(utils.get_constant(data[0].shape[1]))
 
     # A symbolic input representing your minibatch.
     minibatch = tensor.matrix()
@@ -43,8 +43,9 @@ def train_da(conf, data):
     da = DenoisingAutoencoder(conf, corruptor)
 
     # Allocate an optimizer, which tells us how to update our model.
-    cost_fn = cost.get(conf['cost_class'])(conf, da)([minibatch])
-    trainer = SGDOptimizer(conf, da.params(), cost_fn)
+    cost_sym = cost.get(conf['cost_class'])(conf, da)(minibatch,
+                                                      da.reconstruction(minibatch))
+    trainer = SGDOptimizer(conf, da.params(), cost_sym)
     train_fn = trainer.function([minibatch], name='train_fn')
 
     # Here's a manual training loop.
@@ -73,7 +74,7 @@ def train_da(conf, data):
         if saving_rate != 0:
             saving_counter += 1
             if saving_counter % saving_rate == 0:
-                da.save(conf['models_dir'], 'model-da-epoch-%02d.pkl' % epoch)
+                da.save(conf['da_dir'], 'model-da-epoch-%02d.pkl' % epoch)
         
         # Keep track of the best alc computed
         if alc_rate != 0:
@@ -99,7 +100,7 @@ def train_da(conf, data):
     print '... training ended after %f min' % conf['training_time']
 
     # Compute denoising error for valid and train datasets.
-    error_fn = theano.function([minibatch], cost_fn, name='error_fn')
+    error_fn = theano.function([minibatch], cost_sym, name='error_fn')
 
     conf['error_valid'] = error_fn(data[1].value)
     conf['error_test'] = error_fn(data[2].value)
@@ -114,8 +115,8 @@ def train_da(conf, data):
         conf['best_alc_epoch'] = best_alc_epoch
         
     # Save model parameters
-    da.save(conf['models_dir'], 'model-da-final.pkl')
-    print '... model has been saved into %s as model-da-final.pkl' % conf['models_dir']
+    da.save(conf['da_dir'], 'model-da-final.pkl')
+    print '... model has been saved into %s as model-da-final.pkl' % conf['da_dir']
 
     # Return the learned transformation function
     return da.function('da_transform_fn')
@@ -129,7 +130,7 @@ def train_pca(conf, dataset):
     pca.train(dataset.get_value())
     
     print '... saving PCA'
-    pca.save(conf['models_dir'], 'model-pca.pkl')
+    pca.save(conf['pca_dir'], 'model-pca.pkl')
 
     # Return the learned transformation function
     return pca.function('pca_transform_fn')
@@ -165,7 +166,8 @@ if __name__ == "__main__":
             'saving_rate': 1, # (Default = 0)
             'alc_rate' : 1, # (Default = 0)
             'resulting_alc' : True, # (Default = False)
-            'models_dir' : './outputs/',
+            'da_dir' : './outputs/',
+            'pca_dir' : './outputs/',
             'submit_dir' : './outputs/',
             # Arguments for PCA
             'num_components': 75,
@@ -179,7 +181,7 @@ if __name__ == "__main__":
     data_blended = utils.blend(conf, data)
     pca_fn = train_pca(conf, data_blended)
     del data_blended
-    pca = PCA.load(conf['models_dir'], 'model-pca.pkl')
+    pca = PCA.load(conf['pca_dir'], 'model-pca.pkl')
     pca_fn = pca.function('pca_transform_fn')
     
     data_after_pca = [utils.sharedX(pca_fn(set.get_value()))
@@ -188,7 +190,7 @@ if __name__ == "__main__":
     # Train a DA over the computed representation
     da_fn = train_da(conf, data_after_pca)
     del data_after_pca
-    da = DenoisingAutoencoder.load(conf['models_dir'], 'model-da-epoch-01.pkl')
+    da = DenoisingAutoencoder.load(conf['da_dir'], 'model-da-epoch-01.pkl')
     da_fn = da.function('da_transform_fn')
     
     # Stack both layers and create submission file
