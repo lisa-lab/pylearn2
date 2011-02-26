@@ -33,7 +33,7 @@ def train_da(conf, data):
     to the parameters in conf, and save the learned model
     """
     # Set visible units size
-    conf['n_vis'] = int(utils.get_constant(data[0].shape[1]))
+    conf['n_vis'] = utils.get_constant(data[0].shape[1]).item()
 
     # A symbolic input representing your minibatch.
     minibatch = tensor.matrix()
@@ -102,8 +102,8 @@ def train_da(conf, data):
     # Compute denoising error for valid and train datasets.
     error_fn = theano.function([minibatch], cost_sym, name='error_fn')
 
-    conf['error_valid'] = error_fn(data[1].value)
-    conf['error_test'] = error_fn(data[2].value)
+    conf['error_valid'] = error_fn(data[1].get_value()).item()
+    conf['error_test'] = error_fn(data[2].get_value()).item()
     print '... final denoising error with valid is', conf['error_valid']
     print '... final denoising error with test  is', conf['error_test']
     
@@ -184,7 +184,7 @@ if __name__ == "__main__":
     pca = PCA.load(conf['pca_dir'], 'model-pca.pkl')
     pca_fn = pca.function('pca_transform_fn')
     
-    data_after_pca = [utils.sharedX(pca_fn(set.get_value()))
+    data_after_pca = [utils.sharedX(pca_fn(set.get_value()), borrow=True)
                       for set in data]
     
     # Train a DA over the computed representation

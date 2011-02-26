@@ -200,12 +200,21 @@ class BatchIterator(object):
         set_batch = [float(self.batch_size) for i in xrange(3)]
         set_range = numpy.divide(numpy.multiply(set_proba, set_sizes), set_batch)
         set_range = map(int, numpy.ceil(set_range))
-        
-        self.length = sum(set_range)
 
         # Upper bounds for each minibatch indexes
-        flimit = numpy.ceil(numpy.divide(set_sizes, set_batch))
-        self.limit = map(int, flimit)
+        set_limit = numpy.ceil(numpy.divide(set_sizes, set_batch))
+        self.limit = map(int, set_limit)
+        
+        # Number of rows in the resulting union
+        flo = numpy.floor
+        sub = numpy.subtract
+        mul = numpy.multiply
+        div = numpy.divide
+        mod = numpy.mod
+        l_trun = mul(flo(div(set_range, set_limit)), mod(set_sizes, set_batch))
+        l_full = mul(sub(set_range, flo(div(set_range, set_limit))), set_batch)
+        
+        self.length = sum(l_full) + sum(l_trun)
 
         # Random number generation using a permutation
         index_tab = []
@@ -244,8 +253,14 @@ class BatchIterator(object):
 
 def blend(conf, data):
     """ Randomized blending of datasets in data according to parameters in conf """
-    # TODO: Implement this function more space-efficiently
-    rows = []
-    for minibatch in BatchIterator(conf, data):
-        rows.append(minibatch)
-    return sharedX(numpy.concatenate(rows), borrow=True)
+    iterator = BatchIterator(conf, data)
+    nrow = len(iterator)
+    ncol = data[0].get_value().shape[1]
+    array = numpy.empty((nrow, ncol), data[0].dtype)
+    index = 0
+    for minibatch in iterator:
+        for row in minibatch:
+            array[index] = row
+            index += 1
+            
+    return sharedX(array, borrow=True)
