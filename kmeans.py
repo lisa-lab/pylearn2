@@ -206,13 +206,3 @@ if __name__=='__main__':
     #print "Transformed data:"
     #print numpy.histogram(transform(data))
 
-
-
-
-
-
-
-
-
-
-
