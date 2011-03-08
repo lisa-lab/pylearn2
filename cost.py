@@ -26,8 +26,8 @@ class SupervisedCost(object):
 
 class MeanSquaredError(SupervisedCost):
     """
-    Symbolic expression for mean-squared error between the input and the
-    denoised reconstruction.
+    Symbolic expression for mean-squared error between the target
+    and a prediction.
     """
     def __call__(self, prediction, target):
         msq = lambda p, t: ((p - t)**2).sum(axis=1).mean()
@@ -45,8 +45,8 @@ class MeanSquaredError(SupervisedCost):
 
 class CrossEntropy(SupervisedCost):
     """
-    Symbolic expression for elementwise cross-entropy between input
-    and reconstruction. Use for binary-valued features (but not for,
+    Symbolic expression for elementwise cross-entropy between target
+    and prediction. Use for binary-valued features (but not for,
     e.g., one-hot codes).
     """
     def __call__(self, prediction, target):

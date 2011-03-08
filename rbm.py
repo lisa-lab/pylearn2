@@ -90,12 +90,10 @@ class RBM(Block):
         )
         self._params = [self.visbias, self.hidbias, self.weights]
 
-    def ml_updates(self, pos_v, neg_v, lr, other_cost=0):
+    def ml_gradients(self, pos_v, neg_v):
         """
         Get the contrastive gradients given positive and negative phase
-        visible units, and do a gradient step on the parameters using
-        the learning rates in `lr` (which is a list in the same order
-        as self.params()).
+        visible units.
         """
 
         # taking the mean over each term independently allows for different mini-batch sizes in
@@ -106,10 +104,7 @@ class RBM(Block):
 
         grads = tensor.grad(cost, self.params(), consider_constant=[pos_v, neg_v])
 
-        stepsizes = lr
-        rval = dict(sgd_updates(self.params(), grads, stepsizes=stepsizes))
-
-        return rval
+        return grads
 
     def gibbs_step_for_v(self, v, rng):
         """

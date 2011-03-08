@@ -18,7 +18,7 @@ class SGDOptimizer(Optimizer):
     period.
     """
 
-    def __init__(self, conf, params, cost):
+    def __init__(self, conf, params):
         """
         :type conf: Dictionary
         :param conf: Other configuration variables. Are supported:
@@ -31,9 +31,6 @@ class SGDOptimizer(Optimizer):
             a 'params()' method returning such a list.
         :param params: The parameters we want to update.
 
-        :type cost: A symbolic Theano variable.
-        :param cost: The cost to minimize.
-
         The formula to compute the effective learning rate on a parameter is:
         <paramname>_lr * min(0.0, max(base_lr, lr_anneal_start/(iteration+1)))
         """
@@ -41,22 +38,86 @@ class SGDOptimizer(Optimizer):
             self.params = params
         else:
             self.params = params.params()
-        self.cost = cost
         self.conf = conf
         self.learning_rates_setup(conf, self.params)
 
-    def updates(self):
-        """Compute the updates for each of the parameter variables."""
+    def learning_rates_setup(self, conf, params):
+        """
+        Initializes parameter-specific learning rate dictionary and shared
+        variables for the annealed base learning rate and iteration number.
+        """
+        # Take care of learning rate scales for individual parameters
+        self.learning_rates = {}
+
+        for parameter in params:
+            lr_name = '%s_lr' % parameter.name
+            thislr = conf.get(lr_name, 1.)
+            self.learning_rates[parameter] = sharedX(thislr, lr_name)
+
+        # A shared variable for storing the iteration number.
+        self.iteration = sharedX(theano._asarray(0, dtype='int32'), name='iter')
+
+        # A shared variable for storing the annealed base learning rate, used
+        # to lower the learning rate gradually after a certain amount of time.
+        self.annealed = sharedX(conf['base_lr'], 'annealed')
+
+    def learning_rate_updates(self, conf, params):
+        ups = {}
+        # Base learning rate per example.
+        base_lr = theano._asarray(self.conf['base_lr'], dtype=floatX)
+
+        # Annealing coefficient. Here we're using a formula of
+        # base_lr * min(0.0, max(base_lr, lr_anneal_start / (iteration + 1))
+        frac = self.conf['lr_anneal_start'] / (self.iteration + 1.)
+        annealed = tensor.clip(
+            tensor.cast(frac, floatX),
+            0.0,    # minimum learning rate
+            base_lr # maximum learning rate
+        )
+
+        # Update the shared variable for the annealed learning rate.
+        ups[self.annealed] = annealed
+        ups[self.iteration] = self.iteration + 1
+
+        # Calculate the learning rates for each parameter, in the order
+        # they appear in self.params
+        learn_rates = [annealed * self.learning_rates[p] for p in params]
+        return ups, learn_rates
+
+    def updates(self, cost=None, gradients=None):
+        """Return symbolic updates to apply.
+
+        The updates are computed either to minimize a cost (if "cost" is
+        provided), or to follow the gradient of a cost (or pseudo-cost),
+        if "gradients" is provided.
+
+        :type gradients: A list of symbolic Theano variables, the same
+        length as self.model
+        :param gradients: The gradients of a cost (or pseudo-cost) wrt
+        self.params.
+        """
+        if cost is not None and gradients is not None:
+            raise ValueError('Only one of "cost" and "gradients" should be '
+                    'provided', cost, gradients)
+
         ups = {}
         # Get the gradient w.r.t. cost of each parameter.
         l_ups, learn_rates = self.learning_rate_updates(self.conf, self.params)
 
         # Add the learning rate/iteration updates
         safe_update(ups, l_ups)
-        grads = [
-            tensor.grad(self.cost, p)
-            for p in self.params
-        ]
+
+        # If updates is not provided
+        if gradients is None:
+            assert cost is not None, 'neither gradients nor cost were provided'
+
+            grads = [
+                tensor.grad(cost, p)
+                for p in self.params
+            ]
+        else:
+            grads = list(gradients)
+
         # Get the updates from sgd_updates, a PyLearn library function.
         p_up = dict(sgd_updates(self.params, grads, learn_rates))
 
@@ -66,40 +127,25 @@ class SGDOptimizer(Optimizer):
         # Return the updates dictionary.
         return ups
 
-    def function(self, inputs, name=None):
-        """Compile the Theano training function associated with the optimizer"""
-        return theano.function(inputs,
-                               self.cost,
-                               updates=self.updates(),
-                               name=name)
+    def cost_updates(self, cost):
+        """Return symbolic updates given a cost to minimize
 
-class RBMOptimizer(Optimizer):
-    """TODO: This name really doesn't make sense."""
-    def __init__(self, conf, model, sampler, visible_batch):
-        self.__dict__.update(dict(conf=conf, model=model, sampler=sampler,
-                                  visible_batch=visible_batch))
-        self.learning_rates_setup(conf, model.params())
+        :type cost: A scalar symbolic Theano variable
+        :param cost: The cost to minimize.
 
-    def updates(self):
-        ups = {}
-        params = self.model.params()
-        l_ups, learn_rates = self.learning_rate_updates(self.conf, params)
+        self.cost_updates(cost) is equivalent to
+        self.updates(T.grad(cost, self.params))
+        """
+        grads = [tensor.grad(cost, p) for p in self.params]
+        return self.updates(gradients=grads)
 
-        # Add the learning rate, iteration, etc. updates.
-        safe_update(ups, l_ups)
+    def ml_updates(self, model, sampler, visible_batch):
+        """Compute the updates given an estimator of the likelihood
 
-        # Add the model's parameter updates.
-        pos_v = self.visible_batch
-        neg_v = self.sampler.particles
-        safe_update(ups, self.model.ml_updates(pos_v, neg_v, learn_rates))
+        TODO: document args
+        """
+        pos_v = visible_batch
+        neg_v = sampler.particles
+        grads = model.ml_gradients(pos_v, neg_v)
+        return self.updates(gradients=grad)
 
-        # Add the sampler's updates (negative phase particles, etc.).
-        safe_update(ups, self.sampler.updates())
-        return ups
-
-    def function(self, inputs, name=None):
-        rng = self.sampler.s_rng
-        return theano.function([inputs],
-                               self.model.reconstruction_error(inputs, rng),
-                               updates=self.updates(),
-                               name=name)
