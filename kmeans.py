@@ -132,7 +132,8 @@ if __name__=='__main__':
     from framework.optimizer import SGDOptimizer
     # toy labeled data: [x,y,label]*n samples
     n=50
-    noise=numpy.random.random((n,2))
+    rng = numpy.random.RandomState(seed=7777777)
+    noise = rng.random_sample((n,2))
     class1=numpy.concatenate((  noise*10+numpy.array([-10,-10]),
                                 numpy.array([[1]*n]).T),
                                 axis=1)
@@ -140,7 +141,7 @@ if __name__=='__main__':
                                 numpy.array([[2]*n]).T),
                                 axis=1)
     data=numpy.append(class1,class2,axis=0)
-    numpy.random.shuffle(data)
+    rng.shuffle(data)
     #labels are just going to be used as visual reference in terminal output
     train_data,train_labels=data[:-10,:-1],data[:-10,-1]
     test_data,test_labels=data[-10:,:-1],data[-10:,-1]

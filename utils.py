@@ -220,8 +220,11 @@ class BatchIterator(object):
         index_tab = []
         for i in xrange(3):
             index_tab.extend(repeat(i, set_range[i]))
-        self.permut = numpy.random.permutation(index_tab)
-        # TODO: Record seed parameter for reproductability purposes ?
+
+        # The seed should be deterministic
+        self.seed = conf.get('batchiterator_seed', 300)
+        rng = numpy.random.RandomState(seed=self.seed)
+        self.permut = rng.permutation(index_tab)
 
     def __iter__(self):
         """ Generator function to iterate through all minibatches """
