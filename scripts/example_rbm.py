@@ -21,7 +21,8 @@ if __name__ == "__main__":
     }
 
     rbm = GaussianBinaryRBM(conf)
-    sampler = PersistentCDSampler(conf, rbm, data[0:100], numpy.random)
+    rng = numpy.random.RandomState(seed=conf.get('rbm_seed',42))
+    sampler = PersistentCDSampler(conf, rbm, data[0:100], rng)
     minibatch = tensor.matrix()
 
     optimizer = SGDOptimizer(conf, rbm)
