@@ -100,9 +100,8 @@ class RBM(Block):
         # the positive and negative phase.
         ml_cost = self.free_energy_given_v(pos_v).mean() - \
                   self.free_energy_given_v(neg_v).mean()
-        cost = ml_cost + other_cost
 
-        grads = tensor.grad(cost, self.params(), consider_constant=[pos_v, neg_v])
+        grads = tensor.grad(ml_cost, self.params(), consider_constant=[pos_v, neg_v])
 
         return grads
 
