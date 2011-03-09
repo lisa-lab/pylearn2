@@ -21,14 +21,14 @@ if __name__ == "__main__":
     }
 
     rbm = GaussianBinaryRBM(conf)
-    rng = numpy.random
-    sampler = PersistentCDSampler(conf, rbm, data[0:100], rng)
+    sampler = PersistentCDSampler(conf, rbm, data[0:100], numpy.random)
     minibatch = tensor.matrix()
 
     optimizer = SGDOptimizer(conf, rbm)
-    updates = optimizer.ml_updates(rbm, sampler, minibatch)
-    proxy_cost = rbm.reconstruction_error(minibatch, rng)
-    train_fn = theano.function(minibatch, proxy_cost, updates=updates)
+    updates = optimizer.ml_updates(
+            model=rbm, sampler=sampler, visible_batch=minibatch)
+    proxy_cost = rbm.reconstruction_error(minibatch, rng=sampler.s_rng)
+    train_fn = theano.function([minibatch], proxy_cost, updates=updates)
 
     vis = tensor.matrix('vis')
     free_energy_fn = theano.function([vis], rbm.free_energy_given_v(vis))
