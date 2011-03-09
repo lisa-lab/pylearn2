@@ -84,42 +84,24 @@ class SGDOptimizer(Optimizer):
         learn_rates = [annealed * self.learning_rates[p] for p in params]
         return ups, learn_rates
 
-    def updates(self, cost=None, gradients=None):
+    def updates(self, gradients):
         """Return symbolic updates to apply.
 
-        The updates are computed either to minimize a cost (if "cost" is
-        provided), or to follow the gradient of a cost (or pseudo-cost),
-        if "gradients" is provided.
+        The updates are computed to follow the gradient of a cost
+        (or pseudo-cost), wrt self.parameters.
 
         :type gradients: A list of symbolic Theano variables, the same
         length as self.model
         :param gradients: The gradients of a cost (or pseudo-cost) wrt
         self.params.
         """
-        if cost is not None and gradients is not None:
-            raise ValueError('Only one of "cost" and "gradients" should be '
-                    'provided', cost, gradients)
-
         ups = {}
-        # Get the gradient w.r.t. cost of each parameter.
-        l_ups, learn_rates = self.learning_rate_updates(self.conf, self.params)
-
         # Add the learning rate/iteration updates
+        l_ups, learn_rates = self.learning_rate_updates(self.conf, self.params)
         safe_update(ups, l_ups)
 
-        # If updates is not provided
-        if gradients is None:
-            assert cost is not None, 'neither gradients nor cost were provided'
-
-            grads = [
-                tensor.grad(cost, p)
-                for p in self.params
-            ]
-        else:
-            grads = list(gradients)
-
         # Get the updates from sgd_updates, a PyLearn library function.
-        p_up = dict(sgd_updates(self.params, grads, learn_rates))
+        p_up = dict(sgd_updates(self.params, gradients, learn_rates))
 
         # Add the things in p_up to ups
         safe_update(ups, p_up)
