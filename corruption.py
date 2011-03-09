@@ -24,7 +24,8 @@ class Corruptor(object):
     objects in this file, with a 'conf' dictionary (or object
     supporting __getitem__) containing relevant hyperparameters.
     """
-    def __init__(self, conf, rng=None):
+    def __init__(self, conf, rng=2001):
+        # The default rng should be build in a deterministic way
         if not hasattr(rng, 'randn'):
             rng = numpy.random.RandomState(rng)
         seed = int(rng.randint(2**30))
