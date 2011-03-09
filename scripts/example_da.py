@@ -50,10 +50,11 @@ if __name__ == "__main__":
     # Allocate an optimizer, which tells us how to update our model.
     # TODO: build the cost another way
     cost = MeanSquaredError(conf, da)(minibatch, da.reconstruction(minibatch))
-    trainer = SGDOptimizer(conf, da.params(), cost)
+    trainer = SGDOptimizer(conf, da.params())
+    updates = trainer.cost_updates(cost)
 
     # Finally, build a Theano function out of all this.
-    train_fn = trainer.function([minibatch])
+    train_fn = theano.function([minibatch], cost, updates=updates)
 
     # Suppose we want minibatches of size 10
     batchsize = 10
@@ -85,10 +86,11 @@ if __name__ == "__main__":
     for layer in sda.layers():
         cost = MeanSquaredError(sda_conf, layer)(thislayer_input[0],
                                                  layer.reconstruction(thislayer_input[0]))
-        opt = SGDOptimizer(sda_conf, layer.params(), cost)
-        optimizers.append(opt)
+        opt = SGDOptimizer(sda_conf, layer.params())
+        optimizers.append((opt, cost))
         # Retrieve a Theano function for training this layer.
-        thislayer_train_fn = opt.function([minibatch])
+        updates = opt.cost_updates(cost)
+        thislayer_train_fn = theano.function([minibatch], cost, updates=updates)
 
         # Train as before.
         for epoch in xrange(10):

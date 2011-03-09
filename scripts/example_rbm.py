@@ -3,7 +3,7 @@ import theano
 import matplotlib.pyplot as plt
 from theano import tensor
 from framework.rbm import GaussianBinaryRBM, PersistentCDSampler
-from framework.optimizer import RBMOptimizer
+from framework.optimizer import SGDOptimizer
 from framework.rbm_tools import compute_log_z, compute_nll
 
 if __name__ == "__main__":
@@ -21,10 +21,14 @@ if __name__ == "__main__":
     }
 
     rbm = GaussianBinaryRBM(conf)
-    sampler = PersistentCDSampler(conf, rbm, data[0:100], numpy.random)
+    rng = numpy.random
+    sampler = PersistentCDSampler(conf, rbm, data[0:100], rng)
     minibatch = tensor.matrix()
-    optimizer = RBMOptimizer(conf, rbm, sampler, minibatch)
-    train_fn = optimizer.function(minibatch)
+
+    optimizer = SGDOptimizer(conf, rbm)
+    updates = optimizer.ml_updates(rbm, sampler, minibatch)
+    proxy_cost = rbm.reconstruction_error(minibatch, rng)
+    train_fn = theano.function(minibatch, proxy_cost, updates=updates)
 
     vis = tensor.matrix('vis')
     free_energy_fn = theano.function([vis], rbm.free_energy_given_v(vis))
