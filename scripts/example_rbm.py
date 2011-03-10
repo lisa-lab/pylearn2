@@ -8,7 +8,8 @@ from framework.rbm_tools import compute_log_z, compute_nll
 
 if __name__ == "__main__":
 
-    data = numpy.random.normal(size=(500, 20))
+    data_rng = numpy.random.RandomState(seed=999)
+    data = data_rng.normal(size=(500, 20))
 
     conf = {
         'n_vis': 20,
