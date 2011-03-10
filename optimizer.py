@@ -129,5 +129,10 @@ class SGDOptimizer(Optimizer):
         pos_v = visible_batch
         neg_v = sampler.particles
         grads = model.ml_gradients(pos_v, neg_v)
-        return self.updates(gradients=grads)
+        ups = self.updates(gradients=grads)
+
+        # Add the sampler's updates (negative phase particles, etc.).
+        safe_update(ups, sampler.updates())
+
+        return ups
 
