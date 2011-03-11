@@ -39,9 +39,9 @@ class SGDOptimizer(Optimizer):
         else:
             self.params = params.params()
         self.conf = conf
-        self.learning_rates_setup(conf, self.params)
+        self.learning_rates_setup(conf)
 
-    def learning_rates_setup(self, conf, params):
+    def learning_rates_setup(self, conf):
         """
         Initializes parameter-specific learning rate dictionary and shared
         variables for the annealed base learning rate and iteration number.
@@ -49,7 +49,7 @@ class SGDOptimizer(Optimizer):
         # Take care of learning rate scales for individual parameters
         self.learning_rates = {}
 
-        for parameter in params:
+        for parameter in self.params:
             lr_name = '%s_lr' % parameter.name
             thislr = conf.get(lr_name, 1.)
             self.learning_rates[parameter] = sharedX(thislr, lr_name)
@@ -61,7 +61,7 @@ class SGDOptimizer(Optimizer):
         # to lower the learning rate gradually after a certain amount of time.
         self.annealed = sharedX(conf['base_lr'], 'annealed')
 
-    def learning_rate_updates(self, conf, params):
+    def learning_rate_updates(self, conf):
         ups = {}
         # Base learning rate per example.
         base_lr = theano._asarray(self.conf['base_lr'], dtype=floatX)
@@ -81,7 +81,7 @@ class SGDOptimizer(Optimizer):
 
         # Calculate the learning rates for each parameter, in the order
         # they appear in self.params
-        learn_rates = [annealed * self.learning_rates[p] for p in params]
+        learn_rates = [annealed * self.learning_rates[p] for p in self.params]
         return ups, learn_rates
 
     def updates(self, gradients):
@@ -97,7 +97,7 @@ class SGDOptimizer(Optimizer):
         """
         ups = {}
         # Add the learning rate/iteration updates
-        l_ups, learn_rates = self.learning_rate_updates(self.conf, self.params)
+        l_ups, learn_rates = self.learning_rate_updates(self.conf)
         safe_update(ups, l_ups)
 
         # Get the updates from sgd_updates, a PyLearn library function.
