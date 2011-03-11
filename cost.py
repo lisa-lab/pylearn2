@@ -53,7 +53,9 @@ class CrossEntropy(SupervisedCost):
         ce = lambda x, z: x * tensor.log(z) + (1 - x) * tensor.log(1 - z)
         if isinstance(prediction, tensor.Variable):
             return ce(prediction, target)
-        return sum(imap(lambda p, t: ce(p, t).sum(axis=1).mean(), prediction, target))
+        return sum(
+            imap(lambda p, t: ce(p, t).sum(axis=1).mean(), prediction, target)
+        )
 
 ##################################################
 def get(str):

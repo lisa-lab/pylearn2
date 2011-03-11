@@ -28,7 +28,11 @@ def subdict(d, keys):
 
 def get_constant(variable):
     """ Little hack to return the python value of a theano shared variable """
-    return theano.function([], variable, mode=theano.compile.Mode(linker='py'))()
+    return theano.function(
+        [],
+        variable,
+        mode=theano.compile.Mode(linker='py')
+    )()
 
 def sharedX(value, name=None, borrow=False):
     """Transform value into a shared variable of type floatX"""
@@ -59,7 +63,10 @@ def load_data(conf):
                 'randomize_valid',
                 'randomize_test']
     print '... loading data'
-    train_set, valid_set, test_set = load_ndarray_dataset(conf['dataset'], **subdict(conf, expected))
+    train_set, valid_set, test_set = load_ndarray_dataset(
+        conf['dataset'],
+        **subdict(conf, expected)
+    )
 
     # Allocate shared variables
     def shared_dataset(data_x):
@@ -80,9 +87,11 @@ def load_data(conf):
 
 def create_submission(conf, get_representation):
     """
-    Create submission files given a configuration dictionary and a computation function
+    Create submission files given a configuration dictionary and a
+    computation function
 
-    Note that it always reload the datasets to ensure valid & test are not permuted
+    Note that it always reload the datasets to ensure valid & test
+    are not permuted
     """
     # Load the dataset, without permuting valid and test
     kwargs = subdict(conf, ['dataset', 'normalize', 'normalize_on_the_fly'])
@@ -125,7 +134,9 @@ def create_submission(conf, get_representation):
     elif not os.path.isdir(submit_dir):
         raise IOError('submit_dir %s is not a directory' % submit_dir)
 
-    basename = os.path.join(submit_dir, conf['dataset'] + '_' + conf['expname'])
+    basename = os.path.join(submit_dir,
+                            conf['dataset'] + '_' + conf['expname']
+                           )
     valid_file = open(basename + '_valid.prepro', 'w')
     test_file = open(basename + '_final.prepro', 'w')
 
@@ -160,11 +171,13 @@ def compute_alc(valid_repr, test_repr):
     normal case (i.e only train on training set)
     """
 
-    # Concatenate the two sets, and give different one hot labels for valid and test
+    # Concatenate the two sets, and give different one hot labels for
+    # valid and test
     n_valid  = valid_repr.shape[0]
     n_test = test_repr.shape[0]
 
-    _labvalid = numpy.hstack((numpy.ones((n_valid,1)), numpy.zeros((n_valid,1))))
+    _labvalid = numpy.hstack((numpy.ones((n_valid,1)),
+                              numpy.zeros((n_valid,1))))
     _labtest = numpy.hstack((numpy.zeros((n_test,1)), numpy.ones((n_test,1))))
 
     dataset = numpy.vstack((valid_repr, test_repr))
@@ -180,7 +193,7 @@ def lookup_alc(data, transform):
     return compute_alc(valid_repr, test_repr)
 
 ##################################################
-# Iterator objet for blending datasets
+# Iterator object for blending datasets
 ##################################################
 
 class BatchIterator(object):
@@ -198,7 +211,8 @@ class BatchIterator(object):
         set_proba = [conf['train_prop'], conf['valid_prop'], conf['test_prop']]
         set_sizes = [get_constant(data.shape[0]) for data in dataset]
         set_batch = [float(self.batch_size) for i in xrange(3)]
-        set_range = numpy.divide(numpy.multiply(set_proba, set_sizes), set_batch)
+        set_range = numpy.divide(numpy.multiply(set_proba, set_sizes),
+                                 set_batch)
         set_range = map(int, numpy.ceil(set_range))
 
         # Upper bounds for each minibatch indexes
@@ -232,7 +246,9 @@ class BatchIterator(object):
         for chosen in self.permut:
             # Retrieve minibatch from chosen set
             index = counter[chosen]
-            minibatch = self.dataset[chosen][index * self.batch_size:(index + 1) * self.batch_size]
+            minibatch = self.dataset[chosen][
+                index * self.batch_size:(index + 1) * self.batch_size
+            ]
             # Increment the related counter
             counter[chosen] = (counter[chosen] + 1) % self.limit[chosen]
             # Return the computed minibatch
@@ -255,7 +271,10 @@ class BatchIterator(object):
 ##################################################
 
 def blend(conf, data):
-    """ Randomized blending of datasets in data according to parameters in conf """
+    """
+    Randomized blending of datasets in data according to parameters
+    in conf
+    """
     iterator = BatchIterator(conf, data)
     nrow = len(iterator)
     ncol = data[0].get_value().shape[1]

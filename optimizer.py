@@ -55,7 +55,8 @@ class SGDOptimizer(Optimizer):
             self.learning_rates[parameter] = sharedX(thislr, lr_name)
 
         # A shared variable for storing the iteration number.
-        self.iteration = sharedX(theano._asarray(0, dtype='int32'), name='iter')
+        self.iteration = sharedX(theano._asarray(0, dtype='int32'),
+                                 name='iter')
 
         # A shared variable for storing the annealed base learning rate, used
         # to lower the learning rate gradually after a certain amount of time.
