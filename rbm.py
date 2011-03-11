@@ -95,12 +95,13 @@ class RBM(Block):
         visible units.
         """
 
-        # taking the mean over each term independently allows for different mini-batch sizes in
-        # the positive and negative phase.
-        ml_cost = self.free_energy_given_v(pos_v).mean() - \
-                  self.free_energy_given_v(neg_v).mean()
+        # taking the mean over each term independently allows for different
+        # mini-batch sizes in the positive and negative phase.
+        ml_cost = (self.free_energy_given_v(pos_v).mean() -
+                   self.free_energy_given_v(neg_v).mean())
 
-        grads = tensor.grad(ml_cost, self.params(), consider_constant=[pos_v, neg_v])
+        grads = tensor.grad(ml_cost, self.params(),
+                            consider_constant=[pos_v, neg_v])
 
         return grads
 
