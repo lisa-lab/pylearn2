@@ -8,7 +8,7 @@ from theano import tensor
 from theano.tensor import nnet
 
 from .base import Block
-from .utils import sharedX
+from .utils import sharedX, safe_update
 
 theano.config.warn.sum_div_dimshuffle_bug = False
 floatX = theano.config.floatX
@@ -19,6 +19,22 @@ if 0:
 else:
     import theano.sandbox.rng_mrg
     RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
+
+
+def training_updates(visible_batch, model, sampler, optimizer):
+    """
+    Get optimization updates from a given optimizer for a given
+    (RBM-like) model with a given sampling strategy (sampler
+    object).
+    """
+    pos_v = visible_batch
+    neg_v = sampler.particles
+    grads = model.ml_gradients(pos_v, neg_v)
+    ups = optimizer.updates(gradients=grads)
+
+    # Add the sampler's updates (negative phase particles, etc.).
+    safe_update(ups, sampler.updates())
+    return ups
 
 class Sampler(object):
     """

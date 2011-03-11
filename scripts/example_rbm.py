@@ -2,7 +2,8 @@ import numpy
 import theano
 import matplotlib.pyplot as plt
 from theano import tensor
-from framework.rbm import GaussianBinaryRBM, PersistentCDSampler
+from framework.rbm import GaussianBinaryRBM, PersistentCDSampler, \
+        training_updates
 from framework.optimizer import SGDOptimizer
 from framework.rbm_tools import compute_log_z, compute_nll
 
@@ -27,8 +28,8 @@ if __name__ == "__main__":
     minibatch = tensor.matrix()
 
     optimizer = SGDOptimizer(conf, rbm)
-    updates = optimizer.ml_updates(
-            model=rbm, sampler=sampler, visible_batch=minibatch)
+    updates = training_updates(visible_batch=minibatch, model=rbm,
+                               sampler=sampler, optimizer=optimizer)
     proxy_cost = rbm.reconstruction_error(minibatch, rng=sampler.s_rng)
     train_fn = theano.function([minibatch], proxy_cost, updates=updates)
 
