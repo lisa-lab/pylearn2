@@ -81,14 +81,14 @@ def load_data(conf):
 def create_submission(conf, get_representation):
     """
     Create submission files given a configuration dictionary and a computation function
-    
+
     Note that it always reload the datasets to ensure valid & test are not permuted
     """
     # Load the dataset, without permuting valid and test
     kwargs = subdict(conf, ['dataset', 'normalize', 'normalize_on_the_fly'])
     kwargs.update(randomize_valid=False, randomize_test=False)
     train_set, valid_set, test_set = load_data(kwargs)
-    
+
     # Valid and test representations
     valid_repr = get_representation(get_constant(valid_set))
     test_repr = get_representation(test_set.get_value())
@@ -169,14 +169,14 @@ def compute_alc(valid_repr, test_repr):
 
     dataset = numpy.vstack((valid_repr, test_repr))
     label = numpy.vstack((_labvalid,_labtest))
-    
+
     print '... computing the ALC'
     return embed.score(dataset, label)
 
 def lookup_alc(data, transform):
     valid_repr = transform(data[1].get_value())
     test_repr = transform(data[2].get_value())
-    
+
     return compute_alc(valid_repr, test_repr)
 
 ##################################################
@@ -193,7 +193,7 @@ class BatchIterator(object):
         self.batch_size = conf['batch_size']
         # TODO: If you have a better way to return dataset slices, I'll take it
         self.dataset = [set.get_value() for set in dataset]
-        
+
         # Compute maximum number of samples for one loop
         set_proba = [conf['train_prop'], conf['valid_prop'], conf['test_prop']]
         set_sizes = [get_constant(data.shape[0]) for data in dataset]
@@ -204,7 +204,7 @@ class BatchIterator(object):
         # Upper bounds for each minibatch indexes
         set_limit = numpy.ceil(numpy.divide(set_sizes, set_batch))
         self.limit = map(int, set_limit)
-        
+
         # Number of rows in the resulting union
         flo = numpy.floor
         sub = numpy.subtract
@@ -213,7 +213,7 @@ class BatchIterator(object):
         mod = numpy.mod
         l_trun = mul(flo(div(set_range, set_limit)), mod(set_sizes, set_batch))
         l_full = mul(sub(set_range, flo(div(set_range, set_limit))), set_batch)
-        
+
         self.length = sum(l_full) + sum(l_trun)
 
         # Random number generation using a permutation
@@ -265,5 +265,5 @@ def blend(conf, data):
         for row in minibatch:
             array[index] = row
             index += 1
-            
+
     return sharedX(array, borrow=True)
