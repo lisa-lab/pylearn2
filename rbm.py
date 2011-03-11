@@ -6,7 +6,6 @@ import numpy
 import theano
 from theano import tensor
 from theano.tensor import nnet
-from pylearn.gd.sgd import sgd_updates
 
 from .base import Block
 from .utils import sharedX
