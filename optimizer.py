@@ -34,7 +34,7 @@ class SGDOptimizer(Optimizer):
         The formula to compute the effective learning rate on a parameter is:
         <paramname>_lr * min(0.0, max(base_lr, lr_anneal_start/(iteration+1)))
         """
-        if isinstance(params, (list, tuple)):
+        if hasattr(params, '__iter__'):
             self.params = params
         else:
             self.params = params.params()
