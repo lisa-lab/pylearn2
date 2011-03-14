@@ -29,8 +29,8 @@ if __name__ == "__main__":
 
     conf = {
         'corruption_level': 0.1,
-        'n_hid': 20,
-        'n_vis': data.shape[1],
+        'nhid': 20,
+        'nvis': data.shape[1],
         'lr_anneal_start': 100,
         'base_lr': 0.01,
         'tied_weights': True,
@@ -45,8 +45,9 @@ if __name__ == "__main__":
     minibatch = tensor.matrix()
 
     # Allocate a denoising autoencoder with binomial noise corruption.
-    corruptor = GaussianCorruptor(conf)
-    da = DenoisingAutoencoder(conf, corruptor)
+    corruptor = GaussianCorruptor(conf['corruption_level'])
+    da = DenoisingAutoencoder(conf['nvis'], conf['nhid'], corruptor,
+                              conf['act_enc'], conf['act_dec'])
 
     # Allocate an optimizer, which tells us how to update our model.
     # TODO: build the cost another way
@@ -78,8 +79,9 @@ if __name__ == "__main__":
     # the number of hidden units to be a list. This tells the StackedDA
     # class how many layers to make.
     sda_conf = conf.copy()
-    sda_conf['n_hid'] = [20, 20, 10]
-    sda = StackedDA(sda_conf, corruptor)
+    sda_conf['nhid'] = [20, 20, 10]
+    sda = StackedDA(sda_conf['nvis'], sda_conf['nhid'], corruptor,
+                    sda_conf['act_enc'], sda_conf['act_dec'])
 
     # To pretrain it, we'll use a different SGDOptimizer for each layer.
     optimizers = []
