@@ -9,15 +9,9 @@ from itertools import imap
 from theano import tensor
 
 class SupervisedCost(object):
-    """
-    A cost object is allocated in the same fashion as other
-    objects in this file, with a 'conf' dictionary (or object
-    supporting __getitem__) containing relevant hyperparameters.
-    """
-    def __init__(self, conf, model):
-        self.conf = conf
-        # TODO: Do stuff depending on conf parameters (for example
-        # use different cross-entropy if act_end == "tanh" or not)
+    def __init__(self, model):
+        # TODO: Do stuff depending on model hyperparameters (for example
+        # use different cross-entropy if act_enc == "tanh" or not)
         self.model = model
 
     def __call__(self, *inputs):

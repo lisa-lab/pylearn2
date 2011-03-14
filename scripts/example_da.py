@@ -31,7 +31,7 @@ if __name__ == "__main__":
         'corruption_level': 0.1,
         'nhid': 20,
         'nvis': data.shape[1],
-        'lr_anneal_start': 100,
+        'anneal_start': 100,
         'base_lr': 0.01,
         'tied_weights': True,
         'act_enc': 'tanh',
@@ -51,8 +51,8 @@ if __name__ == "__main__":
 
     # Allocate an optimizer, which tells us how to update our model.
     # TODO: build the cost another way
-    cost = MeanSquaredError(conf, da)(minibatch, da.reconstruction(minibatch))
-    trainer = SGDOptimizer(conf, da.params())
+    cost = MeanSquaredError(da)(minibatch, da.reconstruction(minibatch))
+    trainer = SGDOptimizer(da, conf['base_lr'], conf['anneal_start'])
     updates = trainer.cost_updates(cost)
 
     # Finally, build a Theano function out of all this.
@@ -87,9 +87,10 @@ if __name__ == "__main__":
     optimizers = []
     thislayer_input = [minibatch]
     for layer in sda.layers():
-        cost = MeanSquaredError(sda_conf, layer)(thislayer_input[0],
+        cost = MeanSquaredError(layer)(thislayer_input[0],
                                                  layer.reconstruction(thislayer_input[0]))
-        opt = SGDOptimizer(sda_conf, layer.params())
+        opt = SGDOptimizer(layer.params(), sda_conf['base_lr'],
+                           sda_conf['anneal_start'])
         optimizers.append((opt, cost))
         # Retrieve a Theano function for training this layer.
         updates = opt.cost_updates(cost)
