@@ -26,24 +26,25 @@ class DenoisingAutoencoder(Block):
     A denoising autoencoder learns a representation of the input by
     reconstructing a noisy version of it.
     """
-    def __init__(self, conf, corruptor, rng=None):
+    def __init__(self, nvis, nhid, corruptor, act_enc, act_dec,
+                 tied_weights=False, irange=1e-3, rng=None):
         """Allocate a denoising autoencoder object."""
         if not hasattr(rng, 'randn'):
             rng = numpy.random.RandomState(rng)
         self.corruptor = corruptor
         self.visbias = sharedX(
-            numpy.zeros(conf['n_vis']),
+            numpy.zeros(nvis),
             name='vb',
             borrow=True
         )
         self.hidbias = sharedX(
-            numpy.zeros(conf['n_hid']),
+            numpy.zeros(nhid),
             name='hb',
             borrow=True
         )
         # TODO: use weight scaling factor if provided, Xavier's default else
         self.weights = sharedX(
-            .5 * rng.rand(conf['n_vis'], conf['n_hid']) * conf['irange'],
+            .5 - rng.rand(nvis, nhid) * irange,
             name='W',
             borrow=True
         )
@@ -53,12 +54,12 @@ class DenoisingAutoencoder(Block):
             self.w_prime = self.weights.T
         else:
             self.w_prime = sharedX(
-                .5 * rng.rand(conf['n_hid'], conf['n_vis']) * conf['irange'],
+                .5 - rng.rand(nhid, nvis) * irange,
                 name='Wprime',
                 borrow=True
             )
 
-        def _resolve_callable(conf_attr):
+        def _resolve_callable(conf, conf_attr):
             if conf[conf_attr] is None or conf[conf_attr] == "linear":
                 # The identity function, for linear layers.
                 return None
@@ -73,15 +74,14 @@ class DenoisingAutoencoder(Block):
                 raise ValueError("Couldn't interpret %s value: '%s'" %
                                  (conf_attr, conf[conf_attr]))
 
-        self.act_enc = _resolve_callable('act_enc')
-        self.act_dec = _resolve_callable('act_dec')
-        self.conf = conf
+        self.act_enc = _resolve_callable(locals(), 'act_enc')
+        self.act_dec = _resolve_callable(locals(), 'act_dec')
         self._params = [
             self.visbias,
             self.hidbias,
             self.weights,
         ]
-        if not conf['tied_weights']:
+        if not tied_weights:
             self._params.append(self.w_prime)
 
     def _hidden_activation(self, x):
@@ -127,48 +127,40 @@ class StackedDA(Block):
     A class representing a stacked model. Forward propagation passes
     (symbolic) input through each layer sequentially.
     """
-    def __init__(self, conf, corruptors, rng=None):
+    def __init__(self, nvis, nhids, corruptors, act_enc, act_dec,
+                 tied_weights=False, irange=1e-3, rng=None):
         """Allocate a stacked denoising autoencoder object."""
         if not hasattr(rng, 'randn'):
             rng = numpy.random.RandomState(rng)
         self._layers = []
         _local = {}
         # Make sure that if we have a sequence of encoder/decoder activations
-        # or corruptors, that we have exactly as many as len(conf['n_hid'])
+        # or corruptors, that we have exactly as many as len(n_hids)
         if hasattr(corruptors, '__len__'):
-            assert len(conf['n_hid']) == len(corruptors)
+            assert len(nhids) == len(corruptors)
         else:
-            corruptors = [corruptors] * len(conf['n_hid'])
+            corruptors = [corruptors] * len(nhids)
         for c in ['act_enc', 'act_dec']:
-            if type(conf[c]) is not str and hasattr(conf[c], '__len__'):
-                assert len(conf['n_hid']) == len(conf[c])
-                _local[c] = conf[c]
+            if type(locals()[c]) is not str and hasattr(locals()[c], '__len__'):
+                assert len(nhids) == len(locals()[c])
+                _local[c] = locals()[c]
             else:
-                _local[c] = [conf[c]] * len(conf['n_hid'])
-        n_hids = conf['n_hid']
+                _local[c] = [locals()[c]] * len(nhids)
         # The number of visible units in each layer is the initial input
         # size and the first k-1 hidden unit sizes.
-        n_viss = [conf['n_vis']] + conf['n_hid'][:-1]
+        nviss = [nvis] + nhids[:-1]
         seq = izip(
-            xrange(len(n_hids)),
-            n_hids,
-            n_viss,
+            xrange(len(nhids)),
+            nhids,
+            nviss,
             _local['act_enc'],
             _local['act_dec'],
             corruptors
         )
         # Create each layer.
-        for k, n_hid, n_vis, act_enc, act_dec, corr in seq:
-            # Create a local configuration dictionary for this layer.
-            lconf = {
-                'n_hid': n_hid,
-                'n_vis': n_vis,
-                'act_enc': act_enc,
-                'act_dec': act_dec,
-                'irange': conf['irange'],
-                'tied_weights': conf['tied_weights'],
-            }
-            da = DenoisingAutoencoder(lconf, corr, rng)
+        for k, nhid, nvis, act_enc, act_dec, corr in seq:
+            da = DenoisingAutoencoder(nvis, nhid, corr, act_enc, act_dec,
+                                      tied_weights, irange, rng)
             self._layers.append(da)
 
     def layers(self):
