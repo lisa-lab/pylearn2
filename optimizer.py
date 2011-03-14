@@ -1,11 +1,12 @@
 """Optimizers tell models how to update their parameters during learning."""
-import numpy
+# Third-party imports
 import theano
 from theano import tensor
 from pylearn.gd.sgd import sgd_updates
 
-from framework.base import Optimizer
-from framework.utils import safe_update, sharedX
+# Local imports
+from .base import Optimizer
+from .utils import safe_update, sharedX
 
 floatX = theano.config.floatX
 
@@ -17,7 +18,7 @@ class SGDOptimizer(Optimizer):
     period.
     """
 
-    def __init__(self, conf, params, cost):
+    def __init__(self, conf, params):
         """
         :type conf: Dictionary
         :param conf: Other configuration variables. Are supported:
@@ -30,19 +31,21 @@ class SGDOptimizer(Optimizer):
             a 'params()' method returning such a list.
         :param params: The parameters we want to update.
 
-        :type cost: A symbolic Theano variable.
-        :param cost: The cost to minimize.
-
         The formula to compute the effective learning rate on a parameter is:
         <paramname>_lr * min(0.0, max(base_lr, lr_anneal_start/(iteration+1)))
         """
-        if isinstance(params, (list, tuple)):
+        if hasattr(params, '__iter__'):
             self.params = params
         else:
             self.params = params.params()
-        self.cost = cost
         self.conf = conf
+        self.learning_rates_setup(conf)
 
+    def learning_rates_setup(self, conf):
+        """
+        Initializes parameter-specific learning rate dictionary and shared
+        variables for the annealed base learning rate and iteration number.
+        """
         # Take care of learning rate scales for individual parameters
         self.learning_rates = {}
 
@@ -52,14 +55,14 @@ class SGDOptimizer(Optimizer):
             self.learning_rates[parameter] = sharedX(thislr, lr_name)
 
         # A shared variable for storing the iteration number.
-        self.iteration = sharedX(theano._asarray(0, dtype='int32'), name='iter')
+        self.iteration = sharedX(theano._asarray(0, dtype='int32'),
+                                 name='iter')
 
         # A shared variable for storing the annealed base learning rate, used
         # to lower the learning rate gradually after a certain amount of time.
         self.annealed = sharedX(conf['base_lr'], 'annealed')
 
-    def updates(self):
-        """Compute the updates for each of the parameter variables."""
+    def learning_rate_updates(self, conf):
         ups = {}
         # Base learning rate per example.
         base_lr = theano._asarray(self.conf['base_lr'], dtype=floatX)
@@ -80,13 +83,26 @@ class SGDOptimizer(Optimizer):
         # Calculate the learning rates for each parameter, in the order
         # they appear in self.params
         learn_rates = [annealed * self.learning_rates[p] for p in self.params]
-        # Get the gradient w.r.t. cost of each parameter.
-        grads = [
-            tensor.grad(self.cost, p)
-            for p in self.params
-        ]
+        return ups, learn_rates
+
+    def updates(self, gradients):
+        """Return symbolic updates to apply.
+
+        The updates are computed to follow the gradient of a cost
+        (or pseudo-cost), wrt self.parameters.
+
+        :type gradients: A list of symbolic Theano variables, the same
+        length as self.model
+        :param gradients: The gradients of a cost (or pseudo-cost) wrt
+        self.params.
+        """
+        ups = {}
+        # Add the learning rate/iteration updates
+        l_ups, learn_rates = self.learning_rate_updates(self.conf)
+        safe_update(ups, l_ups)
+
         # Get the updates from sgd_updates, a PyLearn library function.
-        p_up = dict(sgd_updates(self.params, grads, learn_rates))
+        p_up = dict(sgd_updates(self.params, gradients, learn_rates))
 
         # Add the things in p_up to ups
         safe_update(ups, p_up)
@@ -94,11 +110,30 @@ class SGDOptimizer(Optimizer):
         # Return the updates dictionary.
         return ups
 
-    def function(self, inputs, name=None):
-        """Compile the Theano training function associated with the optimizer"""
-        return theano.function(
-                inputs,
-                self.cost,
-                updates=self.updates(),
-                name=name)
+    def cost_updates(self, cost):
+        """Return symbolic updates given a cost to minimize
+
+        :type cost: A scalar symbolic Theano variable
+        :param cost: The cost to minimize.
+
+        self.cost_updates(cost) is equivalent to
+        self.updates(T.grad(cost, self.params))
+        """
+        grads = [tensor.grad(cost, p) for p in self.params]
+        return self.updates(gradients=grads)
+
+    def ml_updates(self, model, sampler, visible_batch):
+        """Compute the updates given an estimator of the likelihood
+
+        TODO: document args
+        """
+        pos_v = visible_batch
+        neg_v = sampler.particles
+        grads = model.ml_gradients(pos_v, neg_v)
+        ups = self.updates(gradients=grads)
+
+        # Add the sampler's updates (negative phase particles, etc.).
+        safe_update(ups, sampler.updates())
+
+        return ups
 

@@ -6,11 +6,9 @@ import numpy
 import theano
 from theano import tensor
 from theano.tensor import nnet
-from pylearn.gd.sgd import sgd_updates
-from pylearn.algorithms.mcRBM import contrastive_grad
 
-from base import Block, Optimizer
-from utils import sharedX
+from .base import Block
+from .utils import sharedX, safe_update
 
 theano.config.warn.sum_div_dimshuffle_bug = False
 floatX = theano.config.floatX
@@ -21,6 +19,22 @@ if 0:
 else:
     import theano.sandbox.rng_mrg
     RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
+
+
+def training_updates(visible_batch, model, sampler, optimizer):
+    """
+    Get optimization updates from a given optimizer for a given
+    (RBM-like) model with a given sampling strategy (sampler
+    object).
+    """
+    pos_v = visible_batch
+    neg_v = sampler.particles
+    grads = model.ml_gradients(pos_v, neg_v)
+    ups = optimizer.updates(gradients=grads)
+
+    # Add the sampler's updates (negative phase particles, etc.).
+    safe_update(ups, sampler.updates())
+    return ups
 
 class Sampler(object):
     """
@@ -44,19 +58,26 @@ class Sampler(object):
         raise NotImplementedError()
 
 class PersistentCDSampler(Sampler):
+    """
+    conf['pcd_steps'] determines the number of steps we run the chain for.
+    """
     def updates(self):
         """
         These are update formulas that deal with the Markov chain, not
         model parameters.
         """
-        new_particles, _locals = self.rbm.gibbs_step_for_v(
-            self.particles,
-            self.s_rng
-        )
+        pcd_steps = self.conf.get('pcd_steps', 1)
+        particles = self.particles
+        # TODO: do this with scan?
+        for i in xrange(pcd_steps):
+            particles, _locals = self.rbm.gibbs_step_for_v(
+                particles,
+                self.s_rng
+            )
         if not hasattr(self.rbm, 'h_sample'):
-            self.rbm.h_sample = sharedX(numpy.zeros((0, 0), 'h_sample'))
+            self.rbm.h_sample = sharedX(numpy.zeros((0, 0)), 'h_sample')
         return {
-            self.particles: new_particles,
+            self.particles: particles,
             self.rbm.h_sample: _locals['h_mean']
         }
 
@@ -76,30 +97,29 @@ class RBM(Block):
             name='hb',
             borrow=True
         )
+        irange = conf.get('irange', 0.5)
         self.weights = sharedX(
-            .5 * rng.rand(conf['n_vis'], conf['n_hid']),
+            irange * rng.rand(conf['n_vis'], conf['n_hid']),
             name='W',
             borrow=True
         )
+        self._params = [self.visbias, self.hidbias, self.weights]
 
-    def cd_updates(self, pos_v, neg_v, lr, other_cost=0):
+    def ml_gradients(self, pos_v, neg_v):
         """
         Get the contrastive gradients given positive and negative phase
-        visible units, and do a gradient step on the parameters using
-        the learning rates in `lr` (which is a list in the same order
-        as self.params()).
+        visible units.
         """
-        grads = contrastive_grad(
-            self.free_energy_given_v,
-            pos_v, neg_v,
-            wrt=self.params(),
-            other_cost=other_cost
-        )
-        stepsizes = lr
-        rval = dict(sgd_updates(self.params(), grads, stepsizes=stepsizes))
-        grad_shared_vars = [
-            sharedX(0 * p.get_value().copy(), '') for p in self.params()
-        ]
+
+        # taking the mean over each term independently allows for different
+        # mini-batch sizes in the positive and negative phase.
+        ml_cost = (self.free_energy_given_v(pos_v).mean() -
+                   self.free_energy_given_v(neg_v).mean())
+
+        grads = tensor.grad(ml_cost, self.params(),
+                            consider_constant=[pos_v, neg_v])
+
+        return grads
 
     def gibbs_step_for_v(self, v, rng):
         """
@@ -110,9 +130,9 @@ class RBM(Block):
         # TODO: factor further to extend to other kinds of hidden units
         #       (e.g. spike-and-slab)
         h_mean = self.mean_h_given_v(v)
-        h_mean_shape = self.conf['batchsize'], self.conf['n_hid']
+        h_mean_shape = self.conf['batch_size'], self.conf['n_hid']
         h_sample = tensor.cast(rng.uniform(size=h_mean_shape) < h_mean, floatX)
-        v_mean_shape = self.conf['batchsize'], self.conf['n_vis']
+        v_mean_shape = self.conf['batch_size'], self.conf['n_vis']
         # v_mean is always based on h_sample, not h_mean, because we don't
         # want h transmitting more than one bit of information per unit.
         v_mean = self.mean_v_given_h(h_sample)
@@ -124,21 +144,21 @@ class RBM(Block):
         return tensor.cast(rng.uniform(size=shape) < v_mean, floatX)
 
     def input_to_h_from_v(self, v):
-        return self.hidbias + self.dot(v, self.weights)
+        return self.hidbias + tensor.dot(v, self.weights)
 
     def mean_h_given_v(self, v):
         """
         Mean values of the hidden units given a visible configuration.
         Threshold this in order to sample.
         """
-        return nnet.sigmoid(self._input_to_h_from_v(v))
+        return nnet.sigmoid(self.input_to_h_from_v(v))
 
     def mean_v_given_h(self, h):
         """
         Mean reconstruction of the visible units given a hidden unit
         configuration.
         """
-        return nnet.sigmoid(self.visbias + self.dot(h, self.weights.T))
+        return nnet.sigmoid(self.visbias + tensor.dot(h, self.weights.T))
 
     def free_energy_given_v(self, v):
         """
@@ -146,16 +166,20 @@ class RBM(Block):
         marginalizing over the hidden units.
         """
         sigmoid_arg = self.input_to_h_from_v(v)
-        return -(tensor.dot(v, self.visbias).sum(axis=1) +
+        return -(tensor.dot(v, self.visbias) +
                  nnet.softplus(sigmoid_arg).sum(axis=1))
 
     def __call__(self, v):
         return self.mean_h_given_v(v)
 
+    def reconstruction_error(self, v, rng):
+        sample, _locals = self.gibbs_step_for_v(v, rng)
+        return ((_locals['v_mean'] - v)**2).sum(axis=1).mean()
+
 class GaussianBinaryRBM(RBM):
     """An RBM with Gaussian visible units and binary hidden units."""
     def __init__(self, conf, rng=None):
-        super(GaussianBinaryRBM, self).__init__(self, conf, rng)
+        super(GaussianBinaryRBM, self).__init__(conf, rng)
         self.sigma = sharedX(
             numpy.ones(conf['n_vis']),
             name='sigma',
@@ -166,7 +190,7 @@ class GaussianBinaryRBM(RBM):
         return self.hidbias + tensor.dot(v / self.sigma, self.weights)
 
     def mean_v_given_h(self, h):
-        return self.visbias + self.sigma * tensor.dot(self.weights, h)
+        return self.visbias + self.sigma * tensor.dot(h, self.weights.T)
 
     def free_energy_given_v(self, v):
         hid_inp = self.input_to_h_from_v(v)
@@ -175,6 +199,9 @@ class GaussianBinaryRBM(RBM):
 
     def sample_visibles(self, params, shape, rng):
         v_mean = params[0]
-        # zero mean, std sigma noise
-        zero_mean = rng.normal(size=shape) * self.sigma
-        return zero_mean + v_mean
+        if 'gbrbm_mean_vis' in self.conf and self.conf['gbrbm_mean_vis']:
+            return v_mean
+        else:
+            # zero mean, std sigma noise
+            zero_mean = rng.normal(size=shape) * self.sigma
+            return zero_mean + v_mean

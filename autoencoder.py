@@ -8,8 +8,8 @@ import theano
 from theano import tensor
 
 # Local imports
-from base import Block
-from utils import sharedX
+from .base import Block
+from .utils import sharedX
 
 theano.config.warn.sum_div_dimshuffle_bug = False
 floatX = theano.config.floatX
@@ -27,7 +27,7 @@ class DenoisingAutoencoder(Block):
     reconstructing a noisy version of it.
     """
     def __init__(self, nvis, nhid, corruptor, act_enc, act_dec,
-                 tied_weights=False, irange=1e-3, rng=None):
+                 tied_weights=False, irange=1e-3, rng=9001):
         """Allocate a denoising autoencoder object."""
         if not hasattr(rng, 'randn'):
             rng = numpy.random.RandomState(rng)
@@ -108,7 +108,7 @@ class DenoisingAutoencoder(Block):
         else:
             act_dec = self.act_dec
         if isinstance(inputs, tensor.Variable):
-            return act_dec(self.visbias + tensor.dot(inputs, self.w_prime))
+            return act_dec(self.visbias + tensor.dot(hiddens, self.w_prime))
         else:
             return [
                 act_dec(self.visbias + tensor.dot(h, self.w_prime))
@@ -121,6 +121,7 @@ class DenoisingAutoencoder(Block):
         a representation to pass on to layers above.
         """
         return self.hidden_repr(inputs)
+
 
 class StackedDA(Block):
     """
