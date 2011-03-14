@@ -9,14 +9,14 @@ class KMeans(Block):
     computed during training.
     """
 
-    def __init__(self, conf):
+    def __init__(self, k):
         """
         Parameters in conf:
 
         :type k: int
         :param k: number of clusters.
         """
-        self.k = conf.get('kmeans_k', 10)
+        self.k = k
 
     def train(self,X):
         """
@@ -199,7 +199,7 @@ if __name__=='__main__':
     transform = theano.function([minibatch], da([minibatch])[0])
 
     #then train & apply kmeans as a postprocessing
-    kmeans=KMeans(conf)
+    kmeans=KMeans(conf['kmeans_k'])
     kmeans.train(transform(train_data))
 
     print '== testing =='
