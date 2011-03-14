@@ -123,19 +123,3 @@ class SGDOptimizer(Optimizer):
         """
         grads = [tensor.grad(cost, p) for p in self.params]
         return self.updates(gradients=grads)
-
-    def ml_updates(self, model, sampler, visible_batch):
-        """Compute the updates given an estimator of the likelihood
-
-        TODO: document args
-        """
-        pos_v = visible_batch
-        neg_v = sampler.particles
-        grads = model.ml_gradients(pos_v, neg_v)
-        ups = self.updates(gradients=grads)
-
-        # Add the sampler's updates (negative phase particles, etc.).
-        safe_update(ups, sampler.updates())
-
-        return ups
-
