@@ -93,7 +93,8 @@ class RBM(Block):
     """
     def __init__(self, nvis, nhid, batch_size=10, irange=0.5, rng=None):
         if rng is None:
-            rng = numpy.random.RandomState()
+            # TODO: global rng configuration stuff.
+            rng = numpy.random.RandomState(1001)
         self.visbias = sharedX(
             numpy.zeros(nvis),
             name='vb',
@@ -189,7 +190,7 @@ class GaussianBinaryRBM(RBM):
 
     TODO: model shouldn't depend on batch_size.
     """
-    def __init__(self, nvis, nhid, batch_size, irange=1e-3, rng=None,
+    def __init__(self, nvis, nhid, batch_size, irange=0.5, rng=None,
                  mean_vis=False):
         super(GaussianBinaryRBM, self).__init__(nvis, nhid, batch_size, irange, rng)
         self.sigma = sharedX(
