@@ -6,11 +6,11 @@ from theano import tensor
 def compute_log_z(rbm, free_energy_fn, max_bits=15):
 
     # pick whether to iterate over visible or hidden states
-    if rbm.conf['n_vis'] < rbm.conf['n_hid']:
-        width = rbm.conf['n_vis']
+    if rbm.nvis < rbm.nhid:
+        width = rbm.nvis
         type = 'vis'
     else:
-        width = rbm.conf['n_hid']
+        width = rbm.nhid
         type = 'hid'
 
     # determine in how many steps to compute Z

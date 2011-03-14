@@ -42,8 +42,8 @@ class Sampler(object):
     an RBM, which may include retaining state e.g. the negative particles for
     Persistent Contrastive Divergence.
     """
-    def __init__(self, conf, rbm, particles, rng):
-        self.__dict__.update(conf=conf, rbm=rbm)
+    def __init__(self, rbm, particles, rng):
+        self.__dict__.update(rbm=rbm)
         if not hasattr(rng, 'randn'):
             rng = numpy.random.RandomState(rng)
         seed = int(rng.randint(2**30))
@@ -59,17 +59,21 @@ class Sampler(object):
 
 class PersistentCDSampler(Sampler):
     """
-    conf['pcd_steps'] determines the number of steps we run the chain for.
+    pcd_steps determines the number of steps we run the chain for.
     """
+    def __init__(self, rbm, particles, rng, steps=1):
+        super(PersistentCDSampler, self).__init__(rbm, particles, rng)
+        self.steps = steps
+
     def updates(self):
         """
         These are update formulas that deal with the Markov chain, not
         model parameters.
         """
-        pcd_steps = self.conf.get('pcd_steps', 1)
+        steps = self.steps
         particles = self.particles
         # TODO: do this with scan?
-        for i in xrange(pcd_steps):
+        for i in xrange(steps):
             particles, _locals = self.rbm.gibbs_step_for_v(
                 particles,
                 self.s_rng
@@ -82,27 +86,30 @@ class PersistentCDSampler(Sampler):
         }
 
 class RBM(Block):
-    """A base interface for RBMs, implementing the binary-binary case."""
-    def __init__(self, conf, rng=None):
+    """
+    A base interface for RBMs, implementing the binary-binary case.
+
+    TODO: model shouldn't depend on batch_size.
+    """
+    def __init__(self, nvis, nhid, batch_size=10, irange=0.5, rng=None):
         if rng is None:
-            rng = numpy.random.RandomState(conf['rbm_seed'])
-        self.conf = conf
+            rng = numpy.random.RandomState()
         self.visbias = sharedX(
-            numpy.zeros(conf['n_vis']),
+            numpy.zeros(nvis),
             name='vb',
             borrow=True
         )
         self.hidbias = sharedX(
-            numpy.zeros(conf['n_hid']),
+            numpy.zeros(nhid),
             name='hb',
             borrow=True
         )
-        irange = conf.get('irange', 0.5)
         self.weights = sharedX(
-            irange * rng.rand(conf['n_vis'], conf['n_hid']),
+            (0.5 - rng.rand(nvis, nhid)) * irange,
             name='W',
             borrow=True
         )
+        self.__dict__.update(batch_size=batch_size, nhid=nhid, nvis=nvis)
         self._params = [self.visbias, self.hidbias, self.weights]
 
     def ml_gradients(self, pos_v, neg_v):
@@ -130,9 +137,9 @@ class RBM(Block):
         # TODO: factor further to extend to other kinds of hidden units
         #       (e.g. spike-and-slab)
         h_mean = self.mean_h_given_v(v)
-        h_mean_shape = self.conf['batch_size'], self.conf['n_hid']
+        h_mean_shape = self.batch_size, self.nhid
         h_sample = tensor.cast(rng.uniform(size=h_mean_shape) < h_mean, floatX)
-        v_mean_shape = self.conf['batch_size'], self.conf['n_vis']
+        v_mean_shape = self.batch_size, self.nvis
         # v_mean is always based on h_sample, not h_mean, because we don't
         # want h transmitting more than one bit of information per unit.
         v_mean = self.mean_v_given_h(h_sample)
@@ -174,17 +181,23 @@ class RBM(Block):
 
     def reconstruction_error(self, v, rng):
         sample, _locals = self.gibbs_step_for_v(v, rng)
-        return ((_locals['v_mean'] - v)**2).sum(axis=1).mean()
+        return ((_locals['v_mean'] - v)**2).sum(axis=1) .mean()
 
 class GaussianBinaryRBM(RBM):
-    """An RBM with Gaussian visible units and binary hidden units."""
-    def __init__(self, conf, rng=None):
-        super(GaussianBinaryRBM, self).__init__(conf, rng)
+    """
+    An RBM with Gaussian visible units and binary hidden units.
+
+    TODO: model shouldn't depend on batch_size.
+    """
+    def __init__(self, nvis, nhid, batch_size, irange=1e-3, rng=None,
+                 mean_vis=False):
+        super(GaussianBinaryRBM, self).__init__(nvis, nhid, batch_size, irange, rng)
         self.sigma = sharedX(
-            numpy.ones(conf['n_vis']),
+            numpy.ones(nvis),
             name='sigma',
             borrow=True
         )
+        self.mean_vis = mean_vis
 
     def input_to_h_from_v(self, v):
         return self.hidbias + tensor.dot(v / self.sigma, self.weights)
@@ -199,7 +212,7 @@ class GaussianBinaryRBM(RBM):
 
     def sample_visibles(self, params, shape, rng):
         v_mean = params[0]
-        if 'gbrbm_mean_vis' in self.conf and self.conf['gbrbm_mean_vis']:
+        if self.mean_vis:
             return v_mean
         else:
             # zero mean, std sigma noise

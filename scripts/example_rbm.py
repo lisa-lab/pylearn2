@@ -13,23 +13,31 @@ if __name__ == "__main__":
     data = data_rng.normal(size=(500, 20))
 
     conf = {
-        'n_vis': 20,
-        'n_hid': 30,
+        'nvis': 20,
+        'nhid': 30,
         'rbm_seed': 1,
         'batch_size': 100,
         'base_lr': 0.01,
-        'lr_anneal_start': 200,
+        'anneal_start': 200,
         'pcd_steps': 1,
     }
 
-    rbm = GaussianBinaryRBM(conf)
-    rng = numpy.random.RandomState(seed=conf.get('rbm_seed',42))
-    sampler = PersistentCDSampler(conf, rbm, data[0:100], rng)
+    rbm = GaussianBinaryRBM(nvis=conf['nvis'], nhid=conf['nhid'],
+                            batch_size=conf['batch_size'])
+    rng = numpy.random.RandomState(seed=conf.get('rbm_seed', 42))
+    sampler = PersistentCDSampler(rbm, data[0:100], rng,
+                                  steps=conf['pcd_steps'])
     minibatch = tensor.matrix()
 
-    optimizer = SGDOptimizer(conf, rbm)
+    optimizer = SGDOptimizer(rbm, conf['base_lr'], conf['anneal_start'])
     updates = training_updates(visible_batch=minibatch, model=rbm,
                                sampler=sampler, optimizer=optimizer)
+    print updates
+    import theano.printing
+    for u,v in updates.items():
+        print u, ":"
+        theano.printing.debugprint(v)
+        print "=" * 50
     proxy_cost = rbm.reconstruction_error(minibatch, rng=sampler.s_rng)
     train_fn = theano.function([minibatch], proxy_cost, updates=updates)
 
