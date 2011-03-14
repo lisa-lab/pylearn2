@@ -50,7 +50,7 @@ class DenoisingAutoencoder(Block):
         )
         seed = int(rng.randint(2**30))
         self.s_rng = RandomStreams(seed)
-        if conf['tied_weights']:
+        if tied_weights:
             self.w_prime = self.weights.T
         else:
             self.w_prime = sharedX(
