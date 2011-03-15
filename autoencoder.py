@@ -125,8 +125,7 @@ class Autoencoder(Block):
             act_enc = lambda x: x
         else:
             act_enc = self.act_enc
-        self.hiddens=act_enc(self.hidbias + tensor.dot(x, self.weights))
-        return self.hiddens
+        return act_enc(self.hidbias + tensor.dot(x, self.weights))
 
     def encode(self, inputs):
         """
@@ -243,9 +242,17 @@ class ContractingAutoencoder(Autoencoder):
     A contracting autoencoder works like a regular autoencoder, and adds an
     extra term to its cost function.
     """
-    def contraction_penalty(self):
+    def contraction_penalty(self, inputs):
         """
         Calculate (symbolically) the contracting autoencoder penalty term.
+
+        Parameters
+        ----------
+        inputs : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the input
+            minibatch(es) on which the penalty is calculated. Assumed to be
+            2-tensors, with the first dimension indexing training examples and
+            the second indexing data dimensions.
 
         Returns
         -------
@@ -255,10 +262,13 @@ class ContractingAutoencoder(Autoencoder):
             of a Cost object such as MeanSquaredError to penalize it.
         """
         def cp(p):
-            Jacobien = self.weights * (p*(1-p)).dimshuffle(0,'x',1)
-            L=tensor.mean(Jacobien**2)
+            jacobian = self.weights * (p * (1 - p)).dimshuffle(0, 'x', 1)
+            L = tensor.mean(jacobian**2)
             return L
-        return cp(self.hiddens)
+        if isinstance(inputs, tensor.Variable):
+            return cp(self.encode(inputs))
+        else:
+            return [cp(self.encode(inp)) for inp in inputs]
 
 def build_stacked_DA(corruptors, nvis, nhids, act_enc, act_dec,
                      tied_weights=False, irange=1e-3, rng=None):

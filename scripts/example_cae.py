@@ -53,7 +53,7 @@ if __name__ == "__main__":
 
     # Allocate an optimizer, which tells us how to update our model.
     cost = MeanSquaredError(cae)(minibatch, cae.reconstruction(minibatch))
-    cost+=cae.contraction_penalty()
+    cost += cae.contraction_penalty(minibatch)
     trainer = SGDOptimizer(cae, conf['base_lr'], conf['anneal_start'])
     updates = trainer.cost_updates(cost)
 
@@ -100,7 +100,7 @@ if __name__ == "__main__":
                                         layer.reconstruction(thislayer_input[0])
                                         )
         if isinstance(layer,ContractingAutoencoder):
-            cost+=layer.contraction_penalty()
+            cost+=layer.contraction_penalty(thislayer_input)
         opt = SGDOptimizer( layer.params(),
                             stack_conf['base_lr'],
                             stack_conf['anneal_start']
