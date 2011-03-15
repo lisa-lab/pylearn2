@@ -8,8 +8,7 @@ import theano
 from theano import tensor
 
 # Local imports
-from .base import Block
-from .stack import StackedBlocks
+from .base import Block, StackedBlocks
 from .utils import sharedX
 
 theano.config.warn.sum_div_dimshuffle_bug = False
