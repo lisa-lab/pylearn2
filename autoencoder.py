@@ -123,7 +123,7 @@ class Autoencoder(Block):
             act_enc = self.act_enc
         return act_enc(self.hidbias + tensor.dot(x, self.weights))
 
-    def hidden_repr(self, inputs):
+    def encode(self, inputs):
         """
         Map inputs through the encoder function.
 
@@ -146,7 +146,7 @@ class Autoencoder(Block):
         else:
             return [self._hidden_activation(v) for v in inputs]
 
-    def reconstruction(self, inputs):
+    def reconstruct(self, inputs):
         """
         Reconstruct (decode) the inputs after mapping through the encoder.
 
@@ -164,7 +164,7 @@ class Autoencoder(Block):
             Theano symbolic (or list thereof) representing the corresponding
             reconstructed minibatch(es) after encoding/decoding.
         """
-        hiddens = self.hidden_repr(inputs)
+        hiddens = self.encode(inputs)
         if self.act_dec is None:
             act_dec = lambda x: x
         else:
@@ -182,10 +182,10 @@ class Autoencoder(Block):
         Forward propagate (symbolic) input through this module, obtaining
         a representation to pass on to layers above.
 
-        This just aliases the `hidden_repr()` function for syntactic
+        This just aliases the `encode()` function for syntactic
         sugar/convenience.
         """
-        return self.hidden_repr(inputs)
+        return self.encode(inputs)
 
 class DenoisingAutoencoder(Autoencoder):
     """
@@ -211,7 +211,7 @@ class DenoisingAutoencoder(Autoencoder):
         super(DenoisingAutoencoder, self).__init__(*args, **kwargs)
         self.corruptor = corruptor
 
-    def reconstruction(self, inputs):
+    def reconstruct(self, inputs):
         """
         Reconstruct the inputs after corrupting and mapping through the
         encoder and decoder.
@@ -231,7 +231,7 @@ class DenoisingAutoencoder(Autoencoder):
             reconstructed minibatch(es) after corruption and encoding/decoding.
         """
         corrupted = self.corruptor(inputs)
-        return super(DenoisingAutoencoder, self).reconstruction(corrupted)
+        return super(DenoisingAutoencoder, self).reconstruct(corrupted)
 
 def build_stacked_DA(corruptors, nvis, nhids, act_enc, act_dec,
                      tied_weights=False, irange=1e-3, rng=None):
