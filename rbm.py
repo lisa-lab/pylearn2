@@ -9,7 +9,7 @@ import theano
 from theano import tensor
 from theano.tensor import nnet
 
-from .base import Block
+from .base import Block, StackedBlocks
 from .utils import sharedX, safe_update
 
 theano.config.warn.sum_div_dimshuffle_bug = False
