@@ -243,10 +243,17 @@ class ContractingAutoencoder(Autoencoder):
     A contracting autoencoder works like a regular autoencoder, and adds an
     extra term to its cost function.
     """
-    def __init__(self, *args, **kwargs):
-        super(ContractingAutoencoder, self).__init__(*args, **kwargs)
-
     def contraction_penalty(self):
+        """
+        Calculate (symbolically) the contracting autoencoder penalty term.
+
+        Returns
+        -------
+        penalty : tensor_like
+            0-dimensional tensor (i.e. scalar) that penalizes the Jacobian
+            matrix of the encoder transformation. Add this to the output
+            of a Cost object such as MeanSquaredError to penalize it.
+        """
         def cp(p):
             Jacobien = self.weights * (p*(1-p)).dimshuffle(0,'x',1)
             L=tensor.mean(Jacobien**2)
