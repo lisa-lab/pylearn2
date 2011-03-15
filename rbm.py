@@ -91,6 +91,10 @@ class Sampler(object):
         updates : dict
             Dictionary with shared variable instances as keys and symbolic
             expressions indicating how they should be updated as values.
+
+        Notes
+        -----
+        In the `Sampler` base class, this is simply a stub.
         """
         raise NotImplementedError()
 
@@ -114,7 +118,7 @@ class PersistentCDSampler(Sampler):
             An instance of `RBM` or a derived class, or one implementing
             the `gibbs_step_for_v` interface.
         particles : ndarray
-            An initial state for the set of persistent negative chain particles
+            An initial state for the set of persistent Markov chain particles
             that will be updated at every step of learning.
         rng : RandomState object
             NumPy random number generator object used to initialize a
@@ -209,7 +213,6 @@ class RBM(Block):
             Theano symbolic representing a minibatch on the visible units,
             with the first dimension indexing training examples and the second
             indexing data dimensions (usually actual training data).
-
         neg_v : tensor_like
             Theano symbolic representing a minibatch on the visible units,
             with the first dimension indexing training examples and the second
@@ -250,7 +253,6 @@ class RBM(Block):
             training examples (or negative phase particles), with the first
             dimension indexing training examples and the second indexing data
             dimensions.
-
         rng : RandomStreams object
             Random number generator to use for sampling the hidden and visible
             units.
@@ -272,10 +274,10 @@ class RBM(Block):
              * `v_mean`: the returned value from `mean_v_given_h`
              * `v_sample`: the stochastically sampled visible units
         """
+        h_mean = self.mean_h_given_v(v)
         # For binary hidden units
         # TODO: factor further to extend to other kinds of hidden units
         #       (e.g. spike-and-slab)
-        h_mean = self.mean_h_given_v(v)
         h_mean_shape = self.batch_size, self.nhid
         h_sample = tensor.cast(rng.uniform(size=h_mean_shape) < h_mean, floatX)
         v_mean_shape = self.batch_size, self.nvis
