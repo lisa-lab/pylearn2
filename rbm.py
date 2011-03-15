@@ -2,12 +2,17 @@
 Implementations of Restricted Boltzmann Machines and associated sampling
 strategies.
 """
+# Standard library imports
+from itertools import izip
+
+# Third-party imports
 import numpy
 import theano
 from theano import tensor
 from theano.tensor import nnet
 
-from .base import Block
+# Local imports
+from .base import Block, StackedBlocks
 from .utils import sharedX, safe_update
 
 theano.config.warn.sum_div_dimshuffle_bug = False
@@ -471,10 +476,10 @@ def build_stacked_RBM(nvis, nhids, batch_size, input_vis_type='binary',
     """
     #TODO: not sure this is the right way of dealing with mean_vis.
     layers = []
-    assert vis_type in ['binary', 'gaussian']
-    if vis_type == 'binary':
+    assert input_vis_type in ['binary', 'gaussian']
+    if input_vis_type == 'binary':
         assert input_mean_vis is None
-    elif vis_type == 'gaussian':
+    elif input_vis_type == 'gaussian':
         assert input_mean_vis in True, False
 
     # The number of visible units in each layer is the initial input
