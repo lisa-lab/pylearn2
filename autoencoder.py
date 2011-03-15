@@ -8,7 +8,7 @@ import theano
 from theano import tensor
 
 # Local imports
-from .base import Block
+from .base import Block, StackedBlocks
 from .utils import sharedX
 
 theano.config.warn.sum_div_dimshuffle_bug = False
@@ -122,70 +122,42 @@ class DenoisingAutoencoder(Block):
         """
         return self.hidden_repr(inputs)
 
-
-class StackedDA(Block):
-    """
-    A class representing a stacked model. Forward propagation passes
-    (symbolic) input through each layer sequentially.
-    """
-    def __init__(self, nvis, nhids, corruptors, act_enc, act_dec,
-                 tied_weights=False, irange=1e-3, rng=None):
-        """Allocate a stacked denoising autoencoder object."""
-        if not hasattr(rng, 'randn'):
-            rng = numpy.random.RandomState(rng)
-        self._layers = []
-        _local = {}
-        # Make sure that if we have a sequence of encoder/decoder activations
-        # or corruptors, that we have exactly as many as len(n_hids)
-        if hasattr(corruptors, '__len__'):
-            assert len(nhids) == len(corruptors)
+def build_stacked_DA(nvis, nhids, corruptors, act_enc, act_dec,
+                     tied_weights=False, irange=1e-3, rng=None):
+    """Allocate a StackedBlocks containing denoising autoencoders."""
+    if not hasattr(rng, 'randn'):
+        rng = numpy.random.RandomState(rng)
+    layers = []
+    _local = {}
+    # Make sure that if we have a sequence of encoder/decoder activations
+    # or corruptors, that we have exactly as many as len(n_hids)
+    if hasattr(corruptors, '__len__'):
+        assert len(nhids) == len(corruptors)
+    else:
+        corruptors = [corruptors] * len(nhids)
+    for c in ['act_enc', 'act_dec']:
+        if type(locals()[c]) is not str and hasattr(locals()[c], '__len__'):
+            assert len(nhids) == len(locals()[c])
+            _local[c] = locals()[c]
         else:
-            corruptors = [corruptors] * len(nhids)
-        for c in ['act_enc', 'act_dec']:
-            if type(locals()[c]) is not str and hasattr(locals()[c], '__len__'):
-                assert len(nhids) == len(locals()[c])
-                _local[c] = locals()[c]
-            else:
-                _local[c] = [locals()[c]] * len(nhids)
-        # The number of visible units in each layer is the initial input
-        # size and the first k-1 hidden unit sizes.
-        nviss = [nvis] + nhids[:-1]
-        seq = izip(
-            xrange(len(nhids)),
-            nhids,
-            nviss,
-            _local['act_enc'],
-            _local['act_dec'],
-            corruptors
-        )
-        # Create each layer.
-        for k, nhid, nvis, act_enc, act_dec, corr in seq:
-            da = DenoisingAutoencoder(nvis, nhid, corr, act_enc, act_dec,
-                                      tied_weights, irange, rng)
-            self._layers.append(da)
+            _local[c] = [locals()[c]] * len(nhids)
+    # The number of visible units in each layer is the initial input
+    # size and the first k-1 hidden unit sizes.
+    nviss = [nvis] + nhids[:-1]
+    seq = izip(
+        xrange(len(nhids)),
+        nhids,
+        nviss,
+        _local['act_enc'],
+        _local['act_dec'],
+        corruptors
+    )
+    # Create each layer.
+    for k, nhid, nvis, act_enc, act_dec, corr in seq:
+        da = DenoisingAutoencoder(nvis, nhid, corr, act_enc, act_dec,
+                                  tied_weights, irange, rng)
+        layers.append(da)
 
-    def layers(self):
-        """
-        The layers of this model: the individual denoising autoencoder
-        objects, which can be individually pre-trained.
-        """
-        return list(self._layers)
-
-    def params(self):
-        """
-        The parameters that are learned in this model, i.e. the concatenation
-        of all the layers' weights and biases.
-        """
-        return sum([l.params() for l in self._layers], [])
-
-    def __call__(self, inputs):
-        """
-        Forward propagate (symbolic) input through this module, obtaining
-        a representation to pass on to layers above.
-        """
-        transformed = inputs
-        # Pass the input through each layer of the hierarchy.
-        for layer in self._layers:
-            transformed = layer(transformed)
-        return transformed
+    # Create the stack
+    return StackedBlocks(layers)
 

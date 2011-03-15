@@ -459,3 +459,46 @@ class GaussianBinaryRBM(RBM):
             # zero mean, std sigma noise
             zero_mean = rng.normal(size=shape) * self.sigma
             return zero_mean + v_mean
+
+
+def build_stacked_RBM(nvis, nhids, batch_size, input_vis_type='binary',
+        input_mean_vis=None, irange=1e-3, rng=None):
+    """
+    Allocate a StackedBlocks containing RBMs.
+
+    The visible units of the input RBM can be either binary or gaussian,
+    the other ones are all binary.
+    """
+    #TODO: not sure this is the right way of dealing with mean_vis.
+    layers = []
+    assert vis_type in ['binary', 'gaussian']
+    if vis_type == 'binary':
+        assert input_mean_vis is None
+    elif vis_type == 'gaussian':
+        assert input_mean_vis in True, False
+
+    # The number of visible units in each layer is the initial input
+    # size and the first k-1 hidden unit sizes.
+    nviss = [nvis] + nhids[:-1]
+    seq = izip(
+            xrange(len(nhids)),
+            nhids,
+            nviss,
+            )
+    for k, nhid, nvis in seq:
+        if k==0 and input_vis_type=='gaussian':
+            rbm = GaussianBinaryRBM(nvis=nvis, nhid=nhid,
+                    batch_size=batch_size,
+                    irange=irange,
+                    rng=rng,
+                    mean_vis=input_mean_vis)
+        else:
+            rbm = RBM(nvis-nvis, nhid=nhid,
+                    batch_size=batch_size,
+                    irange=irange,
+                    rng=rng)
+        layers.append(rbm)
+
+    # Create the stack
+    return StackedBlocks(layers)
+
