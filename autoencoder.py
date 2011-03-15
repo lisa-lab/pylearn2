@@ -21,17 +21,11 @@ else:
     import theano.sandbox.rng_mrg
     RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
 
-class DenoisingAutoencoder(Block):
-    """
-    A denoising autoencoder learns a representation of the input by
-    reconstructing a noisy version of it.
-    """
-    def __init__(self, nvis, nhid, corruptor, act_enc, act_dec,
+class Autoencoder(Block):
+    def __init__(self, nvis, nhid, act_enc, act_dec,
                  tied_weights=False, irange=1e-3, rng=9001):
-        """Allocate a denoising autoencoder object."""
         if not hasattr(rng, 'randn'):
             rng = numpy.random.RandomState(rng)
-        self.corruptor = corruptor
         self.visbias = sharedX(
             numpy.zeros(nvis),
             name='vb',
@@ -100,9 +94,8 @@ class DenoisingAutoencoder(Block):
             return [self._hidden_activation(v) for v in inputs]
 
     def reconstruction(self, inputs):
-        """Reconstructed inputs after corruption."""
-        corrupted = self.corruptor(inputs)
-        hiddens = self.hidden_repr(corrupted)
+        """Reconstructed inputs."""
+        hiddens = self.hidden_repr(inputs)
         if self.act_dec is None:
             act_dec = lambda x: x
         else:
@@ -122,7 +115,21 @@ class DenoisingAutoencoder(Block):
         """
         return self.hidden_repr(inputs)
 
-def build_stacked_DA(nvis, nhids, corruptors, act_enc, act_dec,
+class DenoisingAutoencoder(Autoencoder):
+    """
+    A denoising autoencoder learns a representation of the input by
+    reconstructing a noisy version of it.
+    """
+    def __init__(self, corruptor, *args, **kwargs):
+        super(DenoisingAutoencoder, self).__init__(*args, **kwargs)
+        self.corruptor = corruptor
+
+    def reconstruction(self, inputs):
+        """Reconstructed inputs after corruption."""
+        corrupted = self.corruptor(inputs)
+        return super(DenoisingAutoencoder, self).reconstruction(corrupted)
+
+def build_stacked_DA(corruptors, nvis, nhids, act_enc, act_dec,
                      tied_weights=False, irange=1e-3, rng=None):
     """Allocate a StackedBlocks containing denoising autoencoders."""
     if not hasattr(rng, 'randn'):
@@ -145,16 +152,16 @@ def build_stacked_DA(nvis, nhids, corruptors, act_enc, act_dec,
     # size and the first k-1 hidden unit sizes.
     nviss = [nvis] + nhids[:-1]
     seq = izip(
+        corruptors,
         xrange(len(nhids)),
         nhids,
         nviss,
         _local['act_enc'],
         _local['act_dec'],
-        corruptors
     )
     # Create each layer.
     for k, nhid, nvis, act_enc, act_dec, corr in seq:
-        da = DenoisingAutoencoder(nvis, nhid, corr, act_enc, act_dec,
+        da = DenoisingAutoencoder(corr, nvis, nhid, act_enc, act_dec,
                                   tied_weights, irange, rng)
         layers.append(da)
 

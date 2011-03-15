@@ -46,7 +46,7 @@ if __name__ == "__main__":
 
     # Allocate a denoising autoencoder with binomial noise corruption.
     corruptor = GaussianCorruptor(conf['corruption_level'])
-    da = DenoisingAutoencoder(conf['nvis'], conf['nhid'], corruptor,
+    da = DenoisingAutoencoder(corruptor, conf['nvis'], conf['nhid'],
                               conf['act_enc'], conf['act_dec'])
 
     # Allocate an optimizer, which tells us how to update our model.
@@ -81,7 +81,7 @@ if __name__ == "__main__":
     sda_conf = conf.copy()
     sda_conf['nhid'] = [20, 20, 10]
     sda_conf['anneal_start'] = None # Don't anneal these learning rates
-    sda = build_stacked_DA(sda_conf['nvis'], sda_conf['nhid'], corruptor,
+    sda = build_stacked_DA(corruptor, sda_conf['nvis'], sda_conf['nhid'],
                            sda_conf['act_enc'], sda_conf['act_dec'])
 
     # To pretrain it, we'll use a different SGDOptimizer for each layer.
