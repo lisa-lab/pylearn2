@@ -45,6 +45,21 @@ class Sampler(object):
     Persistent Contrastive Divergence.
     """
     def __init__(self, rbm, particles, rng):
+        """
+        Construct a Sampler.
+
+        Parameters
+        ----------
+        rbm : object
+            An instance of `RBM` or a derived class, or one implementing
+            the `gibbs_step_for_v` interface.
+        particles : ndarray
+            An initial state for the set of persistent Narkov chain particles
+            that will be updated at every step of learning.
+        rng : RandomState object
+            NumPy random number generator object used to initialize a
+            RandomStreams object used in training.
+        """
         self.__dict__.update(rbm=rbm)
         if not hasattr(rng, 'randn'):
             rng = numpy.random.RandomState(rng)
@@ -129,7 +144,25 @@ class RBM(Block):
 
     TODO: model shouldn't depend on batch_size.
     """
-    def __init__(self, nvis, nhid, batch_size=10, irange=0.5, rng=None):
+    def __init__(self, nvis, nhid, batch_size=10, irange=0.5, rng=9001):
+        """
+        Construct an RBM object.
+
+        Parameters
+        ----------
+        nvis : int
+            Number of visible units in the model.
+        nhid : int
+            Number of hidden units in the model.
+        batch_size : int, optional
+            Size of minibatches to be used (TODO: this parameter should be
+            deprecated)
+        irange : float, optional
+            The size of the initial interval around 0 for weights.
+        rng : RandomState object or seed
+            NumPy RandomState object to use when initializing parameters
+            of the model, or (integer) seed to use to create one.
+        """
         if rng is None:
             # TODO: global rng configuration stuff.
             rng = numpy.random.RandomState(1001)
@@ -356,6 +389,27 @@ class GaussianBinaryRBM(RBM):
     """
     def __init__(self, nvis, nhid, batch_size, irange=0.5, rng=None,
                  mean_vis=False):
+        """
+        Allocate a GaussianBinaryRBM object.
+
+        Parameters
+        ----------
+        nvis : int
+            Number of visible units in the model.
+        nhid : int
+            Number of hidden units in the model.
+        batch_size : int, optional
+            Size of minibatches to be used (TODO: this parameter should be
+            deprecated)
+        irange : float, optional
+            The size of the initial interval around 0 for weights.
+        rng : RandomState object or seed
+            NumPy RandomState object to use when initializing parameters
+            of the model, or (integer) seed to use to create one.
+        mean_vis : bool, optional
+            Don't actually sample visibles; make sample method simply return
+            mean.
+        """
         super(GaussianBinaryRBM, self).__init__(nvis, nhid, batch_size, irange, rng)
         self.sigma = sharedX(
             numpy.ones(nvis),
