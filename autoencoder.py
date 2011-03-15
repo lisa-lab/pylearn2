@@ -9,6 +9,7 @@ from theano import tensor
 
 # Local imports
 from .base import Block
+from .stack import StackedBlocks
 from .utils import sharedX
 
 theano.config.warn.sum_div_dimshuffle_bug = False
@@ -122,6 +123,44 @@ class DenoisingAutoencoder(Block):
         """
         return self.hidden_repr(inputs)
 
+def build_stacked_DA(nvis, nhids, corruptors, act_enc, act_dec,
+                     tied_weights=False, irange=1e-3, rng=None):
+    """Allocate a StackedBlocks containing denoising autoencoders."""
+    if not hasattr(rng, 'randn'):
+        rng = numpy.random.RandomState(rng)
+    layers = []
+    _local = {}
+    # Make sure that if we have a sequence of encoder/decoder activations
+    # or corruptors, that we have exactly as many as len(n_hids)
+    if hasattr(corruptors, '__len__'):
+        assert len(nhids) == len(corruptors)
+    else:
+        corruptors = [corruptors] * len(nhids)
+    for c in ['act_enc', 'act_dec']:
+        if type(locals()[c]) is not str and hasattr(locals()[c], '__len__'):
+            assert len(nhids) == len(locals()[c])
+            _local[c] = locals()[c]
+        else:
+            _local[c] = [locals()[c]] * len(nhids)
+    # The number of visible units in each layer is the initial input
+    # size and the first k-1 hidden unit sizes.
+    nviss = [nvis] + nhids[:-1]
+    seq = izip(
+        xrange(len(nhids)),
+        nhids,
+        nviss,
+        _local['act_enc'],
+        _local['act_dec'],
+        corruptors
+    )
+    # Create each layer.
+    for k, nhid, nvis, act_enc, act_dec, corr in seq:
+        da = DenoisingAutoencoder(nvis, nhid, corr, act_enc, act_dec,
+                                  tied_weights, irange, rng)
+        layers.append(da)
+
+    # Create the stack
+    return StackedBlocks(layers)
 
 class StackedDA(Block):
     """

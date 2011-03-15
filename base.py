@@ -66,7 +66,7 @@ class Block(object):
         else:
             raise TypeError('unpickled object was of wrong class: %s' %
                             obj.__class__)
-    
+
     def function(self, name=None):
         """ Returns a compiled theano function to compute a representation """
         inputs = tensor.matrix()
@@ -79,4 +79,70 @@ class Optimizer(object):
     def updates(self):
         """Return symbolic updates to apply."""
         raise NotImplementedError()
+
+
+class StackedBlocks(Block):
+    """
+    A stack of Blocks, where the output of a block is the input of the next.
+    """
+    def __init__(self, layers):
+        '''
+        Build a stack of layers.
+
+        :type layers: a list of Blocks
+        :param layers: the layers to be stacked,
+            ordered from bottom (input) to top (output)
+        '''
+        self._layers = layers
+        # Do not duplicate the parameters if some are shared between layers
+        self._params = set([p for l in self._layers for p in l.params()])
+
+    def layers(self):
+        return list(self._layers)
+
+    def __len__(self):
+        return len(self._layers)
+
+    def __call__(self, inputs):
+        '''
+        Return the output representation of all layers, including the inputs.
+
+        :param inputs: inputs of the stack
+
+        :returns: A list of symbolic variables, each containing the
+            representation at one level. The first element is the input.
+        '''
+        # Build the hidden representation at each layer
+        repr = [inputs]
+
+        for layer in self.layers:
+            outputs = layer(repr[-1])
+            repr.append(outputs)
+
+        return repr
+
+    def function(self, name=None, repr_indices=-1):
+        '''
+        Compile a function computing representations on given layers.
+
+        :type name: string
+        :param name: name of the function
+
+        :type repr_indices: int, or list of ints
+        :param repr_indices: Indices of the hidden representations to return.
+            0 means the input, -1 the last output.
+        '''
+
+        inputs = tensor.matrix()
+        return theano.function(
+                [inputs],
+                outputs=self(inputs)[repr_indices],
+                name=name)
+
+    def append(self, layer):
+        '''
+        Add a new layer on top of the last one
+        '''
+        self.layers.append(layer)
+        self._params.update(layer.params())
 

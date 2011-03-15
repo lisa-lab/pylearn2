@@ -19,7 +19,7 @@ except ImportError:
 # Local imports
 from framework.cost import MeanSquaredError
 from framework.corruption import GaussianCorruptor
-from framework.autoencoder import DenoisingAutoencoder, StackedDA
+from framework.autoencoder import DenoisingAutoencoder, build_stacked_DA
 from framework.optimizer import SGDOptimizer
 
 if __name__ == "__main__":
@@ -76,13 +76,13 @@ if __name__ == "__main__":
     print numpy.histogram(transform(data))
 
     # We'll now create a stacked denoising autoencoder. First, we change
-    # the number of hidden units to be a list. This tells the StackedDA
-    # class how many layers to make.
+    # the number of hidden units to be a list. This tells the build_stacked_DA
+    # method how many layers to make.
     sda_conf = conf.copy()
     sda_conf['nhid'] = [20, 20, 10]
     sda_conf['anneal_start'] = None # Don't anneal these learning rates
-    sda = StackedDA(sda_conf['nvis'], sda_conf['nhid'], corruptor,
-                    sda_conf['act_enc'], sda_conf['act_dec'])
+    sda = build_stacked_DA(sda_conf['nvis'], sda_conf['nhid'], corruptor,
+                           sda_conf['act_enc'], sda_conf['act_dec'])
 
     # To pretrain it, we'll use a different SGDOptimizer for each layer.
     optimizers = []
