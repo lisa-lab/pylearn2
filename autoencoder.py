@@ -22,8 +22,45 @@ else:
     RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
 
 class Autoencoder(Block):
+    """
+    Base class implementing ordinary autoencoders.
+
+    More exotic variants (denoising, contracting autoencoders) can inherit
+    much of the necessary functionality and override what they need.
+    """
     def __init__(self, nvis, nhid, act_enc, act_dec,
                  tied_weights=False, irange=1e-3, rng=9001):
+        """
+        Allocate an autoencoder object.
+
+        Parameters
+        ----------
+        nvis : int
+            Number of visible units (input dimensions) in this model.
+        nhid : int
+            Number of hidden units in this model.
+        act_enc : callable or string
+            Activation function (elementwise nonlinearity) to use for the
+            encoder. Strings (e.g. 'tanh' or 'sigmoid') will be looked up as
+            functions in `theano.tensor.nnet` and `theano.tensor`. Use `None`
+            for linear units.
+        act_dec : callable or string
+            Activation function (elementwise nonlinearity) to use for the
+            decoder. Strings (e.g. 'tanh' or 'sigmoid') will be looked up as
+            functions in `theano.tensor.nnet` and `theano.tensor`. Use `None`
+            for linear units.
+        tied_weights : bool, optional
+            If `False` (default), a separate set of weights will be allocated
+            (and learned) for the encoder and the decoder function. If `True`,
+            the decoder weight matrix will be constrained to be equal to the
+            transpose of the encoder weight matrix.
+        irange : float, optional
+            Width of the initial range around 0 from which to sample initial
+            values for the weights.
+        rng : RandomState object or seed
+            NumPy random number generator object (or seed to create one) used
+            to initialize the model parameters.
+        """
         if not hasattr(rng, 'randn'):
             rng = numpy.random.RandomState(rng)
         self.visbias = sharedX(
@@ -87,14 +124,46 @@ class Autoencoder(Block):
         return act_enc(self.hidbias + tensor.dot(x, self.weights))
 
     def hidden_repr(self, inputs):
-        """Hidden unit activations for each set of inputs."""
+        """
+        Map inputs through the encoder function.
+
+        Parameters
+        ----------
+        inputs : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the input
+            minibatch(es) to be encoded. Assumed to be 2-tensors, with the
+            first dimension indexing training examples and the second indexing
+            data dimensions.
+
+        Returns
+        -------
+        encoded : tensor_like or list of tensor_like
+            Theano symbolic (or list thereof) representing the corresponding
+            reconstructed minibatch(es) after encoding/decoding.
+        """
         if isinstance(inputs, tensor.Variable):
             return self._hidden_activation(inputs)
         else:
             return [self._hidden_activation(v) for v in inputs]
 
     def reconstruction(self, inputs):
-        """Reconstructed inputs."""
+        """
+        Reconstruct (decode) the inputs after mapping through the encoder.
+
+        Parameters
+        ----------
+        inputs : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the input
+            minibatch(es) to be encoded and reconstructed. Assumed to be
+            2-tensors, with the first dimension indexing training examples and
+            the second indexing data dimensions.
+
+        Returns
+        -------
+        reconstructed : tensor_like or list of tensor_like
+            Theano symbolic (or list thereof) representing the corresponding
+            reconstructed minibatch(es) after encoding/decoding.
+        """
         hiddens = self.hidden_repr(inputs)
         if self.act_dec is None:
             act_dec = lambda x: x
@@ -112,6 +181,9 @@ class Autoencoder(Block):
         """
         Forward propagate (symbolic) input through this module, obtaining
         a representation to pass on to layers above.
+
+        This just aliases the `hidden_repr()` function for syntactic
+        sugar/convenience.
         """
         return self.hidden_repr(inputs)
 
@@ -121,11 +193,43 @@ class DenoisingAutoencoder(Autoencoder):
     reconstructing a noisy version of it.
     """
     def __init__(self, corruptor, *args, **kwargs):
+        """
+        Allocate a denoising autoencoder object.
+
+        Parameters
+        ----------
+        corruptor : object
+            Instance of a corruptor object to use for corrupting the
+            input.
+
+        Notes
+        -----
+        The remaining parameters are identical to those of the constructor
+        for the Autoencoder class; see the `Autoencoder.__init__` docstring
+        for details.
+        """
         super(DenoisingAutoencoder, self).__init__(*args, **kwargs)
         self.corruptor = corruptor
 
     def reconstruction(self, inputs):
-        """Reconstructed inputs after corruption."""
+        """
+        Reconstruct the inputs after corrupting and mapping through the
+        encoder and decoder.
+
+        Parameters
+        ----------
+        inputs : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the input
+            minibatch(es) to be corrupted and reconstructed. Assumed to be
+            2-tensors, with the first dimension indexing training examples and
+            the second indexing data dimensions.
+
+        Returns
+        -------
+        reconstructed : tensor_like or list of tensor_like
+            Theano symbolic (or list thereof) representing the corresponding
+            reconstructed minibatch(es) after corruption and encoding/decoding.
+        """
         corrupted = self.corruptor(inputs)
         return super(DenoisingAutoencoder, self).reconstruction(corrupted)
 
