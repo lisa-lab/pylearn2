@@ -1,6 +1,6 @@
 """Autoencoders, denoising autoencoders, and stacked DAEs."""
 # Standard library imports
-from itertools import izip
+from itertools import izip,imap
 
 # Third-party imports
 import numpy
@@ -54,19 +54,23 @@ class Autoencoder(Block):
             )
 
         def _resolve_callable(conf, conf_attr):
-            if conf[conf_attr] is None or conf[conf_attr] == "linear":
-                # The identity function, for linear layers.
-                return None
-            # If it's a callable, use it directly.
-            if hasattr(conf[conf_attr], '__call__'):
-                return conf[conf_attr]
-            elif hasattr(tensor.nnet, conf[conf_attr]):
-                return getattr(tensor.nnet, conf[conf_attr])
-            elif hasattr(tensor, conf[conf_attr]):
-                return getattr(tensor, conf[conf_attr])
-            else:
-                raise ValueError("Couldn't interpret %s value: '%s'" %
-                                 (conf_attr, conf[conf_attr]))
+            try:
+                if conf[conf_attr] is None or conf[conf_attr] == "linear":
+                    # The identity function, for linear layers.
+                    return None
+                # If it's a callable, use it directly.
+                if hasattr(conf[conf_attr], '__call__'):
+                    return conf[conf_attr]
+                elif hasattr(tensor.nnet, conf[conf_attr]):
+                    return getattr(tensor.nnet, conf[conf_attr])
+                elif hasattr(tensor, conf[conf_attr]):
+                    return getattr(tensor, conf[conf_attr])
+                else:
+                    raise ValueError("Couldn't interpret %s value: '%s'" %
+                                    (conf_attr, conf[conf_attr]))
+            except Exception as e:
+                print conf_attr,':',e.args
+                raise
 
         self.act_enc = _resolve_callable(locals(), 'act_enc')
         self.act_dec = _resolve_callable(locals(), 'act_dec')
@@ -84,7 +88,8 @@ class Autoencoder(Block):
             act_enc = lambda x: x
         else:
             act_enc = self.act_enc
-        return act_enc(self.hidbias + tensor.dot(x, self.weights))
+        self.hiddens=act_enc(self.hidbias + tensor.dot(x, self.weights))
+        return self.hiddens
 
     def hidden_repr(self, inputs):
         """Hidden unit activations for each set of inputs."""
@@ -129,6 +134,21 @@ class DenoisingAutoencoder(Autoencoder):
         corrupted = self.corruptor(inputs)
         return super(DenoisingAutoencoder, self).reconstruction(corrupted)
 
+class ContractingAutoencoder(Autoencoder):
+    """
+    A contracting autoencoder works like a regular autoencoder, and adds an
+    extra term to its cost function.
+    """
+    def __init__(self, *args, **kwargs):
+        super(ContractingAutoencoder, self).__init__(*args, **kwargs)
+
+    def contraction_penalty(self):
+        def cp(p):
+            Jacobien = self.weights * (p*(1-p)).dimshuffle(0,'x',1)
+            L=tensor.mean(Jacobien**2)
+            return L
+        return cp(self.hiddens)
+
 def build_stacked_DA(corruptors, nvis, nhids, act_enc, act_dec,
                      tied_weights=False, irange=1e-3, rng=None):
     """Allocate a StackedBlocks containing denoising autoencoders."""
@@ -168,3 +188,61 @@ def build_stacked_DA(corruptors, nvis, nhids, act_enc, act_dec,
     # Create the stack
     return StackedBlocks(layers)
 
+
+def build_denoising_stack(  corruptors,
+                            nvis,
+                            nhids,
+                            act_enc,
+                            act_dec,
+                            tied_weights=False,
+                            irange=1e-3,
+                            rng=None,
+                            contracting=None):
+    """Allocate a StackedBlocks containing denoising/contrasting autoencoders."""
+
+    if not hasattr(rng, 'randn'):
+        rng = numpy.random.RandomState(rng)
+    layers = []
+    _local = {}
+
+    # Make sure that if we have a sequence of encoder/decoder activations
+    # or corruptors, that we have exactly as many as len(n_hids)
+    if hasattr(corruptors, '__len__'):
+        assert len(nhids) == len(corruptors)
+    else:
+        corruptors = [corruptors] * len(nhids)
+    for c in ['act_enc', 'act_dec']:
+        if type(locals()[c]) is not str and hasattr(locals()[c], '__len__'):
+            assert len(nhids) == len(locals()[c])
+            _local[c] = locals()[c]
+        else:
+            _local[c] = [locals()[c]] * len(nhids)
+    # Make sure that if the contracting arg is used, it is consistently done so
+    if hasattr(contracting,'__len__'):
+        assert len(nhids) == len(contracting)
+    else:
+        contracting=[False]*len(nhids)
+
+    # The number of visible units in each layer is the initial input
+    # size and the first k-1 hidden unit sizes.
+    nviss = [nvis] + nhids[:-1]
+    seq = izip(
+        xrange(len(nhids)),
+        nhids,
+        nviss,
+        _local['act_enc'],
+        _local['act_dec'],
+        corruptors,
+        contracting,
+    )
+    # Create each layer.
+    for k, nhid, nvis, act_enc, act_dec, corr, is_cae in seq:
+        args=nvis, nhid, act_enc, act_dec, tied_weights, irange, rng
+        if is_cae:
+            ae = ContractingAutoencoder(*args)
+        else:
+            ae = DenoisingAutoencoder(corr,*args)
+        layers.append(ae)
+
+    # Create the stack
+    return StackedBlocks(layers)
