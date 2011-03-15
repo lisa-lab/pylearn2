@@ -25,7 +25,7 @@ from framework.optimizer import SGDOptimizer
 if __name__ == "__main__":
     # Simulate some fake data.
     rng = numpy.random.RandomState(seed=42)
-    data = rng.normal(size=(1000, 15))
+    data = numpy.ndarray.astype(rng.normal(size=(1000, 15)), numpy.float32)
 
     conf = {
         'corruption_level': 0.1,
