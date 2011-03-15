@@ -2,6 +2,8 @@
 Implementations of Restricted Boltzmann Machines and associated sampling
 strategies.
 """
+from itertools import izip
+
 import numpy
 import theano
 from theano import tensor
@@ -461,7 +463,7 @@ class GaussianBinaryRBM(RBM):
             return zero_mean + v_mean
 
 
-def build_stacked_RBM(nvis, nhids, batch_size, input_vis_type='binary',
+def build_stacked_RBM(nvis, nhids, batch_size, vis_type='binary',
         input_mean_vis=None, irange=1e-3, rng=None):
     """
     Allocate a StackedBlocks containing RBMs.
@@ -486,7 +488,7 @@ def build_stacked_RBM(nvis, nhids, batch_size, input_vis_type='binary',
             nviss,
             )
     for k, nhid, nvis in seq:
-        if k==0 and input_vis_type=='gaussian':
+        if k==0 and vis_type=='gaussian':
             rbm = GaussianBinaryRBM(nvis=nvis, nhid=nhid,
                     batch_size=batch_size,
                     irange=irange,
