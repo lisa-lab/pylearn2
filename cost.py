@@ -9,15 +9,9 @@ from itertools import imap
 from theano import tensor
 
 class SupervisedCost(object):
-    """
-    A cost object is allocated in the same fashion as other
-    objects in this file, with a 'conf' dictionary (or object
-    supporting __getitem__) containing relevant hyperparameters.
-    """
-    def __init__(self, conf, model):
-        self.conf = conf
-        # TODO: Do stuff depending on conf parameters (for example
-        # use different cross-entropy if act_end == "tanh" or not)
+    def __init__(self, model):
+        # TODO: Do stuff depending on model hyperparameters (for example
+        # use different cross-entropy if act_enc == "tanh" or not)
         self.model = model
 
     def __call__(self, *inputs):
@@ -26,8 +20,8 @@ class SupervisedCost(object):
 
 class MeanSquaredError(SupervisedCost):
     """
-    Symbolic expression for mean-squared error between the input and the
-    denoised reconstruction.
+    Symbolic expression for mean-squared error between the target
+    and a prediction.
     """
     def __call__(self, prediction, target):
         msq = lambda p, t: ((p - t)**2).sum(axis=1).mean()
@@ -45,15 +39,17 @@ class MeanSquaredError(SupervisedCost):
 
 class CrossEntropy(SupervisedCost):
     """
-    Symbolic expression for elementwise cross-entropy between input
-    and reconstruction. Use for binary-valued features (but not for,
+    Symbolic expression for elementwise cross-entropy between target
+    and prediction. Use for binary-valued features (but not for,
     e.g., one-hot codes).
     """
     def __call__(self, prediction, target):
         ce = lambda x, z: x * tensor.log(z) + (1 - x) * tensor.log(1 - z)
         if isinstance(prediction, tensor.Variable):
             return ce(prediction, target)
-        return sum(imap(lambda p, t: ce(p, t).sum(axis=1).mean(), prediction, target))
+        return sum(
+            imap(lambda p, t: ce(p, t).sum(axis=1).mean(), prediction, target)
+        )
 
 ##################################################
 def get(str):
