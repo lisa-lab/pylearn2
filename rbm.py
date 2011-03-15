@@ -25,9 +25,23 @@ else:
 
 def training_updates(visible_batch, model, sampler, optimizer):
     """
-    Get optimization updates from a given optimizer for a given
-    (RBM-like) model with a given sampling strategy (sampler
-    object).
+    Combine together updates from various sources for RBM training.
+
+    Parameters
+    ----------
+    visible_batch : tensor_like
+        Theano symbolic representing a minibatch on the visible units,
+        with the first dimension indexing training examples and the second
+        indexing data dimensions.
+    rbm : object
+        An instance of `RBM` or a derived class, or one implementing
+        the RBM interface.
+    sampler : object
+        An instance of `Sampler` or a derived class, or one implementing
+        the sampler interface.
+    optimizer : object
+        An instance of `Optimizer` or a derived class, or one implementing
+        the optimizer interface (typically an `SGDOptimizer`).
     """
     pos_v = visible_batch
     neg_v = sampler.particles
@@ -378,8 +392,33 @@ class RBM(Block):
         return self.mean_h_given_v(v)
 
     def reconstruction_error(self, v, rng):
+        """
+        Compute the mean-squared error across a minibatch after a Gibbs
+        step starting from the training data.
+
+        Parameters
+        ----------
+        v : tensor_like
+            Theano symbolic representing the hidden unit states for a batch of
+            training examples, with the first dimension indexing training
+            examples and the second indexing data dimensions.
+        rng : RandomStreams object
+            Random number generator to use for sampling the hidden and visible
+            units.
+
+        Returns
+        -------
+        mse : tensor_like
+            0-dimensional tensor (essentially a scalar) indicating the mean
+            reconstruction error across the minibatch.
+
+        Notes
+        -----
+        The reconstruction used to assess error is deterministic, i.e.
+        no sampling is done, to reduce noise in the estimate.
+        """
         sample, _locals = self.gibbs_step_for_v(v, rng)
-        return ((_locals['v_mean'] - v)**2).sum(axis=1) .mean()
+        return ((_locals['v_mean'] - v)**2).sum(axis=1).mean()
 
 class GaussianBinaryRBM(RBM):
     """
