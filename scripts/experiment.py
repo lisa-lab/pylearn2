@@ -33,25 +33,29 @@ def train_da(conf, data):
     to the parameters in conf, and save the learned model
     """
     # Set visible units size
-    conf['n_vis'] = utils.get_constant(data[0].shape[1]).item()
+    conf['nvis'] = utils.get_constant(data[0].shape[1]).item()
 
     # A symbolic input representing your minibatch.
     minibatch = tensor.matrix()
 
     # Allocate a denoising autoencoder with a given noise corruption.
-    corruptor = corruption.get(conf['corruption_class'])(conf)
-    da = DenoisingAutoencoder(conf, corruptor)
+    corruptor = corruption.get(conf['corruption_class'])(conf['corruption_level'])
+    da = DenoisingAutoencoder(corruptor, conf['nvis'], conf['nhid'],
+                              conf['act_enc'], conf['act_dec'])
 
     # Allocate an optimizer, which tells us how to update our model.
-    cost_sym = cost.get(conf['cost_class'])(conf, da)(minibatch,
-                                                      da.reconstruction(minibatch))
-    trainer = SGDOptimizer(conf, da.params(), cost_sym)
-    train_fn = trainer.function([minibatch], name='train_fn')
+    mycost = cost.get(conf['cost_class'])(da)(minibatch,
+                                              da.reconstruct(minibatch))
+    trainer = SGDOptimizer(da, conf['base_lr'], conf['anneal_start'])
+    updates = trainer.cost_updates(mycost)
+
+    # Finally, build a Theano function out of all this.
+    train_fn = theano.function([minibatch], mycost, updates=updates, name='train_fn')
 
     # Here's a manual training loop.
     print '... training model'
     start_time = time.clock()
-    batchiter = BatchIterator(conf, data)
+    iterator = BatchIterator(data, conf["proba"], conf["batchsize"])
     saving_counter = 0
     saving_rate = conf.get('saving_rate',0)
     alc_counter = 0
@@ -62,7 +66,7 @@ def train_da(conf, data):
     for epoch in xrange(conf['epochs']):
         c = []
         batch_time = time.clock()
-        for minibatch_data in batchiter:
+        for minibatch_data in iterator:
             c.append(train_fn(minibatch_data))
 
         # Print training time + cost
@@ -76,7 +80,7 @@ def train_da(conf, data):
             if saving_counter % saving_rate == 0:
                 da.save(conf['da_dir'], 'model-da-epoch-%02d.pkl' % epoch)
         
-        # Keep track of the best alc computed
+        # Keep track of the best alc computed sor far
         if alc_rate != 0:
             alc_counter += 1
             if alc_counter % alc_rate == 0:
@@ -100,7 +104,7 @@ def train_da(conf, data):
     print '... training ended after %f min' % conf['training_time']
 
     # Compute denoising error for valid and train datasets.
-    error_fn = theano.function([minibatch], cost_sym, name='error_fn')
+    error_fn = theano.function([minibatch], mycost, name='error_fn')
 
     conf['error_valid'] = error_fn(data[1].get_value()).item()
     conf['error_test'] = error_fn(data[2].get_value()).item()
@@ -126,7 +130,7 @@ def train_pca(conf, dataset):
     """Simple wraper to train a PCA and save its parameters"""
     # Train the model
     print '... training PCA'
-    pca = PCA(conf)
+    pca = PCA(conf["num_components"], conf["min_variance"], conf["whiten"])
     pca.train(dataset.get_value())
     
     print '... saving PCA'
@@ -139,9 +143,9 @@ def train_pca(conf, dataset):
 if __name__ == "__main__":
     conf = {# DA specific arguments
             'corruption_level': 0.1,
-            'n_hid': 200,
+            'nhid': 200,
             #'n_vis': 15, # Determined by the datasize
-            'lr_anneal_start': 100,
+            'anneal_start': 100,
             'base_lr': 0.001,
             'tied_weights': True,
             'act_enc': 'sigmoid',
@@ -153,18 +157,16 @@ if __name__ == "__main__":
             'corruption_class' : 'BinomialCorruptor',
             # Experiment specific arguments
             'dataset' : 'avicenna',
-            'expname' : 'dummy',
-            'batch_size' : 20,
-            'epochs' : 10,
-            'train_prop' : 1,
-            'valid_prop' : 2,
-            'test_prop' : 2,
+            'expname' : 'dummy', # Used to create the submission file
+            'batchsize' : 20,
+            'epochs' : 5,
+            'proba' : [1,2,2],
             'normalize' : True, # (Default = True)
             'normalize_on_the_fly' : False, # (Default = False)
             'randomize_valid' : True, # (Default = True)
             'randomize_test' : True, # (Default = True)
-            'saving_rate': 1, # (Default = 0)
-            'alc_rate' : 1, # (Default = 0)
+            'saving_rate': 2, # (Default = 0)
+            'alc_rate' : 2, # (Default = 0)
             'resulting_alc' : True, # (Default = False)
             'da_dir' : './outputs/',
             'pca_dir' : './outputs/',
@@ -178,7 +180,7 @@ if __name__ == "__main__":
     data = utils.load_data(conf)
     
     # Train a PCA
-    data_blended = utils.blend(conf, data)
+    data_blended = utils.blend(data, conf["proba"])
     pca_fn = train_pca(conf, data_blended)
     del data_blended
     pca = PCA.load(conf['pca_dir'], 'model-pca.pkl')
