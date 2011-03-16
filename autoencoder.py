@@ -1,6 +1,6 @@
 """Autoencoders, denoising autoencoders, and stacked DAEs."""
 # Standard library imports
-from itertools import izip,imap
+from itertools import izip
 
 # Third-party imports
 import numpy
@@ -289,7 +289,8 @@ class ContractingAutoencoder(Autoencoder):
             return [penalty(inp) for inp in inputs]
 
 def build_stacked_DA(corruptors, nvis, nhids, act_enc, act_dec,
-                     tied_weights=False, irange=1e-3, rng=None):
+                     tied_weights=False, irange=1e-3, rng=None,
+                     contracting=False):
     """Allocate a StackedBlocks containing denoising autoencoders."""
     if not hasattr(rng, 'randn'):
         rng = numpy.random.RandomState(rng)
@@ -307,81 +308,30 @@ def build_stacked_DA(corruptors, nvis, nhids, act_enc, act_dec,
             _local[c] = locals()[c]
         else:
             _local[c] = [locals()[c]] * len(nhids)
-    # The number of visible units in each layer is the initial input
-    # size and the first k-1 hidden unit sizes.
-    nviss = [nvis] + nhids[:-1]
-    seq = izip(
-        corruptors,
-        xrange(len(nhids)),
-        nhids,
-        nviss,
-        _local['act_enc'],
-        _local['act_dec'],
-    )
-    # Create each layer.
-    for k, nhid, nvis, act_enc, act_dec, corr in seq:
-        da = DenoisingAutoencoder(corr, nvis, nhid, act_enc, act_dec,
-                                  tied_weights, irange, rng)
-        layers.append(da)
-
-    # Create the stack
-    return StackedBlocks(layers)
-
-
-def build_denoising_stack(  corruptors,
-                            nvis,
-                            nhids,
-                            act_enc,
-                            act_dec,
-                            tied_weights=False,
-                            irange=1e-3,
-                            rng=None,
-                            contracting=None):
-    """Allocate a StackedBlocks containing denoising/contrasting autoencoders."""
-
-    if not hasattr(rng, 'randn'):
-        rng = numpy.random.RandomState(rng)
-    layers = []
-    _local = {}
-
-    # Make sure that if we have a sequence of encoder/decoder activations
-    # or corruptors, that we have exactly as many as len(n_hids)
-    if hasattr(corruptors, '__len__'):
-        assert len(nhids) == len(corruptors)
-    else:
-        corruptors = [corruptors] * len(nhids)
-    for c in ['act_enc', 'act_dec']:
-        if type(locals()[c]) is not str and hasattr(locals()[c], '__len__'):
-            assert len(nhids) == len(locals()[c])
-            _local[c] = locals()[c]
-        else:
-            _local[c] = [locals()[c]] * len(nhids)
     # Make sure that if the contracting arg is used, it is consistently done so
-    if hasattr(contracting,'__len__'):
+    if hasattr(contracting, '__len__'):
         assert len(nhids) == len(contracting)
     else:
-        contracting=[False]*len(nhids)
-
+        contracting = [contracting] * len(nhids)
     # The number of visible units in each layer is the initial input
     # size and the first k-1 hidden unit sizes.
     nviss = [nvis] + nhids[:-1]
     seq = izip(
-        xrange(len(nhids)),
         nhids,
         nviss,
         _local['act_enc'],
         _local['act_dec'],
         corruptors,
-        contracting,
+        contracting
     )
     # Create each layer.
-    for k, nhid, nvis, act_enc, act_dec, corr, is_cae in seq:
-        args=nvis, nhid, act_enc, act_dec, tied_weights, irange, rng
-        if is_cae:
-            ae = ContractingAutoencoder(*args)
+    for nhid, nvis, act_enc, act_dec, corr, cae in seq:
+        args = nvis, nhid, act_enc, act_dec, tied_weights, irange, rng
+        if cae:
+            autoenc = ContractingAutoencoder(*args)
         else:
-            ae = DenoisingAutoencoder(corr,*args)
-        layers.append(ae)
+            autoenc = DenoisingAutoencoder(corr, *args)
+        layers.append(autoenc)
 
     # Create the stack
     return StackedBlocks(layers)
