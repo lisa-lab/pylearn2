@@ -19,13 +19,14 @@ except ImportError:
 # Local imports
 from framework.cost import MeanSquaredError
 from framework.corruption import GaussianCorruptor
-from framework.autoencoder import DenoisingAutoencoder, build_stacked_DA
+from framework.autoencoder import ContractingAutoencoder, build_stacked_DA
+from framework.autoencoder import build_denoising_stack
 from framework.optimizer import SGDOptimizer
 
 if __name__ == "__main__":
     # Simulate some fake data.
     rng = numpy.random.RandomState(seed=42)
-    data = numpy.ndarray.astype(rng.normal(size=(1000, 15)), numpy.float32)
+    data = rng.normal(size=(1000, 15))
 
     conf = {
         'corruption_level': 0.1,
@@ -43,16 +44,17 @@ if __name__ == "__main__":
 
     # A symbolic input representing your minibatch.
     minibatch = tensor.matrix()
+    minibatch=theano.printing.Print('min')(minibatch)
 
     # Allocate a denoising autoencoder with binomial noise corruption.
     corruptor = GaussianCorruptor(conf['corruption_level'])
-    da = DenoisingAutoencoder(corruptor, conf['nvis'], conf['nhid'],
-                              conf['act_enc'], conf['act_dec'])
+    cae = ContractingAutoencoder(conf['nvis'], conf['nhid'], corruptor,
+                                conf['act_enc'], conf['act_dec'])
 
     # Allocate an optimizer, which tells us how to update our model.
-    # TODO: build the cost another way
-    cost = MeanSquaredError(da)(minibatch, da.reconstruct(minibatch))
-    trainer = SGDOptimizer(da, conf['base_lr'], conf['anneal_start'])
+    cost = MeanSquaredError(cae)(minibatch, cae.reconstruction(minibatch))
+    cost += cae.contraction_penalty(minibatch)
+    trainer = SGDOptimizer(cae, conf['base_lr'], conf['anneal_start'])
     updates = trainer.cost_updates(cost)
 
     # Finally, build a Theano function out of all this.
@@ -70,7 +72,7 @@ if __name__ == "__main__":
                     (epoch, offset, offset + batchsize - 1, minibatch_err)
 
     # Suppose you then want to use the representation for something.
-    transform = theano.function([minibatch], da([minibatch])[0])
+    transform = theano.function([minibatch], cae([minibatch])[0])
 
     print "Transformed data:"
     print numpy.histogram(transform(data))
@@ -78,20 +80,31 @@ if __name__ == "__main__":
     # We'll now create a stacked denoising autoencoder. First, we change
     # the number of hidden units to be a list. This tells the build_stacked_DA
     # method how many layers to make.
-    sda_conf = conf.copy()
-    sda_conf['nhid'] = [20, 20, 10]
-    sda_conf['anneal_start'] = None # Don't anneal these learning rates
-    sda = build_stacked_DA(corruptor, sda_conf['nvis'], sda_conf['nhid'],
-                           sda_conf['act_enc'], sda_conf['act_dec'])
+    stack_conf = conf.copy()
+    stack_conf['nhids'] = [20, 20, 10]
+    #choose which layer is a regular da and which one is a cae
+    stack_conf['contracting']=[True,False,True]
+    stack_conf['anneal_start'] = None # Don't anneal these learning rates
+    scae = build_denoising_stack(   corruptors=corruptor,
+                                    nvis=stack_conf['nvis'],
+                                    nhids=stack_conf['nhids'],
+                                    act_enc=stack_conf['act_enc'],
+                                    act_dec=stack_conf['act_dec'],
+                                    contracting=stack_conf['contracting'])
 
     # To pretrain it, we'll use a different SGDOptimizer for each layer.
     optimizers = []
     thislayer_input = [minibatch]
-    for layer in sda.layers():
-        cost = MeanSquaredError(layer)(thislayer_input[0],
-                                                 layer.reconstruct(thislayer_input[0]))
-        opt = SGDOptimizer(layer.params(), sda_conf['base_lr'],
-                           sda_conf['anneal_start'])
+    for layer in scae.layers():
+        cost = MeanSquaredError(layer)( thislayer_input[0],
+                                        layer.reconstruction(thislayer_input[0])
+                                        )
+        if isinstance(layer,ContractingAutoencoder):
+            cost+=layer.contraction_penalty(thislayer_input)
+        opt = SGDOptimizer( layer.params(),
+                            stack_conf['base_lr'],
+                            stack_conf['anneal_start']
+                            )
         optimizers.append((opt, cost))
         # Retrieve a Theano function for training this layer.
         updates = opt.cost_updates(cost)

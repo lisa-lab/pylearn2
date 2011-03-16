@@ -28,9 +28,23 @@ else:
 
 def training_updates(visible_batch, model, sampler, optimizer):
     """
-    Get optimization updates from a given optimizer for a given
-    (RBM-like) model with a given sampling strategy (sampler
-    object).
+    Combine together updates from various sources for RBM training.
+
+    Parameters
+    ----------
+    visible_batch : tensor_like
+        Theano symbolic representing a minibatch on the visible units,
+        with the first dimension indexing training examples and the second
+        indexing data dimensions.
+    rbm : object
+        An instance of `RBM` or a derived class, or one implementing
+        the RBM interface.
+    sampler : object
+        An instance of `Sampler` or a derived class, or one implementing
+        the sampler interface.
+    optimizer : object
+        An instance of `Optimizer` or a derived class, or one implementing
+        the optimizer interface (typically an `SGDOptimizer`).
     """
     pos_v = visible_batch
     neg_v = sampler.particles
@@ -48,6 +62,21 @@ class Sampler(object):
     Persistent Contrastive Divergence.
     """
     def __init__(self, rbm, particles, rng):
+        """
+        Construct a Sampler.
+
+        Parameters
+        ----------
+        rbm : object
+            An instance of `RBM` or a derived class, or one implementing
+            the `gibbs_step_for_v` interface.
+        particles : ndarray
+            An initial state for the set of persistent Narkov chain particles
+            that will be updated at every step of learning.
+        rng : RandomState object
+            NumPy random number generator object used to initialize a
+            RandomStreams object used in training.
+        """
         self.__dict__.update(rbm=rbm)
         if not hasattr(rng, 'randn'):
             rng = numpy.random.RandomState(rng)
@@ -65,6 +94,10 @@ class Sampler(object):
         updates : dict
             Dictionary with shared variable instances as keys and symbolic
             expressions indicating how they should be updated as values.
+
+        Notes
+        -----
+        In the `Sampler` base class, this is simply a stub.
         """
         raise NotImplementedError()
 
@@ -88,7 +121,7 @@ class PersistentCDSampler(Sampler):
             An instance of `RBM` or a derived class, or one implementing
             the `gibbs_step_for_v` interface.
         particles : ndarray
-            An initial state for the set of persistent negative chain particles
+            An initial state for the set of persistent Markov chain particles
             that will be updated at every step of learning.
         rng : RandomState object
             NumPy random number generator object used to initialize a
@@ -132,7 +165,25 @@ class RBM(Block):
 
     TODO: model shouldn't depend on batch_size.
     """
-    def __init__(self, nvis, nhid, batch_size=10, irange=0.5, rng=None):
+    def __init__(self, nvis, nhid, batch_size=10, irange=0.5, rng=9001):
+        """
+        Construct an RBM object.
+
+        Parameters
+        ----------
+        nvis : int
+            Number of visible units in the model.
+        nhid : int
+            Number of hidden units in the model.
+        batch_size : int, optional
+            Size of minibatches to be used (TODO: this parameter should be
+            deprecated)
+        irange : float, optional
+            The size of the initial interval around 0 for weights.
+        rng : RandomState object or seed
+            NumPy RandomState object to use when initializing parameters
+            of the model, or (integer) seed to use to create one.
+        """
         if rng is None:
             # TODO: global rng configuration stuff.
             rng = numpy.random.RandomState(1001)
@@ -165,7 +216,6 @@ class RBM(Block):
             Theano symbolic representing a minibatch on the visible units,
             with the first dimension indexing training examples and the second
             indexing data dimensions (usually actual training data).
-
         neg_v : tensor_like
             Theano symbolic representing a minibatch on the visible units,
             with the first dimension indexing training examples and the second
@@ -206,7 +256,6 @@ class RBM(Block):
             training examples (or negative phase particles), with the first
             dimension indexing training examples and the second indexing data
             dimensions.
-
         rng : RandomStreams object
             Random number generator to use for sampling the hidden and visible
             units.
@@ -228,10 +277,10 @@ class RBM(Block):
              * `v_mean`: the returned value from `mean_v_given_h`
              * `v_sample`: the stochastically sampled visible units
         """
+        h_mean = self.mean_h_given_v(v)
         # For binary hidden units
         # TODO: factor further to extend to other kinds of hidden units
         #       (e.g. spike-and-slab)
-        h_mean = self.mean_h_given_v(v)
         h_mean_shape = self.batch_size, self.nhid
         h_sample = tensor.cast(rng.uniform(size=h_mean_shape) < h_mean, floatX)
         v_mean_shape = self.batch_size, self.nvis
@@ -348,8 +397,33 @@ class RBM(Block):
         return self.mean_h_given_v(v)
 
     def reconstruction_error(self, v, rng):
+        """
+        Compute the mean-squared error across a minibatch after a Gibbs
+        step starting from the training data.
+
+        Parameters
+        ----------
+        v : tensor_like
+            Theano symbolic representing the hidden unit states for a batch of
+            training examples, with the first dimension indexing training
+            examples and the second indexing data dimensions.
+        rng : RandomStreams object
+            Random number generator to use for sampling the hidden and visible
+            units.
+
+        Returns
+        -------
+        mse : tensor_like
+            0-dimensional tensor (essentially a scalar) indicating the mean
+            reconstruction error across the minibatch.
+
+        Notes
+        -----
+        The reconstruction used to assess error is deterministic, i.e.
+        no sampling is done, to reduce noise in the estimate.
+        """
         sample, _locals = self.gibbs_step_for_v(v, rng)
-        return ((_locals['v_mean'] - v)**2).sum(axis=1) .mean()
+        return ((_locals['v_mean'] - v)**2).sum(axis=1).mean()
 
 class GaussianBinaryRBM(RBM):
     """
@@ -359,6 +433,27 @@ class GaussianBinaryRBM(RBM):
     """
     def __init__(self, nvis, nhid, batch_size, irange=0.5, rng=None,
                  mean_vis=False):
+        """
+        Allocate a GaussianBinaryRBM object.
+
+        Parameters
+        ----------
+        nvis : int
+            Number of visible units in the model.
+        nhid : int
+            Number of hidden units in the model.
+        batch_size : int, optional
+            Size of minibatches to be used (TODO: this parameter should be
+            deprecated)
+        irange : float, optional
+            The size of the initial interval around 0 for weights.
+        rng : RandomState object or seed
+            NumPy RandomState object to use when initializing parameters
+            of the model, or (integer) seed to use to create one.
+        mean_vis : bool, optional
+            Don't actually sample visibles; make sample method simply return
+            mean.
+        """
         super(GaussianBinaryRBM, self).__init__(nvis, nhid, batch_size, irange, rng)
         self.sigma = sharedX(
             numpy.ones(nvis),
@@ -466,7 +561,7 @@ class GaussianBinaryRBM(RBM):
             return zero_mean + v_mean
 
 
-def build_stacked_RBM(nvis, nhids, batch_size, input_vis_type='binary',
+def build_stacked_RBM(nvis, nhids, batch_size, vis_type='binary',
         input_mean_vis=None, irange=1e-3, rng=None):
     """
     Allocate a StackedBlocks containing RBMs.
@@ -476,10 +571,10 @@ def build_stacked_RBM(nvis, nhids, batch_size, input_vis_type='binary',
     """
     #TODO: not sure this is the right way of dealing with mean_vis.
     layers = []
-    assert input_vis_type in ['binary', 'gaussian']
-    if input_vis_type == 'binary':
+    assert vis_type in ['binary', 'gaussian']
+    if vis_type == 'binary':
         assert input_mean_vis is None
-    elif input_vis_type == 'gaussian':
+    elif vis_type == 'gaussian':
         assert input_mean_vis in True, False
 
     # The number of visible units in each layer is the initial input
@@ -491,7 +586,7 @@ def build_stacked_RBM(nvis, nhids, batch_size, input_vis_type='binary',
             nviss,
             )
     for k, nhid, nvis in seq:
-        if k==0 and input_vis_type=='gaussian':
+        if k==0 and vis_type=='gaussian':
             rbm = GaussianBinaryRBM(nvis=nvis, nhid=nhid,
                     batch_size=batch_size,
                     irange=irange,
