@@ -258,6 +258,22 @@ class ContractingAutoencoder(Autoencoder):
             0-dimensional tensor (i.e. scalar) that penalizes the Jacobian
             matrix of the encoder transformation. Add this to the output
             of a Cost object such as MeanSquaredError to penalize it.
+
+        Notes
+        -----
+        Theano's differentiation capabilities do not currently allow
+        (efficient) automatic evaluation of the Jacobian, mainly because
+        of the immature state of the `scan` operator. Here we use a
+        "semi-automatic" hack that works for hidden layers of the for
+        m:math:`s(Wx + b)`, where `s` is the activation function, :math:`W`
+        is `self.weights`, and :math:`b` is `self.hidbias`, by only taking
+        the derivative of :math:`s` with respect :math:`a = Wx + b` and
+        manually constructing the Jacobian from there.
+
+        Because of this implementation depends *critically* on the
+        _hidden_inputs() method implementing only an affine transformation
+        by the weights (i.e. :math:`Wx + b`), and the activation function
+        `self.act_enc` applying an independent, elementwise operation.
         """
         def penalty(inputs):
             # Compute the input flowing into the hidden units, i.e. the
