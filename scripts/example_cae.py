@@ -1,6 +1,7 @@
 """An example of how to use the library so far."""
 # Standard library imports
 import sys
+import os
 
 # Third-party imports
 import numpy
@@ -17,6 +18,7 @@ except ImportError:
     sys.exit(1)
 
 # Local imports
+from framework.pca import PCA
 from framework.cost import MeanSquaredError
 from framework.corruption import GaussianCorruptor
 from framework.autoencoder import ContractingAutoencoder, build_stacked_DA
@@ -43,7 +45,18 @@ if __name__ == "__main__":
 
     # A symbolic input representing your minibatch.
     minibatch = tensor.matrix()
-    minibatch=theano.printing.Print('min')(minibatch)
+    minibatch = theano.printing.Print('min')(minibatch)
+
+    # Allocate a PCA transformation block.
+    pca_model_file = 'example-cae_model-pca.pkl'
+    if os.path.isfile(pca_model_file):
+        print '... loading precomputed PCA transform'
+        pca = PCA.load(pca_model_file)
+    else:
+        print '... computing PCA transform'
+        pca = PCA(75)
+        pca.train(data)
+        pca.save(pca_model_file)
 
     # Allocate a denoising autoencoder with binomial noise corruption.
     corruptor = GaussianCorruptor(conf['corruption_level'])
@@ -71,7 +84,7 @@ if __name__ == "__main__":
                     (epoch, offset, offset + batchsize - 1, minibatch_err)
 
     # Suppose you then want to use the representation for something.
-    transform = theano.function([minibatch], cae([minibatch])[0])
+    transform = theano.function([minibatch], cae([pca(minibatch)])[0])
 
     print "Transformed data:"
     print numpy.histogram(transform(data))
