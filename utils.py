@@ -60,12 +60,10 @@ def load_data(conf):
     expected = ['normalize',
                 'normalize_on_the_fly',
                 'randomize_valid',
-                'randomize_test']
+                'randomize_test',
+                'transfer']
     print '... loading data'
-    train_set, valid_set, test_set = load_ndarray_dataset(
-        conf['dataset'],
-        **subdict(conf, expected)
-    )
+    data = load_ndarray_dataset(conf['dataset'], **subdict(conf, expected))
 
     # Allocate shared variables
     def shared_dataset(data_x):
@@ -76,13 +74,9 @@ def load_data(conf):
             return theano.shared(theano._asarray(data_x), borrow=True)
 
     if conf.get('normalize_on_the_fly', False):
-        return [train_set, valid_set, test_set]
+        return data
     else:
-        test_set_x = shared_dataset(test_set)
-        valid_set_x = shared_dataset(valid_set)
-        train_set_x = shared_dataset(train_set)
-        return [train_set_x, valid_set_x, test_set_x]
-
+        return map(shared_dataset, data)
 
 def create_submission(conf, get_representation):
     """
