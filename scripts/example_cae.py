@@ -20,7 +20,6 @@ except ImportError:
 from framework.cost import MeanSquaredError
 from framework.corruption import GaussianCorruptor
 from framework.autoencoder import ContractingAutoencoder, build_stacked_DA
-from framework.autoencoder import build_denoising_stack
 from framework.optimizer import SGDOptimizer
 
 if __name__ == "__main__":
@@ -85,7 +84,7 @@ if __name__ == "__main__":
     #choose which layer is a regular da and which one is a cae
     stack_conf['contracting']=[True,False,True]
     stack_conf['anneal_start'] = None # Don't anneal these learning rates
-    scae = build_denoising_stack(   corruptors=corruptor,
+    scae = build_stacked_DA(   corruptors=corruptor,
                                     nvis=stack_conf['nvis'],
                                     nhids=stack_conf['nhids'],
                                     act_enc=stack_conf['act_enc'],
