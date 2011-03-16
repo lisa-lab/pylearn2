@@ -91,23 +91,18 @@ class Autoencoder(Block):
             )
 
         def _resolve_callable(conf, conf_attr):
-            try:
-                if conf[conf_attr] is None or conf[conf_attr] == "linear":
-                    # The identity function, for linear layers.
-                    return None
-                # If it's a callable, use it directly.
-                if hasattr(conf[conf_attr], '__call__'):
-                    return conf[conf_attr]
-                elif hasattr(tensor.nnet, conf[conf_attr]):
-                    return getattr(tensor.nnet, conf[conf_attr])
-                elif hasattr(tensor, conf[conf_attr]):
-                    return getattr(tensor, conf[conf_attr])
-                else:
-                    raise ValueError("Couldn't interpret %s value: '%s'" %
+            if conf[conf_attr] is None or conf[conf_attr] == "linear":
+                return None
+            # If it's a callable, use it directly.
+            if hasattr(conf[conf_attr], '__call__'):
+                return conf[conf_attr]
+            elif hasattr(tensor.nnet, conf[conf_attr]):
+                return getattr(tensor.nnet, conf[conf_attr])
+            elif hasattr(tensor, conf[conf_attr]):
+                return getattr(tensor, conf[conf_attr])
+            else:
+                raise ValueError("Couldn't interpret %s value: '%s'" %
                                     (conf_attr, conf[conf_attr]))
-            except Exception as e:
-                print conf_attr,':',e.args
-                raise
 
         self.act_enc = _resolve_callable(locals(), 'act_enc')
         self.act_dec = _resolve_callable(locals(), 'act_dec')
@@ -288,7 +283,7 @@ class ContractingAutoencoder(Autoencoder):
         else:
             return [penalty(inp) for inp in inputs]
 
-def build_stacked_DA(corruptors, nvis, nhids, act_enc, act_dec,
+def build_stacked_AE(corruptors, nvis, nhids, act_enc, act_dec,
                      tied_weights=False, irange=1e-3, rng=None,
                      contracting=False):
     """Allocate a StackedBlocks containing denoising autoencoders."""
