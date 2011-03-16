@@ -99,7 +99,7 @@ if __name__ == "__main__":
                                         layer.reconstruct(thislayer_input[0])
                                         )
         if isinstance(layer,ContractingAutoencoder):
-            cost+=layer.contraction_penalty(thislayer_input)
+            cost+=layer.contraction_penalty(thislayer_input[0])
         opt = SGDOptimizer( layer.params(),
                             stack_conf['base_lr'],
                             stack_conf['anneal_start']
