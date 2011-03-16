@@ -125,7 +125,10 @@ class Autoencoder(Block):
             act_enc = lambda x: x
         else:
             act_enc = self.act_enc
-        return act_enc(self.hidbias + tensor.dot(x, self.weights))
+        return act_enc(self._hidden_input(x))
+
+    def _hidden_input(self, x):
+        return self.hidbias + tensor.dot(x, self.weights)
 
     def encode(self, inputs):
         """
@@ -261,14 +264,29 @@ class ContractingAutoencoder(Autoencoder):
             matrix of the encoder transformation. Add this to the output
             of a Cost object such as MeanSquaredError to penalize it.
         """
-        def cp(p):
-            jacobian = self.weights * (p * (1 - p)).dimshuffle(0, 'x', 1)
+        def penalty(inputs):
+            # Compute the input flowing into the hidden units, i.e. the
+            # value before applying the nonlinearity/activation function
+            acts = self._hidden_input(inputs)
+            # Apply the activating nonlinearity.
+            hiddens = self.act_enc(acts)
+            # We want dh/da for every pre/postsynaptic pair, which we
+            # can easily do by taking the gradient of the sum of the
+            # hidden units activations w.r.t the presynaptic activity,
+            # since the gradient of hiddens.sum() with respect to hiddens
+            # is a matrix of ones!
+            act_grad = tensor.grad(hiddens.sum(), acts)
+            # As long as act_enc is an elementwise operator, the Jacobian
+            # of a act_enc(Wx + b) hidden layer has a Jacobian of the
+            # following form.
+            jacobian = self.weights * act_grad.dimshuffle(0, 'x', 1)
+            # Penalize the mean of the L2 norm, basically.
             L = tensor.mean(jacobian**2)
             return L
         if isinstance(inputs, tensor.Variable):
-            return cp(self.encode(inputs))
+            return penalty(inputs)
         else:
-            return [cp(self.encode(inp)) for inp in inputs]
+            return [penalty(inp) for inp in inputs]
 
 def build_stacked_DA(corruptors, nvis, nhids, act_enc, act_dec,
                      tied_weights=False, irange=1e-3, rng=None):
