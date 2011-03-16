@@ -28,11 +28,10 @@ def subdict(d, keys):
 
 def get_constant(variable):
     """ Little hack to return the python value of a theano shared variable """
-    return theano.function(
-        [],
-        variable,
-        mode=theano.compile.Mode(linker='py')
-    )()
+    return theano.function([],
+                           variable,
+                           mode=theano.compile.Mode(linker='py')
+                           )()
 
 def sharedX(value, name=None, borrow=False):
     """Transform value into a shared variable of type floatX"""
@@ -88,10 +87,10 @@ def load_data(conf):
 def create_submission(conf, get_representation):
     """
     Create submission files given a configuration dictionary and a
-    computation function
+    computation function.
 
     Note that it always reload the datasets to ensure valid & test
-    are not permuted
+    are not permuted.
     """
     # Load the dataset, without permuting valid and test
     kwargs = subdict(conf, ['dataset', 'normalize', 'normalize_on_the_fly'])
@@ -136,7 +135,7 @@ def create_submission(conf, get_representation):
 
     basename = os.path.join(submit_dir,
                             conf['dataset'] + '_' + conf['expname']
-                           )
+                            )
     valid_file = open(basename + '_valid.prepro', 'w')
     test_file = open(basename + '_final.prepro', 'w')
 
@@ -171,20 +170,21 @@ def compute_alc(valid_repr, test_repr):
     normal case (i.e only train on training set)
     """
 
-    # Concatenate the two sets, and give different one hot labels for
-    # valid and test
-    n_valid  = valid_repr.shape[0]
+    # Concatenate the sets, and give different one hot labels for valid and test
+    n_valid = valid_repr.shape[0]
     n_test = test_repr.shape[0]
 
-    _labvalid = numpy.hstack((numpy.ones((n_valid,1)),
-                              numpy.zeros((n_valid,1))))
-    _labtest = numpy.hstack((numpy.zeros((n_test,1)), numpy.ones((n_test,1))))
+    _labvalid = numpy.hstack((numpy.ones((n_valid, 1)),
+                              numpy.zeros((n_valid, 1))))
+    _labtest = numpy.hstack((numpy.zeros((n_test, 1)),
+                             numpy.ones((n_test, 1))))
 
     dataset = numpy.vstack((valid_repr, test_repr))
-    label = numpy.vstack((_labvalid,_labtest))
+    label = numpy.vstack((_labvalid, _labtest))
 
     print '... computing the ALC'
     return embed.score(dataset, label)
+
 
 def lookup_alc(data, transform):
     valid_repr = transform(data[1].get_value())
@@ -201,18 +201,23 @@ class BatchIterator(object):
     Builds an iterator object that can be used to go through the minibatches
     of a dataset, with respect to the given proportions in conf
     """
-    def __init__(self, conf, dataset):
+    def __init__(self, dataset, set_proba, batch_size, seed = 300):
+        # Local shortcuts for array operations
+        flo = numpy.floor
+        sub = numpy.subtract
+        mul = numpy.multiply
+        div = numpy.divide
+        mod = numpy.mod
+        
         # Record external parameters
-        self.batch_size = conf['batch_size']
+        self.batch_size = batch_size
         # TODO: If you have a better way to return dataset slices, I'll take it
         self.dataset = [set.get_value() for set in dataset]
 
         # Compute maximum number of samples for one loop
-        set_proba = [conf['train_prop'], conf['valid_prop'], conf['test_prop']]
         set_sizes = [get_constant(data.shape[0]) for data in dataset]
         set_batch = [float(self.batch_size) for i in xrange(3)]
-        set_range = numpy.divide(numpy.multiply(set_proba, set_sizes),
-                                 set_batch)
+        set_range = div(mul(set_proba, set_sizes), set_batch)
         set_range = map(int, numpy.ceil(set_range))
 
         # Upper bounds for each minibatch indexes
@@ -220,11 +225,6 @@ class BatchIterator(object):
         self.limit = map(int, set_limit)
 
         # Number of rows in the resulting union
-        flo = numpy.floor
-        sub = numpy.subtract
-        mul = numpy.multiply
-        div = numpy.divide
-        mod = numpy.mod
         l_trun = mul(flo(div(set_range, set_limit)), mod(set_sizes, set_batch))
         l_full = mul(sub(set_range, flo(div(set_range, set_limit))), set_batch)
 
@@ -235,8 +235,8 @@ class BatchIterator(object):
         for i in xrange(3):
             index_tab.extend(repeat(i, set_range[i]))
 
-        # The seed should be deterministic
-        self.seed = conf.get('batchiterator_seed', 300)
+        # Use a deterministic seed
+        self.seed = seed
         rng = numpy.random.RandomState(seed=self.seed)
         self.permut = rng.permutation(index_tab)
 
@@ -270,15 +270,16 @@ class BatchIterator(object):
 # Miscellaneous
 ##################################################
 
-def blend(conf, data):
+def blend(dataset, set_proba, batch_size=20, **kwargs):
     """
-    Randomized blending of datasets in data according to parameters
-    in conf
+    Randomized blending of datasets in data according to parameters in conf
     """
-    iterator = BatchIterator(conf, data)
+    iterator = BatchIterator(dataset, set_proba, batch_size, **kwargs)
     nrow = len(iterator)
-    ncol = data[0].get_value().shape[1]
-    array = numpy.empty((nrow, ncol), data[0].dtype)
+    #print [get_constant(data.shape[0]) for data in dataset]
+    #print set_proba, nrow
+    ncol = dataset[0].get_value().shape[1]
+    array = numpy.empty((nrow, ncol), dataset[0].dtype)
     index = 0
     for minibatch in iterator:
         for row in minibatch:
