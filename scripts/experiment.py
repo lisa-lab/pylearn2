@@ -2,6 +2,7 @@
 # Standard library imports
 import time
 import sys
+import os
 
 # Third-party imports
 import numpy
@@ -19,12 +20,12 @@ except ImportError:
     sys.exit(1)
 
 from framework import utils
+from framework.pca import PCA
 from framework import cost
 from framework import corruption
 from framework.utils import BatchIterator
 from framework.autoencoder import DenoisingAutoencoder
 from framework.optimizer import SGDOptimizer
-from posttraitement.pca import PCA
 
 
 def train_da(conf, data):
@@ -55,7 +56,7 @@ def train_da(conf, data):
     # Here's a manual training loop.
     print '... training model'
     start_time = time.clock()
-    iterator = BatchIterator(data, conf["proba"], conf["batchsize"])
+    iterator = BatchIterator(data, conf['proba'], conf['batchsize'])
     saving_counter = 0
     saving_rate = conf.get('saving_rate',0)
     alc_counter = 0
@@ -78,7 +79,7 @@ def train_da(conf, data):
         if saving_rate != 0:
             saving_counter += 1
             if saving_counter % saving_rate == 0:
-                da.save(conf['da_dir'], 'model-da-epoch-%02d.pkl' % epoch)
+                da.save(os.path.join(conf['da_dir'], 'model-da-epoch-%02d.pkl' % epoch))
         
         # Keep track of the best alc computed sor far
         if alc_rate != 0:
@@ -119,26 +120,29 @@ def train_da(conf, data):
         conf['best_alc_epoch'] = best_alc_epoch
         
     # Save model parameters
-    da.save(conf['da_dir'], 'model-da-final.pkl')
+    da.save(os.path.join(conf['da_dir'], 'model-da-final.pkl'))
     print '... model has been saved into %s as model-da-final.pkl' % conf['da_dir']
 
     # Return the learned transformation function
     return da.function('da_transform_fn')
 
 
-def train_pca(conf, dataset):
-    """Simple wraper to train a PCA and save its parameters"""
-    # Train the model
-    print '... training PCA'
-    pca = PCA(conf["num_components"], conf["min_variance"], conf["whiten"])
-    pca.train(dataset.get_value())
-    
-    print '... saving PCA'
-    pca.save(conf['pca_dir'], 'model-pca.pkl')
+def train_pca(conf, data):
+    """Simple wrapper to either load a PCA or train it and save its parameters"""
+    pca_model_file = os.path.join(conf['pca_dir'], 'model-pca.pkl')
+    if os.path.isfile(pca_model_file):
+        # Load a pretrained model.
+        print '... loading precomputed PCA transform'
+        pca = PCA.load(pca_model_file)
+    else:
+        # Train the model.
+        print '... computing PCA transform'
+        pca = PCA(conf['num_components'], conf['min_variance'], conf['whiten'])
+        pca.train(data.get_value())
+        pca.save(pca_model_file)
 
     # Return the learned transformation function
-    return pca.function('pca_transform_fn')
-
+    return pca
 
 if __name__ == "__main__":
     conf = {# DA specific arguments
@@ -173,26 +177,26 @@ if __name__ == "__main__":
             'submit_dir' : './outputs/',
             # Arguments for PCA
             'num_components': 75,
-            'min_variance': 0, # (Default = 0)
+            'min_variance': 0.0, # (Default = 0)
             'whiten': True # (Default = False)
             }
 
     data = utils.load_data(conf)
+
+    # Blend data subsets.
+    data_blended = utils.blend(data, conf['proba'])
     
-    # Train a PCA
-    data_blended = utils.blend(data, conf["proba"])
-    pca_fn = train_pca(conf, data_blended)
-    del data_blended
-    pca = PCA.load(conf['pca_dir'], 'model-pca.pkl')
+    # Train (or load a pretrained) PCA transform.
+    pca = train_pca(conf, data_blended)
     pca_fn = pca.function('pca_transform_fn')
-    
+    del data_blended
     data_after_pca = [utils.sharedX(pca_fn(set.get_value()), borrow=True)
                       for set in data]
     
     # Train a DA over the computed representation
     da_fn = train_da(conf, data_after_pca)
     del data_after_pca
-    da = DenoisingAutoencoder.load(conf['da_dir'], 'model-da-epoch-01.pkl')
+    da = DenoisingAutoencoder.load(os.path.join(conf['da_dir'], 'model-da-epoch-01.pkl'))
     da_fn = da.function('da_transform_fn')
     
     # Stack both layers and create submission file
