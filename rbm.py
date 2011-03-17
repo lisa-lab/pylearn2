@@ -407,6 +407,13 @@ class RBM(Block):
                  nnet.softplus(sigmoid_arg).sum(axis=1))
 
     def __call__(self, v):
+        """
+        Forward propagate (symbolic) input through this module, obtaining
+        a representation to pass on to layers above.
+
+        This just aliases the `mean_h_given_v()` function for syntactic
+        sugar/convenience.
+        """
         return self.mean_h_given_v(v)
 
     def reconstruction_error(self, v, rng):
