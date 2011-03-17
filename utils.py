@@ -3,7 +3,7 @@ Several utilities for experimenting upon utlc datasets
 """
 # Standard library imports
 import os
-from itertools import repeat
+from itertools import repeat, izip
 
 # Third-party imports
 import numpy
@@ -19,13 +19,6 @@ from auc import embed
 
 floatX = theano.config.floatX
 
-def subdict(d, keys):
-    """ Create a subdictionary of d with the keys in keys """
-    result = {}
-    for key in keys:
-        if key in d: result[key] = d[key]
-    return result
-
 def get_constant(variable):
     """ Little hack to return the python value of a theano shared variable """
     return theano.function([],
@@ -38,6 +31,13 @@ def sharedX(value, name=None, borrow=False):
     return theano.shared(theano._asarray(value, dtype=floatX),
                          name=name,
                          borrow=borrow)
+
+def subdict(d, keys):
+    """ Create a subdictionary of d with the keys in keys """
+    result = {}
+    for key in keys:
+        if key in d: result[key] = d[key]
+    return result
 
 def safe_update(dict_to, dict_from):
     """
@@ -62,7 +62,7 @@ def load_data(conf):
                 'randomize_valid',
                 'randomize_test',
                 'transfer']
-    print '... loading data'
+    print '... loading Dataset'
     data = load_ndarray_dataset(conf['dataset'], **subdict(conf, expected))
 
     # Allocate shared variables
@@ -121,11 +121,11 @@ def create_submission(conf, get_representation):
     del test_repr
 
     # Write it in a .txt file
-    submit_dir = conf['submit_dir']
+    submit_dir = conf['savedir']
     if not os.path.exists(submit_dir):
         os.mkdir(submit_dir)
     elif not os.path.isdir(submit_dir):
-        raise IOError('submit_dir %s is not a directory' % submit_dir)
+        raise IOError('savedir %s is not a directory' % submit_dir)
 
     basename = os.path.join(submit_dir,
                             conf['dataset'] + '_' + conf['expname']
@@ -185,6 +185,19 @@ def lookup_alc(data, transform):
     test_repr = transform(data[2].get_value())
 
     return compute_alc(valid_repr, test_repr)
+
+
+def filter_labels(train, label):
+    """ Filter examples of train for which we have labels """
+    # Examples for which any label is set
+    condition = label.get_value().any(axis=1)
+    
+    # Compress train and label arrays according to condition
+    def aux(var):
+        return var.get_value().compress(condition, axis=0)
+    
+    return (aux(train), aux(label))
+
 
 ##################################################
 # Iterator object for blending datasets

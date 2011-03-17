@@ -346,3 +346,12 @@ def build_stacked_AE(corruptors, nvis, nhids, act_enc, act_dec,
 
     # Create the stack
     return StackedBlocks(layers)
+
+##################################################
+def get(str):
+    """ Evaluate str into an autoencoder object, if it exists """
+    obj = globals()[str]
+    if issubclass(obj, Autoencoder):
+        return obj
+    else:
+        raise NameError(str)
