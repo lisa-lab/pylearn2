@@ -318,18 +318,21 @@ class RBM(Block):
 
         Parameters
         ----------
-        v  : tensor_like
-            Theano symbolic representing the minibatch on the visible units,
-            with the first dimension indexing training examples and the second
-            indexing data dimensions.
+        v  : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the one or several
+            minibatches on the visible units, with the first dimension indexing
+            training examples and the second indexing data dimensions.
 
         Returns
         -------
-        a : tensor_like
-            Theano symbolic representing the input to each hidden unit for each
-            training example.
+        a : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the input to each
+            hidden unit for each training example.
         """
-        return self.hidbias + tensor.dot(v, self.weights)
+        if isinstance(v, tensor.Variable):
+            return self.hidbias + tensor.dot(v, self.weights)
+        else:
+            return [self.input_to_h_from_v(vis) for vis in v]
 
     def mean_h_given_v(self, v):
         """
@@ -338,18 +341,23 @@ class RBM(Block):
 
         Parameters
         ----------
-        v  : tensor_like
-            Theano symbolic representing the hidden unit states for a batch of
-            training examples, with the first dimension indexing training
-            examples and the second indexing data dimensions.
+        v  : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the hidden unit
+            states for a batch (or several) of training examples, with the
+            first dimension indexing training examples and the second indexing
+            data dimensions.
 
         Returns
         -------
-        h : tensor_like
-            Theano symbolic representing the mean (deterministic)
-            hidden unit activations given the visible units.
+        h : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the mean
+            (deterministic) hidden unit activations given the visible units.
         """
-        return nnet.sigmoid(self.input_to_h_from_v(v))
+        if isinstance(v, tensor.Variable):
+            return nnet.sigmoid(self.input_to_h_from_v(v))
+        else:
+            return [self.mean_h_given_v(vis) for vis in v]
+
 
     def mean_v_given_h(self, h):
         """
@@ -358,18 +366,23 @@ class RBM(Block):
 
         Parameters
         ----------
-        h  : tensor_like
-            Theano symbolic representing the hidden unit states for a batch of
-            training examples, with the first dimension indexing training
-            examples and the second indexing hidden units.
+        h  : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the hidden unit
+            states for a batch (or several) of training examples, with the
+            first dimension indexing training examples and the second indexing
+            hidden units.
 
         Returns
         -------
-        vprime : tensor_like
-            Theano symbolic representing the mean (deterministic)
-            reconstruction of the visible units given the hidden units.
+        vprime : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the mean
+            (deterministic) reconstruction of the visible units given the
+            hidden units.
         """
-        return nnet.sigmoid(self.visbias + tensor.dot(h, self.weights.T))
+        if isinstance(h, tensor.Variable):
+            return nnet.sigmoid(self.visbias + tensor.dot(h, self.weights.T))
+        else:
+            return [self.mean_v_given_h(hid) for hid in h]
 
     def free_energy_given_v(self, v):
         """
@@ -469,16 +482,16 @@ class GaussianBinaryRBM(RBM):
 
         Parameters
         ----------
-        v  : tensor_like
-            Theano symbolic representing the minibatch on the visible units,
-            with the first dimension indexing training examples and the second
-            indexing data dimensions.
+        v  : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing one or several
+            minibatches on the visible units, with the first dimension indexing
+            training examples and the second indexing data dimensions.
 
         Returns
         -------
-        a : tensor_like
-            Theano symbolic representing the input to each hidden unit for each
-            training example.
+        a : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the input to each
+            hidden unit for each training example.
 
         Notes
         -----
@@ -486,7 +499,10 @@ class GaussianBinaryRBM(RBM):
         parameter (which defaults to 1 in this implementation, but is
         nonetheless present as a shared variable in the model parameters).
         """
-        return self.hidbias + tensor.dot(v / self.sigma, self.weights)
+        if isinstance(v, tensor.Variable):
+            return self.hidbias + tensor.dot(v / self.sigma, self.weights)
+        else:
+            return [self.input_to_h_from_v(vis) for vis in v]
 
     def mean_v_given_h(self, h):
         """
