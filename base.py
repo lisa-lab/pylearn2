@@ -48,6 +48,10 @@ class Block(object):
         Individual classes should override __getstate__ and __setstate__
         to deal with object versioning in the case of API changes.
         """
+        save_dir = os.path.dirname(save_file)
+        if not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+        
         fhandle = open(save_file, 'w')
         cPickle.dump(self, fhandle, -1)
         fhandle.close()
@@ -109,7 +113,7 @@ class StackedBlocks(Block):
         # Build the hidden representation at each layer
         repr = [inputs]
 
-        for layer in self.layers:
+        for layer in self._layers:
             outputs = layer(repr[-1])
             repr.append(outputs)
 
