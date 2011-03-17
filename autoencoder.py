@@ -293,7 +293,7 @@ class ContractingAutoencoder(Autoencoder):
         (efficient) automatic evaluation of the Jacobian, mainly because
         of the immature state of the `scan` operator. Here we use a
         "semi-automatic" hack that works for hidden layers of the for
-        m:math:`s(Wx + b)`, where `s` is the activation function, :math:`W`
+        :math:`s(Wx + b)`, where `s` is the activation function, :math:`W`
         is `self.weights`, and :math:`b` is `self.hidbias`, by only taking
         the derivative of :math:`s` with respect :math:`a = Wx + b` and
         manually constructing the Jacobian from there.
