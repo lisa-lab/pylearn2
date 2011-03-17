@@ -61,6 +61,8 @@ class Autoencoder(Block):
             NumPy random number generator object (or seed to create one) used
             to initialize the model parameters.
         """
+        assert nvis > 0, "Number of visible units must be positive"
+        assert nhid > 0, "Number of hidden units must be positive"
         if not hasattr(rng, 'randn'):
             rng = numpy.random.RandomState(rng)
         self.visbias = sharedX(
