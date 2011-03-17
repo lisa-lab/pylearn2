@@ -9,6 +9,8 @@ import numpy
 import theano
 from theano import tensor
 
+from auc import embed
+
 # Local imports
 try:
     import framework
@@ -146,11 +148,11 @@ def train_pca(conf, data):
 
 if __name__ == "__main__":
     conf = {# DA specific arguments
-            'corruption_level': 0.1,
-            'nhid': 200,
+            'corruption_level': 0.5,
+            'nhid': 600,
             #'n_vis': 15, # Determined by the datasize
             'anneal_start': 100,
-            'base_lr': 0.001,
+            'base_lr': 0.0005,
             'tied_weights': True,
             'act_enc': 'sigmoid',
             'act_dec': None,
@@ -164,24 +166,45 @@ if __name__ == "__main__":
             'expname' : 'dummy', # Used to create the submission file
             'batchsize' : 20,
             'epochs' : 5,
-            'proba' : [1,2,2],
+            'proba' : [1,0,0],
             'normalize' : True, # (Default = True)
             'normalize_on_the_fly' : False, # (Default = False)
             'randomize_valid' : True, # (Default = True)
             'randomize_test' : True, # (Default = True)
             'saving_rate': 2, # (Default = 0)
-            'alc_rate' : 2, # (Default = 0)
-            'resulting_alc' : True, # (Default = False)
+            'alc_rate' : 0, # (Default = 0)
+            'resulting_alc' : False, # (Default = False)
             'da_dir' : './outputs/',
             'pca_dir' : './outputs/',
             'submit_dir' : './outputs/',
             # Arguments for PCA
             'num_components': 75,
             'min_variance': 0.0, # (Default = 0)
-            'whiten': True # (Default = False)
+            'whiten': True, # (Default = False)
+            # Transfer parameters
+            'transfer': True
             }
 
     data = utils.load_data(conf)
+
+    labels = data[3].get_value()
+    train  = data[0].get_value()
+    data = data[:3] 
+
+    # Compute the initial ALC on train
+    labels_idx = labels.any(axis=1)
+
+    # For speed reasons only compute the alc on the first 5000 
+    # train examples
+    tr_data = train[labels_idx,:]
+    tr_data = tr_data[:1000,:]
+    lb_data = labels[labels_idx,:]
+    lb_data = lb_data[:1000,:]
+
+    print tr_data.shape
+
+    alc = embed.score(tr_data, lb_data)
+    print "Initial ALC on train: " + str(alc)
 
     # Blend data subsets.
     data_blended = utils.blend(data, conf['proba'])
@@ -201,5 +224,13 @@ if __name__ == "__main__":
     
     # Stack both layers and create submission file
     input = tensor.matrix()
-    transform = theano.function([input], da(pca(input)))
+    #transform = theano.function([input], da(pca(input)))
+    transform = theano.function([input], pca(input))
     utils.create_submission(conf, transform)
+
+    # Final ALC
+    tr_data = transform(tr_data)
+    print tr_data.shape
+    alc = embed.score(tr_data, lb_data)
+    print "Final ALC on train: " + str(alc)
+
