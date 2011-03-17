@@ -117,7 +117,19 @@ class Autoencoder(Block):
             self._params.append(self.w_prime)
 
     def _hidden_activation(self, x):
-        """Single input pattern/minibatch activation function."""
+        """
+        Single minibatch activation function.
+
+        Parameters
+        ----------
+        x : tensor_like
+            Theano symbolic representing the input minibatch.
+
+        Returns
+        -------
+        y : tensor_like
+            (Symbolic) hidden unit activations given the input.
+        """
         if self.act_enc is None:
             act_enc = lambda x: x
         else:
@@ -125,6 +137,20 @@ class Autoencoder(Block):
         return act_enc(self._hidden_input(x))
 
     def _hidden_input(self, x):
+        """
+        Given a single minibatch, computes the input to the
+        activation nonlinearity without applying it.
+
+        Parameters
+        ----------
+        x : tensor_like
+            Theano symbolic representing the input minibatch.
+
+        Returns
+        -------
+        y : tensor_like
+            (Symbolic) input flowing into the hidden layer nonlinearity.
+        """
         return self.hidbias + tensor.dot(x, self.weights)
 
     def encode(self, inputs):
