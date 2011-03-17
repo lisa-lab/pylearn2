@@ -60,8 +60,8 @@ if __name__ == "__main__":
 
     # Allocate a denoising autoencoder with binomial noise corruption.
     corruptor = GaussianCorruptor(conf['corruption_level'])
-    cae = ContractingAutoencoder(conf['nvis'], conf['nhid'], corruptor,
-                                conf['act_enc'], conf['act_dec'])
+    cae = ContractingAutoencoder(conf['nvis'], conf['nhid'],
+                                 conf['act_enc'], conf['act_dec'])
 
     # Allocate an optimizer, which tells us how to update our model.
     cost = MeanSquaredError(cae)(minibatch, cae.reconstruct(minibatch))
