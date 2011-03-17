@@ -1,6 +1,5 @@
 import numpy
 import theano
-import matplotlib.pyplot as plt
 from theano import tensor
 from framework.rbm import GaussianBinaryRBM, PersistentCDSampler, \
         training_updates
@@ -11,7 +10,13 @@ import utils.debug
 
 
 if __name__ == "__main__":
-
+    import argparse
+    parser = argparse.ArgumentParser(description='Run the RBM demo, plotting '
+                                     'results at the end (by default)')
+    parser.add_argument('--no-plot', action='store_const',
+                        default=False, const=True,
+                        required=False, help='Disable plotting of results.')
+    args = parser.parse_args()
     data_rng = numpy.random.RandomState(seed=999)
     data = data_rng.normal(size=(500, 20)).astype(theano.config.floatX)
 
@@ -60,15 +65,16 @@ if __name__ == "__main__":
             nll = compute_nll(rbm, data, log_z, free_energy_fn)
             nlls.append(nll)
             print "Epoch %d: avg_nll = %f" % (j+1, nll)
-
-    plt.subplot(2, 1, 1)
-    plt.plot(range(len(recon)), recon)
-    plt.xlim(0, len(recon))
-    plt.title('Reconstruction error per minibatch')
-    plt.xlabel('minibatch number')
-    plt.ylabel('reconstruction error')
-    plt.subplot(2, 1, 2)
-    plt.plot(range(0, len(nlls) * 50, 50), nlls, '-d')
-    plt.xlabel('Epoch')
-    plt.ylabel('Average nll per data point')
-    plt.show()
+    if not args.no_plot:
+        import matplotlib.pyplot as plt
+        plt.subplot(2, 1, 1)
+        plt.plot(range(len(recon)), recon)
+        plt.xlim(0, len(recon))
+        plt.title('Reconstruction error per minibatch')
+        plt.xlabel('minibatch number')
+        plt.ylabel('reconstruction error')
+        plt.subplot(2, 1, 2)
+        plt.plot(range(0, len(nlls) * 50, 50), nlls, '-d')
+        plt.xlabel('Epoch')
+        plt.ylabel('Average nll per data point')
+        plt.show()
