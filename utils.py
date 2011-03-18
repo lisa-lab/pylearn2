@@ -191,11 +191,11 @@ def filter_labels(train, label):
     """ Filter examples of train for which we have labels """
     # Examples for which any label is set
     condition = label.get_value().any(axis=1)
-    
+
     # Compress train and label arrays according to condition
     def aux(var):
         return var.get_value().compress(condition, axis=0)
-    
+
     return (aux(train), aux(label))
 
 
@@ -215,7 +215,7 @@ class BatchIterator(object):
         mul = numpy.multiply
         div = numpy.divide
         mod = numpy.mod
-        
+
         # Record external parameters
         self.batch_size = batch_size
         # TODO: If you have a better way to return dataset slices, I'll take it
@@ -234,7 +234,7 @@ class BatchIterator(object):
         # Number of rows in the resulting union
         set_tsign = sub(set_limit, flo(div(set_sizes, set_batch)))
         set_tsize = mul(set_tsign, flo(div(set_range, set_limit)))
-        
+
         l_trun = mul(flo(div(set_range, set_limit)), mod(set_sizes, set_batch))
         l_full = mul(sub(set_range, set_tsize), set_batch)
 
