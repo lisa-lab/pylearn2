@@ -66,9 +66,9 @@ class Block(object):
         for elem in inspect.getmro(cls):
             # Extend arglist with arguments of elem.__init__
             argspec = inspect.getargspec(elem.__init__)
-            arglist.extend(argspec.args)
+            arglist.extend(argspec[0])
             # If a keyworkds argument is not expected, then break the loop
-            if argspec.keywords is None:
+            if argspec[2] is None:
                 break
         # Build the class with appropriated arguments
         return cls(**subdict(kwargs, arglist))
