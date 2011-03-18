@@ -174,7 +174,7 @@ class Autoencoder(Block):
         if isinstance(inputs, tensor.Variable):
             return self._hidden_activation(inputs)
         else:
-            return [self._hidden_activation(v) for v in inputs]
+            return [self.encode(v) for v in inputs]
 
     def reconstruct(self, inputs):
         """
@@ -202,10 +202,7 @@ class Autoencoder(Block):
         if isinstance(inputs, tensor.Variable):
             return act_dec(self.visbias + tensor.dot(hiddens, self.w_prime))
         else:
-            return [
-                act_dec(self.visbias + tensor.dot(h, self.w_prime))
-                for h in hiddens
-            ]
+            return [self.reconstruct(inp) for inp in inputs]
 
     def __call__(self, inputs):
         """
