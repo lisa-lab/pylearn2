@@ -24,12 +24,40 @@ from framework import utils
 from framework import cost
 from framework import corruption
 from framework import autoencoder
-#from posttraitement.pca import PCA
+from framework import rbm
+
 from framework.pca import PCA
-from framework.base import StackedBlocks
 from framework.utils import BatchIterator
+from framework.base import StackedBlocks
 from framework.autoencoder import DenoisingAutoencoder, ContractingAutoencoder
+from framework.rbm import GaussianBinaryRBM, PersistentCDSampler
 from framework.optimizer import SGDOptimizer
+
+
+def create_pca(conf, layer, data, model=None):
+    """
+    Simple wrapper to either load a PCA or train it and save its parameters
+    """
+    savedir = utils.getboth(layer, conf, 'savedir')
+    if model is not None:
+        # Load the model
+        print '... loading PCA layer'
+        if not model.endswith('.pkl'):
+            model += '.pkl'
+        filename = os.path.join(savedir, model)
+        return PCA.load(filename)
+    else:
+        # Train the model
+        print '... computing PCA layer'
+        pca = PCA.fromdict(layer)
+        
+        proba = utils.getboth(layer, conf, 'proba')
+        blended = utils.blend(data, proba)
+        pca.train(blended.get_value())
+        
+        filename = os.path.join(savedir, layer['name'] + '.pkl')
+        pca.save(filename)
+        return pca
 
 
 def create_da(conf, layer, data, model=None):
@@ -40,10 +68,10 @@ def create_da(conf, layer, data, model=None):
     # Either DenoisingAutoencoder or ConstrastingAutoencoder
     MyAutoencoder = autoencoder.get(layer['autoenc_class'])
     
-    savedir = layer.get('savedir', conf.get('savedir'))
+    savedir = utils.getboth(layer, conf, 'savedir')
     if model is not None:
         # Load the model instead of training
-        print '... loading Autoencoder layer'
+        print '... loading AE layer'
         if not model.endswith('.pkl'):
             model += '.pkl'
         filename = os.path.join(savedir, model)
@@ -56,33 +84,30 @@ def create_da(conf, layer, data, model=None):
     minibatch = tensor.matrix()
 
     # Allocate an denoising or contracting autoencoder
-    if MyAutoencoder == DenoisingAutoencoder:
-        MyCorruptor = corruption.get(layer['corruption_class'])
-        corruptor = MyCorruptor(conf['corruption_level'])
-        # TODO : refactor this part of the code
-        ae = MyAutoencoder(corruptor, layer['nvis'], layer['nhid'],
-                           layer['act_enc'], layer['act_dec'])
-    else:
-        ae = MyAutoencoder.fromdict(layer)
+    MyCorruptor = corruption.get(layer.get('corruption_class','DummyCorruptor'))
+    corruptor = MyCorruptor(layer.get('corruption_level', 0))
+    ae = MyAutoencoder.fromdict(layer, corruptor=corruptor)
 
     # Allocate an optimizer, which tells us how to update our model.
     MyCost = cost.get(layer['cost_class'])
-    cost_fn = MyCost(ae)(minibatch, ae.reconstruct(minibatch))
+    varcost = MyCost(ae)(minibatch, ae.reconstruct(minibatch))
+    if isinstance(ae, ContractingAutoencoder):
+        varcost += ae.contraction_penalty(minibatch)
     trainer = SGDOptimizer(ae, layer['base_lr'], layer['anneal_start'])
-    updates = trainer.cost_updates(cost_fn)
+    updates = trainer.cost_updates(varcost)
 
     # Finally, build a Theano function out of all this.
-    train_fn = theano.function([minibatch], cost_fn,
+    train_fn = theano.function([minibatch], varcost,
                                updates=updates,
                                name='train_fn')
 
     # Here's a manual training loop.
-    print '... training Autoencoder'
+    print '... training AE layer'
     start_time = time.clock()
-    proba = layer.get('proba', conf.get('proba'))
-    iterator = BatchIterator(data, proba, layer['batchsize'])
+    proba = utils.getboth(layer, conf, 'proba')
+    iterator = BatchIterator(data, proba, layer['batch_size'])
     saving_counter = 0
-    saving_rate = layer.get('saving_rate', conf.get('saving_rate', 0))
+    saving_rate = utils.getboth(layer, conf, 'saving_rate', 0)
     for epoch in xrange(layer['epochs']):
         c = []
         batch_time = time.clock()
@@ -106,44 +131,21 @@ def create_da(conf, layer, data, model=None):
     print '... training ended after %f min' % layer['training_time']
 
     # Compute denoising error for valid and train datasets.
-    error_fn = theano.function([minibatch], cost_fn, name='error_fn')
+    error_fn = theano.function([minibatch], varcost, name='error_fn')
 
-    conf['error_valid'] = error_fn(data[1].get_value()).item()
-    conf['error_test'] = error_fn(data[2].get_value()).item()
-    print '... final denoising error with valid is', conf['error_valid']
-    print '... final denoising error with test  is', conf['error_test']
+    layer['error_valid'] = error_fn(data[1].get_value()).item()
+    layer['error_test'] = error_fn(data[2].get_value()).item()
+    print '... final denoising error with valid is', layer['error_valid']
+    print '... final denoising error with test  is', layer['error_test']
     
     # Save model parameters
     filename = os.path.join(savedir, layer['name'] + '.pkl')
     ae.save(filename)
     print '... final model has been saved as %s' % filename
 
-    # Return the learned transformation function
+    # Return the autoencoder object
     return ae
 
-
-def create_pca(conf, layer, data, model=None):
-    """Simple wrapper to either load a PCA or train it and save its parameters"""
-    savedir = layer.get('savedir', conf.get('savedir'))
-    if model is not None:
-        # Load the model
-        print '... loading PCA layer'
-        if not model.endswith('.pkl'):
-            model += '.pkl'
-        filename = os.path.join(savedir, model)
-        return PCA.load(filename)
-    else:
-        # Train the model
-        print '... computing PCA layer'
-        pca = PCA.fromdict(layer)
-        
-        proba = layer.get('proba', conf.get('proba'))
-        blended = utils.blend(data, proba)
-        pca.train(blended.get_value())
-        
-        filename = os.path.join(savedir, layer['name'] + '.pkl')
-        pca.save(filename)
-        return pca
 
 if __name__ == "__main__":
     # First layer = PCA-75 whiten
@@ -158,23 +160,24 @@ if __name__ == "__main__":
     
     # Second layer = CAE-200
     layer2 = {'name' : '2nd-CAE',
-            'nhid': 200,
-            'tied_weights': True,
-            'act_enc': 'sigmoid',
-            'act_dec': None,
-            'irange': 0.001,
-            'corruption_class' : 'BinomialCorruptor',
-            'autoenc_class': 'ContractingAutoencoder',
-            'cost_class' : 'MeanSquaredError',
-            # Training properties
-            'base_lr': 0.001,
-            'anneal_start': 100,
-            'batchsize' : 20,
-            'epochs' : 5,
-            'proba' : [1,0,0],
-            }
+              'nhid': 200,
+              'tied_weights': True,
+              'act_enc': 'sigmoid',
+              'act_dec': None,
+              'irange': 0.001,
+              'cost_class' : 'MeanSquaredError',
+              'autoenc_class': 'ContractingAutoencoder',
+              'corruption_class' : 'BinomialCorruptor',
+              # 'corruption_level' : 0.3, # For DenoisingAutoencoder
+              # Training properties
+              'base_lr': 0.001,
+              'anneal_start': 100,
+              'batch_size' : 20,
+              'epochs' : 5,
+              'proba' : [1,0,0],
+              }
     
-    # First layer = PCA-75 whiten
+    # First layer = PCA-3 no whiten
     layer3 = {'name' : '3st-PCA',
               'num_components': 3,
               'min_variance': 0,
@@ -192,8 +195,6 @@ if __name__ == "__main__":
             'randomize_valid' : True, # (Default = True)
             'randomize_test' : True, # (Default = True)
             'saving_rate': 2, # (Default = 0)
-            'alc_rate' : 2, # (Default = 0)
-            'resulting_alc' : True, # (Default = False)
             'savedir' : './outputs',
             }
 
@@ -202,25 +203,36 @@ if __name__ == "__main__":
     
     if conf['transfer']:
         # Data for the ALC proxy
-        alc_train, alc_label = utils.filter_labels(data[0], data[3])
+        label = data[3]
         data = data[:3]
 
     # First layer : train or load a PCA
-    pca = create_pca(conf, layer1, data)
+    pca1 = create_pca(conf, layer1, data)#, model=layer1['name'])
     
-    data = [utils.sharedX(pca.function()(set.get_value()), borrow=True)
-                      for set in data]
+    data = [utils.sharedX(pca1.function()(set.get_value()), borrow=True)
+            for set in data]
     
     # Second layer : train or load a DAE or CAE
-    ae = create_da(conf, layer2, data, model=layer2['name'])
+    ae = create_da(conf, layer2, data)#, model=layer2['name'])
+    
+    data = [utils.sharedX(ae.function()(set.get_value()), borrow=True)
+            for set in data]
+    
+    # Third layer : train or load a PCA
+    pca2 = create_pca(conf, layer3, data)#, model=layer3['name'])
+
+    data = [utils.sharedX(pca2.function()(set.get_value()), borrow=True)
+            for set in data]
     
     # Compute the ALC for example with labels
-    # TODO : Not functionnal yet
-    #block = StackedBlocks([pca, ae])
-    #alc = embed.score(block.function()(alc_train), alc_label)
-    #print '... resulting ALC on train is', alc
+    if conf['transfer']:
+        data, label = utils.filter_labels(data[0], label)
+        # TODO : Not functionnal yet
+        # alc = embed.score(data, label)
+        alc = 0
+        print '... resulting ALC on train is', alc
+        conf['train_alc'] = alc
     
     # Stack both layers and create submission file
-    input = tensor.matrix()
-    transform = theano.function([input], ae(pca(input)))
-    utils.create_submission(conf, transform)
+    block = StackedBlocks([pca1, ae, pca2])
+    utils.create_submission(conf, block.function())

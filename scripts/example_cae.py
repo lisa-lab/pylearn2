@@ -47,17 +47,6 @@ if __name__ == "__main__":
     minibatch = tensor.matrix()
     minibatch = theano.printing.Print('min')(minibatch)
 
-    # Allocate a PCA transformation block.
-    pca_model_file = 'example-cae_model-pca.pkl'
-    if os.path.isfile(pca_model_file):
-        print '... loading precomputed PCA transform'
-        pca = PCA.load(pca_model_file)
-    else:
-        print '... computing PCA transform'
-        pca = PCA(75)
-        pca.train(data)
-        pca.save(pca_model_file)
-
     # Allocate a denoising autoencoder with binomial noise corruption.
     cae = ContractingAutoencoder(conf['nvis'], conf['nhid'],
                                  conf['act_enc'], conf['act_dec'])
@@ -83,7 +72,7 @@ if __name__ == "__main__":
                     (epoch, offset, offset + batchsize - 1, minibatch_err)
 
     # Suppose you then want to use the representation for something.
-    transform = theano.function([minibatch], cae([pca(minibatch)])[0])
+    transform = theano.function([minibatch], cae(minibatch))
 
     print "Transformed data:"
     print numpy.histogram(transform(data))

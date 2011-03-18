@@ -49,6 +49,19 @@ def safe_update(dict_to, dict_from):
         dict_to[key] = val
     return dict_to
 
+def getboth(dict1, dict2, key, default=None):
+    """
+    Try to retrieve key from dict1 if exists, otherwise try with dict2.
+    If the key is not found in any of them, raise an exception.
+    """
+    try:
+        return dict1[key]
+    except KeyError:
+        if default is None:
+            return dict2[key]
+        else:
+            return dict2.get(key, default)
+
 ##################################################
 # Datasets and contest facilities
 ##################################################
