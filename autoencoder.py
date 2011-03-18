@@ -1,5 +1,6 @@
 """Autoencoders, denoising autoencoders, and stacked DAEs."""
 # Standard library imports
+import functools
 from itertools import izip
 
 # Third-party imports
@@ -9,7 +10,7 @@ from theano import tensor
 
 # Local imports
 from .base import Block, StackedBlocks
-from .utils import sharedX
+from .utils import sharedX, is_pure_elemwise
 
 theano.config.warn.sum_div_dimshuffle_bug = False
 floatX = theano.config.floatX
@@ -265,6 +266,14 @@ class ContractingAutoencoder(Autoencoder):
     A contracting autoencoder works like a regular autoencoder, and adds an
     extra term to its cost function.
     """
+    @functools.wraps(Autoencoder.__init__)
+    def __init__(self, *args, **kwargs):
+        super(ContractingAutoencoder, self).__init__(*args, **kwargs)
+        dummyinput = tensor.matrix()
+        if not is_pure_elemwise(self.act_enc(dummyinput), [dummyinput]):
+            raise ValueError("Invalid encoder activation function: "
+                             "not an elementwise function of its input")
+
     def contraction_penalty(self, inputs):
         """
         Calculate (symbolically) the contracting autoencoder penalty term.
