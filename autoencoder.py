@@ -324,49 +324,46 @@ class ContractingAutoencoder(Autoencoder):
         else:
             return [penalty(inp) for inp in inputs]
 
-def build_stacked_AE(corruptors, nvis, nhids, act_enc, act_dec,
+def build_stacked_ae(nvis, nhids, act_enc, act_dec,
                      tied_weights=False, irange=1e-3, rng=None,
-                     contracting=False):
-    """Allocate a StackedBlocks containing denoising autoencoders."""
+                     corruptor=None, contracting=False):
+    """Allocate a stack of autoencoders."""
     if not hasattr(rng, 'randn'):
         rng = numpy.random.RandomState(rng)
     layers = []
-    _local = {}
-    # Make sure that if we have a sequence of encoder/decoder activations
-    # or corruptors, that we have exactly as many as len(n_hids)
-    if hasattr(corruptors, '__len__'):
-        assert len(nhids) == len(corruptors)
-    else:
-        corruptors = [corruptors] * len(nhids)
-    for c in ['act_enc', 'act_dec']:
+    final = {}
+    # "Broadcast" arguments if they are singular, or accept sequences if
+    # they are the same length as nhids
+    for c in ['corruptor', 'contracting', 'act_enc', 'act_dec',
+              'tied_weights', 'irange']:
         if type(locals()[c]) is not str and hasattr(locals()[c], '__len__'):
             assert len(nhids) == len(locals()[c])
-            _local[c] = locals()[c]
+            final[c] = locals()[c]
         else:
-            _local[c] = [locals()[c]] * len(nhids)
-    # Make sure that if the contracting arg is used, it is consistently done so
-    if hasattr(contracting, '__len__'):
-        assert len(nhids) == len(contracting)
-    else:
-        contracting = [contracting] * len(nhids)
+            final[c] = [locals()[c]] * len(nhids)
     # The number of visible units in each layer is the initial input
     # size and the first k-1 hidden unit sizes.
     nviss = [nvis] + nhids[:-1]
-    seq = izip(
-        nhids,
-        nviss,
-        _local['act_enc'],
-        _local['act_dec'],
-        corruptors,
-        contracting
+    seq = izip(nhids, nviss,
+        final['act_enc'],
+        final['act_dec'],
+        final['corruptor'],
+        final['contracting'],
+        final['tied_weights'],
+        final['irange']
     )
     # Create each layer.
-    for nhid, nvis, act_enc, act_dec, corr, cae in seq:
-        args = nvis, nhid, act_enc, act_dec, tied_weights, irange, rng
-        if cae:
+    for nhid, nvis, act_enc, act_dec, corr, cae, tied, ir in seq:
+        args = nvis, nhid, act_enc, act_dec, tied, ir, rng
+        if cae and corr is not None:
+            raise ValueError("Can't specify denoising and contracting "
+                             "objectives simultaneously")
+        elif cae:
             autoenc = ContractingAutoencoder(*args)
-        else:
+        elif corr is not None:
             autoenc = DenoisingAutoencoder(corr, *args)
+        else:
+            autoenc = Autoencoder(*args)
         layers.append(autoenc)
 
     # Create the stack

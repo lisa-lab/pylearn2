@@ -21,7 +21,7 @@ except ImportError:
 from framework.pca import PCA
 from framework.cost import MeanSquaredError
 from framework.corruption import GaussianCorruptor
-from framework.autoencoder import ContractingAutoencoder, build_stacked_AE
+from framework.autoencoder import ContractingAutoencoder, build_stacked_ae
 from framework.optimizer import SGDOptimizer
 
 if __name__ == "__main__":
@@ -59,7 +59,6 @@ if __name__ == "__main__":
         pca.save(pca_model_file)
 
     # Allocate a denoising autoencoder with binomial noise corruption.
-    corruptor = GaussianCorruptor(conf['corruption_level'])
     cae = ContractingAutoencoder(conf['nvis'], conf['nhid'],
                                  conf['act_enc'], conf['act_dec'])
 
@@ -97,8 +96,7 @@ if __name__ == "__main__":
     #choose which layer is a regular da and which one is a cae
     stack_conf['contracting']=[True,False,True]
     stack_conf['anneal_start'] = None # Don't anneal these learning rates
-    scae = build_stacked_AE(corruptors=corruptor,
-                            nvis=stack_conf['nvis'],
+    scae = build_stacked_ae(nvis=stack_conf['nvis'],
                             nhids=stack_conf['nhids'],
                             act_enc=stack_conf['act_enc'],
                             act_dec=stack_conf['act_dec'],
