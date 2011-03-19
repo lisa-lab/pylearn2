@@ -68,16 +68,8 @@ class PCA(Block):
         mean = X.mean(axis=0)
         X = X - mean
 
-        # Perform online computation of covariance matrix eigenvectors/values.
-        pca_estimator = pca_online_estimator.PcaOnlineEstimator(X.shape[1],
-            n_eigen=num_components, minibatch_size=500, centering=False
-        )
-        for i in range(X.shape[0]):
-            pca_estimator.observe(X[i,:])
-        v, W = pca_estimator.getLeadingEigen()
-        # The resulting components are in *ascending* order of eigenvalue,
-        # and W contains eigenvectors in its *rows*.
-        v, W = v[::-1], W.T[:, ::-1]
+        # Compute eigen{vectors,values} of the covariance matrix.
+        v, W = self._cov_eigen(X, num_components)
 
         # Filter out unwanted components.
         var_cutoff = 1 + numpy.where(v / v.sum() > self.min_variance)[0].max()
@@ -105,6 +97,30 @@ class PCA(Block):
         if self.v:
             Y /= tensor.sqrt(self.v)
         return Y
+
+    def _cov_eigen(self, X, num_components = None):
+        """
+        Perform online computation of covariance matrix eigen{vectors,values}.
+
+        Returns:
+            all eigenvalues in decreasing order
+            matrix containing corresponding eigenvectors in its columns
+        """
+
+        if num_components is None:
+            num_components = X.shape[1]
+
+        pca_estimator = pca_online_estimator.PcaOnlineEstimator(X.shape[1],
+            n_eigen=num_components, minibatch_size=500, centering=False
+        )
+        for i in range(X.shape[0]):
+            pca_estimator.observe(X[i,:])
+        v, W = pca_estimator.getLeadingEigen()
+
+        # The resulting components are in *ascending* order of eigenvalue,
+        # and W contains eigenvectors in its *rows*, so we reverse both and
+        # transpose W.
+        return v[::-1], W.T[:, ::-1]
 
 if __name__ == "__main__":
     """
