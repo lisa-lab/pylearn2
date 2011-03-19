@@ -41,23 +41,25 @@ def create_pca(conf, layer, data, model=None):
     savedir = utils.getboth(layer, conf, 'savedir')
     if model is not None:
         # Load the model
-        print '... loading PCA layer'
         if not model.endswith('.pkl'):
             model += '.pkl'
-        filename = os.path.join(savedir, model)
-        return PCA.load(filename)
-    else:
-        # Train the model
-        print '... computing PCA layer'
-        pca = CovEigPCA.fromdict(layer)
-        
-        proba = utils.getboth(layer, conf, 'proba')
-        blended = utils.blend(data, proba)
-        pca.train(blended.get_value())
-        
-        filename = os.path.join(savedir, layer['name'] + '.pkl')
-        pca.save(filename)
-        return pca
+        try:
+            print '... loading PCA layer'
+            filename = os.path.join(savedir, model)
+            return PCA.load(filename)
+        except Exception, e:
+            print 'error during loading:',e.args[0]
+    # Train the model
+    print '... computing PCA layer'
+    pca = CovEigPCA.fromdict(layer)
+
+    proba = utils.getboth(layer, conf, 'proba')
+    blended = utils.blend(data, proba)
+    pca.train(blended.get_value())
+
+    filename = os.path.join(savedir, layer['name'] + '.pkl')
+    pca.save(filename)
+    return pca
 
 
 def create_da(conf, layer, data, model=None):
@@ -207,7 +209,7 @@ if __name__ == "__main__":
         data = data[:3]
 
     # First layer : train or load a PCA
-    pca1 = create_pca(conf, layer1, data)#, model=layer1['name'])
+    pca1 = create_pca(conf, layer1, data, model=layer1['name'])
     
     data = [utils.sharedX(pca1.function()(set.get_value()), borrow=True)
             for set in data]
