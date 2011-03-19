@@ -129,6 +129,20 @@ class OnlinePCA(PCA):
         # transpose W.
         return v[::-1], W.T[:, ::-1]
 
+class CovEigPCA(PCA):
+    @staticmethod
+    def _cov_eigen(X, **kwargs):
+        """
+        Perform direct computation of covariance matrix eigen{values,vectors}.
+        """
+
+        v, W = linalg.eigh(numpy.cov(X.T))
+
+        # The resulting components are in *ascending* order of eigenvalue, and
+        # W contains eigenvectors in its *columns*, so we simply reverse both.
+        order = numpy.argsort(-v)
+        return v[order], W[:, order]
+
 if __name__ == "__main__":
     """
     Load a dataset; compute a PCA transformation matrix from the training subset
@@ -158,6 +172,12 @@ if __name__ == "__main__":
                         default='model-pca.pkl',
                         required=False,
                         help='File where the PCA pickle will be saved')
+    parser.add_argument('-a', '--algorithm', action='store',
+                        type=str,
+                        choices=['cov_eig', 'online'],
+                        default='cov_eig',
+                        required=False,
+                        help='Which algorithm to use to compute the PCA')
     parser.add_argument('-n', '--num-components', action='store',
                         type=int,
                         default=None,
@@ -181,12 +201,21 @@ if __name__ == "__main__":
     [train_data, valid_data, test_data] = map (lambda(x): x.get_value(), data)
     print >> stderr, "Dataset shapes:", map(lambda(x): get_constant(x.shape), data)
 
+    # Set PCA subclass from argument.
+    if args.algorithm == 'cov_eig':
+        PCAImpl = CovEigPCA
+    elif args.algorithm == 'online':
+        PCAImpl = OnlinePCA
+    else:
+        # This should never happen.
+        raise NotImplementedError(args.algorithm)
+
     # Load precomputed PCA transformation if requested; otherwise compute it.
     if args.load_file:
-        pca = OnlinePCA.load(args.load_file)
+        pca = PCA.load(args.load_file)
     else:
         print "... computing PCA"
-        pca = OnlinePCA(args.num_components, args.min_variance, args.whiten)
+        pca = PCAImpl(args.num_components, args.min_variance, args.whiten)
         pca.train(train_data)
         # Save the computed transformation.
         pca.save(args.save_file)
