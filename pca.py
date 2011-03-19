@@ -109,6 +109,10 @@ class PCA(Block):
         raise NotImplementedError('_cov_eigen')
 
 class OnlinePCA(PCA):
+    def __init__(self, minibatch_size = 500, **kwargs):
+        super(OnlinePCA, self).__init__(**kwargs)
+        self.minibatch_size = minibatch_size
+
     def _cov_eigen(self, X):
         """
         Perform online computation of covariance matrix eigen{values,vectors}.
@@ -192,6 +196,11 @@ if __name__ == "__main__":
                         default='cov_eig',
                         required=False,
                         help='Which algorithm to use to compute the PCA')
+    parser.add_argument('-m', '--minibatch-size', action='store',
+                        type=int,
+                        default=500,
+                        required=False,
+                        help='Size of minibatches used in the online algorithm')
     parser.add_argument('-n', '--num-components', action='store',
                         type=int,
                         default=None,
@@ -229,6 +238,7 @@ if __name__ == "__main__":
         PCAImpl = SVDPCA
     elif args.algorithm == 'online':
         PCAImpl = OnlinePCA
+        conf['minibatch_size'] = args.minibatch_size
     else:
         # This should never happen.
         raise NotImplementedError(args.algorithm)
@@ -239,7 +249,7 @@ if __name__ == "__main__":
     else:
         print "... computing PCA"
         pca = PCAImpl(**conf)
-        pca.train(train_data)
+        pca.train(test_data)
         # Save the computed transformation.
         pca.save(args.save_file)
 
