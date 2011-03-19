@@ -140,8 +140,7 @@ class CovEigPCA(PCA):
 
         # The resulting components are in *ascending* order of eigenvalue, and
         # W contains eigenvectors in its *columns*, so we simply reverse both.
-        order = numpy.argsort(-v)
-        return v[order], W[:, order]
+        return v[::-1], W[:, ::-1]
 
 class SVDPCA(PCA):
     @staticmethod
