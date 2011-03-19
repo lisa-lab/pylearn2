@@ -249,7 +249,7 @@ if __name__ == "__main__":
     else:
         print "... computing PCA"
         pca = PCAImpl(**conf)
-        pca.train(test_data)
+        pca.train(train_data)
         # Save the computed transformation.
         pca.save(args.save_file)
 
