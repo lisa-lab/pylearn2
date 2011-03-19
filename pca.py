@@ -143,6 +143,22 @@ class CovEigPCA(PCA):
         order = numpy.argsort(-v)
         return v[order], W[:, order]
 
+class SVDPCA(PCA):
+    @staticmethod
+    def _cov_eigen(X, **kwargs):
+        """
+        Compute covariance matrix eigen{values,vectors} via Singular Value
+        Decomposition (SVD).
+        """
+
+        U, s, Vh = linalg.svd(X, full_matrices = False)
+
+        # Vh contains eigenvectors in its *rows*, thus we transpose it.
+        # s contains X's singular values in *decreasing* order, thus (noting
+        # that X's singular values are the sqrt of cov(X'X)'s eigenvalues), we
+        # simply square it.
+        return s ** 2, Vh.T
+
 if __name__ == "__main__":
     """
     Load a dataset; compute a PCA transformation matrix from the training subset
@@ -174,7 +190,7 @@ if __name__ == "__main__":
                         help='File where the PCA pickle will be saved')
     parser.add_argument('-a', '--algorithm', action='store',
                         type=str,
-                        choices=['cov_eig', 'online'],
+                        choices=['cov_eig', 'svd', 'online'],
                         default='cov_eig',
                         required=False,
                         help='Which algorithm to use to compute the PCA')
@@ -204,6 +220,8 @@ if __name__ == "__main__":
     # Set PCA subclass from argument.
     if args.algorithm == 'cov_eig':
         PCAImpl = CovEigPCA
+    elif args.algorithm == 'svd':
+        PCAImpl = SVDPCA
     elif args.algorithm == 'online':
         PCAImpl = OnlinePCA
     else:
