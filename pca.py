@@ -88,7 +88,7 @@ class PCA(Block):
         # For the moment, I do not use borrow=True because W and v are
         # subtensors, and I want the original memory to be freed
         self.W = sharedX(W)
-        if self.whiten:
+        if self.whiten is not None:
             self.v = sharedX(v)
         self.mean = sharedX(mean)
 
