@@ -26,7 +26,7 @@ from framework import corruption
 from framework import autoencoder
 from framework import rbm
 
-from framework.pca import PCA
+from framework.pca import PCA, CovEigPCA
 from framework.utils import BatchIterator
 from framework.base import StackedBlocks
 from framework.autoencoder import DenoisingAutoencoder, ContractingAutoencoder
@@ -49,7 +49,7 @@ def create_pca(conf, layer, data, model=None):
     else:
         # Train the model
         print '... computing PCA layer'
-        pca = PCA.fromdict(layer)
+        pca = CovEigPCA.fromdict(layer)
         
         proba = utils.getboth(layer, conf, 'proba')
         blended = utils.blend(data, proba)

@@ -18,7 +18,6 @@ except ImportError:
     sys.exit(1)
 
 # Local imports
-from framework.pca import PCA
 from framework.cost import MeanSquaredError
 from framework.corruption import GaussianCorruptor
 from framework.autoencoder import ContractingAutoencoder, build_stacked_ae
