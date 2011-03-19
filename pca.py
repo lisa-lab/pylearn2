@@ -68,8 +68,8 @@ class PCA(Block):
         mean = X.mean(axis=0)
         X = X - mean
 
-        # Compute eigen{vectors,values} of the covariance matrix.
-        v, W = self._cov_eigen(X, num_components)
+        # Compute eigen{values,vectors} of the covariance matrix.
+        v, W = self._cov_eigen(X, num_components=num_components)
 
         # Filter out unwanted components.
         var_cutoff = 1 + numpy.where(v / v.sum() > self.min_variance)[0].max()
@@ -98,20 +98,27 @@ class PCA(Block):
             Y /= tensor.sqrt(self.v)
         return Y
 
-    def _cov_eigen(self, X, num_components = None):
+    @staticmethod
+    def _cov_eigen(X, **kwargs):
         """
-        Perform online computation of covariance matrix eigen{vectors,values}.
+        Compute and return eigen{values,vectors} of X's covariance matrix.
 
         Returns:
             all eigenvalues in decreasing order
             matrix containing corresponding eigenvectors in its columns
         """
+        raise NotImplementedError('_cov_eigen')
 
-        if num_components is None:
-            num_components = X.shape[1]
+class OnlinePCA(PCA):
+    @staticmethod
+    def _cov_eigen(X, **kwargs):
+        """
+        Perform online computation of covariance matrix eigen{values,vectors}.
+        """
 
         pca_estimator = pca_online_estimator.PcaOnlineEstimator(X.shape[1],
-            n_eigen=num_components, minibatch_size=500, centering=False
+            n_eigen=kwargs.get('num_components', X.shape[1]),
+            minibatch_size=500, centering=False
         )
         for i in range(X.shape[0]):
             pca_estimator.observe(X[i,:])
@@ -176,10 +183,10 @@ if __name__ == "__main__":
 
     # Load precomputed PCA transformation if requested; otherwise compute it.
     if args.load_file:
-        pca = PCA.load(args.load_file)
+        pca = OnlinePCA.load(args.load_file)
     else:
         print "... computing PCA"
-        pca = PCA(args.num_components, args.min_variance, args.whiten)
+        pca = OnlinePCA(args.num_components, args.min_variance, args.whiten)
         pca.train(train_data)
         # Save the computed transformation.
         pca.save(args.save_file)
