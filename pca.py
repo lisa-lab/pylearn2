@@ -69,7 +69,7 @@ class PCA(Block):
         X = X - mean
 
         # Compute eigen{values,vectors} of the covariance matrix.
-        v, W = self._cov_eigen(X, num_components=num_components)
+        v, W = self._cov_eigen(X)
 
         # Filter out unwanted components.
         var_cutoff = 1 + numpy.where(v / v.sum() > self.min_variance)[0].max()
@@ -98,8 +98,7 @@ class PCA(Block):
             Y /= tensor.sqrt(self.v)
         return Y
 
-    @staticmethod
-    def _cov_eigen(X, **kwargs):
+    def _cov_eigen(self, X):
         """
         Compute and return eigen{values,vectors} of X's covariance matrix.
 
@@ -110,15 +109,17 @@ class PCA(Block):
         raise NotImplementedError('_cov_eigen')
 
 class OnlinePCA(PCA):
-    @staticmethod
-    def _cov_eigen(X, **kwargs):
+    def _cov_eigen(self, X):
         """
         Perform online computation of covariance matrix eigen{values,vectors}.
         """
+        if self.num_components is None:
+            num_components = X.shape[1]
+        else:
+            num_components = min(self.num_components, X.shape[1])
 
         pca_estimator = pca_online_estimator.PcaOnlineEstimator(X.shape[1],
-            n_eigen=kwargs.get('num_components', X.shape[1]),
-            minibatch_size=500, centering=False
+            n_eigen=num_components, minibatch_size=500, centering=False
         )
         for i in range(X.shape[0]):
             pca_estimator.observe(X[i,:])
@@ -130,8 +131,7 @@ class OnlinePCA(PCA):
         return v[::-1], W.T[:, ::-1]
 
 class CovEigPCA(PCA):
-    @staticmethod
-    def _cov_eigen(X, **kwargs):
+    def _cov_eigen(self, X):
         """
         Perform direct computation of covariance matrix eigen{values,vectors}.
         """
@@ -143,8 +143,7 @@ class CovEigPCA(PCA):
         return v[::-1], W[:, ::-1]
 
 class SVDPCA(PCA):
-    @staticmethod
-    def _cov_eigen(X, **kwargs):
+    def _cov_eigen(self, X):
         """
         Compute covariance matrix eigen{values,vectors} via Singular Value
         Decomposition (SVD).
@@ -216,6 +215,13 @@ if __name__ == "__main__":
     [train_data, valid_data, test_data] = map (lambda(x): x.get_value(), data)
     print >> stderr, "Dataset shapes:", map(lambda(x): get_constant(x.shape), data)
 
+    # PCA base-class constructor arguments.
+    conf = {
+        'num_components': args.num_components,
+        'min_variance': args.min_variance,
+        'whiten': args.whiten
+    }
+
     # Set PCA subclass from argument.
     if args.algorithm == 'cov_eig':
         PCAImpl = CovEigPCA
@@ -232,7 +238,7 @@ if __name__ == "__main__":
         pca = PCA.load(args.load_file)
     else:
         print "... computing PCA"
-        pca = PCAImpl(args.num_components, args.min_variance, args.whiten)
+        pca = PCAImpl(**conf)
         pca.train(train_data)
         # Save the computed transformation.
         pca.save(args.save_file)
