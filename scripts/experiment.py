@@ -181,7 +181,7 @@ if __name__ == "__main__":
               'proba' : [1,0,0],
               }
     
-    # First layer = PCA-3 no whiten
+    # Third layer = PCA-3 no whiten
     layer3 = {'name' : '3st-PCA',
               'num_components': 3,
               'min_variance': 0,
