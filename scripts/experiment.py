@@ -231,9 +231,7 @@ if __name__ == "__main__":
     # Compute the ALC for example with labels
     if conf['transfer']:
         data, label = utils.filter_labels(data[0], label)
-        # TODO : Not functionnal yet
-        # alc = embed.score(data, label)
-        alc = 0
+        alc = embed.score(data, label)
         print '... resulting ALC on train is', alc
         conf['train_alc'] = alc
     
