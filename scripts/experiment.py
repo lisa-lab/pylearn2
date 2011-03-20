@@ -64,7 +64,7 @@ def create_pca(conf, layer, data, model=None):
     return pca
 
 
-def create_da(conf, layer, data, model=None):
+def create_ae(conf, layer, data, model=None):
     """
     This function basically train an autoencoder according
     to the parameters in conf, and save the learned model
@@ -96,7 +96,8 @@ def create_da(conf, layer, data, model=None):
     MyCost = cost.get(layer['cost_class'])
     varcost = MyCost(ae)(minibatch, ae.reconstruct(minibatch))
     if isinstance(ae, ContractingAutoencoder):
-        varcost += ae.contraction_penalty(minibatch)
+        alpha = layer.get('contracting_penalty', 1)
+        varcost += alpha * ae.contraction_penalty(minibatch)
     trainer = SGDOptimizer(ae, layer['base_lr'], layer['anneal_start'])
     updates = trainer.cost_updates(varcost)
 
@@ -158,10 +159,10 @@ if __name__ == "__main__":
               'min_variance': 0,
               'whiten': True,
               # Training properties
-              'proba' : [1,0,0],
+              'proba' : [1, 0, 0],
               'savedir' : './outputs',
               }
-    
+
     # Second layer = CAE-200
     layer2 = {'name' : '2nd-CAE',
               'nhid': 200,
@@ -178,7 +179,7 @@ if __name__ == "__main__":
               'anneal_start': 100,
               'batch_size' : 20,
               'epochs' : 5,
-              'proba' : [1,0,0],
+              'proba' : [1, 0, 0],
               }
     
     # Third layer = PCA-3 no whiten
@@ -187,7 +188,7 @@ if __name__ == "__main__":
               'min_variance': 0,
               'whiten': False,
               # Training properties
-              'proba' : [0,1,0]
+              'proba' : [0, 1, 0]
               }
     
     # Experiment specific arguments
@@ -211,13 +212,13 @@ if __name__ == "__main__":
         data = data[:3]
 
     # First layer : train or load a PCA
-    pca1 = create_pca(conf, layer1, data, model=layer1['name'])
+    pca1 = create_pca(conf, layer1, data)#, model=layer1['name'])
     
     data = [utils.sharedX(pca1.function()(set.get_value()), borrow=True)
             for set in data]
     
     # Second layer : train or load a DAE or CAE
-    ae = create_da(conf, layer2, data)#, model=layer2['name'])
+    ae = create_ae(conf, layer2, data)#, model=layer2['name'])
     
     data = [utils.sharedX(ae.function()(set.get_value()), borrow=True)
             for set in data]
