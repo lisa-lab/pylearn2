@@ -68,16 +68,8 @@ class PCA(Block):
         mean = X.mean(axis=0)
         X = X - mean
 
-        # Perform online computation of covariance matrix eigenvectors/values.
-        pca_estimator = pca_online_estimator.PcaOnlineEstimator(X.shape[1],
-            n_eigen=num_components, minibatch_size=500, centering=False
-        )
-        for i in range(X.shape[0]):
-            pca_estimator.observe(X[i,:])
-        v, W = pca_estimator.getLeadingEigen()
-        # The resulting components are in *ascending* order of eigenvalue,
-        # and W contains eigenvectors in its *rows*.
-        v, W = v[::-1], W.T[:, ::-1]
+        # Compute eigen{values,vectors} of the covariance matrix.
+        v, W = self._cov_eigen(X)
 
         # Filter out unwanted components.
         var_cutoff = 1 + numpy.where(v / v.sum() > self.min_variance)[0].max()
@@ -88,7 +80,7 @@ class PCA(Block):
         # For the moment, I do not use borrow=True because W and v are
         # subtensors, and I want the original memory to be freed
         self.W = sharedX(W)
-        if self.whiten:
+        if self.whiten is not None:
             self.v = sharedX(v)
         self.mean = sharedX(mean)
 
@@ -105,6 +97,69 @@ class PCA(Block):
         if self.v:
             Y /= tensor.sqrt(self.v)
         return Y
+
+    def _cov_eigen(self, X):
+        """
+        Compute and return eigen{values,vectors} of X's covariance matrix.
+
+        Returns:
+            all eigenvalues in decreasing order
+            matrix containing corresponding eigenvectors in its columns
+        """
+        raise NotImplementedError('_cov_eigen')
+
+class OnlinePCA(PCA):
+    def __init__(self, minibatch_size = 500, **kwargs):
+        super(OnlinePCA, self).__init__(**kwargs)
+        self.minibatch_size = minibatch_size
+
+    def _cov_eigen(self, X):
+        """
+        Perform online computation of covariance matrix eigen{values,vectors}.
+        """
+        if self.num_components is None:
+            num_components = X.shape[1]
+        else:
+            num_components = min(self.num_components, X.shape[1])
+
+        pca_estimator = pca_online_estimator.PcaOnlineEstimator(X.shape[1],
+            n_eigen=num_components, minibatch_size=500, centering=False
+        )
+        for i in range(X.shape[0]):
+            pca_estimator.observe(X[i,:])
+        v, W = pca_estimator.getLeadingEigen()
+
+        # The resulting components are in *ascending* order of eigenvalue,
+        # and W contains eigenvectors in its *rows*, so we reverse both and
+        # transpose W.
+        return v[::-1], W.T[:, ::-1]
+
+class CovEigPCA(PCA):
+    def _cov_eigen(self, X):
+        """
+        Perform direct computation of covariance matrix eigen{values,vectors}.
+        """
+
+        v, W = linalg.eigh(numpy.cov(X.T))
+
+        # The resulting components are in *ascending* order of eigenvalue, and
+        # W contains eigenvectors in its *columns*, so we simply reverse both.
+        return v[::-1], W[:, ::-1]
+
+class SVDPCA(PCA):
+    def _cov_eigen(self, X):
+        """
+        Compute covariance matrix eigen{values,vectors} via Singular Value
+        Decomposition (SVD).
+        """
+
+        U, s, Vh = linalg.svd(X, full_matrices = False)
+
+        # Vh contains eigenvectors in its *rows*, thus we transpose it.
+        # s contains X's singular values in *decreasing* order, thus (noting
+        # that X's singular values are the sqrt of cov(X'X)'s eigenvalues), we
+        # simply square it.
+        return s ** 2, Vh.T
 
 if __name__ == "__main__":
     """
@@ -135,6 +190,17 @@ if __name__ == "__main__":
                         default='model-pca.pkl',
                         required=False,
                         help='File where the PCA pickle will be saved')
+    parser.add_argument('-a', '--algorithm', action='store',
+                        type=str,
+                        choices=['cov_eig', 'svd', 'online'],
+                        default='cov_eig',
+                        required=False,
+                        help='Which algorithm to use to compute the PCA')
+    parser.add_argument('-m', '--minibatch-size', action='store',
+                        type=int,
+                        default=500,
+                        required=False,
+                        help='Size of minibatches used in the online algorithm')
     parser.add_argument('-n', '--num-components', action='store',
                         type=int,
                         default=None,
@@ -158,12 +224,31 @@ if __name__ == "__main__":
     [train_data, valid_data, test_data] = map (lambda(x): x.get_value(), data)
     print >> stderr, "Dataset shapes:", map(lambda(x): get_constant(x.shape), data)
 
+    # PCA base-class constructor arguments.
+    conf = {
+        'num_components': args.num_components,
+        'min_variance': args.min_variance,
+        'whiten': args.whiten
+    }
+
+    # Set PCA subclass from argument.
+    if args.algorithm == 'cov_eig':
+        PCAImpl = CovEigPCA
+    elif args.algorithm == 'svd':
+        PCAImpl = SVDPCA
+    elif args.algorithm == 'online':
+        PCAImpl = OnlinePCA
+        conf['minibatch_size'] = args.minibatch_size
+    else:
+        # This should never happen.
+        raise NotImplementedError(args.algorithm)
+
     # Load precomputed PCA transformation if requested; otherwise compute it.
     if args.load_file:
         pca = PCA.load(args.load_file)
     else:
         print "... computing PCA"
-        pca = PCA(args.num_components, args.min_variance, args.whiten)
+        pca = PCAImpl(**conf)
         pca.train(train_data)
         # Save the computed transformation.
         pca.save(args.save_file)

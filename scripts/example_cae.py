@@ -18,10 +18,9 @@ except ImportError:
     sys.exit(1)
 
 # Local imports
-from framework.pca import PCA
 from framework.cost import MeanSquaredError
 from framework.corruption import GaussianCorruptor
-from framework.autoencoder import ContractingAutoencoder, build_stacked_AE
+from framework.autoencoder import ContractingAutoencoder, build_stacked_ae
 from framework.optimizer import SGDOptimizer
 
 if __name__ == "__main__":
@@ -47,21 +46,9 @@ if __name__ == "__main__":
     minibatch = tensor.matrix()
     minibatch = theano.printing.Print('min')(minibatch)
 
-    # Allocate a PCA transformation block.
-    pca_model_file = 'example-cae_model-pca.pkl'
-    if os.path.isfile(pca_model_file):
-        print '... loading precomputed PCA transform'
-        pca = PCA.load(pca_model_file)
-    else:
-        print '... computing PCA transform'
-        pca = PCA(75)
-        pca.train(data)
-        pca.save(pca_model_file)
-
     # Allocate a denoising autoencoder with binomial noise corruption.
-    corruptor = GaussianCorruptor(conf['corruption_level'])
-    cae = ContractingAutoencoder(conf['nvis'], conf['nhid'], corruptor,
-                                conf['act_enc'], conf['act_dec'])
+    cae = ContractingAutoencoder(conf['nvis'], conf['nhid'],
+                                 conf['act_enc'], conf['act_dec'])
 
     # Allocate an optimizer, which tells us how to update our model.
     cost = MeanSquaredError(cae)(minibatch, cae.reconstruct(minibatch))
@@ -84,7 +71,7 @@ if __name__ == "__main__":
                     (epoch, offset, offset + batchsize - 1, minibatch_err)
 
     # Suppose you then want to use the representation for something.
-    transform = theano.function([minibatch], cae([pca(minibatch)])[0])
+    transform = theano.function([minibatch], cae(minibatch))
 
     print "Transformed data:"
     print numpy.histogram(transform(data))
@@ -97,8 +84,7 @@ if __name__ == "__main__":
     #choose which layer is a regular da and which one is a cae
     stack_conf['contracting']=[True,False,True]
     stack_conf['anneal_start'] = None # Don't anneal these learning rates
-    scae = build_stacked_AE(corruptors=corruptor,
-                            nvis=stack_conf['nvis'],
+    scae = build_stacked_ae(nvis=stack_conf['nvis'],
                             nhids=stack_conf['nhids'],
                             act_enc=stack_conf['act_enc'],
                             act_dec=stack_conf['act_dec'],

@@ -7,7 +7,7 @@ from itertools import repeat
 
 # Third-party imports
 import numpy
-import theano
+import theano, theano.tensor as tensor
 from pylearn.datasets.utlc import load_ndarray_dataset
 
 # Local imports
@@ -18,13 +18,6 @@ from auc import embed
 ##################################################
 
 floatX = theano.config.floatX
-
-def subdict(d, keys):
-    """ Create a subdictionary of d with the keys in keys """
-    result = {}
-    for key in keys:
-        if key in d: result[key] = d[key]
-    return result
 
 def get_constant(variable):
     """ Little hack to return the python value of a theano shared variable """
@@ -39,6 +32,13 @@ def sharedX(value, name=None, borrow=False):
                          name=name,
                          borrow=borrow)
 
+def subdict(d, keys):
+    """ Create a subdictionary of d with the keys in keys """
+    result = {}
+    for key in keys:
+        if key in d: result[key] = d[key]
+    return result
+
 def safe_update(dict_to, dict_from):
     """
     Like dict_to.update(dict_from), except don't overwrite any keys.
@@ -48,6 +48,19 @@ def safe_update(dict_to, dict_from):
             raise KeyError(key)
         dict_to[key] = val
     return dict_to
+
+def getboth(dict1, dict2, key, default=None):
+    """
+    Try to retrieve key from dict1 if exists, otherwise try with dict2.
+    If the key is not found in any of them, raise an exception.
+    """
+    try:
+        return dict1[key]
+    except KeyError:
+        if default is None:
+            return dict2[key]
+        else:
+            return dict2.get(key, default)
 
 ##################################################
 # Datasets and contest facilities
@@ -62,7 +75,7 @@ def load_data(conf):
                 'randomize_valid',
                 'randomize_test',
                 'transfer']
-    print '... loading data'
+    print '... loading Dataset'
     data = load_ndarray_dataset(conf['dataset'], **subdict(conf, expected))
 
     # Allocate shared variables
@@ -121,11 +134,11 @@ def create_submission(conf, get_representation):
     del test_repr
 
     # Write it in a .txt file
-    submit_dir = conf['submit_dir']
+    submit_dir = conf['savedir']
     if not os.path.exists(submit_dir):
         os.mkdir(submit_dir)
     elif not os.path.isdir(submit_dir):
-        raise IOError('submit_dir %s is not a directory' % submit_dir)
+        raise IOError('savedir %s is not a directory' % submit_dir)
 
     basename = os.path.join(submit_dir,
                             conf['dataset'] + '_' + conf['expname']
@@ -186,6 +199,19 @@ def lookup_alc(data, transform):
 
     return compute_alc(valid_repr, test_repr)
 
+
+def filter_labels(train, label):
+    """ Filter examples of train for which we have labels """
+    # Examples for which any label is set
+    condition = label.get_value().any(axis=1)
+
+    # Compress train and label arrays according to condition
+    def aux(var):
+        return var.get_value().compress(condition, axis=0)
+
+    return (aux(train), aux(label))
+
+
 ##################################################
 # Iterator object for blending datasets
 ##################################################
@@ -202,7 +228,7 @@ class BatchIterator(object):
         mul = numpy.multiply
         div = numpy.divide
         mod = numpy.mod
-        
+
         # Record external parameters
         self.batch_size = batch_size
         # TODO: If you have a better way to return dataset slices, I'll take it
@@ -221,7 +247,7 @@ class BatchIterator(object):
         # Number of rows in the resulting union
         set_tsign = sub(set_limit, flo(div(set_sizes, set_batch)))
         set_tsize = mul(set_tsign, flo(div(set_range, set_limit)))
-        
+
         l_trun = mul(flo(div(set_range, set_limit)), mod(set_sizes, set_batch))
         l_full = mul(sub(set_range, set_tsize), set_batch)
 
@@ -282,3 +308,48 @@ def blend(dataset, set_proba, **kwargs):
             index += 1
 
     return sharedX(array, borrow=True)
+
+def is_pure_elemwise(graph, inputs):
+    """
+    Checks whether a graph is purely elementwise and containing only
+    inputs from a given list.
+
+    Parameters
+    ----------
+    graph : TensorVariable object
+        Graph to perform checks against.
+    inputs : list
+        List of acceptable inputs to the graph.
+
+    Returns
+    -------
+    elemwise_or_not : bool
+        Returns `True` if a) everything in the graph is an Elemwise or
+        a DimShuffle (DimShuffles are only acceptable to broadcast
+        up constants), and b) all nodes without an owner appear in `inputs`
+        or are constants. Returns `False` otherwise.
+    """
+    allowed_ops = tensor.basic.DimShuffle, tensor.basic.Elemwise
+    owner = graph.owner
+    op = graph.owner.op if graph.owner is not None else None
+    # Ownerless stuff is fine if it's in inputs.
+    if owner is None and graph in inputs:
+        return True
+    # Constants are okay.
+    elif owner is None and isinstance(graph, tensor.basic.TensorConstant):
+        return True
+    # But if it's not a constant and has no owner, it's not.
+    elif owner is None and graph not in inputs:
+        return False
+    # Anything but Elemwise and DimShuffle should be rejected.
+    elif op is not None and not isinstance(op, allowed_ops):
+        return False
+    else:
+        if isinstance(graph.owner.op, tensor.basic.DimShuffle):
+            shuffled = graph.owner.inputs[0]
+            if not isinstance(shuffled, tensor.basic.TensorConstant):
+                return False
+        for inp in graph.owner.inputs:
+            if not is_pure_elemwise(inp, inputs):
+                return False
+        return True

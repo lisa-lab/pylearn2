@@ -61,6 +61,12 @@ class Corruptor(object):
         """
         raise NotImplementedError()
 
+
+class DummyCorruptor(Corruptor):
+    def __call__(self, inputs):
+        return inputs
+
+
 class BinomialCorruptor(Corruptor):
     """
     A binomial corruptor sets inputs to 0 with probability

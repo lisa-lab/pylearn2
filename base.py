@@ -11,7 +11,7 @@ import theano
 from theano import tensor
 
 # Local imports
-from .utils import sharedX, subdict
+from framework.utils import subdict
 
 theano.config.warn.sum_div_dimshuffle_bug = False
 floatX = theano.config.floatX
@@ -48,14 +48,30 @@ class Block(object):
         Individual classes should override __getstate__ and __setstate__
         to deal with object versioning in the case of API changes.
         """
+        save_dir = os.path.dirname(save_file)
+        if save_dir and not os.path.exists(save_dir):
+            os.makedirs(save_dir)
+
         fhandle = open(save_file, 'w')
         cPickle.dump(self, fhandle, -1)
         fhandle.close()
 
     @classmethod
-    def fromdict(cls, conf):
+    def fromdict(cls, conf, **kwargs):
         """ Alternative way to build a block, by using a dictionary """
-        return cls(**subdict(conf, inspect.getargspec(cls.__init__)[0]))
+        arglist = []
+        kwargs.update(conf)
+        # Loop over all superclasses of cls
+        # NB : Supposes that "cls" is the first element returned by "getmro()"
+        for elem in inspect.getmro(cls):
+            # Extend arglist with arguments of elem.__init__
+            argspec = inspect.getargspec(elem.__init__)
+            arglist.extend(argspec[0])
+            # If a keyworkds argument is not expected, then break the loop
+            if argspec[2] is None:
+                break
+        # Build the class with appropriated arguments
+        return cls(**subdict(kwargs, arglist))
 
     @classmethod
     def load(cls, load_file):
@@ -109,7 +125,7 @@ class StackedBlocks(Block):
         # Build the hidden representation at each layer
         repr = [inputs]
 
-        for layer in self.layers:
+        for layer in self._layers:
             outputs = layer(repr[-1])
             repr.append(outputs)
 
