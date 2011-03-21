@@ -1,3 +1,6 @@
+# Standard library imports
+from sys import stderr
+
 # Third-party imports
 import numpy
 import theano
@@ -135,8 +138,14 @@ class OnlinePCA(PCA):
         pca_estimator = pca_online_estimator.PcaOnlineEstimator(X.shape[1],
             n_eigen=num_components, minibatch_size=self.minibatch_size, centering=False
         )
+
+        print >> stderr, '*' * 50
         for i in range(X.shape[0]):
+            if (i + 1) % (X.shape[0] / 50) == 0:
+                stderr.write('|') # suppresses newline/whitespace.
             pca_estimator.observe(X[i,:])
+        print >> stderr
+
         v, W = pca_estimator.getLeadingEigen()
 
         # The resulting components are in *ascending* order of eigenvalue,
@@ -190,7 +199,6 @@ if __name__ == "__main__":
     to the test and valid subsets.
     """
 
-    from sys import stderr
     import argparse
     from framework.utils import load_data, get_constant
 
