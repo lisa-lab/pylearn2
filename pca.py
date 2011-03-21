@@ -16,8 +16,7 @@ class PCA(Block):
     Block which transforms its input via Principal Component Analysis.
     """
 
-    def __init__(self, num_components=None, min_variance=0.0,
-                 whiten=False):
+    def __init__(self, num_components=None, min_variance=0.0, whiten=False):
         """
         :type num_components: int
         :param num_components: this many components will be preserved, in
@@ -75,9 +74,9 @@ class PCA(Block):
         # Build Theano shared variables
         # For the moment, I do not use borrow=True because W and v are
         # subtensors, and I want the original memory to be freed
-        self.W = sharedX(W)
-        self.v = sharedX(v)
-        self.mean = sharedX(mean)
+        self.W = sharedX(W, name='W')
+        self.v = sharedX(v, name='v')
+        self.mean = sharedX(mean, name='mean')
 
         # Filter out unwanted components, permanently.
         self._update_cutoff()
