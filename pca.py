@@ -127,7 +127,7 @@ class PCA(Block):
         raise NotImplementedError('_cov_eigen')
 
 class OnlinePCA(PCA):
-    def __init__(self, minibatch_size = 500, **kwargs):
+    def __init__(self, minibatch_size=500, **kwargs):
         super(OnlinePCA, self).__init__(**kwargs)
         self.minibatch_size = minibatch_size
 
@@ -169,7 +169,7 @@ class SVDPCA(PCA):
         Decomposition (SVD).
         """
 
-        U, s, Vh = linalg.svd(X, full_matrices = False)
+        U, s, Vh = linalg.svd(X, full_matrices=False)
 
         # Vh contains eigenvectors in its *rows*, thus we transpose it.
         # s contains X's singular values in *decreasing* order, thus (noting
