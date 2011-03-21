@@ -9,6 +9,8 @@ import numpy
 import theano
 from theano import tensor
 
+from auc import embed
+
 # Local imports
 try:
     import framework
@@ -41,26 +43,28 @@ def create_pca(conf, layer, data, model=None):
     savedir = utils.getboth(layer, conf, 'savedir')
     if model is not None:
         # Load the model
-        print '... loading PCA layer'
         if not model.endswith('.pkl'):
             model += '.pkl'
-        filename = os.path.join(savedir, model)
-        return PCA.load(filename)
-    else:
-        # Train the model
-        print '... computing PCA layer'
-        pca = CovEigPCA.fromdict(layer)
-        
-        proba = utils.getboth(layer, conf, 'proba')
-        blended = utils.blend(data, proba)
-        pca.train(blended.get_value())
-        
-        filename = os.path.join(savedir, layer['name'] + '.pkl')
-        pca.save(filename)
-        return pca
+        try:
+            print '... loading PCA layer'
+            filename = os.path.join(savedir, model)
+            return PCA.load(filename)
+        except Exception, e:
+            print 'error during loading:',e.args[0]
+    # Train the model
+    print '... computing PCA layer'
+    pca = CovEigPCA.fromdict(layer)
+
+    proba = utils.getboth(layer, conf, 'proba')
+    blended = utils.blend(data, proba)
+    pca.train(blended.get_value())
+
+    filename = os.path.join(savedir, layer['name'] + '.pkl')
+    pca.save(filename)
+    return pca
 
 
-def create_da(conf, layer, data, model=None):
+def create_ae(conf, layer, data, model=None):
     """
     This function basically train an autoencoder according
     to the parameters in conf, and save the learned model
@@ -92,7 +96,8 @@ def create_da(conf, layer, data, model=None):
     MyCost = cost.get(layer['cost_class'])
     varcost = MyCost(ae)(minibatch, ae.reconstruct(minibatch))
     if isinstance(ae, ContractingAutoencoder):
-        varcost += ae.contraction_penalty(minibatch)
+        alpha = layer.get('contracting_penalty', 1)
+        varcost += alpha * ae.contraction_penalty(minibatch)
     trainer = SGDOptimizer(ae, layer['base_lr'], layer['anneal_start'])
     updates = trainer.cost_updates(varcost)
 
@@ -154,10 +159,10 @@ if __name__ == "__main__":
               'min_variance': 0,
               'whiten': True,
               # Training properties
-              'proba' : [1,0,0],
+              'proba' : [1, 0, 0],
               'savedir' : './outputs',
               }
-    
+
     # Second layer = CAE-200
     layer2 = {'name' : '2nd-CAE',
               'nhid': 200,
@@ -174,16 +179,16 @@ if __name__ == "__main__":
               'anneal_start': 100,
               'batch_size' : 20,
               'epochs' : 5,
-              'proba' : [1,0,0],
+              'proba' : [1, 0, 0],
               }
     
-    # First layer = PCA-3 no whiten
+    # Third layer = PCA-3 no whiten
     layer3 = {'name' : '3st-PCA',
               'num_components': 3,
               'min_variance': 0,
               'whiten': False,
               # Training properties
-              'proba' : [0,1,0]
+              'proba' : [0, 1, 0]
               }
     
     # Experiment specific arguments
@@ -213,7 +218,7 @@ if __name__ == "__main__":
             for set in data]
     
     # Second layer : train or load a DAE or CAE
-    ae = create_da(conf, layer2, data)#, model=layer2['name'])
+    ae = create_ae(conf, layer2, data)#, model=layer2['name'])
     
     data = [utils.sharedX(ae.function()(set.get_value()), borrow=True)
             for set in data]
@@ -227,9 +232,7 @@ if __name__ == "__main__":
     # Compute the ALC for example with labels
     if conf['transfer']:
         data, label = utils.filter_labels(data[0], label)
-        # TODO : Not functionnal yet
-        # alc = embed.score(data, label)
-        alc = 0
+        alc = embed.score(data, label)
         print '... resulting ALC on train is', alc
         conf['train_alc'] = alc
     

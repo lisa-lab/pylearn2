@@ -12,8 +12,8 @@ from theano import tensor
 from theano.tensor import nnet
 
 # Local imports
-from .base import Block, StackedBlocks
-from .utils import sharedX, safe_update
+from framework.base import Block, StackedBlocks
+from framework.utils import sharedX, safe_update
 
 theano.config.warn.sum_div_dimshuffle_bug = False
 floatX = theano.config.floatX
