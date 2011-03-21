@@ -133,7 +133,7 @@ class OnlinePCA(PCA):
         num_components = min(self.num_components, X.shape[1])
 
         pca_estimator = pca_online_estimator.PcaOnlineEstimator(X.shape[1],
-            n_eigen=num_components, minibatch_size=500, centering=False
+            n_eigen=num_components, minibatch_size=self.minibatch_size, centering=False
         )
         for i in range(X.shape[0]):
             pca_estimator.observe(X[i,:])
