@@ -9,8 +9,6 @@ import numpy
 import theano
 from theano import tensor
 
-from auc import embed
-
 # Local imports
 try:
     import framework
@@ -22,8 +20,10 @@ except ImportError:
     sys.exit(1)
 
 from auc import embed
-from framework import utils
+import framework.cost
+import framework.corruption
 
+from framework import utils
 from framework.pca import PCA, CovEigPCA
 from framework.utils import BatchIterator
 from framework.base import StackedBlocks
@@ -168,7 +168,7 @@ if __name__ == "__main__":
     layer2 = {'name' : '2nd-CAE',
               'nhid': 200,
               'tied_weights': True,
-              'act_enc': 'sigmoid',
+              'act_enc': 'rectifier',
               'act_dec': None,
               'irange': 0.001,
               'cost_class' : 'MeanSquaredError',

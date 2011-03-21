@@ -7,6 +7,8 @@ from itertools import izip
 import numpy
 import theano
 from theano import tensor
+from theano import scalar
+from theano.tensor import elemwise
 
 # Local imports
 from framework.base import Block, StackedBlocks
@@ -21,6 +23,30 @@ if 0:
 else:
     import theano.sandbox.rng_mrg
     RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
+
+##################################################
+# Miscellaneous activation functions
+##################################################
+
+class ScalarRectifier(scalar.UnaryScalarOp):
+    @staticmethod
+    def st_impl(x):
+        if x < 0.0:
+            return 0.0
+        else:
+            return x
+    def impl(self, x):
+        return ScalarRectifier.st_impl(x)
+    def grad(self, (x,), (gz,)):
+        # TODO : Whatdo in 0 ?
+        return [x > 0.0]
+
+scalar_rectifier = ScalarRectifier(scalar.upgrade_to_float, name='scalar_rectifier')
+rectifier = elemwise.Elemwise(scalar_rectifier, name='rectifier')
+
+##################################################
+# Main Autoencoder class
+##################################################
 
 class Autoencoder(Block):
     """
@@ -99,6 +125,8 @@ class Autoencoder(Block):
             # If it's a callable, use it directly.
             if hasattr(conf[conf_attr], '__call__'):
                 return conf[conf_attr]
+            elif hasattr(globals()[conf[conf_attr]], '__call__'):
+                return globals()[conf[conf_attr]]
             elif hasattr(tensor.nnet, conf[conf_attr]):
                 return getattr(tensor.nnet, conf[conf_attr])
             elif hasattr(tensor, conf[conf_attr]):
