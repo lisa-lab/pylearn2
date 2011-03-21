@@ -75,8 +75,8 @@ class PCA(Block):
         # Filter out unwanted components, permanently.
         self._update_cutoff()
         component_cutoff = self.component_cutoff.get_value()
-        self.v.set_value(v[:component_cutoff])
-        self.W.set_value(W[:, :component_cutoff])
+        self.v.set_value(self.v.get_value()[:component_cutoff])
+        self.W.set_value(self.W.get_value()[:, :component_cutoff])
 
     def __call__(self, inputs):
         """
