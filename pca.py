@@ -55,12 +55,6 @@ class PCA(Block):
         X's singular values along its diagonal, computes and returns W = V^-1.
         """
 
-        # Actually, I don't think is necessary, but in practice all our datasets
-        # fulfill this requirement anyway, so this serves as a sanity check.
-        assert X.shape[1] <= X.shape[0], "\
-            Number of samples (rows) must be greater \
-            than number of features (columns)"
-
         if self.num_components is None:
             self.num_components = X.shape[1]
 
