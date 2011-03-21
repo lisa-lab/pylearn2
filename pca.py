@@ -40,6 +40,9 @@ class PCA(Block):
         self.v = None
         self.mean = None
 
+        self.component_cutoff = theano.shared(theano._asarray(0, dtype='int64'),
+            name='component_cutoff')
+
         # This module really has no adjustable parameters -- once train()
         # is called once, they are frozen, and are not modified via gradient
         # descent.
@@ -59,10 +62,8 @@ class PCA(Block):
             Number of samples (rows) must be greater \
             than number of features (columns)"
 
-        if self.num_components:
-            num_components = self.num_components
-        else:
-            num_components = X.shape[1]
+        if self.num_components is None:
+            self.num_components = X.shape[1]
 
         # Center each feature.
         mean = X.mean(axis=0)
@@ -71,18 +72,18 @@ class PCA(Block):
         # Compute eigen{values,vectors} of the covariance matrix.
         v, W = self._cov_eigen(X)
 
-        # Filter out unwanted components.
-        var_cutoff = 1 + numpy.where(v / v.sum() > self.min_variance)[0].max()
-        num_components = min(var_cutoff, num_components, X.shape[1])
-        v, W = v[:num_components], W[:,:num_components]
-
         # Build Theano shared variables
         # For the moment, I do not use borrow=True because W and v are
         # subtensors, and I want the original memory to be freed
         self.W = sharedX(W)
-        if self.whiten is not None:
-            self.v = sharedX(v)
+        self.v = sharedX(v)
         self.mean = sharedX(mean)
+
+        # Filter out unwanted components, permanently.
+        self._update_cutoff()
+        component_cutoff = self.component_cutoff.get_value()
+        self.v.set_value(v[:component_cutoff])
+        self.W.set_value(W[:, :component_cutoff])
 
     def __call__(self, inputs):
         """
@@ -92,11 +93,29 @@ class PCA(Block):
         :param inputs: matrix on which to compute PCA
         """
 
-        Y = tensor.dot(inputs - self.mean, self.W)
-        # If eigenvalues are defined, self.whiten was True.
-        if self.v:
-            Y /= tensor.sqrt(self.v)
+        # Update component cutoff, in case min_variance or num_components has
+        # changed (or both).
+        self._update_cutoff()
+
+        Y = tensor.dot(inputs - self.mean, self.W[:, :self.component_cutoff])
+        if self.whiten:
+            Y /= tensor.sqrt(self.v[:self.component_cutoff])
         return Y
+
+    def _update_cutoff(self):
+        """
+        Update component cutoff shared var, based on current parameters.
+        """
+
+        assert self.num_components is not None and self.num_components > 0, \
+            'Number of components requested must be >= 1'
+
+        v = self.v.get_value()
+        var_mask = v / v.sum() > self.min_variance
+        assert numpy.any(var_mask), 'No components exceed the given min. variance'
+        var_cutoff = 1 + numpy.where(var_mask)[0].max()
+
+        self.component_cutoff.set_value(min(var_cutoff, self.num_components))
 
     def _cov_eigen(self, X):
         """
@@ -117,10 +136,8 @@ class OnlinePCA(PCA):
         """
         Perform online computation of covariance matrix eigen{values,vectors}.
         """
-        if self.num_components is None:
-            num_components = X.shape[1]
-        else:
-            num_components = min(self.num_components, X.shape[1])
+
+        num_components = min(self.num_components, X.shape[1])
 
         pca_estimator = pca_online_estimator.PcaOnlineEstimator(X.shape[1],
             n_eigen=num_components, minibatch_size=500, centering=False
