@@ -173,13 +173,13 @@ if __name__ == "__main__":
     layer2 = {'name' : '2nd-CAE',
               'nhid': 200,
               'tied_weights': True,
-              'act_enc': 'rectifier',
+              'act_enc': 'sigmoid',
               'act_dec': None,
               'irange': 0.001,
               'cost_class' : 'MeanSquaredError',
               'autoenc_class': 'ContractingAutoencoder',
               'corruption_class' : 'BinomialCorruptor',
-              # 'corruption_level' : 0.3, # For DenoisingAutoencoder
+              #'corruption_level' : 0.3, # For DenoisingAutoencoder
               # Training properties
               'base_lr': 0.001,
               'anneal_start': 100,
