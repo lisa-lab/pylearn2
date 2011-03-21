@@ -48,6 +48,7 @@ def create_pca(conf, layer, data, model=None):
             return PCA.load(filename)
         except Exception, e:
             print 'Warning: error while loading PCA.', e.args[0]
+            print 'Switching back to training mode.'
 
     # Train the model
     print '... computing PCA layer'
@@ -56,7 +57,7 @@ def create_pca(conf, layer, data, model=None):
 
     proba = utils.getboth(layer, conf, 'proba')
     blended = utils.blend(data, proba)
-    pca.train(blended.value)
+    pca.train(blended.get_value(borrow=True))
 
     filename = os.path.join(savedir, layer['name'] + '.pkl')
     pca.save(filename)
@@ -74,8 +75,12 @@ def create_ae(conf, layer, data, model=None):
         print '... loading AE layer'
         if not model.endswith('.pkl'):
             model += '.pkl'
-        filename = os.path.join(savedir, model)
-        return Autoencoder.load(filename)
+        try:
+            filename = os.path.join(savedir, model)
+            return Autoencoder.load(filename)
+        except Exception, e:
+            print 'Warning: error while loading PCA.', e.args[0]
+            print 'Switching back to training mode.'
     
     # Set visible units size
     layer['nvis'] = utils.get_constant(data[0].shape[1]).item()
@@ -138,8 +143,8 @@ def create_ae(conf, layer, data, model=None):
     # Compute denoising error for valid and train datasets.
     error_fn = theano.function([minibatch], varcost, name='error_fn')
 
-    layer['error_valid'] = error_fn(data[1].value).item()
-    layer['error_test'] = error_fn(data[2].value).item()
+    layer['error_valid'] = error_fn(data[1].get_value(borrow=True)).item()
+    layer['error_test'] = error_fn(data[2].get_value(borrow=True)).item()
     print '... final denoising error with valid is', layer['error_valid']
     print '... final denoising error with test  is', layer['error_test']
     
@@ -215,20 +220,20 @@ if __name__ == "__main__":
     # First layer : train or load a PCA
     pca1 = create_pca(conf, layer1, data, model=layer1['name'])
     
-    data = [utils.sharedX(pca1.function()(set.value), borrow=True)
-            for set in data]
+    data = [utils.sharedX(pca1.function()(set.get_value(borrow=True)),
+                          borrow=True) for set in data]
     
     # Second layer : train or load a DAE or CAE
     ae = create_ae(conf, layer2, data, model=layer2['name'])
     
-    data = [utils.sharedX(ae.function()(set.value), borrow=True)
-            for set in data]
+    data = [utils.sharedX(ae.function()(set.get_value(borrow=True)),
+                          borrow=True) for set in data]
     
     # Third layer : train or load a PCA
-    pca2 = create_pca(conf, layer3, data)#, model=layer3['name'])
+    pca2 = create_pca(conf, layer3, data, model=layer3['name'])
 
-    data = [utils.sharedX(pca2.function()(set.value), borrow=True)
-            for set in data]
+    data = [utils.sharedX(pca2.function()(set.get_value(borrow=True)),
+                          borrow=True) for set in data]
     
     # Compute the ALC for example with labels
     if conf['transfer']:

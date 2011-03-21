@@ -77,9 +77,9 @@ class PCA(Block):
 
         # Filter out unwanted components, permanently.
         self._update_cutoff()
-        component_cutoff = self.component_cutoff.get_value()
-        self.v.set_value(self.v.get_value()[:component_cutoff])
-        self.W.set_value(self.W.get_value()[:, :component_cutoff])
+        component_cutoff = self.component_cutoff.get_value(borrow=True)
+        self.v.set_value(self.v.get_value(borrow=True)[:component_cutoff])
+        self.W.set_value(self.W.get_value(borrow=True)[:, :component_cutoff])
 
     def __call__(self, inputs):
         """
@@ -106,7 +106,7 @@ class PCA(Block):
         assert self.num_components is not None and self.num_components > 0, \
             'Number of components requested must be >= 1'
 
-        v = self.v.get_value()
+        v = self.v.get_value(borrow=True)
         var_mask = v / v.sum() > self.min_variance
         assert numpy.any(var_mask), 'No components exceed the given min. variance'
         var_cutoff = 1 + numpy.where(var_mask)[0].max()
@@ -251,7 +251,7 @@ if __name__ == "__main__":
 
     # Load dataset.
     data = load_data({'dataset': args.dataset})
-    [train_data, valid_data, test_data] = map (lambda(x): x.get_value(), data)
+    [train_data, valid_data, test_data] = map (lambda(x): x.get_value(borrow=True), data)
     print >> stderr, "Dataset shapes:", map(lambda(x): get_constant(x.shape), data)
 
     # PCA base-class constructor arguments.

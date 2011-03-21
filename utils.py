@@ -109,8 +109,8 @@ def create_submission(conf, transform_valid, transform_test = None):
     valid_set, test_set = load_data(kwargs)[1:3]
 
     # Valid and test representations
-    valid_repr = transform_valid(valid_set.value)
-    test_repr = transform_test(test_set.value)
+    valid_repr = transform_valid(valid_set.get_value(borrow=True))
+    test_repr = transform_test(test_set.get_value(borrow=True))
 
     # If there are too much features, outputs kernel matrices
     if (valid_repr.shape[1] > valid_repr.shape[0]):
@@ -198,8 +198,8 @@ def compute_alc(valid_repr, test_repr):
 
 
 def lookup_alc(data, transform):
-    valid_repr = transform(data[1].value)
-    test_repr = transform(data[2].value)
+    valid_repr = transform(data[1].get_value(borrow=True))
+    test_repr = transform(data[2].get_value(borrow=True))
 
     return compute_alc(valid_repr, test_repr)
 
@@ -207,11 +207,11 @@ def lookup_alc(data, transform):
 def filter_labels(train, label):
     """ Filter examples of train for which we have labels """
     # Examples for which any label is set
-    condition = label.value.any(axis=1)
+    condition = label.get_value(borrow=True).any(axis=1)
 
     # Compress train and label arrays according to condition
     def aux(var):
-        return var.value.compress(condition, axis=0)
+        return var.get_value(borrow=True).compress(condition, axis=0)
 
     return (aux(train), aux(label))
 
@@ -272,7 +272,7 @@ class BatchIterator(object):
         for chosen in self.permut:
             # Retrieve minibatch from chosen set
             index = counter[chosen]
-            minibatch = self.dataset[chosen].value[
+            minibatch = self.dataset[chosen].get_value(borrow=True)[
                 index * self.batch_size:(index + 1) * self.batch_size
             ]
             # Increment the related counter
@@ -321,7 +321,7 @@ def blend(dataset, set_proba, **kwargs):
     array = numpy.empty((nrow, ncol), dataset[0].dtype)
     row = 0
     for chosen, index in iterator.by_index():
-        array[row] = dataset[chosen].value[index]
+        array[row] = dataset[chosen].get_value(borrow=True)[index]
         row += 1
 
     return sharedX(array, borrow=True)
