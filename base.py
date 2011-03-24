@@ -38,6 +38,9 @@ class Block(object):
         # in order to explicitly make a copy, so that the list isn't
         # absentmindedly modified. If a user really knows what they're
         # doing they can modify self._params.
+        if None in self._params:
+            raise ValueError('some parameters of %s not initialized' %
+                             str(self))
         return list(self._params)
 
     def __call__(self, inputs):
@@ -91,6 +94,8 @@ class Block(object):
         inputs = tensor.matrix()
         return theano.function([inputs], self(inputs), name=name)
 
+    def invalid(self):
+        return None in self._params
 
 class StackedBlocks(Block):
     """

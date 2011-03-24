@@ -61,6 +61,9 @@ class Autoencoder(Block):
         ----------
         nvis : int
             Number of visible units (input dimensions) in this model.
+            A value of 0 indicates that this block will be left partially
+            initialized until later (e.g., when the dataset is loaded and
+            its dimensionality is known)
         nhid : int
             Number of hidden units in this model.
         act_enc : callable or string
@@ -85,36 +88,32 @@ class Autoencoder(Block):
             NumPy random number generator object (or seed to create one) used
             to initialize the model parameters.
         """
-        assert nvis > 0, "Number of visible units must be positive"
+        assert nvis >= 0, "Number of visible units must be non-negative"
         assert nhid > 0, "Number of hidden units must be positive"
+        # Save a few parameters needed for resizing
+        self.nhid = nhid
+        self.irange = irange
+        self.tied_weights = tied_weights
+
         if not hasattr(rng, 'randn'):
-            rng = numpy.random.RandomState(rng)
-        self.visbias = sharedX(
-            numpy.zeros(nvis),
-            name='vb',
-            borrow=True
-        )
-        self.hidbias = sharedX(
-            numpy.zeros(nhid),
-            name='hb',
-            borrow=True
-        )
-        # TODO: use weight scaling factor if provided, Xavier's default else
-        self.weights = sharedX(
-            .5 - rng.rand(nvis, nhid) * irange,
-            name='W',
-            borrow=True
-        )
-        seed = int(rng.randint(2**30))
+            self.rng = numpy.random.RandomState(rng)
+        else:
+            self.rng = rng
+        self._initialize_hidbias()
+        if nvis > 0:
+            self._initialize_visbias(nvis)
+            self._initialize_weights(nvis)
+        else:
+            self.visbias = None
+            self.weights = None
+
+        seed = int(self.rng.randint(2**30))
         self.s_rng = RandomStreams(seed)
         if tied_weights:
             self.w_prime = self.weights.T
         else:
-            self.w_prime = sharedX(
-                .5 - rng.rand(nhid, nvis) * irange,
-                name='Wprime',
-                borrow=True
-            )
+            self._initialize_w_prime(nvis)
+        self._set_params()
 
         def _resolve_callable(conf, conf_attr):
             if conf[conf_attr] is None or conf[conf_attr] == "linear":
@@ -135,13 +134,83 @@ class Autoencoder(Block):
 
         self.act_enc = _resolve_callable(locals(), 'act_enc')
         self.act_dec = _resolve_callable(locals(), 'act_dec')
+
+    def _set_params(self):
+        """Set or refresh the params list from instance attributes."""
         self._params = [
             self.visbias,
             self.hidbias,
             self.weights,
         ]
-        if not tied_weights:
+        if not self.tied_weights:
             self._params.append(self.w_prime)
+
+    def _initialize_weights(self, nvis, rng=None, irange=None):
+        if rng is None:
+            rng = self.rng
+        if irange is None:
+            irange = self.irange
+        # TODO: use weight scaling factor if provided, Xavier's default else
+        self.weights = sharedX(
+            .5 - rng.rand(nvis, self.nhid) * self.irange,
+            name='W',
+            borrow=True
+        )
+
+    def _initialize_hidbias(self):
+        self.hidbias = sharedX(
+            numpy.zeros(self.nhid),
+            name='hb',
+            borrow=True
+        )
+
+    def _initialize_visbias(self, nvis):
+        self.visbias = sharedX(
+            numpy.zeros(nvis),
+            name='vb',
+            borrow=True
+        )
+
+    def _initialize_w_prime(self, nvis, rng=None, irange=None):
+        assert (not self.tied_weights,
+            "Can't initialize w_prime in tied weights model; "
+            "this method shouldn't have been called")
+        if rng is None:
+            rng = self.rng
+        if irange is None:
+            irange = self.irange
+        self.w_prime = sharedX(
+            .5 - rng.rand(self.nhid, nvis) * irange,
+            name='Wprime',
+            borrow=True
+        )
+
+    def set_visible_size(self, nvis, rng=None):
+        """
+        Create and initialize the necessary parameters to accept
+        `nvis` sized inputs.
+
+        Parameters
+        ----------
+        nvis : int
+            Number of visible units for the model.
+        rng : RandomState object or seed, optional
+            NumPy random number generator object (or seed to create one) used
+            to initialize the model parameters. If not provided, the stored
+            rng object (from the time of construction) will be used.
+        """
+        if self.weights is not None:
+            raise ValueError('parameters of this model already initialized; '
+                             'create a new object instead')
+        if rng is not None:
+            self.rng = rng
+        else:
+            rng = self.rng
+        self._initialize_visbias(nvis)
+        self._initialize_weights(nvis, rng)
+        if not self.tied_weights:
+            self._initialize_w_prime(nvis, rng)
+        self._set_params()
 
     def _hidden_activation(self, x):
         """
