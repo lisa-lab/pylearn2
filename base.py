@@ -99,7 +99,7 @@ class StackedBlocks(Block):
     def __init__(self, layers):
         """
         Build a stack of layers.
-        
+
         Parameters
         ----------
         layers: list of Blocks
@@ -119,7 +119,7 @@ class StackedBlocks(Block):
     def __call__(self, inputs):
         """
         Return the output representation of all layers, including the inputs.
-        
+
         Parameters
         ----------
         inputs : tensor_like or list of tensor_likes
@@ -127,7 +127,7 @@ class StackedBlocks(Block):
             minibatch(es) to be encoded. Assumed to be 2-tensors, with the
             first dimension indexing training examples and the second indexing
             data dimensions.
-        
+
         Returns
         -------
         reconstructed : tensor_like or list of tensor_like
@@ -161,11 +161,11 @@ class StackedBlocks(Block):
                 [inputs],
                 outputs=self(inputs)[repr_index],
                 name=name)
-        
+
     def concat(self, name=None, start_index=-1, end_index=None):
         """
         Compile a function concatenating representations on given layers.
-        
+
         Parameters
         ----------
         name: string

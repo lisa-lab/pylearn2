@@ -102,7 +102,7 @@ def create_submission(conf, transform_valid, transform_test = None):
     """
     if transform_test is None:
         transform_test = transform_valid
-    
+
     # Load the dataset, without permuting valid and test
     kwargs = subdict(conf, ['dataset', 'normalize', 'normalize_on_the_fly'])
     kwargs.update(randomize_valid=False, randomize_test=False)
@@ -265,7 +265,7 @@ class BatchIterator(object):
         self.seed = seed
         rng = numpy.random.RandomState(seed=self.seed)
         self.permut = rng.permutation(index_tab)
-                                      
+
     def __iter__(self):
         """ Generator function to iterate through all minibatches """
         counter = [0, 0, 0]
@@ -279,7 +279,7 @@ class BatchIterator(object):
             counter[chosen] = (counter[chosen] + 1) % self.limit[chosen]
             # Return the computed minibatch
             yield minibatch
-    
+
     def __len__(self):
         """ Return length of the weighted union """
         return self.length
@@ -291,7 +291,7 @@ class BatchIterator(object):
             index = counter[chosen]
             counter[chosen] = (counter[chosen] + 1) % self.limit[chosen]
             yield chosen, index
-    
+
     def by_subtensor(self):
         """ Generator function to iterate through all minibatches subtensors """
         counter = [0, 0, 0]
@@ -305,7 +305,7 @@ class BatchIterator(object):
             counter[chosen] = (counter[chosen] + 1) % self.limit[chosen]
             # Return the computed minibatch
             yield minibatch
-        
+
 
 ##################################################
 # Miscellaneous
