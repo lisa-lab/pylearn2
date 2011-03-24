@@ -1,0 +1,11 @@
+{
+    "tag": "train",
+    "dataset": {
+                "tag": "dataset",
+                "typename": "avicenna",
+                "which_set":  "train"
+               },
+    "model": {},
+    "algorithm": {},
+}
+
