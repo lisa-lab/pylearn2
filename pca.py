@@ -9,8 +9,8 @@ from pylearn.algorithms import pca_online_estimator
 from scipy import linalg
 
 # Local imports
-from framework.base import Block
-from framework.utils import sharedX
+from .base import Block
+from .utils import sharedX
 
 floatX = theano.config.floatX
 
@@ -200,7 +200,7 @@ if __name__ == "__main__":
     """
 
     import argparse
-    from framework.utils import load_data, get_constant
+    from .utils import load_data, get_constant
 
     parser = argparse.ArgumentParser(
         description="Transform the output of a model by Principal Component Analysis"
