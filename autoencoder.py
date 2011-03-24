@@ -99,9 +99,12 @@ class Autoencoder(Block):
             name='hb',
             borrow=True
         )
+
+        irange = float(irange)
+
         # TODO: use weight scaling factor if provided, Xavier's default else
         self.weights = sharedX(
-            .5 - rng.rand(nvis, nhid) * irange,
+            .5 - rng.uniform(-irange,irange, (nvis, nhid)),
             name='W',
             borrow=True
         )

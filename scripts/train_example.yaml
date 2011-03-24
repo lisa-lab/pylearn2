@@ -1,11 +1,21 @@
-{
-    "tag": "train",
-    "dataset": {
-                "tag": "dataset",
-                "typename": "avicenna",
-                "which_set":  "train"
+!obj:framework.scripts.train.Train {
+    "dataset": !obj:framework.datasets.avicenna.Avicenna {
+                "which_set":  "train",
+                "standardize": true
                },
-    "model": {},
-    "algorithm": {},
+    "model": !obj:framework.autoencoder.DenoisingAutoencoder {
+                "nvis" : 120,
+                "nhid" : 20,
+                "act_enc" : null,
+                "act_dec" : null,
+                "irange"  : 0.00001,
+                "tied_weights" : true,
+                "corruptor": !obj:framework.corruption.GaussianCorruptor {
+                               "corruption_level" : 0.15
+                        }
+        },
+    "algorithm": !obj:framework.training_algorithms.demo.Demo {
+                "base_lr"  :  1e-5
+    },
 }
 

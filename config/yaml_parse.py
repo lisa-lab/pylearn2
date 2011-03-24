@@ -4,6 +4,19 @@ from ..utils.call_check import checked_call
 
 is_initialized = False
 
+
+def load(string):
+    global is_initialized
+    if not is_initialized:
+        initialize()
+    return yaml.load(string)
+
+def load_path(path):
+    f =  open( path, 'r')
+    content = ''.join(f.readlines())
+    f.close()
+    return load(content)
+
 def multi_constructor(loader, tag_suffix, node) :
     """
     Constructor function passed to PyYAML telling it how to construct
@@ -18,7 +31,10 @@ def multi_constructor(loader, tag_suffix, node) :
         components = tag_suffix.split('.')
         modulename = '.'.join(components[:-1])
         exec('import %s' % modulename)
-        classname = eval(tag_suffix)
+        try:
+            classname = eval(tag_suffix)
+        except AttributeError:
+            raise AttributeError('Could not evaluate '+tag_suffix)
         return checked_call(classname, mapping)
 
 def initialize():
