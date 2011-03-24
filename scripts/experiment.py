@@ -101,7 +101,7 @@ def create_ae(conf, layer, data, model=None):
     MyCost = framework.cost.get(layer['cost_class'])
     varcost = MyCost(ae)(minibatch, ae.reconstruct(minibatch))
     if isinstance(ae, ContractingAutoencoder):
-        alpha = layer.get('contracting_penalty', 1)
+        alpha = layer.get('contracting_penalty', 1.)
         varcost += alpha * ae.contraction_penalty(minibatch)
     trainer = SGDOptimizer(ae, layer['base_lr'], layer['anneal_start'])
     updates = trainer.cost_updates(varcost)
@@ -183,16 +183,16 @@ if __name__ == "__main__":
               # Training properties
               'base_lr': 0.001,
               'anneal_start': 100,
-              'batch_size' : 20,
-              'epochs' : 5,
+              'batch_size' : 10,
+              'epochs' : 10,
               'proba' : [1, 0, 0],
               }
 
     # Third layer = PCA-3 no whiten
     layer3 = {'name' : '3st-PCA',
-              'num_components': 3,
+              'num_components': 7,
               'min_variance': 0,
-              'whiten': False,
+              'whiten': True,
               # Training properties
               'proba' : [0, 1, 0]
               }
@@ -205,7 +205,7 @@ if __name__ == "__main__":
             'normalize_on_the_fly' : False, # (Default = False)
             'randomize_valid' : True, # (Default = True)
             'randomize_test' : True, # (Default = True)
-            'saving_rate': 2, # (Default = 0)
+            'saving_rate': 0, # (Default = 0)
             'savedir' : './outputs',
             }
 
@@ -237,8 +237,8 @@ if __name__ == "__main__":
 
     # Compute the ALC for example with labels
     if conf['transfer']:
-        data, label = utils.filter_labels(data[0], label)
-        alc = embed.score(data, label)
+        data_train, label_train = utils.filter_labels(data[0], label)
+        alc = embed.score(data_train, label_train)
         print '... resulting ALC on train is', alc
         conf['train_alc'] = alc
 
