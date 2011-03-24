@@ -245,7 +245,8 @@ class DenoisingAutoencoder(Autoencoder):
     A denoising autoencoder learns a representation of the input by
     reconstructing a noisy version of it.
     """
-    def __init__(self, corruptor, *args, **kwargs):
+    def __init__(self, corruptor, nvis, nhid, act_enc, act_dec,
+                 tied_weights=False, irange=1e-3, rng=9001):
         """
         Allocate a denoising autoencoder object.
 
@@ -261,7 +262,15 @@ class DenoisingAutoencoder(Autoencoder):
         for the Autoencoder class; see the `Autoencoder.__init__` docstring
         for details.
         """
-        super(DenoisingAutoencoder, self).__init__(*args, **kwargs)
+        super(DenoisingAutoencoder, self).__init__(
+            nvis,
+            nhid,
+            act_enc,
+            act_dec,
+            tied_weights,
+            irange,
+            rng
+        )
         self.corruptor = corruptor
 
     def reconstruct(self, inputs):
