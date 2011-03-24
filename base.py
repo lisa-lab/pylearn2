@@ -7,7 +7,6 @@ import cPickle
 import os.path
 
 # Third-party imports
-import numpy
 import theano
 from theano import tensor
 
