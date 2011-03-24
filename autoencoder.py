@@ -351,7 +351,7 @@ class ContractingAutoencoder(Autoencoder):
             # following form.
             jacobian = self.weights * act_grad.dimshuffle(0, 'x', 1)
             # Penalize the mean of the L2 norm, basically.
-            L = tensor.mean(jacobian**2)
+            L = tensor.sum(tensor.mean(jacobian**2,axis=0))
             return L
         if isinstance(inputs, tensor.Variable):
             return penalty(inputs)
