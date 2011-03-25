@@ -1,46 +1,128 @@
-"""Support code for setting up YAML parsing."""
+"""Support code for YAML parsing of experiment descriptions."""
 import yaml
 from ..utils.call_check import checked_call
 
 is_initialized = False
 
 def load(stream, overrides=None, **kwargs):
+    """
+    Loads a YAML configuration from a string or file-like object.
+
+    Parameters
+    ----------
+    stream : str or object
+        Either a string containing valid YAML or a file-like object
+        supporting the .read() interface.
+    overrides : dict, optional
+        A dictionary containing overrides to apply. The location of
+        the override is specified in the key as a dot-delimited path
+        to the desired parameter, e.g. "model.corruptor.corruption_level".
+
+    Returns
+    -------
+    graph : dict or object
+        The dictionary or object (if the top-level element specified an
+        Python object to instantiate).
+
+    Notes
+    -----
+    Other keyword arguments are passed on to `yaml.load`.
+    """
     global is_initialized
     if not is_initialized:
         initialize()
-    proxy_tree = yaml.load(stream, **kwargs)
+    proxy_graph = yaml.load(stream, **kwargs)
     import pdb; pdb.set_trace()
     if overrides is not None:
-        handle_overrides(proxy_tree, overrides)
-    return instantiate_all(proxy_tree)
+        handle_overrides(proxy_graph, overrides)
+    return instantiate_all(proxy_graph)
 
-def load_path(path, **kwargs):
+def load_path(path, overrides=None, **kwargs):
+    """
+    Convenience function for loading a YAML configuration from a file.
+
+    Parameters
+    ----------
+    path : str
+        The path to the file to load on disk.
+    overrides : dict, optional
+        A dictionary containing overrides to apply. The location of
+        the override is specified in the key as a dot-delimited path
+        to the desired parameter, e.g. "model.corruptor.corruption_level".
+
+    Returns
+    -------
+    graph : dict or object
+        The dictionary or object (if the top-level element specified an
+        Python object to instantiate).
+
+    Notes
+    -----
+    Other keyword arguments are passed on to `yaml.load`.
+    """
     f =  open( path, 'r')
     content = ''.join(f.readlines())
     f.close()
     return load(content, **kwargs)
 
-def handle_overrides(tree, overrides):
+def handle_overrides(graph, overrides):
+    """
+    Handle any overrides for this model configuration.
+
+    Parameters
+    ----------
+    graph : dict or object
+        A dictionary (or an ObjectProxy) containing the object graph
+        loaded from a YAML file.
+    overrides : dict
+        A dictionary containing overrides to apply. The location of
+        the override is specified in the key as a dot-delimited path
+        to the desired parameter, e.g. "model.corruptor.corruption_level".
+    """
     for key in overrides:
         levels = key.split('.')
-        part = tree
+        part = graph
         for lvl in levels[:-1]:
             try:
                 part = part[lvl]
             except KeyError:
                 raise KeyError("'%s' override failed at '%s'", (key, lvl))
-        part[levels[-1]] = overrides[key]
+        try:
+            part[levels[-1]] = overrides[key]
+        except KeyError:
+            raise KeyError("'%s' override failed at '%s'", (key, levels[-1]))
 
-def instantiate_all(tree):
-    for key in tree:
-        if isinstance(tree[key], ObjectProxy) or isinstance(tree[key], dict):
-            tree[key] = instantiate_all(tree[key])
-    if isinstance(tree, ObjectProxy):
-        tree = tree.instantiate()
-    return tree
+def instantiate_all(graph):
+    """
+    Instantiate all ObjectProxy objects in a nested hierarchy.
+
+    Parameters
+    ----------
+    graph : dict or object
+        A dictionary (or an ObjectProxy) containing the object graph
+        loaded from a YAML file.
+
+    Returns
+    -------
+    graph : dict or object
+        The dictionary or object resulting after the recursive instantiation.
+    """
+    for key in graph:
+        if isinstance(graph[key], ObjectProxy) or isinstance(graph[key], dict):
+            graph[key] = instantiate_all(graph[key])
+    if isinstance(graph, ObjectProxy):
+        graph = graph.instantiate()
+    return graph
 
 class ObjectProxy(object):
+    """
+    Class used to delay instantiation of objects so that overrides can be
+    applied.
+    """
     def __init__(self, cls, kwds):
+        """
+
+        """
         self.cls = cls
         self.kwds = kwds
         self.instance = None
@@ -55,6 +137,10 @@ class ObjectProxy(object):
         return self.kwds.__iter__()
 
     def instantiate(self):
+        """
+        Instantiate this object with the supplied parameters in `self.kwds`,
+        or if already instantiated, return the cached instance.
+        """
         if self.instance is None:
             self.instance = checked_call(self.cls, self.kwds)
         return self.instance
@@ -80,6 +166,10 @@ def multi_constructor(loader, tag_suffix, node) :
         return ObjectProxy(classname, mapping)
 
 def initialize():
+    """
+    Initialize the configuration system by installing YAML handlers.
+    Automatically done on first call to load() specified in this file.
+    """
     global is_initialized
     # Add the custom multi-constructor
     yaml.add_multi_constructor('!obj:', multi_constructor)
