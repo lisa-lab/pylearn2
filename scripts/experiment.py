@@ -117,7 +117,7 @@ def create_ae(conf, layer, data, model=None):
     varcost = MyCost(ae)(minibatch, ae.reconstruct(minibatch))
     if isinstance(ae, ContractingAutoencoder):
         alpha = layer.get('contracting_penalty', 0.1)
-        varcost += alpha * ae.contraction_penalty(minibatch)
+        varcost += tensor.mean(alpha * ae.contraction_penalty(minibatch))
     trainer = SGDOptimizer(ae, layer['base_lr'], layer['anneal_start'])
     updates = trainer.cost_updates(varcost)
 
@@ -190,7 +190,7 @@ if __name__ == "__main__":
               'act_enc': 'sigmoid',
               'act_dec': None,
               'irange': 0.001,
-              'cost_class' : 'MeanSquaredError',
+              'cost_class' : 'SquaredError',
               'autoenc_class': 'ContractingAutoencoder',
               'corruption_class' : 'BinomialCorruptor',
               #'corruption_level' : 0.3, # For DenoisingAutoencoder
@@ -198,7 +198,7 @@ if __name__ == "__main__":
               # Training properties
               'base_lr': 0.001,
               'anneal_start': 100,
-              'batch_size' : 10,
+              'batch_size' : 1,
               'epochs' : 10,
               'proba' : [1, 0, 0],
               }

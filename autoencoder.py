@@ -238,6 +238,7 @@ class Autoencoder(Block):
             reconstructed minibatch(es) after encoding/decoding.
         """
         hiddens = self.encode(inputs)
+        self.hiddens=hiddens
         self.regularization = self.compute_regularization(hiddens)
         
         if self.act_dec is None:
@@ -392,7 +393,7 @@ class ContractingAutoencoder(Autoencoder):
             # following form.
             jacobian = self.weights * act_grad.dimshuffle(0, 'x', 1)
             # Penalize the mean of the L2 norm, basically.
-            L = tensor.mean(jacobian**2)
+            L = tensor.sum(jacobian**2)
             return L
         if isinstance(inputs, tensor.Variable):
             return penalty(inputs)
