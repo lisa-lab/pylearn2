@@ -82,11 +82,11 @@ class Autoencoder(Block):
             If is empty (default), the regularization term for the cost function will be 0.
             If 'l1_penalty', add to loss a L1 penalty.
             If 'sqr_penalty', add to loss a quadratic penalty
-        sparse_penalty : float, optional 
+        sparse_penalty : float, optional
             hyperparameter to control the value of the regularization term for the L1 penalty
-        sparsityTarget : float, optional 
+        sparsityTarget : float, optional
             hyperparameter to control the value of the regularization term for the quadratic penalty
-        sparsityTargetPenalty : float, optional 
+        sparsityTargetPenalty : float, optional
             hyperparameter to control difference between the values of hiddens output of
             the regularization term for the quadratic penalty
         irange : float, optional
@@ -153,11 +153,11 @@ class Autoencoder(Block):
         ]
         if not tied_weights:
             self._params.append(self.w_prime)
-       
+
         self.solution = solution
         self.sparse_penalty = sparse_penalty
         self.sparsityTarget = sparsityTarget
-        self.sparsityTargetPenalty = sparsityTargetPenalty 
+        self.sparsityTargetPenalty = sparsityTargetPenalty
         self.regularization = 0
 
     def _hidden_activation(self, x):
@@ -241,35 +241,35 @@ class Autoencoder(Block):
         hiddens = self.encode(inputs)
         self.hiddens=hiddens
         self.regularization = self.compute_regularization(hiddens)
-        
+
         if self.act_dec is None:
             act_dec = lambda x: x
-        else: 
+        else:
             act_dec = self.act_dec
         if isinstance(inputs, tensor.Variable):
             return act_dec(self.visbias + tensor.dot(hiddens, self.w_prime))
         else:
             return [self.reconstruct(inp) for inp in inputs]
-    
+
     def compute_penalty_value(self):
         '''
         Return the penalty value compute by the function compute_regularization
         '''
         return self.regularization
-                
+
     def compute_regularization(self,hiddens) :
         """
         Compute the penalty value depending on the choice solution (L1 or quadratic).
-        """ 
+        """
         regularization = 0
         # Compute regularization term
         if self.solution == 'l1_penalty':# Penalite de type L1
            regularization = self.sparse_penalty * tensor.sum(hiddens)
-        elif self.solution == 'sqr_penalty':# Penalite de type quadratique   
+        elif self.solution == 'sqr_penalty':# Penalite de type quadratique
            regularization = self.sparsityTargetPenalty * tensor.sum(tensor.sqr(hiddens - self.sparsityTarget))
-        
+
         return regularization
-    
+
     def __call__(self, inputs):
         """
         Forward propagate (symbolic) input through this module, obtaining
@@ -325,9 +325,9 @@ class DenoisingAutoencoder(Autoencoder):
         """
         corrupted = self.corruptor(inputs)
         return super(DenoisingAutoencoder, self).reconstruct(corrupted)
-    
+
     #def compute_penalty_value(self):
-        #return super(DenoisingAutoencoder, self).compute_penalty_value()    
+        #return super(DenoisingAutoencoder, self).compute_penalty_value()
 
 class ContractingAutoencoder(Autoencoder):
     """
@@ -405,7 +405,7 @@ def build_stacked_ae(nvis, nhids, act_enc, act_dec,
                      tied_weights=False, irange=1e-3, rng=None,
                      corruptor=None, contracting=False,solution=None,sparse_penalty=None,sparsityTarget=None,sparsityTargetPenalty=None):
     """Allocate a stack of autoencoders."""
-  
+
     if not hasattr(rng, 'randn'):
         rng = numpy.random.RandomState(rng)
     layers = []
@@ -419,12 +419,12 @@ def build_stacked_ae(nvis, nhids, act_enc, act_dec,
             final[c] = locals()[c]
         else:
             final[c] = [locals()[c]] * len(nhids)
-            
-    
+
+
     # The number of visible units in each layer is the initial input
     # size and the first k-1 hidden unit sizes.
-    # solution , sparse_penalty ,sparsityTarget, and sparsityTargetPenalty have the same size as nhids. 
-    # They can add an L1 penalty, a quadratic to each layer of the stacked ae. 
+    # solution , sparse_penalty ,sparsityTarget, and sparsityTargetPenalty have the same size as nhids.
+    # They can add an L1 penalty, a quadratic to each layer of the stacked ae.
     nviss = [nvis] + nhids[:-1]
     seq = izip(nhids, nviss,
         final['act_enc'],
