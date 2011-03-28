@@ -21,17 +21,29 @@ class SGDOptimizer(Optimizer):
 
     def __init__(self, params, base_lr, anneal_start=None, **kwargs):
         """
-        :param base_lr: the base learning rate
-        :param <paramname>_lr: specific modifier of the learning rate applied
-              on parameter <paramname>. Defaults to 1.
-        :param anneal_start: Annealing coefficient.
+        Construct an SGDOptimizer.
 
-        :type params: Either a list of shared variables, or an object with
-            a 'params()' method returning such a list.
-        :param params: The parameters we want to update.
+        Parameters
+        ----------
+        params : object or list
+            Either a Block object with a .params() method, or a list of
+            parameters to be optimized.
+        base_lr : float
+            The base learning rate before annealing or parameter-specific
+            scaling.
+        anneal_start : int
+            Number of steps after which to start annealing the learning
+            rate at a 1/t schedule, where t is the number of stochastic
+            gradient updates.
 
+        Notes
+        -----
         The formula to compute the effective learning rate on a parameter is:
         <paramname>_lr * min(0.0, max(base_lr, lr_anneal_start/(iteration+1)))
+
+        Parameter-specific learning rates can be set by passing keyword
+        arguments <name>_lr, where name is the .name attribute of a given
+        parameter.
         """
         if hasattr(params, '__iter__'):
             self.params = params
@@ -47,6 +59,18 @@ class SGDOptimizer(Optimizer):
         """
         Initializes parameter-specific learning rate dictionary and shared
         variables for the annealed base learning rate and iteration number.
+
+        Parameters
+        ----------
+        base_lr : float
+            The base learning rate before annealing or parameter-specific
+            scaling.
+
+        Notes
+        -----
+        Parameter-specific learning rates can be set by passing keyword
+        arguments <name>_lr, where name is the .name attribute of a given
+        parameter.
         """
         # Take care of learning rate scales for individual parameters
         self.learning_rates = {}
@@ -67,6 +91,17 @@ class SGDOptimizer(Optimizer):
         self.annealed = sharedX(base_lr, 'annealed')
 
     def learning_rate_updates(self):
+        """
+        Compute a dictionary of shared variable updates related to annealing
+        the learning rate.
+
+        Returns
+        -------
+        updates : dict
+            A dictionary with the shared variables representing SGD metadata
+            as keys and a symbolic expression of how they are to be updated as
+            values.
+        """
         ups = {}
 
         # Annealing coefficient. Here we're using a formula of
@@ -88,15 +123,27 @@ class SGDOptimizer(Optimizer):
         return ups, learn_rates
 
     def updates(self, gradients):
-        """Return symbolic updates to apply.
+        """
+        Return symbolic updates to apply given a set of gradients
+        on the parameters being optimized.
 
-        The updates are computed to follow the gradient of a cost
-        (or pseudo-cost), wrt self.parameters.
+        Parameters
+        ----------
+        gradients : list of tensor_likes
+            List of symbolic gradients for the parameters contained
+            in self.params, in the same order as in self.params.
 
-        :type gradients: A list of symbolic Theano variables, the same
-        length as self.model
-        :param gradients: The gradients of a cost (or pseudo-cost) wrt
-        self.params.
+        Returns
+        -------
+        updates : dict
+            A dictionary with the shared variables in self.params as keys
+            and a symbolic expression of how they are to be updated each
+            SGD step as values.
+
+        Notes
+        -----
+        `cost_updates` is a convenient helper function that takes all
+        necessary gradients with respect to a given symbolic cost.
         """
         ups = {}
         # Add the learning rate/iteration updates
@@ -113,13 +160,22 @@ class SGDOptimizer(Optimizer):
         return ups
 
     def cost_updates(self, cost):
-        """Return symbolic updates given a cost to minimize
+        """
+        Return symbolic updates to apply given a cost function.
 
-        :type cost: A scalar symbolic Theano variable
-        :param cost: The cost to minimize.
+        Parameters
+        ----------
+        cost : tensor_like
+            Symbolic cost with respect to which the gradients of
+            the parameters should be taken. Should be 0-dimensional
+            (scalar valued).
 
-        self.cost_updates(cost) is equivalent to
-        self.updates(T.grad(cost, self.params))
+        Returns
+        -------
+        updates : dict
+            A dictionary with the shared variables in self.params as keys
+            and a symbolic expression of how they are to be updated each
+            SGD step as values.
         """
         grads = [tensor.grad(cost, p) for p in self.params]
         return self.updates(gradients=grads)
