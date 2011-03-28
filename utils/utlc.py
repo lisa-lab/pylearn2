@@ -19,26 +19,25 @@ from auc import embed
 
 floatX = theano.config.floatX
 
+def get_constant(variable):
+    """ Little hack to return the python value of a theano shared variable """
+    return theano.function([],
+                           variable,
+                           mode=theano.compile.Mode(linker='py')
+                           )()
+
+def sharedX(value, name=None, borrow=False):
+    """Transform value into a shared variable of type floatX"""
+    return theano.shared(theano._asarray(value, dtype=floatX),
+                         name=name,
+                         borrow=borrow)
+
 def subdict(d, keys):
     """ Create a subdictionary of d with the keys in keys """
     result = {}
     for key in keys:
         if key in d: result[key] = d[key]
     return result
-
-def get_constant(variable):
-    """ Little hack to return the python value of a theano shared variable """
-    return theano.function(
-        [],
-        variable,
-        mode=theano.compile.Mode(linker='py')
-    )()
-
-def sharedX(value, name=None, borrow=False):
-    """Transform value into a shared variable of type floatX"""
-    return theano.shared(theano._asarray(value, dtype=floatX),
-                         name=name,
-                         borrow=False)
 
 def safe_update(dict_to, dict_from):
     """
@@ -49,6 +48,19 @@ def safe_update(dict_to, dict_from):
             raise KeyError(key)
         dict_to[key] = val
     return dict_to
+
+def getboth(dict1, dict2, key, default=None):
+    """
+    Try to retrieve key from dict1 if exists, otherwise try with dict2.
+    If the key is not found in any of them, raise an exception.
+    """
+    try:
+        return dict1[key]
+    except KeyError:
+        if default is None:
+            return dict2[key]
+        else:
+            return dict2.get(key, default)
 
 ##################################################
 # Datasets and contest facilities
@@ -61,12 +73,10 @@ def load_data(conf):
     expected = ['normalize',
                 'normalize_on_the_fly',
                 'randomize_valid',
-                'randomize_test']
-    print '... loading data'
-    train_set, valid_set, test_set = load_ndarray_dataset(
-        conf['dataset'],
-        **subdict(conf, expected)
-    )
+                'randomize_test',
+                'transfer']
+    print '... loading Dataset'
+    data = load_ndarray_dataset(conf['dataset'], **subdict(conf, expected))
 
     # Allocate shared variables
     def shared_dataset(data_x):
@@ -77,30 +87,29 @@ def load_data(conf):
             return theano.shared(theano._asarray(data_x), borrow=True)
 
     if conf.get('normalize_on_the_fly', False):
-        return [train_set, valid_set, test_set]
+        return data
     else:
-        test_set_x = shared_dataset(test_set)
-        valid_set_x = shared_dataset(valid_set)
-        train_set_x = shared_dataset(train_set)
-        return [train_set_x, valid_set_x, test_set_x]
+        return map(shared_dataset, data)
 
-
-def create_submission(conf, get_representation):
+def create_submission(conf, transform_valid, transform_test = None):
     """
     Create submission files given a configuration dictionary and a
-    computation function
+    computation function.
 
     Note that it always reload the datasets to ensure valid & test
-    are not permuted
+    are not permuted.
     """
+    if transform_test is None:
+        transform_test = transform_valid
+
     # Load the dataset, without permuting valid and test
     kwargs = subdict(conf, ['dataset', 'normalize', 'normalize_on_the_fly'])
     kwargs.update(randomize_valid=False, randomize_test=False)
-    train_set, valid_set, test_set = load_data(kwargs)
+    valid_set, test_set = load_data(kwargs)[1:3]
 
     # Valid and test representations
-    valid_repr = get_representation(get_constant(valid_set))
-    test_repr = get_representation(test_set.get_value())
+    valid_repr = transform_valid(valid_set.get_value(borrow=True))
+    test_repr = transform_test(test_set.get_value(borrow=True))
 
     # If there are too much features, outputs kernel matrices
     if (valid_repr.shape[1] > valid_repr.shape[0]):
@@ -128,15 +137,15 @@ def create_submission(conf, get_representation):
     del test_repr
 
     # Write it in a .txt file
-    submit_dir = conf['submit_dir']
+    submit_dir = conf['savedir']
     if not os.path.exists(submit_dir):
         os.mkdir(submit_dir)
     elif not os.path.isdir(submit_dir):
-        raise IOError('submit_dir %s is not a directory' % submit_dir)
+        raise IOError('savedir %s is not a directory' % submit_dir)
 
     basename = os.path.join(submit_dir,
                             conf['dataset'] + '_' + conf['expname']
-                           )
+                            )
     valid_file = open(basename + '_valid.prepro', 'w')
     test_file = open(basename + '_final.prepro', 'w')
 
@@ -171,26 +180,40 @@ def compute_alc(valid_repr, test_repr):
     normal case (i.e only train on training set)
     """
 
-    # Concatenate the two sets, and give different one hot labels for
-    # valid and test
-    n_valid  = valid_repr.shape[0]
+    # Concatenate the sets, and give different one hot labels for valid and test
+    n_valid = valid_repr.shape[0]
     n_test = test_repr.shape[0]
 
-    _labvalid = numpy.hstack((numpy.ones((n_valid,1)),
-                              numpy.zeros((n_valid,1))))
-    _labtest = numpy.hstack((numpy.zeros((n_test,1)), numpy.ones((n_test,1))))
+    _labvalid = numpy.hstack((numpy.ones((n_valid, 1)),
+                              numpy.zeros((n_valid, 1))))
+    _labtest = numpy.hstack((numpy.zeros((n_test, 1)),
+                             numpy.ones((n_test, 1))))
 
     dataset = numpy.vstack((valid_repr, test_repr))
-    label = numpy.vstack((_labvalid,_labtest))
+    label = numpy.vstack((_labvalid, _labtest))
 
     print '... computing the ALC'
     return embed.score(dataset, label)
 
+
 def lookup_alc(data, transform):
-    valid_repr = transform(data[1].get_value())
-    test_repr = transform(data[2].get_value())
+    valid_repr = transform(data[1].get_value(borrow=True))
+    test_repr = transform(data[2].get_value(borrow=True))
 
     return compute_alc(valid_repr, test_repr)
+
+
+def filter_labels(train, label):
+    """ Filter examples of train for which we have labels """
+    # Examples for which any label is set
+    condition = label.get_value(borrow=True).any(axis=1)
+
+    # Compress train and label arrays according to condition
+    def aux(var):
+        return var.get_value(borrow=True).compress(condition, axis=0)
+
+    return (aux(train), aux(label))
+
 
 ##################################################
 # Iterator object for blending datasets
@@ -201,18 +224,22 @@ class BatchIterator(object):
     Builds an iterator object that can be used to go through the minibatches
     of a dataset, with respect to the given proportions in conf
     """
-    def __init__(self, conf, dataset):
+    def __init__(self, dataset, set_proba, batch_size, seed = 300):
+        # Local shortcuts for array operations
+        flo = numpy.floor
+        sub = numpy.subtract
+        mul = numpy.multiply
+        div = numpy.divide
+        mod = numpy.mod
+
         # Record external parameters
-        self.batch_size = conf['batch_size']
-        # TODO: If you have a better way to return dataset slices, I'll take it
-        self.dataset = [set.get_value() for set in dataset]
+        self.batch_size = batch_size
+        self.dataset = dataset
 
         # Compute maximum number of samples for one loop
-        set_proba = [conf['train_prop'], conf['valid_prop'], conf['test_prop']]
         set_sizes = [get_constant(data.shape[0]) for data in dataset]
         set_batch = [float(self.batch_size) for i in xrange(3)]
-        set_range = numpy.divide(numpy.multiply(set_proba, set_sizes),
-                                 set_batch)
+        set_range = div(mul(set_proba, set_sizes), set_batch)
         set_range = map(int, numpy.ceil(set_range))
 
         # Upper bounds for each minibatch indexes
@@ -220,13 +247,11 @@ class BatchIterator(object):
         self.limit = map(int, set_limit)
 
         # Number of rows in the resulting union
-        flo = numpy.floor
-        sub = numpy.subtract
-        mul = numpy.multiply
-        div = numpy.divide
-        mod = numpy.mod
+        set_tsign = sub(set_limit, flo(div(set_sizes, set_batch)))
+        set_tsize = mul(set_tsign, flo(div(set_range, set_limit)))
+
         l_trun = mul(flo(div(set_range, set_limit)), mod(set_sizes, set_batch))
-        l_full = mul(sub(set_range, flo(div(set_range, set_limit))), set_batch)
+        l_full = mul(sub(set_range, set_tsize), set_batch)
 
         self.length = sum(l_full) + sum(l_trun)
 
@@ -235,8 +260,8 @@ class BatchIterator(object):
         for i in xrange(3):
             index_tab.extend(repeat(i, set_range[i]))
 
-        # The seed should be deterministic
-        self.seed = conf.get('batchiterator_seed', 300)
+        # Use a deterministic seed
+        self.seed = seed
         rng = numpy.random.RandomState(seed=self.seed)
         self.permut = rng.permutation(index_tab)
 
@@ -246,7 +271,7 @@ class BatchIterator(object):
         for chosen in self.permut:
             # Retrieve minibatch from chosen set
             index = counter[chosen]
-            minibatch = self.dataset[chosen][
+            minibatch = self.dataset[chosen].get_value(borrow=True)[
                 index * self.batch_size:(index + 1) * self.batch_size
             ]
             # Increment the related counter
@@ -266,23 +291,37 @@ class BatchIterator(object):
             counter[chosen] = (counter[chosen] + 1) % self.limit[chosen]
             yield chosen, index
 
+    def by_subtensor(self):
+        """ Generator function to iterate through all minibatches subtensors """
+        counter = [0, 0, 0]
+        for chosen in self.permut:
+            # Retrieve minibatch from chosen set
+            index = counter[chosen]
+            minibatch = self.dataset[chosen][
+                index * self.batch_size:(index + 1) * self.batch_size
+            ]
+            # Increment the related counter
+            counter[chosen] = (counter[chosen] + 1) % self.limit[chosen]
+            # Return the computed minibatch
+            yield minibatch
+
+
 ##################################################
 # Miscellaneous
 ##################################################
 
-def blend(conf, data):
+def blend(dataset, set_proba, **kwargs):
     """
-    Randomized blending of datasets in data according to parameters
-    in conf
+    Randomized blending of datasets in data according to parameters in conf
     """
-    iterator = BatchIterator(conf, data)
+    iterator = BatchIterator(dataset, set_proba, 1, **kwargs)
     nrow = len(iterator)
-    ncol = data[0].get_value().shape[1]
-    array = numpy.empty((nrow, ncol), data[0].dtype)
-    index = 0
-    for minibatch in iterator:
-        for row in minibatch:
-            array[index] = row
-            index += 1
+    ncol = get_constant(dataset[0].shape[1])
+    array = numpy.empty((nrow, ncol), dataset[0].dtype)
+    row = 0
+    for chosen, index in iterator.by_index():
+        array[row] = dataset[chosen].get_value(borrow=True)[index]
+        row += 1
 
     return sharedX(array, borrow=True)
+

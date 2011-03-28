@@ -1,7 +1,7 @@
 """KMeans as a postprocessing Block subclass."""
 
 import numpy
-from framework.base import Block
+from .base import Block
 
 class KMeans(Block):
     """
@@ -126,10 +126,10 @@ class KMeans(Block):
 if __name__=='__main__':
     import theano
     from theano import tensor
-    from framework.corruption import GaussianCorruptor
-    from framework.autoencoder import DenoisingAutoencoder
-    from framework.cost import MeanSquaredError
-    from framework.optimizer import SGDOptimizer
+    from .corruption import GaussianCorruptor
+    from .autoencoder import DenoisingAutoencoder
+    from .cost import MeanSquaredError
+    from .optimizer import SGDOptimizer
     # toy labeled data: [x,y,label]*n samples
     n=50
     rng = numpy.random.RandomState(seed=7777777)

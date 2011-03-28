@@ -7,6 +7,7 @@ from itertools import imap
 
 # Third-party imports
 from theano import tensor
+from framework.autoencoder import Autoencoder
 
 class SupervisedCost(object):
     def __init__(self, model):
@@ -18,13 +19,38 @@ class SupervisedCost(object):
         """Symbolic expression denoting the reconstruction error."""
         raise NotImplementedError()
 
+class SquaredError(SupervisedCost):
+    """
+    Symbolic expression for mean-squared error between the target
+    and a prediction.
+    """
+    def __call__(self, prediction, target):
+        msq = lambda p, t: tensor.sum((p - t)**2,axis=1)
+        if isinstance(prediction, tensor.Variable):
+            return msq(prediction, target)
+        else:
+            # TODO: Think of something more sensible to do than sum(). On one
+            # hand, if we're treating everything in parallel it should return
+            # a list. On the other, we need a scalar for everything else to
+            # work.
+
+            # This will likely get refactored out into a "costs" module or
+            # something like that.
+            return sum(imap(msq, prediction, target))
+
 class MeanSquaredError(SupervisedCost):
     """
     Symbolic expression for mean-squared error between the target
     and a prediction.
     """
     def __call__(self, prediction, target):
-        msq = lambda p, t: ((p - t)**2).sum(axis=1).mean()
+        
+        regularization = 0
+        # Test if the class implements the function compute_penality_value. This function only implemented in Autoencoder class.
+        if isinstance(self.model, Autoencoder): 
+            regularization = self.model.compute_penalty_value()
+                    
+        msq = lambda p, t: ((p - t)**2).sum(axis=1).mean() + regularization
         if isinstance(prediction, tensor.Variable):
             return msq(prediction, target)
         else:
@@ -44,7 +70,14 @@ class CrossEntropy(SupervisedCost):
     e.g., one-hot codes).
     """
     def __call__(self, prediction, target):
-        ce = lambda x, z: x * tensor.log(z) + (1 - x) * tensor.log(1 - z)
+    
+        regularization = 0
+        # Test if the class implements the function compute_penality_value. This function only implemented in Autoencoder class.
+        if isinstance(self.model, Autoencoder): 
+            regularization = self.model.compute_penalty_value()
+                                                                
+    
+        ce = lambda x, z: x * tensor.log(z) + (1 - x) * tensor.log(1 - z) + regularization
         if isinstance(prediction, tensor.Variable):
             return ce(prediction, target)
         return sum(
