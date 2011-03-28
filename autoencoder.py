@@ -12,7 +12,8 @@ from theano.tensor import elemwise
 
 # Local imports
 from framework.base import Block, StackedBlocks
-from framework.utils import sharedX, is_pure_elemwise
+from framework.utils.theano_graph import is_pure_elemwise
+from framework.utils.utlc import sharedX
 
 theano.config.warn.sum_div_dimshuffle_bug = False
 floatX = theano.config.floatX
