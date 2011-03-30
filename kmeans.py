@@ -9,14 +9,23 @@ class KMeans(Block):
     computed during training.
     """
 
-    def __init__(self, k):
+    def __init__(self, k, convergence_th = 1e-6, max_iter=-1):
         """
         Parameters in conf:
 
         :type k: int
         :param k: number of clusters.
+
+        :type convergence_th: float
+        :param convergence_th: threshold of distance to clusters under which
+        kmeans stops iterating.
         """
         self.k = k
+        self.convergence_th = convergence_th
+        if max_iter > 0:
+            self.max_iter = max_iter
+        else:
+            self.max_iter = float('inf')
 
     def train(self,X):
         """
@@ -35,7 +44,7 @@ class KMeans(Block):
         old_kills = {}
 
         iter = 0
-        mmd=prev_mmd=0
+        mmd = prev_mmd = float('inf')
         while True:
             #print 'iter:',iter,' conv crit:',abs(mmd-prev_mmd)
             #if numpy.sum(numpy.isnan(mu)) > 0:
@@ -55,7 +64,8 @@ class KMeans(Block):
             #mean minimum distance:
             mmd = min_dists.mean()
 
-            if iter > 0 and abs(mmd-prev_mmd)<1e-6:
+            if iter > 0 and (iter >= self.max_iter or \
+                                    abs(mmd - prev_mmd) < self.convergence_th):
                 #converged
                 break
 
