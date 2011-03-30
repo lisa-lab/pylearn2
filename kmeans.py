@@ -32,11 +32,12 @@ class KMeans(Block):
 
         dists = numpy.zeros((n,k))
 
-        killed_on_prev_iter = False
         old_kills = {}
 
         iter = 0
+        mmd=prev_mmd=0
         while True:
+            #print 'iter:',iter,' conv crit:',abs(mmd-prev_mmd)
             #if numpy.sum(numpy.isnan(mu)) > 0:
             if True in numpy.isnan(mu):
                 print 'nan found'
@@ -54,7 +55,7 @@ class KMeans(Block):
             #mean minimum distance:
             mmd = min_dists.mean()
 
-            if iter > 0 and (not killed_on_prev_iter) and abs(mmd-prev_mmd)<.1:
+            if iter > 0 and abs(mmd-prev_mmd)<1e-6:
                 #converged
                 break
 
@@ -65,7 +66,6 @@ class KMeans(Block):
             i = 0
             blacklist = []
             new_kills = {}
-            killed_on_prev_iter = False
             while i < k:
                 b = min_dist_inds == i
                 if not numpy.any(b):
@@ -99,7 +99,7 @@ class KMeans(Block):
                 else:
                     mu[i,:] = numpy.mean( X[b,: ] ,axis=0)
                     if True in numpy.isnan(mu):
-                        print 'nan found at i'
+                        print 'nan found at',i
                         return X
                     i += 1
 
