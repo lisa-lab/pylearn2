@@ -9,7 +9,7 @@ class KMeans(Block):
     computed during training.
     """
 
-    def __init__(self, k, convergence_th = 1e-6, max_iter=-1):
+    def __init__(self, k, convergence_th = 1e-6, max_iter = None):
         """
         Parameters in conf:
 
@@ -19,10 +19,15 @@ class KMeans(Block):
         :type convergence_th: float
         :param convergence_th: threshold of distance to clusters under which
         kmeans stops iterating.
+
+        :type max_iter: int
+        :param max_iter: maximum number of iterations. Defaults to infinity.
         """
         self.k = k
         self.convergence_th = convergence_th
-        if max_iter > 0:
+        if max_iter:
+            if max_iter < 0:
+                raise Exception('KMeans init: max_iter should be positive.')
             self.max_iter = max_iter
         else:
             self.max_iter = float('inf')
