@@ -29,9 +29,13 @@ class Block(object):
     """
     def params(self):
         """
-        Returns a list of *shared* learnable parameters that
-        are, in your judgment, typically learned in this
-        model.
+        Get the list of learnable parameters in a Block.
+
+        Returns
+        -------
+        param_list : list of shared variables
+            A list of *shared* learnable parameters that are, in the
+            implementor's judgment, typically learned in this model.
         """
         # NOTE: We return list(self._params) rather than self._params
         # in order to explicitly make a copy, so that the list isn't
