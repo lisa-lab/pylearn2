@@ -25,20 +25,18 @@ from framework.optimizer import SGDOptimizer
 
 if __name__ == "__main__":
     # Simulate some fake data.
-    # On initialise le generateur de nombre aleatoire
     rng = numpy.random.RandomState(seed=42)
-    # On rempli un tableau de float32 avec des donnees aleatoires de taille (1000,15)
     data = numpy.ndarray.astype(rng.normal(size=(500, 15)), numpy.float32)
 
     conf = {
-        'corruption_level': 0.1, # Niveau de corruption du bruit
-        'nhid': 20,# Nombre d'unites cache de la couche cachee
-        'nvis': data.shape[1],# Nombre d'unites d'entree (x) de couche d'entree ou de la couche visible
-        'anneal_start': 100,# Permet l'optimisation lors de la descente de gradient
-        'base_lr': 0.01, # Learning rate
-        'tied_weights': True, # Si true la matrice de poids est la meme pour encode et decode. Dans le cas contraire elle est apprise de facon distinct pour chaque phase
-        'act_enc': 'tanh',# Fonction utilise pour l'encodage
-        'act_dec': None,# Fonction utilisee pour le decodage
+        'corruption_level': 0.1,
+        'nhid': 20,
+        'nvis': data.shape[1],
+        'anneal_start': 100,
+        'base_lr': 0.01, 
+        'tied_weights': True, 
+        'act_enc': 'tanh',
+        'act_dec': None,
         #'lr_hb': 0.10,
         #'lr_vb': 0.10,
         'tied_weights': False ,
@@ -46,7 +44,7 @@ if __name__ == "__main__":
         'sparse_penalty': 0.01,
         'sparsityTarget': 0.1 ,
         'sparsityTargetPenalty': 0.001 ,
-        'irange': 0.001, # Pas d'incrementation
+        'irange': 0.001, 
     }
 
     # A symbolic input representing your minibatch.
@@ -81,7 +79,6 @@ if __name__ == "__main__":
     # Suppose you then want to use the representation for something.
     transform = theano.function([minibatch], da([minibatch])[0])
 
-    print '*****************Fin de l\'experience****************'
     
     print "Transformed data:"
     
@@ -99,9 +96,9 @@ if __name__ == "__main__":
     #	- Layer3 : l1_penalty with sparse_penalty = 0.1
     
     sda_conf['solution'] = ['l1_penalty','sqr_penalty','l1_penalty']
-    sda_conf['sparse_penalty'] = [0.01, 0, 0.1]
-    sda_conf['sparsityTarget'] = [0, 0.2, 0]
-    sda_conf['sparsityTargetPenalty'] = [0, 0.01, 0]             
+    sda_conf['sparse_penalty'] = [0.02, 0, 0.1]
+    sda_conf['sparsityTarget'] = [0, 0.3, 0]
+    sda_conf['sparsityTargetPenalty'] = [0, 0.001, 0]             
     
     sda_conf['anneal_start'] = None # Don't anneal these learning rates
     sda = build_stacked_ae(sda_conf['nvis'], sda_conf['nhid'],

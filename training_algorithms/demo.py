@@ -2,14 +2,13 @@ from framework.cost import MeanSquaredError
 from framework.optimizer import SGDOptimizer
 from theano import function, tensor
 
-class Demo:
-    """An example training algorithm. This ports the training from example_da.py
-        to the train.py script setup """
-
-    def __init__(self, base_lr = 0.01, anneal_start = 100, batch_size = 10,
-                num_epochs = 5):
-
-
+class Demo(object):
+    """
+    An example training algorithm. This ports the training from example_da.py
+    to the train.py script setup.
+    """
+    def __init__(self, base_lr=0.01, anneal_start=100, batch_size=10,
+                 num_epochs=5):
         self.base_lr = base_lr
         self.anneal_start = anneal_start
         self.batch_size = batch_size

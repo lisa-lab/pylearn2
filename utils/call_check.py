@@ -2,6 +2,7 @@
 Utility functions for checking passed arguments against call signature
 of a function or class constructor.
 """
+import functools
 import inspect
 import types
 
@@ -90,3 +91,30 @@ def checked_call(to_call, kwargs):
     except TypeError:
         check_call_arguments(to_call, kwargs)
         raise
+
+def sensible_argument_errors(func):
+    @functools.wraps(func)
+    def wrapped_func(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except TypeError:
+            argnames, varargs, keywords, defaults = inspect.getargspec(func)
+            posargs = dict(zip(argnames, args))
+            bad_keywords = []
+            for keyword in kwargs:
+                if keyword not in argnames:
+                    bad_keywords.append(keyword)
+
+            if len(bad_keywords) > 0:
+                bad = ', '.join(bad_keywords)
+                raise TypeError('%s() does not support the following '
+                                'keywords: %s' % (str(func.func_name), bad))
+            allargsgot = set(list(kwargs.keys()) + list(posargs.keys()))
+            numrequired = len(argnames) - len(defaults)
+            diff = list(set(argnames[:numrequired]) - allargsgot)
+            if len(diff) > 0:
+                raise TypeError('%s() did not get required args: %s' %
+                                (str(func.func_name), ', '.join(diff)))
+            raise
+    return wrapped_func
+
