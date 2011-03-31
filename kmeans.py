@@ -9,36 +9,72 @@ class KMeans(Block):
     computed during training.
     """
 
-    def __init__(self, k):
+    def __init__(self, k, convergence_th = 1e-6, max_iter = None, verbose = False):
         """
         Parameters in conf:
 
         :type k: int
         :param k: number of clusters.
+
+        :type convergence_th: float
+        :param convergence_th: threshold of distance to clusters under which
+        kmeans stops iterating.
+
+        :type max_iter: int
+        :param max_iter: maximum number of iterations. Defaults to infinity.
         """
         self.k = k
+        self.convergence_th = convergence_th
+        if max_iter:
+            if max_iter < 0:
+                raise Exception('KMeans init: max_iter should be positive.')
+            self.max_iter = max_iter
+        else:
+            self.max_iter = float('inf')
 
-    def train(self,X):
+        self.verbose = verbose
+
+    def train(self, X, mu = None):
         """
         Process kmeans algorithm on the input to localize clusters.
         """
+
+        #TODO-- why does this sometimes return X and sometimes return nothing?
+
+        try:
+            X = X.get_design_matrix()
+        except:
+            pass
+
         n,m = X.shape
         k = self.k
 
-        #computing initial clusters
-        mu = numpy.zeros((k,m))
-        for i in xrange(k):
-            mu[i,:] = X[i:n:k,:].mean(axis=0)
+        #computing initial clusters if not provided
+        if mu is not None:
+            if not len(mu) == k:
+                raise Exception('You gave %i clusters, but k=%i were expected'%(len(mu),k))
+        else:
+            mu = numpy.zeros((k,m))
+            for i in xrange(k):
+                mu[i,:] = X[i:n:k,:].mean(axis=0)
 
-        dists = numpy.zeros((n,k))
+        try:
+            dists = numpy.zeros((n,k))
+        except MemoryError:
+            print "dying trying to allocate dists matrix for %d examples and %d means" % (n,k)
+            raise
 
-        killed_on_prev_iter = False
         old_kills = {}
 
         iter = 0
+        mmd = prev_mmd = float('inf')
         while True:
+            if self.verbose:
+                print 'kmeans iter '+str(iter)
+
+            #print 'iter:',iter,' conv crit:',abs(mmd-prev_mmd)
             #if numpy.sum(numpy.isnan(mu)) > 0:
-            if True in numpy.isnan(mu):
+            if numpy.any(numpy.isnan(mu)):
                 print 'nan found'
                 return X
 
@@ -54,7 +90,8 @@ class KMeans(Block):
             #mean minimum distance:
             mmd = min_dists.mean()
 
-            if iter > 0 and (not killed_on_prev_iter) and abs(mmd-prev_mmd)<.1:
+            if iter > 0 and (iter >= self.max_iter or \
+                                    abs(mmd - prev_mmd) < self.convergence_th):
                 #converged
                 break
 
@@ -65,7 +102,6 @@ class KMeans(Block):
             i = 0
             blacklist = []
             new_kills = {}
-            killed_on_prev_iter = False
             while i < k:
                 b = min_dist_inds == i
                 if not numpy.any(b):
@@ -98,8 +134,8 @@ class KMeans(Block):
                     i += 1
                 else:
                     mu[i,:] = numpy.mean( X[b,: ] ,axis=0)
-                    if True in numpy.isnan(mu):
-                        print 'nan found at i'
+                    if numpy.any(numpy.isnan(mu)):
+                        print 'nan found at',i
                         return X
                     i += 1
 

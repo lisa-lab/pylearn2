@@ -82,11 +82,11 @@ class Autoencoder(Block):
             If is empty (default), the regularization term for the cost function will be 0.
             If 'l1_penalty', add to loss a L1 penalty.
             If 'sqr_penalty', add to loss a quadratic penalty
-        sparse_penalty : float, optional 
+        sparse_penalty : float, optional
             hyperparameter to control the value of the regularization term for the L1 penalty
-        sparsityTarget : float, optional 
+        sparsityTarget : float, optional
             hyperparameter to control the value of the regularization term for the quadratic penalty
-        sparsityTargetPenalty : float, optional 
+        sparsityTargetPenalty : float, optional
             hyperparameter to control difference between the values of hiddens output of
             the regularization term for the quadratic penalty
         irange : float, optional
@@ -96,36 +96,30 @@ class Autoencoder(Block):
             NumPy random number generator object (or seed to create one) used
             to initialize the model parameters.
         """
-        assert nvis > 0, "Number of visible units must be positive"
+        assert nvis >= 0, "Number of visible units must be non-negative"
         assert nhid > 0, "Number of hidden units must be positive"
+        # Save a few parameters needed for resizing
+        self.nhid = nhid
+        self.irange = irange
+        self.tied_weights = tied_weights
         if not hasattr(rng, 'randn'):
-            rng = numpy.random.RandomState(rng)
-        self.visbias = sharedX(
-            numpy.zeros(nvis),
-            name='vb',
-            borrow=True
-        )
-        self.hidbias = sharedX(
-            numpy.zeros(nhid),
-            name='hb',
-            borrow=True
-        )
-        # TODO: use weight scaling factor if provided, Xavier's default else
-        self.weights = sharedX(
-            .5 - rng.rand(nvis, nhid) * irange,
-            name='W',
-            borrow=True
-        )
-        seed = int(rng.randint(2**30))
+            self.rng = numpy.random.RandomState(rng)
+        else:
+            self.rng = rng
+        self._initialize_hidbias()
+        if nvis > 0:
+            self._initialize_visbias(nvis)
+            self._initialize_weights(nvis)
+        else:
+            self.visbias = None
+            self.weights = None
+
+        seed = int(self.rng.randint(2**30))
         self.s_rng = RandomStreams(seed)
         if tied_weights:
             self.w_prime = self.weights.T
         else:
-            self.w_prime = sharedX(
-                .5 - rng.rand(nhid, nvis) * irange,
-                name='Wprime',
-                borrow=True
-            )
+            self._initialize_w_prime(nvis)
 
         def _resolve_callable(conf, conf_attr):
             if conf[conf_attr] is None or conf[conf_attr] == "linear":
@@ -151,14 +145,81 @@ class Autoencoder(Block):
             self.hidbias,
             self.weights,
         ]
-        if not tied_weights:
+        if not self.tied_weights:
             self._params.append(self.w_prime)
-       
+
         self.solution = solution
         self.sparse_penalty = sparse_penalty
         self.sparsityTarget = sparsityTarget
-        self.sparsityTargetPenalty = sparsityTargetPenalty 
+        self.sparsityTargetPenalty = sparsityTargetPenalty
         self.regularization = 0
+
+    def _initialize_weights(self, nvis, rng=None, irange=None):
+        if rng is None:
+            rng = self.rng
+        if irange is None:
+            irange = self.irange
+        # TODO: use weight scaling factor if provided, Xavier's default else
+        self.weights = sharedX(
+            .5 - rng.rand(nvis, self.nhid) * self.irange,
+            name='W',
+            borrow=True
+        )
+
+    def _initialize_hidbias(self):
+        self.hidbias = sharedX(
+            numpy.zeros(self.nhid),
+            name='hb',
+            borrow=True
+        )
+
+    def _initialize_visbias(self, nvis):
+        self.visbias = sharedX(
+            numpy.zeros(nvis),
+            name='vb',
+            borrow=True
+        )
+
+    def _initialize_w_prime(self, nvis, rng=None, irange=None):
+        assert (not self.tied_weights,
+            "Can't initialize w_prime in tied weights model; "
+            "this method shouldn't have been called")
+        if rng is None:
+            rng = self.rng
+        if irange is None:
+            irange = self.irange
+        self.w_prime = sharedX(
+            .5 - rng.rand(self.nhid, nvis) * irange,
+            name='Wprime',
+            borrow=True
+        )
+
+    def set_visible_size(self, nvis, rng=None):
+        """
+        Create and initialize the necessary parameters to accept
+        `nvis` sized inputs.
+
+        Parameters
+        ----------
+        nvis : int
+            Number of visible units for the model.
+        rng : RandomState object or seed, optional
+            NumPy random number generator object (or seed to create one) used
+            to initialize the model parameters. If not provided, the stored
+            rng object (from the time of construction) will be used.
+        """
+        if self.weights is not None:
+            raise ValueError('parameters of this model already initialized; '
+                             'create a new object instead')
+        if rng is not None:
+            self.rng = rng
+        else:
+            rng = self.rng
+        self._initialize_visbias(nvis)
+        self._initialize_weights(nvis, rng)
+        if not self.tied_weights:
+            self._initialize_w_prime(nvis, rng)
+        self._set_params()
 
     def _hidden_activation(self, x):
         """
@@ -241,35 +302,35 @@ class Autoencoder(Block):
         hiddens = self.encode(inputs)
         self.hiddens=hiddens
         self.regularization = self.compute_regularization(hiddens)
-        
+
         if self.act_dec is None:
             act_dec = lambda x: x
-        else: 
+        else:
             act_dec = self.act_dec
         if isinstance(inputs, tensor.Variable):
             return act_dec(self.visbias + tensor.dot(hiddens, self.w_prime))
         else:
             return [self.reconstruct(inp) for inp in inputs]
-    
+
     def compute_penalty_value(self):
         '''
         Return the penalty value compute by the function compute_regularization
         '''
         return self.regularization
-                
+
     def compute_regularization(self,hiddens) :
         """
         Compute the penalty value depending on the choice solution (L1 or quadratic).
-        """ 
+        """
         regularization = 0
         # Compute regularization term
         if self.solution == 'l1_penalty':# Penalite de type L1
            regularization = self.sparse_penalty * tensor.sum(hiddens)
-        elif self.solution == 'sqr_penalty':# Penalite de type quadratique   
+        elif self.solution == 'sqr_penalty':# Penalite de type quadratique
            regularization = self.sparsityTargetPenalty * tensor.sum(tensor.sqr(hiddens - self.sparsityTarget))
-        
+
         return regularization
-    
+
     def __call__(self, inputs):
         """
         Forward propagate (symbolic) input through this module, obtaining
@@ -285,7 +346,8 @@ class DenoisingAutoencoder(Autoencoder):
     A denoising autoencoder learns a representation of the input by
     reconstructing a noisy version of it.
     """
-    def __init__(self, corruptor, *args, **kwargs):
+    def __init__(self, corruptor, nvis, nhid, act_enc, act_dec,
+                 tied_weights=False, irange=1e-3, rng=9001):
         """
         Allocate a denoising autoencoder object.
 
@@ -301,7 +363,15 @@ class DenoisingAutoencoder(Autoencoder):
         for the Autoencoder class; see the `Autoencoder.__init__` docstring
         for details.
         """
-        super(DenoisingAutoencoder, self).__init__(*args, **kwargs)
+        super(DenoisingAutoencoder, self).__init__(
+            nvis,
+            nhid,
+            act_enc,
+            act_dec,
+            tied_weights,
+            irange,
+            rng
+        )
         self.corruptor = corruptor
 
     def reconstruct(self, inputs):
@@ -325,9 +395,6 @@ class DenoisingAutoencoder(Autoencoder):
         """
         corrupted = self.corruptor(inputs)
         return super(DenoisingAutoencoder, self).reconstruct(corrupted)
-    
-    #def compute_penalty_value(self):
-        #return super(DenoisingAutoencoder, self).compute_penalty_value()    
 
 class ContractingAutoencoder(Autoencoder):
     """
@@ -405,7 +472,6 @@ def build_stacked_ae(nvis, nhids, act_enc, act_dec,
                      tied_weights=False, irange=1e-3, rng=None,
                      corruptor=None, contracting=False,solution=None,sparse_penalty=None,sparsityTarget=None,sparsityTargetPenalty=None):
     """Allocate a stack of autoencoders."""
-  
     if not hasattr(rng, 'randn'):
         rng = numpy.random.RandomState(rng)
     layers = []
@@ -419,12 +485,10 @@ def build_stacked_ae(nvis, nhids, act_enc, act_dec,
             final[c] = locals()[c]
         else:
             final[c] = [locals()[c]] * len(nhids)
-            
-    
     # The number of visible units in each layer is the initial input
     # size and the first k-1 hidden unit sizes.
-    # solution , sparse_penalty ,sparsityTarget, and sparsityTargetPenalty have the same size as nhids. 
-    # They can add an L1 penalty, a quadratic to each layer of the stacked ae. 
+    # solution , sparse_penalty ,sparsityTarget, and sparsityTargetPenalty have the same size as nhids.
+    # They can add an L1 penalty, a quadratic to each layer of the stacked ae.
     nviss = [nvis] + nhids[:-1]
     seq = izip(nhids, nviss,
         final['act_enc'],
