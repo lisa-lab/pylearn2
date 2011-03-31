@@ -9,7 +9,7 @@ class KMeans(Block):
     computed during training.
     """
 
-    def __init__(self, k):
+    def __init__(self, k, verbose = False):
         """
         Parameters in conf:
 
@@ -18,10 +18,20 @@ class KMeans(Block):
         """
         self.k = k
 
+        self.verbose = verbose
+
     def train(self,X):
         """
         Process kmeans algorithm on the input to localize clusters.
         """
+
+        #TODO-- why does this sometimes return X and sometimes return nothing?
+
+        try:
+            X = X.get_design_matrix()
+        except:
+            pass
+
         n,m = X.shape
         k = self.k
 
@@ -30,15 +40,21 @@ class KMeans(Block):
         for i in xrange(k):
             mu[i,:] = X[i:n:k,:].mean(axis=0)
 
-        dists = numpy.zeros((n,k))
+        try:
+            dists = numpy.zeros((n,k))
+        except MemoryError:
+            print "dying trying to allocate dists matrix for %d examples and %d means" % (n,k)
+            raise
 
         killed_on_prev_iter = False
         old_kills = {}
 
         iter = 0
         while True:
-            #if numpy.sum(numpy.isnan(mu)) > 0:
-            if True in numpy.isnan(mu):
+            if self.verbose:
+                print 'kmeans iter '+str(iter)
+
+            if numpy.any(numpy.isnan(mu)):
                 print 'nan found'
                 return X
 
@@ -98,7 +114,7 @@ class KMeans(Block):
                     i += 1
                 else:
                     mu[i,:] = numpy.mean( X[b,: ] ,axis=0)
-                    if True in numpy.isnan(mu):
+                    if numpy.any(numpy.isnan(mu)):
                         print 'nan found at i'
                         return X
                     i += 1
