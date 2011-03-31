@@ -1,10 +1,14 @@
 import numpy as N
 
 class DenseDesignMatrix(object):
-    def __init__(self, X, y = None, view_converter = None):
+    def __init__(self, X, y = None, view_converter = None, rng = None):
         self.X = X
         self.y = y
         self.view_converter = view_converter
+        if rng is None:
+            rng = N.random.RandomState([17,2,946])
+        #
+        self.rng = rng
     #
 
     def apply_preprocessor(self, preprocessor, can_fit = False):
@@ -31,6 +35,15 @@ class DenseDesignMatrix(object):
     def set_design_matrix(self, X):
         self.X = X
     #
+
+    def get_batch_design(self, batch_size):
+        idx = self.rng.randint(self.X.shape[0] - batch_size + 1)
+        return self.X[idx:idx+batch_size,:]
+    #
+
+    def get_batch_topo(self, batch_size):
+        return self.view_converter.design_mat_to_topo_view(self.get_batch_design(batch_size))
+    #
 #
 
 class DefaultViewConverter:
@@ -52,10 +65,10 @@ class DefaultViewConverter:
 
         channels = [
                     X[:,i*self.pixels_per_channel:(i+1)*self.pixels_per_channel].reshape(*channel_shape)
-                    for i in xrange(3)
+                    for i in xrange(self.shape[-1])
                     ]
 
-        return N.concatenate(channels,axis=3)
+        return N.concatenate(channels,axis=len(self.shape))
     #
 
     def topo_view_to_design_mat(self, V):
