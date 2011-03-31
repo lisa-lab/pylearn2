@@ -76,6 +76,7 @@ class PCA(Block):
         self.mean = sharedX(mean, name='mean')
 
         # Filter out unwanted components, permanently.
+        #TODO-- scipy.linalg can solve for just the wanted components, this should be faster than solving for all and then dropping some
         self._update_cutoff()
         component_cutoff = self.component_cutoff.get_value(borrow=True)
         self.v.set_value(self.v.get_value(borrow=True)[:component_cutoff])
