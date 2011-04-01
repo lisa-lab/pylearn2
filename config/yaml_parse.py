@@ -1,6 +1,7 @@
 """Support code for YAML parsing of experiment descriptions."""
 import yaml
 from ..utils.call_check import checked_call
+from ..utils import serial
 
 is_initialized = False
 
@@ -32,7 +33,7 @@ def load(stream, overrides=None, **kwargs):
     if not is_initialized:
         initialize()
     proxy_graph = yaml.load(stream, **kwargs)
-    import pdb; pdb.set_trace()
+    #import pdb; pdb.set_trace()
     if overrides is not None:
         handle_overrides(proxy_graph, overrides)
     return instantiate_all(proxy_graph)
@@ -165,6 +166,18 @@ def multi_constructor(loader, tag_suffix, node) :
             raise AttributeError('Could not evaluate %s' % tag_suffix)
         return ObjectProxy(classname, mapping)
 
+def multi_constructor_pkl(loader, tag_suffix, node):
+    """
+    Constructor function passed to PyYAML telling it how to load
+    objects from paths to .pkl files. See PyYAML documentation for
+    details on the call signature.
+    """
+
+    #print dir(loader)
+    mapping = loader.construct_yaml_str(node)
+    assert tag_suffix == ""
+    return serial.load(mapping)
+
 def initialize():
     """
     Initialize the configuration system by installing YAML handlers.
@@ -173,6 +186,7 @@ def initialize():
     global is_initialized
     # Add the custom multi-constructor
     yaml.add_multi_constructor('!obj:', multi_constructor)
+    yaml.add_multi_constructor('!pkl:', multi_constructor_pkl)
     is_initialized = True
 
 if __name__ == "__main__":
