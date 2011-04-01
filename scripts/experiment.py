@@ -78,7 +78,7 @@ def create_ae(conf, layer, data, model=None):
     """
     savedir = utils.getboth(layer, conf, 'savedir')
     clsname = layer['autoenc_class']
-    
+
     # Guess the filename
     if model is not None:
         if model.endswith('.pkl'):
@@ -110,14 +110,14 @@ def create_ae(conf, layer, data, model=None):
 
     # Allocate an denoising or contracting autoencoder
     MyAutoencoder = framework.autoencoder.get(clsname)
-    ae = MyAutoencoder.fromdict(layer, corruptor=corruptor)
+    ae = MyAutoencoder.fromdict(layer)#, corruptor=corruptor)
 
     # Allocate an optimizer, which tells us how to update our model.
     MyCost = framework.cost.get(layer['cost_class'])
     varcost = MyCost(ae)(minibatch, ae.reconstruct(minibatch))
     if isinstance(ae, ContractingAutoencoder):
         alpha = layer.get('contracting_penalty', 0.1)
-        varcost += tensor.mean(alpha * ae.contraction_penalty(minibatch))
+        varcost = tensor.mean(varcost.sum() + alpha * ae.contraction_penalty(minibatch))
     trainer = SGDOptimizer(ae, layer['base_lr'], layer['anneal_start'])
     updates = trainer.cost_updates(varcost)
 
@@ -127,7 +127,7 @@ def create_ae(conf, layer, data, model=None):
                                name='train_fn')
 
     # Here's a manual training loop.
-    print '... training layer:', clsname
+    print 'training layer:', clsname
     start_time = time.clock()
     proba = utils.getboth(layer, conf, 'proba')
     iterator = BatchIterator(data, proba, layer['batch_size'])
@@ -141,7 +141,7 @@ def create_ae(conf, layer, data, model=None):
 
         # Print training time + cost
         train_time = time.clock() - batch_time
-        print '... training epoch %d, time spent (min) %f, cost' \
+        print 'training epoch %d, time spent (min) %f, cost' \
             % (epoch, train_time / 60.), numpy.mean(c)
 
         # Saving intermediate models
@@ -153,19 +153,19 @@ def create_ae(conf, layer, data, model=None):
 
     end_time = time.clock()
     layer['training_time'] = (end_time - start_time) / 60.
-    print '... training ended after %f min' % layer['training_time']
+    print 'training ended after %f min' % layer['training_time']
 
     # Compute denoising error for valid and train datasets.
     error_fn = theano.function([minibatch], varcost, name='error_fn')
 
     layer['error_valid'] = error_fn(data[1].get_value(borrow=True)).item()
     layer['error_test'] = error_fn(data[2].get_value(borrow=True)).item()
-    print '... final denoising error with valid is', layer['error_valid']
-    print '... final denoising error with test  is', layer['error_test']
+    print 'final error with valid is', layer['error_valid']
+    print 'final error with test  is', layer['error_test']
 
     # Save model parameters
     ae.save(filename)
-    print '... final model has been saved as %s' % filename
+    print 'final model has been saved as %s' % filename
 
     # Return the autoencoder object
     return ae
@@ -177,7 +177,7 @@ if __name__ == "__main__":
               'num_components': 75,
               'min_variance': 0,
               'whiten': True,
-              'pca_class' : 'CovEigPCA',
+              'pca_class' : 'SVDPCA',
               # Training properties
               'proba' : [1, 0, 0],
               'savedir' : './outputs',
@@ -193,8 +193,8 @@ if __name__ == "__main__":
               'cost_class' : 'SquaredError',
               'autoenc_class': 'ContractingAutoencoder',
               'corruption_class' : 'BinomialCorruptor',
-              #'corruption_level' : 0.3, # For DenoisingAutoencoder
-              'contracting_penalty' : 0.2, # For ContractingAutoencoder
+              'corruption_level' : 0.3, # For DenoisingAutoencoder
+              'contracting_penalty' : 0.1, # For ContractingAutoencoder
               # Training properties
               'base_lr': 0.001,
               'anneal_start': 100,
@@ -205,6 +205,7 @@ if __name__ == "__main__":
 
     # Third layer = PCA-3 no whiten
     layer3 = {'name' : '3st-PCA',
+              'pca_class' : 'SVDPCA',
               'num_components': 7,
               'min_variance': 0,
               'whiten': True,
@@ -251,7 +252,7 @@ if __name__ == "__main__":
     if conf['transfer']:
         data_train, label_train = utils.filter_labels(data[0], label)
         alc = embed.score(data_train, label_train)
-        print '... resulting ALC on train is', alc
+        print 'resulting ALC on train is', alc
         conf['train_alc'] = alc
 
     # Stack both layers and create submission file
