@@ -24,8 +24,10 @@ class DenseDesignMatrix(object):
     #
 
     def set_topological_view(self, V):
+        assert not N.any(N.isnan(V))
         self.view_converter = DefaultViewConverter(V.shape[1:])
         self.X = self.view_converter.topo_view_to_design_mat(V)
+        assert not N.any(N.isnan(self.X))
     #
 
     def get_design_matrix(self):
@@ -33,6 +35,7 @@ class DenseDesignMatrix(object):
     #
 
     def set_design_matrix(self, X):
+        assert not N.any(N.isnan(X))
         self.X = X
     #
 
@@ -68,7 +71,11 @@ class DefaultViewConverter:
                     for i in xrange(self.shape[-1])
                     ]
 
-        return N.concatenate(channels,axis=len(self.shape))
+        rval = N.concatenate(channels,axis=len(self.shape))
+
+        assert len(rval.shape) == len(self.shape) + 1
+
+        return rval
     #
 
     def topo_view_to_design_mat(self, V):

@@ -56,11 +56,17 @@ class  PatchViewer:
 			scale = N.abs(temp).max()
 			if scale > 0:
 				temp /= scale
-
+        else:
+            if temp.min() < -1.0 or temp.max() > 1.0:
+                raise ValueError('When rescale is set to False, pixel values must lie in [-1,1]. Got ['+str(temp.min())+','+str(temp.max())+']')
+            #
+        #
 
         temp *= 0.5
         temp += 0.5
 
+        assert temp.min() >= 0.0
+        assert temp.max() <= 1.0
 
 
         if self.curPos == (0,0):
@@ -79,11 +85,7 @@ class  PatchViewer:
 
         temp *= (temp > 0)
 
-        if self.is_color:
-            self.image[rs+rs_pad:re-re_pad,cs+cs_pad:ce-ce_pad] = temp
-            print 'addpatch: range: '+str((temp.min(),temp.max()))
-        else:
-            self.image[rs+rs_pad:re-re_pad,cs+cs_pad:ce-ce_pad] = temp
+        self.image[rs+rs_pad:re-re_pad,cs+cs_pad:ce-ce_pad] = temp
 
         self.curPos = (self.curPos[0], self.curPos[1]+1)
         if self.curPos[1]  == self.grid_shape[1]:

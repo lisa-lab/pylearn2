@@ -16,7 +16,9 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
 
         view_converter = dense_design_matrix.DefaultViewConverter((32,32,3))
 
-        super(CIFAR10,self).__init__(X = X, view_converter = view_converter)
+        super(CIFAR10,self).__init__(X = N.cast['float32'](X), view_converter = view_converter)
+
+        assert not N.any(N.isnan(self.X))
     #
 
 #

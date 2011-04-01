@@ -15,17 +15,6 @@ class Pipeline(object):
 #
 
 
-"""
-James says he doesn't actually use this in the ssRBM experiments
-class RemoveColorShift(object):
-    def __init(self):
-        pass
-    #
-
-    def apply(self, dataset, can_fit = False):
-        dataset.
-"""
-
 class ExtractPatches(object):
     def __init__(self, patch_shape, num_patches, rng = None):
         self.patch_shape = patch_shape
@@ -87,6 +76,7 @@ class GlobalContrastNormalization(object):
 
     def apply(self, dataset, can_fit = False):
         X = dataset.get_design_matrix()
+        assert X.dtype.startswith('float')
 
         X -= X.mean(axis=1)[:,None]
         std = N.sqrt( (X**2.).mean(axis=1) + self.std_bias)
@@ -104,6 +94,9 @@ class ZCA(object):
         self.has_fit_ = False
 
     def fit(self, X):
+        assert X.dtype.startswith('float')
+        assert not N.any(N.isnan(X))
+
         assert len(X.shape) == 2
 
         n_samples = X.shape[0]
@@ -118,29 +111,41 @@ class ZCA(object):
         print 'computing zca'
         eigs, eigv = linalg.eigh(N.dot(X.T, X)/X.shape[0])
 
+        assert not N.any(N.isnan(eigs))
+        assert not N.any(N.isnan(eigv))
+
         if self.n_components:
             eigs = eigs[:self.n_components]
             eigv = eigv[:,:self.n_components]
+        #
         if self.n_drop_components:
             eigs = eigs[self.n_drop_components:]
             eigv = eigv[:,self.n_drop_components:]
+        #
+
         self.P_ = N.dot(
                 eigv * N.sqrt(1.0/(eigs+self.filter_bias)),
                 eigv.T)
 
+        assert not N.any(N.isnan(self.P_))
+
         self.has_fit_ = True
+    #
 
     def apply(self, dataset, can_fit = False):
         X = dataset.get_design_matrix()
+        assert X.dtype.startswith('float')
 
         if not self.has_fit_:
             assert can_fit
             self.fit(X)
+        #
 
         X =  N.dot(X-self.mean_, self.P_)
 
         dataset.set_design_matrix(X)
-
+    #
+#
 
 
 
