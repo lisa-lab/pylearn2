@@ -3,13 +3,14 @@
 import numpy
 from .base import Block
 
+
 class KMeans(Block):
     """
     Block that outputs a vector of probabilities that a sample belong to means
     computed during training.
     """
 
-    def __init__(self, k, convergence_th = 1e-6, max_iter = None, verbose = False):
+    def __init__(self, k, convergence_th=1e-6, max_iter=None, verbose=False):
         """
         Parameters in conf:
 
@@ -34,7 +35,7 @@ class KMeans(Block):
 
         self.verbose = verbose
 
-    def train(self, X, mu = None):
+    def train(self, X, mu=None):
         """
         Process kmeans algorithm on the input to localize clusters.
         """
@@ -46,22 +47,24 @@ class KMeans(Block):
         except:
             pass
 
-        n,m = X.shape
+        n, m = X.shape
         k = self.k
 
         #computing initial clusters if not provided
         if mu is not None:
             if not len(mu) == k:
-                raise Exception('You gave %i clusters, but k=%i were expected'%(len(mu),k))
+                raise Exception('You gave %i clusters, but k=%i were expected'
+                                % (len(mu), k))
         else:
-            mu = numpy.zeros((k,m))
+            mu = numpy.zeros((k, m))
             for i in xrange(k):
-                mu[i,:] = X[i:n:k,:].mean(axis=0)
+                mu[i, :] = X[i:n:k, :].mean(axis=0)
 
         try:
-            dists = numpy.zeros((n,k))
+            dists = numpy.zeros((n, k))
         except MemoryError:
-            print "dying trying to allocate dists matrix for %d examples and %d means" % (n,k)
+            print ("dying trying to allocate dists matrix ",
+                   "for %d examples and %d means" % (n, k))
             raise
 
         old_kills = {}
@@ -70,7 +73,7 @@ class KMeans(Block):
         mmd = prev_mmd = float('inf')
         while True:
             if self.verbose:
-                print 'kmeans iter '+str(iter)
+                print 'kmeans iter ' + str(iter)
 
             #print 'iter:',iter,' conv crit:',abs(mmd-prev_mmd)
             #if numpy.sum(numpy.isnan(mu)) > 0:
@@ -80,7 +83,7 @@ class KMeans(Block):
 
             #computing distances
             for i in xrange(k):
-                dists[:,i] = numpy.square((X - mu[i,:])).sum(axis=1)
+                dists[:, i] = numpy.square((X - mu[i, :])).sum(axis=1)
 
             if iter > 0:
                 prev_mmd = mmd
@@ -109,23 +112,23 @@ class KMeans(Block):
                     #initializes empty cluster to be the mean of the d data
                     #points farthest from their corresponding means
                     if i in old_kills:
-                        d = old_kills[i]-1
+                        d = old_kills[i] - 1
                         if d == 0:
                             d = 50
                         new_kills[i] = d
                     else:
                         d = 5
-                    mu[i,:] = 0
+                    mu[i, :] = 0
                     for j in xrange(d):
                         idx = numpy.argmax(min_dists)
                         min_dists[idx] = 0
                         #chose point idx
-                        mu[i,:] += X[idx,:]
+                        mu[i, :] += X[idx, :]
                         blacklist.append(idx)
-                    mu[i,:] /= float(d)
+                    mu[i, :] /= float(d)
                     #cluster i was empty, reset it to d far out data points
                     #recomputing distances for this cluster
-                    dists[:,i] = numpy.square((X-mu[i,:])).sum(axis=1)
+                    dists[:, i] = numpy.square((X - mu[i, :])).sum(axis=1)
                     min_dists = dists.min(axis=1)
                     for idx in blacklist:
                         min_dists[idx] = 0
@@ -133,16 +136,16 @@ class KMeans(Block):
                     #done
                     i += 1
                 else:
-                    mu[i,:] = numpy.mean( X[b,: ] ,axis=0)
+                    mu[i, :] = numpy.mean(X[b, :], axis=0)
                     if numpy.any(numpy.isnan(mu)):
-                        print 'nan found at',i
+                        print 'nan found at', i
                         return X
                     i += 1
 
             old_kills = new_kills
 
             iter += 1
-        self.mu=mu
+        self.mu = mu
 
     def __call__(self, X):
         """
@@ -151,15 +154,15 @@ class KMeans(Block):
         :type inputs: numpy.ndarray, shape (n, d)
         :param inputs: matrix of samples
         """
-        n,m=X.shape
-        k=self.k
-        mu=self.mu
-        dists = numpy.zeros((n,k))
+        n, m = X.shape
+        k = self.k
+        mu = self.mu
+        dists = numpy.zeros((n, k))
         for i in xrange(k):
-            dists[:,i] = numpy.square((X - mu[i,:])).sum(axis=1)
-        return dists/dists.sum(axis=1).reshape(-1,1)
+            dists[:, i] = numpy.square((X - mu[i, :])).sum(axis=1)
+        return dists / dists.sum(axis=1).reshape(-1, 1)
 
-if __name__=='__main__':
+if __name__ == '__main__':
     import theano
     from theano import tensor
     from .corruption import GaussianCorruptor
@@ -167,20 +170,20 @@ if __name__=='__main__':
     from .cost import MeanSquaredError
     from .optimizer import SGDOptimizer
     # toy labeled data: [x,y,label]*n samples
-    n=50
+    n = 50
     rng = numpy.random.RandomState(seed=7777777)
-    noise = rng.random_sample((n,2))
-    class1=numpy.concatenate((  noise*10+numpy.array([-10,-10]),
-                                numpy.array([[1]*n]).T),
+    noise = rng.random_sample((n, 2))
+    class1 = numpy.concatenate((noise * 10 + numpy.array([-10, -10]),
+                                numpy.array([[1] * n]).T),
                                 axis=1)
-    class2=numpy.concatenate((  noise*10+numpy.array([10,10]),
-                                numpy.array([[2]*n]).T),
+    class2 = numpy.concatenate((noise * 10 + numpy.array([10, 10]),
+                                numpy.array([[2] * n]).T),
                                 axis=1)
-    data=numpy.append(class1,class2,axis=0)
+    data = numpy.append(class1, class2, axis=0)
     rng.shuffle(data)
     #labels are just going to be used as visual reference in terminal output
-    train_data,train_labels=data[:-10,:-1],data[:-10,-1]
-    test_data,test_labels=data[-10:,:-1],data[-10:,-1]
+    train_data, train_labels = data[:-10, :-1], data[:-10, -1]
+    test_data, test_labels = data[-10:, :-1], data[-10:, -1]
     print train_data.shape
     print test_data.shape
 
@@ -198,7 +201,7 @@ if __name__=='__main__':
         #'lr_vb': 0.10,
         'irange': 0.001,
         #note the kmean hyper-parameter here
-        'kmeans_k':2
+        'kmeans_k': 2
     }
     print '== training =='
     # A symbolic input representing your minibatch.
@@ -235,15 +238,14 @@ if __name__=='__main__':
     transform = theano.function([minibatch], da([minibatch])[0])
 
     #then train & apply kmeans as a postprocessing
-    kmeans=KMeans(conf['kmeans_k'])
+    kmeans = KMeans(conf['kmeans_k'])
     kmeans.train(transform(train_data))
 
     print '== testing =='
-    output=kmeans(transform(test_data))
-    print 'output:',output.shape
-    for i,sample in enumerate(test_data):
-        print sample,'/',test_labels[i],'->',output[i]
+    output = kmeans(transform(test_data))
+    print 'output:', output.shape
+    for i, sample in enumerate(test_data):
+        print sample, '/', test_labels[i], '->', output[i]
 
     #print "Transformed data:"
     #print numpy.histogram(transform(data))
-

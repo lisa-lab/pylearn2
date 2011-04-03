@@ -11,6 +11,7 @@ from .utils import safe_update, sharedX
 
 floatX = theano.config.floatX
 
+
 class SGDOptimizer(Optimizer):
     """
     Compute updates by stochastic gradient descent on mini-batches.
@@ -77,7 +78,6 @@ class SGDOptimizer(Optimizer):
         # Base learning rate per example.
         self.base_lr = theano._asarray(base_lr, dtype=floatX)
 
-
         for parameter in self.params:
             lr_name = '%s_lr' % parameter.name
             thislr = kwargs.get(lr_name, 1.)
@@ -110,8 +110,8 @@ class SGDOptimizer(Optimizer):
         frac = self.anneal_start / (self.iteration + 1.)
         annealed = tensor.clip(
             tensor.cast(frac, floatX),
-            0.0,    # minimum learning rate
-            self.base_lr # maximum learning rate
+            0.0,          # minimum learning rate
+            self.base_lr  # maximum learning rate
         )
 
         # Update the shared variable for the annealed learning rate.

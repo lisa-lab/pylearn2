@@ -23,6 +23,7 @@ else:
     import theano.sandbox.rng_mrg
     RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
 
+
 class Block(object):
     """
     Basic building block for deep architectures.
@@ -99,6 +100,7 @@ class Block(object):
 
     def invalid(self):
         return None in self._params
+
 
 class StackedBlocks(Block):
     """
@@ -186,10 +188,9 @@ class StackedBlocks(Block):
             the concatenation. We must have start_index < end_index.
         """
         inputs = tensor.matrix()
-        return theano.function(
-                [inputs],
-                outputs=tensor.concatenate(self(inputs)[start_index:end_index]),
-                name=name)
+        return theano.function([inputs],
+            outputs=tensor.concatenate(self(inputs)[start_index:end_index]),
+            name=name)
 
     def append(self, layer):
         """
