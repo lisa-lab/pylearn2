@@ -3,7 +3,9 @@ Several utilities for experimenting upon utlc datasets
 """
 # Standard library imports
 import os
+import zipfile
 from itertools import repeat
+from tempfile import TemporaryFile
 
 # Third-party imports
 import numpy
@@ -75,7 +77,7 @@ def load_data(conf):
                 'randomize_valid',
                 'randomize_test',
                 'transfer']
-    print '... loading Dataset'
+    print '... loading dataset'
     data = load_ndarray_dataset(conf['dataset'], **subdict(conf, expected))
 
     # Allocate shared variables
@@ -91,9 +93,54 @@ def load_data(conf):
     else:
         return map(shared_dataset, data)
 
-def create_submission(conf, transform_valid, transform_test = None):
+def save_submission(conf, valid_repr, test_repr):
     """
-    Create submission files given a configuration dictionary and a
+    Create a submission file given a configuration dictionary and a
+    representation for valid and test.
+    """
+    print '... creating zipfile'
+    
+    # Ensure the given directory is correct
+    submit_dir = conf['savedir']
+    if not os.path.exists(submit_dir):
+        os.makedirs(submit_dir)
+    elif not os.path.isdir(submit_dir):
+        raise IOError('savedir %s is not a directory' % submit_dir)
+
+    basename = os.path.join(submit_dir, conf['dataset'] + '_' + conf['expname'])
+    
+    # If there are too much features, outputs kernel matrices
+    if (valid_repr.shape[1] > valid_repr.shape[0]):
+        valid_repr = numpy.dot(valid_repr, valid_repr.T)
+        test_repr = numpy.dot(test_repr, test_repr.T)
+
+    # Quantitize data
+    valid_repr = numpy.floor((valid_repr / valid_repr.max())*999)
+    test_repr = numpy.floor((test_repr / test_repr.max())*999)
+
+    # Store the representations in two temporary files
+    valid_file = TemporaryFile()
+    test_file = TemporaryFile()
+
+    numpy.savetxt(valid_file, valid_repr, fmt="%.3f")
+    numpy.savetxt(test_file, test_repr, fmt="%.3f")
+
+    # Reread those files and put them together in a .zip
+    valid_file.seek(0)
+    test_file.seek(0)
+
+    submission = zipfile.ZipFile(basename + ".zip", "w",
+                                 compression=zipfile.ZIP_DEFLATED)
+    submission.writestr(basename + '_valid.prepro', valid_file.read())
+    submission.writestr(basename + '_final.prepro', test_file.read())
+
+    submission.close()
+    valid_file.close()
+    test_file.close()
+
+def create_submission(conf, transform_valid, transform_test=None):
+    """
+    Create a submission file given a configuration dictionary and a
     computation function.
 
     Note that it always reload the datasets to ensure valid & test
@@ -111,62 +158,8 @@ def create_submission(conf, transform_valid, transform_test = None):
     valid_repr = transform_valid(valid_set.get_value(borrow=True))
     test_repr = transform_test(test_set.get_value(borrow=True))
 
-    # If there are too much features, outputs kernel matrices
-    if (valid_repr.shape[1] > valid_repr.shape[0]):
-        valid_repr = numpy.dot(valid_repr, valid_repr.T)
-        test_repr = numpy.dot(test_repr, test_repr.T)
-
-    # Quantitize data
-    valid_repr = numpy.floor((valid_repr / valid_repr.max())*999)
-    test_repr = numpy.floor((test_repr / test_repr.max())*999)
-
     # Convert into text info
-    valid_text = ''
-    test_text = ''
-
-    for i in xrange(valid_repr.shape[0]):
-        for j in xrange(valid_repr.shape[1]):
-            valid_text += '%s ' % int(valid_repr[i, j])
-        valid_text += '\n'
-    del valid_repr
-
-    for i in xrange(test_repr.shape[0]):
-        for j in xrange(test_repr.shape[1]):
-            test_text += '%s ' % int(test_repr[i, j])
-        test_text += '\n'
-    del test_repr
-
-    # Write it in a .txt file
-    submit_dir = conf['savedir']
-    if not os.path.exists(submit_dir):
-        os.mkdir(submit_dir)
-    elif not os.path.isdir(submit_dir):
-        raise IOError('savedir %s is not a directory' % submit_dir)
-
-    basename = os.path.join(submit_dir,
-                            conf['dataset'] + '_' + conf['expname']
-                            )
-    valid_file = open(basename + '_valid.prepro', 'w')
-    test_file = open(basename + '_final.prepro', 'w')
-
-    valid_file.write(valid_text)
-    test_file.write(test_text)
-
-    valid_file.close()
-    test_file.close()
-
-    print "... done creating files"
-
-    os.system('zip -j %s %s %s' % (basename + '.zip',
-                                   basename + '_valid.prepro',
-                                   basename + '_final.prepro'))
-
-    print "... files compressed"
-
-    os.system('rm %s %s' % (basename + '_valid.prepro',
-                            basename + '_final.prepro'))
-
-    print "... useless files deleted"
+    save_submission(conf, valid_repr, test_repr)
 
 ##################################################
 # Proxies for representation evaluations
@@ -224,7 +217,7 @@ class BatchIterator(object):
     Builds an iterator object that can be used to go through the minibatches
     of a dataset, with respect to the given proportions in conf
     """
-    def __init__(self, dataset, set_proba, batch_size, seed = 300):
+    def __init__(self, dataset, set_proba, batch_size, seed=300):
         # Local shortcuts for array operations
         flo = numpy.floor
         sub = numpy.subtract
