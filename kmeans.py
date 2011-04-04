@@ -1,7 +1,10 @@
 """KMeans as a postprocessing Block subclass."""
 
 import numpy
-from .base import Block
+if __name__ == '__main__':
+    from framework.base import Block
+else:
+    from .base import Block
 
 
 class KMeans(Block):
@@ -35,7 +38,7 @@ class KMeans(Block):
 
         self.verbose = verbose
 
-    def train(self, X, mu=None):
+    def train(self, X, mu = None):
         """
         Process kmeans algorithm on the input to localize clusters.
         """
@@ -50,15 +53,14 @@ class KMeans(Block):
         n, m = X.shape
         k = self.k
 
-        #computing initial clusters if not provided
+        #taking random inputs as initial clusters if user does not provide them.
         if mu is not None:
             if not len(mu) == k:
                 raise Exception('You gave %i clusters, but k=%i were expected'
                                 % (len(mu), k))
         else:
-            mu = numpy.zeros((k, m))
-            for i in xrange(k):
-                mu[i, :] = X[i:n:k, :].mean(axis=0)
+            indices = numpy.random.randint(X.shape[0], size = k)
+            mu = X[indices]
 
         try:
             dists = numpy.zeros((n, k))
@@ -165,10 +167,10 @@ class KMeans(Block):
 if __name__ == '__main__':
     import theano
     from theano import tensor
-    from .corruption import GaussianCorruptor
-    from .autoencoder import DenoisingAutoencoder
-    from .cost import MeanSquaredError
-    from .optimizer import SGDOptimizer
+    from framework.corruption import GaussianCorruptor
+    from framework.autoencoder import DenoisingAutoencoder
+    from framework.cost import MeanSquaredError
+    from framework.optimizer import SGDOptimizer
     # toy labeled data: [x,y,label]*n samples
     n = 50
     rng = numpy.random.RandomState(seed=7777777)
@@ -187,7 +189,7 @@ if __name__ == '__main__':
     print train_data.shape
     print test_data.shape
 
-    #train an SDG on it, as in the first part of example_da.py
+    #train an SDG on it
     conf = {
         'corruption_level': 0.1,
         'nhid': 3,
@@ -209,14 +211,14 @@ if __name__ == '__main__':
 
     # Allocate a denoising autoencoder with binomial noise corruption.
     corruptor = GaussianCorruptor(corruption_level=conf['corruption_level'])
-    da = DenoisingAutoencoder(conf['nvis'], conf['nhid'], corruptor,
+    da = DenoisingAutoencoder(corruptor, conf['nvis'], conf['nhid'], 
                               conf['act_enc'], conf['act_dec'],
                               tied_weights=conf['tied_weights'],
                               irange=conf['irange'])
 
     # Allocate an optimizer, which tells us how to update our model.
     # TODO: build the cost another way
-    cost = MeanSquaredError(da)(minibatch, da.reconstruction(minibatch))
+    cost = MeanSquaredError(da)(minibatch, da.reconstruct(minibatch))
     trainer = SGDOptimizer(da.params(), conf['base_lr'], conf['anneal_start'])
 
     # Finally, build a Theano function out of all this.
@@ -243,7 +245,7 @@ if __name__ == '__main__':
 
     print '== testing =='
     output = kmeans(transform(test_data))
-    print 'output:', output.shape
+    print 'sample / label -> kmeans ouput:', output.shape
     for i, sample in enumerate(test_data):
         print sample, '/', test_labels[i], '->', output[i]
 
