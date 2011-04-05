@@ -9,6 +9,7 @@ import os.path
 # Third-party imports
 import theano
 from theano import tensor
+from theano.sparse import SparseType
 
 # Local imports
 from .utils import subdict
@@ -153,7 +154,7 @@ class StackedBlocks(Block):
 
         return repr
 
-    def function(self, name=None, repr_index=-1):
+    def function(self, name=None, repr_index=-1, sparse_input=False):
         """
         Compile a function computing representations on given layers.
 
@@ -166,7 +167,11 @@ class StackedBlocks(Block):
             0 means the input, -1 the last output.
         """
 
-        inputs = tensor.matrix()
+        if sparse_input:
+            inputs = SparseType('csr', dtype=floatX)()
+        else:
+            inputs = tensor.matrix()
+
         return theano.function(
                 [inputs],
                 outputs=self(inputs)[repr_index],

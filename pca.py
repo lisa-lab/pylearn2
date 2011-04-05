@@ -5,8 +5,19 @@ from sys import stderr
 import numpy
 import theano
 from theano import tensor
+from theano.sparse import SparseType, structured_dot
+from theano.sparse.basic import _is_sparse_variable
 from pylearn.algorithms import pca_online_estimator
 from scipy import linalg
+from scipy.sparse import issparse
+from scipy.sparse.csr import csr_matrix
+
+try:
+    from scipy.sparse.linalg import eigen_symmetric
+except ImportError:
+    print >> stderr, 'Cannot import scipy.sparse.linalg.eigen_symmetric.' \
+        ' Note: this was renamed eigsh in scipy 0.9.'
+    sys.exit(1)
 
 # Local imports
 from .base import Block
@@ -52,20 +63,29 @@ class PCA(Block):
         # descent.
         self._params = []
 
-    def train(self, X):
+    def train(self, X, mean=None):
         """
         Compute the PCA transformation matrix.
 
         Given a rectangular matrix X = USV such that S is a diagonal matrix
         with X's singular values along its diagonal, returns W = V^-1.
+
+        If mean is provided, X will not be centered first.
+
+        :type X: numpy.ndarray, shape (n, d)
+        :param X: matrix on which to train PCA
+
+        :type mean: numpy.ndarray, shape (d)
+        :param mean: feature means
         """
 
         if self.num_components is None:
             self.num_components = X.shape[1]
 
         # Center each feature.
-        mean = X.mean(axis=0)
-        X = X - mean
+        if mean is None:
+            mean = X.mean(axis=0)
+            X = X - mean
 
         # Compute eigen{values,vectors} of the covariance matrix.
         v, W = self._cov_eigen(X)
@@ -189,6 +209,63 @@ class SVDPCA(PCA):
         # that X's singular values are the sqrt of cov(X'X)'s eigenvalues), we
         # simply square it.
         return s ** 2, Vh.T
+
+
+class SparsePCA(PCA):
+    def train(self, X, mean=None):
+        n, d = X.shape
+        # Can't subtract a sparse vector from a sparse matrix, apparently,
+        # so here I repeat the vector to construct a matrix.
+        mean = X.mean(axis=0)
+        mean_matrix = csr_matrix(mean.repeat(n).reshape((d, n))).T
+        X = X - mean_matrix
+
+        super(SparsePCA, self).train(X, mean=numpy.asarray(mean).squeeze())
+
+    def _cov_eigen(self, X):
+        """
+        Perform direct computation of covariance matrix eigen{values,vectors},
+        given a scipy.sparse matrix.
+        """
+
+        v, W = eigen_symmetric(X.T.dot(X) / X.shape[0], k=self.num_components)
+
+        # The resulting components are in *ascending* order of eigenvalue, and
+        # W contains eigenvectors in its *columns*, so we simply reverse both.
+        return v[::-1], W[:, ::-1]
+
+    def __call__(self, inputs):
+        """
+        Compute and return the PCA transformation of dense or sparse data.
+
+        Precondition: if inputs is sparse, self.mean has been subtracted from it.
+        The reason for this is that, as far as I can tell, there is no way to
+        subtract a vector from a sparse matrix without constructing an intermediary
+        dense matrix, in theano; even the hack used in train() won't do, because
+        there is no way to symbolically construct a sparse matrix by repeating a
+        vector (again, as far as I can tell).
+
+        :type inputs: scipy.sparse matrix object, shape (n, d)
+        :param inputs: sparse matrix on which to compute PCA
+        """
+
+        # Update component cutoff, in case min_variance or num_components has
+        # changed (or both).
+        self._update_cutoff()
+
+        if _is_sparse_variable(inputs):
+            Y = structured_dot(inputs, self.W[:, :self.component_cutoff])
+        else:
+            Y = tensor.dot(inputs - self.mean, self.W[:, :self.component_cutoff])
+
+        if self.whiten:
+            Y /= tensor.sqrt(self.v[:self.component_cutoff])
+        return Y
+
+    def function(self, name=None):
+        """ Returns a compiled theano function to compute a representation """
+        inputs = SparseType('csr', dtype=floatX)()
+        return theano.function([inputs], self(inputs), name=name)
 
 
 ##################################################
