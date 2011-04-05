@@ -320,6 +320,36 @@ class BatchIterator(object):
 # Miscellaneous
 ##################################################
 
+def nonzero_features(data, all_subsets=True):
+    """
+    Get features for which there are nonzero entries in the data.
+
+    Note: I would return a mask (bool array) here, but scipy.sparse doesn't
+    appear to fully support advanced indexing.
+
+    Parameters
+    ----------
+    data : list of 3 ndarray objects
+        List of data matrices, each with the same number of features.
+    all_subsets : bool
+        If true, discard features not found in any subset; if false, discard
+        features found in neither valid nor test subsets.
+
+    Returns
+    -------
+    indices : ndarray object
+        Indices of nonzero features.
+    """
+
+    if not all_subsets:
+        data = data[1:]
+
+    # Assumes all values are >0, which is the case for all sparse datasets.
+    masks = numpy.array([subset.sum(axis=0) for subset in data]).squeeze()
+    nz_feats = masks.prod(axis=0).nonzero()[0]
+
+    return nz_feats
+
 def blend(dataset, set_proba, **kwargs):
     """
     Randomized blending of datasets in data according to parameters in conf
