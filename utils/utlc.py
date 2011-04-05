@@ -10,7 +10,7 @@ from tempfile import TemporaryFile
 # Third-party imports
 import numpy
 import theano
-from pylearn.datasets.utlc import load_ndarray_dataset
+from pylearn.datasets.utlc import load_ndarray_dataset, load_sparse_dataset
 
 # Local imports
 from auc import embed
@@ -72,13 +72,25 @@ def load_data(conf):
     """
     Loads a specified dataset according to the parameters in the dictionary
     """
-    expected = ['normalize',
-                'normalize_on_the_fly',
-                'randomize_valid',
-                'randomize_test',
-                'transfer']
     print '... loading dataset'
-    data = load_ndarray_dataset(conf['dataset'], **subdict(conf, expected))
+
+    if conf.get('sparse', False):
+        expected = [
+            'normalize',
+            'randomize_valid',
+            'randomize_test',
+            'transfer'
+        ]
+        data = load_sparse_dataset(conf['dataset'], **subdict(conf, expected))
+    else:
+        expected = [
+            'normalize',
+            'normalize_on_the_fly',
+            'randomize_valid',
+            'randomize_test',
+            'transfer'
+        ]
+        data = load_ndarray_dataset(conf['dataset'], **subdict(conf, expected))
 
     # Allocate shared variables
     def shared_dataset(data_x):
@@ -88,7 +100,7 @@ def load_data(conf):
         else:
             return theano.shared(theano._asarray(data_x), borrow=True)
 
-    if conf.get('normalize_on_the_fly', False):
+    if conf.get('normalize_on_the_fly', False) or conf.get('sparse', False):
         return data
     else:
         return map(shared_dataset, data)
@@ -150,13 +162,18 @@ def create_submission(conf, transform_valid, transform_test=None):
         transform_test = transform_valid
 
     # Load the dataset, without permuting valid and test
-    kwargs = subdict(conf, ['dataset', 'normalize', 'normalize_on_the_fly'])
+    kwargs = subdict(conf, ['dataset', 'normalize', 'normalize_on_the_fly', 'sparse'])
     kwargs.update(randomize_valid=False, randomize_test=False)
     valid_set, test_set = load_data(kwargs)[1:3]
 
+    # Sparse datasets are not stored as Theano shared vars.
+    if not conf.get('sparse', False):
+        valid_set = valid_set.get_value(borrow=True)
+        test_set = test_set.get_value(borrow=True)
+
     # Valid and test representations
-    valid_repr = transform_valid(valid_set.get_value(borrow=True))
-    test_repr = transform_test(test_set.get_value(borrow=True))
+    valid_repr = transform_valid(valid_set)
+    test_repr = transform_test(test_set)
 
     # Convert into text info
     save_submission(conf, valid_repr, test_repr)
