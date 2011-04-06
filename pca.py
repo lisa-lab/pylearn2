@@ -98,8 +98,6 @@ class PCA(Block):
         self.mean = sharedX(mean, name='mean')
 
         # Filter out unwanted components, permanently.
-        # TODO-- scipy.linalg can solve for just the wanted components,
-        # this should be faster than solving for all and then dropping some
         self._update_cutoff()
         component_cutoff = self.component_cutoff.get_value(borrow=True)
         self.v.set_value(self.v.get_value(borrow=True)[:component_cutoff])
@@ -188,7 +186,8 @@ class CovEigPCA(PCA):
         Perform direct computation of covariance matrix eigen{values,vectors}.
         """
 
-        v, W = linalg.eigh(numpy.cov(X.T))
+        v, W = linalg.eigh(numpy.cov(X.T),
+            eigvals=(X.shape[1] - self.num_components, X.shape[1] - 1))
 
         # The resulting components are in *ascending* order of eigenvalue, and
         # W contains eigenvectors in its *columns*, so we simply reverse both.
