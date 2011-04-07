@@ -156,16 +156,32 @@ class SparseMatPCA(PCA):
     def get_input_type(self):
         return csr_matrix
 
-    def __call__(self, inputs):
+    def _cov_eigen(self, X):
+        m, n = X.shape
 
-        self._update_cutoff()
+        print 'allocating covariance'
+        cov = numpy.zeros((n, n))
+        batch_size = self.minibatch_size
 
-        Y = structured_dot(inputs, self.W[:, :self.component_cutoff])
-        Z = Y - tensor.dot(self.mean,self.W[:, :self.component_cutoff])
+        for i in xrange(0, m, batch_size):
+            print '\tprocessing example', str(i)
+            end = min(m, i + batch_size)
+            x = X[i:end,:].todense() - self.mean_
+            assert x.shape[0] == end - i
 
-        if self.whiten:
-            Z /= tensor.sqrt(self.v[:self.component_cutoff])
-        return Z
+            prod = numpy.dot(x.T, x)
+            assert prod.shape == (n, n)
+
+            cov += prod
+
+        cov /= m
+
+        v, W = linalg.eigh(cov)
+
+        # The resulting components are in *ascending* order of eigenvalue, and
+        # W contains eigenvectors in its *columns*, so we simply reverse both.
+        v, W = v[::-1], W[:, ::-1]
+        return v, W
 
     def train(self, X):
         """
@@ -177,57 +193,22 @@ class SparseMatPCA(PCA):
 
         assert sparse.issparse(X)
 
-        if self.num_components is None:
-            self.num_components = X.shape[1]
-
-        # Compute mean of the data
+        # Compute feature means.
         print 'computing mean'
         self.mean_ = numpy.asarray(X.mean(axis=0))[0,:]
 
-        m, n = X.shape
+        super(SparseMatPCA, self).train(X, mean=self.mean_)
 
-        print 'allocating covariance'
-        cov = numpy.zeros((n,n))
+    def __call__(self, inputs):
 
-        batch_size = self.minibatch_size
-
-
-        for i in xrange(0,m,batch_size):
-            print '\tprocessing example '+str(i)
-            end = min(m,i+batch_size)
-            x = X[i:end,:].todense() - self.mean_
-            assert x.shape[0] == end - i
-
-
-
-            prod = numpy.dot(x.T , x)
-            assert prod.shape == (n,n)
-
-            cov += prod
-
-        cov /= m
-
-        v, W = linalg.eigh(cov)
-
-        # The resulting components are in *ascending* order of eigenvalue, and
-        # W contains eigenvectors in its *columns*, so we simply reverse both.
-        v, W = v[::-1], W[:, ::-1]
-
-
-
-        # Build Theano shared variables
-        # For the moment, I do not use borrow=True because W and v are
-        # subtensors, and I want the original memory to be freed
-        self.W = sharedX(W, name='W', borrow=False)
-        self.v = sharedX(v, name='v', borrow=False)
-        self.mean = sharedX(self.mean_, name='mean')
-
-        # Filter out unwanted components, permanently.
-        #TODO-- scipy.linalg can solve for just the wanted components, this should be faster than solving for all and then dropping some
         self._update_cutoff()
-        component_cutoff = self.component_cutoff.get_value(borrow=True)
-        self.v.set_value(self.v.get_value(borrow=True)[:component_cutoff])
-        self.W.set_value(self.W.get_value(borrow=True)[:, :component_cutoff])
+
+        Y = structured_dot(inputs, self.W[:, :self.component_cutoff])
+        Z = Y - tensor.dot(self.mean,self.W[:, :self.component_cutoff])
+
+        if self.whiten:
+            Z /= tensor.sqrt(self.v[:self.component_cutoff])
+        return Z
 
     def function(self, name=None):
         """ Returns a compiled theano function to compute a representation """
@@ -312,6 +293,9 @@ class SVDPCA(PCA):
 
 class SparsePCA(PCA):
     def train(self, X, mean=None):
+        print >> stderr, 'WARNING: You should probably be using SparseMatPCA, ' \
+            'unless your design matrix fits in memory.'
+
         n, d = X.shape
         # Can't subtract a sparse vector from a sparse matrix, apparently,
         # so here I repeat the vector to construct a matrix.
