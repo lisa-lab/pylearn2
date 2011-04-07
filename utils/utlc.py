@@ -4,7 +4,6 @@ Several utilities for experimenting upon utlc datasets
 # Standard library imports
 import os
 import zipfile
-from itertools import repeat
 from tempfile import TemporaryFile
 
 # Third-party imports
@@ -65,7 +64,7 @@ def getboth(dict1, dict2, key, default=None):
             return dict2.get(key, default)
 
 ##################################################
-# Datasets and contest facilities
+# Datasets loading and contest facilities
 ##################################################
 
 def load_data(conf):
@@ -194,127 +193,3 @@ def lookup_alc(data, transform):
     test_repr = transform(data[2].get_value(borrow=True))
 
     return compute_alc(valid_repr, test_repr)
-
-
-def filter_labels(train, label):
-    """ Filter examples of train for which we have labels """
-    # Examples for which any label is set
-    condition = label.get_value(borrow=True).any(axis=1)
-
-    # Compress train and label arrays according to condition
-    def aux(var):
-        return var.get_value(borrow=True).compress(condition, axis=0)
-
-    return (aux(train), aux(label))
-
-
-##################################################
-# Iterator object for blending datasets
-##################################################
-
-class BatchIterator(object):
-    """
-    Builds an iterator object that can be used to go through the minibatches
-    of a dataset, with respect to the given proportions in conf
-    """
-    def __init__(self, dataset, set_proba, batch_size, seed=300):
-        # Local shortcuts for array operations
-        flo = numpy.floor
-        sub = numpy.subtract
-        mul = numpy.multiply
-        div = numpy.divide
-        mod = numpy.mod
-
-        # Record external parameters
-        self.batch_size = batch_size
-        self.dataset = dataset
-
-        # Compute maximum number of samples for one loop
-        set_sizes = [get_constant(data.shape[0]) for data in dataset]
-        set_batch = [float(self.batch_size) for i in xrange(3)]
-        set_range = div(mul(set_proba, set_sizes), set_batch)
-        set_range = map(int, numpy.ceil(set_range))
-
-        # Upper bounds for each minibatch indexes
-        set_limit = numpy.ceil(numpy.divide(set_sizes, set_batch))
-        self.limit = map(int, set_limit)
-
-        # Number of rows in the resulting union
-        set_tsign = sub(set_limit, flo(div(set_sizes, set_batch)))
-        set_tsize = mul(set_tsign, flo(div(set_range, set_limit)))
-
-        l_trun = mul(flo(div(set_range, set_limit)), mod(set_sizes, set_batch))
-        l_full = mul(sub(set_range, set_tsize), set_batch)
-
-        self.length = sum(l_full) + sum(l_trun)
-
-        # Random number generation using a permutation
-        index_tab = []
-        for i in xrange(3):
-            index_tab.extend(repeat(i, set_range[i]))
-
-        # Use a deterministic seed
-        self.seed = seed
-        rng = numpy.random.RandomState(seed=self.seed)
-        self.permut = rng.permutation(index_tab)
-
-    def __iter__(self):
-        """ Generator function to iterate through all minibatches """
-        counter = [0, 0, 0]
-        for chosen in self.permut:
-            # Retrieve minibatch from chosen set
-            index = counter[chosen]
-            minibatch = self.dataset[chosen].get_value(borrow=True)[
-                index * self.batch_size:(index + 1) * self.batch_size
-            ]
-            # Increment the related counter
-            counter[chosen] = (counter[chosen] + 1) % self.limit[chosen]
-            # Return the computed minibatch
-            yield minibatch
-
-    def __len__(self):
-        """ Return length of the weighted union """
-        return self.length
-
-    def by_index(self):
-        """ Same generator as __iter__, but yield only the chosen indexes """
-        counter = [0, 0, 0]
-        for chosen in self.permut:
-            index = counter[chosen]
-            counter[chosen] = (counter[chosen] + 1) % self.limit[chosen]
-            yield chosen, index
-
-    def by_subtensor(self):
-        """ Generator function to iterate through all minibatches subtensors """
-        counter = [0, 0, 0]
-        for chosen in self.permut:
-            # Retrieve minibatch from chosen set
-            index = counter[chosen]
-            minibatch = self.dataset[chosen][
-                index * self.batch_size:(index + 1) * self.batch_size
-            ]
-            # Increment the related counter
-            counter[chosen] = (counter[chosen] + 1) % self.limit[chosen]
-            # Return the computed minibatch
-            yield minibatch
-
-
-##################################################
-# Miscellaneous
-##################################################
-
-def blend(dataset, set_proba, **kwargs):
-    """
-    Randomized blending of datasets in data according to parameters in conf
-    """
-    iterator = BatchIterator(dataset, set_proba, 1, **kwargs)
-    nrow = len(iterator)
-    ncol = get_constant(dataset[0].shape[1])
-    array = numpy.empty((nrow, ncol), dataset[0].dtype)
-    row = 0
-    for chosen, index in iterator.by_index():
-        array[row] = dataset[chosen].get_value(borrow=True)[index]
-        row += 1
-
-    return sharedX(array, borrow=True)
-

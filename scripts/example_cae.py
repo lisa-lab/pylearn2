@@ -67,8 +67,8 @@ if __name__ == "__main__":
     for epoch in xrange(5):
         for offset in xrange(0, data.shape[0], batchsize):
             minibatch_err = train_fn(data[offset:(offset + batchsize)])
-            print "epoch %d, batch %d-%d: %f" % \
-                    (epoch, offset, offset + batchsize - 1, minibatch_err)
+            print ("epoch %d, batch %d-%d: %f" %
+                   (epoch, offset, offset + batchsize - 1, minibatch_err))
 
     # Suppose you then want to use the representation for something.
     transform = theano.function([minibatch], cae(minibatch))
@@ -94,9 +94,9 @@ if __name__ == "__main__":
     optimizers = []
     thislayer_input = [minibatch]
     for layer in scae.layers():
-        cost = MeanSquaredError(layer)( thislayer_input[0],
-                                        layer.reconstruct(thislayer_input[0])
-                                        )
+        cost = MeanSquaredError(layer)(thislayer_input[0],
+                                       layer.reconstruct(thislayer_input[0])
+                                       )
         if isinstance(layer,ContractingAutoencoder):
             cost+=layer.contraction_penalty(thislayer_input[0])
         opt = SGDOptimizer( layer.params(),
