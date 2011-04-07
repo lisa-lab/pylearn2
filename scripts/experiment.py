@@ -24,14 +24,12 @@ import framework.cost
 import framework.corruption
 
 from framework import utils
-from framework.pca import PCA, CovEigPCA
-from framework.utils import BatchIterator
+from framework.pca import PCA
 from framework.base import StackedBlocks
-from framework.autoencoder import Autoencoder
-from framework.autoencoder import DenoisingAutoencoder, ContractingAutoencoder
-from framework.rbm import GaussianBinaryRBM, PersistentCDSampler
+from framework.cost import SquaredError
+from framework.utils import BatchIterator
 from framework.optimizer import SGDOptimizer
-
+from framework.autoencoder import Autoencoder, ContractingAutoencoder
 
 def create_pca(conf, layer, data, model=None):
     """
@@ -67,7 +65,8 @@ def create_pca(conf, layer, data, model=None):
     blended = utils.blend(data, proba)
     pca.train(blended.get_value(borrow=True))
 
-    #pca.save(filename)
+    # Save model parameters
+    pca.save(filename)
     return pca
 
 
@@ -110,14 +109,16 @@ def create_ae(conf, layer, data, model=None):
 
     # Allocate an denoising or contracting autoencoder
     MyAutoencoder = framework.autoencoder.get(clsname)
-    ae = MyAutoencoder.fromdict(layer)#, corruptor=corruptor)
+    ae = MyAutoencoder.fromdict(layer, corruptor=corruptor)
 
     # Allocate an optimizer, which tells us how to update our model.
     MyCost = framework.cost.get(layer['cost_class'])
     varcost = MyCost(ae)(minibatch, ae.reconstruct(minibatch))
     if isinstance(ae, ContractingAutoencoder):
+        assert (MyCost == SquaredError)  # Only cost currently supported
         alpha = layer.get('contracting_penalty', 0.1)
-        varcost = tensor.mean(varcost.sum() + alpha * ae.contraction_penalty(minibatch))
+        penalty = alpha * ae.contraction_penalty(minibatch)
+        varcost = tensor.mean(varcost.sum() + penalty)
     trainer = SGDOptimizer(ae, layer['base_lr'], layer['anneal_start'])
     updates = trainer.cost_updates(varcost)
 
@@ -127,7 +128,7 @@ def create_ae(conf, layer, data, model=None):
                                name='train_fn')
 
     # Here's a manual training loop.
-    print 'training layer:', clsname
+    print '... training layer:', clsname
     start_time = time.clock()
     proba = utils.getboth(layer, conf, 'proba')
     iterator = BatchIterator(data, proba, layer['batch_size'])
@@ -141,7 +142,7 @@ def create_ae(conf, layer, data, model=None):
 
         # Print training time + cost
         train_time = time.clock() - batch_time
-        print 'training epoch %d, time spent (min) %f, cost' \
+        print '... training epoch %d, time spent (min) %f, cost' \
             % (epoch, train_time / 60.), numpy.mean(c)
 
         # Saving intermediate models
@@ -149,23 +150,23 @@ def create_ae(conf, layer, data, model=None):
             saving_counter += 1
             if saving_counter % saving_rate == 0:
                 ae.save(os.path.join(savedir,
-                                     layer['name'] + '-epoch-%02d.pkl' % epoch))
+                        layer['name'] + '-epoch-%02d.pkl' % epoch))
 
     end_time = time.clock()
     layer['training_time'] = (end_time - start_time) / 60.
-    print 'training ended after %f min' % layer['training_time']
+    print '... training ended after %f min' % layer['training_time']
 
     # Compute denoising error for valid and train datasets.
     error_fn = theano.function([minibatch], varcost, name='error_fn')
 
     layer['error_valid'] = error_fn(data[1].get_value(borrow=True)).item()
     layer['error_test'] = error_fn(data[2].get_value(borrow=True)).item()
-    print 'final error with valid is', layer['error_valid']
-    print 'final error with test  is', layer['error_test']
+    print '... final error with valid is', layer['error_valid']
+    print '... final error with test  is', layer['error_test']
 
     # Save model parameters
     ae.save(filename)
-    print 'final model has been saved as %s' % filename
+    print '... final model has been saved as %s' % filename
 
     # Return the autoencoder object
     return ae
@@ -173,56 +174,56 @@ def create_ae(conf, layer, data, model=None):
 
 if __name__ == "__main__":
     # First layer = PCA-75 whiten
-    layer1 = {'name' : '1st-PCA',
+    layer1 = {'name': '1st-PCA',
               'num_components': 75,
               'min_variance': 0,
               'whiten': True,
-              'pca_class' : 'SVDPCA',
+              'pca_class': 'SVDPCA',
               # Training properties
-              'proba' : [1, 0, 0],
-              'savedir' : './outputs',
+              'proba': [1, 0, 0],
+              'savedir': './outputs',
               }
 
     # Second layer = CAE-200
-    layer2 = {'name' : '2nd-CAE',
+    layer2 = {'name': '2nd-CAE',
               'nhid': 200,
               'tied_weights': True,
-              'act_enc': 'sigmoid',
+              'act_enc': 'rectifier',
               'act_dec': None,
               'irange': 0.001,
-              'cost_class' : 'SquaredError',
+              'cost_class': 'SquaredError',
               'autoenc_class': 'ContractingAutoencoder',
-              'corruption_class' : 'BinomialCorruptor',
-              'corruption_level' : 0.3, # For DenoisingAutoencoder
-              'contracting_penalty' : 0.1, # For ContractingAutoencoder
+              'corruption_class': 'BinomialCorruptor',
+              'corruption_level': 0.3,  # For DenoisingAutoencoder
+              'contracting_penalty': 0.1,  # For ContractingAutoencoder
               # Training properties
               'base_lr': 0.001,
               'anneal_start': 100,
-              'batch_size' : 1,
-              'epochs' : 10,
-              'proba' : [1, 0, 0],
+              'batch_size': 1,
+              'epochs': 10,
+              'proba': [1, 0, 0],
               }
 
     # Third layer = PCA-3 no whiten
-    layer3 = {'name' : '3st-PCA',
-              'pca_class' : 'SVDPCA',
+    layer3 = {'name': '3st-PCA',
               'num_components': 7,
               'min_variance': 0,
               'whiten': True,
+              'pca_class': 'SVDPCA',
               # Training properties
-              'proba' : [0, 1, 0]
+              'proba': [0, 1, 0]
               }
 
     # Experiment specific arguments
-    conf = {'dataset' : 'avicenna',
-            'expname' : 'dummy', # Used to create the submission file
-            'transfer' : True,
-            'normalize' : True, # (Default = True)
-            'normalize_on_the_fly' : False, # (Default = False)
-            'randomize_valid' : True, # (Default = True)
-            'randomize_test' : True, # (Default = True)
-            'saving_rate': 0, # (Default = 0)
-            'savedir' : './outputs',
+    conf = {'dataset': 'avicenna',
+            'expname': 'dummy',  # Used to create the submission file
+            'transfer': True,
+            'normalize': True,  # (Default = True)
+            'normalize_on_the_fly': False,  # (Default = False)
+            'randomize_valid': True,  # (Default = True)
+            'randomize_test': True,  # (Default = True)
+            'saving_rate': 0,  # (Default = 0)
+            'savedir': './outputs',
             }
 
     # Load the dataset
@@ -252,7 +253,7 @@ if __name__ == "__main__":
     if conf['transfer']:
         data_train, label_train = utils.filter_labels(data[0], label)
         alc = embed.score(data_train, label_train)
-        print 'resulting ALC on train is', alc
+        print '... resulting ALC on train is', alc
         conf['train_alc'] = alc
 
     # Stack both layers and create submission file

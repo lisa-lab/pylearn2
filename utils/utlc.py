@@ -3,12 +3,13 @@ Several utilities for experimenting upon utlc datasets
 """
 # Standard library imports
 import os
-from itertools import repeat
+import zipfile
+from tempfile import TemporaryFile
 
 # Third-party imports
 import numpy
 import theano
-from pylearn.datasets.utlc import load_ndarray_dataset
+from pylearn.datasets.utlc import load_ndarray_dataset, load_sparse_dataset
 
 # Local imports
 from auc import embed
@@ -63,20 +64,32 @@ def getboth(dict1, dict2, key, default=None):
             return dict2.get(key, default)
 
 ##################################################
-# Datasets and contest facilities
+# Datasets loading and contest facilities
 ##################################################
 
 def load_data(conf):
     """
     Loads a specified dataset according to the parameters in the dictionary
     """
-    expected = ['normalize',
-                'normalize_on_the_fly',
-                'randomize_valid',
-                'randomize_test',
-                'transfer']
-    print '... loading Dataset'
-    data = load_ndarray_dataset(conf['dataset'], **subdict(conf, expected))
+    print '... loading dataset'
+
+    if conf.get('sparse', False):
+        expected = [
+            'normalize',
+            'randomize_valid',
+            'randomize_test',
+            'transfer'
+        ]
+        data = load_sparse_dataset(conf['dataset'], **subdict(conf, expected))
+    else:
+        expected = [
+            'normalize',
+            'normalize_on_the_fly',
+            'randomize_valid',
+            'randomize_test',
+            'transfer'
+        ]
+        data = load_ndarray_dataset(conf['dataset'], **subdict(conf, expected))
 
     # Allocate shared variables
     def shared_dataset(data_x):
@@ -86,31 +99,27 @@ def load_data(conf):
         else:
             return theano.shared(theano._asarray(data_x), borrow=True)
 
-    if conf.get('normalize_on_the_fly', False):
+    if conf.get('normalize_on_the_fly', False) or conf.get('sparse', False):
         return data
     else:
         return map(shared_dataset, data)
 
-def create_submission(conf, transform_valid, transform_test = None):
+def save_submission(conf, valid_repr, test_repr):
     """
-    Create submission files given a configuration dictionary and a
-    computation function.
-
-    Note that it always reload the datasets to ensure valid & test
-    are not permuted.
+    Create a submission file given a configuration dictionary and a
+    representation for valid and test.
     """
-    if transform_test is None:
-        transform_test = transform_valid
+    print '... creating zipfile'
+    
+    # Ensure the given directory is correct
+    submit_dir = conf['savedir']
+    if not os.path.exists(submit_dir):
+        os.makedirs(submit_dir)
+    elif not os.path.isdir(submit_dir):
+        raise IOError('savedir %s is not a directory' % submit_dir)
 
-    # Load the dataset, without permuting valid and test
-    kwargs = subdict(conf, ['dataset', 'normalize', 'normalize_on_the_fly'])
-    kwargs.update(randomize_valid=False, randomize_test=False)
-    valid_set, test_set = load_data(kwargs)[1:3]
-
-    # Valid and test representations
-    valid_repr = transform_valid(valid_set.get_value(borrow=True))
-    test_repr = transform_test(test_set.get_value(borrow=True))
-
+    basename = os.path.join(submit_dir, conf['dataset'] + '_' + conf['expname'])
+    
     # If there are too much features, outputs kernel matrices
     if (valid_repr.shape[1] > valid_repr.shape[0]):
         valid_repr = numpy.dot(valid_repr, valid_repr.T)
@@ -120,53 +129,58 @@ def create_submission(conf, transform_valid, transform_test = None):
     valid_repr = numpy.floor((valid_repr / valid_repr.max())*999)
     test_repr = numpy.floor((test_repr / test_repr.max())*999)
 
-    # Convert into text info
-    valid_text = ''
-    test_text = ''
+    # Store the representations in two temporary files
+    valid_file = TemporaryFile()
+    test_file = TemporaryFile()
 
-    for i in xrange(valid_repr.shape[0]):
-        for j in xrange(valid_repr.shape[1]):
-            valid_text += '%s ' % int(valid_repr[i, j])
-        valid_text += '\n'
-    del valid_repr
+    numpy.savetxt(valid_file, valid_repr, fmt="%.3f")
+    numpy.savetxt(test_file, test_repr, fmt="%.3f")
 
-    for i in xrange(test_repr.shape[0]):
-        for j in xrange(test_repr.shape[1]):
-            test_text += '%s ' % int(test_repr[i, j])
-        test_text += '\n'
-    del test_repr
+    # Reread those files and put them together in a .zip
+    valid_file.seek(0)
+    test_file.seek(0)
 
-    # Write it in a .txt file
-    submit_dir = conf['savedir']
-    if not os.path.exists(submit_dir):
-        os.mkdir(submit_dir)
-    elif not os.path.isdir(submit_dir):
-        raise IOError('savedir %s is not a directory' % submit_dir)
+    submission = zipfile.ZipFile(basename + ".zip", "w",
+                                 compression=zipfile.ZIP_DEFLATED)
+    submission.writestr(basename + '_valid.prepro', valid_file.read())
+    submission.writestr(basename + '_final.prepro', test_file.read())
 
-    basename = os.path.join(submit_dir,
-                            conf['dataset'] + '_' + conf['expname']
-                            )
-    valid_file = open(basename + '_valid.prepro', 'w')
-    test_file = open(basename + '_final.prepro', 'w')
-
-    valid_file.write(valid_text)
-    test_file.write(test_text)
-
+    submission.close()
     valid_file.close()
     test_file.close()
 
-    print "... done creating files"
+def create_submission(conf, transform_valid, transform_test=None, features=None):
+    """
+    Create a submission file given a configuration dictionary and a
+    computation function.
 
-    os.system('zip -j %s %s %s' % (basename + '.zip',
-                                   basename + '_valid.prepro',
-                                   basename + '_final.prepro'))
+    Note that it always reload the datasets to ensure valid & test
+    are not permuted.
+    """
+    if transform_test is None:
+        transform_test = transform_valid
 
-    print "... files compressed"
+    # Load the dataset, without permuting valid and test
+    kwargs = subdict(conf, ['dataset', 'normalize', 'normalize_on_the_fly', 'sparse'])
+    kwargs.update(randomize_valid=False, randomize_test=False)
+    valid_set, test_set = load_data(kwargs)[1:3]
 
-    os.system('rm %s %s' % (basename + '_valid.prepro',
-                            basename + '_final.prepro'))
+    # Sparse datasets are not stored as Theano shared vars.
+    if not conf.get('sparse', False):
+        valid_set = valid_set.get_value(borrow=True)
+        test_set = test_set.get_value(borrow=True)
 
-    print "... useless files deleted"
+    # Prefilter features, if needed.
+    if features is not None:
+        valid_set = valid_set[:, features]
+        test_set = test_set[:, features]
+
+    # Valid and test representations
+    valid_repr = transform_valid(valid_set)
+    test_repr = transform_test(test_set)
+
+    # Convert into text info
+    save_submission(conf, valid_repr, test_repr)
 
 ##################################################
 # Proxies for representation evaluations
@@ -201,127 +215,3 @@ def lookup_alc(data, transform):
     test_repr = transform(data[2].get_value(borrow=True))
 
     return compute_alc(valid_repr, test_repr)
-
-
-def filter_labels(train, label):
-    """ Filter examples of train for which we have labels """
-    # Examples for which any label is set
-    condition = label.get_value(borrow=True).any(axis=1)
-
-    # Compress train and label arrays according to condition
-    def aux(var):
-        return var.get_value(borrow=True).compress(condition, axis=0)
-
-    return (aux(train), aux(label))
-
-
-##################################################
-# Iterator object for blending datasets
-##################################################
-
-class BatchIterator(object):
-    """
-    Builds an iterator object that can be used to go through the minibatches
-    of a dataset, with respect to the given proportions in conf
-    """
-    def __init__(self, dataset, set_proba, batch_size, seed = 300):
-        # Local shortcuts for array operations
-        flo = numpy.floor
-        sub = numpy.subtract
-        mul = numpy.multiply
-        div = numpy.divide
-        mod = numpy.mod
-
-        # Record external parameters
-        self.batch_size = batch_size
-        self.dataset = dataset
-
-        # Compute maximum number of samples for one loop
-        set_sizes = [get_constant(data.shape[0]) for data in dataset]
-        set_batch = [float(self.batch_size) for i in xrange(3)]
-        set_range = div(mul(set_proba, set_sizes), set_batch)
-        set_range = map(int, numpy.ceil(set_range))
-
-        # Upper bounds for each minibatch indexes
-        set_limit = numpy.ceil(numpy.divide(set_sizes, set_batch))
-        self.limit = map(int, set_limit)
-
-        # Number of rows in the resulting union
-        set_tsign = sub(set_limit, flo(div(set_sizes, set_batch)))
-        set_tsize = mul(set_tsign, flo(div(set_range, set_limit)))
-
-        l_trun = mul(flo(div(set_range, set_limit)), mod(set_sizes, set_batch))
-        l_full = mul(sub(set_range, set_tsize), set_batch)
-
-        self.length = sum(l_full) + sum(l_trun)
-
-        # Random number generation using a permutation
-        index_tab = []
-        for i in xrange(3):
-            index_tab.extend(repeat(i, set_range[i]))
-
-        # Use a deterministic seed
-        self.seed = seed
-        rng = numpy.random.RandomState(seed=self.seed)
-        self.permut = rng.permutation(index_tab)
-
-    def __iter__(self):
-        """ Generator function to iterate through all minibatches """
-        counter = [0, 0, 0]
-        for chosen in self.permut:
-            # Retrieve minibatch from chosen set
-            index = counter[chosen]
-            minibatch = self.dataset[chosen].get_value(borrow=True)[
-                index * self.batch_size:(index + 1) * self.batch_size
-            ]
-            # Increment the related counter
-            counter[chosen] = (counter[chosen] + 1) % self.limit[chosen]
-            # Return the computed minibatch
-            yield minibatch
-
-    def __len__(self):
-        """ Return length of the weighted union """
-        return self.length
-
-    def by_index(self):
-        """ Same generator as __iter__, but yield only the chosen indexes """
-        counter = [0, 0, 0]
-        for chosen in self.permut:
-            index = counter[chosen]
-            counter[chosen] = (counter[chosen] + 1) % self.limit[chosen]
-            yield chosen, index
-
-    def by_subtensor(self):
-        """ Generator function to iterate through all minibatches subtensors """
-        counter = [0, 0, 0]
-        for chosen in self.permut:
-            # Retrieve minibatch from chosen set
-            index = counter[chosen]
-            minibatch = self.dataset[chosen][
-                index * self.batch_size:(index + 1) * self.batch_size
-            ]
-            # Increment the related counter
-            counter[chosen] = (counter[chosen] + 1) % self.limit[chosen]
-            # Return the computed minibatch
-            yield minibatch
-
-
-##################################################
-# Miscellaneous
-##################################################
-
-def blend(dataset, set_proba, **kwargs):
-    """
-    Randomized blending of datasets in data according to parameters in conf
-    """
-    iterator = BatchIterator(dataset, set_proba, 1, **kwargs)
-    nrow = len(iterator)
-    ncol = get_constant(dataset[0].shape[1])
-    array = numpy.empty((nrow, ncol), dataset[0].dtype)
-    row = 0
-    for chosen, index in iterator.by_index():
-        array[row] = dataset[chosen].get_value(borrow=True)[index]
-        row += 1
-
-    return sharedX(array, borrow=True)
-

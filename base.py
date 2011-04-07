@@ -9,6 +9,7 @@ import os.path
 # Third-party imports
 import theano
 from theano import tensor
+from theano.sparse import SparseType
 
 # Local imports
 from .utils import subdict
@@ -22,6 +23,7 @@ if 0:
 else:
     import theano.sandbox.rng_mrg
     RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
+
 
 class Block(object):
     """
@@ -100,6 +102,7 @@ class Block(object):
     def invalid(self):
         return None in self._params
 
+
 class StackedBlocks(Block):
     """
     A stack of Blocks, where the output of a block is the input of the next.
@@ -151,7 +154,7 @@ class StackedBlocks(Block):
 
         return repr
 
-    def function(self, name=None, repr_index=-1):
+    def function(self, name=None, repr_index=-1, sparse_input=False):
         """
         Compile a function computing representations on given layers.
 
@@ -164,7 +167,11 @@ class StackedBlocks(Block):
             0 means the input, -1 the last output.
         """
 
-        inputs = tensor.matrix()
+        if sparse_input:
+            inputs = SparseType('csr', dtype=floatX)()
+        else:
+            inputs = tensor.matrix()
+
         return theano.function(
                 [inputs],
                 outputs=self(inputs)[repr_index],
@@ -186,10 +193,9 @@ class StackedBlocks(Block):
             the concatenation. We must have start_index < end_index.
         """
         inputs = tensor.matrix()
-        return theano.function(
-                [inputs],
-                outputs=tensor.concatenate(self(inputs)[start_index:end_index]),
-                name=name)
+        return theano.function([inputs],
+            outputs=tensor.concatenate(self(inputs)[start_index:end_index]),
+            name=name)
 
     def append(self, layer):
         """

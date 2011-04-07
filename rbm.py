@@ -55,6 +55,7 @@ def training_updates(visible_batch, model, sampler, optimizer):
     safe_update(ups, sampler.updates())
     return ups
 
+
 class Sampler(object):
     """
     A sampler is responsible for implementing a sampling strategy on top of
@@ -80,7 +81,7 @@ class Sampler(object):
         self.__dict__.update(rbm=rbm)
         if not hasattr(rng, 'randn'):
             rng = numpy.random.RandomState(rng)
-        seed = int(rng.randint(2**30))
+        seed = int(rng.randint(2 ** 30))
         self.s_rng = RandomStreams(seed)
         self.particles = sharedX(particles, name='particles')
 
@@ -100,6 +101,7 @@ class Sampler(object):
         In the `Sampler` base class, this is simply a stub.
         """
         raise NotImplementedError()
+
 
 class PersistentCDSampler(Sampler):
     """
@@ -158,6 +160,7 @@ class PersistentCDSampler(Sampler):
             self.particles: particles,
             self.rbm.h_sample: _locals['h_mean']
         }
+
 
 class RBM(Block):
     """
@@ -358,7 +361,6 @@ class RBM(Block):
         else:
             return [self.mean_h_given_v(vis) for vis in v]
 
-
     def mean_v_given_h(self, h):
         """
         Compute the mean activation of the visibles given hidden unit
@@ -443,7 +445,8 @@ class RBM(Block):
         no sampling is done, to reduce noise in the estimate.
         """
         sample, _locals = self.gibbs_step_for_v(v, rng)
-        return ((_locals['v_mean'] - v)**2).sum(axis=1).mean()
+        return ((_locals['v_mean'] - v) ** 2).sum(axis=1).mean()
+
 
 class GaussianBinaryRBM(RBM):
     """
@@ -474,7 +477,8 @@ class GaussianBinaryRBM(RBM):
             Don't actually sample visibles; make sample method simply return
             mean.
         """
-        super(GaussianBinaryRBM, self).__init__(nvis, nhid, batch_size, irange, rng)
+        super(GaussianBinaryRBM, self).__init__(nvis, nhid, batch_size,
+                                                irange, rng)
         self.sigma = sharedX(
             numpy.ones(nvis),
             name='sigma',
@@ -550,7 +554,7 @@ class GaussianBinaryRBM(RBM):
             free energy of the visible unit configuration.
         """
         hid_inp = self.input_to_h_from_v(v)
-        squared_term = (self.visbias - v)**2 / self.sigma
+        squared_term = (self.visbias - v) ** 2 / self.sigma
         return squared_term.sum(axis=1) - nnet.softplus(hid_inp).sum(axis=1)
 
     def sample_visibles(self, params, shape, rng):
@@ -609,14 +613,14 @@ def build_stacked_RBM(nvis, nhids, batch_size, vis_type='binary',
             nviss,
             )
     for k, nhid, nvis in seq:
-        if k==0 and vis_type=='gaussian':
+        if k == 0 and vis_type == 'gaussian':
             rbm = GaussianBinaryRBM(nvis=nvis, nhid=nhid,
                     batch_size=batch_size,
                     irange=irange,
                     rng=rng,
                     mean_vis=input_mean_vis)
         else:
-            rbm = RBM(nvis-nvis, nhid=nhid,
+            rbm = RBM(nvis - nvis, nhid=nhid,
                     batch_size=batch_size,
                     irange=irange,
                     rng=rng)

@@ -42,8 +42,8 @@ if __name__ == "__main__":
         'tied_weights': False ,
         'solution': 'l1_penalty',
         'sparse_penalty': 0.01,
-        'sparsityTarget': 0.1 ,
-        'sparsityTargetPenalty': 0.001 ,
+        'sparsity_target': 0.1,
+        'sparsity_target_penalty': 0.001,
         'irange': 0.001, 
     }
 
@@ -53,8 +53,10 @@ if __name__ == "__main__":
     # Allocate a denoising autoencoder with binomial noise corruption.
     corruptor = GaussianCorruptor(conf['corruption_level'])
     da = DenoisingAutoencoder(corruptor, conf['nvis'], conf['nhid'],
-                              conf['act_enc'], conf['act_dec'], conf['tied_weights'], conf['solution'], conf['sparse_penalty'],
-                              conf['sparsityTarget'], conf['sparsityTargetPenalty'])
+                              conf['act_enc'], conf['act_dec'],
+                              conf['tied_weights'], conf['solution'],
+                              conf['sparse_penalty'], conf['sparsity_target'],
+                              conf['sparsity_target_penalty'])
 
     # Allocate an optimizer, which tells us how to update our model.
     # TODO: build the cost another way
@@ -65,12 +67,12 @@ if __name__ == "__main__":
     # Finally, build a Theano function out of all this.
     train_fn = theano.function([minibatch], cost, updates=updates)
 
-    # Suppose we want minibatches of size 10
-    batchsize = 100
+    # Suppose we want minibatches of size 20
+    batchsize = 20
 
     # Here's a manual training loop. I hope to have some classes that
     # automate this a litle bit.
-    for epoch in xrange(2):
+    for epoch in xrange(5):
         for offset in xrange(0, data.shape[0], batchsize):
             minibatch_err = train_fn(data[offset:(offset + batchsize)])
             print "epoch %d, batch %d-%d: %f" % \
@@ -91,20 +93,24 @@ if __name__ == "__main__":
     sda_conf['nhid'] = [20, 20, 10]
     
     # Add to cost function a regularization term for each layer :
-    #	- Layer1 : l1_penalty with sparse_penalty = 0.01
-    #	- Layer2 : sqr_penalty with sparsityTarget = 0.2 and sparsityTargetPenalty = 0.01
-    #	- Layer3 : l1_penalty with sparse_penalty = 0.1
+    # - Layer1 : l1_penalty with sparse_penalty = 0.01
+    # - Layer2 : sqr_penalty with sparsity_target = 0.2
+    #            and sparsity_target_penalty = 0.01
+    # - Layer3 : l1_penalty with sparse_penalty = 0.1
     
     sda_conf['solution'] = ['l1_penalty','sqr_penalty','l1_penalty']
     sda_conf['sparse_penalty'] = [0.02, 0, 0.1]
-    sda_conf['sparsityTarget'] = [0, 0.3, 0]
-    sda_conf['sparsityTargetPenalty'] = [0, 0.001, 0]             
+    sda_conf['sparsity_target'] = [0, 0.3, 0]
+    sda_conf['sparsity_target_penalty'] = [0, 0.001, 0]             
     
     sda_conf['anneal_start'] = None # Don't anneal these learning rates
     sda = build_stacked_ae(sda_conf['nvis'], sda_conf['nhid'],
                            sda_conf['act_enc'], sda_conf['act_dec'],
-                           corruptor=corruptor,contracting=False, solution=sda_conf['solution'],sparse_penalty=sda_conf['sparse_penalty'],
-                           sparsityTarget=sda_conf['sparsityTarget'], sparsityTargetPenalty=sda_conf['sparsityTargetPenalty'])
+                           corruptor=corruptor, contracting=False,
+                           solution=sda_conf['solution'],
+                           sparse_penalty=sda_conf['sparse_penalty'],
+                           sparsity_target=sda_conf['sparsity_target'],
+                           sparsity_target_penalty=sda_conf['sparsity_target_penalty'])
 
     # To pretrain it, we'll use a different SGDOptimizer for each layer.
     optimizers = []
@@ -112,7 +118,7 @@ if __name__ == "__main__":
     for layer in sda.layers():
       
         cost = MeanSquaredError(layer)(thislayer_input[0],
-                                                 layer.reconstruct(thislayer_input[0]))
+                                       layer.reconstruct(thislayer_input[0]))
         opt = SGDOptimizer(layer.params(), sda_conf['base_lr'],
                            sda_conf['anneal_start'])
         optimizers.append((opt, cost))
@@ -121,7 +127,7 @@ if __name__ == "__main__":
         thislayer_train_fn = theano.function([minibatch], cost, updates=updates)
 
         # Train as before.
-        for epoch in xrange(2):
+        for epoch in xrange(5):
             for offset in xrange(0, data.shape[0], batchsize):
                 minibatch_err = thislayer_train_fn(
                     data[offset:(offset + batchsize)]
@@ -131,4 +137,3 @@ if __name__ == "__main__":
 
         # Now, get a symbolic input for the next layer.
         thislayer_input = layer(thislayer_input)
-  
