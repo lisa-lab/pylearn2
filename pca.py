@@ -3,24 +3,18 @@ from sys import stderr
 
 # Third-party imports
 import numpy
-import theano
-from theano import tensor
-import theano.sparse as TS
-from pylearn.algorithms import pca_online_estimator
 from scipy import linalg, sparse
-N= numpy
-from theano.sparse import SparseType, structured_dot
-from theano.sparse.basic import _is_sparse_variable
-from pylearn.algorithms import pca_online_estimator
-from scipy import linalg
-from scipy.sparse.csr import csr_matrix
-
 try:
     from scipy.sparse.linalg import eigen_symmetric
 except ImportError:
     print >> stderr, 'Cannot import scipy.sparse.linalg.eigen_symmetric.' \
         ' Note: this was renamed eigsh in scipy 0.9.'
     sys.exit(1)
+from scipy.sparse.csr import csr_matrix
+import theano
+from theano import tensor
+from theano.sparse import SparseType, structured_dot
+from pylearn.algorithms import pca_online_estimator
 
 # Local imports
 from .base import Block
@@ -160,13 +154,13 @@ class SparseMatPCA(PCA):
         self.minibatch_size = minibatch_size
 
     def get_input_type(self):
-        return TS.csr_matrix
+        return csr_matrix
 
     def __call__(self, inputs):
 
         self._update_cutoff()
 
-        Y = TS.structured_dot(inputs, self.W[:, :self.component_cutoff])
+        Y = structured_dot(inputs, self.W[:, :self.component_cutoff])
         Z = Y - tensor.dot(self.mean,self.W[:, :self.component_cutoff])
 
         if self.whiten:
@@ -188,12 +182,12 @@ class SparseMatPCA(PCA):
 
         # Compute mean of the data
         print 'computing mean'
-        self.mean_ = N.asarray(X.mean(axis=0))[0,:]
+        self.mean_ = numpy.asarray(X.mean(axis=0))[0,:]
 
         m, n = X.shape
 
         print 'allocating covariance'
-        cov = N.zeros((n,n))
+        cov = numpy.zeros((n,n))
 
         batch_size = self.minibatch_size
 
@@ -206,7 +200,7 @@ class SparseMatPCA(PCA):
 
 
 
-            prod = N.dot(x.T , x)
+            prod = numpy.dot(x.T , x)
             assert prod.shape == (n,n)
 
             cov += prod
