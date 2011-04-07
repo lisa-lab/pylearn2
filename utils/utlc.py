@@ -150,7 +150,7 @@ def save_submission(conf, valid_repr, test_repr):
     valid_file.close()
     test_file.close()
 
-def create_submission(conf, transform_valid, transform_test=None):
+def create_submission(conf, transform_valid, transform_test=None, features=None):
     """
     Create a submission file given a configuration dictionary and a
     computation function.
@@ -170,6 +170,11 @@ def create_submission(conf, transform_valid, transform_test=None):
     if not conf.get('sparse', False):
         valid_set = valid_set.get_value(borrow=True)
         test_set = test_set.get_value(borrow=True)
+
+    # Prefilter features, if needed.
+    if features is not None:
+        valid_set = valid_set[:, features]
+        test_set = test_set[:, features]
 
     # Valid and test representations
     valid_repr = transform_valid(valid_set)
