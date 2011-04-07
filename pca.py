@@ -229,6 +229,11 @@ class SparseMatPCA(PCA):
         self.v.set_value(self.v.get_value(borrow=True)[:component_cutoff])
         self.W.set_value(self.W.get_value(borrow=True)[:, :component_cutoff])
 
+    def function(self, name=None):
+        """ Returns a compiled theano function to compute a representation """
+        inputs = SparseType('csr', dtype=floatX)()
+        return theano.function([inputs], self(inputs), name=name)
+
 
 class OnlinePCA(PCA):
     def __init__(self, minibatch_size=500, **kwargs):
