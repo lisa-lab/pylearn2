@@ -9,7 +9,6 @@ from theano.sparse import SparseType, structured_dot
 from theano.sparse.basic import _is_sparse_variable
 from pylearn.algorithms import pca_online_estimator
 from scipy import linalg
-from scipy.sparse import issparse
 from scipy.sparse.csr import csr_matrix
 
 try:
@@ -235,9 +234,9 @@ class SparsePCA(PCA):
 
     def __call__(self, inputs):
         """
-        Compute and return the PCA transformation of dense or sparse data.
+        Compute and return the PCA transformation of sparse data.
 
-        Precondition: if inputs is sparse, self.mean has been subtracted from it.
+        Precondition: self.mean has been subtracted from inputs.
         The reason for this is that, as far as I can tell, there is no way to
         subtract a vector from a sparse matrix without constructing an intermediary
         dense matrix, in theano; even the hack used in train() won't do, because
@@ -252,11 +251,7 @@ class SparsePCA(PCA):
         # changed (or both).
         self._update_cutoff()
 
-        if _is_sparse_variable(inputs):
-            Y = structured_dot(inputs, self.W[:, :self.component_cutoff])
-        else:
-            Y = tensor.dot(inputs - self.mean, self.W[:, :self.component_cutoff])
-
+        Y = structured_dot(inputs, self.W[:, :self.component_cutoff])
         if self.whiten:
             Y /= tensor.sqrt(self.v[:self.component_cutoff])
         return Y
