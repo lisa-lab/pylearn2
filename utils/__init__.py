@@ -1,4 +1,2 @@
-from .utlc import (get_constant, sharedX, subdict, safe_update,
-                   getboth, load_data, create_submission, compute_alc,
-                   lookup_alc, filter_labels, nonzero_features, blend)
-from .utlc import BatchIterator
+from .utlc import *
+from .datasets import *
