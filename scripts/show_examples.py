@@ -12,8 +12,8 @@ else:
     print 'not sure what to do with that kind of file'
     quit(-1)
 
-rows = 10
-cols = 10
+rows = 20
+cols = 20
 
 examples = dataset.get_batch_topo(rows*cols)
 

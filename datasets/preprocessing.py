@@ -76,10 +76,11 @@ class GlobalContrastNormalization(object):
 
     def apply(self, dataset, can_fit = False):
         X = dataset.get_design_matrix()
-        assert X.dtype.startswith('float')
+        assert X.dtype == 'float32' or X.dtype == 'float64'
 
         X -= X.mean(axis=1)[:,None]
         std = N.sqrt( (X**2.).mean(axis=1) + self.std_bias)
+        print (std.min(),std.max(),std.mean(),std.std())
         X /= std[:,None]
 
         dataset.set_design_matrix(X)
@@ -94,7 +95,7 @@ class ZCA(object):
         self.has_fit_ = False
 
     def fit(self, X):
-        assert X.dtype.startswith('float')
+        assert X.dtype in ['float32','float64']
         assert not N.any(N.isnan(X))
 
         assert len(X.shape) == 2
@@ -134,16 +135,18 @@ class ZCA(object):
 
     def apply(self, dataset, can_fit = False):
         X = dataset.get_design_matrix()
-        assert X.dtype.startswith('float')
+        assert X.dtype in ['float32','float64']
 
         if not self.has_fit_:
             assert can_fit
             self.fit(X)
         #
 
-        X =  N.dot(X-self.mean_, self.P_)
+        new_X =  N.dot(X-self.mean_, self.P_)
 
-        dataset.set_design_matrix(X)
+        print 'mean absolute difference between new and old X'+str(N.abs(X-new_X).mean())
+
+        dataset.set_design_matrix(new_X)
     #
 #
 

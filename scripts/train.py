@@ -3,27 +3,32 @@
 import sys
 
 # Local imports
-try:
-    import framework
-except ImportError:
-    print >>sys.stderr, \
-            "Framework couldn't be imported. Make sure you have the " \
-            "repository root on your PYTHONPATH (or as your current " \
-            "working directory)"
-    sys.exit(1)
-
 import framework.config.yaml_parse
+from framework.utils import serial
 
 class Train:
-    def __init__(self, dataset, model, algorithm = None):
-        self.dataset, self.model, self.algorithm  = dataset, model, algorithm
+    def __init__(self, dataset, model, algorithm = None, save_path = None):
+        self.dataset, self.model, self.algorithm, self.save_path  = dataset, model, algorithm, save_path
 
     def main_loop(self):
         if self.algorithm is None:
-            self.model.train(self.dataset)
+            while self.model.train(dataset = self.dataset):
+                self.save()
+            #
+            self.save()
         else:
-            self.algorithm.train(self.model, self.dataset)
+            while self.algorithm.train(model= self.model, dataset = self.dataset):
+                self.save()
+            #
+        #
+    #
 
+    def save(self):
+        #TODO-- save state of dataset and training algorithm so training can be resumed after a crash
+        if self.save_path is not None:
+            serial.save(self.save_path, self.model)
+        #
+    #
 
 if __name__ == "__main__":
 
