@@ -8,9 +8,10 @@ from itertools import repeat
 
 # Third-party imports
 import numpy
+import scipy
+import theano
 from matplotlib import pyplot
 from mpl_toolkits.mplot3d import Axes3D
-import theano
 
 # Local imports
 from .utlc import get_constant, sharedX
@@ -144,10 +145,13 @@ class BatchIterator(object):
 
         # Record external parameters
         self.batch_size = batch_size
-        self.dataset = dataset
+        if (isinstance(dataset[0], theano.Variable)):
+            self.dataset = [set.get_value(borrow=True) for set in dataset]
+        else:
+            self.dataset = dataset
 
         # Compute maximum number of samples for one loop
-        set_sizes = [get_constant(data.shape[0]) for data in dataset]
+        set_sizes = [set.shape[0] for set in self.dataset]
         set_batch = [float(self.batch_size) for i in xrange(3)]
         set_range = div(mul(set_proba, set_sizes), set_batch)
         set_range = map(int, numpy.ceil(set_range))
@@ -181,7 +185,7 @@ class BatchIterator(object):
         for chosen in self.permut:
             # Retrieve minibatch from chosen set
             index = counter[chosen]
-            minibatch = self.dataset[chosen].get_value(borrow=True)[
+            minibatch = self.dataset[chosen][
                 index * self.batch_size:(index + 1) * self.batch_size
             ]
             # Increment the related counter
@@ -201,21 +205,6 @@ class BatchIterator(object):
             counter[chosen] = (counter[chosen] + 1) % self.limit[chosen]
             yield chosen, index
 
-    def by_subtensor(self):
-        """ Generator function to iterate through all minibatches subtensors """
-        counter = [0, 0, 0]
-        for chosen in self.permut:
-            # Retrieve minibatch from chosen set
-            index = counter[chosen]
-            minibatch = self.dataset[chosen][
-                index * self.batch_size:(index + 1) * self.batch_size
-            ]
-            # Increment the related counter
-            counter[chosen] = (counter[chosen] + 1) % self.limit[chosen]
-            # Return the computed minibatch
-            yield minibatch
-
-
 ##################################################
 # Miscellaneous
 ##################################################
@@ -228,10 +217,17 @@ def blend(dataset, set_proba, **kwargs):
     iterator = BatchIterator(dataset, set_proba, 1, **kwargs)
     nrow = len(iterator)
     ncol = get_constant(dataset[0].shape[1])
-    array = numpy.empty((nrow, ncol), dataset[0].dtype)
-    row = 0
-    for chosen, index in iterator.by_index():
-        array[row] = dataset[chosen].get_value(borrow=True)[index]
-        row += 1
+    if (scipy.sparse.issparse(dataset[0])):
+        # Special case: the dataset is sparse
+        blocks = [[batch] for batch in iterator]
+        return scipy.sparse.bmat(blocks, 'csr')
+    
+    else:
+        # Normal case: the dataset is dense
+        row = 0
+        array = numpy.empty((nrow, ncol), dataset[0].dtype)
+        for batch in iterator:
+            array[row] = batch
+            row += 1
 
-    return sharedX(array, borrow=True)
+        return sharedX(array, borrow=True)

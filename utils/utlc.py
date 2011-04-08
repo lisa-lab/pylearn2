@@ -8,7 +8,6 @@ import zipfile
 from tempfile import TemporaryFile
 
 # Third-party imports
-import numpy
 import theano
 from pylearn.datasets.utlc import load_ndarray_dataset, load_sparse_dataset
 
@@ -23,10 +22,13 @@ floatX = theano.config.floatX
 
 def get_constant(variable):
     """ Little hack to return the python value of a theano shared variable """
-    return theano.function([],
-                           variable,
-                           mode=theano.compile.Mode(linker='py')
-                           )()
+    try:
+        return theano.function([],
+                               variable,
+                               mode=theano.compile.Mode(linker='py')
+                               )()
+    except TypeError:
+        return variable
 
 def sharedX(value, name=None, borrow=False):
     """Transform value into a shared variable of type floatX"""
