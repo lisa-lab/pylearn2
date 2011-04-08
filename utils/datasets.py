@@ -9,6 +9,7 @@ from itertools import repeat
 # Third-party imports
 import numpy
 from matplotlib import pyplot
+import theano
 
 # Local imports
 from utils.viz3d import do_3d_scatter
@@ -37,12 +38,17 @@ def save_plot(repr, path, name="figure.pdf", title="features"):
 
 def filter_labels(train, label):
     """ Filter examples of train for which we have labels """
+    if isinstance(train, theano.tensor.sharedvar.SharedVariable):
+        train = train.get_value(borrow=True)
+    elif not isinstance(train, numpy.ndarray):
+        raise TypeError('train must be a numpy array or a theano shared array')
+
     # Examples for which any label is set
     condition = label.any(axis=1)
 
     # Compress train and label arrays according to condition
     def aux(var):
-        return var.get_value(borrow=True).compress(condition, axis=0)
+        return var.compress(condition, axis=0)
 
     return (aux(train), aux(label))
 
