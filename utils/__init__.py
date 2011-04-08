@@ -13,9 +13,12 @@ from .utlc import (
         )
 
 from .datasets import (
+        do_3d_scatter,
         save_plot,
+        accumulate,
         filter_labels,
-        BatchIterator,
+        filter_nonzero,
         nonzero_features,
+        BatchIterator,
         blend,
         )
