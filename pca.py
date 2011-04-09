@@ -159,9 +159,9 @@ class SparseMatPCA(PCA):
         This is for the case where X - X.mean() does not fit
         in memory (because it's dense) but
         N.dot( (X-X.mean()).T, X-X.mean() ) does  """
-    def __init__(self, minibatch_size=50, **kwargs):
+    def __init__(self, batch_size=50, **kwargs):
         super(SparseMatPCA, self).__init__(**kwargs)
-        self.minibatch_size = minibatch_size
+        self.minibatch_size = batch_size
 
     def get_input_type(self):
         return csr_matrix
@@ -176,7 +176,7 @@ class SparseMatPCA(PCA):
         for i in xrange(0, m, batch_size):
             print '\tprocessing example', str(i)
             end = min(m, i + batch_size)
-            x = X[i:end,:].todense() - self.mean_
+            x = X[i:end, :].todense() - self.mean_
             assert x.shape[0] == end - i
 
             prod = numpy.dot(x.T, x)
@@ -205,7 +205,7 @@ class SparseMatPCA(PCA):
 
         # Compute feature means.
         print 'computing mean'
-        self.mean_ = numpy.asarray(X.mean(axis=0))[0,:]
+        self.mean_ = numpy.asarray(X.mean(axis=0))[0, :]
 
         super(SparseMatPCA, self).train(X, mean=self.mean_)
 
@@ -214,7 +214,7 @@ class SparseMatPCA(PCA):
         self._update_cutoff()
 
         Y = structured_dot(inputs, self.W[:, :self.component_cutoff])
-        Z = Y - tensor.dot(self.mean,self.W[:, :self.component_cutoff])
+        Z = Y - tensor.dot(self.mean, self.W[:, :self.component_cutoff])
 
         if self.whiten:
             Z /= tensor.sqrt(self.v[:self.component_cutoff])

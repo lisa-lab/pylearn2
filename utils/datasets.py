@@ -4,6 +4,7 @@ minibatches from a dataset, or to merge three data with given proportions
 """
 # Standard library imports
 import os
+import functools
 from itertools import repeat
 
 # Third-party imports
@@ -63,7 +64,7 @@ def filter_labels(train, label):
 
     return (aux(train), aux(label))
 
-def nonzero_features(data, all_subsets=True):
+def nonzero_features(data, combine=None):
     """
     Get features for which there are nonzero entries in the data.
 
@@ -72,57 +73,44 @@ def nonzero_features(data, all_subsets=True):
 
     Parameters
     ----------
-    data : list of 3 ndarray objects
-        List of data matrices, each with the same number of features.
-    all_subsets : bool
-        If true, discard features not found in any subset; if false, discard
-        features found in neither valid nor test subsets.
+    data : list of matrices
+        List of data matrices, either in sparse format or not.
+        They must have the same number of features (column number).
+    combine : function
+        A function to combine elementwise which features to keep
+        Default keeps the intersection of each non-zero columns
 
     Returns
     -------
     indices : ndarray object
-        Indices of nonzero features.
+        Indices of the nonzero features.
     """
 
-    if not all_subsets:
-        data = data[1:]
-
+    if combine is None:
+        combine = functools.partial(reduce, numpy.logical_and)
+    
     # Assumes all values are >0, which is the case for all sparse datasets.
     masks = numpy.asarray([subset.sum(axis=0) for subset in data]).squeeze()
-    #logical_and(*masks[:2]).nonzero()[0]
-    nz_feats = masks.prod(axis=0).nonzero()[0]
+    nz_feats = combine(masks).nonzero()[0]
 
     return nz_feats
 
 
-def accumulate(table, function):
-    """ Fold function accross the elements of table """
-    it = iter(table)
-    total = next(it)
-    for element in it:
-        total = function(total, element)
-    return total
-
-
-def filter_nonzero(data, reduce=None):
+def filter_nonzero(data, combine=None):
     """
-    Filter non-zero features of data according to a certain function
+    Filter non-zero features of data according to a certain combining function
     
     Parameters
     ----------
     data : list of matrices
         List of data matrices, either in sparse format or not.
         They must have the same number of features (column number).
-    reduce : function
+    combine : function
         A function to combine elementwise which features to keep
         Default keeps the intersection of each non-zero columns
-
     """
-    if reduce is None:
-        reduce = lambda x: accumulate(x, numpy.logical_and)
-
-    masks = numpy.asarray([subset.sum(axis=0) for subset in data]).squeeze()
-    nz_feats = reduce(masks).nonzero()[0]
+    
+    nz_feats = nonzero_features(data, combine)
 
     return [set[:, nz_feats] for set in data]
 
