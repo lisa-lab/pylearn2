@@ -186,7 +186,7 @@ class SparseMatPCA(PCA):
         cov /= n
 
         print 'computing eigens'
-        v, W = linalg.eigh(cov)
+        v, W = linalg.eigh(cov, eigvals=(d - self.num_components, d - 1))
 
         # The resulting components are in *ascending* order of eigenvalue, and
         # W contains eigenvectors in its *columns*, so we simply reverse both.
