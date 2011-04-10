@@ -167,23 +167,23 @@ class SparseMatPCA(PCA):
         return csr_matrix
 
     def _cov_eigen(self, X):
-        m, n = X.shape
+        n, d = X.shape
 
-        cov = numpy.zeros((n, n))
+        cov = numpy.zeros((d, d))
         batch_size = self.minibatch_size
 
-        for i in xrange(0, m, batch_size):
+        for i in xrange(0, n, batch_size):
             print '\tprocessing example', str(i)
-            end = min(m, i + batch_size)
+            end = min(n, i + batch_size)
             x = X[i:end,:].todense() - self.mean_
             assert x.shape[0] == end - i
 
             prod = numpy.dot(x.T, x)
-            assert prod.shape == (n, n)
+            assert prod.shape == (d, d)
 
             cov += prod
 
-        cov /= m
+        cov /= n
 
         print 'computing eigens'
         v, W = linalg.eigh(cov)
