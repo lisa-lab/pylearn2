@@ -52,19 +52,25 @@ def filter_labels(train, label, classes=None):
     """ Filter examples of train for which we have labels """
     if isinstance(train, theano.tensor.sharedvar.SharedVariable):
         train = train.get_value(borrow=True)
-    elif not (isinstance(train, numpy.ndarray) or scipy.sparse.issparse(train)):
-        raise TypeError('train must be a numpy array, a scipy sparse matrix,'\
-            ' or a theano shared array')
+    if isinstance(label, theano.tensor.sharedvar.SharedVariable):
+        label = label.get_value(borrow=True)
+
+    if not (isinstance(train, numpy.ndarray) or scipy.sparse.issparse(train)):
+        raise TypeError('train must be a numpy array, a scipy sparse matrix,'
+                        ' or a theano shared array')
 
     # Examples for which any label is set
     if classes is not None:
-        label = label[:,classes]
+        label = label[:, classes]
 
-    # Note: you probably don't want to change this line.  It is likely the only
-    # way to do this that works on both numpy.ndarrays and scipy.sparse matrices.
-    idx = label.sum(axis=1).nonzero()[0]
+    # Special case for sparse matrices
+    if scipy.sparse.issparse(train):
+        idx = label.sum(axis=1).nonzero()[0]
+        return (train[idx], label[idx])
 
-    return (train[idx], label[idx])
+    # Compress train and label arrays according to condition
+    condition = label.any(axis=1)
+    return tuple(var.compress(condition, axis=0) for var in (train, label))
 
 def nonzero_features(data, combine=None):
     """
@@ -90,7 +96,7 @@ def nonzero_features(data, combine=None):
 
     if combine is None:
         combine = functools.partial(reduce, numpy.logical_and)
-    
+
     # Assumes all values are >0, which is the case for all sparse datasets.
     masks = numpy.asarray([subset.sum(axis=0) for subset in data]).squeeze()
     nz_feats = combine(masks).nonzero()[0]
@@ -111,7 +117,7 @@ def filter_nonzero(data, combine=None):
         A function to combine elementwise which features to keep
         Default keeps the intersection of each non-zero columns
     """
-    
+
     nz_feats = nonzero_features(data, combine)
 
     return [set[:, nz_feats] for set in data]
@@ -211,7 +217,7 @@ def blend(dataset, set_proba, **kwargs):
         # Special case: the dataset is sparse
         blocks = [[batch] for batch in iterator]
         return scipy.sparse.bmat(blocks, 'csr')
-    
+
     else:
         # Normal case: the dataset is dense
         row = 0
