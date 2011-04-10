@@ -3,6 +3,7 @@ Several utilities for experimenting upon utlc datasets
 """
 # Standard library imports
 import os
+import inspect
 import zipfile
 from tempfile import TemporaryFile
 
@@ -22,10 +23,13 @@ floatX = theano.config.floatX
 
 def get_constant(variable):
     """ Little hack to return the python value of a theano shared variable """
-    return theano.function([],
-                           variable,
-                           mode=theano.compile.Mode(linker='py')
-                           )()
+    try:
+        return theano.function([],
+                               variable,
+                               mode=theano.compile.Mode(linker='py')
+                               )()
+    except TypeError:
+        return variable
 
 def sharedX(value, name=None, borrow=False):
     """Transform value into a shared variable of type floatX"""
@@ -73,23 +77,18 @@ def load_data(conf):
     """
     print '... loading dataset'
 
+    # Special case for sparse format
     if conf.get('sparse', False):
-        expected = [
-            'normalize',
-            'randomize_valid',
-            'randomize_test',
-            'transfer'
-        ]
-        data = load_sparse_dataset(conf['dataset'], **subdict(conf, expected))
-    else:
-        expected = [
-            'normalize',
-            'normalize_on_the_fly',
-            'randomize_valid',
-            'randomize_test',
-            'transfer'
-        ]
-        data = load_ndarray_dataset(conf['dataset'], **subdict(conf, expected))
+        expected = inspect.getargspec(load_sparse_dataset)[0][1:]
+        return load_sparse_dataset(conf['dataset'], **subdict(conf, expected))
+
+    # Load as the usual ndarray
+    expected = inspect.getargspec(load_ndarray_dataset)[0][1:]
+    data = load_ndarray_dataset(conf['dataset'], **subdict(conf, expected))
+
+    # Special case for on-the-fly normalization
+    if conf.get('normalize_on_the_fly', False):
+        return data
 
     # Allocate shared variables
     def shared_dataset(data_x):
@@ -99,10 +98,8 @@ def load_data(conf):
         else:
             return theano.shared(theano._asarray(data_x), borrow=True)
 
-    if conf.get('normalize_on_the_fly', False) or conf.get('sparse', False):
-        return data
-    else:
-        return map(shared_dataset, data)
+    return map(shared_dataset, data)
+
 
 def save_submission(conf, valid_repr, test_repr):
     """
