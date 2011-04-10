@@ -8,6 +8,7 @@ from itertools import repeat
 
 # Third-party imports
 import numpy
+from scipy.sparse import issparse
 from matplotlib import pyplot
 import theano
 
@@ -40,17 +41,15 @@ def filter_labels(train, label):
     """ Filter examples of train for which we have labels """
     if isinstance(train, theano.tensor.sharedvar.SharedVariable):
         train = train.get_value(borrow=True)
-    elif not isinstance(train, numpy.ndarray):
-        raise TypeError('train must be a numpy array or a theano shared array')
+    elif not (isinstance(train, numpy.ndarray) or issparse(train)):
+        raise TypeError('train must be a numpy array, a scipy sparse matrix,'\
+            ' or a theano shared array')
 
-    # Examples for which any label is set
-    condition = label.any(axis=1)
+    # Note: you probably don't want to change this line.  It is likely the only
+    # way to do this that works on both numpy.ndarrays and scipy.sparse matrices.
+    idx = label.sum(axis=1).nonzero()[0]
 
-    # Compress train and label arrays according to condition
-    def aux(var):
-        return var.compress(condition, axis=0)
-
-    return (aux(train), aux(label))
+    return (train[idx], label[idx])
 
 ##################################################
 # Iterator object for minibatches of datasets
