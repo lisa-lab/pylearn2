@@ -37,13 +37,17 @@ def save_plot(repr, path, name="figure.pdf", title="features"):
 # Features or examples filtering
 ##################################################
 
-def filter_labels(train, label):
+def filter_labels(train, label, classes=None):
     """ Filter examples of train for which we have labels """
     if isinstance(train, theano.tensor.sharedvar.SharedVariable):
         train = train.get_value(borrow=True)
     elif not (isinstance(train, numpy.ndarray) or issparse(train)):
         raise TypeError('train must be a numpy array, a scipy sparse matrix,'\
             ' or a theano shared array')
+
+    # Examples for which any label is set
+    if classes is not None:
+        label = label[:,classes]
 
     # Note: you probably don't want to change this line.  It is likely the only
     # way to do this that works on both numpy.ndarrays and scipy.sparse matrices.
