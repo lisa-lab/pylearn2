@@ -169,7 +169,6 @@ class SparseMatPCA(PCA):
     def _cov_eigen(self, X):
         m, n = X.shape
 
-        print 'allocating covariance'
         cov = numpy.zeros((n, n))
         batch_size = self.minibatch_size
 
@@ -186,6 +185,7 @@ class SparseMatPCA(PCA):
 
         cov /= m
 
+        print 'computing eigens'
         v, W = linalg.eigh(cov)
 
         # The resulting components are in *ascending* order of eigenvalue, and
