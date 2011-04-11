@@ -80,7 +80,16 @@ def load_data(conf):
     # Special case for sparse format
     if conf.get('sparse', False):
         expected = inspect.getargspec(load_sparse_dataset)[0][1:]
-        return load_sparse_dataset(conf['dataset'], **subdict(conf, expected))
+        data = load_sparse_dataset(conf['dataset'], **subdict(conf, expected))
+
+        # Sparse TERRY data on LISA servers contains an extra null first row in 
+        # valid and test subsets.
+        if conf['dataset'] == 'terry':
+            data = [data[0], data[1][1:], data[2][1:]]
+            assert data[1].shape[0] == data[2].shape[0] == 4096, \
+                'Sparse TERRY data loaded has wrong number of examples'
+
+        return data
 
     # Load as the usual ndarray
     expected = inspect.getargspec(load_ndarray_dataset)[0][1:]
