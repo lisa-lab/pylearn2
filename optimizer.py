@@ -63,7 +63,7 @@ class SGDOptimizer(Optimizer):
         # Keep track of names already seen
         clip_names_seen = set()
         for parameter in self.params:
-            clip_name = '%_clip' % parameter.name
+            clip_name = '%s_clip' % parameter.name
             if clip_name in kwargs:
                 if clip_name in clip_names_seen:
                     print >> sys.stderr, ('Warning: In SGDOptimizer, '
@@ -125,7 +125,8 @@ class SGDOptimizer(Optimizer):
 
         # Verify that no ..._lr keyword argument is ignored
         for lr_name in lr_names_seen:
-            kwargs.pop(lr_name)
+            if lr_name in kwargs:
+                kwargs.pop(lr_name)
         for kw in kwargs.iterkeys():
             if kw[-3:] == '_lr':
                 print >> sys.stderr, ('Warning: in SGDOptimizer, '
