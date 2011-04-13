@@ -591,18 +591,18 @@ class GaussianBinaryRBM(RBM):
 
 class mu_pooled_ssRBM(RBM):
     """
-    alpha    : vector of length n_s, diagonal precision term on s.
-    b        : vector of length n_h, hidden unit bias.
-    B        : vector of length n_v, diagonal precision on v. 
+    alpha    : vector of length nslab, diagonal precision term on s.
+    b        : vector of length nhid, hidden unit bias.
+    B        : vector of length nvis, diagonal precision on v.
                Lambda in ICML2011 paper.
-    Lambda   : matrix of shape n_v x n_h, whose i-th column encodes a diagonal 
-               precision on v, conditioned on h_i. 
+    Lambda   : matrix of shape nvis x nhid, whose i-th column encodes a diagonal
+               precision on v, conditioned on h_i.
                phi in ICML2011 paper.
-    log_alpha: vector of length n_s, precision on s.
-    mu       : vector of length n_s, mean parameter on s.
-    W        : matrix of shape n_v x n_s, weights of the n_s linear filters s.
+    log_alpha: vector of length nslab, precision on s.
+    mu       : vector of length nslab, mean parameter on s.
+    W        : matrix of shape nvis x nslab, weights of the nslab linear filters s.
     """
-    def __init__(self, n_vis, n_hid, n_s_per_h,
+    def __init__(self, nvis, nhid, n_s_per_h,
             batch_size,
             alpha0, alpha_irange,
             b0,
@@ -615,39 +615,40 @@ class mu_pooled_ssRBM(RBM):
             # TODO: global rng default seed
             rng = numpy.random.RandomState(1001)
 
-        self.n_h = n_hid
-        self.n_s = n_hid * n_s_per_h
-        self.n_v = n_vis
+        self.nhid = nhid
+        self.nslab = nhid * n_s_per_h
+        self.n_s_per_h = n_s_per_h
+        self.nvis = nvis
 
         self.batch_size = batch_size
 
         # configure \alpha: precision parameter on s
-        alpha_init = numpy.zeros(self.n_s) + alpha0
+        alpha_init = numpy.zeros(self.nslab) + alpha0
         if alpha_irange > 0:
-            alpha_init += (2 * rng.rand(self.n_s) - 1) * alpha_irange
+            alpha_init += (2 * rng.rand(self.nslab) - 1) * alpha_irange
         self.log_alpha = sharedX(numpy.log(alpha_init), name='log_alpha')
         self.alpha = tensor.exp(self.log_alpha)
         self.alpha.name = 'alpha'
 
         self.mu = sharedX(
-                numpy.zeros(self.n_s) + mu0,
+                numpy.zeros(self.nslab) + mu0,
                 name='mu', borrow=True)
         self.b = sharedX(
-                numpy.zeros(self.n_h) + b0,
+                numpy.zeros(self.nhid) + b0,
                 name='b', borrow=True)
 
         self.W = sharedX(
-                (.5-rng.rand(self.n_v, self.n_s)) * 2 * W_irange,
+                (.5-rng.rand(self.nvis, self.nslab)) * 2 * W_irange,
                 name='W', borrow=True)
 
         # THE BETA IS IGNORED DURING TRAINING - FIXED AT MARGINAL DISTRIBUTION
-        self.B = sharedX(numpy.zeros(self.n_v) + B0, name='B', borrow=True)
+        self.B = sharedX(numpy.zeros(self.nvis) + B0, name='B', borrow=True)
 
         if Lambda_irange > 0:
-            L = (rng.rand(self.n_v, self.n_h) * Lambda_irange
+            L = (rng.rand(self.nvis, self.nhid) * Lambda_irange
                     + Lambda0)
         else:
-            L = numpy.zeros((n_v, n_h)) + Lambda0
+            L = numpy.zeros((self.nvis, self.nhid)) + Lambda0
         self.Lambda = sharedX(L, name='Lambda', borrow=True)
 
         self._params = [
