@@ -1,4 +1,7 @@
 """Optimizers tell models how to update their parameters during learning."""
+# System imports
+import sys
+
 # Third-party imports
 from numpy import inf
 import theano
@@ -40,7 +43,7 @@ class SGDOptimizer(Optimizer):
         Notes
         -----
         The formula to compute the effective learning rate on a parameter is:
-        <paramname>_lr * min(0.0, max(base_lr, lr_anneal_start/(iteration+1)))
+        <paramname>_lr * max(0.0, min(base_lr, lr_anneal_start/(iteration+1)))
 
         Parameter-specific learning rates can be set by passing keyword
         arguments <name>_lr, where name is the .name attribute of a given
@@ -157,7 +160,7 @@ class SGDOptimizer(Optimizer):
         ups = {}
 
         # Annealing coefficient. Here we're using a formula of
-        # base_lr * min(0.0, max(base_lr, anneal_start / (iteration + 1))
+        # max(0.0, min(base_lr, anneal_start / (iteration + 1))
         frac = self.anneal_start / (self.iteration + 1.)
         annealed = tensor.clip(
             tensor.cast(frac, floatX),
