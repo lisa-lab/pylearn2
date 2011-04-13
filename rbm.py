@@ -113,7 +113,7 @@ class PersistentCDSampler(Sampler):
        International Conference on Machine Learning, Helsinki, Finland,
        2008. http://www.cs.toronto.edu/~tijmen/pcd/pcd.pdf
     """
-    def __init__(self, rbm, particles, rng, steps=1):
+    def __init__(self, rbm, particles, rng, steps=1, particles_clip=None):
         """
         Construct a PersistentCDSampler.
 
@@ -131,11 +131,15 @@ class PersistentCDSampler(Sampler):
         steps : int, optional
             Number of Gibbs steps to run the Markov chain for at each
             iteration.
+        particles_clip: None or (min, max) pair
+            The values of the returned particles will be clipped between
+            min and max.
         """
         super(PersistentCDSampler, self).__init__(rbm, particles, rng)
         self.steps = steps
+        self.particles_clip = particles_clip
 
-    def updates(self):
+    def updates(self, particles_clip=None):
         """
         Get the dictionary of updates for the sampler's persistent state
         at each step..
@@ -154,6 +158,9 @@ class PersistentCDSampler(Sampler):
                 particles,
                 self.s_rng
             )
+            if self.particles_clip is not None:
+                p_min, p_max = self.particles_clip
+                particles = tensor.clip(particles, p_min, p_max)
         if not hasattr(self.rbm, 'h_sample'):
             self.rbm.h_sample = sharedX(numpy.zeros((0, 0)), 'h_sample')
         return {
