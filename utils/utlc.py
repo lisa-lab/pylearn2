@@ -81,15 +81,20 @@ def load_data(conf):
     if conf.get('sparse', False):
         expected = inspect.getargspec(load_sparse_dataset)[0][1:]
         data = load_sparse_dataset(conf['dataset'], **subdict(conf, expected))
+        valid, test = data[1:3]
 
         # Sparse TERRY data on LISA servers contains an extra null first row in 
         # valid and test subsets.
         if conf['dataset'] == 'terry':
-            data = [data[0], data[1][1:], data[2][1:]]
-            assert data[1].shape[0] == data[2].shape[0] == 4096, \
+            valid = valid[1:]
+            test = test[1:]
+            assert valid.shape[0] == test.shape[0] == 4096, \
                 'Sparse TERRY data loaded has wrong number of examples'
 
-        return data
+        if len(data) == 3:
+            return [data[0], valid, test]
+        else:
+            return [data[0], valid, test, data[3]]
 
     # Load as the usual ndarray
     expected = inspect.getargspec(load_ndarray_dataset)[0][1:]
