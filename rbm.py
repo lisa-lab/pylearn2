@@ -664,19 +664,19 @@ class mu_pooled_ssRBM(RBM):
     def gibbs_step_for_v(self, v, rng):
         # sample h given v
         h_mean = self.mean_h_given_v(v)
-        h_mean_shape = (self.batchsize, self.n_h)
+        h_mean_shape = (self.batch_size, self.nhid)
         h_sample = tensor.cast(rng.uniform(size=h_mean_shape) < h_mean, floatX)
 
         # sample s given (v,h)
         s_mu, s_var = self.mean_var_s_given_v_h1(v)
-        s_mu_shape = (self.batchsize, self.n_s)
+        s_mu_shape = (self.batch_size, self.nslab)
         s_sample = s_mu + rng.normal(size=s_mu_shape) * tensor.sqrt(s_var)
         #s_sample = (s_sample.reshape() * h_sample.dimshuffle(0,1,'x')).flatten(2)
 
         # sample v given (s,h)
         v_mean, v_var = self.mean_var_v_given_h_s(h_sample, s_sample)
-        v_mean_shape = (self.batchsize, self.n_v)
-        v_sample = rng.normal(size=v_mean_shape) * TT.sqrt(v_var) + v_mean
+        v_mean_shape = (self.batch_size, self.nvis)
+        v_sample = rng.normal(size=v_mean_shape) * tensor.sqrt(v_var) + v_mean
 
         return v_sample, locals()
 
@@ -689,8 +689,8 @@ class mu_pooled_ssRBM(RBM):
         alpha = self.alpha
         def sum_s(x):
             return x.reshape((
-                self.batchsize,
-                self.n_h,
+                -1,
+                self.nhid,
                 self.n_s_per_h)).sum(axis=2)
 
         return tensor.add(
@@ -706,8 +706,8 @@ class mu_pooled_ssRBM(RBM):
     def mean_var_v_given_h_s(self, h, s):
         v_var = 1 / (self.B + tensor.dot(h, self.Lambda.T))
         s3 = s.reshape((
-                self.batchsize,
-                self.n_h,
+                -1,
+                self.nhid,
                 self.n_s_per_h))
         hs = h.dimshuffle(0, 1, 'x') * s3
         v_mu = tensor.dot(hs.flatten(2), self.W.T) * v_var
@@ -715,7 +715,7 @@ class mu_pooled_ssRBM(RBM):
 
     def mean_var_s_given_v_h1(self, v):
         alpha = self.alpha
-        return (self.mu + TT.dot(v, self.W) / alpha,
+        return (self.mu + tensor.dot(v, self.W) / alpha,
                 1.0 / alpha)
 
     ## TODO?
