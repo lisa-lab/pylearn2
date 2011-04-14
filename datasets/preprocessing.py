@@ -1,6 +1,8 @@
 import copy
 import numpy as N
 from scipy import linalg
+from theano import function
+import theano.tensor as T
 
 class Pipeline(object):
     def __init__(self):
@@ -70,20 +72,76 @@ class ExtractPatches(object):
         dataset.set_topological_view(output)
     #
 
+
+
+class PCA_ViewConverter:
+    def __init__(self, to_pca, to_input, to_weights, orig_view_converter):
+        self.to_pca = to_pca
+        self.to_input = to_input
+        self.to_weights = to_weights
+        if orig_view_convert is None:
+            raise ValueError("It doesn't make any sense to make a PCA view converter when there's no original view converter to define a topology in the first place")
+        self.orig_view_converter = orig_view_converter
+    #
+
+    def view_shape(self):
+        return self.orig_view_converter.shape
+
+    def design_mat_to_topo_view(self, X):
+        return self.orig_view_converter.design_mat_to_topo_view(self.to_input(X))
+    #
+
+    def design_mat_to_weights_view(self, X):
+        return self.orig_view_converter.design_mat_to_weights_view(self.to_weights(X))
+    #
+
+    def topo_view_to_design_mat(self, V):
+        return self.to_pca(self.orig_view_converter.topo_view_to_design_mat(X))
+    #
+#
+
+
+
+class PCA(object):
+    def __init__(self, num_components):
+        self.num_components = num_components
+        self.pca = None
+        self.input = T.matrix()
+
+    def apply(self, dataset, can_fit = False):
+        if self.pca is None:
+            assert can_fit
+            from framework import pca
+            self.pca = pca.PCA(self.num_components)
+
+            self.transform_func = function([self.input],self.pca(self.input))
+            self.invert_func = function([self.output],self.pca.reconstruct(self.output))
+            self.convert_weights_func = function([self.output],self.pca.reconstruct(self.output,add_mean = False))
+        #
+
+        dataset.set_design_matrix(self.transform_func(dataset.get_design_matrix()))
+        dataset.view_converter = PCA_ViewConverter(self.transform_func,self.invert_func,self.to_weights, dataset.view_converter)
+    #
+#
+
+
+
 class GlobalContrastNormalization(object):
-    def __init__(self, std_bias = 10.0):
+    def __init__(self, subtract_mean = True, std_bias = 10.0):
+        self.subtract_mean = subtract_mean
         self.std_bias = std_bias
 
     def apply(self, dataset, can_fit = False):
         X = dataset.get_design_matrix()
         assert X.dtype == 'float32' or X.dtype == 'float64'
 
-        X -= X.mean(axis=1)[:,None]
+        if self.subtract_mean:
+            X -= X.mean(axis=1)[:,None]
         std = N.sqrt( (X**2.).mean(axis=1) + self.std_bias)
-        print (std.min(),std.max(),std.mean(),std.std())
         X /= std[:,None]
 
         dataset.set_design_matrix(X)
+
 
 
 class ZCA(object):
@@ -127,6 +185,12 @@ class ZCA(object):
         self.P_ = N.dot(
                 eigv * N.sqrt(1.0/(eigs+self.filter_bias)),
                 eigv.T)
+
+
+        print 'zca components'
+        print N.square(self.P_).sum(axis=0)
+
+
 
         assert not N.any(N.isnan(self.P_))
 

@@ -15,13 +15,24 @@ class DenseDesignMatrix(object):
         preprocessor.apply(self, can_fit)
     #
 
-    def get_topological_view(self):
+    def get_topological_view(self, mat = None):
         if self.view_converter is None:
             raise Exception("Tried to call get_topological_view on a dataset that has no view converter")
         #
 
-        return self.view_converter.design_mat_to_topo_view(self.X)
+        if mat is None:
+            mat = self.X
+
+        return self.view_converter.design_mat_to_topo_view(mat)
     #
+
+    def get_weights_view(self, mat):
+        if self.view_convert is None:
+            raise Exception("Tried to call get_weights_view on a dataset that has no view converter")
+        #
+
+        return self.view_converter.design_mat_to_weights_view(mat)
+
 
     def set_topological_view(self, V):
         assert not N.any(N.isnan(V))
@@ -47,6 +58,9 @@ class DenseDesignMatrix(object):
     def get_batch_topo(self, batch_size):
         return self.view_converter.design_mat_to_topo_view(self.get_batch_design(batch_size))
     #
+
+    def view_shape(self):
+        return self.view_converter.view_shape()
 #
 
 class DefaultViewConverter:
@@ -57,6 +71,9 @@ class DefaultViewConverter:
             self.pixels_per_channel *= dim
         #
     #
+
+    def view_shape(self):
+        return self.shape
 
     def design_mat_to_topo_view(self, X):
         batch_size = X.shape[0]
@@ -77,6 +94,11 @@ class DefaultViewConverter:
 
         return rval
     #
+
+    def design_mat_to_weights_view(self, X):
+        return self.design_mat_to_topo_view(X)
+    #
+
 
     def topo_view_to_design_mat(self, V):
         if N.any( N.asarray(self.shape) != N.asarray(V.shape[1:])):

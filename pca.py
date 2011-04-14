@@ -25,6 +25,19 @@ import theano
 from theano import tensor
 from theano.sparse import SparseType, structured_dot
 from pylearn.algorithms import pca_online_estimator
+from scipy import linalg
+from scipy.sparse.csr import csr_matrix
+
+try:
+    from scipy.sparse.linalg import eigen_symmetric
+except ImportError:
+    #this was renamed to eigsh in scipy 0.9
+    try:
+        from scipy.sparse.linalg import eigsh as eigen_symmetric
+    except:
+        print "couldn't import eigsh / eigen_symmetric from scipy.linalg.sparse, some of your pca functions may randomly fail later"
+        print "the fact that somebody is using this doesn't bode well since it's unlikely that the covariance matrix is sparse"
+
 
 # Local imports
 from .base import Block
@@ -126,6 +139,24 @@ class PCA(Block):
         if self.whiten:
             Y /= tensor.sqrt(self.v[:self.component_cutoff])
         return Y
+
+    def reconstruct(self, inputs, add_mean = True):
+        """
+        Given a PCA transformation of the current data, compute and return
+        the reconstruction of the original input """
+
+        self._update_cutff()
+
+        if self.whiten:
+            inputs *= tensor.sqrt(self.v[:self.component_cutoff])
+
+        X = tensor.dot(inputs,self.W[:,:self.component_cutoff].T)
+
+        if add_mean:
+            X = X + self.mean
+
+        return X
+
 
     def _update_cutoff(self):
         """
