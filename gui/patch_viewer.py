@@ -34,6 +34,9 @@ class  PatchViewer:
 
 	#0 is perfect gray. If not rescale, assumes images are in [-1,1]
     def add_patch(self, patch , rescale = True, recenter = False):
+        if patch.shape[0:2] != self.patch_shape:
+            raise ValueError('Expected patch with shape '+str(self.patch_shape)+', got '+str(patch.shape))
+
         if recenter:
             assert patch.shape[0] < self.patch_shape[0]
             assert patch.shape[1] < self.patch_shape[1]
