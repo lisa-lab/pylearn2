@@ -1,6 +1,8 @@
 import numpy as N
+import copy
 
 class DenseDesignMatrix(object):
+
     def __init__(self, X, y = None, view_converter = None, rng = None):
         self.X = X
         self.y = y
@@ -8,7 +10,14 @@ class DenseDesignMatrix(object):
         if rng is None:
             rng = N.random.RandomState([17,2,946])
         #
+        self.default_rng = copy.copy(rng)
         self.rng = rng
+    #
+
+    def reset_RNG(self):
+        if 'default_rng' not in dir(self):
+            self.default_rng = N.random.RandomState([17,2,946])
+        self.rng = copy.copy(self.default_rng)
     #
 
     def apply_preprocessor(self, preprocessor, can_fit = False):
@@ -27,7 +36,7 @@ class DenseDesignMatrix(object):
     #
 
     def get_weights_view(self, mat):
-        if self.view_convert is None:
+        if self.view_converter is None:
             raise Exception("Tried to call get_weights_view on a dataset that has no view converter")
         #
 
