@@ -73,13 +73,22 @@ class ExtractPatches(object):
     #
 
 
+class RemoveMean(object):
+    def __init__(self):
+        pass
+
+    def apply(self, dataset, can_fit):
+        X = dataset.get_design_matrix()
+        X -= X.mean(axis=0)
+        dataset.set_design_matrix(X)
+
 
 class PCA_ViewConverter:
     def __init__(self, to_pca, to_input, to_weights, orig_view_converter):
         self.to_pca = to_pca
         self.to_input = to_input
         self.to_weights = to_weights
-        if orig_view_convert is None:
+        if orig_view_converter is None:
             raise ValueError("It doesn't make any sense to make a PCA view converter when there's no original view converter to define a topology in the first place")
         self.orig_view_converter = orig_view_converter
     #
@@ -107,20 +116,30 @@ class PCA(object):
         self.num_components = num_components
         self.pca = None
         self.input = T.matrix()
+        self.output = T.matrix()
 
     def apply(self, dataset, can_fit = False):
         if self.pca is None:
             assert can_fit
             from framework import pca
-            self.pca = pca.PCA(self.num_components)
+            self.pca = pca.CovEigPCA(self.num_components)
+            self.pca.train(dataset.get_design_matrix())
 
             self.transform_func = function([self.input],self.pca(self.input))
             self.invert_func = function([self.output],self.pca.reconstruct(self.output))
             self.convert_weights_func = function([self.output],self.pca.reconstruct(self.output,add_mean = False))
         #
 
+        orig_data = dataset.get_design_matrix()#rm
         dataset.set_design_matrix(self.transform_func(dataset.get_design_matrix()))
-        dataset.view_converter = PCA_ViewConverter(self.transform_func,self.invert_func,self.to_weights, dataset.view_converter)
+        proc_data = dataset.get_design_matrix()#rm
+        orig_var = orig_data.var(axis=0)
+        proc_var = proc_data.var(axis=0)
+        assert proc_var[0] > orig_var.max()
+        print 'original variance: '+str(orig_var.sum())
+        print 'processed variance: '+str(proc_var.sum())
+
+        dataset.view_converter = PCA_ViewConverter(self.transform_func,self.invert_func,self.convert_weights_func, dataset.view_converter)
     #
 #
 

@@ -3,7 +3,7 @@ from framework.utils import serial
 from framework.datasets import cifar10
 from framework.datasets import preprocessing
 
-train = cifar10.CIFAR10(which_set="train")
+train = cifar10.CIFAR10(which_set="train",center=True)
 
 pipeline = preprocessing.Pipeline()
 pipeline.items.append(preprocessing.GlobalContrastNormalization(subtract_mean=False,std_bias=0.0))

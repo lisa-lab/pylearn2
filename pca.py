@@ -145,7 +145,7 @@ class PCA(Block):
         Given a PCA transformation of the current data, compute and return
         the reconstruction of the original input """
 
-        self._update_cutff()
+        self._update_cutoff()
 
         if self.whiten:
             inputs *= tensor.sqrt(self.v[:self.component_cutoff])
