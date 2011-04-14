@@ -4,19 +4,32 @@ minibatches from a dataset, or to merge three data with given proportions
 """
 # Standard library imports
 import os
+import functools
 from itertools import repeat
 
 # Third-party imports
 import numpy
+import scipy
+import theano
 from matplotlib import pyplot
+from mpl_toolkits.mplot3d import Axes3D
 
 # Local imports
-from utils.viz3d import do_3d_scatter
 from .utlc import get_constant, sharedX
 
 ##################################################
 # 3D Visualization
 ##################################################
+
+def do_3d_scatter(x, y, z, figno=None, title=None):
+    """Just generate a 3D scatterplot figure and optionally give it a title."""
+    fig = pyplot.figure(figno)
+    ax = Axes3D(fig)
+    ax.scatter(x, y, z)
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_zlabel("Z")
+    pyplot.suptitle(title)
 
 def save_plot(repr, path, name="figure.pdf", title="features"):
     # TODO : Maybe run a PCA if shape[1] > 3
@@ -35,16 +48,79 @@ def save_plot(repr, path, name="figure.pdf", title="features"):
 # Features or examples filtering
 ##################################################
 
-def filter_labels(train, label):
+def filter_labels(train, label, classes=None):
     """ Filter examples of train for which we have labels """
+    if isinstance(train, theano.tensor.sharedvar.SharedVariable):
+        train = train.get_value(borrow=True)
+    if isinstance(label, theano.tensor.sharedvar.SharedVariable):
+        label = label.get_value(borrow=True)
+
+    if not (isinstance(train, numpy.ndarray) or scipy.sparse.issparse(train)):
+        raise TypeError('train must be a numpy array, a scipy sparse matrix,'
+                        ' or a theano shared array')
+
     # Examples for which any label is set
-    condition = label.any(axis=1)
+    if classes is not None:
+        label = label[:, classes]
+
+    # Special case for sparse matrices
+    if scipy.sparse.issparse(train):
+        idx = label.sum(axis=1).nonzero()[0]
+        return (train[idx], label[idx])
 
     # Compress train and label arrays according to condition
-    def aux(var):
-        return var.get_value(borrow=True).compress(condition, axis=0)
+    condition = label.any(axis=1)
+    return tuple(var.compress(condition, axis=0) for var in (train, label))
 
-    return (aux(train), aux(label))
+def nonzero_features(data, combine=None):
+    """
+    Get features for which there are nonzero entries in the data.
+
+    Note: I would return a mask (bool array) here, but scipy.sparse doesn't
+    appear to fully support advanced indexing.
+
+    Parameters
+    ----------
+    data : list of matrices
+        List of data matrices, either in sparse format or not.
+        They must have the same number of features (column number).
+    combine : function
+        A function to combine elementwise which features to keep
+        Default keeps the intersection of each non-zero columns
+
+    Returns
+    -------
+    indices : ndarray object
+        Indices of the nonzero features.
+    """
+
+    if combine is None:
+        combine = functools.partial(reduce, numpy.logical_and)
+
+    # Assumes all values are >0, which is the case for all sparse datasets.
+    masks = numpy.asarray([subset.sum(axis=0) for subset in data]).squeeze()
+    nz_feats = combine(masks).nonzero()[0]
+
+    return nz_feats
+
+
+def filter_nonzero(data, combine=None):
+    """
+    Filter non-zero features of data according to a certain combining function
+    
+    Parameters
+    ----------
+    data : list of matrices
+        List of data matrices, either in sparse format or not.
+        They must have the same number of features (column number).
+    combine : function
+        A function to combine elementwise which features to keep
+        Default keeps the intersection of each non-zero columns
+    """
+
+    nz_feats = nonzero_features(data, combine)
+
+    return [set[:, nz_feats] for set in data]
 
 ##################################################
 # Iterator object for minibatches of datasets
@@ -65,10 +141,13 @@ class BatchIterator(object):
 
         # Record external parameters
         self.batch_size = batch_size
-        self.dataset = dataset
+        if (isinstance(dataset[0], theano.Variable)):
+            self.dataset = [set.get_value(borrow=True) for set in dataset]
+        else:
+            self.dataset = dataset
 
         # Compute maximum number of samples for one loop
-        set_sizes = [get_constant(data.shape[0]) for data in dataset]
+        set_sizes = [set.shape[0] for set in self.dataset]
         set_batch = [float(self.batch_size) for i in xrange(3)]
         set_range = div(mul(set_proba, set_sizes), set_batch)
         set_range = map(int, numpy.ceil(set_range))
@@ -102,7 +181,7 @@ class BatchIterator(object):
         for chosen in self.permut:
             # Retrieve minibatch from chosen set
             index = counter[chosen]
-            minibatch = self.dataset[chosen].get_value(borrow=True)[
+            minibatch = self.dataset[chosen][
                 index * self.batch_size:(index + 1) * self.batch_size
             ]
             # Increment the related counter
@@ -122,54 +201,10 @@ class BatchIterator(object):
             counter[chosen] = (counter[chosen] + 1) % self.limit[chosen]
             yield chosen, index
 
-    def by_subtensor(self):
-        """ Generator function to iterate through all minibatches subtensors """
-        counter = [0, 0, 0]
-        for chosen in self.permut:
-            # Retrieve minibatch from chosen set
-            index = counter[chosen]
-            minibatch = self.dataset[chosen][
-                index * self.batch_size:(index + 1) * self.batch_size
-            ]
-            # Increment the related counter
-            counter[chosen] = (counter[chosen] + 1) % self.limit[chosen]
-            # Return the computed minibatch
-            yield minibatch
-
-
 ##################################################
 # Miscellaneous
 ##################################################
 
-def nonzero_features(data, all_subsets=True):
-    """
-    Get features for which there are nonzero entries in the data.
-
-    Note: I would return a mask (bool array) here, but scipy.sparse doesn't
-    appear to fully support advanced indexing.
-
-    Parameters
-    ----------
-    data : list of 3 ndarray objects
-        List of data matrices, each with the same number of features.
-    all_subsets : bool
-        If true, discard features not found in any subset; if false, discard
-        features found in neither valid nor test subsets.
-
-    Returns
-    -------
-    indices : ndarray object
-        Indices of nonzero features.
-    """
-
-    if not all_subsets:
-        data = data[1:]
-
-    # Assumes all values are >0, which is the case for all sparse datasets.
-    masks = numpy.array([subset.sum(axis=0) for subset in data]).squeeze()
-    nz_feats = masks.prod(axis=0).nonzero()[0]
-
-    return nz_feats
 
 def blend(dataset, set_proba, **kwargs):
     """
@@ -178,10 +213,17 @@ def blend(dataset, set_proba, **kwargs):
     iterator = BatchIterator(dataset, set_proba, 1, **kwargs)
     nrow = len(iterator)
     ncol = get_constant(dataset[0].shape[1])
-    array = numpy.empty((nrow, ncol), dataset[0].dtype)
-    row = 0
-    for chosen, index in iterator.by_index():
-        array[row] = dataset[chosen].get_value(borrow=True)[index]
-        row += 1
+    if (scipy.sparse.issparse(dataset[0])):
+        # Special case: the dataset is sparse
+        blocks = [[batch] for batch in iterator]
+        return scipy.sparse.bmat(blocks, 'csr')
 
-    return sharedX(array, borrow=True)
+    else:
+        # Normal case: the dataset is dense
+        row = 0
+        array = numpy.empty((nrow, ncol), dataset[0].dtype)
+        for batch in iterator:
+            array[row] = batch
+            row += 1
+
+        return sharedX(array, borrow=True)

@@ -1,4 +1,7 @@
 """Optimizers tell models how to update their parameters during learning."""
+# System imports
+import sys
+
 # Third-party imports
 from numpy import inf
 import theano
@@ -40,11 +43,14 @@ class SGDOptimizer(Optimizer):
         Notes
         -----
         The formula to compute the effective learning rate on a parameter is:
-        <paramname>_lr * min(0.0, max(base_lr, lr_anneal_start/(iteration+1)))
+        <paramname>_lr * max(0.0, min(base_lr, lr_anneal_start/(iteration+1)))
 
         Parameter-specific learning rates can be set by passing keyword
         arguments <name>_lr, where name is the .name attribute of a given
         parameter.
+
+        Parameter-specific bounding values can be specified by passing
+        keyword arguments <param>_clip, which should be a (min, max) pair.
         """
         if hasattr(params, '__iter__'):
             self.params = params
@@ -54,6 +60,34 @@ class SGDOptimizer(Optimizer):
             self.anneal_start = inf
         else:
             self.anneal_start = tensor.cast(anneal_start, floatX)
+
+        # Set up the clipping values
+        self.clipping_values = {}
+        # Keep track of names already seen
+        clip_names_seen = set()
+        for parameter in self.params:
+            clip_name = '%s_clip' % parameter.name
+            if clip_name in kwargs:
+                if clip_name in clip_names_seen:
+                    print >> sys.stderr, ('Warning: In SGDOptimizer, '
+                            'at least two parameters have the same name. '
+                            'Both will be affected by the keyword argument '
+                            '%s.' % lr_name)
+                clip_names_seen.add(clip_name)
+                p_min, p_max = kwargs[clip_name]
+                assert p_min <= p_max
+                self.clipping_values[parameter] = (p_min, p_max)
+
+        # Check that no ..._clip keyword is being ignored
+        for clip_name in clip_names_seen:
+            kwargs.pop(clip_name)
+        for kw in kwargs.iterkeys():
+            if kw[-5:] == '_clip':
+                print >> sys.stderr, ('Warning: in SGDOptimizer, '
+                        'keyword argument %s will be ignored, '
+                        'because no parameter was found with name %s.'
+                        % (kw, kw[:-5]))
+
         self.learning_rates_setup(base_lr, **kwargs)
 
     def learning_rates_setup(self, base_lr, **kwargs):
@@ -78,10 +112,30 @@ class SGDOptimizer(Optimizer):
         # Base learning rate per example.
         self.base_lr = theano._asarray(base_lr, dtype=floatX)
 
+        # Keep track of names already seen
+        lr_names_seen = set()
         for parameter in self.params:
             lr_name = '%s_lr' % parameter.name
+            if lr_name in lr_names_seen:
+                print >> sys.stderr, ('Warning: In SGDOptimizer, '
+                        'at least two parameters have the same name. '
+                        'Both will be affected by the keyword argument '
+                        '%s.' % lr_name)
+            lr_names_seen.add(parameter.name)
+
             thislr = kwargs.get(lr_name, 1.)
             self.learning_rates[parameter] = sharedX(thislr, lr_name)
+
+        # Verify that no ..._lr keyword argument is ignored
+        for lr_name in lr_names_seen:
+            if lr_name in kwargs:
+                kwargs.pop(lr_name)
+        for kw in kwargs.iterkeys():
+            if kw[-3:] == '_lr':
+                print >> sys.stderr, ('Warning: in SGDOptimizer, '
+                        'keyword argument %s will be ignored, '
+                        'because no parameter was found with name %s.'
+                        % (kw, kw[:-3]))
 
         # A shared variable for storing the iteration number.
         self.iteration = sharedX(theano._asarray(0, dtype='int32'),
@@ -106,7 +160,7 @@ class SGDOptimizer(Optimizer):
         ups = {}
 
         # Annealing coefficient. Here we're using a formula of
-        # base_lr * min(0.0, max(base_lr, anneal_start / (iteration + 1))
+        # max(0.0, min(base_lr, anneal_start / (iteration + 1))
         frac = self.anneal_start / (self.iteration + 1.)
         annealed = tensor.clip(
             tensor.cast(frac, floatX),
@@ -156,6 +210,11 @@ class SGDOptimizer(Optimizer):
 
         # Add the things in p_up to ups
         safe_update(ups, p_up)
+
+        # Clip the values if needed
+        for param, (p_min, p_max) in self.clipping_values.iteritems():
+            ups[param] = tensor.clip(ups[param], p_min, p_max)
+
 
         # Return the updates dictionary.
         return ups

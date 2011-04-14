@@ -58,7 +58,7 @@ def compute_nll(rbm, data, log_z, free_energy_fn, bufsize=1000, preproc=None):
             x = preproc(x)
 
         # compute sum of likelihood for current buffer
-        x_nll = numpy.sum(-free_energy_fn(x) - log_z)
+        x_nll = -numpy.sum(-free_energy_fn(x) - log_z)
 
         # perform moving average of negative likelihood
         # divide by len(x) and not bufsize, since last buffer might be smaller

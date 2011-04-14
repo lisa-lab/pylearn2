@@ -113,7 +113,7 @@ class PersistentCDSampler(Sampler):
        International Conference on Machine Learning, Helsinki, Finland,
        2008. http://www.cs.toronto.edu/~tijmen/pcd/pcd.pdf
     """
-    def __init__(self, rbm, particles, rng, steps=1):
+    def __init__(self, rbm, particles, rng, steps=1, particles_clip=None):
         """
         Construct a PersistentCDSampler.
 
@@ -131,11 +131,15 @@ class PersistentCDSampler(Sampler):
         steps : int, optional
             Number of Gibbs steps to run the Markov chain for at each
             iteration.
+        particles_clip: None or (min, max) pair
+            The values of the returned particles will be clipped between
+            min and max.
         """
         super(PersistentCDSampler, self).__init__(rbm, particles, rng)
         self.steps = steps
+        self.particles_clip = particles_clip
 
-    def updates(self):
+    def updates(self, particles_clip=None):
         """
         Get the dictionary of updates for the sampler's persistent state
         at each step..
@@ -154,10 +158,15 @@ class PersistentCDSampler(Sampler):
                 particles,
                 self.s_rng
             )
+            if self.particles_clip is not None:
+                p_min, p_max = self.particles_clip
+                particles = tensor.clip(particles, p_min, p_max)
         if not hasattr(self.rbm, 'h_sample'):
             self.rbm.h_sample = sharedX(numpy.zeros((0, 0)), 'h_sample')
         return {
             self.particles: particles,
+            # TODO: self.rbm.h_sample is never used, why is that here?
+            # Moreover, it does not make sense for things like ssRBM.
             self.rbm.h_sample: _locals['h_mean']
         }
 
@@ -586,6 +595,156 @@ class GaussianBinaryRBM(RBM):
             # zero mean, std sigma noise
             zero_mean = rng.normal(size=shape) * self.sigma
             return zero_mean + v_mean
+
+class mu_pooled_ssRBM(RBM):
+    """
+    alpha    : vector of length nslab, diagonal precision term on s.
+    b        : vector of length nhid, hidden unit bias.
+    B        : vector of length nvis, diagonal precision on v.
+               Lambda in ICML2011 paper.
+    Lambda   : matrix of shape nvis x nhid, whose i-th column encodes a diagonal
+               precision on v, conditioned on h_i.
+               phi in ICML2011 paper.
+    log_alpha: vector of length nslab, precision on s.
+    mu       : vector of length nslab, mean parameter on s.
+    W        : matrix of shape nvis x nslab, weights of the nslab linear filters s.
+    """
+    def __init__(self, nvis, nhid, n_s_per_h,
+            batch_size,
+            alpha0, alpha_irange,
+            b0,
+            B0,
+            Lambda0, Lambda_irange,
+            mu0,
+            W_irange,
+            rng=None):
+        if rng is None:
+            # TODO: global rng default seed
+            rng = numpy.random.RandomState(1001)
+
+        self.nhid = nhid
+        self.nslab = nhid * n_s_per_h
+        self.n_s_per_h = n_s_per_h
+        self.nvis = nvis
+
+        self.batch_size = batch_size
+
+        # configure \alpha: precision parameter on s
+        alpha_init = numpy.zeros(self.nslab) + alpha0
+        if alpha_irange > 0:
+            alpha_init += (2 * rng.rand(self.nslab) - 1) * alpha_irange
+        self.log_alpha = sharedX(numpy.log(alpha_init), name='log_alpha')
+        self.alpha = tensor.exp(self.log_alpha)
+        self.alpha.name = 'alpha'
+
+        self.mu = sharedX(
+                numpy.zeros(self.nslab) + mu0,
+                name='mu', borrow=True)
+        self.b = sharedX(
+                numpy.zeros(self.nhid) + b0,
+                name='b', borrow=True)
+
+        self.W = sharedX(
+                (.5-rng.rand(self.nvis, self.nslab)) * 2 * W_irange,
+                name='W', borrow=True)
+
+        # THE BETA IS IGNORED DURING TRAINING - FIXED AT MARGINAL DISTRIBUTION
+        self.B = sharedX(numpy.zeros(self.nvis) + B0, name='B', borrow=True)
+
+        if Lambda_irange > 0:
+            L = (rng.rand(self.nvis, self.nhid) * Lambda_irange
+                    + Lambda0)
+        else:
+            L = numpy.zeros((self.nvis, self.nhid)) + Lambda0
+        self.Lambda = sharedX(L, name='Lambda', borrow=True)
+
+        self._params = [
+                self.mu,
+                self.B,
+                self.Lambda,
+                self.W,
+                self.b,
+                self.log_alpha]
+
+    #def ml_gradients(self, pos_v, neg_v):
+    #    inherited version is OK.
+
+    def gibbs_step_for_v(self, v, rng):
+        # sample h given v
+        h_mean = self.mean_h_given_v(v)
+        h_mean_shape = (self.batch_size, self.nhid)
+        h_sample = tensor.cast(rng.uniform(size=h_mean_shape) < h_mean, floatX)
+
+        # sample s given (v,h)
+        s_mu, s_var = self.mean_var_s_given_v_h1(v)
+        s_mu_shape = (self.batch_size, self.nslab)
+        s_sample = s_mu + rng.normal(size=s_mu_shape) * tensor.sqrt(s_var)
+        #s_sample = (s_sample.reshape() * h_sample.dimshuffle(0,1,'x')).flatten(2)
+
+        # sample v given (s,h)
+        v_mean, v_var = self.mean_var_v_given_h_s(h_sample, s_sample)
+        v_mean_shape = (self.batch_size, self.nvis)
+        v_sample = rng.normal(size=v_mean_shape) * tensor.sqrt(v_var) + v_mean
+
+        return v_sample, locals()
+
+    ## TODO?
+    def sample_visibles(self, params, shape, rng):
+        raise NotImplementedError('mu_pooled_ssRBM.sample_visibles')
+
+    def input_to_h_from_v(self, v):
+        D = self.Lambda
+        alpha = self.alpha
+        def sum_s(x):
+            return x.reshape((
+                -1,
+                self.nhid,
+                self.n_s_per_h)).sum(axis=2)
+
+        return tensor.add(
+                self.b,
+                -0.5 * tensor.dot(v * v, D),
+                sum_s(self.mu * tensor.dot(v, self.W)),
+                sum_s(0.5 * tensor.sqr(tensor.dot(v, self.W))/alpha))
+
+    #def mean_h_given_v(self, v):
+    #    inherited version is OK:
+    #    return nnet.sigmoid(self.input_to_h_from_v(v))
+
+    def mean_var_v_given_h_s(self, h, s):
+        v_var = 1 / (self.B + tensor.dot(h, self.Lambda.T))
+        s3 = s.reshape((
+                -1,
+                self.nhid,
+                self.n_s_per_h))
+        hs = h.dimshuffle(0, 1, 'x') * s3
+        v_mu = tensor.dot(hs.flatten(2), self.W.T) * v_var
+        return v_mu, v_var
+
+    def mean_var_s_given_v_h1(self, v):
+        alpha = self.alpha
+        return (self.mu + tensor.dot(v, self.W) / alpha,
+                1.0 / alpha)
+
+    ## TODO?
+    def mean_v_given_h(self, h):
+        raise NotImplementedError('mu_pooled_ssRBM.mean_v_given_h')
+
+
+    def free_energy_given_v(self, v):
+        sigmoid_arg = self.input_to_h_from_v(v)
+        return tensor.add(
+                0.5 * (self.B * (v**2)).sum(axis=1),
+                -tensor.nnet.softplus(sigmoid_arg).sum(axis=1))
+
+    #def __call__(self, v):
+    #    inherited version is OK
+
+    #def reconstruction_error:
+    #    inherited version should be OK
+
+    #def params(self):
+    #    inherited version is OK.
 
 
 def build_stacked_RBM(nvis, nhids, batch_size, vis_type='binary',
