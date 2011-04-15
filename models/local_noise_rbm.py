@@ -97,9 +97,6 @@ class LocalNoiseRBM:
 
         self.params = [ self.W, self.c, self.b ]
 
-        self.a = shared(1.0)
-        self.b = shared(0.0)
-
         self.redo_theano()
     #
 
@@ -143,7 +140,10 @@ class LocalNoiseRBM:
                                     std = N.sqrt(self.beta), dtype = X.dtype)
 
 
-        obj = T.mean( -T.log( T.nnet.sigmoid( self.a * (self.batch_free_energy(corrupted) - self.batch_free_energy(X)) - self.b  ) ) )
+        obj = T.mean(
+                -T.log(
+                    T.nnet.sigmoid(
+                        self.batch_free_energy(corrupted) - self.batch_free_energy(X))   ) )
 
         self.error_func = function([X],obj)
 
