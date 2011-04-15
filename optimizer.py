@@ -247,3 +247,12 @@ class SGDOptimizer(Optimizer):
         """
         grads = [tensor.grad(cost, p) for p in self.params]
         return self.updates(gradients=grads)
+
+##################################################
+def get(str):
+    """Evaluate str into an Optimizer object, if it exists."""
+    obj = globals().get(str, None)
+    if issubclass(obj, Optimizer):
+        return obj
+    else:
+        raise NameError(str)

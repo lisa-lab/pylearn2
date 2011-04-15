@@ -799,9 +799,17 @@ def build_stacked_RBM(nvis, nhids, batch_size, vis_type='binary',
 
 ##################################################
 def get(str):
-    """ Evaluate str into an rbm object, if it exists """
-    obj = globals()[str]
+    """Evaluate str into an RBM object, if it exists."""
+    obj = globals().get(str, None)
     if issubclass(obj, RBM):
+        return obj
+    else:
+        raise NameError(str)
+
+def get_sampler(str):
+    """Evaluate str into a Sampler object, if it exists."""
+    obj = globals().get(str, None)
+    if issubclass(obj, Sampler):
         return obj
     else:
         raise NameError(str)
