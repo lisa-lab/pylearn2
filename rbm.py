@@ -624,7 +624,7 @@ class mu_pooled_ssRBM(RBM):
             B0,
             Lambda0, Lambda_irange,
             mu0,
-            W_irange,
+            W_irange=None,
             rng=None):
         if rng is None:
             # TODO: global rng default seed
@@ -652,6 +652,9 @@ class mu_pooled_ssRBM(RBM):
                 numpy.zeros(self.nhid) + b0,
                 name='b', borrow=True)
 
+        if W_irange is None:
+            # Derived closed to Xavier Glorot's magic formula
+            W_irange = 2 / numpy.sqrt(nvis * nhid)
         self.W = sharedX(
                 (.5-rng.rand(self.nvis, self.nslab)) * 2 * W_irange,
                 name='W', borrow=True)
