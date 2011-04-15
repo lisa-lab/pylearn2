@@ -1,8 +1,8 @@
 import numpy
 import theano
 from theano import tensor
-from framework.rbm import mu_pooled_ssRBM, PersistentCDSampler, \
-        training_updates
+from framework.rbm import (mu_pooled_ssRBM, PersistentCDSampler,
+        training_updates)
 from framework.optimizer import SGDOptimizer
 from framework.rbm_tools import compute_log_z, compute_nll
 
@@ -49,7 +49,7 @@ if __name__ == "__main__":
     }
     conf['W_irange'] = 2 / numpy.sqrt(conf['nvis'] * conf['nhid'])
 
-    initstate_rng = numpy.random.RandomState(seed=conf['rbm_seed'])
+    rng = numpy.random.RandomState(seed=conf.get('rbm_seed', 42))
 
     rbm = mu_pooled_ssRBM(
             nvis=conf['nvis'],
@@ -64,13 +64,12 @@ if __name__ == "__main__":
             Lambda_irange=conf['Lambda_irange'],
             mu0=conf['mu0'],
             W_irange=conf['W_irange'],
-            rng=initstate_rng)
+            rng=rng)
 
-    s_rng = numpy.random.RandomState(seed=conf.get('rbm_seed', 42))
     sampler = PersistentCDSampler(
             rbm,
             data[0:conf['batch_size']],
-            s_rng,
+            rng,
             steps=conf['pcd_steps'],
             particles_clip=(conf['particles_min'], conf['particles_max']),
             )
