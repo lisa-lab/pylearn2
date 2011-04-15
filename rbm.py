@@ -160,6 +160,14 @@ class PersistentCDSampler(Sampler):
             )
             if self.particles_clip is not None:
                 p_min, p_max = self.particles_clip
+                # The clipped values should still have the same type
+                dtype = particles.dtype
+                p_min = tensor.as_tensor_variable(p_min)
+                if p_min.dtype != dtype:
+                    p_min = tensor.cast(p_min, dtype)
+                p_max = tensor.as_tensor_variable(p_max)
+                if p_max.dtype != dtype:
+                    p_max = tensor.cast(p_max, dtype)
                 particles = tensor.clip(particles, p_min, p_max)
         if not hasattr(self.rbm, 'h_sample'):
             self.rbm.h_sample = sharedX(numpy.zeros((0, 0)), 'h_sample')
