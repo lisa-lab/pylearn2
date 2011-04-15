@@ -21,15 +21,22 @@ from auc import embed
 
 floatX = theano.config.floatX
 
-def get_constant(variable):
-    """ Little hack to return the python value of a theano shared variable """
+def get_constant(variable, return_scalar=False):
+    """ Little hack to return the python value of a theano shared variable.
+
+    If return_scalar is True, and the constant is an ndarray of 0 dimensions,
+    the content of that ndarray will be returned instead.
+    """
     try:
-        return theano.function([],
-                               variable,
-                               mode=theano.compile.Mode(linker='py')
-                               )()
+        ret = theano.function([],
+                              variable,
+                              mode=theano.compile.Mode(linker='py')
+                              )()
     except TypeError:
-        return variable
+        ret = variable
+    if isinstance(ret, numpy.ndarray) and ret.ndim == 0:
+        ret = ret.item()
+    return ret
 
 def sharedX(value, name=None, borrow=False):
     """Transform value into a shared variable of type floatX"""
