@@ -211,10 +211,18 @@ class SGDOptimizer(Optimizer):
         # Add the things in p_up to ups
         safe_update(ups, p_up)
 
-        # Clip the values if needed
+        # Clip the values if needed.
+        # We do not want the clipping values to force an upcast
+        # of the update: updates should have the same type as params
         for param, (p_min, p_max) in self.clipping_values.iteritems():
+            p_min = tensor.as_tensor(p_min)
+            p_max = tensor.as_tensor(p_max)
+            dtype = param.dtype
+            if p_min.dtype != dtype:
+                p_min = tensor.cast(p_min, dtype)
+            if p_max.dtype != dtype:
+                p_max = tensor.cast(p_max, dtype)
             ups[param] = tensor.clip(ups[param], p_min, p_max)
-
 
         # Return the updates dictionary.
         return ups
@@ -239,3 +247,12 @@ class SGDOptimizer(Optimizer):
         """
         grads = [tensor.grad(cost, p) for p in self.params]
         return self.updates(gradients=grads)
+
+##################################################
+def get(str):
+    """Evaluate str into an Optimizer object, if it exists."""
+    obj = globals().get(str, None)
+    if issubclass(obj, Optimizer):
+        return obj
+    else:
+        raise NameError(str)

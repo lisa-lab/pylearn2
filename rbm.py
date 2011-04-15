@@ -160,6 +160,14 @@ class PersistentCDSampler(Sampler):
             )
             if self.particles_clip is not None:
                 p_min, p_max = self.particles_clip
+                # The clipped values should still have the same type
+                dtype = particles.dtype
+                p_min = tensor.as_tensor_variable(p_min)
+                if p_min.dtype != dtype:
+                    p_min = tensor.cast(p_min, dtype)
+                p_max = tensor.as_tensor_variable(p_max)
+                if p_max.dtype != dtype:
+                    p_max = tensor.cast(p_max, dtype)
                 particles = tensor.clip(particles, p_min, p_max)
         if not hasattr(self.rbm, 'h_sample'):
             self.rbm.h_sample = sharedX(numpy.zeros((0, 0)), 'h_sample')
@@ -616,7 +624,7 @@ class mu_pooled_ssRBM(RBM):
             B0,
             Lambda0, Lambda_irange,
             mu0,
-            W_irange,
+            W_irange=None,
             rng=None):
         if rng is None:
             # TODO: global rng default seed
@@ -644,6 +652,9 @@ class mu_pooled_ssRBM(RBM):
                 numpy.zeros(self.nhid) + b0,
                 name='b', borrow=True)
 
+        if W_irange is None:
+            # Derived closed to Xavier Glorot's magic formula
+            W_irange = 2 / numpy.sqrt(nvis * nhid)
         self.W = sharedX(
                 (.5-rng.rand(self.nvis, self.nslab)) * 2 * W_irange,
                 name='W', borrow=True)
@@ -670,22 +681,27 @@ class mu_pooled_ssRBM(RBM):
     #    inherited version is OK.
 
     def gibbs_step_for_v(self, v, rng):
+        # Sometimes, the number of examples in the data set is not a
+        # multiple of self.batch_size.
+        batch_size = v.shape[0]
+
         # sample h given v
         h_mean = self.mean_h_given_v(v)
-        h_mean_shape = (self.batch_size, self.nhid)
+        h_mean_shape = (batch_size, self.nhid)
         h_sample = tensor.cast(rng.uniform(size=h_mean_shape) < h_mean, floatX)
 
         # sample s given (v,h)
         s_mu, s_var = self.mean_var_s_given_v_h1(v)
-        s_mu_shape = (self.batch_size, self.nslab)
+        s_mu_shape = (batch_size, self.nslab)
         s_sample = s_mu + rng.normal(size=s_mu_shape) * tensor.sqrt(s_var)
         #s_sample = (s_sample.reshape() * h_sample.dimshuffle(0,1,'x')).flatten(2)
 
         # sample v given (s,h)
         v_mean, v_var = self.mean_var_v_given_h_s(h_sample, s_sample)
-        v_mean_shape = (self.batch_size, self.nvis)
+        v_mean_shape = (batch_size, self.nvis)
         v_sample = rng.normal(size=v_mean_shape) * tensor.sqrt(v_var) + v_mean
 
+        del batch_size
         return v_sample, locals()
 
     ## TODO?
@@ -791,9 +807,17 @@ def build_stacked_RBM(nvis, nhids, batch_size, vis_type='binary',
 
 ##################################################
 def get(str):
-    """ Evaluate str into an rbm object, if it exists """
-    obj = globals()[str]
+    """Evaluate str into an RBM object, if it exists."""
+    obj = globals().get(str, None)
     if issubclass(obj, RBM):
+        return obj
+    else:
+        raise NameError(str)
+
+def get_sampler(str):
+    """Evaluate str into a Sampler object, if it exists."""
+    obj = globals().get(str, None)
+    if issubclass(obj, Sampler):
         return obj
     else:
         raise NameError(str)

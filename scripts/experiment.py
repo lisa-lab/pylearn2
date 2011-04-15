@@ -22,6 +22,7 @@ except ImportError:
 from auc import embed
 import framework.cost
 import framework.corruption
+import framework.rbm
 
 from framework import utils
 from framework.pca import PCA
@@ -30,6 +31,7 @@ from framework.cost import SquaredError
 from framework.utils import BatchIterator
 from framework.optimizer import SGDOptimizer
 from framework.autoencoder import Autoencoder, ContractingAutoencoder
+from framework.rbm import RBM
 
 def create_pca(conf, layer, data, model=None):
     """
@@ -97,7 +99,7 @@ def create_ae(conf, layer, data, model=None):
             print 'Switching back to training mode.'
 
     # Set visible units size
-    layer['nvis'] = utils.get_constant(data[0].shape[1]).item()
+    layer['nvis'] = utils.get_constant(data[0].shape[1], return_scalar=True)
 
     # A symbolic input representing your minibatch.
     minibatch = tensor.matrix()
@@ -170,6 +172,144 @@ def create_ae(conf, layer, data, model=None):
 
     # Return the autoencoder object
     return ae
+
+
+def create_rbm(conf, layer, data, model=None):
+    """
+    Loads or trains an RBM.
+    """
+    savedir = utils.getboth(layer, conf, 'savedir')
+    clsname = layer['rbm_class']
+
+    # Guess the filename
+    if model is not None:
+        if model.endswith('.pkl'):
+            filename = os.path.join(savedir, model)
+        else:
+            filename = os.path.join(savedir, model + '.pkl')
+    else:
+        filename = os.path.join(savedir, layer['name'] + '.pkl')
+
+    # Try to load the model
+    if model is not None:
+        print '... trying to load layer:', clsname
+        try:
+            # This loads and checks that the loaded model is an RBM
+            # or subclass
+            return RBM.load(filename)
+        except Exception, e:
+            print 'Warning: error while loading %s from %s:' % (clsname, filename), e.args[0]
+            print 'Training it instead.'
+
+    # Set nvis
+    layer['nvis'] = utils.get_constant(data[0].shape[1], return_scalar=True)
+
+    # A symbolic minibatch input
+    minibatch = tensor.matrix('minibatch')
+
+    # RNG
+    rng = numpy.random.RandomState(seed=layer.get('seed', 42))
+
+    # The RBM itself
+    RBMClass = framework.rbm.get(clsname)
+    rbm = RBMClass.fromdict(layer, rng=rng)
+
+    # Sampler
+    SamplerClass = framework.rbm.get_sampler(layer['sampler'])
+    sampler_kwargs = {
+            'rbm': rbm,
+            'particles': data[0].get_value()[0:layer['batch_size']],
+            'rng': rng}
+    if 'pcd_steps' in layer:
+        sampler_kwargs['steps'] = layer['pcd_steps']
+    if 'particles_min' in layer or 'particles_max' in layer:
+        sampler_kwargs['particles_clip'] = (
+                layer.get('particles_min', -numpy.inf),
+                layer.get('particles_max', +numpy.inf))
+    sampler = SamplerClass(**sampler_kwargs)
+
+    # Optimizer
+    OptimizerClass = framework.optimizer.get(layer['optimizer'])
+    if OptimizerClass == SGDOptimizer:
+        optimizer_kwargs = {
+                'params': rbm,
+                'base_lr': layer['base_lr'],
+                'anneal_start': layer.get('anneal_start', numpy.inf),
+                }
+
+        # convert ..._min and ..._max to ..._clip
+        clipped_names = []
+        for k in layer.iterkeys():
+            if k[-4:] in ('_min', '_max'):
+                if k[:-4] != 'particles':
+                    clipped_names.append(k[:-4])
+        for name in clipped_names:
+            optimizer_kwargs['%s_clip' % name] = (
+                    layer.get('%s_min' % name, -numpy.inf),
+                    layer.get('%s_max' % name, +numpy.inf))
+
+        optimizer = OptimizerClass(**optimizer_kwargs)
+    else:
+        raise NotImplementedError('Only SGDOptimizer is supported with RBMs '
+                'at the moment.', OptimizerClass)
+
+
+    updates = framework.rbm.training_updates(
+            visible_batch=minibatch,
+            model=rbm,
+            sampler=sampler,
+            optimizer=optimizer)
+
+    proxy_cost = rbm.reconstruction_error(minibatch, rng=sampler.s_rng)
+    train_fn = theano.function(
+            [minibatch],
+            proxy_cost,
+            updates=updates,
+            name='train_fn')
+
+    # Manual training loop,
+    # copy/pasted from create_ae
+    print '... training layer:', clsname
+    start_time = time.clock()
+    proba = utils.getboth(layer, conf, 'proba')
+    iterator = BatchIterator(data, proba, layer['batch_size'])
+    saving_counter = 0
+    saving_rate = utils.getboth(layer, conf, 'saving_rate', 0)
+    for epoch in xrange(layer['epochs']):
+        c = []
+        batch_time = time.clock()
+        for minibatch_data in iterator:
+            c.append(train_fn(minibatch_data))
+
+        # Print time & cost
+        train_time = time.clock() - batch_time
+        print '... training epoch %d, time spent (min) %f, cost' % (
+                epoch, train_time / 60.), numpy.mean(c)
+
+        # Saving intermediate models
+        if saving_rate != 0:
+            saving_counter += 1
+            if saving_counter % saving_rate == 0:
+                rbm.save(os.path.join(savedir,
+                    layer['name'] + '-epoch-%02d.pkl' % epoch))
+
+    end_time = time.clock()
+    layer['training_time'] = (end_time - start_time) / 60.
+    print '... training ended after %f min' % layer['training_time']
+
+    # Compute reconstruction error for valid and train data sets
+    error_fn = theano.function([minibatch], proxy_cost, name='error_fn')
+    layer['error_valid'] = error_fn(data[1].get_value(borrow=True)).item()
+    layer['error_test'] = error_fn(data[2].get_value(borrow=True)).item()
+    print '... final error with valid is', layer['error_valid']
+    print '... final error with test  is', layer['error_test']
+
+    # Save model parameters
+    rbm.save(filename)
+    print '... final model has been saved as %s' % filename
+
+    # Return the RBM object
+    return rbm
 
 
 if __name__ == "__main__":
