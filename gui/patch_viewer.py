@@ -115,7 +115,8 @@ class  PatchViewer:
 
     def get_img(self):
         #print 'image range '+str((self.image.min(), self.image.max()))
-        return Image.fromarray(N.cast['int8'](self.image*255.0))
+	x = N.cast['int8'](self.image*255.0)
+        return Image.fromarray(x)
 
     def save(self, path):
         self.get_img().save(path)

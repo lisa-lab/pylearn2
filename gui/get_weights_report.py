@@ -14,7 +14,7 @@ def get_weights_report(model_path, rescale = True):
     #p.dataset_desc.attrib['lazyLoad'] = 'True'
     #HACK
     print 'hacked to load cifar patches'
-    dataset = serial.load('/u/goodfeli/ift6266h11/recons_srbm/cifar10_preprocessed_train.pkl')
+    dataset = serial.load('/home/ia3n//ift6266h11/recons_srbm/cifar10_preprocessed_train.pkl')
     #dataset = yaml_parse.load(p.dataset_desc)
     #print 'done'
 
