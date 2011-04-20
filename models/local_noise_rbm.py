@@ -233,9 +233,6 @@ class LocalNoiseRBM:
 
         self.learn_func(x, self.learning_rate)
 
-        if self.a.get_value() < 1e-5:
-            self.a.set_value(1e-5)
-
 
         self.examples_seen += x.shape[0]
         self.batches_seen += 1
