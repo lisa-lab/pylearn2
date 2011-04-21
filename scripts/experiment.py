@@ -174,7 +174,7 @@ def create_ae(conf, layer, data, model=None):
     return ae
 
 
-def create_rbm(conf, layer, data, model=None):
+def create_rbm(conf, layer, data, label=None, model=None):
     """
     Loads or trains an RBM.
     """
@@ -275,6 +275,11 @@ def create_rbm(conf, layer, data, model=None):
     iterator = BatchIterator(data, proba, layer['batch_size'])
     saving_counter = 0
     saving_rate = utils.getboth(layer, conf, 'saving_rate', 0)
+
+    # For ALC
+    if label is not None:
+        data_train, label_train = utils.filter_labels(data[0], label)
+
     for epoch in xrange(layer['epochs']):
         c = []
         batch_time = time.clock()
@@ -292,6 +297,17 @@ def create_rbm(conf, layer, data, model=None):
             if saving_counter % saving_rate == 0:
                 rbm.save(os.path.join(savedir,
                     layer['name'] + '-epoch-%02d.pkl' % epoch))
+
+                ## Yes, this is a hack
+                if label is not None:
+                    # Compute ALC on train
+                    data_train_repr = utils.minibatch_map(
+                            rbm.function(),
+                            layer['batch_size'],
+                            data_train,
+                            output_width=layer['nhid'])
+                    alc = embed.score(data_train_repr, label_train)
+                    print '... train ALC at epoch %d: %f' % (epoch, alc)
 
     end_time = time.clock()
     layer['training_time'] = (end_time - start_time) / 60.
