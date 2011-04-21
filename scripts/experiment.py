@@ -218,7 +218,7 @@ def create_rbm(conf, layer, data, model=None):
     SamplerClass = framework.rbm.get_sampler(layer['sampler'])
     sampler_kwargs = {
             'rbm': rbm,
-            'particles': data[0].get_value()[0:layer['batch_size']],
+            'particles': data[0].get_value(borrow=True)[0:layer['batch_size']].copy(),
             'rng': rng}
     if 'pcd_steps' in layer:
         sampler_kwargs['steps'] = layer['pcd_steps']
