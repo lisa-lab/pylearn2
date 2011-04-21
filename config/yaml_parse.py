@@ -120,12 +120,13 @@ class ObjectProxy(object):
     Class used to delay instantiation of objects so that overrides can be
     applied.
     """
-    def __init__(self, cls, kwds):
+    def __init__(self, cls, kwds, yaml_src):
         """
 
         """
         self.cls = cls
         self.kwds = kwds
+        self.yaml_src = yaml_src
         self.instance = None
 
     def __setitem__(self, key, value):
@@ -144,6 +145,8 @@ class ObjectProxy(object):
         """
         if self.instance is None:
             self.instance = checked_call(self.cls, self.kwds)
+        #endif
+        self.instance.yaml_src = self.yaml_src
         return self.instance
 
 def multi_constructor(loader, tag_suffix, node) :
@@ -152,10 +155,12 @@ def multi_constructor(loader, tag_suffix, node) :
     objects from argument descriptions. See PyYAML documentation for
     details on the call signature.
     """
+
+    yaml_src = yaml.serialize(node)
     mapping = loader.construct_mapping(node)
     if '.' not in tag_suffix:
         classname = tag_suffix
-        return checked_call(classname, mapping)
+        rval = ObjectProxy(classname, mapping, yaml_src)
     else:
         components = tag_suffix.split('.')
         modulename = '.'.join(components[:-1])
@@ -164,7 +169,10 @@ def multi_constructor(loader, tag_suffix, node) :
             classname = eval(tag_suffix)
         except AttributeError:
             raise AttributeError('Could not evaluate %s' % tag_suffix)
-        return ObjectProxy(classname, mapping)
+        rval =  ObjectProxy(classname, mapping, yaml_src)
+
+
+    return rval
 
 def multi_constructor_pkl(loader, tag_suffix, node):
     """
@@ -176,7 +184,11 @@ def multi_constructor_pkl(loader, tag_suffix, node):
     #print dir(loader)
     mapping = loader.construct_yaml_str(node)
     assert tag_suffix == ""
-    return serial.load(mapping)
+
+    rval = ObjectProxy(None,{},yaml.serialize(node))
+    rval.instance = serial.load(mapping)
+
+    return rval
 
 def initialize():
     """

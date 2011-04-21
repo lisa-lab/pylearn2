@@ -9,14 +9,7 @@ def get_weights_report(model_path, rescale = True):
     p = serial.load(model_path)
     print 'loading done'
 
-    #print 'loading dataset'
-    #p.dataset_desc = XML.node_from_string(p.dataset_desc)
-    #p.dataset_desc.attrib['lazyLoad'] = 'True'
-    #HACK
-    print 'hacked to load cifar patches'
-    dataset = serial.load('/home/ia3n//ift6266h11/recons_srbm/cifar10_preprocessed_train.pkl')
-    #dataset = yaml_parse.load(p.dataset_desc)
-    #print 'done'
+    dataset = yaml_parse.load(p.dataset_yaml_src)
 
     if 'weightsShared' in dir(p):
         p.weights = p.weightsShared.get_value()
@@ -44,9 +37,15 @@ def get_weights_report(model_path, rescale = True):
             #
         #
     elif len(p.weights.shape) == 2:
+        assert type(p.weights_format()) == type([])
+        assert len(p.weights_format()) == 2
+        assert p.weights_format()[0] in ['v','h']
+        assert p.weights_format()[1] in ['v','h']
+        assert p.weights_format()[0] != p.weights_format()[1]
+
         if p.weights_format()[0] == 'v':
             p.weights = p.weights.transpose()
-        h = p.weights.shape[0]
+        h = p.nhid
 
 
         hr = int(N.ceil(N.sqrt(h)))
@@ -54,11 +53,10 @@ def get_weights_report(model_path, rescale = True):
         if 'hidShape' in dir(p):
             hr, hc = p.hidShape
 
-
-
         pv = patch_viewer.PatchViewer(grid_shape=(hr,hc), patch_shape=dataset.view_shape()[0:2],
                 is_color = dataset.view_shape()[2] == 3)
         weights_mat = p.weights
+
         assert weights_mat.shape[0] == h
         weights_view = dataset.get_weights_view(weights_mat)
         assert weights_view.shape[0] == h

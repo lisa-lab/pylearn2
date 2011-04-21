@@ -1,3 +1,5 @@
+import copy
+
 
 class DefaultTrainingAlgorithm:
     def __init__(self, batch_size, batches_per_iter , monitoring_batches = - 1, monitoring_dataset = None):
@@ -15,7 +17,10 @@ class DefaultTrainingAlgorithm:
 
         if self.monitoring_dataset:
             self.monitoring_dataset.reset_RNG()
+
             model.record_monitoring_error(self.monitoring_dataset,batches=self.monitoring_batches,batch_size=self.batch_size)
+
+
             print model.error_record[-1]
         #
 

@@ -9,6 +9,7 @@ from framework.utils import serial
 class Train:
     def __init__(self, dataset, model, algorithm = None, save_path = None):
         self.dataset, self.model, self.algorithm, self.save_path  = dataset, model, algorithm, save_path
+        self.model.dataset_yaml_src = self.dataset.yaml_src
 
     def main_loop(self):
         if self.algorithm is None:

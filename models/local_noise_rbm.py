@@ -8,7 +8,7 @@ import theano
 floatX = theano.config.floatX
 
 
-class LocalNoiseRBM:
+class LocalNoiseRBM(object):
     def reset_rng(self):
 
         self.rng = N.random.RandomState([12.,9.,2.])
@@ -44,7 +44,13 @@ class LocalNoiseRBM:
     def __init__(self, nvis, nhid,
                 learning_rate, irange,
                 init_bias_hid,
-                beta, gibbs_iters,
+                init_beta,
+                min_misclass,
+                max_misclass,
+                time_constant,
+                beta_scale_up,
+                beta_scale_down,
+                max_beta
                 ):
         self.initialized = False
         self.reset_rng()
@@ -56,9 +62,14 @@ class LocalNoiseRBM:
         self.init_weight_mag = irange
         self.force_batch_size = 0
         self.init_bias_hid = init_bias_hid
-        self.beta = N.cast[floatX] (beta)
-        self.gibbs_iters = gibbs_iters
-
+        self.beta = shared(N.cast[floatX] (init_beta))
+        self.min_misclass = min_misclass
+        self.max_misclass = max_misclass
+        self.time_constant = time_constant
+        self.beta_scale_up = beta_scale_up
+        self.beta_scale_down = beta_scale_down
+        self.max_beta = max_beta
+        self.misclass = -1
 
         self.names_to_del = []
 
@@ -137,15 +148,26 @@ class LocalNoiseRBM:
 
 
         corrupted = self.theano_rng.normal(size = X.shape, avg = X,
-                                    std = N.sqrt(self.beta), dtype = X.dtype)
+                                    std = T.sqrt(self.beta), dtype = X.dtype)
 
+
+        corrupted = corrupted * ( T.sqr(X).sum(axis=1) / T.sqr(corrupted).sum(axis=1)).dimshuffle(0,'x')
+
+        self.corruption_func = function([X],corrupted)
+
+        E_c = self.batch_free_energy(corrupted)
+        E_d = self.batch_free_energy(X)
 
         obj = T.mean(
                 -T.log(
                     T.nnet.sigmoid(
-                        self.batch_free_energy(corrupted) - self.batch_free_energy(X))   ) )
+                        E_c - E_d)   ) )
 
         self.error_func = function([X],obj)
+
+        self.misclass_func = function([X], (E_c < E_d ).mean())
+        #self.misclass_func = function([X], ( T.sum(T.sqr(corrupted),axis=1) < T.sum(T.sqr(X),axis=1) ).mean())
+        #self.misclass_func = function([X], T.sum(T.sqr(corrupted),axis=1).mean())
 
         grads = [ T.grad(obj,param) for param in self.params ]
 
@@ -175,16 +197,31 @@ class LocalNoiseRBM:
     def record_monitoring_error(self, dataset, batch_size, batches):
         assert self.error_record_mode == self.ERROR_RECORD_MODE_MONITORING
 
+        print 'beta (variance): '+str(self.beta.get_value())
+
+        #always use the same seed for monitoring error
+        self.theano_rng.seed(5)
+
         errors = []
+
+        misclasses = []
 
         for i in xrange(batches):
             x = dataset.get_batch_design(batch_size)
             error = self.error_func(x)
             errors.append( error )
+            misclass = self.misclass_func(x)
+            misclasses.append(misclass)
         #
 
+        misclass = N.asarray(misclasses).mean()
+
+        print 'misclassification rate: '+str(misclass)
 
         self.error_record.append( (self.examples_seen, self.batches_seen, N.asarray(errors).mean() ) )
+
+        print "TODO: restore old theano_rng state instead of jumping to new one"
+        self.theano_rng.seed(self.rng.randint(2**30))
     #
 
     def reconstruct(self, x, use_noise):
@@ -196,7 +233,7 @@ class LocalNoiseRBM:
         self.truth_shared = shared(x.copy())
 
         if use_noise:
-            self.vis_shared = shared(x.copy() + 0.15 *  self.rng.randn(*x.shape))
+            self.vis_shared = shared(self.corruption_func(x))
         else:
             self.vis_shared = shared(x.copy())
 
@@ -230,8 +267,21 @@ class LocalNoiseRBM:
 
     def learn_mini_batch(self, x):
 
+        cur_misclass = self.misclass_func(x)
+
+        if self.misclass == -1:
+            self.misclass = cur_misclass
+        else:
+            self.misclass = self.time_constant * cur_misclass + (1.-self.time_constant) * self.misclass
+
+        if self.misclass > self.max_misclass:
+            self.beta.set_value(min(self.max_beta,self.beta.get_value() * self.beta_scale_up) )
+        elif self.misclass < self.min_misclass:
+            self.beta.set_value(self.beta.get_value() * self.beta_scale_down )
+        #
 
         self.learn_func(x, self.learning_rate)
+
 
 
         self.examples_seen += x.shape[0]
