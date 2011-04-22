@@ -18,7 +18,7 @@ class  PatchViewer:
         if is_color:
             image_shape = (height, width, 3)
         else:
-            image_shape = (height, width)
+            image_shape = (height, width, 1)
         #
         self.image = N.zeros( image_shape ) + 0.5
         self.curPos = (0,0)
@@ -88,7 +88,7 @@ class  PatchViewer:
 
         temp *= (temp > 0)
 
-        self.image[rs+rs_pad:re-re_pad,cs+cs_pad:ce-ce_pad] = temp
+        self.image[rs+rs_pad:re-re_pad,cs+cs_pad:ce-ce_pad,:] = temp
 
         self.curPos = (self.curPos[0], self.curPos[1]+1)
         if self.curPos[1]  == self.grid_shape[1]:
@@ -115,7 +115,9 @@ class  PatchViewer:
 
     def get_img(self):
         #print 'image range '+str((self.image.min(), self.image.max()))
-	x = N.cast['int8'](self.image*255.0)
+        x = N.cast['int8'](self.image*255.0)
+        if x.shape[2] == 1:
+            x = x[:,:,0]
         return Image.fromarray(x)
 
     def save(self, path):

@@ -208,6 +208,7 @@ class LocalNoiseRBM(object):
 
         for i in xrange(batches):
             x = dataset.get_batch_design(batch_size)
+            assert x.shape == (batch_size, self.nvis)
             error = self.error_func(x)
             errors.append( error )
             misclass = self.misclass_func(x)
@@ -266,6 +267,8 @@ class LocalNoiseRBM(object):
 
 
     def learn_mini_batch(self, x):
+
+        assert x.shape[1] == self.nvis
 
         cur_misclass = self.misclass_func(x)
 
