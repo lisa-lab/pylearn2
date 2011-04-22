@@ -20,4 +20,5 @@ from .datasets import (
         nonzero_features,
         BatchIterator,
         blend,
+        minibatch_map,
         )

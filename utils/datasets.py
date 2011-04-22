@@ -227,3 +227,31 @@ def blend(dataset, set_proba, **kwargs):
             row += 1
 
         return sharedX(array, borrow=True)
+
+def minibatch_map(fn, batch_size, input_data, output_data=None, output_width=None):
+    '''Apply a function on input_data, one minibatch at a time.
+
+    Storage for the output can be provided. If it is the case, it should have
+    appropriate size.
+
+    If output_data is not provided, then output_width should be specified.
+    '''
+
+    if output_width is None:
+        if output_data is None:
+            raise ValueError('output_data or output_width should be provided')
+
+        output_width = output_data.shape[1]
+
+    output_length = input_data.shape[0]
+    if output_data is None:
+        output_data = numpy.empty((output_length, output_width))
+    else:
+        assert output_data.shape[0] == input_data.shape[0], ('output_data '
+                'should have the same length as input_data',
+                output_data.shape[0], input_data.shape[0])
+
+    for i in xrange(0, output_length, batch_size):
+        output_data[i:i+batch_size] = fn(input_data[i:i+batch_size])
+
+    return output_data
