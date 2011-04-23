@@ -164,7 +164,11 @@ def multi_constructor(loader, tag_suffix, node) :
     else:
         components = tag_suffix.split('.')
         modulename = '.'.join(components[:-1])
-        exec('import %s' % modulename)
+
+        try:
+            exec('import %s' % modulename)
+        except ImportError, e:
+            raise ImportError("Could not import "+modulename+". python wanted to phrase this as: "+str(e))
         try:
             classname = eval(tag_suffix)
         except AttributeError:
