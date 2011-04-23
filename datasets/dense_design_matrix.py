@@ -12,7 +12,39 @@ class DenseDesignMatrix(object):
         #
         self.default_rng = copy.copy(rng)
         self.rng = rng
+        self.compress = False
     #
+
+    def enable_compression(self):
+        self.compress = True
+    #
+
+    def __getstate__(self):
+        rval = copy.copy(self.__dict__)
+
+        if self.compress:
+            rval['compress_min'] = rval['X'].min(axis=0)
+            rval['X'] -= rval['compress_min']
+            rval['compress_max'] = rval['X'].max(axis=0)
+            rval['compress_max'][rval['compress_max']==0] = 1
+            rval['X'] *= 255. / rval['compress_max']
+            rval['X'] = N.cast['uint8'](rval['X'])
+        return rval
+
+    def __setstate__(self, d):
+
+        if d['compress']:
+            X = d['X']
+            mx = d['compress_max']
+            mn = d['compress_min']
+            del d['compress_max']
+            del d['compress_min']
+            d['X'] = 0
+            self.__dict__.update(d)
+            self.X = N.cast['float32'](X)*mx+mn
+        else:
+            self.__dict__.update(d)
+
 
     def reset_RNG(self):
         if 'default_rng' not in dir(self):
