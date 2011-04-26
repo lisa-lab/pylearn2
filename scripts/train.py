@@ -1,3 +1,4 @@
+#!/bin/env python
 """General training script"""
 # Standard library imports
 import sys

@@ -224,7 +224,7 @@ class LocalNoiseRBM(object):
 
         print 'misclassification rate: '+str(misclass)
 
-        self.error_record.append( (self.examples_seen, self.batches_seen, N.asarray(errors).mean() ) )
+        self.error_record.append( (self.examples_seen, self.batches_seen, N.asarray(errors).mean(), self.beta.get_value(), misclass ) )
 
         print "TODO: restore old theano_rng state instead of jumping to new one"
         self.theano_rng.seed(self.rng.randint(2**30))
