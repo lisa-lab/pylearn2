@@ -280,8 +280,9 @@ class LocalNoiseRBM(object):
         if self.misclass > self.max_misclass:
             self.beta.set_value(min(self.max_beta,self.beta.get_value() * self.beta_scale_up) )
         elif self.misclass < self.min_misclass:
-            self.beta.set_value(self.beta.get_value() * self.beta_scale_down )
+            self.beta.set_value(max(1e-8,self.beta.get_value() * self.beta_scale_down ))
         #
+
 
         self.learn_func(x, self.learning_rate)
 
