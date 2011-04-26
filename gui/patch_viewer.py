@@ -54,6 +54,7 @@ class  PatchViewer:
 
         temp = patch.copy()
 
+        assert not N.any(N.isnan(temp)+N.isinf(temp))
 
         if rescale:
 			scale = N.abs(temp).max()
