@@ -130,7 +130,6 @@ class LocalNoiseRBM(object):
                 lambda v: 0.5 * T.dot(v,v) - T.dot(self.c,v) - T.sum(T.nnet.softplus( T.dot(v,self.W)+self.b)),
                  sequences  = V)
 
-        #output_scan = Print('output_scan',attrs=['shape'])(output_scan)
 
         return output_scan
 
@@ -163,11 +162,17 @@ class LocalNoiseRBM(object):
                     T.nnet.sigmoid(
                         E_c - E_d)   ) )
 
-        self.error_func = function([X],obj)
+        self.error_func = function([X],obj )
+
+        #print 'maker'
+        #print theano.printing.debugprint(self.error_func.maker.env.outputs[0])
+        #print 'obj'
+        #print theano.printing.debugprint(obj)
 
         self.misclass_func = function([X], (E_c < E_d ).mean())
         #self.misclass_func = function([X], ( T.sum(T.sqr(corrupted),axis=1) < T.sum(T.sqr(X),axis=1) ).mean())
         #self.misclass_func = function([X], T.sum(T.sqr(corrupted),axis=1).mean())
+        #self.misclass_func = function([X], T.sum(T.sqr(X),axis=1).mean())
 
         grads = [ T.grad(obj,param) for param in self.params ]
 
@@ -277,11 +282,15 @@ class LocalNoiseRBM(object):
         else:
             self.misclass = self.time_constant * cur_misclass + (1.-self.time_constant) * self.misclass
 
+        #print 'current misclassification rate: '+str(self.misclass)
+
         if self.misclass > self.max_misclass:
             self.beta.set_value(min(self.max_beta,self.beta.get_value() * self.beta_scale_up) )
         elif self.misclass < self.min_misclass:
             self.beta.set_value(self.beta.get_value() * self.beta_scale_down )
         #
+
+        #print 'new beta: '+str(self.beta.get_value())
 
         self.learn_func(x, self.learning_rate)
 

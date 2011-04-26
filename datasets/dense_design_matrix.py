@@ -41,7 +41,7 @@ class DenseDesignMatrix(object):
             del d['compress_min']
             d['X'] = 0
             self.__dict__.update(d)
-            self.X = N.cast['float32'](X)*mx+mn
+            self.X = N.cast['float32'](X)*mx/255.+mn
         else:
             self.__dict__.update(d)
 
