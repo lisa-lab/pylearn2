@@ -44,13 +44,17 @@ class LocalNoiseRBM(object):
     def __init__(self, nvis, nhid,
                 learning_rate, irange,
                 init_bias_hid,
-                init_beta,
+                init_noise_var,
                 min_misclass,
                 max_misclass,
                 time_constant,
-                beta_scale_up,
-                beta_scale_down,
-                max_beta
+                noise_var_scale_up,
+                noise_var_scale_down,
+                max_noise_var,
+                different_examples,
+                init_vis_prec,
+                learn_vis_prec,
+                vis_prec_lr_scale = 1e-2 # 0 won't make it not learn, it will just make the transfer function invalid
                 ):
         self.initialized = False
         self.reset_rng()
@@ -62,14 +66,18 @@ class LocalNoiseRBM(object):
         self.init_weight_mag = irange
         self.force_batch_size = 0
         self.init_bias_hid = init_bias_hid
-        self.beta = shared(N.cast[floatX] (init_beta))
+        self.noise_var = shared(N.cast[floatX] (init_noise_var))
         self.min_misclass = min_misclass
         self.max_misclass = max_misclass
         self.time_constant = time_constant
-        self.beta_scale_up = beta_scale_up
-        self.beta_scale_down = beta_scale_down
-        self.max_beta = max_beta
+        self.noise_var_scale_up = noise_var_scale_up
+        self.noise_var_scale_down = noise_var_scale_down
+        self.max_noise_var = max_noise_var
         self.misclass = -1
+        self.different_examples = different_examples
+        self.init_vis_prec = init_vis_prec
+        self.learn_vis_prec = learn_vis_prec
+        self.vis_prec_lr_scale = vis_prec_lr_scale
 
         self.names_to_del = []
 
@@ -108,6 +116,17 @@ class LocalNoiseRBM(object):
 
         self.params = [ self.W, self.c, self.b ]
 
+
+        self.vis_prec_driver = shared(N.zeros(self.nvis) + N.log(N.exp(self.init_vis_prec) - 1.) / self.vis_prec_lr_scale)
+
+        assert not N.any(N.isnan( self.vis_prec_driver.get_value() ))
+        assert not N.any(N.isinf( self.vis_prec_driver.get_value() ))
+
+
+        if self.learn_vis_prec:
+            self.params.append(self.vis_prec_driver)
+        #
+
         self.redo_theano()
     #
 
@@ -115,8 +134,8 @@ class LocalNoiseRBM(object):
     def batch_energy(self, V, H):
 
         output_scan, updates = scan(
-                 lambda v, h: 0.5 * T.dot(v,v) - T.dot(self.b,h) - T.dot(self.c,v) -T.dot(v,T.dot(self.W,h)),
-                 sequences  = (V,H))
+                 lambda v, h, beta: 0.5 * T.dot(v,beta*v) - T.dot(self.b,h) - T.dot(self.c,v) -T.dot(v,T.dot(self.W,h)),
+                 sequences  = (V,H), non_sequences = self.vis_prec)
 
 
         return output_scan
@@ -125,17 +144,24 @@ class LocalNoiseRBM(object):
         return T.nnet.sigmoid(self.b + T.dot(V,self.W))
 
     def batch_free_energy(self, V):
-
         output_scan, updates = scan(
-                lambda v: 0.5 * T.dot(v,v) - T.dot(self.c,v) - T.sum(T.nnet.softplus( T.dot(v,self.W)+self.b)),
-                 sequences  = V)
-
+                lambda v, beta: 0.5 * T.dot(v,beta * v) - T.dot(self.c,v) - T.sum(T.nnet.softplus( T.dot(v,self.W)+self.b)),
+                 sequences  = V,  non_sequences = self.vis_prec
+                 )
 
         return output_scan
 
     def redo_theano(self):
 
+        if 'different_examples' not in dir(self):
+            self.different_examples = False
+
         pre_existing_names = dir(self)
+
+        self.vis_prec = T.nnet.softplus(self.vis_prec_driver *  self.vis_prec_lr_scale)
+
+
+        self.vis_prec.name = 'vis_prec'
 
         self.W_T = self.W.T
         self.W_T.name = 'W.T'
@@ -147,36 +173,94 @@ class LocalNoiseRBM(object):
 
 
         corrupted = self.theano_rng.normal(size = X.shape, avg = X,
-                                    std = T.sqrt(self.beta), dtype = X.dtype)
+                                    std = T.sqrt(self.noise_var), dtype = X.dtype)
 
 
-        corrupted = corrupted * ( T.sqr(X).sum(axis=1) / T.sqr(corrupted).sum(axis=1)).dimshuffle(0,'x')
+        corrupted.name = 'prenorm_corrupted'
+
+        old_norm = T.sqr(X).sum(axis=1)
+        old_norm.name = 'old_norm'
+
+
+        new_norm = T.sqr(corrupted).sum(axis=1)
+        new_norm.name = 'new_norm'
+
+
+        norm_ratio = old_norm / (1e-8 + new_norm)
+        norm_ratio.name = 'norm_ratio'
+
+        norm_ratio_shuffled = norm_ratio.dimshuffle(0,'x')
+        norm_ratio_shuffled.name = 'norm_ratio_shuffled'
+
+
+        corrupted = corrupted * norm_ratio_shuffled
+
+
+        corrupted.name = 'postnorm_corrupted'
+
+
 
         self.corruption_func = function([X],corrupted)
 
+
+
         E_c = self.batch_free_energy(corrupted)
-        E_d = self.batch_free_energy(X)
+
+        E_c.name = 'E_c'
+
+        if self.different_examples:
+            X2 = T.matrix()
+            inputs = [ X, X2]
+        else:
+            X2 = X
+            inputs = [ X ]
+        #
+
+        E_d = self.batch_free_energy(X2)
+
+        E_d.name = 'E_d'
+
 
         obj = T.mean(
                 -T.log(
                     T.nnet.sigmoid(
                         E_c - E_d)   ) )
 
-        self.error_func = function([X],obj )
+
+        self.error_func = function(inputs,obj )
+
+        misclass_batch = (E_c < E_d)
+        misclass_batch.name = 'misclass_batch'
+
+        misclass = misclass_batch.mean()
+        misclass.name = 'misclass'
 
         #print 'maker'
         #print theano.printing.debugprint(self.error_func.maker.env.outputs[0])
         #print 'obj'
         #print theano.printing.debugprint(obj)
 
-        self.misclass_func = function([X], (E_c < E_d ).mean())
-        #self.misclass_func = function([X], ( T.sum(T.sqr(corrupted),axis=1) < T.sum(T.sqr(X),axis=1) ).mean())
-        #self.misclass_func = function([X], T.sum(T.sqr(corrupted),axis=1).mean())
-        #self.misclass_func = function([X], T.sum(T.sqr(X),axis=1).mean())
+        self.E_d_func = function(inputs, E_d.mean())
+        self.E_d_batch_func = function(inputs, E_d)
+        self.E_c_func = function(inputs, E_c.mean())
+        self.sqnorm_grad_E_c_func = function(inputs, T.sum(T.sqr(T.grad(T.mean(E_c),X))))
+        self.sqnorm_grad_E_d_func = function(inputs, T.sum(T.sqr(T.grad(T.mean(E_d),X2))))
+
+        self.misclass_func = function(inputs, misclass)
+
+
+
+
+        #self.norm_misclass_func = function([X], ( T.sum(T.sqr(corrupted),axis=1) < T.sum(T.sqr(X),axis=1) ).mean())
+        #self.norm_c_func = function([X], T.sum(T.sqr(corrupted),axis=1).mean())
+        #self.norm_d_func = function([X], T.sum(T.sqr(X),axis=1).mean())
 
         grads = [ T.grad(obj,param) for param in self.params ]
 
-        self.learn_func = function([X, alpha], updates =
+        learn_inputs = [ ipt for ipt in inputs ]
+        learn_inputs.append(alpha)
+
+        self.learn_func = function(learn_inputs, updates =
                 [ (param, param - alpha * grad) for (param,grad)
                     in zip(self.params, grads) ] , name='learn_func')
 
@@ -189,7 +273,7 @@ class LocalNoiseRBM(object):
 
 
     def learn(self, dataset, batch_size):
-        self.learn_mini_batch(dataset.get_batch_design(batch_size))
+        self.learn_mini_batch([dataset.get_batch_design(batch_size) for x in xrange(1+self.different_examples)])
 
 
     def recons_func(self, x):
@@ -199,10 +283,37 @@ class LocalNoiseRBM(object):
 
         return rval
 
+
+
+    def print_suite(self, things_to_print):
+        self.theano_rng.seed(5)
+
+        tracker =  {}
+
+        for thing in things_to_print:
+            tracker[thing[0]] = []
+
+        for i in xrange(batches):
+            x = dataset.get_batch_design(batch_size)
+            assert x.shape == (batch_size, self.nvis)
+
+            if self.different_examples:
+                inputs = [ x , dataset.get_batch_design(batch_size) ]
+            else:
+                inputs = [ x ]
+
+            for thing in things_to_print:
+                tracker[thing[0]].append(thing[1](*inputs))
+
+        for thing in things_to_print:
+            print thing[0] + ': '+str(N.asarray(tracker[thing[0]]).mean())
+        #
+    #
+
     def record_monitoring_error(self, dataset, batch_size, batches):
         assert self.error_record_mode == self.ERROR_RECORD_MODE_MONITORING
 
-        print 'beta (variance): '+str(self.beta.get_value())
+        print 'noise variance (before norm rescaling): '+str(self.noise_var.get_value())
 
         #always use the same seed for monitoring error
         self.theano_rng.seed(5)
@@ -214,9 +325,15 @@ class LocalNoiseRBM(object):
         for i in xrange(batches):
             x = dataset.get_batch_design(batch_size)
             assert x.shape == (batch_size, self.nvis)
-            error = self.error_func(x)
+
+            if self.different_examples:
+                inputs = [ x, dataset.get_batch_design(batch_size) ]
+            else:
+                inputs = [ x ]
+
+            error = self.error_func(*inputs)
             errors.append( error )
-            misclass = self.misclass_func(x)
+            misclass = self.misclass_func(*inputs)
             misclasses.append(misclass)
         #
 
@@ -224,7 +341,12 @@ class LocalNoiseRBM(object):
 
         print 'misclassification rate: '+str(misclass)
 
-        self.error_record.append( (self.examples_seen, self.batches_seen, N.asarray(errors).mean(), self.beta.get_value(), misclass ) )
+        error = N.asarray(errors).mean()
+
+        assert not N.isnan(misclass)
+        assert not N.isnan(error)
+
+        self.error_record.append( (self.examples_seen, self.batches_seen, error, self.noise_var.get_value(), misclass ) )
 
         print "TODO: restore old theano_rng state instead of jumping to new one"
         self.theano_rng.seed(self.rng.randint(2**30))
@@ -271,11 +393,12 @@ class LocalNoiseRBM(object):
                                 dtype = Q.dtype)
 
 
-    def learn_mini_batch(self, x):
+    def learn_mini_batch(self, inputs):
 
-        assert x.shape[1] == self.nvis
+        for x in inputs:
+            assert x.shape[1] == self.nvis
 
-        cur_misclass = self.misclass_func(x)
+        cur_misclass = self.misclass_func(*inputs)
 
         if self.misclass == -1:
             self.misclass = cur_misclass
@@ -285,13 +408,14 @@ class LocalNoiseRBM(object):
         #print 'current misclassification rate: '+str(self.misclass)
 
         if self.misclass > self.max_misclass:
-            self.beta.set_value(min(self.max_beta,self.beta.get_value() * self.beta_scale_up) )
+            self.noise_var.set_value(min(self.max_noise_var,self.noise_var.get_value() * self.noise_var_scale_up) )
         elif self.misclass < self.min_misclass:
-            self.beta.set_value(max(1e-8,self.beta.get_value() * self.beta_scale_down ))
+            self.noise_var.set_value(max(1e-8,self.noise_var.get_value() * self.noise_var_scale_down ))
         #
 
-
-        self.learn_func(x, self.learning_rate)
+        learn_inputs = [ ipt for ipt in inputs ]
+        learn_inputs.append(self.learning_rate)
+        self.learn_func( * learn_inputs)
 
 
 

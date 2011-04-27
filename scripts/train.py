@@ -28,6 +28,7 @@ class Train:
     def save(self):
         #TODO-- save state of dataset and training algorithm so training can be resumed after a crash
         if self.save_path is not None:
+            print 'saving to '+self.save_path
             serial.save(self.save_path, self.model)
         #
     #
