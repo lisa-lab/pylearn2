@@ -153,8 +153,17 @@ class LocalNoiseRBM(object):
 
     def redo_theano(self):
 
+        if 'noise_var' not in dir(self):
+            self.noise_var = self.beta
+            del self.beta
+
         if 'different_examples' not in dir(self):
             self.different_examples = False
+
+        if 'vis_prec_driver' not in dir(self):
+            self.vis_prec_lr_scale = 1.
+            self.vis_prec_driver = shared(N.zeros(self.nvis) + N.log(N.exp(1.0) - 1.) / self.vis_prec_lr_scale)
+
 
         pre_existing_names = dir(self)
 
@@ -270,8 +279,6 @@ class LocalNoiseRBM(object):
 
         self.names_to_del = [ name for name in post_existing_names if name not in pre_existing_names]
 
-
-
     def learn(self, dataset, batch_size):
         self.learn_mini_batch([dataset.get_batch_design(batch_size) for x in xrange(1+self.different_examples)])
 
@@ -284,8 +291,7 @@ class LocalNoiseRBM(object):
         return rval
 
 
-
-    def print_suite(self, things_to_print):
+    def print_suite(self, dataset, batch_size, batches,  things_to_print):
         self.theano_rng.seed(5)
 
         tracker =  {}
