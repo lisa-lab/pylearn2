@@ -12,7 +12,7 @@ from .utlc import (
         lookup_alc,
         )
 
-from .datasets import (
+"""from .datasets import (
         do_3d_scatter,
         save_plot,
         filter_labels,
@@ -21,4 +21,4 @@ from .datasets import (
         BatchIterator,
         blend,
         minibatch_map,
-        )
+        )""" # this is making cluster jobs crash, and seems like kind of a lot of stuff to import by default anyway
