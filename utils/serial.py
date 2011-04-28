@@ -2,6 +2,8 @@ import cPickle
 import pickle
 import os
 import time
+import numpy as N
+
 
 def load(filepath, recurse_depth = 0):
     try:
@@ -73,9 +75,7 @@ def save(filepath,obj):
                         raise
                     raise Exception(str(obj)+' could not be written to '+filepath+' by cPickle due to '+str(e)+' nor by pickle due to '+str(e2))
             print 'Warning: '+filepath+' was written by pickle instead of cPickle, due to '+str(e)+' (perhaps your object is eally big?)'
-
-
-""
+#
 
 def clone_via_serialize(obj):
 	str = cPickle.dumps(obj)

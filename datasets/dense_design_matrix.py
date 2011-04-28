@@ -13,6 +13,11 @@ class DenseDesignMatrix(object):
         self.default_rng = copy.copy(rng)
         self.rng = rng
         self.compress = False
+        self.design_loc = None
+    #
+
+    def use_design_loc(self, path):
+        self.design_loc = path
     #
 
     def enable_compression(self):
@@ -29,9 +34,17 @@ class DenseDesignMatrix(object):
             rval['compress_max'][rval['compress_max']==0] = 1
             rval['X'] *= 255. / rval['compress_max']
             rval['X'] = N.cast['uint8'](rval['X'])
+
+        if self.design_loc is not None:
+            N.save(self.design_loc, rval['X'])
+            del rval['X']
+
         return rval
 
     def __setstate__(self, d):
+
+        if d['design_loc'] is not None:
+            d['X'] = N.load(d['design_loc'])
 
         if d['compress']:
             X = d['X']
@@ -45,6 +58,15 @@ class DenseDesignMatrix(object):
         else:
             self.__dict__.update(d)
 
+
+    def get_stream_position(self):
+        return copy.copy(self.rng)
+
+    def set_stream_position(self, pos):
+        self.rng = copy.copy(pos)
+
+    def restart_stream(self):
+        self.reset_RNG()
 
     def reset_RNG(self):
         if 'default_rng' not in dir(self):
