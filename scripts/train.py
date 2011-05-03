@@ -25,8 +25,8 @@ class Train:
                 t2 = time.time()
                 diff_time = t2-t1
                 print 'Time this epoch: '+str(diff_time)
-                print 'quitting for profiling purposes'
-                sys.exit()
+                #print 'quitting for profiling purposes'
+                #sys.exit()
                 self.save()
                 t1 = time.time()
             #
