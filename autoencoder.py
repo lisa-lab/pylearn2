@@ -33,9 +33,7 @@ class Autoencoder(Block):
     much of the necessary functionality and override what they need.
     """
     def __init__(self, nvis, nhid, act_enc, act_dec,
-                 tied_weights=False, solution='', sparse_penalty=0,
-                 sparsity_target=0, sparsity_target_penalty=0,
-                 irange=1e-3, rng=9001):
+                 tied_weights=False, irange=1e-3, rng=9001):
         """
         Allocate an autoencoder object.
 
@@ -63,19 +61,6 @@ class Autoencoder(Block):
             (and learned) for the encoder and the decoder function. If `True`,
             the decoder weight matrix will be constrained to be equal to the
             transpose of the encoder weight matrix.
-        solution : string
-            If empty (default), the regularization term for the cost will be 0.
-            If 'l1_penalty', add to loss a L1 penalty.
-            If 'sqr_penalty', add to loss a quadratic penalty
-        sparse_penalty : float, optional
-            hyperparameter to control the value of the regularization term for
-            the L1 penalty.
-        sparsity_target : float, optional
-            hyperparameter to control the value of the regularization term for
-            the L2 penalty.
-        sparsity_target_penalty : float, optional
-            hyperparameter to control difference between the values of
-            hiddens output of the regularization term for the quadratic penalty
         irange : float, optional
             Width of the initial range around 0 from which to sample initial
             values for the weights.
@@ -134,12 +119,6 @@ class Autoencoder(Block):
         ]
         if not self.tied_weights:
             self._params.append(self.w_prime)
-
-        self.solution = solution
-        self.sparse_penalty = sparse_penalty
-        self.sparsity_target = sparsity_target
-        self.sparsity_target_penalty = sparsity_target_penalty
-        self.regularization = 0
 
     def _initialize_weights(self, nvis, rng=None, irange=None):
         if rng is None:
@@ -287,8 +266,6 @@ class Autoencoder(Block):
             reconstructed minibatch(es) after encoding/decoding.
         """
         hiddens = self.encode(inputs)
-        self.hiddens = hiddens
-        self.regularization = self.compute_regularization(hiddens)
 
         if self.act_dec is None:
             act_dec = lambda x: x
@@ -298,27 +275,6 @@ class Autoencoder(Block):
             return act_dec(self.visbias + tensor.dot(hiddens, self.w_prime))
         else:
             return [self.reconstruct(inp) for inp in inputs]
-
-    def compute_penalty_value(self):
-        '''
-        Return the penalty value compute by the function compute_regularization
-        '''
-        return self.regularization
-
-    def compute_regularization(self, hiddens):
-        """
-        Compute the penalty value depending on the choice solution (L1 or L2).
-        """
-        regularization = 0
-        # Compute regularization term
-        if self.solution == 'l1_penalty':
-            regularization = self.sparse_penalty * tensor.sum(hiddens)
-        elif self.solution == 'sqr_penalty':
-            regularization = (self.sparsity_target_penalty
-                              * tensor.sum(tensor.sqr(hiddens
-                                                      - self.sparsity_target)))
-
-        return regularization
 
     def __call__(self, inputs):
         """
@@ -337,9 +293,7 @@ class DenoisingAutoencoder(Autoencoder):
     reconstructing a noisy version of it.
     """
     def __init__(self, corruptor, nvis, nhid, act_enc, act_dec,
-                 tied_weights=False, solution='', sparse_penalty=0,
-                 sparsity_target=0, sparsity_target_penalty=0,
-                 irange=1e-3, rng=9001):
+                 tied_weights=False, irange=1e-3, rng=9001):
         """
         Allocate a denoising autoencoder object.
 
@@ -361,10 +315,6 @@ class DenoisingAutoencoder(Autoencoder):
             act_enc,
             act_dec,
             tied_weights,
-            solution,
-            sparse_penalty,
-            sparsity_target,
-            sparsity_target_penalty,
             irange,
             rng
         )
@@ -479,8 +429,7 @@ def build_stacked_ae(nvis, nhids, act_enc, act_dec,
     # "Broadcast" arguments if they are singular, or accept sequences if
     # they are the same length as nhids
     for c in ['corruptor', 'contracting', 'act_enc', 'act_dec',
-              'tied_weights', 'irange', 'solution', 'sparse_penalty',
-              'sparsity_target', 'sparsity_target_penalty']:
+              'tied_weights', 'irange']:
         if type(locals()[c]) is not str and hasattr(locals()[c], '__len__'):
             assert len(nhids) == len(locals()[c])
             final[c] = locals()[c]
@@ -499,16 +448,10 @@ def build_stacked_ae(nvis, nhids, act_enc, act_dec,
         final['contracting'],
         final['tied_weights'],
         final['irange'],
-        final['solution'],
-        final['sparse_penalty'],
-        final['sparsity_target'],
-        final['sparsity_target_penalty']
     )
     # Create each layer.
-    for (nhid, nvis, act_enc, act_dec, corr, cae, tied, ir,
-         sol, spar_pen, spar_tar, spar_tar_pen) in seq:
-        args = (nvis, nhid, act_enc, act_dec, tied, sol,
-                spar_pen, spar_tar, spar_tar_pen, ir, rng)
+    for (nhid, nvis, act_enc, act_dec, corr, cae, tied, ir) in seq:
+        args = (nvis, nhid, act_enc, act_dec, tied, ir, rng)
         if cae and corr is not None:
             raise ValueError("Can't specify denoising and contracting "
                              "objectives simultaneously")
