@@ -19,7 +19,8 @@ class CosDataset(object):
     def pdf(self, mat):
         x = mat[:,0]
         y = mat[:,1]
-        rval = N.exp( - ( y - N.cos(x)) ** 2. / (2. * (self.std**2.)))
+        #rval = N.exp(
+        return  ( y - N.cos(x)) ** 2. / (2. * (self.std**2.))#)
         rval /= N.sqrt(2.0 * 3.1415926535 * (self.std**2.))
         rval /= (self.max_x - self.min_x)
         rval *= x < self.max_x
