@@ -11,11 +11,23 @@ class DefaultTrainingAlgorithm:
 
     def train(self, model, dataset):
 
+        if len(model.error_record) == 0 and self.monitoring_dataset:
+            self.monitor(model)
+        #
+
         for i in xrange(self.batches_per_iter):
             model.learn(dataset, self.batch_size)
         #
 
         if self.monitoring_dataset:
+            self.monitor(model)
+        #
+
+        return True
+    #
+
+    def monitor(self, model):
+        if True:
             s = self.monitoring_dataset.get_stream_position()
 
             self.monitoring_dataset.restart_stream()
@@ -25,8 +37,5 @@ class DefaultTrainingAlgorithm:
 
             self.monitoring_dataset.set_stream_position(s)
         #
-
-
-        return True
     #
 #
