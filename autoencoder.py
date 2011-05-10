@@ -127,7 +127,7 @@ class Autoencoder(Block):
             irange = self.irange
         # TODO: use weight scaling factor if provided, Xavier's default else
         self.weights = sharedX(
-            .5 - rng.rand(nvis, self.nhid) * self.irange,
+            (.5 - rng.rand(nvis, self.nhid)) * self.irange,
             name='W',
             borrow=True
         )
