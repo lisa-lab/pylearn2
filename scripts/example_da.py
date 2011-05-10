@@ -17,7 +17,7 @@ except ImportError:
     sys.exit(1)
 
 # Local imports
-from framework.cost import MeanSquaredError,CrossEntropy
+from framework.cost import SquaredError
 from framework.corruption import GaussianCorruptor
 from framework.autoencoder import DenoisingAutoencoder,build_stacked_ae
 from framework.optimizer import SGDOptimizer
@@ -60,7 +60,7 @@ if __name__ == "__main__":
 
     # Allocate an optimizer, which tells us how to update our model.
     # TODO: build the cost another way
-    cost = MeanSquaredError(da)(minibatch, da.reconstruct(minibatch))
+    cost = SquaredError(da)(minibatch, da.reconstruct(minibatch)).mean()
     trainer = SGDOptimizer(da, conf['base_lr'], conf['anneal_start'])
     updates = trainer.cost_updates(cost)
 
@@ -117,8 +117,8 @@ if __name__ == "__main__":
     thislayer_input = [minibatch]
     for layer in sda.layers():
       
-        cost = MeanSquaredError(layer)(thislayer_input[0],
-                                       layer.reconstruct(thislayer_input[0]))
+        cost = SquaredError(layer)(thislayer_input[0],
+                layer.reconstruct(thislayer_input[0])).mean()
         opt = SGDOptimizer(layer.params(), sda_conf['base_lr'],
                            sda_conf['anneal_start'])
         optimizers.append((opt, cost))

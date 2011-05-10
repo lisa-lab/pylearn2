@@ -356,7 +356,7 @@ class ContractingAutoencoder(Autoencoder):
             raise ValueError("Invalid encoder activation function: "
                              "not an elementwise function of its input")
 
-    def contraction_penalty(self, inputs):
+    def jacobian_h_x(self, inputs):
         """
         Calculate (symbolically) the contracting autoencoder penalty term.
 
@@ -370,10 +370,12 @@ class ContractingAutoencoder(Autoencoder):
 
         Returns
         -------
-        penalty : tensor_like
-            0-dimensional tensor (i.e. scalar) that penalizes the Jacobian
-            matrix of the encoder transformation. Add this to the output
-            of a Cost object such as MeanSquaredError to penalize it.
+        jacobian : tensor_like
+            3-dimensional tensor representing, for each mini-batch
+            example, the Jacobian matrix of the encoder
+            transformation.
+            You can then apply the penalty you want on it,
+            or use the contraction_penalty method to have a default one.
 
         Notes
         -----
@@ -391,24 +393,49 @@ class ContractingAutoencoder(Autoencoder):
         by the weights (i.e. :math:`Wx + b`), and the activation function
         `self.act_enc` applying an independent, elementwise operation.
         """
+        # Compute the input flowing into the hidden units, i.e. the
+        # value before applying the nonlinearity/activation function
+        acts = self._hidden_input(inputs)
+        # Apply the activating nonlinearity.
+        hiddens = self.act_enc(acts)
+        # We want dh/da for every pre/postsynaptic pair, which we
+        # can easily do by taking the gradient of the sum of the
+        # hidden units activations w.r.t the presynaptic activity,
+        # since the gradient of hiddens.sum() with respect to hiddens
+        # is a matrix of ones!
+        act_grad = tensor.grad(hiddens.sum(), acts)
+        # As long as act_enc is an elementwise operator, the Jacobian
+        # of a act_enc(Wx + b) hidden layer has a Jacobian of the
+        # following form.
+        jacobian = self.weights * act_grad.dimshuffle(0, 'x', 1)
+
+        return jacobian
+
+    def contraction_penalty(self, inputs):
+        """
+        Calculate (symbolically) the contracting autoencoder penalty term.
+
+        Parameters
+        ----------
+        inputs : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the input
+            minibatch(es) on which the penalty is calculated. Assumed to be
+            2-tensors, with the first dimension indexing training examples and
+            the second indexing data dimensions.
+
+        Returns
+        -------
+        jacobian : tensor_like
+            1-dimensional tensor representing, for each mini-batch
+            example, the penalty of the encoder transformation.
+
+            Add this to the output of a Cost object, such as
+            SquaredError, to penalize it.
+        """
         def penalty(inputs):
-            # Compute the input flowing into the hidden units, i.e. the
-            # value before applying the nonlinearity/activation function
-            acts = self._hidden_input(inputs)
-            # Apply the activating nonlinearity.
-            hiddens = self.act_enc(acts)
-            # We want dh/da for every pre/postsynaptic pair, which we
-            # can easily do by taking the gradient of the sum of the
-            # hidden units activations w.r.t the presynaptic activity,
-            # since the gradient of hiddens.sum() with respect to hiddens
-            # is a matrix of ones!
-            act_grad = tensor.grad(hiddens.sum(), acts)
-            # As long as act_enc is an elementwise operator, the Jacobian
-            # of a act_enc(Wx + b) hidden layer has a Jacobian of the
-            # following form.
-            jacobian = self.weights * act_grad.dimshuffle(0, 'x', 1)
+            jacobian = self.jacobian_h_x(inputs)
             # Penalize the mean of the L2 norm, basically.
-            L = tensor.sum(jacobian ** 2)
+            L = tensor.sum(jacobian ** 2, axis=(1,2))
             return L
         if isinstance(inputs, tensor.Variable):
             return penalty(inputs)

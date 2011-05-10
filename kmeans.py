@@ -169,7 +169,7 @@ if __name__ == '__main__':
     from theano import tensor
     from framework.corruption import GaussianCorruptor
     from framework.autoencoder import DenoisingAutoencoder
-    from framework.cost import MeanSquaredError
+    from framework.cost import SquaredError
     from framework.optimizer import SGDOptimizer
     # toy labeled data: [x,y,label]*n samples
     n = 50
@@ -218,7 +218,7 @@ if __name__ == '__main__':
 
     # Allocate an optimizer, which tells us how to update our model.
     # TODO: build the cost another way
-    cost = MeanSquaredError(da)(minibatch, da.reconstruct(minibatch))
+    cost = SquaredError(da)(minibatch, da.reconstruct(minibatch)).mean()
     trainer = SGDOptimizer(da.params(), conf['base_lr'], conf['anneal_start'])
 
     # Finally, build a Theano function out of all this.

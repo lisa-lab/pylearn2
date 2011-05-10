@@ -18,7 +18,7 @@ except ImportError:
     sys.exit(1)
 
 # Local imports
-from framework.cost import MeanSquaredError
+from framework.cost import SquaredError
 from framework.corruption import GaussianCorruptor
 from framework.autoencoder import DenoisingAutoencoder,build_stacked_ae
 from framework.optimizer import SGDOptimizer
@@ -148,7 +148,7 @@ def main_train(epochs, batchsize, solution='',sparse_penalty=0,sparsityTarget=0,
 
     # Allocate an optimizer, which tells us how to update our model.
     # TODO: build the cost another way
-    cost = MeanSquaredError(da)(minibatch, da.reconstruct(minibatch))
+    cost = SquaredError(da)(minibatch, da.reconstruct(minibatch)).mean()
     trainer = SGDOptimizer(da, conf['base_lr'], conf['anneal_start'])
     updates = trainer.cost_updates(cost)
 

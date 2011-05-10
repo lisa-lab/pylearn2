@@ -117,10 +117,10 @@ def create_ae(conf, layer, data, model=None):
     MyCost = framework.cost.get(layer['cost_class'])
     varcost = MyCost(ae)(minibatch, ae.reconstruct(minibatch))
     if isinstance(ae, ContractingAutoencoder):
-        assert (MyCost == SquaredError)  # Only cost currently supported
         alpha = layer.get('contracting_penalty', 0.1)
         penalty = alpha * ae.contraction_penalty(minibatch)
-        varcost = tensor.mean(varcost.sum() + penalty)
+        varcost = varcost + penalty
+    varcost = varcost.mean()
     trainer = SGDOptimizer(ae, layer['base_lr'], layer['anneal_start'])
     updates = trainer.cost_updates(varcost)
 

@@ -18,7 +18,7 @@ except ImportError:
     sys.exit(1)
 
 # Local imports
-from framework.cost import MeanSquaredError
+from framework.cost import SquaredError
 from framework.corruption import GaussianCorruptor
 from framework.autoencoder import ContractingAutoencoder, build_stacked_ae
 from framework.optimizer import SGDOptimizer
@@ -51,8 +51,8 @@ if __name__ == "__main__":
                                  conf['act_enc'], conf['act_dec'])
 
     # Allocate an optimizer, which tells us how to update our model.
-    cost = MeanSquaredError(cae)(minibatch, cae.reconstruct(minibatch))
-    cost += cae.contraction_penalty(minibatch)
+    cost = SquaredError(cae)(minibatch, cae.reconstruct(minibatch)).mean()
+    cost += cae.contraction_penalty(minibatch).mean()
     trainer = SGDOptimizer(cae, conf['base_lr'], conf['anneal_start'])
     updates = trainer.cost_updates(cost)
 
@@ -94,11 +94,11 @@ if __name__ == "__main__":
     optimizers = []
     thislayer_input = [minibatch]
     for layer in scae.layers():
-        cost = MeanSquaredError(layer)(thislayer_input[0],
-                                       layer.reconstruct(thislayer_input[0])
-                                       )
+        cost = SquaredError(layer)(thislayer_input[0],
+                layer.reconstruct(thislayer_input[0])
+                ).mean()
         if isinstance(layer,ContractingAutoencoder):
-            cost+=layer.contraction_penalty(thislayer_input[0])
+            cost+=layer.contraction_penalty(thislayer_input[0]).mean()
         opt = SGDOptimizer( layer.params(),
                             stack_conf['base_lr'],
                             stack_conf['anneal_start']

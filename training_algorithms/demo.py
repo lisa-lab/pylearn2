@@ -1,4 +1,4 @@
-from framework.cost import MeanSquaredError
+from framework.cost import SquaredError
 from framework.optimizer import SGDOptimizer
 from theano import function, tensor
 
@@ -17,7 +17,7 @@ class Demo(object):
     def train(self, model, dataset):
         minibatch = tensor.matrix()
 
-        cost = MeanSquaredError(model)(minibatch, model.reconstruct(minibatch))
+        cost = SquaredError(model)(minibatch, model.reconstruct(minibatch)).mean()
         trainer = SGDOptimizer(model, self.base_lr, self.anneal_start)
         updates = trainer.cost_updates(cost)
 
