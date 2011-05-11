@@ -22,4 +22,4 @@ Basic design rules
   intimately tied to the penalty, and just have a contracting_penalty() method
   that returns the relevant bits to be added to the cost function.
 - Subscribe to the `pylearn-dev Google group
-  <http://groups.google.com/group/pylearn-dev>_`_ for important updates.
+  <http://groups.google.com/group/pylearn-dev>`_ for important updates.
