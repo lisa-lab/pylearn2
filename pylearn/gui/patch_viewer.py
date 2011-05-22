@@ -1,5 +1,26 @@
 import numpy as N
 from PIL import Image
+import os
+
+def make_viewer(mat):
+    """ Given filters in rows, guesses dimensions of patchse
+        and nice dimensions for the PatchViewer and returns a PatchViewer
+        containing visualizations of the filters"""
+    grid_shape = PatchViewer.pickSize(mat.shape[0])
+
+    patch_shape = PatchViewer.pickSize(mat.shape[1])
+
+
+    rval = PatchViewer( grid_shape, patch_shape)
+
+    patch_shape = (patch_shape[0], patch_shape[1], 1)
+
+    for i in xrange(mat.shape[0]):
+        rval.add_patch( mat[i,:].reshape(*patch_shape), rescale = True )
+    #
+
+    return rval
+#
 
 class  PatchViewer:
 
@@ -89,6 +110,14 @@ class  PatchViewer:
 
         temp *= (temp > 0)
 
+        if len(temp.shape) == 2:
+            #is there a clean way to do this generally?
+            #this is just meant to make the next line not crash, numpy is too retarded to realize that an mxn array can be assigned to an mxnx1 array
+            numpy_sucks = N.zeros((temp.shape[0],temp.shape[1],1),dtype=temp.dtype)
+            numpy_sucks[:,:,0] = temp
+            temp = numpy_sucks
+        #endif
+
         self.image[rs+rs_pad:re-re_pad,cs+cs_pad:ce-ce_pad,:] = temp
 
         self.curPos = (self.curPos[0], self.curPos[1]+1)
@@ -113,6 +142,8 @@ class  PatchViewer:
 
     def show(self):
         try:
+            #if os.env['USER'] == 'ia3n':
+            #    raise Exception("PIL on Ian's home machine has started using ImageMagick which is a pain to use")
             img = self.get_img()
             img.show()
         except:
