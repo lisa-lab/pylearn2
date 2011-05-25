@@ -2,11 +2,12 @@ import numpy as N
 from PIL import Image
 import os
 
-def make_viewer(mat):
+def make_viewer(mat, grid_shape  = None):
     """ Given filters in rows, guesses dimensions of patchse
         and nice dimensions for the PatchViewer and returns a PatchViewer
         containing visualizations of the filters"""
-    grid_shape = PatchViewer.pickSize(mat.shape[0])
+    if grid_shape is None:
+        grid_shape = PatchViewer.pickSize(mat.shape[0])
 
     patch_shape = PatchViewer.pickSize(mat.shape[1])
 
@@ -16,6 +17,7 @@ def make_viewer(mat):
     patch_shape = (patch_shape[0], patch_shape[1], 1)
 
     for i in xrange(mat.shape[0]):
+        #rval.add_patch( N.ones(patch_shape) )
         rval.add_patch( mat[i,:].reshape(*patch_shape), rescale = True )
     #
 
@@ -55,6 +57,10 @@ class  PatchViewer:
 
 	#0 is perfect gray. If not rescale, assumes images are in [-1,1]
     def add_patch(self, patch , rescale = True, recenter = False):
+
+        if (patch.min() == patch.max()) and (rescale or patch.min() == 0.0):
+            print "Warning: displaying totally blank patch"
+
         if patch.shape[0:2] != self.patch_shape:
             raise ValueError('Expected patch with shape '+str(self.patch_shape)+', got '+str(patch.shape))
 
