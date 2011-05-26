@@ -1,6 +1,7 @@
 import numpy as N
 import sys
-from framework.gui import patch_viewer
+from pylearn2.gui import patch_viewer
+from pylearn2.config import yaml_parse
 
 assert len(sys.argv) == 2
 path = sys.argv[1]
@@ -8,9 +9,10 @@ path = sys.argv[1]
 if path.endswith('.pkl'):
     from framework.utils import serial
     dataset = serial.load(path)
+elif path.endswith('.yaml'):
+    dataset =yaml_parse.load_path(path)
 else:
-    print 'not sure what to do with that kind of file'
-    quit(-1)
+    dataset = yaml_parse.load(path)
 
 rows = 20
 cols = 20
@@ -36,6 +38,8 @@ else:
     print 'supported formats are 1 channel greyscale or three channel RGB'
     quit(-1)
 #
+
+print examples.shape[1:3]
 
 pv = patch_viewer.PatchViewer( (rows, cols), examples.shape[1:3], is_color = is_color)
 
