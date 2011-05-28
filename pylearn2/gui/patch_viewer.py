@@ -2,14 +2,15 @@ import numpy as N
 from PIL import Image
 import os
 
-def make_viewer(mat, grid_shape  = None):
+def make_viewer(mat, grid_shape  = None, patch_shape = None):
     """ Given filters in rows, guesses dimensions of patchse
         and nice dimensions for the PatchViewer and returns a PatchViewer
         containing visualizations of the filters"""
     if grid_shape is None:
         grid_shape = PatchViewer.pickSize(mat.shape[0])
 
-    patch_shape = PatchViewer.pickSize(mat.shape[1])
+    if patch_shape is None:
+        patch_shape = PatchViewer.pickSize(mat.shape[1])
 
 
     rval = PatchViewer( grid_shape, patch_shape)
@@ -18,6 +19,7 @@ def make_viewer(mat, grid_shape  = None):
 
     for i in xrange(mat.shape[0]):
         #rval.add_patch( N.ones(patch_shape) )
+
         rval.add_patch( mat[i,:].reshape(*patch_shape), rescale = True )
     #
 
