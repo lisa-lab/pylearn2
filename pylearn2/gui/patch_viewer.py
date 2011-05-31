@@ -2,7 +2,7 @@ import numpy as N
 from PIL import Image
 import os
 
-def make_viewer(mat, grid_shape  = None, patch_shape = None):
+def make_viewer(mat, grid_shape  = None, patch_shape = None, activation = None):
     """ Given filters in rows, guesses dimensions of patchse
         and nice dimensions for the PatchViewer and returns a PatchViewer
         containing visualizations of the filters"""
@@ -19,8 +19,15 @@ def make_viewer(mat, grid_shape  = None, patch_shape = None):
 
     for i in xrange(mat.shape[0]):
         #rval.add_patch( N.ones(patch_shape) )
+        if activation is not None:
+            if isinstance(activation,list) or isinstance(activation,tuple):
+                act = [ a[i] for a in activation ]
+            else:
+                act = activation[i]
+        else:
+            act = None
 
-        rval.add_patch( mat[i,:].reshape(*patch_shape), rescale = True )
+        rval.add_patch( mat[i,:].reshape(*patch_shape), rescale = True , activation = act)
     #
 
     return rval
@@ -34,17 +41,16 @@ class  PatchViewer:
 
         self.is_color = is_color
 
-        self.pad = (3,3)
+        self.pad = (5,5)
+
+        self.colors = [ N.asarray([1,1,0]),N.asarray([1,0,1]) ]
 
         height  = self.pad[0]*(1+grid_shape[0])+grid_shape[0]*patch_shape[0]
         width = self.pad[1]*(1+grid_shape[1])+grid_shape[1]*patch_shape[1]
 
 
-        if is_color:
-            image_shape = (height, width, 3)
-        else:
-            image_shape = (height, width, 1)
-        #
+        image_shape = (height, width, 3)
+
         self.image = N.zeros( image_shape ) + 0.5
         self.curPos = (0,0)
 
@@ -58,7 +64,7 @@ class  PatchViewer:
 		self.curPos = (0,0)
 
 	#0 is perfect gray. If not rescale, assumes images are in [-1,1]
-    def add_patch(self, patch , rescale = True, recenter = False):
+    def add_patch(self, patch , rescale = True, recenter = False, activation = None):
 
         if (patch.min() == patch.max()) and (rescale or patch.min() == 0.0):
             print "Warning: displaying totally blank patch"
@@ -127,6 +133,28 @@ class  PatchViewer:
         #endif
 
         self.image[rs+rs_pad:re-re_pad,cs+cs_pad:ce-ce_pad,:] = temp
+
+        if activation is not None:
+            if not ( isinstance(activation,tuple) or isinstance(activation,list)):
+                activation = (activation,)
+
+            for shell, amt in enumerate(activation):
+                assert 2*shell+2 < self.pad
+
+
+                if amt >= 0:
+
+                    act = amt * N.asarray(self.colors[shell])
+
+
+                    self.image[rs+rs_pad-shell-1,cs+cs_pad-shell-1:ce-ce_pad+1+shell,:] = act
+                    self.image[re-re_pad+shell,cs+cs_pad-1-shell:ce-ce_pad+1+shell,:] = act
+                    self.image[rs+rs_pad-1-shell:re-re_pad+1+shell,cs+cs_pad-1-shell,:] = act
+                    self.image[rs+rs_pad-shell-1:re-re_pad+shell+1,ce-ce_pad+shell,:] = act
+                #
+            #
+        #
+
 
         self.curPos = (self.curPos[0], self.curPos[1]+1)
         if self.curPos[1]  == self.grid_shape[1]:
