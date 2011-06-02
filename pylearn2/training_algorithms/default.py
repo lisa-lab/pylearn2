@@ -1,4 +1,4 @@
-from framework.utils import serial #rm
+from pylearn2.utils import serial #rm
 import numpy as N#rm
 
 class DefaultTrainingAlgorithm:

@@ -121,7 +121,7 @@ class PCA(object):
     def apply(self, dataset, can_fit = False):
         if self.pca is None:
             assert can_fit
-            from framework import pca
+            from pylearn2 import pca
             self.pca = pca.CovEigPCA(self.num_components)
             self.pca.train(dataset.get_design_matrix())
 

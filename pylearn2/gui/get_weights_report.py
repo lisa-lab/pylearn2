@@ -1,6 +1,6 @@
-from framework.utils import serial
-from framework.gui import patch_viewer
-from framework.config import yaml_parse
+from pylearn2.utils import serial
+from pylearn2.gui import patch_viewer
+from pylearn2.config import yaml_parse
 import numpy as N
 
 def get_weights_report(model_path, rescale = True):

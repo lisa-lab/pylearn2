@@ -113,9 +113,15 @@ class DenseDesignMatrix(object):
         self.X = X
     #
 
-    def get_batch_design(self, batch_size):
+    def get_batch_design(self, batch_size, include_labels = False):
         idx = self.rng.randint(self.X.shape[0] - batch_size + 1)
-        return self.X[idx:idx+batch_size,:]
+        rx =  self.X[idx:idx+batch_size,:]
+
+        if include_labels:
+            ry = self.y[idx:idx+batch_size,:]
+        #
+
+        return rx
     #
 
     def get_batch_topo(self, batch_size):

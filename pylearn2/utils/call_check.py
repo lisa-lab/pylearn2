@@ -35,7 +35,7 @@ def check_call_arguments(to_call, kwargs):
 
     if any(not isinstance(arg, str) for arg in args):
         raise TypeError('%s uses argument unpacking, which is deprecated and '
-                        'unsupported by this framework' % orig_to_call)
+                        'unsupported by this pylearn2' % orig_to_call)
 
     if varargs is not None:
         raise TypeError('%s has a variable length argument list, but '

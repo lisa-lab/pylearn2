@@ -2,7 +2,7 @@
 
 import numpy
 if __name__ == '__main__':
-    from framework.base import Block
+    from pylearn2.base import Block
 else:
     from .base import Block
 
@@ -167,10 +167,10 @@ class KMeans(Block):
 if __name__ == '__main__':
     import theano
     from theano import tensor
-    from framework.corruption import GaussianCorruptor
-    from framework.autoencoder import DenoisingAutoencoder
-    from framework.cost import SquaredError
-    from framework.optimizer import SGDOptimizer
+    from pylearn2.corruption import GaussianCorruptor
+    from pylearn2.autoencoder import DenoisingAutoencoder
+    from pylearn2.cost import SquaredError
+    from pylearn2.optimizer import SGDOptimizer
     # toy labeled data: [x,y,label]*n samples
     n = 50
     rng = numpy.random.RandomState(seed=7777777)

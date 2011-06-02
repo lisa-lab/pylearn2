@@ -1,7 +1,7 @@
 #!/usr/bin/python
 #usage: python show_dimred_weights <whitener network>
 import sys
-from framework.gui import get_weights_report
+from pylearn2.gui import get_weights_report
 
 print 'loading model'
 path = sys.argv[1]

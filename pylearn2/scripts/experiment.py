@@ -11,7 +11,7 @@ from theano import tensor
 
 # Local imports
 try:
-    import framework
+    import pylearn2
 except ImportError:
     print >> sys.stderr, \
             "Framework couldn't be imported. Make sure you have the " \
@@ -20,18 +20,18 @@ except ImportError:
     sys.exit(1)
 
 from auc import embed
-import framework.cost
-import framework.corruption
-import framework.rbm
+import pylearn2.cost
+import pylearn2.corruption
+import pylearn2.rbm
 
-from framework import utils
-from framework.pca import PCA
-from framework.base import StackedBlocks
-from framework.cost import SquaredError
-from framework.utils import BatchIterator
-from framework.optimizer import SGDOptimizer
-from framework.autoencoder import Autoencoder, ContractingAutoencoder
-from framework.rbm import RBM
+from pylearn2 import utils
+from pylearn2.pca import PCA
+from pylearn2.base import StackedBlocks
+from pylearn2.cost import SquaredError
+from pylearn2.utils import BatchIterator
+from pylearn2.optimizer import SGDOptimizer
+from pylearn2.autoencoder import Autoencoder, ContractingAutoencoder
+from pylearn2.rbm import RBM
 
 def create_pca(conf, layer, data, model=None):
     """
@@ -60,7 +60,7 @@ def create_pca(conf, layer, data, model=None):
 
     # Train the model
     print '... training layer:', clsname
-    MyPCA = framework.pca.get(clsname)
+    MyPCA = pylearn2.pca.get(clsname)
     pca = MyPCA.fromdict(layer)
 
     proba = utils.getboth(layer, conf, 'proba')
@@ -106,15 +106,15 @@ def create_ae(conf, layer, data, model=None):
 
     # Retrieve the corruptor object (if needed)
     name = layer.get('corruption_class', 'DummyCorruptor')
-    MyCorruptor = framework.corruption.get(name)
+    MyCorruptor = pylearn2.corruption.get(name)
     corruptor = MyCorruptor(layer.get('corruption_level', 0))
 
     # Allocate an denoising or contracting autoencoder
-    MyAutoencoder = framework.autoencoder.get(clsname)
+    MyAutoencoder = pylearn2.autoencoder.get(clsname)
     ae = MyAutoencoder.fromdict(layer, corruptor=corruptor)
 
     # Allocate an optimizer, which tells us how to update our model.
-    MyCost = framework.cost.get(layer['cost_class'])
+    MyCost = pylearn2.cost.get(layer['cost_class'])
     varcost = MyCost(ae)(minibatch, ae.reconstruct(minibatch))
     if isinstance(ae, ContractingAutoencoder):
         alpha = layer.get('contracting_penalty', 0.1)
@@ -211,11 +211,11 @@ def create_rbm(conf, layer, data, label=None, model=None):
     rng = numpy.random.RandomState(seed=layer.get('seed', 42))
 
     # The RBM itself
-    RBMClass = framework.rbm.get(clsname)
+    RBMClass = pylearn2.rbm.get(clsname)
     rbm = RBMClass.fromdict(layer, rng=rng)
 
     # Sampler
-    SamplerClass = framework.rbm.get_sampler(layer['sampler'])
+    SamplerClass = pylearn2.rbm.get_sampler(layer['sampler'])
     sampler_kwargs = {
             'rbm': rbm,
             'particles': data[0].get_value(borrow=True)[0:layer['batch_size']].copy(),
@@ -229,7 +229,7 @@ def create_rbm(conf, layer, data, label=None, model=None):
     sampler = SamplerClass(**sampler_kwargs)
 
     # Optimizer
-    OptimizerClass = framework.optimizer.get(layer['optimizer'])
+    OptimizerClass = pylearn2.optimizer.get(layer['optimizer'])
     if OptimizerClass == SGDOptimizer:
         optimizer_kwargs = {
                 'params': rbm,
@@ -254,7 +254,7 @@ def create_rbm(conf, layer, data, label=None, model=None):
                 'at the moment.', OptimizerClass)
 
 
-    updates = framework.rbm.training_updates(
+    updates = pylearn2.rbm.training_updates(
             visible_batch=minibatch,
             model=rbm,
             sampler=sampler,

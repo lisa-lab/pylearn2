@@ -49,8 +49,8 @@ def resolve_model(d):
     assert False
 
 def resolve_dataset(d):
-    import framework.datasets.config
-    return framework.datasets.config.resolve(d)
+    import pylearn2.datasets.config
+    return pylearn2.datasets.config.resolve(d)
 
 def resolve_train_algorithm(d):
     assert False

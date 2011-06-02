@@ -8,7 +8,7 @@ import theano
 from theano import tensor
 
 try:
-    import framework
+    import pylearn2
 except ImportError:
     print >>sys.stderr, \
             "Framework couldn't be imported. Make sure you have the " \
@@ -17,10 +17,10 @@ except ImportError:
     sys.exit(1)
 
 # Local imports
-from framework.cost import SquaredError
-from framework.corruption import GaussianCorruptor
-from framework.autoencoder import DenoisingAutoencoder,build_stacked_ae
-from framework.optimizer import SGDOptimizer
+from pylearn2.cost import SquaredError
+from pylearn2.corruption import GaussianCorruptor
+from pylearn2.autoencoder import DenoisingAutoencoder,build_stacked_ae
+from pylearn2.optimizer import SGDOptimizer
 
 
 if __name__ == "__main__":

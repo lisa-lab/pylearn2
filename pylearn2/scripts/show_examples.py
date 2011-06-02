@@ -7,7 +7,7 @@ assert len(sys.argv) == 2
 path = sys.argv[1]
 
 if path.endswith('.pkl'):
-    from framework.utils import serial
+    from pylearn2.utils import serial
     dataset = serial.load(path)
 elif path.endswith('.yaml'):
     dataset =yaml_parse.load_path(path)

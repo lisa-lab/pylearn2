@@ -1,5 +1,5 @@
-from framework.cost import SquaredError
-from framework.optimizer import SGDOptimizer
+from pylearn2.cost import SquaredError
+from pylearn2.optimizer import SGDOptimizer
 from theano import function, tensor
 
 class Demo(object):

@@ -148,7 +148,10 @@ class ObjectProxy(object):
         if self.instance is None:
             self.instance = checked_call(self.cls, self.kwds)
         #endif
-        self.instance.yaml_src = self.yaml_src
+        try:
+            self.instance.yaml_src = self.yaml_src
+        except AttributeError:
+            pass
         return self.instance
 
 def multi_constructor(loader, tag_suffix, node) :
@@ -212,10 +215,10 @@ if __name__ == "__main__":
     # Demonstration of how to specify objects, reference them
     # later in the configuration, etc.
     yamlfile = """{
-        "corruptor" : !obj:framework.corruption.GaussianCorruptor &corr {
+        "corruptor" : !obj:pylearn2.corruption.GaussianCorruptor &corr {
             "corruption_level" : 0.9
         },
-        "dae" : !obj:framework.autoencoder.DenoisingAutoencoder {
+        "dae" : !obj:pylearn2.autoencoder.DenoisingAutoencoder {
             "nhid" : 20,
             "nvis" : 30,
             "act_enc" : null,

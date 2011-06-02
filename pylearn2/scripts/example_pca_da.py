@@ -9,7 +9,7 @@ import theano
 from theano import tensor
 
 try:
-    import framework
+    import pylearn2
 except ImportError:
     print >>sys.stderr, \
             "Framework couldn't be imported. Make sure you have the " \
@@ -18,15 +18,15 @@ except ImportError:
     sys.exit(1)
 
 # Local imports
-from framework.cost import SquaredError
-from framework.corruption import GaussianCorruptor
-from framework.autoencoder import DenoisingAutoencoder,build_stacked_ae
-from framework.optimizer import SGDOptimizer
+from pylearn2.cost import SquaredError
+from pylearn2.corruption import GaussianCorruptor
+from pylearn2.autoencoder import DenoisingAutoencoder,build_stacked_ae
+from pylearn2.optimizer import SGDOptimizer
 from auc import embed
-import framework.corruption
-from framework import utils
-from framework.pca import PCA, CovEigPCA
-from framework.utils import BatchIterator
+import pylearn2.corruption
+from pylearn2 import utils
+from pylearn2.pca import PCA, CovEigPCA
+from pylearn2.utils import BatchIterator
 
 
 
@@ -58,7 +58,7 @@ def create_pca(conf, layer, data, model=None):
                                                                                                                                
     # Train the model
     print '... training layer:', clsname
-    MyPCA = framework.pca.get(clsname)
+    MyPCA = pylearn2.pca.get(clsname)
     pca = MyPCA.fromdict(layer)
                                    
     proba = utils.getboth(layer, conf, 'proba')

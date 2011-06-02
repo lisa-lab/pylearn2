@@ -1,20 +1,20 @@
-!obj:framework.scripts.train.Train {
-    "dataset": !obj:framework.datasets.avicenna.Avicenna {
+!obj:pylearn2.scripts.train.Train {
+    "dataset": !obj:pylearn2.datasets.avicenna.Avicenna {
                 "which_set":  "train",
                 "standardize": true
                },
-    "model": !obj:framework.autoencoder.DenoisingAutoencoder {
+    "model": !obj:pylearn2.autoencoder.DenoisingAutoencoder {
                 "nvis" : 120,
                 "nhid" : 20,
                 "act_enc" : null,
                 "act_dec" : null,
                 "irange"  : 0.00001,
                 "tied_weights" : true,
-                "corruptor": !obj:framework.corruption.GaussianCorruptor {
+                "corruptor": !obj:pylearn2.corruption.GaussianCorruptor {
                                "corruption_level" : 0.15
                         }
         },
-    "algorithm": !obj:framework.training_algorithms.demo.Demo {
+    "algorithm": !obj:pylearn2.training_algorithms.demo.Demo {
                 "base_lr"  :  1e-5
     },
     "save_path" : "example_lcc.pkl"

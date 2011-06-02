@@ -1,5 +1,5 @@
 import numpy as N
-from framework.datasets import dense_design_matrix
+from pylearn2.datasets import dense_design_matrix
 
 class DebugDataset(dense_design_matrix.DenseDesignMatrix):
     def __init__(self):

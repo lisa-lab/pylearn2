@@ -5,8 +5,8 @@ import sys
 import time
 
 # Local imports
-import framework.config.yaml_parse
-from framework.utils import serial
+import pylearn2.config.yaml_parse
+from pylearn2.utils import serial
 
 class Train:
     def __init__(self, dataset, model, algorithm = None, save_path = None):
@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
     config_file_path = sys.argv[1]
 
-    train_obj = framework.config.yaml_parse.load_path(config_file_path)
+    train_obj = pylearn2.config.yaml_parse.load_path(config_file_path)
 
     train_obj.main_loop()
 

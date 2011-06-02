@@ -1,10 +1,10 @@
 import numpy
 import theano
 from theano import tensor
-from framework.rbm import GaussianBinaryRBM, PersistentCDSampler, \
+from pylearn2.rbm import GaussianBinaryRBM, PersistentCDSampler, \
         training_updates
-from framework.optimizer import SGDOptimizer
-from framework.rbm_tools import compute_log_z, compute_nll
+from pylearn2.optimizer import SGDOptimizer
+from pylearn2.rbm_tools import compute_log_z, compute_nll
 
 import utils.debug
 

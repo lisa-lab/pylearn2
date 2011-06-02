@@ -1,6 +1,6 @@
 from theano import function, shared
-from framework.optimization import linear_conj_grad_r as cg
-from framework.optimization import featuresign as fs
+from pylearn2.optimization import linear_conj_grad_r as cg
+from pylearn2.optimization import featuresign as fs
 import numpy as N
 import theano.tensor as T
 

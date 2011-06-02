@@ -12,8 +12,6 @@ import numpy
 import theano
 from pylearn.datasets.utlc import load_ndarray_dataset, load_sparse_dataset
 
-# Local imports
-from auc import embed
 
 ##################################################
 # Shortcuts and auxiliary functions
@@ -90,7 +88,7 @@ def load_data(conf):
         data = load_sparse_dataset(conf['dataset'], **subdict(conf, expected))
         valid, test = data[1:3]
 
-        # Sparse TERRY data on LISA servers contains an extra null first row in 
+        # Sparse TERRY data on LISA servers contains an extra null first row in
         # valid and test subsets.
         if conf['dataset'] == 'terry':
             valid = valid[1:]
@@ -128,7 +126,7 @@ def save_submission(conf, valid_repr, test_repr):
     representation for valid and test.
     """
     print '... creating zipfile'
-    
+
     # Ensure the given directory is correct
     submit_dir = conf['savedir']
     if not os.path.exists(submit_dir):
@@ -137,7 +135,7 @@ def save_submission(conf, valid_repr, test_repr):
         raise IOError('savedir %s is not a directory' % submit_dir)
 
     basename = os.path.join(submit_dir, conf['dataset'] + '_' + conf['expname'])
-    
+
     # If there are too much features, outputs kernel matrices
     if (valid_repr.shape[1] > valid_repr.shape[0]):
         valid_repr = numpy.dot(valid_repr, valid_repr.T)
