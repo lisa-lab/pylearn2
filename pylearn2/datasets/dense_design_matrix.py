@@ -118,7 +118,8 @@ class DenseDesignMatrix(object):
         rx =  self.X[idx:idx+batch_size,:]
 
         if include_labels:
-            ry = self.y[idx:idx+batch_size,:]
+            ry = self.y[idx:idx+batch_size]
+            return rx, ry
         #
 
         return rx
