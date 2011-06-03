@@ -52,7 +52,7 @@ class BinaryCrossEntropy(SupervisedCost):
     e.g., one-hot codes).
     """
     def __call__(self, prediction, target):
-        ce = lambda x, z: x * tensor.log(z) + (1 - x) * tensor.log(1 - z)
+        ce = lambda x, z: -((x * tensor.log(z) + (1 - x) * tensor.log(1 - z)).sum(axis=1))
         if isinstance(prediction, tensor.Variable):
             return ce(prediction, target)
         return sum(
