@@ -2,7 +2,11 @@ from pylearn2.utils import serial #rm
 import numpy as N#rm
 
 class DefaultTrainingAlgorithm:
-    def __init__(self, batch_size, batches_per_iter , monitoring_batches = - 1, monitoring_dataset = None):
+    def __init__(self, batch_size = None , batches_per_iter = 1000 , monitoring_batches = - 1, monitoring_dataset = None):
+        """
+        if batch_size is None, reverts to the force_batch_size field of the model
+        """
+
         self.batch_size, self.batches_per_iter = batch_size, batches_per_iter
         if monitoring_dataset is None:
             assert monitoring_batches == -1
@@ -11,12 +15,19 @@ class DefaultTrainingAlgorithm:
 
     def train(self, model, dataset):
 
+        if self.batch_size is None:
+            batch_size = model.force_batch_size
+        else:
+            batch_size = self.batch_size
+            if hasattr(model.force_batch_size):
+                assert model.force_batch_size <= 0 or batch_size == model.force_batch_size
+
         if len(model.error_record) == 0 and self.monitoring_dataset:
             self.monitor(model)
         #
 
         for i in xrange(self.batches_per_iter):
-            model.learn(dataset, self.batch_size)
+            model.learn(dataset, batch_size)
         #
 
         if self.monitoring_dataset:
