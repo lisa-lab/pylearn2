@@ -86,7 +86,7 @@ class OneHotCrossEntropy(SupervisedCost):
         lp = tensor.log(prediction)
         # LP[arange(batch_size),target] is a vector v containing
         # [LP[0,target[0]], ..., LP[batch_size-1,target[batch_size-1]]]
-        v = lp[tensor.arange(batch_size), target])
+        v = lp[tensor.arange(batch_size), target]
         # We return the mean negative log-likelihood across the minibatch.
         return -T.mean(v)
 
