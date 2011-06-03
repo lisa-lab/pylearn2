@@ -57,7 +57,7 @@ class SGDOptimizer(Optimizer):
         else:
             self.params = params.params()
         if anneal_start == None:
-            self.anneal_start = inf
+            self.anneal_start = None
         else:
             self.anneal_start = tensor.cast(anneal_start, floatX)
 
@@ -160,13 +160,15 @@ class SGDOptimizer(Optimizer):
         ups = {}
 
         # Annealing coefficient. Here we're using a formula of
-        # max(0.0, min(base_lr, anneal_start / (iteration + 1))
-        frac = self.anneal_start / (self.iteration + 1.)
-        annealed = tensor.clip(
-            tensor.cast(frac, floatX),
-            0.0,          # minimum learning rate
-            self.base_lr  # maximum learning rate
-        )
+        # min(base_lr, anneal_start / (iteration + 1))
+        if self.anneal_start is None:
+            annealed = self.base_lr
+        else:
+            frac = self.anneal_start / (self.iteration + 1.)
+            annealed = tensor.minimum(
+                    tensor.cast(frac, floatX),
+                    self.base_lr  # maximum learning rate
+                    )
 
         # Update the shared variable for the annealed learning rate.
         ups[self.annealed] = annealed
