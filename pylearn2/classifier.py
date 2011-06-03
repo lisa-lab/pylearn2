@@ -70,10 +70,10 @@ class LogisticRegressionLayer(Block):
         self.nvis = nvis
         self.nclasses = nclasses
 
-        # initialize with 0 the weights W as a matrix of shape (n_in, n_out) 
-        self.W = sharedX(numpy.zeros((n_in,n_out)), name='W', borrow=True)
-        # initialize the baises b as a vector of n_out 0s
-        self.b = sharedXtheano.shared((n_out,), name='b', borrow=True)
+        # initialize with 0 the weights W as a matrix of shape (nvis, nclasses)
+        self.W = sharedX(numpy.zeros((nvis, nclasses)), name='W', borrow=True)
+        # initialize the biases b as a vector of nclasses 0s
+        self.b = sharedX(numpy.zeros((nclasses,)), name='b', borrow=True)
 
         # parameters of the model
         self._params = [self.W, self.b]
