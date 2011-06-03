@@ -15,7 +15,6 @@ from .utils import sharedX
 from .utils.theano_graph import is_pure_elemwise
 
 theano.config.warn.sum_div_dimshuffle_bug = False
-floatX = theano.config.floatX
 
 if 0:
     print 'WARNING: using SLOW rng'

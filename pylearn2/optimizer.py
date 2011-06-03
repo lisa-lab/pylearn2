@@ -10,9 +10,7 @@ from pylearn.gd.sgd import sgd_updates
 
 # Local imports
 from .base import Optimizer
-from .utils import safe_update, sharedX
-
-floatX = theano.config.floatX
+from .utils import as_floatX, safe_update, sharedX
 
 
 class SGDOptimizer(Optimizer):
@@ -59,7 +57,7 @@ class SGDOptimizer(Optimizer):
         if anneal_start == None:
             self.anneal_start = None
         else:
-            self.anneal_start = tensor.cast(anneal_start, floatX)
+            self.anneal_start = as_floatX(anneal_start)
 
         # Set up the clipping values
         self.clipping_values = {}
@@ -110,7 +108,7 @@ class SGDOptimizer(Optimizer):
         # Take care of learning rate scales for individual parameters
         self.learning_rates = {}
         # Base learning rate per example.
-        self.base_lr = theano._asarray(base_lr, dtype=floatX)
+        self.base_lr = theano._asarray(base_lr, dtype=theano.config.floatX)
 
         # Keep track of names already seen
         lr_names_seen = set()
@@ -166,7 +164,7 @@ class SGDOptimizer(Optimizer):
         else:
             frac = self.anneal_start / (self.iteration + 1.)
             annealed = tensor.minimum(
-                    tensor.cast(frac, floatX),
+                    as_floatX(frac),
                     self.base_lr  # maximum learning rate
                     )
 

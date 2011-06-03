@@ -36,7 +36,6 @@ from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 from .base import Block
 from .utils import sharedX
 
-floatX = theano.config.floatX
 
 class LogisticRegressionLayer(Block):
     """Multi-class Logistic Regression Class

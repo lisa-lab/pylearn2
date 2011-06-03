@@ -17,7 +17,6 @@ from pylearn.datasets.utlc import load_ndarray_dataset, load_sparse_dataset
 # Shortcuts and auxiliary functions
 ##################################################
 
-floatX = theano.config.floatX
 
 def get_constant(variable, return_scalar=False):
     """ Little hack to return the python value of a theano shared variable.
@@ -38,9 +37,13 @@ def get_constant(variable, return_scalar=False):
 
 def sharedX(value, name=None, borrow=False):
     """Transform value into a shared variable of type floatX"""
-    return theano.shared(theano._asarray(value, dtype=floatX),
+    return theano.shared(theano._asarray(value, dtype=theano.config.floatX),
                          name=name,
                          borrow=borrow)
+
+def as_floatX(variable):
+    """Casts a given tensor variable into dtype config.floatX"""
+    return theano.tensor.cast(variable, theano.config.floatX)
 
 def subdict(d, keys):
     """ Create a subdictionary of d with the keys in keys """
