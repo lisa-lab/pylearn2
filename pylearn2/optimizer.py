@@ -160,7 +160,7 @@ class SGDOptimizer(Optimizer):
         # Annealing coefficient. Here we're using a formula of
         # min(base_lr, anneal_start / (iteration + 1))
         if self.anneal_start is None:
-            annealed = self.base_lr
+            annealed = sharedX(self.base_lr)
         else:
             frac = self.anneal_start / (self.iteration + 1.)
             annealed = tensor.minimum(
