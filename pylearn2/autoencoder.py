@@ -461,9 +461,6 @@ def build_stacked_ae(nvis, nhids, act_enc, act_dec,
             final[c] = [locals()[c]] * len(nhids)
     # The number of visible units in each layer is the initial input
     # size and the first k-1 hidden unit sizes.
-    # solution, sparse_penalty, sparsity_target,
-    # and sparsity_target_penalty have the same size as nhids.
-    # They can add an L1 penalty, a quadratic to each layer of the stacked ae.
     nviss = [nvis] + nhids[:-1]
     seq = izip(nhids, nviss,
         final['act_enc'],
