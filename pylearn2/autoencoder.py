@@ -444,9 +444,7 @@ class ContractingAutoencoder(Autoencoder):
 
 def build_stacked_ae(nvis, nhids, act_enc, act_dec,
                      tied_weights=False, irange=1e-3, rng=None,
-                     corruptor=None, contracting=False,
-                     solution=None, sparse_penalty=None,
-                     sparsity_target=None, sparsity_target_penalty=None):
+                     corruptor=None, contracting=False):
     """Allocate a stack of autoencoders."""
     if not hasattr(rng, 'randn'):
         rng = numpy.random.RandomState(rng)
