@@ -139,13 +139,3 @@ class GaussianCorruptor(Corruptor):
         if isinstance(inputs, tensor.Variable):
             return self._corrupt(inputs)
         return [self._corrupt(inp) for inp in inputs]
-
-
-##################################################
-def get(str):
-    """ Evaluate str into a corruptor object, if it exists """
-    obj = globals()[str]
-    if issubclass(obj, Corruptor):
-        return obj
-    else:
-        raise NameError(str)

@@ -87,13 +87,3 @@ class OneHotCrossEntropy(SupervisedCost):
         # We return the negative log-likelihood of each element of
         # the minibatch
         return -v
-
-
-##################################################
-def get(str):
-    """ Evaluate str into a cost object, if it exists """
-    obj = globals()[str]
-    if issubclass(obj, SupervisedCost):
-        return obj
-    else:
-        raise NameError(str)
