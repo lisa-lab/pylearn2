@@ -133,7 +133,7 @@ class DenseDesignMatrix(object):
         return self.view_converter.view_shape()
 #
 
-class DefaultViewConverter:
+class DefaultViewConverter(object):
     def __init__(self, shape):
         self.shape = shape
         self.pixels_per_channel = 1

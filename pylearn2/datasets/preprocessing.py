@@ -83,7 +83,7 @@ class RemoveMean(object):
         dataset.set_design_matrix(X)
 
 
-class PCA_ViewConverter:
+class PCA_ViewConverter(object):
     def __init__(self, to_pca, to_input, to_weights, orig_view_converter):
         self.to_pca = to_pca
         self.to_input = to_input

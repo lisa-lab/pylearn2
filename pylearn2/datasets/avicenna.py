@@ -1,7 +1,7 @@
 from pylearn.datasets import utlc
 import numpy as N
 
-class Avicenna:
+class Avicenna(object):
     def __init__(self, which_set, standardize):
 
         #train, valid, test = N.random.randn(50,50), N.random.randn(50,50), N.random.randn(50,50)

@@ -1,7 +1,7 @@
 from pylearn2.utils import serial #rm
 import numpy as N#rm
 
-class DefaultTrainingAlgorithm:
+class DefaultTrainingAlgorithm(object):
     def __init__(self, batch_size = None , batches_per_iter = 1000 , monitoring_batches = - 1, monitoring_dataset = None):
         """
         if batch_size is None, reverts to the force_batch_size field of the model
