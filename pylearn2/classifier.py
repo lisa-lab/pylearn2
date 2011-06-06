@@ -3,7 +3,7 @@
 Logistic regression is a probabilistic, linear classifier. It is parametrized
 by a weight matrix :math:`W` and a bias vector :math:`b`. Classification is
 done by projecting data points onto a set of hyperplanes, the distance to
-which is used to determine a class membership probability. 
+which is used to determine a class membership probability.
 
 Mathematically, this can be written as:
 
@@ -12,7 +12,7 @@ Mathematically, this can be written as:
                 &= \frac {e^{W_i x + b_i}} {\sum_j e^{W_j x + b_j}}
 
 
-The output of the model or prediction is then done by taking the argmax of 
+The output of the model or prediction is then done by taking the argmax of
 the vector whose i'th element is P(Y=i|x).
 
 .. math::
@@ -22,35 +22,27 @@ the vector whose i'th element is P(Y=i|x).
 
 __docformat__ = 'restructedtext en'
 
-# Standard library imports
-import cPickle as pickle
-import gzip, os, sys, time
-
 # Third-party imports
 import numpy
-import theano
 from theano import tensor
-from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 
 # Local imports
 from .base import Block
 from .utils import sharedX
 
-
 class LogisticRegressionLayer(Block):
     """Multi-class Logistic Regression Class
 
-    The logistic regression is fully described by a weight matrix :math:`W` 
-    and bias vector :math:`b`. Classification is done by projecting data 
-    points onto a set of hyperplanes, the distance to which is used to 
+    The logistic regression is fully described by a weight matrix :math:`W`
+    and bias vector :math:`b`. Classification is done by projecting data
+    points onto a set of hyperplanes, the distance to which is used to
     determine a class membership probability.
 
     This class contains only the part that computes the output (prediction),
     not the classification cost, see cost.OneHotCrossEntropy for that.
     """
-
     def __init__(self, nvis, nclasses):
-        """Initialize the parameters of the logistic regression
+        """Initialize the parameters of the logistic regression instance.
 
         Parameters
         ----------
@@ -83,7 +75,7 @@ class LogisticRegressionLayer(Block):
         return tensor.nnet.softmax(tensor.dot(input, self.W)+self.b)
 
     def predict_y(self, input):
-        # compute prediction as class whose probability is maximal in 
+        # compute prediction as class whose probability is maximal in
         # symbolic form
         return tensor.argmax(self.p_y_given_x(input), axis=1)
 

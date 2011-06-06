@@ -101,7 +101,6 @@ class Block(object):
     def invalid(self):
         return None in self._params
 
-
 class StackedBlocks(Block):
     """
     A stack of Blocks, where the output of a block is the input of the next.
@@ -202,7 +201,6 @@ class StackedBlocks(Block):
         """
         self.layers.append(layer)
         self._params.update(layer.params())
-
 
 class Optimizer(object):
     """

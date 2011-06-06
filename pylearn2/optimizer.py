@@ -20,7 +20,6 @@ class SGDOptimizer(Optimizer):
     Supports constant learning rates, or decreasing like 1/t after an initial
     period.
     """
-
     def __init__(self, params, base_lr, anneal_start=None, **kwargs):
         """
         Construct an SGDOptimizer.
