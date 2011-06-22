@@ -3,6 +3,7 @@ import sys
 
 # Third-party imports
 import numpy
+N = numpy
 from scipy import linalg, sparse
 # Warning: ridiculous.
 try:
@@ -133,12 +134,38 @@ class PCA(Block):
 
         # Update component cutoff, in case min_variance or num_components has
         # changed (or both).
+
+        #TODO: Looks like the person who wrote this function didn't know what they were doing
+        # component_cutoff is a shared variable, so updating its value here has NO EFFECT on
+        # the symbolic expression returned by this call
+        # (and what this expression evalutes to can be modified by subsequent calls to _update_cutoff)
         self._update_cutoff()
 
         Y = tensor.dot(inputs - self.mean, self.W[:, :self.component_cutoff])
         if self.whiten:
             Y /= tensor.sqrt(self.v[:self.component_cutoff])
         return Y
+
+    def get_weights(self):
+        """
+
+        Compute and return the matrix one should multiply with to get the PCA/whitened data
+
+        """
+
+        self._update_cutoff()
+
+        component_cutoff = self.component_cutoff.get_value()
+
+        W = self.W.get_value(borrow=False)
+        W = W[:, :component_cutoff]
+
+        if self.whiten:
+            W /= N.sqrt(self.v.get_value(borrow=False)[:component_cutoff])
+        #
+
+        return W
+    #
 
     def reconstruct(self, inputs, add_mean = True):
         """
