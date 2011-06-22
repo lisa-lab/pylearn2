@@ -321,19 +321,6 @@ class CovEigPCA(PCA):
         Perform direct computation of covariance matrix eigen{values,vectors}.
         """
 
-        v, W = linalg.eigh(numpy.cov(X.T),
-            eigvals=(X.shape[1] - self.num_components, X.shape[1] - 1))
-
-        # The resulting components are in *ascending* order of eigenvalue, and
-        # W contains eigenvectors in its *columns*, so we simply reverse both.
-
-
-class CovEigPCA(PCA):
-    def _cov_eigen(self, X):
-        """
-        Perform direct computation of covariance matrix eigen{values,vectors}.
-        """
-
         v, W = linalg.eigh(numpy.cov(X.T))
 
         # The resulting components are in *ascending* order of eigenvalue, and
