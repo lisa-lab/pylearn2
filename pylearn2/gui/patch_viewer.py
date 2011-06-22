@@ -33,7 +33,7 @@ def make_viewer(mat, grid_shape  = None, patch_shape = None, activation = None):
     return rval
 #
 
-class  PatchViewer:
+class  PatchViewer(object):
 
     def __init__(self,grid_shape, patch_shape, is_color = False):
         assert len(grid_shape) == 2

@@ -15,7 +15,6 @@ from theano.sparse import SparseType
 from .utils import subdict
 
 theano.config.warn.sum_div_dimshuffle_bug = False
-floatX = theano.config.floatX
 
 if 0:
     print 'WARNING: using SLOW rng'
@@ -102,7 +101,6 @@ class Block(object):
     def invalid(self):
         return None in self._params
 
-
 class StackedBlocks(Block):
     """
     A stack of Blocks, where the output of a block is the input of the next.
@@ -168,7 +166,7 @@ class StackedBlocks(Block):
         """
 
         if sparse_input:
-            inputs = SparseType('csr', dtype=floatX)()
+            inputs = SparseType('csr', dtype=theano.config.floatX)()
         else:
             inputs = tensor.matrix()
 
@@ -203,7 +201,6 @@ class StackedBlocks(Block):
         """
         self.layers.append(layer)
         self._params.update(layer.params())
-
 
 class Optimizer(object):
     """

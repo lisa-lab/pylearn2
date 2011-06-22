@@ -9,7 +9,6 @@ from theano import tensor
 
 # Shortcuts
 theano.config.warn.sum_div_dimshuffle_bug = False
-floatX = theano.config.floatX
 
 if 0:
     print 'WARNING: using SLOW rng'
@@ -78,7 +77,7 @@ class BinomialCorruptor(Corruptor):
             size=x.shape,
             n=1,
             p=1 - self.corruption_level,
-            dtype=floatX
+            dtype=theano.config.floatX
         ) * x
 
     def __call__(self, inputs):
@@ -116,7 +115,7 @@ class GaussianCorruptor(Corruptor):
             size=x.shape,
             avg=0,
             std=self.corruption_level,
-            dtype=floatX
+            dtype=theano.config.floatX
         ) + x
 
     def __call__(self, inputs):

@@ -44,8 +44,6 @@ except ImportError:
 from .base import Block
 from .utils import sharedX
 
-floatX = theano.config.floatX
-
 
 class PCA(Block):
     """
@@ -280,7 +278,7 @@ class SparseMatPCA(PCA):
 
     def function(self, name=None):
         """ Returns a compiled theano function to compute a representation """
-        inputs = SparseType('csr', dtype=floatX)()
+        inputs = SparseType('csr', dtype=theano.config.floatX)()
         return theano.function([inputs], self(inputs), name=name)
 
 
@@ -411,7 +409,7 @@ class SparsePCA(PCA):
 
     def function(self, name=None):
         """ Returns a compiled theano function to compute a representation """
-        inputs = SparseType('csr', dtype=floatX)()
+        inputs = SparseType('csr', dtype=theano.config.floatX)()
         return theano.function([inputs], self(inputs), name=name)
 
 

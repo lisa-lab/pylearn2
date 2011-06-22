@@ -24,7 +24,6 @@ class SupervisedCost(object):
         """
         raise NotImplementedError()
 
-
 class SquaredError(SupervisedCost):
     """
     Symbolic expression for squared error between the target
@@ -44,7 +43,6 @@ class SquaredError(SupervisedCost):
             # something like that.
             return sum(imap(msq, prediction, target))
 
-
 class BinaryCrossEntropy(SupervisedCost):
     """
     Symbolic expression for elementwise cross-entropy between target
@@ -52,13 +50,12 @@ class BinaryCrossEntropy(SupervisedCost):
     e.g., one-hot codes).
     """
     def __call__(self, prediction, target):
-        ce = lambda x, z: x * tensor.log(z) + (1 - x) * tensor.log(1 - z)
+        ce = lambda x, z: -((x * tensor.log(z) + (1 - x) * tensor.log(1 - z)).sum(axis=1))
         if isinstance(prediction, tensor.Variable):
             return ce(prediction, target)
         return sum(
             imap(lambda p, t: ce(p, t).sum(axis=1).mean(), prediction, target)
         )
-
 
 class OneHotCrossEntropy(SupervisedCost):
     """
@@ -86,9 +83,10 @@ class OneHotCrossEntropy(SupervisedCost):
         lp = tensor.log(prediction)
         # LP[arange(batch_size),target] is a vector v containing
         # [LP[0,target[0]], ..., LP[batch_size-1,target[batch_size-1]]]
-        v = lp[tensor.arange(batch_size), target])
-        # We return the mean negative log-likelihood across the minibatch.
-        return -T.mean(v)
+        v = lp[tensor.arange(batch_size), target]
+        # We return the negative log-likelihood of each element of
+        # the minibatch
+        return -v
 
 
 ##################################################

@@ -4,7 +4,7 @@ from pylearn2.optimization import featuresign as fs
 import numpy as N
 import theano.tensor as T
 
-class LocalCoordinateCoding:
+class LocalCoordinateCoding(object):
     def __init__(self, nvis, nhid, coeff):
         self.nvis = nvis
         self.nhid = nhid

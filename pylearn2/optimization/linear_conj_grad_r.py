@@ -1,7 +1,6 @@
 from theano import function, shared
 import theano.tensor as T
 import scipy.linalg
-from theano.printing import Print
 import numpy as N
 
 def linear_conj_grad_r( f, x, tol = 1e-3, max_iters = 1000):
@@ -290,31 +289,16 @@ def linear_conj_grad_r_hack( f, x, sequential_vars, sequences, tol = 1e-3, max_i
 
 
 if __name__ == '__main__':
-    import numpy as N
-
     rng = N.random.RandomState([1,2,3])
-
     n = 5
-
     M = rng.randn(2*n,n)
-
     M = N.dot(M.T,M)
-
     b = rng.randn(n)
     c = rng.randn()
-
     x = shared(rng.randn(n))
-
-
     f = 0.5 * T.dot(x,T.dot(M,x)) - T.dot(b,x) + c
-
-
     linear_conj_grad_r(f,[x])
-
     eval_f = function([],f)
-
     print 'value of f: '+str(eval_f())
-
     x.set_value(   scipy.linalg.solve(M,b) , borrow = True )
-
     print 'true minimum value: '+str(eval_f())

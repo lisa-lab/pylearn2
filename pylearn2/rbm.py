@@ -13,10 +13,9 @@ from theano.tensor import nnet
 
 # Local imports
 from .base import Block, StackedBlocks
-from .utils import sharedX, safe_update
+from .utils import as_floatX, safe_update, sharedX
 
 theano.config.warn.sum_div_dimshuffle_bug = False
-floatX = theano.config.floatX
 
 if 0:
     print 'WARNING: using SLOW rng'
@@ -302,7 +301,7 @@ class RBM(Block):
         # TODO: factor further to extend to other kinds of hidden units
         #       (e.g. spike-and-slab)
         h_mean_shape = self.batch_size, self.nhid
-        h_sample = tensor.cast(rng.uniform(size=h_mean_shape) < h_mean, floatX)
+        h_sample = as_floatX(rng.uniform(size=h_mean_shape) < h_mean)
         v_mean_shape = self.batch_size, self.nvis
         # v_mean is always based on h_sample, not h_mean, because we don't
         # want h transmitting more than one bit of information per unit.
@@ -329,7 +328,7 @@ class RBM(Block):
             Theano symbolic representing stochastic samples from :math:`p(v|h)`
         """
         v_mean = params[0]
-        return tensor.cast(rng.uniform(size=shape) < v_mean, floatX)
+        return as_floatX(rng.uniform(size=shape) < v_mean)
 
     def input_to_h_from_v(self, v):
         """
@@ -688,7 +687,7 @@ class mu_pooled_ssRBM(RBM):
         # sample h given v
         h_mean = self.mean_h_given_v(v)
         h_mean_shape = (batch_size, self.nhid)
-        h_sample = tensor.cast(rng.uniform(size=h_mean_shape) < h_mean, floatX)
+        h_sample = as_floatX(rng.uniform(size=h_mean_shape) < h_mean)
 
         # sample s given (v,h)
         s_mu, s_var = self.mean_var_s_given_v_h1(v)
