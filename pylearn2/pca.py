@@ -315,13 +315,44 @@ class OnlinePCA(PCA):
         return v[::-1], W.T[:, ::-1]
 
 
+class Cov:
+    """ A covariance estimator that computes the covariance in small batches
+        instead of with one huge matrix multiply, in order to prevent memory
+        problems. It's call method has the same functionality as numpy.cov """
+    def __init__(self, batch_size):
+        self.batch_size = batch_size
+
+    def __call__(self, X):
+
+        X = X.T
+
+
+        m,n = X.shape
+
+        mean = X.mean(axis=0)
+
+        rval = N.zeros((n,n))
+
+        for i in xrange(0,m,self.batch_size):
+            B = X[i:i+self.batch_size,:] - mean
+            rval += N.dot(B.T,B)
+
+        return rval / float(m-1)
+
 class CovEigPCA(PCA):
+    def __init__(self, cov_batch_size = None, **kwargs):
+        super(CovEigPCA, self).__init__(**kwargs)
+        if cov_batch_size is not None:
+            self.cov = Cov(cov_batch_size)
+        else:
+            self.cov = numpy.cov
+
     def _cov_eigen(self, X):
         """
         Perform direct computation of covariance matrix eigen{values,vectors}.
         """
 
-        v, W = linalg.eigh(numpy.cov(X.T))
+        v, W = linalg.eigh(self.cov(X.T))
 
         # The resulting components are in *ascending* order of eigenvalue, and
         # W contains eigenvectors in its *columns*, so we simply reverse both.
