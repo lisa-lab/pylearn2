@@ -1,3 +1,4 @@
+#!/bin/env python
 import numpy as N
 import sys
 from pylearn2.gui import patch_viewer
