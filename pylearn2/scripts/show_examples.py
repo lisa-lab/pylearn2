@@ -45,7 +45,7 @@ print examples.shape[1:3]
 pv = patch_viewer.PatchViewer( (rows, cols), examples.shape[1:3], is_color = is_color)
 
 for i in xrange(rows*cols):
-    pv.add_patch(examples[i,:,:,:], rescale = False)
+    pv.add_patch(examples[i,:,:,:], activation = 0.0, rescale = False)
 #
 
 pv.show()
