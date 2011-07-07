@@ -13,6 +13,8 @@ class Train(object):
         self.dataset, self.model, self.algorithm, self.save_path  = dataset, model, algorithm, save_path
         self.model.dataset_yaml_src = self.dataset.yaml_src
 
+    #
+
     def main_loop(self):
         if self.algorithm is None:
             while self.model.train(dataset = self.dataset):
@@ -20,8 +22,10 @@ class Train(object):
             #
             self.save()
         else:
+            self.algorithm.setup(model = self.model)
+
             t1 = time.time()
-            while self.algorithm.train(model= self.model, dataset = self.dataset):
+            while self.algorithm.train(dataset = self.dataset):
                 t2 = time.time()
                 diff_time = t2-t1
                 print 'Time this epoch: '+str(diff_time)

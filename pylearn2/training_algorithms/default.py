@@ -1,5 +1,3 @@
-from pylearn2.utils import serial #rm
-import numpy as N#rm
 
 class DefaultTrainingAlgorithm(object):
     def __init__(self, batch_size = None , batches_per_iter = 1000 , monitoring_batches = - 1, monitoring_dataset = None):
@@ -13,13 +11,17 @@ class DefaultTrainingAlgorithm(object):
         self.monitoring_dataset, self.monitoring_batches = monitoring_dataset, monitoring_batches
     #
 
-    def train(self, model, dataset):
+    def setup(self, model):
+        self.model = model
+
+    def train(self, dataset):
+        model = self.model
 
         if self.batch_size is None:
             batch_size = model.force_batch_size
         else:
             batch_size = self.batch_size
-            if hasattr(model.force_batch_size):
+            if hasattr(model,'force_batch_size'):
                 assert model.force_batch_size <= 0 or batch_size == model.force_batch_size
 
         if len(model.error_record) == 0 and self.monitoring_dataset:
