@@ -1,5 +1,7 @@
 import numpy as N
 import copy
+from theano import config
+floatX = config.floatX
 
 class CosDataset(object):
     """ Makes a dataset that streams randomly generated 2D examples.
@@ -16,17 +18,23 @@ class CosDataset(object):
         self.rng = rng
     #
 
+    def energy(self, mat):
+        x = mat[:,0]
+        y = mat[:,1]
+
+        rval = (y - N.cos(x)) **2. / (2. * (self.std**2.))
+
+        return rval
+
     def pdf(self, mat):
         x = mat[:,0]
         y = mat[:,1]
-        #rval = N.exp(
-        return  ( y - N.cos(x)) ** 2. / (2. * (self.std**2.))#)
-        rval /= N.sqrt(2.0 * 3.1415926535 * (self.std**2.))
+        rval = N.exp(  - ( y - N.cos(x)) ** 2. / (2. * (self.std**2.)))
+        rval /= N.sqrt(2.0 * N.pi * (self.std**2.))
         rval /= (self.max_x - self.min_x)
         rval *= x < self.max_x
         rval *= x > self.min_x
         return rval
-
 
     def get_stream_position(self):
         return copy.copy(self.rng)
@@ -48,9 +56,10 @@ class CosDataset(object):
     #
 
     def get_batch_design(self, batch_size):
-        x = self.rng.uniform(self.min_x, self.max_x, (batch_size,1))
-        y = N.cos(x) + self.rng.randn(*x.shape) * self.std
-        return N.hstack((x,y))
+        x = N.cast[floatX](self.rng.uniform(self.min_x, self.max_x, (batch_size,1)))
+        y = N.cos(x) + N.cast[floatX](self.rng.randn(*x.shape)) * self.std
+        rval = N.hstack((x,y))
+        return rval
     #
 #
 
