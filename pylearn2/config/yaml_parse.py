@@ -173,7 +173,21 @@ def multi_constructor(loader, tag_suffix, node) :
         try:
             exec('import %s' % modulename)
         except ImportError, e:
-            raise ImportError("Could not import "+modulename+". python wanted to phrase this as: "+str(e))
+            #We know it's an ImportError, but is it an ImportError related to this path,
+            #or did the module we're importing have an unrelated ImportError?
+            #and yes, this test can still have false positives, feel free to improve it
+            pieces = modulename.split('.')
+            str_e = str(e)
+            found = True in [ piece.find(str(e)) != -1 for piece in pieces ]
+
+            if found:
+                #The yaml file is probably to blame.
+                #Report the problem with the full module path from the YAML file
+                raise ImportError("Could not import "+modulename+". python wanted to phrase this as: "+str_e)
+            else:
+                #The module being imported contains an error.
+                #Pass the original exception on up, with the original stack trace preserved
+                raise
         try:
             classname = eval(tag_suffix)
         except AttributeError:
