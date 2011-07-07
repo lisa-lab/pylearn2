@@ -107,9 +107,12 @@ class BinomialCorruptor(Corruptor):
 class GaussianCorruptor(Corruptor):
     """
     A Gaussian corruptor transforms inputs by adding zero
-    mean isotropic Gaussian noise with standard deviation
-    `corruption_level`.
+    mean isotropic Gaussian noise.
     """
+
+    def __init__(self, stdev):
+        super(GaussianCorruptor, self).__init__(corruption_level = stdev)
+
     def _corrupt(self, x):
         return self.s_rng.normal(
             size=x.shape,
