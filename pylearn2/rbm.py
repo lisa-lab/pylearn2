@@ -184,7 +184,7 @@ class RBM(Block):
 
     TODO: model shouldn't depend on batch_size.
     """
-    def __init__(self, nvis, nhid, batch_size=10, irange=0.5, rng=9001):
+    def __init__(self, nvis, nhid, batch_size=10, irange=0.5, rng=None):
         """
         Construct an RBM object.
 
@@ -353,6 +353,30 @@ class RBM(Block):
         else:
             return [self.input_to_h_from_v(vis) for vis in v]
 
+    def input_to_v_from_h(self, h):
+        """
+        Compute the affine function (linear map plus bias) that serves as
+        input to the visible layer in an RBM.
+
+        Parameters
+        ----------
+        h  : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the one or several
+            minibatches on the hidden units, with the first dimension indexing
+            training examples and the second indexing data dimensions.
+
+        Returns
+        -------
+        a : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the input to each
+            visible unit for each row of h.
+        """
+        if isinstance(h, tensor.Variable):
+            return self.visbias + tensor.dot(h, self.weights.T)
+        else:
+            return [self.input_to_v_from_h(hid) for hid in h]
+
+
     def mean_h_given_v(self, v):
         """
         Compute the mean activation of the visibles given hidden unit
@@ -417,12 +441,32 @@ class RBM(Block):
         Returns
         -------
         f : tensor_like
-            0-dimensional tensor (i.e. effectively a scalar) representing the
-            free energy of the visible unit configuration.
+            1-dimensional tensor (vector) representing the free energy associated with each row
+            of v.
         """
         sigmoid_arg = self.input_to_h_from_v(v)
-        return -(tensor.dot(v, self.visbias) +
-                 nnet.softplus(sigmoid_arg).sum(axis=1))
+        return -tensor.dot(v, self.visbias) - nnet.softplus(sigmoid_arg).sum(axis=1)
+
+    def free_energy_given_h(self, h):
+        """
+        Calculate the free energy of a hidden unit configuration by
+        marginalizing over the visible units.
+
+        Parameters
+        ----------
+        h : tensor_like
+            Theano symbolic representing the hidden unit states, with the first dimension
+            indexing training examples and the second indexing data dimensions.
+
+        Returns
+        -------
+        f : tensor_like
+            1-dimensional tensor (vector) representing the free energy associated with each row
+            of v.
+        """
+        sigmoid_arg = self.input_to_v_from_h(h)
+        return -tensor.dot(h, self.hidbias) - nnet.softplus(sigmoid_arg).sum(axis=1)
+
 
     def __call__(self, v):
         """
