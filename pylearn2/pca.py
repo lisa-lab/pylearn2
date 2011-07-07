@@ -139,9 +139,17 @@ class PCA(Block):
         # (and what this expression evalutes to can be modified by subsequent calls to _update_cutoff)
         self._update_cutoff()
 
-        Y = tensor.dot(inputs - self.mean, self.W[:, :self.component_cutoff])
+        normalized_mean = inputs - self.mean
+        normalized_mean.name = 'normalized_mean'
+
+        W = self.W[:, :self.component_cutoff]
+
+        #TODO: this is inefficient, should make another shared variable where this proprocessing is already done
         if self.whiten:
-            Y /= tensor.sqrt(self.v[:self.component_cutoff])
+            W = W/tensor.sqrt(self.v[:self.component_cutoff])
+
+        Y = tensor.dot(normalized_mean, W)
+
         return Y
 
     def get_weights(self):
@@ -272,6 +280,7 @@ class SparseMatPCA(PCA):
         Y = structured_dot(inputs, self.W[:, :self.component_cutoff])
         Z = Y - tensor.dot(self.mean, self.W[:, :self.component_cutoff])
 
+        #TODO-- this is inefficient, should work by modifying W not Z
         if self.whiten:
             Z /= tensor.sqrt(self.v[:self.component_cutoff])
         return Z
