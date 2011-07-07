@@ -3,10 +3,16 @@ import copy
 
 class DenseDesignMatrix(object):
 
-    def __init__(self, X, y = None, view_converter = None, rng = None):
-        self.X = X
+    def __init__(self, X = None, topo_view = None, y = None, view_converter = None, rng = None):
+        if X is not None:
+            self.X = X
+            self.view_converter = view_converter
+        else:
+            assert topo_view is not None
+            self.set_topological_view(topo_view)
+        #
+
         self.y = y
-        self.view_converter = view_converter
         if rng is None:
             rng = N.random.RandomState([17,2,946])
         #
@@ -171,16 +177,18 @@ class DefaultViewConverter(object):
 
 
     def topo_view_to_design_mat(self, V):
+        num_channels = self.shape[-1]
+
         if N.any( N.asarray(self.shape) != N.asarray(V.shape[1:])):
             raise ValueError('View converter for views of shape batch size followed by '
-                            +str(shape)+' given tensor of shape '+str(V.shape))
+                            +str(self.shape)+' given tensor of shape '+str(V.shape))
         #
 
         batch_size = V.shape[0]
 
         channels = [
                     V[:,:,:,i].reshape(batch_size,self.pixels_per_channel)
-                    for i in xrange(3)
+                    for i in xrange(num_channels)
                     ]
 
         return N.concatenate(channels,axis=1)
