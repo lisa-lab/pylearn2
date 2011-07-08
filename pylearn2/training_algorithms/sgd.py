@@ -2,6 +2,7 @@ import numpy as N
 from theano import function
 import theano.tensor as T
 from warnings import warn
+from pylearn2.monitor import Monitor
 
 class SGD(object):
     """Stochastic Gradient Descent with an optional validation set for error monitoring
@@ -42,11 +43,23 @@ class SGD(object):
 
         self.model = model
 
+        self.monitor = Monitor.get_monitor(model)
+        self.monitor.set_dataset(dataset = self.monitoring_dataset,
+                                 batches = self.monitoring_batches,
+                                 batch_size = self.batch_size)
+
         X = T.matrix(name='sgd_X')
         J = self.cost(model,X)
         if J.name is None:
             J.name = 'sgd_cost('+X.name+')'
         #
+
+
+        self.monitor.add_channel(name = J.name,
+                                 ipt = X,
+                                 val = J)
+
+
 
         params = model.get_params()
 
@@ -80,6 +93,8 @@ class SGD(object):
         #
 
         self.sgd_update = function([X], updates = updates,name = 'sgd_update')
+
+
 
         self.params = params
 
@@ -115,7 +130,7 @@ class SGD(object):
             #
         #
 
-        if self.first and self.monitoring_dataset:
+        if self.first:
             self.monitor()
         #
 
@@ -136,38 +151,12 @@ class SGD(object):
                 #
             #"""
 
-            model.batches_seen += 1
-            model.examples_seen += batch_size
+            self.monitor.batches_seen += 1
+            self.monitor.examples_seen += batch_size
         #
 
-        if self.monitoring_dataset:
-            self.monitor()
-        #
+        self.monitor()
 
         return True
-    #
-
-    def monitor(self):
-        model = self.model
-
-        if True:
-            s = self.monitoring_dataset.get_stream_position()
-
-            self.monitoring_dataset.restart_stream()
-
-            try:
-                model.record_monitoring_error(self.monitoring_dataset,batches=self.monitoring_batches,batch_size=self.batch_size)
-                print model.error_record[-1]
-            except:
-                warn( """Your model doesn't seem to support monitoring.
-                         (TODO: implementing monitoring as part of training algorithm so
-                         not all models have to do it. Actually implementation could probably even be
-                         shared between multiple training algorithms """)
-                self.monitoring_dataset = None
-                return
-
-
-            self.monitoring_dataset.set_stream_position(s)
-        #
     #
 #
