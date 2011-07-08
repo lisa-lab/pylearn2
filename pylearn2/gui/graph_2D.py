@@ -70,13 +70,19 @@ class HeatMap:
         for i in xrange(prev_layer.shape[1]):
             X = parent.get_coords_for_col(i)
             f = self.f(X)
-            for j in xrange(3):
-                my_img[:,i,j] = f
+            if len(f.shape) == 1:
+                for j in xrange(3):
+                    my_img[:,i,j] = f
+                #
+            else:
+                my_img[:,i,:] = f
             #
         #
 
-        my_img = self.normalizer(my_img)
-        assert my_img is not None
+        if self.normalizer is not None:
+            my_img = self.normalizer(my_img)
+            assert my_img is not None
+        #
 
         if self.render_mode == 'r':
             my_img[:,:,1:] = prev_layer[:,:,1:]
