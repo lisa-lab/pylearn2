@@ -52,6 +52,9 @@ class SM:
     """ Score Matching
         See eqn. 4 of "On Autoencoders and Score Matching for Energy Based Models",
         Swersky et al 2011, for details
+
+        Uses the mean over visible units rather than sum over visible units
+        so that hyperparameters won't depend as much on the # of visible units
     """
 
     def __init__(self):
