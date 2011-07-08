@@ -62,6 +62,8 @@ class SM:
     #
 
     def __call__(self, model, X):
+        X_name = 'X' if X.name is None else X.name
+
         score = model.score(X)
 
         sq = 0.5 * T.sqr(score)
@@ -82,12 +84,17 @@ class SM:
 
         rval = T.mean(temp)
 
+        rval.name = 'sm('+X_name+')'
+
         return rval
 
 class SMD:
     """ Denoising Score Matching
-        See eqn. 5 of "On Autoencoders and Score Matching for Energy Based Models",
-        Swersky et al 2011, for details
+        See eqn. 4.3 of "A Connection Between Score Matching and Denoising Autoencoders"
+        by Pascal Vincent for details
+
+        Note that instead of using half the squared norm we use the mean squared error,
+        so that hyperparameters don't depend as much on the # of visible units
     """
 
     def __init__(self, corruptor):
@@ -103,10 +110,10 @@ class SMD:
             corrupted_X.name = 'corrupt('+X_name+')'
         #
 
-        clean_score = model.score(X)
-        dirty_score = model.score(corrupted_X)
+        model_score = model.score(corrupted_X)
+        parzen_score = T.grad( - T.sum(self.corruptor.corruption_free_energy(corrupted_X,X)), corrupted_X)
 
-        score_diff = dirty_score - clean_score
+        score_diff = model_score - parzen_score
         score_diff.name = 'smd_score_diff('+X_name+')'
 
         #TODO: this could probably be faster as a tensordot, but we don't have tensordot for gpu yet

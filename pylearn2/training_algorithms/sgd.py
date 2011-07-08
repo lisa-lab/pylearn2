@@ -75,7 +75,9 @@ class SGD(object):
             if grads[param].name is None:
                 grads[param].name = 'T.grad(' + J.name + ',' + param.name
 
-        updates = dict(zip(params, [ param - self.learning_rate * grads[param]
+        learning_rate = T.scalar('sgd_learning_rate')
+
+        updates = dict(zip(params, [ param - learning_rate * grads[param]
                                     for param in params ] ) )
 
         for param in updates:
@@ -92,7 +94,7 @@ class SGD(object):
             #
         #
 
-        self.sgd_update = function([X], updates = updates,name = 'sgd_update')
+        self.sgd_update = function([X, learning_rate], updates = updates,name = 'sgd_update')
 
 
 
@@ -140,7 +142,7 @@ class SGD(object):
             X = dataset.get_batch_design(batch_size)
 
             #print '\n----------------'
-            self.sgd_update(X)
+            self.sgd_update(X, self.learning_rate)
             #print '----------------\n'
 
             #comment out this check when not debugging

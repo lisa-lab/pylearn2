@@ -6,6 +6,7 @@ training criterion.
 import numpy
 import theano
 from theano import tensor
+T = tensor
 
 # Shortcuts
 theano.config.warn.sum_div_dimshuffle_bug = False
@@ -61,6 +62,10 @@ class Corruptor(object):
         """
         raise NotImplementedError()
 
+
+    def corruption_free_energy(self, corrupted_X, X):
+
+        raise NotImplementedError()
 
 class DummyCorruptor(Corruptor):
     def __call__(self, inputs):
@@ -142,6 +147,11 @@ class GaussianCorruptor(Corruptor):
         if isinstance(inputs, tensor.Variable):
             return self._corrupt(inputs)
         return [self._corrupt(inp) for inp in inputs]
+
+    def corruption_free_energy(self, corrupted_X, X):
+        rval =  T.sum(T.sqr(corrupted_X-X),axis=1)/(2.*(self.corruption_level ** 2.))
+        assert len(rval.type.broadcastable) == 1
+        return rval
 
 
 ##################################################
