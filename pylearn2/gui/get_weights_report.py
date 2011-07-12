@@ -11,6 +11,9 @@ def get_weights_report(model_path, rescale = True):
 
     dataset = yaml_parse.load(p.dataset_yaml_src)
 
+    if hasattr(p,'get_weights'):
+        p.weights = p.get_weights()
+
     if 'weightsShared' in dir(p):
         p.weights = p.weightsShared.get_value()
 
@@ -37,6 +40,9 @@ def get_weights_report(model_path, rescale = True):
             #
         #
     elif len(p.weights.shape) == 2:
+        if hasattr(p,'get_weights_format'):
+            p.weights_format = p.get_weights_format
+
         assert type(p.weights_format()) == type([])
         assert len(p.weights_format()) == 2
         assert p.weights_format()[0] in ['v','h']
@@ -45,7 +51,7 @@ def get_weights_report(model_path, rescale = True):
 
         if p.weights_format()[0] == 'v':
             p.weights = p.weights.transpose()
-        h = p.nhid
+        h = p.weights.shape[0]
 
 
         hr = int(N.ceil(N.sqrt(h)))
