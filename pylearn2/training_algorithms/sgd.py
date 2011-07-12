@@ -26,7 +26,7 @@ class SGD(object):
         """
 
         #Store parameters
-        self.learning_rate, self.batch_size, self.batches_per_iter = learning_rate, batch_size, batches_per_iter
+        self.learning_rate, self.batch_size, self.batches_per_iter = float(learning_rate), batch_size, batches_per_iter
 
         self.cost = cost
 
