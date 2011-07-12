@@ -9,12 +9,13 @@ from itertools import izip
 import numpy
 import theano
 from theano import tensor
+T = tensor
 from theano.tensor import nnet
 
 # Local imports
 from .base import Block, StackedBlocks
 from .utils import as_floatX, safe_update, sharedX
-
+from .models.model import Model
 theano.config.warn.sum_div_dimshuffle_bug = False
 
 if 0:
@@ -178,7 +179,7 @@ class PersistentCDSampler(Sampler):
         }
 
 
-class RBM(Block):
+class RBM(Block,Model):
     """
     A base interface for RBMs, implementing the binary-binary case.
 
@@ -217,12 +218,22 @@ class RBM(Block):
             borrow=True
         )
         self.weights = sharedX(
-            (0.5 - rng.rand(nvis, nhid)) * irange,
+            rng.uniform(-irange,irange,(nvis,nhid)),
             name='W',
             borrow=True
         )
         self.__dict__.update(batch_size=batch_size, nhid=nhid, nvis=nvis)
         self._params = [self.visbias, self.hidbias, self.weights]
+
+    def get_params(self):
+        return [ param for param in self._params ]
+    #
+
+    def get_weights(self, borrow = False):
+        return self.weights.get_value(borrow = borrow)
+
+    def get_weights_format(self):
+        return ['v','h']
 
     def ml_gradients(self, pos_v, neg_v):
         """
@@ -513,9 +524,13 @@ class GaussianBinaryRBM(RBM):
     An RBM with Gaussian visible units and binary hidden units.
 
     TODO: model shouldn't depend on batch_size.
+    TODO: there are a few different GRBM energy functions in the literature and
+          I think this is a new one... we might want to factor the energy function
+          to be separate from the logic for how to do CD and let people pick which
+          energy function implementation they want to use
     """
-    def __init__(self, nvis, nhid, batch_size, irange=0.5, rng=None,
-                 mean_vis=False):
+    def __init__(self, nvis, nhid, batch_size = 0, irange=0.5, rng=None,
+                 mean_vis=False, init_sigma = 1., learn_sigma = False):
         """
         Allocate a GaussianBinaryRBM object.
 
@@ -539,12 +554,25 @@ class GaussianBinaryRBM(RBM):
         """
         super(GaussianBinaryRBM, self).__init__(nvis, nhid, batch_size,
                                                 irange, rng)
+
+        self.learn_sigma = learn_sigma
+        self.init_sigma = init_sigma
+
         self.sigma = sharedX(
-            numpy.ones(nvis),
+            numpy.ones(nvis)*init_sigma,
             name='sigma',
             borrow=True
         )
+
+        if self.learn_sigma:
+            self._params.append(self.sigma)
+
         self.mean_vis = mean_vis
+
+    def censor_updates(self, updates):
+        if self.sigma in updates:
+            assert self.learn_sigma
+            updates[self.sigma] = T.clip(updates[self.sigma],1e-5,1e5)
 
     def input_to_h_from_v(self, v):
         """
@@ -610,12 +638,20 @@ class GaussianBinaryRBM(RBM):
         Returns
         -------
         f : tensor_like
-            0-dimensional tensor (i.e. effectively a scalar) representing the
-            free energy of the visible unit configuration.
+            1-dimensional tensor representing the
+            free energy of the visible unit configuration
+            for each example in the batch
         """
         hid_inp = self.input_to_h_from_v(v)
         squared_term = (self.visbias - v) ** 2 / self.sigma
-        return squared_term.sum(axis=1) - nnet.softplus(hid_inp).sum(axis=1)
+        rval =  squared_term.sum(axis=1) - nnet.softplus(hid_inp).sum(axis=1)
+        assert len(rval.type.broadcastable) == 1
+        return rval
+
+    def free_energy(self, V):
+        return self.free_energy_given_v(V)
+    #
+
 
     def sample_visibles(self, params, shape, rng):
         """
