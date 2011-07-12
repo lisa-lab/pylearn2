@@ -160,11 +160,12 @@ class SGD(object):
         self.monitor()
 
         v =  self.monitor.channels.values()
-        if len(v) > 0:
+        """if len(v) > 0:
             v = v[0].val_record
             if v[-1] > v[-2]:
                 self.learning_rate *= .9
                 print "HACK! shrunk learning rate to ",self.learning_rate," b/c monitoring set objective rose"
+        """
 
         return True
     #
