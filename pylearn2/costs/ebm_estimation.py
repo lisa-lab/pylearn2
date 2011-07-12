@@ -116,8 +116,16 @@ class SMD:
         score_diff = model_score - parzen_score
         score_diff.name = 'smd_score_diff('+X_name+')'
 
+
+        assert len(score_diff.type.broadcastable) == 2
+
+
         #TODO: this could probably be faster as a tensordot, but we don't have tensordot for gpu yet
-        smd = T.mean(T.sqr(score_diff))
+        sq_score_diff = T.sqr(score_diff)
+
+        #sq_score_diff = Print('sq_score_diff',attrs=['mean'])(sq_score_diff)
+
+        smd = T.mean(sq_score_diff)
         smd.name = 'SMD('+X_name+')'
 
         return smd
