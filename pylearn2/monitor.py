@@ -83,7 +83,7 @@ class Monitor:
 
         for channel in self.channels.values():
             givens[channel.ipt] = X
-            updates[channel.val_shared] = channel.val
+            updates[channel.val_shared] = channel.val_shared + channel.val
 
         self.accum = function([X],givens = givens, updates = updates)
 
