@@ -1,5 +1,7 @@
 from theano import function, shared
 import theano.tensor as T
+import copy
+from pylearn2.config import yaml_parse
 
 class Monitor:
 
@@ -10,6 +12,17 @@ class Monitor:
         self.examples_seen = 0
         self.dataset = None
         self.dirty = True
+
+
+    def __getstate__(self):
+        d = copy.copy(self.__dict__)
+        d['dataset'] = self.dataset.yaml_src
+        return d
+
+    def __setstate__(self, d):
+        self.__dict__.update(d)
+        self.dataset = yaml_parse.load(d['dataset'])
+
 
     def set_dataset(self, dataset, batches, batch_size):
         self.dataset = dataset
