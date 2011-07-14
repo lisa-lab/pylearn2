@@ -45,7 +45,7 @@ class GRBM_Type_1(GRBM_EnergyFunction):
         P(v|h) = N( Wh + bias_vis, 1/sigma^2)
         P(h|v) = sigmoid( (v^T Wh + bias_hid) / sigma^2 )
         F(v) = ( (1/2) v^T v - bias_vis^T v) / sigma^2 - sum_i softplus( ( v^T W + c) / sigma^2 )_i
-        score(v) = ( v - bias_vis - sigmoid( (v^T W + bias_hid) / sigma^2 ) W^T )/sigma^2
+        score(v) = -( v - bias_vis - sigmoid( (v^T W + bias_hid) / sigma^2 ) W^T )/sigma^2
 
         This parameterization is motivated by this last property, that the entire score
         function is divided by sigma^2, which makes the equivalence with denosing
@@ -82,31 +82,45 @@ class GRBM_Type_1(GRBM_EnergyFunction):
                 ) / T.sqr(self.sigma)
 
 
+    def mean_H_given_V(self, V):
+        return T.nnet.sigmoid( \
+                ( \
+                    self.bias_hid + \
+                    T.dot(V,self.W) \
+                ) / T.sqr(self.sigma) \
+                        )
+    #
+
+
     def free_energy(self, V):
         V_name = 'V' if V.name is None else V.name
 
         bias_term = T.dot(V,self.bias_vis)
         bias_term.name = 'bias_term'
+        assert len(bias_term.type.broadcastable) == 1
 
         sq_term = 0.5 * T.sqr(V).sum(axis=1)
         sq_term.name = 'sq_term'
+        assert len(sq_term.type.broadcastable) == 1
 
         softplus_term =  T.nnet.softplus( (T.dot(V,self.W)+self.bias_hid) / T.sqr(self.sigma)).sum(axis=1)
+        assert len(softplus_term.type.broadcastable) == 1
         softplus_term.name = 'softplus_term'
 
         return (
-                bias_term -
-                0.5 * sq_term
+                sq_term
+                - bias_term
                 ) / T.sqr(self.sigma) - softplus_term
     #
 
     def score(self, V):
         #score(v) = ( v - bias_vis - sigmoid( beta v^T W + bias_hid ) W^T )/sigma^2
-        assert False
 
-        return ( V \
+        return -( V \
                 - self.bias_vis \
-                - T.nnet.sigmoid((T.dot(V,self.W)+self.bias_hid) / T.sqr(self.sigma)) \
+                - T.dot( \
+                    T.nnet.sigmoid((T.dot(V,self.W)+self.bias_hid) / T.sqr(self.sigma)), \
+                    self.W.T) \
                 ) / \
             T.sqr(self.sigma)
     #
