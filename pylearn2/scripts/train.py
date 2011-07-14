@@ -9,10 +9,15 @@ import pylearn2.config.yaml_parse
 from pylearn2.utils import serial
 
 class Train(object):
-    def __init__(self, dataset, model, algorithm = None, save_path = None):
+    def __init__(self,
+                dataset,
+                model,
+                algorithm = None,
+                save_path = None,
+                callbacks = []):
         self.dataset, self.model, self.algorithm, self.save_path  = dataset, model, algorithm, save_path
         self.model.dataset_yaml_src = self.dataset.yaml_src
-
+        self.callbacks = callbacks
     #
 
     def main_loop(self):
@@ -33,6 +38,10 @@ class Train(object):
                 #sys.exit()
                 self.save()
                 t1 = time.time()
+
+                for callback in self.callbacks:
+                    callback(self.model, self.dataset)
+                #
             #
         #
     #
