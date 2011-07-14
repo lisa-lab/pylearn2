@@ -6,14 +6,15 @@ from scipy import io
 import theano
 import theano.tensor as T
 
-from pylearn2 import rbm, rbm_tools
+from pylearn2 import rbm_tools
+from pylearn2.models import rbm
 from pylearn.datasets import MNIST
 floatX = theano.config.floatX
 
 def load_rbm_params(fname):
     mnistvh = io.loadmat(fname)
-    rbm_params = [numpy.asarray(mnistvh['vishid'], dtype=floatX), 
-                  numpy.asarray(mnistvh['visbiases'][0], dtype=floatX), 
+    rbm_params = [numpy.asarray(mnistvh['vishid'], dtype=floatX),
+                  numpy.asarray(mnistvh['visbiases'][0], dtype=floatX),
                   numpy.asarray(mnistvh['hidbiases'][0], dtype=floatX)]
     return rbm_params
 
@@ -42,7 +43,7 @@ def ais_nodata(fname, do_exact=True):
     print '    log_variance : %f' % log_var_dz
     print 'Elapsed time: ', time.time() - t1
 
-    if do_exact: 
+    if do_exact:
         exact_logz = compute_logz(rbm_params)
         print 'Exact logZ = %f' % exact_logz
         numpy.testing.assert_almost_equal(exact_logz, logz, decimal=0)
@@ -63,7 +64,7 @@ def ais_data(fname, do_exact=True):
     print '    log_variance : %f' % log_var_dz
     print 'Elapsed time: ', time.time() - t1
 
-    if do_exact: 
+    if do_exact:
         exact_logz = compute_logz(rbm_params)
         print 'Exact logZ = %f' % exact_logz
         numpy.testing.assert_almost_equal(exact_logz, logz, decimal=0)
