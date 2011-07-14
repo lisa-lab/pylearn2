@@ -7,15 +7,16 @@ from itertools import izip
 
 # Third-party imports
 import numpy
+N = numpy
 import theano
 from theano import tensor
 T = tensor
 from theano.tensor import nnet
 
 # Local imports
-from .base import Block, StackedBlocks
-from .utils import as_floatX, safe_update, sharedX
-from .models.model import Model
+from pylearn2.base import Block, StackedBlocks
+from pylearn2.utils import as_floatX, safe_update, sharedX
+from pylearn2.models.model import Model
 theano.config.warn.sum_div_dimshuffle_bug = False
 
 if 0:
