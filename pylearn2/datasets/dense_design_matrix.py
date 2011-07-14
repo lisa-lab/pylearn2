@@ -194,3 +194,7 @@ class DefaultViewConverter(object):
         return N.concatenate(channels,axis=1)
     #
 #
+
+def from_dataset(dataset, num_examples):
+    V = dataset.get_batch_topo(num_examples)
+    return DenseDesignMatrix(topo_view = V)
