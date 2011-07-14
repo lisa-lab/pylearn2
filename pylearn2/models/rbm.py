@@ -184,9 +184,8 @@ class RBM(Block,Model):
     """
     A base interface for RBMs, implementing the binary-binary case.
 
-    TODO: model shouldn't depend on batch_size.
     """
-    def __init__(self, nvis, nhid, batch_size=10, irange=0.5, rng=None):
+    def __init__(self, nvis, nhid, irange=0.5, rng=None):
         """
         Construct an RBM object.
 
@@ -196,9 +195,6 @@ class RBM(Block,Model):
             Number of visible units in the model.
         nhid : int
             Number of hidden units in the model.
-        batch_size : int, optional
-            Size of minibatches to be used (TODO: this parameter should be
-            deprecated)
         irange : float, optional
             The size of the initial interval around 0 for weights.
         rng : RandomState object or seed
@@ -223,7 +219,7 @@ class RBM(Block,Model):
             name='W',
             borrow=True
         )
-        self.__dict__.update(batch_size=batch_size, nhid=nhid, nvis=nvis)
+        self.__dict__.update(nhid=nhid, nvis=nvis)
         self._params = [self.visbias, self.hidbias, self.weights]
 
     def get_params(self):
@@ -524,14 +520,14 @@ class GaussianBinaryRBM(RBM):
     """
     An RBM with Gaussian visible units and binary hidden units.
 
-    TODO: model shouldn't depend on batch_size.
     TODO: there are a few different GRBM energy functions in the literature and
           I think this is a new one... we might want to factor the energy function
           to be separate from the logic for how to do CD and let people pick which
           energy function implementation they want to use
     """
-    def __init__(self, nvis, nhid, batch_size = 0, irange=0.5, rng=None,
-                 mean_vis=False, init_sigma = 1., learn_sigma = False):
+    def __init__(self, nvis, nhid, energy_function_class, irange=0.5, rng=None,
+                 mean_vis=False, init_sigma = 2., learn_sigma = False,
+                 sigma_lr_scale = 1.):
         """
         Allocate a GaussianBinaryRBM object.
 
@@ -541,9 +537,8 @@ class GaussianBinaryRBM(RBM):
             Number of visible units in the model.
         nhid : int
             Number of hidden units in the model.
-        batch_size : int, optional
-            Size of minibatches to be used (TODO: this parameter should be
-            deprecated)
+        energy_function_class:
+            TODO: finish comment
         irange : float, optional
             The size of the initial interval around 0 for weights.
         rng : RandomState object or seed
@@ -552,31 +547,54 @@ class GaussianBinaryRBM(RBM):
         mean_vis : bool, optional
             Don't actually sample visibles; make sample method simply return
             mean.
+        init_sigma: initial value of the sigma variable
+
+
         """
-        super(GaussianBinaryRBM, self).__init__(nvis, nhid, batch_size,
+        super(GaussianBinaryRBM, self).__init__(nvis, nhid,
                                                 irange, rng)
 
         self.learn_sigma = learn_sigma
         self.init_sigma = init_sigma
+        self.sigma_lr_scale = float(sigma_lr_scale)
 
-        self.sigma = sharedX(
-            numpy.ones(nvis)*init_sigma,
+        base = N.ones(nvis) if energy_function_class.supports_vector_sigma() else 1.
+
+        self.sigma_driver = sharedX(
+            base*init_sigma / self.sigma_lr_scale,
             name='sigma',
             borrow=True
         )
 
+        self.sigma = self.sigma_driver * self.sigma_lr_scale
+
         if self.learn_sigma:
-            self._params.append(self.sigma)
+            self._params.append(self.sigma_driver)
 
         self.mean_vis = mean_vis
 
+        self.energy_function = energy_function_class(
+                    W = self.weights,
+                    sigma = self.sigma,
+                    bias_vis = self.visbias,
+                    bias_hid = self.hidbias
+                )
+
     def censor_updates(self, updates):
-        if self.sigma in updates:
+        if self.sigma_driver in updates:
             assert self.learn_sigma
-            updates[self.sigma] = T.clip(updates[self.sigma],1e-5,1e5)
+            updates[self.sigma_driver] = T.clip(updates[self.sigma_driver],1e-5/self.sigma_lr_scale,1e5/self.sigma_lr_scale)
+
+
+    def score(self, V):
+        return self.energy_function.score(V)
+    #
+
+    """
+    method made obsolete by switching to energy function objects
 
     def input_to_h_from_v(self, v):
-        """
+        ""
         Compute the affine function (linear map plus bias) that serves as
         input to the hidden layer in an RBM.
 
@@ -598,11 +616,16 @@ class GaussianBinaryRBM(RBM):
         In the Gaussian-binary case, each data dimension is scaled by a sigma
         parameter (which defaults to 1 in this implementation, but is
         nonetheless present as a shared variable in the model parameters).
-        """
+        ""
         if isinstance(v, tensor.Variable):
             return self.hidbias + tensor.dot(v / self.sigma, self.weights)
         else:
-            return [self.input_to_h_from_v(vis) for vis in v]
+            return [self.input_to_h_from_v(vis) for vis in v]"""
+
+    def P_H_given_V(self, V):
+        return self.energy_function.P_H_given(V)
+    #
+
 
     def mean_v_given_h(self, h):
         """
@@ -622,9 +645,11 @@ class GaussianBinaryRBM(RBM):
             Theano symbolic representing the mean (deterministic)
             reconstruction of the visible units given the hidden units.
         """
-        return self.visbias + self.sigma * tensor.dot(h, self.weights.T)
 
-    def free_energy_given_v(self, v):
+        return self.energy_function.mean_v_given_h(h)
+        #return self.visbias + self.sigma * tensor.dot(h, self.weights.T)
+
+    def free_energy_given_v(self, V):
         """
         Calculate the free energy of a visible unit configuration by
         marginalizing over the hidden units.
@@ -643,16 +668,17 @@ class GaussianBinaryRBM(RBM):
             free energy of the visible unit configuration
             for each example in the batch
         """
-        hid_inp = self.input_to_h_from_v(v)
-        squared_term = (self.visbias - v) ** 2 / self.sigma
+
+        """hid_inp = self.input_to_h_from_v(v)
+        squared_term = ((self.visbias - v) ** 2.) / (2. * self.sigma)
         rval =  squared_term.sum(axis=1) - nnet.softplus(hid_inp).sum(axis=1)
-        assert len(rval.type.broadcastable) == 1
-        return rval
+        assert len(rval.type.broadcastable) == 1"""
+
+        return self.energy_function.free_energy(V)
 
     def free_energy(self, V):
-        return self.free_energy_given_v(V)
+        return self.energy_function.free_energy(V)
     #
-
 
     def sample_visibles(self, params, shape, rng):
         """
