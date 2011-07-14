@@ -24,7 +24,15 @@ class EnergyFunction(object):
         return rval
     #
 
-    def __call__(self, X):
-        raise NotImplementedError(str(type(self))+' has not implemented __call__(self,X) which should return the energy of X')
+    def free_energy(self, X):
+        raise NotImplementedError(str(type(self))+' has not implemented free_energy(self,X)' )
+    #
+
+    def energy(self, varlist):
+        raise NotImplementedError(str(type(self))+' has not implemented energy(self,varlist)' )
+    #
+
+    def __call__(self, varlist):
+        return self.energy(varlist)
     #
 #
