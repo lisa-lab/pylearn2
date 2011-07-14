@@ -11,7 +11,14 @@ class GRBM_EnergyFunction(RBM_EnergyFunction):
     def supports_vector_sigma(self):
         raise NotImplementedError()
 
-    def P_H_given_V(self, V):
+    def log_P_H_given_V(self, H, V):
+        p_one = self.mean_H_given_V(V)
+
+        rval =  T.log(H * p_one + (1.-H) * (1.-p_one)).sum(axis=1)
+
+        return rval
+
+    def mean_H_given_V(self, V):
         raise NotImplementedError()
 
 
