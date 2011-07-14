@@ -7,7 +7,7 @@ import numpy
 import theano
 from theano import tensor
 T = tensor
-
+from theano.printing import Print
 # Shortcuts
 theano.config.warn.sum_div_dimshuffle_bug = False
 
@@ -119,12 +119,16 @@ class GaussianCorruptor(Corruptor):
         super(GaussianCorruptor, self).__init__(corruption_level = stdev)
 
     def _corrupt(self, x):
-        return self.s_rng.normal(
+        noise = self.s_rng.normal(
             size=x.shape,
-            avg=0,
+            avg=0.,
             std=self.corruption_level,
             dtype=theano.config.floatX
-        ) + x
+        )
+
+        rval = noise + x
+
+        return rval
 
     def __call__(self, inputs):
         """
