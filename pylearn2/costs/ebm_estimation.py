@@ -35,13 +35,13 @@ class NCE:
         #hx = self.h(X, model)
         #hy = self.h(Y, model)
 
-        log_hx = T.nnet.softplus(-self.G(X,model))
-        log_one_minus_hy = T.nnet.softplus(self.G(Y,model))
+        log_hx = -T.nnet.softplus(-self.G(X,model))
+        log_one_minus_hy = -T.nnet.softplus(self.G(Y,model))
 
 
-        rval = T.mean(log_hx+log_one_minus_hy)
-
-        #rval = Print('nce cost',attrs=['min','max'])(rval)
+        #based on equation 3 of the paper
+        #ours is the negative of theirs because they maximize it and we minimize it
+        rval = -T.mean(log_hx+log_one_minus_hy)
 
         return rval
 
