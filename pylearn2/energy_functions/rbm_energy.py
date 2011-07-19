@@ -91,6 +91,15 @@ class GRBM_Type_1(GRBM_EnergyFunction):
                         )
     #
 
+    def reconstruct(self, V):
+        H = self.mean_H_given_V(V)
+        R = self.mean_V_given_H(H)
+        return R
+    #
+
+    def mean_V_given_H(self, H):
+        return self.bias_vis + T.dot(H,self.W.T)
+    #
 
     def free_energy(self, V):
         V_name = 'V' if V.name is None else V.name
@@ -117,10 +126,7 @@ class GRBM_Type_1(GRBM_EnergyFunction):
         #score(v) = ( v - bias_vis - sigmoid( beta v^T W + bias_hid ) W^T )/sigma^2
 
         return -( V \
-                - self.bias_vis \
-                - T.dot( \
-                    T.nnet.sigmoid((T.dot(V,self.W)+self.bias_hid) / T.sqr(self.sigma)), \
-                    self.W.T) \
+                - self.reconstruct(V) \
                 ) / \
             T.sqr(self.sigma)
     #

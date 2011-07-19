@@ -1,5 +1,5 @@
 import theano
-theano.config.compute_test_value = 'warn'
+theano.config.compute_test_value = 'off'
 from pylearn2.energy_functions.rbm_energy import GRBM_Type_1
 import numpy as N
 import theano.tensor as T
@@ -35,7 +35,13 @@ E_func = function([V,H],E([V,H]))
 F_func = function([V],E.free_energy(V))
 log_P_H_given_V_func = function([H,V],E.log_P_H_given_V(H,V))
 score_func = function([V],E.score(V))
-generic_score_func = function([V],-T.grad(T.sum(E.free_energy(V)),V))
+
+F_of_V = E.free_energy(V)
+dummy = T.sum(F_of_V)
+negscore = T.grad(dummy,V)
+score = - negscore
+
+generic_score_func = function([V],score)
 
 class TestGRBM_Type_1:
     def test_mean_H_given_V(self):

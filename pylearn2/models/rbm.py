@@ -185,7 +185,7 @@ class RBM(Block,Model):
     A base interface for RBMs, implementing the binary-binary case.
 
     """
-    def __init__(self, nvis, nhid, irange=0.5, rng=None):
+    def __init__(self, nvis, nhid, irange=0.5, rng=None, init_bias_hid = 0.0):
         """
         Construct an RBM object.
 
@@ -210,7 +210,7 @@ class RBM(Block,Model):
             borrow=True
         )
         self.hidbias = sharedX(
-            numpy.zeros(nhid),
+            numpy.zeros(nhid)+init_bias_hid,
             name='hb',
             borrow=True
         )
@@ -221,6 +221,10 @@ class RBM(Block,Model):
         )
         self.__dict__.update(nhid=nhid, nvis=nvis)
         self._params = [self.visbias, self.hidbias, self.weights]
+
+    def get_input_dim(self):
+        return self.nvis
+    #
 
     def get_params(self):
         return [ param for param in self._params ]
@@ -527,7 +531,7 @@ class GaussianBinaryRBM(RBM):
     """
     def __init__(self, nvis, nhid, energy_function_class, irange=0.5, rng=None,
                  mean_vis=False, init_sigma = 2., learn_sigma = False,
-                 sigma_lr_scale = 1.):
+                 sigma_lr_scale = 1., init_bias_hid = 0.0):
         """
         Allocate a GaussianBinaryRBM object.
 
@@ -552,7 +556,8 @@ class GaussianBinaryRBM(RBM):
 
         """
         super(GaussianBinaryRBM, self).__init__(nvis, nhid,
-                                                irange, rng)
+                                                irange, rng,
+                                                init_bias_hid)
 
         self.learn_sigma = learn_sigma
         self.init_sigma = init_sigma

@@ -40,4 +40,12 @@ class NormalizedEBM:
         self.ebm.redo_theano()
         self.E_X_batch_func = self.ebm.E_X_batch_func
     #
+
+    def get_weights(self):
+        return self.ebm.get_weights()
+    #
+
+    def get_weights_format(self):
+        return self.ebm.get_weights_format()
+    #
 #
