@@ -40,7 +40,7 @@ class Train(object):
                 t1 = time.time()
 
                 for callback in self.callbacks:
-                    callback(self.model, self.dataset)
+                    callback(self.model, self.dataset, self.algorithm)
                 #
             #
         #
