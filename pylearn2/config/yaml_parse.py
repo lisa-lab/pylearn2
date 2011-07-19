@@ -110,12 +110,31 @@ def instantiate_all(graph):
     graph : dict or object
         The dictionary or object resulting after the recursive instantiation.
     """
-    for key in graph:
-        if isinstance(graph[key], ObjectProxy) or isinstance(graph[key], dict):
-            graph[key] = instantiate_all(graph[key])
+
+    def should_instantiate(obj):
+        classes = [ ObjectProxy, dict, list ]
+        return True in [ isinstance(obj, cls) for cls in classes]
+
+    if not isinstance(graph, list):
+        for key in graph:
+            if should_instantiate(graph[key]):
+                graph[key] = instantiate_all(graph[key])
+            #endif
+        #endfor
+    #endif
     if isinstance(graph, ObjectProxy):
         graph = graph.instantiate()
+    #endif
+    if isinstance(graph, list):
+        for i, elem in enumerate(graph):
+            if should_instantiate(elem):
+                graph[i] = instantiate_all(elem)
+            #
+        #endfor
+    #endif
+
     return graph
+#
 
 class ObjectProxy(object):
     """
