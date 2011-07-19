@@ -17,3 +17,11 @@ class Model(object):
         raise NotImplementedError()
     #
 
+    def redo_theano(self):
+        pass
+    #
+
+    def get_input_dim(self):
+        raise NotImplementedError()
+    #
+#
