@@ -110,12 +110,31 @@ def instantiate_all(graph):
     graph : dict or object
         The dictionary or object resulting after the recursive instantiation.
     """
-    for key in graph:
-        if isinstance(graph[key], ObjectProxy) or isinstance(graph[key], dict):
-            graph[key] = instantiate_all(graph[key])
+
+    def should_instantiate(obj):
+        classes = [ ObjectProxy, dict, list ]
+        return True in [ isinstance(obj, cls) for cls in classes]
+
+    if not isinstance(graph, list):
+        for key in graph:
+            if should_instantiate(graph[key]):
+                graph[key] = instantiate_all(graph[key])
+            #endif
+        #endfor
+    #endif
     if isinstance(graph, ObjectProxy):
         graph = graph.instantiate()
+    #endif
+    if isinstance(graph, list):
+        for i, elem in enumerate(graph):
+            if should_instantiate(elem):
+                graph[i] = instantiate_all(elem)
+            #
+        #endfor
+    #endif
+
     return graph
+#
 
 class ObjectProxy(object):
     """
@@ -173,7 +192,21 @@ def multi_constructor(loader, tag_suffix, node) :
         try:
             exec('import %s' % modulename)
         except ImportError, e:
-            raise ImportError("Could not import "+modulename+". python wanted to phrase this as: "+str(e))
+            #We know it's an ImportError, but is it an ImportError related to this path,
+            #or did the module we're importing have an unrelated ImportError?
+            #and yes, this test can still have false positives, feel free to improve it
+            pieces = modulename.split('.')
+            str_e = str(e)
+            found = True in [ piece.find(str(e)) != -1 for piece in pieces ]
+
+            if found:
+                #The yaml file is probably to blame.
+                #Report the problem with the full module path from the YAML file
+                raise ImportError("Could not import "+modulename+". python wanted to phrase this as: "+str_e)
+            else:
+                #The module being imported contains an error.
+                #Pass the original exception on up, with the original stack trace preserved
+                raise
         try:
             classname = eval(tag_suffix)
         except AttributeError:

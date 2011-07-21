@@ -6,7 +6,8 @@ training criterion.
 import numpy
 import theano
 from theano import tensor
-
+T = tensor
+from theano.printing import Print
 # Shortcuts
 theano.config.warn.sum_div_dimshuffle_bug = False
 
@@ -62,6 +63,10 @@ class Corruptor(object):
         raise NotImplementedError()
 
 
+    def corruption_free_energy(self, corrupted_X, X):
+
+        raise NotImplementedError()
+
 class DummyCorruptor(Corruptor):
     def __call__(self, inputs):
         return inputs
@@ -107,16 +112,23 @@ class BinomialCorruptor(Corruptor):
 class GaussianCorruptor(Corruptor):
     """
     A Gaussian corruptor transforms inputs by adding zero
-    mean isotropic Gaussian noise with standard deviation
-    `corruption_level`.
+    mean isotropic Gaussian noise.
     """
+
+    def __init__(self, stdev):
+        super(GaussianCorruptor, self).__init__(corruption_level = stdev)
+
     def _corrupt(self, x):
-        return self.s_rng.normal(
+        noise = self.s_rng.normal(
             size=x.shape,
-            avg=0,
+            avg=0.,
             std=self.corruption_level,
             dtype=theano.config.floatX
-        ) + x
+        )
+
+        rval = noise + x
+
+        return rval
 
     def __call__(self, inputs):
         """
@@ -139,3 +151,18 @@ class GaussianCorruptor(Corruptor):
         if isinstance(inputs, tensor.Variable):
             return self._corrupt(inputs)
         return [self._corrupt(inp) for inp in inputs]
+
+    def corruption_free_energy(self, corrupted_X, X):
+        rval =  T.sum(T.sqr(corrupted_X-X),axis=1)/(2.*(self.corruption_level ** 2.))
+        assert len(rval.type.broadcastable) == 1
+        return rval
+
+
+##################################################
+def get(str):
+    """ Evaluate str into a corruptor object, if it exists """
+    obj = globals()[str]
+    if issubclass(obj, Corruptor):
+        return obj
+    else:
+        raise NameError(str)

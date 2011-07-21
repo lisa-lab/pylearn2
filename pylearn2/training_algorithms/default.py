@@ -1,5 +1,4 @@
-from pylearn2.utils import serial #rm
-import numpy as N#rm
+from pylearn2.monitor import Monitor
 
 class DefaultTrainingAlgorithm(object):
     def __init__(self, batch_size = None , batches_per_iter = 1000 , monitoring_batches = - 1, monitoring_dataset = None):
@@ -11,19 +10,38 @@ class DefaultTrainingAlgorithm(object):
         if monitoring_dataset is None:
             assert monitoring_batches == -1
         self.monitoring_dataset, self.monitoring_batches = monitoring_dataset, monitoring_batches
+
+        self.bSetup = False
     #
 
-    def train(self, model, dataset):
+    def setup(self, model):
+        self.model = model
+
+        self.monitor = Monitor.get_monitor(model)
+        self.monitor.set_dataset(dataset = self.monitoring_dataset,
+                                 batches = self.monitoring_batches,
+                                 batch_size = self.batch_size)
+
+        self.first = True
+        self.bSetup = True
+
+
+    def train(self, dataset):
+        assert self.bSetup
+
+        model = self.model
+
 
         if self.batch_size is None:
             batch_size = model.force_batch_size
         else:
             batch_size = self.batch_size
-            if hasattr(model.force_batch_size):
+            if hasattr(model,'force_batch_size'):
                 assert model.force_batch_size <= 0 or batch_size == model.force_batch_size
 
-        if len(model.error_record) == 0 and self.monitoring_dataset:
-            self.monitor(model)
+        if self.first:
+            self.first = False
+            self.monitor()
         #
 
         for i in xrange(self.batches_per_iter):
@@ -31,22 +49,9 @@ class DefaultTrainingAlgorithm(object):
         #
 
         if self.monitoring_dataset:
-            self.monitor(model)
+            self.monitor()
         #
 
         return True
-    #
-
-    def monitor(self, model):
-        if True:
-            s = self.monitoring_dataset.get_stream_position()
-
-            self.monitoring_dataset.restart_stream()
-
-            model.record_monitoring_error(self.monitoring_dataset,batches=self.monitoring_batches,batch_size=self.batch_size)
-            print model.error_record[-1]
-
-            self.monitoring_dataset.set_stream_position(s)
-        #
     #
 #
