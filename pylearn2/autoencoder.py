@@ -10,7 +10,6 @@ from theano import tensor
 
 # Local imports
 from .base import Block, StackedBlocks
-from .scalar import rectifier
 from .utils import sharedX
 from .utils.theano_graph import is_pure_elemwise
 
