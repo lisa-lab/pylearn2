@@ -72,7 +72,7 @@ class SGDOptimizer(Optimizer):
                     print >> sys.stderr, ('Warning: In SGDOptimizer, '
                             'at least two parameters have the same name. '
                             'Both will be affected by the keyword argument '
-                            '%s.' % lr_name)
+                            '%s.' % clip_name)
                 clip_names_seen.add(clip_name)
                 p_min, p_max = kwargs[clip_name]
                 assert p_min <= p_max
