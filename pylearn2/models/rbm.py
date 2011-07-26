@@ -180,12 +180,12 @@ class PersistentCDSampler(Sampler):
         }
 
 
-class RBM(Block,Model):
+class RBM(Block, Model):
     """
     A base interface for RBMs, implementing the binary-binary case.
 
     """
-    def __init__(self, nvis, nhid, irange=0.5, rng=None, init_bias_hid = 0.0):
+    def __init__(self, nvis, nhid, irange=0.5, rng=None, init_bias_hid=0.0):
         """
         Construct an RBM object.
 
@@ -210,12 +210,12 @@ class RBM(Block,Model):
             borrow=True
         )
         self.hidbias = sharedX(
-            numpy.zeros(nhid)+init_bias_hid,
+            numpy.zeros(nhid) + init_bias_hid,
             name='hb',
             borrow=True
         )
         self.weights = sharedX(
-            rng.uniform(-irange,irange,(nvis,nhid)),
+            rng.uniform(-irange, irange, (nvis, nhid)),
             name='W',
             borrow=True
         )
@@ -224,17 +224,15 @@ class RBM(Block,Model):
 
     def get_input_dim(self):
         return self.nvis
-    #
 
     def get_params(self):
-        return [ param for param in self._params ]
-    #
+        return [param for param in self._params]
 
-    def get_weights(self, borrow = False):
-        return self.weights.get_value(borrow = borrow)
+    def get_weights(self, borrow=False):
+        return self.weights.get_value(borrow=borrow)
 
     def get_weights_format(self):
-        return ['v','h']
+        return ['v', 'h']
 
     def ml_gradients(self, pos_v, neg_v):
         """
@@ -388,7 +386,6 @@ class RBM(Block,Model):
         else:
             return [self.input_to_v_from_h(hid) for hid in h]
 
-
     def mean_h_given_v(self, v):
         """
         Compute the mean activation of the visibles given hidden unit
@@ -453,11 +450,12 @@ class RBM(Block,Model):
         Returns
         -------
         f : tensor_like
-            1-dimensional tensor (vector) representing the free energy associated with each row
-            of v.
+            1-dimensional tensor (vector) representing the free energy
+            associated with each row of v.
         """
         sigmoid_arg = self.input_to_h_from_v(v)
-        return -tensor.dot(v, self.visbias) - nnet.softplus(sigmoid_arg).sum(axis=1)
+        return (-tensor.dot(v, self.visbias) -
+                 nnet.softplus(sigmoid_arg).sum(axis=1))
 
     def free_energy_given_h(self, h):
         """
@@ -467,18 +465,19 @@ class RBM(Block,Model):
         Parameters
         ----------
         h : tensor_like
-            Theano symbolic representing the hidden unit states, with the first dimension
-            indexing training examples and the second indexing data dimensions.
+            Theano symbolic representing the hidden unit states, with the
+            first dimension indexing training examples and the second
+            indexing data dimensions.
 
         Returns
         -------
         f : tensor_like
-            1-dimensional tensor (vector) representing the free energy associated with each row
-            of v.
+            1-dimensional tensor (vector) representing the free energy
+            associated with each row of v.
         """
         sigmoid_arg = self.input_to_v_from_h(h)
-        return -tensor.dot(h, self.hidbias) - nnet.softplus(sigmoid_arg).sum(axis=1)
-
+        return (-tensor.dot(h, self.hidbias) -
+                nnet.softplus(sigmoid_arg).sum(axis=1))
 
     def __call__(self, v):
         """
@@ -524,14 +523,15 @@ class GaussianBinaryRBM(RBM):
     """
     An RBM with Gaussian visible units and binary hidden units.
 
-    TODO: there are a few different GRBM energy functions in the literature and
-          I think this is a new one... we might want to factor the energy function
-          to be separate from the logic for how to do CD and let people pick which
-          energy function implementation they want to use
+    TODO: there are a few different GRBM energy functions in the
+    literature and I think this is a new one... we might want to
+    factor the energy function to be separate from the logic for how
+    to do CD and let people pick which energy function implementation
+    they want to use.
     """
     def __init__(self, nvis, nhid, energy_function_class, irange=0.5, rng=None,
-                 mean_vis=False, init_sigma = 2., learn_sigma = False,
-                 sigma_lr_scale = 1., init_bias_hid = 0.0):
+                 mean_vis=False, init_sigma=2., learn_sigma=False,
+                 sigma_lr_scale=1., init_bias_hid=0.0):
         """
         Allocate a GaussianBinaryRBM object.
 
@@ -551,9 +551,10 @@ class GaussianBinaryRBM(RBM):
         mean_vis : bool, optional
             Don't actually sample visibles; make sample method simply return
             mean.
-        init_sigma: initial value of the sigma variable
-
-
+        init_sigma : scalar (TODO: ?)
+            Initial value of the sigma variable.
+        init_bias_hid : scalar or 1-d array of length `nhid`
+            Initial value for the biases on hidden units.
         """
         super(GaussianBinaryRBM, self).__init__(nvis, nhid,
                                                 irange, rng,
@@ -563,10 +564,13 @@ class GaussianBinaryRBM(RBM):
         self.init_sigma = init_sigma
         self.sigma_lr_scale = float(sigma_lr_scale)
 
-        base = N.ones(nvis) if energy_function_class.supports_vector_sigma() else 1.
+        if energy_function_class.supports_vector_sigma():
+            base = N.ones(nvis)
+        else:
+            base = 1
 
         self.sigma_driver = sharedX(
-            base*init_sigma / self.sigma_lr_scale,
+            base * init_sigma / self.sigma_lr_scale,
             name='sigma',
             borrow=True
         )
@@ -579,21 +583,23 @@ class GaussianBinaryRBM(RBM):
         self.mean_vis = mean_vis
 
         self.energy_function = energy_function_class(
-                    W = self.weights,
-                    sigma = self.sigma,
-                    bias_vis = self.visbias,
-                    bias_hid = self.hidbias
+                    W=self.weights,
+                    sigma=self.sigma,
+                    bias_vis=self.visbias,
+                    bias_hid=self.hidbias
                 )
 
     def censor_updates(self, updates):
         if self.sigma_driver in updates:
             assert self.learn_sigma
-            updates[self.sigma_driver] = T.clip(updates[self.sigma_driver],1e-5/self.sigma_lr_scale,1e5/self.sigma_lr_scale)
-
+            updates[self.sigma_driver] = T.clip(
+                updates[self.sigma_driver],
+                1e-5 / self.sigma_lr_scale,
+                1e5 / self.sigma_lr_scale
+            )
 
     def score(self, V):
         return self.energy_function.score(V)
-    #
 
     """
     method made obsolete by switching to energy function objects
@@ -629,8 +635,6 @@ class GaussianBinaryRBM(RBM):
 
     def P_H_given_V(self, V):
         return self.energy_function.P_H_given(V)
-    #
-
 
     def mean_v_given_h(self, h):
         """
@@ -715,18 +719,22 @@ class GaussianBinaryRBM(RBM):
             zero_mean = rng.normal(size=shape) * self.sigma
             return zero_mean + v_mean
 
+
 class mu_pooled_ssRBM(RBM):
     """
+    TODO: reformat doc
+
     alpha    : vector of length nslab, diagonal precision term on s.
     b        : vector of length nhid, hidden unit bias.
     B        : vector of length nvis, diagonal precision on v.
                Lambda in ICML2011 paper.
-    Lambda   : matrix of shape nvis x nhid, whose i-th column encodes a diagonal
-               precision on v, conditioned on h_i.
+    Lambda   : matrix of shape nvis x nhid, whose i-th column encodes a
+               diagonal precision on v, conditioned on h_i.
                phi in ICML2011 paper.
     log_alpha: vector of length nslab, precision on s.
     mu       : vector of length nslab, mean parameter on s.
-    W        : matrix of shape nvis x nslab, weights of the nslab linear filters s.
+    W        : matrix of shape nvis x nslab, weights of the nslab linear
+               filters s.
     """
     def __init__(self, nvis, nhid, n_s_per_h,
             batch_size,
@@ -767,7 +775,7 @@ class mu_pooled_ssRBM(RBM):
             # Derived closed to Xavier Glorot's magic formula
             W_irange = 2 / numpy.sqrt(nvis * nhid)
         self.W = sharedX(
-                (.5-rng.rand(self.nvis, self.nslab)) * 2 * W_irange,
+                (.5 - rng.rand(self.nvis, self.nslab)) * 2 * W_irange,
                 name='W', borrow=True)
 
         # THE BETA IS IGNORED DURING TRAINING - FIXED AT MARGINAL DISTRIBUTION
@@ -805,7 +813,7 @@ class mu_pooled_ssRBM(RBM):
         s_mu, s_var = self.mean_var_s_given_v_h1(v)
         s_mu_shape = (batch_size, self.nslab)
         s_sample = s_mu + rng.normal(size=s_mu_shape) * tensor.sqrt(s_var)
-        #s_sample = (s_sample.reshape() * h_sample.dimshuffle(0,1,'x')).flatten(2)
+        #s_sample=(s_sample.reshape()*h_sample.dimshuffle(0,1,'x')).flatten(2)
 
         # sample v given (s,h)
         v_mean, v_var = self.mean_var_v_given_h_s(h_sample, s_sample)
@@ -822,6 +830,7 @@ class mu_pooled_ssRBM(RBM):
     def input_to_h_from_v(self, v):
         D = self.Lambda
         alpha = self.alpha
+
         def sum_s(x):
             return x.reshape((
                 -1,
@@ -832,7 +841,7 @@ class mu_pooled_ssRBM(RBM):
                 self.b,
                 -0.5 * tensor.dot(v * v, D),
                 sum_s(self.mu * tensor.dot(v, self.W)),
-                sum_s(0.5 * tensor.sqr(tensor.dot(v, self.W))/alpha))
+                sum_s(0.5 * tensor.sqr(tensor.dot(v, self.W)) / alpha))
 
     #def mean_h_given_v(self, v):
     #    inherited version is OK:
@@ -857,11 +866,10 @@ class mu_pooled_ssRBM(RBM):
     def mean_v_given_h(self, h):
         raise NotImplementedError('mu_pooled_ssRBM.mean_v_given_h')
 
-
     def free_energy_given_v(self, v):
         sigmoid_arg = self.input_to_h_from_v(v)
         return tensor.add(
-                0.5 * (self.B * (v**2)).sum(axis=1),
+                0.5 * (self.B * (v ** 2)).sum(axis=1),
                 -tensor.nnet.softplus(sigmoid_arg).sum(axis=1))
 
     #def __call__(self, v):
@@ -914,4 +922,3 @@ def build_stacked_RBM(nvis, nhids, batch_size, vis_type='binary',
 
     # Create the stack
     return StackedBlocks(layers)
-
