@@ -341,14 +341,14 @@ class DenoisingAutoencoder(Autoencoder):
         return super(DenoisingAutoencoder, self).reconstruct(corrupted)
 
 
-class ContractingAutoencoder(Autoencoder):
+class ContractiveAutoencoder(Autoencoder):
     """
     A contracting autoencoder works like a regular autoencoder, and adds an
     extra term to its cost function.
     """
     @functools.wraps(Autoencoder.__init__)
     def __init__(self, *args, **kwargs):
-        super(ContractingAutoencoder, self).__init__(*args, **kwargs)
+        super(ContractiveAutoencoder, self).__init__(*args, **kwargs)
         dummyinput = tensor.matrix()
         if not is_pure_elemwise(self.act_enc(dummyinput), [dummyinput]):
             raise ValueError("Invalid encoder activation function: "
@@ -476,7 +476,7 @@ def build_stacked_ae(nvis, nhids, act_enc, act_dec,
             raise ValueError("Can't specify denoising and contracting "
                              "objectives simultaneously")
         elif cae:
-            autoenc = ContractingAutoencoder(*args)
+            autoenc = ContractiveAutoencoder(*args)
         elif corr is not None:
             autoenc = DenoisingAutoencoder(corr, *args)
         else:
