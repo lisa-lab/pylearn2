@@ -51,8 +51,11 @@ class SGDOptimizer(Optimizer):
         """
         if hasattr(params, '__iter__'):
             self.params = params
-        else:
+        elif hasattr(params, 'params') and hasattr(params.params, '__call__'):
             self.params = params.params()
+        else:
+            raise ValueError("SGDOptimizer couldn't figure out what to do "
+                             "with first argument: '%s'" % str(params))
         if anneal_start == None:
             self.anneal_start = None
         else:
