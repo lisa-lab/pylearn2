@@ -433,7 +433,7 @@ class ContractingAutoencoder(Autoencoder):
         def penalty(inputs):
             jacobian = self.jacobian_h_x(inputs)
             # Penalize the mean of the L2 norm, basically.
-            L = tensor.sum(jacobian ** 2, axis=(1,2))
+            L = tensor.sum(jacobian ** 2, axis=(1, 2))
             return L
         if isinstance(inputs, tensor.Variable):
             return penalty(inputs)
