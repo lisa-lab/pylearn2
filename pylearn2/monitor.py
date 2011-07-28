@@ -12,17 +12,7 @@ class Monitor:
         self.examples_seen = 0
         self.dataset = None
         self.dirty = True
-
-
-    def __getstate__(self):
-        d = copy.copy(self.__dict__)
-        d['dataset'] = self.dataset.yaml_src
-        return d
-
-    def __setstate__(self, d):
-        self.__dict__.update(d)
-        self.dataset = yaml_parse.load(d['dataset'])
-
+        self.names_to_del = []
 
     def set_dataset(self, dataset, batches, batch_size):
         self.dataset = dataset
@@ -37,6 +27,10 @@ class Monitor:
         d = self.dataset
 
         if d:
+            if isinstance(d, str):
+                d = yaml_parse.load(d)
+                self.dataset = d
+
             s = d.get_stream_position()
 
             d.restart_stream()
@@ -68,6 +62,8 @@ class Monitor:
 
     def redo_theano(self):
 
+        init_names = dir(self)
+
         updates = {}
 
         for channel in self.channels.values():
@@ -86,6 +82,31 @@ class Monitor:
             updates[channel.val_shared] = channel.val_shared + channel.val
 
         self.accum = function([X],givens = givens, updates = updates)
+
+        final_names = dir(self)
+
+        self.register_names_to_del( [ name for name in final_names if name not in init_names ])
+
+    def register_names_to_del(self, names):
+        for name in names:
+            if name not in self.names_to_del:
+                self.names_to_del.append(name)
+
+    def __getstate__(self):
+        temp = self.dataset
+        if not isinstance(self.dataset, str):
+            self.dataset = self.dataset.yaml_src
+        d = copy.copy(self.__dict__)
+        self.dataset = temp
+
+        for name in self.names_to_del:
+            if name in d:
+                del d[name]
+
+        return d
+
+    def __setstate__(self, d):
+        self.__dict__.update(d)
 
 
 

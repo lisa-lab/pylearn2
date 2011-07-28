@@ -114,13 +114,10 @@ class Model(object):
         In particular, this should include all theano functions,
         since they do not play nice with pickling. """
 
-        d = copy.copy(self.__dict__)
+        d = {}
 
-        #remove everything set up by redo_theano
-
-        for name in self.names_to_del:
-            if name in d:
-                del d[name]
+        for name in set(self.__dict__.keys()).difference(self.names_to_del):
+            d[name] = copy.copy(self.__dict__[name])
 
         return d
     #
@@ -130,7 +127,7 @@ class Model(object):
     #
 
     def __init__(self):
-        self.names_to_del = []
+        self.names_to_del = set()
     #
 
     def register_names_to_del(self, names):
@@ -142,10 +139,6 @@ class Model(object):
         (unless your model overrides __getstate__ )
         """
 
-        for name in names:
-            if name not in self.names_to_del:
-                self.names_to_del.append(name)
-            #
-        #
+        self.names_to_del = self.names_to_del.union(names)
     #
 #
