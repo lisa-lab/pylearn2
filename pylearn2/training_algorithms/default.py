@@ -1,4 +1,5 @@
 from pylearn2.monitor import Monitor
+import theano.tensor as T
 
 class DefaultTrainingAlgorithm(object):
     def __init__(self, batch_size = None , batches_per_iter = 1000 , monitoring_batches = - 1, monitoring_dataset = None):
@@ -21,6 +22,19 @@ class DefaultTrainingAlgorithm(object):
         self.monitor.set_dataset(dataset = self.monitoring_dataset,
                                  batches = self.monitoring_batches,
                                  batch_size = self.batch_size)
+
+
+        X = T.matrix()
+
+        channels = model.get_monitoring_channels(X)
+
+        for name in channels:
+            J =    channels[name]
+            self.monitor.add_channel(name = name,
+                                 ipt = X,
+                                 val = J)
+
+
 
         self.first = True
         self.bSetup = True
