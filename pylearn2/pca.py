@@ -441,16 +441,6 @@ class SparsePCA(PCA):
 
 
 ##################################################
-def get(str):
-    """ Evaluate str into an autoencoder object, if it exists """
-    obj = globals()[str]
-    if issubclass(obj, PCA):
-        return obj
-    else:
-        raise NameError(str)
-
-
-##################################################
 if __name__ == "__main__":
     """
     Load a dataset; compute a PCA transformation matrix from the training subset

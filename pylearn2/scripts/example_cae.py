@@ -20,7 +20,7 @@ except ImportError:
 # Local imports
 from pylearn2.cost import SquaredError
 from pylearn2.corruption import GaussianCorruptor
-from pylearn2.autoencoder import ContractingAutoencoder, build_stacked_ae
+from pylearn2.autoencoder import ContractiveAutoencoder, build_stacked_ae
 from pylearn2.optimizer import SGDOptimizer
 
 if __name__ == "__main__":
@@ -47,7 +47,7 @@ if __name__ == "__main__":
     minibatch = theano.printing.Print('min')(minibatch)
 
     # Allocate a denoising autoencoder with binomial noise corruption.
-    cae = ContractingAutoencoder(conf['nvis'], conf['nhid'],
+    cae = ContractiveAutoencoder(conf['nvis'], conf['nhid'],
                                  conf['act_enc'], conf['act_dec'])
 
     # Allocate an optimizer, which tells us how to update our model.
@@ -97,7 +97,7 @@ if __name__ == "__main__":
         cost = SquaredError(layer)(thislayer_input[0],
                 layer.reconstruct(thislayer_input[0])
                 ).mean()
-        if isinstance(layer,ContractingAutoencoder):
+        if isinstance(layer,ContractiveAutoencoder):
             cost+=layer.contraction_penalty(thislayer_input[0]).mean()
         opt = SGDOptimizer( layer.params(),
                             stack_conf['base_lr'],

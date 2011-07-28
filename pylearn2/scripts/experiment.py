@@ -29,7 +29,7 @@ from pylearn2.pca import PCA
 from pylearn2.base import StackedBlocks
 from pylearn2.utils import BatchIterator
 from pylearn2.optimizer import SGDOptimizer
-from pylearn2.autoencoder import Autoencoder, ContractingAutoencoder
+from pylearn2.autoencoder import Autoencoder, ContractiveAutoencoder
 from pylearn2.rbm import RBM
 
 def create_pca(conf, layer, data, model=None):
@@ -114,7 +114,7 @@ def create_ae(conf, layer, data, model=None):
     # Allocate an optimizer, which tells us how to update our model.
     MyCost = pylearn2.cost.get(layer['cost_class'])
     varcost = MyCost(ae)(minibatch, ae.reconstruct(minibatch))
-    if isinstance(ae, ContractingAutoencoder):
+    if isinstance(ae, ContractiveAutoencoder):
         alpha = layer.get('contracting_penalty', 0.1)
         penalty = alpha * ae.contraction_penalty(minibatch)
         varcost = varcost + penalty
@@ -344,7 +344,7 @@ if __name__ == "__main__":
               'act_dec': None,
               'irange': 0.001,
               'cost_class': 'SquaredError',
-              'autoenc_class': 'ContractingAutoencoder',
+              'autoenc_class': 'ContractiveAutoencoder',
               'corruption_class': 'BinomialCorruptor',
               'corruption_level': 0.3,  # For DenoisingAutoencoder
               'contracting_penalty': 0.1,  # For ContractingAutoencoder

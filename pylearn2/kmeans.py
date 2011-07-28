@@ -163,6 +163,7 @@ class KMeans(Block):
             dists[:, i] = numpy.square((X - mu[i, :])).sum(axis=1)
         return dists / dists.sum(axis=1).reshape(-1, 1)
 
+
 if __name__ == '__main__':
     import theano
     from theano import tensor
