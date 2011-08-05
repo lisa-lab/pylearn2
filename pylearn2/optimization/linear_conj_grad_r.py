@@ -91,11 +91,14 @@ def linear_conj_grad_r( f, x, tol = 1e-3, max_iters = 1000):
                     in zip(residuals, old_directions) ]
 
 
-    A_i_dot_r = T.R_op(T.grad(f,x),x,residuals)
+    A_i_dot_r = T.Rop(T.grad(f,x),x,residuals)
+
+    if not isinstance(A_i_dot_r, list):
+        A_i_dot_r = [ A_i_dot_r ]
 
     #TODO-- sum of elemwise product can be optimized to dot in many cases
     #       is this optimization actually getting applied? if not, make it so
-    r_A_r = sum( [ T.sum(r_i * A_ri) for r_i, A_ri in zip(residuals,A_i_dot_r) ] )
+    r_A_r = sum( [ T.sum(r_i * A_ri) for r_i, A_ri in zip(residuals, A_i_dot_r) ] )
 
 
     alpha =  residual_norm_squared / r_A_r
