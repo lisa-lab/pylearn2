@@ -3,7 +3,7 @@ import theano.tensor as T
 import copy
 from pylearn2.config import yaml_parse
 
-class Monitor:
+class Monitor(object):
 
     def __init__(self, model):
         self.model = model
@@ -127,7 +127,7 @@ class Monitor:
         return rval
     #
 
-class Channel:
+class Channel(object):
     def __init__(self, ipt, val):
         self.ipt = ipt
         self.val = val
