@@ -205,6 +205,7 @@ def rbm_z_ratio(rbmA_params, rbmB_params, n_runs, v0=None,
                                      fe, allow_input_downcast=False)
 
     ### RUN AIS ###
+    weights_b = rbmB_params
     v0 = rng.rand(n_runs, weights_b.shape[0]) if v0 is None else v0
     ais = AIS(sample_fn, free_energy_fn, v0, n_runs)
     ais.set_betas(betas, key_betas=key_betas)
