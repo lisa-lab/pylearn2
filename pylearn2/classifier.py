@@ -30,6 +30,7 @@ from theano import tensor
 from .base import Block
 from .utils import sharedX
 
+
 class LogisticRegressionLayer(Block):
     """Multi-class Logistic Regression Class
 
@@ -69,16 +70,17 @@ class LogisticRegressionLayer(Block):
         # parameters of the model
         self._params = [self.W, self.b]
 
-
-    def p_y_given_x(self, input):
+    def p_y_given_x(self, inp):
+        """TODO: docstring"""
         # compute vector of class-membership probabilities in symbolic form
-        return tensor.nnet.softmax(tensor.dot(input, self.W)+self.b)
+        return tensor.nnet.softmax(tensor.dot(inp, self.W) + self.b)
 
-    def predict_y(self, input):
+    def predict_y(self, inp):
+        """TODO: docstring"""
         # compute prediction as class whose probability is maximal in
         # symbolic form
-        return tensor.argmax(self.p_y_given_x(input), axis=1)
+        return tensor.argmax(self.p_y_given_x(inp), axis=1)
 
-    def __call__(self, input):
-        return self.p_y_given_x(input)
-
+    def __call__(self, inp):
+        """TODO: docstring"""
+        return self.p_y_given_x(inp)
