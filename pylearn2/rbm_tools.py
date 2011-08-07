@@ -4,7 +4,6 @@ from theano import tensor
 from theano.tensor import nnet
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 
-from .utils import sharedX
 floatX = theano.config.floatX
 
 
