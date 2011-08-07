@@ -111,7 +111,7 @@ def rbm_ais(rbm_params, n_runs, visbias_a=None, data=None,
 
     if rng is None:
         rng = numpy.random.RandomState(seed)
- 
+
     if data is None:
         if visbias_a is None:
             # configure base-rate biases to those supplied by user
@@ -122,30 +122,27 @@ def rbm_ais(rbm_params, n_runs, visbias_a=None, data=None,
         # set biases of base-rate model to ML solution
         data = numpy.asarray(data, dtype=floatX)
         data = numpy.mean(data, axis=0)
-        data = numpy.minimum(data, 1-1e-5)
+        data = numpy.minimum(data, 1 - 1e-5)
         data = numpy.maximum(data, 1e-5)
-        visbias_a = -numpy.log(1./data - 1)
+        visbias_a = -numpy.log(1. / data - 1)
     hidbias_a = numpy.zeros_like(hidbias)
     weights_a = numpy.zeros_like(weights)
-
     # generate exact sample for the base model
-    v0 = numpy.tile(1./(1+numpy.exp(-visbias_a)), (n_runs,1))
+    v0 = numpy.tile(1. / (1 + numpy.exp(-visbias_a)), (n_runs, 1))
     v0 = numpy.array(v0 > rng.random_sample(v0.shape), dtype=floatX)
-
     # we now compute the log AIS weights for the ratio log(Zb/Za)
-    ais = rbm_z_ratio((weights_a,visbias_a,hidbias_a), 
-                      rbm_params, n_runs, v0, 
+    ais = rbm_z_ratio((weights_a, visbias_a, hidbias_a),
+                      rbm_params, n_runs, v0,
                       betas=betas, key_betas=key_betas, rng=rng)
     dlogz, var_dlogz = ais.estimate_from_weights()
-
     # log Z = log_za + dlogz
-    ais.log_za = weights_a.shape[1]*numpy.log(2) + numpy.sum(numpy.log(1+numpy.exp(visbias_a)))
+    ais.log_za = weights_a.shape[1] * numpy.log(2) + \
+                 numpy.sum(numpy.log(1 + numpy.exp(visbias_a)))
     ais.log_zb = ais.log_za + dlogz
-
     return (ais.log_zb, var_dlogz), ais
 
- 
-def rbm_z_ratio(rbmA_params, rbmB_params, n_runs, v0=None, 
+
+def rbm_z_ratio(rbmA_params, rbmB_params, n_runs, v0=None,
                 betas=None, key_betas=None, rng=None, seed=23098):
     """
     Computes the AIS log-weights log_wi, such that:
