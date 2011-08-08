@@ -3,7 +3,9 @@ import yaml
 from ..utils.call_check import checked_call
 from ..utils import serial
 
+
 is_initialized = False
+
 
 def load(stream, overrides=None, **kwargs):
     """
@@ -34,11 +36,11 @@ def load(stream, overrides=None, **kwargs):
         initialize()
     proxy_graph = yaml.load(stream, **kwargs)
 
-
     #import pdb; pdb.set_trace()
     if overrides is not None:
         handle_overrides(proxy_graph, overrides)
     return instantiate_all(proxy_graph)
+
 
 def load_path(path, overrides=None, **kwargs):
     """
@@ -63,10 +65,11 @@ def load_path(path, overrides=None, **kwargs):
     -----
     Other keyword arguments are passed on to `yaml.load`.
     """
-    f =  open( path, 'r')
+    f = open(path, 'r')
     content = ''.join(f.readlines())
     f.close()
     return load(content, **kwargs)
+
 
 def handle_overrides(graph, overrides):
     """
@@ -95,6 +98,7 @@ def handle_overrides(graph, overrides):
         except KeyError:
             raise KeyError("'%s' override failed at '%s'", (key, levels[-1]))
 
+
 def instantiate_all(graph):
     """
     Instantiate all ObjectProxy objects in a nested hierarchy.
@@ -112,8 +116,8 @@ def instantiate_all(graph):
     """
 
     def should_instantiate(obj):
-        classes = [ ObjectProxy, dict, list ]
-        return True in [ isinstance(obj, cls) for cls in classes]
+        classes = [ObjectProxy, dict, list]
+        return True in [isinstance(obj, cls) for cls in classes]
 
     if not isinstance(graph, list):
         for key in graph:
@@ -134,7 +138,7 @@ def instantiate_all(graph):
     #endif
 
     return graph
-#
+
 
 class ObjectProxy(object):
     """
@@ -173,7 +177,8 @@ class ObjectProxy(object):
             pass
         return self.instance
 
-def multi_constructor(loader, tag_suffix, node) :
+
+def multi_constructor(loader, tag_suffix, node):
     """
     Constructor function passed to PyYAML telling it how to construct
     objects from argument descriptions. See PyYAML documentation for
@@ -192,29 +197,34 @@ def multi_constructor(loader, tag_suffix, node) :
         try:
             exec('import %s' % modulename)
         except ImportError, e:
-            #We know it's an ImportError, but is it an ImportError related to this path,
-            #or did the module we're importing have an unrelated ImportError?
-            #and yes, this test can still have false positives, feel free to improve it
+            # We know it's an ImportError, but is it an ImportError related to
+            # this path,
+            #o r did the module we're importing have an unrelated ImportError?
+            # and yes, this test can still have false positives, feel free to
+            # improve it
             pieces = modulename.split('.')
             str_e = str(e)
-            found = True in [ piece.find(str(e)) != -1 for piece in pieces ]
+            found = True in [piece.find(str(e)) != -1 for piece in pieces]
 
             if found:
-                #The yaml file is probably to blame.
-                #Report the problem with the full module path from the YAML file
-                raise ImportError("Could not import "+modulename+". python wanted to phrase this as: "+str_e)
+                # The yaml file is probably to blame.
+                # Report the problem with the full module path from the YAML
+                # file
+                raise ImportError("Could not import %s; ImportError was %s" %
+                                  (modulename, str_e))
             else:
-                #The module being imported contains an error.
-                #Pass the original exception on up, with the original stack trace preserved
+                # The module being imported contains an error.
+                # Pass the original exception on up, with the original stack
+                # trace preserved
                 raise
         try:
             classname = eval(tag_suffix)
         except AttributeError:
             raise AttributeError('Could not evaluate %s' % tag_suffix)
-        rval =  ObjectProxy(classname, mapping, yaml_src)
-
+        rval = ObjectProxy(classname, mapping, yaml_src)
 
     return rval
+
 
 def multi_constructor_pkl(loader, tag_suffix, node):
     """
@@ -227,10 +237,11 @@ def multi_constructor_pkl(loader, tag_suffix, node):
     mapping = loader.construct_yaml_str(node)
     assert tag_suffix == ""
 
-    rval = ObjectProxy(None,{},yaml.serialize(node))
+    rval = ObjectProxy(None, {}, yaml.serialize(node))
     rval.instance = serial.load(mapping)
 
     return rval
+
 
 def initialize():
     """

@@ -76,19 +76,15 @@ class CosDataset(object):
 
     def reset_RNG(self):
         if 'default_rng' not in dir(self):
-            self.default_rng = N.random.RandomState([17,2,946])
+            self.default_rng = N.random.RandomState([17, 2, 946])
         self.rng = copy.copy(self.default_rng)
-    #
 
-    def apply_preprocessor(self, preprocessor, can_fit = False):
+    def apply_preprocessor(self, preprocessor, can_fit=False):
         raise NotImplementedError()
-    #
 
     def get_batch_design(self, batch_size):
-        x = N.cast[floatX](self.rng.uniform(self.min_x, self.max_x, (batch_size,1)))
+        x = N.cast[floatX](self.rng.uniform(self.min_x, self.max_x,
+                                            (batch_size, 1)))
         y = N.cos(x) + N.cast[floatX](self.rng.randn(*x.shape)) * self.std
-        rval = N.hstack((x,y))
+        rval = N.hstack((x, y))
         return rval
-    #
-#
-
