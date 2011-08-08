@@ -73,10 +73,6 @@ class PatchViewer(object):
             cs_pad = (self.patch_shape[1] - patch.shape[1]) / 2
             ce_pad = self.patch_shape[1] - cs_pad - patch.shape[1]
         else:
-            if patch.shape[0:2] != tuple(self.patch_shape):
-                raise Exception("Expected patch of shape " + \
-                                str(self.patch_shape) + \
-                                ", got one of shape " + str(patch.shape))
             rs_pad = 0
             re_pad = 0
             cs_pad = 0
