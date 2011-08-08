@@ -35,9 +35,13 @@ except ImportError:
     #this was renamed to eigsh in scipy 0.9
     try:
         from scipy.sparse.linalg import eigsh as eigen_symmetric
-    except:
-        print "couldn't import eigsh / eigen_symmetric from scipy.linalg.sparse, some of your pca functions may randomly fail later"
-        print "the fact that somebody is using this doesn't bode well since it's unlikely that the covariance matrix is sparse"
+    except ImportError:
+        # TODO: change this to use warn()
+        print ("couldn't import eigsh / eigen_symmetric from "
+               "scipy.linalg.sparse, some of your pca functions "
+               "may randomly fail later")
+        print ("the fact that somebody is using this doesn't bode well "
+               " since it's unlikely that the covariance matrix is sparse")
 
 
 # Local imports
@@ -133,10 +137,12 @@ class PCA(Block):
         # Update component cutoff, in case min_variance or num_components has
         # changed (or both).
 
-        #TODO: Looks like the person who wrote this function didn't know what they were doing
-        # component_cutoff is a shared variable, so updating its value here has NO EFFECT on
-        # the symbolic expression returned by this call
-        # (and what this expression evalutes to can be modified by subsequent calls to _update_cutoff)
+        #TODO: Looks like the person who wrote this function didn't know what
+        #      they were doing
+        # component_cutoff is a shared variable, so updating its value here has
+        # NO EFFECT on the symbolic expression returned by this call (and what
+        # this expression evalutes to can be modified by subsequent calls to
+        # _update_cutoff)
         self._update_cutoff()
 
         normalized_mean = inputs - self.mean
@@ -144,9 +150,10 @@ class PCA(Block):
 
         W = self.W[:, :self.component_cutoff]
 
-        #TODO: this is inefficient, should make another shared variable where this proprocessing is already done
+        #TODO: this is inefficient, should make another shared variable where
+        # this proprocessing is already done
         if self.whiten:
-            W = W/tensor.sqrt(self.v[:self.component_cutoff])
+            W = W / tensor.sqrt(self.v[:self.component_cutoff])
 
         Y = tensor.dot(normalized_mean, W)
 
@@ -154,9 +161,8 @@ class PCA(Block):
 
     def get_weights(self):
         """
-
-        Compute and return the matrix one should multiply with to get the PCA/whitened data
-
+        Compute and return the matrix one should multiply with to get the
+        PCA/whitened data
         """
 
         self._update_cutoff()
@@ -168,28 +174,20 @@ class PCA(Block):
 
         if self.whiten:
             W /= N.sqrt(self.v.get_value(borrow=False)[:component_cutoff])
-        #
 
         return W
-    #
 
-    def reconstruct(self, inputs, add_mean = True):
+    def reconstruct(self, inputs, add_mean=True):
         """
         Given a PCA transformation of the current data, compute and return
         the reconstruction of the original input """
-
         self._update_cutoff()
-
         if self.whiten:
             inputs *= tensor.sqrt(self.v[:self.component_cutoff])
-
-        X = tensor.dot(inputs,self.W[:,:self.component_cutoff].T)
-
+        X = tensor.dot(inputs, self.W[:, :self.component_cutoff].T)
         if add_mean:
             X = X + self.mean
-
         return X
-
 
     def _update_cutoff(self):
         """
@@ -261,8 +259,9 @@ class SparseMatPCA(PCA):
         """
         Compute the PCA transformation matrix.
 
-        Given a rectangular matrix X = USV such that S is a diagonal matrix with
-        X's singular values along its diagonal, computes and returns W = V^-1.
+        Given a rectangular matrix X = USV such that S is a diagonal matrix
+        with X's singular values along its diagonal, computes and returns W =
+        V^-1.
         """
 
         assert sparse.issparse(X)
@@ -332,24 +331,18 @@ class Cov:
         self.batch_size = batch_size
 
     def __call__(self, X):
-
         X = X.T
-
-
-        m,n = X.shape
-
+        m, n = X.shape
         mean = X.mean(axis=0)
+        rval = N.zeros((n, n))
+        for i in xrange(0, m, self.batch_size):
+            B = X[i:i + self.batch_size, :] - mean
+            rval += N.dot(B.T, B)
+        return rval / float(m - 1)
 
-        rval = N.zeros((n,n))
-
-        for i in xrange(0,m,self.batch_size):
-            B = X[i:i+self.batch_size,:] - mean
-            rval += N.dot(B.T,B)
-
-        return rval / float(m-1)
 
 class CovEigPCA(PCA):
-    def __init__(self, cov_batch_size = None, **kwargs):
+    def __init__(self, cov_batch_size=None, **kwargs):
         super(CovEigPCA, self).__init__(**kwargs)
         if cov_batch_size is not None:
             self.cov = Cov(cov_batch_size)
@@ -360,9 +353,7 @@ class CovEigPCA(PCA):
         """
         Perform direct computation of covariance matrix eigen{values,vectors}.
         """
-
         v, W = linalg.eigh(self.cov(X.T))
-
         # The resulting components are in *ascending* order of eigenvalue, and
         # W contains eigenvectors in its *columns*, so we simply reverse both.
         return v[::-1], W[:, ::-1]
@@ -374,9 +365,7 @@ class SVDPCA(PCA):
         Compute covariance matrix eigen{values,vectors} via Singular Value
         Decomposition (SVD).
         """
-
         U, s, Vh = linalg.svd(X, full_matrices=False)
-
         # Vh contains eigenvectors in its *rows*, thus we transpose it.
         # s contains X's singular values in *decreasing* order, thus (noting
         # that X's singular values are the sqrt of cov(X'X)'s eigenvalues), we
@@ -386,8 +375,9 @@ class SVDPCA(PCA):
 
 class SparsePCA(PCA):
     def train(self, X, mean=None):
-        print >> sys.stderr, 'WARNING: You should probably be using SparseMatPCA, ' \
-            'unless your design matrix fits in memory.'
+        print >> sys.stderr, ('WARNING: You should probably be using '
+                              'SparseMatPCA, unless your design matrix fits '
+                              'in memory.')
 
         n, d = X.shape
         # Can't subtract a sparse vector from a sparse matrix, apparently,
@@ -414,15 +404,18 @@ class SparsePCA(PCA):
         """
         Compute and return the PCA transformation of sparse data.
 
-        Precondition: self.mean has been subtracted from inputs.
-        The reason for this is that, as far as I can tell, there is no way to
-        subtract a vector from a sparse matrix without constructing an intermediary
-        dense matrix, in theano; even the hack used in train() won't do, because
-        there is no way to symbolically construct a sparse matrix by repeating a
-        vector (again, as far as I can tell).
+        Precondition: self.mean has been subtracted from inputs.  The reason
+        for this is that, as far as I can tell, there is no way to subtract a
+        vector from a sparse matrix without constructing an intermediary dense
+        matrix, in theano; even the hack used in train() won't do, because
+        there is no way to symbolically construct a sparse matrix by repeating
+        a vector (again, as far as I can tell).
 
         :type inputs: scipy.sparse matrix object, shape (n, d)
         :param inputs: sparse matrix on which to compute PCA
+
+        TODO: docstring upgrade. Make it consistent with the numpy/pylearn
+        standard.
         """
 
         # Update component cutoff, in case min_variance or num_components has
@@ -439,20 +432,20 @@ class SparsePCA(PCA):
         inputs = SparseType('csr', dtype=theano.config.floatX)()
         return theano.function([inputs], self(inputs), name=name)
 
-
 ##################################################
 if __name__ == "__main__":
     """
-    Load a dataset; compute a PCA transformation matrix from the training subset
-    and pickle it (or load a previously computed one); apply said transformation
-    to the test and valid subsets.
+    Load a dataset; compute a PCA transformation matrix from the training
+    subset and pickle it (or load a previously computed one); apply said
+    transformation to the test and valid subsets.
     """
 
     import argparse
     from .utils import load_data, get_constant
 
     parser = argparse.ArgumentParser(
-        description="Transform the output of a model by Principal Component Analysis"
+        description="Transform the output of a model by Principal Component"
+                    " Analysis"
     )
     parser.add_argument('dataset', action='store',
                         type=str,
@@ -479,12 +472,12 @@ if __name__ == "__main__":
                         type=int,
                         default=500,
                         required=False,
-                        help='Size of minibatches used in the online algorithm')
+                        help='Size of minibatches used in online algorithm')
     parser.add_argument('-n', '--num-components', action='store',
                         type=int,
                         default=None,
                         required=False,
-                        help='This many most important components will be preserved')
+                        help='This many most components will be preserved')
     parser.add_argument('-v', '--min-variance', action='store',
                         type=float,
                         default=0.0,
@@ -495,14 +488,17 @@ if __name__ == "__main__":
                         default=False,
                         const=True,
                         required=False,
-                        help='Divide projected features by their standard deviation')
+                        help='Divide projected features by their '
+                             'standard deviation')
     args = parser.parse_args()
-
     # Load dataset.
     data = load_data({'dataset': args.dataset})
-    [train_data, valid_data, test_data] = map(lambda(x): x.get_value(borrow=True), data)
-    print >> sys.stderr, "Dataset shapes:", map(lambda(x): get_constant(x.shape), data)
-
+    # TODO: this can be done more efficiently and readably by list
+    # comprehensions
+    train_data, valid_data, test_data = map(lambda(x):
+                                            x.get_value(borrow=True), data)
+    print >> sys.stderr, "Dataset shapes:", map(lambda(x):
+                                                get_constant(x.shape), data)
     # PCA base-class constructor arguments.
     conf = {
         'num_components': args.num_components,

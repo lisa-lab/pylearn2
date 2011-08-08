@@ -1,5 +1,6 @@
 """TODO: module-level docstring."""
 
+
 class InstrumentRecord(object):
     """
     A class for recording various instrumented values during learning.

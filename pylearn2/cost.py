@@ -52,7 +52,9 @@ class BinaryCrossEntropy(SupervisedCost):
     e.g., one-hot codes).
     """
     def __call__(self, prediction, target):
-        ce = lambda x, z: -((x * tensor.log(z) + (1 - x) * tensor.log(1 - z)).sum(axis=1))
+        ce = lambda x, z: (-((x * tensor.log(z)
+                      + (1 - x) * tensor.log(1 - z)).sum(axis=1)))
+
         if isinstance(prediction, tensor.Variable):
             return ce(prediction, target)
         return sum(
@@ -70,13 +72,14 @@ class OneHotCrossEntropy(SupervisedCost):
     .. math::
 
         \frac{1}{|\mathcal{D}|} \mathcal{L} (\theta=\{W,b\}, \mathcal{D}) =
-        \frac{1}{|\mathcal{D}|} \sum_{i=0}^{|\mathcal{D}|} \log(P(Y=y^{(i)}|x^{(i)}, W,b)) \\
+        \frac{1}{|\mathcal{D}|} \sum_{i=0}^{|\mathcal{D}|}
+        \log(P(Y=y^{(i)}|x^{(i)}, W,b)) \\
             \ell (\theta=\{W,b\}, \mathcal{D})
 
     Returns the mean over a minibatch.
     """
-
     def __call__(self, prediction, target):
+        """TODO: Document me."""
         # Number of rows in target, i.e., number of examples in the minibatch.
         batch_size = target.shape[0]
         # tensor.arange(batch_size) is a symbolic vector which will contain

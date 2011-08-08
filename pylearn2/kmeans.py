@@ -37,7 +37,7 @@ class KMeans(Block):
 
         self.verbose = verbose
 
-    def train(self, X, mu = None):
+    def train(self, X, mu=None):
         """
         Process kmeans algorithm on the input to localize clusters.
         """
@@ -52,13 +52,14 @@ class KMeans(Block):
         n, m = X.shape
         k = self.k
 
-        #taking random inputs as initial clusters if user does not provide them.
+        # taking random inputs as initial clusters if user does not provide
+        # them.
         if mu is not None:
             if not len(mu) == k:
                 raise Exception('You gave %i clusters, but k=%i were expected'
                                 % (len(mu), k))
         else:
-            indices = numpy.random.randint(X.shape[0], size = k)
+            indices = numpy.random.randint(X.shape[0], size=k)
             mu = X[indices]
 
         try:
