@@ -2,7 +2,7 @@ import numpy as N
 from PIL import Image
 import os
 
-def make_viewer(mat, grid_shape  = None, patch_shape = None, activation = None):
+def make_viewer(mat, grid_shape=None, patch_shape=None, activation=None):
     """ Given filters in rows, guesses dimensions of patchse
         and nice dimensions for the PatchViewer and returns a PatchViewer
         containing visualizations of the filters"""
@@ -60,10 +60,10 @@ class  PatchViewer(object):
         #print "Made patch viewer with "+str(grid_shape)+" panels and patch size "+str(patch_shape)
 
     def clear(self):
-		self.image[:] = 0.5
-		self.curPos = (0,0)
+        self.image[:] = 0.5
+        self.curPos = (0,0)
 
-	#0 is perfect gray. If not rescale, assumes images are in [-1,1]
+    #0 is perfect gray. If not rescale, assumes images are in [-1,1]
     def add_patch(self, patch , rescale = True, recenter = False, activation = None):
 
         if (patch.min() == patch.max()) and (rescale or patch.min() == 0.0):
@@ -92,9 +92,9 @@ class  PatchViewer(object):
         assert (not N.any(N.isnan(temp))) and (not N.any(N.isinf(temp)))
 
         if rescale:
-			scale = N.abs(temp).max()
-			if scale > 0:
-				temp /= scale
+            scale = N.abs(temp).max()
+            if scale > 0:
+                temp /= scale
         else:
             if temp.min() < -1.0 or temp.max() > 1.0:
                 raise ValueError('When rescale is set to False, pixel values must lie in [-1,1]. Got ['+str(temp.min())+','+str(temp.max())+']')
@@ -109,7 +109,7 @@ class  PatchViewer(object):
 
 
         if self.curPos == (0,0):
-			self.image[:] = 0.5
+            self.image[:] = 0.5
 
         rs = self.pad[0] + self.curPos[0] * (self.patch_shape[0]+self.pad[0])
         re = rs + self.patch_shape[0]
@@ -117,10 +117,10 @@ class  PatchViewer(object):
         cs = self.pad[1] + self.curPos[1] * (self.patch_shape[1]+self.pad[1])
         ce = cs + self.patch_shape[1]
 
-		#print self.curPos
-		#print cs
+        #print self.curPos
+        #print cs
 
-		#print (temp.min(), temp.max(), temp.argmax())
+        #print (temp.min(), temp.max(), temp.argmax())
 
         temp *= (temp > 0)
 
@@ -158,9 +158,9 @@ class  PatchViewer(object):
 
         self.curPos = (self.curPos[0], self.curPos[1]+1)
         if self.curPos[1]  == self.grid_shape[1]:
-			self.curPos = (self.curPos[0]+1,0)
-			if self.curPos[0]  == self.grid_shape[0]:
-				self.curPos = (0,0)
+            self.curPos = (self.curPos[0]+1,0)
+            if self.curPos[0]  == self.grid_shape[0]:
+                self.curPos = (0,0)
 
 
     def addVid(self, vid, rescale=False, subtract_mean=False, recenter=False):
@@ -170,10 +170,10 @@ class  PatchViewer(object):
         if rescale:
             scale = N.abs(myvid).max()
             if scale == 0:
-				scale = 1
+                scale = 1
             myvid /= scale
         for i in xrange(0,vid.shape[2]):
-				self.add_patch(myvid[:,:,i],rescale=False, recenter=recenter)
+                self.add_patch(myvid[:,:,i],rescale=False, recenter=recenter)
 
 
     def show(self):
@@ -204,9 +204,9 @@ class  PatchViewer(object):
         self.get_img().save(path)
 
     def pickSize(n):
-		r = c = int(N.floor(N.sqrt(n)))
-		while r * c < n:
-			c += 1
-		return (r,c)
+        r = c = int(N.floor(N.sqrt(n)))
+        while r * c < n:
+            c += 1
+        return (r,c)
     pickSize = staticmethod(pickSize)
 
