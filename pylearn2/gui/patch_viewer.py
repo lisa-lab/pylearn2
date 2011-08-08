@@ -125,12 +125,7 @@ class  PatchViewer(object):
         temp *= (temp > 0)
 
         if len(temp.shape) == 2:
-            #is there a clean way to do this generally?
-            #this is just meant to make the next line not crash, numpy is too retarded to realize that an mxn array can be assigned to an mxnx1 array
-            numpy_sucks = N.zeros((temp.shape[0],temp.shape[1],1),dtype=temp.dtype)
-            numpy_sucks[:,:,0] = temp
-            temp = numpy_sucks
-        #endif
+            temp = temp[:, :, N.newaxis]
 
         self.image[rs+rs_pad:re-re_pad,cs+cs_pad:ce-ce_pad,:] = temp
 
