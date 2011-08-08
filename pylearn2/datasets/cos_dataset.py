@@ -11,64 +11,55 @@ class CosDataset(object):
         The second coordinate is the cosine of the first coordinate,
         plus some gaussian noise. """
 
-    def __init__(self, min_x = -6.28, max_x = 6.28, std = .05, rng = None):
+    def __init__(self, min_x=-6.28, max_x=6.28, std=.05, rng=None):
         self.min_x, self.max_x, self.std = min_x, max_x, std
         if rng is None:
-            rng = N.random.RandomState([17,2,946])
-        #
+            rng = N.random.RandomState([17, 2, 946])
         self.default_rng = copy.copy(rng)
         self.rng = rng
-    #
 
     def energy(self, mat):
-        x = mat[:,0]
-        y = mat[:,1]
-
-        rval = (y - N.cos(x)) **2. / (2. * (self.std**2.))
-
+        x = mat[:, 0]
+        y = mat[:, 1]
+        rval = (y - N.cos(x)) ** 2. / (2. * (self.std ** 2.))
         return rval
 
     def pdf_func(self, mat):
-        x = mat[:,0]
-        y = mat[:,1]
-        rval = N.exp(  - ( y - N.cos(x)) ** 2. / (2. * (self.std**2.)))
-        rval /= N.sqrt(2.0 * N.pi * (self.std**2.))
+        # TODO: why does a dataset have a pdf?
+        x = mat[:, 0]
+        y = mat[:, 1]
+        rval = N.exp(-(y - N.cos(x)) ** 2. / (2. * (self.std ** 2.)))
+        rval /= N.sqrt(2.0 * N.pi * (self.std ** 2.))
         rval /= (self.max_x - self.min_x)
         rval *= x < self.max_x
         rval *= x > self.min_x
         return rval
 
     def free_energy(self, X):
-        x = X[:,0]
-        y = X[:,1]
-
-        rval =  T.sqr(y - T.cos(x)) / ( 2. * (self.std ** 2.)) 
-        
-
+        # TODO: why does a dataset have this?
+        x = X[:, 0]
+        y = X[:, 1]
+        rval = T.sqr(y - T.cos(x)) / (2. * (self.std ** 2.))
         mask = x < self.max_x
         mask = mask * (x > self.min_x)
-
-        rval = mask * rval + (1-mask)*1e30
-
+        rval = mask * rval + (1 - mask) * 1e30
         return rval
 
     def pdf(self, X):
-        x = X[:,0]
-        y = X[:,1]
-
-        rval = T.exp( - T.sqr(y - T.cos(x)) / ( 2. * (self.std ** 2.)) )
+        # TODO: why does a dataset have this?
+        x = X[:, 0]
+        y = X[:, 1]
+        rval = T.exp(-T.sqr(y - T.cos(x)) / (2. * (self.std ** 2.)))
         rval /= N.sqrt(2.0 * N.pi * (self.std ** 2.))
         rval /= (self.max_x - self.min_x)
-
         rval *= x < self.max_x
         rval *= x > self.min_x
-
         return rval
 
     def get_stream_position(self):
         return copy.copy(self.rng)
 
-    def set_stream_position(self,s):
+    def set_stream_position(self, s):
         self.rng = copy.copy(s)
 
     def restart_stream(self):
