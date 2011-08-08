@@ -1,10 +1,8 @@
 import numpy
 import theano
-from theano import tensor
+from theano import tensor, config
 from theano.tensor import nnet
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
-
-floatX = theano.config.floatX
 
 
 def compute_log_z(rbm, free_energy_fn, max_bits=15):
@@ -28,7 +26,7 @@ def compute_log_z(rbm, free_energy_fn, max_bits=15):
     logz_data_c = numpy.zeros(
         (block_size, width),
         order='C',
-        dtype=floatX
+        dtype=config.floatX
     )
 
     # fill in the first block_bits, which will remain fixed for all
@@ -36,10 +34,10 @@ def compute_log_z(rbm, free_energy_fn, max_bits=15):
     tensor_10D_idx = numpy.ndindex(*([2] * block_bits))
     for i, j in enumerate(tensor_10D_idx):
         logz_data_c[i, -block_bits:] = j
-    logz_data = numpy.array(logz_data_c, order='F', dtype=floatX)
+    logz_data = numpy.array(logz_data_c, order='F', dtype=config.floatX)
 
     # storage for free-energy of all 2**width configurations
-    FE = numpy.zeros(2 ** width, dtype=floatX)
+    FE = numpy.zeros(2 ** width, dtype=config.floatX)
 
     # now loop 2**(width - block_bits) times, filling in the
     # most-significant bits
@@ -61,7 +59,7 @@ def compute_nll(rbm, data, log_z, free_energy_fn, bufsize=1000, preproc=None):
     nll = 0
     for i in xrange(0, len(data), bufsize):
         # recast data as floatX and apply preprocessing if required
-        x = numpy.array(data[i:i + bufsize, :], dtype=floatX)
+        x = numpy.array(data[i:i + bufsize, :], dtype=config.floatX)
         if preproc:
             x = preproc(x)
         # compute sum of likelihood for current buffer
@@ -134,7 +132,7 @@ def rbm_ais(rbm_params, n_runs, visbias_a=None, data=None,
             visbias_a = visbias_a
     else:
         # set biases of base-rate model to ML solution
-        data = numpy.asarray(data, dtype=floatX)
+        data = numpy.asarray(data, dtype=config.floatX)
         data = numpy.mean(data, axis=0)
         data = numpy.minimum(data, 1 - 1e-5)
         data = numpy.maximum(data, 1e-5)
@@ -143,7 +141,7 @@ def rbm_ais(rbm_params, n_runs, visbias_a=None, data=None,
     weights_a = numpy.zeros_like(weights)
     # generate exact sample for the base model
     v0 = numpy.tile(1. / (1 + numpy.exp(-visbias_a)), (n_runs, 1))
-    v0 = numpy.array(v0 > rng.random_sample(v0.shape), dtype=floatX)
+    v0 = numpy.array(v0 > rng.random_sample(v0.shape), dtype=config.floatX)
     # we now compute the log AIS weights for the ratio log(Zb/Za)
     ais = rbm_z_ratio((weights_a, visbias_a, hidbias_a),
                       rbm_params, n_runs, v0,
@@ -186,8 +184,8 @@ def rbm_z_ratio(rbmA_params, rbmB_params, n_runs, v0=None,
     if rng is None:
         rng = numpy.random.RandomState(seed)
     # make sure parameters are in floatX format for GPU support
-    rbmA_params = [numpy.asarray(q, dtype=floatX) for q in rbmA_params]
-    rbmB_params = [numpy.asarray(q, dtype=floatX) for q in rbmB_params]
+    rbmA_params = [numpy.asarray(q, dtype=config.floatX) for q in rbmA_params]
+    rbmB_params = [numpy.asarray(q, dtype=config.floatX) for q in rbmB_params]
 
     # declare symbolic vars for current sample `v_sample` and temp `beta`
     v_sample = tensor.matrix('ais_v_sample')
@@ -283,12 +281,12 @@ def rbm_ais_gibbs_for_v(rbmA_params, rbmB_params, beta, v_sample, seed=23098):
     ph_a = nnet.sigmoid((1 - beta) * (tensor.dot(v_sample, weights_a) +
                                     hidbias_a))
     ha_sample = theano_rng.binomial(size=(v_sample.shape[0], len(hidbias_a)),
-                                    n=1, p=ph_a, dtype=floatX)
+                                    n=1, p=ph_a, dtype=config.floatX)
 
     # equation 16 (Salakhutdinov & Murray 2008)
     ph_b = nnet.sigmoid(beta * (tensor.dot(v_sample, weights_b) + hidbias_b))
     hb_sample = theano_rng.binomial(size=(v_sample.shape[0], len(hidbias_b)),
-                                    n=1, p=ph_b, dtype=floatX)
+                                    n=1, p=ph_b, dtype=config.floatX)
 
     # equation 17 (Salakhutdinov & Murray 2008)
     pv_act = (1 - beta) * (tensor.dot(ha_sample, weights_a.T) + visbias_a) + \
@@ -296,7 +294,7 @@ def rbm_ais_gibbs_for_v(rbmA_params, rbmB_params, beta, v_sample, seed=23098):
     pv = nnet.sigmoid(pv_act)
     new_v_sample = theano_rng.binomial(
         size=(v_sample.shape[0], len(visbias_b)),
-        n=1, p=pv, dtype=floatX
+        n=1, p=pv, dtype=config.floatX
     )
 
     return new_v_sample
@@ -322,7 +320,7 @@ class AIS(object):
     """
 
     def fX(a):
-        return numpy.asarray(a, dtype=floatX)
+        return numpy.asarray(a, dtype=config.floatX)
 
     # default configuration for interpolating distributions
     dflt_beta = numpy.hstack((fX(numpy.linspace(0, 0.5, 1e3)),
@@ -364,7 +362,7 @@ class AIS(object):
         self.log_int = log_int
 
         # initialize log importance weights
-        self.log_ais_w = numpy.zeros(n_runs, dtype=floatX)
+        self.log_ais_w = numpy.zeros(n_runs, dtype=config.floatX)
 
         # utility function for safely computing log-mean of the ais weights
         ais_w = tensor.vector()
@@ -392,7 +390,7 @@ class AIS(object):
         """
         self.key_betas = None if key_betas is None else numpy.sort(key_betas)
 
-        betas = numpy.array(betas, dtype=floatX) \
+        betas = numpy.array(betas, dtype=config.floatX) \
                 if betas is not None else self.dflt_beta
         # insert key temperatures within
         if key_betas is not None:

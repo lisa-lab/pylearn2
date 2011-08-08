@@ -1,6 +1,5 @@
 import numpy as N
 from theano import config
-floatX = config.floatX
 
 class Graph2D:
     def __init__(self, shape, xlim, ycenter):
@@ -43,9 +42,9 @@ class Graph2D:
     #
 
     def get_coords_for_col(self, i):
-        X = N.zeros((self.rows,2),dtype=floatX)
+        X = N.zeros((self.rows,2),dtype=config.floatX)
         X[:,0] = self.xmin + float(i) * self.delta_x
-        X[:,1] = self.ymin + N.cast[floatX](N.asarray(range(self.rows-1,-1,-1))) * self.delta_y
+        X[:,1] = self.ymin + N.cast[config.floatX](N.asarray(range(self.rows-1,-1,-1))) * self.delta_y
 
 
         return X

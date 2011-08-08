@@ -4,18 +4,17 @@ import copy
 from scipy import io
 
 import theano
+from theano import config
 import theano.tensor as T
 
 from pylearn2 import rbm_tools
 from pylearn2.models import rbm
-from pylearn.datasets import MNIST
-floatX = theano.config.floatX
 
 def load_rbm_params(fname):
     mnistvh = io.loadmat(fname)
-    rbm_params = [numpy.asarray(mnistvh['vishid'], dtype=floatX),
-                  numpy.asarray(mnistvh['visbiases'][0], dtype=floatX),
-                  numpy.asarray(mnistvh['hidbiases'][0], dtype=floatX)]
+    rbm_params = [numpy.asarray(mnistvh['vishid'], dtype=config.floatX),
+                  numpy.asarray(mnistvh['visbiases'][0], dtype=config.floatX),
+                  numpy.asarray(mnistvh['hidbiases'][0], dtype=config.floatX)]
     return rbm_params
 
 def compute_logz(rbm_params):
@@ -55,7 +54,7 @@ def ais_data(fname, do_exact=True):
     # load data to set visible biases to ML solution
     from pylearn.datasets import MNIST
     dataset = MNIST.train_valid_test()
-    data = numpy.asarray(dataset.train.x, dtype=floatX)
+    data = numpy.asarray(dataset.train.x, dtype=config.floatX)
 
     # run ais using B=0 model with ML visible biases
     t1 = time.time()

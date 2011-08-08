@@ -1,11 +1,11 @@
 # An implementation of the model described in
 # "Differentiable Sparse Coding" by Bradley and Bagnell
 
-from theano import function, shared
 import numpy as N
 import theano.tensor as T
+
 import theano
-floatX = theano.config.floatX
+from theano import function, shared, config
 
 class DifferentiableSparseCoding(object):
     def __init__(self, nvis, nhid,
@@ -15,10 +15,10 @@ class DifferentiableSparseCoding(object):
         self.nhid = int(nhid)
         self.init_lambda = float(init_lambda)
         self.init_p = float(init_p)
-        self.init_alpha = N.cast[floatX](init_alpha)
+        self.init_alpha = N.cast[config.floatX](init_alpha)
         self.tol = 1e-6
         self.time_constant = 1e-2
-        self.learning_rate = N.cast[floatX](learning_rate)
+        self.learning_rate = N.cast[config.floatX](learning_rate)
 
         self.predictor_learning_rate = self.learning_rate
 

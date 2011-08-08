@@ -4,8 +4,6 @@ import theano.tensor as T
 from theano import config, shared
 import theano.sandbox.rng_mrg
 RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
-floatX = config.floatX
-
 
 class MND(object):
     def __init__(self, sigma, mu, seed=42):
@@ -41,7 +39,7 @@ class MND(object):
 
     def random_design_matrix(self, m):
         Z = self.s_rng.normal(size=(m, self.mu.shape[0]),
-                              avg=0., std=1., dtype=floatX)
+                              avg=0., std=1., dtype=config.floatX)
         return self.mu + T.dot(Z, self.L.T)
 
 

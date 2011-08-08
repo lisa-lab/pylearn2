@@ -1,6 +1,5 @@
 import numpy as N
 from theano import config, shared
-floatX = config.floatX
 
 class NormalizedEBM:
     """ An Energy-Based Model with an additional parameter representing log Z.
@@ -9,7 +8,7 @@ class NormalizedEBM:
 
     def __init__(self, ebm, init_logZ, learn_logZ, logZ_lr_scale = 1.0):
         self.ebm = ebm
-        self.logZ_driver = shared(N.cast[floatX](init_logZ/logZ_lr_scale))
+        self.logZ_driver = shared(N.cast[config.floatX](init_logZ/logZ_lr_scale))
         self.learn_logZ = learn_logZ
         self.logZ_lr_scale = logZ_lr_scale
 

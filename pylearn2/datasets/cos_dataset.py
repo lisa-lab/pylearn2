@@ -1,7 +1,6 @@
 import numpy as N
 import copy
 from theano import config
-floatX = config.floatX
 import theano.tensor as T
 
 
@@ -74,8 +73,9 @@ class CosDataset(object):
         raise NotImplementedError()
 
     def get_batch_design(self, batch_size):
-        x = N.cast[floatX](self.rng.uniform(self.min_x, self.max_x,
+        x = N.cast[config.floatX](self.rng.uniform(self.min_x, self.max_x,
                                             (batch_size, 1)))
-        y = N.cos(x) + N.cast[floatX](self.rng.randn(*x.shape)) * self.std
+        y = N.cos(x) + (N.cast[config.floatX](self.rng.randn(*x.shape)) *
+                        self.std)
         rval = N.hstack((x, y))
         return rval
