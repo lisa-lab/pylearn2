@@ -3,6 +3,22 @@ import copy
 
 class Model(object):
 
+    def train(self, dataset):
+        """
+        Optional method.
+        If implemented, performs one epoch of training.
+
+        Parameters
+        ----------
+        dataset: The pylearn2.datasets.dataset.Dataset object to draw training
+                data from
+
+        Return value:
+            True if the method should be called again for another epoch
+            False if convergence has been reached
+        """
+
+
     def get_monitoring_channels(self, V):
         """
             V: a batch of IID examples, of shape (# examples, #features)

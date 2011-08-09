@@ -201,6 +201,9 @@ class RBM(Block, Model):
             NumPy RandomState object to use when initializing parameters
             of the model, or (integer) seed to use to create one.
         """
+
+        Model.__init__(self)
+
         if rng is None:
             # TODO: global rng configuration stuff.
             rng = numpy.random.RandomState(1001)
