@@ -1,7 +1,6 @@
 """An example of how to use the library so far."""
 # Standard library imports
 import sys
-import os
 
 # Third-party imports
 import numpy
@@ -19,7 +18,6 @@ except ImportError:
 
 # Local imports
 from pylearn2.cost import SquaredError
-from pylearn2.corruption import GaussianCorruptor
 from pylearn2.autoencoder import ContractiveAutoencoder, build_stacked_ae
 from pylearn2.optimizer import SGDOptimizer
 
