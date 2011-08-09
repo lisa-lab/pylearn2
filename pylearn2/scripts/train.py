@@ -1,5 +1,10 @@
 #!/bin/env python
-"""General training script"""
+"""
+General training script
+usage:
+train.py <path to yaml file>
+
+"""
 # Standard library imports
 import sys
 import time

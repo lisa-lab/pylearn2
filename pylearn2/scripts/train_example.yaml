@@ -11,12 +11,12 @@
                 "irange"  : 0.00001,
                 "tied_weights" : true,
                 "corruptor": !obj:pylearn2.corruption.GaussianCorruptor {
-                               "corruption_level" : 0.15
+                               "stdev" : 0.15
                         }
         },
     "algorithm": !obj:pylearn2.training_algorithms.demo.Demo {
                 "base_lr"  :  1e-5
     },
-    "save_path" : "example_lcc.pkl"
+    "save_path" : "example_da.pkl"
 }
 

@@ -1,7 +1,7 @@
 from pylearn2.cost import SquaredError
 from pylearn2.optimizer import SGDOptimizer
 from theano import function, tensor
-
+from pylearn2.training_
 class Demo(object):
     """
     An example training algorithm. This ports the training from example_da.py
@@ -14,7 +14,12 @@ class Demo(object):
         self.batch_size = batch_size
         self.num_epochs = num_epochs
 
-    def train(self, model, dataset):
+    def setup(self, model):
+        self.model = model
+
+    def train(self, dataset):
+        model = self.model
+
         minibatch = tensor.matrix()
 
         cost = SquaredError(model)(minibatch, model.reconstruct(minibatch)).mean()
