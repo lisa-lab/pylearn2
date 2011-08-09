@@ -1,10 +1,11 @@
-import numpy as N
+import numpy as np
 from theano import function
 import theano.tensor as T
 from warnings import warn
 from pylearn2.monitor import Monitor
+from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 
-class SGD(object):
+class SGD(TrainingAlgorithm):
     """Stochastic Gradient Descent with an optional validation set for error monitoring
 
         TODO: right now, assumes there is just one variable, X, i.e. is designed for unsupervised learning
@@ -17,7 +18,9 @@ class SGD(object):
             batch_size = None ,
             batches_per_iter = 1000 ,
             monitoring_batches = - 1,
-            monitoring_dataset = None):
+            monitoring_dataset = None,
+            termination_criterion = None,
+            learning_rate_adjuster = None):
         """
         TODO: for now, learning_rate is just a float, but later it should support passing in a class that dynamically adjusts
             the learning rate
@@ -33,6 +36,9 @@ class SGD(object):
         if monitoring_dataset is None:
             assert monitoring_batches == -1
         self.monitoring_dataset, self.monitoring_batches = monitoring_dataset, monitoring_batches
+
+        self.termination_criterion = termination_criterion
+        self.learning_rate_adjuster = learning_rate_adjuster
 
         self.bSetup = False
         self.first = True
@@ -127,7 +133,7 @@ class SGD(object):
         for param in self.params:
             value = param.get_value(borrow=True)
 
-            if N.any(N.isnan(value)) or N.any(N.isinf(value)):
+            if np.any(np.isnan(value)) or np.any(np.isinf(value)):
                 raise Exception("NaN in "+param.name)
             #
         #
@@ -159,14 +165,85 @@ class SGD(object):
 
         self.monitor()
 
-        v =  self.monitor.channels.values()
-        """if len(v) > 0:
-            v = v[0].val_record
-            if v[-1] > v[-2]:
-                self.learning_rate *= .9
-                print "HACK! shrunk learning rate to ",self.learning_rate," b/c monitoring set objective rose"
-        """
+        if self.learning_rate_adjuster is not None:
+            self.learning_rate = self.learning_rate_adjuster(self.learning_rate, self.model)
 
-        return True
+
+        if self.termination_criterion is None:
+            return True
+        else:
+            return self.termination_criterion(self.model)
     #
 #
+
+
+class MonitorBasedLRAdjuster:
+    """A learning rate adjustor that pulls out the only channel
+    in the model's monitor (this won't work for multiple-channel
+    monitors, TODO fix this issue) and adjusts the learning rate
+    based on what happened to the monitoring error on the last
+    epoch. If the objective is greater than high_trigger times
+    its previous value, the learning rate will be scaled by
+    shrink_amt (which should be < 1 for this scheme to make
+    sense). The idea is that in this case the learning algorithm
+    is overshooting the bottom of the objective function.
+
+    If the objective is less than high_trigger but
+    greater than low_trigger
+    times its previous value, the learning rate will be scaled
+    by grow_amt (which should be > 1 for this scheme to make sense).
+    The idea is that the learning algorithm is making progress but
+    at too slow of a rate.
+    """
+
+    def __init__(self, high_trigger = 1., shrink_amt = .99, low_trigger = .99, grow_amt = 1.01):
+        self.high_trigger = high_trigger
+        self.shrink_amt = shrink_amt
+        self.low_trigger = low_trigger
+        self.grow_amt = grow_amt
+
+    def __call__(self, current_learning_rate, model):
+        assert hasattr(model, 'monitor')
+        monitor = model.monitor
+        v = monitor.channels.values()
+        assert len(v) == 1
+        v = v[0].val_record
+
+        rval = current_learning_rate
+
+        if v[-1] > self.high_trigger * v[-2]:
+            rval *= self.shrink_amt
+            print "shrinking learning rate to ",rval
+        elif v[-2] > self.low_trigger * v[-2]:
+            rval *= self.grow_amt
+            print "growing learning rate to ",rval
+
+        return rval
+
+
+
+
+class MonitorBasedTermCrit:
+    """ A termination criterion that pulls out the only channel in
+        the model's monitor (this won't work for multiple-channel
+        monitors, TODO fix this issue) and checks to see if it has
+        decreased by a certain proportion in the last N epochs.
+        """
+
+
+    def __init__(self, prop_decrease, N):
+        self.prop_decrease = prop_decrease
+        self.N = N
+
+    def __call__(self, model):
+        monitor = model.monitor
+
+        assert len(monitor.channels.values()) == 1
+
+        v = monitor.channels.values()[0].val_record
+
+        if len(v) < self.N:
+            return True
+
+        return v[- 1] < (1.-self.prop_decrease) * v[-self.N]
+
