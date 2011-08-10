@@ -1,10 +1,7 @@
 """KMeans as a postprocessing Block subclass."""
 
 import numpy
-if __name__ == '__main__':
-    from pylearn2.base import Block
-else:
-    from .base import Block
+from pylearn2.base import Block
 
 
 class KMeans(Block):

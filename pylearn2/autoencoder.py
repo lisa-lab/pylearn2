@@ -9,9 +9,9 @@ import theano
 from theano import tensor
 
 # Local imports
-from .base import Block, StackedBlocks
-from .utils import sharedX
-from .utils.theano_graph import is_pure_elemwise
+from pylearn2.base import Block, StackedBlocks
+from pylearn2.utils import sharedX
+from pylearn2.utils.theano_graph import is_pure_elemwise
 
 theano.config.warn.sum_div_dimshuffle_bug = False
 
