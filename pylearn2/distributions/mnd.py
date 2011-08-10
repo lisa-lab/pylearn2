@@ -46,9 +46,10 @@ class MND(object):
 
 def fit(dataset, n_samples=None):
     """
-    TODO: document me.
+    Returns an MND fit to n_samples drawn from dataset.
 
-    This would be cleaner as a class method.
+    Not a class method because we currently don't have a means
+    of calling class methods from YAML files.
     """
     if n_samples is not None:
         X = dataset.get_batch_design(n_samples)
