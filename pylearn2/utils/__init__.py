@@ -1,4 +1,3 @@
-# Listing everything, because "'import *' not allowed with 'from .'"
 from pylearn2.utils.utlc import (
         get_constant,
         sharedX,
