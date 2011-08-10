@@ -122,9 +122,13 @@ class DenseDesignMatrix(Dataset):
         return rx
 
     def get_batch_topo(self, batch_size):
-        return self.view_converter.design_mat_to_topo_view(
-            self.get_batch_design(batch_size)
-        )
+
+        batch_design  = self.get_batch_design(batch_size)
+
+        rval = self.view_converter.design_mat_to_topo_view(batch_design)
+
+        return rval
+
 
     def view_shape(self):
         return self.view_converter.view_shape()
@@ -152,6 +156,7 @@ class DefaultViewConverter(object):
                     for i in xrange(self.shape[-1])]
 
         rval = N.concatenate(channels, axis=len(self.shape))
+        assert rval.shape[0] == X.shape[0]
         assert len(rval.shape) == len(self.shape) + 1
         return rval
 
