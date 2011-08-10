@@ -20,15 +20,16 @@ class NCE:
         return model.log_prob(X) - self.noise.log_prob(X)
 
     def __call__(self, model, X):
-        try:
-            m = X.shape[0]
-        except:
-            print 'X: '+str(X)
-            print 'X.shape: '+str(X.shape)
-            print 'X.shape[0]: '+str(X.shape[0])
-            assert False
+        if X.name is None:
+            X_name = 'X'
+        else:
+            X_name = X.name
 
-        Y = self.noise.random_design_matrix(m)
+
+        m_data = X.shape[0]
+        m_noise = m_data * self.noise_per_clean
+
+        Y = self.noise.random_design_matrix(m_noise)
 
         #Y = Print('Y',attrs=['min','max'])(Y)
 
@@ -41,12 +42,24 @@ class NCE:
 
         #based on equation 3 of the paper
         #ours is the negative of theirs because they maximize it and we minimize it
-        rval = -T.mean(log_hx+log_one_minus_hy)
+        rval = -T.mean(log_hx)-T.mean(log_one_minus_hy)
+
+        rval.name = 'NCE('+X_name+')'
 
         return rval
 
-    def __init__(self, noise):
+    def __init__(self, noise, noise_per_clean):
+        """
+        params
+        -------
+            noise: a Distribution from which noisy examples are generated
+            noise_per_clean: # of noisy examples to generate for each clean example given
+        """
+
         self.noise = noise
+
+        assert isinstance(noise_per_clean, int)
+        self.noise_per_clean = noise_per_clean
 
 class SM:
     """ Score Matching
