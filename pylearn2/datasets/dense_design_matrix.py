@@ -10,7 +10,30 @@ class DenseDesignMatrix(Dataset):
        """
     def __init__(self, X=None, topo_view=None, y=None,
                  view_converter=None, rng=None):
-        # TODO: document me
+        """
+            Parameters
+            ----------
+
+            X:  Should be supplied if topo_view is not
+                A design matrix of shape (number examples, number features)
+                that defines the dataset
+
+            topo_view:  Should be supplied if X is not.
+                        A tensor whose first dimension is of length number
+                        examples. The remaining tensor dimensions are examples
+                        with topological significance, e.g. for images
+                        the remaining axes are rows, columns, and channels.
+            y:  Labels for the examples. Optional.
+            view_converter: An object for converting between design matrices
+                            and topological views. Currently DefaultViewConverter
+                            is the only type available but later we may want
+                            to add one that uses the retina encoding that the
+                            U of T group uses.
+            rng:    A random number generator used for picking random indices
+                    into the design matrix when choosing minibatches
+        """
+
+
         if X is not None:
             self.X = X
             self.view_converter = view_converter
@@ -29,9 +52,15 @@ class DenseDesignMatrix(Dataset):
         self.design_loc = None
 
     def use_design_loc(self, path):
+        """ When pickling, save the design matrix to path as a .npy file
+            rather than pickling the design matrix along with the rest
+            of the dataset object. This avoids pickle's unfortunate
+            behavior of using 2X the RAM when unpickling. """
         self.design_loc = path
 
     def enable_compression(self):
+        """ If called, when pickled the dataset will be saved using only
+            8 bits per element """
         self.compress = True
 
     def __getstate__(self):
@@ -69,15 +98,21 @@ class DenseDesignMatrix(Dataset):
             self.__dict__.update(d)
 
     def get_stream_position(self):
+        """ If we view the dataset as providing a stream of random examples to read,
+            the object returned uniquely identifies our current position in that stream. """
         return copy.copy(self.rng)
 
     def set_stream_position(self, pos):
+        """ Return to a state specified by an object returned from get_stream_position """
         self.rng = copy.copy(pos)
 
     def restart_stream(self):
+        """ Return to the default initial state of the random example stream """
         self.reset_RNG()
 
     def reset_RNG(self):
+        """ Restore the default seed of the rng used for choosing random examples """
+
         if 'default_rng' not in dir(self):
             self.default_rng = N.random.RandomState([17, 2, 946])
         self.rng = copy.copy(self.default_rng)
@@ -86,6 +121,8 @@ class DenseDesignMatrix(Dataset):
         preprocessor.apply(self, can_fit)
 
     def get_topological_view(self, mat=None):
+        """ Return mat, in a topology preserving format
+            If mat is None, uses the entire dataset as mat"""
         if self.view_converter is None:
             raise Exception("Tried to call get_topological_view on a dataset "
                             "that has no view converter")
@@ -94,6 +131,9 @@ class DenseDesignMatrix(Dataset):
         return self.view_converter.design_mat_to_topo_view(mat)
 
     def get_weights_view(self, mat):
+        """ Return a view of mat in the topology preserving format.
+            Currently the same as get_topological_view """
+
         if self.view_converter is None:
             raise Exception("Tried to call get_weights_view on a dataset "
                             "that has no view converter")
@@ -101,6 +141,8 @@ class DenseDesignMatrix(Dataset):
         return self.view_converter.design_mat_to_weights_view(mat)
 
     def set_topological_view(self, V):
+        """ Sets the dataset to represent V, where V is a batch
+            of topological views of examples """
         assert not N.any(N.isnan(V))
         self.view_converter = DefaultViewConverter(V.shape[1:])
         self.X = self.view_converter.topo_view_to_design_mat(V)
