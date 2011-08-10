@@ -1,5 +1,4 @@
-# Listing everything, because "'import *' not allowed with 'from .'"
-from .utlc import (
+from pylearn2.utils.utlc import (
         get_constant,
         sharedX,
         as_floatX,
@@ -13,7 +12,7 @@ from .utlc import (
         lookup_alc,
         )
 
-"""from .datasets import (
+"""from pylearn2.utils.datasets import (
         do_3d_scatter,
         save_plot,
         filter_labels,
