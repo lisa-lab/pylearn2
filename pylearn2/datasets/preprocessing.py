@@ -152,11 +152,17 @@ class GlobalContrastNormalization(object):
 
     def apply(self, dataset, can_fit = False):
         X = dataset.get_design_matrix()
+
         assert X.dtype == 'float32' or X.dtype == 'float64'
 
         if self.subtract_mean:
             X -= X.mean(axis=1)[:,None]
-        std = N.sqrt( (X**2.).mean(axis=1) + self.std_bias)
+
+        std = N.sqrt( N.square(X).sum(axis=1) + self.std_bias)
+
+        eps = 1e-8
+        std[std < eps] = 1.
+
         X /= std[:,None]
 
         dataset.set_design_matrix(X)
