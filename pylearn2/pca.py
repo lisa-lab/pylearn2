@@ -45,8 +45,8 @@ except ImportError:
 
 
 # Local imports
-from .base import Block
-from .utils import sharedX
+from pylearn2.base import Block
+from pylearn2.utils import sharedX
 
 
 class PCA(Block):
@@ -441,7 +441,7 @@ if __name__ == "__main__":
     """
 
     import argparse
-    from .utils import load_data, get_constant
+    from pylearn2.utils import load_data, get_constant
 
     parser = argparse.ArgumentParser(
         description="Transform the output of a model by Principal Component"

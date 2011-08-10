@@ -15,7 +15,7 @@ from matplotlib import pyplot
 from mpl_toolkits.mplot3d import Axes3D
 
 # Local imports
-from .utlc import get_constant, sharedX
+from pylearn2.datasets.utlc import get_constant, sharedX
 
 ##################################################
 # 3D Visualization
