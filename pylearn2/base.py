@@ -12,7 +12,7 @@ from theano import tensor
 from theano.sparse import SparseType
 
 # Local imports
-from .utils import subdict
+from pylearn2.utils import subdict
 
 theano.config.warn.sum_div_dimshuffle_bug = False
 
