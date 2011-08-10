@@ -1,10 +1,13 @@
 """TODO: module-level docstring."""
 import numpy as N
 import copy
+from pylearn2.datasets.dataset import Dataset
 
 
-class DenseDesignMatrix(object):
-    """TODO: class-level docstring."""
+class DenseDesignMatrix(Dataset):
+    """A class for representing datasets that can be stored
+       as a dense design matrix, such as MNIST or CIFAR10.
+       """
     def __init__(self, X=None, topo_view=None, y=None,
                  view_converter=None, rng=None):
         # TODO: document me
