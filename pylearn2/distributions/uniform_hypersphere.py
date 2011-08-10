@@ -5,6 +5,7 @@ RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
 from theano import config
 from scipy.special import gammaln
 
+
 class UniformHypersphere(object):
     def __init__(self, dim, radius):
         self.dim = dim
@@ -20,6 +21,10 @@ class UniformHypersphere(object):
         assert not N.isinf(self.logZ)
 
     def free_energy(self, X):
+        """
+        Parameters:
+            X: Must contain only examples that lie on the hypersphere
+        """
         #design matrix format
 
         return T.zeros_like(X[:,0])
