@@ -34,28 +34,27 @@ print 'range of elements of examples',(examples.min(),examples.max())
 print 'dtype: ', examples.dtype
 examples /= N.abs(examples).max()
 
-    examples /= N.abs(examples).max()
 
-    if len(examples.shape) != 4:
-        print 'sorry, view_examples.py only supports image examples for now.'
-        print 'this dataset has %d topological dimensions' % (len(examples) - 2)
-        quit(-1)
+if len(examples.shape) != 4:
+    print 'sorry, view_examples.py only supports image examples for now.'
+    print 'this dataset has %d topological dimensions' % (len(examples) - 2)
+    quit(-1)
 
-    if examples.shape[3] == 1:
-        is_color = False
-    elif examples.shape[3] == 3:
-        is_color = True
-    else:
-        print 'got unknown image format with %d channels' % examples.shape[3]
-        print 'supported formats are 1 channel greyscale or three channel RGB'
-        quit(-1)
+if examples.shape[3] == 1:
+    is_color = False
+elif examples.shape[3] == 3:
+    is_color = True
+else:
+    print 'got unknown image format with %d channels' % examples.shape[3]
+    print 'supported formats are 1 channel greyscale or three channel RGB'
+    quit(-1)
 
-    print examples.shape[1:3]
+print examples.shape[1:3]
 
-    pv = patch_viewer.PatchViewer((rows, cols), examples.shape[1:3],
-                                  is_color=is_color)
+pv = patch_viewer.PatchViewer((rows, cols), examples.shape[1:3],
+                              is_color=is_color)
 
-    for i in xrange(rows * cols):
-        pv.add_patch(examples[i], activation=0.0, rescale=False)
+for i in xrange(rows * cols):
+    pv.add_patch(examples[i], activation=0.0, rescale=False)
 
-    pv.show()
+pv.show()
