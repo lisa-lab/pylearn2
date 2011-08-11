@@ -146,9 +146,32 @@ class PCA(object):
 
 
 class GlobalContrastNormalization(object):
-    def __init__(self, subtract_mean = True, std_bias = 10.0):
+    def __init__(self, subtract_mean = True, std_bias = 10.0, use_norm = False):
+        """
+
+        Optionally subtracts the mean of each example
+        Then divides each example either by the standard deviation of the pixels
+        contained in that example or by the norm of that example
+
+        Parameters:
+
+            subtract_mean: boolean, if True subtract the mean of each example
+            std_bias: Add this amount inside the square root when computing
+                      the standard deviation or the norm
+            use_norm: If True uses the norm instead of the standard deviation
+
+
+            The default parameters of subtract_mean = True, std_bias = 10.0,
+            use_norm = False are used in replicating one step of the preprocessing
+            used by Coates, Lee and Ng on CIFAR10 in their paper "An Analysis
+            of Single Layer Networks in Unsupervised Feature Learning"
+
+
+        """
+
         self.subtract_mean = subtract_mean
         self.std_bias = std_bias
+        self.use_norm = use_norm
 
     def apply(self, dataset, can_fit = False):
         X = dataset.get_design_matrix()
@@ -158,12 +181,16 @@ class GlobalContrastNormalization(object):
         if self.subtract_mean:
             X -= X.mean(axis=1)[:,None]
 
-        std = N.sqrt( N.square(X).sum(axis=1) + self.std_bias)
+        if self.use_norm:
+            scale = N.sqrt( N.square(X).sum(axis=1) + self.std_bias)
+        else:
+            #use standard deviation
+            scale = N.sqrt( N.square(X).mean(axis=1) + self.std_bias)
 
         eps = 1e-8
-        std[std < eps] = 1.
+        scale[scale < eps] = 1.
 
-        X /= std[:,None]
+        X /= scale[:,None]
 
         dataset.set_design_matrix(X)
 
