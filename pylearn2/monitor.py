@@ -62,7 +62,17 @@ class Monitor(object):
             print "\t%s: %s" % (channel_name, str(val))
 
     def redo_theano(self):
-        """TODO: document me."""
+        """
+        Practically the same thing as redo_theano in the Model class.
+        Recompiles all theano functions used by the Monitor.
+        This is needed so that if new channels are added, theano's optimizations
+        make sure that the new channels and old channels don't have any redundant
+        calculations.
+        It is also needed to regenerate theano functions after pickling and unpickling,
+        since theano functions should not be pickled.
+        """
+        self.dirty = False
+
         init_names = dir(self)
         updates = {}
         for channel in self.channels.values():
@@ -80,13 +90,23 @@ class Monitor(object):
                                     if name not in init_names])
 
     def register_names_to_del(self, names):
-        """TODO: document me."""
+        """Same as register_names_to_del in the Model class, this is used to
+        avoid pickling fields that can be regenerated with redo_theano"""
         for name in names:
             if name not in self.names_to_del:
                 self.names_to_del.append(name)
 
     def __getstate__(self):
-        """TODO: Document me (why specifically is this needed)"""
+        """In order to avoid pickling a copy of the dataset whenever a monitor
+        is saved, the __getstate__ method replaces the dataset field with the
+        dataset's yaml source. This is not a perfect solution because it won't
+        work with job resuming, which would require saving the state of the dataset's
+        random number generator.
+
+        Like in the Model class, we also need to avoid saving any theano functions,
+        so we delete everything that can be regenerated with redo_theano by
+        deleting the fields in self.names_to_del
+        """
         temp = self.dataset
         if not isinstance(self.dataset, str):
             self.dataset = self.dataset.yaml_src
@@ -100,7 +120,12 @@ class Monitor(object):
         return d
 
     def __setstate__(self, d):
-        """TODO: is this necessary?"""
+        """TODO: is this necessary?
+        IG: I think in some versions of python __getstate__ is ignored if __setstate__ is
+        not implemented but I don't know for sure. People on stackexchange said that but
+        I never verified this firsthand. Fred taught me to write this kind of
+        __setstate__ method whenever I write a __getstate__ method but I was never quite
+        sure why."""
         self.__dict__.update(d)
 
     def add_channel(self, name, ipt, val):
