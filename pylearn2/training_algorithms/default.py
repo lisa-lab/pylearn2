@@ -25,6 +25,7 @@ class DefaultTrainingAlgorithm(object):
 
 
         X = T.matrix()
+        X.tag.test_value = self.monitoring_dataset.get_batch_design(2)
 
         channels = model.get_monitoring_channels(X)
 
