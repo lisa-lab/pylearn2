@@ -129,11 +129,21 @@ class Monitor(object):
         self.__dict__.update(d)
 
     def add_channel(self, name, ipt, val):
-        """TODO: Document me."""
+        """
+            Asks the monitor to start tracking a new value
+            Can be run even after the monitor is already in use
+
+            Parameters
+            -------------
+            name: The display name in the monitor
+            ipt:  The symbolic tensor which should be clamped to the data
+            val:  The value (function of ipt) to be tracked
+        """
+
         if name in self.channels:
             raise ValueError("Tried to create the same channel twice (%s)" %
                              name)
-        self.channels[name] = Channel(ipt, val)
+        self.channels[name] = Channel(ipt, val, name)
         self.dirty = True
 
     @classmethod
@@ -148,10 +158,12 @@ class Monitor(object):
 
 
 class Channel(object):
-    def __init__(self, ipt, val):
+    def __init__(self, ipt, val, name):
         self.ipt = ipt
         self.val = val
-        self.val_shared = shared(0.0)
+
+
+        self.val_shared = shared(0.0, name+"_tracker")
         self.batch_record = []
         self.example_record = []
         self.val_record = []
