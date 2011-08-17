@@ -73,7 +73,15 @@ def save(filepath,obj):
                 else:
                     if str(e2) == 'env':
                         raise
-                    raise Exception(str(obj)+' could not be written to '+filepath+' by cPickle due to '+str(e)+' nor by pickle due to '+str(e2))
+
+                    import pdb
+                    tb = pdb.traceback.format_exc()
+
+                    raise Exception(str(obj)+
+                                    ' could not be written to '+filepath+
+                                    ' by cPickle due to '+str(e)+
+                                    ' nor by pickle due to '+str(e2)+
+                                    '. \nTraceback '+tb)
             print 'Warning: '+filepath+' was written by pickle instead of cPickle, due to '+str(e)+' (perhaps your object is eally big?)'
 #
 
