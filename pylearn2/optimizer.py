@@ -9,8 +9,8 @@ from theano import tensor
 from pylearn.gd.sgd import sgd_updates
 
 # Local imports
-from .base import Optimizer
-from .utils import as_floatX, safe_update, sharedX
+from pylearn2.base import Optimizer
+from pylearn2.utils import as_floatX, safe_update, sharedX
 
 
 class SGDOptimizer(Optimizer):
