@@ -6,9 +6,14 @@ from pylearn2.config import yaml_parse
 
 
 class Monitor(object):
-    """TODO: class-level docstring. What does this do?"""
+    """A class for monitoring Models while they are being trained
+        It records the number of minibatches and number of examples the model has trained,
+        as well as any number of "channels" that track quantities of interest
+        (examples: the objective function, measures of hidden unit activity, reconstruction
+        error, sum of squared second derivatives,  etc. )
+    """
     def __init__(self, model):
-        """TODO: Document me."""
+        """Makes a monitor for the model-- assumes the model has not been trained at all yet."""
         self.model = model
         self.channels = {}
         self.batches_seen = 0
@@ -18,12 +23,21 @@ class Monitor(object):
         self.names_to_del = []
 
     def set_dataset(self, dataset, batches, batch_size):
-        """TODO: Document me."""
+        """
+            Determines the data used to calculate the values of each channel
+            dataset: the dataset to draw examples from
+            batches: the number of batches of examples to draw
+            batch_size: the number of examples per batch
+        """
         self.dataset = dataset
         self.batches = batches
         self.batch_size = batch_size
 
     def __call__(self):
+        """
+            Runs the model on the monitoring dataset in order to add one
+            data point to each of the channels
+        """
         if self.dirty:
             self.redo_theano()
 
@@ -44,22 +58,21 @@ class Monitor(object):
             for i in xrange(self.batches):
                 X = d.get_batch_design(self.batch_size)
                 self.accum(X)
-            self.finish_record_entry()
-            d.set_stream_position(s)
 
-    def finish_record_entry(self):
-        """TODO: Document me."""
-        print "Monitoring step:"
-        print "\tBatches seen: %d" % self.batches_seen
-        print "\tExamples seen: %d" % self.examples_seen
-        for channel_name in self.channels:
-            channel = self.channels[channel_name]
-            channel.batch_record.append(self.batches_seen)
-            channel.example_record.append(self.examples_seen)
-            val = (channel.val_shared.get_value(borrow=False) /
-                   float(self.batches))
-            channel.val_record.append(val)
-            print "\t%s: %s" % (channel_name, str(val))
+
+            print "Monitoring step:"
+            print "\tBatches seen: %d" % self.batches_seen
+            print "\tExamples seen: %d" % self.examples_seen
+            for channel_name in self.channels:
+                channel = self.channels[channel_name]
+                channel.batch_record.append(self.batches_seen)
+                channel.example_record.append(self.examples_seen)
+                val = (channel.val_shared.get_value(borrow=False) /
+                       float(self.batches))
+                channel.val_record.append(val)
+                print "\t%s: %s" % (channel_name, str(val))
+
+            d.set_stream_position(s)
 
     def redo_theano(self):
         """
@@ -148,7 +161,8 @@ class Monitor(object):
 
     @classmethod
     def get_monitor(cls, model):
-        """TODO: document me."""
+        """Returns a model's monitor.
+        If the model doesn't have a monitor yet, installs one and returns that."""
         if hasattr(model, 'monitor'):
             rval = model.monitor
         else:
