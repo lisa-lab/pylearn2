@@ -103,6 +103,23 @@ class Model(object):
         raise NotImplementedError()
     #
 
+    def get_param_values(self, borrow = False):
+        """
+        Returns the values of the parameters that define the model
+        """
+
+        return [ param.get_value(borrow=borrow) for param in self.get_params() ]
+
+    def set_param_values(self, values, borrow = False):
+        """
+        Sets the values of the parameters that define the model
+        """
+
+        for param, value in zip(self.get_params(), values):
+            param.set_value(value, borrow = borrow)
+
+
+
     def redo_theano(self):
         """
         Re-compiles all theano functions used internally by the model.
