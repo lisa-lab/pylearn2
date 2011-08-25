@@ -48,11 +48,12 @@ class Monitor(object):
             The number of examples per batch.
         """
         # TODO: why is this not specifiable via the constructor? Is it
-        # intended that
+        # intended that you be able to switch datasets after using it for
+        # a while?
 
-        # TODO: error checking; check dataset has the appropriate attributes
-        # for use by the monitor. Check that batches and batch_size work
-        # as indices.
+        # TODO: maybe error checking; check dataset has the appropriate
+        # attributes for use by the monitor. Check that batches and batch_size
+        # work as indices.
         self.dataset = dataset
         self.batches = batches
         self.batch_size = batch_size
@@ -83,7 +84,8 @@ class Monitor(object):
                 X = d.get_batch_design(self.batch_size)
                 self.accum(X)
 
-
+            # TODO: use logging infrastructure so that user can configure
+            # formatting
             print "Monitoring step:"
             print "\tBatches seen: %d" % self.batches_seen
             print "\tExamples seen: %d" % self.examples_seen
