@@ -1,8 +1,8 @@
 from theano import tensor as T
 import copy
 
-class Model(object):
 
+class Model(object):
     def train(self, dataset):
         """
         Optional method.
@@ -17,7 +17,6 @@ class Model(object):
             True if the method should be called again for another epoch
             False if convergence has been reached
         """
-
 
     def get_monitoring_channels(self, V):
         """
@@ -39,8 +38,6 @@ class Model(object):
 
         return {}
 
-
-
     def score(self, V):
         """
             V: a batch of IID examples, of shape (# examples, #features)
@@ -52,7 +49,6 @@ class Model(object):
         """
 
         return T.grad(- self.free_energy(V).sum(), V)
-    #
 
     def censor_updates(self, updates):
         """
@@ -73,7 +69,6 @@ class Model(object):
         algorithms such as those found in pylearn2.training_algorithms
         respect the specific properties of the models passed to them."""
         pass
-    #
 
     def free_energy(self, V):
         """
@@ -84,7 +79,6 @@ class Model(object):
         the free energy on V[i,:] """
 
         raise NotImplementedError()
-    #
 
     def get_params(self):
         """
@@ -99,26 +93,21 @@ class Model(object):
         Parameters may be included here but held constant during
         learning via the censor_updates method.
         """
-
         raise NotImplementedError()
-    #
 
-    def get_param_values(self, borrow = False):
+    def get_param_values(self, borrow=False):
         """
         Returns the values of the parameters that define the model
         """
+        return [param.get_value(borrow=borrow) for param in self.get_params()]
 
-        return [ param.get_value(borrow=borrow) for param in self.get_params() ]
-
-    def set_param_values(self, values, borrow = False):
+    def set_param_values(self, values, borrow=False):
         """
         Sets the values of the parameters that define the model
         """
 
         for param, value in zip(self.get_params(), values):
-            param.set_value(value, borrow = borrow)
-
-
+            param.set_value(value, borrow=borrow)
 
     def redo_theano(self):
         """
@@ -133,11 +122,9 @@ class Model(object):
         with the register_names_to_del method.
         """
         pass
-    #
 
     def get_input_dim(self):
         raise NotImplementedError()
-    #
 
     def __getstate__(self):
         """
@@ -153,15 +140,12 @@ class Model(object):
             d[name] = copy.copy(self.__dict__[name])
 
         return d
-    #
 
     def __setstate__(self, d):
         self.__dict__.update(d)
-    #
 
     def __init__(self):
         self.names_to_del = set()
-    #
 
     def register_names_to_del(self, names):
         """
@@ -173,5 +157,3 @@ class Model(object):
         """
 
         self.names_to_del = self.names_to_del.union(names)
-    #
-#
