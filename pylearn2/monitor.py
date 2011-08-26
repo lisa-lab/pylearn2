@@ -63,7 +63,7 @@ class Monitor(object):
             print "Monitoring step:"
             print "\tBatches seen: %d" % self.batches_seen
             print "\tExamples seen: %d" % self.examples_seen
-            for channel_name in self.channels:
+            for channel_name in sorted(self.channels):
                 channel = self.channels[channel_name]
                 channel.batch_record.append(self.batches_seen)
                 channel.example_record.append(self.examples_seen)
