@@ -43,21 +43,7 @@ def get_constant(variable, return_scalar=False):
     return ret
 """
 
-def sharedX(value, name=None, borrow=False):
-    """Transform value into a shared variable of type floatX"""
-    return theano.shared(theano._asarray(value, dtype=theano.config.floatX),
-                         name=name,
-                         borrow=borrow)
 
-def as_floatX(variable):
-    """Casts a given variable into dtype config.floatX
-        numpy ndarrays will remain numpy ndarrays
-        all other types will be treated as theano tensors"""
-
-    if isinstance(variable, numpy.ndarray):
-        return numpy.cast[theano.config.floatX](variable)
-
-    return theano.tensor.cast(variable, theano.config.floatX)
 
 def subdict(d, keys):
     """ Create a subdictionary of d with the keys in keys """
