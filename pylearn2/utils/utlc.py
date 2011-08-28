@@ -18,12 +18,19 @@ from pylearn.datasets.utlc import load_ndarray_dataset, load_sparse_dataset
 ##################################################
 
 
+"""
+this function marked deprecated by Ian Goodfellow
+TODO: find all uses of this function and remove it,
+      OR change the comment to explain why it needs to exist
+         if it is just intended to be used on shared variables,
+         shouldn't we just use get_value?
+
 def get_constant(variable, return_scalar=False):
-    """ Little hack to return the python value of a theano shared variable.
+     Little hack to return the python value of a theano shared variable.
 
     If return_scalar is True, and the constant is an ndarray of 0 dimensions,
     the content of that ndarray will be returned instead.
-    """
+    
     try:
         ret = theano.function([],
                               variable,
@@ -34,6 +41,7 @@ def get_constant(variable, return_scalar=False):
     if isinstance(ret, numpy.ndarray) and ret.ndim == 0:
         ret = ret.item()
     return ret
+"""
 
 def sharedX(value, name=None, borrow=False):
     """Transform value into a shared variable of type floatX"""
