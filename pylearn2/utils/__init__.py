@@ -1,3 +1,4 @@
+import theano
 
 def sharedX(value, name=None, borrow=False):
     """Transform value into a shared variable of type floatX"""
