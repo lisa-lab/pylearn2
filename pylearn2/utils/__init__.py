@@ -1,6 +1,18 @@
 import theano
 import numpy
 
+def make_name(variable, anon = "anonymous_variable"):
+    """
+    If variable has a name, returns that name.
+    Otherwise, returns anon
+    """
+
+    if hasattr(variable,'name') and variable.name is not None:
+        return variable.name
+
+    return anon
+
+
 def sharedX(value, name=None, borrow=False):
     """Transform value into a shared variable of type floatX"""
     return theano.shared(theano._asarray(value, dtype=theano.config.floatX),
