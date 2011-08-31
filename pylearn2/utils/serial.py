@@ -31,7 +31,10 @@ def load(filepath, recurse_depth = 0):
         #assert False
         exc_str = str(e)
         if len(exc_str) > 0:
-            raise Exception("Couldn't open '"+filepath+"' due to: "+str(type(e))+','+str(e))
+            import pdb
+            tb = pdb.traceback.format_exc()
+
+            raise Exception("Couldn't open '"+filepath+"' due to: "+str(type(e))+','+str(e)+". Orig traceback:\n"+tb)
         else:
             print "Couldn't open '"+filepath+"' and exception has no string. Opening it again outside the try/catch so you can see whatever error it prints on its own."
             f = open(filepath,'rb')
