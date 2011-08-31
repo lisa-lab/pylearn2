@@ -74,6 +74,7 @@ class Train(object):
                     callback(self.model, self.dataset, self.algorithm)
                 #
             #
+            self.save()
         #
     #
 
