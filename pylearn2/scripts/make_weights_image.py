@@ -14,4 +14,4 @@ if len(sys.argv) > 2:
 
 pv = get_weights_report.get_weights_report(path, rescale)
 
-pv.save(sys.argv[1]+'.jpg')
+pv.save(sys.argv[1]+'.png')
