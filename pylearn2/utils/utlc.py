@@ -44,14 +44,6 @@ def get_constant(variable, return_scalar=False):
 """
 
 
-
-def subdict(d, keys):
-    """ Create a subdictionary of d with the keys in keys """
-    result = {}
-    for key in keys:
-        if key in d: result[key] = d[key]
-    return result
-
 def safe_update(dict_to, dict_from):
     """
     Like dict_to.update(dict_from), except don't overwrite any keys.

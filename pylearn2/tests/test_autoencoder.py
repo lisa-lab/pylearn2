@@ -2,7 +2,6 @@
 Tests for the pylearn2 autoencoder module.
 """
 import numpy as np
-from numpy.testing.utils import assert_allclose
 import theano
 import theano.tensor as tensor
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
@@ -21,7 +20,7 @@ def test_autoencoder_logistic_linear_tied():
     d = tensor.matrix()
     result = np.dot(1. / (1 + np.exp(-hb - np.dot(data,  w))), w.T) + vb
     ff = theano.function([d], ae.reconstruct(d))
-    assert_allclose(ff(data), result)
+    assert np.allclose(ff(data), result)
 
 
 def test_autoencoder_tanh_cos_untied():
@@ -37,4 +36,4 @@ def test_autoencoder_tanh_cos_untied():
     d = tensor.matrix()
     result = np.cos(np.dot(np.tanh(hb + np.dot(data,  w)), w_prime) + vb)
     ff = theano.function([d], ae.reconstruct(d))
-    assert_allclose(ff(data), result)
+    assert np.allclose(ff(data), result)
