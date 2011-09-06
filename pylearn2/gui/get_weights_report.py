@@ -2,6 +2,7 @@ from pylearn2.utils import serial
 from pylearn2.gui import patch_viewer
 from pylearn2.config import yaml_parse
 import numpy as N
+import warnings
 
 def get_weights_report(model_path, rescale = True):
     print 'making weights report'
@@ -18,7 +19,13 @@ def get_weights_report(model_path, rescale = True):
         p.weights = p.weightsShared.get_value()
 
     if 'W' in dir(p):
-        p.weights = p.W.get_value()
+        if hasattr(p.W,'__array__'):
+            warnings.warn('model.W is an ndarray; I can figure out how to display this but that seems like a sign of a bad bug')
+            p.weights = p.W
+            from theano import shared
+            p.W = shared(p.W)
+        else:
+            p.weights = p.W.get_value()
 
     if 'D' in dir(p):
         p.decWeightsShared = p.D
