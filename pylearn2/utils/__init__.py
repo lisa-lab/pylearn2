@@ -29,6 +29,13 @@ def as_floatX(variable):
 
     return theano.tensor.cast(variable, theano.config.floatX)
 
+def subdict(d, keys):
+    """ Create a subdictionary of d with the keys in keys """
+    result = {}
+    for key in keys:
+        if key in d: result[key] = d[key]
+    return result
+
 """
 doesn't make sense to auto-import utlc code in a generic
 pylearn2 module, especially
