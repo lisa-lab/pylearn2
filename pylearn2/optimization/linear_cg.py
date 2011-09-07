@@ -29,9 +29,8 @@ def linear_cg(fn, params, tol = 1e-3, max_iters = 1000, floatX = None):
 
 
         Return:
-            None
-
-            x will be modified so that its values minimize f
+            the solution in form of a symbolic expression (or list of
+            symbolic expressions)
 
 
         Reference:
@@ -41,8 +40,11 @@ def linear_cg(fn, params, tol = 1e-3, max_iters = 1000, floatX = None):
             the R operator instead of an explicit representation of the Hessian)
 
     """
+    provided_as_list = True
     if not isinstance(params, (list,tuple)):
         params = [params]
+        provided_as_list = False
+
     n_params = len(params)
     def loop(rsold, *args):
         ps = args[:n_params]
@@ -70,7 +72,10 @@ def linear_cg(fn, params, tol = 1e-3, max_iters = 1000, floatX = None):
                                 name = 'linear_conjugate_gradient')
     fxs = outs[1+2*n_params:]
     fxs = [ifelse(rsold <tol, x0, x[-1]) for x0,x in zip(x0s, fxs)]
-    return fxs
+    if not provided_as_list:
+        return fxs[0]
+    else:
+        return fxs
 
 
 
