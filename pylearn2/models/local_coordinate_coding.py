@@ -1,5 +1,6 @@
+import warnings
 from theano import function, shared
-from pylearn2.optimization import linear_conj_grad_r as cg
+from pylearn2.optimization import linear_cg as cg
 from pylearn2.optimization import featuresign as fs
 import numpy as N
 import theano.tensor as T
@@ -101,8 +102,8 @@ class LocalCoordinateCoding(object):
 
         #Optimize W
         print 'optimizing W'
-        cg.linear_conj_grad_r_hack(J, [self.W], [cur_v, cur_gamma],
-                                   [batch_X, gamma], max_iters=3)
+        warnings.warn("not tested since switching to Razvan's all-theano implementation of linear cg")
+        cg.linear_cg(J, [self.W], max_iters=3)
 
         err = 0.
 

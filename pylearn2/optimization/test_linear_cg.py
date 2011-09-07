@@ -2,8 +2,6 @@ import theano
 from theano import tensor
 import numpy
 import linear_cg
-import linear_conj_grad_r
-import scipy
 import scipy.linalg
 import time
 
@@ -24,15 +22,16 @@ def test_linear_cg():
     sol  = fn_sol()[0]
     my_lcg = time.time() -start
 
-    start = time.time()
-    linear_conj_grad_r.linear_conj_grad_r(f,[x])
-    ian_lcg = time.time() -start
-
     eval_f = theano.function([],f)
-    print 'Ian verions value of f: '+str(eval_f()), 'time (s)', ian_lcg
     x.set_value(sol)
-    print 'My version value of f:', str(eval_f()), 'time (s)', my_lcg
+    cgf = eval_f()
+    print "conjugate gradient's value of f:", str(cgf), 'time (s)', my_lcg
     x.set_value(   scipy.linalg.solve(M,b) , borrow = True )
-    print 'true minimum value: '+str(eval_f())
+    spf = eval_f()
+    print "scipy.linalg.solve's value of f: "+str(spf)
+
+    assert abs(cgf - spf) < 1e-5
+
+
 if __name__ == '__main__':
     test_linear_cg()
