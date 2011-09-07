@@ -95,8 +95,16 @@ for code in sorted(final_codes):
 
     channel = channels[channel_name]
 
+    y = N.asarray(channel.val_record)
+
+    if N.any(N.isnan(y)):
+        print channel_name + ' contains NaNs'
+
+    if N.any(N.isinf(y)):
+        print channel_name + 'contains infinite values'
+
     plt.plot( N.asarray(channel.example_record), \
-              N.asarray(channel.val_record), \
+              y, \
               label = channel_name)
 
 
