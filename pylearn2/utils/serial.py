@@ -2,8 +2,8 @@ import cPickle
 import pickle
 import os
 import time
-import numpy as N
-
+import warnings
+import sys
 
 def load(filepath, recurse_depth = 0):
     try:
@@ -45,7 +45,35 @@ def load(filepath, recurse_depth = 0):
     #
 #
 
-def save(filepath,obj):
+
+def save(filepath, obj):
+    try:
+        _save(filepath, obj)
+    except RuntimeError, e:
+        """ Sometimes for large theano graphs, pickle/cPickle exceed the
+            maximum recursion depth. This seems to me like a fundamental
+            design flaw in pickle/cPickle. The workaround I employ here
+            is the one recommended to someone who had a similar problem
+            on stackexchange:
+
+            http://stackoverflow.com/questions/2134706/hitting-maximum-recursion-depth-using-pythons-pickle-cpickle
+
+            The workaround is just to raise the max recursion depth.
+            Obviously this does not scale and could cause a crash
+            but I don't see another solution short of writing our
+            own implementation of pickle.
+        """
+        if str(e).find('recursion') != -1:
+            warnings.warn('pylearn2.utils.save encountered the following error: ' \
+                    + str(e) + \
+                    '\nAttempting to resolve this error by calling ' + \
+                    'sys.setrecusionlimit and retrying')
+
+            sys.setrecursionlimit(50000)
+            _save(filepath, obj)
+
+
+def _save(filepath,obj):
         try:
                 f = open(filepath,"wb")
         except Exception, e:
@@ -56,6 +84,10 @@ def save(filepath,obj):
             f.close()
         except Exception, e:
             f.close()
+
+            if str(e).find('maximum recursion depth exceeded') != -1:
+                raise
+
             try:
                 f = open(filepath,"wb")
                 pickle.dump(obj,f)
