@@ -78,10 +78,18 @@ if prompt:
 else:
     final_codes ,= set(codebook.keys())
 
+fig = plt.figure()
+ax = plt.subplot(1,1,1)
+
+# Shink current axis' width by 20% so legend will still appear in the window
+box = ax.get_position()
+ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+
 plt.xlabel('# examples')
 
+
 #plot the requested channels
-for code in final_codes:
+for code in sorted(final_codes):
 
     channel_name= codebook[code]
 
@@ -91,6 +99,7 @@ for code in final_codes:
               N.asarray(channel.val_record), \
               label = channel_name)
 
-plt.legend()
+
+plt.legend(bbox_to_anchor=(1.05, 1),  loc=2, borderaxespad=0.)
 
 plt.show()
