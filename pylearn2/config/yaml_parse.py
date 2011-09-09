@@ -2,10 +2,43 @@
 import yaml
 from pylearn2.utils.call_check import checked_call
 from pylearn2.utils import serial
-
+import os
 
 is_initialized = False
 
+def preprocess(string):
+    """
+    Preprocesses a string, by replacing ${VARNAME} with
+    os.environ['VARNAME']
+
+    Parameters
+    ----------
+    string: the str object to preprocess
+
+    Returns
+    -------
+    the preprocessed string
+    """
+
+    split = string.split('${')
+
+    rval = [split[0]]
+
+    for candidate in split[1:]:
+        subsplit = candidate.split('}')
+
+        if len(subsplit) < 2:
+            raise ValueError('Open ${ not followed by } before ' \
+                    + 'end of string or next ${ in "' \
+                    + string + '"')
+
+        rval.append(os.environ[subsplit[0]])
+
+        rval.append('}'.join(subsplit[1:]))
+
+    rval = ''.join(rval)
+
+    return rval
 
 def load(stream, overrides=None, **kwargs):
     """
@@ -34,7 +67,15 @@ def load(stream, overrides=None, **kwargs):
     global is_initialized
     if not is_initialized:
         initialize()
-    proxy_graph = yaml.load(stream, **kwargs)
+
+    if isinstance(stream,str):
+        string = stream
+    else:
+        string = '\n'.join(stream.readlines())
+
+    processed_string = preprocess(string)
+
+    proxy_graph = yaml.load(processed_string, **kwargs)
 
     #import pdb; pdb.set_trace()
     if overrides is not None:
