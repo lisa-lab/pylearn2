@@ -4,9 +4,11 @@ import os
 import time
 import warnings
 import sys
-
+from pylearn2.utils.string import preprocess
 
 def load(filepath, recurse_depth = 0):
+    if recurse_depth == 0:
+        filepath = preprocess(filepath)
 
     def exponential_backoff():
         if recurse_depth > 9:
@@ -56,6 +58,7 @@ def load(filepath, recurse_depth = 0):
 
 
 def save(filepath, obj):
+    filepath = preprocess(filepath)
     try:
         _save(filepath, obj)
     except RuntimeError, e:
