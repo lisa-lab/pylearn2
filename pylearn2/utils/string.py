@@ -28,7 +28,10 @@ def preprocess(string):
                     + 'end of string or next ${ in "' \
                     + string + '"')
 
-        rval.append(os.environ[subsplit[0]])
+        varname = subsplit[0]
+        val = os.environ[varname]
+
+        rval.append(val)
 
         rval.append('}'.join(subsplit[1:]))
 
