@@ -5,6 +5,7 @@ import time
 import warnings
 import sys
 from pylearn2.utils.string import preprocess
+from cPickle import BadPickleGet
 
 def load(filepath, recurse_depth = 0):
     if recurse_depth == 0:
@@ -30,6 +31,10 @@ def load(filepath, recurse_depth = 0):
         obj = cPickle.load(f)
         f.close()
         return obj
+    except BadPickleGet, e:
+        print 'Failed to open '+filepath+' due to BadPickleGet with string '+str(e)
+
+        return exponential_backoff()
     except EOFError, e:
         print "Failed to open '+filepath+' due to EOFError with string "+str(e)
 
