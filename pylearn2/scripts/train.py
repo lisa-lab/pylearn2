@@ -105,9 +105,12 @@ if __name__ == "__main__":
     else:
         config_file_name = config_file_path
 
+    #publish the PYLEARN2_TRAIN_FILE_NAME environment variable
     varname = "PYLEARN2_TRAIN_FILE_NAME"
-
+    #this makes it available to other sections of code in this same script
     os.environ[varname] =  config_file_name
+    #this make it available to any subprocesses we launch
+    os.putenv(varname, config_file_name)
 
     train_obj = pylearn2.config.yaml_parse.load_path(config_file_path)
 
