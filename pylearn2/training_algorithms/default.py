@@ -25,16 +25,16 @@ class DefaultTrainingAlgorithm(object):
 
 
         X = T.matrix()
-        X.tag.test_value = self.monitoring_dataset.get_batch_design(2)
 
-        channels = model.get_monitoring_channels(X)
+        if self.monitoring_dataset:
+            X.tag.test_value = self.monitoring_dataset.get_batch_design(2)
+            channels = model.get_monitoring_channels(X)
 
-        for name in channels:
-            J =    channels[name]
-            self.monitor.add_channel(name = name,
-                                 ipt = X,
-                                 val = J)
-
+            for name in channels:
+                J =    channels[name]
+                self.monitor.add_channel(name = name,
+                                     ipt = X,
+                                     val = J)
 
 
         self.first = True
