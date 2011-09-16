@@ -1,14 +1,40 @@
 from pylearn2.utils import serial
 from pylearn2.gui import patch_viewer
 from pylearn2.config import yaml_parse
-import numpy as N
+import numpy as np
 import warnings
 
-def get_weights_report(model_path, rescale = True):
+def get_weights_report(model_path, rescale = 'individual'):
+    """
+        Returns a PatchViewer displaying a grid of filter weights
+
+        Parameters:
+            model_path: the filepath of the model to make the report on.
+            rescale: a string specifying how to rescale the filter images
+                        'individual' (default): scale each filter so that it
+                            uses as much as possible of the dynamic range
+                            of the display under the constraint that 0
+                            is gray and no value gets clipped
+                        'global' : scale the whole ensemble of weights
+                        'none' :   don't rescale
+    """
+
     print 'making weights report'
     print 'loading model'
     p = serial.load(model_path)
     print 'loading done'
+
+    if rescale == 'none':
+        global_rescale = False
+        patch_rescale = False
+    elif rescale == 'global':
+        global_rescale = True
+        patch_rescale = False
+    elif rescale == 'individual':
+        global_rescale = False
+        patch_rescale = True
+    else:
+        raise ValueError('rescale='+rescale+", must be 'none', 'global', or 'individual'")
 
     dataset = yaml_parse.load(p.dataset_yaml_src)
 
@@ -39,11 +65,14 @@ def get_weights_report(model_path, rescale = True):
         nh , nv, ns = W.shape
         pv = patch_viewer.PatchViewer(grid_shape=(nh,ns), patch_shape= dataset.view_shape()[0:2])
 
+        if global_rescale:
+            W /= np.abs(W).max()
+
         for i in range(0,nh):
             for k in range(0,ns):
                 patch = W[i,:,k]
                 patch = dataset.vec_to_view(patch, weights = True)
-                pv.add_patch( patch, rescale = rescale)
+                pv.add_patch( patch, rescale = patch_rescale)
             #
         #
     elif len(p.weights.shape) == 2:
@@ -61,7 +90,7 @@ def get_weights_report(model_path, rescale = True):
         h = p.weights.shape[0]
 
 
-        hr = int(N.ceil(N.sqrt(h)))
+        hr = int(np.ceil(np.sqrt(h)))
         hc = hr
         if 'hidShape' in dir(p):
             hr, hc = p.hidShape
@@ -74,9 +103,13 @@ def get_weights_report(model_path, rescale = True):
         weights_view = dataset.get_weights_view(weights_mat)
         assert weights_view.shape[0] == h
         #print 'weights_view shape '+str(weights_view.shape)
+
+        if global_rescale:
+            weights_view /= np.abs(weights_view).max()
+
         for i in range(0,h):
             patch = weights_view[i,...]
-            pv.add_patch( patch, rescale   = rescale)
+            pv.add_patch( patch, rescale   = patch_rescale)
     else:
         e = p.weights
         d = p.dec_weights_shared.value
@@ -93,15 +126,15 @@ def get_weights_report(model_path, rescale = True):
 
         show_dec = id(e) != id(d)
 
-        pv = PatchViewer.PatchViewer( grid_shape = ((1+show_dec)*h,dur), patch_shape=shape)
+        pv = patch_viewer.PatchViewer( grid_shape = ((1+show_dec)*h,dur), patch_shape=shape)
         for i in range(0,h):
             pv.addVid( e[i,:,:,:,0], rescale = rescale)
             if show_dec:
                 pv.addVid( d[i,:,:,:,0], rescale = rescale)
 
-    print 'smallest enc weight magnitude: '+str(N.abs(p.weights).min())
-    print 'mean enc weight magnitude: '+str(N.abs(p.weights).mean())
-    print 'max enc weight magnitude: '+str(N.abs(p.weights).max())
+    print 'smallest enc weight magnitude: '+str(np.abs(p.weights).min())
+    print 'mean enc weight magnitude: '+str(np.abs(p.weights).mean())
+    print 'max enc weight magnitude: '+str(np.abs(p.weights).max())
 
 
     return pv
