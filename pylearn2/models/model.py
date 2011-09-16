@@ -136,7 +136,9 @@ class Model(object):
 
         d = {}
 
-        for name in set(self.__dict__.keys()).difference(self.names_to_del):
+        names_to_keep = set(self.__dict__.keys()).difference(self.names_to_del)
+
+        for name in names_to_keep:
             d[name] = copy.copy(self.__dict__[name])
 
         return d
