@@ -232,3 +232,21 @@ class Channel(object):
         self.batch_record = []
         self.example_record = []
         self.val_record = []
+
+
+    def __getstate__(self):
+        """ TODO:
+                we need to figure out a good way of saving the other fields.
+                in the current setup, since there's no good way of coordinating
+                with the model/training algorithm, the theano based fields might
+                be invalid after a repickle.
+                This means we can't, for instance, resume a job with monitoring
+                after a crash.
+                For now, to make sure no one erroneously depends on these bad
+                values, I exclude them from the pickle.
+        """
+        return { 'example_record' : self.example_record,
+                    'val_record': self.val_record }
+
+    def __setstate__(self, d):
+        self.__dict__.update(d)
