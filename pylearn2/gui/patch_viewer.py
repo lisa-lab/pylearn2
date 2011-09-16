@@ -173,17 +173,7 @@ class PatchViewer(object):
             self.add_patch(myvid[:, :, i], rescale=False, recenter=recenter)
 
     def show(self):
-        try:
-            img = self.get_img()
-            img.show()
-        except:
-            print "Warning, your version of PIL sucks"
-            import matplotlib.pyplot
-            matplotlib.pyplot.imshow(self.image)
-            matplotlib.pyplot.show()
-            print 'waiting'
-            x = raw_input()
-            print 'running'
+        show(self.get_img())
 
     def get_img(self):
         #print 'image range '+str((self.image.min(), self.image.max()))
