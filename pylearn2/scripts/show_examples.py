@@ -31,16 +31,33 @@ assert len(sys.argv) <4
 
 if path.endswith('.pkl'):
     from pylearn2.utils import serial
-    dataset = serial.load(path)
+    obj = serial.load(path)
 elif path.endswith('.yaml'):
-    dataset =yaml_parse.load_path(path)
+    obj =yaml_parse.load_path(path)
 else:
-    dataset = yaml_parse.load(path)
+    obj = yaml_parse.load(path)
 
 rows = 20
 cols = 20
 
-examples = dataset.get_batch_topo(rows*cols)
+if hasattr(obj,'get_batch_topo'):
+    #obj is a Dataset
+    dataset = obj
+    examples = dataset.get_batch_topo(rows*cols)
+else:
+    #obj is a Model
+    model = obj
+    from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
+    theano_rng = RandomStreams(42)
+    design_examples_var = model.random_design_matrix(batch_size = rows * cols, theano_rng = theano_rng)
+    from theano import function
+    print 'compiling sampling function'
+    f = function([],design_examples_var)
+    print 'sampling'
+    design_examples = f()
+    print 'loading dataset'
+    dataset = yaml_parse.load(model.dataset_yaml_src)
+    examples = dataset.get_topological_view(design_examples)
 
 norms = N.asarray( [
         N.sqrt(N.sum(N.square(examples[i,:])))
