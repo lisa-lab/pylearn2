@@ -156,7 +156,7 @@ class Monitor(object):
         `redo_theano` by deleting the fields in `self.names_to_del`
         """
         temp = self.dataset
-        if not isinstance(self.dataset, str):
+        if self.dataset and not isinstance(self.dataset, str):
             self.dataset = self.dataset.yaml_src
         d = copy.copy(self.__dict__)
         self.dataset = temp
