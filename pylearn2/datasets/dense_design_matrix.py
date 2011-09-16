@@ -187,11 +187,13 @@ class DefaultViewConverter(object):
         return self.shape
 
     def design_mat_to_topo_view(self, X):
+        assert len(X.shape) == 2
         batch_size = X.shape[0]
         channel_shape = [batch_size]
         for dim in self.shape[:-1]:
             channel_shape.append(dim)
         channel_shape.append(1)
+        assert self.shape[-1] * self.pixels_per_channel == X.shape[1]
         start = lambda i: self.pixels_per_channel * i
         stop = lambda i: self.pixels_per_channel * (i + 1)
         channels = [X[:, start(i):stop(i)].reshape(*channel_shape)

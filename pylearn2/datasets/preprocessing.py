@@ -16,8 +16,198 @@ class Pipeline(object):
     #
 #
 
+class ExtractGridPatches(object):
+    """ Converts a dataset into a dataset of patches
+        extracted along a regular grid from each image.
+        The order of the images is preserved.
+    """
+    def __init__(self, patch_shape, patch_stride):
+        self.patch_shape = patch_shape
+        self.patch_stride = patch_stride
 
+    def apply(self, dataset, can_fit = False):
+
+        X = dataset.get_topological_view()
+
+        num_topological_dimensions = len(X.shape) - 2
+
+        if num_topological_dimensions != len(self.patch_shape):
+            raise ValueError("""ExtractGridPatches with """+str(len(self.patch_shape))
+                +""" topological dimensions called on dataset with """+
+                str(num_topological_dimensions)+""".""")
+
+        num_patches = X.shape[0]
+
+        max_strides = [X.shape[0]-1]
+
+        for i in xrange(num_topological_dimensions):
+            patch_width = self.patch_shape[i]
+            data_width = X.shape[i+1]
+            last_valid_coord = data_width - patch_width
+            if last_valid_coord < 0:
+                raise ValueError('On topological dimensions '+str(i)+\
+                        ', the data has width '+str(data_width)+' but the '+\
+                        'requested patch width is '+str(patch_width))
+            stride = self.patch_stride[i]
+            if stride == 0:
+                max_stride_this_axis = 0
+            else:
+                max_stride_this_axis = last_valid_coord / stride
+
+            num_strides_this_axis = max_stride_this_axis + 1
+
+            max_strides.append(max_stride_this_axis)
+
+            num_patches *= num_strides_this_axis
+
+        #batch size
+        output_shape = [ num_patches ]
+        #topological dimensions
+        for dim in self.patch_shape:
+            output_shape.append(dim)
+        #number of channels
+        output_shape.append(X.shape[-1])
+
+        output = N.zeros(output_shape, dtype = X.dtype)
+
+        channel_slice = slice(0,X.shape[-1])
+
+        coords = [ 0 ]  *  (num_topological_dimensions + 1)
+
+        keep_going = True
+        i = 0
+        while keep_going:
+            args = [ coords[0] ]
+
+            for j in xrange(num_topological_dimensions):
+                coord = coords[j+1] * self.patch_stride[j]
+                args.append(slice(coord,coord+self.patch_shape[j]))
+            #end for j
+
+            args.append(channel_slice)
+
+            patch = X[args]
+            output[i,:] = patch
+            i += 1
+
+            #increment coordinates
+            j = 0
+
+            keep_going = False
+
+            while not keep_going:
+                if coords[-(j+1)] < max_strides[-(j+1)]:
+                    coords[-(j+1)] += 1
+                    keep_going = True
+                else:
+                    coords[-(j+1)] = 0
+
+                    if j == num_topological_dimensions:
+                        break
+
+                    j = j + 1
+                    #end if j
+                #end if coords
+            #end while not continue
+        #end while continue
+
+        dataset.set_topological_view(output)
+    #
+
+class ReassembleGridPatches(object):
+    """ Converts a dataset of patches into a dataset of full examples
+        This is the inverse of ExtractGridPatches for patch_stride=patch_shape
+    """
+    def __init__(self, orig_shape, patch_shape):
+        self.patch_shape = patch_shape
+        self.orig_shape = orig_shape
+
+    def apply(self, dataset, can_fit = False):
+
+        patches = dataset.get_topological_view()
+
+        num_topological_dimensions = len(patches.shape) - 2
+
+        if num_topological_dimensions != len(self.patch_shape):
+            raise ValueError("""ReassembleGridPatches with """+str(len(self.patch_shape))
+                +""" topological dimensions called on dataset with """+
+                str(num_topological_dimensions)+""".""")
+
+        num_patches = patches.shape[0]
+
+        num_examples = num_patches
+
+        for dim in self.orig_shape:
+            if num_examples % dim != 0:
+                raise Exception('Trying to re-assemble '+str(num_patches) + \
+                        'patches into images of shape '+str(self.orig_shape))
+            num_examples /= dim
+
+        #batch size
+        reassembled_shape = [ num_examples ]
+        #topological dimensions
+        for dim in self.orig_shape:
+            reassembled_shape.append(dim)
+        #number of channels
+        reassembled_shape.append(patches.shape[-1])
+
+        reassembled = N.zeros(reassembled_shape, dtype = patches.dtype)
+
+        channel_slice = slice(0,patches.shape[-1])
+
+        coords = [ 0 ]  *  (num_topological_dimensions + 1)
+
+
+        max_strides = [ num_examples - 1]
+        for dim in self.orig_shape:
+            max_strides.append(dim-1)
+
+        keep_going = True
+        i = 0
+        while keep_going:
+
+            args = [ coords[0] ]
+
+            for j in xrange(num_topological_dimensions):
+                coord = coords[j+1]
+                args.append(slice(coord,coord+self.patch_shape[j]))
+            #end for j
+
+            args.append(channel_slice)
+
+            try:
+                patch = patches[i,:]
+            except IndexError:
+                raise IndexError('Gave index of '+str(i)+',: into thing of shape '+str(patches.shape))
+            reassembled[args] = patch
+            i += 1
+
+            #increment coordinates
+            j = 0
+
+            keep_going = False
+
+            while not keep_going:
+                if coords[-(j+1)] < max_strides[-(j+1)]:
+                    coords[-(j+1)] += 1
+                    keep_going = True
+                else:
+                    coords[-(j+1)] = 0
+
+                    if j == num_topological_dimensions:
+                        break
+
+                    j = j + 1
+                    #end if j
+                #end if coords
+            #end while not continue
+        #end while continue
+
+        dataset.set_topological_view(reassembled)
+    #
 class ExtractPatches(object):
+    """ Converts an image dataset into a dataset of patches
+        extracted at random from the original dataset. """
     def __init__(self, patch_shape, num_patches, rng = None):
         self.patch_shape = patch_shape
         self.num_patches = num_patches

@@ -1,29 +1,37 @@
 import numpy as N
 from PIL import Image
-import os
+from pylearn2.datasets.dense_design_matrix import DefaultViewConverter
+from pylearn2.utils.image import show
 
-
-def make_viewer(mat, grid_shape=None, patch_shape=None, activation=None):
+def make_viewer(mat, grid_shape=None, patch_shape=None, activation=None, is_color = False):
     """ Given filters in rows, guesses dimensions of patchse
         and nice dimensions for the PatchViewer and returns a PatchViewer
         containing visualizations of the filters"""
+
+    num_channels = 1
+    if is_color:
+        num_channels = 3
+
     if grid_shape is None:
-        grid_shape = PatchViewer.pickSize(mat.shape[0])
+        grid_shape = PatchViewer.pickSize(mat.shape[0] )
     if patch_shape is None:
-        patch_shape = PatchViewer.pickSize(mat.shape[1])
+        patch_shape = PatchViewer.pickSize(mat.shape[1] / num_channels)
     rval = PatchViewer(grid_shape, patch_shape)
-    patch_shape = (patch_shape[0], patch_shape[1], 1)
+    topo_shape = (patch_shape[0], patch_shape[1], num_channels)
+    view_converter = DefaultViewConverter(topo_shape)
+    topo_view = view_converter.design_mat_to_topo_view(mat)
     for i in xrange(mat.shape[0]):
-        #rval.add_patch( N.ones(patch_shape) )
         if activation is not None:
-            # TODO: why not use hasattr(activation, '__iter__') here?
-            if isinstance(activation, list) or isinstance(activation, tuple):
+            if hasattr(activation, '__iter__'):
                 act = [a[i] for a in activation]
             else:
                 act = activation[i]
         else:
             act = None
-        rval.add_patch(mat[i, :].reshape(*patch_shape), rescale=True,
+
+        patch = topo_view[i, :]
+
+        rval.add_patch(patch, rescale=True,
                        activation=act)
     return rval
 
