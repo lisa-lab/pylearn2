@@ -1,17 +1,37 @@
-from multiprocessing import Process
-import matplotlib.pyplot as plt
 import numpy as np
+from PIL import Image
+import os
+from tempfile import NamedTemporaryFile
 
-def show(image, title = "pylearn2 image viewer"):
-    def process_job():
-        f = plt.figure()
-        f.canvas.set_window_title(title)
-        im = image
-        if len(image.shape) != 3:
-            assert len(image.shape) == 2
-            im = np.lib.stride_tricks.as_strided(image, image.shape + (3,), image.strides + (0,))
-        plt.imshow(im[::-1,::-1,...])
-        plt.show()
-    p = Process(None, process_job)
-    p.start()
+def show(image):
+    """
+    Parameters
+    ----------
+    image: A PIL Image, or a numpy ndarray.
+            If ndarray, integer formats are assumed to use 0-255
+            and float formats are assumed to use 0-1
+    """
+
+    if hasattr(image, '__array__'):
+        if image.dtype == 'int8':
+            image = np.cast['uint8'](image)
+        elif str(image.dtype).startswith('float'):
+            image *= 255.
+            image = np.cast['uint8'](image)
+        try:
+            image = Image.fromarray(image)
+        except TypeError:
+            raise TypeError("PIL is whining about being given an ndarray of shape "+str(image.shape)+" and dtype "+str(image.dtype))
+
+    f = NamedTemporaryFile(mode='r',suffix='.png',delete=False)
+
+    name = f.name
+
+    f.flush()
+    f.close()
+
+
+    image.save(name)
+
+    os.popen('(sleep '+str(np.random.rand())+'; eog '+name+'; sleep 10; rm '+name+') &')
 

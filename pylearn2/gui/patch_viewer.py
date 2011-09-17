@@ -173,11 +173,11 @@ class PatchViewer(object):
             self.add_patch(myvid[:, :, i], rescale=False, recenter=recenter)
 
     def show(self):
-        show(self.get_img())
+        show(self.image)
 
     def get_img(self):
         #print 'image range '+str((self.image.min(), self.image.max()))
-        x = N.cast['int8'](self.image * 255.0)
+        x = N.cast['uint8'](self.image * 255.0)
         if x.shape[2] == 1:
             x = x[:, :, 0]
         img = Image.fromarray(x)
