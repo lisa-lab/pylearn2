@@ -6,10 +6,18 @@ import warnings
 import sys
 from pylearn2.utils.string import preprocess
 from cPickle import BadPickleGet
+io = None
 
 def load(filepath, recurse_depth = 0):
     if recurse_depth == 0:
         filepath = preprocess(filepath)
+
+    if filepath.endswith('.mat'):
+        global io
+        if io is None:
+            import scipy.io
+            io = scipy.io
+        return io.loadmat(filepath)
 
     def exponential_backoff():
         if recurse_depth > 9:
