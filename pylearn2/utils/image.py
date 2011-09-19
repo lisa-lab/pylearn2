@@ -35,7 +35,6 @@ def show(image):
 
     os.popen('(eog --new-instance '+name+'; rm '+name+') &')
 
-
 if __name__ == '__main__':
     black = np.zeros((50,50,3),dtype='uint8')
 
