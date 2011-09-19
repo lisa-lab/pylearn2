@@ -29,7 +29,14 @@ def preprocess(string):
                     + string + '"')
 
         varname = subsplit[0]
-        val = os.environ[varname]
+
+        try:
+            val = os.environ[varname]
+        except KeyError:
+            if varname == 'PYLEARN2_DATA_PATH':
+                raise EnvironmentVariableError("You need to define your PYLEARN2_DATA_PATH environment variable. If you are using a computer at LISA, this should be set to /data/lisa/data")
+
+            raise
 
         rval.append(val)
 
@@ -38,3 +45,11 @@ def preprocess(string):
     rval = ''.join(rval)
 
     return rval
+
+class EnvironmentVariableError(Exception):
+    """ An exception raised when a required environment variable is not defined """
+
+    def __init__(self, *args):
+        super(EnvironmentVariableError,self).__init__(*args)
+
+
