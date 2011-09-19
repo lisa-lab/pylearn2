@@ -33,5 +33,18 @@ def show(image):
 
     image.save(name)
 
-    os.popen('(sleep '+str(np.random.rand())+'; eog '+name+'; sleep 10; rm '+name+') &')
+    os.popen('(eog --new-instance '+name+'; rm '+name+') &')
 
+
+if __name__ == '__main__':
+    black = np.zeros((50,50,3),dtype='uint8')
+
+    red = black.copy()
+    red[:,:,0] = 255
+
+    green = black.copy()
+    green[:,:,1] = 255
+
+    show(black)
+    show(green)
+    show(red)
