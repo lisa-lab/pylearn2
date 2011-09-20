@@ -3,7 +3,7 @@ from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load
 
 class STL10(dense_design_matrix.DenseDesignMatrix):
-    def __init__(self, which_set, center = False):
+    def __init__(self, which_set, center = False, example_range = None):
 
         if which_set == 'train':
             train = load('${PYLEARN2_DATA_PATH}/stl10_matlab/train.mat')
@@ -28,6 +28,9 @@ class STL10(dense_design_matrix.DenseDesignMatrix):
 
             assert X.shape == (5000, 96*96*3)
 
+            if example_range is not None:
+                X = X[example_range[0]:example_range[1],:]
+
             #this is uint8
             y = train['y'][:,0]
             assert y.shape == (5000,)
@@ -40,25 +43,54 @@ class STL10(dense_design_matrix.DenseDesignMatrix):
             #The data is stored as uint8
             #If we leave it as uint8, it will cause the CAE to silently fail
             #since theano will treat derivatives wrt X as 0
-            X = np.cast['float32'](test['X'])
 
+            X = np.cast['float32'](test['X'])
             assert X.shape == (8000, 96*96*3)
+
+            if example_range is not None:
+                X = X[example_range[0]:example_range[1],:]
 
             #this is uint8
             y = test['y'][:,0]
             assert y.shape == (8000,)
 
         elif which_set == 'unlabeled':
-            raise NotImplementedError()
+            unlabeled = load('${PYLEARN2_DATA_PATH}/stl10_matlab/unlabeled.mat')
+
+            X =  unlabeled['X']
+
+            #this file is stored in HDF format, which transposes everything
+            assert X.shape == (96*96*3, 100000)
+            assert X.dtype == 'uint8'
+
+            if example_range is None:
+                X = X.value
+            else:
+                X = X.value[:,example_range[0]:example_range[1]]
+            X = np.cast['float32'](X.T)
+
+            unlabeled.close()
+
+            y = None
         else:
             raise ValueError('"'+which_set+'" is not an STL10 dataset. '
                     'Recognized values are "train", "test", and "unlabeled".')
         if center:
             X -= 127.5
 
-        view_converter = dense_design_matrix.DefaultViewConverter((32,32,3))
+        view_converter = dense_design_matrix.DefaultViewConverter((96,96,3))
 
         super(STL10,self).__init__(X = X, y = y, view_converter = view_converter)
+
+
+        for i in xrange(self.X.shape[0]):
+            mat = X[i:i+1,:]
+            topo = self.get_topological_view(mat)
+            for j in xrange(topo.shape[3]):
+                temp = topo[0,:,:,j].T.copy()
+                topo[0,:,:,j] = temp
+            mat = self.get_design_matrix(topo)
+            X[i:i+1,:] = mat
 
         assert not np.any(np.isnan(self.X))
     #
