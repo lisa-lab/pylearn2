@@ -333,7 +333,66 @@ class PCA(object):
     #
 #
 
+class Downsample(object):
+    def __init__(self, sampling_factor):
+        """
+            downsamples the topological view
 
+            parameters
+            ----------
+            sampling_factor: a list or array with one element for
+                            each topological dimension of the data
+        """
+
+        self.sampling_factor = sampling_factor
+
+    def apply(self, dataset, can_fit = False):
+        X = dataset.get_topological_view()
+
+        d = len(X.shape) - 2
+
+        assert d in [2,3]
+        assert X.dtype == 'float32' or X.dtype == 'float64'
+
+        if d == 2:
+            X = X.reshape([ X.shape[0], X.shape[1], X.shape[2], 1, X.shape[3] ])
+
+        kernel_size = 1
+
+        kernel_shape = [  X.shape[-1] ]
+
+        for factor in self.sampling_factor:
+            kernel_size *= factor
+            kernel_shape.append(factor)
+
+
+        if d == 2:
+            kernel_shape.append(1)
+
+        kernel_shape.append(X.shape[-1])
+
+        kernel_value = 1. / float(kernel_size)
+
+        kernel = np.zeros(kernel_shape, dtype=X.dtype)
+
+        for i in xrange(X.shape[-1]):
+            kernel[i,:,:,:,i] = kernel_value
+
+        from theano.tensor.nnet.Conv3D import conv3D
+
+        X_var = T.TensorType( broadcastable = [ s == 1 for s in X.shape],
+                            dtype = X.dtype)()
+
+        downsampled = conv3D(X_var, kernel, np.zeros(X.shape[-1],X.dtype), kernel_shape[1:-1])
+
+        f = function([X_var], downsampled)
+
+        X = f(X)
+
+        if d == 2:
+            X = X.reshape([X.shape[0], X.shape[1], X.shape[2], X.shape[4]])
+
+        dataset.set_topological_view(X)
 
 class GlobalContrastNormalization(object):
     def __init__(self, subtract_mean = True, std_bias = 10.0, use_norm = False):
