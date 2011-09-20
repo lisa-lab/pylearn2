@@ -7,6 +7,7 @@ import sys
 from pylearn2.utils.string import preprocess
 from cPickle import BadPickleGet
 io = None
+hdf_reader = None
 
 def load(filepath, recurse_depth = 0):
     if recurse_depth == 0:
@@ -17,7 +18,20 @@ def load(filepath, recurse_depth = 0):
         if io is None:
             import scipy.io
             io = scipy.io
-        return io.loadmat(filepath)
+        try:
+            return io.loadmat(filepath)
+        except NotImplementedError, nei:
+            if str(nei).find('Please use HDF reader for matlab v7.3 files') != -1:
+                global hdf_reader
+                if hdf_reader is None:
+                    import h5py
+                    hdf_reader = h5py
+
+                return hdf_reader.File(filepath)
+            else:
+                raise
+        #this code should never be reached
+        assert False
 
     def exponential_backoff():
         if recurse_depth > 9:
