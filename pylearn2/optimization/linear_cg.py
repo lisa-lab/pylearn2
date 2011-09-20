@@ -51,8 +51,13 @@ def linear_cg(fn, params, tol = 1e-3, max_iters = 1000, floatX = None):
         rs = args[n_params:2*n_params]
         xs = args[2*n_params:]
 
-
-        Aps = [ tensor.Rop(tensor.grad(fn,param), params, ps) for param in params]
+        Aps = []
+        for param in params:
+            rval = tensor.Rop(tensor.grad(fn,param), params, ps)
+            if isinstance(rval, (list, tuple)):
+                Aps.append(rval[0])
+            else:
+                Aps.append(rval)
         alpha = rsold/ sum( (x*y).sum() for x,y in zip(Aps, ps) )
         xs = [ x - alpha*p for x,p in zip(xs,ps)]
         rs = [ r - alpha*Ap for r,Ap in zip(rs,Aps)]
