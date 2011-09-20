@@ -148,7 +148,17 @@ class DenseDesignMatrix(Dataset):
         self.X = self.view_converter.topo_view_to_design_mat(V)
         assert not N.any(N.isnan(self.X))
 
-    def get_design_matrix(self):
+    def get_design_matrix(self, topo=None):
+        """ Return topo (a batch of examples in topology preserving format),
+        in design matrix format
+
+        If topo is None, uses the entire dataset as topo"""
+        if topo is not None:
+            if self.view_converter is None:
+                raise Exception("Tried to convert from topological_view to design matrix "
+                        "using a dataset that has no view converter")
+            return self.view_converter.topo_view_to_design_mat(topo)
+
         return self.X
 
     def set_design_matrix(self, X):
