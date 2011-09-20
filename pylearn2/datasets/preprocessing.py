@@ -1,5 +1,5 @@
 import copy
-import numpy as N
+import numpy as np
 from scipy import linalg
 from theano import function
 import theano.tensor as T
@@ -68,7 +68,7 @@ class ExtractGridPatches(object):
         #number of channels
         output_shape.append(X.shape[-1])
 
-        output = N.zeros(output_shape, dtype = X.dtype)
+        output = np.zeros(output_shape, dtype = X.dtype)
 
         channel_slice = slice(0,X.shape[-1])
 
@@ -151,7 +151,7 @@ class ReassembleGridPatches(object):
         #number of channels
         reassembled_shape.append(patches.shape[-1])
 
-        reassembled = N.zeros(reassembled_shape, dtype = patches.dtype)
+        reassembled = np.zeros(reassembled_shape, dtype = patches.dtype)
 
         channel_slice = slice(0,patches.shape[-1])
 
@@ -215,7 +215,7 @@ class ExtractPatches(object):
         if rng != None:
             self.start_rng = copy.copy(rng)
         else:
-            self.start_rng = N.random.RandomState([1,2,3])
+            self.start_rng = np.random.RandomState([1,2,3])
         #
     #
 
@@ -239,7 +239,7 @@ class ExtractPatches(object):
         #number of channels
         output_shape.append(X.shape[-1])
 
-        output = N.zeros(output_shape, dtype = X.dtype)
+        output = np.zeros(output_shape, dtype = X.dtype)
 
         channel_slice = slice(0,X.shape[-1])
 
@@ -372,10 +372,10 @@ class GlobalContrastNormalization(object):
             X -= X.mean(axis=1)[:,None]
 
         if self.use_norm:
-            scale = N.sqrt( N.square(X).sum(axis=1) + self.std_bias)
+            scale = np.sqrt( np.square(X).sum(axis=1) + self.std_bias)
         else:
             #use standard deviation
-            scale = N.sqrt( N.square(X).mean(axis=1) + self.std_bias)
+            scale = np.sqrt( np.square(X).mean(axis=1) + self.std_bias)
 
         eps = 1e-8
         scale[scale < eps] = 1.
@@ -396,7 +396,7 @@ class ZCA(object):
 
     def fit(self, X):
         assert X.dtype in ['float32','float64']
-        assert not N.any(N.isnan(X))
+        assert not np.any(np.isnan(X))
 
         assert len(X.shape) == 2
 
@@ -406,14 +406,14 @@ class ZCA(object):
             X = X.copy()
 
         # Center data
-        self.mean_ = N.mean(X, axis=0)
+        self.mean_ = np.mean(X, axis=0)
         X -= self.mean_
 
         print 'computing zca'
-        eigs, eigv = linalg.eigh(N.dot(X.T, X)/X.shape[0])
+        eigs, eigv = linalg.eigh(np.dot(X.T, X)/X.shape[0])
 
-        assert not N.any(N.isnan(eigs))
-        assert not N.any(N.isnan(eigv))
+        assert not np.any(np.isnan(eigs))
+        assert not np.any(np.isnan(eigv))
 
         if self.n_components:
             eigs = eigs[:self.n_components]
@@ -424,17 +424,17 @@ class ZCA(object):
             eigv = eigv[:,self.n_drop_components:]
         #
 
-        self.P_ = N.dot(
-                eigv * N.sqrt(1.0/(eigs+self.filter_bias)),
+        self.P_ = np.dot(
+                eigv * np.sqrt(1.0/(eigs+self.filter_bias)),
                 eigv.T)
 
 
         print 'zca components'
-        print N.square(self.P_).sum(axis=0)
+        print np.square(self.P_).sum(axis=0)
 
 
 
-        assert not N.any(N.isnan(self.P_))
+        assert not np.any(np.isnan(self.P_))
 
         self.has_fit_ = True
     #
@@ -448,9 +448,9 @@ class ZCA(object):
             self.fit(X)
         #
 
-        new_X =  N.dot(X-self.mean_, self.P_)
+        new_X =  np.dot(X-self.mean_, self.P_)
 
-        print 'mean absolute difference between new and old X'+str(N.abs(X-new_X).mean())
+        print 'mean absolute difference between new and old X'+str(np.abs(X-new_X).mean())
 
         dataset.set_design_matrix(new_X)
     #
