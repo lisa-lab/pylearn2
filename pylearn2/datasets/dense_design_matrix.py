@@ -148,10 +148,21 @@ class DenseDesignMatrix(Dataset):
         self.X = self.view_converter.topo_view_to_design_mat(V)
         assert not N.any(N.isnan(self.X))
 
-    def get_design_matrix(self):
+    def get_design_matrix(self, topo=None):
+        """ Return topo (a batch of examples in topology preserving format),
+        in design matrix format
+
+        If topo is None, uses the entire dataset as topo"""
+        if topo is not None:
+            if self.view_converter is None:
+                raise Exception("Tried to convert from topological_view to design matrix "
+                        "using a dataset that has no view converter")
+            return self.view_converter.topo_view_to_design_mat(topo)
+
         return self.X
 
     def set_design_matrix(self, X):
+        assert len(X.shape) == 2
         assert not N.any(N.isnan(X))
         self.X = X
 
@@ -187,11 +198,17 @@ class DefaultViewConverter(object):
         return self.shape
 
     def design_mat_to_topo_view(self, X):
+        assert len(X.shape) == 2
         batch_size = X.shape[0]
         channel_shape = [batch_size]
         for dim in self.shape[:-1]:
             channel_shape.append(dim)
         channel_shape.append(1)
+        if self.shape[-1] * self.pixels_per_channel != X.shape[1]:
+            raise ValueError('View converter with '+str(self.shape[-1]) + \
+                    ' channels and '+str(self.pixels_per_channel)+' pixels '
+                    'per channel asked to convert design matrix with'
+                    ' '+str(X.shape[1])+' columns.')
         start = lambda i: self.pixels_per_channel * i
         stop = lambda i: self.pixels_per_channel * (i + 1)
         channels = [X[:, start(i):stop(i)].reshape(*channel_shape)

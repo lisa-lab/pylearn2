@@ -1,40 +1,51 @@
 import numpy as N
 from PIL import Image
-import os
+from pylearn2.datasets.dense_design_matrix import DefaultViewConverter
+from pylearn2.utils.image import show
 
-
-def make_viewer(mat, grid_shape=None, patch_shape=None, activation=None):
+def make_viewer(mat, grid_shape=None, patch_shape=None, activation=None, is_color = False, rescale = True):
     """ Given filters in rows, guesses dimensions of patchse
         and nice dimensions for the PatchViewer and returns a PatchViewer
         containing visualizations of the filters"""
+
+    num_channels = 1
+    if is_color:
+        num_channels = 3
+
     if grid_shape is None:
-        grid_shape = PatchViewer.pickSize(mat.shape[0])
+        grid_shape = PatchViewer.pickSize(mat.shape[0] )
     if patch_shape is None:
-        patch_shape = PatchViewer.pickSize(mat.shape[1])
+        patch_shape = PatchViewer.pickSize(mat.shape[1] / num_channels)
     rval = PatchViewer(grid_shape, patch_shape)
-    patch_shape = (patch_shape[0], patch_shape[1], 1)
+    topo_shape = (patch_shape[0], patch_shape[1], num_channels)
+    view_converter = DefaultViewConverter(topo_shape)
+    topo_view = view_converter.design_mat_to_topo_view(mat)
     for i in xrange(mat.shape[0]):
-        #rval.add_patch( N.ones(patch_shape) )
         if activation is not None:
-            # TODO: why not use hasattr(activation, '__iter__') here?
-            if isinstance(activation, list) or isinstance(activation, tuple):
+            if hasattr(activation, '__iter__'):
                 act = [a[i] for a in activation]
             else:
                 act = activation[i]
         else:
             act = None
-        rval.add_patch(mat[i, :].reshape(*patch_shape), rescale=True,
+
+        patch = topo_view[i, :]
+
+        rval.add_patch(patch, rescale=rescale,
                        activation=act)
     return rval
 
 
 class PatchViewer(object):
-    def __init__(self, grid_shape, patch_shape, is_color=False):
+    def __init__(self, grid_shape, patch_shape, is_color=False, pad = None):
         assert len(grid_shape) == 2
         assert len(patch_shape) == 2
         self.is_color = is_color
-        self.pad = (5, 5)
-        self.colors = [N.asarray([1, 1, 0]), N.asarray([1, 0, 1])]
+        if pad is None:
+            self.pad = (5, 5)
+        else:
+            self.pad = pad
+        self.colors = [N.asarray([1, 1, 0]), N.asarray([1, 0, 1]), N.asarray([0,1,0])]
 
         height = (self.pad[0] * (1 + grid_shape[0]) + grid_shape[0] *
                   patch_shape[0])
@@ -126,7 +137,8 @@ class PatchViewer(object):
                 activation = (activation,)
 
             for shell, amt in enumerate(activation):
-                assert 2 * shell + 2 < self.pad
+                assert 2 * shell + 2 < self.pad[0]
+                assert 2 * shell + 2 < self.pad[1]
                 if amt >= 0:
                     act = amt * N.asarray(self.colors[shell])
                     self.image[rs + rs_pad - shell - 1,
@@ -165,21 +177,11 @@ class PatchViewer(object):
             self.add_patch(myvid[:, :, i], rescale=False, recenter=recenter)
 
     def show(self):
-        try:
-            img = self.get_img()
-            img.show()
-        except:
-            print "Warning, your version of PIL sucks"
-            import matplotlib.pyplot
-            matplotlib.pyplot.imshow(self.image)
-            matplotlib.pyplot.show()
-            print 'waiting'
-            x = raw_input()
-            print 'running'
+        show(self.image)
 
     def get_img(self):
         #print 'image range '+str((self.image.min(), self.image.max()))
-        x = N.cast['int8'](self.image * 255.0)
+        x = N.cast['uint8'](self.image * 255.0)
         if x.shape[2] == 1:
             x = x[:, :, 0]
         img = Image.fromarray(x)
