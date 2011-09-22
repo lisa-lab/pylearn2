@@ -51,7 +51,9 @@ if __name__ == "__main__":
     train.apply_preprocessor(preprocessor=pipeline, can_fit=True)
 
     # Finally we save the dataset to the filesystem. We instruct the dataset to
-    # store its design matrix as a numpy file because this uses less memory.
+    # store its design matrix as a numpy file because this uses less memory
+    # when re-loading (Pickle files, in general, use double their actual size
+    # in the process of being re-loaded into a running process).
     # The dataset object itself is stored as a pickle file.
     train.use_design_loc('train_design.npy')
     serial.save('cifar10_preprocessed_train.pkl', train)
