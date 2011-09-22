@@ -15,7 +15,19 @@ class DefaultTrainingAlgorithm(object):
         self.bSetup = False
     #
 
-    def setup(self, model):
+    def setup(self, model, dataset):
+        """
+        Allows the training algorithm to do some preliminary configuration *before* we actually
+        start training the model. The dataset is provided in case other derived training
+        algorithms need to modify model based on the dataset.
+
+        Parameters
+        ----------
+        model: a Python object representing the model to train loosely implementing the
+        interface of models.model.Model.
+
+        dataset: a pylearn2.datasets.dataset.Dataset object used to draw training data
+        """
         self.model = model
 
         self.monitor = Monitor.get_monitor(model)
