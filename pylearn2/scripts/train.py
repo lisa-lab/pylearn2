@@ -61,7 +61,7 @@ class Train(object):
             #
             self.save()
         else:
-            self.algorithm.setup(model = self.model)
+            self.algorithm.setup(model = self.model, dataset = self.dataset)
 
             t1 = time.time()
             while self.algorithm.train(dataset = self.dataset):
