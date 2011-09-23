@@ -137,4 +137,10 @@ def get_weights_report(model_path, rescale = 'individual'):
     print 'max enc weight magnitude: '+str(np.abs(p.weights).max())
 
 
+    norms = np.sqrt(np.square(p.weights).sum(axis=1))
+    assert norms.shape == (h,)
+    print 'min norm: ',norms.min()
+    print 'mean norm: ',norms.mean()
+    print 'max norm: ',norms.max()
+
     return pv
