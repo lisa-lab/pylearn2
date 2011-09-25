@@ -1,16 +1,17 @@
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.datasets.preprocessing import GlobalContrastNormalization
+from pylearn2.datasets.preprocessing import ExtractGridPatches, ReassembleGridPatches
 from pylearn2.utils import as_floatX
 import numpy as np
 
-class GlobalContrastNormalizationTests:
+class testGlobalContrastNormalization:
     """Tests for the GlobalContrastNormalization class """
 
     def test_zero_vector(self):
         """ Test that passing in the zero vector does not result in
             a divide by 0 """
 
-        dataset      = DenseDesignMatrix(X = as_floatX(np.zeros(())))
+        dataset      = DenseDesignMatrix(X = as_floatX(np.zeros((1,1))))
 
         #the settings of subtract_mean and use_norm are not relevant to
         #the test
@@ -20,7 +21,7 @@ class GlobalContrastNormalizationTests:
                                                     std_bias = 0.0,
                                                     use_norm = False)
 
-        dataset.apply(preprocessor)
+        dataset.apply_preprocessor(preprocessor)
 
         result = dataset.get_design_matrix()
 
@@ -48,7 +49,7 @@ class GlobalContrastNormalizationTests:
                                                     std_bias = 0.0,
                                                     use_norm = True)
 
-        dataset.apply(preprocessor)
+        dataset.apply_preprocessor(preprocessor)
 
         result = dataset.get_design_matrix()
 
