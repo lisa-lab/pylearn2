@@ -1,5 +1,6 @@
 import cPickle
 import pickle
+import numpy as np
 import os
 import time
 import warnings
@@ -12,6 +13,9 @@ hdf_reader = None
 def load(filepath, recurse_depth = 0):
     if recurse_depth == 0:
         filepath = preprocess(filepath)
+
+    if filepath.endswith('.npy'):
+        return np.load(filepath)
 
     if filepath.endswith('.mat'):
         global io
