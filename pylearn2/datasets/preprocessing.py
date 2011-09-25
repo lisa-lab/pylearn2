@@ -1,3 +1,4 @@
+import warnings
 import copy
 import numpy as np
 from scipy import linalg
@@ -461,6 +462,12 @@ class GlobalContrastNormalization(object):
 
 class ZCA(object):
     def __init__(self, n_components=None, n_drop_components=None, filter_bias=0.1):
+        warnings.warn("""This ZCA preprocessor class is known to yield very different results on different platforms. If you plan to conduct experiments with this preprocessing on multiple machines, it is probably a good idea to do the preprocessing on a single machine and copy the preprocessed datasets to the others, rather than preprocessing the data independently in each location.""")
+        #TODO: test to see if differences across platforms
+        # e.g., preprocessing STL-10 patches in LISA lab versus on
+        # Ian's Ubuntu 11.04 machine
+        # are due to the problem having a bad condition number or due to
+        # different version numbers of scipy or something
         self.n_components = n_components
         self.n_drop_components =n_drop_components
         self.copy = True
