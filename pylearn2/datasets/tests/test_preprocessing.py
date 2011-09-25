@@ -60,3 +60,28 @@ class testGlobalContrastNormalization:
         tol = 3e-5
 
         assert max_norm_error < tol
+
+def test_extract_reassemble():
+    """ Tests that ExtractGridPatches and ReassembleGridPatches are
+    inverse of each other """
+
+    rng = np.random.RandomState([1,3,7])
+
+    topo = rng.randn(4,3*5,3*7,2)
+
+    dataset = DenseDesignMatrix(topo_view = topo)
+
+    patch_shape = (3,7)
+
+    extractor = ExtractGridPatches(patch_shape, patch_shape)
+    reassemblor = ReassembleGridPatches(patch_shape = patch_shape, orig_shape = topo.shape[1:3])
+
+    dataset.apply_preprocessor(extractor)
+    dataset.apply_preprocessor(reassemblor)
+
+    new_topo = dataset.get_topological_view()
+
+    assert new_topo.shape == topo.shape
+
+    if not np.all(new_topo == topo):
+        assert False
