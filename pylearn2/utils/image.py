@@ -30,18 +30,18 @@ def show(image):
     except TypeError:
         #before python2.7, we can't use the delete argument
         f = NamedTemporaryFile(mode='r',suffix='.png')
+        """
+        TODO: prior to python 2.7, NamedTemporaryFile has no delete = False argument
+            unfortunately, that means f.close() deletes the file.
+            we then save an image to the file in the next line, so there's a race condition
+            where for an instant we  don't actually have the file on the filesystem
+            reserving the name, and then write to that name anyway
+        """
+        warnings.warn('filesystem race condition')
 
     name = f.name
 
     f.flush()
-    """
-    TODO: prior to python 2.7, NamedTemporaryFile has no delete = False argument
-        unfortunately, that means f.close() deletes the file.
-        we then save an image to the file in the next line, so there's a race condition
-        where for an instant we  don't actually have the file on the filesystem
-        reserving the name, and then write to that name anyway
-    """
-    warnings.warn('filesystem race condition')
     f.close()
 
     image.save(name)
