@@ -1,16 +1,17 @@
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.datasets.preprocessing import GlobalContrastNormalization
+from pylearn2.datasets.preprocessing import ExtractGridPatches, ReassembleGridPatches
 from pylearn2.utils import as_floatX
 import numpy as np
 
-class GlobalContrastNormalizationTests:
+class testGlobalContrastNormalization:
     """Tests for the GlobalContrastNormalization class """
 
     def test_zero_vector(self):
         """ Test that passing in the zero vector does not result in
             a divide by 0 """
 
-        dataset      = DenseDesignMatrix(X = as_floatX(np.zeros(())))
+        dataset      = DenseDesignMatrix(X = as_floatX(np.zeros((1,1))))
 
         #the settings of subtract_mean and use_norm are not relevant to
         #the test
@@ -20,7 +21,7 @@ class GlobalContrastNormalizationTests:
                                                     std_bias = 0.0,
                                                     use_norm = False)
 
-        dataset.apply(preprocessor)
+        dataset.apply_preprocessor(preprocessor)
 
         result = dataset.get_design_matrix()
 
@@ -48,7 +49,7 @@ class GlobalContrastNormalizationTests:
                                                     std_bias = 0.0,
                                                     use_norm = True)
 
-        dataset.apply(preprocessor)
+        dataset.apply_preprocessor(preprocessor)
 
         result = dataset.get_design_matrix()
 
@@ -59,3 +60,28 @@ class GlobalContrastNormalizationTests:
         tol = 3e-5
 
         assert max_norm_error < tol
+
+def test_extract_reassemble():
+    """ Tests that ExtractGridPatches and ReassembleGridPatches are
+    inverse of each other """
+
+    rng = np.random.RandomState([1,3,7])
+
+    topo = rng.randn(4,3*5,3*7,2)
+
+    dataset = DenseDesignMatrix(topo_view = topo)
+
+    patch_shape = (3,7)
+
+    extractor = ExtractGridPatches(patch_shape, patch_shape)
+    reassemblor = ReassembleGridPatches(patch_shape = patch_shape, orig_shape = topo.shape[1:3])
+
+    dataset.apply_preprocessor(extractor)
+    dataset.apply_preprocessor(reassemblor)
+
+    new_topo = dataset.get_topological_view()
+
+    assert new_topo.shape == topo.shape
+
+    if not np.all(new_topo == topo):
+        assert False

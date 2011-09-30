@@ -1,3 +1,4 @@
+import warnings
 import copy
 import numpy as np
 from scipy import linalg
@@ -77,6 +78,7 @@ class ExtractGridPatches(object):
         keep_going = True
         i = 0
         while keep_going:
+
             args = [ coords[0] ]
 
             for j in xrange(num_topological_dimensions):
@@ -137,11 +139,20 @@ class ReassembleGridPatches(object):
 
         num_examples = num_patches
 
-        for dim in self.orig_shape:
-            if num_examples % dim != 0:
+        for im_dim, patch_dim in zip(self.orig_shape, self.patch_shape):
+
+            if im_dim % patch_dim != 0:
+                raise Exception('Trying to assemble patches of shape '+\
+                        str(self.patch_shape)+' into images of shape '+\
+                        str(self.orig_shape))
+
+            patches_this_dim = im_dim / patch_dim
+
+            if num_examples % patches_this_dim != 0:
                 raise Exception('Trying to re-assemble '+str(num_patches) + \
-                        'patches into images of shape '+str(self.orig_shape))
-            num_examples /= dim
+                        ' patches of shape '+str(self.patch_shape)+\
+                        ' into images of shape '+str(self.orig_shape))
+            num_examples /= patches_this_dim
 
         #batch size
         reassembled_shape = [ num_examples ]
@@ -159,8 +170,9 @@ class ReassembleGridPatches(object):
 
 
         max_strides = [ num_examples - 1]
-        for dim in self.orig_shape:
-            max_strides.append(dim-1)
+        for dim, pd in zip(self.orig_shape, self.patch_shape):
+            assert dim % pd == 0
+            max_strides.append(dim/pd-1)
 
         keep_going = True
         i = 0
@@ -170,7 +182,8 @@ class ReassembleGridPatches(object):
 
             for j in xrange(num_topological_dimensions):
                 coord = coords[j+1]
-                args.append(slice(coord,coord+self.patch_shape[j]))
+                args.append(slice(coord*self.patch_shape[j],(coord+1)*self.patch_shape[j]))
+                assert (coord + 1) * self.patch_shape[j] <= reassembled.shape[j+1]
             #end for j
 
             args.append(channel_slice)
@@ -179,6 +192,7 @@ class ReassembleGridPatches(object):
                 patch = patches[i,:]
             except IndexError:
                 raise IndexError('Gave index of '+str(i)+',: into thing of shape '+str(patches.shape))
+
             reassembled[args] = patch
             i += 1
 
@@ -205,6 +219,7 @@ class ReassembleGridPatches(object):
 
         dataset.set_topological_view(reassembled)
     #
+
 class ExtractPatches(object):
     """ Converts an image dataset into a dataset of patches
         extracted at random from the original dataset. """
@@ -447,6 +462,12 @@ class GlobalContrastNormalization(object):
 
 class ZCA(object):
     def __init__(self, n_components=None, n_drop_components=None, filter_bias=0.1):
+        warnings.warn("""This ZCA preprocessor class is known to yield very different results on different platforms. If you plan to conduct experiments with this preprocessing on multiple machines, it is probably a good idea to do the preprocessing on a single machine and copy the preprocessed datasets to the others, rather than preprocessing the data independently in each location.""")
+        #TODO: test to see if differences across platforms
+        # e.g., preprocessing STL-10 patches in LISA lab versus on
+        # Ian's Ubuntu 11.04 machine
+        # are due to the problem having a bad condition number or due to
+        # different version numbers of scipy or something
         self.n_components = n_components
         self.n_drop_components =n_drop_components
         self.copy = True
