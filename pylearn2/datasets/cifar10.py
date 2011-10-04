@@ -13,14 +13,23 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
                 'test'  : orig.test.x
             }
 
+        Ys = {
+                'train' : orig.train.y,
+                'test'  : orig.test.y
+            }
+
         X = N.cast['float32'](Xs[which_set])
+        y = Ys[which_set]
 
         if center:
             X -= 127.5
 
         view_converter = dense_design_matrix.DefaultViewConverter((32,32,3))
 
-        super(CIFAR10,self).__init__(X = X, view_converter = view_converter)
+        super(CIFAR10,self).__init__(X = X, y =y, view_converter = view_converter)
+
+        self.label_names = [ 'airplane', 'automobile', 'bird', 'cat', 'deer', 'dog',
+                'frog','horse','ship','truck']
 
         assert not N.any(N.isnan(self.X))
     #
