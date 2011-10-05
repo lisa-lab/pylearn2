@@ -22,7 +22,7 @@ def make_viewer(mat, grid_shape=None, patch_shape=None, activation=None, is_colo
     topo_view = view_converter.design_mat_to_topo_view(mat)
     for i in xrange(mat.shape[0]):
         if activation is not None:
-            if hasattr(activation, '__iter__'):
+            if hasattr(activation[0], '__iter__'):
                 act = [a[i] for a in activation]
             else:
                 act = activation[i]
