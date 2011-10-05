@@ -1,12 +1,36 @@
 #!/bin/env python
+"""
+usage:
+
+plot_monitor.py model_1.pkl model_2.pkl ... model_n.pkl
+
+Loads any number of .pkl files produced by train.py. Extracts
+all of their monitoring channels and prompts the user to select
+a subset of them to be plotted.
+
+"""
+
+
+
 from pylearn2.utils import serial
 import matplotlib.pyplot as plt
 import numpy as N
 import sys
 from theano.printing import _TagGenerator
 
-model = serial.load(sys.argv[1])
-channels = model.monitor.channels
+channels = {}
+
+for i, arg in enumerate(sys.argv[1:]):
+    model = serial.load(arg)
+    this_model_channels = model.monitor.channels
+
+    if len(sys.argv) > 2:
+        prefix = "model_"+str(i)+":"
+    else:
+        prefix = ""
+
+    for channel in this_model_channels:
+        channels[prefix+channel] = this_model_channels[channel]
 
 while True:
 #Make a list of short codes for each channel so user can specify them easily

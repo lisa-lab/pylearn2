@@ -22,7 +22,11 @@ def sharedX(value, name=None, borrow=False):
 def as_floatX(variable):
     """Casts a given variable into dtype config.floatX
         numpy ndarrays will remain numpy ndarrays
+        python floats will become 0-D ndarrays
         all other types will be treated as theano tensors"""
+
+    if isinstance(variable, float):
+        return numpy.cast[theano.config.floatX](variable)
 
     if isinstance(variable, numpy.ndarray):
         return numpy.cast[theano.config.floatX](variable)
