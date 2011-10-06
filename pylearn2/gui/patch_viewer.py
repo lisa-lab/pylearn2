@@ -3,7 +3,7 @@ from PIL import Image
 from pylearn2.datasets.dense_design_matrix import DefaultViewConverter
 from pylearn2.utils.image import show
 
-def make_viewer(mat, grid_shape=None, patch_shape=None, activation=None, is_color = False, rescale = True):
+def make_viewer(mat, grid_shape=None, patch_shape=None, activation=None, pad=None, is_color = False, rescale = True):
     """ Given filters in rows, guesses dimensions of patchse
         and nice dimensions for the PatchViewer and returns a PatchViewer
         containing visualizations of the filters"""
@@ -16,7 +16,7 @@ def make_viewer(mat, grid_shape=None, patch_shape=None, activation=None, is_colo
         grid_shape = PatchViewer.pickSize(mat.shape[0] )
     if patch_shape is None:
         patch_shape = PatchViewer.pickSize(mat.shape[1] / num_channels)
-    rval = PatchViewer(grid_shape, patch_shape)
+    rval = PatchViewer(grid_shape, patch_shape, pad=pad)
     topo_shape = (patch_shape[0], patch_shape[1], num_channels)
     view_converter = DefaultViewConverter(topo_shape)
     topo_view = view_converter.design_mat_to_topo_view(mat)
