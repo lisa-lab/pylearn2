@@ -298,7 +298,7 @@ class RBM(Block, Model):
             Theano symbolic representing the new visible unit state after one
             round of Gibbs sampling.
         locals : dict
-            Contains the following auxillary state as keys (all symbolics
+            Contains the following auxiliary state as keys (all symbolics
             except shape tuples):
              * `h_mean`: the returned value from `mean_h_given_v`
              * `h_mean_shape`: shape tuple indicating the size of `h_mean` and
