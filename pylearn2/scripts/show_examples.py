@@ -1,12 +1,13 @@
 #!/bin/env python
 import numpy as N
-import sys
 from pylearn2.gui import patch_viewer
 from pylearn2.config import yaml_parse
 from optparse import OptionParser
 
 parser = OptionParser()
 
+parser.add_option('--rows', dest='rows', default=20, action='store', type='int')
+parser.add_option('--cols', dest='cols', default=20, action='store', type='int')
 parser.add_option('--rescale', dest='rescale', default='global', action='store', type='string',
         help="how to rescale the patches for display: rescale|global|individual")
 parser.add_option('--out', dest='out', default=None, action='store',type='string', help='if not specified, displays an image. otherwise saves an image to the specified path')
@@ -40,12 +41,13 @@ elif path.endswith('.yaml'):
 else:
     obj = yaml_parse.load(path)
 
-rows = 20
-cols = 20
+rows = options.rows
+cols = options.cols
 
 if hasattr(obj,'get_batch_topo'):
     #obj is a Dataset
     dataset = obj
+
     examples = dataset.get_batch_topo(rows*cols)
 else:
     #obj is a Model
