@@ -3,17 +3,22 @@ import numpy as N
 import sys
 from pylearn2.gui import patch_viewer
 from pylearn2.config import yaml_parse
+from optparse import OptionParser
 
-assert len(sys.argv) > 1
-path = sys.argv[1]
+parser = OptionParser()
 
-rescale = 'global'
-if len(sys.argv) > 2:
-    arg2 = sys.argv[2]
-    assert arg2.startswith('--rescale=')
-    split = arg2.split('--rescale=')
-    assert len(split) == 2
-    rescale = split[1]
+parser.add_option('--rescale', dest='rescale', default='global', action='store', type='string',
+        help="how to rescale the patches for display: rescale|global|individual")
+parser.add_option('--out', dest='out', default=None, action='store',type='string', help='if not specified, displays an image. otherwise saves an image to the specified path')
+
+(options, positional_args) = parser.parse_args()
+
+assert len(positional_args) == 1
+
+path ,= positional_args
+
+out = options.out
+rescale = options.rescale
 
 if rescale == 'none':
     global_rescale = False
@@ -26,8 +31,6 @@ elif rescale == 'individual':
     patch_rescale = True
 else:
     assert False
-
-assert len(sys.argv) <4
 
 if path.endswith('.pkl'):
     from pylearn2.utils import serial
@@ -97,4 +100,7 @@ for i in xrange(rows*cols):
     pv.add_patch(examples[i,:,:,:], activation = 0.0, rescale = patch_rescale)
 #
 
-pv.show()
+if out is None:
+    pv.show()
+else:
+    pv.save(out)
