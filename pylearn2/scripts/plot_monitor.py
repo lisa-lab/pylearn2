@@ -110,7 +110,17 @@ while True:
 
 # Shink current axis' width by 20% so legend will still appear in the window
     box = ax.get_position()
-    ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+
+    try:
+        x0 = box.x0
+        y0 = box.y0
+        width = box.width
+        height = box.height
+    except:
+        x0, width, y0, height = box
+
+
+    ax.set_position([x0, y0, width * 0.8, height])
 
     plt.xlabel('# examples')
 

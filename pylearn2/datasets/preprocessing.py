@@ -530,7 +530,7 @@ class ZCA(object):
 
         new_X =  np.dot(X-self.mean_, self.P_)
 
-        print 'mean absolute difference between new and old X'+str(np.abs(X-new_X).mean())
+        #print 'mean absolute difference between new and old X'+str(np.abs(X-new_X).mean())
 
         dataset.set_design_matrix(new_X)
     #

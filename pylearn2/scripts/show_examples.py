@@ -37,7 +37,9 @@ if path.endswith('.pkl'):
     from pylearn2.utils import serial
     obj = serial.load(path)
 elif path.endswith('.yaml'):
+    print 'Building dataset from yaml...'
     obj =yaml_parse.load_path(path)
+    print '...done'
 else:
     obj = yaml_parse.load(path)
 

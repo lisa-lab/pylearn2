@@ -27,6 +27,8 @@ class CIFAR100(dense_design_matrix.DenseDesignMatrix):
         super(CIFAR100,self).__init__(X = X, y =y, view_converter = view_converter)
 
         assert not N.any(N.isnan(self.X))
-    #
 
-#
+        self.y_fine = N.asarray(obj['fine_labels'])
+        self.y_coarse = N.asarray(obj['coarse_labels'])
+
+
