@@ -1,19 +1,25 @@
 #!/bin/env python
 import numpy as N
-import sys
 from pylearn2.gui import patch_viewer
 from pylearn2.config import yaml_parse
+from optparse import OptionParser
 
-assert len(sys.argv) > 1
-path = sys.argv[1]
+parser = OptionParser()
 
-rescale = 'global'
-if len(sys.argv) > 2:
-    arg2 = sys.argv[2]
-    assert arg2.startswith('--rescale=')
-    split = arg2.split('--rescale=')
-    assert len(split) == 2
-    rescale = split[1]
+parser.add_option('--rows', dest='rows', default=20, action='store', type='int')
+parser.add_option('--cols', dest='cols', default=20, action='store', type='int')
+parser.add_option('--rescale', dest='rescale', default='global', action='store', type='string',
+        help="how to rescale the patches for display: rescale|global|individual")
+parser.add_option('--out', dest='out', default=None, action='store',type='string', help='if not specified, displays an image. otherwise saves an image to the specified path')
+
+(options, positional_args) = parser.parse_args()
+
+assert len(positional_args) == 1
+
+path ,= positional_args
+
+out = options.out
+rescale = options.rescale
 
 if rescale == 'none':
     global_rescale = False
@@ -27,22 +33,23 @@ elif rescale == 'individual':
 else:
     assert False
 
-assert len(sys.argv) <4
-
 if path.endswith('.pkl'):
     from pylearn2.utils import serial
     obj = serial.load(path)
 elif path.endswith('.yaml'):
+    print 'Building dataset from yaml...'
     obj =yaml_parse.load_path(path)
+    print '...done'
 else:
     obj = yaml_parse.load(path)
 
-rows = 20
-cols = 20
+rows = options.rows
+cols = options.cols
 
 if hasattr(obj,'get_batch_topo'):
     #obj is a Dataset
     dataset = obj
+
     examples = dataset.get_batch_topo(rows*cols)
 else:
     #obj is a Model
@@ -97,4 +104,7 @@ for i in xrange(rows*cols):
     pv.add_patch(examples[i,:,:,:], activation = 0.0, rescale = patch_rescale)
 #
 
-pv.show()
+if out is None:
+    pv.show()
+else:
+    pv.save(out)

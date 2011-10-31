@@ -1,4 +1,5 @@
 """TODO: module-level docstring."""
+import time
 from theano import function, shared
 import theano.tensor as T
 import copy
@@ -126,14 +127,24 @@ class Monitor(object):
         updates = {}
         for channel in self.channels.values():
             updates[channel.val_shared] = 0.0
+        print "compiling begin_record_entry..."
+        t1 = time.time()
         self.begin_record_entry = function(inputs=[], updates=updates)
+        t2 = time.time()
+        print "took "+str(t2-t1)+" seconds"
         updates = {}
         givens = {}
         X = T.matrix()
+        print 'monitored channels: '+str(self.channels.keys())
         for channel in self.channels.values():
             givens[channel.ipt] = X
             updates[channel.val_shared] = channel.val_shared + channel.val
+        print "compiling accum..."
+        t1 = time.time()
         self.accum = function([X], givens=givens, updates=updates)
+        t2 = time.time()
+        print "graph size: ",len(self.accum.maker.env.toposort())
+        print "took "+str(t2-t1)+" seconds"
         final_names = dir(self)
         self.register_names_to_del([name for name in final_names
                                     if name not in init_names])

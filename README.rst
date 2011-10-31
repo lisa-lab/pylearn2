@@ -9,6 +9,9 @@ Warde-Farley, Pascal Lamblin, Ian Goodfellow and others during the winter
 Basic design rules
 ------------------
 
+- There are `examples <https://github.com/lisa-lab/pylearn/tree/master/pylearn2/scripts/train_example>`_.
+  They cover how to create a dataset, how to train and how to inspect the model.
+
 - Models should implement the Block interface.
 - Methods on these models should expect Theano expressions as arguments and
   return Theano variables (except in a few select cases where the modules are
