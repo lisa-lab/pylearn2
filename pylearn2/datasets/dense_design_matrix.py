@@ -230,12 +230,16 @@ class DefaultViewConverter(object):
                              + str(self.shape) +
                              ' given tensor of shape ' + str(V.shape))
         batch_size = V.shape[0]
-        channels = [
-                    V[:, :, :, i].reshape(batch_size, self.pixels_per_channel)
-                    for i in xrange(num_channels)
-                    ]
 
-        return N.concatenate(channels, axis=1)
+        rval = N.zeros((batch_size, self.pixels_per_channel * num_channels), dtype = V.dtype)
+
+        for i in xrange(num_channels):
+            rval[:,i*self.pixels_per_channel:(i+1)*self.pixels_per_channel] = \
+                    V[:, :, :, i].reshape(batch_size, self.pixels_per_channel)
+
+        assert rval.dtype == V.dtype
+
+        return rval
 
 
 def from_dataset(dataset, num_examples):

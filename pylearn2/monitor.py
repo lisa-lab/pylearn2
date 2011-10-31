@@ -67,6 +67,10 @@ class Monitor(object):
             self.redo_theano()
 
         model = self.model
+
+        #W = model.W.get_value()
+        #print 'monitoring weights ',':',(W.min(),W.mean(),W.max(),W.shape)
+
         d = self.dataset
 
         if d:
@@ -82,7 +86,9 @@ class Monitor(object):
 
             for i in xrange(self.batches):
                 X = d.get_batch_design(self.batch_size)
+                #print 'monitoring batch ',i,':',(X.min(),X.mean(),X.max(),X.shape)
                 self.accum(X)
+
 
             # TODO: use logging infrastructure so that user can configure
             # formatting
@@ -101,6 +107,8 @@ class Monitor(object):
                 print "\t%s: %s" % (channel_name, str(val))
 
             d.set_stream_position(s)
+
+
 
     def redo_theano(self):
         """
