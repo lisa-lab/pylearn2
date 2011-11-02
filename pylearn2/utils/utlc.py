@@ -30,7 +30,7 @@ def get_constant(variable, return_scalar=False):
 
     If return_scalar is True, and the constant is an ndarray of 0 dimensions,
     the content of that ndarray will be returned instead.
-    
+
     try:
         ret = theano.function([],
                               variable,
@@ -44,15 +44,6 @@ def get_constant(variable, return_scalar=False):
 """
 
 
-def safe_update(dict_to, dict_from):
-    """
-    Like dict_to.update(dict_from), except don't overwrite any keys.
-    """
-    for key, val in dict(dict_from).iteritems():
-        if key in dict_to:
-            raise KeyError(key)
-        dict_to[key] = val
-    return dict_to
 
 def getboth(dict1, dict2, key, default=None):
     """
