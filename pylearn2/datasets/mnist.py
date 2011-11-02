@@ -40,7 +40,7 @@ class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
         X = N.cast['float32'](Xs[which_set])
 
         if center:
-            X -= X.mean(axis=0)
+            X -= 0.5#X.mean(axis=0)
 
         view_converter = dense_design_matrix.DefaultViewConverter((28,28,1))
 
