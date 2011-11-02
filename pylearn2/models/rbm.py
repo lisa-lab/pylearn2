@@ -528,12 +528,6 @@ class RBM(Block, Model):
 class GaussianBinaryRBM(RBM):
     """
     An RBM with Gaussian visible units and binary hidden units.
-
-    TODO: there are a few different GRBM energy functions in the
-    literature and I think this is a new one... we might want to
-    factor the energy function to be separate from the logic for how
-    to do CD and let people pick which energy function implementation
-    they want to use.
     """
     def __init__(self, nvis, nhid, energy_function_class, irange=0.5, rng=None,
                  mean_vis=False, init_sigma=2., learn_sigma=False,
@@ -606,38 +600,6 @@ class GaussianBinaryRBM(RBM):
 
     def score(self, V):
         return self.energy_function.score(V)
-
-    """
-    method made obsolete by switching to energy function objects
-
-    def input_to_h_from_v(self, v):
-        ""
-        Compute the affine function (linear map plus bias) that serves as
-        input to the hidden layer in an RBM.
-
-        Parameters
-        ----------
-        v  : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing one or several
-            minibatches on the visible units, with the first dimension indexing
-            training examples and the second indexing data dimensions.
-
-        Returns
-        -------
-        a : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the input to each
-            hidden unit for each training example.
-
-        Notes
-        -----
-        In the Gaussian-binary case, each data dimension is scaled by a sigma
-        parameter (which defaults to 1 in this implementation, but is
-        nonetheless present as a shared variable in the model parameters).
-        ""
-        if isinstance(v, tensor.Variable):
-            return self.bias_hid + tensor.dot(v / self.sigma, self.weights)
-        else:
-            return [self.input_to_h_from_v(vis) for vis in v]"""
 
     def P_H_given_V(self, V):
         return self.energy_function.P_H_given(V)

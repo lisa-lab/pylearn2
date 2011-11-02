@@ -10,8 +10,6 @@ a subset of them to be plotted.
 
 """
 
-
-
 from pylearn2.utils import serial
 import matplotlib.pyplot as plt
 import numpy as N
