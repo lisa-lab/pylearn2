@@ -1,7 +1,7 @@
 import warnings
 from theano import function, shared
 from pylearn2.optimization import linear_cg as cg
-from pylearn2.optimization import featuresign as fs
+from pylearn2.optimization.feature_sign import feature_sign_search
 import numpy as N
 import theano.tensor as T
 
@@ -29,12 +29,12 @@ class LocalCoordinateCoding(object):
 
         #variable names chosen to follow the arguments to l1ls_featuresign
 
-        Y = N.zeros((self.nvis, 1))
-        Y[:, 0] = example
+        Y = N.zeros((self.nvis,))
+        Y[:] = example
         c = (1e-10 + N.square(self.W.get_value(borrow=True) -
                               example).sum(axis=1))
         A = self.W.get_value(borrow=True).T / c
-        x = fs.l1ls_featuresign(A, Y, self.coeff)[:, 0]
+        x = feature_sign_search(A, Y, self.coeff)
         g = x / c
         return g
 
