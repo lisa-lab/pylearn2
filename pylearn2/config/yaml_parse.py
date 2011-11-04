@@ -1,4 +1,5 @@
 """Support code for YAML parsing of experiment descriptions."""
+import re
 import yaml
 from pylearn2.utils.call_check import checked_call
 from pylearn2.utils import serial
@@ -255,6 +256,16 @@ def multi_constructor_pkl(loader, tag_suffix, node):
     return rval
 
 
+def multi_constructor_import(loader, tag_suffix, node):
+    yaml_src = yaml.serialize(node)
+    mapping = loader.construct_mapping(node)
+    if '.' not in tag_suffix:
+        raise yaml.YAMLError("import tag suffix contains no '.'")
+    else:
+        rval = try_to_import(tag_suffix)
+    return rval
+
+
 def initialize():
     """
     Initialize the configuration system by installing YAML handlers.
@@ -264,6 +275,7 @@ def initialize():
     # Add the custom multi-constructor
     yaml.add_multi_constructor('!obj:', multi_constructor)
     yaml.add_multi_constructor('!pkl:', multi_constructor_pkl)
+    yaml.add_multi_constructor('!import:', multi_constructor_import)
     is_initialized = True
 
 if __name__ == "__main__":
