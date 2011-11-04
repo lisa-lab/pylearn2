@@ -276,6 +276,16 @@ def initialize():
     yaml.add_multi_constructor('!obj:', multi_constructor)
     yaml.add_multi_constructor('!pkl:', multi_constructor_pkl)
     yaml.add_multi_constructor('!import:', multi_constructor_import)
+
+    def import_constructor(loader, node):
+        value = loader.construct_scalar(node)
+        return try_to_import(value)
+
+    yaml.add_constructor('!import', import_constructor)
+    yaml.add_implicit_resolver(
+        '!import',
+        re.compile(r'(?:[a-zA-Z_][\w_]+\.)+[a-zA-Z_][\w_]+')
+    )
     is_initialized = True
 
 if __name__ == "__main__":
