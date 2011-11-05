@@ -509,8 +509,8 @@ class ZCA(object):
                 eigv.T)
 
 
-        print 'zca components'
-        print np.square(self.P_).sum(axis=0)
+        #print 'zca components'
+        #print np.square(self.P_).sum(axis=0)
 
 
 
