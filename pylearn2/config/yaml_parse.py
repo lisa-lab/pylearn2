@@ -216,8 +216,9 @@ def try_to_import(tag_suffix):
             raise
     try:
         obj = eval(tag_suffix)
-    except AttributeError:
-        raise AttributeError('Could not evaluate %s' % tag_suffix)
+    except AttributeError, e:
+        raise AttributeError( ('Could not evaluate %s. ' % tag_suffix) +
+                'Original error was '+str(e))
     return obj
 
 
