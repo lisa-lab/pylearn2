@@ -129,6 +129,17 @@ class SufficientStatistics:
         return SufficientStatistics(final_d)
 
 
+
+TODO/NOTES
+The sampler ought to store the state of all but the topmost hidden layer
+learning updates will be based on marginalizing out this topmost layer
+to reduce noise a bit
+each round of negative phase sampling should start by sampling the topmost
+layer, then sampling downward from there
+when taking params from rbms, each rbm should donate its visible biases
+and weights. only the topmost rbm additionally donates its hidden biases
+
+
 class DBM(Model):
 
     def __init__(self, rbms,
