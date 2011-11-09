@@ -1,4 +1,6 @@
 from theano import tensor as T
+from theano import shared
+import numpy as np
 import copy
 
 
@@ -159,3 +161,11 @@ class Model(object):
         """
 
         self.names_to_del = self.names_to_del.union(names)
+
+    def set_dtype(self, dtype):
+        for field in dir(self):
+            obj = getattr(self, field)
+            if hasattr(obj, 'get_value'):
+                setattr(self, field, shared(np.cast[dtype](obj.get_value())))
+                if hasattr(obj, 'set_dtype'):
+                    obj.set_dtype(dtype)
