@@ -104,10 +104,11 @@ class Sampler(object):
         raise NotImplementedError()
 
 
-class PersistentCDSampler(Sampler):
+class BlockGibbsSampler(Sampler):
     """
 
-    Implements a persistent Markov chain for use with Persistent Contrastive
+    Implements a persistent Markov chain based on block gibbs sampling
+    for use with Persistent Contrastive
     Divergence, a.k.a. stochastic maximum likelhiood, as described in [1].
 
     .. [1] T. Tieleman. "Training Restricted Boltzmann Machines using
@@ -117,7 +118,7 @@ class PersistentCDSampler(Sampler):
     """
     def __init__(self, rbm, particles, rng, steps=1, particles_clip=None):
         """
-        Construct a PersistentCDSampler.
+        Construct a BlockGibbsSampler.
 
         Parameters
         ----------
@@ -137,7 +138,7 @@ class PersistentCDSampler(Sampler):
             The values of the returned particles will be clipped between
             min and max.
         """
-        super(PersistentCDSampler, self).__init__(rbm, particles, rng)
+        super(BlockGibbsSampler, self).__init__(rbm, particles, rng)
         self.steps = steps
         self.particles_clip = particles_clip
 
