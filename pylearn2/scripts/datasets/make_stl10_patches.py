@@ -11,11 +11,10 @@ the first half of 2011.
 
 from pylearn2.utils import serial
 from pylearn2.datasets import preprocessing
-import os
-from pylearn2.utils import string, serial
+from pylearn2.utils import string
 import numpy as np
 
-data_dir = string.preprocess('${PYLEARN2_DATA_PATH}')
+data_dir = string.preprocess('${PYLEARN2_DATA_PATH}/stl10')
 
 print 'Loading STL10-10 unlabeled and train datasets...'
 downsampled_dir = data_dir + '/stl10_32x32'
