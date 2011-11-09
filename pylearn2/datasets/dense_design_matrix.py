@@ -2,6 +2,7 @@
 import numpy as N
 import copy
 from pylearn2.datasets.dataset import Dataset
+from pylearn2.datasets import control
 
 
 class DenseDesignMatrix(Dataset):
@@ -83,7 +84,10 @@ class DenseDesignMatrix(Dataset):
     def __setstate__(self, d):
 
         if d['design_loc'] is not None:
-            d['X'] = N.load(d['design_loc'])
+            if control.get_load_data():
+                d['X'] = N.load(d['design_loc'])
+            else:
+                d['X'] = None
 
         if d['compress']:
             X = d['X']
@@ -93,7 +97,10 @@ class DenseDesignMatrix(Dataset):
             del d['compress_min']
             d['X'] = 0
             self.__dict__.update(d)
-            self.X = N.cast['float32'](X) * mx / 255. + mn
+            if X is not None:
+                self.X = N.cast['float32'](X) * mx / 255. + mn
+            else:
+                self.X = None
         else:
             self.__dict__.update(d)
 

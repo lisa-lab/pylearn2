@@ -1,6 +1,7 @@
 from pylearn2.utils import serial
 from pylearn2.gui import patch_viewer
 from pylearn2.config import yaml_parse
+from pylearn2.datasets import control
 import numpy as np
 import warnings
 
@@ -36,7 +37,11 @@ def get_weights_report(model_path, rescale = 'individual'):
     else:
         raise ValueError('rescale='+rescale+", must be 'none', 'global', or 'individual'")
 
+    print 'loading dataset...'
+    control.push_load_data(False)
     dataset = yaml_parse.load(p.dataset_yaml_src)
+    control.pop_load_data()
+    print '...done'
 
     if hasattr(p,'get_weights'):
         W = p.get_weights()
