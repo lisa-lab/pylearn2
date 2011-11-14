@@ -1256,7 +1256,7 @@ class E_Step:
 
         return rval
 
-    def infer_H_hat(self, V, H_hat, S_hat):
+    def infer_H_hat(self, V, H_hat, S_hat, count = None):
 
         half = as_floatX(.5)
         alpha = self.model.alpha
@@ -1297,10 +1297,22 @@ class E_Step:
 
         H = T.nnet.sigmoid(arg_to_sigmoid)
 
+        V_name = make_name(V, anon = 'anon_V')
+
+        if count is not None:
+            H.name = 'H_hat(%s, %d)' % ( V_name, count)
+
         return H
 
     def damp(self, old, new, new_coeff):
-        return new_coeff * new + (1. - new_coeff) * old
+        rval =  new_coeff * new + (1. - new_coeff) * old
+
+        old_name = make_name(old, anon='anon_old')
+        new_name = make_name(new, anon='anon_new')
+
+        rval.name = 'damp( %s, %s)' % (old_name, new_name)
+
+        return rval
 
     def variational_inference(self, V, return_history = False):
         """
@@ -1361,6 +1373,8 @@ class E_Step:
 
         history = [ make_dict() ]
 
+        count = 2
+
         for new_H_coeff, new_S_coeff in zip(self.h_new_coeff_schedule, self.s_new_coeff_schedule):
 
             new_S_hat = self.infer_S_hat(V, H_hat, S_hat)
@@ -1370,11 +1384,12 @@ class E_Step:
             else:
                 clipped_S_hat = new_S_hat
             S_hat = self.damp(old = S_hat, new = clipped_S_hat, new_coeff = new_S_coeff)
-            new_H = self.infer_H_hat(V, H_hat, S_hat)
+            new_H = self.infer_H_hat(V, H_hat, S_hat, count)
+            count += 1
 
-            H = self.damp(old = H_hat, new = new_H, new_coeff = new_H_coeff)
+            H_hat = self.damp(old = H_hat, new = new_H, new_coeff = new_H_coeff)
 
-            check_H(H,V)
+            check_H(H_hat,V)
 
             history.append(make_dict())
 
