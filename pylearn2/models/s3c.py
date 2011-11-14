@@ -117,7 +117,7 @@ class SufficientStatistics:
         m = T.cast(V.shape[0],config.floatX)
 
         H_name = make_name(H_hat, 'anon_H_hat')
-        Mu1_name = make_name(S_hat, 'anon_S_hat')
+        S_name = make_name(S_hat, 'anon_S_hat')
 
         #mean_h
         assert H_hat.dtype == config.floatX
@@ -142,18 +142,18 @@ class SufficientStatistics:
         #mean_hs
         mean_HS = H_hat * S_hat
         mean_hs = T.mean(mean_HS,axis=0)
-        mean_hs.name = 'mean_hs(%s,%s)' % (H_name, Mu1_name)
+        mean_hs.name = 'mean_hs(%s,%s)' % (H_name, S_name)
         mean_s = mean_hs #this here refers to the expectation of the s variable, not s_hat
         mean_D_sq_mean_Q_hs = T.mean(T.sqr(mean_HS), axis=0)
 
         #mean_sq_hs
         mean_sq_HS = H_hat * (var_s1_hat + T.sqr(S_hat))
         mean_sq_hs = T.mean(mean_sq_HS, axis=0)
-        mean_sq_hs.name = 'mean_sq_hs(%s,%s)' % (H_name, Mu1_name)
+        mean_sq_hs.name = 'mean_sq_hs(%s,%s)' % (H_name, S_name)
 
         #mean_sq_mean_hs
         mean_sq_mean_hs = T.mean(T.sqr(mean_HS), axis=0)
-        mean_sq_mean_hs.name = 'mean_sq_mean_hs(%s,%s)' % (H_name, Mu1_name)
+        mean_sq_mean_hs.name = 'mean_sq_mean_hs(%s,%s)' % (H_name, S_name)
 
         #mean_hsv
         sum_hsv = T.dot(mean_HS.T,V)
@@ -351,7 +351,7 @@ class S3C(Model):
 
         if self.recycle_q:
             self.prev_H = sharedX(np.zeros((self.recycle_q,self.nhid)), name="prev_H")
-            self.prev_Mu1 = sharedX(np.zeros((self.recycle_q,self.nhid)), name="prev_Mu1")
+            self.prev_S = sharedX(np.zeros((self.recycle_q,self.nhid)), name="prev_S")
 
         if self.debug_m_step:
             warnings.warn('M step debugging activated-- this is only valid for certain settings, and causes a performance slowdown.')
@@ -469,15 +469,15 @@ class S3C(Model):
                     np.cast[self.prev_H.dtype](
                         np.zeros((self.test_batch_size, self.nhid)) \
                                 + 1./(1.+np.exp(-self.bias_hid.get_value()))))
-            self.prev_Mu1.set_value(
-                    np.cast[self.prev_Mu1.dtype](
+            self.prev_S.set_value(
+                    np.cast[self.prev_S.dtype](
                         np.zeros((self.test_batch_size, self.nhid)) + self.mu.get_value() ) )
 
     def deploy_mode(self):
         """ If any shared variables need to have batch-size dependent sizes, sets them all to their runtime sizes """
         if self.recycle_q:
             self.prev_H.set_value( np.cast[self.prev_H.dtype]( np.zeros((self.recycle_q, self.nhid)) + 1./(1.+np.exp(-self.bias_hid.get_value()))))
-            self.prev_Mu1.set_value( np.cast[self.prev_Mu1.dtype]( np.zeros((self.recycle_q, self.nhid)) + self.mu.get_value() ) )
+            self.prev_S.set_value( np.cast[self.prev_S.dtype]( np.zeros((self.recycle_q, self.nhid)) + self.mu.get_value() ) )
 
     def get_params(self):
         return [self.W, self.bias_hid, self.alpha, self.mu, self.B_driver ]
@@ -634,7 +634,7 @@ class S3C(Model):
 
         if self.recycle_q:
             learning_updates[self.prev_H] = H_hat
-            learning_updates[self.prev_Mu1] = S_hat
+            learning_updates[self.prev_S] = S_hat
 
         self.censor_updates(learning_updates)
 
@@ -772,9 +772,9 @@ class S3C(Model):
         return rval
 
 
-    def log_prob_v_given_hs(self, V, H, Mu1):
+    def log_prob_v_given_hs(self, V, H, S):
         """
-        V, H, Mu1 are SAMPLES   (i.e., H must be LITERALLY BINARY)
+        V, H, S are SAMPLES   (i.e., H must be LITERALLY BINARY)
         Return value is a vector, of length batch size
         """
 
@@ -786,8 +786,8 @@ class S3C(Model):
         term1 = half * T.sum(T.log(self.B))
         term2 = - half * N * T.log(two * pi)
 
-        mean_HS = H * Mu1
-        recons = T.dot(H*Mu1, self.W.T)
+        mean_HS = H * S
+        recons = T.dot(H*S, self.W.T)
         residuals = V - recons
 
 
@@ -1018,20 +1018,19 @@ class S3C(Model):
     def get_weights_format(self):
         return ['v','h']
 
-def reflection_clip(Mu1, new_Mu1, rho = 0.5):
+def reflection_clip(S_hat, new_S_hat, rho = 0.5):
 
-    ceiling = full_max(abs(new_Mu1))
+    ceiling = full_max(abs(new_S_hat))
 
-    positives = Mu1 > 0
+    positives = S_hat > 0
     non_positives = 1. - positives
-    negatives = Mu1 < 0
+    negatives = S_hat < 0
     non_negatives = 1. - negatives
 
-    rval = T.clip(new_Mu1, - rho * positives * Mu1 - non_positives * ceiling, non_negatives * ceiling - rho * negatives * Mu1 )
+    rval = T.clip(new_S_hat, - rho * positives * S_hat - non_positives * ceiling, non_negatives * ceiling - rho * negatives * S_hat )
 
     return rval
 
-#TODO: refactor to InferenceProcedure
 class E_Step:
     """ A variational E_step that works by running damped fixed point
         updates on a structured variation approximation to
@@ -1103,8 +1102,8 @@ class E_Step:
                 s_new_coeff_schedule must have same length as h_new_coeff_schedule
                 if s_new_coeff_schedule is not provided, it will be filled in with all ones,
                     i.e. it will default to no damping beyond the reflection clipping
-        clip_reflections, rho : if clip_reflections is true, the update to Mu1[i,j] is
-            bounded on one side by - rho * Mu1[i,j] and unbounded on the other side
+        clip_reflections, rho : if clip_reflections is true, the update to S_hat[i,j] is
+            bounded on one side by - rho * S_hat[i,j] and unbounded on the other side
         """
 
         self.autonomous = True
@@ -1194,7 +1193,7 @@ class E_Step:
 
     def init_S_hat(self, V):
         if self.model.recycle_q:
-            rval = self.model.prev_Mu1
+            rval = self.model.prev_S_hat
         else:
             #just use the prior
             value = self.model.mu
@@ -1204,10 +1203,7 @@ class E_Step:
 
     def infer_S_hat(self, V, H_hat, S_hat):
 
-        H = H_hat
-        Mu1 = S_hat
-
-        for Vv, Hv in get_debug_values(V, H):
+        for Vv, Hv in get_debug_values(V, H_hat):
             if Vv.shape != (self.model.test_batch_size,self.model.nvis):
                 raise Exception('Well this is awkward. We require visible input test tags to be of shape '+str((self.model.test_batch_size,self.model.nvis))+' but the monitor gave us something of shape '+str(Vv.shape)+". The batch index part is probably only important if recycle_q is enabled. It's also probably not all that realistic to plan on telling the monitor what size of batch we need for test tags. the best thing to do is probably change self.model.test_batch_size to match what the monitor does")
 
@@ -1223,7 +1219,7 @@ class E_Step:
 
         BW = B.dimshuffle(0,'x') * W
 
-        HS = H * Mu1
+        HS = H_hat * S_hat
 
         mean_term = mu * alpha
 
@@ -1245,9 +1241,9 @@ class E_Step:
 
         denom = alpha + w
 
-        Mu1 =  numer / denom
+        S_hat =  numer / denom
 
-        return Mu1
+        return S_hat
 
     def var_s1_hat(self):
         """Returns the variational parameter for the variance of s given h=1
@@ -1329,8 +1325,8 @@ class E_Step:
         var_s1_hat = self.var_s1_hat()
 
 
-        H   =    self.init_H_hat(V)
-        Mu1 =    self.init_S_hat(V)
+        H_hat   =    self.init_H_hat(V)
+        S_hat =    self.init_S_hat(V)
 
         def check_H(my_H, my_V):
             if my_H.dtype != config.floatX:
@@ -1352,13 +1348,13 @@ class E_Step:
 
                 assert Hv.shape[0] == Vv.shape[0]
 
-        check_H(H,V)
+        check_H(H_hat,V)
 
         def make_dict():
 
             return {
-                    'H_hat' : H,
-                    'S_hat' : Mu1,
+                    'H_hat' : H_hat,
+                    'S_hat' : S_hat,
                     'var_s0_hat' : var_s0_hat,
                     'var_s1_hat': var_s1_hat,
                     }
@@ -1367,16 +1363,16 @@ class E_Step:
 
         for new_H_coeff, new_S_coeff in zip(self.h_new_coeff_schedule, self.s_new_coeff_schedule):
 
-            new_Mu1 = self.infer_S_hat(V, H, Mu1)
+            new_S_hat = self.infer_S_hat(V, H_hat, S_hat)
 
             if self.clip_reflections:
-                clipped_Mu1 = reflection_clip(Mu1 = Mu1, new_Mu1 = new_Mu1, rho = self.rho)
+                clipped_S_hat = reflection_clip(S_hat = S_hat, new_S_hat = new_S_hat, rho = self.rho)
             else:
-                clipped_Mu1 = new_Mu1
-            Mu1 = self.damp(old = Mu1, new = clipped_Mu1, new_coeff = new_S_coeff)
-            new_H = self.infer_H_hat(V, H, Mu1)
+                clipped_S_hat = new_S_hat
+            S_hat = self.damp(old = S_hat, new = clipped_S_hat, new_coeff = new_S_coeff)
+            new_H = self.infer_H_hat(V, H_hat, S_hat)
 
-            H = self.damp(old = H, new = new_H, new_coeff = new_H_coeff)
+            H = self.damp(old = H_hat, new = new_H, new_coeff = new_H_coeff)
 
             check_H(H,V)
 
