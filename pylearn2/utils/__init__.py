@@ -6,46 +6,46 @@ except ImportError:
     theano = None
 
 if theano is not None:
-	import numpy
+    import numpy
 
-	def make_name(variable, anon = "anonymous_variable"):
-	    """
-	    If variable has a name, returns that name.
-	    Otherwise, returns anon
-	    """
+    def make_name(variable, anon = "anonymous_variable"):
+        """
+        If variable has a name, returns that name.
+        Otherwise, returns anon
+        """
 
-	    if hasattr(variable,'name') and variable.name is not None:
-		return variable.name
+        if hasattr(variable,'name') and variable.name is not None:
+            return variable.name
 
-	    return anon
+        return anon
 
 
-	def sharedX(value, name=None, borrow=False):
-	    """Transform value into a shared variable of type floatX"""
-	    return theano.shared(theano._asarray(value, dtype=theano.config.floatX),
-				 name=name,
-				 borrow=borrow)
+    def sharedX(value, name=None, borrow=False):
+        """Transform value into a shared variable of type floatX"""
+        return theano.shared(theano._asarray(value, dtype=theano.config.floatX),
+             name=name,
+             borrow=borrow)
 
-	def as_floatX(variable):
-	    """Casts a given variable into dtype config.floatX
-		numpy ndarrays will remain numpy ndarrays
-		python floats will become 0-D ndarrays
-		all other types will be treated as theano tensors"""
+    def as_floatX(variable):
+        """Casts a given variable into dtype config.floatX
+        numpy ndarrays will remain numpy ndarrays
+        python floats will become 0-D ndarrays
+        all other types will be treated as theano tensors"""
 
-	    if isinstance(variable, float):
-		return numpy.cast[theano.config.floatX](variable)
+        if isinstance(variable, float):
+            return numpy.cast[theano.config.floatX](variable)
 
-	    if isinstance(variable, numpy.ndarray):
-		return numpy.cast[theano.config.floatX](variable)
+        if isinstance(variable, numpy.ndarray):
+            return numpy.cast[theano.config.floatX](variable)
 
-	    return theano.tensor.cast(variable, theano.config.floatX)
+        return theano.tensor.cast(variable, theano.config.floatX)
 
-	def subdict(d, keys):
-	    """ Create a subdictionary of d with the keys in keys """
-	    result = {}
-	    for key in keys:
-		if key in d: result[key] = d[key]
-	    return result
+    def subdict(d, keys):
+        """ Create a subdictionary of d with the keys in keys """
+        result = {}
+        for key in keys:
+            if key in d: result[key] = d[key]
+        return result
 
 	"""
 	doesn't make sense to auto-import utlc code in a generic
