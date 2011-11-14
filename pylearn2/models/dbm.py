@@ -476,4 +476,21 @@ class InferenceProcedure:
         else:
             return history[-1]
 
+    def init_H_hat(self, V):
+        """ Returns a list of matrices of hidden units, with same batch size as V
+            For now hidden unit values are initialized by taking the sigmoid of their
+            bias """
+
+        H_hat = []
+
+        for b in self.model.bias_hid:
+            value = b
+
+            mat = T.alloc(value, V.shape[0], value.shape[0])
+
+            H_hat.append(mat)
+
+        return H_hat
+
+
 
