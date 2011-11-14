@@ -305,10 +305,18 @@ class S3C(Model):
         if e_step is None:
             self.autonomous = False
             assert not self.m_step.autonomous
+            #create a non-autonomous E step
+            self.e_step = E_Step(h_new_coeff_schedule = None,
+                                rho = None,
+                                monitor_kl = None,
+                                monitor_em_functional = None,
+                                clip_reflections = None)
+            assert not self.e_step.autonomous
         else:
             self.autonomous = True
+            assert e_step.autonomous
             assert self.m_step.autonomous
-            self.e_step.register_model(self)
+        self.e_step.register_model(self)
         self.init_mu = init_mu
         self.min_mu = np.cast[config.floatX](float(min_mu))
         self.max_mu = np.cast[config.floatX](float(max_mu))
@@ -1127,7 +1135,8 @@ class E_Step:
         self.monitor_kl = monitor_kl
         self.monitor_em_functional = monitor_em_functional
 
-        self.rho = as_floatX(rho)
+        if self.autonomous:
+            self.rho = as_floatX(rho)
 
         self.model = None
 
