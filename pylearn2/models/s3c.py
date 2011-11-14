@@ -1039,6 +1039,16 @@ def reflection_clip(S_hat, new_S_hat, rho = 0.5):
 
     return rval
 
+def damp(old, new, new_coeff):
+    rval =  new_coeff * new + (1. - new_coeff) * old
+
+    old_name = make_name(old, anon='anon_old')
+    new_name = make_name(new, anon='anon_new')
+
+    rval.name = 'damp( %s, %s)' % (old_name, new_name)
+
+    return rval
+
 class E_Step:
     """ A variational E_step that works by running damped fixed point
         updates on a structured variation approximation to
@@ -1159,7 +1169,6 @@ class E_Step:
         em_functional = entropy_term + likelihood_term
 
         return em_functional
-
 
     def register_model(self, model):
         self.model = model
@@ -1314,16 +1323,6 @@ class E_Step:
 
         return H
 
-    def damp(self, old, new, new_coeff):
-        rval =  new_coeff * new + (1. - new_coeff) * old
-
-        old_name = make_name(old, anon='anon_old')
-        new_name = make_name(new, anon='anon_new')
-
-        rval.name = 'damp( %s, %s)' % (old_name, new_name)
-
-        return rval
-
     def variational_inference(self, V, return_history = False):
         """
 
@@ -1393,11 +1392,11 @@ class E_Step:
                 clipped_S_hat = reflection_clip(S_hat = S_hat, new_S_hat = new_S_hat, rho = self.rho)
             else:
                 clipped_S_hat = new_S_hat
-            S_hat = self.damp(old = S_hat, new = clipped_S_hat, new_coeff = new_S_coeff)
+            S_hat = damp(old = S_hat, new = clipped_S_hat, new_coeff = new_S_coeff)
             new_H = self.infer_H_hat(V, H_hat, S_hat, count)
             count += 1
 
-            H_hat = self.damp(old = H_hat, new = new_H, new_coeff = new_H_coeff)
+            H_hat = damp(old = H_hat, new = new_H, new_coeff = new_H_coeff)
 
             check_H(H_hat,V)
 
