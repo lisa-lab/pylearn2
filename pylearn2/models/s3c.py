@@ -7,15 +7,12 @@ __maintainer__ = "Ian Goodfellow"
 
 import time
 from pylearn2.models.model import Model
-from theano import config, function, shared
+from theano import config, function
 import theano.tensor as T
 import numpy as np
 import warnings
-from theano.printing import Print
-from theano import map
 from theano.gof.op import get_debug_values, debug_error_message
 from pylearn2.utils import make_name, sharedX, as_floatX
-from pylearn2.monitor import Monitor
 
 warnings.warn('s3c changing the recursion limit')
 import sys
