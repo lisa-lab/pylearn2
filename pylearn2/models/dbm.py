@@ -143,7 +143,7 @@ and weights. only the topmost rbm additionally donates its hidden biases
 class DBM(Model):
 
     def __init__(self, rbms,
-                       inference_procedure,
+                       inference_procedure = None,
                        print_interval = 10000):
         """
             rbms: list of rbms to stack
@@ -152,6 +152,7 @@ class DBM(Model):
                     DBM may destroy these rbms-- it won't delete them,
                     but it may do terrible things to them
             inference_procedure: a pylearn2.models.dbm.InferenceProcedure object
+                (if None, assumes the model is not meant to run on its own)
             print_interval: every print_interval examples, print out a status summary
 
         """
@@ -165,6 +166,12 @@ class DBM(Model):
 
         self.rbms = rbms
 
+        self.autonomous = True
+
+        if inference_procedure is None:
+            self.autonomous = False
+            inference_procedure = InferenceProcedure()
+
         self.inference_procedure = inference_procedure
         self.inference_procedure.register_model(self)
 
@@ -175,7 +182,8 @@ class DBM(Model):
 
     def redo_everything(self):
 
-        self.redo_theano()
+        if self.autonomous:
+            self.redo_theano()
 
     def get_monitoring_channels(self, V):
         warnings.warn("DBM doesn't actually return any monitoring channels yet. It has a bunch of S3C code sitting in its get_monitoring_channels but for now it just returns an empty dictionary")
@@ -334,7 +342,7 @@ class InferenceProcedure:
         return rval
 
 
-    def __init__(self, monitor_kl):
+    def __init__(self, monitor_kl = False):
         self.model = None
         self.monitor_kl = monitor_kl
         #for the current project, DBM need not implement its own inference, so the constructor
