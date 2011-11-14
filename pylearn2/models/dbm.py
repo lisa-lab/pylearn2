@@ -141,6 +141,7 @@ layer, then sampling downward from there
 class DBM(Model):
 
     def __init__(self, rbms,
+                        negative_chains,
                        inference_procedure = None,
                        print_interval = 10000):
         """
@@ -153,6 +154,7 @@ class DBM(Model):
                     the DBM parameters will be constructed by taking the visible biases
                     and weights from each RBM. only the topmost RBM will additionally
                     donate its hidden biases.
+            negative_chains: the number of negative chains to simulate
             inference_procedure: a pylearn2.models.dbm.InferenceProcedure object
                 (if None, assumes the model is not meant to run on its own)
             print_interval: every print_interval examples, print out a status summary
@@ -166,9 +168,11 @@ class DBM(Model):
 
         super(DBM,self).__init__()
 
-        self.rbms = rbms
+        self.autonomous = False
 
-        self.autonomous = True
+        self.rbms = rbms
+        self.negative_chains = negative_chains
+
 
         if inference_procedure is None:
             self.autonomous = False
@@ -193,9 +197,51 @@ class DBM(Model):
 
 
     def redo_everything(self):
+        """ compiles learn_func if necessary
+            makes new negative chains
+            does not reset weights or biases
+        """
 
+        #compile learn_func if necessary
         if self.autonomous:
             self.redo_theano()
+
+        #make the negative chains
+        self.chains = [ self.make_chains(self.bias_vis) ]
+
+        #we don't store the final layer; this one we marginalize out of our
+        #learning updates.
+        TODO--- that's actually going to make our update pattern kind of weird,
+        updating some variables more than others. also, should probably finish
+        deriving the learning updates before implementing this
+        HERE
+        for bias_hid in self.bias_hid[:-1]:
+            self.chains.append( self.make_chains(bias_hid) )
+
+        assert len(self.chains) == len(self.rbms)
+
+    def make_chains(self, bias_hid):
+        """ make the shared variable representing a layer of
+            the network for all negative chains
+
+            for now units are initialized randomly based on their
+            biases only
+            """
+
+        b = bias_hid.get_value(borrow=True)
+
+        nhid ,= b.shape
+
+        shape = (self.negative_chains, nhid)
+
+        driver = self.rng.uniform(0.0, 1.0, shape)
+
+        thresh = 1./(1.+np.exp(-b))
+
+        value = driver < thresh
+
+        return sharedX(value)
+
 
     def get_monitoring_channels(self, V):
         warnings.warn("DBM doesn't actually return any monitoring channels yet. It has a bunch of S3C code sitting in its get_monitoring_channels but for now it just returns an empty dictionary")
