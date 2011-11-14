@@ -1,0 +1,84 @@
+
+Welcome
+=======
+
+Pylearn2 is still in heavy development. Don't expect a clean road without bump!
+
+Pylearn2 is a machine learning library build on top of Theano.
+
+Pylearn2 Vision
+===============
+
+* We build the parts when we need them.
+* A machine learning toolbox for easy scientific experimentation
+* Pylearn2 should contain all relevent models/algorithms published by the lab.
+* Can reuse scikit.learn algo when pertinant
+* Published models can support the scikit.learn interface
+* Dataset interface for vector, images, video, ...
+* Small framework for all what is needed for one normal MLP/RBM/SDA/Convolution experiments.
+* Easy reuse of sub-component of Pylearn2.
+   * You don't need to invest in the entire stack in order to use parts of it.
+* Support cross-platform serialization of learned models.
+
+But it is also approachable enough to be used in the classroom
+(IFT6266 at the University of Montreal).
+
+Download
+========
+
+No PyPI download how. You must checkout the version in github for bleeding-edge/development version, available via:
+
+.. code-block:: bash
+
+   git clone git://github.com/Theano/Theano.git
+
+
+There is dependency on Theano and the `old Pylearn <http://deeplearning.net/software/pylearn/>`_ project. You should also install them
+
+
+Documentation
+=============
+
+Roughly in order of what you'll want to check out:
+
+* :ref:`introduction` -- What is Pylearn2?
+* :ref:`tutorial` -- Learn the basics.
+
+Check out how Theano can be used for Machine Learning: `Deep Learning Tutorials <http://www.deeplearning.net/tutorial>`_.
+
+Community
+=========
+
+* Register and post to `pylearn-dev`_ if you want to talk to the developers.
+
+* Register to `pylearn2-github`_ if you want to receive an email for all changes to the GitHub repository.
+
+* Register to `theano-buildbot`_ if you want to receive our daily
+  buildbot email. This is the buildbot for Pylearn2, Theano, Pylearn
+  and the Deep Learning Tutorial.
+
+* Ask/view questions/answers at `metaoptimize/qa/tags/theano`_ (it's like stack overflow for machine learning)
+
+* We use the `github issues <https://github.com/lisa-lab/pylearn/issues>`_ to stay organized.
+
+* Come visit us in Montreal!  Most of the developers are students in the LISA_ group at the `University of Montreal`_.
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   LICENSE
+   introduction
+   tutorial/index
+   internal/index
+
+
+.. _pylearn-dev: https://groups.google.com/group/pylearn-dev
+.. _pylearn2-github: https://groups.google.com/group/pylearn2-github
+.. _theano-buildbot: http://groups.google.com/group/theano-buildbot
+
+.. _metaoptimize/qa/tags/theano: http://metaoptimize.com/qa/tags/theano/
+
+.. _LISA: http://www.iro.umontreal.ca/~lisa
+.. _University of Montreal: http://www.umontreal.ca
+
