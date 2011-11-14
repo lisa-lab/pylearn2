@@ -1275,7 +1275,12 @@ class E_Step:
 
         return rval
 
-    def infer_H_hat(self, V, H_hat, S_hat, count = None):
+    def infer_H_hat_presigmoid(self, V, H_hat, S_hat):
+        """ Computes the value of H_hat prior to the application of the
+            sigmoid function. This is a useful quantity to compute for
+            larger models that influence h with top-down terms. Such
+            models can apply the sigmoid themselves after adding the
+            top-down interactions"""
 
         half = as_floatX(.5)
         alpha = self.model.alpha
@@ -1313,6 +1318,13 @@ class E_Step:
         term_5 = half * T.log(alpha)
 
         arg_to_sigmoid = term_1 + term_2 + term_3 + term_4 + term_5
+
+        return arg_to_sigmoid
+
+
+    def infer_H_hat(self, V, H_hat, S_hat, count = None):
+
+        arg_to_sigmoid = self.infer_H_hat_presigmoid(V, H_hat, S_hat)
 
         H = T.nnet.sigmoid(arg_to_sigmoid)
 
