@@ -136,8 +136,6 @@ learning updates will be based on marginalizing out this topmost layer
 to reduce noise a bit
 each round of negative phase sampling should start by sampling the topmost
 layer, then sampling downward from there
-when taking params from rbms, each rbm should donate its visible biases
-and weights. only the topmost rbm additionally donates its hidden biases
 """)
 
 class DBM(Model):
@@ -151,6 +149,10 @@ class DBM(Model):
                     first entry is the visible rbm
                     DBM may destroy these rbms-- it won't delete them,
                     but it may do terrible things to them
+
+                    the DBM parameters will be constructed by taking the visible biases
+                    and weights from each RBM. only the topmost RBM will additionally
+                    donate its hidden biases.
             inference_procedure: a pylearn2.models.dbm.InferenceProcedure object
                 (if None, assumes the model is not meant to run on its own)
             print_interval: every print_interval examples, print out a status summary
@@ -174,8 +176,18 @@ class DBM(Model):
 
         self.inference_procedure = inference_procedure
         self.inference_procedure.register_model(self)
+        self.autonomous = False
+        if self.inference_procedure.autonomous:
+            raise NotImplementedError("No such thing as an autonomous DBM yet")
 
         self.print_interval = print_interval
+
+        #copy parameters from RBM to DBM, ignoring bias_hid of all but last RBM
+        self.W = [ rbm.weights for rbm in self.rbms]
+        self.bias_vis = rbms[0].bias_vis
+        self.bias_hid = [ rbm.bias_vis for rbm in self.rbms[1:] ]
+        self.bias_hid.append(self.rbms[-1].bias_hid)
+
 
         self.redo_everything()
 
@@ -343,6 +355,7 @@ class InferenceProcedure:
 
 
     def __init__(self, monitor_kl = False):
+        self.autonomous = False
         self.model = None
         self.monitor_kl = monitor_kl
         #for the current project, DBM need not implement its own inference, so the constructor
