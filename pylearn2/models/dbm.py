@@ -387,11 +387,22 @@ class InferenceProcedure:
 
 
     def infer_H_hat_two_sided(self, H_hat_below, W_below, H_hat_above, W_above, b):
-        raise NotImplementedError()
 
+        bottom_up = T.dot(H_hat_below, W_below)
+        top_down =  T.dot(H_hat_above, W_above.T)
+        total = bottom_up + top_down + b
+
+        H_hat = T.nnet.sigmoid(total)
 
     def infer_H_hat_one_sided(self, other_H_hat, W, b):
-        raise NotImplementedError()
+        """ W should be arranged such that other_H_hat.shape[1] == W.shape[0] """
+
+        dot = T.dot(other_H_hat, W)
+        presigmoid = dot + b
+
+        H_hat = T.nnet.sigmoid(presigmoid)
+
+        return H_hat
 
     def infer(self, V, return_history = False):
         """
