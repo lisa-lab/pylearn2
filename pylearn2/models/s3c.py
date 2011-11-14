@@ -385,7 +385,7 @@ class S3C(Model):
 
                 rval = self.m_step.get_monitoring_channels(V, self)
 
-                from_e_step = self.e_step.get_monitoring_channels(V, self)
+                from_e_step = self.e_step.get_monitoring_channels(V)
 
                 rval.update(from_e_step)
 
@@ -1062,7 +1062,7 @@ class E_Step:
 
         """
 
-    def get_monitoring_channels(self, V, model):
+    def get_monitoring_channels(self, V):
 
         #TODO: update this to show updates to h_i and s_i in correct sequence
 
@@ -1074,9 +1074,9 @@ class E_Step:
             for i in xrange(1, 2 + len(self.h_new_coeff_schedule)):
                 obs = obs_history[i-1]
                 if self.monitor_kl:
-                    rval['trunc_KL_'+str(i)] = self.truncated_KL(V, model, obs).mean()
+                    rval['trunc_KL_'+str(i)] = self.truncated_KL(V, obs).mean()
                 if self.monitor_em_functional:
-                    rval['em_functional_'+str(i)] = self.em_functional(V, model, obs).mean()
+                    rval['em_functional_'+str(i)] = self.em_functional(V, self.model, obs).mean()
 
         return rval
 
@@ -1155,7 +1155,7 @@ class E_Step:
     def register_model(self, model):
         self.model = model
 
-    def truncated_KL(self, V, model, obs):
+    def truncated_KL(self, V, obs):
         """ KL divergence between variation and true posterior, dropping terms that don't
             depend on the variational parameters """
 
@@ -1163,6 +1163,7 @@ class E_Step:
         var_s0_hat = obs['var_s0_hat']
         var_s1_hat = obs['var_s1_hat']
         S_hat = obs['S_hat']
+        model = self.model
 
         entropy_term = - model.entropy_hs(H_hat = H_hat, var_s0_hat = var_s0_hat, var_s1_hat = var_s1_hat)
         energy_term = model.expected_energy_vhs(V, H_hat = H_hat, S_hat = S_hat,
