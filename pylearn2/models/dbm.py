@@ -214,16 +214,10 @@ class DBM(Model):
         #make the negative chains
         self.chains = [ self.make_chains(self.bias_vis) ]
 
-        #we don't store the final layer; this one we marginalize out of our
-        #learning updates.
-        TODO--- that's actually going to make our update pattern kind of weird,
-        updating some variables more than others. also, should probably finish
-        deriving the learning updates before implementing this
-        HERE
-        for bias_hid in self.bias_hid[:-1]:
+        for bias_hid in self.bias_hid:
             self.chains.append( self.make_chains(bias_hid) )
 
-        assert len(self.chains) == len(self.rbms)
+        assert len(self.chains) == len(self.rbms) + 1
 
     def make_chains(self, bias_hid):
         """ make the shared variable representing a layer of
@@ -301,10 +295,12 @@ class DBM(Model):
         pass
 
     def get_params(self):
-        rval = set([])
+        rval = set([self.bias_vis])
 
-        for rbm in self.rbms:
-            rval = rval.union(set(rbm.get_params))
+        assert len(self.W) == len(self.bias_hid)
+
+        for i in xrange(len(self.W)):
+            rval = rval.union(set([ self.W[i], self.bias_hid[i]]))
 
         rval = list(rval)
 
