@@ -193,9 +193,13 @@ class DBM(Model):
         self.bias_hid = [ rbm.bias_vis for rbm in self.rbms[1:] ]
         self.bias_hid.append(self.rbms[-1].bias_hid)
 
+        self.reset_rng()
 
         self.redo_everything()
 
+
+    def reset_rng(self):
+        self.rng = np.random.RandomState([1,2,3])
 
     def redo_everything(self):
         """ compiles learn_func if necessary
