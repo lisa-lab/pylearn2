@@ -1,6 +1,12 @@
 import theano.tensor as T
 
 def entropy_binary_vector(P):
+    """
+        if P[i,j] represents the probability
+            of some binary random variable X[i,j] being 1
+        then rval[i] gives the entropy of the random vector
+        X[i,:]
+    """
 
     #TODO: replace with actually evaluating 0 log 0 as 0
     #note: can't do 1e-8, 1.-1e-8 rounds to 1.0 in float32
