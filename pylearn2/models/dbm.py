@@ -13,6 +13,7 @@ import numpy as np
 import warnings
 from theano.gof.op import get_debug_values, debug_error_message
 from pylearn2.utils import make_name, sharedX, as_floatX
+from pylearn2.expr.information_theory import entropy_binary_vector
 
 warnings.warn('s3c changing the recursion limit')
 import sys
@@ -345,6 +346,52 @@ class DBM(Model):
         raise NotImplementedError()
 
         return V_sample
+
+    def expected_energy(self, V_hat, H_hat):
+        """ expected energy of the model under the mean field distribution
+            defined by V_hat and H_hat
+        """
+
+        m = V_hat.shape[0]
+
+        assert len(H_hat) == len(self.rbms)
+
+        v_bias_contrib = T.mean(T.dot(V_hat, self.bias_vis))
+
+        v_weights_contrib = T.sum(T.dot(V_hat, self.W[0]) * H_hat[0]) / m
+
+        total = v_bias_contrib + v_weights_contrib
+
+        for i in xrange(len(H_hat) - 1):
+            lower_H = H_hat[i]
+            higher_H = H_hat[i+1]
+            lower_bias = self.bias_hid[i]
+            W = self.W[i+1]
+
+            lower_bias_contrib = T.mean(T.dot(lower_H, lower_bias))
+
+            weights_contrib = T.sum(T.dot(lower_H, W) * higher_H) / m
+
+            total = total + lower_bias_contrib + weights_contrib
+
+        highest_bias_contrib = T.mean(T.dot(H_hat[-1], self.bias_hid[-1]))
+
+        total = total + highest_bias_contrib
+
+        assert len(total.type.broadcastable) == 0
+
+        return total
+
+    def entropy_h(self, H_hat):
+        """ entropy of the hidden layers under the mean field distribution
+        defined by H_hat """
+
+        total = entropy_binary_vector(H_hat[0])
+
+        for H in H_hat[1:]:
+            total += entropy_binary_vector(H)
+
+        return total
 
     def redo_theano(self):
         try:
