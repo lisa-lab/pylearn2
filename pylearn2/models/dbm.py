@@ -212,14 +212,12 @@ class DBM(Model):
             self.redo_theano()
 
         #make the negative chains
-        self.chains = [ self.make_chains(self.bias_vis) ]
+        self.V_chains = self.make_chains(self.bias_vis)
 
-        for bias_hid in self.bias_hid:
-            self.chains.append( self.make_chains(bias_hid) )
+        self.H_chains = [ self.make_chains(bias_hid) for bias_hid in self.bias_hid ]
 
-        assert len(self.chains) == len(self.rbms) + 1
 
-    def make_chains(self, bias_hid):
+    def make_chains(self, bias):
         """ make the shared variable representing a layer of
             the network for all negative chains
 
@@ -227,7 +225,7 @@ class DBM(Model):
             biases only
             """
 
-        b = bias_hid.get_value(borrow=True)
+        b = bias.get_value(borrow=True)
 
         nhid ,= b.shape
 
@@ -294,6 +292,51 @@ class DBM(Model):
         """ If any shared variables need to have batch-size dependent sizes, sets them all to their runtime sizes """
         pass
 
+
+    def get_sampling_updates(self):
+
+        ip = self.inference_procedure
+
+        rval = {}
+
+        V_prob = ip.infer_H_hat_one_sided(other_H = self.H_chains[0], W = self.W[0], b = self.bias_vis)
+
+        V_sample = TODO
+
+        rval[self.V_chains] = V_sample
+
+        TODO-- got to handle sample H[0] (it connects to V)
+        TODO-- got to handle sampling last element of H (it is one sided sampling)
+        TODO-- got to handle case where last element of H is H[0]
+
+        for i in xrange(1,len(self.H_chains)-1):
+            prob = ip.infer_H_hat_two_sided(H_hat_below = rval[self.H_chains[i-1]], H_hat_above = self.H_chains[i+1],
+                                            W_below = self.W[i], W_above = self.W[i+1], b = self.bias_hid[i])
+            sample = TODO
+
+            rval[self.H_chains[i-1] = sample
+
+    def get_neg_phase_grads(self):
+        """ returns a dictionary mapping from parameters to negative phase gradients
+            (assuming you're doing gradient ascent on variational free energy)
+        """
+
+        obj = self.expected_energy(V_hat = self.V_chains, H_hat = self.H_chains)
+
+        constants = list(set(self.H_chains).union([self.V_chains]))
+
+        params = self.get_params()
+
+        grads = T.grad(obj, params, consider_constant = constants)
+
+        rval = {}
+
+        for param, grad in zip(params, grads):
+            rval[param] = grad
+
+        return rval
+
+
     def get_params(self):
         rval = set([self.bias_vis])
 
@@ -350,31 +393,40 @@ class DBM(Model):
     def expected_energy(self, V_hat, H_hat):
         """ expected energy of the model under the mean field distribution
             defined by V_hat and H_hat
+            alternately, could be expectation of the energy function across
+            a batch of examples, where every element of V_hat and H_hat is
+            a binary observation
         """
 
         m = V_hat.shape[0]
 
         assert len(H_hat) == len(self.rbms)
 
-        v_bias_contrib = T.mean(T.dot(V_hat, self.bias_vis))
+        v = T.mean(V_hat, axis=0)
 
-        v_weights_contrib = T.sum(T.dot(V_hat, self.W[0]) * H_hat[0]) / m
+        v_bias_contrib = T.dot(v, self.bias_vis)
+
+        exp_vh = T.dot(V_hat.T,H_hat[0]) / m
+
+        v_weights_contrib = T.sum(self.W[0] * exp_vh) / m
 
         total = v_bias_contrib + v_weights_contrib
 
         for i in xrange(len(H_hat) - 1):
             lower_H = H_hat[i]
+            low = T.mean(lower_H, axis = 0)
             higher_H = H_hat[i+1]
+            exp_lh = T.dot(lower_H.T, higher_H) / m
             lower_bias = self.bias_hid[i]
             W = self.W[i+1]
 
-            lower_bias_contrib = T.mean(T.dot(lower_H, lower_bias))
+            lower_bias_contrib = T.dot(low, lower_bias)
 
-            weights_contrib = T.sum(T.dot(lower_H, W) * higher_H) / m
+            weights_contrib = T.sum( W * exp_lh) / m
 
             total = total + lower_bias_contrib + weights_contrib
 
-        highest_bias_contrib = T.mean(T.dot(H_hat[-1], self.bias_hid[-1]))
+        highest_bias_contrib = T.dot(T.mean(H_hat[-1],axis=0), self.bias_hid[-1])
 
         total = total + highest_bias_contrib
 
