@@ -13,6 +13,7 @@ import numpy as np
 import warnings
 from theano.gof.op import get_debug_values, debug_error_message
 from pylearn2.utils import make_name, sharedX, as_floatX
+from pylearn2.expr.information_theory import entropy_binary_vector
 
 warnings.warn('s3c changing the recursion limit')
 import sys
@@ -582,23 +583,7 @@ class S3C(Model):
 
     def entropy_h(self, H_hat):
 
-        #TODO: replace with actually evaluating 0 log 0 as 0
-        #note: can't do 1e-8, 1.-1e-8 rounds to 1.0 in float32
-        H_hat = T.clip(H_hat, 1e-7, 1.-1e-7)
-
-        logH = T.log(H_hat)
-
-        logOneMinusH = T.log(1.-H_hat)
-
-        term1 = - T.sum( H_hat * logH , axis=1)
-        assert len(term1.type.broadcastable) == 1
-
-        term2 = - T.sum( (1.-H_hat) * logOneMinusH , axis =1 )
-        assert len(term2.type.broadcastable) == 1
-
-        rval = term1 + term2
-
-        return rval
+        return entropy_binary_vector(H_hat)
 
     def entropy_hs(self, H_hat, var_s0_hat, var_s1_hat):
 
