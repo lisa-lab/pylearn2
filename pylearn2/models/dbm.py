@@ -188,28 +188,68 @@ class DBM(Model):
         pass
 
 
+    def print_status(self):
+        print ""
+        bv = self.bias_vis.get_value(borrow=True)
+        print "bias_vis: ",(bv.min(),bv.mean(),bv.max())
+        for i in xrange(len(self.W)):
+            W = self.W[i].get_value(borrow=True)
+            print "W[%d]"%i,(W.min(),W.mean(),W.max())
+            norms = numpy_norms(W)
+            print " norms: ",(norms.min(),norms.mean(),norms.max())
+            bh = self.bias_hid[i].get_value(borrow=True)
+            print "bias_hid[%d]"%i,(bh.min(),bh.mean(),bh.max())
+
+
     def get_sampling_updates(self):
 
         ip = self.inference_procedure
 
         rval = {}
 
-        V_prob = ip.infer_H_hat_one_sided(other_H = self.H_chains[0], W = self.W[0], b = self.bias_vis)
+        theano_rng = RandomStreams(17)
 
-        V_sample = TODO
+        def sample_from(P):
+            return theano_rng.binomial(size = P.shape, n = 1, p = P, dtype = P.dtype)
+
+        #sample the visible units
+        V_prob = ip.infer_H_hat_one_sided(other_H_hat = self.H_chains[0],
+                W = self.W[0].T, b = self.bias_vis)
+
+        V_sample = sample_from(V_prob)
 
         rval[self.V_chains] = V_sample
 
-        TODO-- got to handle sample H[0] (it connects to V)
-        TODO-- got to handle sampling last element of H (it is one sided sampling)
-        TODO-- got to handle case where last element of H is H[0]
+        #sample the first hidden layer unless this is also the last hidden layer)
+        if len(self.H_chains) > 1:
+            prob = ip.infer_H_hat_two_sided(H_hat_below = rval[self.V_chains], H_hat_above = self.H_chains[1], W_below = self.W[0], W_above = self.W[1], b = self.bias_hid[0])
 
+            sample = sample_from(prob)
+
+            rval[self.H_chains[0]] = sample
+
+        #sample the intermediate hidden layers
         for i in xrange(1,len(self.H_chains)-1):
             prob = ip.infer_H_hat_two_sided(H_hat_below = rval[self.H_chains[i-1]], H_hat_above = self.H_chains[i+1],
                                             W_below = self.W[i], W_above = self.W[i+1], b = self.bias_hid[i])
-            sample = TODO
+            sample = sample_from(prob)
 
-            rval[self.H_chains[i-1] = sample
+            rval[self.H_chains[i-1]] = sample
+
+        #sample the last hidden layer
+        if len(self.H_chains) > 1:
+            ipt = rval[self.H_chains[-2]]
+        else:
+            ipt = self.V_chains
+
+        prob = ip.infer_H_hat_one_sided(other_H_hat = ipt, W = self.W[-1], b = self.bias_hid[-1])
+
+        sample = sample_from(prob)
+
+        rval[self.H_chains[-1]] = sample
+
+
+        return rval
 
     def get_neg_phase_grads(self):
         """ returns a dictionary mapping from parameters to negative phase gradients
