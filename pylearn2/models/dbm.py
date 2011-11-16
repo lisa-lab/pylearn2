@@ -14,121 +14,13 @@ import warnings
 from theano.gof.op import get_debug_values, debug_error_message
 from pylearn2.utils import make_name, sharedX, as_floatX
 from pylearn2.expr.information_theory import entropy_binary_vector
+from theano.tensor.shared_randomstreams import RandomStreams
 
 warnings.warn('s3c changing the recursion limit')
 import sys
 sys.setrecursionlimit(50000)
 
-class SufficientStatistics:
-    """ The SufficientStatistics class computes several sufficient
-        statistics of a minibatch of examples / variational parameters.
-        This is mostly for convenience since several expressions are
-        easy to express in terms of these same sufficient statistics.
-        Also, re-using the same expression for the sufficient statistics
-        in multiple code locations can reduce theano compilation time.
-        The current version of the S3C code no longer supports features
-        like decaying sufficient statistics since these were not found
-        to be particularly beneficial relative to the burden of computing
-        the O(nhid^2) second moment matrix. The current version of the code
-        merely computes the sufficient statistics apart from the second
-        moment matrix as a notational convenience. Expressions that most
-        naturally are expressed in terms of the second moment matrix
-        are now written with a different order of operations that
-        avoids O(nhid^2) operations but whose dependence on the dataset
-        cannot be expressed in terms only of sufficient statistics."""
-
-
-    def __init__(self, d):
-        self. d = {}
-        for key in d:
-            self.d[key] = d[key]
-
-    @classmethod
-    def from_observations(self, needed_stats, V, H_hat, S_hat, var_s0_hat, var_s1_hat):
-        """
-            returns a SufficientStatistics
-
-            needed_stats: a set of string names of the statistics to include
-
-            V: a num_examples x nvis matrix of input examples
-            H_hat: a num_examples x nhid matrix of \hat{h} variational parameters
-            S_hat: variational parameters for expectation of s given h=1
-            var_s0_hat: variational parameters for variance of s given h=0
-                        (only a vector of length nhid, since this is the same for
-                        all inputs)
-            var_s1_hat: variational parameters for variance of s given h=1
-                        (again, a vector of length nhid)
-        """
-
-        m = T.cast(V.shape[0],config.floatX)
-
-        H_name = make_name(H_hat, 'anon_H_hat')
-        Mu1_name = make_name(S_hat, 'anon_S_hat')
-
-        #mean_h
-        assert H_hat.dtype == config.floatX
-        mean_h = T.mean(H_hat, axis=0)
-        assert H_hat.dtype == mean_h.dtype
-        assert mean_h.dtype == config.floatX
-        mean_h.name = 'mean_h('+H_name+')'
-
-        #mean_v
-        mean_v = T.mean(V,axis=0)
-
-        #mean_sq_v
-        mean_sq_v = T.mean(T.sqr(V),axis=0)
-
-        #mean_s1
-        mean_s1 = T.mean(S_hat,axis=0)
-
-        #mean_sq_s
-        mean_sq_S = H_hat * (var_s1_hat + T.sqr(S_hat)) + (1. - H_hat)*(var_s0_hat)
-        mean_sq_s = T.mean(mean_sq_S,axis=0)
-
-        #mean_hs
-        mean_HS = H_hat * S_hat
-        mean_hs = T.mean(mean_HS,axis=0)
-        mean_hs.name = 'mean_hs(%s,%s)' % (H_name, Mu1_name)
-        mean_s = mean_hs #this here refers to the expectation of the s variable, not s_hat
-        mean_D_sq_mean_Q_hs = T.mean(T.sqr(mean_HS), axis=0)
-
-        #mean_sq_hs
-        mean_sq_HS = H_hat * (var_s1_hat + T.sqr(S_hat))
-        mean_sq_hs = T.mean(mean_sq_HS, axis=0)
-        mean_sq_hs.name = 'mean_sq_hs(%s,%s)' % (H_name, Mu1_name)
-
-        #mean_sq_mean_hs
-        mean_sq_mean_hs = T.mean(T.sqr(mean_HS), axis=0)
-        mean_sq_mean_hs.name = 'mean_sq_mean_hs(%s,%s)' % (H_name, Mu1_name)
-
-        #mean_hsv
-        sum_hsv = T.dot(mean_HS.T,V)
-        sum_hsv.name = 'sum_hsv<from_observations>'
-        mean_hsv = sum_hsv / m
-
-
-        d = {
-                    "mean_h"                :   mean_h,
-                    "mean_v"                :   mean_v,
-                    "mean_sq_v"             :   mean_sq_v,
-                    "mean_s"                :   mean_s,
-                    "mean_s1"               :   mean_s1,
-                    "mean_sq_s"             :   mean_sq_s,
-                    "mean_hs"               :   mean_hs,
-                    "mean_sq_hs"            :   mean_sq_hs,
-                    "mean_sq_mean_hs"       :   mean_sq_mean_hs,
-                    "mean_hsv"              :   mean_hsv,
-                }
-
-
-        final_d = {}
-
-        for stat in needed_stats:
-            final_d[stat] = d[stat]
-            final_d[stat].name = 'observed_'+stat
-
-        return SufficientStatistics(final_d)
-
+from pylearn2.models.s3c import numpy_norms
 
 warnings.warn("""
 TODO/NOTES
