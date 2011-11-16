@@ -66,6 +66,7 @@ class DBM(Model):
         self.rbms = rbms
         self.negative_chains = negative_chains
 
+        self.monitoring_channel_prefix = ""
 
         if inference_procedure is None:
             self.autonomous = False
@@ -131,6 +132,8 @@ class DBM(Model):
 
         return sharedX(value)
 
+    def set_monitoring_channel_prefix(self, prefix):
+        self.monitoring_channel_prefix = prefix
 
     def get_monitoring_channels(self, V):
         warnings.warn("DBM doesn't actually return any monitoring channels yet. It has a bunch of S3C code sitting in its get_monitoring_channels but for now it just returns an empty dictionary")
