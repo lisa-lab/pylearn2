@@ -30,7 +30,7 @@ No PyPI download how. You must checkout the version in github for bleeding-edge/
 
 .. code-block:: bash
 
-   git clone git://github.com/Theano/Theano.git
+   git clone git://github.com/lisa-lab/pylearn.git
 
 
 There is dependency on Theano and the `old Pylearn <http://deeplearning.net/software/pylearn/>`_ project. You should also install them
