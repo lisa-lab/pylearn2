@@ -42,6 +42,10 @@ class DefaultTrainingAlgorithm(object):
             X.tag.test_value = self.monitoring_dataset.get_batch_design(2)
             channels = model.get_monitoring_channels(X)
 
+            if not isinstance(channels,dict):
+                raise ValueError("model.get_monitoring_channels must return a dictionary"
+                        ", but it returned "+str(channels))
+
             for name in channels:
                 J =    channels[name]
                 self.monitor.add_channel(name = name,
