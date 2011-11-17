@@ -3,7 +3,7 @@ import re
 import yaml
 from pylearn2.utils.call_check import checked_call
 from pylearn2.utils import serial
-from pylearn2.utils.string import preprocess
+from pylearn2.utils.string_utils import preprocess
 
 
 is_initialized = False
