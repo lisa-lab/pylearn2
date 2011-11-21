@@ -94,7 +94,6 @@ def load(filepath, recurse_depth=0):
 
 
 def save(filepath, obj):
-
     filepath = preprocess(filepath)
     try:
         _save(filepath, obj)
@@ -131,58 +130,58 @@ def _save(filepath, obj):
         raise Exception('failed to open ' +
                         str(filepath) +
                         ' for writing, error is ' + str(e))
+    try:
+        cPickle.dump(obj, f)
+        f.close()
+    except Exception, e:
+        print "exception occurred"
+        f.close()
+        if str(e).find('maximum recursion depth exceeded') != -1:
+            raise
         try:
-            cPickle.dump(obj, f)
+            f = open(filepath, "wb")
+            pickle.dump(obj, f)
             f.close()
-        except Exception, e:
-            f.close()
-            if str(e).find('maximum recursion depth exceeded') != -1:
-                raise
+        except Exception, e2:
             try:
-                f = open(filepath, "wb")
-                pickle.dump(obj, f)
                 f.close()
-            except Exception, e2:
-                try:
-                    f.close()
-                except:
-                    pass
-                if str(e) == '' and str(e2) == '':
-                    print (
-                        'neither cPickle nor pickle could write to ' + str(filepath)
-                    )
-                    print (
-                        'moreover, neither of them raised an exception that '
-                        'can be converted to a string'
-                    )
-                    print (
-                        'now re-attempting to write with cPickle outside the '
-                        'try/catch loop so you can see if it prints anything '
-                        'when it dies'
-                    )
-                    f = open(filepath, 'wb')
-                    cPickle.dump(obj, f)
-                    f.close()
-                    print ('Somehow or other, the file write worked once '
-                           'we quit using the try/catch.')
-                else:
-                    if str(e2) == 'env':
-                        raise
+            except:
+                pass
+            if str(e) == '' and str(e2) == '':
+                print (
+                    'neither cPickle nor pickle could write to ' + str(filepath)
+                )
+                print (
+                    'moreover, neither of them raised an exception that '
+                    'can be converted to a string'
+                )
+                print (
+                    'now re-attempting to write with cPickle outside the '
+                    'try/catch loop so you can see if it prints anything '
+                    'when it dies'
+                )
+                f = open(filepath, 'wb')
+                cPickle.dump(obj, f)
+                f.close()
+                print ('Somehow or other, the file write worked once '
+                       'we quit using the try/catch.')
+            else:
+                if str(e2) == 'env':
+                    raise
 
-                    import pdb
-                    tb = pdb.traceback.format_exc()
+                import pdb
+                tb = pdb.traceback.format_exc()
 
-                    raise Exception(str(obj) +
-                                    ' could not be written to '+
-                                    str(filepath) +
-                                    ' by cPickle due to '+str(e)+
-                                    ' nor by pickle due to '+str(e2)+
-                                    '. \nTraceback '+ tb)
-            print ('Warning: ' + str(filepath) +
-                   ' was written by pickle instead of cPickle, due to '
-                   + str(e) +
-                   ' (perhaps your object is really big?)')
-
+                raise Exception(str(obj) +
+                                ' could not be written to '+
+                                str(filepath) +
+                                ' by cPickle due to '+str(e)+
+                                ' nor by pickle due to '+str(e2)+
+                                '. \nTraceback '+ tb)
+        print ('Warning: ' + str(filepath) +
+               ' was written by pickle instead of cPickle, due to '
+               + str(e) +
+               ' (perhaps your object is really big?)')
 
 def clone_via_serialize(obj):
     str = cPickle.dumps(obj)
