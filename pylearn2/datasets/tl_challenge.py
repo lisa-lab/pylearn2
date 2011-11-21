@@ -1,7 +1,7 @@
 #The dataset for the NIPS 2011 Transfer Learning Challenge
 import numpy as N
 from pylearn2.datasets import dense_design_matrix
-from pylearn2.utils.string import preprocess
+from pylearn2.utils.string_utils import preprocess
 
 class TL_Challenge(dense_design_matrix.DenseDesignMatrix):
      def __init__(self, which_set, center = False, custom_path = None):

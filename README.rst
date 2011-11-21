@@ -6,6 +6,8 @@ This repository contains the experimental framework, developed by David
 Warde-Farley, Pascal Lamblin, Ian Goodfellow and others during the winter
 2011 offering of `IFT6266 <http://www.iro.umontreal.ca/~pift6266/>`_.
 
+The Pylearn2 `documentations <http://deeplearning.net/software/pylearn2/>`_.
+
 Basic design rules
 ------------------
 
