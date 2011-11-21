@@ -962,6 +962,7 @@ class S3C(Model):
             self.B = self.B_driver
 
         self.w = T.dot(self.B, T.sqr(self.W))
+        self.w.name = 'S3C.w'
 
         self.p = T.nnet.sigmoid(self.bias_hid)
 
@@ -1262,28 +1263,40 @@ class E_Step:
         w = self.model.w
 
         BW = B.dimshuffle(0,'x') * W
+        BW.name = 'infer_S_hat:BW'
 
         HS = H_hat * S_hat
+        HS.name = 'infer_S_hat:HS'
 
         mean_term = mu * alpha
+        mean_term.name = 'infer_S_hat:mean_term'
 
         data_term = T.dot(V, BW)
+        data_term.name = 'infer_S_hat:data_term'
 
         iterm_part_1 = - T.dot(T.dot(HS, W.T), BW)
+        iterm_part_1.name = 'infer_S_hat:iterm_part_1'
+        assert w.name is not None
         iterm_part_2 = w * HS
+        iterm_part_2.name = 'infer_S_hat:iterm_part_2'
 
         interaction_term = iterm_part_1 + iterm_part_2
+        interaction_term.name = 'infer_S_hat:interaction_term'
 
         for i1v, Vv in get_debug_values(iterm_part_1, V):
             assert i1v.shape[0] == Vv.shape[0]
 
         debug_interm = mean_term + data_term
+        debug_interm.name = 'infer_S_hat:debug_interm'
+
         numer = debug_interm + interaction_term
+        numer.name = 'infer_S_hat:numer'
 
         alpha = self.model.alpha
         w = self.model.w
 
         denom = alpha + w
+        denom.name = 'infer_S_hat:denom'
 
         S_hat =  numer / denom
 
