@@ -21,6 +21,10 @@ import sys
 sys.setrecursionlimit(50000)
 
 from pylearn2.models.s3c import numpy_norms
+from pylearn2.models.s3c import theano_norms
+from pylearn2.models.s3c import full_min
+from pylearn2.models.s3c import full_max
+from theano.printing import min_informative_str
 
 warnings.warn("""
 TODO/NOTES
@@ -36,6 +40,7 @@ class DBM(Model):
     def __init__(self, rbms,
                         negative_chains,
                        inference_procedure = None,
+                       monitor_params = False,
                        print_interval = 10000):
         """
             rbms: list of rbms to stack
@@ -53,6 +58,8 @@ class DBM(Model):
             print_interval: every print_interval examples, print out a status summary
 
         """
+
+        self.monitor_params = monitor_params
 
         warnings.warn("""The DBM class is still under development, and currently mostly
                 only supports use as a component of a larger model that remains
@@ -82,9 +89,13 @@ class DBM(Model):
 
         #copy parameters from RBM to DBM, ignoring bias_hid of all but last RBM
         self.W = [ rbm.weights for rbm in self.rbms]
+        for i, W in enumerate(self.W):
+            W.name = 'dbm_W[%d]' % (i,)
         self.bias_vis = rbms[0].bias_vis
         self.bias_hid = [ rbm.bias_vis for rbm in self.rbms[1:] ]
         self.bias_hid.append(self.rbms[-1].bias_hid)
+        for i, bias_hid in enumerate(self.bias_hid):
+            bias_hid.name = 'dbm_bias_hid[%d]' % (i,)
 
         self.reset_rng()
 
@@ -136,43 +147,34 @@ class DBM(Model):
         self.monitoring_channel_prefix = prefix
 
     def get_monitoring_channels(self, V):
-        warnings.warn("DBM doesn't actually return any monitoring channels yet. It has a bunch of S3C code sitting in its get_monitoring_channels but for now it just returns an empty dictionary")
-
-        return {}
 
         try:
             self.compile_mode()
 
-            rval = self.m_step.get_monitoring_channels(V, self)
+            rval = {}
 
-            from_e_step = self.e_step.get_monitoring_channels(V, self)
+            #from_ip = self.inference_procedure.get_monitoring_channels(V, self)
 
-            rval.update(from_e_step)
+            #rval.update(from_ip)
 
-            monitor_stats = len(self.monitor_stats) > 0
+            if self.monitor_params:
+                for param in self.get_params():
+                    rval[param.name + '_min'] = full_min(param)
+                    rval[param.name + '_mean'] = T.mean(param)
+                    rval[param.name + '_max'] = full_max(param)
 
-            if monitor_stats:
+                    if 'W' in param.name:
+                        norms = theano_norms(param)
 
-                obs = self.e_step.variational_inference(V)
+                        rval[param.name + '_norms_min' ]= T.min(norms)
+                        rval[param.name + '_norms_mean'] = T.mean(norms)
+                        rval[param.name + '_norms_max'] = T.max(norms)
 
-                needed_stats = set(self.monitor_stats)
+            new_rval = {}
+            for key in rval:
+                new_rval[self.monitoring_channel_prefix+key] = rval[key]
 
-
-                stats = SufficientStatistics.from_observations( needed_stats = needed_stats,
-                                                            V = V, ** obs )
-
-
-                if monitor_stats:
-                    for stat in self.monitor_stats:
-                        stat_val = stats.d[stat]
-
-                        rval[stat+'_min'] = T.min(stat_val)
-                        rval[stat+'_mean'] = T.mean(stat_val)
-                        rval[stat+'_max'] = T.max(stat_val)
-                    #end for stat
-                #end if monitor_stats
-            #end if monitor_stats or monitor_functional
-
+            rval = new_rval
 
             return rval
         finally:
@@ -247,7 +249,6 @@ class DBM(Model):
         sample = sample_from(prob)
 
         rval[self.H_chains[-1]] = sample
-
 
         return rval
 
@@ -333,7 +334,16 @@ class DBM(Model):
             a binary observation
         """
 
+
+        V_name = make_name(V_hat, 'anon_V_hat')
+        assert isinstance(H_hat, (list,tuple))
+
+        H_names = []
+        for i in xrange(len(H_hat)):
+            H_names.append( make_name(H_hat[i], 'anon_H_hat[%d]' %(i,) ))
+
         m = V_hat.shape[0]
+        m.name = V_name + '.shape[0]'
 
         assert len(H_hat) == len(self.rbms)
 
@@ -343,7 +353,9 @@ class DBM(Model):
 
         exp_vh = T.dot(V_hat.T,H_hat[0]) / m
 
-        v_weights_contrib = T.sum(self.W[0] * exp_vh) / m
+        v_weights_contrib = T.sum(self.W[0] * exp_vh)
+
+        v_weights_contrib.name = 'v_weights_contrib('+V_name+','+H_names[0]+')'
 
         total = v_bias_contrib + v_weights_contrib
 
@@ -367,7 +379,11 @@ class DBM(Model):
 
         assert len(total.type.broadcastable) == 0
 
-        return total
+        rval =  - total
+
+        #rval.name = 'dbm_expected_energy('+V_name+','+str(H_names)+')'
+
+        return rval
 
     def entropy_h(self, H_hat):
         """ entropy of the hidden layers under the mean field distribution
@@ -448,7 +464,10 @@ class InferenceProcedure:
 
     def truncated_KL(self, V, model, obs):
         """ KL divergence between variation and true posterior, dropping terms that don't
-            depend on the variational parameters """
+            depend on the variational parameters
+
+            """
+
 
         raise NotImplementedError("This method is not implemented yet. The code in this file is just copy-pasted from S3C")
 

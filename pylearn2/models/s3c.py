@@ -739,7 +739,10 @@ class S3C(Model):
         if H_sample is None:
             H_sample = theano_rng.binomial( size = hid_shape, n = 1, p = self.p)
 
-        assert len(H_sample.type.broadcastable) == 2
+        if hasattr(H_sample,'__array__'):
+            assert len(H_sample.shape) == 2
+        else:
+            assert len(H_sample.type.broadcastable) == 2
 
         pos_s_sample = theano_rng.normal( size = hid_shape, avg = self.mu, std = T.sqrt(1./self.alpha) )
 
@@ -759,8 +762,8 @@ class S3C(Model):
 
     @classmethod
     def expected_log_prob_vhs_needed_stats(cls):
-        h = S3C.log_likelihood_h_needed_stats()
-        s = S3C.log_likelihood_s_given_h_needed_stats()
+        h = S3C.expected_log_prob_h_needed_stats()
+        s = S3C.expected_log_prob_s_given_h_needed_stats()
         v = S3C.expected_log_prob_v_given_hs_needed_stats()
 
         union = h.union(s).union(v)
@@ -771,10 +774,10 @@ class S3C(Model):
     def expected_log_prob_vhs(self, stats, H_hat, S_hat):
 
         expected_log_prob_v_given_hs = self.expected_log_prob_v_given_hs(stats, H_hat = H_hat, S_hat = S_hat)
-        log_likelihood_s_given_h  = self.log_likelihood_s_given_h(stats)
-        log_likelihood_h          = self.log_likelihood_h(stats)
+        expected_log_prob_s_given_h  = self.expected_log_prob_s_given_h(stats)
+        expected_log_prob_h          = self.expected_log_prob_h(stats)
 
-        rval = expected_log_prob_v_given_hs + log_likelihood_s_given_h + log_likelihood_h
+        rval = expected_log_prob_v_given_hs + expected_log_prob_s_given_h + expected_log_prob_h
 
         assert len(rval.type.broadcastable) == 0
 
@@ -887,10 +890,10 @@ class S3C(Model):
         return rval
 
     @classmethod
-    def log_likelihood_s_given_h_needed_stats(cls):
+    def expected_log_prob_s_given_h_needed_stats(cls):
         return set(['mean_h','mean_hs','mean_sq_s'])
 
-    def log_likelihood_s_given_h(self, stats):
+    def expected_log_prob_s_given_h(self, stats):
 
         """
         E_h,s\sim Q log P(s|h)
@@ -923,10 +926,10 @@ class S3C(Model):
         return rval
 
     @classmethod
-    def log_likelihood_h_needed_stats(cls):
+    def expected_log_prob_h_needed_stats(cls):
         return set(['mean_h'])
 
-    def log_likelihood_h(self, stats):
+    def expected_log_prob_h(self, stats):
         """ Returns the expected log probability of the vector h
             under the model when the data is drawn according to
             stats
@@ -1050,6 +1053,11 @@ def reflection_clip(S_hat, new_S_hat, rho = 0.5):
 
     rval = T.clip(new_S_hat, - rho * positives * S_hat - non_positives * ceiling, non_negatives * ceiling - rho * negatives * S_hat )
 
+    S_name = make_name(S_hat, 'anon_S_hat')
+    new_S_name = make_name(new_S_hat, 'anon_new_S_hat')
+
+    rval.name = 'reflection_clip(%s, %s)' % (S_name, new_S_name)
+
     return rval
 
 def damp(old, new, new_coeff):
@@ -1170,14 +1178,15 @@ class E_Step:
         needed_stats = S3C.expected_log_prob_vhs_needed_stats()
 
         stats = SufficientStatistics.from_observations( needed_stats = needed_stats,
-                                                        X = V, ** obs )
+                                                        V = V, ** obs )
 
         H_hat = obs['H_hat']
+        S_hat = obs['S_hat']
         var_s0_hat = obs['var_s0_hat']
         var_s1_hat = obs['var_s1_hat']
 
         entropy_term = (model.entropy_hs(H_hat = H_hat, var_s0_hat = var_s0_hat, var_s1_hat = var_s1_hat)).mean()
-        likelihood_term = model.expected_log_prob_vhs(stats)
+        likelihood_term = model.expected_log_prob_vhs(stats, H_hat = H_hat, S_hat = S_hat)
 
         em_functional = entropy_term + likelihood_term
 
