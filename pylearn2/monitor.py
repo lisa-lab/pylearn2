@@ -232,20 +232,21 @@ class MonitorChannel(object):
     """
     A class representing a specific quantity to be monitored.
     """
-    def __init__(self, ipt, val, name):
+    def __init__(self, graph_input, val, name):
         """
         Creates a channel for a quantity to be monitored.
 
         Parameters
         ----------
-        name: str
-            The display name in the monitor.
-        ipt: tensor_like
+        graph_input : tensor_like
             The symbolic tensor which should be clamped to the data.
-        val: tensor_like
-            The value (function of `ipt`) to be tracked.
+        val : tensor_like
+            The value (symbolic function of `graph_input`) to be evaluated
+            and recorded.
+        name : str
+            The display name in the monitor.
         """
-        self.ipt = ipt
+        self.graph_input = graph_input
         self.val = val
         self.val_shared = shared(0.0, name + "_tracker")
         self.batch_record = []
