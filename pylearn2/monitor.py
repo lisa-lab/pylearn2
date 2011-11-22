@@ -75,7 +75,7 @@ class Monitor(object):
         d = self.dataset
 
         if d:
-            if isinstance(d, str):
+            if isinstance(d, basestring):
                 d = yaml_parse.load(d)
                 self.dataset = d
 
@@ -175,7 +175,7 @@ class Monitor(object):
         `redo_theano` by deleting the fields in `self.names_to_del`
         """
         temp = self.dataset
-        if self.dataset and not isinstance(self.dataset, str):
+        if self.dataset and not isinstance(self.dataset, basestring):
             self.dataset = self.dataset.yaml_src
         d = copy.copy(self.__dict__)
         self.dataset = temp
