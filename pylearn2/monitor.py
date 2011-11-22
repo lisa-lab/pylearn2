@@ -249,10 +249,13 @@ class MonitorChannel(object):
         self.graph_input = graph_input
         self.val = val
         self.val_shared = shared(0.0, name + "_tracker")
-        self.batch_record = []
-        self.example_record = []
+        # Value of the desired quantity at measurement time.
         self.val_record = []
-
+        # Number of batches seen at measurement time.
+        self.batch_record = []
+        # Number of examples seen at measurement time (batch sizes may
+        # fluctuate).
+        self.example_record = []
 
     def __getstate__(self):
         """ TODO:
