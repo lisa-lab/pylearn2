@@ -6,7 +6,7 @@ class STL10(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, which_set, center = False, example_range = None):
 
         if which_set == 'train':
-            train = load('${PYLEARN2_DATA_PATH}/stl10_matlab/train.mat')
+            train = load('${PYLEARN2_DATA_PATH}/stl10/stl10_matlab/train.mat')
 
             #Load the class names
             self.class_names = [array[0].encode('utf-8') for array in train['class_names'][0] ]
