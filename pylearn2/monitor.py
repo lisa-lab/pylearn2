@@ -228,7 +228,7 @@ class Monitor(object):
         return rval
 
 
-class Channel(object):
+class MonitorChannel(object):
     """
     A class representing a specific quantity to be monitored.
     """
@@ -269,3 +269,6 @@ class Channel(object):
 
     def __setstate__(self, d):
         self.__dict__.update(d)
+
+# TODO: Remove this at some point
+Channel = MonitorChannel
