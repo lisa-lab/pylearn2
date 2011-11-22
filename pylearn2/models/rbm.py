@@ -214,16 +214,18 @@ class RBM(Block, Model):
         if rng is None:
             # TODO: global rng configuration stuff.
             rng = numpy.random.RandomState(1001)
-        self.bias_vis = sharedX(
-            numpy.zeros(nvis) + init_bias_vis,
-            name='bias_vis',
-            borrow=True
-        )
-        self.bias_hid = sharedX(
-            numpy.zeros(nhid) + init_bias_hid,
-            name='hb',
-            borrow=True
-        )
+        try:
+            b_vis = numpy.zeros(nvis)
+            b_vis += init_bias_vis
+        except ValueError:
+            raise ValueError("bad shape or value for init_bias_vis")
+        self.bias_vis = sharedX(b_vis, name='bias_vis', borrow=True)
+        try:
+            b_hid = numpy.zeros(nhid)
+            b_hid += init_bias_hid
+        except ValueError:
+            raise ValueError('bad shape or value for init_bias_hid')
+        self.bias_hid = sharedX(b_hid, name='bias_hid', borrow=True)
         self.weights = sharedX(
             rng.uniform(-irange, irange, (nvis, nhid)),
             name='W',
