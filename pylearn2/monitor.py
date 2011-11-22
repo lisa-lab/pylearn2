@@ -268,8 +268,10 @@ class MonitorChannel(object):
                 For now, to make sure no one erroneously depends on these bad
                 values, I exclude them from the pickle.
         """
-        return { 'example_record' : self.example_record,
-                    'val_record': self.val_record }
+        return {
+            'example_record': self.example_record,
+            'val_record': self.val_record
+        }
 
     def __setstate__(self, d):
         self.__dict__.update(d)
