@@ -187,7 +187,8 @@ class RBM(Block, Model):
     A base interface for RBMs, implementing the binary-binary case.
 
     """
-    def __init__(self, nvis, nhid, irange=0.5, rng=None, init_bias_vis = 0.0, init_bias_hid=0.0):
+    def __init__(self, nvis, nhid, irange=0.5, rng=None,
+                 init_bias_vis=0.0, init_bias_hid=0.0):
         """
         Construct an RBM object.
 
@@ -202,8 +203,10 @@ class RBM(Block, Model):
         rng : RandomState object or seed
             NumPy RandomState object to use when initializing parameters
             of the model, or (integer) seed to use to create one.
-        init_bias_vis: initial value of the visible biases.
-        init_bias_hid: initial value of the hidden biases
+        init_bias_vis : array_like, optional
+            Initial value of the visible biases, broadcasted as necessary.
+        init_bias_hid : array_like, optional
+            initial value of the hidden biases, broadcasted as necessary.
         """
 
         Model.__init__(self)
@@ -211,16 +214,18 @@ class RBM(Block, Model):
         if rng is None:
             # TODO: global rng configuration stuff.
             rng = numpy.random.RandomState(1001)
-        self.bias_vis = sharedX(
-            numpy.zeros(nvis) + init_bias_vis,
-            name='bias_vis',
-            borrow=True
-        )
-        self.bias_hid = sharedX(
-            numpy.zeros(nhid) + init_bias_hid,
-            name='hb',
-            borrow=True
-        )
+        try:
+            b_vis = numpy.zeros(nvis)
+            b_vis += init_bias_vis
+        except ValueError:
+            raise ValueError("bad shape or value for init_bias_vis")
+        self.bias_vis = sharedX(b_vis, name='bias_vis', borrow=True)
+        try:
+            b_hid = numpy.zeros(nhid)
+            b_hid += init_bias_hid
+        except ValueError:
+            raise ValueError('bad shape or value for init_bias_hid')
+        self.bias_hid = sharedX(b_hid, name='bias_hid', borrow=True)
         self.weights = sharedX(
             rng.uniform(-irange, irange, (nvis, nhid)),
             name='W',
