@@ -50,6 +50,141 @@ def show(image):
 
     os.popen('('+viewer_command+' '+name+'; rm '+name+') &')
 
+
+def pil_from_ndarray(ndarray):
+
+    try:
+        if ndarray.dtype == 'float32' or ndarray.dtype == 'float64':
+            assert ndarray.min() >= 0.0
+            assert ndarray.max() <= 1.0
+
+            ndarray = np.cast['uint8'](ndarray * 255 )
+
+        rval =  Image.fromarray(ndarray)
+    except Exception, e:
+        print 'original exception: '
+        print e
+        print 'ndarray.dtype: ',ndarray.dtype
+        print 'ndarray.shape: ',ndarray.shape
+
+    return rval
+
+def ndarray_from_pil(pil, dtype = 'uint8'):
+
+    rval = np.asarray(pil)
+
+    if dtype != rval.dtype:
+        rval = np.cast[dtype](rval)
+
+    if str(dtype).startswith('float'):
+        rval /= 255.
+
+    if len(rval.shape) == 2:
+        rval = rval.reshape(rval.shape[0],rval.shape[1],1)
+
+    return rval
+
+def rescale(image, shape):
+    """ scales image to have shape """
+
+    assert len(image.shape) == 3 #rows, cols, channels
+    assert len(shape) == 2 #rows, cols
+
+    i = pil_from_ndarray(image)
+
+    i.thumbnail( [ shape[1], shape[0] ], Image.ANTIALIAS)
+
+    rval = ndarray_from_pil( i, dtype = image.dtype)
+
+    return rval
+
+
+def fit_inside(image, shape):
+    """ scales image down to fit inside shape
+        preserves proportions of image"""
+
+    assert len(image.shape) == 3 #rows, cols, channels
+    assert len(shape) == 2 #rows, cols
+
+    if image.shape[0] <= shape[0] and image.shape[1] <= shape[1]:
+        return image.copy()
+
+    row_ratio = float(image.shape[0]) / float(shape[0])
+    col_ratio = float(image.shape[1]) / float(shape[1])
+
+    if row_ratio > col_ratio:
+        target_shape = [ shape[0], min(image.shape[1] / row_ratio, shape[1]) ]
+    else:
+        target_shape = [ min(image.shape[0] / col_ratio, shape[0]), shape[1] ]
+
+    assert target_shape[0] <= shape[0]
+    assert target_shape[1] <= shape[1]
+    assert target_shape[0] == shape[0] or target_shape[1] == shape[1]
+
+    rval =  rescale(image, target_shape)
+
+    return rval
+
+def letterbox(image, shape):
+    """ pads image with black letterboxing to bring image.shape up to shape """
+
+    assert len(image.shape) == 3 #rows, cols, channels
+    assert len(shape) == 2 #rows, cols
+
+    assert image.shape[0] <= shape[0]
+    assert image.shape[1] <= shape[1]
+
+    if image.shape[0] == shape[0] and image.shape[1] == shape[1]:
+        return image.copy()
+
+    rval = np.zeros( (shape[0], shape[1], image.shape[2]), dtype=image.dtype)
+
+    rstart = (shape[0] - image.shape[0]) / 2
+    cstart = (shape[1] - image.shape[1]) / 2
+
+    rval[ rstart:rstart+image.shape[0], cstart:cstart+image.shape[1] ] = image
+
+    return rval
+
+
+def make_letterboxed_thumbnail(image, shape):
+    """ scales image down to shape
+        preserves proportions of image, introduces black letterboxing if necessary
+    """
+
+    assert len(image.shape) == 3
+    assert len(shape) == 2
+
+    shrunk = fit_inside(image, shape)
+    letterboxed = letterbox(shrunk, shape)
+
+    return letterboxed
+
+def load(filepath, rescale = True, dtype='float64'):
+    assert type(filepath) == type("I am a string")
+
+    if rescale == False and dtype == 'uint8':
+        rval = np.asarray(Image.open(filepath))
+        #print 'image.load: '+str((rval.min(),rval.max()))
+        assert rval.dtype == 'uint8'
+        return rval
+
+    s = 1.0
+    if rescale:
+        s = 255.
+    try:
+        rval = Image.open(filepath)
+    except:
+        raise "Could not open "+filepath
+
+    rval = np.cast[dtype](np.asarray(rval)) / s
+
+    if len(rval.shape) == 2:
+        return rval.reshape(rval.shape[0], rval.shape[1], 1)
+
+    return rval
+
+
 if __name__ == '__main__':
     black = np.zeros((50,50,3),dtype='uint8')
 
