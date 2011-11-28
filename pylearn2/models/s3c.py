@@ -14,6 +14,7 @@ import warnings
 from theano.gof.op import get_debug_values, debug_error_message
 from pylearn2.utils import make_name, sharedX, as_floatX
 from pylearn2.expr.information_theory import entropy_binary_vector
+from theano.printing import Print
 
 warnings.warn('s3c changing the recursion limit')
 import sys
@@ -1021,6 +1022,7 @@ class S3C(Model):
             print 'alpha: ',(alpha.min(),alpha.mean(),alpha.max())
             W = self.W.get_value(borrow=True)
             assert not np.any(np.isnan(W))
+            assert not np.any(np.isinf(W))
             print 'W: ',(W.min(),W.mean(),W.max())
             norms = numpy_norms(W)
             print 'W norms:',(norms.min(),norms.mean(),norms.max())
@@ -1058,6 +1060,8 @@ def reflection_clip(S_hat, new_S_hat, rho = 0.5):
     new_S_name = make_name(new_S_hat, 'anon_new_S_hat')
 
     rval.name = 'reflection_clip(%s, %s)' % (S_name, new_S_name)
+
+    #rval = Print('clipped_S_hat',attrs=['min','max','mean'])(rval)
 
     return rval
 
