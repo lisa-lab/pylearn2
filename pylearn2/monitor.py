@@ -137,7 +137,7 @@ class Monitor(object):
         X = T.matrix()
         print 'monitored channels: '+str(self.channels.keys())
         for channel in self.channels.values():
-            givens[channel.ipt] = X
+            givens[channel.graph_input] = X
             updates[channel.val_shared] = channel.val_shared + channel.val
         print "compiling accum..."
         t1 = time.time()
