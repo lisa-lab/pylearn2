@@ -60,14 +60,18 @@ def pil_from_ndarray(ndarray):
 
             ndarray = np.cast['uint8'](ndarray * 255 )
 
+            if len(ndarray.shape) == 3 and ndarray.shape[2] == 1:
+                ndarray = ndarray[:,:,0]
+
         rval =  Image.fromarray(ndarray)
+        return rval
     except Exception, e:
         print 'original exception: '
         print e
         print 'ndarray.dtype: ',ndarray.dtype
         print 'ndarray.shape: ',ndarray.shape
 
-    return rval
+    assert False
 
 def ndarray_from_pil(pil, dtype = 'uint8'):
 
@@ -180,7 +184,12 @@ def load(filepath, rescale = True, dtype='float64'):
     rval = np.cast[dtype](np.asarray(rval)) / s
 
     if len(rval.shape) == 2:
-        return rval.reshape(rval.shape[0], rval.shape[1], 1)
+        rval =  rval.reshape(rval.shape[0], rval.shape[1], 1)
+
+    if len(rval.shape) != 3:
+        raise AssertionError("Something went wrong opening "+
+                filepath+'. Resulting shape is '+str(rval.shape)+
+                " (it's meant to have 3 dimensions by now)")
 
     return rval
 
