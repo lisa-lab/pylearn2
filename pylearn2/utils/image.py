@@ -5,15 +5,15 @@ from pylearn2.utils import string
 from tempfile import NamedTemporaryFile
 import warnings
 
+
 def show(image):
     """
     Parameters
     ----------
-    image: A PIL Image, or a numpy ndarray.
-            If ndarray, integer formats are assumed to use 0-255
-            and float formats are assumed to use 0-1
+    image : PIL Image object or ndarray
+        If ndarray, integer formats are assumed to use 0-255
+        and float formats are assumed to use 0-1
     """
-
     if hasattr(image, '__array__'):
         if image.dtype == 'int8':
             image = np.cast['uint8'](image)
@@ -23,57 +23,57 @@ def show(image):
         try:
             image = Image.fromarray(image)
         except TypeError:
-            raise TypeError("PIL is whining about being given an ndarray of shape "+str(image.shape)+" and dtype "+str(image.dtype))
+            raise TypeError("PIL issued TypeError on ndarray of shape " +
+                            str(image.shape) + " and dtype " +
+                            str(image.dtype))
 
     try:
-        f = NamedTemporaryFile(mode='r',suffix='.png', delete = False)
+        f = NamedTemporaryFile(mode='r', suffix='.png', delete=False)
     except TypeError:
-        #before python2.7, we can't use the delete argument
-        f = NamedTemporaryFile(mode='r',suffix='.png')
+        # before python2.7, we can't use the delete argument
+        f = NamedTemporaryFile(mode='r', suffix='.png')
         """
-        TODO: prior to python 2.7, NamedTemporaryFile has no delete = False argument
-            unfortunately, that means f.close() deletes the file.
-            we then save an image to the file in the next line, so there's a race condition
-            where for an instant we  don't actually have the file on the filesystem
-            reserving the name, and then write to that name anyway
+        TODO: prior to python 2.7, NamedTemporaryFile has no delete = False
+        argument unfortunately, that means f.close() deletes the file.  we then
+        save an image to the file in the next line, so there's a race condition
+        where for an instant we  don't actually have the file on the filesystem
+        reserving the name, and then write to that name anyway
+
+        TODO: see if this can be remedied with lower level calls (mkstemp)
         """
         warnings.warn('filesystem race condition')
 
     name = f.name
-
     f.flush()
     f.close()
-
     image.save(name)
-
     viewer_command = string.preprocess('${PYLEARN2_VIEWER_COMMAND}')
-
-    os.popen('('+viewer_command+' '+name+'; rm '+name+') &')
+    os.popen('(' + viewer_command + ' ' + name + '; rm ' + name + ') &')
 
 
 def pil_from_ndarray(ndarray):
-
     try:
         if ndarray.dtype == 'float32' or ndarray.dtype == 'float64':
             assert ndarray.min() >= 0.0
             assert ndarray.max() <= 1.0
 
-            ndarray = np.cast['uint8'](ndarray * 255 )
+            ndarray = np.cast['uint8'](ndarray * 255)
 
             if len(ndarray.shape) == 3 and ndarray.shape[2] == 1:
-                ndarray = ndarray[:,:,0]
+                ndarray = ndarray[:, :, 0]
 
-        rval =  Image.fromarray(ndarray)
+        rval = Image.fromarray(ndarray)
         return rval
     except Exception, e:
         print 'original exception: '
         print e
-        print 'ndarray.dtype: ',ndarray.dtype
-        print 'ndarray.shape: ',ndarray.shape
+        print 'ndarray.dtype: ', ndarray.dtype
+        print 'ndarray.shape: ', ndarray.shape
 
     assert False
 
-def ndarray_from_pil(pil, dtype = 'uint8'):
+
+def ndarray_from_pil(pil, dtype='uint8'):
 
     rval = np.asarray(pil)
 
@@ -84,21 +84,22 @@ def ndarray_from_pil(pil, dtype = 'uint8'):
         rval /= 255.
 
     if len(rval.shape) == 2:
-        rval = rval.reshape(rval.shape[0],rval.shape[1],1)
+        rval = rval.reshape(rval.shape[0], rval.shape[1], 1)
 
     return rval
+
 
 def rescale(image, shape):
     """ scales image to have shape """
 
-    assert len(image.shape) == 3 #rows, cols, channels
-    assert len(shape) == 2 #rows, cols
+    assert len(image.shape) == 3  # rows, cols, channels
+    assert len(shape) == 2  # rows, cols
 
     i = pil_from_ndarray(image)
 
-    i.thumbnail( [ shape[1], shape[0] ], Image.ANTIALIAS)
+    i.thumbnail([shape[1], shape[0]], Image.ANTIALIAS)
 
-    rval = ndarray_from_pil( i, dtype = image.dtype)
+    rval = ndarray_from_pil(i, dtype=image.dtype)
 
     return rval
 
@@ -107,8 +108,8 @@ def fit_inside(image, shape):
     """ scales image down to fit inside shape
         preserves proportions of image"""
 
-    assert len(image.shape) == 3 #rows, cols, channels
-    assert len(shape) == 2 #rows, cols
+    assert len(image.shape) == 3  # rows, cols, channels
+    assert len(shape) == 2  # rows, cols
 
     if image.shape[0] <= shape[0] and image.shape[1] <= shape[1]:
         return image.copy()
@@ -117,23 +118,22 @@ def fit_inside(image, shape):
     col_ratio = float(image.shape[1]) / float(shape[1])
 
     if row_ratio > col_ratio:
-        target_shape = [ shape[0], min(image.shape[1] / row_ratio, shape[1]) ]
+        target_shape = [shape[0], min(image.shape[1] / row_ratio, shape[1])]
     else:
-        target_shape = [ min(image.shape[0] / col_ratio, shape[0]), shape[1] ]
+        target_shape = [min(image.shape[0] / col_ratio, shape[0]), shape[1]]
 
     assert target_shape[0] <= shape[0]
     assert target_shape[1] <= shape[1]
     assert target_shape[0] == shape[0] or target_shape[1] == shape[1]
-
-    rval =  rescale(image, target_shape)
-
+    rval = rescale(image, target_shape)
     return rval
+
 
 def letterbox(image, shape):
     """ pads image with black letterboxing to bring image.shape up to shape """
 
-    assert len(image.shape) == 3 #rows, cols, channels
-    assert len(shape) == 2 #rows, cols
+    assert len(image.shape) == 3  # rows, cols, channels
+    assert len(shape) == 2  # rows, cols
 
     assert image.shape[0] <= shape[0]
     assert image.shape[1] <= shape[1]
@@ -141,19 +141,22 @@ def letterbox(image, shape):
     if image.shape[0] == shape[0] and image.shape[1] == shape[1]:
         return image.copy()
 
-    rval = np.zeros( (shape[0], shape[1], image.shape[2]), dtype=image.dtype)
+    rval = np.zeros((shape[0], shape[1], image.shape[2]), dtype=image.dtype)
 
     rstart = (shape[0] - image.shape[0]) / 2
     cstart = (shape[1] - image.shape[1]) / 2
 
-    rval[ rstart:rstart+image.shape[0], cstart:cstart+image.shape[1] ] = image
+    rend = rstart + image.shape[0]
+    cend = cstart + image.shape[1]
+    rval[rstart:rend, cstart:cend] = image
 
     return rval
 
 
 def make_letterboxed_thumbnail(image, shape):
-    """ scales image down to shape
-        preserves proportions of image, introduces black letterboxing if necessary
+    """
+    scales image down to shape
+    preserves proportions of image, introduces black letterboxing if necessary
     """
 
     assert len(image.shape) == 3
@@ -164,12 +167,13 @@ def make_letterboxed_thumbnail(image, shape):
 
     return letterboxed
 
-def load(filepath, rescale = True, dtype='float64'):
-    assert type(filepath) == type("I am a string")
+
+def load(filepath, rescale=True, dtype='float64'):
+    assert type(filepath) == str
 
     if rescale == False and dtype == 'uint8':
         rval = np.asarray(Image.open(filepath))
-        #print 'image.load: '+str((rval.min(),rval.max()))
+        # print 'image.load: ' + str((rval.min(), rval.max()))
         assert rval.dtype == 'uint8'
         return rval
 
@@ -184,24 +188,24 @@ def load(filepath, rescale = True, dtype='float64'):
     rval = np.cast[dtype](np.asarray(rval)) / s
 
     if len(rval.shape) == 2:
-        rval =  rval.reshape(rval.shape[0], rval.shape[1], 1)
+        rval = rval.reshape(rval.shape[0], rval.shape[1], 1)
 
     if len(rval.shape) != 3:
-        raise AssertionError("Something went wrong opening "+
-                filepath+'. Resulting shape is '+str(rval.shape)+
+        raise AssertionError("Something went wrong opening " +
+                filepath + '. Resulting shape is ' + str(rval.shape) +
                 " (it's meant to have 3 dimensions by now)")
 
     return rval
 
 
 if __name__ == '__main__':
-    black = np.zeros((50,50,3),dtype='uint8')
+    black = np.zeros((50, 50, 3), dtype='uint8')
 
     red = black.copy()
-    red[:,:,0] = 255
+    red[:, :, 0] = 255
 
     green = black.copy()
-    green[:,:,1] = 255
+    green[:, :, 1] = 255
 
     show(black)
     show(green)
