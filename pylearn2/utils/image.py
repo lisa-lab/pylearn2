@@ -179,7 +179,7 @@ def load(filepath, rescale = True, dtype='float64'):
     try:
         rval = Image.open(filepath)
     except:
-        raise "Could not open "+filepath
+        raise Exception("Could not open "+filepath)
 
     rval = np.cast[dtype](np.asarray(rval)) / s
 
