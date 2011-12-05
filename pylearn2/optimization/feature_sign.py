@@ -218,6 +218,7 @@ def feature_sign_search(dictionary, signals, sparsity, solution=None):
     dictionary : array_like, 2-dimensional
         The dictionary of basis functions from which to form the
         sparse linear combination.
+        Should be of shape (input dimension, code dimension)
 
     signals : array_like, 1- or 2-dimensional
         The signal(s) to be decomposed as a sparse linear combination
