@@ -1,5 +1,6 @@
+import warnings
 import copy
-import numpy as N
+import numpy as np
 from scipy import linalg
 from theano import function
 import theano.tensor as T
@@ -16,8 +17,212 @@ class Pipeline(object):
     #
 #
 
+class ExtractGridPatches(object):
+    """ Converts a dataset into a dataset of patches
+        extracted along a regular grid from each image.
+        The order of the images is preserved.
+    """
+    def __init__(self, patch_shape, patch_stride):
+        self.patch_shape = patch_shape
+        self.patch_stride = patch_stride
+
+    def apply(self, dataset, can_fit = False):
+
+        X = dataset.get_topological_view()
+
+        num_topological_dimensions = len(X.shape) - 2
+
+        if num_topological_dimensions != len(self.patch_shape):
+            raise ValueError("""ExtractGridPatches with """+str(len(self.patch_shape))
+                +""" topological dimensions called on dataset with """+
+                str(num_topological_dimensions)+""".""")
+
+        num_patches = X.shape[0]
+
+        max_strides = [X.shape[0]-1]
+
+        for i in xrange(num_topological_dimensions):
+            patch_width = self.patch_shape[i]
+            data_width = X.shape[i+1]
+            last_valid_coord = data_width - patch_width
+            if last_valid_coord < 0:
+                raise ValueError('On topological dimensions '+str(i)+\
+                        ', the data has width '+str(data_width)+' but the '+\
+                        'requested patch width is '+str(patch_width))
+            stride = self.patch_stride[i]
+            if stride == 0:
+                max_stride_this_axis = 0
+            else:
+                max_stride_this_axis = last_valid_coord / stride
+
+            num_strides_this_axis = max_stride_this_axis + 1
+
+            max_strides.append(max_stride_this_axis)
+
+            num_patches *= num_strides_this_axis
+
+        #batch size
+        output_shape = [ num_patches ]
+        #topological dimensions
+        for dim in self.patch_shape:
+            output_shape.append(dim)
+        #number of channels
+        output_shape.append(X.shape[-1])
+
+        output = np.zeros(output_shape, dtype = X.dtype)
+
+        channel_slice = slice(0,X.shape[-1])
+
+        coords = [ 0 ]  *  (num_topological_dimensions + 1)
+
+        keep_going = True
+        i = 0
+        while keep_going:
+
+            args = [ coords[0] ]
+
+            for j in xrange(num_topological_dimensions):
+                coord = coords[j+1] * self.patch_stride[j]
+                args.append(slice(coord,coord+self.patch_shape[j]))
+            #end for j
+
+            args.append(channel_slice)
+
+            patch = X[args]
+            output[i,:] = patch
+            i += 1
+
+            #increment coordinates
+            j = 0
+
+            keep_going = False
+
+            while not keep_going:
+                if coords[-(j+1)] < max_strides[-(j+1)]:
+                    coords[-(j+1)] += 1
+                    keep_going = True
+                else:
+                    coords[-(j+1)] = 0
+
+                    if j == num_topological_dimensions:
+                        break
+
+                    j = j + 1
+                    #end if j
+                #end if coords
+            #end while not continue
+        #end while continue
+
+        dataset.set_topological_view(output)
+    #
+
+class ReassembleGridPatches(object):
+    """ Converts a dataset of patches into a dataset of full examples
+        This is the inverse of ExtractGridPatches for patch_stride=patch_shape
+    """
+    def __init__(self, orig_shape, patch_shape):
+        self.patch_shape = patch_shape
+        self.orig_shape = orig_shape
+
+    def apply(self, dataset, can_fit = False):
+
+        patches = dataset.get_topological_view()
+
+        num_topological_dimensions = len(patches.shape) - 2
+
+        if num_topological_dimensions != len(self.patch_shape):
+            raise ValueError("""ReassembleGridPatches with """+str(len(self.patch_shape))
+                +""" topological dimensions called on dataset with """+
+                str(num_topological_dimensions)+""".""")
+
+        num_patches = patches.shape[0]
+
+        num_examples = num_patches
+
+        for im_dim, patch_dim in zip(self.orig_shape, self.patch_shape):
+
+            if im_dim % patch_dim != 0:
+                raise Exception('Trying to assemble patches of shape '+\
+                        str(self.patch_shape)+' into images of shape '+\
+                        str(self.orig_shape))
+
+            patches_this_dim = im_dim / patch_dim
+
+            if num_examples % patches_this_dim != 0:
+                raise Exception('Trying to re-assemble '+str(num_patches) + \
+                        ' patches of shape '+str(self.patch_shape)+\
+                        ' into images of shape '+str(self.orig_shape))
+            num_examples /= patches_this_dim
+
+        #batch size
+        reassembled_shape = [ num_examples ]
+        #topological dimensions
+        for dim in self.orig_shape:
+            reassembled_shape.append(dim)
+        #number of channels
+        reassembled_shape.append(patches.shape[-1])
+
+        reassembled = np.zeros(reassembled_shape, dtype = patches.dtype)
+
+        channel_slice = slice(0,patches.shape[-1])
+
+        coords = [ 0 ]  *  (num_topological_dimensions + 1)
+
+
+        max_strides = [ num_examples - 1]
+        for dim, pd in zip(self.orig_shape, self.patch_shape):
+            assert dim % pd == 0
+            max_strides.append(dim/pd-1)
+
+        keep_going = True
+        i = 0
+        while keep_going:
+
+            args = [ coords[0] ]
+
+            for j in xrange(num_topological_dimensions):
+                coord = coords[j+1]
+                args.append(slice(coord*self.patch_shape[j],(coord+1)*self.patch_shape[j]))
+                assert (coord + 1) * self.patch_shape[j] <= reassembled.shape[j+1]
+            #end for j
+
+            args.append(channel_slice)
+
+            try:
+                patch = patches[i,:]
+            except IndexError:
+                raise IndexError('Gave index of '+str(i)+',: into thing of shape '+str(patches.shape))
+
+            reassembled[args] = patch
+            i += 1
+
+            #increment coordinates
+            j = 0
+
+            keep_going = False
+
+            while not keep_going:
+                if coords[-(j+1)] < max_strides[-(j+1)]:
+                    coords[-(j+1)] += 1
+                    keep_going = True
+                else:
+                    coords[-(j+1)] = 0
+
+                    if j == num_topological_dimensions:
+                        break
+
+                    j = j + 1
+                    #end if j
+                #end if coords
+            #end while not continue
+        #end while continue
+
+        dataset.set_topological_view(reassembled)
+    #
 
 class ExtractPatches(object):
+    """ Converts an image dataset into a dataset of patches
+        extracted at random from the original dataset. """
     def __init__(self, patch_shape, num_patches, rng = None):
         self.patch_shape = patch_shape
         self.num_patches = num_patches
@@ -25,7 +230,7 @@ class ExtractPatches(object):
         if rng != None:
             self.start_rng = copy.copy(rng)
         else:
-            self.start_rng = N.random.RandomState([1,2,3])
+            self.start_rng = np.random.RandomState([1,2,3])
         #
     #
 
@@ -49,7 +254,7 @@ class ExtractPatches(object):
         #number of channels
         output_shape.append(X.shape[-1])
 
-        output = N.zeros(output_shape, dtype = X.dtype)
+        output = np.zeros(output_shape, dtype = X.dtype)
 
         channel_slice = slice(0,X.shape[-1])
 
@@ -143,7 +348,66 @@ class PCA(object):
     #
 #
 
+class Downsample(object):
+    def __init__(self, sampling_factor):
+        """
+            downsamples the topological view
 
+            parameters
+            ----------
+            sampling_factor: a list or array with one element for
+                            each topological dimension of the data
+        """
+
+        self.sampling_factor = sampling_factor
+
+    def apply(self, dataset, can_fit = False):
+        X = dataset.get_topological_view()
+
+        d = len(X.shape) - 2
+
+        assert d in [2,3]
+        assert X.dtype == 'float32' or X.dtype == 'float64'
+
+        if d == 2:
+            X = X.reshape([ X.shape[0], X.shape[1], X.shape[2], 1, X.shape[3] ])
+
+        kernel_size = 1
+
+        kernel_shape = [  X.shape[-1] ]
+
+        for factor in self.sampling_factor:
+            kernel_size *= factor
+            kernel_shape.append(factor)
+
+
+        if d == 2:
+            kernel_shape.append(1)
+
+        kernel_shape.append(X.shape[-1])
+
+        kernel_value = 1. / float(kernel_size)
+
+        kernel = np.zeros(kernel_shape, dtype=X.dtype)
+
+        for i in xrange(X.shape[-1]):
+            kernel[i,:,:,:,i] = kernel_value
+
+        from theano.tensor.nnet.Conv3D import conv3D
+
+        X_var = T.TensorType( broadcastable = [ s == 1 for s in X.shape],
+                            dtype = X.dtype)()
+
+        downsampled = conv3D(X_var, kernel, np.zeros(X.shape[-1],X.dtype), kernel_shape[1:-1])
+
+        f = function([X_var], downsampled)
+
+        X = f(X)
+
+        if d == 2:
+            X = X.reshape([X.shape[0], X.shape[1], X.shape[2], X.shape[4]])
+
+        dataset.set_topological_view(X)
 
 class GlobalContrastNormalization(object):
     def __init__(self, subtract_mean = True, std_bias = 10.0, use_norm = False):
@@ -182,10 +446,10 @@ class GlobalContrastNormalization(object):
             X -= X.mean(axis=1)[:,None]
 
         if self.use_norm:
-            scale = N.sqrt( N.square(X).sum(axis=1) + self.std_bias)
+            scale = np.sqrt( np.square(X).sum(axis=1) + self.std_bias)
         else:
             #use standard deviation
-            scale = N.sqrt( N.square(X).mean(axis=1) + self.std_bias)
+            scale = np.sqrt( np.square(X).mean(axis=1) + self.std_bias)
 
         eps = 1e-8
         scale[scale < eps] = 1.
@@ -198,6 +462,12 @@ class GlobalContrastNormalization(object):
 
 class ZCA(object):
     def __init__(self, n_components=None, n_drop_components=None, filter_bias=0.1):
+        warnings.warn("""This ZCA preprocessor class is known to yield very different results on different platforms. If you plan to conduct experiments with this preprocessing on multiple machines, it is probably a good idea to do the preprocessing on a single machine and copy the preprocessed datasets to the others, rather than preprocessing the data independently in each location.""")
+        #TODO: test to see if differences across platforms
+        # e.g., preprocessing STL-10 patches in LISA lab versus on
+        # Ian's Ubuntu 11.04 machine
+        # are due to the problem having a bad condition number or due to
+        # different version numbers of scipy or something
         self.n_components = n_components
         self.n_drop_components =n_drop_components
         self.copy = True
@@ -206,7 +476,7 @@ class ZCA(object):
 
     def fit(self, X):
         assert X.dtype in ['float32','float64']
-        assert not N.any(N.isnan(X))
+        assert not np.any(np.isnan(X))
 
         assert len(X.shape) == 2
 
@@ -216,14 +486,14 @@ class ZCA(object):
             X = X.copy()
 
         # Center data
-        self.mean_ = N.mean(X, axis=0)
+        self.mean_ = np.mean(X, axis=0)
         X -= self.mean_
 
         print 'computing zca'
-        eigs, eigv = linalg.eigh(N.dot(X.T, X)/X.shape[0])
+        eigs, eigv = linalg.eigh(np.dot(X.T, X)/X.shape[0])
 
-        assert not N.any(N.isnan(eigs))
-        assert not N.any(N.isnan(eigv))
+        assert not np.any(np.isnan(eigs))
+        assert not np.any(np.isnan(eigv))
 
         if self.n_components:
             eigs = eigs[:self.n_components]
@@ -234,17 +504,17 @@ class ZCA(object):
             eigv = eigv[:,self.n_drop_components:]
         #
 
-        self.P_ = N.dot(
-                eigv * N.sqrt(1.0/(eigs+self.filter_bias)),
+        self.P_ = np.dot(
+                eigv * np.sqrt(1.0/(eigs+self.filter_bias)),
                 eigv.T)
 
 
-        print 'zca components'
-        print N.square(self.P_).sum(axis=0)
+        #print 'zca components'
+        #print np.square(self.P_).sum(axis=0)
 
 
 
-        assert not N.any(N.isnan(self.P_))
+        assert not np.any(np.isnan(self.P_))
 
         self.has_fit_ = True
     #
@@ -258,9 +528,9 @@ class ZCA(object):
             self.fit(X)
         #
 
-        new_X =  N.dot(X-self.mean_, self.P_)
+        new_X =  np.dot(X-self.mean_, self.P_)
 
-        print 'mean absolute difference between new and old X'+str(N.abs(X-new_X).mean())
+        #print 'mean absolute difference between new and old X'+str(np.abs(X-new_X).mean())
 
         dataset.set_design_matrix(new_X)
     #

@@ -11,6 +11,7 @@ see train_example.yaml for an example
 # Standard library imports
 import sys
 import time
+import os
 
 # Local imports
 import pylearn2.config.yaml_parse
@@ -60,7 +61,7 @@ class Train(object):
             #
             self.save()
         else:
-            self.algorithm.setup(model = self.model)
+            self.algorithm.setup(model = self.model, dataset = self.dataset)
 
             t1 = time.time()
             while self.algorithm.train(dataset = self.dataset):
@@ -74,6 +75,7 @@ class Train(object):
                     callback(self.model, self.dataset, self.algorithm)
                 #
             #
+            self.save()
         #
     #
 
@@ -82,7 +84,7 @@ class Train(object):
 
         #TODO-- save state of dataset and training algorithm so training can be resumed after a crash
         if self.save_path is not None:
-            print 'saving to ...'+self.save_path
+            print 'saving to ',self.save_path,'...'
             t1 = time.time()
             serial.save(self.save_path, self.model)
             t2 = time.time()
@@ -96,6 +98,19 @@ if __name__ == "__main__":
         raise Exception("train.py takes exactly one argument, the path to a yaml file (see train_example.yaml for an example)")
 
     config_file_path = sys.argv[1]
+
+    suffix_to_strip = '.yaml'
+    if config_file_path.endswith(suffix_to_strip):
+        config_file_name = config_file_path[0:-len(suffix_to_strip)]
+    else:
+        config_file_name = config_file_path
+
+    #publish the PYLEARN2_TRAIN_FILE_NAME environment variable
+    varname = "PYLEARN2_TRAIN_FILE_NAME"
+    #this makes it available to other sections of code in this same script
+    os.environ[varname] =  config_file_name
+    #this make it available to any subprocesses we launch
+    os.putenv(varname, config_file_name)
 
     train_obj = pylearn2.config.yaml_parse.load_path(config_file_path)
 

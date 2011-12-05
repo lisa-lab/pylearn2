@@ -18,12 +18,19 @@ from pylearn.datasets.utlc import load_ndarray_dataset, load_sparse_dataset
 ##################################################
 
 
+"""
+this function marked deprecated by Ian Goodfellow
+TODO: find all uses of this function and remove it,
+      OR change the comment to explain why it needs to exist
+         if it is just intended to be used on shared variables,
+         shouldn't we just use get_value?
+
 def get_constant(variable, return_scalar=False):
-    """ Little hack to return the python value of a theano shared variable.
+     Little hack to return the python value of a theano shared variable.
 
     If return_scalar is True, and the constant is an ndarray of 0 dimensions,
     the content of that ndarray will be returned instead.
-    """
+
     try:
         ret = theano.function([],
                               variable,
@@ -34,39 +41,9 @@ def get_constant(variable, return_scalar=False):
     if isinstance(ret, numpy.ndarray) and ret.ndim == 0:
         ret = ret.item()
     return ret
+"""
 
-def sharedX(value, name=None, borrow=False):
-    """Transform value into a shared variable of type floatX"""
-    return theano.shared(theano._asarray(value, dtype=theano.config.floatX),
-                         name=name,
-                         borrow=borrow)
 
-def as_floatX(variable):
-    """Casts a given variable into dtype config.floatX
-        numpy ndarrays will remain numpy ndarrays
-        all other types will be treated as theano tensors"""
-
-    if isinstance(variable, numpy.ndarray):
-        return numpy.cast[theano.config.floatX](variable)
-
-    return theano.tensor.cast(variable, theano.config.floatX)
-
-def subdict(d, keys):
-    """ Create a subdictionary of d with the keys in keys """
-    result = {}
-    for key in keys:
-        if key in d: result[key] = d[key]
-    return result
-
-def safe_update(dict_to, dict_from):
-    """
-    Like dict_to.update(dict_from), except don't overwrite any keys.
-    """
-    for key, val in dict(dict_from).iteritems():
-        if key in dict_to:
-            raise KeyError(key)
-        dict_to[key] = val
-    return dict_to
 
 def getboth(dict1, dict2, key, default=None):
     """

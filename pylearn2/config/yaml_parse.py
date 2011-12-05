@@ -1,7 +1,9 @@
 """Support code for YAML parsing of experiment descriptions."""
+import re
 import yaml
 from pylearn2.utils.call_check import checked_call
 from pylearn2.utils import serial
+from pylearn2.utils.string_utils import preprocess
 
 
 is_initialized = False
@@ -34,7 +36,15 @@ def load(stream, overrides=None, **kwargs):
     global is_initialized
     if not is_initialized:
         initialize()
-    proxy_graph = yaml.load(stream, **kwargs)
+
+    if isinstance(stream, basestring):
+        string = stream
+    else:
+        string = '\n'.join(stream.readlines())
+
+    processed_string = preprocess(string)
+
+    proxy_graph = yaml.load(processed_string, **kwargs)
 
     #import pdb; pdb.set_trace()
     if overrides is not None:
@@ -178,49 +188,53 @@ class ObjectProxy(object):
         return self.instance
 
 
+def try_to_import(tag_suffix):
+    components = tag_suffix.split('.')
+    modulename = '.'.join(components[:-1])
+    try:
+        exec('import %s' % modulename)
+    except ImportError, e:
+        # We know it's an ImportError, but is it an ImportError related to
+        # this path,
+        #o r did the module we're importing have an unrelated ImportError?
+        # and yes, this test can still have false positives, feel free to
+        # improve it
+        pieces = modulename.split('.')
+        str_e = str(e)
+        found = True in [piece.find(str(e)) != -1 for piece in pieces]
+
+        if found:
+            # The yaml file is probably to blame.
+            # Report the problem with the full module path from the YAML
+            # file
+            raise ImportError("Could not import %s; ImportError was %s" %
+                              (modulename, str_e))
+        else:
+            # The module being imported contains an error.
+            # Pass the original exception on up, with the original stack
+            # trace preserved
+            raise
+    try:
+        obj = eval(tag_suffix)
+    except AttributeError, e:
+        raise AttributeError( ('Could not evaluate %s. ' % tag_suffix) +
+                'Original error was '+str(e))
+    return obj
+
+
 def multi_constructor(loader, tag_suffix, node):
     """
     Constructor function passed to PyYAML telling it how to construct
     objects from argument descriptions. See PyYAML documentation for
     details on the call signature.
     """
-
     yaml_src = yaml.serialize(node)
     mapping = loader.construct_mapping(node)
     if '.' not in tag_suffix:
         classname = tag_suffix
         rval = ObjectProxy(classname, mapping, yaml_src)
     else:
-        components = tag_suffix.split('.')
-        modulename = '.'.join(components[:-1])
-
-        try:
-            exec('import %s' % modulename)
-        except ImportError, e:
-            # We know it's an ImportError, but is it an ImportError related to
-            # this path,
-            #o r did the module we're importing have an unrelated ImportError?
-            # and yes, this test can still have false positives, feel free to
-            # improve it
-            pieces = modulename.split('.')
-            str_e = str(e)
-            found = True in [piece.find(str(e)) != -1 for piece in pieces]
-
-            if found:
-                # The yaml file is probably to blame.
-                # Report the problem with the full module path from the YAML
-                # file
-                raise ImportError("Could not import %s; ImportError was %s" %
-                                  (modulename, str_e))
-            else:
-                # The module being imported contains an error.
-                # Pass the original exception on up, with the original stack
-                # trace preserved
-                raise
-        try:
-            classname = eval(tag_suffix)
-        except AttributeError:
-            raise AttributeError('Could not evaluate %s' % tag_suffix)
+        classname = try_to_import(tag_suffix)
         rval = ObjectProxy(classname, mapping, yaml_src)
 
     return rval
@@ -243,6 +257,16 @@ def multi_constructor_pkl(loader, tag_suffix, node):
     return rval
 
 
+def multi_constructor_import(loader, tag_suffix, node):
+    yaml_src = yaml.serialize(node)
+    mapping = loader.construct_mapping(node)
+    if '.' not in tag_suffix:
+        raise yaml.YAMLError("import tag suffix contains no '.'")
+    else:
+        rval = try_to_import(tag_suffix)
+    return rval
+
+
 def initialize():
     """
     Initialize the configuration system by installing YAML handlers.
@@ -252,6 +276,17 @@ def initialize():
     # Add the custom multi-constructor
     yaml.add_multi_constructor('!obj:', multi_constructor)
     yaml.add_multi_constructor('!pkl:', multi_constructor_pkl)
+    yaml.add_multi_constructor('!import:', multi_constructor_import)
+
+    def import_constructor(loader, node):
+        value = loader.construct_scalar(node)
+        return try_to_import(value)
+
+    yaml.add_constructor('!import', import_constructor)
+    yaml.add_implicit_resolver(
+        '!import',
+        re.compile(r'(?:[a-zA-Z_][\w_]+\.)+[a-zA-Z_][\w_]+')
+    )
     is_initialized = True
 
 if __name__ == "__main__":

@@ -2,6 +2,7 @@
 import numpy as N
 import copy
 from pylearn2.datasets.dataset import Dataset
+from pylearn2.datasets import control
 
 
 class DenseDesignMatrix(Dataset):
@@ -83,7 +84,10 @@ class DenseDesignMatrix(Dataset):
     def __setstate__(self, d):
 
         if d['design_loc'] is not None:
-            d['X'] = N.load(d['design_loc'])
+            if control.get_load_data():
+                d['X'] = N.load(d['design_loc'])
+            else:
+                d['X'] = None
 
         if d['compress']:
             X = d['X']
@@ -93,7 +97,10 @@ class DenseDesignMatrix(Dataset):
             del d['compress_min']
             d['X'] = 0
             self.__dict__.update(d)
-            self.X = N.cast['float32'](X) * mx / 255. + mn
+            if X is not None:
+                self.X = N.cast['float32'](X) * mx / 255. + mn
+            else:
+                self.X = None
         else:
             self.__dict__.update(d)
 
@@ -148,10 +155,21 @@ class DenseDesignMatrix(Dataset):
         self.X = self.view_converter.topo_view_to_design_mat(V)
         assert not N.any(N.isnan(self.X))
 
-    def get_design_matrix(self):
+    def get_design_matrix(self, topo=None):
+        """ Return topo (a batch of examples in topology preserving format),
+        in design matrix format
+
+        If topo is None, uses the entire dataset as topo"""
+        if topo is not None:
+            if self.view_converter is None:
+                raise Exception("Tried to convert from topological_view to design matrix "
+                        "using a dataset that has no view converter")
+            return self.view_converter.topo_view_to_design_mat(topo)
+
         return self.X
 
     def set_design_matrix(self, X):
+        assert len(X.shape) == 2
         assert not N.any(N.isnan(X))
         self.X = X
 
@@ -187,11 +205,17 @@ class DefaultViewConverter(object):
         return self.shape
 
     def design_mat_to_topo_view(self, X):
+        assert len(X.shape) == 2
         batch_size = X.shape[0]
         channel_shape = [batch_size]
         for dim in self.shape[:-1]:
             channel_shape.append(dim)
         channel_shape.append(1)
+        if self.shape[-1] * self.pixels_per_channel != X.shape[1]:
+            raise ValueError('View converter with '+str(self.shape[-1]) + \
+                    ' channels and '+str(self.pixels_per_channel)+' pixels '
+                    'per channel asked to convert design matrix with'
+                    ' '+str(X.shape[1])+' columns.')
         start = lambda i: self.pixels_per_channel * i
         stop = lambda i: self.pixels_per_channel * (i + 1)
         channels = [X[:, start(i):stop(i)].reshape(*channel_shape)
@@ -213,12 +237,16 @@ class DefaultViewConverter(object):
                              + str(self.shape) +
                              ' given tensor of shape ' + str(V.shape))
         batch_size = V.shape[0]
-        channels = [
-                    V[:, :, :, i].reshape(batch_size, self.pixels_per_channel)
-                    for i in xrange(num_channels)
-                    ]
 
-        return N.concatenate(channels, axis=1)
+        rval = N.zeros((batch_size, self.pixels_per_channel * num_channels), dtype = V.dtype)
+
+        for i in xrange(num_channels):
+            rval[:,i*self.pixels_per_channel:(i+1)*self.pixels_per_channel] = \
+                    V[:, :, :, i].reshape(batch_size, self.pixels_per_channel)
+
+        assert rval.dtype == V.dtype
+
+        return rval
 
 
 def from_dataset(dataset, num_examples):

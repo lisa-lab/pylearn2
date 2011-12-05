@@ -2,8 +2,12 @@
 
 
 class Dataset(object):
-    #TODO: bring in methods from existing dataset classes that all datasets should implement
-    #TODO: have existing dataset classes inherit from this one
+
+    def get_batch_design(self, batch_size, include_labels=False):
+        """ Returns a randomly chosen batch of data formatted as a design matrix. """
+
+        raise NotImplementedError()
+
 
     def get_batch_topo(self, batch_size):
         """ Returns a topology-preserving batch of data.

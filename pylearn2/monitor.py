@@ -1,4 +1,5 @@
 """TODO: module-level docstring."""
+import time
 from theano import function, shared
 import theano.tensor as T
 import copy
@@ -67,10 +68,14 @@ class Monitor(object):
             self.redo_theano()
 
         model = self.model
+
+        #W = model.W.get_value()
+        #print 'monitoring weights ',':',(W.min(),W.mean(),W.max(),W.shape)
+
         d = self.dataset
 
         if d:
-            if isinstance(d, str):
+            if isinstance(d, basestring):
                 d = yaml_parse.load(d)
                 self.dataset = d
 
@@ -82,14 +87,16 @@ class Monitor(object):
 
             for i in xrange(self.batches):
                 X = d.get_batch_design(self.batch_size)
+                #print 'monitoring batch ',i,':',(X.min(),X.mean(),X.max(),X.shape)
                 self.accum(X)
+
 
             # TODO: use logging infrastructure so that user can configure
             # formatting
             print "Monitoring step:"
             print "\tBatches seen: %d" % self.batches_seen
             print "\tExamples seen: %d" % self.examples_seen
-            for channel_name in self.channels:
+            for channel_name in sorted(self.channels):
                 channel = self.channels[channel_name]
                 channel.batch_record.append(self.batches_seen)
                 channel.example_record.append(self.examples_seen)
@@ -101,6 +108,8 @@ class Monitor(object):
                 print "\t%s: %s" % (channel_name, str(val))
 
             d.set_stream_position(s)
+
+
 
     def redo_theano(self):
         """
@@ -118,14 +127,24 @@ class Monitor(object):
         updates = {}
         for channel in self.channels.values():
             updates[channel.val_shared] = 0.0
+        print "compiling begin_record_entry..."
+        t1 = time.time()
         self.begin_record_entry = function(inputs=[], updates=updates)
+        t2 = time.time()
+        print "took "+str(t2-t1)+" seconds"
         updates = {}
         givens = {}
         X = T.matrix()
+        print 'monitored channels: '+str(self.channels.keys())
         for channel in self.channels.values():
-            givens[channel.ipt] = X
+            givens[channel.graph_input] = X
             updates[channel.val_shared] = channel.val_shared + channel.val
+        print "compiling accum..."
+        t1 = time.time()
         self.accum = function([X], givens=givens, updates=updates)
+        t2 = time.time()
+        print "graph size: ",len(self.accum.maker.env.toposort())
+        print "took "+str(t2-t1)+" seconds"
         final_names = dir(self)
         self.register_names_to_del([name for name in final_names
                                     if name not in init_names])
@@ -156,7 +175,7 @@ class Monitor(object):
         `redo_theano` by deleting the fields in `self.names_to_del`
         """
         temp = self.dataset
-        if not isinstance(self.dataset, str):
+        if self.dataset and not isinstance(self.dataset, basestring):
             self.dataset = self.dataset.yaml_src
         d = copy.copy(self.__dict__)
         self.dataset = temp
@@ -209,26 +228,53 @@ class Monitor(object):
         return rval
 
 
-class Channel(object):
+class MonitorChannel(object):
     """
     A class representing a specific quantity to be monitored.
     """
-    def __init__(self, ipt, val, name):
+    def __init__(self, graph_input, val, name):
         """
         Creates a channel for a quantity to be monitored.
 
         Parameters
         ----------
-        name: str
-            The display name in the monitor.
-        ipt: tensor_like
+        graph_input : tensor_like
             The symbolic tensor which should be clamped to the data.
-        val: tensor_like
-            The value (function of `ipt`) to be tracked.
+        val : tensor_like
+            The value (symbolic function of `graph_input`) to be evaluated
+            and recorded.
+        name : str
+            The display name in the monitor.
         """
-        self.ipt = ipt
+        self.graph_input = graph_input
         self.val = val
         self.val_shared = shared(0.0, name + "_tracker")
-        self.batch_record = []
-        self.example_record = []
+        # Value of the desired quantity at measurement time.
         self.val_record = []
+        # Number of batches seen at measurement time.
+        self.batch_record = []
+        # Number of examples seen at measurement time (batch sizes may
+        # fluctuate).
+        self.example_record = []
+
+    def __getstate__(self):
+        """ TODO:
+                we need to figure out a good way of saving the other fields.
+                in the current setup, since there's no good way of coordinating
+                with the model/training algorithm, the theano based fields might
+                be invalid after a repickle.
+                This means we can't, for instance, resume a job with monitoring
+                after a crash.
+                For now, to make sure no one erroneously depends on these bad
+                values, I exclude them from the pickle.
+        """
+        return {
+            'example_record': self.example_record,
+            'val_record': self.val_record
+        }
+
+    def __setstate__(self, d):
+        self.__dict__.update(d)
+
+# TODO: Remove this at some point
+Channel = MonitorChannel

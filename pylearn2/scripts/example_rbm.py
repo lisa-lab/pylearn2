@@ -1,7 +1,7 @@
 import numpy
 import theano
 from theano import tensor
-from pylearn2.rbm import GaussianBinaryRBM, PersistentCDSampler, \
+from pylearn2.rbm import GaussianBinaryRBM, BlockGibbsSampler, \
         training_updates
 from pylearn2.optimizer import SGDOptimizer
 from pylearn2.rbm_tools import compute_log_z, compute_nll
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     rbm = GaussianBinaryRBM(nvis=conf['nvis'], nhid=conf['nhid'],
                             batch_size=conf['batch_size'], irange=0.5)
     rng = numpy.random.RandomState(seed=conf.get('rbm_seed', 42))
-    sampler = PersistentCDSampler(rbm, data[0:100], rng,
+    sampler = BlockGibbsSampler(rbm, data[0:100], rng,
                                   steps=conf['pcd_steps'])
     minibatch = tensor.matrix()
 
