@@ -81,6 +81,9 @@ def _feature_sign_search_single(dictionary, signal, sparsity, solution=None):
     See the docstring of `feature_sign_search` for details on the
     algorithm.
     """
+    # This prevents the sparsity penalty scalar from upcasting the entire
+    # rhs vector sent to linalg.solve().
+    sparsity = np.array(sparsity).astype(dictionary.dtype)
     effective_zero = 1e-18
     # precompute matrices for speed.
     gram_matrix = np.dot(dictionary.T, dictionary)
