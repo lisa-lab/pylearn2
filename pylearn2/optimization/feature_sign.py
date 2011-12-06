@@ -90,7 +90,7 @@ def _feature_sign_search_single(dictionary, signal, sparsity, solution=None):
     target_correlation = np.dot(dictionary.T, signal)
     # initialization goes here.
     if solution is None:
-        solution = np.zeros(gram_matrix.shape[0])
+        solution = np.zeros(gram_matrix.shape[0], dtype=dictionary.dtype)
     else:
         assert solution.ndim == 1, "solution must be 1-dimensional"
         assert solution.shape[0] == dictionary.shape[1], (
