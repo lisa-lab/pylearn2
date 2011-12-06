@@ -81,13 +81,16 @@ def _feature_sign_search_single(dictionary, signal, sparsity, solution=None):
     See the docstring of `feature_sign_search` for details on the
     algorithm.
     """
+    # This prevents the sparsity penalty scalar from upcasting the entire
+    # rhs vector sent to linalg.solve().
+    sparsity = np.array(sparsity).astype(dictionary.dtype)
     effective_zero = 1e-18
     # precompute matrices for speed.
     gram_matrix = np.dot(dictionary.T, dictionary)
     target_correlation = np.dot(dictionary.T, signal)
     # initialization goes here.
     if solution is None:
-        solution = np.zeros(gram_matrix.shape[0])
+        solution = np.zeros(gram_matrix.shape[0], dtype=dictionary.dtype)
     else:
         assert solution.ndim == 1, "solution must be 1-dimensional"
         assert solution.shape[0] == dictionary.shape[1], (
@@ -218,6 +221,7 @@ def feature_sign_search(dictionary, signals, sparsity, solution=None):
     dictionary : array_like, 2-dimensional
         The dictionary of basis functions from which to form the
         sparse linear combination.
+        Should be of shape (input dimension, code dimension)
 
     signals : array_like, 1- or 2-dimensional
         The signal(s) to be decomposed as a sparse linear combination

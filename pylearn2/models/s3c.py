@@ -219,7 +219,8 @@ class S3C(Model):
                        random_patches_src = None,
                        init_unit_W = None,
                        debug_m_step = False,
-                       print_interval = 10000):
+                       print_interval = 10000,
+                       stop_after_hack = None):
         """"
         nvis: # of visible units
         nhid: # of hidden units
@@ -290,6 +291,7 @@ class S3C(Model):
 
         self.constrain_W_norm = constrain_W_norm
 
+        self.stop_after_hack = stop_after_hack
         self.monitor_norms = monitor_norms
         self.disable_W_update = disable_W_update
         self.monitor_functional = monitor_functional
@@ -1002,6 +1004,12 @@ class S3C(Model):
     #
 
     def learn(self, dataset, batch_size):
+        if self.stop_after_hack is not None:
+            if self.monitor.examples_seen > self.stop_after_hack:
+                print 'stopping due to too many examples seen'
+                quit(-1)
+
+
         self.learn_mini_batch(dataset.get_batch_design(batch_size))
     #
 
