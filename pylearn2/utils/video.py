@@ -2,6 +2,13 @@
 Utilities for working with videos, pulling out patches, etc.
 """
 import numpy
+import warnings
+
+try:
+    from pylearn2.utils._video import rgb_to_gray
+except ImportError:
+    warnings.warn("Import of Cython module failed, some functions unavailable")
+
 
 __author__ = "David Warde-Farley"
 __copyright__ = "Copyright 2011, David Warde-Farley / Universite de Montreal"
@@ -131,5 +138,3 @@ def spatiotemporal_cubes(file_tuples, shape, n_patches=numpy.inf, rng=None):
                        slice(col, col + patch_width))
         done += 1
         yield filename, patch_slice
-
-
