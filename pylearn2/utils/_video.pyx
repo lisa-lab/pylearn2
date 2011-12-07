@@ -28,7 +28,7 @@ cpdef np.ndarray rgb_to_gray(np.ndarray[DTYPE_t, ndim=4] video):
     out : ndarray, 3-dimensional, uint8
         Same dimensions as video with the RGB channel dimension removed.
     """
-    cdef np.ndarray[DTYPE_t, ndim=3] target
+    cdef np.ndarray[DTYPE_t, ndim=3] out
     out = np.PyArray_ZEROS(3, video.shape, DTYPE_NUM, 0)
     cdef np.npy_intp i, j, k
     for i in xrange(video.shape[0]):
