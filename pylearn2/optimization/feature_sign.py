@@ -114,7 +114,9 @@ def _feature_sign_search_single(dictionary, signal, sparsity, max_iter,
     # Just used to compute exact cost function.
     sds = np.dot(signal.T, signal)
     counter = count(0)
-    while counter.next() < max_iter and z_opt > sparsity or not nz_optimal:
+    while z_opt > sparsity or not nz_optimal:
+        if counter.next() == max_iter:
+            break
         if nz_optimal:
             candidate = np.argmax(np.abs(grad) * (signs == 0))
             log.debug("candidate feature: %d" % candidate)
@@ -209,7 +211,7 @@ def _feature_sign_search_single(dictionary, signal, sparsity, max_iter,
         nz_opt = np.max(abs(grad[signs != 0] + sparsity * signs[signs != 0]))
         nz_optimal = np.allclose(nz_opt, 0)
 
-    return solution, counter.next()
+    return solution, min(counter.next(), max_iter)
 
 
 def feature_sign_search(dictionary, signals, sparsity, max_iter=1000,
@@ -294,7 +296,7 @@ def feature_sign_search(dictionary, signals, sparsity, max_iter=1000,
     for row, (signal, sol) in enumerate(izip(signals, solution)):
         _, iters = _feature_sign_search_single(dictionary, signal, sparsity,
                                                max_iter, sol)
-        if iters == max_iter:
+        if iters >= max_iter:
             log.warning("maximum number of iterations reached when "
                         "optimizing code for training case %d; solution "
                         "may not be optimal" % iters)
