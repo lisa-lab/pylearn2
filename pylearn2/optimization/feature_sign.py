@@ -60,17 +60,13 @@ def _feature_sign_search_single(dictionary, signal, sparsity, max_iter,
     dictionary : array_like, 2-dimensional
         The dictionary of basis functions from which to form the
         sparse linear combination.
-
     signal : array_like, 1-dimensional
         The signal being decomposed as a sparse linear combination
         of the columns of the dictionary.
-
     sparsity : float
         The coefficient on the L1 penalty term of the cost function.
-
     max_iter : int
         The maximum number of iterations to run.
-
     solution : ndarray, 1-dimensional, optional
         Pre-allocated vector to use to store the solution.
 
@@ -80,7 +76,6 @@ def _feature_sign_search_single(dictionary, signal, sparsity, max_iter,
         Vector containing the solution. If an array was passed in
         as the argument `solution`, it will be updated in place
         and the same object will be returned.
-
     count : int
         The number of iterations of the algorithm that were run.
 
@@ -233,21 +228,18 @@ def feature_sign_search(dictionary, signals, sparsity, max_iter=1000,
     ----------
     dictionary : array_like, 2-dimensional
         The dictionary of basis functions from which to form the
-        sparse linear combination.
-        Should be of shape (input dimension, code dimension)
-
+        sparse linear combination. Each column constitutes a basis
+        vector for the sparse code. There should be as many rows as
+        input dimensions in the signal.
     signals : array_like, 1- or 2-dimensional
         The signal(s) to be decomposed as a sparse linear combination
         of the columns of the dictionary. If 2-dimensional, each
         different signal (training case) should be a row of this matrix.
-
     sparsity : float
         The coefficient on the L1 penalty term of the cost function.
-
     max_iter : int, optional
         The maximum number of iterations to run, per code vector, if
         the optimization has still not converged. Default is 1000.
-
     solution : ndarray, 1- or 2-dimensional, optional
         Pre-allocated vector or matrix used to store the solution(s).
         If provided, it should have the same rank as `signals`. If
