@@ -11,14 +11,15 @@ __email__ = "wardefar@iro"
 
 __all__ = ["feature_sign_search"]
 
-from itertools import izip
+from itertools import izip, count
 import logging
 import numpy as np
 log = logging.getLogger(__name__)
 log.setLevel(logging.INFO)
 
 
-def _feature_sign_checkargs(dictionary, signals, sparsity, solution=None):
+def _feature_sign_checkargs(dictionary, signals, sparsity, max_iter,
+                            solution):
     if solution is not None:
         assert solution.ndim == signals.ndim, (
             "if provided, solutions must be same number of dimensions as "
@@ -48,7 +49,8 @@ def _feature_sign_checkargs(dictionary, signals, sparsity, solution=None):
             )
 
 
-def _feature_sign_search_single(dictionary, signal, sparsity, solution=None):
+def _feature_sign_search_single(dictionary, signal, sparsity, max_iter,
+                                solution=None):
     """
     Solve a single L1-penalized minimization problem with
     feature-sign search.
@@ -66,6 +68,9 @@ def _feature_sign_search_single(dictionary, signal, sparsity, solution=None):
     sparsity : float
         The coefficient on the L1 penalty term of the cost function.
 
+    max_iter : int
+        The maximum number of iterations to run.
+
     solution : ndarray, 1-dimensional, optional
         Pre-allocated vector to use to store the solution.
 
@@ -75,6 +80,9 @@ def _feature_sign_search_single(dictionary, signal, sparsity, solution=None):
         Vector containing the solution. If an array was passed in
         as the argument `solution`, it will be updated in place
         and the same object will be returned.
+
+    count : int
+        The number of iterations of the algorithm that were run.
 
     Notes
     -----
@@ -101,16 +109,18 @@ def _feature_sign_search_single(dictionary, signal, sparsity, solution=None):
     signs = np.zeros(gram_matrix.shape[0], dtype=np.int8)
     active_set = set()
     z_opt = np.inf
-    # Used to store max(abs(grad[nzidx] + sparsity * signs[nzidx])).
-    # Set to 0 here to trigger a new feature activation on first iteration.
-    nz_opt = 0
+    # Used to store whether max(abs(grad[nzidx] + sparsity * signs[nzidx]))
+    # is approximately 0.
+    # Set to True here to trigger a new feature activation on first iteration.
+    nz_optimal = True
     # second term is zero on initialization.
     grad = - 2 * target_correlation  # + 2 * np.dot(gram_matrix, solution)
     max_grad_zero = np.argmax(np.abs(grad))
     # Just used to compute exact cost function.
     sds = np.dot(signal.T, signal)
-    while z_opt > sparsity or not np.allclose(nz_opt, 0):
-        if np.allclose(nz_opt, 0):
+    counter = count(0)
+    while counter.next() < max_iter and z_opt > sparsity or not nz_optimal:
+        if nz_optimal:
             candidate = np.argmax(np.abs(grad) * (signs == 0))
             log.debug("candidate feature: %d" % candidate)
             if grad[candidate] > sparsity:
@@ -202,10 +212,13 @@ def _feature_sign_search_single(dictionary, signal, sparsity, solution=None):
         grad = - 2 * target_correlation + 2 * np.dot(gram_matrix, solution)
         z_opt = np.max(abs(grad[signs == 0]))
         nz_opt = np.max(abs(grad[signs != 0] + sparsity * signs[signs != 0]))
-    return solution
+        nz_optimal = np.allclose(nz_opt, 0)
+
+    return solution, counter.next()
 
 
-def feature_sign_search(dictionary, signals, sparsity, solution=None):
+def feature_sign_search(dictionary, signals, sparsity, max_iter=1000,
+                        solution=None):
     """
     Solve L1-penalized quadratic minimization problems with
     feature-sign search.
@@ -230,6 +243,10 @@ def feature_sign_search(dictionary, signals, sparsity, solution=None):
 
     sparsity : float
         The coefficient on the L1 penalty term of the cost function.
+
+    max_iter : int, optional
+        The maximum number of iterations to run, per code vector, if
+        the optimization has still not converged. Default is 1000.
 
     solution : ndarray, 1- or 2-dimensional, optional
         Pre-allocated vector or matrix used to store the solution(s).
@@ -269,7 +286,7 @@ def feature_sign_search(dictionary, signals, sparsity, solution=None):
        Processing Systems 19, 2007.
     """
     dictionary = np.asarray(dictionary)
-    _feature_sign_checkargs(dictionary, signals, sparsity, solution)
+    _feature_sign_checkargs(dictionary, signals, sparsity, max_iter, solution)
     # Make things the code a bit simpler by always forcing the
     # 2-dimensional case.
     signals_ndim = signals.ndim
@@ -282,8 +299,13 @@ def feature_sign_search(dictionary, signals, sparsity, solution=None):
         orig_sol = solution
         solution = np.atleast_2d(solution)
     # Solve each minimization in sequence.
-    for signal, sol in izip(signals, solution):
-        _feature_sign_search_single(dictionary, signal, sparsity, sol)
+    for row, (signal, sol) in enumerate(izip(signals, solution)):
+        _, iters = _feature_sign_search_single(dictionary, signal, sparsity,
+                                               max_iter, sol)
+        if iters == max_iter:
+            log.warning("maximum number of iterations reached when "
+                        "optimizing code for training case %d; solution "
+                        "may not be optimal" % iters)
     # Attempt to return the exact same object reference.
     if orig_sol is not None and orig_sol.ndim == 1:
         solution = orig_sol
@@ -291,5 +313,3 @@ def feature_sign_search(dictionary, signals, sparsity, solution=None):
     elif orig_sol is None and signals_ndim == 1:
         solution = solution.squeeze()
     return solution
-
-
