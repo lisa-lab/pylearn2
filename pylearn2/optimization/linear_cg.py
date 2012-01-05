@@ -1,6 +1,6 @@
 import theano
 from theano import tensor
-from theano.lazycond import ifelse
+from theano.ifelse import ifelse
 
 def linear_cg(fn, params, tol = 1e-3, max_iters = 1000, floatX = None):
     """
