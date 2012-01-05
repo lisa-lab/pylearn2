@@ -2,8 +2,6 @@ import theano
 from theano import tensor
 from theano.lazycond import ifelse
 
-import numpy
-
 def linear_cg(fn, params, tol = 1e-3, max_iters = 1000, floatX = None):
     """
         Minimizes a POSITIVE DEFINITE quadratic function

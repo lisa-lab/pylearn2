@@ -1,7 +1,7 @@
 import numpy as np
 from PIL import Image
 import os
-from pylearn2.utils import string
+from pylearn2.utils import string_utils as string
 from tempfile import NamedTemporaryFile
 import warnings
 
