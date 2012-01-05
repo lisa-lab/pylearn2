@@ -13,9 +13,6 @@ class Pipeline(object):
     def apply(self, dataset, can_fit = False):
         for item in self.items:
             item.apply(dataset, can_fit)
-        #
-    #
-#
 
 class ExtractGridPatches(object):
     """ Converts a dataset into a dataset of patches
