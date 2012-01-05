@@ -346,7 +346,8 @@ class TestFeatureSign(object):
         for index in range(len(self.penalties)):
             solution_vector = np.zeros(self.dictionary.shape[1])
             feature_sign_search(self.dictionary, self.signal,
-                                self.penalties[index], solution_vector)
+                                self.penalties[index],
+                                solution=solution_vector)
             yield self.check_against_reference, solution_vector, index
             yield self.check_zerocoef_optimality_cond, solution_vector, index
             yield self.check_nonzero_optimality_cond, solution_vector, index
@@ -403,7 +404,7 @@ class TestFeatureSign(object):
         sparsity = self.penalties[0]
         solution = np.zeros(self.dictionary.shape[1])
         newsol = feature_sign_search(self.dictionary, self.signal, sparsity,
-                                     solution)
+                                     solution=solution)
         assert solution is newsol
 
     def test_solution_identity_2d_provided(self):
@@ -411,5 +412,5 @@ class TestFeatureSign(object):
         solution = np.zeros((1, self.dictionary.shape[1]))
         signal = self.signal.reshape(1, -1)
         newsol = feature_sign_search(self.dictionary, signal, sparsity,
-                                     solution)
+                                     solution=solution)
         assert solution is newsol
