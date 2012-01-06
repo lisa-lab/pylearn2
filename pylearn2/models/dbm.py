@@ -462,23 +462,31 @@ class InferenceProcedure:
     def register_model(self, model):
         self.model = model
 
-    def truncated_KL(self, V, model, obs):
+    def truncated_KL(self, V, obs):
         """ KL divergence between variation and true posterior, dropping terms that don't
             depend on the variational parameters
 
             """
 
-
-        raise NotImplementedError("This method is not implemented yet. The code in this file is just copy-pasted from S3C")
+        """
+            D_KL ( Q(h ) || P(h | v) ) =  - sum_h Q(h) log P(h | v) + sum_h Q(h) log Q(h)
+                                       = -sum_h Q(h) log P( h, v) + sum_h Q(h) log P(v) + sum_h Q(h) log Q(h)
+            <truncated version>        = -sum_h Q(h) log P( h, v) + sum_h Q(h) log Q(h)
+                                       = -sum_h Q(h) log exp( -E (h,v)) + sum_h Q(h) log Z + sum_H Q(h) log Q(h)
+            <truncated version>        = sum_h Q(h) E(h, v) + sum_h Q(h) log Q(h)
+        """
 
         H_hat = obs['H_hat']
-        var_s0_hat = obs['var_s0_hat']
-        var_s1_hat = obs['var_s1_hat']
-        S_hat = obs['S_hat']
 
-        entropy_term = - model.entropy_hs(H_hat = H_hat, var_s0_hat = var_s0_hat, var_s1_hat = var_s1_hat)
-        energy_term = model.expected_energy_vhs(V, H_hat = H_hat, S_hat = S_hat,
-                                        var_s0_hat = var_s0_hat, var_s1_hat = var_s1_hat)
+        entropy_term = - (self.model.entropy_h(H_hat = obs['H_hat'])).mean()
+        assert len(entropy_term.type.broadcastable) == 0
+        energy_term = self.model.expected_energy(V_hat = V, H_hat = H_hat)
+        assert len(energy_term.type.broadcastable) == 0
+
+        warnings.warn("""TODO: dbm.inference_procedure.truncated_KL does not match
+                        s3c.e_step.truncated_KL. The former returns a scalar (average
+                        KL divergence across a batch) and the
+                        latter returns a vector of per-example KL divergences.""")
 
         KL = entropy_term + energy_term
 
