@@ -11,7 +11,7 @@ from theano import config, function
 import theano.tensor as T
 import numpy as np
 import warnings
-from theano.gof.op import get_debug_values, debug_error_message
+from theano.gof.op import get_debug_values, debug_error_message, debug_assert
 from pylearn2.utils import make_name, sharedX, as_floatX
 from pylearn2.expr.information_theory import entropy_binary_vector
 from theano.printing import Print
@@ -617,6 +617,12 @@ class S3C(Model):
         term4 = T.dot( 1.-H_hat, half * (T.log(var_s0_hat) +  T.log(two*pi) + one ))
         assert len(term4.type.broadcastable) == 1
 
+
+        for t12, t3, t4 in get_debug_values(term1_plus_term2, term3, term4):
+            debug_assert(not np.any(np.isnan(t12)))
+            debug_assert(not np.any(np.isnan(t3)))
+            debug_assert(not np.any(np.isnan(t4)))
+
         rval = term1_plus_term2 + term3 + term4
 
         return rval
@@ -1221,6 +1227,11 @@ class E_Step:
         entropy_term = - model.entropy_hs(H_hat = H_hat, var_s0_hat = var_s0_hat, var_s1_hat = var_s1_hat)
         energy_term = model.expected_energy_vhs(V, H_hat = H_hat, S_hat = S_hat,
                                         var_s0_hat = var_s0_hat, var_s1_hat = var_s1_hat)
+
+
+        for entropy, energy in get_debug_values(entropy_term, energy_term):
+            debug_assert(not np.any(np.isnan(entropy)))
+            debug_assert(not np.any(np.isnan(energy)))
 
         KL = entropy_term + energy_term
 
