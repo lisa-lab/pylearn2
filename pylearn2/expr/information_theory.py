@@ -1,4 +1,8 @@
 import theano.tensor as T
+from theano.gof.op import get_debug_values
+from theano.gof.op import debug_assert
+import numpy as np
+from theano.tensor.xlogx import xlogx
 
 def entropy_binary_vector(P):
     """
@@ -8,20 +12,27 @@ def entropy_binary_vector(P):
         X[i,:]
     """
 
-    #TODO: replace with actually evaluating 0 log 0 as 0
-    #note: can't do 1e-8, 1.-1e-8 rounds to 1.0 in float32
-    H_hat = T.clip(P, 1e-7, 1.-1e-7)
+    oneMinusP = 1.-P
 
-    logP = T.log(P)
+    PlogP = xlogx(P)
+    omPlogOmP = xlogx(oneMinusP)
 
-    logOneMinusP = T.log(1.-P)
-
-    term1 = - T.sum( P * logP , axis=1)
+    term1 = - T.sum( PlogP , axis=1)
     assert len(term1.type.broadcastable) == 1
 
-    term2 = - T.sum( (1.-P) * logOneMinusP , axis =1 )
+    term2 = - T.sum( omPlogOmP , axis =1 )
     assert len(term2.type.broadcastable) == 1
 
     rval = term1 + term2
+
+    for plp, olo, t1, t2, rv in get_debug_values(PlogP, omPlogOmP, term1, term2, rval):
+        debug_assert(not np.any(np.isnan(plp)))
+        debug_assert(not np.any(np.isinf(olo)))
+        debug_assert(not np.any(np.isnan(plp)))
+        debug_assert(not np.any(np.isinf(olo)))
+
+        debug_assert(not np.any(np.isnan(t1)))
+        debug_assert(not np.any(np.isnan(t2)))
+        debug_assert(not np.any(np.isnan(rv)))
 
     return rval
