@@ -321,7 +321,6 @@ class S3C(Model):
             self.autonomous = True
             assert e_step.autonomous
             assert self.m_step.autonomous
-        self.e_step.register_model(self)
         self.init_mu = init_mu
         self.min_mu = np.cast[config.floatX](float(min_mu))
         self.max_mu = np.cast[config.floatX](float(max_mu))
@@ -411,7 +410,7 @@ class S3C(Model):
 
                 if monitor_stats or self.monitor_functional:
 
-                    obs = self.e_step.variational_inference(V)
+                    obs = self.get_hidden_obs(V)
 
                     needed_stats = set(self.monitor_stats)
 
@@ -627,6 +626,9 @@ class S3C(Model):
 
         return rval
 
+    def get_hidden_obs(self, V):
+
+        return self.e_step.variational_inference(V)
 
     def make_learn_func(self, V):
         """
@@ -634,7 +636,7 @@ class S3C(Model):
         """
 
         #E step
-        hidden_obs = self.e_step.variational_inference(V)
+        hidden_obs = self.get_hidden_obs(V)
 
         stats = SufficientStatistics.from_observations(needed_stats = self.m_step.needed_stats(),
                 V = V, **hidden_obs)
@@ -995,6 +997,8 @@ class S3C(Model):
 
             self.make_pseudoparams()
 
+            self.e_step.register_model(self)
+
             self.get_B_value = function([], self.B)
 
             X = T.matrix(name='V')
@@ -1007,7 +1011,6 @@ class S3C(Model):
             self.register_names_to_del([name for name in final_names if name not in init_names])
         finally:
             self.deploy_mode()
-    #
 
     def learn(self, dataset, batch_size):
         if self.stop_after_hack is not None:
@@ -1089,7 +1092,7 @@ def damp(old, new, new_coeff):
 
     return rval
 
-class E_Step:
+class E_Step(object):
     """ A variational E_step that works by running damped fixed point
         updates on a structured variation approximation to
         P(v,h,s) (i.e., we do not use any auxiliary variable).
@@ -1127,7 +1130,7 @@ class E_Step:
         rval = {}
 
         if self.monitor_kl or self.monitor_em_functional:
-            obs_history = self.variational_inference(V, return_history = True)
+            obs_history = self.model.get_hidden_obs(V, return_history = True)
 
             for i in xrange(1, 2 + len(self.h_new_coeff_schedule)):
                 obs = obs_history[i-1]
@@ -1325,7 +1328,7 @@ class E_Step:
 
         return S_hat
 
-    def var_s1_hat(self):
+    def infer_var_s1_hat(self):
         """Returns the variational parameter for the variance of s given h=1
             This is data-independent so its just a vector of size (nhid,) and
             doesn't take any arguments """
@@ -1416,7 +1419,7 @@ class E_Step:
 
 
         var_s0_hat = 1. / alpha
-        var_s1_hat = self.var_s1_hat()
+        var_s1_hat = self.infer_var_s1_hat()
 
 
         H_hat   =    self.init_H_hat(V)
@@ -1568,7 +1571,7 @@ class Grad_M_Step:
 
     def get_monitoring_channels(self, V, model):
 
-        hid_observations = model.e_step.variational_inference(V)
+        hid_observations = model.get_hidden_obs(V)
 
         stats = SufficientStatistics.from_observations(needed_stats = S3C.expected_log_prob_vhs_needed_stats(),
                 V = V, **hid_observations)
