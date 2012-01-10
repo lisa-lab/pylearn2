@@ -88,6 +88,7 @@ class Monitor(object):
             for i in xrange(self.batches):
                 X = d.get_batch_design(self.batch_size)
                 #print 'monitoring batch ',i,':',(X.min(),X.mean(),X.max(),X.shape)
+                self.run_prereqs(X)
                 self.accum(X)
 
 
@@ -110,6 +111,10 @@ class Monitor(object):
             d.set_stream_position(s)
 
 
+    def run_prereqs(self, X):
+        for prereq in self.prereqs:
+            prereq(X)
+
 
     def redo_theano(self):
         """
@@ -123,6 +128,14 @@ class Monitor(object):
         unpickling, since Theano functions should not be pickled.
         """
         self.dirty = False
+
+        self.prereqs = []
+        for channel in self.channels.values():
+            if channel.prereqs is not None:
+                for prereq in channel.prereqs:
+                    if prereq not in self.prereqs:
+                        self.prereqs.append(prereq)
+
         init_names = dir(self)
         updates = {}
         for channel in self.channels.values():
@@ -187,7 +200,7 @@ class Monitor(object):
     def __setstate__(self, d):
         self.__dict__.update(d)
 
-    def add_channel(self, name, ipt, val):
+    def add_channel(self, name, ipt, val, prereqs = None):
         """
         Asks the monitor to start tracking a new value.  Can be run even
         after the monitor is already in use.
@@ -205,7 +218,7 @@ class Monitor(object):
         if name in self.channels:
             raise ValueError("Tried to create the same channel twice (%s)" %
                              name)
-        self.channels[name] = Channel(ipt, val, name)
+        self.channels[name] = Channel(ipt, val, name, prereqs)
         self.dirty = True
 
     @classmethod
@@ -232,7 +245,7 @@ class MonitorChannel(object):
     """
     A class representing a specific quantity to be monitored.
     """
-    def __init__(self, graph_input, val, name):
+    def __init__(self, graph_input, val, name, prereqs = None):
         """
         Creates a channel for a quantity to be monitored.
 
@@ -245,7 +258,13 @@ class MonitorChannel(object):
             and recorded.
         name : str
             The display name in the monitor.
+        prereqs: list of callables that take tensors
+            each prereq must be called exactly once per each new
+            batch of data before the channel value is computed
+            if two channels provide a prereq with exactly the same
+            id, that prereq will only be called once
         """
+        self.prereqs = prereqs
         self.graph_input = graph_input
         self.val = val
         self.val_shared = shared(0.0, name + "_tracker")

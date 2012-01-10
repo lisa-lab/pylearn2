@@ -43,14 +43,22 @@ class DefaultTrainingAlgorithm(object):
             channels = model.get_monitoring_channels(X)
 
             if not isinstance(channels,dict):
-                raise ValueError("model.get_monitoring_channels must return a dictionary"
+                raise TypeError("model.get_monitoring_channels must return a dictionary"
                         ", but it returned "+str(channels))
 
             for name in channels:
                 J =    channels[name]
+
+                if isinstance(J,tuple):
+                    assert len(J) == 2
+                    J, prereqs = J
+                else:
+                    prereqs = None
+
                 self.monitor.add_channel(name = name,
                                      ipt = X,
-                                     val = J)
+                                     val = J,
+                                     prereqs = prereqs)
 
 
         self.first = True
