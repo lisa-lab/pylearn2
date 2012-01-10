@@ -969,6 +969,7 @@ class S3C(Model):
             #can't just use a dimshuffle; dot products involving B won't work
             #and because doing it this way makes the partition function multiply by nvis automatically
             self.B = self.B_driver + as_floatX(np.zeros(self.nvis))
+            self.B.name = 'S3C.tied_B'
         else:
             self.B = self.B_driver
 
@@ -976,6 +977,7 @@ class S3C(Model):
         self.w.name = 'S3C.w'
 
         self.p = T.nnet.sigmoid(self.bias_hid)
+        self.p.name = 'S3C.p'
 
     def reset_censorship_cache(self):
 
