@@ -1,9 +1,10 @@
 """TODO: module-level docstring."""
-import numpy as N
+import numpy as np
+N = np
 import copy
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.datasets import control
-
+from theano import config
 
 class DenseDesignMatrix(Dataset):
     """A class for representing datasets that can be stored
@@ -179,6 +180,9 @@ class DenseDesignMatrix(Dataset):
         if include_labels:
             ry = self.y[idx:idx + batch_size]
             return rx, ry
+
+        rx = np.cast[config.floatX](rx)
+
         return rx
 
     def get_batch_topo(self, batch_size):

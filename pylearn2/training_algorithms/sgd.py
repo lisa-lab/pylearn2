@@ -43,7 +43,7 @@ class SGD(TrainingAlgorithm):
         self.bSetup = False
         self.first = True
 
-    def setup(self, model):
+    def setup(self, model, dataset):
         """ Should be called once before calls to train """
 
         self.model = model
@@ -69,7 +69,7 @@ class SGD(TrainingAlgorithm):
         for param in grads:
             if grads[param].name is None:
                 grads[param].name = ('grad(%(costname)s, %(paramname)s)' %
-                                     {'costname': cost.name,
+                                     {'costname': J.name,
                                       'paramname': param.name})
 
         learning_rate = T.scalar('sgd_learning_rate')
