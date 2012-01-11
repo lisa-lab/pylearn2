@@ -112,7 +112,7 @@ class Test_S3C_Inference:
         s_i_func = function([H_var,Mu1_var,idx],s_idx)
 
         sigma0 = 1. / model.alpha
-        Sigma1 = e_step.var_s1_hat()
+        Sigma1 = e_step.infer_var_s1_hat()
         mu0 = T.zeros_like(model.mu)
 
         #by truncated KL, I mean that I am dropping terms that don't depend on H and Mu1
@@ -178,7 +178,7 @@ class Test_S3C_Inference:
         s_i_func = function([H_var,Mu1_var,idx],s_idx)
 
         sigma0 = 1. / model.alpha
-        Sigma1 = e_step.var_s1_hat()
+        Sigma1 = e_step.infer_var_s1_hat()
         mu0 = T.zeros_like(model.mu)
 
         #by truncated KL, I mean that I am dropping terms that don't depend on H and Mu1
@@ -246,7 +246,7 @@ class Test_S3C_Inference:
         updates_func = function([H_var,Mu1_var,idx], h_idx)
 
         sigma0 = 1. / model.alpha
-        Sigma1 = e_step.var_s1_hat()
+        Sigma1 = e_step.infer_var_s1_hat()
         mu0 = T.zeros_like(model.mu)
 
         #by truncated KL, I mean that I am dropping terms that don't depend on H and Mu1
@@ -360,7 +360,7 @@ class Test_S3C_Inference:
         h_i_func = function([H_var,Mu1_var,idx],h_idx)
 
         sigma0 = 1. / model.alpha
-        Sigma1 = e_step.var_s1_hat()
+        Sigma1 = e_step.infer_var_s1_hat()
         mu0 = T.zeros_like(model.mu)
 
         #by truncated KL, I mean that I am dropping terms that don't depend on H and Mu1
