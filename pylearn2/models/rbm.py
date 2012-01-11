@@ -568,7 +568,7 @@ class GaussianBinaryRBM(RBM):
         """
         super(GaussianBinaryRBM, self).__init__(nvis, nhid,
                                                 irange, rng,
-                                                init_bias_hid)
+                                                init_bias_hid = init_bias_hid)
 
         self.learn_sigma = learn_sigma
         self.init_sigma = init_sigma
