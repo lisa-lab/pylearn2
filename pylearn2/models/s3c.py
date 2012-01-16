@@ -23,7 +23,7 @@ sys.setrecursionlimit(50000)
 def numpy_norms(W):
     """ returns a vector containing the L2 norm of each
     column of W, where W and the return value are
-    numpy ndarrays """
+    numpy ndarrays   """
     return np.sqrt(1e-8+np.square(W).sum(axis=0))
 
 def theano_norms(W):
@@ -626,9 +626,9 @@ class S3C(Model):
 
         return rval
 
-    def get_hidden_obs(self, V):
+    def get_hidden_obs(self, V, return_history = False):
 
-        return self.e_step.variational_inference(V)
+        return self.e_step.variational_inference(V, return_history)
 
     def make_learn_func(self, V):
         """
@@ -1131,8 +1131,9 @@ class E_Step(object):
 
         rval = {}
 
-        if self.monitor_kl or self.monitor_em_functional:
+        if self.monitor_kl or self.monitor_em_functional or self.monitor_s_mag:
             obs_history = self.model.get_hidden_obs(V, return_history = True)
+            assert isinstance(obs_history, list)
 
             for i in xrange(1, 2 + len(self.h_new_coeff_schedule)):
                 obs = obs_history[i-1]
@@ -1140,6 +1141,8 @@ class E_Step(object):
                     rval['trunc_KL_'+str(i)] = self.truncated_KL(V, obs).mean()
                 if self.monitor_em_functional:
                     rval['em_functional_'+str(i)] = self.em_functional(V, self.model, obs).mean()
+                if self.monitor_s_mag:
+                    rval['s_mag_'+str(i)] = T.sqrt(T.sum(T.sqr(obs['S_hat'])))
 
         return rval
 
@@ -1149,6 +1152,7 @@ class E_Step(object):
                        clip_reflections = False,
                        monitor_kl = False,
                        monitor_em_functional = False,
+                       monitor_s_mag = False,
                        rho = 0.5):
         """Parameters
         --------------
@@ -1192,6 +1196,8 @@ class E_Step(object):
 
         if self.autonomous:
             self.rho = as_floatX(rho)
+
+        self.monitor_s_mag = monitor_s_mag
 
         self.model = None
 
