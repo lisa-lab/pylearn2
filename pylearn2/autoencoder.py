@@ -66,6 +66,10 @@ class Autoencoder(Block):
             NumPy random number generator object (or seed to create one) used
             to initialize the model parameters.
         """
+
+
+        super(Autoencoder, self).__init__()
+
         assert nvis >= 0, "Number of visible units must be non-negative"
         assert nhid > 0, "Number of hidden units must be positive"
         # Save a few parameters needed for resizing

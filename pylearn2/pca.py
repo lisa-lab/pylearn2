@@ -69,6 +69,8 @@ class PCA(Block):
             standard deviation
         """
 
+        super(PCA, self).__init__()
+
         self.num_components = num_components
         self.min_variance = min_variance
         self.whiten = whiten

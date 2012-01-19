@@ -56,6 +56,8 @@ class LogisticRegressionLayer(Block):
             the labels lie.
         """
 
+        super(LogisticRegressionLayer, self).__init__()
+
         assert nvis >= 0, "Number of visible units must be non-negative"
         assert nclasses >= 0, "Number of classes must be non-negative"
 

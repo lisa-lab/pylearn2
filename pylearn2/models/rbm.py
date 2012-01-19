@@ -210,6 +210,7 @@ class RBM(Block, Model):
         """
 
         Model.__init__(self)
+        Block.__init__(self)
 
         if rng is None:
             # TODO: global rng configuration stuff.

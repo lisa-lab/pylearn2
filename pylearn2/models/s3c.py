@@ -329,6 +329,7 @@ class S3C(Model):
         self.recycle_q = recycle_q
         self.tied_B = tied_B
 
+
         self.reset_rng()
 
         self.redo_everything()
