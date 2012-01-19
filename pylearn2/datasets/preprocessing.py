@@ -274,6 +274,15 @@ class ExtractPatches(object):
         dataset.set_topological_view(output)
     #
 
+class MakeUnitNorm(object):
+    def __init__(self):
+        pass
+
+    def apply(self, dataset, can_fit):
+        X = dataset.get_design_matrix()
+        X_norm = np.sqrt(np.sum(X**2, axis=1))
+        X /= X_norm[:,None]
+        dataset.set_design_matrix(X)
 
 class RemoveMean(object):
     def __init__(self):
@@ -284,6 +293,18 @@ class RemoveMean(object):
         X -= X.mean(axis=0)
         dataset.set_design_matrix(X)
 
+class RemapInterval(object):
+    def __init__(self, map_from, map_to):
+        assert map_from[0] < map_from[1] and len(map_from) == 2
+        assert map_to[0] < map_to[1] and len(map_to) == 2
+        self.map_from = [np.float(x) for x in map_from]
+        self.map_to   = [np.float(x) for x in map_to]
+
+    def apply(self, dataset, can_fit):
+        X = dataset.get_design_matrix()
+        X = (X - self.map_from[0]) / np.diff(self.map_from)
+        X = X * np.diff(self.map_to) + self.map_to[0]
+        dataset.set_design_matrix(X)
 
 class PCA_ViewConverter(object):
     def __init__(self, to_pca, to_input, to_weights, orig_view_converter):
