@@ -91,8 +91,8 @@ def get_weights_report(model_path, rescale = 'individual'):
         if 'hidShape' in dir(p):
             hr, hc = p.hidShape
 
-        pv = patch_viewer.PatchViewer(grid_shape=(hr,hc), patch_shape=dataset.view_shape()[0:2],
-                is_color = dataset.view_shape()[2] == 3)
+        pv = patch_viewer.PatchViewer(grid_shape=(hr,hc), patch_shape=dataset.weights_view_shape()[0:2],
+                is_color = dataset.weights_view_shape()[2] == 3)
 
         weights_view = dataset.get_weights_view(W)
         assert weights_view.shape[0] == h
