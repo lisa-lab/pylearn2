@@ -15,6 +15,7 @@ from theano.gof.op import get_debug_values, debug_error_message, debug_assert
 from pylearn2.utils import make_name, sharedX, as_floatX
 from pylearn2.expr.information_theory import entropy_binary_vector
 from theano.printing import Print
+from pylearn2.base import Block
 
 warnings.warn('s3c changing the recursion limit')
 import sys
@@ -186,7 +187,7 @@ class SufficientStatistics:
         return SufficientStatistics(final_d)
 
 
-class S3C(Model):
+class S3C(Block, Model):
     """
 
     If you use S3C in published work, please cite:
@@ -259,7 +260,8 @@ class S3C(Model):
         init_unit_W:   if True, initializes weights with unit norm
         """
 
-        super(S3C,self).__init__()
+        Model.__init__(self)
+        Block.__init__(self)
 
         self.debug_m_step = debug_m_step
 
@@ -482,6 +484,14 @@ class S3C(Model):
                 return rval
             finally:
                 self.deploy_mode()
+
+
+    def __call__(self, V):
+        """ this is the symbolic transformation for the Block class """
+        if not hasattr(self,'w'):
+            self.make_pseudoparams()
+        obs = self.get_hidden_obs(V)
+        return obs['H_hat']
 
     def compile_mode(self):
         """ If any shared variables need to have batch-size dependent sizes,
