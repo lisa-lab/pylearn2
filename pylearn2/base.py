@@ -110,7 +110,7 @@ class Block(object):
     def perform(self, X):
         if self.fn is None:
             self.fn = self.function("perform")
-        self.fn(X)
+        return self.fn(X)
 
 
 class StackedBlocks(Block):
