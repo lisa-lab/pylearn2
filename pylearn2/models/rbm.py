@@ -161,6 +161,7 @@ class BlockGibbsSampler(Sampler):
                 particles,
                 self.s_rng
             )
+            assert particles.type.dtype == self.particles.type.dtype
             if self.particles_clip is not None:
                 p_min, p_max = self.particles_clip
                 # The clipped values should still have the same type
@@ -324,14 +325,18 @@ class RBM(Block, Model):
              * `v_sample`: the stochastically sampled visible units
         """
         h_mean = self.mean_h_given_v(v)
+        assert h_mean.type.dtype == v.type.dtype
         # For binary hidden units
         # TODO: factor further to extend to other kinds of hidden units
         #       (e.g. spike-and-slab)
-        h_sample = rng.binomial(size = h_mean.shape, n = 1 , p = h_mean)
+        h_sample = rng.binomial(size = h_mean.shape, n = 1 , p = h_mean, dtype=h_mean.type.dtype)
+        assert h_sample.type.dtype == v.type.dtype
         # v_mean is always based on h_sample, not h_mean, because we don't
         # want h transmitting more than one bit of information per unit.
         v_mean = self.mean_v_given_h(h_sample)
+        assert v_mean.type.dtype == v.type.dtype
         v_sample = self.sample_visibles([v_mean], v_mean.shape, rng)
+        assert v_sample.type.dtype == v.type.dtype
         return v_sample, locals()
 
     def sample_visibles(self, params, shape, rng):
@@ -632,7 +637,7 @@ class GaussianBinaryRBM(RBM):
             reconstruction of the visible units given the hidden units.
         """
 
-        return self.energy_function.mean_v_given_h(h)
+        return self.energy_function.mean_V_given_H(h)
         #return self.bias_vis + self.sigma * tensor.dot(h, self.weights.T)
 
     def free_energy_given_v(self, V):
