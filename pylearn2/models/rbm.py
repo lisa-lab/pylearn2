@@ -327,13 +327,11 @@ class RBM(Block, Model):
         # For binary hidden units
         # TODO: factor further to extend to other kinds of hidden units
         #       (e.g. spike-and-slab)
-        h_mean_shape = self.batch_size, self.nhid
-        h_sample = as_floatX(rng.uniform(size=h_mean_shape) < h_mean)
-        v_mean_shape = self.batch_size, self.nvis
+        h_sample = rng.binomial(size = h_mean.shape, n = 1 , p = h_mean)
         # v_mean is always based on h_sample, not h_mean, because we don't
         # want h transmitting more than one bit of information per unit.
         v_mean = self.mean_v_given_h(h_sample)
-        v_sample = self.sample_visibles([v_mean], v_mean_shape, rng)
+        v_sample = self.sample_visibles([v_mean], v_mean.shape, rng)
         return v_sample, locals()
 
     def sample_visibles(self, params, shape, rng):
