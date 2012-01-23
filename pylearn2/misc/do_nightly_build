@@ -5,9 +5,11 @@ START=`date +%s`
 NOSETESTS=nosetests
 ARGS=$@
 PROFILING=""
+COMPILEDIR=`python -c "import theano;print theano.config.compiledir"`
 if [ "$1" == "--buildbot" ]; then
+    COMPILEDIR=/Tmp/lisa_theano_compile_dir_pylearn2
     ROOT_CWD=/Tmp/nightly_build
-    FLAGS=compiledir=/Tmp/lisa_theano_compile_dir_pylearn2
+    FLAGS=compiledir=$COMPILEDIR
     cd ${ROOT_CWD}/Pylearn2
     git rev-parse HEAD
     cd ..
