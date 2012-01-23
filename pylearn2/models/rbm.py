@@ -332,7 +332,7 @@ class RBM(Block, Model):
 
         optimizer = SGDOptimizer(self, self.base_lr, self.anneal_start)
 
-        sampler = sampler = BlockGibbsSampler(self, 0.5 + np.zeros((self.nchains, self.nhid)), self.rng,
+        sampler = sampler = BlockGibbsSampler(self, 0.5 + np.zeros((self.nchains, self.nvis)), self.rng,
                                                   steps= self.sml_gibbs_steps)
 
 
