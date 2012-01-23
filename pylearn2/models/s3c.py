@@ -187,7 +187,7 @@ class SufficientStatistics:
         return SufficientStatistics(final_d)
 
 
-class S3C(Block, Model):
+class S3C(Model, Block):
     """
 
     If you use S3C in published work, please cite:
