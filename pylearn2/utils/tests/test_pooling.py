@@ -1,7 +1,7 @@
 """Test pooling-related code in pooling.py"""
 
 import numpy as np
-from pooling import pooling_matrix
+from pylearn2.utils.pooling import pooling_matrix
 
 
 def test_pooling_no_topology():
