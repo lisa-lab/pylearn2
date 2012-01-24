@@ -159,6 +159,11 @@ class Model(object):
         (unless your model overrides __getstate__ )
         """
 
+        if isinstance(names, str):
+            names = [ names ]
+
+        assert isinstance(names, (list,set,tuple))
+
         self.names_to_del = self.names_to_del.union(names)
 
     def set_dtype(self, dtype):
