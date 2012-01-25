@@ -3,7 +3,7 @@ class TrainingAlgorithm(object):
     An abstract superclass that defines the interface of training
     algorithms.
     """
-    def setup(self, model):
+    def setup(self, model, dataset):
         """
         Initialize the given training algorithm.
 
@@ -12,6 +12,9 @@ class TrainingAlgorithm(object):
         model : object
             Object that implements the Model interface defined in
             `pylearn2.models`.
+        dataset : object
+            Object that implements the Dataset interface defined in
+            `pylearn2.datasets`.
 
         Notes
         -----
