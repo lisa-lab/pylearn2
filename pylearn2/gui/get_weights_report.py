@@ -5,7 +5,7 @@ from pylearn2.datasets import control
 import numpy as np
 import warnings
 
-def get_weights_report(model_path, rescale = 'individual'):
+def get_weights_report(model_path = None, model = None, rescale = 'individual', border = False, norm_sort = False):
     """
         Returns a PatchViewer displaying a grid of filter weights
 
@@ -20,10 +20,14 @@ def get_weights_report(model_path, rescale = 'individual'):
                         'none' :   don't rescale
     """
 
-    print 'making weights report'
-    print 'loading model'
-    p = serial.load(model_path)
-    print 'loading done'
+    if model is None:
+        print 'making weights report'
+        print 'loading model'
+        p = serial.load(model_path)
+        print 'loading done'
+    else:
+        p = model
+        assert model_path is None
 
     if rescale == 'none':
         global_rescale = False
@@ -42,6 +46,9 @@ def get_weights_report(model_path, rescale = 'individual'):
     dataset = yaml_parse.load(p.dataset_yaml_src)
     control.pop_load_data()
     print '...done'
+
+
+    W = None
 
     if hasattr(p,'get_weights'):
         W = p.get_weights()
@@ -65,6 +72,9 @@ def get_weights_report(model_path, rescale = 'individual'):
         W = p.enc_weights_shared.get_value()
 
 
+    if W is None:
+        raise AttributeError('model does not have a variable with a name like "W", "weights", etc  that pylearn2 recognizes')
+
     if len(W.shape) == 2:
         if hasattr(p,'get_weights_format'):
             weights_format = p.get_weights_format()
@@ -81,18 +91,17 @@ def get_weights_report(model_path, rescale = 'individual'):
             W = W.T
         h = W.shape[0]
 
-
-        norms = np.sqrt(1e-8+np.square(W).sum(axis=1))
-
-        norm_prop = norms / norms.max()
+        if norm_sort:
+            norms = np.sqrt(1e-8+np.square(W).sum(axis=1))
+            norm_prop = norms / norms.max()
 
         hr = int(np.ceil(np.sqrt(h)))
         hc = hr
         if 'hidShape' in dir(p):
             hr, hc = p.hidShape
 
-        pv = patch_viewer.PatchViewer(grid_shape=(hr,hc), patch_shape=dataset.view_shape()[0:2],
-                is_color = dataset.view_shape()[2] == 3)
+        pv = patch_viewer.PatchViewer(grid_shape=(hr,hc), patch_shape=dataset.weights_view_shape()[0:2],
+                is_color = dataset.weights_view_shape()[2] == 3)
 
         weights_view = dataset.get_weights_view(W)
         assert weights_view.shape[0] == h
@@ -102,12 +111,20 @@ def get_weights_report(model_path, rescale = 'individual'):
             weights_view /= np.abs(weights_view).max()
 
 
-        print 'sorting weights by decreasing norm'
-        idx = sorted( range(h), key = lambda l : - norm_prop[l] )
+        if norm_sort:
+            print 'sorting weights by decreasing norm'
+            idx = sorted( range(h), key = lambda l : - norm_prop[l] )
+        else:
+            idx = range(h)
+
+        if border:
+            act = 0
+        else:
+            act = None
 
         for i in range(0,h):
             patch = weights_view[idx[i],...]
-            pv.add_patch( patch, rescale   = patch_rescale)#, activation = norm_prop[idx[i]])
+            pv.add_patch( patch, rescale   = patch_rescale, activation = act)
     else:
         e = p.weights
         d = p.dec_weights_shared.value

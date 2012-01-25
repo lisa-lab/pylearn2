@@ -15,6 +15,7 @@ from theano.gof.op import get_debug_values, debug_error_message, debug_assert
 from pylearn2.utils import make_name, sharedX, as_floatX
 from pylearn2.expr.information_theory import entropy_binary_vector
 from theano.printing import Print
+from pylearn2.base import Block
 
 warnings.warn('s3c changing the recursion limit')
 import sys
@@ -186,7 +187,7 @@ class SufficientStatistics:
         return SufficientStatistics(final_d)
 
 
-class S3C(Model):
+class S3C(Model, Block):
     """
 
     If you use S3C in published work, please cite:
@@ -217,6 +218,9 @@ class S3C(Model):
                        constrain_W_norm = False,
                        monitor_norms = False,
                        random_patches_src = None,
+                       local_rf_src = None,
+                       local_rf_shape = None,
+                       local_rf_stride = None,
                        init_unit_W = None,
                        debug_m_step = False,
                        print_interval = 10000,
@@ -256,10 +260,18 @@ class S3C(Model):
         disable_W_update: if true, doesn't update W (useful for experiments where you only learn the prior)
         random_patches_src: if not None, should be a dataset
                             will set W to a batch
+        local_rf_src: if not None, should be a dataset
+                requires the following other params:
+                    local_rf_shape: a 2 tuple
+                    local_rf_stride: a 2 tuple
+                 will initialize the weights to have only local receptive fields. (won't make a sparse
+                    matrix or anything like that)
+                 incompatible with random_patches_src for now
         init_unit_W:   if True, initializes weights with unit norm
         """
 
-        super(S3C,self).__init__()
+        Model.__init__(self)
+        Block.__init__(self)
 
         self.debug_m_step = debug_m_step
 
@@ -268,10 +280,61 @@ class S3C(Model):
         if init_unit_W is not None and not init_unit_W:
             assert not constrain_W_norm
 
+        self.seed = seed
+        self.reset_rng()
+        self.irange = irange
+        self.nvis = nvis
+        self.nhid = nhid
+
         if random_patches_src is not None:
             self.init_W = random_patches_src.get_batch_design(nhid).T
+            assert local_rf_src is None
+        elif local_rf_src is not None:
+            self.rng.uniform(-self.irange, self.irange, (self.nvis, self.nhid))
+
+            s = local_rf_src.view_shape()
+            height, width, channels = s
+            W_img = np.zeros( (self.nhid, height, width, channels) )
+
+            last_row = s[0] - local_rf_shape[0]
+            assert last_row % local_rf_stride[0] == 0
+            num_row_steps = last_row / local_rf_stride[0] + 1
+
+            last_col = s[1] - local_rf_shape[1]
+            assert last_col % local_rf_stride[1] == 0
+            num_col_steps = last_col /local_rf_stride[1] + 1
+
+            total_rfs = num_row_steps * num_col_steps
+
+            if self.nhid % total_rfs != 0:
+                raise ValueError('nhid modulo total_rfs should be 0, but we get %d modulo %d = %d' % (self.nhid, total_rfs, self.nhid % total_rfs))
+
+            filters_per_rf = self.nhid / total_rfs
+
+            idx = 0
+            for r in xrange(num_row_steps):
+                rc = r * local_rf_stride[0]
+                for c in xrange(num_col_steps):
+                    cc = c * local_rf_stride[1]
+
+                    for i in xrange(filters_per_rf):
+                        W_img[idx,rc:rc+local_rf_shape[0],
+                          cc:cc+local_rf_shape[1],:] = \
+                              self.rng.uniform(-self.irange,
+                                               self.irange,
+                                               (local_rf_shape[0], local_rf_shape[1], s[2]) )
+                        idx += 1
+
+
+            assert idx == self.nhid
+
+            self.init_W = local_rf_src.view_converter.topo_view_to_design_mat(W_img).T
+
+
         else:
             self.init_W = None
+
+        self.register_names_to_del(['init_W'])
 
         if monitor_stats is None:
             self.monitor_stats = []
@@ -285,7 +348,6 @@ class S3C(Model):
 
         self.init_unit_W = init_unit_W
 
-        self.seed = seed
 
         self.print_interval = print_interval
 
@@ -295,9 +357,6 @@ class S3C(Model):
         self.monitor_norms = monitor_norms
         self.disable_W_update = disable_W_update
         self.monitor_functional = monitor_functional
-        self.nvis = nvis
-        self.nhid = nhid
-        self.irange = irange
         self.init_bias_hid = init_bias_hid
         self.init_alpha = float(init_alpha)
         self.min_alpha = float(min_alpha)
@@ -328,8 +387,6 @@ class S3C(Model):
         self.max_bias_hid = max_bias_hid
         self.recycle_q = recycle_q
         self.tied_B = tied_B
-
-        self.reset_rng()
 
         self.redo_everything()
 
@@ -481,6 +538,14 @@ class S3C(Model):
                 return rval
             finally:
                 self.deploy_mode()
+
+
+    def __call__(self, V):
+        """ this is the symbolic transformation for the Block class """
+        if not hasattr(self,'w'):
+            self.make_pseudoparams()
+        obs = self.get_hidden_obs(V)
+        return obs['H_hat']
 
     def compile_mode(self):
         """ If any shared variables need to have batch-size dependent sizes,

@@ -197,6 +197,8 @@ class DenseDesignMatrix(Dataset):
     def view_shape(self):
         return self.view_converter.view_shape()
 
+    def weights_view_shape(self):
+        return self.view_converter.weights_view_shape()
 
 class DefaultViewConverter(object):
     def __init__(self, shape):
@@ -206,6 +208,9 @@ class DefaultViewConverter(object):
             self.pixels_per_channel *= dim
 
     def view_shape(self):
+        return self.shape
+
+    def weights_view_shape(self):
         return self.shape
 
     def design_mat_to_topo_view(self, X):

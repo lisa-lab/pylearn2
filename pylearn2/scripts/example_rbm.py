@@ -1,12 +1,14 @@
 import numpy
 import theano
 from theano import tensor
-from pylearn2.rbm import GaussianBinaryRBM, BlockGibbsSampler, \
+from pylearn2.models.rbm import GaussianBinaryRBM, BlockGibbsSampler, \
         training_updates
 from pylearn2.optimizer import SGDOptimizer
 from pylearn2.rbm_tools import compute_log_z, compute_nll
+from pylearn2.energy_functions.rbm_energy import GRBM_Type_1
 
-import utils.debug
+#TODO: what is/was this? I've commented it out, remove it?
+#import utils.debug
 
 
 if __name__ == "__main__":
@@ -31,7 +33,7 @@ if __name__ == "__main__":
     }
 
     rbm = GaussianBinaryRBM(nvis=conf['nvis'], nhid=conf['nhid'],
-                            batch_size=conf['batch_size'], irange=0.5)
+                         irange=0.5, energy_function_class = GRBM_Type_1)
     rng = numpy.random.RandomState(seed=conf.get('rbm_seed', 42))
     sampler = BlockGibbsSampler(rbm, data[0:100], rng,
                                   steps=conf['pcd_steps'])
@@ -47,7 +49,7 @@ if __name__ == "__main__":
     vis = tensor.matrix('vis')
     free_energy_fn = theano.function([vis], rbm.free_energy_given_v(vis))
 
-    utils.debug.setdebug()
+    #utils.debug.setdebug()
 
     recon = []
     nlls = []

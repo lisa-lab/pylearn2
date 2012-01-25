@@ -78,6 +78,10 @@ def load_path(path, overrides=None, **kwargs):
     f = open(path, 'r')
     content = ''.join(f.readlines())
     f.close()
+
+    if not isinstance(content, str):
+        raise AssertionError("Expected content to be of type str but it is "+str(type(content)))
+
     return load(content, **kwargs)
 
 
@@ -249,7 +253,8 @@ def multi_constructor_pkl(loader, tag_suffix, node):
 
     #print dir(loader)
     mapping = loader.construct_yaml_str(node)
-    assert tag_suffix == ""
+    if tag_suffix != "" and tag_suffix != u"":
+        raise AssertionError('Expected tag_suffix to be "" but it is "'+tag_suffix+'"')
 
     rval = ObjectProxy(None, {}, yaml.serialize(node))
     rval.instance = serial.load(mapping)
