@@ -21,6 +21,32 @@ class SGD(TrainingAlgorithm):
                  monitoring_dataset=None, termination_criterion=None,
                  learning_rate_adjuster=None):
         """
+        Instantiates an SGD object.
+
+        Parameters
+        ----------
+        learning_rate : float
+            The stochastic gradient step size, relative to your cost
+            function.
+        cost : object
+            An object implementing the pylearn2 cost interface.
+        batch_size : int, optional
+            Batch size per update. TODO: What if this is not provided?
+        batches_per_iter : int, optional
+            How many batch updates per epoch. Default is 1000.
+            TODO: Is there any way to specify "as many as the dataset
+            provides"?
+        monitoring_batches : int, optional
+            WRITEME
+        monitoring_dataset : object, optional
+            WRITEME
+        termination_criterion : object, optional
+            WRITEME
+        learning_rate_adjuster : object, optional
+            WRITEME
+
+        Notes
+        -----
         TODO: for now, learning_rate is just a float, but later it
         should support passing in a class that dynamically adjusts the
         learning rate if batch_size is None, reverts to the
@@ -44,7 +70,19 @@ class SGD(TrainingAlgorithm):
         self.first = True
 
     def setup(self, model, dataset):
-        """ Should be called once before calls to train """
+        """
+        Initialize the training algorithm. Should be called
+        once before calls to train.
+
+        Parameters
+        ----------
+        model : object
+            Model to be trained.  Object implementing the pylearn2 Model
+            interface.
+        dataset : object
+            Dataset on which to train.  Object implementing the
+            pylearn2 Dataset interface.
+        """
 
         self.model = model
 
