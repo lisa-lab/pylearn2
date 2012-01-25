@@ -229,8 +229,8 @@ class RetinaCodingViewConverter(DefaultViewConverter):
     def __init__(self, shape, rings):
         self.shape = shape
         self.rings = rings
-        self.decoder = RetinaDecoding(shape, rings)
-        self.encoder = RetinaEncoding(rings)
+        self.decoder = RetinaDecodingBlock(shape, rings)
+        self.encoder = RetinaEncodingBlock(rings)
 
     def design_mat_to_topo_view(self, X):
         return self.decoder.apply(X)
