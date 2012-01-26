@@ -162,6 +162,11 @@ class KMeans(Block):
             dists[:, i] = numpy.square((X - mu[i, :])).sum(axis=1)
         return dists / dists.sum(axis=1).reshape(-1, 1)
 
+    def get_weights(self):
+        return self.mu
+
+    def get_weights_format(self):
+        return ['h','v']
 
 if __name__ == '__main__':
     import theano
