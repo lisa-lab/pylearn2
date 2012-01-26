@@ -44,10 +44,8 @@ class KMeans(Block):
 
         #TODO-- why does this sometimes return X and sometimes return nothing?
 
-        try:
+        if hasattr(X, 'get_design_matrix'):
             X = X.get_design_matrix()
-        except:
-            pass
 
         n, m = X.shape
         k = self.k
