@@ -15,17 +15,28 @@ def show(image):
         and float formats are assumed to use 0-1
     """
     if hasattr(image, '__array__'):
+        #do some shape checking because PIL just raises a tuple indexing error
+        #that doesn't make it very clear what the problem is
+        if len(image.shape) < 2 or len(image.shape) > 3:
+            raise ValueError('image must have either 2 or 3 dimensions but its shape is '+str(image.shape))
+
         if image.dtype == 'int8':
             image = np.cast['uint8'](image)
         elif str(image.dtype).startswith('float'):
             image *= 255.
             image = np.cast['uint8'](image)
+
+        #PIL is too stupid to handle single-channel arrays
+        if len(image.shape) == 3 and image.shape[2] == 1:
+            image = image[:,:,0]
+
         try:
             image = Image.fromarray(image)
         except TypeError:
             raise TypeError("PIL issued TypeError on ndarray of shape " +
                             str(image.shape) + " and dtype " +
                             str(image.dtype))
+
 
     try:
         f = NamedTemporaryFile(mode='r', suffix='.png', delete=False)
@@ -65,6 +76,7 @@ def pil_from_ndarray(ndarray):
         rval = Image.fromarray(ndarray)
         return rval
     except Exception, e:
+        raise
         print 'original exception: '
         print e
         print 'ndarray.dtype: ', ndarray.dtype
