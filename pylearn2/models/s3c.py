@@ -396,8 +396,8 @@ class S3C(Model, Block):
         self.init_mu = init_mu
         self.min_mu = np.cast[config.floatX](float(min_mu))
         self.max_mu = np.cast[config.floatX](float(max_mu))
-        self.min_bias_hid = min_bias_hid
-        self.max_bias_hid = max_bias_hid
+        self.min_bias_hid = float(min_bias_hid)
+        self.max_bias_hid = float(max_bias_hid)
         self.recycle_q = recycle_q
         self.tied_B = tied_B
 
