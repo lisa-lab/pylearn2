@@ -101,7 +101,7 @@ class SufficientStatistics:
             self.d[key] = d[key]
 
     @classmethod
-    def from_observations(self, needed_stats, V, H_hat, S_hat, var_s0_hat, var_s1_hat):
+    def from_observations(cls, needed_stats, V, H_hat, S_hat, var_s0_hat, var_s1_hat):
         """
             returns a SufficientStatistics
 
