@@ -71,33 +71,27 @@ class TestS3C_Misc:
                 model.m_step.needed_stats(), V =X,
                 ** self.mf_obs)
 
-        #holder = SufficientStatisticsHolder(
-        #        needed_stats = model.m_step.needed_stats(),
-        #        nvis = D, nhid = N)
-
-        #keys = copy.copy(stats.d.keys())
-
-        #outputs = [ stats.d[key] for key in keys ]
-
-        #f = function([], outputs)
-
-        #vals = f()
-
-        #for key, val in zip(keys, vals):
-        #    holder.d[key].set_value(val)
-
-
-        #self.stats = SufficientStatistics.from_holder(holder)
-
-
-        #self.model.learn_mini_batch(X)
-
-        #self.trace_out_B(X, holder)
-
-        #self.new_params = model.get_param_values()
-
-
         self.prob = self.model.expected_log_prob_vhs( self.stats , H_hat = self.mf_obs['H_hat'], S_hat = self.mf_obs['S_hat'])
+        self.X = X
+
+
+    def test_expected_log_prob_vhs_batch_match(self):
+        """ verifies that expected_log_prob_vhs = mean(expected_log_prob_vhs_batch) """
+
+        scalar = self.model.expected_log_prob_vhs( stats = self.stats, H_hat = self.mf_obs['H_hat'], S_hat = self.mf_obs['S_hat'])
+        batch  = self.model.expected_log_prob_vhs_batch( V = self.X, H_hat = self.mf_obs['H_hat'], S_hat = self.mf_obs['S_hat'], var_s0_hat = self.mf_obs['var_s0_hat'], var_s1_hat = self.mf_obs['var_s1_hat'])
+
+        f = function([], [scalar, batch] )
+
+        res1, res2 = f()
+
+        res2 = res2.mean(dtype='float64')
+
+        print res1, res2
+
+        assert np.allclose(res1, res2)
+
+
 
     def test_grad_alpha(self):
         """tests that the gradient of the log probability with respect to alpha

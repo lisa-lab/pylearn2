@@ -878,6 +878,31 @@ class S3C(Model, Block):
 
         return rval
 
+    def expected_log_prob_vhs_batch(self, V, H_hat, S_hat, var_s0_hat, var_s1_hat):
+
+        half = as_floatX(0.5)
+        two = as_floatX(2.)
+        pi = as_floatX(np.pi)
+        N = as_floatX(self.nhid)
+
+        #log partition function terms
+        term1 = half * T.sum(T.log(self.B))
+        term2 = - half * N * T.log(two * pi)
+        term3 = half * T.log( self.alpha ).sum()
+        term4 = - half * N * T.log(two*pi)
+        term5 = - T.nnet.softplus(self.bias_hid).sum()
+
+        negative_log_partition_function = term1 + term2 + term3 + term4 + term5
+        assert len(negative_log_partition_function.type.broadcastable) == 0
+
+        #energy term
+        negative_energy = - self.expected_energy_vhs(V = V, H_hat = H_hat, S_hat = S_hat, var_s0_hat = var_s0_hat, var_s1_hat = var_s1_hat)
+        assert len(negative_energy.type.broadcastable) == 1
+
+        rval = negative_log_partition_function + negative_energy
+
+        return rval
+
 
     def log_prob_v_given_hs(self, V, H, S):
         """
