@@ -460,6 +460,20 @@ class S3C(Model, Block):
         em_functional = likelihood_term + entropy_term
         assert len(em_functional.type.broadcastable) == 0
 
+        return em_functional
+
+    def energy_functional_batch(self, H_hat, S_hat, var_s0_hat, var_s1_hat, stats):
+        """ Returns the energy_functional for a single batch of data
+            stats is assumed to be computed from and only from
+            the same data points that yielded H """
+
+        entropy_term = self.entropy_hs(H_hat = H_hat, var_s0_hat = var_s0_hat, var_s1_hat = var_s1_hat).mean()
+        assert len(entropy_term.type.broadcastable) == 1
+        likelihood_term = self.expected_log_prob_vhs_batch(stats, H_hat = H_hat, S_hat = S_hat)
+        assert len(likelihood_term.type.broadcastable) == 1
+
+        em_functional = likelihood_term + entropy_term
+        assert len(em_functional.type.broadcastable) == 1
 
         return em_functional
 
@@ -707,6 +721,8 @@ class S3C(Model, Block):
             debug_assert(not np.any(np.isnan(t4)))
 
         rval = term1_plus_term2 + term3 + term4
+
+        assert len(rval.type.broadcastable) == 1
 
         return rval
 
