@@ -4,12 +4,9 @@ Tests for the pylearn2 autoencoder module.
 import numpy as np
 import theano
 import theano.tensor as tensor
-#Doing this import here have no impact
-#from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 from theano import config
-
 from pylearn2.autoencoder import Autoencoder
-from theano.tensor.basic import _allclose #Handle correctly float32 and complex64
+from theano.tensor.basic import _allclose
 
 def test_autoencoder_logistic_linear_tied():
     data = np.random.randn(10, 5).astype(config.floatX)

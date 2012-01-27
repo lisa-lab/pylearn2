@@ -10,6 +10,7 @@ from theano import tensor
 
 # Local imports
 from pylearn2.base import Block, StackedBlocks
+from pylearn2.models import Model
 from pylearn2.utils import sharedX
 from pylearn2.utils.theano_graph import is_pure_elemwise
 
@@ -23,7 +24,7 @@ else:
     RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
 
 
-class Autoencoder(Block):
+class Autoencoder(Block, Model):
     """
     Base class implementing ordinary autoencoders.
 
@@ -66,10 +67,7 @@ class Autoencoder(Block):
             NumPy random number generator object (or seed to create one) used
             to initialize the model parameters.
         """
-
-
         super(Autoencoder, self).__init__()
-
         assert nvis >= 0, "Number of visible units must be non-negative"
         assert nhid > 0, "Number of hidden units must be positive"
         # Save a few parameters needed for resizing
@@ -149,9 +147,10 @@ class Autoencoder(Block):
         )
 
     def _initialize_w_prime(self, nvis, rng=None, irange=None):
-        assert (not self.tied_weights,
+        assert not self.tied_weights, (
             "Can't initialize w_prime in tied weights model; "
-            "this method shouldn't have been called")
+            "this method shouldn't have been called"
+        )
         if rng is None:
             rng = self.rng
         if irange is None:
