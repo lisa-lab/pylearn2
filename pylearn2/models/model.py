@@ -246,7 +246,5 @@ class Model(object):
             obj = getattr(self, field)
             if hasattr(obj, 'get_value'):
                 setattr(self, field, shared(np.cast[dtype](obj.get_value())))
-                # TODO: This looks wrong. obj is no longer a field of self
-                # after the setattr.
-                if hasattr(obj, 'set_dtype'):
-                    obj.set_dtype(dtype)
+            if hasattr(obj, 'set_dtype'):
+                obj.set_dtype(dtype)
