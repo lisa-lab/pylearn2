@@ -70,7 +70,8 @@ class DenseDesignMatrix(Dataset):
 
         if self.compress:
             rval['compress_min'] = rval['X'].min(axis=0)
-            rval['X'] -= rval['compress_min']
+            #important not to do -= on this line, as that will modify the original object
+            rval['X'] = rval['X'] - rval['compress_min']
             rval['compress_max'] = rval['X'].max(axis=0)
             rval['compress_max'][rval['compress_max'] == 0] = 1
             rval['X'] *= 255. / rval['compress_max']

@@ -221,6 +221,7 @@ class S3C(Model, Block):
                        local_rf_src = None,
                        local_rf_shape = None,
                        local_rf_stride = None,
+                       local_rf_draw_patches = False,
                        init_unit_W = None,
                        debug_m_step = False,
                        print_interval = 10000,
@@ -264,6 +265,8 @@ class S3C(Model, Block):
                 requires the following other params:
                     local_rf_shape: a 2 tuple
                     local_rf_stride: a 2 tuple
+                    local_rf_draw_patches: if true, local receptive fields are patches from local_rf_src
+                                            otherwise, they're random patches
                  will initialize the weights to have only local receptive fields. (won't make a sparse
                     matrix or anything like that)
                  incompatible with random_patches_src for now
@@ -318,11 +321,21 @@ class S3C(Model, Block):
                     cc = c * local_rf_stride[1]
 
                     for i in xrange(filters_per_rf):
+
+                        if local_rf_draw_patches:
+                            img = local_rf_src.get_batch_topo(1)[0]
+                            local_rf = img[rc:rc+local_rf_shape[0],
+                                           cc:cc+local_rf_shape[1],
+                                           :]
+                        else:
+                            local_rf = self.rng.uniform(-self.irange,
+                                        self.irange,
+                                        (local_rf_shape[0], local_rf_shape[1], s[2]) )
+
+
+
                         W_img[idx,rc:rc+local_rf_shape[0],
-                          cc:cc+local_rf_shape[1],:] = \
-                              self.rng.uniform(-self.irange,
-                                               self.irange,
-                                               (local_rf_shape[0], local_rf_shape[1], s[2]) )
+                          cc:cc+local_rf_shape[1],:] = local_rf
                         idx += 1
 
 
@@ -383,8 +396,8 @@ class S3C(Model, Block):
         self.init_mu = init_mu
         self.min_mu = np.cast[config.floatX](float(min_mu))
         self.max_mu = np.cast[config.floatX](float(max_mu))
-        self.min_bias_hid = min_bias_hid
-        self.max_bias_hid = max_bias_hid
+        self.min_bias_hid = float(min_bias_hid)
+        self.max_bias_hid = float(max_bias_hid)
         self.recycle_q = recycle_q
         self.tied_B = tied_B
 
@@ -828,7 +841,7 @@ class S3C(Model, Block):
 
         V_mean = T.dot(final_hs_sample, self.W.T)
 
-        warnings.warn('showing conditional means on visible units rather than true samples')
+        warnings.warn('showing conditional means (given sampled h and s) on visible units rather than true samples')
         return V_mean
 
         V_sample = theano_rng.normal( size = V_mean.shape, avg = V_mean, std = self.B)

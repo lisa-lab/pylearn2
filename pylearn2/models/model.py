@@ -225,6 +225,12 @@ class Model(object):
         by the model's `__getstate__` method (unless a particular model
         overrides this method).
         """
+        if isinstance(names, basestring):
+            names = [names]
+        try:
+            assert all(isinstance(n, basestring) for n in iter(names))
+        except (TypeError, AssertionError):
+            raise ValueError('Invalid names argument')
         self.names_to_del = self.names_to_del.union(names)
 
     def set_dtype(self, dtype):

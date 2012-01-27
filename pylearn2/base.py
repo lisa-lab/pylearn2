@@ -10,6 +10,7 @@ import os.path
 import theano
 from theano import tensor
 from theano.sparse import SparseType
+from theano.compile.mode import get_default_mode
 
 # Local imports
 from pylearn2.utils import subdict
@@ -32,6 +33,7 @@ class Block(object):
 
     def __init__(self):
         self.fn = None
+        self.cpu_only = False
 
     def params(self):
         """
@@ -102,7 +104,10 @@ class Block(object):
     def function(self, name=None):
         """ Returns a compiled theano function to compute a representation """
         inputs = tensor.matrix()
-        return theano.function([inputs], self(inputs), name=name)
+        if self.cpu_only:
+            return theano.function([inputs], self(inputs), name=name, mode = get_default_mode().excluding('gpu'))
+        else:
+            return theano.function([inputs], self(inputs), name=name)
 
     def invalid(self):
         return None in self._params
