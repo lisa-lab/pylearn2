@@ -386,7 +386,7 @@ class S3C(Model, Block):
             self.e_step = E_Step(h_new_coeff_schedule = None,
                                 rho = None,
                                 monitor_kl = None,
-                                monitor_em_functional = None,
+                                monitor_energy_functional = None,
                                 clip_reflections = None)
             assert not self.e_step.autonomous
         else:
@@ -437,7 +437,7 @@ class S3C(Model, Block):
 
         if self.debug_m_step:
             warnings.warn('M step debugging activated-- this is only valid for certain settings, and causes a performance slowdown.')
-            self.em_functional_diff = sharedX(0.)
+            self.energy_functional_diff = sharedX(0.)
 
 
         if self.monitor_norms:
@@ -445,15 +445,18 @@ class S3C(Model, Block):
 
         self.redo_theano()
 
-    def em_functional(self, H_hat, S_hat, var_s0_hat, var_s1_hat, stats):
-        """ Returns the em_functional for a single batch of data
+
+    def energy_functional(self, H_hat, S_hat, var_s0_hat, var_s1_hat, stats):
+        """ Returns the energy_functional for a single batch of data
             stats is assumed to be computed from and only from
             the same data points that yielded H """
 
-        entropy_term = (self.entropy_hs(H_hat = H_hat, var_s0_hat = var_s0_hat, var_s1_hat = var_s1_hat)).mean()
+        entropy_term = self.entropy_hs(H_hat = H_hat, var_s0_hat = var_s0_hat, var_s1_hat = var_s1_hat).mean()
         likelihood_term = self.expected_log_prob_vhs(stats, H_hat = H_hat, S_hat = S_hat)
 
         em_functional = likelihood_term + entropy_term
+        assert len(em_functional.type.broadcastable) == 0
+
 
         return em_functional
 
@@ -977,6 +980,7 @@ class S3C(Model, Block):
         assert len(rval.type.broadcastable) == 0
 
         return rval
+
 
     @classmethod
     def expected_log_prob_s_given_h_needed_stats(cls):
