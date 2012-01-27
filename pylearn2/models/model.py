@@ -128,7 +128,14 @@ class Model(object):
 
         Notes
         -----
-        This is the main  mechanism by which generic training algorithms
+        By default, this returns a copy of the _params attribute, which
+        individual models can simply fill with the list of model parameters.
+        Alternatively, models may override `get_params`, so this should
+        be considered the public interface to model parameters -- directly
+        accessing or modifying _params is at-your-own-risk, as it may
+        or may not exist.
+
+        This is the main mechanism by which generic training algorithms
         like SGD know which values to update, however, even model
         parameters that should not be learned ought to be included here,
         so that the model's parameter set is more predictable.
@@ -136,7 +143,7 @@ class Model(object):
         Parameters may be included here but held constant during
         learning via the `censor_updates` method.
         """
-        raise NotImplementedError()
+        return list(self._params)
 
     def get_param_values(self, borrow=False):
         """
