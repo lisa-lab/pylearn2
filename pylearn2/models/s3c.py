@@ -445,6 +445,9 @@ class S3C(Model, Block):
 
         self.redo_theano()
 
+    @classmethod
+    def energy_functional_needed_stats(cls):
+        return S3C.expected_log_prob_vhs_needed_stats()
 
     def energy_functional(self, H_hat, S_hat, var_s0_hat, var_s1_hat, stats):
         """ Returns the energy_functional for a single batch of data
