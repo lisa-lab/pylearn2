@@ -462,14 +462,14 @@ class S3C(Model, Block):
 
         return em_functional
 
-    def energy_functional_batch(self, H_hat, S_hat, var_s0_hat, var_s1_hat, stats):
+    def energy_functional_batch(self, V, H_hat, S_hat, var_s0_hat, var_s1_hat):
         """ Returns the energy_functional for a single batch of data
             stats is assumed to be computed from and only from
             the same data points that yielded H """
 
-        entropy_term = self.entropy_hs(H_hat = H_hat, var_s0_hat = var_s0_hat, var_s1_hat = var_s1_hat).mean()
+        entropy_term = self.entropy_hs(H_hat = H_hat, var_s0_hat = var_s0_hat, var_s1_hat = var_s1_hat)
         assert len(entropy_term.type.broadcastable) == 1
-        likelihood_term = self.expected_log_prob_vhs_batch(stats, H_hat = H_hat, S_hat = S_hat)
+        likelihood_term = self.expected_log_prob_vhs_batch(V = V, H_hat = H_hat, S_hat = S_hat, var_s0_hat = var_s0_hat, var_s1_hat = var_s1_hat)
         assert len(likelihood_term.type.broadcastable) == 1
 
         em_functional = likelihood_term + entropy_term
