@@ -1257,7 +1257,7 @@ class E_Step(object):
 
         rval = {}
 
-        if self.monitor_kl or self.monitor_em_functional or self.monitor_s_mag:
+        if self.monitor_kl or self.monitor_energy_functional or self.monitor_s_mag:
             obs_history = self.model.get_hidden_obs(V, return_history = True)
             assert isinstance(obs_history, list)
 
@@ -1265,7 +1265,7 @@ class E_Step(object):
                 obs = obs_history[i-1]
                 if self.monitor_kl:
                     rval['trunc_KL_'+str(i)] = self.truncated_KL(V, obs).mean()
-                if self.monitor_em_functional:
+                if self.monitor_energy_functional:
                     rval['em_functional_'+str(i)] = self.em_functional(V, self.model, obs).mean()
                 if self.monitor_s_mag:
                     rval['s_mag_'+str(i)] = T.sqrt(T.sum(T.sqr(obs['S_hat'])))
@@ -1277,7 +1277,7 @@ class E_Step(object):
                        s_new_coeff_schedule = None,
                        clip_reflections = False,
                        monitor_kl = False,
-                       monitor_em_functional = False,
+                       monitor_energy_functional = False,
                        monitor_s_mag = False,
                        rho = 0.5):
         """Parameters
@@ -1306,7 +1306,7 @@ class E_Step(object):
             assert s_new_coeff_schedule is None
             assert rho is None
             assert clip_reflections is None
-            assert monitor_em_functional is None
+            assert monitor_energy_functional is None
         else:
             if s_new_coeff_schedule is None:
                 s_new_coeff_schedule = [ 1.0 for rho in h_new_coeff_schedule ]
@@ -1318,7 +1318,7 @@ class E_Step(object):
         self.clip_reflections = clip_reflections
         self.h_new_coeff_schedule = h_new_coeff_schedule
         self.monitor_kl = monitor_kl
-        self.monitor_em_functional = monitor_em_functional
+        self.monitor_energy_functional = monitor_energy_functional
 
         if self.autonomous:
             self.rho = as_floatX(rho)
