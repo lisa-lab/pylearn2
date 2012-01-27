@@ -6,7 +6,7 @@ __maintainer__ = "Ian Goodfellow"
 
 
 import time
-from pylearn2.models.model import Model
+from pylearn2.models import Model
 from theano import config, function, shared
 import theano.tensor as T
 import numpy as np

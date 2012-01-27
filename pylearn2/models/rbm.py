@@ -17,7 +17,7 @@ from theano.tensor import nnet
 # Local imports
 from pylearn2.base import Block, StackedBlocks
 from pylearn2.utils import as_floatX, safe_update, sharedX
-from pylearn2.models.model import Model
+from pylearn2.models import Model
 from pylearn2.optimizer import SGDOptimizer
 theano.config.warn.sum_div_dimshuffle_bug = False
 
