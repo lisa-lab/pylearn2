@@ -13,7 +13,7 @@ import numpy as np
 
 data_dir = string.preprocess('${PYLEARN2_DATA_PATH}/stl10')
 
-print 'Loading STL10-10 unlabeled and train datasets...'
+print 'Loading STL-10 unlabeled and train datasets...'
 downsampled_dir = data_dir + '/stl10_32x32'
 
 data = serial.load(downsampled_dir + '/unlabeled.pkl')
