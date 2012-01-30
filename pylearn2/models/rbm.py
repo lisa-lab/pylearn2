@@ -332,7 +332,7 @@ class RBM(Block, Model):
         ml_cost = (self.free_energy_given_v(pos_v).mean() -
                    self.free_energy_given_v(neg_v).mean())
 
-        grads = tensor.grad(ml_cost, self.params(),
+        grads = tensor.grad(ml_cost, self.get_params(),
                             consider_constant=[pos_v, neg_v])
 
         return grads

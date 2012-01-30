@@ -27,7 +27,7 @@ class SGDOptimizer(Optimizer):
         Parameters
         ----------
         params : object or list
-            Either a Block object with a .params() method, or a list of
+            Either a Model object with a .get_params() method, or a list of
             parameters to be optimized.
         base_lr : float
             The base learning rate before annealing or parameter-specific
@@ -51,8 +51,8 @@ class SGDOptimizer(Optimizer):
         """
         if hasattr(params, '__iter__'):
             self.params = params
-        elif hasattr(params, 'params') and hasattr(params.params, '__call__'):
-            self.params = params.params()
+        elif hasattr(params, 'get_params') and hasattr(params.get_params, '__call__'):
+            self.params = params.get_params()
         else:
             raise ValueError("SGDOptimizer couldn't figure out what to do "
                              "with first argument: '%s'" % str(params))
