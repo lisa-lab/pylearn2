@@ -18,7 +18,7 @@ class NpyDataset(DenseDesignMatrix):
             rather than loading it into memory. See the `numpy.load`
             docstring for details.
         """
-        loaded = numpy.load(file)
+        loaded = numpy.load(file, mmap_mode)
         assert isinstance(loaded, numpy.ndarray), "single arrays (.npy) only"
         if len(loaded.shape) == 2:
             super(NpyDataset, self).__init__(X=loaded)
