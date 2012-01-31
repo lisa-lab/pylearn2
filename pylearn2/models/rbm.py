@@ -19,6 +19,7 @@ from pylearn2.base import Block, StackedBlocks
 from pylearn2.utils import as_floatX, safe_update, sharedX
 from pylearn2.models import Model
 from pylearn2.optimizer import SGDOptimizer
+from pylearn2.expr.basic import theano_norms
 theano.config.warn.sum_div_dimshuffle_bug = False
 
 if 0:
@@ -295,7 +296,20 @@ class RBM(Block, Model):
 
         theano_rng = RandomStreams(42)
 
-        return { 'reconstruction_error' : self.reconstruction_error(V, theano_rng) }
+        norms = theano_norms(self.weights)
+
+        return { 'bias_hid_min' : T.min(self.bias_hid),
+                 'bias_hid_mean' : T.mean(self.bias_hid),
+                 'bias_hid_max' : T.max(self.bias_hid),
+                 'bias_vis_min' : T.min(self.bias_vis),
+                 'bias_vis_mean' : T.mean(self.bias_vis),
+                 'bias_vis_max': T.max(self.bias_vis),
+                 'W_min' : T.min(self.weights),
+                 'W_max' : T.max(self.weights),
+                 'W_norms_min' : T.min(norms),
+                 'W_norms_max' : T.max(norms),
+                 'W_norms_mean' : T.mean(norms),
+                'reconstruction_error' : self.reconstruction_error(V, theano_rng) }
 
     def ml_gradients(self, pos_v, neg_v):
         """
@@ -332,7 +346,7 @@ class RBM(Block, Model):
         ml_cost = (self.free_energy_given_v(pos_v).mean() -
                    self.free_energy_given_v(neg_v).mean())
 
-        grads = tensor.grad(ml_cost, self.params(),
+        grads = tensor.grad(ml_cost, self.get_params(),
                             consider_constant=[pos_v, neg_v])
 
         return grads

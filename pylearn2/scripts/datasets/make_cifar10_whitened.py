@@ -7,7 +7,7 @@ from pylearn2.utils import serial
 from pylearn2.datasets import preprocessing
 from pylearn2.utils import string
 import numpy as np
-from pylearn2.datsets.cifar10 import CIFAR10
+from pylearn2.datasets.cifar10 import CIFAR10
 
 data_dir = string.preprocess('${PYLEARN2_DATA_PATH}/cifar10')
 
