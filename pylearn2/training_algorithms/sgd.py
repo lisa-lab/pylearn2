@@ -354,3 +354,66 @@ class MonitorBasedTermCrit(object):
         if len(v) < self.N:
             return True
         return v[- 1] < (1. - self.prop_decrease) * v[-self.N]
+
+
+class EpochCounter(object):
+    def  __init__(self, max_epochs):
+        """
+        A termination criterion that uses internal state to
+        trigger termination after a fixed number of calls
+        (epochs).
+
+        Parameters
+        ----------
+        max_epochs : int
+            Number of epochs (i.e. calls to this object's `__call__`
+           method) for which this termination criterion should
+           return `True`.
+        """
+        self._max_epochs = max_epochs
+        self._epochs_done = 0
+
+    def __call__(self, model):
+        self._epochs_done += 1
+        return self._epochs_done < self._max_epochs
+
+
+# This might be worth rolling into the SGD logic directly at some point.
+class ConjunctionCriterion(object):
+    def __init__(self, criteria):
+        """
+        Termination criterion representing the logical conjunction
+        of several individual criteria. Optimization continues only
+        if every constituent criterion returns `True`.
+
+        Parameters
+        ----------
+        criteria : iterable
+            A sequence of callables representing termination criteria,
+            with a return value of True indicating that the gradient
+            descent should continue.
+        """
+        self._criteria = list(criteria)
+
+    def __call__(self, model):
+        return all(criterion(model) for criterion in self._criteria)
+
+
+class DisjunctionCriterion(object):
+    def __init__(self, criteria):
+        """
+        Termination criterion representing the logical disjunction
+        of several individual criteria. Optimization continues if
+        any of the constituent criteria return `True`.
+
+        Parameters
+        ----------
+        criteria : iterable
+            A sequence of callables representing termination criteria,
+            with a return value of True indicating that gradient
+            descent should continue.
+        """
+        self._criteria = list(criteria)
+
+    def __call__(self, model):
+        return any(criterion(model) for criterion in self._criteria)
