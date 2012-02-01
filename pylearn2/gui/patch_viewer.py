@@ -69,6 +69,10 @@ class PatchViewer(object):
 
     #0 is perfect gray. If not rescale, assumes images are in [-1,1]
     def add_patch(self, patch, rescale=True, recenter=False, activation=None):
+        """
+        :param recenter: if patch has smaller dimensions than self.patch, recenter will pad the
+        image to the appropriate size before displaying.
+        """
         if (patch.min() == patch.max()) and (rescale or patch.min() == 0.0):
             print "Warning: displaying totally blank patch"
 
