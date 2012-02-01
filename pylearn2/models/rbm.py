@@ -17,8 +17,9 @@ from theano.tensor import nnet
 # Local imports
 from pylearn2.base import Block, StackedBlocks
 from pylearn2.utils import as_floatX, safe_update, sharedX
-from pylearn2.models.model import Model
+from pylearn2.models import Model
 from pylearn2.optimizer import SGDOptimizer
+from pylearn2.expr.basic import theano_norms
 theano.config.warn.sum_div_dimshuffle_bug = False
 
 if 0:
@@ -191,7 +192,9 @@ class RBM(Block, Model):
 
     """
     def __init__(self, nvis, nhid, irange=0.5, rng=None, init_bias_vis = 0.0, init_bias_hid=0.0,
-            base_lr = 1e-3, anneal_start = None, nchains = 100, sml_gibbs_steps = 1):
+            base_lr = 1e-3, anneal_start = None, nchains = 100, sml_gibbs_steps = 1,
+            random_patches_src = None,
+            monitor_reconstruction = False):
 
         """
         Construct an RBM object.
@@ -211,6 +214,10 @@ class RBM(Block, Model):
             Initial value of the visible biases, broadcasted as necessary.
         init_bias_hid : array_like, optional
             initial value of the hidden biases, broadcasted as necessary.
+        monitor_reconstruction : if True, will request a monitoring channel to monitor
+            reconstruction error
+        random_patches_src: Either None, or a Dataset from which to draw random patches
+            in order to initialize the weights. Patches will be multiplied by irange
 
         Parameters for default SML learning rule:
 
@@ -244,12 +251,26 @@ class RBM(Block, Model):
             raise ValueError('bad shape or value for init_bias_hid')
         self.bias_hid = sharedX(b_hid, name='bias_hid', borrow=True)
 
+        self.random_patches_src = random_patches_src
+        self.register_names_to_del(['random_patches_src'])
+
+        if random_patches_src is None:
+            W = rng.uniform(-irange, irange, (nvis, nhid))
+        else:
+            if hasattr(random_patches_src, '__array__'):
+                W = irange * random_patches_src.T
+                assert W.shape == (nvis, nhid)
+            else:
+                #assert type(irange) == type(0.01)
+                #assert irange == 0.01
+                W = irange * random_patches_src.get_batch_design(nhid).T
 
         self.weights = sharedX(
-            rng.uniform(-irange, irange, (nvis, nhid)),
+            W,
             name='W',
             borrow=True
         )
+
         self.__dict__.update(nhid=nhid, nvis=nvis)
         self._params = [self.bias_vis, self.bias_hid, self.weights]
 
@@ -269,6 +290,26 @@ class RBM(Block, Model):
 
     def get_weights_format(self):
         return ['v', 'h']
+
+
+    def get_monitoring_channels(self, V):
+
+        theano_rng = RandomStreams(42)
+
+        norms = theano_norms(self.weights)
+
+        return { 'bias_hid_min' : T.min(self.bias_hid),
+                 'bias_hid_mean' : T.mean(self.bias_hid),
+                 'bias_hid_max' : T.max(self.bias_hid),
+                 'bias_vis_min' : T.min(self.bias_vis),
+                 'bias_vis_mean' : T.mean(self.bias_vis),
+                 'bias_vis_max': T.max(self.bias_vis),
+                 'W_min' : T.min(self.weights),
+                 'W_max' : T.max(self.weights),
+                 'W_norms_min' : T.min(norms),
+                 'W_norms_max' : T.max(norms),
+                 'W_norms_mean' : T.mean(norms),
+                'reconstruction_error' : self.reconstruction_error(V, theano_rng) }
 
     def ml_gradients(self, pos_v, neg_v):
         """
@@ -305,7 +346,7 @@ class RBM(Block, Model):
         ml_cost = (self.free_energy_given_v(pos_v).mean() -
                    self.free_energy_given_v(neg_v).mean())
 
-        grads = tensor.grad(ml_cost, self.params(),
+        grads = tensor.grad(ml_cost, self.get_params(),
                             consider_constant=[pos_v, neg_v])
 
         return grads
@@ -321,7 +362,9 @@ class RBM(Block, Model):
         if not hasattr(self, 'learn_func'):
             self.redo_theano()
 
-        return self.learn_func(X)
+        rval =  self.learn_func(X)
+
+        return rval
 
     def redo_theano(self):
         """ Compiles the theano function for the default learning rule """
@@ -564,7 +607,8 @@ class RBM(Block, Model):
 
     def reconstruction_error(self, v, rng):
         """
-        Compute the mean-squared error across a minibatch after a Gibbs
+        Compute the mean-squared error (mean over examples, sum over units)
+        across a minibatch after a Gibbs
         step starting from the training data.
 
         Parameters

@@ -1,15 +1,14 @@
 """Base class for the components in other modules."""
 # Standard library imports
-import inspect
-
-# Standard library imports
 import cPickle
+import inspect
 import os.path
 
 # Third-party imports
 import theano
 from theano import tensor
 from theano.sparse import SparseType
+from theano.compile.mode import get_default_mode
 
 # Local imports
 from pylearn2.utils import subdict
@@ -28,29 +27,9 @@ class Block(object):
     """
     Basic building block for deep architectures.
     """
-
-
     def __init__(self):
         self.fn = None
-
-    def params(self):
-        """
-        Get the list of learnable parameters in a Block.
-
-        Returns
-        -------
-        param_list : list of shared variables
-            A list of *shared* learnable parameters that are, in the
-            implementor's judgment, typically learned in this model.
-        """
-        # NOTE: We return list(self._params) rather than self._params
-        # in order to explicitly make a copy, so that the list isn't
-        # absentmindedly modified. If a user really knows what they're
-        # doing they can modify self._params.
-        if None in self._params:
-            raise ValueError('some parameters of %s not initialized' %
-                             str(self))
-        return list(self._params)
+        self.cpu_only = False
 
     def __call__(self, inputs):
         raise NotImplementedError('__call__')
@@ -102,10 +81,11 @@ class Block(object):
     def function(self, name=None):
         """ Returns a compiled theano function to compute a representation """
         inputs = tensor.matrix()
-        return theano.function([inputs], self(inputs), name=name)
-
-    def invalid(self):
-        return None in self._params
+        if self.cpu_only:
+            return theano.function([inputs], self(inputs), name=name,
+                                   mode=get_default_mode().excluding('gpu'))
+        else:
+            return theano.function([inputs], self(inputs), name=name)
 
     def perform(self, X):
         if self.fn is None:

@@ -13,9 +13,11 @@ def make_viewer(mat, grid_shape=None, patch_shape=None, activation=None, pad=Non
         num_channels = 3
 
     if grid_shape is None:
-        grid_shape = PatchViewer.pickSize(mat.shape[0] )
+        grid_shape = PatchViewer.pick_shape(mat.shape[0] )
     if patch_shape is None:
-        patch_shape = PatchViewer.pickSize(mat.shape[1] / num_channels)
+        assert mat.shape[1] % num_channels == 0
+        patch_shape = PatchViewer.pick_shape(mat.shape[1] / num_channels, exact = True)
+        assert patch_shape[0] * patch_shape[1] * num_channels == mat.shape[1]
     rval = PatchViewer(grid_shape, patch_shape, pad=pad)
     topo_shape = (patch_shape[0], patch_shape[1], num_channels)
     view_converter = DefaultViewConverter(topo_shape)
@@ -194,9 +196,36 @@ class PatchViewer(object):
     def save(self, path):
         self.get_img().save(path)
 
-    def pickSize(n):
+    def pick_shape(n, exact = False):
+        """
+        Returns a shape that fits n elements.
+        If exact, fits exactly n elements
+        """
+
+        if exact:
+
+            best_r = -1
+            best_c = -1
+            best_ratio = 0
+
+            for r in xrange(1,int(N.sqrt(n))):
+                if n % r != 0:
+                    continue
+                c = n / r
+
+                ratio = min( float(r)/float(c), float(c)/float(r) )
+
+                if ratio > best_ratio:
+                    best_ratio = ratio
+                    best_r = r
+                    best_c = c
+
+            return (best_r, best_c)
+
+
         r = c = int(N.floor(N.sqrt(n)))
         while r * c < n:
             c += 1
         return (r, c)
-    pickSize = staticmethod(pickSize)
+    pick_shape = staticmethod(pick_shape)
+

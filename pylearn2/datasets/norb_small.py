@@ -9,7 +9,7 @@ class NORBSmall(dense_design_matrix.DenseDesignMatrix):
     """
     A pylearn2 dataset object for the small NORB dataset (v1.0).
     """
-  
+
     @classmethod
     def load(cls, which_set, desc):
 
@@ -17,7 +17,7 @@ class NORBSmall(dense_design_matrix.DenseDesignMatrix):
 
         base = '%s/norb_small/original/smallnorb-' % os.getenv('PYLEARN2_DATA_PATH')
         if which_set == 'train':
-            base += '5x46789x9x18x6x2x96x96-training' 
+            base += '5x46789x9x18x6x2x96x96-training'
         else:
             base += '5x01235x9x18x6x2x96x96-testing'
 
@@ -62,7 +62,7 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
 
         base = '%s/norb_small/foveated/smallnorb-' % os.getenv('PYLEARN2_DATA_PATH')
         if which_set == 'train':
-            base += '5x46789x9x18x6x2x96x96-training-dat' 
+            base += '5x46789x9x18x6x2x96x96-training-dat'
         else:
             base += '5x01235x9x18x6x2x96x96-testing-dat'
 

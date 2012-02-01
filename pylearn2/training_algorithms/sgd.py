@@ -3,9 +3,13 @@ from theano import function
 import theano.tensor as T
 from warnings import warn
 from pylearn2.monitor import Monitor
+from pylearn2.utils.iteration import BatchIterator
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 
 
+# TODO: This needs renaming based on specifics. Specifically it needs
+# "unsupervised" in its name, and some sort of qualification based on
+# its slightly unorthodox batch selection strategy.
 class SGD(TrainingAlgorithm):
     """Stochastic Gradient Descent with an optional validation set
     for error monitoring.
@@ -21,6 +25,32 @@ class SGD(TrainingAlgorithm):
                  monitoring_dataset=None, termination_criterion=None,
                  learning_rate_adjuster=None):
         """
+        Instantiates an SGD object.
+
+        Parameters
+        ----------
+        learning_rate : float
+            The stochastic gradient step size, relative to your cost
+            function.
+        cost : object
+            An object implementing the pylearn2 cost interface.
+        batch_size : int, optional
+            Batch size per update. TODO: What if this is not provided?
+        batches_per_iter : int, optional
+            How many batch updates per epoch. Default is 1000.
+            TODO: Is there any way to specify "as many as the dataset
+            provides"?
+        monitoring_batches : int, optional
+            WRITEME
+        monitoring_dataset : object, optional
+            WRITEME
+        termination_criterion : object, optional
+            WRITEME
+        learning_rate_adjuster : object, optional
+            WRITEME
+
+        Notes
+        -----
         TODO: for now, learning_rate is just a float, but later it
         should support passing in a class that dynamically adjusts the
         learning rate if batch_size is None, reverts to the
@@ -44,7 +74,19 @@ class SGD(TrainingAlgorithm):
         self.first = True
 
     def setup(self, model, dataset):
-        """ Should be called once before calls to train """
+        """
+        Initialize the training algorithm. Should be called
+        once before calls to train.
+
+        Parameters
+        ----------
+        model : object
+            Model to be trained.  Object implementing the pylearn2 Model
+            interface.
+        dataset : object
+            Dataset on which to train.  Object implementing the
+            pylearn2 Dataset interface.
+        """
 
         self.model = model
 
@@ -148,6 +190,103 @@ class SGD(TrainingAlgorithm):
             return self.termination_criterion(self.model)
 
 
+class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
+    def __init__(self, learning_rate, cost, batch_size=None,
+                 monitoring_batches=None, monitoring_dataset=None,
+                 termination_criterion=None):
+        self.learning_rate = float(learning_rate)
+        self.cost = cost
+        self.batch_size = batch_size
+        self.monitoring_dataset = monitoring_dataset
+        self.monitoring_batches = monitoring_batches
+        self.termination_criterion = termination_criterion
+        self.learning_rate_adjuster = None
+        self.first = False
+
+    def setup(self, model, dataset):
+        self.model = model
+        self.monitor = Monitor.get_monitor(model)
+        self.monitor.set_dataset(dataset=self.monitoring_dataset,
+                                 batches=self.monitoring_batches,
+                                 batch_size=self.batch_size)
+        X = T.matrix(name="%s(X)" % self.__class__.__name__)
+        cost_value = self.cost(model, X)
+        if cost_value.name is None:
+            cost_value.name = 'sgd_cost(' + X.name + ')'
+        self.monitor.add_channel(name=cost_value.name, ipt=X, val=cost_value)
+        params = model.get_params()
+        for i, param in enumerate(params):
+            if param.name is None:
+                param.name = 'sgd_params[%d]' % i
+        grads = dict(zip(params, T.grad(cost_value, params)))
+        for param in grads:
+            if grads[param].name is None:
+                grads[param].name = ('grad(%(costname)s, %(paramname)s)' %
+                                     {'costname': cost_value.name,
+                                      'paramname': param.name})
+        learning_rate = T.scalar('sgd_learning_rate')
+        updates = dict(zip(params, [param - learning_rate * grads[param]
+                                    for param in params]))
+        for param in updates:
+            if updates[param].name is None:
+                updates[param].name = 'sgd_update(' + param.name + ')'
+        model.censor_updates(updates)
+        for param in updates:
+            if updates[param] is None:
+                updates[param].name = 'censor(sgd_update(' + param.name + '))'
+
+        self.sgd_update = function([X, learning_rate], updates=updates,
+                                   name='sgd_update')
+        self.params = params
+        num_examples = dataset.get_design_matrix().shape[0]
+        self.slice_iterator = BatchIterator(num_examples, self.batch_size)
+
+    def train(self, dataset):
+        if not hasattr(self, 'sgd_update'):
+            raise Exception("train called without first calling setup")
+        model = self.model
+        if self.batch_size is None:
+            try:
+                batch_size = model.force_batch_size
+            except AttributeError:
+                raise ValueError("batch_size unspecified in both training "
+                                 "procedure and model")
+        else:
+            batch_size = self.batch_size
+            if hasattr(model, "force_batch_size"):
+                assert (model.force_batch_size <= 0 or
+                        batch_size == model.force_batch_size), (
+                            # TODO: more informative assertion error
+                            "invalid force_batch_size attribute"
+                        )
+        for param in self.params:
+            value = param.get_value(borrow=True)
+            if np.any(np.isnan(value)) or np.any(np.isinf(value)):
+                raise Exception("NaN in " + param.name)
+        if self.first:
+            self.monitor()
+        self.first = False
+        design_matrix = dataset.get_design_matrix()
+        # TODO: add support for reshuffling examples.
+        for batch_slice in self.slice_iterator:
+            batch = design_matrix[batch_slice]
+            self.sgd_update(batch, self.learning_rate)
+            self.monitor.batches_seen += 1
+            self.monitor.examples_seen += batch_size
+        self.slice_iterator.reset()
+        self.monitor()
+
+        if self.learning_rate_adjuster is not None:
+            self.learning_rate = self.learning_rate_adjuster(
+                self.learning_rate,
+                self.model
+            )
+        if self.termination_criterion is None:
+            return True
+        else:
+            return self.termination_criterion(self.model)
+
+
 class MonitorBasedLRAdjuster(object):
     """A learning rate adjuster that pulls out the only channel
     in the model's monitor (this won't work for multiple-channel
@@ -215,3 +354,66 @@ class MonitorBasedTermCrit(object):
         if len(v) < self.N:
             return True
         return v[- 1] < (1. - self.prop_decrease) * v[-self.N]
+
+
+class EpochCounter(object):
+    def  __init__(self, max_epochs):
+        """
+        A termination criterion that uses internal state to
+        trigger termination after a fixed number of calls
+        (epochs).
+
+        Parameters
+        ----------
+        max_epochs : int
+            Number of epochs (i.e. calls to this object's `__call__`
+           method) for which this termination criterion should
+           return `True`.
+        """
+        self._max_epochs = max_epochs
+        self._epochs_done = 0
+
+    def __call__(self, model):
+        self._epochs_done += 1
+        return self._epochs_done < self._max_epochs
+
+
+# This might be worth rolling into the SGD logic directly at some point.
+class ConjunctionCriterion(object):
+    def __init__(self, criteria):
+        """
+        Termination criterion representing the logical conjunction
+        of several individual criteria. Optimization continues only
+        if every constituent criterion returns `True`.
+
+        Parameters
+        ----------
+        criteria : iterable
+            A sequence of callables representing termination criteria,
+            with a return value of True indicating that the gradient
+            descent should continue.
+        """
+        self._criteria = list(criteria)
+
+    def __call__(self, model):
+        return all(criterion(model) for criterion in self._criteria)
+
+
+class DisjunctionCriterion(object):
+    def __init__(self, criteria):
+        """
+        Termination criterion representing the logical disjunction
+        of several individual criteria. Optimization continues if
+        any of the constituent criteria return `True`.
+
+        Parameters
+        ----------
+        criteria : iterable
+            A sequence of callables representing termination criteria,
+            with a return value of True indicating that gradient
+            descent should continue.
+        """
+        self._criteria = list(criteria)
+
+    def __call__(self, model):
+        return any(criterion(model) for criterion in self._criteria)

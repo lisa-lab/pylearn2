@@ -43,7 +43,7 @@ class ExtractGridPatches(object):
             data_width = X.shape[i+1]
             last_valid_coord = data_width - patch_width
             if last_valid_coord < 0:
-                raise ValueError('On topological dimensions '+str(i)+\
+                raise ValueError('On topological dimension '+str(i)+\
                         ', the data has width '+str(data_width)+' but the '+\
                         'requested patch width is '+str(patch_width))
             stride = self.patch_stride[i]
