@@ -1238,18 +1238,19 @@ class E_Step(object):
 
         rval = {}
 
-        if self.monitor_kl or self.monitor_energy_functional or self.monitor_s_mag:
-            obs_history = self.model.get_hidden_obs(V, return_history = True)
-            assert isinstance(obs_history, list)
+        if self.autonomous:
+            if self.monitor_kl or self.monitor_energy_functional or self.monitor_s_mag:
+                obs_history = self.model.get_hidden_obs(V, return_history = True)
+                assert isinstance(obs_history, list)
 
-            for i in xrange(1, 2 + len(self.h_new_coeff_schedule)):
-                obs = obs_history[i-1]
-                if self.monitor_kl:
-                    rval['trunc_KL_'+str(i)] = self.truncated_KL(V, obs).mean()
-                if self.monitor_energy_functional:
-                    rval['em_functional_'+str(i)] = self.em_functional(V, self.model, obs).mean()
-                if self.monitor_s_mag:
-                    rval['s_mag_'+str(i)] = T.sqrt(T.sum(T.sqr(obs['S_hat'])))
+                for i in xrange(1, 2 + len(self.h_new_coeff_schedule)):
+                    obs = obs_history[i-1]
+                    if self.monitor_kl:
+                        rval['trunc_KL_'+str(i)] = self.truncated_KL(V, obs).mean()
+                    if self.monitor_energy_functional:
+                        rval['em_functional_'+str(i)] = self.em_functional(V, self.model, obs).mean()
+                    if self.monitor_s_mag:
+                        rval['s_mag_'+str(i)] = T.sqrt(T.sum(T.sqr(obs['S_hat'])))
 
         return rval
 
