@@ -298,12 +298,19 @@ class RBM(Block, Model):
 
         norms = theano_norms(self.weights)
 
+        H = self.mean_h_given_v(V)
+
+        h = H.mean(axis=0)
+
         return { 'bias_hid_min' : T.min(self.bias_hid),
                  'bias_hid_mean' : T.mean(self.bias_hid),
                  'bias_hid_max' : T.max(self.bias_hid),
                  'bias_vis_min' : T.min(self.bias_vis),
                  'bias_vis_mean' : T.mean(self.bias_vis),
                  'bias_vis_max': T.max(self.bias_vis),
+                 'h_min' : T.min(h),
+                 'h_mean': T.mean(h),
+                 'h_max' : T.max(h),
                  'W_min' : T.min(self.weights),
                  'W_max' : T.max(self.weights),
                  'W_norms_min' : T.min(norms),

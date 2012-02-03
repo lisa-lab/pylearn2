@@ -275,11 +275,16 @@ class DBM(Model):
 
     def get_params(self):
         rval = set([self.bias_vis])
+        if self.bias_vis.name is None:
+            warnings.warn('whoa, for some reason bias_vis was unnamed')
+            self.bias_vis.name = 'dbm_bias_vis'
 
         assert len(self.W) == len(self.bias_hid)
 
         for i in xrange(len(self.W)):
             rval = rval.union(set([ self.W[i], self.bias_hid[i]]))
+            assert self.W[i].name is not None
+            assert self.bias_hid[i].name is not None
 
         rval = list(rval)
 

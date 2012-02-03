@@ -285,13 +285,31 @@ class MakeUnitNorm(object):
         dataset.set_design_matrix(X)
 
 class RemoveMean(object):
-    def __init__(self):
-        pass
+    def __init__(self, axis=0):
+        self.axis=axis
 
     def apply(self, dataset, can_fit):
         X = dataset.get_design_matrix()
-        X -= X.mean(axis=0)
+        X -= X.mean(axis=self.axis)
         dataset.set_design_matrix(X)
+
+class Standardize(object):
+
+    def __init__(self, global_mean=False, global_std=False, std_eps=1e-4):
+        self.global_mean= global_mean
+        self.global_std = global_std
+        self.std_eps = std_eps
+
+    def apply(self, dataset, can_fit):
+        X = dataset.get_design_matrix()
+
+        # remove mean across all dataset, or along each dimension
+        mean= np.mean(X) if self.global_mean else np.mean(X, axis=0)
+        # divide by std across all dataset, or along each dimension
+        std = np.std(X)  if self.global_std  else np.std(X, axis=0)
+
+        dataset.set_design_matrix( (X - mean) / (self.std_eps + std) )
+
 
 class RemapInterval(object):
     def __init__(self, map_from, map_to):
