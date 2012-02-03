@@ -122,11 +122,7 @@
         # the learning rate if the objective goes up and increase the learning
         # rate if the objective decreases too slowly. This makes our learning
         # rate hyperparameter less important to get right.
-        #
-        # At present one "update callback" is supported; in the future we
-        # intend to support iterable collection of update callbacks that
-        # are executed in sequence.
-        "update_callback" : !obj:pylearn2.training_algorithms.sgd.MonitorBasedLRAdjuster {}
+        "update_callbacks" : !obj:pylearn2.training_algorithms.sgd.MonitorBasedLRAdjuster {}
         },
     # This is where we'll save the model
     "save_path": "cifar_grbm_smd.pkl"
