@@ -203,10 +203,14 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
     def setup(self, model, dataset):
         self.model = model
         self.monitor = Monitor.get_monitor(model)
+        # TODO: monitoring batch size ought to be configurable
+        # separately from training batch size, e.g. if you would rather
+        # monitor on one somewhat big batch but update on many small
+        # batches.
         self.monitor.set_dataset(dataset=self.monitoring_dataset,
                                  batches=self.monitoring_batches,
                                  batch_size=self.batch_size)
-        X = T.matrix(name="%s(X)" % self.__class__.__name__)
+        X = T.matrix(name="%s[X]" % self.__class__.__name__)
         cost_value = self.cost(model, X)
         if cost_value.name is None:
             cost_value.name = 'sgd_cost(' + X.name + ')'
