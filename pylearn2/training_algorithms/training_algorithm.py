@@ -3,6 +3,17 @@ class TrainingAlgorithm(object):
     An abstract superclass that defines the interface of training
     algorithms.
     """
+    def _register_update_callbacks(self, update_callbacks):
+        if update_callbacks is None:
+            update_callbacks = []
+        # If it's iterable, we're fine. If not, it's a single callback,
+        # so wrap it in a list.
+        try:
+            iter(update_callbacks)
+            self.update_callbacks = update_callbacks
+        except TypeError:
+            self.update_callbacks = [update_callbacks]
+
     def setup(self, model, dataset):
         """
         Initialize the given training algorithm.
