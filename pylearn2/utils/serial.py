@@ -124,24 +124,28 @@ def save(filepath, obj):
 
 
 def _save(filepath, obj):
+    try:
+        import joblib
+        joblib_available = True
+    except ImportError:
+        joblib_available = False
     if filepath.endswith('.npy'):
         np.save(filepath, obj)
         return
     assert filepath.endswith('.pkl')
-
-
+    save_dir = os.path.dirname(filepath)
+    if not os.path.exists(save_dir) or not os.path.isdir(save_dir):
+        raise IOError("save path %s is not an existing directory" % save_dir)
+    elif not os.access(filepath, os.W_OK):
+        raise IOError("permission error creating %s" % filepath)
     try:
-        f = open(filepath, "wb")
-    except Exception, e:
-        raise Exception('failed to open ' +
-                        str(filepath) +
-                        ' for writing, error is ' + str(e))
-    try:
-        cPickle.dump(obj, f)
-        f.close()
+        if joblib_available:
+            joblib.dump(obj, filepath)
+        else:
+            with open(filepath, 'wb') as filehandle:
+                cPickle.dump(obj, filehandle)
     except Exception, e:
         print "exception occurred"
-        f.close()
         if str(e).find('maximum recursion depth exceeded') != -1:
             raise
         try:
@@ -188,6 +192,7 @@ def _save(filepath, obj):
                ' was written by pickle instead of cPickle, due to '
                + str(e) +
                ' (perhaps your object is really big?)')
+
 
 def clone_via_serialize(obj):
     str = cPickle.dumps(obj)
