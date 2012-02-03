@@ -203,10 +203,6 @@ def to_string(obj):
     return cPickle.dumps(obj)
 
 
-def parent_dir(filepath):
-    return '/'.join(filepath.split('/')[:-1])
-
-
 def mkdir(filepath):
     try:
         os.makedirs(filepath)
