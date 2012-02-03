@@ -1,3 +1,4 @@
+from __future__ import division
 import numpy as np
 from theano import function
 import theano.tensor as T
@@ -371,6 +372,22 @@ class EpochCounter(object):
     def __call__(self, model):
         self._epochs_done += 1
         return self._epochs_done < self._max_epochs
+
+
+class AnnealedLearningRate(object):
+    def __init__(self, anneal_start):
+        self._initialized = False
+        self._count = 0
+        self._anneal_start = anneal_start
+
+    def __call__(self, algorithm):
+        if not self._initialized:
+            self._base = algorithm.learning_rate
+        self._count += 1
+        algorithm.learning_rate = self.current_learning_rate()
+
+    def current_learning_rate(self):
+        return self._base * max(1, self._anneal_start / self._count)
 
 
 # This might be worth rolling into the SGD logic directly at some point.
