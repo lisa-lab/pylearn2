@@ -1,6 +1,6 @@
 from __future__ import division
 import numpy as np
-from theano import function
+from theano import function, config
 import theano.tensor as T
 from warnings import warn
 from pylearn2.monitor import Monitor
@@ -270,7 +270,7 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
         design_matrix = dataset.get_design_matrix()
         # TODO: add support for reshuffling examples.
         for batch_slice in self.slice_iterator:
-            batch = design_matrix[batch_slice]
+            batch = np.cast[config.floatX](design_matrix[batch_slice])
             self.sgd_update(batch, self.learning_rate)
             self.monitor.batches_seen += 1
             self.monitor.examples_seen += batch_size
