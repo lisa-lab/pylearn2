@@ -438,10 +438,10 @@ class S3C(Model, Block):
         entropy_term = self.entropy_hs(H_hat = H_hat, var_s0_hat = var_s0_hat, var_s1_hat = var_s1_hat).mean()
         likelihood_term = self.expected_log_prob_vhs(stats, H_hat = H_hat, S_hat = S_hat)
 
-        em_functional = likelihood_term + entropy_term
-        assert len(em_functional.type.broadcastable) == 0
+        energy_functional = likelihood_term + entropy_term
+        assert len(energy_functional.type.broadcastable) == 0
 
-        return em_functional
+        return energy_functional
 
     def energy_functional_batch(self, V, H_hat, S_hat, var_s0_hat, var_s1_hat):
         """ Returns the energy_functional for a single batch of data
@@ -453,10 +453,10 @@ class S3C(Model, Block):
         likelihood_term = self.expected_log_prob_vhs_batch(V = V, H_hat = H_hat, S_hat = S_hat, var_s0_hat = var_s0_hat, var_s1_hat = var_s1_hat)
         assert len(likelihood_term.type.broadcastable) == 1
 
-        em_functional = likelihood_term + entropy_term
-        assert len(em_functional.type.broadcastable) == 1
+        energy_functional = likelihood_term + entropy_term
+        assert len(energy_functional.type.broadcastable) == 1
 
-        return em_functional
+        return energy_functional
 
     def set_monitoring_channel_prefix(self, prefix):
         self.monitoring_channel_prefix = prefix
@@ -475,7 +475,7 @@ class S3C(Model, Block):
                 rval.update(from_e_step)
 
                 if self.debug_m_step:
-                    rval['m_step_diff'] = self.em_functional_diff
+                    rval['m_step_diff'] = self.energy_functional_diff
 
                 monitor_stats = len(self.monitor_stats) > 0
 
@@ -497,10 +497,10 @@ class S3C(Model, Block):
                     var_s1_hat = obs['var_s1_hat']
 
                     if self.monitor_functional:
-                        em_functional = self.em_functional(H_hat = H_hat, S_hat = S_hat, var_s0_hat = var_s0_hat,
+                        energy_functional = self.energy_functional(H_hat = H_hat, S_hat = S_hat, var_s0_hat = var_s0_hat,
                                 var_s1_hat = var_s1_hat, stats = stats)
 
-                        rval['em_functional'] = em_functional
+                        rval['energy_functional'] = energy_functional
 
                     if monitor_stats:
                         for stat in self.monitor_stats:
@@ -734,7 +734,7 @@ class S3C(Model, Block):
         self.censor_updates(learning_updates)
 
         if self.debug_m_step:
-            em_functional_before = self.em_functional(H = hidden_obs['H'],
+            energy_functional_before = self.energy_functional(H = hidden_obs['H'],
                                                       var_s0_hat = hidden_obs['var_s0_hat'],
                                                       var_s1_hat = hidden_obs['var_s1_hat'],
                                                       stats = stats)
@@ -754,7 +754,7 @@ class S3C(Model, Block):
             self.make_pseudoparams()
 
             try:
-                em_functional_after  = self.em_functional(H_hat = hidden_obs['H_hat'],
+                energy_functional_after  = self.energy_functional(H_hat = hidden_obs['H_hat'],
                                                           var_s0_hat = hidden_obs['var_s0_hat'],
                                                           var_s1_hat = hidden_obs['var_s1_hat'],
                                                           stats = stats)
@@ -766,9 +766,9 @@ class S3C(Model, Block):
                 self.B_driver = tmp_B_driver
                 self.make_pseudoparams()
 
-            em_functional_diff = em_functional_after - em_functional_before
+            energy_functional_diff = energy_functional_after - energy_functional_before
 
-            learning_updates[self.em_functional_diff] = em_functional_diff
+            learning_updates[self.energy_functional_diff] = energy_functional_diff
 
 
 
@@ -1161,7 +1161,7 @@ class S3C(Model, Block):
             self.print_status()
 
         if self.debug_m_step:
-            if self.em_functional_diff.get_value() < 0.0:
+            if self.energy_functional_diff.get_value() < 0.0:
                 warnings.warn( "m step decreased the em functional" )
                 if self.debug_m_step != 'warn':
                     quit(-1)
@@ -1248,7 +1248,7 @@ class E_Step(object):
                     if self.monitor_kl:
                         rval['trunc_KL_'+str(i)] = self.truncated_KL(V, obs).mean()
                     if self.monitor_energy_functional:
-                        rval['em_functional_'+str(i)] = self.em_functional(V, self.model, obs).mean()
+                        rval['energy_functional_'+str(i)] = self.energy_functional(V, self.model, obs).mean()
                     if self.monitor_s_mag:
                         rval['s_mag_'+str(i)] = T.sqrt(T.sum(T.sqr(obs['S_hat'])))
 
@@ -1309,7 +1309,7 @@ class E_Step(object):
 
         self.model = None
 
-    def em_functional(self, V, model, obs):
+    def energy_functional(self, V, model, obs):
         """ Return value is a scalar """
         #TODO: refactor so that this is shared between E-steps
 
@@ -1326,9 +1326,9 @@ class E_Step(object):
         entropy_term = (model.entropy_hs(H_hat = H_hat, var_s0_hat = var_s0_hat, var_s1_hat = var_s1_hat)).mean()
         likelihood_term = model.expected_log_prob_vhs(stats, H_hat = H_hat, S_hat = S_hat)
 
-        em_functional = entropy_term + likelihood_term
+        energy_functional = entropy_term + likelihood_term
 
-        return em_functional
+        return energy_functional
 
     def register_model(self, model):
         self.model = model
