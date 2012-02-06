@@ -391,7 +391,7 @@ class AnnealedLearningRate(object):
         algorithm.learning_rate = self.current_learning_rate()
 
     def current_learning_rate(self):
-        return self._base * max(1, self._anneal_start / self._count)
+        return self._base * max(1, self._count / self._anneal_start)
 
 
 # This might be worth rolling into the SGD logic directly at some point.
