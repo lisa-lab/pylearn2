@@ -198,7 +198,7 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
         self.monitoring_batches = monitoring_batches
         self.termination_criterion = termination_criterion
         self._register_update_callbacks(update_callbacks)
-        self.first = False
+        self.first = True
 
     def setup(self, model, dataset):
         self.model = model
