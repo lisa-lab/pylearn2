@@ -44,6 +44,14 @@ def get_weights_report(model_path = None, model = None, rescale = 'individual', 
         raise ValueError('rescale='+rescale+", must be 'none', 'global', or 'individual'")
 
 
+    if isinstance(model, dict):
+        #assume this was a saved matlab dictionary
+        del model['__version__']
+        del model['__header__']
+        del model['__globals__']
+        weights ,= model.values()
+
+        return patch_viewer.make_viewer(weights, is_color = weights.shape[1] % 3 == 0)
 
     if dataset is None:
         print 'loading dataset...'
