@@ -70,11 +70,11 @@ def get_weights_report(model_path = None, model = None, rescale = 'individual', 
         W = model.weightsShared.get_value()
 
     if 'W' in dir(model):
-        if hasattr(p.W,'__array__'):
+        if hasattr(model.W,'__array__'):
             warnings.warn('model.W is an ndarray; I can figure out how to display this but that seems like a sign of a bad bug')
-            W = p.W
+            W = model.W
         else:
-            W = p.W.get_value()
+            W = model.W.get_value()
 
     has_D = False
     if 'D' in dir(model):
