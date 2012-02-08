@@ -95,7 +95,13 @@ class SGD(TrainingAlgorithm):
                                  batches=self.monitoring_batches,
                                  batch_size=self.batch_size)
 
-        X = T.matrix(name='sgd_X')
+        space = self.model.get_input_space()
+
+        X = space.make_theano_batch(name='sgd_X')
+
+        self.topo = len(X.type.broadcastable) > 2
+
+
         J = self.cost(model, X)
         if J.name is None:
             J.name = 'sgd_cost(' + X.name + ')'
@@ -160,7 +166,10 @@ class SGD(TrainingAlgorithm):
             self.monitor()
         self.first = False
         for i in xrange(self.batches_per_iter):
-            X = dataset.get_batch_design(batch_size)
+            if self.topo:
+                X = dataset.get_batch_topo(batch_size)
+            else:
+                X = dataset.get_batch_design(batch_size)
 
             #print '\n----------------'
             self.sgd_update(X, self.learning_rate)

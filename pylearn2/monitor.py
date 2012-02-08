@@ -34,6 +34,7 @@ class Monitor(object):
         self.dataset = None
         self.dirty = True
         self.names_to_del = []
+        self.topo = len(model.get_input_space().make_theano_batch().type.broadcastable) > 2
 
     def set_dataset(self, dataset, batches, batch_size):
         """
@@ -86,7 +87,10 @@ class Monitor(object):
             self.begin_record_entry()
 
             for i in xrange(self.batches):
-                X = d.get_batch_design(self.batch_size)
+                if self.topo:
+                    X = d.get_batch_topo(self.batch_size)
+                else:
+                    X = d.get_batch_design(self.batch_size)
                 #print 'monitoring batch ',i,':',(X.min(),X.mean(),X.max(),X.shape)
                 self.run_prereqs(X)
                 self.accum(X)
@@ -147,7 +151,7 @@ class Monitor(object):
         print "took "+str(t2-t1)+" seconds"
         updates = {}
         givens = {}
-        X = T.matrix()
+        X = self.model.get_input_space().make_theano_batch(name = "monitoring_X")
         print 'monitored channels: '+str(self.channels.keys())
         for channel in self.channels.values():
             givens[channel.graph_input] = X

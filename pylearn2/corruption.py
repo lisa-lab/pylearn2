@@ -152,7 +152,9 @@ class GaussianCorruptor(Corruptor):
         return [self._corrupt(inp) for inp in inputs]
 
     def corruption_free_energy(self, corrupted_X, X):
-        rval = (T.sum(T.sqr(corrupted_X - X), axis=1) /
+        axis = range(1, len(X.type.broadcastable))
+
+        rval = (T.sum(T.sqr(corrupted_X - X), axis=axis) /
                 (2. * (self.corruption_level ** 2.)))
         assert len(rval.type.broadcastable) == 1
         return rval

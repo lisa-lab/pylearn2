@@ -191,7 +191,11 @@ class RBM(Block, Model):
     A base interface for RBMs, implementing the binary-binary case.
 
     """
-    def __init__(self, nvis, nhid, irange=0.5, rng=None, init_bias_vis = 0.0, init_bias_hid=0.0,
+    def __init__(self, nvis = None, nhid = None,
+            vis_space = None,
+            hid_space = None,
+            transformer = None,
+            irange=0.5, rng=None, init_bias_vis = 0.0, init_bias_hid=0.0,
             base_lr = 1e-3, anneal_start = None, nchains = 100, sml_gibbs_steps = 1,
             random_patches_src = None,
             monitor_reconstruction = False):
@@ -237,15 +241,51 @@ class RBM(Block, Model):
             rng = numpy.random.RandomState(1001)
         self.rng = rng
 
+        if vis_space is None:
+            #if we don't specify things in terms of spaces and a transformer,
+            #assume dense matrix multiplication and work off of nvis, nhid
+            assert hid_space is None
+            assert transformer is None
+            assert nvis is not None
+            assert nhid is not None
+
+            if random_patches_src is None:
+                W = rng.uniform(-irange, irange, (nvis, nhid))
+            else:
+                if hasattr(random_patches_src, '__array__'):
+                    W = irange * random_patches_src.T
+                    assert W.shape == (nvis, nhid)
+                else:
+                    #assert type(irange) == type(0.01)
+                    #assert irange == 0.01
+                    W = irange * random_patches_src.get_batch_design(nhid).T
+
+            self.transformer = dot_transformer_from(  sharedX(
+                    W,
+                    name='W',
+                    borrow=True
+                )
+            )
+        else:
+            assert hid_space is not None
+            assert transformer is not None
+            assert nvis is None
+            assert nhid is None
+
+            self.vis_space = vis_space
+            self.hid_space = hid_space
+            self.transformer = transformer
+
+
         try:
-            b_vis = numpy.zeros(nvis)
+            b_vis = self.vis_space.get_origin()
             b_vis += init_bias_vis
         except ValueError:
             raise ValueError("bad shape or value for init_bias_vis")
         self.bias_vis = sharedX(b_vis, name='bias_vis', borrow=True)
 
         try:
-            b_hid = numpy.zeros(nhid)
+            b_hid = self.hid_space.get_origin()
             b_hid += init_bias_hid
         except ValueError:
             raise ValueError('bad shape or value for init_bias_hid')
@@ -254,25 +294,9 @@ class RBM(Block, Model):
         self.random_patches_src = random_patches_src
         self.register_names_to_del(['random_patches_src'])
 
-        if random_patches_src is None:
-            W = rng.uniform(-irange, irange, (nvis, nhid))
-        else:
-            if hasattr(random_patches_src, '__array__'):
-                W = irange * random_patches_src.T
-                assert W.shape == (nvis, nhid)
-            else:
-                #assert type(irange) == type(0.01)
-                #assert irange == 0.01
-                W = irange * random_patches_src.get_batch_design(nhid).T
-
-        self.weights = sharedX(
-            W,
-            name='W',
-            borrow=True
-        )
 
         self.__dict__.update(nhid=nhid, nvis=nvis)
-        self._params = [self.bias_vis, self.bias_hid, self.weights]
+        self._params = list(self.transformer.get_params().union([self.bias_vis, self.bias_hid]))
 
         self.base_lr = base_lr
         self.anneal_start = anneal_start
@@ -281,6 +305,9 @@ class RBM(Block, Model):
 
     def get_input_dim(self):
         return self.nvis
+
+    def get_input_space(self):
+        return self.vis_space
 
     def get_params(self):
         return [param for param in self._params]
@@ -647,7 +674,13 @@ class GaussianBinaryRBM(RBM):
     """
     An RBM with Gaussian visible units and binary hidden units.
     """
-    def __init__(self, nvis, nhid, energy_function_class, irange=0.5, rng=None,
+    def __init__(self, energy_function_class,
+            nvis = None,
+            nhid = None,
+            vis_space = None,
+            hid_space = None,
+            transformer = None,
+            irange=0.5, rng=None,
                  mean_vis=False, init_sigma=2., learn_sigma=False,
                  sigma_lr_scale=1., init_bias_hid=0.0):
         """
@@ -674,8 +707,11 @@ class GaussianBinaryRBM(RBM):
         init_bias_hid : scalar or 1-d array of length `nhid`
             Initial value for the biases on hidden units.
         """
-        super(GaussianBinaryRBM, self).__init__(nvis, nhid,
-                                                irange, rng,
+        super(GaussianBinaryRBM, self).__init__(nvis = nvis, nhid = nhid,
+                                                transformer = transformer,
+                                                vis_space = vis_space,
+                                                hid_space = hid_space,
+                                                irange = irange, rng = rng,
                                                 init_bias_hid = init_bias_hid)
 
         self.learn_sigma = learn_sigma
@@ -701,7 +737,7 @@ class GaussianBinaryRBM(RBM):
         self.mean_vis = mean_vis
 
         self.energy_function = energy_function_class(
-                    W=self.weights,
+                    transformer = self.transformer,
                     sigma=self.sigma,
                     bias_vis=self.bias_vis,
                     bias_hid=self.bias_hid
