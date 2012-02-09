@@ -87,7 +87,7 @@ class Train(object):
             else:
                 tokens = os.environ['PYLEARN2_TRAIN_FILE_NAME'], '.pkl'
             self.save_path = '.'.join(tokens)
-        self.callbacks = callbacks
+        self.callbacks = callbacks if callbacks is not None else []
         self.model.dataset_yaml_src = self.dataset.yaml_src
 
     def main_loop(self):
