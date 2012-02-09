@@ -12,7 +12,7 @@ For example configuration files that are consumable by this script, see
     pylearn2/scripts/autoencoder_example
 """
 # Standard library imports
-import sys
+import argparse
 import datetime
 import os
 
@@ -114,27 +114,35 @@ class Train(object):
         #
     #
 
+
+def make_argument_parser():
+    parser = argparse.ArgumentParser(
+        description="Launch an experiment from a YAML configuration file.",
+        epilog='\n'.join(__doc__.strip().split('\n')[1:]).strip(),
+        formatter_class=argparse.RawTextHelpFormatter
+    )
+    parser.add_argument('config', action='store',
+                        type=argparse.FileType('r'),
+                        choices=None,
+                        help='A YAML configuration file specifying the '
+                             'training procedure')
+    return parser
+
+
 if __name__ == "__main__":
-
-    if len(sys.argv) != 2:
-        raise Exception("train.py takes exactly one argument, the path to a yaml file (see train_example.yaml for an example)")
-
-    config_file_path = sys.argv[1]
-
+    parser = make_argument_parser()
+    args = parser.parse_args()
+    config_file_path = args.config.name
     suffix_to_strip = '.yaml'
     if config_file_path.endswith(suffix_to_strip):
         config_file_name = config_file_path[0:-len(suffix_to_strip)]
     else:
         config_file_name = config_file_path
-
-    #publish the PYLEARN2_TRAIN_FILE_NAME environment variable
+    # publish the PYLEARN2_TRAIN_FILE_NAME environment variable
     varname = "PYLEARN2_TRAIN_FILE_NAME"
-    #this makes it available to other sections of code in this same script
-    os.environ[varname] =  config_file_name
-    #this make it available to any subprocesses we launch
+    # this makes it available to other sections of code in this same script
+    os.environ[varname] = config_file_name
+    # this make it available to any subprocesses we launch
     os.putenv(varname, config_file_name)
-
-    train_obj = pylearn2.config.yaml_parse.load_path(config_file_path)
-
+    train_obj = pylearn2.config.yaml_parse.load(args.config)
     train_obj.main_loop()
-
