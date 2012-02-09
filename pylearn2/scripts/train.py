@@ -20,6 +20,30 @@ import os
 import pylearn2.config.yaml_parse
 from pylearn2.utils import serial
 
+class MultiTrain(object):
+    def __init__(self, instances):
+        """
+        Construct a MultiTrain instance.
+
+        Parameters
+        ----------
+        instances : iterable
+            A collection of Train instances that implement the
+            `main_loop()` interface.
+        """
+        self.instances = instances
+
+    def main_loop(self):
+        # TODO: Add fine-grained checks to load previously existing
+        # results if instance.save_path exists and is the result of
+        # a terminated training procedure.
+        for index, instance in enumerate(self.instances):
+            os.environ['PYLEARN2_TRAINING_PHASE'] = str(index)
+            os.putenv('PYLEARN2_TRAINING_PHASE', str(index))
+            print "Entering training phase %d" % index
+            instance.main_loop()
+
+
 class Train(object):
     """
     A class representing the main loop of the training script.  Trains the
