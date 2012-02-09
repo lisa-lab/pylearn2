@@ -1,12 +1,15 @@
 #!/bin/env python
 """
-General training script
-usage:
-train.py <path to yaml file>
+Script implementing the logic for training pylearn2 models.
 
-see train_example.yaml for an example
+This is intended to be a "driver" for most training experiments. A user
+specifies an object hierarchy in a configuration file using a dictionary-like
+syntax and this script takes care of the rest.
 
+For example configuration files that are consumable by this script, see
 
+    pylearn2/scripts/train_example
+    pylearn2/scripts/autoencoder_example
 """
 # Standard library imports
 import sys
