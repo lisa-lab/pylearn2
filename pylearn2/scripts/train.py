@@ -68,51 +68,36 @@ class Train(object):
 
     def main_loop(self):
         """
-        Runs one iteration of the training algorithm (what an "iteration" means is up to
-        the training algorithm to define, usually it's something like an "epoch" )
-
-        Saves the model
-
-        Runs the callbacks
+        Repeatedly runs an epoch of the training algorithm, runs any
+        epoch-level callbacks, and saves the model.
         """
-
         if self.algorithm is None:
-            while self.model.train(dataset = self.dataset):
+            while self.model.train(dataset=self.dataset):
                 self.save()
-            #
             self.save()
         else:
-            self.algorithm.setup(model = self.model, dataset = self.dataset)
-
+            self.algorithm.setup(model=self.model, dataset=self.dataset)
             epoch_start = datetime.datetime.now()
-            while self.algorithm.train(dataset = self.dataset):
+            while self.algorithm.train(dataset=self.dataset):
                 epoch_end = datetime.datetime.now()
                 print 'Time this epoch:', str(epoch_end - epoch_start)
                 self.save()
                 epoch_start = datetime.datetime.now()
-
                 for callback in self.callbacks:
                     callback(self.model, self.dataset, self.algorithm)
-                #
-            #
             self.save()
-        #
-    #
 
     def save(self):
-        """ saves the model """
-
-        #TODO-- save state of dataset and training algorithm so training can be resumed after a crash
+        """Saves the model."""
+        #TODO-- save state of dataset and training algorithm so training can be
+        # resumed after a crash
         if self.save_path is not None:
-            print 'saving to ',self.save_path,'...'
+            print 'saving to', self.save_path, '...'
             save_start = datetime.datetime.now()
             serial.save(self.save_path, self.model)
             save_end = datetime.datetime.now()
-            # TODO: format this better
-            seconds = (save_end - save_start).total_seconds()
-            print '...done. saving took ', seconds, ' seconds'
-        #
-    #
+            delta = (save_end - save_start)
+            print '...done. saving took', str(delta)
 
 
 def make_argument_parser():
