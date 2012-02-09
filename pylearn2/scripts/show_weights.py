@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #usage: show_weights.py model.pkl
 from pylearn2.gui import get_weights_report
 from optparse import OptionParser
