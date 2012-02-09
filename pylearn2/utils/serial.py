@@ -12,6 +12,11 @@ hdf_reader = None
 
 
 def load(filepath, recurse_depth=0):
+    try:
+        import joblib
+        joblib_available = True
+    except ImportError:
+        joblib_available = False
     if recurse_depth == 0:
         filepath = preprocess(filepath)
 
@@ -54,9 +59,11 @@ def load(filepath, recurse_depth=0):
             return load(filepath, recurse_depth + 1)
 
     try:
-        f = open(filepath, 'rb')
-        obj = cPickle.load(f)
-        f.close()
+        if not joblib_available:
+            with open(filepath, 'rb') as f:
+                obj = cPickle.load(f)
+        else:
+            obj = joblib.load(filepath)
         return obj
     except BadPickleGet, e:
         print ('Failed to open ' + str(filepath) +
