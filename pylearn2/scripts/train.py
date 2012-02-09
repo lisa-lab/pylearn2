@@ -28,7 +28,7 @@ class Train(object):
                 dataset,
                 model,
                 algorithm = None,
-                save_path = None,
+                save_path = '${PYLEARN2_TRAIN_FILE_NAME}.pkl',
                 callbacks = []):
         """
 
