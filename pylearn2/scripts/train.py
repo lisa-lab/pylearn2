@@ -76,7 +76,7 @@ class Train(object):
         self.dataset = dataset
         self.model = model
         self.algorithm = algorithm
-        if self.save_path is not None:
+        if save_path is not None:
             self.save_path = save_path
         else:
             phase_variable = 'PYLEARN2_TRAINING_PHASE'
