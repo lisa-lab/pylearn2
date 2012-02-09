@@ -141,8 +141,13 @@ def _save(filepath, obj):
         return
     assert filepath.endswith('.pkl')
     save_dir = os.path.dirname(filepath)
-    if not os.path.exists(save_dir) or not os.path.isdir(save_dir):
-        raise IOError("save path %s is not an existing directory" % save_dir)
+    # Handle current working directory case.
+    if save_dir == '':
+        save_dir = '.'
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
+    if os.path.exists(save_dir) and not os.path.isdir(save_dir):
+        raise IOError("save path %s exists, not a directory" % save_dir)
     elif not os.access(save_dir, os.W_OK):
         raise IOError("permission error creating %s" % filepath)
     try:
