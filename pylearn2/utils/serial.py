@@ -152,11 +152,11 @@ def _save(filepath, obj):
     elif not os.access(save_dir, os.W_OK):
         raise IOError("permission error creating %s" % filepath)
     try:
-        #if joblib_available:
-        #    joblib.dump(obj, filepath)
-        #else:
-        with open(filepath, 'wb') as filehandle:
-            cPickle.dump(obj, filehandle)
+        if joblib_available and filepath.endswith('.joblib'):
+            joblib.dump(obj, filepath)
+        else:
+            with open(filepath, 'wb') as filehandle:
+                cPickle.dump(obj, filehandle)
     except Exception, e:
         print "cPickle has failed to write an object to "+filepath
         if str(e).find('maximum recursion depth exceeded') != -1:
