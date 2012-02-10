@@ -52,7 +52,7 @@ class Train(object):
     and each of the registered callbacks are called.
     """
     def __init__(self, dataset, model, algorithm=None, save_path=None,
-                 callbacks=None):
+                 save_freq=1, callbacks=None):
         """
         Construct a Train instance.
 
@@ -68,7 +68,11 @@ class Train(object):
             Object that implements the TrainingAlgorithm interface
             defined in `pylearn2.training_algorithms`.
         save_path : str, optional
-            Path to save the (pickled) model.
+            Path  to save the (pickled) model.
+        save_freq : int, optional
+            Frequency of saves, in epochs. A frequency of zero disables
+            automatic saving altogether. A frequency of 1 saves every
+            epoch. A frequency of 2 saves every other epoch, etc. (default=1)
         callbacks : iterable, optional
             A collection of callbacks that are called, one at a time,
             after each epoch.
@@ -87,6 +91,8 @@ class Train(object):
             else:
                 tokens = os.environ['PYLEARN2_TRAIN_FILE_NAME'], '.pkl'
             self.save_path = '.'.join(tokens)
+        self.save_freq = save_freq
+        self.epochs = 0
         self.callbacks = callbacks if callbacks is not None else []
         self.model.dataset_yaml_src = self.dataset.yaml_src
 
@@ -97,19 +103,25 @@ class Train(object):
         """
         if self.algorithm is None:
             while self.model.train(dataset=self.dataset):
+                if self.save_freq > 0 and self.epochs % self.save_freq == 0:
+                    self.save()
+                self.epochs += 1
+            if self.save_freq > 0:
                 self.save()
-            self.save()
         else:
             self.algorithm.setup(model=self.model, dataset=self.dataset)
             epoch_start = datetime.datetime.now()
             while self.algorithm.train(dataset=self.dataset):
                 epoch_end = datetime.datetime.now()
                 print 'Time this epoch:', str(epoch_end - epoch_start)
-                self.save()
+                if self.save_freq > 0 and self.epochs % self.save_freq == 0:
+                    self.save()
                 epoch_start = datetime.datetime.now()
                 for callback in self.callbacks:
                     callback(self.model, self.dataset, self.algorithm)
-            self.save()
+                self.epochs += 1
+            if self.save_freq > 0:
+                self.save()
 
     def save(self):
         """Saves the model."""
