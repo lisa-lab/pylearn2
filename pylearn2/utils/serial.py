@@ -101,6 +101,22 @@ def load(filepath, recurse_depth=0):
 
 
 def save(filepath, obj):
+    """
+    Serialize `object` to a file denoted by `filepath`.
+
+    Parameters
+    ----------
+    filepath : str
+        A filename. If the suffix is `.joblib` and joblib can be
+        imported, `joblib.dump` is used in place of the regular
+        pickling mechanisms; this results in much faster saves by
+        saving arrays as separate .npy files on disk. If the file
+        suffix is `.npy` than `numpy.save` is attempted on `obj`.
+        Otherwise, (c)pickle is used.
+
+    obj : object
+        A Python object to be serialized.
+    """
     filepath = preprocess(filepath)
     try:
         _save(filepath, obj)
