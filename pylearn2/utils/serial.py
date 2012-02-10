@@ -184,14 +184,9 @@ def _save(filepath, obj):
         try:
             # TODO: logging, or warning
             print 'retrying with pickle'
-            f = open(filepath, "wb")
-            pickle.dump(obj, f)
-            f.close()
+            with open(filepath, "wb") as f:
+                pickle.dump(obj, f)
         except Exception, e2:
-            try:
-                f.close()
-            except:
-                pass
             if str(e) == '' and str(e2) == '':
                 # TODO: logging, or warning
                 print (
@@ -206,9 +201,8 @@ def _save(filepath, obj):
                     'try/catch loop so you can see if it prints anything '
                     'when it dies'
                 )
-                f = open(filepath, 'wb')
-                cPickle.dump(obj, f)
-                f.close()
+                with open(filepath, 'wb') as f:
+                    cPickle.dump(obj, f)
                 print ('Somehow or other, the file write worked once '
                        'we quit using the try/catch.')
             else:
