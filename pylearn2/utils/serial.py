@@ -177,10 +177,12 @@ def _save(filepath, obj):
             with open(filepath, 'wb') as filehandle:
                 cPickle.dump(obj, filehandle)
     except Exception, e:
-        print "cPickle has failed to write an object to "+filepath
+        # TODO: logging, or warning
+        print "cPickle has failed to write an object to " + filepath
         if str(e).find('maximum recursion depth exceeded') != -1:
             raise
         try:
+            # TODO: logging, or warning
             print 'retrying with pickle'
             f = open(filepath, "wb")
             pickle.dump(obj, f)
@@ -191,8 +193,9 @@ def _save(filepath, obj):
             except:
                 pass
             if str(e) == '' and str(e2) == '':
+                # TODO: logging, or warning
                 print (
-                    'neither cPickle nor pickle could write to ' + str(filepath)
+                    'neither cPickle nor pickle could write to %s' % filepath
                 )
                 print (
                     'moreover, neither of them raised an exception that '
