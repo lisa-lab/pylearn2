@@ -171,6 +171,9 @@ def _save(filepath, obj):
         if joblib_available and filepath.endswith('.joblib'):
             joblib.dump(obj, filepath)
         else:
+            if filepath.endswith('.joblib'):
+                warnings.warn('Warning: .joblib suffix specified but joblib '
+                              'unavailable. Using ordinary pickle.')
             with open(filepath, 'wb') as filehandle:
                 cPickle.dump(obj, filehandle)
     except Exception, e:
