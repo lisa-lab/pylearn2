@@ -211,13 +211,12 @@ def _save(filepath, obj):
 
                 import pdb
                 tb = pdb.traceback.format_exc()
-
-                raise Exception(str(obj) +
-                                ' could not be written to '+
-                                str(filepath) +
-                                ' by cPickle due to '+str(e)+
-                                ' nor by pickle due to '+str(e2)+
-                                '. \nTraceback '+ tb)
+                raise IOError(str(obj) +
+                              ' could not be written to '+
+                              str(filepath) +
+                              ' by cPickle due to ' + str(e) +
+                              ' nor by pickle due to ' + str(e2) +
+                              '. \nTraceback '+ tb)
         print ('Warning: ' + str(filepath) +
                ' was written by pickle instead of cPickle, due to '
                + str(e) +
