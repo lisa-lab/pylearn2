@@ -5,7 +5,7 @@ class TransformerDataset(Dataset):
         A dataset that applies a transformation on the fly
         as examples are requested.
     """
-    def __init__(self, raw, transformer, cpu_only=False):
+    def __init__(self, raw, transformer, cpu_only = False):
         """
             raw: a pylearn2 Dataset that provides raw data
             transformer: a pylearn2 Block to transform the data
@@ -18,15 +18,6 @@ class TransformerDataset(Dataset):
         X = self.raw.get_batch_design(batch_size)
         X = self.transformer.perform(X)
         return X
-
-    def get_design_matrix(self):
-        X = self.raw.get_design_matrix()
-        X = self.transformer.perform(X)
-        return X
-
-    def get_design_slice(self, start=None, stop=None, step=None):
-        X = self.raw.get_design_matrix()
-        return self.transformer.perform(X[slice(start, stop, step)])
 
     def get_batch_topo(self, batch_size):
         """ there's no concept of a topology-aware

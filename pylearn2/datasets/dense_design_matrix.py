@@ -157,9 +157,6 @@ class DenseDesignMatrix(Dataset):
         self.X = self.view_converter.topo_view_to_design_mat(V)
         assert not N.any(N.isnan(self.X))
 
-    def get_design_slice(self, start=None, end=None, stride=None):
-        return self.X[slice(start, end, stride)]
-
     def get_design_matrix(self, topo=None):
         """ Return topo (a batch of examples in topology preserving format),
         in design matrix format

@@ -190,8 +190,7 @@ class SGD(TrainingAlgorithm):
 class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
     def __init__(self, learning_rate, cost, batch_size=None,
                  monitoring_batches=None, monitoring_dataset=None,
-                 termination_criterion=None, update_callbacks=None,
-                 symbolic_preprocessors=None):
+                 termination_criterion=None, update_callbacks=None):
         self.learning_rate = float(learning_rate)
         self.cost = cost
         self.batch_size = batch_size
@@ -199,7 +198,6 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
         self.monitoring_batches = monitoring_batches
         self.termination_criterion = termination_criterion
         self._register_update_callbacks(update_callbacks)
-        self.symbolic_preprocessors = symbolic_preprocessors
         self.first = True
 
     def setup(self, model, dataset):
@@ -213,15 +211,6 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
                                  batches=self.monitoring_batches,
                                  batch_size=self.batch_size)
         X = T.matrix(name="%s[X]" % self.__class__.__name__)
-        if self.symbolic_preprocessors is not None:
-            try:
-                iter(self.symbolic_preprocessors)
-                prepro = self.symbolic_preprocessors
-            except TypeError:
-                prepro = [self.symbolic_preprocessors]
-            for call in prepro:
-                X = call(X)
-                X.name = type(call).__name__ + str(hash(call)) + '(X)'
         cost_value = self.cost(model, X)
         if cost_value.name is None:
             cost_value.name = 'sgd_cost(' + X.name + ')'
