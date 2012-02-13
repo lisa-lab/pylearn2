@@ -15,6 +15,7 @@ For example configuration files that are consumable by this script, see
 import argparse
 import datetime
 import os
+import warnings
 
 # Local imports
 import pylearn2.config.yaml_parse
@@ -52,7 +53,7 @@ class Train(object):
     and each of the registered callbacks are called.
     """
     def __init__(self, dataset, model, algorithm=None, save_path=None,
-                 save_freq=1, callbacks=None):
+                 save_freq=0, callbacks=None):
         """
         Construct a Train instance.
 
@@ -72,7 +73,8 @@ class Train(object):
         save_freq : int, optional
             Frequency of saves, in epochs. A frequency of zero disables
             automatic saving altogether. A frequency of 1 saves every
-            epoch. A frequency of 2 saves every other epoch, etc. (default=1)
+            epoch. A frequency of 2 saves every other epoch, etc. (default=0,
+            i.e. never save)
         callbacks : iterable, optional
             A collection of callbacks that are called, one at a time,
             after each epoch.
@@ -81,6 +83,9 @@ class Train(object):
         self.model = model
         self.algorithm = algorithm
         if save_path is not None:
+            if save_freq == 0:
+                warnings.warn('save_path specified but save_freq is 0 '
+                              '(never save). Is this intentional?')
             self.save_path = save_path
         else:
             phase_variable = 'PYLEARN2_TRAINING_PHASE'
