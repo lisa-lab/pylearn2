@@ -15,6 +15,7 @@ For example configuration files that are consumable by this script, see
 import argparse
 import datetime
 import os
+import warnings
 
 # Local imports
 import pylearn2.config.yaml_parse
@@ -82,6 +83,9 @@ class Train(object):
         self.model = model
         self.algorithm = algorithm
         if save_path is not None:
+            if save_freq == 0:
+                warnings.warn('save_path specified but save_freq is 0 '
+                              '(never save). Is this intentional?')
             self.save_path = save_path
         else:
             phase_variable = 'PYLEARN2_TRAINING_PHASE'
