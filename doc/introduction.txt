@@ -100,10 +100,17 @@ Current State
       * Noise-Contrastive Estimation
 
    * Models
+      * Spike-and-Slab Sparse coding
+      * Partial implementation of DBMs (contact Ian Goodfellow if you would like
+      	to complete it)
       * RBMs, including gaussian and ssRBM. Varying levels of integration into 
         the full framework.
       * Autoencoders, including Contractive and Denoising Autoencoders
       * Local Coordinate Coding
+      * SVMs (we provide a wrapper around scikits.learn that makes it easy to
+      		train a multiclass svm on dense training data in a memory
+		efficient way, which doesn't always happen using scikits.learn
+		directly)
    * Stacking code exists, but is not integrated into the entire framework
      and probably will get refactored a lot
 
@@ -113,6 +120,8 @@ Current State
       * CIFAR-10, CIFAR-100
       * NIPS Workshops 2011 Transfer Learning Challenge
       * UTLC
+      * NORB
+      * Toronto Faces Dataset
 
    * Dataset pre-processing
       * Contrast normalization
