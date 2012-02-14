@@ -5,7 +5,7 @@ from theano import function, config
 import theano.tensor as T
 from warnings import warn
 from pylearn2.monitor import Monitor
-from pylearn2.utils.iteration import BatchIterator
+from pylearn2.utils.iteration import SequentialSubsetIterator
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 
 
@@ -252,7 +252,7 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
                                    name='sgd_update')
         self.params = params
         num_examples = dataset.get_design_matrix().shape[0]
-        self.slice_iterator = BatchIterator(num_examples, self.batch_size)
+        self.slice_iterator = SequentialSubsetIterator(num_examples, self.batch_size)
 
     def train(self, dataset):
         if not hasattr(self, 'sgd_update'):
