@@ -1,10 +1,53 @@
 """TODO: module-level docstring."""
 import numpy as np
+from pylearn2.utils.iteration import (
+    SequentialSubsetIterator,
+    RandomSliceSubsetIterator,
+    RandomUniformSubsetIterator
+)
 N = np
 import copy
+
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.datasets import control
 from theano import config
+
+_iteration_schemes = {
+    'sequential': SequentialSubsetIterator,
+    'random_slice': RandomSliceSubsetIterator,
+    'random_uniform': RandomUniformSubsetIterator,
+}
+
+
+def _resolve_iterator_class(mode):
+    if isinstance(mode, basestring) and mode not in _iteration_schemes:
+        raise ValueError("unknown iteration mode string: %s" % mode)
+    elif mode in _iteration_schemes:
+        subset_iter_class = _iteration_schemes[mode]
+    else:
+        subset_iter_class = mode
+    return subset_iter_class
+
+
+class DatasetIterator(object):
+    """A thin wrapper around one of the mode iterators."""
+    def __init__(self, dataset, subset_iterator, topo=False):
+        self._topo = topo
+        self._dataset = dataset
+        self._subset_iterator = subset_iterator
+        if self._topo:
+            self._raw_data = self._dataset.get_topological_view()
+        else:
+            self._raw_data = self._dataset.get_design_matrix()
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        # TODO: handle fancy-index copies by allocating a buffer and
+        # using numpy.take()
+        next_index = self._subset_iterator.next()
+        return self._raw_data[next_index]
 
 
 class DenseDesignMatrix(Dataset):
@@ -12,8 +55,10 @@ class DenseDesignMatrix(Dataset):
     A class for representing datasets that can be stored as a dense design
     matrix, such as MNIST or CIFAR10.
     """
+    _default_seed = (17, 2, 946)
+
     def __init__(self, X=None, topo_view=None, y=None,
-                 view_converter=None, rng=None):
+                 view_converter=None, rng=_default_seed):
         """
         Parameters
         ----------
@@ -48,12 +93,49 @@ class DenseDesignMatrix(Dataset):
             assert topo_view is not None
             self.set_topological_view(topo_view)
         self.y = y
-        if rng is None:
-            rng = N.random.RandomState([17, 2, 946])
-        self.default_rng = copy.copy(rng)
-        self.rng = rng
         self.compress = False
         self.design_loc = None
+        if hasattr(rng, 'random_integers'):
+            self.rng = rng
+        else:
+            self.rng = np.random.RandomState(rng)
+
+    def set_iteration_scheme(self, mode=None, batch_size=None,
+                             num_batches=None, topo=False):
+        if mode is not None:
+            self._iter_subset_class = _resolve_iterator_class(mode)
+        else:
+            mode = self._iter_subset_class
+        # If this didn't raise an exception, we should be fine.
+        self._iter_batch_size = batch_size
+        self._iter_num_batches = num_batches
+        self._iter_topo = topo
+        # Try to create an iterator with these settings.
+        rng = self.rng if self._iter_subset_class.stochastic else None
+        print rng
+        test = self.iterator(mode, batch_size, num_batches, topo, rng=rng)
+
+    def iterator(self, mode=None, batch_size=None, num_batches=None,
+                 topo=None, rng=None):
+        if mode is None:
+            mode = self._iter_subset_class
+        else:
+            mode = _resolve_iterator_class(mode)
+        if batch_size is None:
+            batch_size = self._iter_batch_size
+        if num_batches is None:
+            num_batches = self._iter_num_batches
+        if topo is None:
+            topo = self._iter_topo
+        if rng is None and mode.stochastic:
+            rng = self.rng
+        return DatasetIterator(self,
+                               mode(self.X.shape[0], batch_size,
+                                    num_batches, rng),
+                               topo)
+
+    def __iter__(self):
+        return self.iterator()
 
     def use_design_loc(self, path):
         """
