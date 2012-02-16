@@ -41,9 +41,6 @@ class SequentialSubsetIterator(object):
             self.current += self.batch_size
             return self._last
 
-    def reset(self):
-        self.current = 0
-
     fancy = False
     stochastic = False
 
@@ -78,9 +75,6 @@ class RandomUniformSubsetIterator(object):
             self._next_batch_no += 1
             return self._last
 
-    def reset(self):
-        self._next_batch_no = 0
-
     fancy = True
     stochastic = True
 
@@ -93,8 +87,9 @@ class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
         elif num_batches is None:
             raise ValueError("num_batches cannot be None for random uniform "
                              "iteration")
-        super(self, RandomSliceSubsetIterator).__init__(self, dataset_size,
-                                                  batch_size, num_batches, rng)
+        super(RandomSliceSubsetIterator, self).__init__(dataset_size,
+                                                        batch_size,
+                                                        num_batches, rng)
         self._last_start = self.dataset_size - self.batch_size
         if self._last_start < 0:
             raise ValueError("batch_size > dataset_size not supported for "

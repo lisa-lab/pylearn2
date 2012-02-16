@@ -214,6 +214,7 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
         self.monitor.set_dataset(dataset=self.monitoring_dataset,
                                  batches=self.monitoring_batches,
                                  batch_size=self.batch_size)
+        dataset.set_iteration_scheme('sequential', batch_size=self.batch_size)
         X = T.matrix(name="%s[X]" % self.__class__.__name__)
         try:
             iter(self.cost)
@@ -252,7 +253,6 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
                                    name='sgd_update')
         self.params = params
         num_examples = dataset.get_design_matrix().shape[0]
-        self.slice_iterator = SequentialSubsetIterator(num_examples, self.batch_size)
 
     def train(self, dataset):
         if not hasattr(self, 'sgd_update'):
@@ -279,14 +279,11 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
         if self.first:
             self.monitor()
         self.first = False
-        design_matrix = dataset.get_design_matrix()
-        # TODO: add support for reshuffling examples.
-        for batch_slice in self.slice_iterator:
-            batch = np.cast[config.floatX](design_matrix[batch_slice])
-            self.sgd_update(batch, self.learning_rate)
+        for batch in dataset:
+            grads = self.sgd_update(batch, self.learning_rate)
+            #print grads
             self.monitor.batches_seen += 1
             self.monitor.examples_seen += batch_size
-        self.slice_iterator.reset()
         self.monitor()
         for callback in self.update_callbacks:
             callback(self)
