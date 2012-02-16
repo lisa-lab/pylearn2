@@ -80,15 +80,11 @@ class Monitor(object):
                 d = yaml_parse.load(d)
                 self.dataset = d
 
-            rng = numpy.random.RandomState(546)
-
-            myiterator = d.iterator(mode='random_slice',
+            myiterator = d.iterator(mode='sequential',
                                     batch_size=self.batch_size,
-                                    num_batches=self.batches, rng=rng,
                                     topo=False)
             self.begin_record_entry()
             for X in myiterator:
-                #print 'monitoring batch ',i,':',(X.min(),X.mean(),X.max(),X.shape)
                 self.run_prereqs(X)
                 self.accum(X)
 

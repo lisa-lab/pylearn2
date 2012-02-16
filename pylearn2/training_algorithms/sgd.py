@@ -279,6 +279,7 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
         if self.first:
             self.monitor()
         self.first = False
+        dataset.set_iteration_scheme('sequential', batch_size=self.batch_size)
         for batch in dataset:
             grads = self.sgd_update(batch, self.learning_rate)
             #print grads

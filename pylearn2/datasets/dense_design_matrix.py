@@ -103,30 +103,38 @@ class DenseDesignMatrix(Dataset):
     def set_iteration_scheme(self, mode=None, batch_size=None,
                              num_batches=None, topo=False):
         if mode is not None:
-            self._iter_subset_class = _resolve_iterator_class(mode)
-        else:
+            self._iter_subset_class = mode = _resolve_iterator_class(mode)
+        elif hasattr(self, '_iter_subset_class'):
             mode = self._iter_subset_class
+        else:
+            raise ValueError('iteration mode not provided and no default '
+                             'mode set for %s' % str(self))
         # If this didn't raise an exception, we should be fine.
         self._iter_batch_size = batch_size
         self._iter_num_batches = num_batches
         self._iter_topo = topo
         # Try to create an iterator with these settings.
-        rng = self.rng if self._iter_subset_class.stochastic else None
+        rng = self.rng if mode.stochastic else None
         print rng
         test = self.iterator(mode, batch_size, num_batches, topo, rng=rng)
 
     def iterator(self, mode=None, batch_size=None, num_batches=None,
                  topo=None, rng=None):
+        # TODO: Refactor, deduplicate with set_iteration_scheme
         if mode is None:
-            mode = self._iter_subset_class
+            if hasattr(self, '_iter_subset_class'):
+                mode = self._iter_subset_class
+            else:
+                raise ValueError('iteration mode not provided and no default '
+                                 'mode set for %s' % str(self))
         else:
             mode = _resolve_iterator_class(mode)
         if batch_size is None:
-            batch_size = self._iter_batch_size
+            batch_size = getattr(self, '_iter_batch_size', None)
         if num_batches is None:
-            num_batches = self._iter_num_batches
+            num_batches = getattr(self, '_iter_num_batches', None)
         if topo is None:
-            topo = self._iter_topo
+            topo = getattr(self, '_iter_topo', False)
         if rng is None and mode.stochastic:
             rng = self.rng
         return DatasetIterator(self,
