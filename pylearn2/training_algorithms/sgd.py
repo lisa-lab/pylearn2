@@ -97,7 +97,10 @@ class SGD(TrainingAlgorithm):
                                  batch_size=self.batch_size)
 
         X = T.matrix(name='sgd_X')
-        J = self.cost(model, X)
+        try:
+            J = sum(c(model, X) for c in self.cost)
+        except TypeError:
+            J = self.cost(model, X)
         if J.name is None:
             J.name = 'sgd_cost(' + X.name + ')'
         self.monitor.add_channel(name=J.name, ipt=X, val=J)
