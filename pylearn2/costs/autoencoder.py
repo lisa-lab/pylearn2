@@ -27,8 +27,11 @@ class ModelMethodPenalty(object):
         self._method_name = method_name
 
     def __call__(self, model, X):
-        if not hasattr(model, self._method_name):
+        if hasattr(model, self._method_name):
             return getattr(model, self._method_name)(X)
+        else:
+            raise ValueError("no such method '%s' for model %s" %
+                             (str(self._method_name), str(model)))
 
 class ScaleBy(object):
     def __init__(self, cost, coefficient):
