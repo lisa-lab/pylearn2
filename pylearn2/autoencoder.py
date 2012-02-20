@@ -433,15 +433,8 @@ class ContractiveAutoencoder(Autoencoder):
             Add this to the output of a Cost object, such as
             SquaredError, to penalize it.
         """
-        def penalty(inputs):
-            jacobian = self.jacobian_h_x(inputs)
-            # Penalize the mean of the L2 norm, basically.
-            L = tensor.sum(jacobian ** 2, axis=(1, 2))
-            return L
-        if isinstance(inputs, tensor.Variable):
-            return penalty(inputs)
-        else:
-            return [penalty(inp) for inp in inputs]
+        jacobian = self.jacobian_h_x(inputs)
+        return (jacobian ** 2).mean()
 
 
 def build_stacked_ae(nvis, nhids, act_enc, act_dec,
