@@ -8,18 +8,18 @@ class MeanSquaredReconstructionError(object):
 class MeanBinaryCrossEntropy(object):
     def __call__(self, model, X):
         return (
-            tensor.xlogx.xlogx(model.reconstruct(X)) +
-            tensor.xlogx.xlogx(1 - model.reconstruct(X))
+            - X * tensor.log(model.reconstruct(X)) -
+            (1 - X) * tensor.log(1 - model.reconstruct(X))
         ).sum(axis=1).mean()
 
 
-class MeanBinaryCrossEntropyTanh(object):
-    def __call__(self, model, X):
-        X = (X + 1) / 2.
-        return (
-            tensor.xlogx.xlogx(model.reconstruct(X)) +
-            tensor.xlogx.xlogx(1 - model.reconstruct(X))
-        ).sum(axis=1).mean()
+#class MeanBinaryCrossEntropyTanh(object):
+#     def __call__(self, model, X):
+#        X = (X + 1) / 2.
+#        return (
+#            tensor.xlogx.xlogx(model.reconstruct(X)) +
+#            tensor.xlogx.xlogx(1 - model.reconstruct(X))
+#        ).sum(axis=1).mean()
 
 
 class ModelMethodPenalty(object):
