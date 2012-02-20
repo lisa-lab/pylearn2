@@ -455,9 +455,16 @@ class ContractiveAutoencoder(Autoencoder):
         return (jacobian ** 2).mean()
 
 
+<<<<<<< HEAD
 class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
     """Higher order contractive autoencoder.
     Adds higher orders regularization
+=======
+
+class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
+    """Higher order contractive autoencoder.
+        Adds higher orders regularization
+>>>>>>> aaf6a1b... h-cae added
     """
     def __init__(self, corruptor, num_corruptions, nvis, nhid, act_enc,
                     act_dec, tied_weights=False, irange=1e-3, rng=9001):
@@ -467,16 +474,27 @@ class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
         Parameters
         ----------
         corruptor : object
+<<<<<<< HEAD
         Instance of a corruptor object to use for corrupting the
         input.
 
         num_corruptions : integer
         number of corrupted inputs to use
+=======
+            Instance of a corruptor object to use for corrupting the
+            input.
+        num_corruptions : integer
+            number of corrupted inputs to use
+>>>>>>> aaf6a1b... h-cae added
 
         Notes
         -----
         The remaining parameters are identical to those of the constructor
+<<<<<<< HEAD
         for the Autoencoder class; see the `ContractiveAutoEncoder.__init__` docstring
+=======
+        for the Autoencoder class; see the `Autoencoder.__init__` docstring
+>>>>>>> aaf6a1b... h-cae added
         for details.
         """
         super(HigherOrderContractiveAutoencoder, self).__init__(
@@ -493,9 +511,12 @@ class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
 
 
     def higher_order_penalty(self, inputs):
+<<<<<<< HEAD
         """
         Stochastic approximation of Hessian Frobenius norm
         """
+=======
+>>>>>>> aaf6a1b... h-cae added
 
         corrupted_inputs = [self.corruptor(inputs) for times in range(self.num_corruptions)]
 
@@ -505,6 +526,7 @@ class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
 
         return hessian.mean()
 
+<<<<<<< HEAD
 
 class UntiedAutoencoder(Autoencoder):
     def __init__(self, base):
@@ -559,6 +581,8 @@ class DeepComposedAutoencoder(Autoencoder):
         return sum(ae.get_params() for ae in self.autoencoders)
 
 
+=======
+>>>>>>> aaf6a1b... h-cae added
 def build_stacked_ae(nvis, nhids, act_enc, act_dec,
                      tied_weights=False, irange=1e-3, rng=None,
                      corruptor=None, contracting=False):
