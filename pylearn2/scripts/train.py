@@ -14,6 +14,7 @@ For example configuration files that are consumable by this script, see
 # Standard library imports
 import argparse
 import datetime
+import gc
 import os
 import warnings
 
@@ -178,7 +179,14 @@ if __name__ == "__main__":
     os.putenv(varname, config_file_name)
     train_obj = pylearn2.config.yaml_parse.load(args.config)
     try:
+        iter(train_obj)
+        iterable = True
+    except TypeError as e:
+        iterable = False
+    if iterable:
         for subobj in iter(train_obj):
             subobj.main_loop()
-    except TypeError:
+            del subobj
+            gc.collect()
+    else:
         train_obj.main_loop()
