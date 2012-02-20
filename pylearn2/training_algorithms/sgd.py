@@ -1,4 +1,5 @@
 from __future__ import division
+import datetime
 import numpy as np
 from theano import function, config
 import theano.tensor as T
@@ -214,7 +215,7 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
                                  batches=self.monitoring_batches,
                                  batch_size=self.batch_size)
         X = T.matrix(name="%s[X]" % self.__class__.__name__)
-        cost_value = self.cost(model, X)
+        cost_value = sum(c(model, X) for c in self.cost)
         if cost_value.name is None:
             cost_value.name = 'sgd_cost(' + X.name + ')'
         self.monitor.add_channel(name=cost_value.name, ipt=X, val=cost_value)
