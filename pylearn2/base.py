@@ -112,7 +112,7 @@ class StackedBlocks(Block):
 
         self._layers = layers
         # Do not duplicate the parameters if some are shared between layers
-        self._params = set([p for l in self._layers for p in l.params()])
+        self._params = set([p for l in self._layers for p in l._params])
 
     def layers(self):
         return list(self._layers)
@@ -195,7 +195,7 @@ class StackedBlocks(Block):
         Add a new layer on top of the last one
         """
         self.layers.append(layer)
-        self._params.update(layer.params())
+        self._params.update(layer._params)
 
 
 class Optimizer(object):
