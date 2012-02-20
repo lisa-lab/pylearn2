@@ -48,6 +48,7 @@ class FeatureDump(object):
             for data in myiterator:
                 chunks.append(self.encoder.perform(data))
             output = np.concatenate(chunks)
+        np.save(self.path, output)
 
 
 class Train(object):
