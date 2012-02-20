@@ -47,7 +47,7 @@ class DatasetIterator(object):
         # TODO: handle fancy-index copies by allocating a buffer and
         # using numpy.take()
         next_index = self._subset_iterator.next()
-        return self._raw_data[next_index]
+        return np.cast[config.floatX](self._raw_data[next_index])
 
 
 class DenseDesignMatrix(Dataset):
