@@ -242,7 +242,7 @@ class Autoencoder(Block, Model):
         -------
         encoded : tensor_like or list of tensor_like
             Theano symbolic (or list thereof) representing the corresponding
-            reconstructed minibatch(es) after encoding/decoding.
+            minibatch(es) after encoding.
         """
         if isinstance(inputs, tensor.Variable):
             return self._hidden_activation(inputs)
