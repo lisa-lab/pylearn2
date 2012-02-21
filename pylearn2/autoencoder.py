@@ -497,13 +497,14 @@ class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
         Stochastic approximation of Hessian Frobenius norm
         """
 
-        corrupted_inputs = [self.corruptor(inputs) for times in range(self.num_corruptions)]
+        corrupted_inputs = [self.corruptor(inputs) for times in\
+                            range(self.num_corruptions)]
 
-        hessian = numpy.asarray([((self.jacobian_h_x(inputs) - \
-                            self.jacobian_h_x(corrupted))**2).mean() for\
-                            corrupted in corrupted_inputs])
+        hessian = tensor.concatenate([self.jacobian_h_x(inputs) - \
+                                self.jacobian_h_x(corrupted) for\
+                                corrupted in corrupted_inputs])
 
-        return hessian.mean()
+        return (hessian ** 2).mean()
 
 
 class UntiedAutoencoder(Autoencoder):
