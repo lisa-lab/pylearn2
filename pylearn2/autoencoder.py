@@ -437,6 +437,53 @@ class ContractiveAutoencoder(Autoencoder):
         return (jacobian ** 2).mean()
 
 
+
+class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
+    """Higher order contractive autoencoder.
+        Adds higher orders regularization
+    """
+    def __init__(self, corruptor, num_corruptions, nvis, nhid, act_enc,
+                    act_dec, tied_weights=False, irange=1e-3, rng=9001):
+        """
+        Allocate a hihger order contractive autoencoder object.
+
+        Parameters
+        ----------
+        corruptor : object
+            Instance of a corruptor object to use for corrupting the
+            input.
+        num_corruptions : integer
+            number of corrupted inputs to use
+
+        Notes
+        -----
+        The remaining parameters are identical to those of the constructor
+        for the Autoencoder class; see the `Autoencoder.__init__` docstring
+        for details.
+        """
+        super(HigherOrderContractiveAutoencoder, self).__init__(
+            nvis,
+            nhid,
+            act_enc,
+            act_dec,
+            tied_weights,
+            irange,
+            rng
+        )
+        self.corruptor = corruptor
+        self.num_corruptions = num_corruptions
+
+
+    def higher_order_penalty(self, inputs):
+
+        corrupted_inputs = [self.corruptor(inputs) for times in range(self.num_corruptions)]
+
+        hessian = numpy.asarray([((self.jacobian_h_x(inputs) - \
+                            self.jacobian_h_x(corrupted))**2).mean() for\
+                            corrupted in corrupted_inputs])
+
+        return hessian.mean()
+
 def build_stacked_ae(nvis, nhids, act_enc, act_dec,
                      tied_weights=False, irange=1e-3, rng=None,
                      corruptor=None, contracting=False):
