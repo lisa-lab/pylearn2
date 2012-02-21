@@ -455,6 +455,59 @@ class ContractiveAutoencoder(Autoencoder):
         return (jacobian ** 2).mean()
 
 
+class UntiedAutoencoder(Autoencoder):
+    def __init__(self, base):
+        if not base.tied_weights:
+            raise ValueError("%s is not a tied-weights autoencoder" %
+                             str(base))
+        self.weights = tensor.shared(base.weights.get_value(borrow=False),
+                                     name='weights')
+        self.visbias = tensor.shared(base.visbias.get_value(borrow=False),
+                                     name='vb')
+        self.hidbias = tensor.shared(base.visbias.get_value(borrow=False),
+                                     name='hb')
+        self.w_prime = tensor.shared(base.weights.get_value(borrow=False).T,
+                                     name='w_prime')
+        self._params = [self.visbias, self.hidbias, self.weights, self.w_prime]
+
+
+class DeepComposedAutoencoder(Autoencoder):
+    """
+    A deep autoencoder composed of several single-layer
+    autoencoders.
+    """
+    def __init__(self, autoencoders):
+        """
+        Construct a deep autoencoder from several single layer
+        autoencoders.
+
+        Parameters
+        ----------
+        autoencoders : list
+            A list of autoencoder objects.
+        """
+        # TODO: Check that the dimensions line up.
+        self.autoencoders = list(autoencoders)
+
+    @functools.wraps(Autoencoder.encode)
+    def encode(self, inputs):
+        current = inputs
+        for encoder in self.autoencoders:
+            current = encoder.encode(current)
+        return current
+
+    @functools.wraps(Autoencoder.decode)
+    def decode(self, hiddens):
+        current = hiddens
+        for decoder in self.autoencoders[::-1]:
+            current = decoder.decode(current)
+        return current
+
+    @functools.wraps(Model.get_params)
+    def get_params(self):
+        return sum(ae.get_params() for ae in self.autoencoders)
+
+
 def build_stacked_ae(nvis, nhids, act_enc, act_dec,
                      tied_weights=False, irange=1e-3, rng=None,
                      corruptor=None, contracting=False):
