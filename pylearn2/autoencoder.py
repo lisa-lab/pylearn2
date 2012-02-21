@@ -557,8 +557,6 @@ class DeepComposedAutoencoder(Autoencoder):
         return sum(ae.get_params() for ae in self.autoencoders)
 
 
-=======
->>>>>>> aaf6a1b... h-cae added
 def build_stacked_ae(nvis, nhids, act_enc, act_dec,
                      tied_weights=False, irange=1e-3, rng=None,
                      corruptor=None, contracting=False):
