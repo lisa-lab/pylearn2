@@ -215,7 +215,15 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
                                  batches=self.monitoring_batches,
                                  batch_size=self.batch_size)
         X = T.matrix(name="%s[X]" % self.__class__.__name__)
-        cost_value = sum(c(model, X) for c in self.cost)
+        try:
+            iter(self.cost)
+            iterable_cost = True
+        except TypeError:
+            iterable_cost = False
+        if iterable_cost:
+            cost_value = sum(c(model, X) for c in self.cost)
+        else:
+            cost_value = self.cost(model, X)
         if cost_value.name is None:
             cost_value.name = 'sgd_cost(' + X.name + ')'
         self.monitor.add_channel(name=cost_value.name, ipt=X, val=cost_value)
