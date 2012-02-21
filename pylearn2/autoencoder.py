@@ -248,6 +248,33 @@ class Autoencoder(Block, Model):
         else:
             return [self.encode(v) for v in inputs]
 
+    def decode(self, hiddens):
+        """
+        Map inputs through the encoder function.
+
+        Parameters
+        ----------
+        hiddens : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the input
+            minibatch(es) to be encoded. Assumed to be 2-tensors, with the
+            first dimension indexing training examples and the second indexing
+            data dimensions.
+
+        Returns
+        -------
+        decoded : tensor_like or list of tensor_like
+            Theano symbolic (or list thereof) representing the corresponding
+            minibatch(es) after decoding.
+        """
+        if self.act_dec is None:
+            act_dec = lambda x: x
+        else:
+            act_dec = self.act_dec
+        if isinstance(hiddens, tensor.Variable):
+            return act_dec(self.visbias + tensor.dot(hiddens, self.w_prime))
+        else:
+            return [self.decode(v) for v in hiddens]
+
     def reconstruct(self, inputs):
         """
         Reconstruct (decode) the inputs after mapping through the encoder.
@@ -266,16 +293,7 @@ class Autoencoder(Block, Model):
             Theano symbolic (or list thereof) representing the corresponding
             reconstructed minibatch(es) after encoding/decoding.
         """
-        hiddens = self.encode(inputs)
-
-        if self.act_dec is None:
-            act_dec = lambda x: x
-        else:
-            act_dec = self.act_dec
-        if isinstance(inputs, tensor.Variable):
-            return act_dec(self.visbias + tensor.dot(hiddens, self.w_prime))
-        else:
-            return [self.reconstruct(inp) for inp in inputs]
+        return self.decode(self.encode(inputs))
 
     def __call__(self, inputs):
         """
