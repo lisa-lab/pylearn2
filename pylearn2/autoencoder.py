@@ -455,6 +455,58 @@ class ContractiveAutoencoder(Autoencoder):
         return (jacobian ** 2).mean()
 
 
+class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
+    """Higher order contractive autoencoder.
+    Adds higher orders regularization
+    """
+    def __init__(self, corruptor, num_corruptions, nvis, nhid, act_enc,
+                    act_dec, tied_weights=False, irange=1e-3, rng=9001):
+        """
+        Allocate a hihger order contractive autoencoder object.
+
+        Parameters
+        ----------
+        corruptor : object
+        Instance of a corruptor object to use for corrupting the
+        input.
+
+        num_corruptions : integer
+        number of corrupted inputs to use
+
+        Notes
+        -----
+        The remaining parameters are identical to those of the constructor
+        for the Autoencoder class; see the `ContractiveAutoEncoder.__init__` docstring
+        for details.
+        """
+        super(HigherOrderContractiveAutoencoder, self).__init__(
+            nvis,
+            nhid,
+            act_enc,
+            act_dec,
+            tied_weights,
+            irange,
+            rng
+        )
+        self.corruptor = corruptor
+        self.num_corruptions = num_corruptions
+
+
+    def higher_order_penalty(self, inputs):
+        """
+        Stochastic approximation of Hessian Frobenius norm
+        """
+
+        corrupted_inputs = [self.corruptor(inputs) for times in\
+                            range(self.num_corruptions)]
+
+        hessian = tensor.concatenate([self.jacobian_h_x(inputs) - \
+                                self.jacobian_h_x(corrupted) for\
+                                corrupted in corrupted_inputs])
+
+        return (hessian ** 2).mean()
+
+
 class UntiedAutoencoder(Autoencoder):
     def __init__(self, base):
         if not base.tied_weights:
