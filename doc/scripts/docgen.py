@@ -134,7 +134,7 @@ if __name__ == '__main__':
             os.chdir(workdir)
             os.system('make')
             try:
-                shutil.copy(os.path.join(workdir, 'theano.pdf'), outdir)
+                shutil.copy(os.path.join(workdir, 'pylearn2.pdf'), outdir)
                 os.chdir(outdir)
                 shutil.rmtree(workdir)
             except OSError, e:
