@@ -14,35 +14,42 @@ For example configuration files that are consumable by this script, see
 # Standard library imports
 import argparse
 import datetime
+import gc
 import os
 import warnings
+
+# Third-party imports
+import numpy as np
 
 # Local imports
 import pylearn2.config.yaml_parse
 from pylearn2.utils import serial
 
-class MultiTrain(object):
-    def __init__(self, instances):
-        """
-        Construct a MultiTrain instance.
 
-        Parameters
-        ----------
-        instances : iterable
-            A collection of Train instances that implement the
-            `main_loop()` interface.
-        """
-        self.instances = instances
+class FeatureDump(object):
+    def __init__(self, encoder, dataset, path, batch_size=None, topo=False):
+        self.encoder = encoder
+        self.dataset = dataset
+        self.path = path
+        self.batch_size = batch_size
+        self.topo = topo
 
     def main_loop(self):
-        # TODO: Add fine-grained checks to load previously existing
-        # results if instance.save_path exists and is the result of
-        # a terminated training procedure.
-        for index, instance in enumerate(self.instances):
-            os.environ['PYLEARN2_TRAINING_PHASE'] = str(index)
-            os.putenv('PYLEARN2_TRAINING_PHASE', str(index))
-            print "Entering training phase %d" % index
-            instance.main_loop()
+        if self.batch_size is None:
+            if self.topo:
+                data = self.dataset.get_topological_view()
+            else:
+                data = self.dataset.get_design_matrix()
+            output = self.encoder.perform(data)
+        else:
+            myiterator = self.dataset.iterator(mode='sequential',
+                                               batch_size=self.batch_size,
+                                               topo=self.topo)
+            chunks = []
+            for data in myiterator:
+                chunks.append(self.encoder.perform(data))
+            output = np.concatenate(chunks)
+        np.save(self.path, output)
 
 
 class Train(object):
@@ -171,4 +178,15 @@ if __name__ == "__main__":
     # this make it available to any subprocesses we launch
     os.putenv(varname, config_file_name)
     train_obj = pylearn2.config.yaml_parse.load(args.config)
-    train_obj.main_loop()
+    try:
+        iter(train_obj)
+        iterable = True
+    except TypeError as e:
+        iterable = False
+    if iterable:
+        for subobj in iter(train_obj):
+            subobj.main_loop()
+            del subobj
+            gc.collect()
+    else:
+        train_obj.main_loop()
