@@ -307,11 +307,14 @@ class MonitorBasedLRAdjuster(object):
     """
 
     def __init__(self, high_trigger=1., shrink_amt=.99,
-                 low_trigger=.99, grow_amt=1.01):
+                 low_trigger=.99, grow_amt=1.01,
+                 min_lr = 1e-7, max_lr = 1.):
         self.high_trigger = high_trigger
         self.shrink_amt = shrink_amt
         self.low_trigger = low_trigger
         self.grow_amt = grow_amt
+        self.min_lr = min_lr
+        self.max_lr = max_lr
 
     def __call__(self, algorithm):
         # TODO: more sophisticated error checking here.
@@ -335,6 +338,9 @@ class MonitorBasedLRAdjuster(object):
             rval *= self.grow_amt
             # TODO: logging infrastructure
             print "growing learning rate to", rval
+
+        rval = max(self.min_lr, rval)
+        rval = min(self.max_lr, rval)
 
         algorithm.learning_rate = rval
 
