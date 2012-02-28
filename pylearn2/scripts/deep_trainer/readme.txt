@@ -11,10 +11,11 @@ to train models on toy dataset: python run_deep_trainer.py -d toy
 
 to train models on cifar10 dataset: python run_deep_trainer.py -d cifar10
 
-to visualize the trained weights on cifar10 (currently only weights of the first layer is supported due to the 
-some complication): 
-epoch 0: python show_weights.py cifar10_grbm0_epoch.pkl
-epoch 1: python show_weights.py cifar10_grbm1_epoch.pkl
+to visualize learned the weights on cifar10 (currently only weights of the first layer is supported due to the 
+some complication)
+
+epoch 0: show_weights.py cifar10_grbm0_epoch.pkl
+epoch 1: show_weights.py cifar10_grbm1_epoch.pkl
 ....
 well, you get the idea.
 
