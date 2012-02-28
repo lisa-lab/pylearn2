@@ -315,6 +315,9 @@ class RBM(Block, Model):
     def get_weights(self, borrow=False):
         return self.weights.get_value(borrow=borrow)
 
+    def get_weights_topo(self, borrow=False):
+        return self.transformer.get_weights_topo(borrow = borrow)
+
     def get_weights_format(self):
         return ['v', 'h']
 
