@@ -686,7 +686,8 @@ class GaussianBinaryRBM(RBM):
             transformer = None,
             irange=0.5, rng=None,
                  mean_vis=False, init_sigma=2., learn_sigma=False,
-                 sigma_lr_scale=1., init_bias_hid=0.0):
+                 sigma_lr_scale=1., init_bias_hid=0.0,
+                 min_sigma = .1, max_sigma = 10.):
         """
         Allocate a GaussianBinaryRBM object.
 
@@ -706,8 +707,9 @@ class GaussianBinaryRBM(RBM):
         mean_vis : bool, optional
             Don't actually sample visibles; make sample method simply return
             mean.
-        init_sigma : scalar (TODO: ?)
-            Initial value of the sigma variable.
+        init_sigma : Initial value of the sigma variable.
+                    If init_sigma is a scalar and sigma is not, will be broadcasted
+        min_sigma, max_sigma: elements of sigma are clipped to this range during learning
         init_bias_hid : scalar or 1-d array of length `nhid`
             Initial value for the biases on hidden units.
         """
@@ -729,11 +731,13 @@ class GaussianBinaryRBM(RBM):
 
         self.sigma_driver = sharedX(
             base * init_sigma / self.sigma_lr_scale,
-            name='sigma',
+            name='sigma_driver',
             borrow=True
         )
 
         self.sigma = self.sigma_driver * self.sigma_lr_scale
+        self.min_sigma = min_sigma
+        self.max_sigma = max_sigma
 
         if self.learn_sigma:
             self._params.append(self.sigma_driver)
@@ -752,8 +756,8 @@ class GaussianBinaryRBM(RBM):
             assert self.learn_sigma
             updates[self.sigma_driver] = T.clip(
                 updates[self.sigma_driver],
-                1e-5 / self.sigma_lr_scale,
-                1e5 / self.sigma_lr_scale
+                self.min_sigma / self.sigma_lr_scale,
+                self.max_sigma / self.sigma_lr_scale
             )
 
     def score(self, V):
