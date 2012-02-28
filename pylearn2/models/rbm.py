@@ -20,7 +20,7 @@ from pylearn2.utils import as_floatX, safe_update, sharedX
 from pylearn2.models import Model
 from pylearn2.optimizer import SGDOptimizer
 from pylearn2.expr.basic import theano_norms
-from plyearn2.linear.matrixmul import MatrixMul
+from pylearn2.linear.matrixmul import MatrixMul
 theano.config.warn.sum_div_dimshuffle_bug = False
 
 if 0:
