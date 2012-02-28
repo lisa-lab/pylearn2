@@ -20,6 +20,7 @@ from pylearn2.utils import as_floatX, safe_update, sharedX
 from pylearn2.models import Model
 from pylearn2.optimizer import SGDOptimizer
 from pylearn2.expr.basic import theano_norms
+from plyearn2.linear.matrixmul import MatrixMul
 theano.config.warn.sum_div_dimshuffle_bug = False
 
 if 0:
@@ -260,7 +261,7 @@ class RBM(Block, Model):
                     #assert irange == 0.01
                     W = irange * random_patches_src.get_batch_design(nhid).T
 
-            self.transformer = dot_transformer_from(  sharedX(
+            self.transformer = MatrixMul(  sharedX(
                     W,
                     name='W',
                     borrow=True

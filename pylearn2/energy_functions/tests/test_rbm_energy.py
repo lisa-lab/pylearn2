@@ -5,6 +5,8 @@ import numpy as N
 import theano.tensor as T
 from theano import function
 from pylearn2.utils import as_floatX
+from pylearn2.utils import sharedX
+from pylearn2.linear.matrixmul import MatrixMul
 
 test_m = 2
 
@@ -13,8 +15,7 @@ nv = 3
 nh = 4
 
 vW = rng.randn(nv,nh)
-W = T.as_tensor_variable(vW)
-W.tag.test_value = vW
+W = sharedX(vW)
 vbv = rng.randn(nv)
 bv = T.as_tensor_variable(vbv)
 bv.tag.test_value = vbv
@@ -25,7 +26,7 @@ vsigma = rng.uniform(0.1,5)
 sigma = T.as_tensor_variable(vsigma)
 sigma.tag.test_value = vsigma
 
-E = GRBM_Type_1(W = W, bias_vis = bv, bias_hid = bh, sigma = sigma)
+E = GRBM_Type_1(transformer = MatrixMul(W), bias_vis = bv, bias_hid = bh, sigma = sigma)
 
 V = T.matrix()
 V.tag.test_value = rng.rand(test_m,nv)
