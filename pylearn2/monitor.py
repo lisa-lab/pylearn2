@@ -110,7 +110,12 @@ class Monitor(object):
                 channel.val_record.append(val)
                 # TODO: use logging infrastructure so that user can configure
                 # formatting
-                print "\t%s: %s" % (channel_name, str(val))
+                if abs(val) < 1e4:
+                    val_str = str(val)
+                else:
+                    val_str = '%.3e' % val
+
+                print "\t%s: %s" % (channel_name, val_str)
 
             d.set_stream_position(s)
 
