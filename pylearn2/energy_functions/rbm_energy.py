@@ -40,7 +40,7 @@ class GRBM_Type_1(GRBM_EnergyFunction):
         and the model
 
         E(v,h) = -(bias_vis^T v + v^T W h + bias_hid^T h - (1/2) v^T v ) / sigma^2
-        P(v|h) = N( Wh + bias_vis, 1/sigma^2)
+        P(v|h) = N( Wh + bias_vis, sigma^2)
         P(h|v) = sigmoid( (v^T Wh + bias_hid) / sigma^2 )
         F(v) = ( (1/2) v^T v - bias_vis^T v) / sigma^2 - sum_i softplus( ( v^T W + c) / sigma^2 )_i
         score(v) = -( v - bias_vis - sigmoid( (v^T W + bias_hid) / sigma^2 ) W^T )/sigma^2
