@@ -511,8 +511,9 @@ class RBM(Block, Model):
             Theano symbolic (or list thereof) representing the input to each
             hidden unit for each training example.
         """
+
         if isinstance(v, tensor.Variable):
-            return self.bias_hid + tensor.dot(v, self.weights)
+            return self.bias_hid + self.transformer.lmul(v)
         else:
             return [self.input_to_h_from_v(vis) for vis in v]
 
