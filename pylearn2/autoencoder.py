@@ -2,6 +2,7 @@
 # Standard library imports
 import functools
 from itertools import izip
+import operator
 
 # Third-party imports
 import numpy
@@ -557,7 +558,8 @@ class DeepComposedAutoencoder(Autoencoder):
 
     @functools.wraps(Model.get_params)
     def get_params(self):
-        return sum(ae.get_params() for ae in self.autoencoders)
+        return reduce(operator.add,
+                      [ae.get_params() for ae in self.autoencoders])
 
 
 def build_stacked_ae(nvis, nhids, act_enc, act_dec,
