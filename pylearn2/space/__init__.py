@@ -3,7 +3,7 @@ import theano.tensor as T
 from theano.tensor import TensorType
 from theano import config
 
-class Space:
+class Space(object):
     """ Defines a vector space that can be transformed by a linear operator """
 
     def get_origin(self):
