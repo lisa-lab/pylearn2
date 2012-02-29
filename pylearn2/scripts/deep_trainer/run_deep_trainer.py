@@ -1,7 +1,10 @@
 """
+See readme.txt
+
 A small example of how to glue shining features of pylearn2 together
 to train models layer by layer.
 """
+
 from pylearn2.autoencoder import Autoencoder, DenoisingAutoencoder
 from pylearn2.models.rbm import GaussianBinaryRBM
 from pylearn2.corruption import BinomialCorruptor
@@ -207,10 +210,11 @@ def main():
     parser.add_option("-d", "--data", dest="dataset", default="toy",
                       help="specify the dataset, either cifar10 or toy")
     (options,args) = parser.parse_args()
+
     global SAVE_MODEL
+
     if options.dataset == 'toy':
         trainset, testset = get_dataset_toy()
-
         SAVE_MODEL = False
     elif options.dataset == 'cifar10':
         trainset, testset, = get_dataset_cifar10()
@@ -219,13 +223,12 @@ def main():
     design_matrix = trainset.get_design_matrix()
     n_input = design_matrix.shape[1]
 
-
     # build layers
     layers = []
     structure = [[n_input, 400], [400, 50], [50, 100], [100, 2]]
     # layer 0: gaussianRBM
     layers.append(get_grbm(structure[0]))
-    # layer 1: desoising AE
+    # layer 1: denoising AE
     layers.append(get_denoising_autoencoder(structure[1]))
     # layer 2: AE
     layers.append(get_autoencoder(structure[2]))
