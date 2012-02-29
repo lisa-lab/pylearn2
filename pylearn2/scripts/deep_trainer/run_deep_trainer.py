@@ -20,18 +20,20 @@ from pylearn2.datasets import cifar10
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.datasets import preprocessing
 from pylearn2.energy_functions.rbm_energy import GRBM_Type_1
+from pylearn2.base import StackedBlocks
+from pylearn2.datasets.transformer_dataset import TransformerDataset
 from pylearn2.costs.ebm_estimation import SMD
 from pylearn2.training_algorithms.sgd import MonitorBasedTermCrit
 from pylearn2.training_algorithms.sgd import MonitorBasedLRAdjuster
 from pylearn2.training_callbacks.training_callback import TrainingCallback
 from pylearn2.cost import SquaredError
+from pylearn2.scripts.train import Train
 import pylearn2.utils.serial as serial
 import sys
 import os
 import datetime
 from optparse import OptionParser
 
-from deep_trainer import LayerTrainer, DeepTrainer
 
 import numpy
 import numpy.random
