@@ -108,7 +108,11 @@ class Train(object):
         self.save_freq = save_freq
         self.epochs = 0
         self.callbacks = callbacks if callbacks is not None else []
-        self.model.dataset_yaml_src = self.dataset.yaml_src
+
+        if hasattr(self.dataset,'yaml_src'):
+            self.model.dataset_yaml_src = self.dataset.yaml_src
+        else:
+            warnings.warn("dataset has no yaml src, model won't know what data it was trained on")
 
     def main_loop(self):
         """
