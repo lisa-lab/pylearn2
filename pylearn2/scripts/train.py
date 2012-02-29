@@ -24,6 +24,7 @@ import numpy as np
 # Local imports
 import pylearn2.config.yaml_parse
 from pylearn2.utils import serial
+from pylearn2.monitor import Monitor
 
 
 class FeatureDump(object):
@@ -95,14 +96,15 @@ class Train(object):
                               '(never save). Is this intentional?')
             self.save_path = save_path
         else:
-            phase_variable = 'PYLEARN2_TRAINING_PHASE'
-            if phase_variable in os.environ:
-                phase = 'phase%d' % os.environ[phase_variable]
-                tokens = [os.environ['PYLEARN2_TRAIN_FILE_NAME'],
-                          phase, '.pkl']
-            else:
-                tokens = os.environ['PYLEARN2_TRAIN_FILE_NAME'], '.pkl'
-            self.save_path = '.'.join(tokens)
+            if save_freq > 0:
+                phase_variable = 'PYLEARN2_TRAINING_PHASE'
+                if phase_variable in os.environ:
+                    phase = 'phase%d' % os.environ[phase_variable]
+                    tokens = [os.environ['PYLEARN2_TRAIN_FILE_NAME'],
+                              phase, '.pkl']
+                else:
+                    tokens = os.environ['PYLEARN2_TRAIN_FILE_NAME'], '.pkl'
+                self.save_path = '.'.join(tokens)
         self.save_freq = save_freq
         self.epochs = 0
         self.callbacks = callbacks if callbacks is not None else []
