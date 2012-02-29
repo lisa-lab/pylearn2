@@ -7,8 +7,28 @@ import warnings
 import numpy
 from theano import config
 
+class SubsetIterator(object):
+    def __init__(self, dataset_size, batch_size, num_batches, rng=None):
+        raise NotImplementedError()
 
-class SequentialSubsetIterator(object):
+    def next(self):
+        raise NotImplementedError()
+
+    def __iter__(self):
+        return self
+
+    # Class-level attributes that might hint the behaviour of
+    # FiniteDatasetIterator.
+
+    # Does this return subsets that need fancy indexing? (i.e. lists
+    # of indices)
+    fancy = False
+
+    # Does this class make use of random number generators?
+    stochastic = False
+
+
+class SequentialSubsetIterator(SubsetIterator):
     def __init__(self, dataset_size, batch_size, num_batches, rng=None):
         if rng is not None:
             raise ValueError("non-None rng argument not supported for "
@@ -31,9 +51,6 @@ class SequentialSubsetIterator(object):
         self.batch_size = batch_size
         self.current = 0
 
-    def __iter__(self):
-        return self
-
     def next(self):
         if self.current >= self.dataset_size:
             raise StopIteration()
@@ -46,7 +63,7 @@ class SequentialSubsetIterator(object):
     stochastic = False
 
 
-class RandomUniformSubsetIterator(object):
+class RandomUniformSubsetIterator(SubsetIterator):
     def __init__(self, dataset_size, batch_size, num_batches, rng=None):
         if rng is not None and hasattr(rng, 'random_integers'):
             self._rng = rng
@@ -62,9 +79,6 @@ class RandomUniformSubsetIterator(object):
         self.batch_size = batch_size
         self.num_batches = num_batches
         self._next_batch_no = 0
-
-    def __iter__(self):
-        return self
 
     def next(self):
         if self._next_batch_no >= self.num_batches:
@@ -96,9 +110,6 @@ class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
             raise ValueError("batch_size > dataset_size not supported for "
                              "random slice iteration")
 
-    def __iter__(self):
-        return self
-
     def next(self):
         if self._next_batch_no >= self.num_batches:
             raise StopIteration()
@@ -107,9 +118,6 @@ class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
             self._last = slice(start, start + self.batch_size)
             self._next_batch_no += 1
             return self._last
-
-    def reset(self):
-        self._next_batch_no = 0
 
     fancy = False
     stochastic = True
@@ -138,6 +146,8 @@ class FiniteDatasetIterator(object):
         self._topo = topo
         self._dataset = dataset
         self._subset_iterator = subset_iterator
+        # TODO: More thought about how to handle things where this
+        # fails (gigantic HDF5 files, etc.)
         if self._topo:
             self._raw_data = self._dataset.get_topological_view()
         else:
