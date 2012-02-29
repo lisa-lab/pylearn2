@@ -1,6 +1,6 @@
 """
 A small example of how to glue shining features of pylearn2 together
-to train models layer by layer. 
+to train models layer by layer.
 """
 from pylearn2.autoencoder import Autoencoder, DenoisingAutoencoder
 from pylearn2.models.rbm import GaussianBinaryRBM
@@ -22,7 +22,7 @@ from pylearn2.cost import SquaredError
 import pylearn2.utils.serial as serial
 import sys
 import datetime
-from optparse import OptionParser 
+from optparse import OptionParser
 
 from deep_trainer import LayerTrainer, DeepTrainer
 
@@ -33,12 +33,12 @@ SAVE_MODEL = False
 
 class ToyDataset(DenseDesignMatrix):
     def __init__(self):
-        
-       # simulated random dataset
-       rng = numpy.random.RandomState(seed=42)
-       data = rng.normal(size=(1000, 10))
-       self.y = numpy.random.binomial(1, 0.5, [1000, 1])
-       super(ToyDataset, self).__init__(data)
+
+        # simulated random dataset
+        rng = numpy.random.RandomState(seed=42)
+        data = rng.normal(size=(1000, 10))
+        self.y = numpy.random.binomial(1, 0.5, [1000, 1])
+        super(ToyDataset, self).__init__(data)
 
 
 class ModelSaver(TrainingCallback):
@@ -77,21 +77,21 @@ def get_dataset_cifar10():
     pylearn2/scripts/train_example/make_dataset.py for details.
     """
     print 'loading data...'
-    
+
     trainset = cifar10.CIFAR10(which_set="train")
     testset =  cifar10.CIFAR10(which_set="test")
     #import pdb;pdb.set_trace()
     #serial.save('cifar10_unpreprocessed_train.pkl', trainset)
-    
+
     pipeline = preprocessing.Pipeline()
-        
+
     pipeline.items.append(
         preprocessing.ExtractPatches(patch_shape=(8, 8), num_patches=150000))
-    
+
     pipeline.items.append(preprocessing.GlobalContrastNormalization())
-    
+
     pipeline.items.append(preprocessing.ZCA())
-    
+
     trainset.apply_preprocessor(preprocessor=pipeline, can_fit=True)
     trainset.use_design_loc('train_design.npy')
 
@@ -110,10 +110,10 @@ def get_autoencoder(structure):
     config = {
         'nhid': n_output,
         'nvis': n_input,
-        'tied_weights': True, 
+        'tied_weights': True,
         'act_enc': 'tanh',
         'act_dec': 'sigmoid',
-        'irange': 0.001, 
+        'irange': 0.001,
     }
     return Autoencoder(**config)
 
@@ -124,10 +124,10 @@ def get_denoising_autoencoder(structure):
         'corruptor': curruptor,
         'nhid': n_output,
         'nvis': n_input,
-        'tied_weights': True, 
+        'tied_weights': True,
         'act_enc': 'tanh',
         'act_dec': 'sigmoid',
-        'irange': 0.001, 
+        'irange': 0.001,
     }
     return DenoisingAutoencoder(**config)
 
@@ -154,15 +154,15 @@ def get_logistic_regressor(structure):
 
 def get_layer_trainer_logistic(layer, testset):
     # configs on sgd
-    config = {'learning_rate': 0.1, 
-              'cost' : SquaredError(), 
+    config = {'learning_rate': 0.1,
+              'cost' : SquaredError(),
               'batch_size': 10,
               'monitoring_batches': 10,
-              'monitoring_dataset': None, 
+              'monitoring_dataset': None,
               'termination_criterion': EpochCounter(max_epochs=10),
               'update_callbacks': None
               }
-    
+
     train_algo = UnsupervisedExhaustiveSGD(**config)
     model = layer
     callbacks = None
@@ -170,15 +170,15 @@ def get_layer_trainer_logistic(layer, testset):
 
 def get_layer_trainer_sgd_autoencoder(layer, testset):
     # configs on sgd
-    config = {'learning_rate': 0.1, 
-              'cost' : MeanSquaredReconstructionError(), 
+    config = {'learning_rate': 0.1,
+              'cost' : MeanSquaredReconstructionError(),
               'batch_size': 10,
               'monitoring_batches': 10,
-              'monitoring_dataset': None, 
+              'monitoring_dataset': None,
               'termination_criterion': EpochCounter(max_epochs=50),
-              'update_callbacks': None 
+              'update_callbacks': None
               }
-    
+
     train_algo = UnsupervisedExhaustiveSGD(**config)
     model = layer
     callbacks = None
@@ -201,7 +201,7 @@ def get_layer_trainer_sgd_rbm(layer, testset):
     model = layer
     callbacks = [ModelSaver()]
     return LayerTrainer(model, train_algo, callbacks, testset)
-    
+
 def main():
     parser = OptionParser()
     parser.add_option("-d", "--data", dest="dataset", default="toy",
@@ -210,16 +210,16 @@ def main():
     global SAVE_MODEL
     if options.dataset == 'toy':
         trainset, testset = get_dataset_toy()
-        
+
         SAVE_MODEL = False
     elif options.dataset == 'cifar10':
         trainset, testset, = get_dataset_cifar10()
-        SAVE_MODEL = True            
-    
+        SAVE_MODEL = True
+
     design_matrix = trainset.get_design_matrix()
     n_input = design_matrix.shape[1]
-    
-    
+
+
     # build layers
     layers = []
     structure = [[n_input, 400], [400, 50], [50, 100], [100, 2]]
@@ -231,7 +231,7 @@ def main():
     layers.append(get_autoencoder(structure[2]))
     # layer 3: logistic regression used in supervised training
     layers.append(get_logistic_regressor(structure[3]))
-    
+
     # construct layer trainers
     layer_trainers = []
     layer_trainers.append(get_layer_trainer_sgd_rbm(layers[0], testset))
@@ -245,7 +245,7 @@ def main():
     # unsupervised pretraining
     layers_to_unsupervised_train = [0, 1, 2]
     master_trainer.train_unsupervised(layers_to_unsupervised_train)
-    
+
     #layers_to_supervised_train = [0, 1, 2, 3]
     #master_trainer.train_supervised()
 
