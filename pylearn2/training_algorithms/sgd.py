@@ -285,9 +285,9 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
             #print grads
             self.monitor.batches_seen += 1
             self.monitor.examples_seen += batch_size
+            for callback in self.update_callbacks:
+                callback(self)
         self.monitor()
-        for callback in self.update_callbacks:
-            callback(self)
         if self.termination_criterion is None:
             return True
         else:
