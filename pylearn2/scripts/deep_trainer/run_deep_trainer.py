@@ -59,14 +59,9 @@ class ModelSaver(TrainingCallback):
         self.current_epoch = 0
 
     def __call__(self, model, dataset, algorithm):
-        #import pdb;pdb.set_trace()
-        assert SAVE_MODEL
         if SAVE_MODEL is True:
-            #save_path = 'cifar_grbm_smd_' + str(current_epoch) + '_epoch.pkl'
             save_path = 'cifar10_grbm' + str(self.current_epoch) + '_epoch.pkl'
             save_start = datetime.datetime.now()
-            #global YAML
-            #model.dataset_yaml_src = YAML
             serial.save(save_path, model)
             save_end = datetime.datetime.now()
             delta = (save_end - save_start)
@@ -248,6 +243,7 @@ def main():
     elif options.dataset == 'cifar10':
         trainset, testset, = get_dataset_cifar10()
         SAVE_MODEL = True
+
 
     design_matrix = trainset.get_design_matrix()
     n_input = design_matrix.shape[1]
