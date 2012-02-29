@@ -108,9 +108,6 @@ class DenseDesignMatrix(Dataset):
                                      num_batches, rng),
                                      topo)
 
-    def __iter__(self):
-        return self.iterator()
-
     def use_design_loc(self, path):
         """
         When pickling, save the design matrix to path as a .npy file rather

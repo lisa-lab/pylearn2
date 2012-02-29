@@ -18,6 +18,9 @@ class Dataset(object):
         """
         raise NotImplementedError()
 
+    def __iter__(self):
+        return self.iterator()
+
     def set_iteration_scheme(self, mode=None, batch_size=None,
                              num_batches=None, topo=False):
         """
