@@ -253,7 +253,6 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
         self.sgd_update = function([X, learning_rate], updates=updates,
                                    name='sgd_update')
         self.params = params
-        num_examples = dataset.get_design_matrix().shape[0]
 
     def train(self, dataset):
         if not hasattr(self, 'sgd_update'):
