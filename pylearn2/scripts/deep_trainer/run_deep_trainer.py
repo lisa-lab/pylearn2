@@ -24,6 +24,7 @@ from pylearn2.training_callbacks.training_callback import TrainingCallback
 from pylearn2.cost import SquaredError
 import pylearn2.utils.serial as serial
 import sys
+import os
 import datetime
 from optparse import OptionParser
 
@@ -79,29 +80,39 @@ def get_dataset_cifar10():
     The orginal pipeline on cifar10 from pylearn2. Please refer to
     pylearn2/scripts/train_example/make_dataset.py for details.
     """
-    print 'loading data...'
 
-    trainset = cifar10.CIFAR10(which_set="train")
-    testset =  cifar10.CIFAR10(which_set="test")
-    #import pdb;pdb.set_trace()
-    #serial.save('cifar10_unpreprocessed_train.pkl', trainset)
+    train_path = 'cifar10_preprocessed_train.pkl'
+    test_path = 'cifar10_preprocessed_test.pkl'
 
-    pipeline = preprocessing.Pipeline()
+    if os.path.exists(train_path) and \
+            os.path.exists(test_path):
+        print 'loading preprocessed data'
+        trainset = serial.load(train_path)
+        testset = serial.load(test_path)
+    else:
+        print 'loading raw data...'
+        trainset = cifar10.CIFAR10(which_set="train")
+        testset =  cifar10.CIFAR10(which_set="test")
 
-    pipeline.items.append(
-        preprocessing.ExtractPatches(patch_shape=(8, 8), num_patches=150000))
+        print 'preprocessing data...'
+        pipeline = preprocessing.Pipeline()
 
-    pipeline.items.append(preprocessing.GlobalContrastNormalization())
+        pipeline.items.append(
+            preprocessing.ExtractPatches(patch_shape=(8, 8), num_patches=150000))
 
-    pipeline.items.append(preprocessing.ZCA())
+        pipeline.items.append(preprocessing.GlobalContrastNormalization())
 
-    trainset.apply_preprocessor(preprocessor=pipeline, can_fit=True)
-    trainset.use_design_loc('train_design.npy')
+        pipeline.items.append(preprocessing.ZCA())
 
-    testset.apply_preprocessor(preprocessor=pipeline, can_fit=True)
-    testset.use_design_loc('train_design.npy')
+        trainset.apply_preprocessor(preprocessor=pipeline, can_fit=True)
+        trainset.use_design_loc('train_design.npy')
 
-    serial.save('cifar10_preprocessed_train.pkl', trainset)
+        testset.apply_preprocessor(preprocessor=pipeline, can_fit=True)
+        testset.use_design_loc('test_design.npy')
+
+        print 'saving preprocessed data...'
+        serial.save('cifar10_preprocessed_train.pkl', trainset)
+        serial.save('cifar10_preprocessed_test.pkl', testset)
 
     # this path will be used for visualizing weights after training is done
     global YAML
