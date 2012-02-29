@@ -120,26 +120,41 @@ class Train(object):
         epoch-level callbacks, and saves the model.
         """
         if self.algorithm is None:
+            self.model.monitor = Monitor.get_monitor(model)
             while self.model.train(dataset=self.dataset):
+                self.run_callbacks_and_monitoring()
                 if self.save_freq > 0 and self.epochs % self.save_freq == 0:
                     self.save()
                 self.epochs += 1
+            self.run_callbacks_and_monitoring()
             if self.save_freq > 0:
                 self.save()
         else:
             self.algorithm.setup(model=self.model, dataset=self.dataset)
+            self.model.monitor()
             epoch_start = datetime.datetime.now()
             while self.algorithm.train(dataset=self.dataset):
                 epoch_end = datetime.datetime.now()
                 print 'Time this epoch:', str(epoch_end - epoch_start)
+                epoch_start = datetime.datetime.now()
+                self.run_callbacks_and_monitoring()
                 if self.save_freq > 0 and self.epochs % self.save_freq == 0:
                     self.save()
-                epoch_start = datetime.datetime.now()
-                for callback in self.callbacks:
-                    callback(self.model, self.dataset, self.algorithm)
                 self.epochs += 1
+            self.run_callbacks_and_monitoring()
+
             if self.save_freq > 0:
                 self.save()
+
+    def run_callbacks_and_monitoring(self):
+        self.model.monitor()
+        for callback in self.callbacks:
+            try:
+                callback(self.model, self.dataset, self.algorithm)
+            except TypeError, e:
+                print 'Failure during callback '+str(callback)
+                raise
+
 
     def save(self):
         """Saves the model."""
