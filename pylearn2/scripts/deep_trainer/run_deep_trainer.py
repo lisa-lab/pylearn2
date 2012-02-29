@@ -5,6 +5,9 @@ A small example of how to glue shining features of pylearn2 together
 to train models layer by layer.
 """
 
+MAX_EPOCHS = 1
+SAVE_MODEL = False
+
 from pylearn2.autoencoder import Autoencoder, DenoisingAutoencoder
 from pylearn2.models.rbm import GaussianBinaryRBM
 from pylearn2.corruption import BinomialCorruptor
@@ -33,7 +36,6 @@ from deep_trainer import LayerTrainer, DeepTrainer
 import numpy
 import numpy.random
 
-SAVE_MODEL = False
 
 class ToyDataset(DenseDesignMatrix):
     def __init__(self):
