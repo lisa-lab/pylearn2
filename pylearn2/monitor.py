@@ -84,7 +84,7 @@ class Monitor(object):
 
             myiterator = d.iterator(mode='sequential',
                                     batch_size=self.batch_size,
-                                    topo=False)
+                                    topo=self.topo)
             self.begin_record_entry()
 
             for X in myiterator:
