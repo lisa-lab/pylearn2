@@ -48,15 +48,14 @@
         "termination_criterion" : !obj:pylearn2.training_algorithms.sgd.MonitorBasedTermCrit {
             "prop_decrease" : 0.01,
             "N" : 10,
-        },
-
-        "update_callbacks" : !obj:pylearn2.training_algorithms.sgd.MonitorBasedLRAdjuster {
+        }
+       },
+      "callbacks" : [!obj:pylearn2.training_algorithms.sgd.MonitorBasedLRAdjuster {
                 "max_lr" : .01 
-                }
-        },
+                } ],
 
-    "save_path": "${PYLEARN2_TRAIN_FILE_NAME}.pkl"
-
+    "save_path": "${PYLEARN2_TRAIN_FILE_NAME}.pkl",
+    "save_freq": 1
 }
 
 
