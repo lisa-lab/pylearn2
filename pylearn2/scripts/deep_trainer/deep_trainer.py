@@ -5,10 +5,11 @@ import copy
 import numpy as np
 from theano import config
 
+"""
 class LayerTrainer(object):
-    """
+    ""
     Only take in charge of training a specific layer. Owned by DNNTrainer.
-    """
+    ""
     def __init__(self, model, training_algorithm, callbacks, testset):
 
         # this is just a symbolic theano fn that transforms the actual
@@ -59,7 +60,7 @@ class LayerTrainer(object):
                     for callback in self.callbacks:
                         callback(self.model, trainset, self.train_algo, self.epochs-1)
                 print '#################'
-
+"""
 
 class DeepTrainer(object):
     """
