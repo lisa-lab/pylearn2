@@ -5,6 +5,7 @@ datasets.
 from __future__ import division
 import warnings
 import numpy
+from theano import config
 
 
 class SequentialSubsetIterator(object):
@@ -112,3 +113,41 @@ class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
 
     fancy = False
     stochastic = True
+
+
+_iteration_schemes = {
+    'sequential': SequentialSubsetIterator,
+    'random_slice': RandomSliceSubsetIterator,
+    'random_uniform': RandomUniformSubsetIterator,
+}
+
+
+def resolve_iterator_class(mode):
+    if isinstance(mode, basestring) and mode not in _iteration_schemes:
+        raise ValueError("unknown iteration mode string: %s" % mode)
+    elif mode in _iteration_schemes:
+        subset_iter_class = _iteration_schemes[mode]
+    else:
+        subset_iter_class = mode
+    return subset_iter_class
+
+
+class FiniteDatasetIterator(object):
+    """A thin wrapper around one of the mode iterators."""
+    def __init__(self, dataset, subset_iterator, topo=False):
+        self._topo = topo
+        self._dataset = dataset
+        self._subset_iterator = subset_iterator
+        if self._topo:
+            self._raw_data = self._dataset.get_topological_view()
+        else:
+            self._raw_data = self._dataset.get_design_matrix()
+
+    def __iter__(self):
+        return self
+
+    def next(self):
+        # TODO: handle fancy-index copies by allocating a buffer and
+        # using numpy.take()
+        next_index = self._subset_iterator.next()
+        return numpy.cast[config.floatX](self._raw_data[next_index])

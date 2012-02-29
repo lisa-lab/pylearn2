@@ -3,7 +3,9 @@ import numpy as np
 from pylearn2.utils.iteration import (
     SequentialSubsetIterator,
     RandomSliceSubsetIterator,
-    RandomUniformSubsetIterator
+    RandomUniformSubsetIterator,
+    FiniteDatasetIterator,
+    resolve_iterator_class
 )
 N = np
 import copy
@@ -12,42 +14,6 @@ from pylearn2.datasets.dataset import Dataset
 from pylearn2.datasets import control
 from theano import config
 
-_iteration_schemes = {
-    'sequential': SequentialSubsetIterator,
-    'random_slice': RandomSliceSubsetIterator,
-    'random_uniform': RandomUniformSubsetIterator,
-}
-
-
-def _resolve_iterator_class(mode):
-    if isinstance(mode, basestring) and mode not in _iteration_schemes:
-        raise ValueError("unknown iteration mode string: %s" % mode)
-    elif mode in _iteration_schemes:
-        subset_iter_class = _iteration_schemes[mode]
-    else:
-        subset_iter_class = mode
-    return subset_iter_class
-
-
-class DatasetIterator(object):
-    """A thin wrapper around one of the mode iterators."""
-    def __init__(self, dataset, subset_iterator, topo=False):
-        self._topo = topo
-        self._dataset = dataset
-        self._subset_iterator = subset_iterator
-        if self._topo:
-            self._raw_data = self._dataset.get_topological_view()
-        else:
-            self._raw_data = self._dataset.get_design_matrix()
-
-    def __iter__(self):
-        return self
-
-    def next(self):
-        # TODO: handle fancy-index copies by allocating a buffer and
-        # using numpy.take()
-        next_index = self._subset_iterator.next()
-        return np.cast[config.floatX](self._raw_data[next_index])
 
 
 class DenseDesignMatrix(Dataset):
@@ -103,7 +69,7 @@ class DenseDesignMatrix(Dataset):
     def set_iteration_scheme(self, mode=None, batch_size=None,
                              num_batches=None, topo=False):
         if mode is not None:
-            self._iter_subset_class = mode = _resolve_iterator_class(mode)
+            self._iter_subset_class = mode = resolve_iterator_class(mode)
         elif hasattr(self, '_iter_subset_class'):
             mode = self._iter_subset_class
         else:
@@ -128,7 +94,7 @@ class DenseDesignMatrix(Dataset):
                 raise ValueError('iteration mode not provided and no default '
                                  'mode set for %s' % str(self))
         else:
-            mode = _resolve_iterator_class(mode)
+            mode = resolve_iterator_class(mode)
         if batch_size is None:
             batch_size = getattr(self, '_iter_batch_size', None)
         if num_batches is None:
@@ -137,10 +103,10 @@ class DenseDesignMatrix(Dataset):
             topo = getattr(self, '_iter_topo', False)
         if rng is None and mode.stochastic:
             rng = self.rng
-        return DatasetIterator(self,
-                               mode(self.X.shape[0], batch_size,
-                                    num_batches, rng),
-                               topo)
+        return FiniteDatasetIterator(self,
+                                     mode(self.X.shape[0], batch_size,
+                                     num_batches, rng),
+                                     topo)
 
     def __iter__(self):
         return self.iterator()
