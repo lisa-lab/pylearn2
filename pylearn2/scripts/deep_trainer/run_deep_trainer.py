@@ -179,7 +179,7 @@ def get_logistic_regressor(structure):
 
     return LogisticRegressionLayer(nvis=n_input, nclasses=n_output)
 
-def get_layer_trainer_logistic(layer, testset):
+def get_layer_trainer_logistic(layer, trainset):
     # configs on sgd
     config = {'learning_rate': 0.1,
               'cost' : SquaredError(),
@@ -193,9 +193,12 @@ def get_layer_trainer_logistic(layer, testset):
     train_algo = UnsupervisedExhaustiveSGD(**config)
     model = layer
     callbacks = None
-    return LayerTrainer(model, train_algo, callbacks, testset)
+    return Train(model = model,
+            dataset = trainset,
+            algorithm = train_algo,
+            callbacks = callbacks)
 
-def get_layer_trainer_sgd_autoencoder(layer, testset):
+def get_layer_trainer_sgd_autoencoder(layer, trainset):
     # configs on sgd
     train_algo = UnsupervisedExhaustiveSGD(
             learning_rate = 0.1,
@@ -203,30 +206,33 @@ def get_layer_trainer_sgd_autoencoder(layer, testset):
               batch_size =  10,
               monitoring_batches = 10,
               monitoring_dataset =  None,
-              termination_criterion = EpochCounter(max_epochs=50),
+              termination_criterion = EpochCounter(max_epochs=MAX_EPOCHS),
               update_callbacks =  None
               )
 
     model = layer
     callbacks = None
-    return LayerTrainer(model, train_algo, callbacks, testset)
+    return Train(model = model,
+            algorithm = train_algo,
+            callbacks = callbacks,
+            dataset = trainset)
 
-def get_layer_trainer_sgd_rbm(layer, testset):
+def get_layer_trainer_sgd_rbm(layer, trainset):
     train_algo = UnsupervisedExhaustiveSGD(
         learning_rate = 1e-1,
         batch_size =  5,
         #"batches_per_iter" : 2000,
         monitoring_batches =  20,
-        monitoring_dataset =  None,
+        monitoring_dataset =  trainset,
         cost = SMD(corruptor=GaussianCorruptor(stdev=0.4)),
-        termination_criterion =  EpochCounter(max_epochs=50),
+        termination_criterion =  EpochCounter(max_epochs=MAX_EPOCHS),
         # another option:
         # MonitorBasedTermCrit(prop_decrease=0.01, N=10),
-        update_callbacks =  MonitorBasedLRAdjuster()
         )
     model = layer
-    callbacks = [ModelSaver()]
-    return LayerTrainer(model, train_algo, callbacks, testset)
+    callbacks = [MonitorBasedLRAdjuster(), ModelSaver()]
+    return Train(model = model, algorithm = train_algo,
+            callbacks = callbacks, dataset = trainset)
 
 def main():
     parser = OptionParser()
@@ -258,22 +264,25 @@ def main():
     # layer 3: logistic regression used in supervised training
     layers.append(get_logistic_regressor(structure[3]))
 
+
+    #construct training sets for different layers
+    trainset = [ trainset ,
+                TransformerDataset( raw = trainset, transformer = layers[0] ),
+                TransformerDataset( raw = trainset, transformer = StackedBlocks( layers[0:2] )),
+                TransformerDataset( raw = trainset, transformer = StackedBlocks( layers[0:3] ))  ]
+
     # construct layer trainers
     layer_trainers = []
-    layer_trainers.append(get_layer_trainer_sgd_rbm(layers[0], testset))
-    layer_trainers.append(get_layer_trainer_sgd_autoencoder(layers[1], testset))
-    layer_trainers.append(get_layer_trainer_sgd_autoencoder(layers[2], testset))
-    layer_trainers.append(get_layer_trainer_logistic(layers[3], testset))
+    layer_trainers.append(get_layer_trainer_sgd_rbm(layers[0], trainset[0]))
+    layer_trainers.append(get_layer_trainer_sgd_autoencoder(layers[1], trainset[1]))
+    layer_trainers.append(get_layer_trainer_sgd_autoencoder(layers[2], trainset[2]))
+    layer_trainers.append(get_layer_trainer_logistic(layers[3], trainset[3]))
 
-    # init trainer that performs
-    master_trainer = DeepTrainer(trainset, layer_trainers)
+    #unsupervised pretraining
+    for layer_trainer in layer_trainers[0:3]:
+        layer_trainer.main_loop()
 
-    # unsupervised pretraining
-    layers_to_unsupervised_train = [0, 1, 2]
-    master_trainer.train_unsupervised(layers_to_unsupervised_train)
-
-    #layers_to_supervised_train = [0, 1, 2, 3]
-    #master_trainer.train_supervised()
+    #supervised training is not implemented yet
 
 if __name__ == '__main__':
     main()
