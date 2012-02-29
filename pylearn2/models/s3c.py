@@ -1187,9 +1187,6 @@ def reflection_clip(S_hat, new_S_hat, rho = 0.5):
     low = - rho * positives * S_hat - non_positives * ceiling
     high = non_negatives * ceiling - rho * negatives * S_hat
 
-    assert low.type.dtype == config.floatX
-    assert high.type.dtype == config.floatX
-
     rval = T.clip(new_S_hat, low,  high )
 
     S_name = make_name(S_hat, 'anon_S_hat')
