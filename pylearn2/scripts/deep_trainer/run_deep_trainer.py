@@ -184,34 +184,33 @@ def get_layer_trainer_logistic(layer, testset):
 
 def get_layer_trainer_sgd_autoencoder(layer, testset):
     # configs on sgd
-    config = {'learning_rate': 0.1,
-              'cost' : MeanSquaredReconstructionError(),
-              'batch_size': 10,
-              'monitoring_batches': 10,
-              'monitoring_dataset': None,
-              'termination_criterion': EpochCounter(max_epochs=50),
-              'update_callbacks': None
-              }
+    train_algo = UnsupervisedExhaustiveSGD(
+            learning_rate = 0.1,
+              cost =  MeanSquaredReconstructionError(),
+              batch_size =  10,
+              monitoring_batches = 10,
+              monitoring_dataset =  None,
+              termination_criterion = EpochCounter(max_epochs=50),
+              update_callbacks =  None
+              )
 
-    train_algo = UnsupervisedExhaustiveSGD(**config)
     model = layer
     callbacks = None
     return LayerTrainer(model, train_algo, callbacks, testset)
 
 def get_layer_trainer_sgd_rbm(layer, testset):
-    config = {
-        "learning_rate" : 1e-1,
-        "batch_size" : 5,
+    train_algo = UnsupervisedExhaustiveSGD(
+        learning_rate = 1e-1,
+        batch_size =  5,
         #"batches_per_iter" : 2000,
-        "monitoring_batches" : 20,
-        "monitoring_dataset" : None,
-        "cost": SMD(corruptor=GaussianCorruptor(stdev=0.4)),
-        "termination_criterion": EpochCounter(max_epochs=50),
+        monitoring_batches =  20,
+        monitoring_dataset =  None,
+        cost = SMD(corruptor=GaussianCorruptor(stdev=0.4)),
+        termination_criterion =  EpochCounter(max_epochs=50),
         # another option:
         # MonitorBasedTermCrit(prop_decrease=0.01, N=10),
-        "update_callbacks": MonitorBasedLRAdjuster()
-        }
-    train_algo = UnsupervisedExhaustiveSGD(**config)
+        update_callbacks =  MonitorBasedLRAdjuster()
+        )
     model = layer
     callbacks = [ModelSaver()]
     return LayerTrainer(model, train_algo, callbacks, testset)
