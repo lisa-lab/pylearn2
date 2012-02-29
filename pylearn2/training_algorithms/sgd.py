@@ -184,7 +184,11 @@ class SGD(TrainingAlgorithm):
 
         self.monitor()
         for callback in self.update_callbacks:
-            callback(self)
+            try:
+                callback(self)
+            except Exception as e:
+                print ("WARNING: callback " + str(callback) + " failed with "
+                       + str(type(e)) + ", mesage: " + str(e))
         if self.termination_criterion is None:
             return True
         else:
