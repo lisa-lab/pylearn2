@@ -64,6 +64,7 @@ class Monitor(object):
         Runs the model on the monitoring dataset in order to add one
         data point to each of the channels.
         """
+
         if self.dirty:
             self.redo_theano()
 
@@ -114,7 +115,6 @@ class Monitor(object):
     def run_prereqs(self, X):
         for prereq in self.prereqs:
             prereq(X)
-
 
     def redo_theano(self):
         """
