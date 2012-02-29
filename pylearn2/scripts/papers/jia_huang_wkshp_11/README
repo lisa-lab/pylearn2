@@ -1,0 +1,9 @@
+This directory contains scripts for reproducing an experiment from
+"Beyond Spatial Pyramids: Receptive Field Learning For Pooled Image Features"
+by Yangqing Jia and Chang Huang
+presented at the NIPS 2011 Workshop on Deep Learning and Unsupervised Feature Learning
+
+In this experiment, we train a k-means dictionary of 1600 centroids on patches of the
+CIFAR-100 dataset. We then extract features using the triangle code and the random
+pooling procedure described in the paper. The authors obtained a test set accuracy
+of 54.5 % using these features in an SVM.
