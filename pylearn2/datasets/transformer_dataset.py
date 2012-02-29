@@ -42,6 +42,8 @@ class TransformerDataset(Dataset):
 
         final_iterator = TransformerIterator(raw_iterator, self)
 
+        return final_iterator
+
 class TransformerIterator(object):
 
     def __init__(self, raw_iterator, transformer_dataset):
