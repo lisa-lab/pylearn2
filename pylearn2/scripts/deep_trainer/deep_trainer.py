@@ -62,10 +62,11 @@ class LayerTrainer(object):
                 print '#################'
 """
 
+"""
 class DeepTrainer(object):
-    """
+    ""
     This is the master that controls all its layer trainers
-    """
+    ""
     def __init__(self, dataset, layer_trainers):
         """
         dataset:
@@ -124,4 +125,6 @@ class DeepTrainer(object):
             print "------------ training layer %d ------------" % i
             print "use model: %s" % self.layer_trainers[i].model.__class__
             raw_input('press Enter to start training this layer...')
+            print 'training...'
             self.layer_trainers[i].train(self.dataset)
+"""
