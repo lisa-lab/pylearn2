@@ -97,11 +97,17 @@ class SGD(TrainingAlgorithm):
                                  batches=self.monitoring_batches,
                                  batch_size=self.batch_size)
 
-        X = T.matrix(name='sgd_X')
+        space = self.model.get_input_space()
+
+        X = space.make_theano_batch(name='sgd_X')
+
+        self.topo = len(X.type.broadcastable) > 2
+
         try:
             J = sum(c(model, X) for c in self.cost)
         except TypeError:
             J = self.cost(model, X)
+
         if J.name is None:
             J.name = 'sgd_cost(' + X.name + ')'
         self.monitor.add_channel(name=J.name, ipt=X, val=J)
@@ -163,7 +169,10 @@ class SGD(TrainingAlgorithm):
 
         self.first = False
         for i in xrange(self.batches_per_iter):
-            X = dataset.get_batch_design(batch_size)
+            if self.topo:
+                X = dataset.get_batch_topo(batch_size)
+            else:
+                X = dataset.get_batch_design(batch_size)
 
             #print '\n----------------'
             self.sgd_update(X, self.learning_rate)
@@ -319,11 +328,14 @@ class MonitorBasedLRAdjuster(object):
     """
 
     def __init__(self, high_trigger=1., shrink_amt=.99,
-                 low_trigger=.99, grow_amt=1.01):
+                 low_trigger=.99, grow_amt=1.01,
+                 min_lr = 1e-7, max_lr = 1.):
         self.high_trigger = high_trigger
         self.shrink_amt = shrink_amt
         self.low_trigger = low_trigger
         self.grow_amt = grow_amt
+        self.min_lr = min_lr
+        self.max_lr = max_lr
 
     def __call__(self, model, dataset, algorithm):
         # TODO: more sophisticated error checking here.
@@ -363,6 +375,9 @@ class MonitorBasedLRAdjuster(object):
             rval *= self.grow_amt
             # TODO: logging infrastructure
             print "growing learning rate to", rval
+
+        rval = max(self.min_lr, rval)
+        rval = min(self.max_lr, rval)
 
         algorithm.learning_rate = rval
 

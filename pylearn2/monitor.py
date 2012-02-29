@@ -35,6 +35,7 @@ class Monitor(object):
         self.dataset = None
         self.dirty = True
         self.names_to_del = []
+        self.topo = len(model.get_input_space().make_theano_batch().type.broadcastable) > 2
 
     def set_dataset(self, dataset, batches, batch_size):
         """
@@ -85,6 +86,7 @@ class Monitor(object):
                                     batch_size=self.batch_size,
                                     topo=False)
             self.begin_record_entry()
+
             for X in myiterator:
                 self.run_prereqs(X)
                 self.accum(X)
@@ -104,7 +106,12 @@ class Monitor(object):
                 channel.val_record.append(val)
                 # TODO: use logging infrastructure so that user can configure
                 # formatting
-                print "\t%s: %s" % (channel_name, str(val))
+                if abs(val) < 1e4:
+                    val_str = str(val)
+                else:
+                    val_str = '%.3e' % val
+
+                print "\t%s: %s" % (channel_name, val_str)
 
 
 
@@ -143,7 +150,7 @@ class Monitor(object):
         print "took "+str(t2-t1)+" seconds"
         updates = {}
         givens = {}
-        X = T.matrix()
+        X = self.model.get_input_space().make_theano_batch(name = "monitoring_X")
         print 'monitored channels: '+str(self.channels.keys())
         for channel in self.channels.values():
             givens[channel.graph_input] = X

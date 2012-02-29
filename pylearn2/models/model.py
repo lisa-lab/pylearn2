@@ -96,6 +96,10 @@ class Model(object):
         respect the specific properties of the models passed to them."""
         pass
 
+
+    def get_input_space(self):
+        return self.input_space
+
     def free_energy(self, V):
         """
         Compute the free energy of data examples, if this model has
