@@ -120,7 +120,7 @@ class Train(object):
         epoch-level callbacks, and saves the model.
         """
         if self.algorithm is None:
-            self.model.monitor = Monitor.get_monitor(model)
+            self.model.monitor = Monitor.get_monitor(self.model)
             while self.model.train(dataset=self.dataset):
                 self.run_callbacks_and_monitoring()
                 if self.save_freq > 0 and self.epochs % self.save_freq == 0:

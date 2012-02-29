@@ -1,5 +1,6 @@
 """TODO: module-level docstring."""
 import time
+import numpy
 from theano import function, shared
 import theano.tensor as T
 import copy
@@ -80,15 +81,11 @@ class Monitor(object):
                 d = yaml_parse.load(d)
                 self.dataset = d
 
-            s = d.get_stream_position()
-
-            d.restart_stream()
-
+            myiterator = d.iterator(mode='sequential',
+                                    batch_size=self.batch_size,
+                                    topo=False)
             self.begin_record_entry()
-
-            for i in xrange(self.batches):
-                X = d.get_batch_design(self.batch_size)
-                #print 'monitoring batch ',i,':',(X.min(),X.mean(),X.max(),X.shape)
+            for X in myiterator:
                 self.run_prereqs(X)
                 self.accum(X)
 
@@ -109,7 +106,6 @@ class Monitor(object):
                 # formatting
                 print "\t%s: %s" % (channel_name, str(val))
 
-            d.set_stream_position(s)
 
 
     def run_prereqs(self, X):
@@ -222,7 +218,7 @@ class Monitor(object):
         if name in self.channels:
             raise ValueError("Tried to create the same channel twice (%s)" %
                              name)
-        self.channels[name] = Channel(ipt, val, name, prereqs)
+        self.channels[name] = MonitorChannel(ipt, val, name, prereqs)
         self.dirty = True
 
     @classmethod
@@ -249,7 +245,7 @@ class MonitorChannel(object):
     """
     A class representing a specific quantity to be monitored.
     """
-    def __init__(self, graph_input, val, name, prereqs = None):
+    def __init__(self, graph_input, val, name, prereqs=None):
         """
         Creates a channel for a quantity to be monitored.
 
