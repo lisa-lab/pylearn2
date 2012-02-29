@@ -291,7 +291,16 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
 
 
 class MonitorBasedLRAdjuster(object):
-    """A learning rate adjuster that pulls out the only channel
+    """
+
+    DO NOT USE AS A CALLBACK FOR THE SGD ALGORITHM.
+
+    THIS IS A CALLBACK FOR THE TRAIN OBJECT, WHICH ONLY MAKES
+    SENSE IF TRAIN IS USING THE SGD ALGORITHM. IT IS NOT A
+    CALLBACK FOR THE SGD ALGORITHM.
+
+
+    A learning rate adjuster that pulls out the only channel
     in the model's monitor (this won't work for multiple-channel
     monitors, TODO fix this issue) and adjusts the learning rate
     based on what happened to the monitoring error on the last
@@ -315,7 +324,7 @@ class MonitorBasedLRAdjuster(object):
         self.low_trigger = low_trigger
         self.grow_amt = grow_amt
 
-    def __call__(self, algorithm):
+    def __call__(self, model, dataset, algorithm):
         # TODO: more sophisticated error checking here.
         model = algorithm.model
         current_learning_rate = algorithm.learning_rate
