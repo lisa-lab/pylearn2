@@ -161,8 +161,6 @@ class SGD(TrainingAlgorithm):
             if np.any(np.isnan(value)) or np.any(np.isinf(value)):
                 raise Exception("NaN in " + param.name)
 
-        if self.first:
-            self.monitor()
         self.first = False
         for i in xrange(self.batches_per_iter):
             X = dataset.get_batch_design(batch_size)
@@ -182,7 +180,6 @@ class SGD(TrainingAlgorithm):
             self.monitor.batches_seen += 1
             self.monitor.examples_seen += batch_size
 
-        self.monitor()
         for callback in self.update_callbacks:
             callback(self)
         if self.termination_criterion is None:
@@ -276,8 +273,6 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
             value = param.get_value(borrow=True)
             if np.any(np.isnan(value)) or np.any(np.isinf(value)):
                 raise Exception("NaN in " + param.name)
-        if self.first:
-            self.monitor()
         self.first = False
         design_matrix = dataset.get_design_matrix()
         # TODO: add support for reshuffling examples.
@@ -287,7 +282,6 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
             self.monitor.batches_seen += 1
             self.monitor.examples_seen += batch_size
         self.slice_iterator.reset()
-        self.monitor()
         for callback in self.update_callbacks:
             callback(self)
         if self.termination_criterion is None:
@@ -297,7 +291,16 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
 
 
 class MonitorBasedLRAdjuster(object):
-    """A learning rate adjuster that pulls out the only channel
+    """
+
+    DO NOT USE AS A CALLBACK FOR THE SGD ALGORITHM.
+
+    THIS IS A CALLBACK FOR THE TRAIN OBJECT, WHICH ONLY MAKES
+    SENSE IF TRAIN IS USING THE SGD ALGORITHM. IT IS NOT A
+    CALLBACK FOR THE SGD ALGORITHM.
+
+
+    A learning rate adjuster that pulls out the only channel
     in the model's monitor (this won't work for multiple-channel
     monitors, TODO fix this issue) and adjusts the learning rate
     based on what happened to the monitoring error on the last
@@ -321,7 +324,7 @@ class MonitorBasedLRAdjuster(object):
         self.low_trigger = low_trigger
         self.grow_amt = grow_amt
 
-    def __call__(self, algorithm):
+    def __call__(self, model, dataset, algorithm):
         # TODO: more sophisticated error checking here.
         model = algorithm.model
         current_learning_rate = algorithm.learning_rate
@@ -332,6 +335,22 @@ class MonitorBasedLRAdjuster(object):
         assert len(v) == 1, ("Only single channel monitors are supported "
                              "(currently)")
         v = v[0].val_record
+
+        if len(v) < 2:
+
+            if monitor.dataset is None:
+                assert len(v) == 0
+                raise ValueError("""You're trying to use a monitor-based learning
+                        adjustor but the monitor has no entries because you didn't
+                        specify a monitoring dataset""")
+
+            raise ValueError("""For some reason there are fewer than 2 monitor entries,
+                    yet the MonitorBasedLRAdjuster has been called. This should NEVER happen.
+                    The training algorithm should call the monitor once on initialization, then
+                    after each parameter update should call the monitor followed by the callbacks.
+                    It seems you are either calling the callback manually rather than as part of
+                    a training algorithm, or you are using an incorrectly implemented training
+                    algorithm.""")
 
         rval = current_learning_rate
 

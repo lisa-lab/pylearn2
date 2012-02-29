@@ -24,6 +24,7 @@ import numpy as np
 # Local imports
 import pylearn2.config.yaml_parse
 from pylearn2.utils import serial
+from pylearn2.monitor import Monitor
 
 
 class FeatureDump(object):
@@ -95,18 +96,23 @@ class Train(object):
                               '(never save). Is this intentional?')
             self.save_path = save_path
         else:
-            phase_variable = 'PYLEARN2_TRAINING_PHASE'
-            if phase_variable in os.environ:
-                phase = 'phase%d' % os.environ[phase_variable]
-                tokens = [os.environ['PYLEARN2_TRAIN_FILE_NAME'],
-                          phase, '.pkl']
-            else:
-                tokens = os.environ['PYLEARN2_TRAIN_FILE_NAME'], '.pkl'
-            self.save_path = '.'.join(tokens)
+            if save_freq > 0:
+                phase_variable = 'PYLEARN2_TRAINING_PHASE'
+                if phase_variable in os.environ:
+                    phase = 'phase%d' % os.environ[phase_variable]
+                    tokens = [os.environ['PYLEARN2_TRAIN_FILE_NAME'],
+                              phase, '.pkl']
+                else:
+                    tokens = os.environ['PYLEARN2_TRAIN_FILE_NAME'], '.pkl'
+                self.save_path = '.'.join(tokens)
         self.save_freq = save_freq
         self.epochs = 0
         self.callbacks = callbacks if callbacks is not None else []
-        self.model.dataset_yaml_src = self.dataset.yaml_src
+
+        if hasattr(self.dataset,'yaml_src'):
+            self.model.dataset_yaml_src = self.dataset.yaml_src
+        else:
+            warnings.warn("dataset has no yaml src, model won't know what data it was trained on")
 
     def main_loop(self):
         """
@@ -114,26 +120,41 @@ class Train(object):
         epoch-level callbacks, and saves the model.
         """
         if self.algorithm is None:
+            self.model.monitor = Monitor.get_monitor(model)
             while self.model.train(dataset=self.dataset):
+                self.run_callbacks_and_monitoring()
                 if self.save_freq > 0 and self.epochs % self.save_freq == 0:
                     self.save()
                 self.epochs += 1
+            self.run_callbacks_and_monitoring()
             if self.save_freq > 0:
                 self.save()
         else:
             self.algorithm.setup(model=self.model, dataset=self.dataset)
+            self.model.monitor()
             epoch_start = datetime.datetime.now()
             while self.algorithm.train(dataset=self.dataset):
                 epoch_end = datetime.datetime.now()
                 print 'Time this epoch:', str(epoch_end - epoch_start)
+                epoch_start = datetime.datetime.now()
+                self.run_callbacks_and_monitoring()
                 if self.save_freq > 0 and self.epochs % self.save_freq == 0:
                     self.save()
-                epoch_start = datetime.datetime.now()
-                for callback in self.callbacks:
-                    callback(self.model, self.dataset, self.algorithm)
                 self.epochs += 1
+            self.run_callbacks_and_monitoring()
+
             if self.save_freq > 0:
                 self.save()
+
+    def run_callbacks_and_monitoring(self):
+        self.model.monitor()
+        for callback in self.callbacks:
+            try:
+                callback(self.model, self.dataset, self.algorithm)
+            except TypeError, e:
+                print 'Failure during callback '+str(callback)
+                raise
+
 
     def save(self):
         """Saves the model."""
