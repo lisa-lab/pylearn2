@@ -54,18 +54,25 @@ class ModelSaver(TrainingCallback):
     Save model after the last epoch.
     The saved models then may be visualized.
     """
-    def __call__(self, model, dataset, algorithm, current_epoch):
+
+    def __init__(self):
+        self.current_epoch = 0
+
+    def __call__(self, model, dataset, algorithm):
         #import pdb;pdb.set_trace()
+        assert SAVE_MODEL
         if SAVE_MODEL is True:
             #save_path = 'cifar_grbm_smd_' + str(current_epoch) + '_epoch.pkl'
-            save_path = 'cifar10_grbm' + str(current_epoch) + '_epoch.pkl'
+            save_path = 'cifar10_grbm' + str(self.current_epoch) + '_epoch.pkl'
             save_start = datetime.datetime.now()
-            global YAML
-            model.dataset_yaml_src = YAML
+            #global YAML
+            #model.dataset_yaml_src = YAML
             serial.save(save_path, model)
             save_end = datetime.datetime.now()
             delta = (save_end - save_start)
             print 'saving model...done. saving took', str(delta)
+
+        self.current_epoch += 1
 
 def get_dataset_toy():
     """
@@ -73,8 +80,8 @@ def get_dataset_toy():
     Do not try to visualize weights on it. It is not picture and
     has no color channel info to support visualization
     """
-    global YAML
-    YAML = ""
+    #global YAML
+    #YAML = ""
     trainset = ToyDataset()
     testset = ToyDataset()
     return trainset, testset
@@ -118,9 +125,11 @@ def get_dataset_cifar10():
         serial.save('cifar10_preprocessed_train.pkl', trainset)
         serial.save('cifar10_preprocessed_test.pkl', testset)
 
+        trainset.yaml_src = '!pkl: "%s"' % train_path
+        testset.yaml_src = '!pkl: "%s"' % test_path
+
     # this path will be used for visualizing weights after training is done
-    global YAML
-    YAML = '!pkl: "cifar10_preprocessed_train.pkl"'
+    #global YAML
     return trainset, testset
 
 def get_autoencoder(structure):
