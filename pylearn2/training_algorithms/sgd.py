@@ -336,6 +336,22 @@ class MonitorBasedLRAdjuster(object):
                              "(currently)")
         v = v[0].val_record
 
+        if len(v) < 2:
+
+            if monitor.dataset is None:
+                assert len(v) == 0
+                raise ValueError("""You're trying to use a monitor-based learning
+                        adjustor but the monitor has no entries because you didn't
+                        specify a monitoring dataset""")
+
+            raise ValueError("""For some reason there are fewer than 2 monitor entries,
+                    yet the MonitorBasedLRAdjuster has been called. This should NEVER happen.
+                    The training algorithm should call the monitor once on initialization, then
+                    after each parameter update should call the monitor followed by the callbacks.
+                    It seems you are either calling the callback manually rather than as part of
+                    a training algorithm, or you are using an incorrectly implemented training
+                    algorithm.""")
+
         rval = current_learning_rate
 
         if v[-1] > self.high_trigger * v[-2]:
