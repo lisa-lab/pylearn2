@@ -1,0 +1,32 @@
+!obj:pylearn2.scripts.train.Train {
+    "dataset": !obj:pylearn2.datasets.npy_npz.NpyDataset &dataset {
+        "file" : 'garbage.npy' # Should be an N x 300 matrix on disk.
+    },
+    "model": !obj:pylearn2.autoencoder.HigherOrderContractiveAutoencoder {
+        "nvis" : 300,
+        "nhid" : 400,
+        "irange" : 0.05,
+        "corruptor": !obj:pylearn2.corruption.BinomialCorruptor {
+            "corruption_level": 0.5,
+        },
+        "num_corruptions": 5,
+        "act_enc": "sigmoid",
+        "act_dec": "sigmoid",    # Linear activation on the decoder side.
+    },
+    "algorithm": !obj:pylearn2.training_algorithms.sgd.UnsupervisedExhaustiveSGD {
+        "learning_rate" : 1e-3,
+        "batch_size" : 10,
+        "monitoring_batches" : 5,
+        "monitoring_dataset" : *dataset,
+        "cost" : [!obj:pylearn2.costs.autoencoder.MeanBinaryCrossEntropy {},
+                  !obj:pylearn2.costs.autoencoder.ScaleBy {
+                    cost: !obj:pylearn2.costs.autoencoder.ModelMethodPenalty { method_name: contraction_penalty }, coefficient: 0.5 },
+                  !obj:pylearn2.costs.autoencoder.ScaleBy {
+                    cost: !obj:pylearn2.costs.autoencoder.ModelMethodPenalty { method_name: higher_order_penalty}, coefficient: 0.5 }],
+        "termination_criterion" : !obj:pylearn2.training_algorithms.sgd.EpochCounter {
+            "max_epochs": 20,
+        },
+    },
+    "save_path": "./garbage.pkl",
+    "save_freq": 5
+}
