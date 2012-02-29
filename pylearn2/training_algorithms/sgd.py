@@ -161,8 +161,6 @@ class SGD(TrainingAlgorithm):
             if np.any(np.isnan(value)) or np.any(np.isinf(value)):
                 raise Exception("NaN in " + param.name)
 
-        if self.first:
-            self.monitor()
         self.first = False
         for i in xrange(self.batches_per_iter):
             X = dataset.get_batch_design(batch_size)
@@ -182,7 +180,6 @@ class SGD(TrainingAlgorithm):
             self.monitor.batches_seen += 1
             self.monitor.examples_seen += batch_size
 
-        self.monitor()
         for callback in self.update_callbacks:
             callback(self)
         if self.termination_criterion is None:
@@ -276,8 +273,6 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
             value = param.get_value(borrow=True)
             if np.any(np.isnan(value)) or np.any(np.isinf(value)):
                 raise Exception("NaN in " + param.name)
-        if self.first:
-            self.monitor()
         self.first = False
         design_matrix = dataset.get_design_matrix()
         # TODO: add support for reshuffling examples.
@@ -287,7 +282,6 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
             self.monitor.batches_seen += 1
             self.monitor.examples_seen += batch_size
         self.slice_iterator.reset()
-        self.monitor()
         for callback in self.update_callbacks:
             callback(self)
         if self.termination_criterion is None:
