@@ -19,16 +19,16 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
 
         # we also expose the following details:
         self.img_shape = (3,32,32)
-        self.img_size = numpy.prod(self.img_shape)
+        self.img_size = N.prod(self.img_shape)
         self.n_classes = 10
         self.label_names = ['airplane', 'automobile', 'bird', 'cat', 'deer',
                             'dog', 'frog','horse','ship','truck']
 
         # prepare loading
         fnames = ['data_batch_%i' % i for i in range(1,6)]
-        lenx = numpy.ceil((ntrain + nvalid) / 10000.)*10000
-        x = numpy.zeros((lenx,self.img_size), dtype=dtype)
-        y = numpy.zeros(lenx, dtype=dtype)
+        lenx = N.ceil((ntrain + nvalid) / 10000.)*10000
+        x = N.zeros((lenx,self.img_size), dtype=dtype)
+        y = N.zeros(lenx, dtype=dtype)
 
         # load train data
         nloaded = 0
