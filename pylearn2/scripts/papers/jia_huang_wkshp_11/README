@@ -23,3 +23,5 @@ Here is the procedure for reproducing this experiment:
    directory you must run this script.
 
 2. Train your k-means dictionary by running
+
+train.py kmeans.yaml
