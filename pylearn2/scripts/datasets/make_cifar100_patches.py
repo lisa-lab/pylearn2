@@ -9,10 +9,10 @@ the first half of 2011 on the CIFAR-10 and STL-10 datasets.
 from pylearn2.utils import serial
 from pylearn2.datasets import preprocessing
 from pylearn2.datasets.cifar100 import CIFAR100
-from pylearn2.utils import string
+from pylearn2.utils import string_utils
 import numpy as np
 
-data_dir = string.preprocess('${PYLEARN2_DATA_PATH}')
+data_dir = string_utils.preprocess('${PYLEARN2_DATA_PATH}')
 
 print 'Loading CIFAR-100 train dataset...'
 data = CIFAR100(which_set = 'train')
