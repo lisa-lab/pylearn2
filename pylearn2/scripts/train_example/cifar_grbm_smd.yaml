@@ -123,9 +123,9 @@
         # rate if the objective decreases too slowly. This makes our learning
         # rate hyperparameter less important to get right.
         },
-    # This is where we'll save the model
     "callbacks" : [!obj:pylearn2.training_algorithms.sgd.MonitorBasedLRAdjuster {}],
-    "save_path": "cifar_grbm_smd.pkl"
+    #Finally, request that the model be saved after each epoch
+    "save_freq" : 1
 }
 
 
