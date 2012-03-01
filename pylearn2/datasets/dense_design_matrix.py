@@ -1,4 +1,6 @@
 """TODO: module-level docstring."""
+import functools
+
 import numpy as np
 from pylearn2.utils.iteration import (
     SequentialSubsetIterator,
@@ -66,6 +68,7 @@ class DenseDesignMatrix(Dataset):
         else:
             self.rng = np.random.RandomState(rng)
 
+    @functools.wraps(Dataset.set_iteration_scheme)
     def set_iteration_scheme(self, mode=None, batch_size=None,
                              num_batches=None, topo=False):
         if mode is not None:
@@ -84,6 +87,7 @@ class DenseDesignMatrix(Dataset):
         print rng
         test = self.iterator(mode, batch_size, num_batches, topo, rng=rng)
 
+    @functools.wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
                  topo=None, rng=None):
         # TODO: Refactor, deduplicate with set_iteration_scheme
