@@ -65,7 +65,8 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
 
         assert not N.any(N.isnan(self.X))
 
-    def _unpickle(file):
+    @classmethod
+    def _unpickle(cls, file):
         from pylearn2.utils import string_utils
         fname = os.path.join(
                 string_utils.preprocess('${PYLEARN2_DATA_PATH}'),
