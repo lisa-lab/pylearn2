@@ -2,14 +2,15 @@
 
 import numpy
 from pylearn2.base import Block
+from pylearn2.models.model import Model
+from pylearn2.space import VectorSpace
 
-
-class KMeans(Block):
+class KMeans(Block, Model):
     """
     Block that outputs a vector of probabilities that a sample belong to means
     computed during training.
     """
-    def __init__(self, k, convergence_th=1e-6, max_iter=None, verbose=False):
+    def __init__(self, k, nvis, convergence_th=1e-6, max_iter=None, verbose=False):
         """
         Parameters in conf:
 
@@ -24,7 +25,10 @@ class KMeans(Block):
         :param max_iter: maximum number of iterations. Defaults to infinity.
         """
 
-        super(KMeans, self).__init__()
+        Block.__init__(self)
+        Model.__init__(self)
+
+        self.input_space = VectorSpace(nvis)
 
         self.k = k
         self.convergence_th = convergence_th
@@ -37,15 +41,14 @@ class KMeans(Block):
 
         self.verbose = verbose
 
-    def train(self, X, mu=None):
+    def train(self, dataset, mu=None):
         """
         Process kmeans algorithm on the input to localize clusters.
         """
 
         #TODO-- why does this sometimes return X and sometimes return nothing?
 
-        if hasattr(X, 'get_design_matrix'):
-            X = X.get_design_matrix()
+        X = dataset.get_design_matrix()
 
         n, m = X.shape
         k = self.k
