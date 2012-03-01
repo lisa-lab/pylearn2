@@ -14,6 +14,7 @@ from pylearn2.base import Block, StackedBlocks
 from pylearn2.models import Model
 from pylearn2.utils import sharedX
 from pylearn2.utils.theano_graph import is_pure_elemwise
+from pylearn2.space import VectorSpace
 
 theano.config.warn.sum_div_dimshuffle_bug = False
 
@@ -71,6 +72,9 @@ class Autoencoder(Block, Model):
         super(Autoencoder, self).__init__()
         assert nvis >= 0, "Number of visible units must be non-negative"
         assert nhid > 0, "Number of hidden units must be positive"
+
+        self.input_space = VectorSpace(nvis)
+
         # Save a few parameters needed for resizing
         self.nhid = nhid
         self.irange = irange

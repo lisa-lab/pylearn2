@@ -21,6 +21,7 @@ from pylearn2.models import Model
 from pylearn2.optimizer import SGDOptimizer
 from pylearn2.expr.basic import theano_norms
 from pylearn2.linear.matrixmul import MatrixMul
+from pylearn2.space import VectorSpace
 theano.config.warn.sum_div_dimshuffle_bug = False
 
 if 0:
@@ -267,6 +268,9 @@ class RBM(Block, Model):
                     borrow=True
                 )
             )
+
+            self.vis_space = VectorSpace(nvis)
+            self.hid_space = VectorSpace(nhid)
         else:
             assert hid_space is not None
             assert transformer is not None
