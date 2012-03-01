@@ -103,7 +103,10 @@ def load(filepath, recurse_depth=0):
     #came from this file. could cause trouble if you save obj again
     #to a different location
     if not hasattr(obj,'yaml_src'):
-        obj.yaml_src = '!pkl: "'+os.path.abspath(filepath)+'"'
+        try:
+            obj.yaml_src = '!pkl: "'+os.path.abspath(filepath)+'"'
+        except:
+            pass
 
     return obj
 
