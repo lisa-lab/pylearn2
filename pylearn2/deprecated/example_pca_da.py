@@ -21,7 +21,7 @@ except ImportError:
 from pylearn2.cost import SquaredError
 from pylearn2.corruption import GaussianCorruptor
 from pylearn2.autoencoder import DenoisingAutoencoder,build_stacked_ae
-from pylearn2.optimizer import SGDOptimizer
+from pylearn2.deprecated.optimizer import SGDOptimizer
 from auc import embed
 import pylearn2.corruption
 from pylearn2 import utils
@@ -36,7 +36,7 @@ def create_pca(conf, layer, data, model=None):
     """
     savedir = utils.getboth(layer, conf, 'savedir')
     clsname = layer.get('pca_class', 'CovEigPCA')
-                   
+
     # Guess the filename
     if model is not None:
         if model.endswith('.pkl'):
@@ -45,8 +45,8 @@ def create_pca(conf, layer, data, model=None):
             filename = os.path.join(savedir, model + '.pkl')
     else:
         filename = os.path.join(savedir, layer['name'] + '.pkl')
-    
-    print 'File name : ',filename                                                                 
+
+    print 'File name : ',filename
     # Try to load the model
     if model is not None:
         print '... loading layer:', clsname
@@ -55,21 +55,21 @@ def create_pca(conf, layer, data, model=None):
         except Exception, e:
             print 'Warning: error while loading %s:' % clsname, e.args[0]
             print 'Switching back to training mode.'
-                                                                                                                               
+
     # Train the model
     print '... training layer:', clsname
     MyPCA = pylearn2.pca.get(clsname)
     pca = MyPCA.fromdict(layer)
-                                   
+
     proba = utils.getboth(layer, conf, 'proba')
     blended = utils.blend(data, proba)
     pca.train(blended.get_value(borrow=True))
-    
+
     pca.save(filename)
     return pca
 
 def main_train(epochs, batchsize, solution='',sparse_penalty=0,sparsityTarget=0,sparsityTargetPenalty=0):
-    
+
     # Experiment specific arguments
     conf_dataset = {'dataset' : 'avicenna',
                     'expname' : 'dummy', # Used to create the submission file
@@ -81,7 +81,7 @@ def main_train(epochs, batchsize, solution='',sparse_penalty=0,sparsityTarget=0,
                     'saving_rate': 0, # (Default = 0)
                     'savedir' : './outputs',
                    }
-                   
+
     # First layer = PCA-75 whiten
     pca_layer = {'name' : '1st-PCA',
                  'num_components': 75,
@@ -92,38 +92,38 @@ def main_train(epochs, batchsize, solution='',sparse_penalty=0,sparsityTarget=0,
                  'proba' : [1, 0, 0],
                  'savedir' : './outputs',
                 }
-                                                                                                               
-                                                                                                                    
+
+
     # Load the dataset
     data = utils.load_data(conf_dataset)
-        
+
     if conf_dataset['transfer']:
     # Data for the ALC proxy
         label = data[3]
         data = data[:3]
-        
-  
-                                    
+
+
+
     # First layer : train or load a PCA
     pca = create_pca(conf_dataset, pca_layer, data, model=pca_layer['name'])
-    data = [utils.sharedX(pca.function()(set.get_value(borrow=True)),borrow=True) for set in data]  
+    data = [utils.sharedX(pca.function()(set.get_value(borrow=True)),borrow=True) for set in data]
     '''
     if conf_dataset['transfer']:
         data_train, label_train = utils.filter_labels(data[0], label)
-      
+
         alc = embed.score(data_train, label_train)
         print '... resulting ALC on train (for PCA) is', alc
-    '''                     
-                         
-                                                                                   
+    '''
+
+
     nvis = utils.get_constant(data[0].shape[1]).item()
-  
+
     conf = {
         'corruption_level': 0.1,
         'nhid': 200,
         'nvis': nvis,
         'anneal_start': 100,
-        'base_lr': 0.001, 
+        'base_lr': 0.001,
         'tied_weights': True,
         'act_enc': 'sigmoid',
         'act_dec': None,
@@ -156,9 +156,9 @@ def main_train(epochs, batchsize, solution='',sparse_penalty=0,sparsityTarget=0,
     train_fn = theano.function([minibatch], cost, updates=updates)
 
     # Suppose we want minibatches of size 10
-    proba = utils.getboth(conf, pca_layer, 'proba')    
+    proba = utils.getboth(conf, pca_layer, 'proba')
     iterator = BatchIterator(data, proba, batchsize)
-    
+
     # Here's a manual training loop. I hope to have some classes that
     # automate this a litle bit.
     final_cost = 0
@@ -169,25 +169,25 @@ def main_train(epochs, batchsize, solution='',sparse_penalty=0,sparsityTarget=0,
             c.append(minibatch_err)
         final_cost = numpy.mean(c)
         print "epoch %d, cost : %f" % (epoch , final_cost)
-        
+
 
     print '############################## Fin de l\'experience ############################'
     print 'Calcul de l\'ALC : '
     if conf_dataset['transfer']:
         data_train, label_train = utils.filter_labels(data[0], label)
         alc = embed.score(data_train, label_train)
-        
+
         print 'Solution : ',solution
         print 'sparse_penalty = ',sparse_penalty
         print 'sparsityTarget = ',sparsityTarget
         print 'sparsityTargetPenalty = ',sparsityTargetPenalty
-        print 'Final denoising error is : ',final_cost 
-        print '... resulting ALC on train is', alc    
+        print 'Final denoising error is : ',final_cost
+        print '... resulting ALC on train is', alc
         return (alc,final_cost)
-        
-        
+
+
 if __name__ == "__main__":
-    
+
     main_train(2, 20)
-    
-    
+
+

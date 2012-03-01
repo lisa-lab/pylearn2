@@ -3,7 +3,7 @@ import theano
 from theano import tensor
 from pylearn2.rbm import (mu_pooled_ssRBM, PersistentCDSampler,
         training_updates)
-from pylearn2.optimizer import SGDOptimizer
+from pylearn2.deprecated.optimizer import SGDOptimizer
 from pylearn2.rbm_tools import compute_log_z, compute_nll
 
 import utils.debug

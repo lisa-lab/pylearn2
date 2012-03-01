@@ -20,7 +20,7 @@ except ImportError:
 from pylearn2.cost import SquaredError
 from pylearn2.corruption import GaussianCorruptor
 from pylearn2.autoencoder import DenoisingAutoencoder,build_stacked_ae
-from pylearn2.optimizer import SGDOptimizer
+from pylearn2.deprecated.optimizer import SGDOptimizer
 
 
 if __name__ == "__main__":
@@ -33,8 +33,8 @@ if __name__ == "__main__":
         'nhid': 20,
         'nvis': data.shape[1],
         'anneal_start': 100,
-        'base_lr': 0.01, 
-        'tied_weights': True, 
+        'base_lr': 0.01,
+        'tied_weights': True,
         'act_enc': 'tanh',
         'act_dec': None,
         #'lr_hb': 0.10,
@@ -44,7 +44,7 @@ if __name__ == "__main__":
         'sparse_penalty': 0.01,
         'sparsity_target': 0.1,
         'sparsity_target_penalty': 0.001,
-        'irange': 0.001, 
+        'irange': 0.001,
     }
 
     # A symbolic input representing your minibatch.
@@ -81,9 +81,9 @@ if __name__ == "__main__":
     # Suppose you then want to use the representation for something.
     transform = theano.function([minibatch], da([minibatch])[0])
 
-    
+
     print "Transformed data:"
-    
+
     #print numpy.histogram(transform(data))
 
     # We'll now create a stacked denoising autoencoder. First, we change
@@ -91,18 +91,18 @@ if __name__ == "__main__":
     # method how many layers to make.
     sda_conf = conf.copy()
     sda_conf['nhid'] = [20, 20, 10]
-    
+
     # Add to cost function a regularization term for each layer :
     # - Layer1 : l1_penalty with sparse_penalty = 0.01
     # - Layer2 : sqr_penalty with sparsity_target = 0.2
     #            and sparsity_target_penalty = 0.01
     # - Layer3 : l1_penalty with sparse_penalty = 0.1
-    
+
     sda_conf['solution'] = ['l1_penalty','sqr_penalty','l1_penalty']
     sda_conf['sparse_penalty'] = [0.02, 0, 0.1]
     sda_conf['sparsity_target'] = [0, 0.3, 0]
-    sda_conf['sparsity_target_penalty'] = [0, 0.001, 0]             
-    
+    sda_conf['sparsity_target_penalty'] = [0, 0.001, 0]
+
     sda_conf['anneal_start'] = None # Don't anneal these learning rates
     sda = build_stacked_ae(sda_conf['nvis'], sda_conf['nhid'],
                            sda_conf['act_enc'], sda_conf['act_dec'],
@@ -116,7 +116,7 @@ if __name__ == "__main__":
     optimizers = []
     thislayer_input = [minibatch]
     for layer in sda.layers():
-      
+
         cost = SquaredError(layer)(thislayer_input[0],
                 layer.reconstruct(thislayer_input[0])).mean()
         opt = SGDOptimizer(layer.params(), sda_conf['base_lr'],
