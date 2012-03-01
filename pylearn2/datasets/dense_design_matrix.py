@@ -1,10 +1,21 @@
 """TODO: module-level docstring."""
+import functools
+
 import numpy as np
+from pylearn2.utils.iteration import (
+    SequentialSubsetIterator,
+    RandomSliceSubsetIterator,
+    RandomUniformSubsetIterator,
+    FiniteDatasetIterator,
+    resolve_iterator_class
+)
 N = np
 import copy
+
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.datasets import control
 from theano import config
+
 
 
 class DenseDesignMatrix(Dataset):
@@ -12,8 +23,10 @@ class DenseDesignMatrix(Dataset):
     A class for representing datasets that can be stored as a dense design
     matrix, such as MNIST or CIFAR10.
     """
+    _default_seed = (17, 2, 946)
+
     def __init__(self, X=None, topo_view=None, y=None,
-                 view_converter=None, rng=None):
+                 view_converter=None, rng=_default_seed):
         """
         Parameters
         ----------
@@ -48,12 +61,56 @@ class DenseDesignMatrix(Dataset):
             assert topo_view is not None
             self.set_topological_view(topo_view)
         self.y = y
-        if rng is None:
-            rng = N.random.RandomState([17, 2, 946])
-        self.default_rng = copy.copy(rng)
-        self.rng = rng
         self.compress = False
         self.design_loc = None
+        if hasattr(rng, 'random_integers'):
+            self.rng = rng
+        else:
+            self.rng = np.random.RandomState(rng)
+
+    @functools.wraps(Dataset.set_iteration_scheme)
+    def set_iteration_scheme(self, mode=None, batch_size=None,
+                             num_batches=None, topo=False):
+        if mode is not None:
+            self._iter_subset_class = mode = resolve_iterator_class(mode)
+        elif hasattr(self, '_iter_subset_class'):
+            mode = self._iter_subset_class
+        else:
+            raise ValueError('iteration mode not provided and no default '
+                             'mode set for %s' % str(self))
+        # If this didn't raise an exception, we should be fine.
+        self._iter_batch_size = batch_size
+        self._iter_num_batches = num_batches
+        self._iter_topo = topo
+        # Try to create an iterator with these settings.
+        rng = self.rng if mode.stochastic else None
+        print rng
+        test = self.iterator(mode, batch_size, num_batches, topo, rng=rng)
+
+    @functools.wraps(Dataset.iterator)
+    def iterator(self, mode=None, batch_size=None, num_batches=None,
+                 topo=None, rng=None):
+        # TODO: Refactor, deduplicate with set_iteration_scheme
+        if mode is None:
+            if hasattr(self, '_iter_subset_class'):
+                mode = self._iter_subset_class
+            else:
+                raise ValueError('iteration mode not provided and no default '
+                                 'mode set for %s' % str(self))
+        else:
+            mode = resolve_iterator_class(mode)
+        if batch_size is None:
+            batch_size = getattr(self, '_iter_batch_size', None)
+        if num_batches is None:
+            num_batches = getattr(self, '_iter_num_batches', None)
+        if topo is None:
+            topo = getattr(self, '_iter_topo', False)
+        if rng is None and mode.stochastic:
+            rng = self.rng
+        return FiniteDatasetIterator(self,
+                                     mode(self.X.shape[0], batch_size,
+                                     num_batches, rng),
+                                     topo)
 
     def use_design_loc(self, path):
         """

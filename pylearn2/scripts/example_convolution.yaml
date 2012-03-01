@@ -1,0 +1,61 @@
+!obj:pylearn2.scripts.train.Train {
+    "dataset": &src !pkl: "${PYLEARN2_DATA_PATH}/cifar10/pylearn2_whitened/train.pkl",
+
+    "model": !obj:pylearn2.models.rbm.GaussianBinaryRBM {
+
+        "vis_space" : &vis_space !obj:pylearn2.space.Conv2DSpace {
+                "shape" : [32,32],
+                "nchannels" : 3
+        },
+        "hid_space" : &hid_space !obj:pylearn2.space.Conv2DSpace {
+                "shape" : [27,27],
+                "nchannels" : 10
+        },
+        "transformer" : !obj:pylearn2.linear.conv2D.make_random_conv2D {
+                "irange" : .05,
+                "input_space" : *vis_space,
+                "output_space" : *hid_space,
+                "kernel_shape" : [6,6],
+                "batch_size" : &batch_size 5
+        },
+        "energy_function_class" : !obj:pylearn2.energy_functions.rbm_energy.grbm_type_1 {},
+        "learn_sigma" : True,
+        "init_sigma" : .3333,
+        "init_bias_hid" : -2.,
+        "mean_vis" : False,
+        "sigma_lr_scale" : 1e-3
+
+    },
+
+    "algorithm": !obj:pylearn2.training_algorithms.sgd.SGD {
+
+        "learning_rate" : 1e-4,
+        "batch_size" : *batch_size,
+        "batches_per_iter" : 20,
+        "monitoring_batches" : 20,
+        "monitoring_dataset" : !obj:pylearn2.datasets.dense_design_matrix.from_dataset {
+                "dataset" : *src,
+                "num_examples" : 100
+        },
+
+        "cost" : !obj:pylearn2.costs.ebm_estimation.SMD {
+
+            "corruptor" : !obj:pylearn2.corruption.GaussianCorruptor {
+                    "stdev" : 0.4
+            },
+        },
+
+        "termination_criterion" : !obj:pylearn2.training_algorithms.sgd.MonitorBasedTermCrit {
+            "prop_decrease" : 0.01,
+            "N" : 10,
+        }
+       },
+      "callbacks" : [!obj:pylearn2.training_algorithms.sgd.MonitorBasedLRAdjuster {
+                "max_lr" : .01 
+                } ],
+
+    "save_path": "${PYLEARN2_TRAIN_FILE_NAME}.pkl",
+    "save_freq": 1
+}
+
+

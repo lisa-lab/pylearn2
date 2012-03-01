@@ -1,5 +1,7 @@
 """Objects for datasets serialized in the NumPy native format (.npy/.npz)."""
+import functools
 import numpy
+from theano import config
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 
 class NpyDataset(DenseDesignMatrix):
@@ -18,13 +20,23 @@ class NpyDataset(DenseDesignMatrix):
             rather than loading it into memory. See the `numpy.load`
             docstring for details.
         """
-        loaded = numpy.load(file, mmap_mode)
-        assert isinstance(loaded, numpy.ndarray), "single arrays (.npy) only"
-        if len(loaded.shape) == 2:
-            super(NpyDataset, self).__init__(X=loaded)
-        else:
-            super(NpyDataset, self).__init__(topo_view=loaded)
+        self._path = file
+        self._loaded = False
 
+    @functools.wraps(DenseDesignMatrix.iterator)
+    def iterator(self, *args, **kwargs):
+        # TODO: Factor this out of iterator() and into something that
+        # can be called by multiple methods. Maybe self.prepare().
+        if not self._loaded:
+            loaded = numpy.load(self._path)
+            assert isinstance(loaded, numpy.ndarray), (
+                "single arrays (.npy) only"
+            )
+            if len(loaded.shape) == 2:
+                super(NpyDataset, self).__init__(X=loaded)
+            else:
+                super(NpyDataset, self).__init__(topo_view=loaded)
+        return super(NpyDataset, self).iterator(*args, **kwargs)
 
 class NpzDataset(DenseDesignMatrix):
     """A dense dataset based on a single array from a .npz archive."""

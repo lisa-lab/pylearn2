@@ -1172,15 +1172,22 @@ class S3C(Model, Block):
         return ['v','h']
 
 def reflection_clip(S_hat, new_S_hat, rho = 0.5):
+    rho = np.cast[config.floatX](rho)
 
     ceiling = full_max(abs(new_S_hat))
 
     positives = S_hat > 0
     non_positives = 1. - positives
+
+
     negatives = S_hat < 0
     non_negatives = 1. - negatives
 
-    rval = T.clip(new_S_hat, - rho * positives * S_hat - non_positives * ceiling, non_negatives * ceiling - rho * negatives * S_hat )
+
+    low = - rho * positives * S_hat - non_positives * ceiling
+    high = non_negatives * ceiling - rho * negatives * S_hat
+
+    rval = T.clip(new_S_hat, low,  high )
 
     S_name = make_name(S_hat, 'anon_S_hat')
     new_S_name = make_name(new_S_hat, 'anon_new_S_hat')
@@ -1412,6 +1419,7 @@ class E_Step(object):
 
         mean_term = mu * alpha
         mean_term.name = 'infer_S_hat:mean_term'
+        assert mean_term.type.dtype == config.floatX
 
         data_term = T.dot(V, BW)
         data_term.name = 'infer_S_hat:data_term'
@@ -1441,6 +1449,8 @@ class E_Step(object):
         denom.name = 'infer_S_hat:denom'
 
         S_hat =  numer / denom
+
+        assert S_hat.type.dtype ==  config.floatX
 
         return S_hat
 
@@ -1579,13 +1589,17 @@ class E_Step(object):
         for new_H_coeff, new_S_coeff in zip(self.h_new_coeff_schedule, self.s_new_coeff_schedule):
 
             new_S_hat = self.infer_S_hat(V, H_hat, S_hat)
+            assert new_S_hat.type.dtype == config.floatX
 
             if self.clip_reflections:
                 clipped_S_hat = reflection_clip(S_hat = S_hat, new_S_hat = new_S_hat, rho = self.rho)
             else:
                 clipped_S_hat = new_S_hat
+            assert clipped_S_hat.dtype == config.floatX
             S_hat = damp(old = S_hat, new = clipped_S_hat, new_coeff = new_S_coeff)
+            assert  S_hat.type.dtype == config.floatX
             new_H = self.infer_H_hat(V, H_hat, S_hat, count)
+            assert new_H.type.dtype == config.floatX
             count += 1
 
             H_hat = damp(old = H_hat, new = new_H, new_coeff = new_H_coeff)
