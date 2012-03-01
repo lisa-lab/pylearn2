@@ -19,7 +19,7 @@ except ImportError:
 # Local imports
 from pylearn2.cost import SquaredError
 from pylearn2.autoencoder import ContractiveAutoencoder, build_stacked_ae
-from pylearn2.optimizer import SGDOptimizer
+from pylearn2.deprecated.optimizer import SGDOptimizer
 
 if __name__ == "__main__":
     # Simulate some fake data.
