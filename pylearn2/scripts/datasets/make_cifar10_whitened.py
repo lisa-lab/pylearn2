@@ -15,8 +15,7 @@ print 'Loading CIFAR-10 train dataset...'
 train = CIFAR10(which_set = 'train')
 
 print "Preparing output directory..."
-#output_dir = data_dir + '/pylearn2_whitened'
-output_dir = '/tmp/giassond' + '/pylearn2_whitened'
+output_dir = data_dir + '/pylearn2_whitened'
 serial.mkdir( output_dir )
 README = open(output_dir + '/README','w')
 
