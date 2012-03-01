@@ -32,6 +32,3 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
                 'frog','horse','ship','truck']
 
         assert not N.any(N.isnan(self.X))
-    #
-
-#

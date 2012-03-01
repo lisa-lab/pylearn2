@@ -209,8 +209,18 @@ class RBM(Block, Model):
         ----------
         nvis : int
             Number of visible units in the model.
+            (Specifying this implies that the model acts on a vector,
+            i.e. it sets vis_space = pylearn2.space.VectorSpace(nvis) )
         nhid : int
             Number of hidden units in the model.
+            (Specifying this implies that the model acts on a vector)
+        vis_space:
+            A pylearn2.space.Space object describing what kind of vector
+            space the RBM acts on. Don't specify if you used nvis / hid
+        hid_space:
+            A pylearn2.space.Space object describing what kind of vector
+            space the RBM's hidden units live in. Don't specify if you used
+            nvis / nhid
         irange : float, optional
             The size of the initial interval around 0 for weights.
         rng : RandomState object or seed
