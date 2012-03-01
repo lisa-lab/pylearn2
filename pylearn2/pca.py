@@ -217,7 +217,7 @@ class _PCABase(Block):
             all eigenvalues in decreasing order
             matrix containing corresponding eigenvectors in its columns
         """
-        raise NotImplementedError('Use a subclass.')
+        raise NotImplementedError('Not implemented in _PCABase. Use a subclass (and implement it there).')
 
 
 class SparseMatPCA(_PCABase):
