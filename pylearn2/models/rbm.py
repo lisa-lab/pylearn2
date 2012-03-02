@@ -328,7 +328,10 @@ class RBM(Block, Model):
         return [param for param in self._params]
 
     def get_weights(self, borrow=False):
-        return self.weights.get_value(borrow=borrow)
+
+        weights ,= self.transformer.get_params()
+
+        return weights.get_value(borrow=borrow)
 
     def get_weights_topo(self, borrow=False):
         return self.transformer.get_weights_topo(borrow = borrow)
