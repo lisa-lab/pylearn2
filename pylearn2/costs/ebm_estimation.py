@@ -1,9 +1,10 @@
 """ Training costs for unsupervised learning of energy-based models """
 import theano.tensor as T
 from theano import scan
+from error import UnsupervisedError
 
 
-class NCE:
+class NCE(UnsupervisedError):
     """ Noise-Contrastive Estimation
 
         See "Noise-Contrastive Estimation: A new estimation principle for unnormalized models "
@@ -60,7 +61,7 @@ class NCE:
         assert isinstance(noise_per_clean, int)
         self.noise_per_clean = noise_per_clean
 
-class SM:
+class SM(UnsupervisedError):
     """ Score Matching
         See eqn. 4 of "On Autoencoders and Score Matching for Energy Based Models",
         Swersky et al 2011, for details
@@ -100,7 +101,7 @@ class SM:
 
         return rval
 
-class SMD:
+class SMD(UnsupervisedError):
     """ Denoising Score Matching
         See eqn. 4.3 of "A Connection Between Score Matching and Denoising Autoencoders"
         by Pascal Vincent for details
