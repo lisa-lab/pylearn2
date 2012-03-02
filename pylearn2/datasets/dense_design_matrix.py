@@ -293,6 +293,9 @@ class DenseDesignMatrix(Dataset):
         assert not N.any(N.isnan(X))
         self.X = X
 
+    def get_targets(self):
+        return self.y
+
     def get_batch_design(self, batch_size, include_labels=False):
         idx = self.rng.randint(self.X.shape[0] - batch_size + 1)
         rx = self.X[idx:idx + batch_size, :]
