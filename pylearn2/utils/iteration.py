@@ -100,7 +100,7 @@ class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
             raise ValueError("batch_size cannot be None for random slice "
                              "iteration")
         elif num_batches is None:
-            raise ValueError("num_batches cannot be None for random uniform "
+            raise ValueError("num_batches cannot be None for random slice "
                              "iteration")
         super(RandomSliceSubsetIterator, self).__init__(dataset_size,
                                                         batch_size,
