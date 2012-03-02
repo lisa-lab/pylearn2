@@ -155,6 +155,9 @@ class FiniteDatasetIterator(object):
             self._raw_data = self._dataset.get_design_matrix()
         if self._targets:
             self._raw_targets = self._dataset.get_targets()
+            if self._raw_targets is None:
+                raise ValueError("Can't iterate with targets=True on a "
+                                 "dataset object with no targets")
 
     def __iter__(self):
         return self
