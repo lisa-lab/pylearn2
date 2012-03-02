@@ -9,16 +9,15 @@ the first half of 2011 on the CIFAR-10 and STL-10 datasets.
 from pylearn2.utils import serial
 from pylearn2.datasets import preprocessing
 from pylearn2.datasets.cifar100 import CIFAR100
-from pylearn2.utils import string_utils
-import numpy as np
+from pylearn2.utils import string
 
-data_dir = string_utils.preprocess('${PYLEARN2_DATA_PATH}')
+data_dir = string.preprocess('${PYLEARN2_DATA_PATH}')
 
 print 'Loading CIFAR-100 train dataset...'
 data = CIFAR100(which_set = 'train')
 
 print "Preparing output directory..."
-patch_dir = data_dir + '/cifar100/cifar100_patches'
+patch_dir = data_dir + '/cifar100/cifar100_patches_8x8'
 serial.mkdir( patch_dir )
 README = open(patch_dir + '/README','w')
 
@@ -27,7 +26,7 @@ The .pkl files in this directory may be opened in python using
 cPickle, pickle, or pylearn2.serial.load.
 
 data.pkl contains a pylearn2 Dataset object defining an unlabeled
-dataset of 2 million 6x6 approximately whitened, contrast-normalized
+dataset of 2 million 8x8 approximately whitened, contrast-normalized
 patches drawn uniformly at random from the CIFAR-100 train set.
 
 preprocessor.pkl contains a pylearn2 Pipeline object that was used
@@ -48,7 +47,7 @@ README.close()
 
 print "Preprocessing the data..."
 pipeline = preprocessing.Pipeline()
-pipeline.items.append(preprocessing.ExtractPatches(patch_shape=(6,6),num_patches=2*1000*1000))
+pipeline.items.append(preprocessing.ExtractPatches(patch_shape=(8,8),num_patches=2*1000*1000))
 pipeline.items.append(preprocessing.GlobalContrastNormalization())
 pipeline.items.append(preprocessing.ZCA())
 data.apply_preprocessor(preprocessor = pipeline, can_fit = True)

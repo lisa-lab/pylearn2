@@ -2,6 +2,7 @@
 # Standard library imports
 import functools
 from itertools import izip
+import operator
 
 # Third-party imports
 import numpy
@@ -13,6 +14,7 @@ from pylearn2.base import Block, StackedBlocks
 from pylearn2.models import Model
 from pylearn2.utils import sharedX
 from pylearn2.utils.theano_graph import is_pure_elemwise
+from pylearn2.space import VectorSpace
 
 theano.config.warn.sum_div_dimshuffle_bug = False
 
@@ -70,6 +72,9 @@ class Autoencoder(Block, Model):
         super(Autoencoder, self).__init__()
         assert nvis >= 0, "Number of visible units must be non-negative"
         assert nhid > 0, "Number of hidden units must be positive"
+
+        self.input_space = VectorSpace(nvis)
+
         # Save a few parameters needed for resizing
         self.nhid = nhid
         self.irange = irange
@@ -241,12 +246,39 @@ class Autoencoder(Block, Model):
         -------
         encoded : tensor_like or list of tensor_like
             Theano symbolic (or list thereof) representing the corresponding
-            reconstructed minibatch(es) after encoding/decoding.
+            minibatch(es) after encoding.
         """
         if isinstance(inputs, tensor.Variable):
             return self._hidden_activation(inputs)
         else:
             return [self.encode(v) for v in inputs]
+
+    def decode(self, hiddens):
+        """
+        Map inputs through the encoder function.
+
+        Parameters
+        ----------
+        hiddens : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the input
+            minibatch(es) to be encoded. Assumed to be 2-tensors, with the
+            first dimension indexing training examples and the second indexing
+            data dimensions.
+
+        Returns
+        -------
+        decoded : tensor_like or list of tensor_like
+            Theano symbolic (or list thereof) representing the corresponding
+            minibatch(es) after decoding.
+        """
+        if self.act_dec is None:
+            act_dec = lambda x: x
+        else:
+            act_dec = self.act_dec
+        if isinstance(hiddens, tensor.Variable):
+            return act_dec(self.visbias + tensor.dot(hiddens, self.w_prime))
+        else:
+            return [self.decode(v) for v in hiddens]
 
     def reconstruct(self, inputs):
         """
@@ -266,16 +298,7 @@ class Autoencoder(Block, Model):
             Theano symbolic (or list thereof) representing the corresponding
             reconstructed minibatch(es) after encoding/decoding.
         """
-        hiddens = self.encode(inputs)
-
-        if self.act_dec is None:
-            act_dec = lambda x: x
-        else:
-            act_dec = self.act_dec
-        if isinstance(inputs, tensor.Variable):
-            return act_dec(self.visbias + tensor.dot(hiddens, self.w_prime))
-        else:
-            return [self.reconstruct(inp) for inp in inputs]
+        return self.decode(self.encode(inputs))
 
     def __call__(self, inputs):
         """
@@ -435,6 +458,112 @@ class ContractiveAutoencoder(Autoencoder):
         """
         jacobian = self.jacobian_h_x(inputs)
         return (jacobian ** 2).mean()
+
+
+class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
+    """Higher order contractive autoencoder.
+    Adds higher orders regularization
+    """
+    def __init__(self, corruptor, num_corruptions, nvis, nhid, act_enc,
+                    act_dec, tied_weights=False, irange=1e-3, rng=9001):
+        """
+        Allocate a higher order contractive autoencoder object.
+
+        Parameters
+        ----------
+        corruptor : object
+        Instance of a corruptor object to use for corrupting the
+        input.
+
+        num_corruptions : integer
+        number of corrupted inputs to use
+
+        Notes
+        -----
+        The remaining parameters are identical to those of the constructor
+        for the Autoencoder class; see the `ContractiveAutoEncoder.__init__` docstring
+        for details.
+        """
+        super(HigherOrderContractiveAutoencoder, self).__init__(
+            nvis,
+            nhid,
+            act_enc,
+            act_dec,
+            tied_weights,
+            irange,
+            rng
+        )
+        self.corruptor = corruptor
+        self.num_corruptions = num_corruptions
+
+
+    def higher_order_penalty(self, inputs):
+        """
+        Stochastic approximation of Hessian Frobenius norm
+        """
+
+        corrupted_inputs = [self.corruptor(inputs) for times in\
+                            range(self.num_corruptions)]
+
+        hessian = tensor.concatenate([self.jacobian_h_x(inputs) - \
+                                self.jacobian_h_x(corrupted) for\
+                                corrupted in corrupted_inputs])
+
+        return (hessian ** 2).mean()
+
+
+class UntiedAutoencoder(Autoencoder):
+    def __init__(self, base):
+        if not base.tied_weights:
+            raise ValueError("%s is not a tied-weights autoencoder" %
+                             str(base))
+        self.weights = tensor.shared(base.weights.get_value(borrow=False),
+                                     name='weights')
+        self.visbias = tensor.shared(base.visbias.get_value(borrow=False),
+                                     name='vb')
+        self.hidbias = tensor.shared(base.visbias.get_value(borrow=False),
+                                     name='hb')
+        self.w_prime = tensor.shared(base.weights.get_value(borrow=False).T,
+                                     name='w_prime')
+        self._params = [self.visbias, self.hidbias, self.weights, self.w_prime]
+
+
+class DeepComposedAutoencoder(Autoencoder):
+    """
+    A deep autoencoder composed of several single-layer
+    autoencoders.
+    """
+    def __init__(self, autoencoders):
+        """
+        Construct a deep autoencoder from several single layer
+        autoencoders.
+
+        Parameters
+        ----------
+        autoencoders : list
+            A list of autoencoder objects.
+        """
+        # TODO: Check that the dimensions line up.
+        self.autoencoders = list(autoencoders)
+
+    @functools.wraps(Autoencoder.encode)
+    def encode(self, inputs):
+        current = inputs
+        for encoder in self.autoencoders:
+            current = encoder.encode(current)
+        return current
+
+    @functools.wraps(Autoencoder.decode)
+    def decode(self, hiddens):
+        current = hiddens
+        for decoder in self.autoencoders[::-1]:
+            current = decoder.decode(current)
+        return current
+
+    @functools.wraps(Model.get_params)
+    def get_params(self):
+        return reduce(operator.add,
+                      [ae.get_params() for ae in self.autoencoders])
 
 
 def build_stacked_ae(nvis, nhids, act_enc, act_dec,

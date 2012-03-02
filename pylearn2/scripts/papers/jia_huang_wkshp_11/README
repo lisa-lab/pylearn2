@@ -1,0 +1,27 @@
+This directory contains scripts for reproducing an experiment from
+"Beyond Spatial Pyramids: Receptive Field Learning For Pooled Image Features"
+by Yangqing Jia and Chang Huang
+presented at the NIPS 2011 Workshop on Deep Learning and Unsupervised Feature Learning
+
+In this experiment, we train a k-means dictionary of 1600 centroids on patches of the
+CIFAR-100 dataset. We then extract features using the triangle code and the random
+pooling procedure described in the paper. The authors obtained a test set accuracy
+of 54.5 % using these features in an SVM.
+
+
+Here is the procedure for reproducing this experiment:
+
+1. Make sure you have a preprocessed version of 8x8 patches from the CIFAR-100 image
+   dataset. If you have not run it already, run
+   pylearn2/scripts/datasets/make_cifar100_patches_8x8.py
+   DO NOT RUN THIS IF THE PREPROCESSED DATA ALREADY EXISTS!!!
+   Different versions of scipy, different machines, different theano flags, etc. will
+   all result in learning a slightly different preprocessor matrix, so if you overwrite
+   the existing data with a new copy you will ruin everyone in the lab's experiments!!!!
+   However, if you do not have a
+   ${PYLEARN2_DATA_PATH}/cifar100/cifar100_patches_8x8/
+   directory you must run this script.
+
+2. Train your k-means dictionary by running
+
+train.py kmeans.yaml

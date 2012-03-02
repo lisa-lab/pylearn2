@@ -13,7 +13,6 @@ class DefaultTrainingAlgorithm(object):
         self.monitoring_dataset, self.monitoring_batches = monitoring_dataset, monitoring_batches
 
         self.bSetup = False
-    #
 
     def setup(self, model, dataset):
         """
@@ -64,7 +63,6 @@ class DefaultTrainingAlgorithm(object):
         self.first = True
         self.bSetup = True
 
-
     def train(self, dataset):
         assert self.bSetup
 
@@ -78,21 +76,9 @@ class DefaultTrainingAlgorithm(object):
             if hasattr(model,'force_batch_size'):
                 assert model.force_batch_size <= 0 or batch_size == model.force_batch_size
 
-        if self.first:
-            self.first = False
-            self.monitor()
-        #
-
         for i in xrange(self.batches_per_iter):
             model.learn(dataset, batch_size)
             model.monitor.batches_seen += 1
             model.monitor.examples_seen += batch_size
-        #
-
-        if self.monitoring_dataset:
-            self.monitor()
-        #
 
         return True
-    #
-#

@@ -12,6 +12,7 @@ hdf_reader = None
 
 
 def load(filepath, recurse_depth=0):
+
     try:
         import joblib
         joblib_available = True
@@ -64,22 +65,22 @@ def load(filepath, recurse_depth=0):
                 obj = cPickle.load(f)
         else:
             obj = joblib.load(filepath)
-        return obj
+
     except BadPickleGet, e:
         print ('Failed to open ' + str(filepath) +
                ' due to BadPickleGet with exception string ' + str(e))
 
-        return exponential_backoff()
+        obj =  exponential_backoff()
     except EOFError, e:
         print ('Failed to open ' + str(filepath) +
                ' due to EOFError with exception string ' + str(e))
 
-        return exponential_backoff()
+        obj =  exponential_backoff()
     except ValueError, e:
         print ('Failed to open ' + str(filepath) +
                ' due to ValueError with string ' + str(e))
 
-        return exponential_backoff()
+        obj =  exponential_backoff()
     except Exception, e:
         #assert False
         exc_str = str(e)
@@ -97,7 +98,17 @@ def load(filepath, recurse_depth=0):
             f = open(filepath, 'rb')
             obj = cPickle.load(f)
             f.close()
-            return obj
+
+    #if the object has no yaml_src, we give it one that just says it
+    #came from this file. could cause trouble if you save obj again
+    #to a different location
+    if not hasattr(obj,'yaml_src'):
+        try:
+            obj.yaml_src = '!pkl: "'+os.path.abspath(filepath)+'"'
+        except:
+            pass
+
+    return obj
 
 
 def save(filepath, obj):

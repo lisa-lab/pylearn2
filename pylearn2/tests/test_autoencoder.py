@@ -5,7 +5,8 @@ import numpy as np
 import theano
 import theano.tensor as tensor
 from theano import config
-from pylearn2.autoencoder import Autoencoder
+from pylearn2.autoencoder import Autoencoder, HigherOrderContractiveAutoencoder
+from pylearn2.corruption import BinomialCorruptor
 from theano.tensor.basic import _allclose
 
 def test_autoencoder_logistic_linear_tied():
@@ -37,3 +38,23 @@ def test_autoencoder_tanh_cos_untied():
     result = np.cos(np.dot(np.tanh(hb + np.dot(data,  w)), w_prime) + vb)
     ff = theano.function([d], ae.reconstruct(d))
     assert _allclose(ff(data), result)
+
+
+def test_high_order_autoencoder_init():
+    """
+    Just test that model initialize and return
+    the penalty without error.
+    """
+    corruptor = BinomialCorruptor(corruption_level = 0.5)
+    model = HigherOrderContractiveAutoencoder(
+            corruptor = corruptor,
+            num_corruptions = 5,
+            nvis = 20,
+            nhid = 30,
+            act_enc = 'sigmoid',
+            act_dec = 'sigmoid')
+
+    X = tensor.matrix()
+    data = np.random.randn(50, 20).astype(config.floatX)
+    ff = theano.function([X], model.higher_order_penalty(X))
+    assert type(ff(data)) == np.ndarray

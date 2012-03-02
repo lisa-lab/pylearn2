@@ -30,6 +30,7 @@ def get_weights_report(model_path = None, model = None, rescale = 'individual', 
         print 'loading done'
     else:
         assert model_path is None
+    assert model is not None
 
     if rescale == 'none':
         global_rescale = False
@@ -53,76 +54,82 @@ def get_weights_report(model_path = None, model = None, rescale = 'individual', 
 
         return patch_viewer.make_viewer(weights, is_color = weights.shape[1] % 3 == 0)
 
-    if dataset is None:
-        print 'loading dataset...'
-        control.push_load_data(False)
-        dataset = yaml_parse.load(model.dataset_yaml_src)
-        control.pop_load_data()
-        print '...done'
-
-
+    weights_view = None
     W = None
 
-    if hasattr(model,'get_weights'):
-        W = model.get_weights()
+    try:
+        weights_view = model.get_weights_topo()
+        h = weights_view.shape[0]
+    except Exception, e:
 
-    if 'weightsShared' in dir(model):
-        W = model.weightsShared.get_value()
+        if dataset is None:
+            print 'loading dataset...'
+            control.push_load_data(False)
+            dataset = yaml_parse.load(model.dataset_yaml_src)
+            control.pop_load_data()
+            print '...done'
 
-    if 'W' in dir(model):
-        if hasattr(model.W,'__array__'):
-            warnings.warn('model.W is an ndarray; I can figure out how to display this but that seems like a sign of a bad bug')
-            W = model.W
-        else:
-            W = model.W.get_value()
+        if hasattr(model,'get_weights'):
+            W = model.get_weights()
 
-    has_D = False
-    if 'D' in dir(model):
-        has_D = True
-        D = model.D
+        if 'weightsShared' in dir(model):
+            W = model.weightsShared.get_value()
 
-    if 'enc_weights_shared' in dir(model):
-        W = model.enc_weights_shared.get_value()
+        if 'W' in dir(model):
+            if hasattr(model.W,'__array__'):
+                warnings.warn('model.W is an ndarray; I can figure out how to display this but that seems like a sign of a bad bug')
+                W = model.W
+            else:
+                W = model.W.get_value()
+
+        has_D = False
+        if 'D' in dir(model):
+            has_D = True
+            D = model.D
+
+        if 'enc_weights_shared' in dir(model):
+            W = model.enc_weights_shared.get_value()
 
 
-    if W is None:
-        raise AttributeError('model does not have a variable with a name like "W", "weights", etc  that pylearn2 recognizes')
+        if W is None:
+            raise AttributeError('model does not have a variable with a name like "W", "weights", etc  that pylearn2 recognizes')
 
-    if len(W.shape) == 2:
-        if hasattr(model,'get_weights_format'):
-            weights_format = model.get_weights_format()
-        if hasattr(model, 'weights_format'):
-            weights_format = model.weights_format
 
-        assert hasattr(weights_format,'__iter__')
-        assert len(weights_format) == 2
-        assert weights_format[0] in ['v','h']
-        assert weights_format[1] in ['v','h']
-        assert weights_format[0] != weights_format[1]
+    if (W is not None and len(W.shape) == 2) or weights_view is not None:
+        if weights_view is None:
+            if hasattr(model,'get_weights_format'):
+                weights_format = model.get_weights_format()
+            if hasattr(model, 'weights_format'):
+                weights_format = model.weights_format
 
-        if weights_format[0] == 'v':
-            W = W.T
-        h = W.shape[0]
+            assert hasattr(weights_format,'__iter__')
+            assert len(weights_format) == 2
+            assert weights_format[0] in ['v','h']
+            assert weights_format[1] in ['v','h']
+            assert weights_format[0] != weights_format[1]
 
-        if norm_sort:
-            norms = np.sqrt(1e-8+np.square(W).sum(axis=1))
-            norm_prop = norms / norms.max()
+            if weights_format[0] == 'v':
+                W = W.T
+            h = W.shape[0]
 
+            if norm_sort:
+                norms = np.sqrt(1e-8+np.square(W).sum(axis=1))
+                norm_prop = norms / norms.max()
+
+
+            weights_view = dataset.get_weights_view(W)
+            assert weights_view.shape[0] == h
+        #print 'weights_view shape '+str(weights_view.shape)
         hr = int(np.ceil(np.sqrt(h)))
         hc = hr
         if 'hidShape' in dir(model):
             hr, hc = model.hidShape
 
-        pv = patch_viewer.PatchViewer(grid_shape=(hr,hc), patch_shape=dataset.weights_view_shape()[0:2],
-                is_color = dataset.weights_view_shape()[2] == 3)
-
-        weights_view = dataset.get_weights_view(W)
-        assert weights_view.shape[0] == h
-        #print 'weights_view shape '+str(weights_view.shape)
+        pv = patch_viewer.PatchViewer(grid_shape=(hr,hc), patch_shape=weights_view.shape[1:3],
+                is_color = weights_view.shape[-1] == 3)
 
         if global_rescale:
             weights_view /= np.abs(weights_view).max()
-
 
         if norm_sort:
             print 'sorting weights by decreasing norm'
@@ -160,15 +167,16 @@ def get_weights_report(model_path = None, model = None, rescale = 'individual', 
             if show_dec:
                 pv.addVid( d[i,:,:,:,0], rescale = rescale)
 
-    print 'smallest enc weight magnitude: '+str(np.abs(W).min())
-    print 'mean enc weight magnitude: '+str(np.abs(W).mean())
-    print 'max enc weight magnitude: '+str(np.abs(W).max())
+    print 'smallest enc weight magnitude: '+str(np.abs(weights_view).min())
+    print 'mean enc weight magnitude: '+str(np.abs(weights_view).mean())
+    print 'max enc weight magnitude: '+str(np.abs(weights_view).max())
 
 
-    norms = np.sqrt(np.square(W).sum(axis=1))
-    assert norms.shape == (h,)
-    print 'min norm: ',norms.min()
-    print 'mean norm: ',norms.mean()
-    print 'max norm: ',norms.max()
+    if W is not None:
+        norms = np.sqrt(np.square(W).sum(axis=1))
+        assert norms.shape == (h,)
+        print 'min norm: ',norms.min()
+        print 'mean norm: ',norms.mean()
+        print 'max norm: ',norms.max()
 
     return pv

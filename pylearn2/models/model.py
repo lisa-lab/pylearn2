@@ -96,6 +96,14 @@ class Model(object):
         respect the specific properties of the models passed to them."""
         pass
 
+
+    def get_input_space(self):
+        """ Returns an instance of pylearn2.space.Space describing
+        the format of the vector space that the model operates oni
+        (this is a generalization of get_input_dim) """
+
+        return self.input_space
+
     def free_energy(self, V):
         """
         Compute the free energy of data examples, if this model has
@@ -195,6 +203,9 @@ class Model(object):
         pass
 
     def get_input_dim(self):
+        """ Returns the number of visible units of the model.
+        Deprecated; this assumes the model operates on a vector.
+        Use get_input_space instead """
         raise NotImplementedError()
 
     def __getstate__(self):
@@ -255,5 +266,10 @@ class Model(object):
             if hasattr(obj, 'get_value'):
                 setattr(self, field, shared(np.cast[dtype](obj.get_value())))
             if hasattr(obj, 'set_dtype'):
-                warnings.warn('this section seems necessary but does not work-- python decides object is a str. wtf')
-                #obj.set_dtype(dtype)
+                try:
+                    obj.set_dtype(dtype)
+                except Exception, e:
+                    warnings.warn("Got an exception while trying to recursively call set_dtype, might be calling it on static instances")
+
+        for param in self.get_params():
+            assert param.type.dtype == dtype

@@ -2,10 +2,9 @@
 #we set the compiledir to the /Tmp dir to make the test faster by bypassing the nfs network.
 date
 START=`date +%s`
-NOSETESTS=nosetests
 ARGS=$@
 PROFILING=""
-COMPILEDIR=`python -c "import theano;print theano.config.compiledir"`
+
 if [ "$1" == "--buildbot" ]; then
     COMPILEDIR=/Tmp/lisa_theano_compile_dir_pylearn2
     ROOT_CWD=/Tmp/nightly_build
@@ -15,11 +14,15 @@ if [ "$1" == "--buildbot" ]; then
     cd ..
     ARGS="Pylearn2"
     PROFILING="--with-coverage --cover-package=theano"
+    NOSETESTS=${ROOT_CWD}/Theano/bin/theano-nose
+else
+    COMPILEDIR=`python -c "import theano;print theano.config.compiledir"`
+    NOSETESTS=`python -c "import theano; print theano.__path__[0]"`/../bin/theano-nose
 fi
 
 echo "nb element in the compiledir:"
 ls ${COMPILEDIR}|wc -l
-FLAGS=warn.argmax_pushdown_bug=False,warn.gpusum_01_011_0111_bug=False,warn.sum_sum_bug=False,warn.sum_div_dimshuffle_bug=False,$FLAGS
+FLAGS=warn.argmax_pushdown_bug=False,warn.gpusum_01_011_0111_bug=False,warn.sum_sum_bug=False,warn.sum_div_dimshuffle_bug=False,warn.subtensor_merge_bug=False,$FLAGS
 export PYTHONPATH=${ROOT_CWD}:$PYTHONPATH
 
 echo "executing nosetests with mode=FAST_COMPILE"
