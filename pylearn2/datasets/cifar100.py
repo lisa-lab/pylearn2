@@ -10,8 +10,6 @@ class CIFAR100(dense_design_matrix.DenseDesignMatrix):
         path = "${PYLEARN2_DATA_PATH}/cifar100/cifar-100-python/"+which_set
 
         obj = serial.load(path)
-        import ipdb
-        ipdb.set_trace()
         X = obj['data']
 
         assert X.max() == 255.
