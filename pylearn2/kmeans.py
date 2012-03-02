@@ -4,6 +4,7 @@ import numpy
 from pylearn2.base import Block
 from pylearn2.models.model import Model
 from pylearn2.space import VectorSpace
+from pylearn2.utils import sharedX
 import warnings
 
 try:
@@ -167,7 +168,18 @@ class KMeans(Block, Model):
                 iter += 1
 
 
-        self.mu = mu
+        self.mu = sharedX( mu )
+        self._params = [ self.mu ]
+
+    def get_params(self):
+        #patch older pkls
+        if not hasattr(self.mu, 'get_value'):
+            self.mu = sharedX(self.mu)
+        if not hasattr(self, '_params'):
+            self._params = [ self.mu ]
+
+        return [ param for param in self._params ]
+
 
     def __call__(self, X):
         """
