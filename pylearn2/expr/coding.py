@@ -24,3 +24,4 @@ def triangle_code(X, centroids):
 
     rval = T.clip( mu - Z, 0., 1e30)
 
+    return rval
