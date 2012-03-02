@@ -28,6 +28,7 @@ class NpyDataset(DenseDesignMatrix):
         # TODO: Factor this out of iterator() and into something that
         # can be called by multiple methods. Maybe self.prepare().
         if not self._loaded:
+            self._loaded = True
             loaded = numpy.load(self._path)
             assert isinstance(loaded, numpy.ndarray), (
                 "single arrays (.npy) only"

@@ -100,7 +100,7 @@ class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
             raise ValueError("batch_size cannot be None for random slice "
                              "iteration")
         elif num_batches is None:
-            raise ValueError("num_batches cannot be None for random uniform "
+            raise ValueError("num_batches cannot be None for random slice "
                              "iteration")
         super(RandomSliceSubsetIterator, self).__init__(dataset_size,
                                                         batch_size,
@@ -142,8 +142,9 @@ def resolve_iterator_class(mode):
 
 class FiniteDatasetIterator(object):
     """A thin wrapper around one of the mode iterators."""
-    def __init__(self, dataset, subset_iterator, topo=False):
+    def __init__(self, dataset, subset_iterator, topo=False, targets=False):
         self._topo = topo
+        self._targets = targets
         self._dataset = dataset
         self._subset_iterator = subset_iterator
         # TODO: More thought about how to handle things where this
@@ -152,12 +153,18 @@ class FiniteDatasetIterator(object):
             self._raw_data = self._dataset.get_topological_view()
         else:
             self._raw_data = self._dataset.get_design_matrix()
+        if self._targets:
+            self._raw_targets = self._dataset.get_targets()
 
     def __iter__(self):
         return self
 
     def next(self):
+        next_index = self._subset_iterator.next()
         # TODO: handle fancy-index copies by allocating a buffer and
         # using numpy.take()
-        next_index = self._subset_iterator.next()
-        return numpy.cast[config.floatX](self._raw_data[next_index])
+        features = numpy.cast[config.floatX](self._raw_data[next_index])
+        if self._targets:
+            return features, self._raw_targets[next_index]
+        else:
+            return features
