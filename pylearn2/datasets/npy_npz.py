@@ -23,21 +23,37 @@ class NpyDataset(DenseDesignMatrix):
         self._path = file
         self._loaded = False
 
+    def _deferred_load(self):
+        self._loaded = True
+        loaded = numpy.load(self._path)
+        assert isinstance(loaded, numpy.ndarray), (
+            "single arrays (.npy) only"
+        )
+        if len(loaded.shape) == 2:
+            super(NpyDataset, self).__init__(X=loaded)
+        else:
+            super(NpyDataset, self).__init__(topo_view=loaded)
+
+    @functools.wraps(DenseDesignMatrix.get_design_matrix)
+    def get_design_matrix(self, topo=None):
+        if not self._loaded:
+            self._deferred_load()
+        super(NpyDataset, self).get_design_matrix(topo)
+
+    @functools.wraps(DenseDesignMatrix.get_topological_view)
+    def get_topological_view(self, mat=None):
+        if not self._loaded:
+            self._deferred_load()
+        super(NpyDataset, self).get_topological_view(mat)
+
     @functools.wraps(DenseDesignMatrix.iterator)
     def iterator(self, *args, **kwargs):
         # TODO: Factor this out of iterator() and into something that
         # can be called by multiple methods. Maybe self.prepare().
         if not self._loaded:
-            self._loaded = True
-            loaded = numpy.load(self._path)
-            assert isinstance(loaded, numpy.ndarray), (
-                "single arrays (.npy) only"
-            )
-            if len(loaded.shape) == 2:
-                super(NpyDataset, self).__init__(X=loaded)
-            else:
-                super(NpyDataset, self).__init__(topo_view=loaded)
+            self._deferred_load()
         return super(NpyDataset, self).iterator(*args, **kwargs)
+
 
 class NpzDataset(DenseDesignMatrix):
     """A dense dataset based on a single array from a .npz archive."""
