@@ -49,6 +49,10 @@ class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
         assert not N.any(N.isnan(self.X))
     #
 
-#
+#"""Test 1
+dataset = MNIST()
 
+
+#"""
+#
 
