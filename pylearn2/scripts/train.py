@@ -101,9 +101,9 @@ class Train(object):
                 if phase_variable in os.environ:
                     phase = 'phase%d' % os.environ[phase_variable]
                     tokens = [os.environ['PYLEARN2_TRAIN_FILE_NAME'],
-                              phase, '.pkl']
+                              phase, 'pkl']
                 else:
-                    tokens = os.environ['PYLEARN2_TRAIN_FILE_NAME'], '.pkl'
+                    tokens = os.environ['PYLEARN2_TRAIN_FILE_NAME'], 'pkl'
                 self.save_path = '.'.join(tokens)
         self.save_freq = save_freq
         self.epochs = 0
