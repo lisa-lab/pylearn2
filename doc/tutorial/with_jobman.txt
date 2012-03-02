@@ -1,0 +1,200 @@
+.. _with_jobman:
+
+===========================
+Using jobman with Pylearn2
+===========================
+
+Jobman (http://deeplearning.net/software/jobman) enables you to store
+experiments, their original hyper-parameters, and some results, in a
+database. It is useful, for instance, to schedule experiments to be
+launched later, launch them (for instance, use a cluster to launch them
+all in parallel), and finally collect some measurements (reconstruction
+error, classification error, training time, for instance) and add them
+in the database. Then, we can use queries on that database to do some
+analyses of the results.
+
+For the moment, what can be inside the database is limited to simple
+data types, and things that are not too big in memory: integers,
+floating-point numbers, strings, and dictionaries of the above (if the
+keys are strings).
+
+Bases of Jobman
+===============
+
+* state dictionary, linked with the DB
+* experiment function, exp(state, channel)
+
+See Jobman doc.
+
+
+pylearn2/jobman interface
+=========================
+
+Such an `experiment` function is in Pylearn2
+(pylearn2/scripts/jobman/experiment.py), and will use a
+specially-crafted `state` dictionary, that specifies:
+
+* which experiment (model, trainer, and so on) to instanciate;
+
+* which hyper-parameters exist and which values they should take;
+
+* [maybe how to train it, although it could be specified in the
+  experiment itself;]
+
+* and finally which results (or outputs) you want to extract from the
+  trained experiment and store in the database.
+
+
+The ``state`` dictionary
+------------------------
+
+Here's the proposed structure for the ``state`` dictionary, that would
+represent a single experiment.
+
+.. attribute:: state.yaml_template
+
+    String value
+
+    This is a string containing a template for the YAML file that will
+    represent your experiment. This template will typically be shared
+    among different experiments, when these experiments differ only
+    by the value of some hyper-parameters.
+
+    Instead of specifying the values of hyper-parameters in the YAML
+    file, you can specify them using the Python substitution syntax.
+    For instance, if one of your hyper-parameters is a learning rate,
+    you can specify the following in your template:
+
+    .. code-block:: python
+
+        "learning_rate" : %(learning_rate)d
+
+    If you want to specify a whole object as a hyper-parameter (for
+    instance, if you want to try different classes), you can take
+    advantage from the fact that Python's serialization for dictionaries
+    is close to YAML. For instance, you can specify:
+
+    .. code-block:: python
+
+        "termination_criterion" : %(term_crit_builder)s %(term_crit_args)s
+
+    TODO: another syntax even more adapted to YAML
+
+    The identifier inside the parentheses is the *name* you give to your
+    hyper-parameter, the letter afterwards identifies its type (here,
+    "s" for string, "d" for decimal number, every type can usually be
+    converted automatically into a string).
+
+    These "place-holders" in the template will be replaced by actual
+    values, that are provided in :attr:`state.hyper_parameters`.
+
+
+.. attribute:: state.hyper_parameters
+
+    Dictionary, all keys must be strings.
+
+    This dictionary contains the mapping from hyper-parameter names, as
+    used in the yaml_template string, to the actual value you want to
+    give them in that particular experiment.
+
+    For instance, for a YAML template like the one above, a possible value
+    of ``state.hyper_parameters`` could be:
+
+    .. code-block:: python
+
+        {
+            "learning_rate": 1e-4,
+            "term_crit_builder": "!obj:pylearn2.training_algorithms.sgd.MonitorBasedTermCrit",
+            "term_crit_args": {
+                "prop_decrease" : 0.01,
+                "N" : 10,
+            }
+        }
+
+    The resulting YAML file that will be used in your experiment will look
+    like:
+
+    .. code-block:: yaml
+
+        {
+            [...]
+            "learning_rate" : 1e-4,
+            [...]
+            "termination_criterion" : !obj:pylearn2.training_algorithms.sgd.MonitorBasedTermCrit {
+                "prop_decrease" : 0.01,
+                "N" : 10,
+            }
+        }
+
+When that YAML file gets generated, it will be run through whatever
+pylearn2 does with YAML files, and a "train_object" will be
+returned. That object will depend on what is described in the YAML
+file.  Usually, you will want to extract some information from
+that object, and save that in the database, to be used as some
+metric. The specification of which data to access and save is done in
+:attr:`state.results_specification`.
+
+
+.. attribute:: state.results_specification
+
+    String -> String dictionary
+
+    This dictionary maps names (or identifiers) of results that you want
+    to extract from the returned train_object, to Python expressions
+    explaining how to obtain them. These Python expression are strings,
+    and will be evaluated to produce a value to put in :attr:`state.results`.
+
+    For instance, say we want to record the best epoch according to
+    some validation error, and the training and validation errors
+    (classification and NLL) at that training epoch. Those will be kept
+    in train_obj.monitor (FIXME), so we would have a dictionary like:
+
+    .. code-block:: python
+
+        {
+            'best_epoch': 'argmin(train_obj.monitor.channels["valid_nll"])',
+            'train_nll': 'train_obj.monitor.channels["train_nll"][argmin(train_obj.monitor.channels["valid_nll"])]',
+            'train_classerr': 'train_obj.monitor.channels["train_classerr"][argmin(train_obj.monitor.channels["valid_nll"])]',
+            'valid_nll': 'min(train_obj.monitor.channels["train_nll"])',
+            'valid_classerr': 'train_obj.monitor.channels["valid_classerr"][argmin(train_obj.monitor.channels["valid_nll"])]',
+        }
+
+    For now, the returned objects of those expressions should be basic
+    types: int, float, string, or dictionaries (possibly nested) of
+    those. Lists are OK too, but less usable in the end.
+
+
+.. attribute:: state.results
+
+    Dictionary, all keys are strings.
+
+    This dictionary will be empty initially, but will be filled when the
+    experiment finishes (or in some cases, will be updated while the
+    experiment runs).
+
+    The keys are the same as in :attr:`state.results_specification`, and the
+    value is the one computed when the corresponding expression gets
+    evaluated.
+
+    For instance, the result specification above may give the following
+    result:
+
+    .. code-block:: python
+
+        {
+            'best_epoch': 47,
+            'train_nll': 0.02,
+            'train_classerr': 0.0,
+            'valid_nll': 0.05,
+            'valid_classerr': 0.03,
+        }
+
+    Having those informations in the database allows you to efficiently
+    search for the model that has the lowest classification error, for
+    instance.
+
+
+pylearn2/scripts/jobman/experiment.py
+-------------------------------------
+
+TODO: What's really happening inside of the experiment function.
