@@ -55,7 +55,8 @@ class DenseDesignMatrix(Dataset):
             A random number generator used for picking random
             indices into the design matrix when choosing minibatches.
         """
-        if X is not None:
+        if view_converter is not None:
+            assert topo_view is None
             self.X = X
             self.view_converter = view_converter
         else:
