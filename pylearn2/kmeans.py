@@ -166,7 +166,6 @@ class KMeans(Block, Model):
 
                 iter += 1
 
-                """
 
         self.mu = mu
 
