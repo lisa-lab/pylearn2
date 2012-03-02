@@ -48,8 +48,11 @@ specially-crafted `state` dictionary, that specifies:
 The ``state`` dictionary
 ------------------------
 
-Here's the proposed structure for the ``state`` dictionary, that would
-represent a single experiment.
+Here's the proposed structure for the ``state`` dictionary-like object,
+that would represent a single experiment. For your convenience,
+you can access to ``state``'s properties either as items of a
+dictionary (``state["some_attr"]``) or as attributes of an object
+(``state.some_attr``).
 
 .. attribute:: state.yaml_template
 
@@ -126,55 +129,58 @@ represent a single experiment.
             }
         }
 
-When that YAML file gets generated, it will be run through whatever
-pylearn2 does with YAML files, and a "train_object" will be
-returned. That object will depend on what is described in the YAML
-file.  Usually, you will want to extract some information from
-that object, and save that in the database, to be used as some
-metric. The specification of which data to access and save is done in
-:attr:`state.results_specification`.
+    When that YAML file gets generated, it will be run through whatever
+    pylearn2 does with YAML files, and a "train_object" will be
+    returned. That object will depend on what is described in the YAML
+    file. Usually, you will want to extract some information from
+    that object, and save that in the database, to be used as some
+    metric. This is done by :attr:`state.extract_results`.
 
 
-.. attribute:: state.results_specification
+.. attribute:: state.extract_results
 
-    String -> String dictionary
+    String, containing the name of a function to call on "train_object".
 
-    This dictionary maps names (or identifiers) of results that you want
-    to extract from the returned train_object, to Python expressions
-    explaining how to obtain them. These Python expression are strings,
-    and will be evaluated to produce a value to put in :attr:`state.results`.
+    The function named in :attr:`state.extract_results`
+    takes one argument, and returns a dictionary. Like
+    :attr:`state.hyper_parameters`, this dictionary's keys are strings,
+    and values can be ints, floats, strings or dictionaries (with
+    integer keys, and they can be nested). The returned dictionary will
+    be used as :attr:`state.results`. This function has to be in some
+    place where it can be importable.
 
     For instance, say we want to record the best epoch according to
     some validation error, and the training and validation errors
-    (classification and NLL) at that training epoch. Those will be kept
-    in train_obj.monitor (FIXME), so we would have a dictionary like:
+    (classification and NLL) at that training epoch. Those will kept
+    in train_obj.model.monitor.channels, so our function may look like:
 
     .. code-block:: python
 
-        {
-            'best_epoch': 'argmin(train_obj.monitor.channels["valid_nll"])',
-            'train_nll': 'train_obj.monitor.channels["train_nll"][argmin(train_obj.monitor.channels["valid_nll"])]',
-            'train_classerr': 'train_obj.monitor.channels["train_classerr"][argmin(train_obj.monitor.channels["valid_nll"])]',
-            'valid_nll': 'min(train_obj.monitor.channels["train_nll"])',
-            'valid_classerr': 'train_obj.monitor.channels["valid_classerr"][argmin(train_obj.monitor.channels["valid_nll"])]',
-        }
+        def result_extractor(train_obj):
+            import numpy
+            channels = train_obj.monitor.channels
+            best_index = numpy.argmin(channels["valid_nll"])
 
-    For now, the returned objects of those expressions should be basic
-    types: int, float, string, or dictionaries (possibly nested) of
-    those. Lists are OK too, but less usable in the end.
+            return dict(
+                best_epoch=best_index,
+                train_nll=channels["train_nll"][best_index],
+                train_classerr=channels["classerr"][best_index],
+                valid_nll=channels["valid_nll"][best_index],
+                valid_classerr=channels["valid_classerr"][best_index])
 
+    If that function is placed in pylearn2/scripts/examples/extractor.py,
+    we will specify:
+
+    .. code-block:: python
+
+        state.extract_results = "pylearn2.scripts.examples.extractor.result_extractor"
 
 .. attribute:: state.results
 
     Dictionary, all keys are strings.
 
-    This dictionary will be empty initially, but will be filled when the
-    experiment finishes (or in some cases, will be updated while the
-    experiment runs).
-
-    The keys are the same as in :attr:`state.results_specification`, and the
-    value is the one computed when the corresponding expression gets
-    evaluated.
+    This dictionary will be empty initially, but will be filled after
+    the experiment finishes, by the call to :attr:`state.extract_results`.
 
     For instance, the result specification above may give the following
     result:
