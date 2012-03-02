@@ -35,6 +35,9 @@ class Monitor(object):
         self.dataset = None
         self.dirty = True
         self.names_to_del = []
+        #Determine whether the model should use topological or vector form of examples
+        #If the model acts on a space with more than the batch index and channel dimension,
+        #the model has topological dimensions, so the topological view of the data should be used
         self.topo = len(model.get_input_space().make_theano_batch().type.broadcastable) > 2
 
     def set_dataset(self, dataset, batches, batch_size):
@@ -150,6 +153,8 @@ class Monitor(object):
         print "took "+str(t2-t1)+" seconds"
         updates = {}
         givens = {}
+        #Get the appropriate kind of theano variable to represent the data the model
+        #acts on
         X = self.model.get_input_space().make_theano_batch(name = "monitoring_X")
         print 'monitored channels: '+str(self.channels.keys())
         for channel in self.channels.values():

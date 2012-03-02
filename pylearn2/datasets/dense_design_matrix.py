@@ -1,6 +1,7 @@
 """TODO: module-level docstring."""
 import functools
 
+import warnings
 import numpy as np
 
 from pylearn2.utils.iteration import (
@@ -56,7 +57,8 @@ class DenseDesignMatrix(Dataset):
             A random number generator used for picking random
             indices into the design matrix when choosing minibatches.
         """
-        if X is not None:
+        if view_converter is not None:
+            assert topo_view is None
             self.X = X
             self.view_converter = view_converter
         else:
@@ -385,5 +387,13 @@ class DefaultViewConverter(object):
 
 
 def from_dataset(dataset, num_examples):
-    V = dataset.get_batch_topo(num_examples)
+    try:
+        V = dataset.get_batch_topo(num_examples)
+    except:
+        if isinstance(dataset, DenseDesignMatrix):
+            warnings.warn("from_dataset wasn't able to make subset of dataset, using the whole thing")
+            return DenseDesignMatrix(X = None, view_converter = dataset.view_converter)
+            #This patches a case where control.get_load_data() is false so dataset.X is None
+            #This logic should be removed whenever we implement lazy loading
+        raise
     return DenseDesignMatrix(topo_view=V)

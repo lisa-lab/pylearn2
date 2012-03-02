@@ -97,13 +97,13 @@ class Train(object):
             self.save_path = save_path
         else:
             if save_freq > 0:
-                phase_variable = 'PYLEARN2_TRAINING_PHASE'
+                phase_variable = 'PYLEARN2_TRAIN_PHASE'
                 if phase_variable in os.environ:
                     phase = 'phase%d' % os.environ[phase_variable]
                     tokens = [os.environ['PYLEARN2_TRAIN_FILE_NAME'],
-                              phase, '.pkl']
+                              phase, 'pkl']
                 else:
-                    tokens = os.environ['PYLEARN2_TRAIN_FILE_NAME'], '.pkl'
+                    tokens = os.environ['PYLEARN2_TRAIN_FILE_NAME'], 'pkl'
                 self.save_path = '.'.join(tokens)
         self.save_freq = save_freq
         self.epochs = 0
@@ -205,8 +205,18 @@ if __name__ == "__main__":
     except TypeError as e:
         iterable = False
     if iterable:
-        for subobj in iter(train_obj):
+        for number, subobj in enumerate(iter(train_obj)):
+            # Publish a variable indicating the training phase.
+            phase_variable = 'PYLEARN2_TRAIN_PHASE'
+            phase_value = 'phase%d' % (number + 1)
+            os.environ[phase_variable] = phase_value
+            os.putenv(phase_variable, phase_value)
+
+            # Execute this training phase.
             subobj.main_loop()
+
+            # Clean up, in case there's a lot of memory used that's
+            # necessary for the next phase.
             del subobj
             gc.collect()
     else:

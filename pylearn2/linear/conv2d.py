@@ -3,15 +3,19 @@ import theano.tensor as T
 from pylearn2.utils import sharedX
 import numpy as np
 from theano.tensor.nnet.conv import conv2d
+from pylearn2.linear.linear_transform import LinearTransform as P2LT
+import functools
 
 
 class Conv2D(OrigConv2D):
     """ Extend the TheanoLinear Conv2d class to support everything
     needed for a pylearn2 linear operator """
 
+    @functools.wraps(P2LT.get_params)
     def get_params(self):
         return set([ self._filters ])
 
+    @functools.wraps(P2LT.get_weights_topo)
     def get_weights_topo(self,borrow):
         return np.transpose(self._filters.get_value(borrow = borrow),(0,2,3,1))
 
@@ -57,6 +61,7 @@ class Conv2D(OrigConv2D):
 def make_random_conv2D(irange, input_space, output_space,
         kernel_shape, batch_size, \
         subsample = (1,1), border_mode = 'valid', message = ""):
+    """ Creates a Conv2D with random kernels """
 
 
     rng = np.random.RandomState([1,2,3])

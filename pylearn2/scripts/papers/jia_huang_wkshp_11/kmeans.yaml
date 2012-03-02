@@ -1,0 +1,13 @@
+
+!obj:pylearn2.scripts.train.Train {
+        dataset : !obj:pylearn2.datasets.dense_design_matrix.from_dataset {
+                        dataset: !pkl: "${PYLEARN2_DATA_PATH}/cifar100/cifar100_patches/data.pkl",
+                        num_examples: 400000
+               },
+        model   : !obj:pylearn2.kmeans.KMeans {
+                k : 1600,
+                nvis: 108,
+                verbose : 1
+               },
+       save_freq: 1
+}

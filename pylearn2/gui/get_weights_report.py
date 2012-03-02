@@ -56,6 +56,7 @@ def get_weights_report(model_path = None, model = None, rescale = 'individual', 
 
     weights_view = None
     W = None
+
     try:
         weights_view = model.get_weights_topo()
         h = weights_view.shape[0]

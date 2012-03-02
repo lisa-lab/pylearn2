@@ -2,14 +2,24 @@
 
 import numpy
 from pylearn2.base import Block
+from pylearn2.models.model import Model
+from pylearn2.space import VectorSpace
+import warnings
 
+try:
+    import milk
+except:
+    milk = None
+    warnings.warn(""" Install milk ( http://packages.python.org/milk/ )
+                    It has a better k-means implementation. Falling back to
+                    our own really slow implementation. """)
 
-class KMeans(Block):
+class KMeans(Block, Model):
     """
     Block that outputs a vector of probabilities that a sample belong to means
     computed during training.
     """
-    def __init__(self, k, convergence_th=1e-6, max_iter=None, verbose=False):
+    def __init__(self, k, nvis, convergence_th=1e-6, max_iter=None, verbose=False):
         """
         Parameters in conf:
 
@@ -24,7 +34,10 @@ class KMeans(Block):
         :param max_iter: maximum number of iterations. Defaults to infinity.
         """
 
-        super(KMeans, self).__init__()
+        Block.__init__(self)
+        Model.__init__(self)
+
+        self.input_space = VectorSpace(nvis)
 
         self.k = k
         self.convergence_th = convergence_th
@@ -37,114 +50,123 @@ class KMeans(Block):
 
         self.verbose = verbose
 
-    def train(self, X, mu=None):
+    def train(self, dataset, mu=None):
         """
         Process kmeans algorithm on the input to localize clusters.
         """
 
         #TODO-- why does this sometimes return X and sometimes return nothing?
 
-        if hasattr(X, 'get_design_matrix'):
-            X = X.get_design_matrix()
+        X = dataset.get_design_matrix()
 
         n, m = X.shape
         k = self.k
 
-        # taking random inputs as initial clusters if user does not provide
-        # them.
-        if mu is not None:
-            if not len(mu) == k:
-                raise Exception('You gave %i clusters, but k=%i were expected'
-                                % (len(mu), k))
+        if milk is not None:
+            #use the milk implementation of k-means if it's available
+            cluster_ids, mu = milk.kmeans(X,k)
         else:
-            indices = numpy.random.randint(X.shape[0], size=k)
-            mu = X[indices]
+            #our own implementation
 
-        try:
-            dists = numpy.zeros((n, k))
-        except MemoryError:
-            print ("dying trying to allocate dists matrix ",
-                   "for %d examples and %d means" % (n, k))
-            raise
+            # taking random inputs as initial clusters if user does not provide
+            # them.
+            if mu is not None:
+                if not len(mu) == k:
+                    raise Exception('You gave %i clusters, but k=%i were expected'
+                                    % (len(mu), k))
+            else:
+                indices = numpy.random.randint(X.shape[0], size=k)
+                mu = X[indices]
 
-        old_kills = {}
+            try:
+                dists = numpy.zeros((n, k))
+            except MemoryError:
+                print ("dying trying to allocate dists matrix ",
+                       "for %d examples and %d means" % (n, k))
+                raise
 
-        iter = 0
-        mmd = prev_mmd = float('inf')
-        while True:
-            if self.verbose:
-                print 'kmeans iter ' + str(iter)
+            old_kills = {}
 
-            #print 'iter:',iter,' conv crit:',abs(mmd-prev_mmd)
-            #if numpy.sum(numpy.isnan(mu)) > 0:
-            if numpy.any(numpy.isnan(mu)):
-                print 'nan found'
-                return X
+            iter = 0
+            mmd = prev_mmd = float('inf')
+            while True:
+                if self.verbose:
+                    print 'kmeans iter ' + str(iter)
 
-            #computing distances
-            for i in xrange(k):
-                dists[:, i] = numpy.square((X - mu[i, :])).sum(axis=1)
+                #print 'iter:',iter,' conv crit:',abs(mmd-prev_mmd)
+                #if numpy.sum(numpy.isnan(mu)) > 0:
+                if numpy.any(numpy.isnan(mu)):
+                    print 'nan found'
+                    return X
 
-            if iter > 0:
-                prev_mmd = mmd
-
-            min_dists = dists.min(axis=1)
-
-            #mean minimum distance:
-            mmd = min_dists.mean()
-
-            if iter > 0 and (iter >= self.max_iter or \
-                                    abs(mmd - prev_mmd) < self.convergence_th):
-                #converged
-                break
-
-            #finding minimum distances
-            min_dist_inds = dists.argmin(axis=1)
-
-            #computing means
-            i = 0
-            blacklist = []
-            new_kills = {}
-            while i < k:
-                b = min_dist_inds == i
-                if not numpy.any(b):
-                    killed_on_prev_iter = True
-                    #initializes empty cluster to be the mean of the d data
-                    #points farthest from their corresponding means
-                    if i in old_kills:
-                        d = old_kills[i] - 1
-                        if d == 0:
-                            d = 50
-                        new_kills[i] = d
-                    else:
-                        d = 5
-                    mu[i, :] = 0
-                    for j in xrange(d):
-                        idx = numpy.argmax(min_dists)
-                        min_dists[idx] = 0
-                        #chose point idx
-                        mu[i, :] += X[idx, :]
-                        blacklist.append(idx)
-                    mu[i, :] /= float(d)
-                    #cluster i was empty, reset it to d far out data points
-                    #recomputing distances for this cluster
+                #computing distances
+                for i in xrange(k):
                     dists[:, i] = numpy.square((X - mu[i, :])).sum(axis=1)
-                    min_dists = dists.min(axis=1)
-                    for idx in blacklist:
-                        min_dists[idx] = 0
-                    min_dist_inds = dists.argmin(axis=1)
-                    #done
-                    i += 1
-                else:
-                    mu[i, :] = numpy.mean(X[b, :], axis=0)
-                    if numpy.any(numpy.isnan(mu)):
-                        print 'nan found at', i
-                        return X
-                    i += 1
 
-            old_kills = new_kills
+                if iter > 0:
+                    prev_mmd = mmd
 
-            iter += 1
+                min_dists = dists.min(axis=1)
+
+                #mean minimum distance:
+                mmd = min_dists.mean()
+
+                print 'cost: ',mmd
+
+                if iter > 0 and (iter >= self.max_iter or \
+                                        abs(mmd - prev_mmd) < self.convergence_th):
+                    #converged
+                    break
+
+                #finding minimum distances
+                min_dist_inds = dists.argmin(axis=1)
+
+                #computing means
+                i = 0
+                blacklist = []
+                new_kills = {}
+                while i < k:
+                    b = min_dist_inds == i
+                    if not numpy.any(b):
+                        killed_on_prev_iter = True
+                        #initializes empty cluster to be the mean of the d data
+                        #points farthest from their corresponding means
+                        if i in old_kills:
+                            d = old_kills[i] - 1
+                            if d == 0:
+                                d = 50
+                            new_kills[i] = d
+                        else:
+                            d = 5
+                        mu[i, :] = 0
+                        for j in xrange(d):
+                            idx = numpy.argmax(min_dists)
+                            min_dists[idx] = 0
+                            #chose point idx
+                            mu[i, :] += X[idx, :]
+                            blacklist.append(idx)
+                        mu[i, :] /= float(d)
+                        #cluster i was empty, reset it to d far out data points
+                        #recomputing distances for this cluster
+                        dists[:, i] = numpy.square((X - mu[i, :])).sum(axis=1)
+                        min_dists = dists.min(axis=1)
+                        for idx in blacklist:
+                            min_dists[idx] = 0
+                        min_dist_inds = dists.argmin(axis=1)
+                        #done
+                        i += 1
+                    else:
+                        mu[i, :] = numpy.mean(X[b, :], axis=0)
+                        if numpy.any(numpy.isnan(mu)):
+                            print 'nan found at', i
+                            return X
+                        i += 1
+
+                old_kills = new_kills
+
+                iter += 1
+
+
         self.mu = mu
 
     def __call__(self, X):
@@ -168,90 +190,3 @@ class KMeans(Block):
     def get_weights_format(self):
         return ['h','v']
 
-if __name__ == '__main__':
-    import theano
-    from theano import tensor
-    from pylearn2.corruption import GaussianCorruptor
-    from pylearn2.autoencoder import DenoisingAutoencoder
-    from pylearn2.cost import SquaredError
-    from pylearn2.optimizer import SGDOptimizer
-    # toy labeled data: [x,y,label]*n samples
-    n = 50
-    rng = numpy.random.RandomState(seed=7777777)
-    noise = rng.random_sample((n, 2))
-    class1 = numpy.concatenate((noise * 10 + numpy.array([-10, -10]),
-                                numpy.array([[1] * n]).T),
-                                axis=1)
-    class2 = numpy.concatenate((noise * 10 + numpy.array([10, 10]),
-                                numpy.array([[2] * n]).T),
-                                axis=1)
-    data = numpy.append(class1, class2, axis=0)
-    rng.shuffle(data)
-    #labels are just going to be used as visual reference in terminal output
-    train_data, train_labels = data[:-10, :-1], data[:-10, -1]
-    test_data, test_labels = data[-10:, :-1], data[-10:, -1]
-    print train_data.shape
-    print test_data.shape
-
-    #train an SDG on it
-    conf = {
-        'corruption_level': 0.1,
-        'nhid': 3,
-        'nvis': train_data.shape[1],
-        'anneal_start': 100,
-        'base_lr': 0.01,
-        'tied_weights': True,
-        'act_enc': 'tanh',
-        'act_dec': None,
-        #'lr_hb': 0.10,
-        #'lr_vb': 0.10,
-        'irange': 0.001,
-        #note the kmean hyper-parameter here
-        'kmeans_k': 2
-    }
-    print '== training =='
-    # A symbolic input representing your minibatch.
-    minibatch = tensor.matrix()
-
-    # Allocate a denoising autoencoder with binomial noise corruption.
-    corruptor = GaussianCorruptor(corruption_level=conf['corruption_level'])
-    da = DenoisingAutoencoder(corruptor, conf['nvis'], conf['nhid'],
-                              conf['act_enc'], conf['act_dec'],
-                              tied_weights=conf['tied_weights'],
-                              irange=conf['irange'])
-
-    # Allocate an optimizer, which tells us how to update our model.
-    # TODO: build the cost another way
-    cost = SquaredError(da)(minibatch, da.reconstruct(minibatch)).mean()
-    trainer = SGDOptimizer(da.params(), conf['base_lr'], conf['anneal_start'])
-
-    # Finally, build a Theano function out of all this.
-    train_fn = theano.function([minibatch], cost,
-                               updates=trainer.cost_updates(cost))
-
-    # Suppose we want minibatches of size 10
-    batchsize = 10
-
-    # Here's a manual training loop. I hope to have some classes that
-    # automate this a litle bit.
-    for epoch in xrange(10):
-        for offset in xrange(0, train_data.shape[0], batchsize):
-            minibatch_err = train_fn(train_data[offset:(offset + batchsize)])
-            #print "epoch %d, batch %d-%d: %f" % \
-                    #(epoch, offset, offset + batchsize - 1, minibatch_err)
-
-    # Suppose you then want to use the representation for something.
-    transform = theano.function([minibatch], da([minibatch])[0])
-
-    #then train & apply kmeans as a postprocessing
-    kmeans = KMeans(conf['kmeans_k'])
-    kmeans.train(transform(train_data))
-
-    print '== testing =='
-    output = kmeans(transform(test_data))
-    print 'sample / label -> kmeans ouput:', output.shape
-    for i, sample in enumerate(test_data):
-        print sample, '/', test_labels[i], '->', output[i]
-
-    #print "Transformed data:"
-    #print numpy.histogram(transform(data))
