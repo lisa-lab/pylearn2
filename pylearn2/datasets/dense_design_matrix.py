@@ -377,7 +377,7 @@ def from_dataset(dataset, num_examples):
     except:
         if isinstance(dataset, DenseDesignMatrix):
             warnings.warn("from_dataset wasn't able to make subset of dataset, using the whole thing")
-            return copy.deepcopy(dataset)
+            return DenseDesignMatrix(X = None, view_converter = dataset.view_converter)
             #This patches a case where control.get_load_data() is false so dataset.X is None
             #This logic should be removed whenever we implement lazy loading
         raise
