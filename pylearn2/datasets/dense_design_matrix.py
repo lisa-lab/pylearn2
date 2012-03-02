@@ -1,6 +1,7 @@
 """TODO: module-level docstring."""
 import functools
 
+import warnings
 import numpy as np
 from pylearn2.utils.iteration import (
     SequentialSubsetIterator,
@@ -370,5 +371,13 @@ class DefaultViewConverter(object):
 
 
 def from_dataset(dataset, num_examples):
-    V = dataset.get_batch_topo(num_examples)
+    try:
+        V = dataset.get_batch_topo(num_examples)
+    except:
+        if isinstance(dataset, DenseDesignMatrix):
+            warnings.warn("from_dataset wasn't able to make subset of dataset, using the whole thing")
+            return copy.deepcopy(dataset)
+            #This patches a case where control.get_load_data() is false so dataset.X is None
+            #This logic should be removed whenever we implement lazy loading
+        raise
     return DenseDesignMatrix(topo_view=V)
