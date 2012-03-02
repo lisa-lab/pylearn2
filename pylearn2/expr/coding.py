@@ -2,7 +2,7 @@
 
 import theano.tensor as T
 
-def triangle(X, centroids):
+def triangle_code(X, centroids):
     """ Compute the triangle activation function used
         in Adam Coates' AISTATS 2011 paper
 
