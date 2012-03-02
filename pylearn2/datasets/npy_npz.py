@@ -38,13 +38,13 @@ class NpyDataset(DenseDesignMatrix):
     def get_design_matrix(self, topo=None):
         if not self._loaded:
             self._deferred_load()
-        super(NpyDataset, self).get_design_matrix(topo)
+        return super(NpyDataset, self).get_design_matrix(topo)
 
     @functools.wraps(DenseDesignMatrix.get_topological_view)
     def get_topological_view(self, mat=None):
         if not self._loaded:
             self._deferred_load()
-        super(NpyDataset, self).get_topological_view(mat)
+        return super(NpyDataset, self).get_topological_view(mat)
 
     @functools.wraps(DenseDesignMatrix.iterator)
     def iterator(self, *args, **kwargs):
