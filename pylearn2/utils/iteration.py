@@ -165,6 +165,6 @@ class FiniteDatasetIterator(object):
         # using numpy.take()
         features = numpy.cast[config.floatX](self._raw_data[next_index])
         if self._targets:
-            return features, self.targets[next_index]
+            return features, self._raw_targets[next_index]
         else:
             return features
