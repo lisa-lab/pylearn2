@@ -12,16 +12,24 @@ def triangle_code(X, centroids):
         Returns a design matrix of triangle code activations
     """
 
-    X_sqr = T.sqr(X).sum(axis=1)
-    c_sqr = T.sqr(centroids).sum(axis=1)
-    Xc = T.dot(X, centroids)
+    X_sqr = T.sqr(X).sum(axis=1).dimshuffle(0,'x')
+    c_sqr = T.sqr(centroids).sum(axis=1).dimshuffle('x',0)
+    c_sqr.name = 'c_sqr'
+    Xc = T.dot(X, centroids.T)
+    Xc.name = 'Xc'
 
     Z = T.sqrt( c_sqr + X_sqr - 2. * Xc)
+    Z.name = 'Z'
 
     mu = Z.mean(axis=1)
+    mu.name = 'mu'
 
     mu = mu.dimshuffle(0,'x')
+    mu.name = 'mu_broadcasted'
 
     rval = T.clip( mu - Z, 0., 1e30)
+    rval.name = 'triangle_code'
 
     return rval
+
+
