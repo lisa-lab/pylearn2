@@ -1,0 +1,15 @@
+!obj:extract_features.FeatureExtractor {
+        #I use a really small batch_size so it will work on gpu
+        batch_size : 1,
+        kmeans_path : "kmeans.pkl",
+        save_path: "features.npy",
+        dataset_family: extract_features.cifar100,
+        which_set: "train",
+        #This is the value from the paper
+        num_output_features: 6400,
+        #Do the processing in 10,000 example chunks to
+        #reduce host memory footprint
+        chunk_size: 10000,
+        #I'm not sure which kind of pooling was used in the paper
+        pool_mode: 'max'
+}

@@ -1,3 +1,5 @@
+Author: Ian Goodfellow <goodfeli@iro.umontreal.ca>
+
 This directory contains scripts for reproducing an experiment from
 "Beyond Spatial Pyramids: Receptive Field Learning For Pooled Image Features"
 by Yangqing Jia and Chang Huang
@@ -25,3 +27,11 @@ Here is the procedure for reproducing this experiment:
 2. Train your k-means dictionary by running
 
 train.py kmeans.yaml
+
+3. Extract features by running
+
+python extract_features.py extract_features.yaml
+
+
+
+I only have 1599 dictionary elements. Did milk decide to drop one on its own?
