@@ -111,7 +111,6 @@ class ExtractGridPatches(object):
         #end while continue
 
         dataset.set_topological_view(output)
-    #
 
 class ReassembleGridPatches(object):
     """ Converts a dataset of patches into a dataset of full examples
@@ -215,7 +214,6 @@ class ReassembleGridPatches(object):
         #end while continue
 
         dataset.set_topological_view(reassembled)
-    #
 
 class ExtractPatches(object):
     """ Converts an image dataset into a dataset of patches
@@ -272,7 +270,6 @@ class ExtractPatches(object):
         #
 
         dataset.set_topological_view(output)
-    #
 
 class MakeUnitNorm(object):
     def __init__(self):
@@ -332,23 +329,18 @@ class PCA_ViewConverter(object):
         if orig_view_converter is None:
             raise ValueError("It doesn't make any sense to make a PCA view converter when there's no original view converter to define a topology in the first place")
         self.orig_view_converter = orig_view_converter
-    #
 
     def view_shape(self):
         return self.orig_view_converter.shape
 
     def design_mat_to_topo_view(self, X):
         return self.orig_view_converter.design_mat_to_topo_view(self.to_input(X))
-    #
 
     def design_mat_to_weights_view(self, X):
         return self.orig_view_converter.design_mat_to_weights_view(self.to_weights(X))
-    #
 
     def topo_view_to_design_mat(self, V):
-        return self.to_pca(self.orig_view_converter.topo_view_to_design_mat(X))
-    #
-#
+        return self.to_pca(self.orig_view_converter.topo_view_to_design_mat(V))
 
 
 

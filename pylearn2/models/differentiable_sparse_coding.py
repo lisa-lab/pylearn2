@@ -6,6 +6,7 @@ import theano.tensor as T
 
 import theano
 from theano import function, shared, config
+floatX = config.floatX
 
 class DifferentiableSparseCoding(object):
     def __init__(self, nvis, nhid,
