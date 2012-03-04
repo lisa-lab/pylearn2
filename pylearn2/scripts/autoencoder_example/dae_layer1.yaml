@@ -1,0 +1,8 @@
+!obj:pylearn2.scripts.train.FeatureDump {
+  "encoder": !obj:pylearn2.utils.serial.load {
+    "filepath": "garbage.pkl"},
+    "dataset": !obj:pylearn2.datasets.npy_npz.NpyDataset &dataset {
+      "file" : 'garbage.npy' # Should be an N x 300 matrix on disk.
+    },
+    "path": "layer1.npy"
+}

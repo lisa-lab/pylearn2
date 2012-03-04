@@ -57,13 +57,13 @@ class DenseDesignMatrix(Dataset):
             A random number generator used for picking random
             indices into the design matrix when choosing minibatches.
         """
+        self.X = X
         if view_converter is not None:
             assert topo_view is None
-            self.X = X
             self.view_converter = view_converter
         else:
-            assert topo_view is not None
-            self.set_topological_view(topo_view)
+            if topo_view is not None:
+                self.set_topological_view(topo_view)
         self.y = y
         self.compress = False
         self.design_loc = None
@@ -71,10 +71,15 @@ class DenseDesignMatrix(Dataset):
             self.rng = rng
         else:
             self.rng = np.random.RandomState(rng)
+        # Defaults for iterators
+        self._iter_mode = resolve_iterator_class('sequential')
+        self._iter_topo = False
+        self._iter_targets = False
+
 
     @functools.wraps(Dataset.set_iteration_scheme)
     def set_iteration_scheme(self, mode=None, batch_size=None,
-                             num_batches=None, topo=False):
+                             num_batches=None, topo=False, targets=False):
         if mode is not None:
             self._iter_subset_class = mode = resolve_iterator_class(mode)
         elif hasattr(self, '_iter_subset_class'):
@@ -86,6 +91,7 @@ class DenseDesignMatrix(Dataset):
         self._iter_batch_size = batch_size
         self._iter_num_batches = num_batches
         self._iter_topo = topo
+        self._iter_targets = targets
         # Try to create an iterator with these settings.
         rng = self.rng if mode.stochastic else None
         print rng
@@ -93,7 +99,7 @@ class DenseDesignMatrix(Dataset):
 
     @functools.wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
-                 topo=None, rng=None):
+                 topo=None, targets=None, rng=None):
         # TODO: Refactor, deduplicate with set_iteration_scheme
         if mode is None:
             if hasattr(self, '_iter_subset_class'):
@@ -109,11 +115,14 @@ class DenseDesignMatrix(Dataset):
             num_batches = getattr(self, '_iter_num_batches', None)
         if topo is None:
             topo = getattr(self, '_iter_topo', False)
+        if targets is None:
+            targets = getattr(self, '_iter_targets', False)
         if rng is None and mode.stochastic:
             rng = self.rng
         return FiniteDatasetIterator(self,
                                      mode(self.X.shape[0], batch_size,
-                                     num_batches, rng), topo)
+                                     num_batches, rng),
+                                     topo, targets)
 
     def use_design_loc(self, path):
         """
@@ -307,6 +316,9 @@ class DenseDesignMatrix(Dataset):
         assert len(X.shape) == 2
         assert not N.any(N.isnan(X))
         self.X = X
+
+    def get_targets(self):
+        return self.y
 
     def get_batch_design(self, batch_size, include_labels=False):
         idx = self.rng.randint(self.X.shape[0] - batch_size + 1)

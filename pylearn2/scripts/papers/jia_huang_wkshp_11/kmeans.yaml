@@ -1,10 +1,20 @@
 
 !obj:pylearn2.scripts.train.Train {
         dataset : !obj:pylearn2.datasets.dense_design_matrix.from_dataset {
+                        # This dataset consists of 6x6 patches, with approximate contrast normalization
+                        # and approximate ZCA whitening, following Adam Coates' ICML '11 paper.
+
+                        # I have e-mail confirmation from the authors that they used 6x6 patches, contrast
+                        # normalization, and approximate ZCA whitening. I am not sure if they used the same
+                        # softening parameters as Adam did. Here I use the softening parameters from Adam's
+                        # AISTATS '11 / ICML '11 paper.
                         dataset: !pkl: "${PYLEARN2_DATA_PATH}/cifar100/cifar100_patches/data.pkl",
+                        # I'm not sure how many examples the authors used. Here I use 400,000 following
+                        # the k-means demo accompanying Adam Coates' AISTATS '11 paper. """
                         num_examples: 400000
                },
         model   : !obj:pylearn2.kmeans.KMeans {
+                # This is the number of filters used in the paper 
                 k : 1600,
                 nvis: 108,
                 verbose : 1
