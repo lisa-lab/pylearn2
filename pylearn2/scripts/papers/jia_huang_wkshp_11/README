@@ -1,3 +1,5 @@
+Author: Ian Goodfellow <goodfeli@iro.umontreal.ca>
+
 This directory contains scripts for reproducing an experiment from
 "Beyond Spatial Pyramids: Receptive Field Learning For Pooled Image Features"
 by Yangqing Jia and Chang Huang
@@ -25,3 +27,28 @@ Here is the procedure for reproducing this experiment:
 2. Train your k-means dictionary by running
 
 train.py kmeans.yaml
+
+3. Extract features by running
+
+python extract_features.py extract_features.yaml
+
+4. This should have emitted features_A.npy though features_E.npy. Run
+
+python assemble.py
+
+to concatenate them together into features.npy. This step will take a lot
+of RAM! (TODO: how much RAM exactly?)
+
+5. The next step is to cross-validate the best SVM hyperparameters on
+the training features. Unfortunately, you're on your own for this for now.
+I use Adam Coates' SVM implementation from his code demos and it's written
+in matlab so not part of pylearn. I also use a cluster to parallelize the
+cross-validation and my script for that is very specific to the cluster's
+job management system.
+
+If you want to use Adam's matlab implementation like I do, then run
+
+python npy2mat.py features.npy features.mat
+
+to convert the features to matlab format. Note that this will also
+take a lot of RAM (TODO: how much RAM exactly?)
