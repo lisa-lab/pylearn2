@@ -397,6 +397,10 @@ class DenseDesignMatrix(Dataset):
     def get_targets(self):
         return self.y
 
+    @property
+    def num_examples(self):
+        return self.X.shape[0]
+
     def get_batch_design(self, batch_size, include_labels=False):
         idx = self.rng.randint(self.X.shape[0] - batch_size + 1)
         rx = self.X[idx:idx + batch_size, :]
