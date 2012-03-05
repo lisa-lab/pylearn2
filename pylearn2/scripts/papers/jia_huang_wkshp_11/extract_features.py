@@ -414,6 +414,8 @@ class FeatureExtractor:
             else:
                 assert False
 
+            assert output[i:i+batch_size,:].max() < 1e20
+
             t6 = time.time()
 
             print (t6-t1, t2-t1, t3-t2, t4-t3, t5-t4, t6-t5)

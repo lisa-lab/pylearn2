@@ -1,6 +1,7 @@
 """ Expressions for encoding features """
 
 import theano.tensor as T
+from theano.printing import Print
 
 def triangle_code(X, centroids):
     """ Compute the triangle activation function used
@@ -18,7 +19,15 @@ def triangle_code(X, centroids):
     Xc = T.dot(X, centroids.T)
     Xc.name = 'Xc'
 
-    Z = T.sqrt( c_sqr + X_sqr - 2. * Xc)
+    sq_dists =  c_sqr + X_sqr - 2. * Xc
+
+    #TODO: why do I have to do this and Adam doesn't?
+    #is it just because he uses float64 and I usually use
+    #float32? or are our libraries numerically unstable somehow,
+    #or does matlab handle sqrt differently?
+    sq_dists_safe = T.clip(sq_dists,0.,1e30)
+
+    Z = T.sqrt( sq_dists_safe)
     Z.name = 'Z'
 
     mu = Z.mean(axis=1)
