@@ -208,6 +208,7 @@ class DenseDesignMatrix(Dataset):
           the training dataset.
           split_prop: Proportion of dataset split.
         """
+
         train = None
         valid = None
         if split_size == 0 and split_prop == 0:
@@ -235,6 +236,7 @@ class DenseDesignMatrix(Dataset):
           -----------
           nfolds: The number of folds for the  the validation set.
         """
+
         folds_iter = self.iterator(mode="sequential", num_batches=nfolds)
         folds = list(folds_iter)
         return folds
