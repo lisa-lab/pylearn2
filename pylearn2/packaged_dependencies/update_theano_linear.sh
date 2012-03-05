@@ -9,5 +9,7 @@ git archive master | tar -x -C ../
 popd
 rm -rf TheanoLinearTemp
 rm README
-find theano_linear | xargs git add -u
+find theano_linear | while read line; do
+	git add ${line}
+done
 
