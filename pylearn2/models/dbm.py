@@ -297,6 +297,7 @@ class DBM(Model):
 
         raise NotImplementedError("Not yet supported-- current project does not require DBM to learn on its own")
 
+        """
         #E step
         hidden_obs = self.e_step.variational_inference(V)
 
@@ -320,6 +321,7 @@ class DBM(Model):
         print "graph size: ",len(rval.maker.env.toposort())
 
         return rval
+        """
 
     def censor_updates(self, updates):
 
@@ -329,7 +331,7 @@ class DBM(Model):
     def random_design_matrix(self, batch_size, theano_rng):
         raise NotImplementedError()
 
-        return V_sample
+        #return V_sample
 
     def expected_energy(self, V_hat, H_hat):
         """ expected energy of the model under the mean field distribution
@@ -534,6 +536,7 @@ class InferenceProcedure:
 
         #NOTE: I don't think this method needs to be implemented for the current project
 
+        """
         alpha = self.model.alpha
 
 
@@ -598,6 +601,7 @@ class InferenceProcedure:
             return history
         else:
             return history[-1]
+        """
 
     def init_H_hat(self, V):
         """ Returns a list of matrices of hidden units, with same batch size as V
