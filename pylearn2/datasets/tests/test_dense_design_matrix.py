@@ -46,8 +46,8 @@ def test_split_datasets():
     ddm.y_fine = np.asarray(obj['fine_labels'])
     ddm.y_coarse = np.asarray(obj['coarse_labels'])
     (train, valid) = ddm.split_dataset_holdout(split_prop=0.5)
-    print train.shape
-    print valid.shape
+    assert valid.shape[0] == np.ceil(ddm.num_examples * 0.5)
+    assert train.shape[0] == (ddm.num_examples - valid.shape[0])
 
 def test_split_nfold_datasets():
     #Load and create ddm from cifar100
@@ -69,7 +69,7 @@ def test_split_nfold_datasets():
     ddm.y_fine = np.asarray(obj['fine_labels'])
     ddm.y_coarse = np.asarray(obj['coarse_labels'])
     folds = ddm.split_dataset_nfolds(10)
-    print folds[0].shape
+    assert folds[0].shape[0] == np.ceil(ddm.num_examples / 10)
 
 #test_split_datasets()
 #test_split_nfold_datasets()
