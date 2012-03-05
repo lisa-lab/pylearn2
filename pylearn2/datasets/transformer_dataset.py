@@ -39,9 +39,7 @@ class TransformerDataset(Dataset):
                  topo=None, rng=None):
 
         raw_iterator = self.raw.iterator(mode, batch_size, num_batches, topo, rng)
-
         final_iterator = TransformerIterator(raw_iterator, self)
-
         return final_iterator
 
 class TransformerIterator(object):
@@ -54,9 +52,6 @@ class TransformerIterator(object):
         return self
 
     def next(self):
-
         raw_batch = self.raw_iterator.next()
-
         rval = self.transformer_dataset.transformer.perform(raw_batch)
-
         return rval

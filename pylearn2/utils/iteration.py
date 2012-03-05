@@ -36,7 +36,7 @@ class SequentialSubsetIterator(SubsetIterator):
         self.dataset_size = dataset_size
         if batch_size is None:
             if num_batches is not None:
-                batch_size = numpy.ceil(self.X.shape[0] / num_batches)
+                batch_size = numpy.ceil(self.dataset_size / num_batches)
             else:
                 raise ValueError("need one of batch_size, num_batches "
                                  "for sequential batch iteration")
