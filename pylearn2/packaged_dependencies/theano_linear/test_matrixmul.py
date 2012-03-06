@@ -20,6 +20,15 @@ def assert_compute_equal(outputs, inputs=[]):
     assert all(numpy.all(outvals[i] == outvals[0])
             for i in range(1, len(outvals))), (outvals)
 
+
+def assert_compute_allclose(outputs, inputs=[]):
+    outputs = map(tensor.as_tensor_variable, outputs)
+    f = theano.function(inputs, outputs)
+    outvals = f()
+    assert all(numpy.allclose(outvals[i], outvals[0])
+            for i in range(1, len(outvals))), (outvals)
+
+
 class SymbolicSelfTestMixin(object):
     """
     Generic tests that assert the self-consistency of LinearTransform
@@ -68,21 +77,21 @@ class TestMatrixMul(unittest.TestCase, SymbolicSelfTestMixin):
 
     def test_xl_A_value(self):
         xl_A = numpy.dot(self.xlval.reshape(4, 6), self.Wval)
-        assert_compute_equal([xl_A, dot(self.xl, self.A)])
+        assert_compute_allclose([xl_A, dot(self.xl, self.A)])
 
     def test_A_xr_value(self):
         val = numpy.dot(self.Wval, self.xrval).reshape(3, 2, 5)
-        assert_compute_equal([val, dot(self.A, self.xr)])
+        assert_compute_allclose([val, dot(self.A, self.xr)])
 
     def test_AT_xlT_value(self):
         val = numpy.dot(self.Wval.T,
                 self.xlval.transpose(1, 2, 0).reshape(-1, 4))
-        assert_compute_equal([val,
+        assert_compute_allclose([val,
             dot(self.A.T, self.A.transpose_left(self.xl, T=False))])
 
     def test_xrT_AT(self):
         val = numpy.dot(
                 self.xrval.transpose(),
                 self.Wval.T).reshape(5, 3, 2)
-        assert_compute_equal([val,
+        assert_compute_allclose([val,
             dot(self.A.transpose_right(self.xr, T=False), self.A.T)])

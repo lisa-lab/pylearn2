@@ -3,6 +3,7 @@
 #must be run from the packaged_dependencies directory
 
 git rm -rf theano_linear
+rm -rf theano_linear
 git clone https://github.com/jaberg/TheanoLinear.git TheanoLinearTemp
 pushd TheanoLinearTemp
 git archive master | tar -x -C ../

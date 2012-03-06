@@ -14,5 +14,10 @@ def ndarray_status(x, fmt=_ndarray_status_fmt, msg="", **kwargs):
 
 
 # XXX: copy-paste out of pylearn
-from pylearn.io.image_tiling import tile_slices_to_image
+try:
+    from pylearn.io.image_tiling import tile_slices_to_image
+except ImportError:
+    def tile_slices_to_image(*args, **kwargs):
+        raise NotImplementedError()
+
 
