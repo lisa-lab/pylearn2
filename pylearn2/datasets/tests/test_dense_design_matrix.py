@@ -45,7 +45,7 @@ def test_split_datasets():
     assert not np.any(np.isnan(ddm.X))
     ddm.y_fine = np.asarray(obj['fine_labels'])
     ddm.y_coarse = np.asarray(obj['coarse_labels'])
-    (train, valid) = ddm.split_dataset_holdout(split_prop=0.5)
+    (train, valid) = ddm.split_dataset_holdout(train_prop=0.5)
     assert valid.shape[0] == np.ceil(ddm.num_examples * 0.5)
     assert train.shape[0] == (ddm.num_examples - valid.shape[0])
 

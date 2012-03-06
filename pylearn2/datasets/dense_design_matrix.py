@@ -191,32 +191,32 @@ class DenseDesignMatrix(Dataset):
         else:
             self.__dict__.update(d)
     
-    def _apply_holdout(self, _mode="sequential", split_size=0, split_prop=0):
+    def _apply_holdout(self, _mode="sequential", train_size=0, train_prop=0):
         """
           This function splits the dataset according to the number of
-          split_size if defined by the user with respect to the mode provided 
+          train_size if defined by the user with respect to the mode provided 
           by the user. Otherwise it will use the 
-          split_prop to divide the dataset into a training and holdout 
+          train_prop to divide the dataset into a training and holdout 
           validation set. This function returns the training and validation 
           dataset.
 
           Parameters
           -----------
-          split_size: The number of examples that will be assigned to
+          train_size: The number of examples that will be assigned to
           the training dataset.
-          split_prop: Proportion of training dataset split.
+          train_prop: Proportion of training dataset split.
         """
 
         train = None
         valid = None
-        if split_size !=0:
+        if train_size !=0:
             dataset_iter = self.iterator(mode=_mode, 
-                    batch_size=(self.num_examples - split_size),
+                    batch_size=(self.num_examples - train_size),
                     num_batches=2)
             train = dataset_iter.next()
             valid = dataset_iter.next()
-        elif split_prop !=0:
-            size = np.ceil(self.num_examples * split_prop)
+        elif train_prop !=0:
+            size = np.ceil(self.num_examples * train_prop)
             dataset_iter = self.iterator(mode=_mode,
                     batch_size=(self.num_examples - size))
             train = dataset_iter.next()
@@ -239,21 +239,21 @@ class DenseDesignMatrix(Dataset):
         folds = list(folds_iter)
         return folds
 
-    def split_dataset_holdout(self, split_size=0, split_prop=0):
+    def split_dataset_holdout(self, train_size=0, train_prop=0):
         """
           This function splits the dataset according to the number of
-          split_size if defined by the user. Otherwise it will use the 
-          split_prop to divide the dataset into a training and holdout 
+          train_size if defined by the user. Otherwise it will use the 
+          train_prop to divide the dataset into a training and holdout 
           validation set. This function returns the training and validation 
           dataset.
 
           Parameters
           -----------
-          split_size: The number of examples that will be assigned to
+          train_size: The number of examples that will be assigned to
           the training dataset.
-          split_prop: Proportion of dataset split.
+          train_prop: Proportion of dataset split.
         """
-        return self._apply_holdout("sequential", split_size, split_prop)
+        return self._apply_holdout("sequential", train_size, train_prop)
 
     def bootstrap_nfolds(self, nfolds, rng=None):
         """
@@ -270,19 +270,19 @@ class DenseDesignMatrix(Dataset):
         folds = list(folds_iter)
         return folds
 
-    def bootstrap_holdout(self, split_size=0, split_prop=0, rng=None):
+    def bootstrap_holdout(self, train_size=0, train_prop=0, rng=None):
         """
           This function splits the dataset according to the number of
-          split_size defined by the user.
+          train_size defined by the user.
 
           Parameters
           -----------
-          split_size: The number of examples that will be assigned to
+          train_size: The number of examples that will be assigned to
           the training dataset.
           nfolds: The number of folds for the  the validation set.
           rng: Random number generation class to be used.
         """
-        return self._apply_holdout("random_slice", split_size, split_prop)
+        return self._apply_holdout("random_slice", train_size, train_prop)
 
     def get_stream_position(self):
         """
