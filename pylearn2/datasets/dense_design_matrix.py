@@ -190,6 +190,99 @@ class DenseDesignMatrix(Dataset):
                 self.X = None
         else:
             self.__dict__.update(d)
+    
+    def _apply_holdout(self, _mode="sequential", train_size=0, train_prop=0):
+        """
+          This function splits the dataset according to the number of
+          train_size if defined by the user with respect to the mode provided 
+          by the user. Otherwise it will use the 
+          train_prop to divide the dataset into a training and holdout 
+          validation set. This function returns the training and validation 
+          dataset.
+
+          Parameters
+          -----------
+          train_size: The number of examples that will be assigned to
+          the training dataset.
+          train_prop: Proportion of training dataset split.
+        """
+
+        train = None
+        valid = None
+        if train_size !=0:
+            dataset_iter = self.iterator(mode=_mode, 
+                    batch_size=(self.num_examples - train_size),
+                    num_batches=2)
+            train = dataset_iter.next()
+            valid = dataset_iter.next()
+        elif train_prop !=0:
+            size = np.ceil(self.num_examples * train_prop)
+            dataset_iter = self.iterator(mode=_mode,
+                    batch_size=(self.num_examples - size))
+            train = dataset_iter.next()
+            valid = dataset_iter.next()
+        else:
+            raise ValueError("Initialize either split ratio and split size to non-zero value.")
+        return (train, valid)
+
+    def split_dataset_nfolds(self, nfolds=0):
+        """
+          This function splits the dataset into to the number of n folds 
+          given by the user. Returns an array of folds.
+
+          Parameters
+          -----------
+          nfolds: The number of folds for the  the validation set.
+        """
+
+        folds_iter = self.iterator(mode="sequential", num_batches=nfolds)
+        folds = list(folds_iter)
+        return folds
+
+    def split_dataset_holdout(self, train_size=0, train_prop=0):
+        """
+          This function splits the dataset according to the number of
+          train_size if defined by the user. Otherwise it will use the 
+          train_prop to divide the dataset into a training and holdout 
+          validation set. This function returns the training and validation 
+          dataset.
+
+          Parameters
+          -----------
+          train_size: The number of examples that will be assigned to
+          the training dataset.
+          train_prop: Proportion of dataset split.
+        """
+        return self._apply_holdout("sequential", train_size, train_prop)
+
+    def bootstrap_nfolds(self, nfolds, rng=None):
+        """
+          This function splits the dataset using the random_slice and into the 
+          n folds. Returns the folds.
+
+          Parameters
+          -----------
+          nfolds: The number of folds for the  dataset.
+          rng: Random number generation class to be used.
+        """
+
+        folds_iter = self.iterator(mode="random_slice", num_batches=nfolds, rng=rng)
+        folds = list(folds_iter)
+        return folds
+
+    def bootstrap_holdout(self, train_size=0, train_prop=0, rng=None):
+        """
+          This function splits the dataset according to the number of
+          train_size defined by the user.
+
+          Parameters
+          -----------
+          train_size: The number of examples that will be assigned to
+          the training dataset.
+          nfolds: The number of folds for the  the validation set.
+          rng: Random number generation class to be used.
+        """
+        return self._apply_holdout("random_slice", train_size, train_prop)
 
     def get_stream_position(self):
         """
