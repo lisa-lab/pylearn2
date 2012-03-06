@@ -319,7 +319,9 @@ class RBM(Block, Model):
         self.sml_gibbs_steps = sml_gibbs_steps
 
     def get_input_dim(self):
-        return self.nvis
+        if not isinstance(self.vis_space, VectorSpace):
+            raise TypeError("Can't describe "+str(type(self.vis_space))+" as a dimensionality number.")
+        return self.vis_space.dim
 
     def get_input_space(self):
         return self.vis_space
@@ -430,7 +432,7 @@ class RBM(Block, Model):
 
         optimizer = SGDOptimizer(self, self.base_lr, self.anneal_start)
 
-        sampler = sampler = BlockGibbsSampler(self, 0.5 + np.zeros((self.nchains, self.nvis)), self.rng,
+        sampler = sampler = BlockGibbsSampler(self, 0.5 + np.zeros((self.nchains, self.get_input_dim())), self.rng,
                                                   steps= self.sml_gibbs_steps)
 
 
