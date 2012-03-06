@@ -209,8 +209,6 @@ class DenseDesignMatrix(Dataset):
 
         train = None
         valid = None
-        if split_size == 0 and split_prop == 0:
-            raise ValueError("Initialize either split ratio and split size to non-zero value.")
         if split_size !=0:
             dataset_iter = self.iterator(mode=_mode, 
                     batch_size=(self.num_examples - split_size),
@@ -223,6 +221,8 @@ class DenseDesignMatrix(Dataset):
                     batch_size=(self.num_examples - size))
             train = dataset_iter.next()
             valid = dataset_iter.next()
+        else:
+            raise ValueError("Initialize either split ratio and split size to non-zero value.")
         return (train, valid)
 
     def split_dataset_nfolds(self, nfolds=0):
