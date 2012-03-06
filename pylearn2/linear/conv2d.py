@@ -1,4 +1,4 @@
-from theano_linear.conv2d import Conv2d as OrigConv2D
+from pylearn2.packaged_dependencies.theano_linear.conv2d import Conv2d as OrigConv2D
 import theano.tensor as T
 from pylearn2.utils import sharedX
 import numpy as np

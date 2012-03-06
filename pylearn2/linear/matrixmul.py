@@ -1,4 +1,4 @@
-from theano_linear.matrixmul import MatrixMul as OrigMatrixMul
+from pylearn2.packaged_dependencies.theano_linear.matrixmul import MatrixMul as OrigMatrixMul
 from pylearn2.linear.linear_transform import LinearTransform as PL2LT
 import functools
 
