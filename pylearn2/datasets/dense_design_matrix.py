@@ -204,7 +204,7 @@ class DenseDesignMatrix(Dataset):
           -----------
           split_size: The number of examples that will be assigned to
           the training dataset.
-          split_prop: Proportion of dataset split.
+          split_prop: Proportion of training dataset split.
         """
 
         train = None
