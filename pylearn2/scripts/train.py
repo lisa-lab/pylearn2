@@ -24,6 +24,7 @@ import numpy as np
 # Local imports
 import pylearn2.config.yaml_parse
 from pylearn2.utils import serial
+from pylearn2.utils import environ
 from pylearn2.monitor import Monitor
 
 
@@ -188,16 +189,20 @@ if __name__ == "__main__":
     args = parser.parse_args()
     config_file_path = args.config.name
     suffix_to_strip = '.yaml'
+    # publish environment variables related to file name
     if config_file_path.endswith(suffix_to_strip):
-        config_file_name = config_file_path[0:-len(suffix_to_strip)]
+        config_file_full_stem = config_file_path[0:-len(suffix_to_strip)]
     else:
-        config_file_name = config_file_path
-    # publish the PYLEARN2_TRAIN_FILE_NAME environment variable
-    varname = "PYLEARN2_TRAIN_FILE_NAME"
-    # this makes it available to other sections of code in this same script
-    os.environ[varname] = config_file_name
-    # this make it available to any subprocesses we launch
-    os.putenv(varname, config_file_name)
+        config_file_full_stem = config_file_path
+
+    for varname in ["PYLEARN2_TRAIN_FILE_NAME", #this one is deprecated
+            "PYLEARN2_TRAIN_FILE_FULL_STEM"]: #this is the new, accepted name
+        environ.putenv(varname, config_file_full_stem)
+
+    environ.putenv("PYLEARN2_TRAIN_DIR", '/'.join(config_file_path.split('/')[:-1]) )
+    environ.putenv("PYLEARN2_TRAIN_BASE_NAME", config_file_path.split('/')[-1] )
+    environ.putenv("PYLEARN2_TRAIN_FILE_STEM", config_file_full_stem.split('/')[-1] )
+
     train_obj = pylearn2.config.yaml_parse.load(args.config)
     try:
         iter(train_obj)
