@@ -1,6 +1,7 @@
 """ Utilities for modifying strings"""
 
 import os
+import warnings
 
 def preprocess(string):
     """
@@ -29,6 +30,9 @@ def preprocess(string):
                     + string + '"')
 
         varname = subsplit[0]
+
+        if varname == 'PYLEARN2_TRAIN_FILE_NAME':
+            warnings.warn("PYLEARN2_TRAIN_FILE_NAME is deprecated, use PYLEARN2_TRAIN_FILE_FULL_STEM")
 
         try:
             val = os.environ[varname]
