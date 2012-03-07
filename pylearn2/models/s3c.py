@@ -16,6 +16,7 @@ from pylearn2.utils import make_name, sharedX, as_floatX
 from pylearn2.expr.information_theory import entropy_binary_vector
 from theano.printing import Print
 from pylearn2.base import Block
+from pylearn2.space import VectorSpace
 
 warnings.warn('s3c changing the recursion limit')
 import sys
@@ -268,6 +269,7 @@ class S3C(Model, Block):
         self.reset_rng()
         self.irange = irange
         self.nvis = nvis
+        self.input_space = VectorSpace(nvis)
         self.nhid = nhid
 
         if random_patches_src is not None:
