@@ -1,7 +1,7 @@
 """ Training costs for unsupervised learning of energy-based models """
 import theano.tensor as T
 from theano import scan
-from error import UnsupervisedError
+from pylearn2.costs.error import UnsupervisedError
 
 
 class NCE(UnsupervisedError):
