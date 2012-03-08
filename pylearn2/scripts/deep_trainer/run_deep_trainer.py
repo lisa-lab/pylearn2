@@ -27,7 +27,8 @@ from pylearn2.costs.ebm_estimation import SMD
 from pylearn2.training_algorithms.sgd import MonitorBasedTermCrit
 from pylearn2.training_algorithms.sgd import MonitorBasedLRAdjuster
 from pylearn2.training_callbacks.training_callback import TrainingCallback
-from pylearn2.cost import SquaredError
+#from pylearn2.cost import SquaredError
+from pylearn2.costs.supervised_cost import CrossEntropy
 from pylearn2.scripts.train import Train
 import pylearn2.utils.serial as serial
 import sys
@@ -181,7 +182,7 @@ def get_logistic_regressor(structure):
 def get_layer_trainer_logistic(layer, trainset):
     # configs on sgd
     config = {'learning_rate': 0.1,
-              'cost' : SquaredError(),
+              'cost' : CrossEntropy(),
               'batch_size': 10,
               'monitoring_batches': 10,
               'monitoring_dataset': None,
@@ -277,9 +278,11 @@ def main():
     layer_trainers.append(get_layer_trainer_sgd_autoencoder(layers[1], trainset[1]))
     layer_trainers.append(get_layer_trainer_sgd_autoencoder(layers[2], trainset[2]))
     layer_trainers.append(get_layer_trainer_logistic(layers[3], trainset[3]))
+    #print "Label :", trainset[0].y
+    #print "Label :", trainset[3].y
 
     #unsupervised pretraining
-    for layer_trainer in layer_trainers[0:3]:
+    for layer_trainer in layer_trainers:#[0:3]:
         layer_trainer.main_loop()
 
     #supervised training is not implemented yet

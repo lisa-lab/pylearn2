@@ -1,6 +1,6 @@
 from theano import tensor
 import warnings
-from error import UnsupervisedError
+from pylearn2.costs.error import UnsupervisedError
 
 class MeanSquaredReconstructionError(UnsupervisedError):
     def __call__(self, model, X):
