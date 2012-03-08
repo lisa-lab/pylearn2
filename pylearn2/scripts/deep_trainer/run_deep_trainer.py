@@ -46,8 +46,11 @@ class ToyDataset(DenseDesignMatrix):
         # simulated random dataset
         rng = numpy.random.RandomState(seed=42)
         data = rng.normal(size=(1000, 10))
-        self.y = numpy.random.binomial(1, 0.5, [1000, 1])
-        super(ToyDataset, self).__init__(data)
+        self.y = numpy.ones((1000, 2))
+        positive = numpy.random.binomial(1, 0.5, [1000])
+        self.y[:,0]=positive
+        self.y[:,1]=1-positive
+        super(ToyDataset, self).__init__(X=data, y=self.y)
 
 
 class ModelSaver(TrainingCallback):
