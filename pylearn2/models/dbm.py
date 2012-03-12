@@ -103,7 +103,11 @@ class DBM(Model):
         self.print_interval = print_interval
 
         #copy parameters from RBM to DBM, ignoring bias_hid of all but last RBM
-        self.W = [ rbm.weights for rbm in self.rbms]
+        self.W = []
+        for rbm in self.rbms:
+            weights ,= rbm.transformer.get_params()
+            self.W.append( weights )
+
         for i, W in enumerate(self.W):
             W.name = 'dbm_W[%d]' % (i,)
         self.bias_vis = rbms[0].bias_vis
