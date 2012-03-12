@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import numpy as N
 import sys
 from theano.printing import _TagGenerator
+from pylearn2.utils.string_utils import number_aware_alphabetical_key
 
 channels = {}
 
@@ -34,10 +35,11 @@ while True:
 #Make a list of short codes for each channel so user can specify them easily
     tag_generator = _TagGenerator()
     codebook = {}
-    for channel_name in sorted(channels):
+    sorted_codes = []
+    for channel_name in sorted(channels, key = number_aware_alphabetical_key):
         code = tag_generator.get_tag()
         codebook[code] = channel_name
-
+        sorted_codes.append(code)
 
 
     if len(channels.values()) == 0:
@@ -48,8 +50,6 @@ while True:
     prompt = len(channels.values()) > 1
 
     if prompt:
-
-        sorted_codes = sorted(codebook)
 
         #Display the codebook
         for code in sorted_codes:
