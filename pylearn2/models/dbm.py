@@ -25,6 +25,7 @@ from pylearn2.models.s3c import theano_norms
 from pylearn2.models.s3c import full_min
 from pylearn2.models.s3c import full_max
 from theano.printing import min_informative_str
+from theano.printing import Print
 
 warnings.warn("""
 TODO/NOTES
@@ -456,9 +457,18 @@ class DBM(Model):
         """ entropy of the hidden layers under the mean field distribution
         defined by H_hat """
 
+        for Hv in get_debug_values(H_hat[0]):
+            assert Hv.min() >= 0.0
+            assert Hv.max() <= 1.0
+
         total = entropy_binary_vector(H_hat[0])
 
         for H in H_hat[1:]:
+
+            for Hv in get_debug_values(H):
+                assert Hv.min() >= 0.0
+                assert Hv.max() <= 1.0
+
             total += entropy_binary_vector(H)
 
         return total
@@ -545,7 +555,11 @@ class InferenceProcedure:
 
         H_hat = obs['H_hat']
 
-        entropy_term = - (self.model.entropy_h(H_hat = obs['H_hat'])).mean()
+        for Hv in get_debug_values(H_hat):
+            assert Hv.min() >= 0.0
+            assert Hv.max() <= 1.0
+
+        entropy_term = - (self.model.entropy_h(H_hat = H_hat)).mean()
         assert len(entropy_term.type.broadcastable) == 0
         energy_term = self.model.expected_energy(V_hat = V, H_hat = H_hat)
         assert len(energy_term.type.broadcastable) == 0
