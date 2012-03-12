@@ -1,5 +1,6 @@
 from pylearn2.utils.string_utils import find_number
 from pylearn2.utils.string_utils import tokenize_by_number
+from pylearn2.utils.string_utils import number_aware_alphabetical_key
 
 def test_find_number_0():
     r = find_number('sss')
@@ -66,3 +67,13 @@ def test_tokenize_0():
     true_tokens = [' ',123,' klsdgh ',56.7,'?',98.2,'---\%',-1e3]
     tokens = tokenize_by_number(s)
     assert token_lists_nearly_match(tokens, true_tokens)
+
+def test_number_aware_alphabetical_key():
+
+    l = [ 'mystr_1', 'mystr_10', 'mystr_2', 'mystr_1_a', 'mystr' ]
+
+    l.sort(key = number_aware_alphabetical_key )
+
+    print l
+
+    assert l == [ 'mystr', 'mystr_1', 'mystr_1_a', 'mystr_2', 'mystr_10' ]
