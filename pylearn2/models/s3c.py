@@ -676,6 +676,10 @@ class S3C(Model, Block):
 
     def entropy_h(self, H_hat):
 
+        for H_hat_v in get_debug_values(H_hat):
+            assert H_hat_v.min() >= 0.0
+            assert H_hat_v.max() <= 1.0
+
         return entropy_binary_vector(H_hat)
 
     def entropy_hs(self, H_hat, var_s0_hat, var_s1_hat):
@@ -687,6 +691,10 @@ class S3C(Model, Block):
         two = as_floatX(2.)
 
         pi = as_floatX(np.pi)
+
+        for H_hat_v in get_debug_values(H_hat):
+            assert H_hat_v.min() >= 0.0
+            assert H_hat_v.max() <= 1.0
 
         term1_plus_term2 = self.entropy_h(H_hat)
         assert len(term1_plus_term2.type.broadcastable) == 1
@@ -1351,6 +1359,10 @@ class E_Step(object):
         var_s1_hat = obs['var_s1_hat']
         S_hat = obs['S_hat']
         model = self.model
+
+        for H_hat_v in get_debug_values(H_hat):
+            assert H_hat_v.min() >= 0.0
+            assert H_hat_v.max() <= 1.0
 
         entropy_term = - model.entropy_hs(H_hat = H_hat, var_s0_hat = var_s0_hat, var_s1_hat = var_s1_hat)
         energy_term = model.expected_energy_vhs(V, H_hat = H_hat, S_hat = S_hat,
