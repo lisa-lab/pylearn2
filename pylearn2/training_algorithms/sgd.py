@@ -7,6 +7,7 @@ from warnings import warn
 from pylearn2.monitor import Monitor
 from pylearn2.utils.iteration import SequentialSubsetIterator
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
+import pylearn2.costs.error
 
 
 # TODO: This needs renaming based on specifics. Specifically it needs
@@ -228,18 +229,38 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
                                  batch_size=self.batch_size)
         dataset.set_iteration_scheme('sequential', batch_size=self.batch_size)
         X = T.matrix(name="%s[X]" % self.__class__.__name__)
+        Y = T.matrix(name="%s[Y]" % self.__class__.__name__)
         try:
             iter(self.cost)
             iterable_cost = True
         except TypeError:
             iterable_cost = False
         if iterable_cost:
-            cost_value = sum(c(model, X) for c in self.cost)
+            cost_value = 0
+            self.supervised = False
+            for c in self.cost:
+                if (isinstance(c, pylearn2.costs.error.SupervisedError)):
+                    print "SUPERVISED ERROR !!!"
+                    self.supervised = True
+                    cost_value += c(model, X, Y)
+                else:
+                    cost_value += c(model, X)
+            #cost_value = sum(c(model, X) for c in self.cost)
         else:
-            cost_value = self.cost(model, X)
+            if (isinstance(self.cost, pylearn2.costs.error.SupervisedError)):
+                print "SUPERVISED ERROR !!!"
+                self.supervised = True
+                cost_value = self.cost(model, X, Y)
+            else:
+                print "UNSUPERVISED ERROR !!!"
+                self.supervised = False
+                cost_value = self.cost(model, X)
         if cost_value.name is None:
             cost_value.name = 'sgd_cost(' + X.name + ')'
-        self.monitor.add_channel(name=cost_value.name, ipt=X, val=cost_value)
+        if self.supervised:
+            self.monitor.add_channel(name=cost_value.name, ipt=(X,Y), val=cost_value)
+        else:
+            self.monitor.add_channel(name=cost_value.name, ipt=X, val=cost_value)
         params = model.get_params()
         for i, param in enumerate(params):
             if param.name is None:
@@ -261,7 +282,11 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
             if updates[param] is None:
                 updates[param].name = 'censor(sgd_update(' + param.name + '))'
 
-        self.sgd_update = function([X, learning_rate], updates=updates,
+        if self.supervised:
+            self.sgd_update = function([X, Y, learning_rate], updates=updates,
+                                   name='sgd_update')
+        else:
+            self.sgd_update = function([X, learning_rate], updates=updates,
                                    name='sgd_update')
         self.params = params
 
@@ -288,14 +313,25 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
             if np.any(np.isnan(value)) or np.any(np.isinf(value)):
                 raise Exception("NaN in " + param.name)
         self.first = False
-        dataset.set_iteration_scheme('sequential', batch_size=self.batch_size)
-        for batch in dataset:
-            grads = self.sgd_update(batch, self.learning_rate)
-            #print grads
-            self.monitor.batches_seen += 1
-            self.monitor.examples_seen += batch_size
-            for callback in self.update_callbacks:
-                callback(self)
+        dataset.set_iteration_scheme('sequential', batch_size=self.batch_size, targets=self.supervised)
+        if self.supervised:
+            for (batch_in, batch_target) in dataset:
+                #print (batch_in, batch_target)
+                #print self.model(batch_in)
+                grads = self.sgd_update(batch_in, batch_target, self.learning_rate)
+                #print grads
+                self.monitor.batches_seen += 1
+                self.monitor.examples_seen += batch_size
+                for callback in self.update_callbacks:
+                    callback(self)
+        else:
+            for batch in dataset:
+                grads = self.sgd_update(batch, self.learning_rate)
+                #print grads
+                self.monitor.batches_seen += 1
+                self.monitor.examples_seen += batch_size
+                for callback in self.update_callbacks:
+                    callback(self)
         if self.termination_criterion is None:
             return True
         else:
