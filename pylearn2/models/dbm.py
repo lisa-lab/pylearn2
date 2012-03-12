@@ -35,10 +35,18 @@ each round of negative phase sampling should start by sampling the topmost
 layer, then sampling downward from there
 """)
 
+class Sampler:
+    def __init__(self, theano_rng):
+        self.theano_rng = theano_rng
+
+    def __call__(self, P):
+        return self.theano_rng.binomial(size = P.shape, n = 1, p = P, dtype = P.dtype)
+
 class DBM(Model):
 
     def __init__(self, rbms,
-                        negative_chains,
+                    use_cd = False,
+                        negative_chains = 0,
                        inference_procedure = None,
                        monitor_params = False,
                        print_interval = 10000):
@@ -60,6 +68,13 @@ class DBM(Model):
         """
 
         self.monitor_params = monitor_params
+
+        self.use_cd = use_cd
+
+        if use_cd:
+            assert negative_chains == 0
+        else:
+            assert negative_chains > 0
 
         warnings.warn("""The DBM class is still under development, and currently mostly
                 only supports use as a component of a larger model that remains
@@ -101,7 +116,6 @@ class DBM(Model):
 
         self.redo_everything()
 
-
     def reset_rng(self):
         self.rng = np.random.RandomState([1,2,3])
 
@@ -116,9 +130,10 @@ class DBM(Model):
             self.redo_theano()
 
         #make the negative chains
-        self.V_chains = self.make_chains(self.bias_vis)
+        if not self.use_cd:
+            self.V_chains = self.make_chains(self.bias_vis)
 
-        self.H_chains = [ self.make_chains(bias_hid) for bias_hid in self.bias_hid ]
+            self.H_chains = [ self.make_chains(bias_hid) for bias_hid in self.bias_hid ]
 
 
     def make_chains(self, bias):
@@ -128,6 +143,8 @@ class DBM(Model):
             for now units are initialized randomly based on their
             biases only
             """
+
+        assert not self.use_cd
 
         b = bias.get_value(borrow=True)
 
@@ -205,14 +222,15 @@ class DBM(Model):
 
     def get_sampling_updates(self):
 
+
+        assert not self.use_cd
+
         ip = self.inference_procedure
 
         rval = {}
 
-        theano_rng = RandomStreams(17)
+        sample_from = Sampler(RandomStreams(17))
 
-        def sample_from(P):
-            return theano_rng.binomial(size = P.shape, n = 1, p = P, dtype = P.dtype)
 
         #sample the visible units
         V_prob = ip.infer_H_hat_one_sided(other_H_hat = self.H_chains[0],
@@ -252,14 +270,52 @@ class DBM(Model):
 
         return rval
 
+
+    def get_cd_neg_phase_grads(self, V, H_hat):
+
+        assert self.use_cd
+        assert not hasattr(self, 'V_chains')
+
+        assert len(H_hat) == len(self.rbms)
+
+        sample_from = Sampler(RandomStreams(17))
+
+        H_samples = []
+
+        for H_hat_elem in H_hat:
+            H_samples.append(sample_from(H_hat_elem))
+
+        ip = self.inference_procedure
+
+        for i in xrange(len(H_hat)-1,-1,-1):
+
+            if i > 0:
+                P = ip.infer_H_hat_two_sided(H_hat_below = H_samples[i-1], H_hat_above = H_samples[i+1],
+                        W_below = self.W[i], W_above = self.W[i+1], b = self.bias_hid[i])
+                H_samples[i] = sample_from(P)
+
+        if len(H_hat) > 1:
+            H_hat[0] = sample_from(ip.infer_H_hat_two_sided(H_hat_below = V, H_hat_above = H_samples[1],
+                    W_below = self.W[0], W_above = self.W[1], b = self.bias_hid[0]))
+
+        V_sample = sample_from(ip.infer_H_hat_one_sided(other_H_hat = H_hat[0], W = self.W[0].T, b = self.bias_vis))
+
+        return self.get_neg_phase_grads_from_samples(V_sample, H_samples)
+
     def get_neg_phase_grads(self):
         """ returns a dictionary mapping from parameters to negative phase gradients
             (assuming you're doing gradient ascent on variational free energy)
         """
 
-        obj = self.expected_energy(V_hat = self.V_chains, H_hat = self.H_chains)
+        assert not self.use_cd
 
-        constants = list(set(self.H_chains).union([self.V_chains]))
+        return self.get_neg_phase_grads_from_samples(self.V_chains, self.H_chains)
+
+    def get_neg_phase_grads_from_samples(self, V_sample, H_samples):
+
+        obj = self.expected_energy(V_hat = V_sample, H_hat = H_samples)
+
+        constants = list(set(H_samples).union([V_sample]))
 
         params = self.get_params()
 
