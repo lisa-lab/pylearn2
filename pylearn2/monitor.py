@@ -5,7 +5,7 @@ from theano import function, shared
 import theano.tensor as T
 import copy
 from pylearn2.config import yaml_parse
-
+from pylearn2.utils.string_utils import number_aware_alphabetical_key
 
 class Monitor(object):
     """
@@ -75,9 +75,6 @@ class Monitor(object):
 
         model = self.model
 
-        #W = model.W.get_value()
-        #print 'monitoring weights ',':',(W.min(),W.mean(),W.max(),W.shape)
-
         d = self.dataset
 
         if d:
@@ -100,7 +97,7 @@ class Monitor(object):
             print "Monitoring step:"
             print "\tBatches seen: %d" % self.batches_seen
             print "\tExamples seen: %d" % self.examples_seen
-            for channel_name in sorted(self.channels):
+            for channel_name in sorted(self.channels.keys(), key = number_aware_alphabetical_key):
                 channel = self.channels[channel_name]
                 channel.batch_record.append(self.batches_seen)
                 channel.example_record.append(self.examples_seen)
