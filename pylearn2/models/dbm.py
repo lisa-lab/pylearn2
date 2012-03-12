@@ -685,7 +685,7 @@ class InferenceProcedure:
         H_hat = []
 
         for b in self.model.bias_hid:
-            value = b
+            value = T.nnet.sigmoid(b)
 
             mat = T.alloc(value, V.shape[0], value.shape[0])
 
