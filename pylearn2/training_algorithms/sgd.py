@@ -251,7 +251,10 @@ class ExhaustiveSGD(TrainingAlgorithm):
                 self.supervised = False
                 cost_value = self.cost(model, X)
         if cost_value.name is None:
-            cost_value.name = 'sgd_cost(' + X.name + ')'
+            if self.supervised:
+                cost_value.name = 'sgd_cost(' + X.name + ', ' + Y.name + ')'
+            else:
+                cost_value.name = 'sgd_cost(' + X.name + ')'
         if self.supervised:
             self.monitor.add_channel(name=cost_value.name, ipt=(X,Y), val=cost_value)
         else:
