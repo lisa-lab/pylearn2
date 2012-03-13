@@ -9,6 +9,7 @@ from theano.ifelse import ifelse
 from theano.sandbox.scan import scan
 import numpy
 from pylearn2.utils import constantX
+from pylearn2.expr.basic import multiple_switch
 
 # Messages that matches the flag value returned by the method
 messages = [
@@ -64,14 +65,6 @@ def sqnorm(xs, ys=None):
         ys = [x for x in xs]
     return sum((x * y).sum() for x, y in zip(xs, ys))
 
-
-def multiple_switch(*args):
-    if len(args) == 3:
-        return TT.switch(*args)
-    else:
-        return TT.switch(args[0],
-                         args[1],
-                         multiple_switch(*args[2:]))
 
 def symGivens2(a, b):
     """
