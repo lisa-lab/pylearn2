@@ -25,3 +25,24 @@ def full_max(var):
         element of a symbolic tensor. T.max does something else as of the
         time of this writing. """
     return var.max(axis=range(0,len(var.type.broadcastable)))
+
+
+def multiple_switch(*args):
+    """
+    Applies a cascade of ifelse. The output will be a Theano expression
+    which evaluates:
+        if args0:
+            then arg1
+        elif arg2:
+            then arg3
+        elif arg4:
+            then arg5
+        ....
+    """
+    if len(args) == 3:
+        return T.switch(*args)
+    else:
+        return T.switch(args[0],
+                         args[1],
+                         multiple_switch(*args[2:]))
+
