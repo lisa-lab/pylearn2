@@ -31,14 +31,14 @@ class TransformerDataset(Dataset):
         return X.reshape(X.shape[0],X.shape[1],1,1)
 
     def set_iteration_scheme(self, mode=None, batch_size=None,
-                             num_batches=None, topo=False):
-        self.raw.set_iteration_scheme(mode, batch_size, num_batches, topo)
+                             num_batches=None, topo=False, targets=False):
+        self.raw.set_iteration_scheme(mode, batch_size, num_batches, topo, targets)
 
 
     def iterator(self, mode=None, batch_size=None, num_batches=None,
-                 topo=None, rng=None):
+                 topo=None, targets=None, rng=None):
 
-        raw_iterator = self.raw.iterator(mode, batch_size, num_batches, topo, rng)
+        raw_iterator = self.raw.iterator(mode, batch_size, num_batches, topo, targets, rng)
 
         final_iterator = TransformerIterator(raw_iterator, self)
 
@@ -56,7 +56,10 @@ class TransformerIterator(object):
     def next(self):
 
         raw_batch = self.raw_iterator.next()
-
-        rval = self.transformer_dataset.transformer.perform(raw_batch)
+        
+        if self.raw_iterator._targets:
+            rval = (self.transformer_dataset.transformer.perform(raw_batch[0]), raw_batch[1])
+        else:
+            rval = self.transformer_dataset.transformer.perform(raw_batch)
 
         return rval
