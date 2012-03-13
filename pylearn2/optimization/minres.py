@@ -101,7 +101,7 @@ def symGivens2(a, b):
       where d = two norm of vector [a, b],
             c = a / sqrt(a^2 + b^2) = a / d,
             s = b / sqrt(a^2 + b^2) = b / d.
-      The implementation guards against overlow in computing
+      The implementation guards against overflow in computing
          sqrt(a^2 + b^2).
 
       SEE ALSO:
