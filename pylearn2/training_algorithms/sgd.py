@@ -202,7 +202,7 @@ class SGD(TrainingAlgorithm):
             return self.termination_criterion(self.model)
 
 
-class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
+class ExhaustiveSGD(TrainingAlgorithm):
     def __init__(self, learning_rate, cost, batch_size=None,
                  monitoring_batches=None, monitoring_dataset=None,
                  termination_criterion=None, update_callbacks=None):
