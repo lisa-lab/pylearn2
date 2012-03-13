@@ -110,7 +110,7 @@ def minres(compute_Av,
 
     # Initialise
     flag = theano.shared(constantX(0.))
-    beta1 = norm(bs)
+    beta1 = sqrt_inner_product(bs)
 
     #------------------------------------------------------------------
     # Set up p and v for the first Lanczos vector v1.
@@ -122,7 +122,7 @@ def minres(compute_Av,
     r1s = [b for b in bs]
     if Ms is not None:
         r3s = [b / m for b, m in zip(bs, Ms)]
-        beta1 = norm(r3s, bs)
+        beta1 = sqrt_inner_product(r3s, bs)
     #------------------------------------------------------------------
     ## Initialize other quantities.
     # Note that Anorm has been initialized by IsOpSym6.
@@ -182,15 +182,15 @@ def minres(compute_Av,
                          r3 - (beta / betal) * r1,
                          r3) for r3, r1 in zip(r3s, r1s)]
 
-        alpha = sqnorm(r3s, vs)
+        alpha = inner_product(r3s, vs)
         r3s = [r3 - (alpha / beta) * r2 for r3, r2 in zip(r3s, r2s)]
         r1s = [r2 for r2 in r2s]
         r2s = [r3 for r3 in r3s]
         if Ms is not None:
             r3s = [r3 / M for r3, M in zip(r3s, Ms)]
-            betan = norm(r2s, r3s)
+            betan = sqrt_inner_product(r2s, r3s)
         else:
-            betan = norm(r3s)
+            betan = sqrt_inner_product(r3s)
         pnorml = pnorm
         pnorm = TT.switch(TT.eq(niter, constantX(0.)),
                           TT.sqrt(TT.sqr(alpha) + TT.sqr(betan)),
@@ -226,7 +226,7 @@ def minres(compute_Av,
                         v)
               for v, dl2, dl in zip(vs, dl2s, dls)]
         d_norm = TT.switch(TT.neq(gamma, constantX(0.)),
-                           norm(ds),
+                           sqrt_inner_product(ds),
                            constantX(numpy.inf))
 
         # Update x except if it will become too big
@@ -234,7 +234,7 @@ def minres(compute_Av,
         dl2s = [x for x in xs]
         xs = [x + tau * d for x, d in zip(xs, ds)]
 
-        xnorm = norm(xs)
+        xnorm = sqrt_inner_product(xs)
         xs = [TT.switch(TT.ge(xnorm, maxxnorm),
                         dl2, x)
               for dl2, x in zip(dl2s, xs)]
@@ -250,7 +250,7 @@ def minres(compute_Av,
         Dnorm = TT.switch(flag_no_6,
                           TT.sqrt(TT.sqr(Dnorm) + TT.sqr(d_norm)),
                           Dnorm)
-        xnorm = TT.switch(flag_no_6, norm(xs), xnorm)
+        xnorm = TT.switch(flag_no_6, sqrt_inner_product(xs), xnorm)
         rnorm = TT.switch(flag_no_6, phi, rnorm)
         relrnorm = TT.switch(flag_no_6,
                              rnorm / (Anorm * xnorm + bnorm),
