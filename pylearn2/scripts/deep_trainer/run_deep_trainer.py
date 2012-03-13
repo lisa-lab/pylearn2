@@ -276,10 +276,12 @@ def main():
     layer_trainers.append(get_layer_trainer_logistic(layers[3], trainset[3]))
 
     #unsupervised pretraining
-    for layer_trainer in layer_trainers:#[0:3]:
+    for layer_trainer in layer_trainers[0:3]:
         layer_trainer.main_loop()
 
-    #supervised training is not implemented yet
+    #supervised training
+    layer_trainers[-1].main_loop()
+
 
 if __name__ == '__main__':
     main()
