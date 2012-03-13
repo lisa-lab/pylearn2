@@ -1,11 +1,13 @@
 from theano import tensor
+import warnings
+from pylearn2.costs.cost import UnsupervisedCost
 
-class MeanSquaredReconstructionError(object):
+class MeanSquaredReconstructionError(UnsupervisedCost):
     def __call__(self, model, X):
         return ((model.reconstruct(X) - X) ** 2).sum(axis=1).mean()
 
 
-class MeanBinaryCrossEntropy(object):
+class MeanBinaryCrossEntropy(UnsupervisedCost):
     def __call__(self, model, X):
         return (
             - X * tensor.log(model.reconstruct(X)) -
@@ -22,8 +24,8 @@ class MeanBinaryCrossEntropy(object):
 #        ).sum(axis=1).mean()
 
 
-class ModelMethodPenalty(object):
-    def __init__(self, method_name):
+class ModelMethodPenalty(UnsupervisedCost):
+    def __init__(self, method_name, coefficient=1.):
         self._method_name = method_name
 
     def __call__(self, model, X):
@@ -33,8 +35,9 @@ class ModelMethodPenalty(object):
             raise ValueError("no such method '%s' for model %s" %
                              (str(self._method_name), str(model)))
 
-class ScaleBy(object):
+class ScaleBy(UnsupervisedCost):
     def __init__(self, cost, coefficient):
+    	warnings.warn('This object is now deprecated.')
         self._cost = cost
         self._coefficient = coefficient
 
