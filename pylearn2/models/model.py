@@ -109,7 +109,7 @@ class Model(object):
         the format of the vector space that the model outputs
         (this is a generalization of get_output_dim) """
 
-        return self.input_space
+        return self.output_space
 
     def free_energy(self, V):
         """
