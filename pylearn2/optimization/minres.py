@@ -9,7 +9,8 @@ from theano.ifelse import ifelse
 from theano.sandbox.scan import scan
 import numpy
 from pylearn2.utils import constantX
-from pylearn2.expr.basic import multiple_switch
+from pylearn2.expr.basic import multiple_switch, symGivens2, \
+        sqrt_inner_product, inner_product
 
 # Messages that matches the flag value returned by the method
 messages = [
@@ -410,112 +411,4 @@ def minres(compute_Av,
             Axnorm,
             loc_updates)
 
-def sqrt_inner_product(xs, ys=None):
-    """
-        Compute the square root of the inner product between `xs` and `ys`.
-        If `ys` is not provided, computes the norm between `xs` and `xs`.
-        Since `xs` and `ys` are list of tensor, think of it as the norm
-        between the vector obtain by concatenating and flattening all
-        tenors in `xs` and the similar vector obtain from `ys`. Note that
-        `ys` should match `xs`.
 
-        Parameters:
-
-            xs : list of theano expressions
-            ys : None or list of theano expressions
-    """
-    if ys is None:
-        ys = [x for x in xs]
-    return TT.sqrt(sum((x * y).sum() for x, y in zip(xs, ys)))
-
-
-def inner_product(xs, ys=None):
-    """
-        Compute the inner product between `xs` and `ys`. If ys is not provided,
-        computes the square norm between `xs` and `xs`.
-        Since `xs` and `ys` are list of tensor, think of it as the inner
-        product between the vector obtain by concatenating and flattening all
-        tenors in `xs` and the similar vector obtain from `ys`. Note that
-        `ys` should match `xs`.
-
-        Parameters:
-
-            xs : list of theano expressions
-            ys : None or list of theano expressions
-    """
-    if ys is None:
-        ys = [x for x in xs]
-    return sum((x * y).sum() for x, y in zip(xs, ys))
-
-
-def symGivens2(a, b):
-    """
-    Stable Symmetric Givens rotation plus reflection
-
-    Parameters
-
-        a: (theano scalar) first element of a two-vector  [a; b]
-        b: (theano scalar) second element of a two-vector [a; b]
-    Returns
-
-        c  cosine(theta), where theta is the implicit angle of
-           rotation (counter-clockwise) in a plane-rotation
-        s  sine(theta)
-        d  two-norm of [a; b]
-
-    Description:
-        This method gives c and s such that
-            [ c  s ][a] = [d],
-            [ s -c ][b]   [0]
-      where d = two norm of vector [a, b],
-            c = a / sqrt(a^2 + b^2) = a / d,
-            s = b / sqrt(a^2 + b^2) = b / d.
-      The implementation guards against overflow in computing
-         sqrt(a^2 + b^2).
-
-      SEE ALSO:
-         (1) Algorithm 4.9, stable *unsymmetric* Givens
-         rotations in Golub and van Loan's book Matrix
-         Computations, 3rd edition.
-         (2) MATLAB's function PLANEROT.
-
-      Observations:
-          Implementing this function as a single op in C might improve speed
-          considerably ..
-    """
-    c_branch1 = TT.switch(TT.eq(a, constantX(0)),
-                          constantX(1),
-                          TT.sgn(a))
-    c_branch21 = (a / b) * TT.sgn(b) / \
-            TT.sqrt(constantX(1) + (a / b) ** 2)
-    c_branch22 = TT.sgn(a) / TT.sqrt(constantX(1) + (b / a) ** 2)
-
-    c_branch2 = TT.switch(TT.eq(a, constantX(0)),
-                          constantX(0),
-                          TT.switch(TT.gt(abs(b), abs(a)),
-                                    c_branch21,
-                                    c_branch22))
-    c = TT.switch(TT.eq(b, constantX(0)),
-                  c_branch1,
-                  c_branch2)
-
-    s_branch1 = TT.sgn(b) / TT.sqrt(constantX(1) + (a / b) ** 2)
-    s_branch2 = (b / a) * TT.sgn(a) / TT.sqrt(constantX(1) + (b / a) ** 2)
-    s = TT.switch(TT.eq(b, constantX(0)),
-                  constantX(0),
-                  TT.switch(TT.eq(a, constantX(0)),
-                            TT.sgn(b),
-                            TT.switch(TT.gt(abs(b), abs(a)),
-                                      s_branch1,
-                                      s_branch2)))
-
-    d_branch1 = b / (TT.sgn(b) / TT.sqrt(constantX(1) + (a / b) ** 2))
-    d_branch2 = a / (TT.sgn(a) / TT.sqrt(constantX(1) + (b / a) ** 2))
-    d = TT.switch(TT.eq(b, constantX(0)),
-                  abs(a),
-                  TT.switch(TT.eq(a, constantX(0)),
-                            abs(b),
-                            TT.switch(TT.gt(abs(b), abs(a)),
-                                      d_branch1,
-                                      d_branch2)))
-    return c, s, d
