@@ -104,6 +104,13 @@ class Model(object):
 
         return self.input_space
 
+    def get_output_space(self):
+        """ Returns an instance of pylearn2.space.Space describing
+        the format of the vector space that the model outputs
+        (this is a generalization of get_output_dim) """
+
+        return self.input_space
+
     def free_energy(self, V):
         """
         Compute the free energy of data examples, if this model has
@@ -203,6 +210,12 @@ class Model(object):
         pass
 
     def get_input_dim(self):
+        """ Returns the number of visible units of the model.
+        Deprecated; this assumes the model operates on a vector.
+        Use get_input_space instead """
+        raise NotImplementedError()
+
+    def get_output_dim(self):
         """ Returns the number of visible units of the model.
         Deprecated; this assumes the model operates on a vector.
         Use get_input_space instead """

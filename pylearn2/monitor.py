@@ -161,7 +161,7 @@ class Monitor(object):
         #Get the appropriate kind of theano variable to represent the data the model
         #acts on
         X = self.model.get_input_space().make_theano_batch(name = "monitoring_X")
-        Y = self.model.get_input_space().make_theano_batch(name = "monitoring_Y")
+        Y = self.model.get_output_space().make_theano_batch(name = "monitoring_Y")
         print 'monitored channels: '+str(self.channels.keys())
         for channel in self.channels.values():
             if isinstance(channel.graph_input, (list, tuple)):
