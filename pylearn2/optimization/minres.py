@@ -8,6 +8,7 @@ import theano.tensor as TT
 from theano.ifelse import ifelse
 from theano.sandbox.scan import scan
 import numpy
+from pylearn2.utils import constantX
 
 # Messages that matches the flag value returned by the method
 messages = [
@@ -64,13 +65,6 @@ def sqnorm(xs, ys=None):
     return sum((x * y).sum() for x, y in zip(xs, ys))
 
 
-def constant(value):
-    """
-        Returns a constant of value `value` with floatX dtype
-    """
-    return TT.constant(numpy.asarray(value,
-                                     dtype=theano.config.floatX))
-
 def multiple_switch(*args):
     if len(args) == 3:
         return TT.switch(*args)
@@ -114,37 +108,37 @@ def symGivens2(a, b):
           Implementing this function as a single op in C might improve speed
           considerably ..
     """
-    c_branch1 = TT.switch(TT.eq(a, constant(0)),
-                          constant(1),
+    c_branch1 = TT.switch(TT.eq(a, constantX(0)),
+                          constantX(1),
                           TT.sgn(a))
     c_branch21 = (a / b) * TT.sgn(b) / \
-            TT.sqrt(constant(1) + (a / b) ** 2)
-    c_branch22 = TT.sgn(a) / TT.sqrt(constant(1) + (b / a) ** 2)
+            TT.sqrt(constantX(1) + (a / b) ** 2)
+    c_branch22 = TT.sgn(a) / TT.sqrt(constantX(1) + (b / a) ** 2)
 
-    c_branch2 = TT.switch(TT.eq(a, constant(0)),
-                          constant(0),
+    c_branch2 = TT.switch(TT.eq(a, constantX(0)),
+                          constantX(0),
                           TT.switch(TT.gt(abs(b), abs(a)),
                                     c_branch21,
                                     c_branch22))
-    c = TT.switch(TT.eq(b, constant(0)),
+    c = TT.switch(TT.eq(b, constantX(0)),
                   c_branch1,
                   c_branch2)
 
-    s_branch1 = TT.sgn(b) / TT.sqrt(constant(1) + (a / b) ** 2)
-    s_branch2 = (b / a) * TT.sgn(a) / TT.sqrt(constant(1) + (b / a) ** 2)
-    s = TT.switch(TT.eq(b, constant(0)),
-                  constant(0),
-                  TT.switch(TT.eq(a, constant(0)),
+    s_branch1 = TT.sgn(b) / TT.sqrt(constantX(1) + (a / b) ** 2)
+    s_branch2 = (b / a) * TT.sgn(a) / TT.sqrt(constantX(1) + (b / a) ** 2)
+    s = TT.switch(TT.eq(b, constantX(0)),
+                  constantX(0),
+                  TT.switch(TT.eq(a, constantX(0)),
                             TT.sgn(b),
                             TT.switch(TT.gt(abs(b), abs(a)),
                                       s_branch1,
                                       s_branch2)))
 
-    d_branch1 = b / (TT.sgn(b) / TT.sqrt(constant(1) + (a / b) ** 2))
-    d_branch2 = a / (TT.sgn(a) / TT.sqrt(constant(1) + (b / a) ** 2))
-    d = TT.switch(TT.eq(b, constant(0)),
+    d_branch1 = b / (TT.sgn(b) / TT.sqrt(constantX(1) + (a / b) ** 2))
+    d_branch2 = a / (TT.sgn(a) / TT.sqrt(constantX(1) + (b / a) ** 2))
+    d = TT.switch(TT.eq(b, constantX(0)),
                   abs(a),
-                  TT.switch(TT.eq(a, constant(0)),
+                  TT.switch(TT.eq(a, constantX(0)),
                             abs(b),
                             TT.switch(TT.gt(abs(b), abs(a)),
                                       d_branch1,
@@ -154,12 +148,12 @@ def symGivens2(a, b):
 
 def minres(compute_Av,
            bs,
-           rtol=constant(1e-6),
+           rtol=constantX(1e-6),
            maxit=20,
            Ms=None,
-           shift=constant(0.),
-           maxxnorm=constant(1e15),
-           Acondlim=constant(1e16),
+           shift=constantX(0.),
+           maxxnorm=constantX(1e15),
+           Acondlim=constantX(1e16),
            profile=0):
     """
      minres attempts to find the minimum-length and minimum-residual-norm
@@ -230,10 +224,10 @@ def minres(compute_Av,
         bs = list(bs)
         return_as_list = True
 
-    eps = constant(1e-23)
+    eps = constantX(1e-23)
 
     # Initialise
-    flag = theano.shared(constant(0.))
+    flag = theano.shared(constantX(0.))
     beta1 = norm(bs)
 
     #------------------------------------------------------------------
@@ -302,7 +296,7 @@ def minres(compute_Av,
         r3s, upds = compute_Av(*vs)
 
         r3s = [r3 - shift * v for r3, v in zip(r3s, vs)]
-        r3s = [TT.switch(TT.ge(niter, constant(1.)),
+        r3s = [TT.switch(TT.ge(niter, constantX(1.)),
                          r3 - (beta / betal) * r1,
                          r3) for r3, r1 in zip(r3s, r1s)]
 
@@ -316,7 +310,7 @@ def minres(compute_Av,
         else:
             betan = norm(r3s)
         pnorml = pnorm
-        pnorm = TT.switch(TT.eq(niter, constant(0.)),
+        pnorm = TT.switch(TT.eq(niter, constantX(0.)),
                           TT.sqrt(TT.sqr(alpha) + TT.sqr(betan)),
                           TT.sqrt(TT.sqr(alpha) + TT.sqr(betan) +
                                   TT.sqr(beta)))
@@ -345,13 +339,13 @@ def minres(compute_Av,
 
         dl2s = [dl for dl in dls]
         dls = [d for d in ds]
-        ds = [TT.switch(TT.neq(gamma, constant(0.)),
+        ds = [TT.switch(TT.neq(gamma, constantX(0.)),
                         (v - epln * dl2 - dlta * dl) / gamma,
                         v)
               for v, dl2, dl in zip(vs, dl2s, dls)]
-        d_norm = TT.switch(TT.neq(gamma, constant(0.)),
+        d_norm = TT.switch(TT.neq(gamma, constantX(0.)),
                            norm(ds),
-                           constant(numpy.inf))
+                           constantX(numpy.inf))
 
         # Update x except if it will become too big
         xnorml = xnorm
@@ -364,13 +358,13 @@ def minres(compute_Av,
               for dl2, x in zip(dl2s, xs)]
 
         flag = TT.switch(TT.ge(xnorm, maxxnorm),
-                         constant(6.), flag)
+                         constantX(6.), flag)
         # Estimate various norms
         rnorml = rnorm  # ||r_{k-1}||
         Anorml = Anorm
         Acondl = Acond
         relrnorml = relrnorm
-        flag_no_6 = TT.neq(flag, constant(6.))
+        flag_no_6 = TT.neq(flag, constantX(6.))
         Dnorm = TT.switch(flag_no_6,
                           TT.sqrt(TT.sqr(Dnorm) + TT.sqr(d_norm)),
                           Dnorm)
@@ -380,7 +374,7 @@ def minres(compute_Av,
                              rnorm / (Anorm * xnorm + bnorm),
                              relrnorm)
         Tnorm = TT.switch(flag_no_6,
-                          TT.switch(TT.eq(niter, constant(0.)),
+                          TT.switch(TT.eq(niter, constantX(0.)),
                                     TT.sqrt(TT.sqr(alpha) + TT.sqr(betan)),
                                     TT.sqrt(TT.sqr(Tnorm) +
                                             TT.sqr(beta) +
@@ -401,36 +395,36 @@ def minres(compute_Av,
         epsr = Anorm * xnorm * rtol
         #Test for singular Hk (hence singular A)
         # or x is already an LS solution (so again A must be singular).
-        t1 = constant(1) + relrnorm
-        t2 = constant(1) + relArnorml
+        t1 = constantX(1) + relrnorm
+        t2 = constantX(1) + relArnorml
 
         flag = TT.switch(
-            TT.bitwise_or(TT.eq(flag, constant(0)),
-                          TT.eq(flag, constant(6))),
-            multiple_switch(TT.le(t1, constant(1)),
-                            constant(3),
-                            TT.le(t2, constant(1)),
-                            constant(4),
+            TT.bitwise_or(TT.eq(flag, constantX(0)),
+                          TT.eq(flag, constantX(6))),
+            multiple_switch(TT.le(t1, constantX(1)),
+                            constantX(3),
+                            TT.le(t2, constantX(1)),
+                            constantX(4),
                             TT.le(relrnorm, rtol),
-                            constant(1),
-                            TT.le(Anorm, constant(1e-20)),
-                            constant(12),
+                            constantX(1),
+                            TT.le(Anorm, constantX(1e-20)),
+                            constantX(12),
                             TT.le(relArnorml, rtol),
-                            constant(10),
+                            constantX(10),
                             TT.ge(epsx, beta1),
-                            constant(5),
+                            constantX(5),
                             TT.ge(xnorm, maxxnorm),
-                            constant(6),
+                            constantX(6),
                             TT.ge(niter, TT.cast(maxit,
                                                  theano.config.floatX)),
-                            constant(8),
+                            constantX(8),
                             flag),
             flag)
 
         flag = TT.switch(TT.lt(Axnorm, rtol * Anorm * xnorm),
-                         constant(11.),
+                         constantX(11.),
                          flag)
-        return [niter + constant(1.),
+        return [niter + constantX(1.),
                 beta,
                 betan,
                 phi,
@@ -456,49 +450,49 @@ def minres(compute_Av,
 
     states = []
     # 0 niter
-    states.append(constant([0]))
+    states.append(constantX([0]))
     # 1 beta
-    states.append(constant([0]))
+    states.append(constantX([0]))
     # 2 betan
     states.append(TT.unbroadcast(TT.shape_padleft(beta1), 0))
     # 3 phi
     states.append(TT.unbroadcast(TT.shape_padleft(beta1), 0))
     # 4 Acond
-    states.append(constant([1]))
+    states.append(constantX([1]))
     # 5 cs
-    states.append(constant([-1]))
+    states.append(constantX([-1]))
     # 6 dbarn
-    states.append(constant([0]))
+    states.append(constantX([0]))
     # 7 eplnn
-    states.append(constant([0]))
+    states.append(constantX([0]))
     # 8 rnorm
     states.append(TT.unbroadcast(TT.shape_padleft(beta1), 0))
     # 9 sn
-    states.append(constant([0]))
+    states.append(constantX([0]))
     # 10 Tnorm
-    states.append(constant([0]))
+    states.append(constantX([0]))
     # 11 rnorml
     states.append(TT.unbroadcast(TT.shape_padleft(beta1), 0))
     # 12 xnorm
-    states.append(constant([0]))
+    states.append(constantX([0]))
     # 13 Dnorm
-    states.append(constant([0]))
+    states.append(constantX([0]))
     # 14 gamma
-    states.append(constant([0]))
+    states.append(constantX([0]))
     # 15 pnorm
-    states.append(constant([0]))
+    states.append(constantX([0]))
     # 16 gammal
-    states.append(constant([0]))
+    states.append(constantX([0]))
     # 17 Axnorm
-    states.append(constant([0]))
+    states.append(constantX([0]))
     # 18 relrnorm
-    states.append(constant([1]))
+    states.append(constantX([1]))
     # 19 relArnorml
-    states.append(constant([1]))
+    states.append(constantX([1]))
     # 20 Anorm
-    states.append(constant([0]))
+    states.append(constantX([0]))
     # 21 flag
-    states.append(constant([0]))
+    states.append(constantX([0]))
     xs = [TT.unbroadcast(TT.shape_padleft(TT.zeros_like(b)), 0) for b in bs]
     ds = [TT.unbroadcast(TT.shape_padleft(TT.zeros_like(b)), 0) for b in bs]
     dls = [TT.unbroadcast(TT.shape_padleft(TT.zeros_like(b)), 0) for b in bs]
