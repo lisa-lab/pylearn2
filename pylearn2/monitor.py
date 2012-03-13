@@ -39,6 +39,7 @@ class Monitor(object):
         #If the model acts on a space with more than the batch index and channel dimension,
         #the model has topological dimensions, so the topological view of the data should be used
         self.topo = len(model.get_input_space().make_theano_batch().type.broadcastable) > 2
+        self.require_label = False
 
     def set_dataset(self, dataset, batches, batch_size):
         """
@@ -84,12 +85,16 @@ class Monitor(object):
 
             myiterator = d.iterator(mode='sequential',
                                     batch_size=self.batch_size,
-                                    topo=self.topo)
+                                    topo=self.topo,
+                                    targets = self.require_label)
             self.begin_record_entry()
 
             for X in myiterator:
                 self.run_prereqs(X)
-                self.accum(X)
+                if self.require_label:
+                    self.accum(*X)
+                else:
+                    self.accum(X)
 
 
             # TODO: use logging infrastructure so that user can configure
@@ -153,13 +158,21 @@ class Monitor(object):
         #Get the appropriate kind of theano variable to represent the data the model
         #acts on
         X = self.model.get_input_space().make_theano_batch(name = "monitoring_X")
+        Y = self.model.get_output_space().make_theano_batch(name = "monitoring_Y")
         print 'monitored channels: '+str(self.channels.keys())
         for channel in self.channels.values():
-            givens[channel.graph_input] = X
+            if isinstance(channel.graph_input, (list, tuple)):
+                givens[channel.graph_input[0]] = X
+                givens[channel.graph_input[1]] = Y
+            else:
+                givens[channel.graph_input] = X
             updates[channel.val_shared] = channel.val_shared + channel.val
         print "compiling accum..."
         t1 = time.time()
-        self.accum = function([X], givens=givens, updates=updates)
+        if self.require_label:
+            self.accum = function([X, Y], givens=givens, updates=updates)
+        else:
+            self.accum = function([X], givens=givens, updates=updates)
         t2 = time.time()
         print "graph size: ",len(self.accum.maker.env.toposort())
         print "took "+str(t2-t1)+" seconds"
@@ -227,6 +240,8 @@ class Monitor(object):
         if name in self.channels:
             raise ValueError("Tried to create the same channel twice (%s)" %
                              name)
+        if isinstance(ipt, (list, tuple)):
+            self.require_label = True
         self.channels[name] = MonitorChannel(ipt, val, name, prereqs)
         self.dirty = True
 
