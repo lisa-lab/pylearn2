@@ -4,6 +4,7 @@ from theano import shared
 import numpy as np
 import warnings
 
+
 class Model(object):
     def train(self, dataset):
         """
@@ -95,7 +96,6 @@ class Model(object):
         algorithms such as those found in pylearn2.training_algorithms
         respect the specific properties of the models passed to them."""
         pass
-
 
     def get_input_space(self):
         """ Returns an instance of pylearn2.space.Space describing
@@ -269,7 +269,9 @@ class Model(object):
                 try:
                     obj.set_dtype(dtype)
                 except Exception, e:
-                    warnings.warn("Got an exception while trying to recursively call set_dtype, might be calling it on static instances")
+                    warnings.warn(("Got an exception while trying to "
+                                   "recursively call set_dtype, might be "
+                                   "calling it on static instances"))
 
         for param in self.get_params():
             assert param.type.dtype == dtype
