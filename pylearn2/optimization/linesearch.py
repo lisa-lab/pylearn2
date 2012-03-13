@@ -1,3 +1,11 @@
+"""
+Note: this code is a Theano translation of the linesearch implemented in
+scipy.optimize.linesearch
+
+See :
+    https://github.com/scipy/scipy/blob/master/scipy/optimize/linesearch.py
+"""
+
 import theano
 import theano.tensor as TT
 from theano.ifelse import ifelse
