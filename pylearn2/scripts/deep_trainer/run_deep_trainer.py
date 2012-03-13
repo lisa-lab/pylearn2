@@ -27,7 +27,6 @@ from pylearn2.costs.ebm_estimation import SMD
 from pylearn2.training_algorithms.sgd import MonitorBasedTermCrit
 from pylearn2.training_algorithms.sgd import MonitorBasedLRAdjuster
 from pylearn2.training_callbacks.training_callback import TrainingCallback
-#from pylearn2.cost import SquaredError
 from pylearn2.costs.supervised_cost import CrossEntropy
 from pylearn2.scripts.train import Train
 import pylearn2.utils.serial as serial
@@ -80,8 +79,6 @@ def get_dataset_toy():
     Do not try to visualize weights on it. It is not picture and
     has no color channel info to support visualization
     """
-    #global YAML
-    #YAML = ""
     trainset = ToyDataset()
     testset = ToyDataset()
     return trainset, testset
@@ -129,7 +126,6 @@ def get_dataset_cifar10():
         testset.yaml_src = '!pkl: "%s"' % test_path
 
     # this path will be used for visualizing weights after training is done
-    #global YAML
     return trainset, testset
 
 def get_autoencoder(structure):
@@ -278,8 +274,6 @@ def main():
     layer_trainers.append(get_layer_trainer_sgd_autoencoder(layers[1], trainset[1]))
     layer_trainers.append(get_layer_trainer_sgd_autoencoder(layers[2], trainset[2]))
     layer_trainers.append(get_layer_trainer_logistic(layers[3], trainset[3]))
-    #print "Label :", trainset[0].y
-    #print "Label :", trainset[3].y
 
     #unsupervised pretraining
     for layer_trainer in layer_trainers:#[0:3]:

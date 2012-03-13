@@ -177,9 +177,7 @@ class SGD(TrainingAlgorithm):
             else:
                 X = dataset.get_batch_design(batch_size)
 
-            #print '\n----------------'
             self.sgd_update(X, self.learning_rate)
-            #print '----------------\n'
 
             #comment out this check when not debugging
             """for param in self.params:
@@ -240,7 +238,6 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
             self.supervised = False
             for c in self.cost:
                 if (isinstance(c, pylearn2.costs.cost.SupervisedCost)):
-                    print "SUPERVISED ERROR !!!"
                     self.supervised = True
                     cost_value += c(model, X, Y)
                 else:
@@ -248,11 +245,9 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
             #cost_value = sum(c(model, X) for c in self.cost)
         else:
             if (isinstance(self.cost, pylearn2.costs.cost.SupervisedCost)):
-                print "SUPERVISED ERROR !!!"
                 self.supervised = True
                 cost_value = self.cost(model, X, Y)
             else:
-                print "UNSUPERVISED ERROR !!!"
                 self.supervised = False
                 cost_value = self.cost(model, X)
         if cost_value.name is None:
@@ -316,10 +311,7 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
         dataset.set_iteration_scheme('sequential', batch_size=self.batch_size, targets=self.supervised)
         if self.supervised:
             for (batch_in, batch_target) in dataset:
-                #print (batch_in, batch_target)
-                #print self.model(batch_in)
                 grads = self.sgd_update(batch_in, batch_target, self.learning_rate)
-                #print grads
                 self.monitor.batches_seen += 1
                 self.monitor.examples_seen += batch_size
                 for callback in self.update_callbacks:
@@ -327,7 +319,6 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
         else:
             for batch in dataset:
                 grads = self.sgd_update(batch, self.learning_rate)
-                #print grads
                 self.monitor.batches_seen += 1
                 self.monitor.examples_seen += batch_size
                 for callback in self.update_callbacks:
