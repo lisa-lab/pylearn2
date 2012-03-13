@@ -1,3 +1,8 @@
+"""
+Note: this code is inspired from the following matlab source :
+    http://www.stanford.edu/group/SOL/software/minres.html
+"""
+
 import theano
 import theano.tensor as TT
 from theano.ifelse import ifelse
