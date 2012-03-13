@@ -7,7 +7,7 @@ from warnings import warn
 from pylearn2.monitor import Monitor
 from pylearn2.utils.iteration import SequentialSubsetIterator
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
-import pylearn2.costs.error
+import pylearn2.costs.cost
 
 
 # TODO: This needs renaming based on specifics. Specifically it needs
@@ -239,7 +239,7 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
             cost_value = 0
             self.supervised = False
             for c in self.cost:
-                if (isinstance(c, pylearn2.costs.error.SupervisedError)):
+                if (isinstance(c, pylearn2.costs.cost.SupervisedCost)):
                     print "SUPERVISED ERROR !!!"
                     self.supervised = True
                     cost_value += c(model, X, Y)
@@ -247,7 +247,7 @@ class UnsupervisedExhaustiveSGD(TrainingAlgorithm):
                     cost_value += c(model, X)
             #cost_value = sum(c(model, X) for c in self.cost)
         else:
-            if (isinstance(self.cost, pylearn2.costs.error.SupervisedError)):
+            if (isinstance(self.cost, pylearn2.costs.cost.SupervisedCost)):
                 print "SUPERVISED ERROR !!!"
                 self.supervised = True
                 cost_value = self.cost(model, X, Y)
