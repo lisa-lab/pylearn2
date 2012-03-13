@@ -13,7 +13,7 @@ from pylearn2.autoencoder import Autoencoder, DenoisingAutoencoder
 from pylearn2.models.rbm import GaussianBinaryRBM
 from pylearn2.corruption import BinomialCorruptor
 from pylearn2.corruption import GaussianCorruptor
-from pylearn2.training_algorithms.sgd import UnsupervisedExhaustiveSGD
+from pylearn2.training_algorithms.sgd import ExhaustiveSGD
 from pylearn2.costs.autoencoder import MeanSquaredReconstructionError
 from pylearn2.training_algorithms.sgd import EpochCounter
 from pylearn2.classifier import LogisticRegressionLayer
@@ -186,7 +186,7 @@ def get_layer_trainer_logistic(layer, trainset):
               'update_callbacks': None
               }
 
-    train_algo = UnsupervisedExhaustiveSGD(**config)
+    train_algo = ExhaustiveSGD(**config)
     model = layer
     callbacks = None
     return Train(model = model,
@@ -196,7 +196,7 @@ def get_layer_trainer_logistic(layer, trainset):
 
 def get_layer_trainer_sgd_autoencoder(layer, trainset):
     # configs on sgd
-    train_algo = UnsupervisedExhaustiveSGD(
+    train_algo = ExhaustiveSGD(
             learning_rate = 0.1,
               cost =  MeanSquaredReconstructionError(),
               batch_size =  10,
@@ -214,7 +214,7 @@ def get_layer_trainer_sgd_autoencoder(layer, trainset):
             dataset = trainset)
 
 def get_layer_trainer_sgd_rbm(layer, trainset):
-    train_algo = UnsupervisedExhaustiveSGD(
+    train_algo = ExhaustiveSGD(
         learning_rate = 1e-1,
         batch_size =  5,
         #"batches_per_iter" : 2000,
