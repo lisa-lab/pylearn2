@@ -1466,9 +1466,13 @@ class E_Step(object):
 
         S_hat =  numer / denom
 
-        assert S_hat.type.dtype ==  config.floatX
 
         return S_hat
+
+
+    def infer_var_s0_hat(self):
+
+        return 1. / self.model.alpha
 
     def infer_var_s1_hat(self):
         """Returns the variational parameter for the variance of s given h=1
