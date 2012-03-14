@@ -40,6 +40,12 @@ if theano is not None:
 
         return theano.tensor.cast(variable, theano.config.floatX)
 
+    def constantX(value):
+        """
+            Returns a constant of value `value` with floatX dtype
+        """
+        return theano.tensor.constant(numpy.asarray(value,
+                                         dtype=theano.config.floatX))
     def subdict(d, keys):
         """ Create a subdictionary of d with the keys in keys """
         result = {}

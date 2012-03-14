@@ -13,7 +13,7 @@ from pylearn2.autoencoder import Autoencoder, DenoisingAutoencoder
 from pylearn2.models.rbm import GaussianBinaryRBM
 from pylearn2.corruption import BinomialCorruptor
 from pylearn2.corruption import GaussianCorruptor
-from pylearn2.training_algorithms.sgd import UnsupervisedExhaustiveSGD
+from pylearn2.training_algorithms.sgd import ExhaustiveSGD
 from pylearn2.costs.autoencoder import MeanSquaredReconstructionError
 from pylearn2.training_algorithms.sgd import EpochCounter
 from pylearn2.classifier import LogisticRegressionLayer
@@ -27,7 +27,7 @@ from pylearn2.costs.ebm_estimation import SMD
 from pylearn2.training_algorithms.sgd import MonitorBasedTermCrit
 from pylearn2.training_algorithms.sgd import MonitorBasedLRAdjuster
 from pylearn2.training_callbacks.training_callback import TrainingCallback
-from pylearn2.cost import SquaredError
+from pylearn2.costs.supervised_cost import CrossEntropy
 from pylearn2.scripts.train import Train
 import pylearn2.utils.serial as serial
 import sys
@@ -46,8 +46,11 @@ class ToyDataset(DenseDesignMatrix):
         # simulated random dataset
         rng = numpy.random.RandomState(seed=42)
         data = rng.normal(size=(1000, 10))
-        self.y = numpy.random.binomial(1, 0.5, [1000, 1])
-        super(ToyDataset, self).__init__(data)
+        self.y = numpy.ones((1000, 2))
+        positive = numpy.random.binomial(1, 0.5, [1000])
+        self.y[:,0]=positive
+        self.y[:,1]=1-positive
+        super(ToyDataset, self).__init__(X=data, y=self.y)
 
 
 class ModelSaver(TrainingCallback):
@@ -76,8 +79,6 @@ def get_dataset_toy():
     Do not try to visualize weights on it. It is not picture and
     has no color channel info to support visualization
     """
-    #global YAML
-    #YAML = ""
     trainset = ToyDataset()
     testset = ToyDataset()
     return trainset, testset
@@ -125,7 +126,6 @@ def get_dataset_cifar10():
         testset.yaml_src = '!pkl: "%s"' % test_path
 
     # this path will be used for visualizing weights after training is done
-    #global YAML
     return trainset, testset
 
 def get_autoencoder(structure):
@@ -178,7 +178,7 @@ def get_logistic_regressor(structure):
 def get_layer_trainer_logistic(layer, trainset):
     # configs on sgd
     config = {'learning_rate': 0.1,
-              'cost' : SquaredError(),
+              'cost' : CrossEntropy(),
               'batch_size': 10,
               'monitoring_batches': 10,
               'monitoring_dataset': None,
@@ -186,7 +186,7 @@ def get_layer_trainer_logistic(layer, trainset):
               'update_callbacks': None
               }
 
-    train_algo = UnsupervisedExhaustiveSGD(**config)
+    train_algo = ExhaustiveSGD(**config)
     model = layer
     callbacks = None
     return Train(model = model,
@@ -196,7 +196,7 @@ def get_layer_trainer_logistic(layer, trainset):
 
 def get_layer_trainer_sgd_autoencoder(layer, trainset):
     # configs on sgd
-    train_algo = UnsupervisedExhaustiveSGD(
+    train_algo = ExhaustiveSGD(
             learning_rate = 0.1,
               cost =  MeanSquaredReconstructionError(),
               batch_size =  10,
@@ -214,7 +214,7 @@ def get_layer_trainer_sgd_autoencoder(layer, trainset):
             dataset = trainset)
 
 def get_layer_trainer_sgd_rbm(layer, trainset):
-    train_algo = UnsupervisedExhaustiveSGD(
+    train_algo = ExhaustiveSGD(
         learning_rate = 1e-1,
         batch_size =  5,
         #"batches_per_iter" : 2000,
@@ -279,7 +279,9 @@ def main():
     for layer_trainer in layer_trainers[0:3]:
         layer_trainer.main_loop()
 
-    #supervised training is not implemented yet
+    #supervised training
+    layer_trainers[-1].main_loop()
+
 
 if __name__ == '__main__':
     main()
