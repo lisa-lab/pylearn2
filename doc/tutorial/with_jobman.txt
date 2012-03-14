@@ -38,18 +38,20 @@ specially-crafted `state` dictionary, that specifies:
 
 * which hyper-parameters exist and which values they should take;
 
-* [maybe how to train it, although it could be specified in the
-  experiment itself;]
-
 * and finally which results (or outputs) you want to extract from the
   trained experiment and store in the database.
+
+For the moment, only one such experiment function exists:
+``pylearn2.scripts.jobman.train_experiment``, that trains a model the
+same way ``scripts/train.py`` would. Other functions may be implemented
+in the future, with the same structure in ``state``.
 
 
 The ``state`` dictionary
 ------------------------
 
-Here's the proposed structure for the ``state`` dictionary-like object,
-that would represent a single experiment. For your convenience,
+Here's the structure for the ``state`` dictionary-like object,
+that represents a single experiment. For your convenience,
 you can access to ``state``'s properties either as items of a
 dictionary (``state["some_attr"]``) or as attributes of an object
 (``state.some_attr``).
@@ -70,7 +72,7 @@ dictionary (``state["some_attr"]``) or as attributes of an object
 
     .. code-block:: python
 
-        "learning_rate" : %(learning_rate)d
+        "learning_rate": %(learning_rate)d
 
     If you want to specify a whole object as a hyper-parameter (for
     instance, if you want to try different classes), you can take
@@ -79,7 +81,7 @@ dictionary (``state["some_attr"]``) or as attributes of an object
 
     .. code-block:: python
 
-        "termination_criterion" : %(term_crit_builder)s %(term_crit_args)s
+        "termination_criterion": %(term_crit_builder)s %(term_crit_args)s
 
     TODO: another syntax even more adapted to YAML
 
@@ -107,11 +109,10 @@ dictionary (``state["some_attr"]``) or as attributes of an object
 
         {
             "learning_rate": 1e-4,
-            "term_crit_builder": "!obj:pylearn2.training_algorithms.sgd.MonitorBasedTermCrit",
+            "term_crit_builder": "!obj:pylearn2.training_algorithms.sgd.EpochCounter",
             "term_crit_args": {
-                "prop_decrease" : 0.01,
-                "N" : 10,
-            }
+                "max_epochs": 2
+                }
         }
 
     The resulting YAML file that will be used in your experiment will look
@@ -121,20 +122,19 @@ dictionary (``state["some_attr"]``) or as attributes of an object
 
         {
             [...]
-            "learning_rate" : 1e-4,
+            "learning_rate": 1e-4,
             [...]
-            "termination_criterion" : !obj:pylearn2.training_algorithms.sgd.MonitorBasedTermCrit {
-                "prop_decrease" : 0.01,
-                "N" : 10,
-            }
+            "termination_criterion": !obj:pylearn2.training_algorithms.sgd.EpochCounter {
+                "max_epochs": 2,
+            },
         }
 
-    When that YAML file gets generated, it will be run through whatever
-    pylearn2 does with YAML files, and a "train_object" will be
-    returned. That object will depend on what is described in the YAML
-    file. Usually, you will want to extract some information from
-    that object, and save that in the database, to be used as some
-    metric. This is done by :attr:`state.extract_results`.
+    When that YAML string gets generated, it will be parsed to build a
+    ``train_object``, that will be trained (``train_object.main_loop()``
+    is called), then returned. That object will depend on what is
+    described in the YAML file. Usually, you will want to extract some
+    information from that object, and save that in the database, to be
+    used as some metric. This is done by :attr:`state.extract_results`.
 
 
 .. attribute:: state.extract_results
@@ -158,15 +158,20 @@ dictionary (``state["some_attr"]``) or as attributes of an object
 
         def result_extractor(train_obj):
             import numpy
-            channels = train_obj.monitor.channels
-            best_index = numpy.argmin(channels["valid_nll"])
+            channels = train_obj.model.monitor.channels
+            best_index = numpy.argmin(channels["valid_nll"].val_record)
 
             return dict(
                 best_epoch=best_index,
-                train_nll=channels["train_nll"][best_index],
-                train_classerr=channels["classerr"][best_index],
-                valid_nll=channels["valid_nll"][best_index],
-                valid_classerr=channels["valid_classerr"][best_index])
+                train_nll=channels["train_nll"].val_record[best_index],
+                train_classerr=channels["classerr"].val_record[best_index],
+                valid_nll=channels["valid_nll"].val_record[best_index],
+                valid_classerr=channels["valid_classerr"].val_record[best_index])
+
+    .. note::
+
+        The channels and their name will depend on the content of your
+        YAML template string.
 
     If that function is placed in pylearn2/scripts/examples/extractor.py,
     we will specify:
@@ -174,6 +179,8 @@ dictionary (``state["some_attr"]``) or as attributes of an object
     .. code-block:: python
 
         state.extract_results = "pylearn2.scripts.examples.extractor.result_extractor"
+
+    For a working example, you can have a look at ``pylearn2/scripts/jobman/tester.py``
 
 .. attribute:: state.results
 
@@ -199,8 +206,14 @@ dictionary (``state["some_attr"]``) or as attributes of an object
     search for the model that has the lowest classification error, for
     instance.
 
+You can see a complete example of a ``state`` dictionary in
+``pylearn2/scripts/jobman/tester.py``.
+
 
 pylearn2/scripts/jobman/experiment.py
 -------------------------------------
 
-TODO: What's really happening inside of the experiment function.
+train_experiment
+++++++++++++++++
+
+TODO: What's really happening inside of the train_experiment function.
