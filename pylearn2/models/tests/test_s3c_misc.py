@@ -41,7 +41,7 @@ class TestS3C_Misc:
                 #disable_W_update = 1,
                          nhid = N,
                          irange = .5,
-                         init_bias_hid = 0.,
+                         init_bias_hid = -.1,
                          init_B = 1.,
                          min_B = 1e-8,
                          max_B = 1e8,
@@ -73,10 +73,15 @@ class TestS3C_Misc:
 
         self.prob = self.model.expected_log_prob_vhs( self.stats , H_hat = self.mf_obs['H_hat'], S_hat = self.mf_obs['S_hat'])
         self.X = X
+        self.m = m
+        self.D = D
+        self.N = N
 
 
     def test_expected_log_prob_vhs_batch_match(self):
-        """ verifies that expected_log_prob_vhs = mean(expected_log_prob_vhs_batch) """
+        """ verifies that expected_log_prob_vhs = mean(expected_log_prob_vhs_batch)
+            expected_log_prob_vhs_batch is implemented in terms of expected_energy_vhs
+            so this verifies that as well """
 
         scalar = self.model.expected_log_prob_vhs( stats = self.stats, H_hat = self.mf_obs['H_hat'], S_hat = self.mf_obs['S_hat'])
         batch  = self.model.expected_log_prob_vhs_batch( V = self.X, H_hat = self.mf_obs['H_hat'], S_hat = self.mf_obs['S_hat'], var_s0_hat = self.mf_obs['var_s0_hat'], var_s1_hat = self.mf_obs['var_s1_hat'])
@@ -179,6 +184,270 @@ class TestS3C_Misc:
             print av
             raise Exception("analytical gradient on W deviates from theano gradient on W by up to "+str(max_diff))
 
+
+    def test_d_kl_d_h(self):
+
+        "tests that the gradient of the kl with respect to h matches my analytical version of it "
+
+        model = self.model
+        ip = self.model.e_step
+        X = self.X
+
+        assert X.shape[0] == self.m
+
+        H = np.cast[config.floatX](self.model.rng.uniform(0.001,.999,(self.m, self.N)))
+        S = np.cast[config.floatX](self.model.rng.uniform(-5.,5.,(self.m, self.N)))
+
+        H_var = T.matrix(name='H_var')
+        H_var.tag.test_value = H
+        S_var = T.matrix(name='S_var')
+        S_var.tag.test_value = S
+
+
+        sigma0 = ip.infer_var_s0_hat()
+        Sigma1 = ip.infer_var_s1_hat()
+        mu0 = T.zeros_like(model.mu)
+
+        trunc_kl = ip.truncated_KL( V = X, obs = { 'H_hat' : H_var,
+                                                 'S_hat' : S_var,
+                                                 'var_s0_hat' : sigma0,
+                                                 'var_s1_hat' : Sigma1 } ).sum()
+
+        assert len(trunc_kl.type.broadcastable) == 0
+
+        grad_H = T.grad(trunc_kl, H_var)
+
+        grad_func = function([H_var, S_var], grad_H)
+
+        grad_theano = grad_func(H,S)
+
+
+        half = as_floatX(0.5)
+        one = as_floatX(1.)
+        two = as_floatX(2.)
+        pi = as_floatX(np.pi)
+        e = as_floatX(np.e)
+        mu = self.model.mu
+        alpha = self.model.alpha
+        W = self.model.W
+        B = self.model.B
+        w = self.model.w
+
+        term1 = T.log(H_var)
+        term2 = -T.log(one - H_var)
+        term3 = - half * T.log( Sigma1 *  two * pi * e )
+        term4 = half * T.log(sigma0 *  two * pi * e )
+        term5 = - self.model.bias_hid
+        term6 = half * ( - sigma0 + Sigma1 + T.sqr(S_var) )
+        term7 = - mu * alpha * S_var
+        term8 = half * T.sqr(mu) * alpha
+        term9 = - T.dot(X * self.model.B, self.model.W) * S_var
+        term10 = S_var * T.dot(T.dot(H_var * S_var, W.T * B),W)
+        term11 = - w * T.sqr(S_var) * H_var
+        term12 = half * (Sigma1 + T.sqr(S_var)) * T.dot(B,T.sqr(W))
+
+        analytical = term1 + term2 + term3 + term4 + term5 + term6 + term7 + term8 + term9 + term10 + term11 + term12
+
+        grad_analytical = function([H_var, S_var], analytical)(H,S)
+
+        if not np.allclose(grad_theano, grad_analytical):
+            print 'grad theano: ',(grad_theano.min(), grad_theano.mean(), grad_theano.max())
+            print 'grad analytical: ',(grad_analytical.min(), grad_analytical.mean(), grad_analytical.max())
+            ad = np.abs(grad_theano-grad_analytical)
+            print 'abs diff: ',(ad.min(),ad.mean(),ad.max())
+            assert False
+
+    def test_d_negent_d_h(self):
+
+        "tests that the gradient of the negative entropy with respect to h matches my analytical version of it "
+
+        model = self.model
+        ip = self.model.e_step
+        X = self.X
+
+        assert X.shape[0] == self.m
+
+        H = np.cast[config.floatX](self.model.rng.uniform(0.001,.999,(self.m, self.N)))
+        S = np.cast[config.floatX](self.model.rng.uniform(-5.,5.,(self.m, self.N)))
+
+        H_var = T.matrix(name='H_var')
+        H_var.tag.test_value = H
+        S_var = T.matrix(name='S_var')
+        S_var.tag.test_value = S
+
+
+        sigma0 = ip.infer_var_s0_hat()
+        Sigma1 = ip.infer_var_s1_hat()
+        mu0 = T.zeros_like(model.mu)
+
+        negent = - self.model.entropy_hs( H_hat =  H_var,
+                                                 var_s0_hat =  sigma0,
+                                                 var_s1_hat = Sigma1 ).sum()
+
+        assert len(negent.type.broadcastable) == 0
+
+        grad_H = T.grad(negent, H_var)
+
+        grad_func = function([H_var, S_var], grad_H, on_unused_input = 'ignore' )
+
+        grad_theano = grad_func(H,S)
+
+
+        half = as_floatX(0.5)
+        one = as_floatX(1.)
+        two = as_floatX(2.)
+        pi = as_floatX(np.pi)
+        e = as_floatX(np.e)
+        mu = self.model.mu
+        alpha = self.model.alpha
+        W = self.model.W
+        B = self.model.B
+        w = self.model.w
+
+        term1 = T.log(H_var)
+        term2 = -T.log(one - H_var)
+        term3 = - half * T.log( Sigma1 * two * pi * e )
+        term4 = half * T.log(  sigma0 * two * pi * e )
+
+        analytical = term1 + term2 + term3 + term4
+
+        grad_analytical = function([H_var, S_var], analytical, on_unused_input = 'ignore')(H,S)
+
+        if not np.allclose(grad_theano, grad_analytical):
+            print 'grad theano: ',(grad_theano.min(), grad_theano.mean(), grad_theano.max())
+            print 'grad analytical: ',(grad_analytical.min(), grad_analytical.mean(), grad_analytical.max())
+            ad = np.abs(grad_theano-grad_analytical)
+            print 'abs diff: ',(ad.min(),ad.mean(),ad.max())
+            assert False
+
+    def test_d_negent_h_d_h(self):
+
+        "tests that the gradient of the negative entropy of h with respect to \hat{h} matches my analytical version of it "
+
+        model = self.model
+        ip = self.model.e_step
+        X = self.X
+
+        assert X.shape[0] == self.m
+
+        H = np.cast[config.floatX](self.model.rng.uniform(0.001,.999,(self.m, self.N)))
+        S = np.cast[config.floatX](self.model.rng.uniform(-5.,5.,(self.m, self.N)))
+
+        H_var = T.matrix(name='H_var')
+        H_var.tag.test_value = H
+        S_var = T.matrix(name='S_var')
+        S_var.tag.test_value = S
+
+
+        sigma0 = ip.infer_var_s0_hat()
+        Sigma1 = ip.infer_var_s1_hat()
+        mu0 = T.zeros_like(model.mu)
+
+        negent = - self.model.entropy_h( H_hat =  H_var  ).sum()
+
+        assert len(negent.type.broadcastable) == 0
+
+        grad_H = T.grad(negent, H_var)
+
+        grad_func = function([H_var, S_var], grad_H, on_unused_input = 'ignore')
+
+        grad_theano = grad_func(H,S)
+
+
+        half = as_floatX(0.5)
+        one = as_floatX(1.)
+        two = as_floatX(2.)
+        pi = as_floatX(np.pi)
+        e = as_floatX(np.e)
+        mu = self.model.mu
+        alpha = self.model.alpha
+        W = self.model.W
+        B = self.model.B
+        w = self.model.w
+
+        term1 = T.log(H_var)
+        term2 = -T.log(one - H_var)
+
+        analytical = term1 + term2
+
+        grad_analytical = function([H_var, S_var], analytical, on_unused_input = 'ignore')(H,S)
+
+        if not np.allclose(grad_theano, grad_analytical):
+            print 'grad theano: ',(grad_theano.min(), grad_theano.mean(), grad_theano.max())
+            print 'grad analytical: ',(grad_analytical.min(), grad_analytical.mean(), grad_analytical.max())
+            ad = np.abs(grad_theano-grad_analytical)
+            print 'abs diff: ',(ad.min(),ad.mean(),ad.max())
+            assert False
+
+
+    def test_d_ee_d_h(self):
+
+        "tests that the gradient of the expected energy with respect to h matches my analytical version of it "
+
+        model = self.model
+        ip = self.model.e_step
+        X = self.X
+
+        assert X.shape[0] == self.m
+
+        H = np.cast[config.floatX](self.model.rng.uniform(0.001,.999,(self.m, self.N)))
+        S = np.cast[config.floatX](self.model.rng.uniform(-5.,5.,(self.m, self.N)))
+
+        H_var = T.matrix(name='H_var')
+        H_var.tag.test_value = H
+        S_var = T.matrix(name='S_var')
+        S_var.tag.test_value = S
+
+
+        sigma0 = ip.infer_var_s0_hat()
+        Sigma1 = ip.infer_var_s1_hat()
+        mu0 = T.zeros_like(model.mu)
+
+        ee = self.model.expected_energy_vhs( V = X, H_hat = H_var,
+                                                 S_hat =  S_var,
+                                                 var_s0_hat = sigma0,
+                                                 var_s1_hat = Sigma1 ).sum()
+
+        assert len(ee.type.broadcastable) == 0
+
+        grad_H = T.grad(ee, H_var)
+
+        grad_func = function([H_var, S_var], grad_H)
+
+        grad_theano = grad_func(H,S)
+
+
+        half = as_floatX(0.5)
+        one = as_floatX(1.)
+        two = as_floatX(2.)
+        pi = as_floatX(np.pi)
+        e = as_floatX(np.e)
+        mu = self.model.mu
+        alpha = self.model.alpha
+        W = self.model.W
+        B = self.model.B
+        w = self.model.w
+
+        term1 = - self.model.bias_hid
+        term2 = half * ( - sigma0 + Sigma1 + T.sqr(S_var) )
+        term3 = - mu * alpha * S_var
+        term4 = half * T.sqr(mu) * alpha
+        term5 = - T.dot(X * self.model.B, self.model.W) * S_var
+        term6 = S_var * T.dot(T.dot(H_var * S_var, W.T * B),W)
+        term7 = - w * T.sqr(S_var) * H_var
+        term8 = half * (Sigma1 + T.sqr(S_var)) * T.dot(B,T.sqr(W))
+
+        analytical = term1 + term2 + term3 + term4 + term5 + term6 + term7 + term8
+
+        grad_analytical = function([H_var, S_var], analytical, on_unused_input = 'ignore')(H,S)
+
+        if not np.allclose(grad_theano, grad_analytical):
+            print 'grad theano: ',(grad_theano.min(), grad_theano.mean(), grad_theano.max())
+            print 'grad analytical: ',(grad_analytical.min(), grad_analytical.mean(), grad_analytical.max())
+            ad = np.abs(grad_theano-grad_analytical)
+            print 'abs diff: ',(ad.min(),ad.mean(),ad.max())
+            assert False
+
 if __name__ == '__main__':
     obj = TestS3C_Misc()
-    obj.test_grad_W()
+    obj.test_d_ee_d_h()
