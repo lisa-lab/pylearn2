@@ -660,12 +660,10 @@ class S3C(Model, Block):
 
         term7_subterm1 = T.dot(T.sqr(T.dot(HS, self.W.T)), self.B)
         assert len(term7_subterm1.type.broadcastable) == 1
-        #term7_subterm2 = T.dot(var_HS, self.w)
         term7_subterm2 = - T.dot( T.dot(T.sqr(HS), T.sqr(self.W.T)), self.B)
         term7_subterm3 = T.dot( T.dot(sq_HS, T.sqr(self.W.T)), self.B )
 
-        #v_term_3 = half * (term7_subterm1 + term7_subterm2)
-        v_term_3 = half * (term7_subterm1 + term7_subterm2 + term7_subterm3)
+        v_term_3 = half * (term7_subterm1  + term7_subterm2 + term7_subterm3)
         assert len(v_term_3.type.broadcastable) == 1
 
         v_term = v_term_1 + v_term_2 + v_term_3
