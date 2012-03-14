@@ -1209,7 +1209,9 @@ def reflection_clip(S_hat, new_S_hat, rho = 0.5):
     return rval
 
 def damp(old, new, new_coeff):
-    rval =  new_coeff * new + (1. - new_coeff) * old
+
+    rval =  new_coeff * new + (as_floatX(1.) - new_coeff) * old
+
 
     old_name = make_name(old, anon='anon_old')
     new_name = make_name(new, anon='anon_new')
