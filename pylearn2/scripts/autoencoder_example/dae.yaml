@@ -12,7 +12,7 @@
         "act_enc": "tanh",
         "act_dec": null,    # Linear activation on the decoder side.
     },
-    "algorithm": !obj:pylearn2.training_algorithms.sgd.UnsupervisedExhaustiveSGD {
+    "algorithm": !obj:pylearn2.training_algorithms.sgd.ExhaustiveSGD {
         "learning_rate" : 1e-3,
         "batch_size" : 10,
         "monitoring_batches" : 5,

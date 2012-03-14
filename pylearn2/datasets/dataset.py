@@ -26,7 +26,7 @@ class Dataset(object):
         return self.iterator()
 
     def set_iteration_scheme(self, mode=None, batch_size=None,
-                             num_batches=None, topo=False):
+                             num_batches=None, topo=False, targets=False):
         """
         Modify the default iteration behaviour for the dataset.
 
@@ -60,7 +60,7 @@ class Dataset(object):
         raise NotImplementedError()
 
     def iterator(self, mode=None, batch_size=None, num_batches=None,
-                 topo=None, rng=None):
+                 topo=None, targets=False, rng=None):
         """
         Return an iterator for this dataset with the specified
         behaviour. Unspecified values are filled-in by the default.
