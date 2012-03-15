@@ -1,10 +1,9 @@
 """
 XXX
 """
-import sys
-import copy
 import numpy
 import theano
+from theano import tensor
 
 prod = numpy.prod
 
@@ -144,7 +143,6 @@ class LinearTransform(object):
         XXX
         """
         # supposing self.row_shape is (R1,)...
-        xshp = tuple(x.shape)
         cshp = self.col_shape()
         if T:
             # C1 C2 C3 R1 R2 -> R1 R2 C1 C2 C3
@@ -160,7 +158,6 @@ class LinearTransform(object):
         XXX
         """
         # supposing self.row_shape is (R1,)...
-        xshp = tuple(x.shape)
         rshp = self.row_shape()
         if T:
             # C1 C2 R1 -> R1 C1 C2
@@ -435,15 +432,17 @@ if 0: # needs to be brought up to date with LinearTransform method names
                 rval.extend(t.params())
             return rval
         def _lmul(self, x, T):
-            results = [t._lmul(x, T)]
-            return tensor.add(*results)
+            raise NotImplementedError()
+            #results = [t._lmul(x, T)]
+            #return tensor.add(*results)
         def _row_shape(self):
             return self.terms[0].col_shape()
         def _col_shape(self):
             return self.terms[0].row_shape()
         def print_status(self):
-            for t in terms:
-                t.print_status()
+            raise NotImplementedError('TODO: fix old broken implementation')
+            #for t in terms:
+            #    t.print_status()
         def _tile_columns(self):
             raise NotImplementedError('TODO')
 

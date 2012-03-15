@@ -21,6 +21,6 @@ class LinearMixin(object):
         if len(gzlist) > 1:
             raise NotImplementedError()
         g_input0 = self.transpose(gzlist[0], *inputs[1:])
-        return [g_inputs0] + self.grads_1_to_n(inputs, gzlist)
+        return [g_input0] + self.grads_1_to_n(inputs, gzlist)
 
 

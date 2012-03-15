@@ -237,7 +237,7 @@ def max_pool(images, imgshp, maxpoolshp):
                    Assumed to be of shape batch_size x img_size
     @param imgshp: tuple containing image dimensions
     @param maxpoolshp: tuple containing shape of area to max pool over
-    
+
     @output out1: symbolic result (2D tensor)
     @output out2: logical shape of the output
     """
@@ -258,7 +258,7 @@ def max_pool(images, imgshp, maxpoolshp):
     print 'imgshp = ', imgshp
     print 'maxpoolshp = ', maxpoolshp
     print 'outshp = ', outshp
-    
+
     # build sparse matrix, then generate stack of image patches
     csc = theano.sparse.CSM(sptype)(N.ones(indices.size), indices, indptr, spmat_shape)
     patches = sparse.structured_dot(csc, images.T).T
@@ -268,38 +268,39 @@ def max_pool(images, imgshp, maxpoolshp):
                           tensor.as_tensor(imgshp[0]),
                           tensor.as_tensor(poolsize))
     patch_stack = tensor.reshape(patches, pshape, ndim=3);
- 
+
     out1 = tensor.max(patch_stack, axis=2)
 
     pshape = tensor.stack(images.shape[0],
                           tensor.as_tensor(N.prod(outshp)),
                           tensor.as_tensor(imgshp[0]))
     out2 = tensor.reshape(out1, pshape, ndim=3);
-    
+
     out3 = tensor.DimShuffle((False,)*3, (0,2,1))(out2)
-    
+
     return tensor.flatten(out3,2), outshp
 class ConvolutionIndices(Op):
     """This generates a sparse matrix M, which generates a stack of image patches
        when computing the dot product of M with image patch. Convolution is then
        simply the dot product of (img x M) and the kernels.
     """
- 
+
     @staticmethod
     def sparse_eval(inshp, kshp, nkern, (dx,dy)=(1,1), mode='valid'):
         # STALE
         return convolution_indices.evaluate(inshp,kshp,(dx,dy),nkern,mode=mode,ws=False)
-    
+
     @staticmethod
     def conv_eval(IR, IC, KR, KC, C, subsample=(1,1), mode='valid'):
-        return convolution_indices.evaluate(IR, IC, KR, KC, C, (dx,dy), mode=mode, ws=True)
- 
+        raise NotImplementedError('TODO: fix broken method')
+        #return convolution_indices.evaluate(IR, IC, KR, KC, C, (dx,dy), mode=mode, ws=True)
+
     # img_shape and ker_shape are (height,width)
     @staticmethod
     def evaluate(imshp,kshp, (dx,dy)=(1,1), nkern=1, mode='valid', ws=True):
         """Build a sparse matrix which can be used for performing...
         * convolution: in this case, the dot product of this matrix with the input
-          images will generate a stack of images patches. Convolution is then a 
+          images will generate a stack of images patches. Convolution is then a
           tensordot operation of the filters and the patch stack.
         * sparse local connections: in this case, the sparse matrix allows us to operate
           the weight matrix as if it were fully-connected. The structured-dot with the
@@ -307,11 +308,11 @@ class ConvolutionIndices(Op):
 
         @param ker_shape: shape of kernel to apply (smaller than image)
         @param img_shape: shape of input images
-        @param mode: 'valid' generates output only when kernel and image overlap 
+        @param mode: 'valid' generates output only when kernel and image overlap
             full' full convolution obtained by zero-padding the input
         @param ws: True if weight sharing, false otherwise
         @param (dx,dy): offset parameter. In the case of no weight sharing, gives the
-            pixel offset between two receptive fields. With weight sharing gives the 
+            pixel offset between two receptive fields. With weight sharing gives the
             offset between the top-left pixels of the generated patches
 
         @rtype: tuple(indices, indptr, logical_shape, sp_type, out_img_shp)
@@ -322,15 +323,15 @@ class ConvolutionIndices(Op):
 
         # inshp contains either 2 entries (height,width) or 3 (nfeatures,h,w)
         # in the first case, default nfeatures to 1
-        if N.size(inshp)==2:
-            inshp = (1,)+inshp
+        if N.size(imshp)==2:
+            inshp = (1,)+imshp
 
-        inshp = N.array(inshp)
+        inshp = N.array(imshp)
         kshp  = N.array(kshp)
         ksize = N.prod(kshp)
 
         kern = ksize-1 - N.arange(ksize)
-       
+
         # size of output image if doing proper convolution (mode='full',dx=dy=0)
         # outshp is the actual output shape given the parameters
         fulloutshp = inshp[1:] + kshp - 1
@@ -377,7 +378,7 @@ class ConvolutionIndices(Op):
                 # FOR EACH OUTPUT PIXEL...
                 for oy in N.arange(lbound[0],ubound[0],dy): # loop over output image height
                     for ox in N.arange(lbound[1],ubound[1],dx): # loop over output image width
-                        
+
                         l = 0 # kern[l] is filter value to apply at (oj,oi) for (iy,ix)
 
                         # ... ITERATE OVER INPUT UNITS IN RECEPTIVE FIELD
@@ -387,14 +388,14 @@ class ConvolutionIndices(Op):
                                 # verify if we are still within image boundaries. Equivalent to
                                 # zero-padding of the input image
                                 if all((ky,kx) >= topleft) and all((ky,kx) < botright):
-                                   
+
                                     # convert to "valid" input space coords
                                     # used to determine column index to write to in sparse mat
                                     iy,ix = N.array((ky,kx)) - topleft
                                     # determine raster-index of input pixel...
                                     col = iy*inshp[2]+ix +\
                                           fmapi*N.prod(inshp[1:]) # taking into account multiple input features
-                                    
+
                                     # convert oy,ox values to output space coordinates
                                     (y,x) = (oy,ox) if mode=='full' else (oy,ox) - topleft
                                     (y,x) = N.array([y,x]) / (dy,dx) # taking into account step size
@@ -407,10 +408,10 @@ class ConvolutionIndices(Op):
                                     # will determine the way kernel taps are mapped onto
                                     # the sparse columns (idea of kernel map)
                                     spmat[row + n*outsize, col] = tapi + 1   # n*... only for sparse
-                                    
+
                                     # total number of active taps (used for kmap)
                                     ntaps += 1
-                                
+
                                 tapi += 1 # absolute tap index (total number of taps)
                                 l+=1 # move on to next filter tap l=(l+1)%ksize
 
@@ -452,7 +453,7 @@ class ConvolutionIndices(Op):
         indices, indptr, spmatshp, outshp = self.evaluate(inshp, kshp)
         out_indices[0] = indices
         out_indptr[0] = indptr
-        spmat_shape[0] = N.asarray(spmatshp)
+        spmat_shape[0] = numpy.asarray(spmatshp)
 
 convolution_indices = ConvolutionIndices()
 
@@ -462,27 +463,27 @@ def applySparseFilter(kerns, kshp, nkern, images, imgshp, step=(1,1), bias=None,
     "images" is assumed to be a matrix of shape batch_size x img_size, where the second
     dimension represents each image in raster order
 
-    Output feature map will have shape: 
+    Output feature map will have shape:
        batch_size x number of kernels * output_size
-    IMPORTANT: note that this means that each feature map is contiguous in memory. 
+    IMPORTANT: note that this means that each feature map is contiguous in memory.
                The memory layout will therefore be:
                [ <feature_map_0> <feature_map_1> ... <feature_map_n>],
                where <feature_map> represents a "feature map" in raster order
     Note that the concept of feature map doesn't really apply to sparse filters without
-    weight sharing. Basically, nkern=1 will generate one output img/feature map, 
+    weight sharing. Basically, nkern=1 will generate one output img/feature map,
     nkern=2 a second feature map, etc.
-    
+
     kerns is a 1D tensor, and assume to be of shape:
        nkern * N.prod(outshp) x N.prod(kshp)
     Each filter is applied seperately to consecutive output pixels.
 
     @param kerns: nkern*outsize*ksize vector containing kernels
     @param kshp: tuple containing actual dimensions of kernel (not symbolic)
-    @param nkern: number of kernels to apply at each pixel in the input image. 
-                  nkern=1 will apply a single unique filter for each input pixel. 
+    @param nkern: number of kernels to apply at each pixel in the input image.
+                  nkern=1 will apply a single unique filter for each input pixel.
     @param images: bsize x imgsize matrix containing images on which to apply filters
     @param imgshp: tuple containing actual image dimensions (not symbolic)
-    @param step: determines number of pixels between adjacent receptive fields 
+    @param step: determines number of pixels between adjacent receptive fields
                  (tuple containing dx,dy values)
     @param mode: 'full', 'valid' see CSM.evaluate function for details
     @output out1: symbolic result
@@ -504,7 +505,7 @@ def applySparseFilter(kerns, kshp, nkern, images, imgshp, step=(1,1), bias=None,
     output =  sparse.structured_dot(sparsew, images.T).T
     if bias is not None:
         output += bias
-    
+
     return output, numpy.hstack((nkern,outshp))
 
 

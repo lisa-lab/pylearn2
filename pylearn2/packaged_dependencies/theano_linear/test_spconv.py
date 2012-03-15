@@ -15,10 +15,11 @@ if 0:
 
     import unittest
     import time
+    sp = None
 
     def test_convolution():
         print '\n\n*************************************************'
-        print '           TEST CONVOLUTION' 
+        print '           TEST CONVOLUTION'
         print '*************************************************'
 
         # fixed parameters
@@ -110,7 +111,7 @@ if 0:
     def test_sparse():
 
         print '\n\n*************************************************'
-        print '           TEST SPARSE' 
+        print '           TEST SPARSE'
         print '*************************************************'
 
         # fixed parameters
@@ -120,7 +121,7 @@ if 0:
         nkern = 1 # per output pixel
         ssizes = ((1,1),(2,2))
         convmodes = ('full','valid',)
-       
+
         # symbolic stuff
         bias = T.dvector()
         kerns = T.dvector()
@@ -128,7 +129,7 @@ if 0:
         rng = N.random.RandomState(3423489)
 
         import theano.gof as gof
-        #Mode(optimizer='fast_run', linker=gof.OpWiseCLinker(allow_gc=False)),): 
+        #Mode(optimizer='fast_run', linker=gof.OpWiseCLinker(allow_gc=False)),):
         ntot, ttot = 0,0
         for conv_mode in convmodes:
             for ss in ssizes:
@@ -200,18 +201,18 @@ if 0:
 
         images = T.dmatrix()
         for maxpoolshp in maxpoolshps:
-            
+
             # symbolic stuff
             output, outshp = sp.max_pool(images, imval.shape[1:], maxpoolshp)
             f = function([images,],[output,])
             output_val = f(imval.reshape(imval.shape[0],-1))
-            
+
             # numeric verification
             my_output_val = N.zeros((imval.shape[0], imval.shape[1],
                                      imval.shape[2]/maxpoolshp[0],
                                      imval.shape[3]/maxpoolshp[1]))
             assert N.prod(my_output_val.shape[1:]) == N.prod(N.r_[imval.shape[1],outshp])
-            
+
             for n in range(imval.shape[0]):
                 for k in range(imval.shape[1]):
                     for i in range(imval.shape[2]/maxpoolshp[0]):
