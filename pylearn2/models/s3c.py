@@ -1605,6 +1605,8 @@ class E_Step(object):
         count = 2
 
         for new_H_coeff, new_S_coeff in zip(self.h_new_coeff_schedule, self.s_new_coeff_schedule):
+            new_H_coeff = as_floatX(new_H_coeff)
+            new_S_coeff = as_floatX(new_S_coeff)
 
             new_S_hat = self.infer_S_hat(V, H_hat, S_hat)
             assert new_S_hat.type.dtype == config.floatX
@@ -1614,6 +1616,8 @@ class E_Step(object):
             else:
                 clipped_S_hat = new_S_hat
             assert clipped_S_hat.dtype == config.floatX
+            assert S_hat.type.dtype == config.floatX
+            assert new_S_coeff.dtype == config.floatX
             S_hat = damp(old = S_hat, new = clipped_S_hat, new_coeff = new_S_coeff)
             assert  S_hat.type.dtype == config.floatX
             new_H = self.infer_H_hat(V, H_hat, S_hat, count)
