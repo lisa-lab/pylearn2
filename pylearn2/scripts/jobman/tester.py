@@ -24,8 +24,7 @@ def result_extractor(train_obj):
 
     The returned dictionary will be saved in state.results
     """
-    channels = train_obj.model.monitor.channels[
-            'sgd_cost(UnsupervisedExhaustiveSGD[X])']
+    channels = train_obj.model.monitor.channels['sgd_cost(SGD[X])']
     # This function returns the reconstruction_error and the bach numbers for
     # Contractive Auto-Encoder
     return dict(
@@ -53,7 +52,7 @@ if __name__ == '__main__':
             "act_enc": "sigmoid", #for some reason only sigmoid function works
             "act_dec": "sigmoid",
         },
-        "algorithm": !obj:pylearn2.training_algorithms.sgd.UnsupervisedExhaustiveSGD {
+        "algorithm": !obj:pylearn2.training_algorithms.sgd.SGD {
             "learning_rate" : %(learning_rate)f,
             "batch_size" : %(batch_size)d,
             "monitoring_batches" : 5,
