@@ -1,54 +1,84 @@
-# Standard library imports
-import argparse
-import datetime
-import gc
-import os
-import warnings
-
-# Third-party imports
-import numpy as np
-
 # Local imports
 import pylearn2.config.yaml_parse
-from pylearn2.utils import serial
-from pylearn2.monitor import Monitor
 
-from jobman.tools import DD, flatten
 import jobman
+from jobman.tools import expand, flatten
 
 
-def experimentModel(state, channel):
+class ydict(dict):
+    '''
+    YAML-friendly subclass of dictionary.
+
+    The special key "__builder__" is interpreted as the name of an object
+    constructor.
+
+    For instance, building a ydict from the following dictionary:
+
+        {
+            '__builder__': 'pylearn2.training_algorithms.sgd.EpochCounter',
+            'max_epochs': 2
+        }
+
+    Will be displayed like:
+
+        !obj:pylearn2.training_algorithms.sgd.EpochCounter {'max_epochs': 2}
+    '''
+    def __str__(self):
+        args_dict = dict(self)
+        builder = args_dict.pop('__builder__', '')
+        ret_list = []
+        if builder:
+            ret_list.append('!obj:%s {' % builder)
+        else:
+            ret_list.append('{')
+
+        for key, val in args_dict.iteritems():
+            # This will call str() on keys and values, not repr(), so unicode
+            # objects will have the form 'blah', not "u'blah'".
+            ret_list.append('%s: %s,' % (key, val))
+
+        ret_list.append('}')
+        return '\n'.join(ret_list)
+
+
+def train_experiment(state, channel):
     """
-    This function takes the state as an input and run the code in state.extract_results 
-    on the model that is composed of (state.yaml_template and hyper_parameters). To know how to
-    use this function, check the example in tester.py which can be found at the same directory of this file.
+    Train a model specified in state, and extract required results.
+
+    This function builds a YAML string from ``state.yaml_template``, taking
+    the values of hyper-parameters from ``state.hyper_parameters``, creates
+    the corresponding object and trains it (like train.py), then run the
+    function in ``state.extract_results`` on it, and store the returned values
+    into ``state.results``.
+
+    To know how to use this function, you can check the example in tester.py
+    (in the same directory).
     """
     yaml_template = state.yaml_template
-    hyper_parameters = state.hyper_parameters
-    #This will be the complete yaml file that should be executed
+
+    # Convert nested DD into nested ydict.
+    hyper_parameters = expand(flatten(state.hyper_parameters), dict_type=ydict)
+
+    # This will be the complete yaml string that should be executed
     final_yaml_str = yaml_template % hyper_parameters
 
-    varname = "PYLEARN2_TRAIN_FILE_NAME"
-    config_file_name = "abc"
-    # this makes it available to other sections of code in this same script
-    os.environ[varname] = config_file_name
-    print config_file_name
-    # this make it available to any subprocesses we launch
-    os.putenv(varname, config_file_name)
+    # Instantiate an object from YAML string
     train_obj = pylearn2.config.yaml_parse.load(final_yaml_str)
 
     try:
         iter(train_obj)
         iterable = True
-    except TypeError as e:
+    except TypeError:
         iterable = False
     if iterable:
-        print '''Current implementation does not support running multiple models in one yaml file
-        Please change the yam template and parameters to contain only one single model '''
+        raise NotImplementedError(
+                ('Current implementation does not support running multiple '
+                 'models in one yaml string.  Please change the yaml template '
+                 'and parameters to contain only one single model.'))
     else:
-        print "Executing the model."
-        train_obj.main_loop()        
-        #This line will call a function defined by the user and pass train_obj to it.
-        #import pdb;pdb.set_trace()
+        # print "Executing the model."
+        train_obj.main_loop()
+        # This line will call a function defined by the user and pass train_obj
+        # to it.
         state.results = jobman.tools.resolve(state.extract_results)(train_obj)
         return channel.COMPLETE
