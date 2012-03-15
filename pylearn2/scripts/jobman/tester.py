@@ -24,26 +24,28 @@ def result_extractor(train_obj):
 
     The returned dictionary will be saved in state.results
     """
-    channels = train_obj.model.monitor.channels['sgd_cost(SGD[X])']
-    # This function returns the reconstruction_error and the bach numbers for
-    # Contractive Auto-Encoder
+    import numpy
+
+    channels = train_obj.model.monitor.channels
+    train_cost = channels['sgd_cost(ExhaustiveSGD[X])']
+    best_epoch = numpy.argmin(train_cost.val_record)
+    best_rec_error = train_cost.val_record[best_epoch]
+    batch_num = train_cost.batch_record[best_epoch]
     return dict(
-            reconstruction_error=channels.val_record,
-            batch_num=channels.batch_record)
+            best_epoch=best_epoch,
+            train_rec_error=best_rec_error,
+            batch_num=batch_num)
 
 
 if __name__ == '__main__':
-    TABLE_NAME = 'test_jobman_pylearn2'
-    db = api0.open_db(
-            'postgres://almouslh@gershwin.iro.umontreal.ca/almouslh_db?table='
-            + TABLE_NAME)
+    db = api0.open_db('sqlite:///test.db?table=test_jobman_pylearn2')
 
     state = DD()
 
     state.yaml_template = '''
         !obj:pylearn2.scripts.train.Train {
         "dataset": !obj:pylearn2.datasets.npy_npz.NpyDataset &dataset {
-            "file" : "%(file)s" # Should be an N x 300 matrix on disk.
+            "file" : "%(file)s"
         },
         "model": !obj:pylearn2.autoencoder.ContractiveAutoencoder {
             "nvis" : %(nvis)d,
@@ -52,7 +54,7 @@ if __name__ == '__main__':
             "act_enc": "sigmoid", #for some reason only sigmoid function works
             "act_dec": "sigmoid",
         },
-        "algorithm": !obj:pylearn2.training_algorithms.sgd.SGD {
+        "algorithm": !obj:pylearn2.training_algorithms.sgd.ExhaustiveSGD {
             "learning_rate" : %(learning_rate)f,
             "batch_size" : %(batch_size)d,
             "monitoring_batches" : 5,
@@ -72,8 +74,8 @@ if __name__ == '__main__':
     '''
 
     state.hyper_parameters = {
-            "file": "/u/almouslh/Documents/UTLCChallenge/Version23Feb/ift6266h12/ift6266h12/experiments/sylvester/cae/layers/npy/sylvester_train_pca8.npy",
-            "nvis": 8,
+            "file": "${PYLEARN2_DATA_PATH}/UTLC/pca/sylvester_train_x_pca32.npy",
+            "nvis": 32,
             "nhid": 6,
             "learning_rate": 0.1,
             "batch_size": 10,
