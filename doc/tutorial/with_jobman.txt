@@ -4,7 +4,7 @@
 Using jobman with Pylearn2
 ===========================
 
-Jobman (http://deeplearning.net/software/jobman) enables you to store
+`Jobman`_ enables you to store
 experiments, their original hyper-parameters, and some results, in a
 database. It is useful, for instance, to schedule experiments to be
 launched later, launch them (for instance, use a cluster to launch them
@@ -24,15 +24,17 @@ Bases of Jobman
 * state dictionary, linked with the DB
 * experiment function, exp(state, channel)
 
-See Jobman doc.
+See `Jobman documentation <Jobman>`_ for installation instructions, and
+information on how to use it.
 
+.. _Jobman: http://deeplearning.net/software/jobman
 
 pylearn2/jobman interface
 =========================
 
-Such an `experiment` function is in Pylearn2
-(pylearn2/scripts/jobman/experiment.py), and will use a
-specially-crafted `state` dictionary, that specifies:
+Such an ``experiment`` function is in Pylearn2
+:file:`pylearn2/scripts/jobman/experiment.py`, and will use a
+specially-crafted ``state`` dictionary, that specifies:
 
 * which experiment (model, trainer, and so on) to instanciate;
 
@@ -83,8 +85,6 @@ dictionary (``state["some_attr"]``) or as attributes of an object
 
         "termination_criterion": %(term_crit_builder)s %(term_crit_args)s
 
-    TODO: another syntax even more adapted to YAML
-
     The identifier inside the parentheses is the *name* you give to your
     hyper-parameter, the letter afterwards identifies its type (here,
     "s" for string, "d" for decimal number, every type can usually be
@@ -125,9 +125,35 @@ dictionary (``state["some_attr"]``) or as attributes of an object
             "learning_rate": 1e-4,
             [...]
             "termination_criterion": !obj:pylearn2.training_algorithms.sgd.EpochCounter {
-                "max_epochs": 2,
+                max_epochs: 2,
             },
         }
+
+    You can achieve the same effect by specifying only one place-holder
+    for a complete YAML object. If your template is:
+
+    .. code-block:: python
+
+        { "termination_criterion": %(term_crit)s }
+
+    and you have, in state.term_crit:
+
+    .. code-block:: python
+
+        {
+            '__builder__': 'pylearn2.training_algorithms.sgd.EpochCounter',
+            'max_epochs': 2
+        }
+
+    The special key ``'__builder__'`` will be used as the constructor
+    function of the object to build, which will result in the same final
+    YAML string:
+
+    .. code-block:: yaml
+
+        { "termination_criterion": !obj:pylearn2.training_algorithms.sgd.EpochCounter {
+                max_epochs: 2,
+            } }
 
     When that YAML string gets generated, it will be parsed to build a
     ``train_object``, that will be trained (``train_object.main_loop()``
@@ -216,4 +242,24 @@ pylearn2/scripts/jobman/experiment.py
 train_experiment
 ++++++++++++++++
 
-TODO: What's really happening inside of the train_experiment function.
+Here is an outline of what is really happening inside the
+train_experiment function.
+
+* The ``state.hyper_parameters`` dictionary is converted to a
+  YAML-friendly sub-class of dict.
+
+* Place-holders in ``state.yaml_template`` are replaced by the values
+  contained in ``state.hyper_parameters``, to create a YAML string.
+
+* That string is passed to ``pylearn2.config.yaml_parse.load``, and
+  a ``train_obj`` object is returned.
+
+* ``train_obj.main_loop()`` is called.
+
+* The function whose name is specified in ``state.extract_results`` is
+  imported, then called on ``train_obj``, returning a results dictionary.
+
+* That dictionary is affected to ``state.results``
+
+* The function exits, ``state`` gets synchronized with the database,
+  and the working directory gets rsync'ed.
