@@ -67,7 +67,7 @@ if __name__ == '__main__':
                     coefficient: %(coefficient)f
                 }
             ],
-            "termination_criterion" : %(term_crit_builder)s %(term_crit_args)s,
+            "termination_criterion" : %(term_crit)s,
         }
     }
     '''
@@ -79,9 +79,8 @@ if __name__ == '__main__':
             "learning_rate": 0.1,
             "batch_size": 10,
             "coefficient": 0.5,
-            "term_crit_builder":
-                "!obj:pylearn2.training_algorithms.sgd.EpochCounter",
-            "term_crit_args": {
+            "term_crit": {
+                "__builder__": "pylearn2.training_algorithms.sgd.EpochCounter",
                 "max_epochs": 2
                 }
             }
