@@ -394,12 +394,13 @@ class DBM(Model):
 
         #return V_sample
 
-    def expected_energy(self, V_hat, H_hat):
+    def expected_energy(self, V_hat, H_hat, no_v_bias = False):
         """ expected energy of the model under the mean field distribution
             defined by V_hat and H_hat
             alternately, could be expectation of the energy function across
             a batch of examples, where every element of V_hat and H_hat is
             a binary observation
+            if no_v_bias is True, ignores the contribution from biases on visible units
         """
 
 
@@ -417,7 +418,10 @@ class DBM(Model):
 
         v = T.mean(V_hat, axis=0)
 
-        v_bias_contrib = T.dot(v, self.bias_vis)
+        if no_v_bias:
+            v_bias_contrib = 0.
+        else:
+            v_bias_contrib = T.dot(v, self.bias_vis)
 
         exp_vh = T.dot(V_hat.T,H_hat[0]) / m
 
@@ -539,10 +543,11 @@ class InferenceProcedure:
     def register_model(self, model):
         self.model = model
 
-    def truncated_KL(self, V, obs):
+    def truncated_KL(self, V, obs, no_v_bias = False):
         """ KL divergence between variation and true posterior, dropping terms that don't
             depend on the variational parameters
 
+            if no_v_bias is True, ignores the contribution of the visible biases to the expected energy
             """
 
         """
@@ -561,7 +566,7 @@ class InferenceProcedure:
 
         entropy_term = - (self.model.entropy_h(H_hat = H_hat)).mean()
         assert len(entropy_term.type.broadcastable) == 0
-        energy_term = self.model.expected_energy(V_hat = V, H_hat = H_hat)
+        energy_term = self.model.expected_energy(V_hat = V, H_hat = H_hat, no_v_bias = no_v_bias)
         assert len(energy_term.type.broadcastable) == 0
 
         warnings.warn("""TODO: dbm.inference_procedure.truncated_KL does not match
