@@ -20,18 +20,24 @@ from pylearn2.scripts.jobman import experiment
 
 def result_extractor(train_obj):
     """
-    This is a user specific functioni that is used by jobmman to extract results such that the returned dictionary will
-    be saved in state.results
-    """   
-    import numpy
-    channels = train_obj.model.monitor.channels['sgd_cost(UnsupervisedExhaustiveSGD[X])']    
-    #This function returns the reconstruction_error and the bach numbers for CAE
-    return dict(reconstruction_error= channels.val_record , batch_num= channels.batch_record)
+    This is a user specific function, that is used by jobman to extract results
+
+    The returned dictionary will be saved in state.results
+    """
+    channels = train_obj.model.monitor.channels[
+            'sgd_cost(UnsupervisedExhaustiveSGD[X])']
+    # This function returns the reconstruction_error and the bach numbers for
+    # Contractive Auto-Encoder
+    return dict(
+            reconstruction_error=channels.val_record,
+            batch_num=channels.batch_record)
 
 
 if __name__ == '__main__':
     TABLE_NAME = 'test_jobman_pylearn2'
-    db = api0.open_db('postgres://almouslh@gershwin.iro.umontreal.ca/almouslh_db?table='+TABLE_NAME)
+    db = api0.open_db(
+            'postgres://almouslh@gershwin.iro.umontreal.ca/almouslh_db?table='
+            + TABLE_NAME)
 
     state = DD()
 
@@ -52,12 +58,15 @@ if __name__ == '__main__':
             "batch_size" : %(batch_size)d,
             "monitoring_batches" : 5,
             "monitoring_dataset" : *dataset,
-            "cost" : [!obj:pylearn2.costs.autoencoder.MeanSquaredReconstructionError {},
-            !obj:pylearn2.costs.autoencoder.ScaleBy {
-              cost: !obj:pylearn2.costs.autoencoder.ModelMethodPenalty {
-                method_name: contraction_penalty
+            "cost" : [
+                !obj:pylearn2.costs.autoencoder.MeanSquaredReconstructionError {},
+                !obj:pylearn2.costs.autoencoder.ScaleBy {
+                    cost: !obj:pylearn2.costs.autoencoder.ModelMethodPenalty {
+                        method_name: contraction_penalty
                     },
-                    coefficient: %(coefficient)f } ],
+                    coefficient: %(coefficient)f
+                }
+            ],
             "termination_criterion" : %(term_crit_builder)s %(term_crit_args)s,
         }
     }
@@ -70,7 +79,8 @@ if __name__ == '__main__':
             "learning_rate": 0.1,
             "batch_size": 10,
             "coefficient": 0.5,
-            "term_crit_builder": "!obj:pylearn2.training_algorithms.sgd.EpochCounter",
+            "term_crit_builder":
+                "!obj:pylearn2.training_algorithms.sgd.EpochCounter",
             "term_crit_args": {
                 "max_epochs": 2
                 }
@@ -78,4 +88,8 @@ if __name__ == '__main__':
 
     state.extract_results = "pylearn2.scripts.jobman.tester.result_extractor"
 
-    sql.insert_job(experiment.train_experiment, flatten(state), db, force_dup=True)
+    sql.insert_job(
+            experiment.train_experiment,
+            flatten(state),
+            db,
+            force_dup=True)
