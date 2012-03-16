@@ -286,6 +286,19 @@ class DenseDesignMatrix(Dataset):
         """
         return self._apply_holdout("random_slice", train_size, train_prop)
 
+    def merge_datasets(self, datasets):
+        """
+        Merge the current dataset with the datasets passed to the function
+        
+        Parameters
+        ----------
+        datasets: list of DenseDesignMatrix
+        ddm's to be merged.
+        """
+        for dataset in datasets:
+            self.X += dataset.X
+            self.y += dataset.Y
+
     def get_stream_position(self):
         """
         If we view the dataset as providing a stream of random examples to
