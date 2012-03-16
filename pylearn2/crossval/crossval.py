@@ -75,7 +75,7 @@ class CrossValidation(object):
                 raise
 
 
-    def validate_model(self, validation_dataset):
+    def crossvalidate_model(self, validation_dataset):
         """
         The function to validate the model.
         """
@@ -94,7 +94,7 @@ class KFoldCrossValidation(CrossValidation):
         super(KFoldCrossValidation, self).__init__(model, algorithm, dataset,
             callbacks, dataset)
 
-    def validate_model(self, validation_dataset, nfolds = -1):
+    def crossvalidate_model(self, validation_dataset, nfolds = -1):
         if nfolds is -1:
             datasets = validation_dataset.split_dataset_nfolds(self.nfolds)
         else:
@@ -102,14 +102,18 @@ class KFoldCrossValidation(CrossValidation):
         for i in xrange(nfolds):
             tmp_datasets = copy.copy(datasets) # Create a shallow copy
             test_data = tmp_datasets.pop(i)
-        
+            if len(tmp_datasets) >= 1:
+                training_data = tmp_datasets.pop()
+                training_data.merge_datasets(tmp_datasets)
+            self.train_model(training_data)
+
     def get_error(self):
         return self.error
 
 class HoldoutCrossValidation(CrossValidation):
 
     def __init__(self, model=None, algorithm=None, dataset=None,
-            callbacks = None, split_size, split_prop):
+            callbacks = None, split_size = 0, split_prop = 0):
         self.error = 0
         self.split_size = split_size
         self.split_prop = split_prop
@@ -117,8 +121,8 @@ class HoldoutCrossValidation(CrossValidation):
         super(HoldoutCrossValidation, self).__init__(model, algorithm, dataset,
             callbacks, dataset)
 
-    def validate_model(self, validation_dataset):
-        
+    def crossvalidate_model(self, validation_dataset):
+        pass
 
     def get_error(self):
         return self.error
