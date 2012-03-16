@@ -2,6 +2,8 @@ from theano.tensor.nnet.conv import conv2d, ConvOp
 
 from .imaging import tile_slices_to_image, most_square_shape
 from .linear import LinearTransform
+import numpy
+from theano import tensor
 
 def tile_conv_weights(w, flip=False, scale_each=False):
     """
@@ -102,7 +104,8 @@ class Conv2d(LinearTransform):
                 **kwargs)
 
     def print_status(self):
-        print ndarray_status(
-                self._filters.get_value(borrow=True),
-                msg='Conv2d{%s}'%self._message)
+        raise NotImplementedError('TODO fix broken method')
+        #print ndarray_status(
+        #        self._filters.get_value(borrow=True),
+        #        msg='Conv2d{%s}'%self._message)
 

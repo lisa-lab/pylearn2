@@ -323,8 +323,16 @@ class RBM(Block, Model):
             raise TypeError("Can't describe "+str(type(self.vis_space))+" as a dimensionality number.")
         return self.vis_space.dim
 
+    def get_output_dim(self):
+        if not isinstance(self.hid_space, VectorSpace):
+            raise TypeError("Can't describe "+str(type(self.hid_space))+" as a dimensionality number.")
+        return self.hid_space.dim
+
     def get_input_space(self):
         return self.vis_space
+
+    def get_output_space(self):
+        return self.hid_space
 
     def get_params(self):
         return [param for param in self._params]

@@ -240,9 +240,6 @@ class Test_S3C_Inference:
         new_H = e_step.infer_H_hat(V = X, H_hat = H_var, S_hat = Mu1_var)
         h_idx = new_H[:,idx]
 
-        h_idx = T.clip(h_idx, 0., 1.)
-
-
         updates_func = function([H_var,Mu1_var,idx], h_idx)
 
         sigma0 = 1. / model.alpha
