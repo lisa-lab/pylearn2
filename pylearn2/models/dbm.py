@@ -331,6 +331,8 @@ class DBM(Model):
         for param, grad in zip(params, grads):
             rval[param] = grad
 
+        assert self.bias_vis in rval
+
         return rval
 
 
@@ -423,9 +425,11 @@ class DBM(Model):
         else:
             v_bias_contrib = T.dot(v, self.bias_vis)
 
-        exp_vh = T.dot(V_hat.T,H_hat[0]) / m
+        #exp_vh = T.dot(V_hat.T,H_hat[0]) / m
 
-        v_weights_contrib = T.sum(self.W[0] * exp_vh)
+        #v_weights_contrib = T.sum(self.W[0] * exp_vh)
+
+        v_weights_contrib = (T.dot(V_hat, self.W[0]) * H_hat).sum(axis=0).mean()
 
         v_weights_contrib.name = 'v_weights_contrib('+V_name+','+H_names[0]+')'
 
@@ -435,13 +439,14 @@ class DBM(Model):
             lower_H = H_hat[i]
             low = T.mean(lower_H, axis = 0)
             higher_H = H_hat[i+1]
-            exp_lh = T.dot(lower_H.T, higher_H) / m
+            #exp_lh = T.dot(lower_H.T, higher_H) / m
             lower_bias = self.bias_hid[i]
             W = self.W[i+1]
 
             lower_bias_contrib = T.dot(low, lower_bias)
 
-            weights_contrib = T.sum( W * exp_lh) / m
+            #weights_contrib = T.sum( W * exp_lh) / m
+            weights_contrib = (T.dot(lower_H, W) * higher_H).sum(axis=0).mean()
 
             total = total + lower_bias_contrib + weights_contrib
 
