@@ -25,6 +25,7 @@ from pylearn2.models.s3c import theano_norms
 from pylearn2.models.s3c import full_min
 from pylearn2.models.s3c import full_max
 from theano.printing import min_informative_str
+from theano.printing import Print
 
 warnings.warn("""
 TODO/NOTES
@@ -35,10 +36,18 @@ each round of negative phase sampling should start by sampling the topmost
 layer, then sampling downward from there
 """)
 
+class Sampler:
+    def __init__(self, theano_rng):
+        self.theano_rng = theano_rng
+
+    def __call__(self, P):
+        return self.theano_rng.binomial(size = P.shape, n = 1, p = P, dtype = P.dtype)
+
 class DBM(Model):
 
     def __init__(self, rbms,
-                        negative_chains,
+                    use_cd = False,
+                        negative_chains = 0,
                        inference_procedure = None,
                        monitor_params = False,
                        print_interval = 10000):
@@ -60,6 +69,13 @@ class DBM(Model):
         """
 
         self.monitor_params = monitor_params
+
+        self.use_cd = use_cd
+
+        if use_cd:
+            assert negative_chains == 0
+        else:
+            assert negative_chains > 0
 
         warnings.warn("""The DBM class is still under development, and currently mostly
                 only supports use as a component of a larger model that remains
@@ -88,7 +104,11 @@ class DBM(Model):
         self.print_interval = print_interval
 
         #copy parameters from RBM to DBM, ignoring bias_hid of all but last RBM
-        self.W = [ rbm.weights for rbm in self.rbms]
+        self.W = []
+        for rbm in self.rbms:
+            weights ,= rbm.transformer.get_params()
+            self.W.append( weights )
+
         for i, W in enumerate(self.W):
             W.name = 'dbm_W[%d]' % (i,)
         self.bias_vis = rbms[0].bias_vis
@@ -100,7 +120,6 @@ class DBM(Model):
         self.reset_rng()
 
         self.redo_everything()
-
 
     def reset_rng(self):
         self.rng = np.random.RandomState([1,2,3])
@@ -116,9 +135,10 @@ class DBM(Model):
             self.redo_theano()
 
         #make the negative chains
-        self.V_chains = self.make_chains(self.bias_vis)
+        if not self.use_cd:
+            self.V_chains = self.make_chains(self.bias_vis)
 
-        self.H_chains = [ self.make_chains(bias_hid) for bias_hid in self.bias_hid ]
+            self.H_chains = [ self.make_chains(bias_hid) for bias_hid in self.bias_hid ]
 
 
     def make_chains(self, bias):
@@ -128,6 +148,8 @@ class DBM(Model):
             for now units are initialized randomly based on their
             biases only
             """
+
+        assert not self.use_cd
 
         b = bias.get_value(borrow=True)
 
@@ -205,14 +227,15 @@ class DBM(Model):
 
     def get_sampling_updates(self):
 
+
+        assert not self.use_cd
+
         ip = self.inference_procedure
 
         rval = {}
 
-        theano_rng = RandomStreams(17)
+        sample_from = Sampler(RandomStreams(17))
 
-        def sample_from(P):
-            return theano_rng.binomial(size = P.shape, n = 1, p = P, dtype = P.dtype)
 
         #sample the visible units
         V_prob = ip.infer_H_hat_one_sided(other_H_hat = self.H_chains[0],
@@ -252,14 +275,52 @@ class DBM(Model):
 
         return rval
 
+
+    def get_cd_neg_phase_grads(self, V, H_hat):
+
+        assert self.use_cd
+        assert not hasattr(self, 'V_chains')
+
+        assert len(H_hat) == len(self.rbms)
+
+        sample_from = Sampler(RandomStreams(17))
+
+        H_samples = []
+
+        for H_hat_elem in H_hat:
+            H_samples.append(sample_from(H_hat_elem))
+
+        ip = self.inference_procedure
+
+        for i in xrange(len(H_hat)-1,-1,-1):
+
+            if i > 0:
+                P = ip.infer_H_hat_two_sided(H_hat_below = H_samples[i-1], H_hat_above = H_samples[i+1],
+                        W_below = self.W[i], W_above = self.W[i+1], b = self.bias_hid[i])
+                H_samples[i] = sample_from(P)
+
+        if len(H_hat) > 1:
+            H_hat[0] = sample_from(ip.infer_H_hat_two_sided(H_hat_below = V, H_hat_above = H_samples[1],
+                    W_below = self.W[0], W_above = self.W[1], b = self.bias_hid[0]))
+
+        V_sample = sample_from(ip.infer_H_hat_one_sided(other_H_hat = H_hat[0], W = self.W[0].T, b = self.bias_vis))
+
+        return self.get_neg_phase_grads_from_samples(V_sample, H_samples)
+
     def get_neg_phase_grads(self):
         """ returns a dictionary mapping from parameters to negative phase gradients
             (assuming you're doing gradient ascent on variational free energy)
         """
 
-        obj = self.expected_energy(V_hat = self.V_chains, H_hat = self.H_chains)
+        assert not self.use_cd
 
-        constants = list(set(self.H_chains).union([self.V_chains]))
+        return self.get_neg_phase_grads_from_samples(self.V_chains, self.H_chains)
+
+    def get_neg_phase_grads_from_samples(self, V_sample, H_samples):
+
+        obj = self.expected_energy(V_hat = V_sample, H_hat = H_samples)
+
+        constants = list(set(H_samples).union([V_sample]))
 
         params = self.get_params()
 
@@ -269,6 +330,8 @@ class DBM(Model):
 
         for param, grad in zip(params, grads):
             rval[param] = grad
+
+        assert self.bias_vis in rval
 
         return rval
 
@@ -333,12 +396,13 @@ class DBM(Model):
 
         #return V_sample
 
-    def expected_energy(self, V_hat, H_hat):
+    def expected_energy(self, V_hat, H_hat, no_v_bias = False):
         """ expected energy of the model under the mean field distribution
             defined by V_hat and H_hat
             alternately, could be expectation of the energy function across
             a batch of examples, where every element of V_hat and H_hat is
             a binary observation
+            if no_v_bias is True, ignores the contribution from biases on visible units
         """
 
 
@@ -356,11 +420,16 @@ class DBM(Model):
 
         v = T.mean(V_hat, axis=0)
 
-        v_bias_contrib = T.dot(v, self.bias_vis)
+        if no_v_bias:
+            v_bias_contrib = 0.
+        else:
+            v_bias_contrib = T.dot(v, self.bias_vis)
 
-        exp_vh = T.dot(V_hat.T,H_hat[0]) / m
+        #exp_vh = T.dot(V_hat.T,H_hat[0]) / m
 
-        v_weights_contrib = T.sum(self.W[0] * exp_vh)
+        #v_weights_contrib = T.sum(self.W[0] * exp_vh)
+
+        v_weights_contrib = (T.dot(V_hat, self.W[0]) * H_hat).sum(axis=0).mean()
 
         v_weights_contrib.name = 'v_weights_contrib('+V_name+','+H_names[0]+')'
 
@@ -370,13 +439,14 @@ class DBM(Model):
             lower_H = H_hat[i]
             low = T.mean(lower_H, axis = 0)
             higher_H = H_hat[i+1]
-            exp_lh = T.dot(lower_H.T, higher_H) / m
+            #exp_lh = T.dot(lower_H.T, higher_H) / m
             lower_bias = self.bias_hid[i]
             W = self.W[i+1]
 
             lower_bias_contrib = T.dot(low, lower_bias)
 
-            weights_contrib = T.sum( W * exp_lh) / m
+            #weights_contrib = T.sum( W * exp_lh) / m
+            weights_contrib = (T.dot(lower_H, W) * higher_H).sum(axis=0).mean()
 
             total = total + lower_bias_contrib + weights_contrib
 
@@ -396,9 +466,18 @@ class DBM(Model):
         """ entropy of the hidden layers under the mean field distribution
         defined by H_hat """
 
+        for Hv in get_debug_values(H_hat[0]):
+            assert Hv.min() >= 0.0
+            assert Hv.max() <= 1.0
+
         total = entropy_binary_vector(H_hat[0])
 
         for H in H_hat[1:]:
+
+            for Hv in get_debug_values(H):
+                assert Hv.min() >= 0.0
+                assert Hv.max() <= 1.0
+
             total += entropy_binary_vector(H)
 
         return total
@@ -469,10 +548,11 @@ class InferenceProcedure:
     def register_model(self, model):
         self.model = model
 
-    def truncated_KL(self, V, obs):
+    def truncated_KL(self, V, obs, no_v_bias = False):
         """ KL divergence between variation and true posterior, dropping terms that don't
             depend on the variational parameters
 
+            if no_v_bias is True, ignores the contribution of the visible biases to the expected energy
             """
 
         """
@@ -485,9 +565,13 @@ class InferenceProcedure:
 
         H_hat = obs['H_hat']
 
-        entropy_term = - (self.model.entropy_h(H_hat = obs['H_hat'])).mean()
+        for Hv in get_debug_values(H_hat):
+            assert Hv.min() >= 0.0
+            assert Hv.max() <= 1.0
+
+        entropy_term = - (self.model.entropy_h(H_hat = H_hat)).mean()
         assert len(entropy_term.type.broadcastable) == 0
-        energy_term = self.model.expected_energy(V_hat = V, H_hat = H_hat)
+        energy_term = self.model.expected_energy(V_hat = V, H_hat = H_hat, no_v_bias = no_v_bias)
         assert len(energy_term.type.broadcastable) == 0
 
         warnings.warn("""TODO: dbm.inference_procedure.truncated_KL does not match
@@ -611,7 +695,7 @@ class InferenceProcedure:
         H_hat = []
 
         for b in self.model.bias_hid:
-            value = b
+            value = T.nnet.sigmoid(b)
 
             mat = T.alloc(value, V.shape[0], value.shape[0])
 

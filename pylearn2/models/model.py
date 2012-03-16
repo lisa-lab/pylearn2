@@ -4,6 +4,7 @@ from theano import shared
 import numpy as np
 import warnings
 
+
 class Model(object):
     def train(self, dataset):
         """
@@ -96,13 +97,19 @@ class Model(object):
         respect the specific properties of the models passed to them."""
         pass
 
-
     def get_input_space(self):
         """ Returns an instance of pylearn2.space.Space describing
         the format of the vector space that the model operates oni
         (this is a generalization of get_input_dim) """
 
         return self.input_space
+
+    def get_output_space(self):
+        """ Returns an instance of pylearn2.space.Space describing
+        the format of the vector space that the model outputs
+        (this is a generalization of get_output_dim) """
+
+        return self.output_space
 
     def free_energy(self, V):
         """
@@ -208,6 +215,12 @@ class Model(object):
         Use get_input_space instead """
         raise NotImplementedError()
 
+    def get_output_dim(self):
+        """ Returns the number of visible units of the model.
+        Deprecated; this assumes the model operates on a vector.
+        Use get_input_space instead """
+        raise NotImplementedError()
+
     def __getstate__(self):
         """
         This is the method that pickle/cPickle uses to determine what
@@ -269,7 +282,9 @@ class Model(object):
                 try:
                     obj.set_dtype(dtype)
                 except Exception, e:
-                    warnings.warn("Got an exception while trying to recursively call set_dtype, might be calling it on static instances")
+                    warnings.warn(("Got an exception while trying to "
+                                   "recursively call set_dtype, might be "
+                                   "calling it on static instances"))
 
         for param in self.get_params():
             assert param.type.dtype == dtype

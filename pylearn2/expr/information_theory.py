@@ -12,6 +12,10 @@ def entropy_binary_vector(P):
         X[i,:]
     """
 
+    for Pv in get_debug_values(P):
+        assert Pv.min() >= 0.0
+        assert Pv.max() <= 1.0
+
     oneMinusP = 1.-P
 
     PlogP = xlogx(P)

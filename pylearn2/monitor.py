@@ -5,7 +5,7 @@ from theano import function, shared
 import theano.tensor as T
 import copy
 from pylearn2.config import yaml_parse
-
+from pylearn2.utils.string_utils import number_aware_alphabetical_key
 
 class Monitor(object):
     """
@@ -39,6 +39,7 @@ class Monitor(object):
         #If the model acts on a space with more than the batch index and channel dimension,
         #the model has topological dimensions, so the topological view of the data should be used
         self.topo = len(model.get_input_space().make_theano_batch().type.broadcastable) > 2
+        self.require_label = False
 
     def set_dataset(self, dataset, batches, batch_size):
         """
@@ -75,9 +76,6 @@ class Monitor(object):
 
         model = self.model
 
-        #W = model.W.get_value()
-        #print 'monitoring weights ',':',(W.min(),W.mean(),W.max(),W.shape)
-
         d = self.dataset
 
         if d:
@@ -87,12 +85,16 @@ class Monitor(object):
 
             myiterator = d.iterator(mode='sequential',
                                     batch_size=self.batch_size,
-                                    topo=self.topo)
+                                    topo=self.topo,
+                                    targets = self.require_label)
             self.begin_record_entry()
 
             for X in myiterator:
                 self.run_prereqs(X)
-                self.accum(X)
+                if self.require_label:
+                    self.accum(*X)
+                else:
+                    self.accum(X)
 
 
             # TODO: use logging infrastructure so that user can configure
@@ -100,7 +102,7 @@ class Monitor(object):
             print "Monitoring step:"
             print "\tBatches seen: %d" % self.batches_seen
             print "\tExamples seen: %d" % self.examples_seen
-            for channel_name in sorted(self.channels):
+            for channel_name in sorted(self.channels.keys(), key = number_aware_alphabetical_key):
                 channel = self.channels[channel_name]
                 channel.batch_record.append(self.batches_seen)
                 channel.example_record.append(self.examples_seen)
@@ -156,13 +158,23 @@ class Monitor(object):
         #Get the appropriate kind of theano variable to represent the data the model
         #acts on
         X = self.model.get_input_space().make_theano_batch(name = "monitoring_X")
+        if self.require_label:
+            Y = self.model.get_output_space().make_theano_batch(name = "monitoring_Y")
+
         print 'monitored channels: '+str(self.channels.keys())
         for channel in self.channels.values():
-            givens[channel.graph_input] = X
+            if isinstance(channel.graph_input, (list, tuple)):
+                givens[channel.graph_input[0]] = X
+                givens[channel.graph_input[1]] = Y
+            else:
+                givens[channel.graph_input] = X
             updates[channel.val_shared] = channel.val_shared + channel.val
         print "compiling accum..."
         t1 = time.time()
-        self.accum = function([X], givens=givens, updates=updates)
+        if self.require_label:
+            self.accum = function([X, Y], givens=givens, updates=updates)
+        else:
+            self.accum = function([X], givens=givens, updates=updates)
         t2 = time.time()
         print "graph size: ",len(self.accum.maker.env.toposort())
         print "took "+str(t2-t1)+" seconds"
@@ -230,6 +242,8 @@ class Monitor(object):
         if name in self.channels:
             raise ValueError("Tried to create the same channel twice (%s)" %
                              name)
+        if isinstance(ipt, (list, tuple)):
+            self.require_label = True
         self.channels[name] = MonitorChannel(ipt, val, name, prereqs)
         self.dirty = True
 

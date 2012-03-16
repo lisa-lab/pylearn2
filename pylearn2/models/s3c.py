@@ -660,12 +660,10 @@ class S3C(Model, Block):
 
         term7_subterm1 = T.dot(T.sqr(T.dot(HS, self.W.T)), self.B)
         assert len(term7_subterm1.type.broadcastable) == 1
-        #term7_subterm2 = T.dot(var_HS, self.w)
         term7_subterm2 = - T.dot( T.dot(T.sqr(HS), T.sqr(self.W.T)), self.B)
         term7_subterm3 = T.dot( T.dot(sq_HS, T.sqr(self.W.T)), self.B )
 
-        #v_term_3 = half * (term7_subterm1 + term7_subterm2)
-        v_term_3 = half * (term7_subterm1 + term7_subterm2 + term7_subterm3)
+        v_term_3 = half * (term7_subterm1  + term7_subterm2 + term7_subterm3)
         assert len(v_term_3.type.broadcastable) == 1
 
         v_term = v_term_1 + v_term_2 + v_term_3
@@ -675,6 +673,10 @@ class S3C(Model, Block):
         return rval
 
     def entropy_h(self, H_hat):
+
+        for H_hat_v in get_debug_values(H_hat):
+            assert H_hat_v.min() >= 0.0
+            assert H_hat_v.max() <= 1.0
 
         return entropy_binary_vector(H_hat)
 
@@ -687,6 +689,10 @@ class S3C(Model, Block):
         two = as_floatX(2.)
 
         pi = as_floatX(np.pi)
+
+        for H_hat_v in get_debug_values(H_hat):
+            assert H_hat_v.min() >= 0.0
+            assert H_hat_v.max() <= 1.0
 
         term1_plus_term2 = self.entropy_h(H_hat)
         assert len(term1_plus_term2.type.broadcastable) == 1
@@ -877,7 +883,8 @@ class S3C(Model, Block):
 
         return rval
 
-    def expected_log_prob_vhs_batch(self, V, H_hat, S_hat, var_s0_hat, var_s1_hat):
+
+    def log_partition_function(self):
 
         half = as_floatX(0.5)
         two = as_floatX(2.)
@@ -885,13 +892,23 @@ class S3C(Model, Block):
         N = as_floatX(self.nhid)
 
         #log partition function terms
-        term1 = half * T.sum(T.log(self.B))
-        term2 = - half * N * T.log(two * pi)
-        term3 = half * T.log( self.alpha ).sum()
-        term4 = - half * N * T.log(two*pi)
-        term5 = - T.nnet.softplus(self.bias_hid).sum()
+        term1 = -half * T.sum(T.log(self.B))
+        term2 = half * N * T.log(two * pi)
+        term3 = - half * T.log( self.alpha ).sum()
+        term4 = half * N * T.log(two*pi)
+        term5 = T.nnet.softplus(self.bias_hid).sum()
 
-        negative_log_partition_function = term1 + term2 + term3 + term4 + term5
+        return term1 + term2 + term3 + term4 + term5
+
+
+    def expected_log_prob_vhs_batch(self, V, H_hat, S_hat, var_s0_hat, var_s1_hat):
+
+        half = as_floatX(0.5)
+        two = as_floatX(2.)
+        pi = as_floatX(np.pi)
+        N = as_floatX(self.nhid)
+
+        negative_log_partition_function = - self.log_partition_function()
         assert len(negative_log_partition_function.type.broadcastable) == 0
 
         #energy term
@@ -1201,7 +1218,9 @@ def reflection_clip(S_hat, new_S_hat, rho = 0.5):
     return rval
 
 def damp(old, new, new_coeff):
-    rval =  new_coeff * new + (1. - new_coeff) * old
+
+    rval =  new_coeff * new + (as_floatX(1.) - new_coeff) * old
+
 
     old_name = make_name(old, anon='anon_old')
     new_name = make_name(new, anon='anon_new')
@@ -1352,6 +1371,10 @@ class E_Step(object):
         S_hat = obs['S_hat']
         model = self.model
 
+        for H_hat_v in get_debug_values(H_hat):
+            assert H_hat_v.min() >= 0.0
+            assert H_hat_v.max() <= 1.0
+
         entropy_term = - model.entropy_hs(H_hat = H_hat, var_s0_hat = var_s0_hat, var_s1_hat = var_s1_hat)
         energy_term = model.expected_energy_vhs(V, H_hat = H_hat, S_hat = S_hat,
                                         var_s0_hat = var_s0_hat, var_s1_hat = var_s1_hat)
@@ -1452,9 +1475,13 @@ class E_Step(object):
 
         S_hat =  numer / denom
 
-        assert S_hat.type.dtype ==  config.floatX
 
         return S_hat
+
+
+    def infer_var_s0_hat(self):
+
+        return 1. / self.model.alpha
 
     def infer_var_s1_hat(self):
         """Returns the variational parameter for the variance of s given h=1
@@ -1589,6 +1616,8 @@ class E_Step(object):
         count = 2
 
         for new_H_coeff, new_S_coeff in zip(self.h_new_coeff_schedule, self.s_new_coeff_schedule):
+            new_H_coeff = as_floatX(new_H_coeff)
+            new_S_coeff = as_floatX(new_S_coeff)
 
             new_S_hat = self.infer_S_hat(V, H_hat, S_hat)
             assert new_S_hat.type.dtype == config.floatX
@@ -1598,6 +1627,8 @@ class E_Step(object):
             else:
                 clipped_S_hat = new_S_hat
             assert clipped_S_hat.dtype == config.floatX
+            assert S_hat.type.dtype == config.floatX
+            assert new_S_coeff.dtype == config.floatX
             S_hat = damp(old = S_hat, new = clipped_S_hat, new_coeff = new_S_coeff)
             assert  S_hat.type.dtype == config.floatX
             new_H = self.infer_H_hat(V, H_hat, S_hat, count)
