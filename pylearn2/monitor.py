@@ -15,7 +15,7 @@ class Monitor(object):
     the model has trained, as well as any number of "channels" that track
     quantities of interest (examples: the objective function, measures of
     hidden unit activity, reconstruction error, sum of squared second
-    derivatives,  etc.)
+    derivatives, average norm of the weight vectors,  etc.)
     """
     def __init__(self, model):
         """
