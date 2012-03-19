@@ -1189,6 +1189,18 @@ class S3C(Model, Block):
     def get_weights_format(self):
         return ['v','h']
 
+    def get_weights(self):
+
+        W = self.W.get_value()
+
+        x = raw_input('multiply weights by mu? (y/n) ')
+
+        if x == 'y':
+            return W * self.mu.get_value()
+        elif x == 'n':
+            return W
+        assert False
+
 def reflection_clip(S_hat, new_S_hat, rho = 0.5):
     rho = np.cast[config.floatX](rho)
 
