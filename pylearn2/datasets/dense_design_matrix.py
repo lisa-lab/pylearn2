@@ -190,14 +190,14 @@ class DenseDesignMatrix(Dataset):
                 self.X = None
         else:
             self.__dict__.update(d)
-    
+
     def _apply_holdout(self, _mode="sequential", train_size=0, train_prop=0):
         """
           This function splits the dataset according to the number of
-          train_size if defined by the user with respect to the mode provided 
-          by the user. Otherwise it will use the 
-          train_prop to divide the dataset into a training and holdout 
-          validation set. This function returns the training and validation 
+          train_size if defined by the user with respect to the mode provided
+          by the user. Otherwise it will use the
+          train_prop to divide the dataset into a training and holdout
+          validation set. This function returns the training and validation
           dataset.
 
           Parameters
@@ -210,7 +210,7 @@ class DenseDesignMatrix(Dataset):
         train = None
         valid = None
         if train_size !=0:
-            dataset_iter = self.iterator(mode=_mode, 
+            dataset_iter = self.iterator(mode=_mode,
                     batch_size=(self.num_examples - train_size),
                     num_batches=2)
             train = dataset_iter.next()
@@ -227,7 +227,7 @@ class DenseDesignMatrix(Dataset):
 
     def split_dataset_nfolds(self, nfolds=0):
         """
-          This function splits the dataset into to the number of n folds 
+          This function splits the dataset into to the number of n folds
           given by the user. Returns an array of folds.
 
           Parameters
@@ -242,9 +242,9 @@ class DenseDesignMatrix(Dataset):
     def split_dataset_holdout(self, train_size=0, train_prop=0):
         """
           This function splits the dataset according to the number of
-          train_size if defined by the user. Otherwise it will use the 
-          train_prop to divide the dataset into a training and holdout 
-          validation set. This function returns the training and validation 
+          train_size if defined by the user. Otherwise it will use the
+          train_prop to divide the dataset into a training and holdout
+          validation set. This function returns the training and validation
           dataset.
 
           Parameters
@@ -257,7 +257,7 @@ class DenseDesignMatrix(Dataset):
 
     def bootstrap_nfolds(self, nfolds, rng=None):
         """
-          This function splits the dataset using the random_slice and into the 
+          This function splits the dataset using the random_slice and into the
           n folds. Returns the folds.
 
           Parameters
