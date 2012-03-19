@@ -1,19 +1,22 @@
 import datetime
 import copy
+import numpy as np
 
 from pylearn2.monitor import Monitor
 
-class CVMode:
-    KFOLD = "kfold"
-    HOLDOUT = "holdout"
+class KFoldCVMode:
+    OPTIMISTIC = "optimistic"
+    PESSIMISTIC = "pessimistic"
+    AVERAGE = "average"
+
 
 """
 CrossValidation base class
 """
 class CrossValidation(object):
 
-    def __init__(self, model=None, algorithm=None, cost = None, dataset=None,
-            callbacks = None):
+    def __init__(self, model=None, algorithm=None, cost=None, dataset=None,
+            callbacks=None):
         """
         Base constructor subclasses use this constructor
 
@@ -45,6 +48,7 @@ class CrossValidation(object):
 
         if model == None:
             raise ValueError("Model can't be None.")
+
         if dataset == None:
             raise ValueError("Dataset can't be None")
 
@@ -74,6 +78,8 @@ class CrossValidation(object):
                 print 'Failure during callback '+str(callback)
                 raise
 
+    def test_model(self):
+        raise NotImplementedError()
 
     def crossvalidate_model(self, validation_dataset):
         """
@@ -87,14 +93,15 @@ class CrossValidation(object):
 
 class KFoldCrossValidation(CrossValidation):
 
-    def __init__(self, nfolds = 10, model=None, algorithm=None, dataset=None,
-            callbacks = None):
+    def __init__(self, nfolds=10, model=None, algorithm=None, cost=None, dataset=None,
+            callbacks=None, mode=KFoldCVMode.PESSIMISTIC):
         self.nfolds = nfolds
-        self.error = 0
-        super(KFoldCrossValidation, self).__init__(model, algorithm, dataset,
+        self.errors = np.array([])
+        self.mode = mode
+        super(KFoldCrossValidation, self).__init__(model, algorithm, cost, dataset,
             callbacks, dataset)
 
-    def crossvalidate_model(self, validation_dataset, nfolds = -1):
+    def crossvalidate_model(self, validation_dataset, nfolds=-1, mode=KFoldCVMode.PESSIMISTIC):
         if nfolds is -1:
             datasets = validation_dataset.split_dataset_nfolds(self.nfolds)
         else:
@@ -106,20 +113,30 @@ class KFoldCrossValidation(CrossValidation):
                 training_data = tmp_datasets.pop()
                 training_data.merge_datasets(tmp_datasets)
             self.train_model(training_data)
+            self.test_model(test_data)
+
+    def test_model(self, test_data):
+        pass
 
     def get_error(self):
-        return self.error
+        if self.mode == KFoldCVMode.PESSIMISTIC:
+            error = self.errors.max()
+        elif self.mode == KFoldCVMode.OPTIMISTIC:
+            error = self.errors.min()
+        elif self.mode == KFoldCVMode.AVERAGE:
+            error = np.mean(self.errors)
+        return error
+
 
 class HoldoutCrossValidation(CrossValidation):
 
-    def __init__(self, model=None, algorithm=None, dataset=None,
-            callbacks = None, split_size = 0, split_prop = 0):
+    def __init__(self, model=None, algorithm=None, cost=None, dataset=None,
+            callbacks=None, split_size=0, split_prop=0):
         self.error = 0
         self.split_size = split_size
         self.split_prop = split_prop
-
-        super(HoldoutCrossValidation, self).__init__(model, algorithm, dataset,
-            callbacks, dataset)
+        super(HoldoutCrossValidation, self).__init__(model, algorithm, cost, 
+                dataset, callbacks, dataset)
 
     def crossvalidate_model(self, validation_dataset):
         pass
