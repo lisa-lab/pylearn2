@@ -1147,9 +1147,7 @@ class S3C(Model, Block):
                 print 'stopping due to too many examples seen'
                 quit(-1)
 
-
         self.learn_mini_batch(dataset.get_batch_design(batch_size))
-    #
 
     def print_status(self):
             print ""
@@ -1213,8 +1211,6 @@ def reflection_clip(S_hat, new_S_hat, rho = 0.5):
     new_S_name = make_name(new_S_hat, 'anon_new_S_hat')
 
     rval.name = 'reflection_clip(%s, %s)' % (S_name, new_S_name)
-
-    #rval = Print('clipped_S_hat',attrs=['min','max','mean'])(rval)
 
     return rval
 
