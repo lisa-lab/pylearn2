@@ -836,6 +836,7 @@ class S3C(Model, Block):
 
         hid_shape = (batch_size, self.nhid)
 
+
         if H_sample is None:
             H_sample = theano_rng.binomial( size = hid_shape, n = 1, p = self.p)
 
