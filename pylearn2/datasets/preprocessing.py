@@ -281,31 +281,77 @@ class MakeUnitNorm(object):
         X /= X_norm[:,None]
         dataset.set_design_matrix(X)
 
-class RemoveMean(object):
-    def __init__(self, axis=0):
-        self.axis=axis
 
-    def apply(self, dataset, can_fit):
+class RemoveMean(object):
+    """
+    Subtracts the mean along a given axis, or from every element
+    if `axis=None`.
+    """
+    def __init__(self, axis=0):
+        """
+        Initialize a RemoveMean preprocessor.
+
+        Parameters
+        ----------
+        axis : int or None
+            Axis over which to take the mean, with the exact same
+            semantics as the `axis` parameter of `numpy.mean`.
+        """
+        self._axis = axis
+        self._mean = None
+
+    def apply(self, dataset, can_fit=True):
         X = dataset.get_design_matrix()
-        X -= X.mean(axis=self.axis)
+        if can_fit:
+            self._mean = X.mean(axis=self._axis)
+        else:
+            if self._mean is None:
+                raise ValueError("can_fit is False, but Standardize object "
+                                 "has no stored mean or standard deviation")
+        X -= self._mean
         dataset.set_design_matrix(X)
 
+
 class Standardize(object):
-
+    """Subtracts the mean and divides by the standard deviation."""
     def __init__(self, global_mean=False, global_std=False, std_eps=1e-4):
-        self.global_mean= global_mean
-        self.global_std = global_std
-        self.std_eps = std_eps
+        """
+        Initialize a Standardize preprocessor.
 
-    def apply(self, dataset, can_fit):
+        Parameters
+        ----------
+        global_mean : bool
+            If `True`, subtract the (scalar) mean over every element
+            in the design matrix. If `False`, subtract the mean from
+            each column (feature) separately. Default is `False`.
+        global_std : bool
+            If `True`, after centering, divide by the (scalar) standard
+            deviation of every element in the design matrix. If `False`,
+            divide by the column-wise (per-feature) standard deviation.
+            Default is `False`.
+        std_eps : float
+            Stabilization factor added to the standard deviations before
+            dividing, to prevent standard deviations very close to zero
+            from causing the feature values to blow up too much.
+            Default is `1e-4`.
+        """
+        self._global_mean = global_mean
+        self._global_std = global_std
+        self._std_eps = std_eps
+        self._mean = None
+        self._std = None
+
+    def apply(self, dataset, can_fit=True):
         X = dataset.get_design_matrix()
-
-        # remove mean across all dataset, or along each dimension
-        mean= np.mean(X) if self.global_mean else np.mean(X, axis=0)
-        # divide by std across all dataset, or along each dimension
-        std = np.std(X)  if self.global_std  else np.std(X, axis=0)
-
-        dataset.set_design_matrix( (X - mean) / (self.std_eps + std) )
+        if can_fit:
+            self._mean = X.mean() if self._global_mean else X.mean(axis=0)
+            self._std = X.std() if self._global_std else X.std(axis=0)
+        else:
+            if self._mean is None or self._std is None:
+                raise ValueError("can_fit is False, but Standardize object "
+                                 "has no stored mean or standard deviation")
+        new = (X - self._mean) / (self._std_eps + self._std)
+        dataset.set_design_matrix(new)
 
 
 class RemapInterval(object):
