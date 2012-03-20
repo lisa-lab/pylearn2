@@ -2,8 +2,13 @@ import datetime
 import copy
 import numpy as np
 
+from theano import function, shared
+
 from pylearn2.monitor import Monitor
 from pylearn2.costs.cost import SupervisedCost
+from pylearn2.training_algorithms.sgd import ExhaustiveSGD
+from pylearn2.costs.autoencoder import MeanSquaredReconstructionError
+from pylearn2.training_algorithms.sgd import EpochCounter
 
 """
     The C's enum-like python class for different k-fold cross-validation
@@ -14,11 +19,10 @@ class KFoldCVMode:
     PESSIMISTIC = "pessimistic"
     AVERAGE = "average"
 
-
+"""
+CrossValidation base class
+"""
 class CrossValidation(object):
-"""
-    CrossValidation base class
-"""
 
     def __init__(self, model=None, algorithm=None, cost=None, dataset=None,
             callbacks=None):
@@ -43,8 +47,9 @@ class CrossValidation(object):
             A collection of callbacks that are called, one at a time,
             after each epoch.
         """
-        
         self.model = model
+        self.validation_monitor = Monitor(self.model)
+        self.training_monitor = Monitor(self.model)
         self.dataset = dataset
         self.algorithm = algorithm
         if cost == None:
@@ -71,36 +76,40 @@ class CrossValidation(object):
     """
     def train_model(self, train_dataset):
         if self.algorithm is None:
-            self.model.monitor = Monitor.get_monitor(self.model)
-            while self.model.train(dataset=self.dataset):
-                self.run_callbacks_and_monitoring()
-            self.run_callbacks_and_monitoring()
+            self.model.monitor = self.training_monitor
+            while (self.model.train(dataset=self.dataset)):
+                pass
         else:
             self.algorithm.setup(model=self.model, dataset=self.dataset)
             self.model.monitor()
-            epoch_start = datetime.datetime.now()
-            while self.algorithm.train(dataset=self.dataset):
-                epoch_end = datetime.datetime.now()
-                print 'Time this epoch:', str(epoch_end - epoch_start)
-                epoch_start = datetime.datetime.now()
-                self.run_callbacks_and_monitoring()
-            self.run_callbacks_and_monitoring()
+            while (self.algorithm.train(dataset=self.dataset)):
+                self.model.monitor()
 
-    def run_callbacks_and_monitoring(self):
-        self.model.monitor()
-        for callback in self.callbacks:
-            try:
-                callback(self.model, self.dataset, self.algorithm)
-            except TypeError, e:
-                print 'Failure during callback '+str(callback)
-                raise
-
-    def test_model(self, test_data):
+    #Setup the monitor for validation as in sgd's setup function
+    def setup_validation(self):
+        pass
+    
+    #Validate the model as in the unexhaustivesgd's setup function
+    def validate_model(self, validation_data):
         if isinstance(self.cost, SupervisedCost):
-            J = self.cost(self.model, test_data.X, test_data.Y)
+            space = self.model.get_input_space()
+            X = space.make_theano_batch(name="validation_X")
+            Y = space.make_theano_batch(name="validation_Y")
+            J = self.cost(self.model, X, Y)
+            self.validation_monitor.add_channel("sup_validation_error" + X.name, ipt=(X, Y),
+                    val=J)
+            self.model.monitor = self.validation_monitor
+            self.model.monitor()
         else:
-            J = self.cost(self.model, test_data.X)
-        self.error = J
+            space = self.model.get_input_space()
+            X = space.make_theano_batch(name="validation_X")
+            J = self.cost(self.model, X)
+            self.validation_monitor.set_dataset(self.validation_dataset, self.
+            self.validation_monitor.add_channel("unsup_validation_error" + X.name, ipt=(X),
+                    val=J)
+            self.model.monitor = self.validation_monitor
+            self.model.monitor()
+        self.cost = J
 
 
     def crossvalidate_model(self, validation_dataset):
@@ -110,10 +119,7 @@ class CrossValidation(object):
         raise NotImplementedError()
 
     def get_error(self):
-        raise NotImplementedError()
-
-
-class KFoldCrossValidation(CrossValidation):
+        
 """
     Class for KFoldCrossValidation.
     Explanation:
@@ -134,6 +140,7 @@ class KFoldCrossValidation(CrossValidation):
 
     Ref: http://www.cs.cmu.edu/~schneide/tut5/node42.html
 """
+class KFoldCrossValidation(CrossValidation):
     def __init__(self, nfolds=10, model=None, algorithm=None, cost=None, dataset=None,
             callbacks=None, mode=KFoldCVMode.PESSIMISTIC, bootstrap=False):
         self.nfolds = nfolds
@@ -141,21 +148,26 @@ class KFoldCrossValidation(CrossValidation):
         self.mode = mode
         self.bootstrap = bootstrap
         super(KFoldCrossValidation, self).__init__(model, algorithm, cost, dataset,
-            callbacks, dataset)
+            callbacks)
 
-    def crossvalidate_model(self, validation_dataset, mode=KFoldCVMode.PESSIMISTIC, rng=None):
-        if bootstrap:
-            datasets = validation_dataset.bootstrap_nfolds(self.nfolds, rng)
+    def crossvalidate_model(self, validation_dataset=None, mode=KFoldCVMode.PESSIMISTIC, rng=None):
+        if validation_dataset != None:
+            self.dataset = validation_dataset
+        if self.dataset == None:
+            raise ValueError("You should specify a dataset.")
+
+        if self.bootstrap:
+            datasets = self.dataset.bootstrap_nfolds(self.nfolds, rng)
         else:
-            datasets = validation_dataset.split_dataset_nfolds(self.nfolds)
-        for i in xrange(nfolds):
+            datasets = self.dataset.split_dataset_nfolds(self.nfolds)
+        for i in xrange(self.nfolds):
             tmp_datasets = copy.copy(datasets) # Create a shallow copy
-            test_data = tmp_datasets.pop(i)
+            validation_data = tmp_datasets.pop(i)
             if len(tmp_datasets) >= 1:
                 training_data = tmp_datasets.pop()
                 training_data.merge_datasets(tmp_datasets)
             self.train_model(training_data)
-            self.test_model(test_data)
+            self.validate_model(validation_data)
 
     def get_error(self):
         if self.mode == KFoldCVMode.PESSIMISTIC:
@@ -165,8 +177,6 @@ class KFoldCrossValidation(CrossValidation):
         elif self.mode == KFoldCVMode.AVERAGE:
             error = np.mean(self.errors)
         return error
-
-class HoldoutCrossValidation(CrossValidation):
 """
     CrossValidation class for Holdout crossvalidation.
     Explanation:
@@ -183,18 +193,49 @@ class HoldoutCrossValidation(CrossValidation):
     Ref: http://www.cs.cmu.edu/~schneide/tut5/node42.html
     Note: HoldoutCrossValidation isn't a special case of KFoldCrossValidation.
 """
+class HoldoutCrossValidation(CrossValidation):
     def __init__(self, model=None, algorithm=None, cost=None, dataset=None,
             callbacks=None, train_size=0, train_prop=0):
         self.error = 0
         self.train_size = train_size
         self.train_prop = train_prop
         super(HoldoutCrossValidation, self).__init__(model, algorithm, cost, 
-                dataset, callbacks, dataset)
+                dataset, callbacks)
 
-    def crossvalidate_model(self, validation_dataset):
-        if train_size == 0:
-            datasets = validation_dataset.split_dataset_holdout(train_prop=self.train_prop)
+    def crossvalidate_model(self, validation_dataset=None):
+        if validation_dataset != None:
+            self.dataset = validation_dataset
+        if self.dataset == None:
+            raise ValueError("You should specify a dataset.")
+
+
+        if self.train_size == 0:
+            datasets = self.dataset.split_dataset_holdout(train_prop=self.train_prop)
         else:
-            datasets = validation_dataset.split_dataset_holdout(train_size=self.train_size)
+            datasets = self.dataset.split_dataset_holdout(train_size=self.train_size)
         self.train_model(datasets[0])
-        self.test_model(datasets[1])
+        self.validate_model(datasets[1])
+
+#"""Test 1:
+import pylearn2.scripts.deep_trainer.run_deep_trainer as dp
+
+trainset, testset = dp.get_dataset_toy()
+design_matrix = trainset.get_design_matrix()
+n_input = design_matrix.shape[1]
+structure = [n_input, 400]
+model = dp.get_denoising_autoencoder(structure)
+
+train_algo = ExhaustiveSGD(
+            learning_rate = 0.1,
+            cost =  MeanSquaredReconstructionError(),
+            batch_size =  10,
+            monitoring_batches = 10,
+            monitoring_dataset =  trainset,
+            termination_criterion = EpochCounter(max_epochs=10),
+            update_callbacks =  None
+            )
+holdoutCV = HoldoutCrossValidation(model=model, algorithm=train_algo, 
+        cost=MeanSquaredReconstructionError(), dataset=trainset, train_prop=0.5)
+holdoutCV.crossvalidate_model()
+print "Error: " + str(holdoutCV.get_error())
+#"""
