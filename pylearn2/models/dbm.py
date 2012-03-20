@@ -429,7 +429,7 @@ class DBM(Model):
 
         #v_weights_contrib = T.sum(self.W[0] * exp_vh)
 
-        v_weights_contrib = (T.dot(V_hat, self.W[0]) * H_hat).sum(axis=0).mean()
+        v_weights_contrib = (T.dot(V_hat, self.W[0]) * H_hat[0]).sum(axis=1).mean()
 
         v_weights_contrib.name = 'v_weights_contrib('+V_name+','+H_names[0]+')'
 
@@ -446,7 +446,7 @@ class DBM(Model):
             lower_bias_contrib = T.dot(low, lower_bias)
 
             #weights_contrib = T.sum( W * exp_lh) / m
-            weights_contrib = (T.dot(lower_H, W) * higher_H).sum(axis=0).mean()
+            weights_contrib = (T.dot(lower_H, W) * higher_H).sum(axis=1).mean()
 
             total = total + lower_bias_contrib + weights_contrib
 
@@ -461,6 +461,80 @@ class DBM(Model):
         #rval.name = 'dbm_expected_energy('+V_name+','+str(H_names)+')'
 
         return rval
+
+
+
+    def expected_energy_batch(self, V_hat, H_hat, no_v_bias = False):
+        """ expected energy of the model under the mean field distribution
+            defined by V_hat and H_hat
+            alternately, could be expectation of the energy function across
+            a batch of examples, where every element of V_hat and H_hat is
+            a binary observation
+            if no_v_bias is True, ignores the contribution from biases on visible units
+        """
+
+        warnings.warn("TODO: write unit test verifying expected_energy_batch/m = expected_energy")
+
+        V_name = make_name(V_hat, 'anon_V_hat')
+        assert isinstance(H_hat, (list,tuple))
+
+        H_names = []
+        for i in xrange(len(H_hat)):
+            H_names.append( make_name(H_hat[i], 'anon_H_hat[%d]' %(i,) ))
+
+        assert len(H_hat) == len(self.rbms)
+
+        if no_v_bias:
+            v_bias_contrib = 0.
+        else:
+            v_bias_contrib = T.dot(V_hat, self.bias_vis)
+
+
+        assert len(V_hat.type.broadcastable) == 2
+        assert len(self.W[0].type.broadcastable) == 2
+        assert len(H_hat[0].type.broadcastable) == 2
+
+        interm1 = T.dot(V_hat, self.W[0])
+        assert len(interm1.type.broadcastable) == 2
+        interm2 = interm1 * H_hat[0]
+        assert len(interm2.type.broadcastable) == 2
+
+        v_weights_contrib = interm2.sum(axis=1)
+
+        v_weights_contrib.name = 'v_weights_contrib('+V_name+','+H_names[0]+')'
+        assert len(v_weights_contrib.type.broadcastable) == 1
+
+        total = v_bias_contrib + v_weights_contrib
+
+        for i in xrange(len(H_hat) - 1):
+            lower_H = H_hat[i]
+            higher_H = H_hat[i+1]
+            #exp_lh = T.dot(lower_H.T, higher_H) / m
+            lower_bias = self.bias_hid[i]
+            W = self.W[i+1]
+
+            lower_bias_contrib = T.dot(lower_H, lower_bias)
+
+            #weights_contrib = T.sum( W * exp_lh) / m
+            weights_contrib = (T.dot(lower_H, W) * higher_H).sum(axis=1)
+
+            cur_contrib = lower_bias_contrib + weights_contrib
+            assert len(cur_contrib.type.broadcastable) == 1
+            total = total + cur_contrib
+
+        highest_bias_contrib = T.dot(H_hat[-1], self.bias_hid[-1])
+
+        total = total + highest_bias_contrib
+
+        assert len(total.type.broadcastable) == 1
+
+        rval =  - total
+
+        #rval.name = 'dbm_expected_energy('+V_name+','+str(H_names)+')'
+
+        return rval
+
+
 
     def entropy_h(self, H_hat):
         """ entropy of the hidden layers under the mean field distribution
@@ -569,15 +643,10 @@ class InferenceProcedure:
             assert Hv.min() >= 0.0
             assert Hv.max() <= 1.0
 
-        entropy_term = - (self.model.entropy_h(H_hat = H_hat)).mean()
-        assert len(entropy_term.type.broadcastable) == 0
-        energy_term = self.model.expected_energy(V_hat = V, H_hat = H_hat, no_v_bias = no_v_bias)
-        assert len(energy_term.type.broadcastable) == 0
-
-        warnings.warn("""TODO: dbm.inference_procedure.truncated_KL does not match
-                        s3c.e_step.truncated_KL. The former returns a scalar (average
-                        KL divergence across a batch) and the
-                        latter returns a vector of per-example KL divergences.""")
+        entropy_term = - self.model.entropy_h(H_hat = H_hat)
+        assert len(entropy_term.type.broadcastable) == 1
+        energy_term = self.model.expected_energy_batch(V_hat = V, H_hat = H_hat, no_v_bias = no_v_bias)
+        assert len(energy_term.type.broadcastable) == 1
 
         KL = entropy_term + energy_term
 
