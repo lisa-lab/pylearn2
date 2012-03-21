@@ -348,35 +348,47 @@ class PCA_ViewConverter(object):
 
 class PCA(object):
     def __init__(self, num_components):
-        self.num_components = num_components
-        self.pca = None
-        self.input = T.matrix()
-        self.output = T.matrix()
+        self._num_components = num_components
+        self._pca = None
+        # TODO: Is storing these really necessary? This computation
+        # can't really be merged since we're basically creating the
+        # functions in apply(); I see no reason to keep these around.
+        self._input = T.matrix()
+        self._output = T.matrix()
 
-    def apply(self, dataset, can_fit = False):
-        if self.pca is None:
-            assert can_fit
+    def apply(self, dataset, can_fit=False):
+        if self._pca is None:
+            if not can_fit:
+                raise ValueError("can_fit is False, but PCA preprocessor "
+                                 "object has no fitted model stored")
             from pylearn2 import pca
-            self.pca = pca.CovEigPCA(self.num_components)
-            self.pca.train(dataset.get_design_matrix())
+            self._pca = pca.CovEigPCA(self._num_components)
+            self._pca.train(dataset.get_design_matrix())
+            self._transform_func = function([self._input],
+                                            self._pca(self._input))
+            self._invert_func = function([self._output],
+                                         self._pca.reconstruct(self._output))
+            self._convert_weights_func = function(
+                [self._output],
+                self._pca.reconstruct(self._output, add_mean=False)
+            )
 
-            self.transform_func = function([self.input],self.pca(self.input))
-            self.invert_func = function([self.output],self.pca.reconstruct(self.output))
-            self.convert_weights_func = function([self.output],self.pca.reconstruct(self.output,add_mean = False))
-        #
-
-        orig_data = dataset.get_design_matrix()#rm
-        dataset.set_design_matrix(self.transform_func(dataset.get_design_matrix()))
-        proc_data = dataset.get_design_matrix()#rm
+        orig_data = dataset.get_design_matrix()
+        dataset.set_design_matrix(
+            self._transform_func(dataset.get_design_matrix())
+        )
+        proc_data = dataset.get_design_matrix()
         orig_var = orig_data.var(axis=0)
         proc_var = proc_data.var(axis=0)
         assert proc_var[0] > orig_var.max()
-        print 'original variance: '+str(orig_var.sum())
-        print 'processed variance: '+str(proc_var.sum())
+        # TODO: logging
+        print 'original variance: ' + str(orig_var.sum())
+        print 'processed variance: ' + str(proc_var.sum())
+        dataset.view_converter = PCA_ViewConverter(self._transform_func,
+                                                   self._invert_func,
+                                                   self._convert_weights_func,
+                                                   dataset.view_converter)
 
-        dataset.view_converter = PCA_ViewConverter(self.transform_func,self.invert_func,self.convert_weights_func, dataset.view_converter)
-    #
-#
 
 class Downsample(object):
     def __init__(self, sampling_factor):
