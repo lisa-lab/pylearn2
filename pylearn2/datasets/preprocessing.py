@@ -384,10 +384,11 @@ class PCA(object):
         # TODO: logging
         print 'original variance: ' + str(orig_var.sum())
         print 'processed variance: ' + str(proc_var.sum())
-        dataset.view_converter = PCA_ViewConverter(self._transform_func,
-                                                   self._invert_func,
-                                                   self._convert_weights_func,
-                                                   dataset.view_converter)
+        if dataset.view_converter is not None:
+            new_converter = PCA_ViewConverter(self._transform_func,
+                                              self._invert_func,
+                                              self._convert_weights_func,
+                                              dataset.view_converter)
 
 
 class Downsample(object):
