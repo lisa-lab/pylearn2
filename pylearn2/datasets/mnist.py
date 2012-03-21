@@ -16,7 +16,7 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
                     (which_set,)+'". Valid values are ["train","test"].')
 
 
-        path = "${PYLEARN2_DATA_PATH}/mnist/mnist-python/"+which_set
+        path = "${PYLEARN2_DATA_PATH}/mnist/mnist-python/%s.pkl" % which_set
 
         obj = serial.load(path)
         X = obj['data']
