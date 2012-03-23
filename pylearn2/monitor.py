@@ -35,9 +35,10 @@ class Monitor(object):
         self.dataset = None
         self.dirty = True
         self.names_to_del = []
-        #Determine whether the model should use topological or vector form of examples
-        #If the model acts on a space with more than the batch index and channel dimension,
-        #the model has topological dimensions, so the topological view of the data should be used
+        # Determine whether the model should use topological or vector form of
+        # examples. If the model acts on a space with more than the batch index
+        # and channel dimension, the model has topological dimensions, so the
+        # topological view of the data should be used.
         self.topo = len(model.get_input_space().make_theano_batch().type.broadcastable) > 2
         self.require_label = False
 
@@ -86,7 +87,7 @@ class Monitor(object):
             myiterator = d.iterator(mode='sequential',
                                     batch_size=self.batch_size,
                                     topo=self.topo,
-                                    targets = self.require_label)
+                                    targets=self.require_label)
             self.begin_record_entry()
 
             count = 0
@@ -127,8 +128,6 @@ class Monitor(object):
                     val_str = '%.3e' % val
 
                 print "\t%s: %s" % (channel_name, val_str)
-
-
 
     def run_prereqs(self, X):
         for prereq in self.prereqs:
