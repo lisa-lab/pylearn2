@@ -72,11 +72,13 @@ class Dataset(object):
             *or* a class that instantiates an iterator that returns
             slices or index sequences on every call to next().
         batch_size : int, optional
-            The size of an individual batch. Unnecessary if `mode` is
-            'sequential' and `num_batches` is specified.
+            The size of an individual batch. Optional if `mode` is
+            'sequential' and `num_batches` is specified (batch size
+            will be calculated based on full dataset size).
         num_batches : int, optional
             The total number of batches. Unnecessary if `mode` is
-            'sequential' and `batch_size` is specified.
+            'sequential' and `batch_size` is specified (number of
+            batches will be calculated based on full dataset size).
         topo : boolean, optional
             Whether batches returned by the iterator should present
             examples in a topological view or not. Defaults to
