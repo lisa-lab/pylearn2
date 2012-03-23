@@ -110,7 +110,7 @@ class Monitor(object):
                 channel = self.channels[channel_name]
                 channel.batch_record.append(self.batches_seen)
                 channel.example_record.append(self.examples_seen)
-                val = (channel.val_shared.get_value(borrow=False) /
+                val = (channel.val_shared.get_value(borrow=True) /
                        float(self.batches))
                 channel.val_record.append(val)
                 # TODO: use logging infrastructure so that user can configure
@@ -230,7 +230,7 @@ class Monitor(object):
 
     def add_channel(self, name, ipt, val, prereqs = None):
         """
-        Asks the monitor to start tracking a new value.  Can be run even
+        Asks the monitor to start tracking a new value.  Can be called even
         after the monitor is already in use.
 
         Parameters
