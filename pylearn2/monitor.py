@@ -91,14 +91,20 @@ class Monitor(object):
 
             count = 0
             for X in myiterator:
+                #make sure the iterator gave us the right size
+                #the averaging code assumes all batches are the same size
+                assert X.shape[0] == self.batch_size
                 count += 1
                 self.run_prereqs(X)
                 if self.require_label:
                     self.accum(*X)
                 else:
                     self.accum(X)
-                if count == self.batches:
+                #stop the iterator if it tries to run for longer than the user requested
+                if self.batches is not None and count == self.batches:
                     break
+            #make sure the iterator ran for long enough
+            assert count == self.batches
 
 
             # TODO: use logging infrastructure so that user can configure
