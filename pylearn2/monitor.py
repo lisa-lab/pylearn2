@@ -89,12 +89,16 @@ class Monitor(object):
                                     targets = self.require_label)
             self.begin_record_entry()
 
+            count = 0
             for X in myiterator:
+                count += 1
                 self.run_prereqs(X)
                 if self.require_label:
                     self.accum(*X)
                 else:
                     self.accum(X)
+                if count == self.batches:
+                    break
 
 
             # TODO: use logging infrastructure so that user can configure
