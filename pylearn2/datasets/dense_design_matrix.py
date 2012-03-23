@@ -214,13 +214,15 @@ class DenseDesignMatrix(Dataset):
         if train_size !=0:
             dataset_iter = self.iterator(mode=_mode, 
                     batch_size=(self.num_examples - train_size),
+                    targets=(self.y is not None),
                     num_batches=2)
             train = dataset_iter.next()
             valid = dataset_iter.next()
         elif train_prop !=0:
             size = np.ceil(self.num_examples * train_prop)
             dataset_iter = self.iterator(mode=_mode,
-                    batch_size=(self.num_examples - size))
+                    batch_size=(self.num_examples - size),
+                    targets=(self.y is not None))
             train = dataset_iter.next()
             valid = dataset_iter.next()
         else:
@@ -237,7 +239,8 @@ class DenseDesignMatrix(Dataset):
           nfolds: The number of folds for the  the validation set.
         """
 
-        folds_iter = self.iterator(mode="sequential", num_batches=nfolds)
+        folds_iter = self.iterator(mode="sequential", num_batches=nfolds,
+                targets=(self.y is not None))
         folds = list(folds_iter)
         return folds
 
@@ -268,7 +271,8 @@ class DenseDesignMatrix(Dataset):
           rng: Random number generation class to be used.
         """
 
-        folds_iter = self.iterator(mode="random_slice", num_batches=nfolds, rng=rng)
+        folds_iter = self.iterator(mode="random_slice", num_batches=nfolds,
+                targets=(self.y is not None), rng=rng)
         folds = list(folds_iter)
         return folds
 
