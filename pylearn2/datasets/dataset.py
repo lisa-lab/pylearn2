@@ -75,7 +75,7 @@ class Dataset(object):
             The size of an individual batch. Unnecessary if `mode` is
             'sequential' and `num_batches` is specified.
         num_batches : int, optional
-            The size of an individual batch. Unnecessary if `mode` is
+            The total number of batches. Unnecessary if `mode` is
             'sequential' and `batch_size` is specified.
         topo : boolean, optional
             Whether batches returned by the iterator should present
