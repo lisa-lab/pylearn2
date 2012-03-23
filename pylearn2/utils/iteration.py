@@ -55,12 +55,15 @@ class SequentialSubsetIterator(SubsetIterator):
                                  "for sequential batch iteration")
         elif batch_size is not None:
             if num_batches is not None:
-                # TODO: some might prefer we just raise an exception here.
-                # A warning seems like sensible enough behaviour to me,
-                # but this may change.
-                warnings.warn("Ignoring num_batches argument in presence "
-                              "of batch_size argument for sequential "
-                              "iteration")
+                max_num_batches = numpy.ceil(self._dataset_size / batch_size)
+                if num_batches > max_num_batches:
+                    raise ValueError("dataset of %d examples can only provide "
+                                     "%d batches with batch_size %d, but %d "
+                                     "batches were requested" %
+                                     (self._dataset_size, max_num_batches,
+                                      batch_size, num_batches))
+            else:
+                num_batches = numpy.ceil(self._dataset_size / batch_size)
         self._batch_size = batch_size
         self._num_batches = num_batches
         self._next_batch_no = 0
@@ -68,7 +71,7 @@ class SequentialSubsetIterator(SubsetIterator):
         self._batch = 0
 
     def next(self):
-        if self._idx >= self._dataset_size:
+        if self._batch >= self.num_batches or self._idx >= self._dataset_size:
             raise StopIteration()
         else:
             self._last = slice(self._idx, self._idx + self._batch_size)
