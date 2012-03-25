@@ -389,6 +389,7 @@ class PCA(object):
                                               self._invert_func,
                                               self._convert_weights_func,
                                               dataset.view_converter)
+            dataset.view_converter = new_converter
 
 
 class Downsample(object):
