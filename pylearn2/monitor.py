@@ -1,8 +1,9 @@
-"""TODO: module-level docstring."""
+"""
+The module defining the Monitor and MonitorChannel objects used for
+tracking the changes in values of various quantities throughout training
+"""
 import time
-import numpy
 from theano import function, shared
-import theano.tensor as T
 import copy
 from pylearn2.config import yaml_parse
 from pylearn2.utils.string_utils import number_aware_alphabetical_key
@@ -331,5 +332,3 @@ class MonitorChannel(object):
     def __setstate__(self, d):
         self.__dict__.update(d)
 
-# TODO: Remove this at some point
-Channel = MonitorChannel
