@@ -2,8 +2,10 @@ from pylearn2.monitor import Monitor
 from pylearn2.space import VectorSpace
 from pylearn2.models.model import Model
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
+from pylearn2.training_algorithms.default import DefaultTrainingAlgorithm
 import numpy as np
 from theano import tensor as T
+from pylearn2.models.s3c import S3C, E_Step, Grad_M_Step
 
 
 class DummyModel(Model):
@@ -68,3 +70,23 @@ def test_channel_scaling_sequential():
     yield channel_scaling_checker, 10, 'sequential', 3, 4
     # Specifying both, uneven split, non-exhaustive
     yield channel_scaling_checker, 10, 'sequential', 3, 3
+
+def test_counting():
+    BATCH_SIZE = 2
+    BATCHES = 3
+    NUM_FEATURES = 4
+    num_examples = BATCHES * BATCH_SIZE
+    dataset = DummyDataset( num_examples = num_examples,
+            num_features = NUM_FEATURES)
+    algorithm = DefaultTrainingAlgorithm( batch_size = BATCH_SIZE,
+            batches_per_iter = BATCHES)
+    model = S3C( nvis = NUM_FEATURES, nhid = 1,
+            irange = .01, init_bias_hid = 0., init_B = 1.,
+            min_B = 1., max_B = 1., init_alpha = 1.,
+            min_alpha = 1., max_alpha = 1., init_mu = 0.,
+            m_step = Grad_M_Step( learning_rate = 0.),
+            e_step = E_Step( h_new_coeff_schedule = [ 1. ]))
+    algorithm.setup(model = model, dataset = dataset)
+    algorithm.train(dataset = dataset)
+    assert model.monitor.get_batches_seen() == BATCHES
+    assert model.monitor.get_examples_seen() == num_examples
