@@ -72,6 +72,6 @@ class DefaultTrainingAlgorithm(object):
 
         for i in xrange(self.batches_per_iter):
             model.learn(dataset, batch_size)
-            model.monitor.batches_seen += 1
-            model.monitor.examples_seen += batch_size
+            model.monitor._batches_seen += 1
+            model.monitor._examples_seen += batch_size
         return True
