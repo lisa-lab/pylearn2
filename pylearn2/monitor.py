@@ -134,8 +134,24 @@ class Monitor(object):
         for prereq in self.prereqs:
             prereq(X)
 
+
+    def get_batches_seen(self):
+        """ Returns the number of batches the model has learned on (assuming
+        that the learning code has been calling Monitor.report_batch correctly)
+        """
+        return self._num_batches_seen
+
     def get_examples_seen(self):
+        """ Returns the number of examples the model has learned on (assuming
+        that the learning code has been calling Monitor.report_batch correctly)
+        """
         return self._examples_seen
+
+    def report_batch(self, num_examples):
+        """ Call this whenever the model has learned on another batch of examples.
+        Report how many examples were learned on. """
+        self._examples_seen += num_examples
+        self._num_batches_seen += 1
 
     def redo_theano(self):
         """
