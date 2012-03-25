@@ -34,12 +34,12 @@ class DefaultTrainingAlgorithm(object):
         self.model = model
 
         self.monitor = Monitor.get_monitor(model)
-        self.monitor.set_dataset(dataset=self.monitoring_dataset,
+        X = T.matrix()
+        if self.monitoring_dataset is not None:
+            self.monitor.set_dataset(dataset=self.monitoring_dataset,
                                 mode="sequential",
                                 batch_size=self.batch_size,
                                 num_batches=self.monitoring_batches)
-        X = T.matrix()
-        if self.monitoring_dataset:
             X.tag.test_value = self.monitoring_dataset.get_batch_design(2)
             channels = model.get_monitoring_channels(X)
             if not isinstance(channels, dict):
