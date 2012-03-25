@@ -90,3 +90,5 @@ def test_counting():
     algorithm.train(dataset = dataset)
     assert model.monitor.get_batches_seen() == BATCHES
     assert model.monitor.get_examples_seen() == num_examples
+    assert isinstance(model.monitor.get_examples_seen(),int)
+    assert isinstance(model.monitor.get_batches_seen(),int)
