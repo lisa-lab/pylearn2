@@ -1228,6 +1228,9 @@ def reflection_clip(S_hat, new_S_hat, rho = 0.5):
 
 def damp(old, new, new_coeff):
 
+    if new_coeff == 1.0:
+        return new
+
     rval =  new_coeff * new + (as_floatX(1.) - new_coeff) * old
 
 
