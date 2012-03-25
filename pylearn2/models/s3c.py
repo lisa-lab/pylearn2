@@ -1456,7 +1456,6 @@ class E_Step(object):
 
         mean_term = mu * alpha
         mean_term.name = 'infer_S_hat:mean_term'
-        assert mean_term.type.dtype == config.floatX
 
         data_term = T.dot(V, BW)
         data_term.name = 'infer_S_hat:data_term'

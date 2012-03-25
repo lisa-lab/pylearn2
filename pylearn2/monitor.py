@@ -1,8 +1,9 @@
-"""TODO: module-level docstring."""
+"""
+The module defining the Monitor and MonitorChannel objects used for
+tracking the changes in values of various quantities throughout training
+"""
 import time
-import numpy
 from theano import function, shared
-import theano.tensor as T
 import copy
 from pylearn2.config import yaml_parse
 from pylearn2.utils.string_utils import number_aware_alphabetical_key
@@ -30,18 +31,20 @@ class Monitor(object):
         """
         self.model = model
         self.channels = {}
-        self.batches_seen = 0
-        self.examples_seen = 0
-        self.dataset = None
-        self.dirty = True
+        self._num_batches_seen = 0
+        self._examples_seen = 0
+        self._dataset = None
+        self._dirty = True
+        self._rng_seed = None
         self.names_to_del = []
-        #Determine whether the model should use topological or vector form of examples
-        #If the model acts on a space with more than the batch index and channel dimension,
-        #the model has topological dimensions, so the topological view of the data should be used
+        # Determine whether the model should use topological or vector form of
+        # examples. If the model acts on a space with more than the batch index
+        # and channel dimension, the model has topological dimensions, so the
+        # topological view of the data should be used.
         self.topo = len(model.get_input_space().make_theano_batch().type.broadcastable) > 2
         self.require_label = False
 
-    def set_dataset(self, dataset, batches, batch_size):
+    def set_dataset(self, dataset, mode, batch_size=None, num_batches=None):
         """
         Determines the data used to calculate the values of each channel.
 
@@ -49,65 +52,74 @@ class Monitor(object):
         ----------
         dataset : object
             A `pylearn2.datasets.Dataset` object.
-        batches : int
-            Number of batches of examples to draw.
-        batch_size : int
-            The number of examples per batch.
+        mode : str or object, optional
+            Iteration mode; see the docstring of the `iterator` method
+            on `pylearn2.datasets.Dataset` for details.
+        batch_size : int, optional
+            The size of an individual batch. Optional if `mode` is
+            'sequential' and `num_batches` is specified (batch size
+            will be calculated based on full dataset size).
+        num_batches : int, optional
+            The total number of batches. Unnecessary if `mode` is
+            'sequential' and `batch_size` is specified (number of
+            batches will be calculated based on full dataset size).
         """
-        # TODO: why is this not specifiable via the constructor? Is it
-        # intended that you be able to switch datasets after using it for
-        # a while?
-
-        # TODO: maybe error checking; check dataset has the appropriate
-        # attributes for use by the monitor. Check that batches and batch_size
-        # work as indices.
-        self.dataset = dataset
-        self.batches = batches
-        self.batch_size = batch_size
+        try:
+            it = dataset.iterator(mode=mode, batch_size=batch_size,
+                                  num_batches=num_batches,
+                                  topo=self.topo,
+                                  targets=self.require_label)
+            # TODO: handle random seeds.
+        except ValueError as exc:
+            raise ValueError("invalid iteration parameters in "
+                             "Monitor.set_dataset: " + str(exc))
+        self._dataset = dataset
+        self._iteration_mode = mode
+        self._batch_size = batch_size
+        self._num_batches = num_batches
 
     def __call__(self):
         """
         Runs the model on the monitoring dataset in order to add one
         data point to each of the channels.
         """
-
-        if self.dirty:
+        if self._dirty:
             self.redo_theano()
-
         model = self.model
-
-        d = self.dataset
-
+        d = self._dataset
         if d:
             if isinstance(d, basestring):
                 d = yaml_parse.load(d)
-                self.dataset = d
-
-            myiterator = d.iterator(mode='sequential',
-                                    batch_size=self.batch_size,
+                self._dataset = d
+            myiterator = d.iterator(mode=self._iteration_mode,
+                                    batch_size=self._batch_size,
+                                    num_batches=self._num_batches,
                                     topo=self.topo,
-                                    targets = self.require_label)
+                                    targets=self.require_label)
             self.begin_record_entry()
-
-            for X in myiterator:
+            count = 0
+            for iteration, X in enumerate(myiterator):
+                # make sure the iterator gave us the right size
+                # the averaging code assumes all batches are the same size
+                # assert X.shape[0] == self._batch_size
                 self.run_prereqs(X)
                 if self.require_label:
-                    self.accum(*X)
+                    X, y = X
+                    self.accum(X, y)
                 else:
                     self.accum(X)
-
+                count += 1
 
             # TODO: use logging infrastructure so that user can configure
             # formatting
             print "Monitoring step:"
-            print "\tBatches seen: %d" % self.batches_seen
-            print "\tExamples seen: %d" % self.examples_seen
-            for channel_name in sorted(self.channels.keys(), key = number_aware_alphabetical_key):
+            print "\tBatches seen: %f" % self._num_batches_seen
+            print "\tExamples seen: %f" % self._examples_seen
+            for channel_name in sorted(self.channels.keys(), key=number_aware_alphabetical_key):
                 channel = self.channels[channel_name]
-                channel.batch_record.append(self.batches_seen)
-                channel.example_record.append(self.examples_seen)
-                val = (channel.val_shared.get_value(borrow=False) /
-                       float(self.batches))
+                channel.batch_record.append(self._num_batches_seen)
+                channel.example_record.append(self._examples_seen)
+                val = channel.val_shared.get_value(borrow=True)
                 channel.val_record.append(val)
                 # TODO: use logging infrastructure so that user can configure
                 # formatting
@@ -117,8 +129,6 @@ class Monitor(object):
                     val_str = '%.3e' % val
 
                 print "\t%s: %s" % (channel_name, val_str)
-
-
 
     def run_prereqs(self, X):
         for prereq in self.prereqs:
@@ -135,7 +145,7 @@ class Monitor(object):
         It is also needed to regenerate Theano functions after pickling and
         unpickling, since Theano functions should not be pickled.
         """
-        self.dirty = False
+        self._dirty = False
 
         self.prereqs = []
         for channel in self.channels.values():
@@ -152,7 +162,7 @@ class Monitor(object):
         t1 = time.time()
         self.begin_record_entry = function(inputs=[], updates=updates)
         t2 = time.time()
-        print "took "+str(t2-t1)+" seconds"
+        print "took " + str(t2 - t1) + " seconds"
         updates = {}
         givens = {}
         #Get the appropriate kind of theano variable to represent the data the model
@@ -162,13 +172,18 @@ class Monitor(object):
             Y = self.model.get_output_space().make_theano_batch(name = "monitoring_Y")
 
         print 'monitored channels: '+str(self.channels.keys())
+        it = self.dataset.iterator(mode=self._iteration_mode,
+                                   num_batches=self._num_batches,
+                                   batch_size=self._batch_size)
+        num_examples = float(it.num_examples)
         for channel in self.channels.values():
             if isinstance(channel.graph_input, (list, tuple)):
                 givens[channel.graph_input[0]] = X
                 givens[channel.graph_input[1]] = Y
             else:
                 givens[channel.graph_input] = X
-            updates[channel.val_shared] = channel.val_shared + channel.val
+            val = channel.val * (X.shape[0] / num_examples)
+            updates[channel.val_shared] = channel.val_shared + val
         print "compiling accum..."
         t1 = time.time()
         if self.require_label:
@@ -207,15 +222,15 @@ class Monitor(object):
         functions, so we delete everything that can be regenerated with
         `redo_theano` by deleting the fields in `self.names_to_del`
         """
-        temp = self.dataset
-        if self.dataset and not isinstance(self.dataset, basestring):
+        temp = self._dataset
+        if self._dataset and not isinstance(self._dataset, basestring):
             try:
-                self.dataset = self.dataset.yaml_src
+                self._dataset = self._dataset.yaml_src
             except AttributeError:
                 import warnings
                 warnings.warn('Trained model saved without indicating yaml_src')
         d = copy.copy(self.__dict__)
-        self.dataset = temp
+        self._dataset = temp
         for name in self.names_to_del:
             if name in d:
                 del d[name]
@@ -224,9 +239,9 @@ class Monitor(object):
     def __setstate__(self, d):
         self.__dict__.update(d)
 
-    def add_channel(self, name, ipt, val, prereqs = None):
+    def add_channel(self, name, ipt, val, prereqs=None):
         """
-        Asks the monitor to start tracking a new value.  Can be run even
+        Asks the monitor to start tracking a new value.  Can be called even
         after the monitor is already in use.
 
         Parameters
@@ -245,7 +260,7 @@ class Monitor(object):
         if isinstance(ipt, (list, tuple)):
             self.require_label = True
         self.channels[name] = MonitorChannel(ipt, val, name, prereqs)
-        self.dirty = True
+        self._dirty = True
 
     @classmethod
     def get_monitor(cls, model):
@@ -265,6 +280,19 @@ class Monitor(object):
             rval = Monitor(model)
             model.monitor = rval
         return rval
+
+    # TODO: find out if monitor.foo below are used anywhere, remove if not.
+    @property
+    def dataset(self):
+        return self._dataset
+
+    @property
+    def batch_size(self):
+        return self._batch_size
+
+    @property
+    def num_batches(self):
+        return self._num_batches
 
 
 class MonitorChannel(object):
@@ -321,5 +349,3 @@ class MonitorChannel(object):
     def __setstate__(self, d):
         self.__dict__.update(d)
 
-# TODO: Remove this at some point
-Channel = MonitorChannel
