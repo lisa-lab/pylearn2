@@ -134,6 +134,9 @@ class Monitor(object):
         for prereq in self.prereqs:
             prereq(X)
 
+    def get_examples_seen(self):
+        return self._examples_seen
+
     def redo_theano(self):
         """
         Recompiles Theano functions used by this monitor.
