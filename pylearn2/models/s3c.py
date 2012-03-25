@@ -1175,7 +1175,7 @@ class S3C(Model, Block):
 
         self.learn_func(X)
 
-        if self.monitor.examples_seen % self.print_interval == 0:
+        if self.monitor.get_examples_seen() % self.print_interval == 0:
             self.print_status()
 
         if self.debug_m_step:
@@ -1183,8 +1183,6 @@ class S3C(Model, Block):
                 warnings.warn( "m step decreased the em functional" )
                 if self.debug_m_step != 'warn':
                     quit(-1)
-
-    #
 
     def get_weights_format(self):
         return ['v','h']
