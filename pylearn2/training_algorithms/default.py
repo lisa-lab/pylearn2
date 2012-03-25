@@ -35,8 +35,9 @@ class DefaultTrainingAlgorithm(object):
 
         self.monitor = Monitor.get_monitor(model)
         self.monitor.set_dataset(dataset=self.monitoring_dataset,
-                                 batches=self.monitoring_batches,
-                                 batch_size=self.batch_size)
+                                mode="sequential",
+                                batch_size=self.batch_size,
+                                num_batches=self.monitoring_batches)
         X = T.matrix()
         if self.monitoring_dataset:
             X.tag.test_value = self.monitoring_dataset.get_batch_design(2)
