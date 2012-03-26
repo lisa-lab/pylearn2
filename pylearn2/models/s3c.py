@@ -1175,7 +1175,7 @@ class S3C(Model, Block):
 
         self.learn_func(X)
 
-        if self.monitor.examples_seen % self.print_interval == 0:
+        if self.monitor.get_examples_seen() % self.print_interval == 0:
             self.print_status()
 
         if self.debug_m_step:
@@ -1183,8 +1183,6 @@ class S3C(Model, Block):
                 warnings.warn( "m step decreased the em functional" )
                 if self.debug_m_step != 'warn':
                     quit(-1)
-
-    #
 
     def get_weights_format(self):
         return ['v','h']
@@ -1227,6 +1225,9 @@ def reflection_clip(S_hat, new_S_hat, rho = 0.5):
     return rval
 
 def damp(old, new, new_coeff):
+
+    if new_coeff == 1.0:
+        return new
 
     rval =  new_coeff * new + (as_floatX(1.) - new_coeff) * old
 
@@ -1453,7 +1454,6 @@ class E_Step(object):
 
         mean_term = mu * alpha
         mean_term.name = 'infer_S_hat:mean_term'
-        assert mean_term.type.dtype == config.floatX
 
         data_term = T.dot(V, BW)
         data_term.name = 'infer_S_hat:data_term'

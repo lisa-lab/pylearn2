@@ -4,9 +4,6 @@ import functools
 import warnings
 import numpy as np
 from pylearn2.utils.iteration import (
-    SequentialSubsetIterator,
-    RandomSliceSubsetIterator,
-    RandomUniformSubsetIterator,
     FiniteDatasetIterator,
     resolve_iterator_class
 )
