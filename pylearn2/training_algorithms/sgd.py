@@ -214,6 +214,7 @@ class ExhaustiveSGD(TrainingAlgorithm):
         self.termination_criterion = termination_criterion
         self._register_update_callbacks(update_callbacks)
         self.first = True
+        self.monitor = None
 
     def setup(self, model, dataset):
         self.model = model
