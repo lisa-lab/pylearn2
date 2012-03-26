@@ -1,14 +1,16 @@
-import datetime
+from __future__ import division
+
 import copy
 import numpy as np
 
-from theano import function, shared
+from theano import function
 
 from pylearn2.monitor import Monitor
 from pylearn2.costs.cost import SupervisedCost
 from pylearn2.training_algorithms.sgd import ExhaustiveSGD
 from pylearn2.costs.autoencoder import MeanSquaredReconstructionError
 from pylearn2.training_algorithms.sgd import EpochCounter
+from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 
 """
     The C's enum-like python class for different k-fold cross-validation
@@ -25,10 +27,9 @@ CrossValidation base class
 class CrossValidation(object):
 
     def __init__(self, model=None, algorithm=None, cost=None, dataset=None,
-            callbacks=None):
+            validation_batch_size=None, validation_monitoring_batches=-1):
         """
         Base constructor subclasses use this constructor
-
         Parameters
         ----------
         model : object
@@ -43,29 +44,40 @@ class CrossValidation(object):
         dataset : object
             Object that implements the Dataset interface defined in
             `pylearn2.datasets`.
-        callbacks : iterable, optional
-            A collection of callbacks that are called, one at a time,
+        validation_batch_size : int, optional
+            Batch size per update. TODO: What if this is not provided?
+        validation_batches_per_iter : int, optional
+            How many batch updates per epoch. Default is 1000.
+            TODO: Is there any way to specify "as many as the dataset
+            provides"?
+        validation_monitoring_batches :
+            A collection of validation_monitoring_batches that are called, one at a time,
             after each epoch.
         """
         self.model = model
         self.validation_monitor = Monitor(self.model)
         self.training_monitor = Monitor(self.model)
+        self.validation_batch_size = validation_batch_size
         self.dataset = dataset
         self.algorithm = algorithm
-        if cost == None:
-            if algorithm.cost == None:
+        self.error_fn = None
+        self.error = 0
+        if cost is None:
+            if algorithm.cost is None:
                 raise ValueError("You should specify a cost function for the validation.")
             else:
                 self.cost = algorithm.cost
         else:
             self.cost = cost
-        self.dataset = dataset
-        self.callbacks = callbacks
 
-        if model == None:
+        self.supervised = isinstance(self.cost, SupervisedCost)
+        self.dataset = dataset
+        self.validation_monitoring_batches = validation_monitoring_batches
+
+        if model is None:
             raise ValueError("Model can't be None.")
 
-        if dataset == None:
+        if dataset is None:
             raise ValueError("Dataset can't be None")
 
     """
@@ -86,31 +98,70 @@ class CrossValidation(object):
                 self.model.monitor()
 
     #Setup the monitor for validation as in sgd's setup function
-    def setup_validation(self):
-        pass
-    
-    #Validate the model as in the unexhaustivesgd's setup function
-    def validate_model(self, validation_data):
-        if isinstance(self.cost, SupervisedCost):
-            space = self.model.get_input_space()
-            X = space.make_theano_batch(name="validation_X")
-            Y = space.make_theano_batch(name="validation_Y")
+    def setup_validation(self, validation_dataset):
+        self.validation_monitor.set_dataset(dataset=validation_dataset,
+                batches=self.validation_monitoring_batches,
+                batch_size=self.validation_batch_size)
+        space = self.model.get_input_space()
+        X = space.make_theano_batch(name="validation_X")
+        Y = space.make_theano_batch(name="validation_Y")
+
+        if self.supervised:
             J = self.cost(self.model, X, Y)
             self.validation_monitor.add_channel("sup_validation_error" + X.name, ipt=(X, Y),
                     val=J)
-            self.model.monitor = self.validation_monitor
-            self.model.monitor()
+            self.error_fn = function([X, Y], J, name="sup_validation_error")
         else:
-            space = self.model.get_input_space()
-            X = space.make_theano_batch(name="validation_X")
             J = self.cost(self.model, X)
-            self.validation_monitor.set_dataset(self.validation_dataset, self.
-            self.validation_monitor.add_channel("unsup_validation_error" + X.name, ipt=(X),
-                    val=J)
-            self.model.monitor = self.validation_monitor
-            self.model.monitor()
+            self.validation_monitor.set_dataset(dataset=validation_dataset,
+                    batches=self.validation_monitoring_batches,
+                    batch_size=self.validation_batch_size)
+            self.validation_monitor.add_channel(("unsup_validation_error_%s" % X.name),
+                ipt=(X), val=J)
+            self.error_fn = function([X], J, name="unsup_validation_error")
+
         self.cost = J
 
+    #Validate the model as in the exhaustivesgd's train function
+    def validate_model(self, validation_dataset):
+        model = self.model
+        if self.validation_batch_size is None:
+            try:
+                self.validation_batch_size = model.force_batch_size
+            except AttributeError:
+                raise ValueError("batch_size unspecified in both training "
+                                 "procedure and model")
+        else:
+            self.validation_batch_size = self.validation_batch_size
+            if hasattr(model, "force_batch_size"):
+                assert (model.force_batch_size <= 0 or
+                        self.validation_batch_size == model.force_batch_size), (
+                            # TODO: more informative assertion error
+                            "invalid force_batch_size attribute"
+                        )
+
+        if self.supervised:
+            validation_ddm = DenseDesignMatrix(X=validation_dataset[0],
+                    Y=validation_dataset[1])
+            validation_ddm.set_iteration_scheme(mode="sequential", 
+                    targets=self.supervised)
+            for (batch_in, batch_target) in validation_ddm:
+                self.validation_monitor.batches_seen += 1
+                self.validation_monitor.examples_seen += self.validation_batch_size
+                #Weight batches according to their sizes
+                self.error += self.error_fn(batch_in, batch_target) * (self.validation_batch_size / validation_ddm.num_examples)
+        else:
+            y = np.array([])
+            import pdb; pdb.set_trace();
+            validation_ddm = DenseDesignMatrix(X=validation_dataset[0], y=y)
+            validation_ddm.set_iteration_scheme(mode="sequential", batch_size=self.validation_batch_size,
+                    targets=self.supervised)
+
+            for batch in validation_ddm:
+                self.validation_monitor.batches_seen += 1
+                self.validation_monitor.examples_seen += self.validation_batch_size
+                #Weight batches according to their sizes
+                self.error += self.error_fn(batch) * (self.validation_batch_size / batch.shape[0])
 
     def crossvalidate_model(self, validation_dataset):
         """
@@ -119,7 +170,8 @@ class CrossValidation(object):
         raise NotImplementedError()
 
     def get_error(self):
-        
+        return (self.error / self.validation_monitor.batches_seen)
+
 """
     Class for KFoldCrossValidation.
     Explanation:
@@ -142,33 +194,55 @@ class CrossValidation(object):
 """
 class KFoldCrossValidation(CrossValidation):
     def __init__(self, nfolds=10, model=None, algorithm=None, cost=None, dataset=None,
-            callbacks=None, mode=KFoldCVMode.PESSIMISTIC, bootstrap=False):
+            validation_batch_size=None, validation_monitoring_batches=None,
+            mode=KFoldCVMode.PESSIMISTIC, bootstrap=False):
         self.nfolds = nfolds
         self.errors = np.array([])
         self.mode = mode
         self.bootstrap = bootstrap
-        super(KFoldCrossValidation, self).__init__(model, algorithm, cost, dataset,
-            callbacks)
+        super(KFoldCrossValidation, self).__init__(model, algorithm, cost, 
+                dataset, validation_batch_size=validation_batch_size, 
+                validation_monitoring_batches=validation_monitoring_batches)
 
-    def crossvalidate_model(self, validation_dataset=None, mode=KFoldCVMode.PESSIMISTIC, rng=None):
-        if validation_dataset != None:
+    def crossvalidate_model(self, validation_dataset=None, 
+            mode=KFoldCVMode.PESSIMISTIC, rng=None):
+        validation_data = None
+        if validation_dataset is not None:
             self.dataset = validation_dataset
-        if self.dataset == None:
+        if self.dataset is None:
             raise ValueError("You should specify a dataset.")
-
         if self.bootstrap:
             datasets = self.dataset.bootstrap_nfolds(self.nfolds, rng)
         else:
             datasets = self.dataset.split_dataset_nfolds(self.nfolds)
         for i in xrange(self.nfolds):
-            tmp_datasets = copy.copy(datasets) # Create a shallow copy
-            validation_data = tmp_datasets.pop(i)
-            if len(tmp_datasets) >= 1:
-                training_data = tmp_datasets.pop()
-                training_data.merge_datasets(tmp_datasets)
-            self.train_model(training_data)
-            self.validate_model(validation_data)
+            if self.supervised:
+                training_data = (np.array([]), np.array([]))
+                validation_data = datasets.pop(i)
+                for i in xrange(len(datasets)):
+                    training_data[0] = np.concatenate((training_data, datasets[i][0]))
+                    training_data[1] = np.concatenate((training_data, datasets[i][1]))
+            else:
+                training_data = np.array([])
+                validation_data = datasets.pop(i)
+                for i in xrange(len(datasets)):
+                    #Check if either data is labelled or not
+                    if type(datasets[i]) is tuple:
+                        if training_data.shape[0] == 0:
+                            training_data = datasets[i][0]
+                        else:
+                            training_data = np.concatenate((training_data, datasets[i][0]))
+                    else:
+                        if training_data.shape[0] == 0:
+                            training_data = datasets[i]
+                        else:
+                            training_data = np.concatenate((training_data, datasets[i]))
 
+            self.train_model(training_data)
+            self.setup_validation(validation_data)
+            self.validate_model(validation_data)
+            self.errors = np.append(self.errors, super(KFoldCrossValidation, self).get_error())
+ 
     def get_error(self):
         if self.mode == KFoldCVMode.PESSIMISTIC:
             error = self.errors.max()
@@ -177,6 +251,8 @@ class KFoldCrossValidation(CrossValidation):
         elif self.mode == KFoldCVMode.AVERAGE:
             error = np.mean(self.errors)
         return error
+
+
 """
     CrossValidation class for Holdout crossvalidation.
     Explanation:
@@ -195,28 +271,31 @@ class KFoldCrossValidation(CrossValidation):
 """
 class HoldoutCrossValidation(CrossValidation):
     def __init__(self, model=None, algorithm=None, cost=None, dataset=None,
-            callbacks=None, train_size=0, train_prop=0):
+            validation_batch_size=None, validation_monitoring_batches=None, 
+            train_size=0, train_prop=0):
         self.error = 0
         self.train_size = train_size
         self.train_prop = train_prop
         super(HoldoutCrossValidation, self).__init__(model, algorithm, cost, 
-                dataset, callbacks)
+                dataset, validation_batch_size=validation_batch_size,
+                validation_monitoring_batches=validation_monitoring_batches)
 
     def crossvalidate_model(self, validation_dataset=None):
-        if validation_dataset != None:
+        if validation_dataset is not None:
             self.dataset = validation_dataset
-        if self.dataset == None:
+        if self.dataset is None:
             raise ValueError("You should specify a dataset.")
-
 
         if self.train_size == 0:
             datasets = self.dataset.split_dataset_holdout(train_prop=self.train_prop)
         else:
             datasets = self.dataset.split_dataset_holdout(train_size=self.train_size)
         self.train_model(datasets[0])
+        self.setup_validation(datasets[1])
         self.validate_model(datasets[1])
 
-#"""Test 1:
+
+"""Test 1:
 import pylearn2.scripts.deep_trainer.run_deep_trainer as dp
 
 trainset, testset = dp.get_dataset_toy()
@@ -227,15 +306,49 @@ model = dp.get_denoising_autoencoder(structure)
 
 train_algo = ExhaustiveSGD(
             learning_rate = 0.1,
-            cost =  MeanSquaredReconstructionError(),
-            batch_size =  10,
-            monitoring_batches = 10,
-            monitoring_dataset =  trainset,
-            termination_criterion = EpochCounter(max_epochs=10),
-            update_callbacks =  None
+            cost=MeanSquaredReconstructionError(),
+            batch_size=100,
+            monitoring_batches=10,
+            monitoring_dataset=trainset,
+            termination_criterion=EpochCounter(max_epochs=10),
+            update_callbacks=None
             )
+
 holdoutCV = HoldoutCrossValidation(model=model, algorithm=train_algo, 
-        cost=MeanSquaredReconstructionError(), dataset=trainset, train_prop=0.5)
+        cost=MeanSquaredReconstructionError(),
+        dataset=trainset, 
+        validation_batch_size=1000,
+        train_prop=0.5)
+
 holdoutCV.crossvalidate_model()
 print "Error: " + str(holdoutCV.get_error())
+"""
+
+#"""Test 2
+import pylearn2.scripts.deep_trainer.run_deep_trainer as dp
+
+trainset, testset = dp.get_dataset_cifar10()
+design_matrix = trainset.get_design_matrix()
+n_input = design_matrix.shape[1]
+structure = [n_input, 400]
+model = dp.get_denoising_autoencoder(structure)
+
+train_algo = ExhaustiveSGD(
+            learning_rate = 0.1,
+            cost=MeanSquaredReconstructionError(),
+            batch_size=100,
+            monitoring_batches=10,
+            monitoring_dataset=trainset,
+            termination_criterion=EpochCounter(max_epochs=10),
+            update_callbacks=None
+            )
+
+kfoldCV = KFoldCrossValidation(model=model, algorithm=train_algo, 
+        cost=MeanSquaredReconstructionError(),
+        dataset=trainset, 
+        validation_batch_size=1000)
+
+kfoldCV.crossvalidate_model()
+print "Error: " + str(kfoldCV.get_error())
+
 #"""

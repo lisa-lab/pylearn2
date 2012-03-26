@@ -2,3 +2,4 @@
 *.py~
 *.swp
 *.npy
+*.pkl
