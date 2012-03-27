@@ -224,7 +224,6 @@ class Model(object):
         url: http://groups.google.com/group/pylearn-dev/browse_thread/thread/482c330d4b394912 
 
         Each subclass of Model should implement this function. 
-
         Params
         ------
         rng: ranndom number generator for rng computation.
