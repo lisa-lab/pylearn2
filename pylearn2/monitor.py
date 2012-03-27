@@ -187,6 +187,10 @@ class Monitor(object):
         #Get the appropriate kind of theano variable to represent the data the model
         #acts on
         X = self.model.get_input_space().make_theano_batch(name = "monitoring_X")
+        if config.compute_test_value != 'off':
+            m = self.model.get_test_batch_size()
+            test_value = self.model.get_input_space().get_origin_batch(m)
+            X.tag.test_value = np.cast[X.type.dtype](test_value)
         if self.require_label:
             Y = self.model.get_output_space().make_theano_batch(name = "monitoring_Y")
 
