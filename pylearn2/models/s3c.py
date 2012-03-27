@@ -412,8 +412,6 @@ class S3C(Model, Block):
         else:
             self.B_driver = sharedX(np.zeros(self.nvis)+self.init_B, name='B')
 
-        self.test_batch_size = 2
-
         if self.recycle_q:
             self.prev_H = sharedX(np.zeros((self.recycle_q,self.nhid)), name="prev_H")
             self.prev_S = sharedX(np.zeros((self.recycle_q,self.nhid)), name="prev_S")
@@ -569,11 +567,11 @@ class S3C(Model, Block):
         if self.recycle_q:
             self.prev_H.set_value(
                     np.cast[self.prev_H.dtype](
-                        np.zeros((self.test_batch_size, self.nhid)) \
+                        np.zeros((self._test_batch_size, self.nhid)) \
                                 + 1./(1.+np.exp(-self.bias_hid.get_value()))))
             self.prev_S.set_value(
                     np.cast[self.prev_S.dtype](
-                        np.zeros((self.test_batch_size, self.nhid)) + self.mu.get_value() ) )
+                        np.zeros((self._test_batch_size, self.nhid)) + self.mu.get_value() ) )
 
     def deploy_mode(self):
         """ If any shared variables need to have batch-size dependent sizes, sets them all to their runtime sizes """
@@ -1131,7 +1129,7 @@ class S3C(Model, Block):
             self.get_B_value = function([], self.B)
 
             X = T.matrix(name='V')
-            X.tag.test_value = np.cast[config.floatX](self.rng.randn(self.test_batch_size,self.nvis))
+            X.tag.test_value = np.cast[config.floatX](self.rng.randn(self._test_batch_size,self.nvis))
 
             self.learn_func = self.make_learn_func(X)
 
@@ -1431,8 +1429,8 @@ class E_Step(object):
     def infer_S_hat(self, V, H_hat, S_hat):
 
         for Vv, Hv in get_debug_values(V, H_hat):
-            if Vv.shape != (self.model.test_batch_size,self.model.nvis):
-                raise Exception('Well this is awkward. We require visible input test tags to be of shape '+str((self.model.test_batch_size,self.model.nvis))+' but the monitor gave us something of shape '+str(Vv.shape)+". The batch index part is probably only important if recycle_q is enabled. It's also probably not all that realistic to plan on telling the monitor what size of batch we need for test tags. the best thing to do is probably change self.model.test_batch_size to match what the monitor does")
+            if Vv.shape != (self.model._test_batch_size,self.model.nvis):
+                raise Exception('Well this is awkward. We require visible input test tags to be of shape '+str((self.model._test_batch_size,self.model.nvis))+' but the monitor gave us something of shape '+str(Vv.shape)+". The batch index part is probably only important if recycle_q is enabled. It's also probably not all that realistic to plan on telling the monitor what size of batch we need for test tags. the best thing to do is probably change self.model._test_batch_size to match what the monitor does")
 
             assert Vv.shape[0] == Hv.shape[0]
             if not (Hv.shape[1] == self.model.nhid):
