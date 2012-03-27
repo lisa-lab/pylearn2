@@ -1282,7 +1282,18 @@ class E_Step(object):
                 for i in xrange(1, 2 + len(self.h_new_coeff_schedule)):
                     obs = obs_history[i-1]
                     if self.monitor_kl:
-                        rval['trunc_KL_'+str(i)] = self.truncated_KL(V, obs).mean()
+                        if i == 1:
+                            rval['trunc_KL_'+str(i)] = self.truncated_KL(V, obs).mean()
+                        else:
+                            coeff = self.h_new_coeff_schedule[i-2]
+                            rval['trunc_KL_'+str(i)+'.2(h '+str(coeff)+')'] = self.truncated_KL(V,obs).mean()
+                            obs = {}
+                            for key in obs_history[i-1]:
+                                obs[key] = obs_history[i-1][key]
+                            obs['H_hat'] = obs_history[i-2]['H_hat']
+                            coeff = self.s_new_coeff_schedule[i-2]
+                            rval['trunc_KL_'+str(i)+'.1(s '+str(coeff)+')'] = self.truncated_KL(V,obs).mean()
+                            obs = obs_history[i-1]
                     if self.monitor_energy_functional:
                         rval['energy_functional_'+str(i)] = self.energy_functional(V, self.model, obs).mean()
                     if self.monitor_s_mag:
