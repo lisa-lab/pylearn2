@@ -1340,7 +1340,9 @@ class E_Step(object):
             if s_new_coeff_schedule is None:
                 s_new_coeff_schedule = [ 1.0 for rho in h_new_coeff_schedule ]
             else:
-                assert len(s_new_coeff_schedule) == len(h_new_coeff_schedule)
+                if len(s_new_coeff_schedule) != len(h_new_coeff_schedule):
+                    raise ValueError('s_new_coeff_schedule has %d elems ' % (len(s_new_coeff_schedule),) + \
+                            'but h_new_coeff_schedule has %d elems' % (len(h_new_coeff_schedule),) )
 
         self.s_new_coeff_schedule = s_new_coeff_schedule
 
