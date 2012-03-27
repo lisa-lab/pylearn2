@@ -1574,8 +1574,13 @@ class E_Step(object):
 
         return H
 
+
+    def infer(self, V, return_history = False):
+        return self.variational_inference( V, return_history)
+
     def variational_inference(self, V, return_history = False):
         """
+        TODO: rename to infer (for now, infer exists as a synonym)
 
             return_history: if True:
                                 returns a list of dictionaries with
