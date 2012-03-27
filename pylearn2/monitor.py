@@ -7,6 +7,8 @@ from theano import function, shared
 import copy
 from pylearn2.config import yaml_parse
 from pylearn2.utils.string_utils import number_aware_alphabetical_key
+from theano import config
+import numpy as np
 
 class Monitor(object):
     """
