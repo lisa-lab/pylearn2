@@ -115,8 +115,8 @@ class Monitor(object):
             # TODO: use logging infrastructure so that user can configure
             # formatting
             print "Monitoring step:"
-            print "\tBatches seen: %f" % self._num_batches_seen
-            print "\tExamples seen: %f" % self._examples_seen
+            print "\tBatches seen: %d" % self._num_batches_seen
+            print "\tExamples seen: %d" % self._examples_seen
             for channel_name in sorted(self.channels.keys(), key=number_aware_alphabetical_key):
                 channel = self.channels[channel_name]
                 channel.batch_record.append(self._num_batches_seen)
