@@ -85,32 +85,6 @@ class Autoencoder(Block, Model):
         self.irange = irange
         self.tied_weights = tied_weights
 
-        self.input_space = VectorSpace(nvis)
-        self.output_space = VectorSpace(nhid)
-
-        # Save a few parameters needed for resizing
-        self.nhid = nhid
-        self.irange = irange
-        self.tied_weights = tied_weights
-        if not hasattr(rng, 'randn'):
-            self.rng = numpy.random.RandomState(rng)
-        else:
-            self.rng = rng
-        self._initialize_hidbias()
-        if nvis > 0:
-            self._initialize_visbias(nvis)
-            self._initialize_weights(nvis)
-        else:
-            self.visbias = None
-            self.weights = None
-
-        seed = int(self.rng.randint(2 ** 30))
-        self.s_rng = RandomStreams(seed)
-        if tied_weights:
-            self.w_prime = self.weights.T
-        else:
-            self._initialize_w_prime(nvis)
-
         def _resolve_callable(conf, conf_attr):
             if conf[conf_attr] is None or conf[conf_attr] == "linear":
                 return None
@@ -130,7 +104,8 @@ class Autoencoder(Block, Model):
 
         self.act_enc = _resolve_callable(locals(), 'act_enc')
         self.act_dec = _resolve_callable(locals(), 'act_dec')
-    
+        self.reset_params()
+
     def _initialize_weights(self, nvis, rng=None, irange=None):
         if rng is None:
             rng = self.rng
