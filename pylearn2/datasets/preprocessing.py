@@ -5,6 +5,13 @@ from scipy import linalg
 from theano import function
 import theano.tensor as T
 
+from pylearn2.base import Block
+
+
+class ExamplewisePreprocessor(object):
+    def as_block(self):
+        raise NotImplementedError()
+
 
 class Pipeline(object):
     def __init__(self):
@@ -222,15 +229,29 @@ class ExtractPatches(object):
         dataset.set_topological_view(output)
 
 
-class MakeUnitNorm(object):
-    def __init__(self):
-        pass
+class ExamplewiseUnitNormBlock(Block):
+    """
+    A block that takes n-tensors, with training examples indexed along
+    the first axis, and normalizes each example to lie on the unit
+    sphere.
+    """
+    def __call__(self, batch):
+        squared_batch = batch ** 2
+        for dim in range(batch.ndim - 1, 0, -1):
+            squared_batch = squared_batch.sum(axis=dim)
+        return T.sqrt(squared_batch)
 
+
+class MakeUnitNorm(ExamplewisePreprocessor):
     def apply(self, dataset, can_fit):
         X = dataset.get_design_matrix()
         X_norm = np.sqrt(np.sum(X ** 2, axis=1))
         X /= X_norm[:, None]
         dataset.set_design_matrix(X)
+
+    def as_block(self):
+        return ExamplewiseUnitNormBlock()
+
 
 
 class RemoveMean(object):
