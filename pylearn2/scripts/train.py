@@ -122,6 +122,7 @@ class Train(object):
         """
         if self.algorithm is None:
             self.model.monitor = Monitor.get_monitor(self.model)
+            self.run_callbacks_and_monitoring()
             while self.model.train(dataset=self.dataset):
                 self.run_callbacks_and_monitoring()
                 if self.save_freq > 0 and self.epochs % self.save_freq == 0:
@@ -132,7 +133,7 @@ class Train(object):
                 self.save()
         else:
             self.algorithm.setup(model=self.model, dataset=self.dataset)
-            self.model.monitor()
+            self.run_callbacks_and_monitoring()
             epoch_start = datetime.datetime.now()
             while self.algorithm.train(dataset=self.dataset):
                 epoch_end = datetime.datetime.now()
