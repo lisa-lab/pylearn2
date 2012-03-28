@@ -240,6 +240,16 @@ class Model(object):
 
     def __init__(self):
         self.names_to_del = set()
+        self._test_batch_size = 2
+
+    def get_test_batch_size(self):
+        """ Batches of examples used to initialize
+            X.tag.test_value should have this many
+            examples if used as input to the model.
+            (The model specifies the number of examples
+            in case it needs a fixed batch size or to
+            keep the memory usage of testing under control)"""
+        return self._test_batch_size
 
     def register_names_to_del(self, names):
         """

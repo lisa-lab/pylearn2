@@ -34,11 +34,12 @@ class DefaultTrainingAlgorithm(object):
         self.model = model
 
         self.monitor = Monitor.get_monitor(model)
-        self.monitor.set_dataset(dataset=self.monitoring_dataset,
-                                 batches=self.monitoring_batches,
-                                 batch_size=self.batch_size)
         X = T.matrix()
-        if self.monitoring_dataset:
+        if self.monitoring_dataset is not None:
+            self.monitor.set_dataset(dataset=self.monitoring_dataset,
+                                mode="sequential",
+                                batch_size=self.batch_size,
+                                num_batches=self.monitoring_batches)
             X.tag.test_value = self.monitoring_dataset.get_batch_design(2)
             channels = model.get_monitoring_channels(X)
             if not isinstance(channels, dict):
@@ -71,6 +72,5 @@ class DefaultTrainingAlgorithm(object):
 
         for i in xrange(self.batches_per_iter):
             model.learn(dataset, batch_size)
-            model.monitor.batches_seen += 1
-            model.monitor.examples_seen += batch_size
+            model.monitor.report_batch( batch_size )
         return True

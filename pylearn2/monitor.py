@@ -1,11 +1,14 @@
-"""TODO: module-level docstring."""
+"""
+The module defining the Monitor and MonitorChannel objects used for
+tracking the changes in values of various quantities throughout training
+"""
 import time
-import numpy
 from theano import function, shared
-import theano.tensor as T
 import copy
 from pylearn2.config import yaml_parse
 from pylearn2.utils.string_utils import number_aware_alphabetical_key
+from theano import config
+import numpy as np
 
 class Monitor(object):
     """
@@ -112,8 +115,8 @@ class Monitor(object):
             # TODO: use logging infrastructure so that user can configure
             # formatting
             print "Monitoring step:"
-            print "\tBatches seen: %f" % self._num_batches_seen
-            print "\tExamples seen: %f" % self._examples_seen
+            print "\tBatches seen: %d" % self._num_batches_seen
+            print "\tExamples seen: %d" % self._examples_seen
             for channel_name in sorted(self.channels.keys(), key=number_aware_alphabetical_key):
                 channel = self.channels[channel_name]
                 channel.batch_record.append(self._num_batches_seen)
@@ -132,6 +135,25 @@ class Monitor(object):
     def run_prereqs(self, X):
         for prereq in self.prereqs:
             prereq(X)
+
+
+    def get_batches_seen(self):
+        """ Returns the number of batches the model has learned on (assuming
+        that the learning code has been calling Monitor.report_batch correctly)
+        """
+        return self._num_batches_seen
+
+    def get_examples_seen(self):
+        """ Returns the number of examples the model has learned on (assuming
+        that the learning code has been calling Monitor.report_batch correctly)
+        """
+        return self._examples_seen
+
+    def report_batch(self, num_examples):
+        """ Call this whenever the model has learned on another batch of examples.
+        Report how many examples were learned on. """
+        self._examples_seen += num_examples
+        self._num_batches_seen += 1
 
     def redo_theano(self):
         """
@@ -167,6 +189,10 @@ class Monitor(object):
         #Get the appropriate kind of theano variable to represent the data the model
         #acts on
         X = self.model.get_input_space().make_theano_batch(name = "monitoring_X")
+        if config.compute_test_value != 'off':
+            m = self.model.get_test_batch_size()
+            test_value = self.model.get_input_space().get_origin_batch(m)
+            X.tag.test_value = np.cast[X.type.dtype](test_value)
         if self.require_label:
             Y = self.model.get_output_space().make_theano_batch(name = "monitoring_Y")
 
@@ -348,5 +374,3 @@ class MonitorChannel(object):
     def __setstate__(self, d):
         self.__dict__.update(d)
 
-# TODO: Remove this at some point
-Channel = MonitorChannel
