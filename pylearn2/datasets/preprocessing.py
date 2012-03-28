@@ -253,8 +253,68 @@ class MakeUnitNorm(ExamplewisePreprocessor):
         return ExamplewiseUnitNormBlock()
 
 
+class ExamplewiseAddScaleTransform(Block):
+    """
+    A block that encodes an per-feature addition/scaling transform.
+    The addition/scaling can be done in either order.
+    """
+    def __init__(self, add=None, multiply=None, multiply_first=False):
+        """
+        Initialize an ExamplewiseAddScaleTransform instance.
 
-class RemoveMean(object):
+        Parameters
+        ----------
+        add : array_like or scalar, optional
+            Array or array-like object or scalar, to be added to each
+            training example by this Block.
+
+        multiply : array_like, optional
+            Array or array-like object or scalar, to be element-wise
+            multiplied with each training example by this Block.
+
+        multiply_first : boolean, optional
+            Whether to perform the multiplication before the addition.
+            (default is False).
+        """
+        self._add = np.asarray(add)
+        self._multiply = np.asarray(multiply)
+        # TODO: put the constant somewhere sensible.
+        if multiply is not None:
+            self._has_zeros = np.any(abs(multiply) < 1e-14)
+        else:
+            self._has_zeros = False
+        self._multiply_first = multiply_first
+
+    def _multiply(self, batch):
+        if self._multiply is not None:
+            batch *= self._multiply
+        return batch
+
+    def _add(self, batch):
+        if self._add is not None:
+            batch += self._add
+        return batch
+
+    def __call__(self, batch):
+        cur = batch
+        if self._multiply_first:
+            batch = self._add(self._multiply(batch))
+        else:
+            batch = self._multiply(self._add(batch))
+        return batch
+
+    def inverse(self):
+        if self._multiply is not None and self._has_zeros:
+            raise ZeroDivisionError("%s transformation not invertible "
+                                    "due to (near-) zeros in multiplicand" %
+                                    self.__class__.__name__)
+        else:
+            mult_inverse = self._multiply ** -1.
+            return self.__class__(add=-self._add, multiply=mult_inverse,
+                                  multiply_first=not self._multiply_first)
+
+
+class RemoveMean(ExamplewisePreprocessor):
     """
     Subtracts the mean along a given axis, or from every element
     if `axis=None`.
@@ -283,8 +343,14 @@ class RemoveMean(object):
         X -= self._mean
         dataset.set_design_matrix(X)
 
+    def as_block(self):
+        if self._mean is None:
+            raise  ValueError("can't convert %s to block without fitting"
+                              % self.__class__.__name__)
+        return ExamplewiseAddScaleTransform(add=-self._mean)
 
-class Standardize(object):
+
+class Standardize(ExamplewisePreprocessor):
     """Subtracts the mean and divides by the standard deviation."""
     def __init__(self, global_mean=False, global_std=False, std_eps=1e-4):
         """
@@ -325,8 +391,60 @@ class Standardize(object):
         new = (X - self._mean) / (self._std_eps + self._std)
         dataset.set_design_matrix(new)
 
+    def as_block(self):
+        if self._mean is None or self._std is None:
+            raise  ValueError("can't convert %s to block without fitting"
+                              % self.__class__.__name__)
+        return ExamplewiseAddScaleTransform(add=-self._mean,
+                                            multiply=self._std ** -1)
 
-class RemapInterval(object):
+
+class ColumnSubsetBlock(Block):
+    def __init__(self, columns, total):
+        self._columns = columns
+        self._total = total
+
+    def __call__(self, batch):
+        if batch.ndim != 2:
+            raise ValueError("Only two-dimensional tensors are supported")
+        return batch.dimshuffle(1, 0)[self._columns].dimshuffle(0, 1)
+
+    def inverse(self):
+        data_cols = sorted(set(range(self._total)) - set(self._columns))
+        return ZeroColumnInsertBlock(data_cols, self._total)
+
+
+class ZeroColumnInsertBlock(Block):
+    def __init__(self, columns, total):
+        self._columns = columns
+
+    def __call__(self, batch):
+        if batch.ndim != 2:
+            raise ValueError("Only two-dimensional tensors are supported")
+
+
+class RemoveZeroColumns(ExamplewisePreprocessor):
+    _eps = 1e-8
+
+    def __init__(self):
+        self._block = None
+
+    def apply(self, dataset, can_fit=True):
+        design_matrix = dataset.get_design_matrix()
+        mean = design_matrix.mean(axis=0)
+        var = design_matrix.var(axis=0)
+        columns, = np.where((var < self._eps) & (mean < self._eps))
+        self._block = ColumnSubsetBlock
+
+    def as_block(self):
+        if self._block is None:
+            raise  ValueError("can't convert %s to block without fitting"
+                              % self.__class__.__name__)
+        return self._block
+
+
+class RemapInterval(ExamplewisePreprocessor):
+    # TODO: Implement as_block
     def __init__(self, map_from, map_to):
         assert map_from[0] < map_from[1] and len(map_from) == 2
         assert map_to[0] < map_to[1] and len(map_to) == 2
