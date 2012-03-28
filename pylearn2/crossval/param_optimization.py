@@ -98,8 +98,9 @@ class ParamOptimization(object):
                                        list(itertools.product(*self.modif_params.values())))
         rval = list(func_iterator)
 
-    def train_algo(self, modif_params_val):
-        import pdb; pdb.set_trace()
+    def train_algo(self, modif_params_val):        
+        if hasattr(self.model, 'monitor'):
+            del self.model.monitor
         config = dict(zip(self.modif_params.keys(), modif_params_val)) 
         config.update(self.fix_params)
         train_algo = self.algorithm(**config)
@@ -143,8 +144,7 @@ def main():
     design_matrix = trainset.get_design_matrix()
     n_input = design_matrix.shape[1]
     structure = [n_input, 400]
-    model = dp.get_denoising_autoencoder(structure)
-
+    model = dp.get_denoising_autoencoder(structure)    
     modif_params = {'learning_rate': [0.1, 0.01, 0.001, 0.0001],
                     'batch_size': [10, 12, 15],
                     'monitoring_batches': [10, 20],
