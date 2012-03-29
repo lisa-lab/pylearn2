@@ -4,6 +4,7 @@ tracking the changes in values of various quantities throughout training
 """
 import time
 from theano import function, shared
+import theano.sparse
 import copy
 from pylearn2.config import yaml_parse
 from pylearn2.utils.string_utils import number_aware_alphabetical_key
@@ -43,7 +44,15 @@ class Monitor(object):
         # examples. If the model acts on a space with more than the batch index
         # and channel dimension, the model has topological dimensions, so the
         # topological view of the data should be used.
-        self.topo = len(model.get_input_space().make_theano_batch().type.broadcastable) > 2
+        try:
+            self.topo = len(model.get_input_space().make_theano_batch().type.broadcastable) > 2
+        except AttributeError:
+            vector = model.get_input_space().make_theano_batch()
+            if isinstance(vector, theano.sparse.basic.SparseVariable):
+                self.topo = False
+            else:
+                raise
+                
         self.require_label = False
 
     def set_dataset(self, dataset, mode, batch_size=None, num_batches=None):

@@ -30,6 +30,7 @@ the right space.
 
 import numpy as np
 import theano.tensor as T
+import theano.sparse
 from theano.tensor import TensorType
 from theano import config
 import functools
@@ -79,7 +80,7 @@ class Space(object):
 
 class VectorSpace(Space):
     """A space whose points are defined as fixed-length vectors."""
-    def __init__(self, dim):
+    def __init__(self, dim, sparse=False):
         """
         Initialize a VectorSpace.
 
@@ -87,9 +88,12 @@ class VectorSpace(Space):
         ----------
         dim : int
             Dimensionality of a vector in this space.
+        sparse: bool
+            Sparse vector or not
         """
         self.dim = dim
-
+        self.sparse = sparse
+        
     @functools.wraps(Space.get_origin)
     def get_origin(self):
         return np.zeros((self.dim,))
@@ -102,7 +106,11 @@ class VectorSpace(Space):
     def make_theano_batch(self, name=None, dtype=None):
         if dtype is None:
             dtype = config.floatX
-        return T.matrix(name=name, dtype=dtype)
+
+        if self.sparse:
+            return theano.sparse.csr_matrix(name=name)
+        else:
+            return T.matrix(name=name, dtype=dtype)
 
 
 class Conv2DSpace(Space):

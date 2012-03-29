@@ -1,6 +1,7 @@
 from __future__ import division
 import datetime
 import numpy as np
+import theano.sparse
 from theano import function, config
 import theano.tensor as T
 from warnings import warn
@@ -104,8 +105,11 @@ class SGD(TrainingAlgorithm):
         #the model acts on
         space = self.model.get_input_space()
         X = space.make_theano_batch(name='sgd_X')
-
-        self.topo = len(X.type.broadcastable) > 2
+        
+        if isinstance(X, theano.sparse.basic.SparseVariable):
+            self.topo = False
+        else:
+            self.topo = len(X.type.broadcastable) > 2
 
         try:
             J = sum(c(model, X) for c in self.cost)
@@ -188,8 +192,8 @@ class SGD(TrainingAlgorithm):
                 #
             #"""
 
-            self.monitor.batches_seen += 1
-            self.monitor.examples_seen += batch_size
+            self.monitor._num_batches_seen += 1
+            self.monitor._examples_seen += batch_size
 
         for callback in self.update_callbacks:
             try:
