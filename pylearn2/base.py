@@ -3,6 +3,7 @@
 import cPickle
 import inspect
 import os.path
+import warnings
 
 # Third-party imports
 import theano
@@ -40,6 +41,8 @@ class Block(object):
         Individual classes should override __getstate__ and __setstate__
         to deal with object versioning in the case of API changes.
         """
+        warnings.warn("This is deprecated; use serial.save",
+                      DeprecationWarning, stacklevel=1)
         self.fn = None
         save_dir = os.path.dirname(save_file)
         if save_dir and not os.path.exists(save_dir):
@@ -52,6 +55,8 @@ class Block(object):
     @classmethod
     def fromdict(cls, conf, **kwargs):
         """ Alternative way to build a block, by using a dictionary """
+        warnings.warn("This is deprecated and going away in the near future",
+                      DeprecationWarning, stacklevel=1)
         arglist = []
         kwargs.update(conf)
         # Loop over all superclasses of cls
@@ -69,6 +74,8 @@ class Block(object):
     @classmethod
     def load(cls, load_file):
         """Load a serialized block."""
+        warnings.warn("This is deprecated and going away in the near future",
+                      DeprecationWarning, stacklevel=1)
         if not os.path.isfile(load_file):
             raise IOError('File %s does not exist' % load_file)
         obj = cPickle.load(open(load_file))
@@ -91,6 +98,9 @@ class Block(object):
         if self.fn is None:
             self.fn = self.function("perform")
         return self.fn(X)
+
+    def inverse(self):
+        raise NotImplementedError()
 
 
 class StackedBlocks(Block):
