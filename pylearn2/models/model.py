@@ -209,6 +209,28 @@ class Model(object):
         """
         pass
 
+    def reset_params(self, rng=None):
+        """
+        Reset the parameters of the model. In the following way as mentioned
+        by David in the pylearn-dev mail-list:
+
+        I think a standard interface for doing all or some subset of these three
+        things:
+
+        a) *Reinitialize* all parameters of your model to randomly selected initial
+          values, with rng/seed control for predictability.
+        b) *Rebuild* any Theano graphs that your model might use internally.
+
+        url: http://groups.google.com/group/pylearn-dev/browse_thread/thread/482c330d4b394912 
+
+        Each subclass of Model should implement this function. 
+
+        Params
+        ------
+        rng: ranndom number generator for rng computation.
+        """
+        pass
+
     def get_input_dim(self):
         """ Returns the number of visible units of the model.
         Deprecated; this assumes the model operates on a vector.

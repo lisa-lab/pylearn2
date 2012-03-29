@@ -103,33 +103,20 @@ class DBM(Model):
 
         self.print_interval = print_interval
 
-        #copy parameters from RBM to DBM, ignoring bias_hid of all but last RBM
-        self.W = []
-        for rbm in self.rbms:
-            weights ,= rbm.transformer.get_params()
-            self.W.append( weights )
+        self.reset_params()
 
-        for i, W in enumerate(self.W):
-            W.name = 'dbm_W[%d]' % (i,)
-        self.bias_vis = rbms[0].bias_vis
-        self.bias_hid = [ rbm.bias_vis for rbm in self.rbms[1:] ]
-        self.bias_hid.append(self.rbms[-1].bias_hid)
-        for i, bias_hid in enumerate(self.bias_hid):
-            bias_hid.name = 'dbm_bias_hid[%d]' % (i,)
-
-        self.reset_rng()
+        self.reset_rng(redo_theano=False)
 
         self.redo_everything()
 
     def reset_rng(self):
         self.rng = np.random.RandomState([1,2,3])
-
+        
     def redo_everything(self):
         """ compiles learn_func if necessary
             makes new negative chains
             does not reset weights or biases
         """
-
         #compile learn_func if necessary
         if self.autonomous:
             self.redo_theano()
@@ -140,6 +127,26 @@ class DBM(Model):
 
             self.H_chains = [ self.make_chains(bias_hid) for bias_hid in self.bias_hid ]
 
+    def reset_params(self, rng=None):
+        if rng is not None:
+            self.rng = rng
+        else:
+            self.reset_rng()
+
+        #copy parameters from RBM to DBM, ignoring bias_hid of all but last RBM
+        self.W = []
+        for rbm in self.rbms:
+            weights ,= rbm.transformer.get_params()
+            self.W.append( weights )
+
+        for i, W in enumerate(self.W):
+            W.name = 'dbm_W[%d]' % (i,)
+        self.bias_vis = self.rbms[0].bias_vis
+        self.bias_hid = [ rbm.bias_vis for rbm in self.rbms[1:] ]
+        self.bias_hid.append(self.rbms[-1].bias_hid)
+        for i, bias_hid in enumerate(self.bias_hid):
+            bias_hid.name = 'dbm_bias_hid[%d]' % (i,)
+        self.redo_everything()
 
     def make_chains(self, bias):
         """ make the shared variable representing a layer of

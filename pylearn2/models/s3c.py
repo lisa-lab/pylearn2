@@ -179,8 +179,6 @@ class S3C(Model, Block):
         Learning Hierarchical Models. NIPS 2011.
 
     """
-
-
     def __init__(self, nvis, nhid, irange, init_bias_hid,
                        init_B, min_B, max_B,
                        init_alpha, min_alpha, max_alpha, init_mu,
@@ -377,7 +375,6 @@ class S3C(Model, Block):
 
         self.init_unit_W = init_unit_W
 
-
         self.print_interval = print_interval
 
         self.constrain_W_norm = constrain_W_norm
@@ -428,6 +425,12 @@ class S3C(Model, Block):
             self.rng = np.random.RandomState([1.,2.,3.])
         else:
             self.rng = np.random.RandomState(self.seed)
+    
+    def reset_params(self, rng=None):
+        """
+         redo_everything function does everything we want to do.
+        """
+        self.redo_everything()
 
     def redo_everything(self):
 
