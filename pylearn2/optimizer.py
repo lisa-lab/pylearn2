@@ -6,7 +6,6 @@ import sys
 from numpy import inf
 import theano
 from theano import tensor
-from pylearn.gd.sgd import sgd_updates
 
 # Local imports
 from pylearn2.base import Optimizer
@@ -207,8 +206,8 @@ class SGDOptimizer(Optimizer):
         l_ups, learn_rates = self.learning_rate_updates()
         safe_update(ups, l_ups)
 
-        # Get the updates from sgd_updates, a PyLearn library function.
-        p_up = dict(sgd_updates(self.params, gradients, learn_rates))
+        # Get the updates from sgd_updates
+        p_up = dict(self.sgd_updates(self.params, gradients, learn_rates))
 
         # Add the things in p_up to ups
         safe_update(ups, p_up)
@@ -249,3 +248,43 @@ class SGDOptimizer(Optimizer):
         """
         grads = [tensor.grad(cost, p) for p in self.params]
         return self.updates(gradients=grads)
+
+
+    def sgd_updates(params, grads, stepsizes):
+        """Return a list of (pairs) that can be used as updates in theano.function to
+        implement stochastic gradient descent.
+
+        :param params: variables to adjust in order to minimize some cost
+        :type params: a list of variables (theano.function will require shared variables)
+        :param grads: the gradient on each param (with respect to some cost)
+        :type grads: list of theano expressions
+        :param stepsizes: step by this amount times the negative gradient on each iteration
+        :type stepsizes: [symbolic] scalar or list of one [symbolic] scalar per param
+        """
+        try:
+            iter(stepsizes)
+        except Exception:
+            stepsizes = [stepsizes for p in params]
+        if len(params) != len(grads):
+            raise ValueError('params and grads have different lens')
+        updates = [(p, p - step * gp) for (step, p, gp) in zip(stepsizes, params, grads)]
+        return updates
+
+    def sgd_momentum_updates(params, grads, stepsizes, momentum=0.9):
+        # if stepsizes is just a scalar, expand it to match params
+        try:
+            iter(stepsizes)
+        except Exception:
+            stepsizes = [stepsizes for p in params]
+        try:
+            iter(momentum)
+        except Exception:
+            momentum = [momentum for p in params]
+        if len(params) != len(grads):
+            raise ValueError('params and grads have different lens')
+        headings = [theano.shared(numpy.zeros_like(p.get_value(borrow=True))) for p in params]
+        updates = []
+        for s, p, gp, m, h in zip(stepsizes, params, grads, momentum, headings):
+            updates.append((p, p + s * h))
+            updates.append((h, m*h - (1.0-m)*gp))
+        return updates
