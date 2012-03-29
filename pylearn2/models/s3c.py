@@ -287,7 +287,6 @@ class S3C(Model, Block):
             last_row = s[0] - local_rf_shape[0]
             last_col = s[1] - local_rf_shape[1]
 
-
             if local_rf_stride is not None:
                 #local_rf_stride specified, make local_rfs on a grid
                 assert last_row % local_rf_stride[0] == 0
@@ -430,6 +429,11 @@ class S3C(Model, Block):
         """
          redo_everything function does everything we want to do.
         """
+        if rng is not None:
+            self.rng = rng
+        else:
+            self.reset_rng()
+        self.input_space = VectorSpace(self.nvis)
         self.redo_everything()
 
     def redo_everything(self):
