@@ -291,7 +291,6 @@ class RBM(Block, Model):
             self.hid_space = hid_space
             self.transformer = transformer
 
-
         try:
             b_vis = self.vis_space.get_origin()
             b_vis += init_bias_vis
@@ -318,9 +317,58 @@ class RBM(Block, Model):
         self.nchains = nchains
         self.sml_gibbs_steps = sml_gibbs_steps
 
+    def reset_params(self, rng=None):
+        if self.rng is None:
+            # TODO: global rng configuration stuff.
+            rng = numpy.random.RandomState(1001)
+        self.rng = rng
+
+        if self.vis_space is None:
+            #if we don't specify things in terms of spaces and a transformer,
+            #assume dense matrix multiplication and work off of nvis, nhid
+            if self.random_patches_src is None:
+                W = rng.uniform(-self.irange, self.irange, (self.nvis, self.nhid))
+            else:
+                if hasattr(self.random_patches_src, '__array__'):
+                    W = self.irange * self.random_patches_src.T
+                    assert W.shape == (self.nvis, self.nhid)
+                else:
+                    W = self.irange * self.random_patches_src.get_batch_design(self.nhid).T
+
+            self.transformer = MatrixMul(  sharedX(
+                    W,
+                    name='W',
+                    borrow=True
+                )
+            )
+
+            self.vis_space = VectorSpace(self.nvis)
+            self.hid_space = VectorSpace(self.nhid)
+        
+        try:
+            b_vis = self.vis_space.get_origin()
+            b_vis += self.init_bias_vis
+        except ValueError:
+            raise ValueError("bad shape or value for init_bias_vis")
+        self.bias_vis = sharedX(b_vis, name='bias_vis', borrow=True)
+
+        try:
+            b_hid = self.hid_space.get_origin()
+            b_hid += self.init_bias_hid
+        except ValueError:
+            raise ValueError('bad shape or value for init_bias_hid')
+        self.bias_hid = sharedX(b_hid, name='bias_hid', borrow=True)
+
+        self.random_patches_src = self.random_patches_src
+        self.register_names_to_del(['random_patches_src'])
+
+        self.__dict__.update(nhid=self.nhid, nvis=self.nvis)
+        self._params = list(self.transformer.get_params().union([self.bias_vis, self.bias_hid]))
+        self.redo_theano()
+
     def get_input_dim(self):
         if not isinstance(self.vis_space, VectorSpace):
-            raise TypeError("Can't describe "+str(type(self.vis_space))+" as a dimensionality number.")
+            raise TypeError("Can't describe " + str(type(self.vis_space)) + " as a dimensionality number.")
         return self.vis_space.dim
 
     def get_output_dim(self):
@@ -354,7 +402,7 @@ class RBM(Block, Model):
 
         theano_rng = RandomStreams(42)
 
-        norms = theano_norms(self.weights)
+        norms = theano_norms( self.weights)
 
         H = self.mean_h_given_v(V)
 
@@ -778,7 +826,7 @@ class GaussianBinaryRBM(RBM):
                     bias_vis=self.bias_vis,
                     bias_hid=self.bias_hid
                 )
-
+    
     def censor_updates(self, updates):
         if self.sigma_driver in updates:
             assert self.learn_sigma
@@ -876,6 +924,15 @@ class GaussianBinaryRBM(RBM):
             # zero mean, std sigma noise
             zero_mean = rng.normal(size=shape) * self.sigma
             return zero_mean + v_mean
+
+    def reset_params(self, rng=None):
+        super(GaussianBinaryRBM, self).reset_params(rng)
+        self.sigma_driver = sharedX(
+            self.base * self.init_sigma / self.sigma_lr_scale,
+            name='sigma_driver',
+            borrow=True
+        )
+        self.sigma = self.sigma_driver * self.sigma_lr_scale
 
 
 class mu_pooled_ssRBM(RBM):
@@ -1029,6 +1086,51 @@ class mu_pooled_ssRBM(RBM):
         return tensor.add(
                 0.5 * (self.B * (v ** 2)).sum(axis=1),
                 -tensor.nnet.softplus(sigmoid_arg).sum(axis=1))
+
+    def reset_params(self, rng=None):
+        if rng is None:
+            # TODO: global rng configuration stuff.
+            rng = numpy.random.RandomState(1001)
+        self.rng = rng
+        if self.alpha_irange > 0:
+            self.alpha_init += (2 * self.rng.rand(self.nslab) - 1) * self.alpha_irange
+        self.log_alpha = sharedX(numpy.log(self.alpha_init), name='log_alpha')
+        self.alpha = tensor.exp(self.log_alpha)
+        self.alpha.name = 'alpha'
+
+        self.mu = sharedX(
+                numpy.zeros(self.nslab) + self.mu0,
+                name='mu', borrow=True)
+        self.b = sharedX(
+                numpy.zeros(self.nhid) + self.b0,
+                name='b', borrow=True)
+
+        if self.W_irange is None:
+            # Derived closed to Xavier Glorot's magic formula
+            W_irange = 2 / numpy.sqrt(self.nvis * self.nhid)
+        self.W = sharedX(
+                (.5 - rng.rand(self.nvis, self.nslab)) * 2 * W_irange,
+                name='W', borrow=True)
+
+        # THE BETA IS IGNORED DURING TRAINING - FIXED AT MARGINAL DISTRIBUTION
+        self.B = sharedX(numpy.zeros(self.nvis) + self.B0, name='B', borrow=True)
+
+        if self.Lambda_irange > 0:
+            L = (rng.rand(self.nvis, self.nhid) * self.Lambda_irange
+                    + self.Lambda0)
+        else:
+            L = numpy.zeros((self.nvis, self.nhid)) + self.Lambda0
+        self.Lambda = sharedX(L, name='Lambda', borrow=True)
+
+        self._params = [
+                self.mu,
+                self.B,
+                self.Lambda,
+                self.W,
+                self.b,
+                self.log_alpha]
+
+
 
     #def __call__(self, v):
     #    inherited version is OK
