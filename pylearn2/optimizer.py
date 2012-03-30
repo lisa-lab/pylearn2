@@ -250,7 +250,7 @@ class SGDOptimizer(Optimizer):
         return self.updates(gradients=grads)
 
 
-    def sgd_updates(params, grads, stepsizes):
+    def sgd_updates(self, params, grads, stepsizes):
         """Return a list of (pairs) that can be used as updates in theano.function to
         implement stochastic gradient descent.
 
@@ -270,7 +270,7 @@ class SGDOptimizer(Optimizer):
         updates = [(p, p - step * gp) for (step, p, gp) in zip(stepsizes, params, grads)]
         return updates
 
-    def sgd_momentum_updates(params, grads, stepsizes, momentum=0.9):
+    def sgd_momentum_updates(self, params, grads, stepsizes, momentum=0.9):
         # if stepsizes is just a scalar, expand it to match params
         try:
             iter(stepsizes)
