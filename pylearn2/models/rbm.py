@@ -1156,7 +1156,7 @@ def build_stacked_RBM(nvis, nhids, batch_size, vis_type='binary',
     if vis_type == 'binary':
         assert input_mean_vis is None
     elif vis_type == 'gaussian':
-        assert input_mean_vis in True, False
+        assert input_mean_vis in (True, False)
 
     # The number of visible units in each layer is the initial input
     # size and the first k-1 hidden unit sizes.
