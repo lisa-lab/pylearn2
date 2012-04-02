@@ -7,9 +7,25 @@ from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 
 def compute_log_z(rbm, free_energy_fn, max_bits=15):
     """
-    TODO: document me.
+    Compute the log partition function of an (binary-binary) RBM.
+
+    Parameters
+    ----------
+    rbm : object
+        An RBM object from `pylearn2.models`.
+    free_energy_fn : callable
+        A callable object (e.g. Theano function) that computes the
+        free energy of a stack of configuration for this RBM.
+    max_bits : int
+        The (base-2) log of the number of states to enumerate (and
+        compute free energy for) at a time.
+
+    Notes
+    -----
+    This function enumerates a sum with exponentially many terms, and
+    should not be used with more than a small, toy model.
     """
-    # pick whether to iterate over visible or hidden states
+    # Pick whether to iterate over visible or hidden states.
     if rbm.nvis < rbm.nhid:
         width = rbm.nvis
         type = 'vis'
@@ -17,27 +33,44 @@ def compute_log_z(rbm, free_energy_fn, max_bits=15):
         width = rbm.nhid
         type = 'hid'
 
-    # determine in how many steps to compute Z
+    # Determine in how many steps to compute Z.
     block_bits = width if (not max_bits or width < max_bits) else max_bits
     block_size = 2 ** block_bits
 
-    # allocate storage for 2**block_bits of the 2**width possible
-    # configurations
-    logz_data_c = numpy.zeros(
-        (block_size, width),
-        order='C',
-        dtype=config.floatX
-    )
+    # Allocate storage for 2**block_bits of the 2**width possible
+    # configurations.
+    try:
+        logz_data_c = numpy.zeros(
+            (block_size, width),
+            order='C',
+            dtype=config.floatX
+        )
+    except MemoryError:
+        raise MemoryError("failed to allocate (%d, %d) matrix of "
+                          "type %s in compute_log_z; try a smaller "
+                          "value of max_bits" %
+                          (block_size, width, str(config.floatX)))
 
     # fill in the first block_bits, which will remain fixed for all
     # 2**width configs
     tensor_10D_idx = numpy.ndindex(*([2] * block_bits))
     for i, j in enumerate(tensor_10D_idx):
         logz_data_c[i, -block_bits:] = j
-    logz_data = numpy.array(logz_data_c, order='F', dtype=config.floatX)
+    try:
+        logz_data = numpy.array(logz_data_c, order='F', dtype=config.floatX)
+    except MemoryError:
+        raise MemoryError("failed to allocate (%d, %d) matrix of "
+                          "type %s in compute_log_z; try a smaller "
+                          "value of max_bits" %
+                          (block_size, width, str(config.floatX)))
 
-    # storage for free-energy of all 2**width configurations
-    FE = numpy.zeros(2 ** width, dtype=config.floatX)
+    # Allocate storage for free-energy of all 2**width configurations.
+    try:
+        FE = numpy.zeros(2 ** width, dtype=config.floatX)
+    except MemoryError:
+        raise MemoryError("failed to allocate free energy storage array "
+                          "in compute_log_z; your model is too big to use "
+                          "with this function")
 
     # now loop 2**(width - block_bits) times, filling in the
     # most-significant bits
