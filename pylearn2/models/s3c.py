@@ -202,6 +202,7 @@ class S3C(Model, Block):
                        random_patches_src = None,
                        local_rf_src = None,
                        local_rf_shape = None,
+                       local_rf_max_shape = None,
                        local_rf_stride = None,
                        local_rf_draw_patches = False,
                        init_unit_W = None,
@@ -246,7 +247,12 @@ class S3C(Model, Block):
         local_rf_src: if not None, should be a dataset
                 requires the following other params:
                     local_rf_shape: a 2 tuple
-                    local_rf_stride: a 2 tuple
+                    one of:
+                        local_rf_stride: a 2 tuple or None
+                            if specified, pull out patches on a regular grid
+                        local_rf_max_shape: a 2 tuple or None
+                            if specified, pull out patches of random shape and
+                                location
                     local_rf_draw_patches: if true, local receptive fields are patches from local_rf_src
                                             otherwise, they're random patches
                  will initialize the weights to have only local receptive fields. (won't make a sparse
@@ -276,53 +282,80 @@ class S3C(Model, Block):
             self.init_W = random_patches_src.get_batch_design(nhid).T
             assert local_rf_src is None
         elif local_rf_src is not None:
-            self.rng.uniform(-self.irange, self.irange, (self.nvis, self.nhid))
-
             s = local_rf_src.view_shape()
             height, width, channels = s
             W_img = np.zeros( (self.nhid, height, width, channels) )
 
             last_row = s[0] - local_rf_shape[0]
-            assert last_row % local_rf_stride[0] == 0
-            num_row_steps = last_row / local_rf_stride[0] + 1
-
             last_col = s[1] - local_rf_shape[1]
-            assert last_col % local_rf_stride[1] == 0
-            num_col_steps = last_col /local_rf_stride[1] + 1
-
-            total_rfs = num_row_steps * num_col_steps
-
-            if self.nhid % total_rfs != 0:
-                raise ValueError('nhid modulo total_rfs should be 0, but we get %d modulo %d = %d' % (self.nhid, total_rfs, self.nhid % total_rfs))
-
-            filters_per_rf = self.nhid / total_rfs
-
-            idx = 0
-            for r in xrange(num_row_steps):
-                rc = r * local_rf_stride[0]
-                for c in xrange(num_col_steps):
-                    cc = c * local_rf_stride[1]
-
-                    for i in xrange(filters_per_rf):
-
-                        if local_rf_draw_patches:
-                            img = local_rf_src.get_batch_topo(1)[0]
-                            local_rf = img[rc:rc+local_rf_shape[0],
-                                           cc:cc+local_rf_shape[1],
-                                           :]
-                        else:
-                            local_rf = self.rng.uniform(-self.irange,
-                                        self.irange,
-                                        (local_rf_shape[0], local_rf_shape[1], s[2]) )
 
 
+            if local_rf_stride is not None:
+                #local_rf_stride specified, make local_rfs on a grid
+                assert last_row % local_rf_stride[0] == 0
+                num_row_steps = last_row / local_rf_stride[0] + 1
 
-                        W_img[idx,rc:rc+local_rf_shape[0],
-                          cc:cc+local_rf_shape[1],:] = local_rf
-                        idx += 1
+                assert last_col % local_rf_stride[1] == 0
+                num_col_steps = last_col /local_rf_stride[1] + 1
+
+                total_rfs = num_row_steps * num_col_steps
+
+                if self.nhid % total_rfs != 0:
+                    raise ValueError('nhid modulo total_rfs should be 0, but we get %d modulo %d = %d' % (self.nhid, total_rfs, self.nhid % total_rfs))
+
+                filters_per_rf = self.nhid / total_rfs
+
+                idx = 0
+                for r in xrange(num_row_steps):
+                    rc = r * local_rf_stride[0]
+                    for c in xrange(num_col_steps):
+                        cc = c * local_rf_stride[1]
+
+                        for i in xrange(filters_per_rf):
+
+                            if local_rf_draw_patches:
+                                img = local_rf_src.get_batch_topo(1)[0]
+                                local_rf = img[rc:rc+local_rf_shape[0],
+                                               cc:cc+local_rf_shape[1],
+                                               :]
+                            else:
+                                local_rf = self.rng.uniform(-self.irange,
+                                            self.irange,
+                                            (local_rf_shape[0], local_rf_shape[1], s[2]) )
 
 
-            assert idx == self.nhid
+
+                            W_img[idx,rc:rc+local_rf_shape[0],
+                              cc:cc+local_rf_shape[1],:] = local_rf
+                            idx += 1
+                assert idx == self.nhid
+            else:
+                #no stride specified, use random shaped patches
+                assert local_rf_max_shape is not None
+
+                for idx in xrange(nhid):
+                    shape = [ self.rng.randint(min_shape,max_shape+1) for
+                            min_shape, max_shape in zip(
+                                local_rf_shape,
+                                local_rf_max_shape) ]
+                    loc = [ self.rng.randint(0, bound - width + 1) for
+                            bound, width in zip(s, shape) ]
+
+                    rc, cc = loc
+
+                    if local_rf_draw_patches:
+                        img = local_rf_src.get_batch_topo(1)[0]
+                        local_rf = img[rc:rc+shape[0],
+                                       cc:cc+shape[1],
+                                       :]
+                    else:
+                        local_rf = self.rng.uniform(-self.irange,
+                                    self.irange,
+                                    (shape[0], shape[1], s[2]) )
+
+                    W_img[idx,rc:rc+shape[0],
+                              cc:cc+shape[1],:] = local_rf
+
 
             self.init_W = local_rf_src.view_converter.topo_view_to_design_mat(W_img).T
 
@@ -354,12 +387,16 @@ class S3C(Model, Block):
         self.disable_W_update = disable_W_update
         self.monitor_functional = monitor_functional
         self.init_bias_hid = init_bias_hid
-        self.init_alpha = float(init_alpha)
-        self.min_alpha = float(min_alpha)
-        self.max_alpha = float(max_alpha)
-        self.init_B = float(init_B)
-        self.min_B = float(min_B)
-        self.max_B = float(max_B)
+        def nostrings(x):
+            if isinstance(x,str):
+                return float(x)
+            return x
+        self.init_alpha = nostrings(init_alpha)
+        self.min_alpha = nostrings(min_alpha)
+        self.max_alpha = nostrings(max_alpha)
+        self.init_B = nostrings(init_B)
+        self.min_B = nostrings(min_B)
+        self.max_B = nostrings(max_B)
         self.m_step = m_step
         self.e_step = e_step
         if e_step is None:
