@@ -64,9 +64,10 @@ def compute_log_z(rbm, free_energy_fn, max_bits=15):
                           "value of max_bits" %
                           (block_size, width, str(config.floatX)))
 
-    # Allocate storage for free-energy of all 2**width configurations.
+    # Allocate storage for (negative) free-energy of all 2**width
+    # configurations.
     try:
-        FE = numpy.zeros(2 ** width, dtype=config.floatX)
+        nFE = numpy.zeros(2 ** width, dtype=config.floatX)
     except MemoryError:
         raise MemoryError("failed to allocate free energy storage array "
                           "in compute_log_z; your model is too big to use "
@@ -76,11 +77,12 @@ def compute_log_z(rbm, free_energy_fn, max_bits=15):
     # most-significant bits
     for bi, up_bits in enumerate(numpy.ndindex(*([2] * (width - block_bits)))):
         logz_data[:, :width - block_bits] = up_bits
-        FE[bi * block_size:(bi + 1) * block_size] = free_energy_fn(logz_data)
-
-    alpha = numpy.max(-FE)
-    log_z = numpy.log(numpy.sum(numpy.exp(-FE - alpha))) + alpha
-
+        nFE[bi * block_size:(bi + 1) * block_size] = -free_energy_fn(logz_data)
+    alpha = nFE.max()
+    # Do the subtraction and exponentiation in-place so as to not incur a copy.
+    nFE -= alpha
+    numpy.exp(nFE, nFE)
+    log_z = numpy.log(nFE.sum()) + alpha
     return log_z
 
 
