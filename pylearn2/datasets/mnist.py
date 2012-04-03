@@ -43,6 +43,9 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
 
         assert not N.any(N.isnan(self.X))
 
+    def adjust_for_viewer(self, X):
+        return N.clip(X*2.-1.,-1.,1.)
+
 
 class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
 
