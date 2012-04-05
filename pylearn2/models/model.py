@@ -224,7 +224,7 @@ class Model(object):
         ------
         rng: random number seed/generator for rng computation.
         """
-        pass
+        raise NotImplementedError("This Model does not curretly support reset_params.")
 
     def get_input_dim(self):
         """ Returns the number of visible units of the model.
