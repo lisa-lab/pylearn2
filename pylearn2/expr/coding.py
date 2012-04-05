@@ -40,5 +40,3 @@ def triangle_code(X, centroids):
     rval.name = 'triangle_code'
 
     return rval
-
-

@@ -179,8 +179,6 @@ class S3C(Model, Block):
         Learning Hierarchical Models. NIPS 2011.
 
     """
-
-
     def __init__(self, nvis, nhid, irange, init_bias_hid,
                        init_B, min_B, max_B,
                        init_alpha, min_alpha, max_alpha, init_mu,
@@ -289,7 +287,6 @@ class S3C(Model, Block):
             last_row = s[0] - local_rf_shape[0]
             last_col = s[1] - local_rf_shape[1]
 
-
             if local_rf_stride is not None:
                 #local_rf_stride specified, make local_rfs on a grid
                 assert last_row % local_rf_stride[0] == 0
@@ -377,7 +374,6 @@ class S3C(Model, Block):
 
         self.init_unit_W = init_unit_W
 
-
         self.print_interval = print_interval
 
         self.constrain_W_norm = constrain_W_norm
@@ -428,6 +424,17 @@ class S3C(Model, Block):
             self.rng = np.random.RandomState([1.,2.,3.])
         else:
             self.rng = np.random.RandomState(self.seed)
+    
+    def reset_params(self, rng=None):
+        """
+         redo_everything function does everything we want to do.
+        """
+        if rng is not None:
+            self.rng = rng
+        else:
+            self.reset_rng()
+        self.input_space = VectorSpace(self.nvis)
+        self.redo_everything()
 
     def redo_everything(self):
 

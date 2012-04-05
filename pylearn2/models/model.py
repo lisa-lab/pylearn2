@@ -209,6 +209,23 @@ class Model(object):
         """
         pass
 
+    def reset_params(self, rng=None):
+        """
+        Resets the parameters of the model for re-learning them without creating
+        a new object. This function should achieve the following goals:
+
+        a) *Reinitialize* all parameters of the model to randomly selected 
+        initial values, with rng/seed control for predictability.
+        b) *Rebuild* any Theano graphs that the model might use internally.
+
+        Important: Each subclass of Model class should implement this function.
+
+        Params
+        ------
+        rng: random number seed/generator for rng computation.
+        """
+        raise NotImplementedError("This Model does not curretly support reset_params.")
+
     def get_input_dim(self):
         """ Returns the number of visible units of the model.
         Deprecated; this assumes the model operates on a vector.
