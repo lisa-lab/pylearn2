@@ -211,22 +211,18 @@ class Model(object):
 
     def reset_params(self, rng=None):
         """
-        Reset the parameters of the model. In the following way as mentioned
-        by David in the pylearn-dev mail-list:
+        Resets the parameters of the model for re-learning them without creating
+        a new object. This function should achieve the following goals:
 
-        I think a standard interface for doing all or some subset of these three
-        things:
+        a) *Reinitialize* all parameters of the model to randomly selected 
+        initial values, with rng/seed control for predictability.
+        b) *Rebuild* any Theano graphs that the model might use internally.
 
-        a) *Reinitialize* all parameters of your model to randomly selected initial
-          values, with rng/seed control for predictability.
-        b) *Rebuild* any Theano graphs that your model might use internally.
+        Important: Each subclass of Model class should implement this function.
 
-        url: http://groups.google.com/group/pylearn-dev/browse_thread/thread/482c330d4b394912 
-
-        Each subclass of Model should implement this function. 
         Params
         ------
-        rng: ranndom number generator for rng computation.
+        rng: random number seed/generator for rng computation.
         """
         pass
 
