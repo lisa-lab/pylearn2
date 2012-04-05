@@ -44,14 +44,11 @@ class Monitor(object):
         # examples. If the model acts on a space with more than the batch index
         # and channel dimension, the model has topological dimensions, so the
         # topological view of the data should be used.
-        try:
-            self.topo = len(model.get_input_space().make_theano_batch().type.broadcastable) > 2
-        except AttributeError:
-            vector = model.get_input_space().make_theano_batch()
-            if isinstance(vector, theano.sparse.basic.SparseVariable):
-                self.topo = False
-            else:
-                raise
+        vector = model.get_input_space().make_theano_batch()
+        if isinstance(vector, theano.sparse.basic.SparseVariable):
+            self.topo = False
+        else:
+            self.topo = len(vector.type.broadcastable) > 2
                 
         self.require_label = False
 
