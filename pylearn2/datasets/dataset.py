@@ -118,3 +118,16 @@ class Dataset(object):
         # TODO: See how much of the logic from DenseDesignMatrix.iterator
         # can be handled here.
         raise NotImplementedError()
+
+    def adjust_for_viewer(self, X):
+        """
+            X: a tensor in the same space as the data
+            returns the same tensor shifted and scaled by a transformation
+            that maps the data range to [-1, 1] so that it can be displayed
+            with pylearn2.gui.patch_viewer tools
+
+            for example, for MNIST X will lie in [0,1] and the return value
+                should be X*2-1
+        """
+
+        raise NotImplementedError()
