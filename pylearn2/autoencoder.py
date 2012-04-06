@@ -74,6 +74,7 @@ class Autoencoder(Block, Model):
         assert nhid > 0, "Number of hidden units must be positive"
 
         self.nhid = nhid
+        self.nvis = nvis
 
         if not hasattr(rng, 'randn'):
             self.rng = numpy.random.RandomState(rng)
@@ -102,7 +103,7 @@ class Autoencoder(Block, Model):
 
         self.act_enc = _resolve_callable(locals(), 'act_enc')
         self.act_dec = _resolve_callable(locals(), 'act_dec')
-        self.reset_params()
+        self.reset_params(rng)
 
     def _initialize_weights(self, nvis, rng=None, irange=None):
         if rng is None:
@@ -375,6 +376,9 @@ class DenoisingAutoencoder(Autoencoder):
         corrupted = self.corruptor(inputs)
         return super(DenoisingAutoencoder, self).reconstruct(corrupted)
 
+    
+    def reset_params(self, rng=None):
+        super(DenoisingAutoencoder, self).reset_params(rng)
 
 class ContractiveAutoencoder(Autoencoder):
     """
@@ -468,6 +472,8 @@ class ContractiveAutoencoder(Autoencoder):
         jacobian = self.jacobian_h_x(inputs)
         return (jacobian ** 2).mean()
 
+    def reset_params(self, rng=None):
+        super(ContractiveAutoencoder, self).reset_params(rng)
 
 class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
     """Higher order contractive autoencoder.
@@ -505,6 +511,8 @@ class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
         self.corruptor = corruptor
         self.num_corruptions = num_corruptions
 
+    def reset_params(self, rng=None):
+        super(HigherOrderContractiveAutoencoder, self).reset_params(rng)
 
     def higher_order_penalty(self, inputs):
         """
@@ -535,6 +543,9 @@ class UntiedAutoencoder(Autoencoder):
         self.w_prime = tensor.shared(base.weights.get_value(borrow=False).T,
                                      name='w_prime')
         self._params = [self.visbias, self.hidbias, self.weights, self.w_prime]
+
+    def reset_params(self, rng=None):
+        super(UntiedAutoencoder, self).reset_params(rng)
 
 
 class DeepComposedAutoencoder(Autoencoder):
@@ -574,6 +585,8 @@ class DeepComposedAutoencoder(Autoencoder):
         return reduce(operator.add,
                       [ae.get_params() for ae in self.autoencoders])
 
+    def reset_params(self, rng=None):
+        super(DeepComposedAutoencoder, self).reset_params(rng)
 
 def build_stacked_ae(nvis, nhids, act_enc, act_dec,
                      tied_weights=False, irange=1e-3, rng=None,
