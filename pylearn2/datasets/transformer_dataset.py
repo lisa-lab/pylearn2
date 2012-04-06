@@ -37,6 +37,11 @@ class TransformerDataset(Dataset):
 
     def iterator(self, mode=None, batch_size=None, num_batches=None,
                  topo=None, targets=None, rng=None):
+<<<<<<< HEAD
+=======
+
+        raw_iterator = self.raw.iterator(mode, batch_size, num_batches, topo, targets, rng)
+>>>>>>> 7b4e21981576ece425f973e918a562e1d0ca122d
 
         raw_iterator = self.raw.iterator(mode, batch_size, num_batches, topo, targets, rng)
         final_iterator = TransformerIterator(raw_iterator, self)

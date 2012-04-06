@@ -1,1082 +1,776 @@
-"""
-Implementations of Restricted Boltzmann Machines and associated sampling
-strategies.
-"""
-# Standard library imports
-from itertools import izip
+__authors__ = "Ian Goodfellow"
+__copyright__ = "Copyright 2011, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
 
-# Third-party imports
-import numpy
-N = numpy
-np = numpy
-import theano
-from theano import tensor
-T = tensor
-from theano.tensor import nnet
 
-# Local imports
-from pylearn2.base import Block, StackedBlocks
-from pylearn2.utils import as_floatX, safe_update, sharedX
+import time
 from pylearn2.models import Model
-from pylearn2.optimizer import SGDOptimizer
-from pylearn2.expr.basic import theano_norms
-from pylearn2.linear.matrixmul import MatrixMul
-from pylearn2.space import VectorSpace
-theano.config.warn.sum_div_dimshuffle_bug = False
+from theano import config, function, shared
+import theano.tensor as T
+import numpy as np
+import warnings
+from theano.gof.op import get_debug_values, debug_error_message
+from pylearn2.utils import make_name, sharedX, as_floatX
+from pylearn2.expr.information_theory import entropy_binary_vector
+from theano.tensor.shared_randomstreams import RandomStreams
 
-if 0:
-    print 'WARNING: using SLOW rng'
-    RandomStreams = tensor.shared_randomstreams.RandomStreams
-else:
-    import theano.sandbox.rng_mrg
-    RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
+warnings.warn('s3c changing the recursion limit')
+import sys
+sys.setrecursionlimit(50000)
 
+from pylearn2.models.s3c import numpy_norms
+from pylearn2.models.s3c import theano_norms
+from pylearn2.models.s3c import full_min
+from pylearn2.models.s3c import full_max
+from theano.printing import min_informative_str
+from theano.printing import Print
 
-def training_updates(visible_batch, model, sampler, optimizer):
-    """
-    Combine together updates from various sources for RBM training.
+warnings.warn("""
+TODO/NOTES
+The sampler ought to store the state of all but the topmost hidden layer
+learning updates will be based on marginalizing out this topmost layer
+to reduce noise a bit
+each round of negative phase sampling should start by sampling the topmost
+layer, then sampling downward from there
+""")
 
-    Parameters
-    ----------
-    visible_batch : tensor_like
-        Theano symbolic representing a minibatch on the visible units,
-        with the first dimension indexing training examples and the second
-        indexing data dimensions.
-    rbm : object
-        An instance of `RBM` or a derived class, or one implementing
-        the RBM interface.
-    sampler : object
-        An instance of `Sampler` or a derived class, or one implementing
-        the sampler interface.
-    optimizer : object
-        An instance of `Optimizer` or a derived class, or one implementing
-        the optimizer interface (typically an `SGDOptimizer`).
-    """
-    pos_v = visible_batch
-    neg_v = sampler.particles
-    grads = model.ml_gradients(pos_v, neg_v)
-    ups = optimizer.updates(gradients=grads)
+class Sampler:
+    def __init__(self, theano_rng):
+        self.theano_rng = theano_rng
 
-    # Add the sampler's updates (negative phase particles, etc.).
-    safe_update(ups, sampler.updates())
-    return ups
+    def __call__(self, P):
+        return self.theano_rng.binomial(size = P.shape, n = 1, p = P, dtype = P.dtype)
 
+class DBM(Model):
 
-class Sampler(object):
-    """
-    A sampler is responsible for implementing a sampling strategy on top of
-    an RBM, which may include retaining state e.g. the negative particles for
-    Persistent Contrastive Divergence.
-    """
-    def __init__(self, rbm, particles, rng):
+    def __init__(self, rbms,
+                    use_cd = False,
+                        negative_chains = 0,
+                       inference_procedure = None,
+                       monitor_params = False,
+                       print_interval = 10000):
         """
-        Construct a Sampler.
+            rbms: list of rbms to stack
+                    all rbms must be of type pylearn2.models.rbm, and not a subclass
+                    first entry is the visible rbm
+                    DBM may destroy these rbms-- it won't delete them,
+                    but it may do terrible things to them
 
-        Parameters
-        ----------
-        rbm : object
-            An instance of `RBM` or a derived class, or one implementing
-            the `gibbs_step_for_v` interface.
-        particles : ndarray
-            An initial state for the set of persistent Narkov chain particles
-            that will be updated at every step of learning.
-        rng : RandomState object
-            NumPy random number generator object used to initialize a
-            RandomStreams object used in training.
-        """
-        self.__dict__.update(rbm=rbm)
-        if not hasattr(rng, 'randn'):
-            rng = numpy.random.RandomState(rng)
-        seed = int(rng.randint(2 ** 30))
-        self.s_rng = RandomStreams(seed)
-        self.particles = sharedX(particles, name='particles')
-
-    def updates(self):
-        """
-        Get the dictionary of updates for the sampler's persistent state
-        at each step.
-
-        Returns
-        -------
-        updates : dict
-            Dictionary with shared variable instances as keys and symbolic
-            expressions indicating how they should be updated as values.
-
-        Notes
-        -----
-        In the `Sampler` base class, this is simply a stub.
-        """
-        raise NotImplementedError()
-
-
-class BlockGibbsSampler(Sampler):
-    """
-
-    Implements a persistent Markov chain based on block gibbs sampling
-    for use with Persistent Contrastive
-    Divergence, a.k.a. stochastic maximum likelhiood, as described in [1].
-
-    .. [1] T. Tieleman. "Training Restricted Boltzmann Machines using
-       approximations to the likelihood gradient". Proceedings of the 25th
-       International Conference on Machine Learning, Helsinki, Finland,
-       2008. http://www.cs.toronto.edu/~tijmen/pcd/pcd.pdf
-    """
-    def __init__(self, rbm, particles, rng, steps=1, particles_clip=None):
-        """
-        Construct a BlockGibbsSampler.
-
-        Parameters
-        ----------
-        rbm : object
-            An instance of `RBM` or a derived class, or one implementing
-            the `gibbs_step_for_v` interface.
-        particles : ndarray
-            An initial state for the set of persistent Markov chain particles
-            that will be updated at every step of learning.
-        rng : RandomState object
-            NumPy random number generator object used to initialize a
-            RandomStreams object used in training.
-        steps : int, optional
-            Number of Gibbs steps to run the Markov chain for at each
-            iteration.
-        particles_clip: None or (min, max) pair
-            The values of the returned particles will be clipped between
-            min and max.
-        """
-        super(BlockGibbsSampler, self).__init__(rbm, particles, rng)
-        self.steps = steps
-        self.particles_clip = particles_clip
-
-    def updates(self, particles_clip=None):
-        """
-        Get the dictionary of updates for the sampler's persistent state
-        at each step..
-
-        Returns
-        -------
-        updates : dict
-            Dictionary with shared variable instances as keys and symbolic
-            expressions indicating how they should be updated as values.
-        """
-        steps = self.steps
-        particles = self.particles
-        # TODO: do this with scan?
-        for i in xrange(steps):
-            particles, _locals = self.rbm.gibbs_step_for_v(
-                particles,
-                self.s_rng
-            )
-            assert particles.type.dtype == self.particles.type.dtype
-            if self.particles_clip is not None:
-                p_min, p_max = self.particles_clip
-                # The clipped values should still have the same type
-                dtype = particles.dtype
-                p_min = tensor.as_tensor_variable(p_min)
-                if p_min.dtype != dtype:
-                    p_min = tensor.cast(p_min, dtype)
-                p_max = tensor.as_tensor_variable(p_max)
-                if p_max.dtype != dtype:
-                    p_max = tensor.cast(p_max, dtype)
-                particles = tensor.clip(particles, p_min, p_max)
-        if not hasattr(self.rbm, 'h_sample'):
-            self.rbm.h_sample = sharedX(numpy.zeros((0, 0)), 'h_sample')
-        return {
-            self.particles: particles,
-            # TODO: self.rbm.h_sample is never used, why is that here?
-            # Moreover, it does not make sense for things like ssRBM.
-            self.rbm.h_sample: _locals['h_mean']
-        }
-
-
-class RBM(Block, Model):
-    """
-    A base interface for RBMs, implementing the binary-binary case.
-
-    """
-    def __init__(self, nvis = None, nhid = None,
-            vis_space = None,
-            hid_space = None,
-            transformer = None,
-            irange=0.5, rng=None, init_bias_vis = 0.0, init_bias_hid=0.0,
-            base_lr = 1e-3, anneal_start = None, nchains = 100, sml_gibbs_steps = 1,
-            random_patches_src = None,
-            monitor_reconstruction = False):
-
-        """
-        Construct an RBM object.
-
-        Parameters
-        ----------
-        nvis : int
-            Number of visible units in the model.
-            (Specifying this implies that the model acts on a vector,
-            i.e. it sets vis_space = pylearn2.space.VectorSpace(nvis) )
-        nhid : int
-            Number of hidden units in the model.
-            (Specifying this implies that the model acts on a vector)
-        vis_space:
-            A pylearn2.space.Space object describing what kind of vector
-            space the RBM acts on. Don't specify if you used nvis / hid
-        hid_space:
-            A pylearn2.space.Space object describing what kind of vector
-            space the RBM's hidden units live in. Don't specify if you used
-            nvis / nhid
-        irange : float, optional
-            The size of the initial interval around 0 for weights.
-        rng : RandomState object or seed
-            NumPy RandomState object to use when initializing parameters
-            of the model, or (integer) seed to use to create one.
-        init_bias_vis : array_like, optional
-            Initial value of the visible biases, broadcasted as necessary.
-        init_bias_hid : array_like, optional
-            initial value of the hidden biases, broadcasted as necessary.
-        monitor_reconstruction : if True, will request a monitoring channel to monitor
-            reconstruction error
-        random_patches_src: Either None, or a Dataset from which to draw random patches
-            in order to initialize the weights. Patches will be multiplied by irange
-
-        Parameters for default SML learning rule:
-
-            base_lr : the base learning rate
-            anneal_start : number of steps after which to start annealing on a 1/t schedule
-            nchains: number of negative chains
-            sml_gibbs_steps: number of gibbs steps to take per update
+                    the DBM parameters will be constructed by taking the visible biases
+                    and weights from each RBM. only the topmost RBM will additionally
+                    donate its hidden biases.
+            negative_chains: the number of negative chains to simulate
+            inference_procedure: a pylearn2.models.dbm.InferenceProcedure object
+                (if None, assumes the model is not meant to run on its own)
+            print_interval: every print_interval examples, print out a status summary
 
         """
 
-        Model.__init__(self)
-        Block.__init__(self)
+        self.monitor_params = monitor_params
 
+        self.use_cd = use_cd
 
-        if rng is None:
-            # TODO: global rng configuration stuff.
-            rng = numpy.random.RandomState(1001)
-        self.rng = rng
-
-        if vis_space is None:
-            #if we don't specify things in terms of spaces and a transformer,
-            #assume dense matrix multiplication and work off of nvis, nhid
-            assert hid_space is None
-            assert transformer is None
-            assert nvis is not None
-            assert nhid is not None
-
-            if random_patches_src is None:
-                W = rng.uniform(-irange, irange, (nvis, nhid))
-            else:
-                if hasattr(random_patches_src, '__array__'):
-                    W = irange * random_patches_src.T
-                    assert W.shape == (nvis, nhid)
-                else:
-                    #assert type(irange) == type(0.01)
-                    #assert irange == 0.01
-                    W = irange * random_patches_src.get_batch_design(nhid).T
-
-            self.transformer = MatrixMul(  sharedX(
-                    W,
-                    name='W',
-                    borrow=True
-                )
-            )
-
-            self.vis_space = VectorSpace(nvis)
-            self.hid_space = VectorSpace(nhid)
+        if use_cd:
+            assert negative_chains == 0
         else:
-            assert hid_space is not None
-            assert transformer is not None
-            assert nvis is None
-            assert nhid is None
+            assert negative_chains > 0
 
-            self.vis_space = vis_space
-            self.hid_space = hid_space
-            self.transformer = transformer
+        warnings.warn("""The DBM class is still under development, and currently mostly
+                only supports use as a component of a larger model that remains
+                private. Contact Ian Goodfellow if you have questions about the current
+                status of this class.""")
+
+        super(DBM,self).__init__()
+
+        self.autonomous = False
+
+        self.rbms = rbms
+        self.negative_chains = negative_chains
+
+        self.monitoring_channel_prefix = ""
+
+        if inference_procedure is None:
+            self.autonomous = False
+            inference_procedure = InferenceProcedure()
+
+        self.inference_procedure = inference_procedure
+        self.inference_procedure.register_model(self)
+        self.autonomous = False
+        if self.inference_procedure.autonomous:
+            raise NotImplementedError("No such thing as an autonomous DBM yet")
+
+        self.print_interval = print_interval
+
+        #copy parameters from RBM to DBM, ignoring bias_hid of all but last RBM
+        self.W = []
+        for rbm in self.rbms:
+            weights ,= rbm.transformer.get_params()
+            self.W.append( weights )
+
+        for i, W in enumerate(self.W):
+            W.name = 'dbm_W[%d]' % (i,)
+        self.bias_vis = rbms[0].bias_vis
+        self.bias_hid = [ rbm.bias_vis for rbm in self.rbms[1:] ]
+        self.bias_hid.append(self.rbms[-1].bias_hid)
+        for i, bias_hid in enumerate(self.bias_hid):
+            bias_hid.name = 'dbm_bias_hid[%d]' % (i,)
+
+        self.reset_rng()
+
+        self.redo_everything()
+
+    def reset_rng(self):
+        self.rng = np.random.RandomState([1,2,3])
+
+    def redo_everything(self):
+        """ compiles learn_func if necessary
+            makes new negative chains
+            does not reset weights or biases
+        """
+
+        #compile learn_func if necessary
+        if self.autonomous:
+            self.redo_theano()
+
+        #make the negative chains
+        if not self.use_cd:
+            self.V_chains = self.make_chains(self.bias_vis)
+
+            self.H_chains = [ self.make_chains(bias_hid) for bias_hid in self.bias_hid ]
 
 
-        try:
-            b_vis = self.vis_space.get_origin()
-            b_vis += init_bias_vis
-        except ValueError:
-            raise ValueError("bad shape or value for init_bias_vis")
-        self.bias_vis = sharedX(b_vis, name='bias_vis', borrow=True)
+    def make_chains(self, bias):
+        """ make the shared variable representing a layer of
+            the network for all negative chains
 
-        try:
-            b_hid = self.hid_space.get_origin()
-            b_hid += init_bias_hid
-        except ValueError:
-            raise ValueError('bad shape or value for init_bias_hid')
-        self.bias_hid = sharedX(b_hid, name='bias_hid', borrow=True)
+            for now units are initialized randomly based on their
+            biases only
+            """
 
-        self.random_patches_src = random_patches_src
-        self.register_names_to_del(['random_patches_src'])
+        assert not self.use_cd
 
+        b = bias.get_value(borrow=True)
 
-        self.__dict__.update(nhid=nhid, nvis=nvis)
-        self._params = list(self.transformer.get_params().union([self.bias_vis, self.bias_hid]))
+        nhid ,= b.shape
 
-        self.base_lr = base_lr
-        self.anneal_start = anneal_start
-        self.nchains = nchains
-        self.sml_gibbs_steps = sml_gibbs_steps
+        shape = (self.negative_chains, nhid)
 
-    def get_input_dim(self):
-        if not isinstance(self.vis_space, VectorSpace):
-            raise TypeError("Can't describe "+str(type(self.vis_space))+" as a dimensionality number.")
-        return self.vis_space.dim
+        driver = self.rng.uniform(0.0, 1.0, shape)
 
-    def get_output_dim(self):
-        if not isinstance(self.hid_space, VectorSpace):
-            raise TypeError("Can't describe "+str(type(self.hid_space))+" as a dimensionality number.")
-        return self.hid_space.dim
+        thresh = 1./(1.+np.exp(-b))
 
-    def get_input_space(self):
-        return self.vis_space
+        value = driver < thresh
 
-    def get_output_space(self):
-        return self.hid_space
+        return sharedX(value)
 
-    def get_params(self):
-        return [param for param in self._params]
-
-    def get_weights(self, borrow=False):
-
-        weights ,= self.transformer.get_params()
-
-        return weights.get_value(borrow=borrow)
-
-    def get_weights_topo(self, borrow=False):
-        return self.transformer.get_weights_topo(borrow = borrow)
-
-    def get_weights_format(self):
-        return ['v', 'h']
-
+    def set_monitoring_channel_prefix(self, prefix):
+        self.monitoring_channel_prefix = prefix
 
     def get_monitoring_channels(self, V):
 
-        theano_rng = RandomStreams(42)
+        try:
+            self.compile_mode()
 
-        norms = theano_norms(self.weights)
+            rval = {}
 
-        H = self.mean_h_given_v(V)
+            #from_ip = self.inference_procedure.get_monitoring_channels(V, self)
 
-        h = H.mean(axis=0)
+            #rval.update(from_ip)
 
-        return { 'bias_hid_min' : T.min(self.bias_hid),
-                 'bias_hid_mean' : T.mean(self.bias_hid),
-                 'bias_hid_max' : T.max(self.bias_hid),
-                 'bias_vis_min' : T.min(self.bias_vis),
-                 'bias_vis_mean' : T.mean(self.bias_vis),
-                 'bias_vis_max': T.max(self.bias_vis),
-                 'h_min' : T.min(h),
-                 'h_mean': T.mean(h),
-                 'h_max' : T.max(h),
-                 'W_min' : T.min(self.weights),
-                 'W_max' : T.max(self.weights),
-                 'W_norms_min' : T.min(norms),
-                 'W_norms_max' : T.max(norms),
-                 'W_norms_mean' : T.mean(norms),
-                'reconstruction_error' : self.reconstruction_error(V, theano_rng) }
+            if self.monitor_params:
+                for param in self.get_params():
+                    rval[param.name + '_min'] = full_min(param)
+                    rval[param.name + '_mean'] = T.mean(param)
+                    rval[param.name + '_max'] = full_max(param)
 
-    def ml_gradients(self, pos_v, neg_v):
-        """
-        Get the contrastive gradients given positive and negative phase
-        visible units.
+                    if 'W' in param.name:
+                        norms = theano_norms(param)
 
-        Parameters
-        ----------
-        pos_v : tensor_like
-            Theano symbolic representing a minibatch on the visible units,
-            with the first dimension indexing training examples and the second
-            indexing data dimensions (usually actual training data).
-        neg_v : tensor_like
-            Theano symbolic representing a minibatch on the visible units,
-            with the first dimension indexing training examples and the second
-            indexing data dimensions (usually reconstructions of the data or
-            sampler particles from a persistent Markov chain).
+                        rval[param.name + '_norms_min' ]= T.min(norms)
+                        rval[param.name + '_norms_mean'] = T.mean(norms)
+                        rval[param.name + '_norms_max'] = T.max(norms)
 
-        Returns
-        -------
-        grads : list
-            List of Theano symbolic variables representing gradients with
-            respect to model parameters, in the same order as returned by
-            `params()`.
+            new_rval = {}
+            for key in rval:
+                new_rval[self.monitoring_channel_prefix+key] = rval[key]
 
-        Notes
-        -----
-        `pos_v` and `neg_v` need not have the same first dimension, i.e.
-        minibatch size.
-        """
+            rval = new_rval
 
-        # taking the mean over each term independently allows for different
-        # mini-batch sizes in the positive and negative phase.
-        ml_cost = (self.free_energy_given_v(pos_v).mean() -
-                   self.free_energy_given_v(neg_v).mean())
+            return rval
+        finally:
+            self.deploy_mode()
 
-        grads = tensor.grad(ml_cost, self.get_params(),
-                            consider_constant=[pos_v, neg_v])
+    def compile_mode(self):
+        """ If any shared variables need to have batch-size dependent sizes,
+        sets them all to the sizes used for interactive debugging during graph construction """
+        pass
 
-        return grads
+    def deploy_mode(self):
+        """ If any shared variables need to have batch-size dependent sizes, sets them all to their runtime sizes """
+        pass
 
 
-    def learn(self, dataset, batch_size):
-        """ A default learning rule based on SML """
-        self.learn_mini_batch(dataset.get_batch_design(batch_size))
+    def print_status(self):
+        print ""
+        bv = self.bias_vis.get_value(borrow=True)
+        print "bias_vis: ",(bv.min(),bv.mean(),bv.max())
+        for i in xrange(len(self.W)):
+            W = self.W[i].get_value(borrow=True)
+            print "W[%d]"%i,(W.min(),W.mean(),W.max())
+            norms = numpy_norms(W)
+            print " norms: ",(norms.min(),norms.mean(),norms.max())
+            bh = self.bias_hid[i].get_value(borrow=True)
+            print "bias_hid[%d]"%i,(bh.min(),bh.mean(),bh.max())
 
-    def learn_mini_batch(self, X):
-        """ A default learning rule based on SML """
 
-        if not hasattr(self, 'learn_func'):
-            self.redo_theano()
+    def get_sampling_updates(self):
 
-        rval =  self.learn_func(X)
+
+        assert not self.use_cd
+
+        ip = self.inference_procedure
+
+        rval = {}
+
+        sample_from = Sampler(RandomStreams(17))
+
+
+        #sample the visible units
+        V_prob = ip.infer_H_hat_one_sided(other_H_hat = self.H_chains[0],
+                W = self.W[0].T, b = self.bias_vis)
+
+        V_sample = sample_from(V_prob)
+
+        rval[self.V_chains] = V_sample
+
+        #sample the first hidden layer unless this is also the last hidden layer)
+        if len(self.H_chains) > 1:
+            prob = ip.infer_H_hat_two_sided(H_hat_below = rval[self.V_chains], H_hat_above = self.H_chains[1], W_below = self.W[0], W_above = self.W[1], b = self.bias_hid[0])
+
+            sample = sample_from(prob)
+
+            rval[self.H_chains[0]] = sample
+
+        #sample the intermediate hidden layers
+        for i in xrange(1,len(self.H_chains)-1):
+            prob = ip.infer_H_hat_two_sided(H_hat_below = rval[self.H_chains[i-1]], H_hat_above = self.H_chains[i+1],
+                                            W_below = self.W[i], W_above = self.W[i+1], b = self.bias_hid[i])
+            sample = sample_from(prob)
+
+            rval[self.H_chains[i-1]] = sample
+
+        #sample the last hidden layer
+        if len(self.H_chains) > 1:
+            ipt = rval[self.H_chains[-2]]
+        else:
+            ipt = self.V_chains
+
+        prob = ip.infer_H_hat_one_sided(other_H_hat = ipt, W = self.W[-1], b = self.bias_hid[-1])
+
+        sample = sample_from(prob)
+
+        rval[self.H_chains[-1]] = sample
 
         return rval
 
-    def redo_theano(self):
-        """ Compiles the theano function for the default learning rule """
 
-        init_names = dir(self)
+    def get_cd_neg_phase_grads(self, V, H_hat):
 
-        minibatch = tensor.matrix()
+        assert self.use_cd
+        assert not hasattr(self, 'V_chains')
 
-        optimizer = SGDOptimizer(self, self.base_lr, self.anneal_start)
+        assert len(H_hat) == len(self.rbms)
 
-        sampler = sampler = BlockGibbsSampler(self, 0.5 + np.zeros((self.nchains, self.get_input_dim())), self.rng,
-                                                  steps= self.sml_gibbs_steps)
+        sample_from = Sampler(RandomStreams(17))
 
+        H_samples = []
 
-        updates = training_updates(visible_batch=minibatch, model=self,
-                                            sampler=sampler, optimizer=optimizer)
+        for H_hat_elem in H_hat:
+            H_samples.append(sample_from(H_hat_elem))
 
-        self.learn_func = theano.function([minibatch], updates=updates)
+        ip = self.inference_procedure
 
-        final_names = dir(self)
+        for i in xrange(len(H_hat)-1,-1,-1):
 
-        self.register_names_to_del([name for name in final_names if name not in init_names])
+            if i > 0:
+                P = ip.infer_H_hat_two_sided(H_hat_below = H_samples[i-1], H_hat_above = H_samples[i+1],
+                        W_below = self.W[i], W_above = self.W[i+1], b = self.bias_hid[i])
+                H_samples[i] = sample_from(P)
 
-    def gibbs_step_for_v(self, v, rng):
-        """
-        Do a round of block Gibbs sampling given visible configuration
+        if len(H_hat) > 1:
+            H_hat[0] = sample_from(ip.infer_H_hat_two_sided(H_hat_below = V, H_hat_above = H_samples[1],
+                    W_below = self.W[0], W_above = self.W[1], b = self.bias_hid[0]))
 
-        Parameters
-        ----------
-        v  : tensor_like
-            Theano symbolic representing the hidden unit states for a batch of
-            training examples (or negative phase particles), with the first
-            dimension indexing training examples and the second indexing data
-            dimensions.
-        rng : RandomStreams object
-            Random number generator to use for sampling the hidden and visible
-            units.
+        V_sample = sample_from(ip.infer_H_hat_one_sided(other_H_hat = H_hat[0], W = self.W[0].T, b = self.bias_vis))
 
-        Returns
-        -------
-        v_sample : tensor_like
-            Theano symbolic representing the new visible unit state after one
-            round of Gibbs sampling.
-        locals : dict
-            Contains the following auxiliary state as keys (all symbolics
-            except shape tuples):
-             * `h_mean`: the returned value from `mean_h_given_v`
-             * `h_mean_shape`: shape tuple indicating the size of `h_mean` and
-               `h_sample`
-             * `h_sample`: the stochastically sampled hidden units
-             * `v_mean_shape`: shape tuple indicating the shape of `v_mean` and
-               `v_sample`
-             * `v_mean`: the returned value from `mean_v_given_h`
-             * `v_sample`: the stochastically sampled visible units
-        """
-        h_mean = self.mean_h_given_v(v)
-        assert h_mean.type.dtype == v.type.dtype
-        # For binary hidden units
-        # TODO: factor further to extend to other kinds of hidden units
-        #       (e.g. spike-and-slab)
-        h_sample = rng.binomial(size = h_mean.shape, n = 1 , p = h_mean, dtype=h_mean.type.dtype)
-        assert h_sample.type.dtype == v.type.dtype
-        # v_mean is always based on h_sample, not h_mean, because we don't
-        # want h transmitting more than one bit of information per unit.
-        v_mean = self.mean_v_given_h(h_sample)
-        assert v_mean.type.dtype == v.type.dtype
-        v_sample = self.sample_visibles([v_mean], v_mean.shape, rng)
-        assert v_sample.type.dtype == v.type.dtype
-        return v_sample, locals()
+        return self.get_neg_phase_grads_from_samples(V_sample, H_samples)
 
-    def sample_visibles(self, params, shape, rng):
-        """
-        Stochastically sample the visible units given hidden unit
-        configurations for a set of training examples.
-
-        Parameters
-        ----------
-        params : list
-            List of the necessary parameters to sample :math:`p(v|h)`. In the
-            case of a binary-binary RBM this is a single-element list
-            containing the symbolic representing :math:`p(v|h)`, as returned
-            by `mean_v_given_h`.
-
-        Returns
-        -------
-        vprime : tensor_like
-            Theano symbolic representing stochastic samples from :math:`p(v|h)`
-        """
-        v_mean = params[0]
-        return as_floatX(rng.uniform(size=shape) < v_mean)
-
-    def input_to_h_from_v(self, v):
-        """
-        Compute the affine function (linear map plus bias) that serves as
-        input to the hidden layer in an RBM.
-
-        Parameters
-        ----------
-        v  : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the one or several
-            minibatches on the visible units, with the first dimension indexing
-            training examples and the second indexing data dimensions.
-
-        Returns
-        -------
-        a : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the input to each
-            hidden unit for each training example.
+    def get_neg_phase_grads(self):
+        """ returns a dictionary mapping from parameters to negative phase gradients
+            (assuming you're doing gradient ascent on variational free energy)
         """
 
-        if isinstance(v, tensor.Variable):
-            return self.bias_hid + self.transformer.lmul(v)
-        else:
-            return [self.input_to_h_from_v(vis) for vis in v]
+        assert not self.use_cd
 
-    def input_to_v_from_h(self, h):
+        return self.get_neg_phase_grads_from_samples(self.V_chains, self.H_chains)
+
+    def get_neg_phase_grads_from_samples(self, V_sample, H_samples):
+
+        obj = self.expected_energy(V_hat = V_sample, H_hat = H_samples)
+
+        constants = list(set(H_samples).union([V_sample]))
+
+        params = self.get_params()
+
+        grads = T.grad(obj, params, consider_constant = constants)
+
+        rval = {}
+
+        for param, grad in zip(params, grads):
+            rval[param] = grad
+
+        assert self.bias_vis in rval
+
+        return rval
+
+
+    def get_params(self):
+        rval = set([self.bias_vis])
+        if self.bias_vis.name is None:
+            warnings.warn('whoa, for some reason bias_vis was unnamed')
+            self.bias_vis.name = 'dbm_bias_vis'
+
+        assert len(self.W) == len(self.bias_hid)
+
+        for i in xrange(len(self.W)):
+            rval = rval.union(set([ self.W[i], self.bias_hid[i]]))
+            assert self.W[i].name is not None
+            assert self.bias_hid[i].name is not None
+
+        rval = list(rval)
+
+        return rval
+
+    def make_learn_func(self, V):
         """
-        Compute the affine function (linear map plus bias) that serves as
-        input to the visible layer in an RBM.
-
-        Parameters
-        ----------
-        h  : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the one or several
-            minibatches on the hidden units, with the first dimension indexing
-            training examples and the second indexing data dimensions.
-
-        Returns
-        -------
-        a : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the input to each
-            visible unit for each row of h.
+        V: a symbolic design matrix
         """
-        if isinstance(h, tensor.Variable):
-            return self.bias_vis + tensor.dot(h, self.weights.T)
-        else:
-            return [self.input_to_v_from_h(hid) for hid in h]
 
-    def mean_h_given_v(self, v):
+        raise NotImplementedError("Not yet supported-- current project does not require DBM to learn on its own")
+
         """
-        Compute the mean activation of the visibles given hidden unit
-        configurations for a set of training examples.
+        #E step
+        hidden_obs = self.e_step.variational_inference(V)
 
-        Parameters
-        ----------
-        v  : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the hidden unit
-            states for a batch (or several) of training examples, with the
-            first dimension indexing training examples and the second indexing
-            data dimensions.
+        stats = SufficientStatistics.from_observations(needed_stats = self.m_step.needed_stats(),
+                V = V, **hidden_obs)
 
-        Returns
-        -------
-        h : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the mean
-            (deterministic) hidden unit activations given the visible units.
+        H_hat = hidden_obs['H_hat']
+        S_hat = hidden_obs['S_hat']
+
+        learning_updates = self.m_step.get_updates(self, stats, H_hat, S_hat)
+
+
+        self.censor_updates(learning_updates)
+
+
+        print "compiling function..."
+        t1 = time.time()
+        rval = function([V], updates = learning_updates)
+        t2 = time.time()
+        print "... compilation took "+str(t2-t1)+" seconds"
+        print "graph size: ",len(rval.maker.env.toposort())
+
+        return rval
         """
-        if isinstance(v, tensor.Variable):
-            return nnet.sigmoid(self.input_to_h_from_v(v))
-        else:
-            return [self.mean_h_given_v(vis) for vis in v]
-
-    def mean_v_given_h(self, h):
-        """
-        Compute the mean activation of the visibles given hidden unit
-        configurations for a set of training examples.
-
-        Parameters
-        ----------
-        h  : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the hidden unit
-            states for a batch (or several) of training examples, with the
-            first dimension indexing training examples and the second indexing
-            hidden units.
-
-        Returns
-        -------
-        vprime : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the mean
-            (deterministic) reconstruction of the visible units given the
-            hidden units.
-        """
-        if isinstance(h, tensor.Variable):
-            return nnet.sigmoid(self.bias_vis + tensor.dot(h, self.weights.T))
-        else:
-            return [self.mean_v_given_h(hid) for hid in h]
-
-    def free_energy_given_v(self, v):
-        """
-        Calculate the free energy of a visible unit configuration by
-        marginalizing over the hidden units.
-
-        Parameters
-        ----------
-        v : tensor_like
-            Theano symbolic representing the hidden unit states for a batch of
-            training examples, with the first dimension indexing training
-            examples and the second indexing data dimensions.
-
-        Returns
-        -------
-        f : tensor_like
-            1-dimensional tensor (vector) representing the free energy
-            associated with each row of v.
-        """
-        sigmoid_arg = self.input_to_h_from_v(v)
-        return (-tensor.dot(v, self.bias_vis) -
-                 nnet.softplus(sigmoid_arg).sum(axis=1))
-
-    def free_energy_given_h(self, h):
-        """
-        Calculate the free energy of a hidden unit configuration by
-        marginalizing over the visible units.
-
-        Parameters
-        ----------
-        h : tensor_like
-            Theano symbolic representing the hidden unit states, with the
-            first dimension indexing training examples and the second
-            indexing data dimensions.
-
-        Returns
-        -------
-        f : tensor_like
-            1-dimensional tensor (vector) representing the free energy
-            associated with each row of v.
-        """
-        sigmoid_arg = self.input_to_v_from_h(h)
-        return (-tensor.dot(h, self.bias_hid) -
-                nnet.softplus(sigmoid_arg).sum(axis=1))
-
-    def __call__(self, v):
-        """
-        Forward propagate (symbolic) input through this module, obtaining
-        a representation to pass on to layers above.
-
-        This just aliases the `mean_h_given_v()` function for syntactic
-        sugar/convenience.
-        """
-        return self.mean_h_given_v(v)
-
-    def reconstruction_error(self, v, rng):
-        """
-        Compute the mean-squared error (mean over examples, sum over units)
-        across a minibatch after a Gibbs
-        step starting from the training data.
-
-        Parameters
-        ----------
-        v : tensor_like
-            Theano symbolic representing the hidden unit states for a batch of
-            training examples, with the first dimension indexing training
-            examples and the second indexing data dimensions.
-        rng : RandomStreams object
-            Random number generator to use for sampling the hidden and visible
-            units.
-
-        Returns
-        -------
-        mse : tensor_like
-            0-dimensional tensor (essentially a scalar) indicating the mean
-            reconstruction error across the minibatch.
-
-        Notes
-        -----
-        The reconstruction used to assess error is deterministic, i.e.
-        no sampling is done, to reduce noise in the estimate.
-        """
-        sample, _locals = self.gibbs_step_for_v(v, rng)
-        return ((_locals['v_mean'] - v) ** 2).sum(axis=1).mean()
-
-
-class GaussianBinaryRBM(RBM):
-    """
-    An RBM with Gaussian visible units and binary hidden units.
-    """
-    def __init__(self, energy_function_class,
-            nvis = None,
-            nhid = None,
-            vis_space = None,
-            hid_space = None,
-            transformer = None,
-            irange=0.5, rng=None,
-                 mean_vis=False, init_sigma=2., learn_sigma=False,
-                 sigma_lr_scale=1., init_bias_hid=0.0,
-                 min_sigma = .1, max_sigma = 10.):
-        """
-        Allocate a GaussianBinaryRBM object.
-
-        Parameters
-        ----------
-        nvis : int
-            Number of visible units in the model.
-        nhid : int
-            Number of hidden units in the model.
-        energy_function_class:
-            TODO: finish comment
-        irange : float, optional
-            The size of the initial interval around 0 for weights.
-        rng : RandomState object or seed
-            NumPy RandomState object to use when initializing parameters
-            of the model, or (integer) seed to use to create one.
-        mean_vis : bool, optional
-            Don't actually sample visibles; make sample method simply return
-            mean.
-        init_sigma : Initial value of the sigma variable.
-                    If init_sigma is a scalar and sigma is not, will be broadcasted
-        min_sigma, max_sigma: elements of sigma are clipped to this range during learning
-        init_bias_hid : scalar or 1-d array of length `nhid`
-            Initial value for the biases on hidden units.
-        """
-        super(GaussianBinaryRBM, self).__init__(nvis = nvis, nhid = nhid,
-                                                transformer = transformer,
-                                                vis_space = vis_space,
-                                                hid_space = hid_space,
-                                                irange = irange, rng = rng,
-                                                init_bias_hid = init_bias_hid)
-
-        self.learn_sigma = learn_sigma
-        self.init_sigma = init_sigma
-        self.sigma_lr_scale = float(sigma_lr_scale)
-
-        if energy_function_class.supports_vector_sigma():
-            base = N.ones(nvis)
-        else:
-            base = 1
-
-        self.sigma_driver = sharedX(
-            base * init_sigma / self.sigma_lr_scale,
-            name='sigma_driver',
-            borrow=True
-        )
-
-        self.sigma = self.sigma_driver * self.sigma_lr_scale
-        self.min_sigma = min_sigma
-        self.max_sigma = max_sigma
-
-        if self.learn_sigma:
-            self._params.append(self.sigma_driver)
-
-        self.mean_vis = mean_vis
-
-        self.energy_function = energy_function_class(
-                    transformer = self.transformer,
-                    sigma=self.sigma,
-                    bias_vis=self.bias_vis,
-                    bias_hid=self.bias_hid
-                )
 
     def censor_updates(self, updates):
-        if self.sigma_driver in updates:
-            assert self.learn_sigma
-            updates[self.sigma_driver] = T.clip(
-                updates[self.sigma_driver],
-                self.min_sigma / self.sigma_lr_scale,
-                self.max_sigma / self.sigma_lr_scale
-            )
 
-    def score(self, V):
-        return self.energy_function.score(V)
+        for rbm in self.rbms:
+            rbm.censor_updates(updates)
 
-    def P_H_given_V(self, V):
-        return self.energy_function.P_H_given(V)
+    def random_design_matrix(self, batch_size, theano_rng):
+        raise NotImplementedError()
 
-    def mean_v_given_h(self, h):
-        """
-        Compute the mean activation of the visibles given hidden unit
-        configurations for a set of training examples.
+        #return V_sample
 
-        Parameters
-        ----------
-        h  : tensor_like
-            Theano symbolic representing the hidden unit states for a batch of
-            training examples, with the first dimension indexing training
-            examples and the second indexing hidden units.
-
-        Returns
-        -------
-        vprime : tensor_like
-            Theano symbolic representing the mean (deterministic)
-            reconstruction of the visible units given the hidden units.
+    def expected_energy(self, V_hat, H_hat, no_v_bias = False):
+        """ expected energy of the model under the mean field distribution
+            defined by V_hat and H_hat
+            alternately, could be expectation of the energy function across
+            a batch of examples, where every element of V_hat and H_hat is
+            a binary observation
+            if no_v_bias is True, ignores the contribution from biases on visible units
         """
 
-        return self.energy_function.mean_V_given_H(h)
-        #return self.bias_vis + self.sigma * tensor.dot(h, self.weights.T)
 
-    def free_energy_given_v(self, V):
-        """
-        Calculate the free energy of a visible unit configuration by
-        marginalizing over the hidden units.
+        V_name = make_name(V_hat, 'anon_V_hat')
+        assert isinstance(H_hat, (list,tuple))
 
-        Parameters
-        ----------
-        v : tensor_like
-            Theano symbolic representing the hidden unit states for a batch of
-            training examples, with the first dimension indexing training
-            examples and the second indexing data dimensions.
+        H_names = []
+        for i in xrange(len(H_hat)):
+            H_names.append( make_name(H_hat[i], 'anon_H_hat[%d]' %(i,) ))
 
-        Returns
-        -------
-        f : tensor_like
-            1-dimensional tensor representing the
-            free energy of the visible unit configuration
-            for each example in the batch
-        """
+        m = V_hat.shape[0]
+        m.name = V_name + '.shape[0]'
 
-        """hid_inp = self.input_to_h_from_v(v)
-        squared_term = ((self.bias_vis - v) ** 2.) / (2. * self.sigma)
-        rval =  squared_term.sum(axis=1) - nnet.softplus(hid_inp).sum(axis=1)
-        assert len(rval.type.broadcastable) == 1"""
+        assert len(H_hat) == len(self.rbms)
 
-        return self.energy_function.free_energy(V)
+        v = T.mean(V_hat, axis=0)
 
-    def free_energy(self, V):
-        return self.energy_function.free_energy(V)
-    #
-
-    def sample_visibles(self, params, shape, rng):
-        """
-        Stochastically sample the visible units given hidden unit
-        configurations for a set of training examples.
-
-        Parameters
-        ----------
-        params : list
-            List of the necessary parameters to sample :math:`p(v|h)`. In the
-            case of a Gaussian-binary RBM this is a single-element list
-            containing the conditional mean.
-
-        Returns
-        -------
-        vprime : tensor_like
-            Theano symbolic representing stochastic samples from :math:`p(v|h)`
-
-        Notes
-        -----
-        If `mean_vis` is specified as `True` in the constructor, this is
-        equivalent to a call to `mean_v_given_h`.
-        """
-        v_mean = params[0]
-        if self.mean_vis:
-            return v_mean
+        if no_v_bias:
+            v_bias_contrib = 0.
         else:
-            # zero mean, std sigma noise
-            zero_mean = rng.normal(size=shape) * self.sigma
-            return zero_mean + v_mean
+            v_bias_contrib = T.dot(v, self.bias_vis)
+
+        #exp_vh = T.dot(V_hat.T,H_hat[0]) / m
+
+        #v_weights_contrib = T.sum(self.W[0] * exp_vh)
+
+        v_weights_contrib = (T.dot(V_hat, self.W[0]) * H_hat[0]).sum(axis=1).mean()
+
+        v_weights_contrib.name = 'v_weights_contrib('+V_name+','+H_names[0]+')'
+
+        total = v_bias_contrib + v_weights_contrib
+
+        for i in xrange(len(H_hat) - 1):
+            lower_H = H_hat[i]
+            low = T.mean(lower_H, axis = 0)
+            higher_H = H_hat[i+1]
+            #exp_lh = T.dot(lower_H.T, higher_H) / m
+            lower_bias = self.bias_hid[i]
+            W = self.W[i+1]
+
+            lower_bias_contrib = T.dot(low, lower_bias)
+
+            #weights_contrib = T.sum( W * exp_lh) / m
+            weights_contrib = (T.dot(lower_H, W) * higher_H).sum(axis=1).mean()
+
+            total = total + lower_bias_contrib + weights_contrib
+
+        highest_bias_contrib = T.dot(T.mean(H_hat[-1],axis=0), self.bias_hid[-1])
+
+        total = total + highest_bias_contrib
+
+        assert len(total.type.broadcastable) == 0
+
+        rval =  - total
+
+        #rval.name = 'dbm_expected_energy('+V_name+','+str(H_names)+')'
+
+        return rval
 
 
-class mu_pooled_ssRBM(RBM):
-    """
-    TODO: reformat doc
 
-    alpha    : vector of length nslab, diagonal precision term on s.
-    b        : vector of length nhid, hidden unit bias.
-    B        : vector of length nvis, diagonal precision on v.
-               Lambda in ICML2011 paper.
-    Lambda   : matrix of shape nvis x nhid, whose i-th column encodes a
-               diagonal precision on v, conditioned on h_i.
-               phi in ICML2011 paper.
-    log_alpha: vector of length nslab, precision on s.
-    mu       : vector of length nslab, mean parameter on s.
-    W        : matrix of shape nvis x nslab, weights of the nslab linear
-               filters s.
-    """
-    def __init__(self, nvis, nhid, n_s_per_h,
-            batch_size,
-            alpha0, alpha_irange,
-            b0,
-            B0,
-            Lambda0, Lambda_irange,
-            mu0,
-            W_irange=None,
-            rng=None):
-        if rng is None:
-            # TODO: global rng default seed
-            rng = numpy.random.RandomState(1001)
+    def expected_energy_batch(self, V_hat, H_hat, no_v_bias = False):
+        """ expected energy of the model under the mean field distribution
+            defined by V_hat and H_hat
+            alternately, could be expectation of the energy function across
+            a batch of examples, where every element of V_hat and H_hat is
+            a binary observation
+            if no_v_bias is True, ignores the contribution from biases on visible units
+        """
 
-        self.nhid = nhid
-        self.nslab = nhid * n_s_per_h
-        self.n_s_per_h = n_s_per_h
-        self.nvis = nvis
+        warnings.warn("TODO: write unit test verifying expected_energy_batch/m = expected_energy")
 
-        self.batch_size = batch_size
+        V_name = make_name(V_hat, 'anon_V_hat')
+        assert isinstance(H_hat, (list,tuple))
 
-        # configure \alpha: precision parameter on s
-        alpha_init = numpy.zeros(self.nslab) + alpha0
-        if alpha_irange > 0:
-            alpha_init += (2 * rng.rand(self.nslab) - 1) * alpha_irange
-        self.log_alpha = sharedX(numpy.log(alpha_init), name='log_alpha')
-        self.alpha = tensor.exp(self.log_alpha)
-        self.alpha.name = 'alpha'
+        H_names = []
+        for i in xrange(len(H_hat)):
+            H_names.append( make_name(H_hat[i], 'anon_H_hat[%d]' %(i,) ))
 
-        self.mu = sharedX(
-                numpy.zeros(self.nslab) + mu0,
-                name='mu', borrow=True)
-        self.b = sharedX(
-                numpy.zeros(self.nhid) + b0,
-                name='b', borrow=True)
+        assert len(H_hat) == len(self.rbms)
 
-        if W_irange is None:
-            # Derived closed to Xavier Glorot's magic formula
-            W_irange = 2 / numpy.sqrt(nvis * nhid)
-        self.W = sharedX(
-                (.5 - rng.rand(self.nvis, self.nslab)) * 2 * W_irange,
-                name='W', borrow=True)
-
-        # THE BETA IS IGNORED DURING TRAINING - FIXED AT MARGINAL DISTRIBUTION
-        self.B = sharedX(numpy.zeros(self.nvis) + B0, name='B', borrow=True)
-
-        if Lambda_irange > 0:
-            L = (rng.rand(self.nvis, self.nhid) * Lambda_irange
-                    + Lambda0)
+        if no_v_bias:
+            v_bias_contrib = 0.
         else:
-            L = numpy.zeros((self.nvis, self.nhid)) + Lambda0
-        self.Lambda = sharedX(L, name='Lambda', borrow=True)
-
-        self._params = [
-                self.mu,
-                self.B,
-                self.Lambda,
-                self.W,
-                self.b,
-                self.log_alpha]
-
-    #def ml_gradients(self, pos_v, neg_v):
-    #    inherited version is OK.
-
-    def gibbs_step_for_v(self, v, rng):
-        # Sometimes, the number of examples in the data set is not a
-        # multiple of self.batch_size.
-        batch_size = v.shape[0]
-
-        # sample h given v
-        h_mean = self.mean_h_given_v(v)
-        h_mean_shape = (batch_size, self.nhid)
-        h_sample = as_floatX(rng.uniform(size=h_mean_shape) < h_mean)
-
-        # sample s given (v,h)
-        s_mu, s_var = self.mean_var_s_given_v_h1(v)
-        s_mu_shape = (batch_size, self.nslab)
-        s_sample = s_mu + rng.normal(size=s_mu_shape) * tensor.sqrt(s_var)
-        #s_sample=(s_sample.reshape()*h_sample.dimshuffle(0,1,'x')).flatten(2)
-
-        # sample v given (s,h)
-        v_mean, v_var = self.mean_var_v_given_h_s(h_sample, s_sample)
-        v_mean_shape = (batch_size, self.nvis)
-        v_sample = rng.normal(size=v_mean_shape) * tensor.sqrt(v_var) + v_mean
-
-        del batch_size
-        return v_sample, locals()
-
-    ## TODO?
-    def sample_visibles(self, params, shape, rng):
-        raise NotImplementedError('mu_pooled_ssRBM.sample_visibles')
-
-    def input_to_h_from_v(self, v):
-        D = self.Lambda
-        alpha = self.alpha
-
-        def sum_s(x):
-            return x.reshape((
-                -1,
-                self.nhid,
-                self.n_s_per_h)).sum(axis=2)
-
-        return tensor.add(
-                self.b,
-                -0.5 * tensor.dot(v * v, D),
-                sum_s(self.mu * tensor.dot(v, self.W)),
-                sum_s(0.5 * tensor.sqr(tensor.dot(v, self.W)) / alpha))
-
-    #def mean_h_given_v(self, v):
-    #    inherited version is OK:
-    #    return nnet.sigmoid(self.input_to_h_from_v(v))
-
-    def mean_var_v_given_h_s(self, h, s):
-        v_var = 1 / (self.B + tensor.dot(h, self.Lambda.T))
-        s3 = s.reshape((
-                -1,
-                self.nhid,
-                self.n_s_per_h))
-        hs = h.dimshuffle(0, 1, 'x') * s3
-        v_mu = tensor.dot(hs.flatten(2), self.W.T) * v_var
-        return v_mu, v_var
-
-    def mean_var_s_given_v_h1(self, v):
-        alpha = self.alpha
-        return (self.mu + tensor.dot(v, self.W) / alpha,
-                1.0 / alpha)
-
-    ## TODO?
-    def mean_v_given_h(self, h):
-        raise NotImplementedError('mu_pooled_ssRBM.mean_v_given_h')
-
-    def free_energy_given_v(self, v):
-        sigmoid_arg = self.input_to_h_from_v(v)
-        return tensor.add(
-                0.5 * (self.B * (v ** 2)).sum(axis=1),
-                -tensor.nnet.softplus(sigmoid_arg).sum(axis=1))
-
-    #def __call__(self, v):
-    #    inherited version is OK
-
-    #def reconstruction_error:
-    #    inherited version should be OK
-
-    #def params(self):
-    #    inherited version is OK.
+            v_bias_contrib = T.dot(V_hat, self.bias_vis)
 
 
-def build_stacked_RBM(nvis, nhids, batch_size, vis_type='binary',
-        input_mean_vis=None, irange=1e-3, rng=None):
+        assert len(V_hat.type.broadcastable) == 2
+        assert len(self.W[0].type.broadcastable) == 2
+        assert len(H_hat[0].type.broadcastable) == 2
+
+        interm1 = T.dot(V_hat, self.W[0])
+        assert len(interm1.type.broadcastable) == 2
+        interm2 = interm1 * H_hat[0]
+        assert len(interm2.type.broadcastable) == 2
+
+        v_weights_contrib = interm2.sum(axis=1)
+
+        v_weights_contrib.name = 'v_weights_contrib('+V_name+','+H_names[0]+')'
+        assert len(v_weights_contrib.type.broadcastable) == 1
+
+        total = v_bias_contrib + v_weights_contrib
+
+        for i in xrange(len(H_hat) - 1):
+            lower_H = H_hat[i]
+            higher_H = H_hat[i+1]
+            #exp_lh = T.dot(lower_H.T, higher_H) / m
+            lower_bias = self.bias_hid[i]
+            W = self.W[i+1]
+
+            lower_bias_contrib = T.dot(lower_H, lower_bias)
+
+            #weights_contrib = T.sum( W * exp_lh) / m
+            weights_contrib = (T.dot(lower_H, W) * higher_H).sum(axis=1)
+
+            cur_contrib = lower_bias_contrib + weights_contrib
+            assert len(cur_contrib.type.broadcastable) == 1
+            total = total + cur_contrib
+
+        highest_bias_contrib = T.dot(H_hat[-1], self.bias_hid[-1])
+
+        total = total + highest_bias_contrib
+
+        assert len(total.type.broadcastable) == 1
+
+        rval =  - total
+
+        #rval.name = 'dbm_expected_energy('+V_name+','+str(H_names)+')'
+
+        return rval
+
+
+
+    def entropy_h(self, H_hat):
+        """ entropy of the hidden layers under the mean field distribution
+        defined by H_hat """
+
+        for Hv in get_debug_values(H_hat[0]):
+            assert Hv.min() >= 0.0
+            assert Hv.max() <= 1.0
+
+        total = entropy_binary_vector(H_hat[0])
+
+        for H in H_hat[1:]:
+
+            for Hv in get_debug_values(H):
+                assert Hv.min() >= 0.0
+                assert Hv.max() <= 1.0
+
+            total += entropy_binary_vector(H)
+
+        return total
+
+    def redo_theano(self):
+        try:
+            self.compile_mode()
+            init_names = dir(self)
+
+            V = T.matrix(name='V')
+            V.tag.test_value = np.cast[config.floatX](self.rng.uniform(0.,1.,(self.test_batch_size,self.nvis)) > 0.5)
+
+            self.learn_func = self.make_learn_func(V)
+
+            final_names = dir(self)
+
+            self.register_names_to_del([name for name in final_names if name not in init_names])
+        finally:
+            self.deploy_mode()
+
+    def learn(self, dataset, batch_size):
+        self.learn_mini_batch(dataset.get_batch_design(batch_size))
+
+    def learn_mini_batch(self, X):
+
+        self.learn_func(X)
+
+        if self.monitor.examples_seen % self.print_interval == 0:
+            self.print_status()
+
+
+    def get_weights_format(self):
+        return self.rbms[0].get_weights_format()
+
+class InferenceProcedure:
     """
-    Allocate a StackedBlocks containing RBMs.
 
-    The visible units of the input RBM can be either binary or gaussian,
-    the other ones are all binary.
-    """
-    #TODO: not sure this is the right way of dealing with mean_vis.
-    layers = []
-    assert vis_type in ['binary', 'gaussian']
-    if vis_type == 'binary':
-        assert input_mean_vis is None
-    elif vis_type == 'gaussian':
-        assert input_mean_vis in (True, False)
+        Variational inference
 
-    # The number of visible units in each layer is the initial input
-    # size and the first k-1 hidden unit sizes.
-    nviss = [nvis] + nhids[:-1]
-    seq = izip(
-            xrange(len(nhids)),
-            nhids,
-            nviss,
-            )
-    for k, nhid, nvis in seq:
-        if k == 0 and vis_type == 'gaussian':
-            rbm = GaussianBinaryRBM(nvis=nvis, nhid=nhid,
-                    batch_size=batch_size,
-                    irange=irange,
-                    rng=rng,
-                    mean_vis=input_mean_vis)
+        """
+
+    def get_monitoring_channels(self, V, model):
+
+        rval = {}
+
+        if self.monitor_kl or self.monitor_em_functional:
+            obs_history = self.infer(V, return_history = True)
+
+            for i in xrange(1, 2 + len(self.h_new_coeff_schedule)):
+                obs = obs_history[i-1]
+                if self.monitor_kl:
+                    rval['trunc_KL_'+str(i)] = self.truncated_KL(V, model, obs).mean()
+                if self.monitor_em_functional:
+                    rval['em_functional_'+str(i)] = self.em_functional(V, model, obs).mean()
+
+        return rval
+
+
+    def __init__(self, monitor_kl = False):
+        self.autonomous = False
+        self.model = None
+        self.monitor_kl = monitor_kl
+        #for the current project, DBM need not implement its own inference, so the constructor
+        #doesn't need an update schedule, etc.
+        #note: can't do monitor_em_functional since Z is not tractable
+
+
+    def register_model(self, model):
+        self.model = model
+
+    def truncated_KL(self, V, obs, no_v_bias = False):
+        """ KL divergence between variation and true posterior, dropping terms that don't
+            depend on the variational parameters
+
+            if no_v_bias is True, ignores the contribution of the visible biases to the expected energy
+            """
+
+        """
+            D_KL ( Q(h ) || P(h | v) ) =  - sum_h Q(h) log P(h | v) + sum_h Q(h) log Q(h)
+                                       = -sum_h Q(h) log P( h, v) + sum_h Q(h) log P(v) + sum_h Q(h) log Q(h)
+            <truncated version>        = -sum_h Q(h) log P( h, v) + sum_h Q(h) log Q(h)
+                                       = -sum_h Q(h) log exp( -E (h,v)) + sum_h Q(h) log Z + sum_H Q(h) log Q(h)
+            <truncated version>        = sum_h Q(h) E(h, v) + sum_h Q(h) log Q(h)
+        """
+
+        H_hat = obs['H_hat']
+
+        for Hv in get_debug_values(H_hat):
+            assert Hv.min() >= 0.0
+            assert Hv.max() <= 1.0
+
+        entropy_term = - self.model.entropy_h(H_hat = H_hat)
+        assert len(entropy_term.type.broadcastable) == 1
+        energy_term = self.model.expected_energy_batch(V_hat = V, H_hat = H_hat, no_v_bias = no_v_bias)
+        assert len(energy_term.type.broadcastable) == 1
+
+        KL = entropy_term + energy_term
+
+        return KL
+
+
+    def infer_H_hat_two_sided(self, H_hat_below, W_below, H_hat_above, W_above, b):
+
+        bottom_up = T.dot(H_hat_below, W_below)
+        top_down =  T.dot(H_hat_above, W_above.T)
+        total = bottom_up + top_down + b
+
+        H_hat = T.nnet.sigmoid(total)
+
+    def infer_H_hat_one_sided(self, other_H_hat, W, b):
+        """ W should be arranged such that other_H_hat.shape[1] == W.shape[0] """
+
+        dot = T.dot(other_H_hat, W)
+        presigmoid = dot + b
+
+        H_hat = T.nnet.sigmoid(presigmoid)
+
+        return H_hat
+
+    def infer(self, V, return_history = False):
+        """
+
+            return_history: if True:
+                                returns a list of dictionaries with
+                                showing the history of the variational
+                                parameters
+                                throughout fixed point updates
+                            if False:
+                                returns a dictionary containing the final
+                                variational parameters
+        """
+
+
+        raise NotImplementedError("This method is not implemented yet. The code in this file is just copy-pasted from S3C")
+
+        #NOTE: I don't think this method needs to be implemented for the current project
+
+        """
+        alpha = self.model.alpha
+
+
+        var_s0_hat = 1. / alpha
+        var_s1_hat = self.var_s1_hat()
+
+
+        H   =    self.init_H_hat(V)
+        Mu1 =    self.init_S_hat(V)
+
+        def check_H(my_H, my_V):
+            if my_H.dtype != config.floatX:
+                raise AssertionError('my_H.dtype should be config.floatX, but they are '
+                        ' %s and %s, respectively' % (my_H.dtype, config.floatX))
+
+            allowed_v_types = ['float32']
+
+            if config.floatX == 'float64':
+                allowed_v_types.append('float64')
+
+            assert my_V.dtype in allowed_v_types
+
+            if config.compute_test_value != 'off':
+                from theano.gof.op import PureOp
+                Hv = PureOp._get_test_value(my_H)
+
+                Vv = my_V.tag.test_value
+
+                assert Hv.shape[0] == Vv.shape[0]
+
+        check_H(H,V)
+
+        def make_dict():
+
+            return {
+                    'H_hat' : H,
+                    'S_hat' : Mu1,
+                    'var_s0_hat' : var_s0_hat,
+                    'var_s1_hat': var_s1_hat,
+                    }
+
+        history = [ make_dict() ]
+
+        for new_H_coeff, new_S_coeff in zip(self.h_new_coeff_schedule, self.s_new_coeff_schedule):
+
+            new_Mu1 = self.infer_S_hat(V, H, Mu1)
+
+            if self.clip_reflections:
+                clipped_Mu1 = reflection_clip(Mu1 = Mu1, new_Mu1 = new_Mu1, rho = self.rho)
+            else:
+                clipped_Mu1 = new_Mu1
+            Mu1 = self.damp(old = Mu1, new = clipped_Mu1, new_coeff = new_S_coeff)
+            new_H = self.infer_H_hat(V, H, Mu1)
+
+            H = self.damp(old = H, new = new_H, new_coeff = new_H_coeff)
+
+            check_H(H,V)
+
+            history.append(make_dict())
+
+        if return_history:
+            return history
         else:
-            rbm = RBM(nvis - nvis, nhid=nhid,
-                    batch_size=batch_size,
-                    irange=irange,
-                    rng=rng)
-        layers.append(rbm)
+            return history[-1]
+        """
 
-    # Create the stack
-    return StackedBlocks(layers)
+    def init_H_hat(self, V):
+        """ Returns a list of matrices of hidden units, with same batch size as V
+            For now hidden unit values are initialized by taking the sigmoid of their
+            bias """
+
+        H_hat = []
+
+        for b in self.model.bias_hid:
+            value = T.nnet.sigmoid(b)
+
+            mat = T.alloc(value, V.shape[0], value.shape[0])
+
+            H_hat.append(mat)
+
+        return H_hat
+
+
+

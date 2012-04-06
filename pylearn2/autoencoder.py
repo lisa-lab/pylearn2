@@ -72,9 +72,7 @@ class Autoencoder(Block, Model):
         super(Autoencoder, self).__init__()
         assert nvis >= 0, "Number of visible units must be non-negative"
         assert nhid > 0, "Number of hidden units must be positive"
-        
-        #Save some params for reset_params function
-        self.nvis = nvis
+
         self.nhid = nhid
 
         if not hasattr(rng, 'randn'):
