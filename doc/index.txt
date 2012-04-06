@@ -70,6 +70,7 @@ Community
    LICENSE
    introduction
    tutorial/index
+   tutorial/with_jobman
    internal/index
 
 

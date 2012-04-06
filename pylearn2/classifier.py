@@ -60,20 +60,13 @@ class LogisticRegressionLayer(Block, Model):
         super(LogisticRegressionLayer, self).__init__()
 
         assert nvis >= 0, "Number of visible units must be non-negative"
-        self.input_space = VectorSpace(nvis)
-        self.output_space = VectorSpace(nclasses)
         assert nclasses >= 0, "Number of classes must be non-negative"
 
         self.nvis = nvis
         self.nclasses = nclasses
 
-        # initialize with 0 the weights W as a matrix of shape (nvis, nclasses)
-        self.W = sharedX(numpy.zeros((nvis, nclasses)), name='W', borrow=True)
-        # initialize the biases b as a vector of nclasses 0s
-        self.b = sharedX(numpy.zeros((nclasses,)), name='b', borrow=True)
-
-        # parameters of the model
-        self._params = [self.W, self.b]
+        #Reset the parameters
+        self.reset_params()
 
     def p_y_given_x(self, inp):
         """TODO: docstring"""
@@ -89,3 +82,14 @@ class LogisticRegressionLayer(Block, Model):
     def __call__(self, inp):
         """TODO: docstring"""
         return self.p_y_given_x(inp)
+
+    def reset_params(self, rng=None):
+        self.input_space = VectorSpace(self.nvis)
+        self.output_space = VectorSpace(self.nclasses)
+
+        # initialize with 0 the weights W as a matrix of shape (nvis, nclasses)
+        self.W = sharedX(numpy.zeros((self.nvis, self.nclasses)), name='W', borrow=True)
+        # initialize the biases b as a vector of nclasses 0s
+        self.b = sharedX(numpy.zeros((self.nclasses,)), name='b', borrow=True)
+        self._params = [self.W, self.b]
+

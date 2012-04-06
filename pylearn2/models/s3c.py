@@ -179,8 +179,6 @@ class S3C(Model, Block):
         Learning Hierarchical Models. NIPS 2011.
 
     """
-
-
     def __init__(self, nvis, nhid, irange, init_bias_hid,
                        init_B, min_B, max_B,
                        init_alpha, min_alpha, max_alpha, init_mu,
@@ -202,6 +200,7 @@ class S3C(Model, Block):
                        random_patches_src = None,
                        local_rf_src = None,
                        local_rf_shape = None,
+                       local_rf_max_shape = None,
                        local_rf_stride = None,
                        local_rf_draw_patches = False,
                        init_unit_W = None,
@@ -246,7 +245,12 @@ class S3C(Model, Block):
         local_rf_src: if not None, should be a dataset
                 requires the following other params:
                     local_rf_shape: a 2 tuple
-                    local_rf_stride: a 2 tuple
+                    one of:
+                        local_rf_stride: a 2 tuple or None
+                            if specified, pull out patches on a regular grid
+                        local_rf_max_shape: a 2 tuple or None
+                            if specified, pull out patches of random shape and
+                                location
                     local_rf_draw_patches: if true, local receptive fields are patches from local_rf_src
                                             otherwise, they're random patches
                  will initialize the weights to have only local receptive fields. (won't make a sparse
@@ -276,53 +280,79 @@ class S3C(Model, Block):
             self.init_W = random_patches_src.get_batch_design(nhid).T
             assert local_rf_src is None
         elif local_rf_src is not None:
-            self.rng.uniform(-self.irange, self.irange, (self.nvis, self.nhid))
-
             s = local_rf_src.view_shape()
             height, width, channels = s
             W_img = np.zeros( (self.nhid, height, width, channels) )
 
             last_row = s[0] - local_rf_shape[0]
-            assert last_row % local_rf_stride[0] == 0
-            num_row_steps = last_row / local_rf_stride[0] + 1
-
             last_col = s[1] - local_rf_shape[1]
-            assert last_col % local_rf_stride[1] == 0
-            num_col_steps = last_col /local_rf_stride[1] + 1
 
-            total_rfs = num_row_steps * num_col_steps
+            if local_rf_stride is not None:
+                #local_rf_stride specified, make local_rfs on a grid
+                assert last_row % local_rf_stride[0] == 0
+                num_row_steps = last_row / local_rf_stride[0] + 1
 
-            if self.nhid % total_rfs != 0:
-                raise ValueError('nhid modulo total_rfs should be 0, but we get %d modulo %d = %d' % (self.nhid, total_rfs, self.nhid % total_rfs))
+                assert last_col % local_rf_stride[1] == 0
+                num_col_steps = last_col /local_rf_stride[1] + 1
 
-            filters_per_rf = self.nhid / total_rfs
+                total_rfs = num_row_steps * num_col_steps
 
-            idx = 0
-            for r in xrange(num_row_steps):
-                rc = r * local_rf_stride[0]
-                for c in xrange(num_col_steps):
-                    cc = c * local_rf_stride[1]
+                if self.nhid % total_rfs != 0:
+                    raise ValueError('nhid modulo total_rfs should be 0, but we get %d modulo %d = %d' % (self.nhid, total_rfs, self.nhid % total_rfs))
 
-                    for i in xrange(filters_per_rf):
+                filters_per_rf = self.nhid / total_rfs
 
-                        if local_rf_draw_patches:
-                            img = local_rf_src.get_batch_topo(1)[0]
-                            local_rf = img[rc:rc+local_rf_shape[0],
-                                           cc:cc+local_rf_shape[1],
-                                           :]
-                        else:
-                            local_rf = self.rng.uniform(-self.irange,
-                                        self.irange,
-                                        (local_rf_shape[0], local_rf_shape[1], s[2]) )
+                idx = 0
+                for r in xrange(num_row_steps):
+                    rc = r * local_rf_stride[0]
+                    for c in xrange(num_col_steps):
+                        cc = c * local_rf_stride[1]
+
+                        for i in xrange(filters_per_rf):
+
+                            if local_rf_draw_patches:
+                                img = local_rf_src.get_batch_topo(1)[0]
+                                local_rf = img[rc:rc+local_rf_shape[0],
+                                               cc:cc+local_rf_shape[1],
+                                               :]
+                            else:
+                                local_rf = self.rng.uniform(-self.irange,
+                                            self.irange,
+                                            (local_rf_shape[0], local_rf_shape[1], s[2]) )
 
 
 
-                        W_img[idx,rc:rc+local_rf_shape[0],
-                          cc:cc+local_rf_shape[1],:] = local_rf
-                        idx += 1
+                            W_img[idx,rc:rc+local_rf_shape[0],
+                              cc:cc+local_rf_shape[1],:] = local_rf
+                            idx += 1
+                assert idx == self.nhid
+            else:
+                #no stride specified, use random shaped patches
+                assert local_rf_max_shape is not None
 
+                for idx in xrange(nhid):
+                    shape = [ self.rng.randint(min_shape,max_shape+1) for
+                            min_shape, max_shape in zip(
+                                local_rf_shape,
+                                local_rf_max_shape) ]
+                    loc = [ self.rng.randint(0, bound - width + 1) for
+                            bound, width in zip(s, shape) ]
 
-            assert idx == self.nhid
+                    rc, cc = loc
+
+                    if local_rf_draw_patches:
+                        img = local_rf_src.get_batch_topo(1)[0]
+                        local_rf = img[rc:rc+shape[0],
+                                       cc:cc+shape[1],
+                                       :]
+                    else:
+                        local_rf = self.rng.uniform(-self.irange,
+                                    self.irange,
+                                    (shape[0], shape[1], s[2]) )
+
+                    W_img[idx,rc:rc+shape[0],
+                              cc:cc+shape[1],:] = local_rf
+
 
             self.init_W = local_rf_src.view_converter.topo_view_to_design_mat(W_img).T
 
@@ -344,7 +374,6 @@ class S3C(Model, Block):
 
         self.init_unit_W = init_unit_W
 
-
         self.print_interval = print_interval
 
         self.constrain_W_norm = constrain_W_norm
@@ -354,12 +383,16 @@ class S3C(Model, Block):
         self.disable_W_update = disable_W_update
         self.monitor_functional = monitor_functional
         self.init_bias_hid = init_bias_hid
-        self.init_alpha = float(init_alpha)
-        self.min_alpha = float(min_alpha)
-        self.max_alpha = float(max_alpha)
-        self.init_B = float(init_B)
-        self.min_B = float(min_B)
-        self.max_B = float(max_B)
+        def nostrings(x):
+            if isinstance(x,str):
+                return float(x)
+            return x
+        self.init_alpha = nostrings(init_alpha)
+        self.min_alpha = nostrings(min_alpha)
+        self.max_alpha = nostrings(max_alpha)
+        self.init_B = nostrings(init_B)
+        self.min_B = nostrings(min_B)
+        self.max_B = nostrings(max_B)
         self.m_step = m_step
         self.e_step = e_step
         if e_step is None:
@@ -391,6 +424,17 @@ class S3C(Model, Block):
             self.rng = np.random.RandomState([1.,2.,3.])
         else:
             self.rng = np.random.RandomState(self.seed)
+    
+    def reset_params(self, rng=None):
+        """
+         redo_everything function does everything we want to do.
+        """
+        if rng is not None:
+            self.rng = rng
+        else:
+            self.reset_rng()
+        self.input_space = VectorSpace(self.nvis)
+        self.redo_everything()
 
     def redo_everything(self):
 
@@ -411,8 +455,6 @@ class S3C(Model, Block):
             self.B_driver = sharedX(0.0+self.init_B, name='B')
         else:
             self.B_driver = sharedX(np.zeros(self.nvis)+self.init_B, name='B')
-
-        self.test_batch_size = 2
 
         if self.recycle_q:
             self.prev_H = sharedX(np.zeros((self.recycle_q,self.nhid)), name="prev_H")
@@ -569,11 +611,11 @@ class S3C(Model, Block):
         if self.recycle_q:
             self.prev_H.set_value(
                     np.cast[self.prev_H.dtype](
-                        np.zeros((self.test_batch_size, self.nhid)) \
+                        np.zeros((self._test_batch_size, self.nhid)) \
                                 + 1./(1.+np.exp(-self.bias_hid.get_value()))))
             self.prev_S.set_value(
                     np.cast[self.prev_S.dtype](
-                        np.zeros((self.test_batch_size, self.nhid)) + self.mu.get_value() ) )
+                        np.zeros((self._test_batch_size, self.nhid)) + self.mu.get_value() ) )
 
     def deploy_mode(self):
         """ If any shared variables need to have batch-size dependent sizes, sets them all to their runtime sizes """
@@ -836,6 +878,7 @@ class S3C(Model, Block):
 
         hid_shape = (batch_size, self.nhid)
 
+
         if H_sample is None:
             H_sample = theano_rng.binomial( size = hid_shape, n = 1, p = self.p)
 
@@ -883,7 +926,8 @@ class S3C(Model, Block):
 
         return rval
 
-    def expected_log_prob_vhs_batch(self, V, H_hat, S_hat, var_s0_hat, var_s1_hat):
+
+    def log_partition_function(self):
 
         half = as_floatX(0.5)
         two = as_floatX(2.)
@@ -891,13 +935,23 @@ class S3C(Model, Block):
         N = as_floatX(self.nhid)
 
         #log partition function terms
-        term1 = half * T.sum(T.log(self.B))
-        term2 = - half * N * T.log(two * pi)
-        term3 = half * T.log( self.alpha ).sum()
-        term4 = - half * N * T.log(two*pi)
-        term5 = - T.nnet.softplus(self.bias_hid).sum()
+        term1 = -half * T.sum(T.log(self.B))
+        term2 = half * N * T.log(two * pi)
+        term3 = - half * T.log( self.alpha ).sum()
+        term4 = half * N * T.log(two*pi)
+        term5 = T.nnet.softplus(self.bias_hid).sum()
 
-        negative_log_partition_function = term1 + term2 + term3 + term4 + term5
+        return term1 + term2 + term3 + term4 + term5
+
+
+    def expected_log_prob_vhs_batch(self, V, H_hat, S_hat, var_s0_hat, var_s1_hat):
+
+        half = as_floatX(0.5)
+        two = as_floatX(2.)
+        pi = as_floatX(np.pi)
+        N = as_floatX(self.nhid)
+
+        negative_log_partition_function = - self.log_partition_function()
         assert len(negative_log_partition_function.type.broadcastable) == 0
 
         #energy term
@@ -1119,7 +1173,7 @@ class S3C(Model, Block):
             self.get_B_value = function([], self.B)
 
             X = T.matrix(name='V')
-            X.tag.test_value = np.cast[config.floatX](self.rng.randn(self.test_batch_size,self.nvis))
+            X.tag.test_value = np.cast[config.floatX](self.rng.randn(self._test_batch_size,self.nvis))
 
             self.learn_func = self.make_learn_func(X)
 
@@ -1135,9 +1189,7 @@ class S3C(Model, Block):
                 print 'stopping due to too many examples seen'
                 quit(-1)
 
-
         self.learn_mini_batch(dataset.get_batch_design(batch_size))
-    #
 
     def print_status(self):
             print ""
@@ -1165,7 +1217,7 @@ class S3C(Model, Block):
 
         self.learn_func(X)
 
-        if self.monitor.examples_seen % self.print_interval == 0:
+        if self.monitor.get_examples_seen() % self.print_interval == 0:
             self.print_status()
 
         if self.debug_m_step:
@@ -1174,10 +1226,20 @@ class S3C(Model, Block):
                 if self.debug_m_step != 'warn':
                     quit(-1)
 
-    #
-
     def get_weights_format(self):
         return ['v','h']
+
+    def get_weights(self):
+
+        W = self.W.get_value()
+
+        x = raw_input('multiply weights by mu? (y/n) ')
+
+        if x == 'y':
+            return W * self.mu.get_value()
+        elif x == 'n':
+            return W
+        assert False
 
 def reflection_clip(S_hat, new_S_hat, rho = 0.5):
     rho = np.cast[config.floatX](rho)
@@ -1202,11 +1264,12 @@ def reflection_clip(S_hat, new_S_hat, rho = 0.5):
 
     rval.name = 'reflection_clip(%s, %s)' % (S_name, new_S_name)
 
-    #rval = Print('clipped_S_hat',attrs=['min','max','mean'])(rval)
-
     return rval
 
 def damp(old, new, new_coeff):
+
+    if new_coeff == 1.0:
+        return new
 
     rval =  new_coeff * new + (as_floatX(1.) - new_coeff) * old
 
@@ -1263,7 +1326,18 @@ class E_Step(object):
                 for i in xrange(1, 2 + len(self.h_new_coeff_schedule)):
                     obs = obs_history[i-1]
                     if self.monitor_kl:
-                        rval['trunc_KL_'+str(i)] = self.truncated_KL(V, obs).mean()
+                        if i == 1:
+                            rval['trunc_KL_'+str(i)] = self.truncated_KL(V, obs).mean()
+                        else:
+                            coeff = self.h_new_coeff_schedule[i-2]
+                            rval['trunc_KL_'+str(i)+'.2(h '+str(coeff)+')'] = self.truncated_KL(V,obs).mean()
+                            obs = {}
+                            for key in obs_history[i-1]:
+                                obs[key] = obs_history[i-1][key]
+                            obs['H_hat'] = obs_history[i-2]['H_hat']
+                            coeff = self.s_new_coeff_schedule[i-2]
+                            rval['trunc_KL_'+str(i)+'.1(s '+str(coeff)+')'] = self.truncated_KL(V,obs).mean()
+                            obs = obs_history[i-1]
                     if self.monitor_energy_functional:
                         rval['energy_functional_'+str(i)] = self.energy_functional(V, self.model, obs).mean()
                     if self.monitor_s_mag:
@@ -1310,7 +1384,9 @@ class E_Step(object):
             if s_new_coeff_schedule is None:
                 s_new_coeff_schedule = [ 1.0 for rho in h_new_coeff_schedule ]
             else:
-                assert len(s_new_coeff_schedule) == len(h_new_coeff_schedule)
+                if len(s_new_coeff_schedule) != len(h_new_coeff_schedule):
+                    raise ValueError('s_new_coeff_schedule has %d elems ' % (len(s_new_coeff_schedule),) + \
+                            'but h_new_coeff_schedule has %d elems' % (len(h_new_coeff_schedule),) )
 
         self.s_new_coeff_schedule = s_new_coeff_schedule
 
@@ -1410,8 +1486,8 @@ class E_Step(object):
     def infer_S_hat(self, V, H_hat, S_hat):
 
         for Vv, Hv in get_debug_values(V, H_hat):
-            if Vv.shape != (self.model.test_batch_size,self.model.nvis):
-                raise Exception('Well this is awkward. We require visible input test tags to be of shape '+str((self.model.test_batch_size,self.model.nvis))+' but the monitor gave us something of shape '+str(Vv.shape)+". The batch index part is probably only important if recycle_q is enabled. It's also probably not all that realistic to plan on telling the monitor what size of batch we need for test tags. the best thing to do is probably change self.model.test_batch_size to match what the monitor does")
+            if Vv.shape != (self.model._test_batch_size,self.model.nvis):
+                raise Exception('Well this is awkward. We require visible input test tags to be of shape '+str((self.model._test_batch_size,self.model.nvis))+' but the monitor gave us something of shape '+str(Vv.shape)+". The batch index part is probably only important if recycle_q is enabled. It's also probably not all that realistic to plan on telling the monitor what size of batch we need for test tags. the best thing to do is probably change self.model._test_batch_size to match what the monitor does")
 
             assert Vv.shape[0] == Hv.shape[0]
             if not (Hv.shape[1] == self.model.nhid):
@@ -1433,7 +1509,6 @@ class E_Step(object):
 
         mean_term = mu * alpha
         mean_term.name = 'infer_S_hat:mean_term'
-        assert mean_term.type.dtype == config.floatX
 
         data_term = T.dot(V, BW)
         data_term.name = 'infer_S_hat:data_term'
@@ -1543,8 +1618,13 @@ class E_Step(object):
 
         return H
 
+
+    def infer(self, V, return_history = False):
+        return self.variational_inference( V, return_history)
+
     def variational_inference(self, V, return_history = False):
         """
+        TODO: rename to infer (for now, infer exists as a synonym)
 
             return_history: if True:
                                 returns a list of dictionaries with

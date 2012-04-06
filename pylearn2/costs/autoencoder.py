@@ -35,9 +35,10 @@ class ModelMethodPenalty(UnsupervisedCost):
             raise ValueError("no such method '%s' for model %s" %
                              (str(self._method_name), str(model)))
 
+
 class ScaleBy(UnsupervisedCost):
     def __init__(self, cost, coefficient):
-    	warnings.warn('This object is now deprecated.')
+        warnings.warn('This object is now deprecated.')
         self._cost = cost
         self._coefficient = coefficient
 

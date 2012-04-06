@@ -95,8 +95,9 @@ class SGD(TrainingAlgorithm):
 
         self.monitor = Monitor.get_monitor(model)
         self.monitor.set_dataset(dataset=self.monitoring_dataset,
-                                 batches=self.monitoring_batches,
-                                 batch_size=self.batch_size)
+                                 mode="sequential",
+                                 batch_size=self.batch_size,
+                                 num_batches=self.monitoring_batches)
 
 
         #Make the right kind of theano variable for the type of space
@@ -224,8 +225,9 @@ class ExhaustiveSGD(TrainingAlgorithm):
         # monitor on one somewhat big batch but update on many small
         # batches.
         self.monitor.set_dataset(dataset=self.monitoring_dataset,
-                                 batches=self.monitoring_batches,
-                                 batch_size=self.batch_size)
+                                 mode='sequential',
+                                 batch_size=self.batch_size,
+                                 num_batches=self.monitoring_batches)
         dataset.set_iteration_scheme('sequential', batch_size=self.batch_size)
         X = T.matrix(name="%s[X]" % self.__class__.__name__)
         Y = T.matrix(name="%s[Y]" % self.__class__.__name__)

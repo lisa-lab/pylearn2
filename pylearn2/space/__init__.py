@@ -34,64 +34,92 @@ from theano.tensor import TensorType
 from theano import config
 import functools
 
-class Space(object):
-    """ Defines a vector space that can be transformed by a linear operator """
 
+class Space(object):
+    """A vector space that can be transformed by a linear operator."""
     def get_origin(self):
-        """ Returns the origin in this space """
+        """
+        Returns the origin in this space.
+
+        Returns
+        -------
+        origin : ndarray
+            An NumPy array, the shape of a single points in this
+            space, representing the origin.
+        """
         raise NotImplementedError()
 
     def get_origin_batch(self, n):
-        """ Returns a batch of n copies of the origin """
+        """
+        Returns a batch containing `n` copies of the origin.
+
+        Returns
+        -------
+        batch : ndarray
+            A NumPy array in the shape of a batch of `n` points in this
+            space (with points being indexed along the first axis),
+            each `batch[i]` being a copy of the origin.
+        """
         raise NotImplementedError()
 
-    def make_theano_batch(self, name = None, dtype = None):
-        """ Returns a theano tensor capable of representing a batch of points
-            in the space """
+    def make_theano_batch(self, name=None, dtype=None):
+        """
+        Returns a symbolic variable representing a batch of points
+        in this space.
 
+        Returns
+        -------
+        batch : TensorVariable
+            A batch with the appropriate number of dimensions and
+            appropriate broadcast flags to represent a batch of
+            points in this space.
+        """
         raise NotImplementedError()
 
 
 class VectorSpace(Space):
-    """ Defines a space whose points are defined as fixed-length vectors """
-
+    """A space whose points are defined as fixed-length vectors."""
     def __init__(self, dim):
         """
+        Initialize a VectorSpace.
 
-        dim: the length of the fixed-length vector
-
+        Parameters
+        ----------
+        dim : int
+            Dimensionality of a vector in this space.
         """
-
         self.dim = dim
 
     @functools.wraps(Space.get_origin)
     def get_origin(self):
-
         return np.zeros((self.dim,))
 
     @functools.wraps(Space.get_origin_batch)
     def get_origin_batch(self, n):
-
-        return np.zeros((n,self.dim))
+        return np.zeros((n, self.dim))
 
     @functools.wraps(Space.make_theano_batch)
-    def make_theano_batch(self, name = None, dtype = None):
-
+    def make_theano_batch(self, name=None, dtype=None):
         if dtype is None:
             dtype = config.floatX
-
-        return T.matrix(name = name, dtype = dtype)
+        return T.matrix(name=name, dtype=dtype)
 
 
 class Conv2DSpace(Space):
-    """ Defines a space whose points are defined as multi-channel images """
-
+    """A space whose points are defined as (multi-channel) images."""
     def __init__(self, shape, nchannels):
         """
-            shape: (rows, cols)
-            nchannels: # of channels in the image
-        """
+        Initialize a Conv2DSpace.
 
+        Parameters
+        ----------
+        shape : sequence, length 2
+            The shape of a single image, i.e. (rows, cols).
+        nchannels: int
+            Number of channels in the image, i.e. 3 if RGB.
+        """
+        if not hasattr(shape, '__Len__') or len(shape) != 2:
+            raise ValueError("shape argument to Conv2DSpace must be length 2")
         self.shape = shape
         self.nchannels = nchannels
 
@@ -104,9 +132,10 @@ class Conv2DSpace(Space):
         return np.zeros((n, self.shape[0], self.shape[1], self.nchannels))
 
     @functools.wraps(Space.make_theano_batch)
-    def make_theano_batch(self, name = None, dtype = None):
-
+    def make_theano_batch(self, name=None, dtype=None):
         if dtype is None:
             dtype = config.floatX
-
-        return TensorType( dtype = dtype, broadcastable = (False, False, False, self.nchannels == 1) )(name = name)
+        return TensorType(dtype=dtype,
+                          broadcastable=(False, False, False,
+                                         self.nchannels == 1)
+                         )(name=name)

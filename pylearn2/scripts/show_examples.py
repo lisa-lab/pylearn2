@@ -77,6 +77,9 @@ print '\tmax: ',norms.max()
 
 print 'range of elements of examples',(examples.min(),examples.max())
 print 'dtype: ', examples.dtype
+
+examples = dataset.adjust_for_viewer(examples)
+
 if global_rescale:
     examples /= N.abs(examples).max()
 
