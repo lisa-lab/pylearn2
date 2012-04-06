@@ -165,7 +165,7 @@ class CrossValidation(object):
             for batch in validation_ddm:
                 self.validation_monitor.batches_seen += 1
                 self.validation_monitor.examples_seen += self.validation_batch_size
-                #Weight batches according to their sizes
+                #Weigh batches according to their sizes
                 self.error += self.error_fn(batch) * (self.validation_batch_size / batch.shape[0])
 
     def crossvalidate_model(self, validation_dataset):
@@ -223,7 +223,7 @@ class KFoldCrossValidation(CrossValidation):
         for i in xrange(self.nfolds):
             print "fold %d " % i
             dataset_folds = copy.copy(datasets) #Create a shallow copy of ds's
-            model4fold = copy.copy(model)
+            self.model.reset_params()
             if self.supervised:
                 training_data = (np.array([]), np.array([]))
                 validation_data = dataset_folds.pop(i)
@@ -246,7 +246,7 @@ class KFoldCrossValidation(CrossValidation):
                         else:
                             training_data = np.concatenate((training_data, dataset_folds[i]))
 
-            self.train_model(training_data, model4fold)
+            self.train_model(training_data, self.model)
             self.setup_validation(validation_data)
             self.validate_model(validation_data)
             self.errors = np.append(self.errors, super(KFoldCrossValidation, self).get_error())
@@ -285,7 +285,7 @@ class HoldoutCrossValidation(CrossValidation):
         self.error = 0
         self.train_size = train_size
         self.train_prop = train_prop
-        super(HoldoutCrossValidation, self).__init__(model, algorithm, cost, 
+        super(HoldoutCrossValidation, self).__init__(model, algorithm, cost,
                 dataset, validation_batch_size=validation_batch_size,
                 validation_monitoring_batches=validation_monitoring_batches)
 

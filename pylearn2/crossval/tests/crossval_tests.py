@@ -57,4 +57,4 @@ def test_kfold_cv():
     print "Error: " + str(kfoldCV.get_error())
 
 if __name__ == "__main__":
-    test_kfold_cv()
+    test_holdout_cv()
