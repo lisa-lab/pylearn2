@@ -206,8 +206,8 @@ class DenseDesignMatrix(Dataset):
           train_prop: Proportion of training dataset split.
         """
 
-        train = None
-        valid = None
+        train_ddm = None
+        valid_ddm = None
         if train_size !=0:
             dataset_iter = self.iterator(mode=_mode,
                     batch_size=(self.num_examples - train_size),
@@ -222,9 +222,12 @@ class DenseDesignMatrix(Dataset):
                     targets=(self.y is not None))
             train = dataset_iter.next()
             valid = dataset_iter.next()
+            train_ddm = DenseDesignMatrix(train[0], y=train[1])
+            valid_ddm = DenseDesignMatrix(valid[0], y=valid[1])
+
         else:
             raise ValueError("Initialize either split ratio and split size to non-zero value.")
-        return (train, valid)
+        return (train_ddm, valid_ddm)
 
     def split_dataset_nfolds(self, nfolds=0):
         """
@@ -238,7 +241,9 @@ class DenseDesignMatrix(Dataset):
 
         folds_iter = self.iterator(mode="sequential", num_batches=nfolds,
                 targets=(self.y is not None))
-        folds = list(folds_iter)
+        folds = []
+        for fold in folds_iter:
+            folds.append(DenseDesignMatrix(X=fold[0], y=fold[1]))
         return folds
 
     def split_dataset_holdout(self, train_size=0, train_prop=0):
@@ -270,7 +275,9 @@ class DenseDesignMatrix(Dataset):
 
         folds_iter = self.iterator(mode="random_slice", num_batches=nfolds,
                 targets=(self.y is not None), rng=rng)
-        folds = list(folds_iter)
+        folds = []
+        for fold in folds_iter:
+            folds.append(DenseDesignMatrix(X=fold[0], y=fold[1]))
         return folds
 
     def bootstrap_holdout(self, train_size=0, train_prop=0, rng=None):
@@ -297,8 +304,8 @@ class DenseDesignMatrix(Dataset):
         ddm's to be merged.
         """
         for dataset in datasets:
-            self.X += dataset.X
-            self.y += dataset.Y
+            self.X = np.concatenate((self.X, dataset.X), axis=0)
+            self.y = np.concatenate((self.y, dataset.y), axis=0)
 
     def get_stream_position(self):
         """

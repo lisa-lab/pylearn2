@@ -40,7 +40,7 @@ def test_kfold_cv():
     train_algo = ExhaustiveSGD(
             learning_rate = 0.1,
             cost=MeanSquaredReconstructionError(),
-            batch_size=100,
+            batch_size=1500,
             monitoring_batches=10,
             monitoring_dataset=trainset,
             termination_criterion=EpochCounter(max_epochs=10),
@@ -49,12 +49,13 @@ def test_kfold_cv():
 
     kfoldCV = cv.KFoldCrossValidation(model=model, 
         algorithm=train_algo,
+        nfolds=2,
         cost=MeanSquaredReconstructionError(),
         dataset=trainset, 
-        validation_batch_size=1000)
+        validation_batch_size=400)
 
     kfoldCV.crossvalidate_model()
     print "Error: " + str(kfoldCV.get_error())
 
 if __name__ == "__main__":
-    test_holdout_cv()
+    test_kfold_cv()

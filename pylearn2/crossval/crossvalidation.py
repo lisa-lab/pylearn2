@@ -9,20 +9,21 @@ from pylearn2.monitor import Monitor
 from pylearn2.costs.cost import SupervisedCost
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 
-"""
+class KFoldCVMode:
+    """
     The C's enum-like python class for different k-fold cross-validation
     error modes.
-"""
-class KFoldCVMode:
+    """
     OPTIMISTIC = "optimistic"
     PESSIMISTIC = "pessimistic"
     AVERAGE = "average"
 
-"""
-CrossValidation base class
-"""
-class CrossValidation(object):
 
+class CrossValidation(object):
+    """
+    CrossValidation base class, which implements the basic functions and defines
+    the structure for crossvalidation.
+    """
     def __init__(self, model=None, algorithm=None, cost=None, dataset=None,
             validation_batch_size=None, validation_monitoring_batches=-1):
         """
@@ -48,13 +49,16 @@ class CrossValidation(object):
             TODO: Is there any way to specify "as many as the dataset
             provides"?
         validation_monitoring_batches :
-            A collection of validation_monitoring_batches that are called, one at a time,
-            after each epoch.
+            A collection of validation_monitoring_batches that are called, one
+            at a time, after each epoch.
         """
         self.model = model
         self.validation_batch_size = validation_batch_size
         self.dataset = dataset
         self.algorithm = algorithm
+        self.validation_monitor = None
+        self.training_monitor = None
+
         if cost is None:
             if algorithm.cost is None:
                 raise ValueError("You should specify a cost function for the validation.")
@@ -75,36 +79,60 @@ class CrossValidation(object):
             raise ValueError("Dataset can't be None")
 
     def reset(self):
-        self.validation_monitor = Monitor(self.model)
-        self.training_monitor = Monitor(self.model)
+        """
+        The function that resets the monitor and the error of the crossvalidation.
+        """
+        self.model.reset_params()
+        if self.validation_monitor is None:
+            self.validation_monitor = Monitor(self.model)
+        else:
+            self.validation_monitor.reset_monitor(self.model)
+
+        if self.training_monitor is None:
+            self.training_monitor = Monitor(self.model)
+        else:
+            self.training_monitor.reset_monitor(self.model)
+
+        if self.algorithm.monitor is not None:
+            self.algorithm.monitor.reset_monitor(self.model)
+       
         self.error_fn = None
         self.error = 0
-        
-    """
-    Training function, similar to the main_loop function in train.py.
-    Parameters:
-    ---------
-    train_dataset: The dataset to train our algorithm on.
-    model: Use this model if it is specified, otherwise 
-    """
+
+    
     def train_model(self, train_dataset, model=None):
+        """
+        Training function, similar to the main_loop function in train.py.
+        Parameters:
+        ---------
+        train_dataset: The dataset to train our algorithm on.
+        model: Use this model if it is specified, otherwise 
+        """
         if model is not None:
             self.model = model
         if self.algorithm is None:
             self.model.monitor = self.training_monitor
-            while (self.model.train(dataset=self.dataset)):
+            while (self.model.train(dataset=train_dataset)):
                 pass
         else:
-            if self.algorithm.monitor is None:
-                self.algorithm.setup(model=self.model, dataset=self.dataset)
+            if self.algorithm.monitor is None or self.algorithm.model != self.model or self.algorithm.monitoring_dataset != train_dataset:
+                self.algorithm.setup(model=self.model, dataset=train_dataset)
             self.model.monitor()
-            while (self.algorithm.train(dataset=self.dataset)):
+            import pudb; pudb.set_trace()
+            while (self.algorithm.train(dataset=train_dataset)):
                 self.model.monitor()
 
-    #Setup the monitor for validation as in sgd's setup function
     def setup_validation(self, validation_dataset):
+        """
+        Setup the monitor for the validation phase of crossvalidation.
+        Parameters:
+        ----------
+        validation_dataset: The validation dataset that we are going to monitor 
+        the error on.
+        """
         self.validation_monitor.set_dataset(dataset=validation_dataset,
-                batches=self.validation_monitoring_batches,
+                mode="sequential",
+                num_batches=self.validation_monitoring_batches,
                 batch_size=self.validation_batch_size)
         space = self.model.get_input_space()
         X = space.make_theano_batch(name="validation_X")
@@ -121,15 +149,22 @@ class CrossValidation(object):
             J = self.cost(self.model, X)
             ch_name = "unsup_validation_error_%s" % X.name
             self.validation_monitor.set_dataset(dataset=validation_dataset,
-                    batches=self.validation_monitoring_batches,
-                    batch_size=self.validation_batch_size)
+                    mode="sequential",
+                    batch_size=self.validation_batch_size,
+                    num_batches=self.validation_monitoring_batches)
             if ch_name not in self.validation_monitor.channels:
                 self.validation_monitor.add_channel(ch_name,
                  ipt=(X), val=J)
             self.error_fn = function([X], J, name="unsup_validation_error")
 
-    #Validate the model as in the exhaustivesgd's train function
     def validate_model(self, validation_dataset):
+        """
+        Function that performs the validation.
+        Parameters:
+        ----------
+        validation_dataset: DenseDesignMatrix object that we'll do the validation
+        on.
+        """
         model = self.model
         if self.validation_batch_size is None:
             try:
@@ -152,20 +187,17 @@ class CrossValidation(object):
             validation_ddm.set_iteration_scheme(mode="sequential", 
                     targets=self.supervised)
             for (batch_in, batch_target) in validation_ddm:
-                self.validation_monitor.batches_seen += 1
-                self.validation_monitor.examples_seen += self.validation_batch_size
+                self.validation_monitor.report_batch(self.validation_batch_size)
                 #Weight batches according to their sizes
                 self.error += self.error_fn(batch_in, batch_target) * (self.validation_batch_size / validation_ddm.num_examples)
         else:
-            y = np.array([])
-            validation_ddm = DenseDesignMatrix(X=validation_dataset[0], y=y)
-            validation_ddm.set_iteration_scheme(mode="sequential", batch_size=self.validation_batch_size,
+            validation_dataset.set_iteration_scheme(mode="sequential",
+                    batch_size=self.validation_batch_size,
                     targets=self.supervised)
 
-            for batch in validation_ddm:
-                self.validation_monitor.batches_seen += 1
-                self.validation_monitor.examples_seen += self.validation_batch_size
-                #Weigh batches according to their sizes
+            for batch in validation_dataset:
+                self.validation_monitor.report_batch(self.validation_batch_size)
+                #Weigh errors of batches according to their sizes
                 self.error += self.error_fn(batch) * (self.validation_batch_size / batch.shape[0])
 
     def crossvalidate_model(self, validation_dataset):
@@ -174,13 +206,16 @@ class CrossValidation(object):
         """
         raise NotImplementedError()
 
-    def get_error(self):
-        return (self.error / self.validation_monitor.batches_seen)
+    def get_cost(self):
+        return (self.error)
 
-"""
-    Class for KFoldCrossValidation.
-    Explanation:
-    K-fold cross validation is one way to improve over the holdout method.
+
+class KFoldCrossValidation(CrossValidation):
+    """
+    Class that implements K-Fold Cross-Validation.
+
+    Detailed Explanation about K-Fold Cross-Validation that is implemented:
+
     The data set is divided into k subsets, and the holdout method is 
     repeated k times. Each time, one of the k subsets is used as the test 
     set and the other k-1 subsets are put together to form a training set.
@@ -196,12 +231,16 @@ class CrossValidation(object):
     test set is and how many trials you average over. 
 
     Ref: http://www.cs.cmu.edu/~schneide/tut5/node42.html
-"""
-class KFoldCrossValidation(CrossValidation):
+    """
+
     def __init__(self, nfolds=10, model=None, algorithm=None, cost=None, dataset=None,
             validation_batch_size=None, validation_monitoring_batches=None,
             mode=KFoldCVMode.PESSIMISTIC, bootstrap=False):
-        self.nfolds = nfolds
+        if nfolds<=1:
+            raise ValueError("Number of folds must be greater than 1.")
+        else:
+            self.nfolds = nfolds
+
         self.errors = np.array([])
         self.mode = mode
         self.bootstrap = bootstrap
@@ -216,43 +255,27 @@ class KFoldCrossValidation(CrossValidation):
             self.dataset = validation_dataset
         if self.dataset is None:
             raise ValueError("You should specify a dataset.")
+
         if self.bootstrap:
             datasets = self.dataset.bootstrap_nfolds(self.nfolds, rng)
         else:
             datasets = self.dataset.split_dataset_nfolds(self.nfolds)
+
         for i in xrange(self.nfolds):
             print "fold %d " % i
             dataset_folds = copy.copy(datasets) #Create a shallow copy of ds's
-            self.model.reset_params()
-            if self.supervised:
-                training_data = (np.array([]), np.array([]))
-                validation_data = dataset_folds.pop(i)
-                for i in xrange(len(datasets)):
-                    training_data[0] = np.concatenate((training_data, dataset_folds[i][0]))
-                    training_data[1] = np.concatenate((training_data, dataset_folds[i][1]))
-            else:
-                training_data = np.array([])
-                validation_data = dataset_folds.pop(i)
-                for i in xrange(len(dataset_folds)):
-                    #Check if either data is labelled or not
-                    if type(datasets[i]) is tuple:
-                        if training_data.shape[0] == 0:
-                            training_data = dataset_folds[i][0]
-                        else:
-                            training_data = np.concatenate((training_data, dataset_folds[i][0]))
-                    else:
-                        if training_data.shape[0] == 0:
-                            training_data = dataset_folds[i]
-                        else:
-                            training_data = np.concatenate((training_data, dataset_folds[i]))
 
+            validation_data = dataset_folds.pop(i)
+            training_data = dataset_folds.pop(0)
+            training_data.merge_datasets(dataset_folds)
             self.train_model(training_data, self.model)
             self.setup_validation(validation_data)
             self.validate_model(validation_data)
-            self.errors = np.append(self.errors, super(KFoldCrossValidation, self).get_error())
+            self.errors = np.append(self.errors, super(KFoldCrossValidation,
+                self).get_cost())
             self.reset()
  
-    def get_error(self):
+    def get_cost(self):
         if self.mode == KFoldCVMode.PESSIMISTIC:
             error = self.errors.max()
         elif self.mode == KFoldCVMode.OPTIMISTIC:
@@ -262,9 +285,12 @@ class KFoldCrossValidation(CrossValidation):
         return error
 
 
-"""
-    CrossValidation class for Holdout crossvalidation.
-    Explanation:
+class HoldoutCrossValidation(CrossValidation):
+    """
+    Class that implements Holdout Cross validation.
+
+    Detailed Explanation about Holdout that is implemented in this class:
+
     The holdout method is the simplest kind of cross validation.
     The data set is separated into two sets, called the training set and the
     testing set. The model is trained on the first part(training set) and tested on
@@ -277,8 +303,8 @@ class KFoldCrossValidation(CrossValidation):
 
     Ref: http://www.cs.cmu.edu/~schneide/tut5/node42.html
     Note: HoldoutCrossValidation isn't a special case of KFoldCrossValidation.
-"""
-class HoldoutCrossValidation(CrossValidation):
+    """
+
     def __init__(self, model=None, algorithm=None, cost=None, dataset=None,
             validation_batch_size=None, validation_monitoring_batches=None, 
             train_size=0, train_prop=0):
@@ -302,3 +328,4 @@ class HoldoutCrossValidation(CrossValidation):
         self.train_model(datasets[0])
         self.setup_validation(datasets[1])
         self.validate_model(datasets[1])
+

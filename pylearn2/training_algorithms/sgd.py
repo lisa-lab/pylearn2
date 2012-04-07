@@ -75,7 +75,7 @@ class SGD(TrainingAlgorithm):
         self._register_update_callbacks(update_callbacks)
         self.bSetup = False
         self.first = True
-
+    
     def setup(self, model, dataset):
         """
         Initialize the training algorithm. Should be called
@@ -257,10 +257,19 @@ class ExhaustiveSGD(TrainingAlgorithm):
                 cost_value.name = 'sgd_cost(' + X.name + ', ' + Y.name + ')'
             else:
                 cost_value.name = 'sgd_cost(' + X.name + ')'
+
+        #Make sure that you are not adding the same channel twice.
         if self.supervised:
-            self.monitor.add_channel(name=cost_value.name, ipt=(X,Y), val=cost_value)
+            if cost_value.name not in self.monitor.channels:
+                self.monitor.add_channel(name=cost_value.name, ipt=(X,Y), val=cost_value)
+            else:
+                warn("Tried to add an existing channel.")
         else:
-            self.monitor.add_channel(name=cost_value.name, ipt=X, val=cost_value)
+            if cost_value.name not in self.monitor.channels:
+                self.monitor.add_channel(name=cost_value.name, ipt=X, val=cost_value)
+            else:
+                warn("Tried to add an existing channel.")
+
         params = model.get_params()
         for i, param in enumerate(params):
             if param.name is None:
