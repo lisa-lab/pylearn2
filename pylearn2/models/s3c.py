@@ -14,7 +14,6 @@ import warnings
 from theano.gof.op import get_debug_values, debug_error_message, debug_assert
 from pylearn2.utils import make_name, sharedX, as_floatX
 from pylearn2.expr.information_theory import entropy_binary_vector
-from theano.printing import Print
 from pylearn2.base import Block
 from pylearn2.space import VectorSpace
 

@@ -1,11 +1,9 @@
 from __future__ import division
-import datetime
 import numpy as np
-from theano import function, config
+from theano import function
 import theano.tensor as T
 from warnings import warn
 from pylearn2.monitor import Monitor
-from pylearn2.utils.iteration import SequentialSubsetIterator
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 import pylearn2.costs.cost
 

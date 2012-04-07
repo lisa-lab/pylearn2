@@ -84,6 +84,7 @@ class LogisticRegressionLayer(Block, Model):
         return self.p_y_given_x(inp)
 
     def reset_params(self, rng=None):
+        #Reinitialize the vector spaces.
         self.input_space = VectorSpace(self.nvis)
         self.output_space = VectorSpace(self.nclasses)
 

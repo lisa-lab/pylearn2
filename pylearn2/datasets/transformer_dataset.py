@@ -10,6 +10,11 @@ class TransformerDataset(Dataset):
             raw: a pylearn2 Dataset that provides raw data
             transformer: a pylearn2 Block to transform the data
         """
+        if raw is None:
+            raise ValueError("raw data can't be None.")
+        if transformer is None:
+            raise ValueError("pylearn2 transformer block must not be None.")
+
         self.raw = raw
         self.transformer = transformer
         self.transformer.cpu_only = cpu_only

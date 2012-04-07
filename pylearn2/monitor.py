@@ -74,7 +74,6 @@ class Monitor(object):
         """
         if self._dirty:
             self.redo_theano()
-        model = self.model
         d = self._dataset
         if d:
             if isinstance(d, basestring):
