@@ -188,8 +188,7 @@ class SGD(TrainingAlgorithm):
                 #
             #"""
 
-            self.monitor.batches_seen += 1
-            self.monitor.examples_seen += batch_size
+            self.monitor.report_batch(batch_size)
 
         for callback in self.update_callbacks:
             try:
@@ -317,15 +316,13 @@ class ExhaustiveSGD(TrainingAlgorithm):
         if self.supervised:
             for (batch_in, batch_target) in dataset:
                 grads = self.sgd_update(batch_in, batch_target, self.learning_rate)
-                self.monitor.batches_seen += 1
-                self.monitor.examples_seen += batch_size
+                self.monitor.report_batch(batch_size)
                 for callback in self.update_callbacks:
                     callback(self)
         else:
             for batch in dataset:
                 grads = self.sgd_update(batch, self.learning_rate)
-                self.monitor.batches_seen += 1
-                self.monitor.examples_seen += batch_size
+                self.monitor.report_batch(batch_size)
                 for callback in self.update_callbacks:
                     callback(self)
         if self.termination_criterion is None:
