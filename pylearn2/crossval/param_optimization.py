@@ -333,7 +333,6 @@ class Hyperparam(object):
         """
         self.name = name
         self.type_param = type_param
-        # TODO: sort values.
         self.values = sorted(values)
         # Check if the parameter is specified correctly.
         self.error_msg = 'The parameter %s is not specified correctly.' %self.name
