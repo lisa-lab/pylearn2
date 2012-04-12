@@ -1,5 +1,5 @@
 import itertools, random, warnings, math, copy
-import crossval
+import crossvalidation as crossval
 
 import numpy as np
 
