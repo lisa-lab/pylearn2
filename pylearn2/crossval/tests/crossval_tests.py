@@ -28,7 +28,7 @@ def test_holdout_cv():
         train_prop=0.5)
 
     holdoutCV.crossvalidate_model()
-    print "Error: " + str(holdoutCV.get_error())
+    print "Error: " + str(holdoutCV.get_cost())
 
 def test_kfold_cv():
     trainset, testset = dp.get_dataset_cifar10()
@@ -55,7 +55,7 @@ def test_kfold_cv():
         validation_batch_size=400)
 
     kfoldCV.crossvalidate_model()
-    print "Error: " + str(kfoldCV.get_error())
+    print "Error: " + str(kfoldCV.get_cost())
 
 if __name__ == "__main__":
     test_kfold_cv()
