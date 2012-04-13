@@ -95,18 +95,18 @@ class CrossValidation(object):
 
         if self.algorithm.monitor is not None:
             self.algorithm.monitor.reset_monitor(self.model)
-       
+
         self.error_fn = None
         self.error = 0
 
-    
+
     def train_model(self, train_dataset, model=None):
         """
         Training function, similar to the main_loop function in train.py.
         Parameters:
         ---------
         train_dataset: The dataset to train our algorithm on.
-        model: Use this model if it is specified, otherwise 
+        model: Use this model if it is specified, otherwise
         """
         if model is not None:
             self.model = model
@@ -118,7 +118,6 @@ class CrossValidation(object):
             if self.algorithm.monitor is None or self.algorithm.model != self.model or self.algorithm.monitoring_dataset != train_dataset:
                 self.algorithm.setup(model=self.model, dataset=train_dataset)
             self.model.monitor()
-            import pudb; pudb.set_trace()
             while (self.algorithm.train(dataset=train_dataset)):
                 self.model.monitor()
 
@@ -127,7 +126,7 @@ class CrossValidation(object):
         Setup the monitor for the validation phase of crossvalidation.
         Parameters:
         ----------
-        validation_dataset: The validation dataset that we are going to monitor 
+        validation_dataset: The validation dataset that we are going to monitor
         the error on.
         """
         self.validation_monitor.set_dataset(dataset=validation_dataset,
@@ -144,7 +143,7 @@ class CrossValidation(object):
                self.validation_monitor.add_channel(ch_name,
                     ipt=(X, Y),
                     val=J)
-            self.error_fn = function([X, Y], J, name="sup_validation_error")    
+            self.error_fn = function([X, Y], J, name="sup_validation_error")
         else:
             J = self.cost(self.model, X)
             ch_name = "unsup_validation_error_%s" % X.name
@@ -184,7 +183,7 @@ class CrossValidation(object):
         if self.supervised:
             validation_ddm = DenseDesignMatrix(X=validation_dataset[0],
                     Y=validation_dataset[1])
-            validation_ddm.set_iteration_scheme(mode="sequential", 
+            validation_ddm.set_iteration_scheme(mode="sequential",
                     targets=self.supervised)
             for (batch_in, batch_target) in validation_ddm:
                 self.validation_monitor.report_batch(self.validation_batch_size)
@@ -216,19 +215,19 @@ class KFoldCrossValidation(CrossValidation):
 
     Detailed Explanation about K-Fold Cross-Validation that is implemented:
 
-    The data set is divided into k subsets, and the holdout method is 
-    repeated k times. Each time, one of the k subsets is used as the test 
+    The data set is divided into k subsets, and the holdout method is
+    repeated k times. Each time, one of the k subsets is used as the test
     set and the other k-1 subsets are put together to form a training set.
-    Then the average error across all k trials is computed. The advantage of 
+    Then the average error across all k trials is computed. The advantage of
     this method is that it matters less how the data gets divided. Every data
     point gets to be in a test set exactly once, and gets to be in a training
     set k-1 times. The variance of the resulting estimate is reduced as k is
     increased. The disadvantage of this method is that the training algorithm
     has to be rerun from scratch k times, which means it takes k times as much
     computation to make an evaluation. A variant of this method is to randomly
-    divide the data into a test and training set k different times. The 
+    divide the data into a test and training set k different times. The
     advantage of doing this is that you can independently choose how large each
-    test set is and how many trials you average over. 
+    test set is and how many trials you average over.
 
     Ref: http://www.cs.cmu.edu/~schneide/tut5/node42.html
     """
@@ -244,11 +243,11 @@ class KFoldCrossValidation(CrossValidation):
         self.errors = np.array([])
         self.mode = mode
         self.bootstrap = bootstrap
-        super(KFoldCrossValidation, self).__init__(model, algorithm, cost, 
-                dataset, validation_batch_size=validation_batch_size, 
+        super(KFoldCrossValidation, self).__init__(model, algorithm, cost,
+                dataset, validation_batch_size=validation_batch_size,
                 validation_monitoring_batches=validation_monitoring_batches)
 
-    def crossvalidate_model(self, validation_dataset=None, 
+    def crossvalidate_model(self, validation_dataset=None,
             mode=KFoldCVMode.PESSIMISTIC, rng=None):
         validation_data = None
         if validation_dataset is not None:
@@ -274,7 +273,7 @@ class KFoldCrossValidation(CrossValidation):
             self.errors = np.append(self.errors, super(KFoldCrossValidation,
                 self).get_cost())
             self.reset()
- 
+
     def get_cost(self):
         if self.mode == KFoldCVMode.PESSIMISTIC:
             error = self.errors.max()
@@ -296,9 +295,9 @@ class HoldoutCrossValidation(CrossValidation):
     testing set. The model is trained on the first part(training set) and tested on
     the test set. The advantage of this method is that it is usually preferable to
     the residual method and takes no longer to compute. However, its evaluation can
-    have a high variance. The evaluation may depend heavily on which data points 
-    end up in the training set and which end up in the test set, and thus the 
-    evaluation may be significantly different depending on how the division is 
+    have a high variance. The evaluation may depend heavily on which data points
+    end up in the training set and which end up in the test set, and thus the
+    evaluation may be significantly different depending on how the division is
     made.
 
     Ref: http://www.cs.cmu.edu/~schneide/tut5/node42.html
@@ -306,7 +305,7 @@ class HoldoutCrossValidation(CrossValidation):
     """
 
     def __init__(self, model=None, algorithm=None, cost=None, dataset=None,
-            validation_batch_size=None, validation_monitoring_batches=None, 
+            validation_batch_size=None, validation_monitoring_batches=None,
             train_size=0, train_prop=0):
         self.error = 0
         self.train_size = train_size
