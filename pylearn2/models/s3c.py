@@ -17,6 +17,7 @@ from pylearn2.expr.information_theory import entropy_binary_vector
 from theano.printing import Print
 from pylearn2.base import Block
 from pylearn2.space import VectorSpace
+from pylearn2.utils.mem import get_memory_usage
 from theano import scan
 
 warnings.warn('s3c changing the recursion limit')
@@ -1265,8 +1266,13 @@ def damp(old, new, new_coeff):
     if new_coeff == 1.0:
         return new
 
-    rval =  new_coeff * new + (as_floatX(1.) - new_coeff) * old
+    old_coeff = as_floatX(1.) - new_coeff
 
+    new_scaled = new_coeff * new
+
+    old_scaled = old_coeff * old
+
+    rval =  new_scaled + old_scaled
 
     old_name = make_name(old, anon='anon_old')
     new_name = make_name(new, anon='anon_new')
@@ -1674,6 +1680,7 @@ class E_Step(object):
                     'var_s1_hat': var_s1_hat,
                     }
 
+
         history = [ make_dict() ]
 
         count = 2
@@ -1693,6 +1700,7 @@ class E_Step(object):
             assert S_hat.type.dtype == config.floatX
             assert new_S_coeff.dtype == config.floatX
             S_hat = damp(old = S_hat, new = clipped_S_hat, new_coeff = new_S_coeff)
+            S_hat.name = 'S_hat_'+str(count)
             assert  S_hat.type.dtype == config.floatX
             new_H = self.infer_H_hat(V, H_hat, S_hat, count)
             assert new_H.type.dtype == config.floatX
