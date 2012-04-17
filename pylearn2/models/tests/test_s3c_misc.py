@@ -2,7 +2,7 @@ import warnings
 from theano.sandbox.linalg.ops import alloc_diag
 from pylearn2.models.s3c import S3C
 from pylearn2.models.s3c import SufficientStatistics
-from pylearn2.models.s3c import E_Step
+from pylearn2.models.s3c import E_Step_Scan
 from pylearn2.models.s3c import Grad_M_Step
 from pylearn2.utils import as_floatX
 from theano import function
@@ -46,7 +46,7 @@ class TestS3C_Misc:
                          min_B = 1e-8,
                          max_B = 1e8,
                          tied_B = 1,
-                         e_step = E_Step(
+                         e_step = E_Step_Scan(
                              #h_new_coeff_schedule = [ ],
                              h_new_coeff_schedule = [ .01 ]
                          ),

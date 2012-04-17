@@ -1,5 +1,5 @@
 from pylearn2.models.s3c import S3C
-from pylearn2.models.s3c import E_Step
+from pylearn2.models.s3c import E_Step_Scan
 from pylearn2.models.s3c import Grad_M_Step
 from theano import function
 import numpy as np
@@ -62,7 +62,7 @@ class Test_S3C_Inference:
 
         self.model.make_pseudoparams()
 
-        self.e_step = E_Step(h_new_coeff_schedule = [.1, .2, .3, .4, .5, .6, .7, .8, .9, 1. ])
+        self.e_step = E_Step_Scan(h_new_coeff_schedule = [.1, .2, .3, .4, .5, .6, .7, .8, .9, 1. ])
         self.e_step.register_model(self.model)
 
         self.X = X
