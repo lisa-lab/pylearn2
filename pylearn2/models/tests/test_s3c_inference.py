@@ -1,6 +1,7 @@
 from pylearn2.models.s3c import S3C
 from pylearn2.models.s3c import E_Step_Scan
 from pylearn2.models.s3c import Grad_M_Step
+from pylearn2.models.s3c import E_Step
 from theano import function
 import numpy as np
 import theano.tensor as T
@@ -62,12 +63,42 @@ class Test_S3C_Inference:
 
         self.model.make_pseudoparams()
 
-        self.e_step = E_Step_Scan(h_new_coeff_schedule = [.1, .2, .3, .4, .5, .6, .7, .8, .9, 1. ])
+        self.h_new_coeff_schedule = [.1, .2, .3, .4, .5, .6, .7, .8, .9, 1. ]
+
+        self.e_step = E_Step_Scan(h_new_coeff_schedule = self.h_new_coeff_schedule)
         self.e_step.register_model(self.model)
 
         self.X = X
         self.N = N
         self.m = m
+
+
+    def test_match_unrolled(self):
+        """ tests that inference with scan matches result using unrolled loops """
+
+        unrolled_e_step = E_Step(h_new_coeff_schedule = self.h_new_coeff_schedule)
+        unrolled_e_step.register_model(self.model)
+
+        V = T.matrix()
+
+        scan_result = self.e_step.variational_inference(V)
+        unrolled_result = unrolled_e_step.variational_inference(V)
+
+        outputs = []
+
+        for key in scan_result:
+            outputs.append(scan_result[key])
+            outputs.append(unrolled_result[key])
+
+        f = function([V], outputs)
+
+        outputs = f(self.X)
+
+        assert len(outputs) % 2 == 0
+
+        for i in xrange(0,len(outputs),2):
+            assert np.allclose(outputs[i],outputs[i+1])
+
 
     def test_grad_s(self):
 
