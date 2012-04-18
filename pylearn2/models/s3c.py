@@ -1712,6 +1712,7 @@ class E_Step(object):
 
             history.append(make_dict())
 
+
         if return_history:
             return history
         else:
