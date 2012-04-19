@@ -9,6 +9,7 @@ from pylearn2.utils.string_utils import preprocess
 from cPickle import BadPickleGet
 io = None
 hdf_reader = None
+import struct
 
 
 def load(filepath, recurse_depth=0):
@@ -249,3 +250,48 @@ def mkdir(filepath):
     except:
         print ("couldn't make directory '" + str(filepath) +
                "', maybe it already exists")
+
+def read_int( fin, n = 1):
+    if n == 1:
+        return struct.unpack('i', fin.read(4))[0]
+    else:
+        rval = []
+        for i in xrange(n):
+            rval.append(read_int(fin))
+        return rval
+
+#dictionary to convert lush binary matrix magic numbers
+#to dtypes
+lush_magic = {
+            507333717 : 'uint8',
+            507333716 : 'int32',
+            507333713 : 'float32',
+            507333715 : 'float64'
+        }
+
+def read_bin_lush_matrix(filepath):
+    f = open(filepath,'rb')
+    magic = read_int(f)
+    ndim = read_int(f)
+
+    if ndim == 0:
+        shape = ()
+    else:
+        shape = read_int(f, max(3, ndim))
+
+    total_elems = 1
+    for dim in shape:
+        total_elems *= dim
+
+    try:
+        dtype = lush_magic[magic]
+    except KeyError:
+        raise ValueError('Unrecognized lush magic number '+str(magic))
+
+    rval = np.fromfile(file = f, dtype = dtype, count = total_elems)
+
+    rval = rval.reshape(*shape)
+
+    f.close()
+
+    return rval
