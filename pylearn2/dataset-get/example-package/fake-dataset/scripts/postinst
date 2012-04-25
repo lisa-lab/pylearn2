@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+
+# script that does stuff after the data is available,
+# maybe preprocess/convert
+#
+echo "$0: [some package-specific output goes here]"
+
+exit 0
