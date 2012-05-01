@@ -1,4 +1,6 @@
 import warnings
+
+from .general import is_iterable
 try:
     import theano
 except ImportError:
