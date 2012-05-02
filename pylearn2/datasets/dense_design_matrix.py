@@ -89,7 +89,6 @@ class DenseDesignMatrix(Dataset):
         self._iter_targets = targets
         # Try to create an iterator with these settings.
         rng = self.rng if mode.stochastic else None
-        print rng
         test = self.iterator(mode, batch_size, num_batches, topo, rng=rng)
 
     @functools.wraps(Dataset.iterator)

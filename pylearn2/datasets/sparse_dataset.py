@@ -9,14 +9,19 @@ class SparseDataset(Dataset):
     """
     SparseDataset is by itself an iterator. 
     """
-    def __init__(self, load_path=None, from_scipy_sparse_dataset=None):
+    def __init__(self, load_path=None, from_scipy_sparse_dataset=None, zipped_npy=True):
         
         self.load_path = load_path
         
         if self.load_path != None:
-            print '... loading sparse data set from a zip file'
-            self.sparse_matrix = scipy.sparse.csr_matrix(
-                        numpy.load(gzip.open(load_path)), dtype=floatX)      
+            if zipped_npy == True:
+                print '... loading sparse data set from a zip npy file'
+                self.sparse_matrix = scipy.sparse.csr_matrix(
+                    numpy.load(gzip.open(load_path)), dtype=floatX)
+            else:
+                print '... loading sparse data set from a npy file'
+                self.sparse_matrix = scipy.sparse.csr_matrix(
+                    numpy.load(load_path).item(), dtype=floatX)
         else:
             print '... building from given sparse dataset'
             self.sparse_matrix = from_scipy_sparse_dataset
@@ -45,7 +50,7 @@ class SparseDataset(Dataset):
         """
         method inherited from Dataset
         """
-        self.iterator(mode, batch_size, num_batches, topo)
+        return self.iterator(mode, batch_size, num_batches, topo)
         
     def iterator(self, mode=None, batch_size=None, num_batches=None,
                  topo=None, targets=None, rng=None):

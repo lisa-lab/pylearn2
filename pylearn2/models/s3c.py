@@ -17,6 +17,8 @@ from pylearn2.expr.information_theory import entropy_binary_vector
 from theano.printing import Print
 from pylearn2.base import Block
 from pylearn2.space import VectorSpace
+from pylearn2.utils.mem import get_memory_usage
+from theano import scan
 
 warnings.warn('s3c changing the recursion limit')
 import sys
@@ -1264,8 +1266,13 @@ def damp(old, new, new_coeff):
     if new_coeff == 1.0:
         return new
 
-    rval =  new_coeff * new + (as_floatX(1.) - new_coeff) * old
+    old_coeff = as_floatX(1.) - new_coeff
 
+    new_scaled = new_coeff * new
+
+    old_scaled = old_coeff * old
+
+    rval =  new_scaled + old_scaled
 
     old_name = make_name(old, anon='anon_old')
     new_name = make_name(new, anon='anon_new')
@@ -1673,6 +1680,7 @@ class E_Step(object):
                     'var_s1_hat': var_s1_hat,
                     }
 
+
         history = [ make_dict() ]
 
         count = 2
@@ -1692,6 +1700,7 @@ class E_Step(object):
             assert S_hat.type.dtype == config.floatX
             assert new_S_coeff.dtype == config.floatX
             S_hat = damp(old = S_hat, new = clipped_S_hat, new_coeff = new_S_coeff)
+            S_hat.name = 'S_hat_'+str(count)
             assert  S_hat.type.dtype == config.floatX
             new_H = self.infer_H_hat(V, H_hat, S_hat, count)
             assert new_H.type.dtype == config.floatX
@@ -1702,6 +1711,7 @@ class E_Step(object):
             check_H(H_hat,V)
 
             history.append(make_dict())
+
 
         if return_history:
             return history
@@ -1807,4 +1817,93 @@ class Grad_M_Step:
         obj = model.expected_log_prob_vhs(stats, H_hat, S_hat)
 
         return { 'expected_log_prob_vhs' : obj }
+
+
+class E_Step_Scan(E_Step):
+    """ The heuristic E step implemented using scan rather than unrolled loops """
+
+
+    def __init__(self, ** kwargs):
+
+        super(E_Step_Scan, self).__init__( ** kwargs )
+
+        self.h_new_coeff_schedule = sharedX( self.h_new_coeff_schedule)
+        self.s_new_coeff_schedule = sharedX( self.s_new_coeff_schedule)
+
+    def variational_inference(self, V, return_history = False):
+        """
+
+            return_history: if True:
+                                returns a list of dictionaries with
+                                showing the history of the variational
+                                parameters
+                                throughout fixed point updates
+                            if False:
+                                returns a dictionary containing the final
+                                variational parameters
+        """
+
+
+
+        if not self.autonomous:
+            raise ValueError("Non-autonomous model asked to perform inference on its own")
+
+        alpha = self.model.alpha
+
+
+        var_s0_hat = 1. / alpha
+        var_s1_hat = self.infer_var_s1_hat()
+
+
+        H_hat   =    self.init_H_hat(V)
+        S_hat =    self.init_S_hat(V)
+
+        def inner_function(new_H_coeff, new_S_coeff, H_hat, S_hat):
+
+            orig_H_dtype = H_hat.dtype
+            orig_S_dtype = S_hat.dtype
+
+            new_S_hat = self.infer_S_hat(V, H_hat,S_hat)
+            if self.clip_reflections:
+                clipped_S_hat = reflection_clip(S_hat = S_hat, new_S_hat = new_S_hat, rho = self.rho)
+            else:
+                clipped_S_hat = new_S_hat
+            S_hat = damp(old = S_hat, new = clipped_S_hat, new_coeff = new_S_coeff)
+            new_H = self.infer_H_hat(V, H_hat, S_hat)
+
+            H_hat = damp(old = H_hat, new = new_H, new_coeff = new_H_coeff)
+
+            assert H_hat.dtype == orig_H_dtype
+            assert S_hat.dtype == orig_S_dtype
+
+            return H_hat, S_hat
+
+
+        (H_hats, S_hats), _ = scan( fn = inner_function, sequences =
+                [self.h_new_coeff_schedule,
+                 self.s_new_coeff_schedule],
+                                        outputs_info = [ H_hat, S_hat ] )
+
+        if  return_history:
+            hist =  [
+                    {'H_hat' : H_hats[i],
+                     'S_hat' : S_hats[i],
+                     'var_s0_hat' : var_s0_hat,
+                     'var_s1_hat' : var_s1_hat
+                    } for i in xrange(self.h_new_coeff_schedule.get_value().shape[0]) ]
+
+            hist.insert(0, { 'H_hat' : H_hat,
+                             'S_hat' : S_hat,
+                             'var_s0_hat' : var_s0_hat,
+                             'var_s1_hat' : var_s1_hat
+                            } )
+
+            return hist
+
+        return {
+                'H_hat' : H_hats[-1],
+                'S_hat' : S_hats[-1],
+                'var_s0_hat' : var_s0_hat,
+                'var_s1_hat': var_s1_hat,
+                }
 

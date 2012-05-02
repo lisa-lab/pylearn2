@@ -192,8 +192,7 @@ class SGD(TrainingAlgorithm):
                 #
             #"""
 
-            self.monitor._num_batches_seen += 1
-            self.monitor._examples_seen += batch_size
+            self.monitor.report_batch(batch_size)
 
         for callback in self.update_callbacks:
             try:
@@ -321,15 +320,13 @@ class ExhaustiveSGD(TrainingAlgorithm):
         if self.supervised:
             for (batch_in, batch_target) in dataset:
                 grads = self.sgd_update(batch_in, batch_target, self.learning_rate)
-                self.monitor.batches_seen += 1
-                self.monitor.examples_seen += batch_size
+                self.monitor.report_batch(batch_size)
                 for callback in self.update_callbacks:
                     callback(self)
         else:
             for batch in dataset:
                 grads = self.sgd_update(batch, self.learning_rate)
-                self.monitor.batches_seen += 1
-                self.monitor.examples_seen += batch_size
+                self.monitor.report_batch(batch_size)
                 for callback in self.update_callbacks:
                     callback(self)
         if self.termination_criterion is None:
@@ -426,16 +423,20 @@ class MonitorBasedTermCrit(object):
     monitors, TODO fix this issue) and checks to see if it has
     decreased by a certain proportion in the last N epochs.
     """
-    def __init__(self, prop_decrease, N):
+    def __init__(self, prop_decrease, N, channel_name=None):
+        self._channel_name = channel_name
         self.prop_decrease = prop_decrease
         self.N = N
 
     def __call__(self, model):
         monitor = model.monitor
-        assert len(monitor.channels.values()) == 1, (
-            "Only single channel monitors are supported (currently)"
-        )
-        v = monitor.channels.values()[0].val_record
+        if self._channel_name is None:
+            if len(monitor.channels) != 1:
+                raise ValueError("Only single-channel monitors are supported "
+                                 "for channel_name == None")
+            v = monitor.channels.values()[0].val_record
+        else:
+            v = monitor.channels[self._channel_name].val_record
         if len(v) < self.N:
             return True
         return v[- 1] < (1. - self.prop_decrease) * v[-self.N]

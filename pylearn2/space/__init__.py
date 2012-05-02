@@ -126,7 +126,7 @@ class Conv2DSpace(Space):
         nchannels: int
             Number of channels in the image, i.e. 3 if RGB.
         """
-        if not hasattr(shape, '__Len__') or len(shape) != 2:
+        if not hasattr(shape, '__len__') or len(shape) != 2:
             raise ValueError("shape argument to Conv2DSpace must be length 2")
         self.shape = shape
         self.nchannels = nchannels

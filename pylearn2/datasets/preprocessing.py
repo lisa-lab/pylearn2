@@ -6,7 +6,7 @@ from theano import function
 import theano.tensor as T
 
 from pylearn2.base import Block
-
+from pylearn2.utils.insert_along_axis import insert_columns
 
 class ExamplewisePreprocessor(object):
     def as_block(self):
@@ -407,20 +407,24 @@ class ColumnSubsetBlock(Block):
     def __call__(self, batch):
         if batch.ndim != 2:
             raise ValueError("Only two-dimensional tensors are supported")
-        return batch.dimshuffle(1, 0)[self._columns].dimshuffle(0, 1)
+        return batch.dimshuffle(1, 0)[self._columns].dimshuffle(1, 0)
 
     def inverse(self):
-        data_cols = sorted(set(range(self._total)) - set(self._columns))
-        return ZeroColumnInsertBlock(data_cols, self._total)
+        return ZeroColumnInsertBlock(self._columns, self._total)
 
 
 class ZeroColumnInsertBlock(Block):
     def __init__(self, columns, total):
         self._columns = columns
+        self._total = total
 
     def __call__(self, batch):
         if batch.ndim != 2:
             raise ValueError("Only two-dimensional tensors are supported")
+        return insert_columns(batch, self._total, self._columns)
+
+    def inverse(self):
+        return ColumnSubsetBlock(self._columns, self._total)
 
 
 class RemoveZeroColumns(ExamplewisePreprocessor):

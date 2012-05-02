@@ -458,7 +458,7 @@ class ContractiveAutoencoder(Autoencoder):
             SquaredError, to penalize it.
         """
         jacobian = self.jacobian_h_x(inputs)
-        return (jacobian ** 2).mean()
+        return (jacobian ** 2).sum(axis=[1,2]).mean()
 
 
 class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):

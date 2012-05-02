@@ -114,8 +114,8 @@ class GaussianCorruptor(Corruptor):
     mean isotropic Gaussian noise.
     """
 
-    def __init__(self, stdev):
-        super(GaussianCorruptor, self).__init__(corruption_level=stdev)
+    def __init__(self, stdev, rng=2001):
+        super(GaussianCorruptor, self).__init__(corruption_level=stdev, rng=rng)
 
     def _corrupt(self, x):
         noise = self.s_rng.normal(
