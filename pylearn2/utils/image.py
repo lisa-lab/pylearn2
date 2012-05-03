@@ -210,6 +210,8 @@ def load(filepath, rescale=True, dtype='float64'):
 
     return rval
 
+def save(filepath, ndarray):
+    pil_from_ndarray(ndarray).save(filepath)
 
 if __name__ == '__main__':
     black = np.zeros((50, 50, 3), dtype='uint8')
