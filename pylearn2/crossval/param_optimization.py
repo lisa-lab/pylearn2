@@ -1,14 +1,6 @@
 import itertools, random, warnings, math, copy
-import crossvalidation as crossval
-
 import numpy as np
-
-from pylearn2.monitor import Monitor
-from pylearn2.training_algorithms.sgd import ExhaustiveSGD
-from pylearn2.costs.autoencoder import MeanSquaredReconstructionError
-from pylearn2.training_algorithms.sgd import EpochCounter
-from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
-import pylearn2.scripts.deep_trainer.run_deep_trainer as dp
+import pylearn2.crossval.crossvalidation as cv
 
 
 """
@@ -179,10 +171,6 @@ class HyperparamOptimization(object):
             The list of hyperparameters values to be tested with the
             training algorithm.
         """
-        # Check the monitor's channels.
-        # TODO: to be removed.
-        if hasattr(self.model, 'monitor'):
-            del self.model.monitor
         # Add the fixed hyperparameters values to the list of variable
         # hyperparamters values.
         config = {}
@@ -193,29 +181,29 @@ class HyperparamOptimization(object):
         train_algo = self.algorithm(**config)
         if self.crossval_mode == 'kfold':
             #crossval.KFoldCrossValidation
-            kfoldCV = crossval.KFoldCrossValidation(model=self.model,
+            kfoldCV = cv.KFoldCrossValidation(model=self.model,
                             algorithm=train_algo,
-                            cost=MeanSquaredReconstructionError(),
+                            cost=self.cost,
                             dataset=self.dataset,
                             validation_batch_size=self.validation_batch_size)
             kfoldCV.crossvalidate_model()
-            print "Error: " + str(kfoldCV.get_error())
-            return [kfoldCV.get_error(), var_hyperparams_config]
+            print "Error: " + str(kfoldCV.get_cost())
+            return [kfoldCV.get_cost(), var_hyperparams_config]
         elif self.crossval_mode == 'holdout':
-            holdoutCV = crossval.HoldoutCrossValidation(model=self.model,
+            holdoutCV = cv.HoldoutCrossValidation(model=self.model,
                             algorithm=train_algo,
-                            cost=MeanSquaredReconstructionError(),
+                            cost=self.cost,
                             dataset=self.dataset,
                             validation_batch_size=self.validation_batch_size,
                             train_prop=self.train_prop)
             holdoutCV.crossvalidate_model()
-            print "Error: " + str(holdoutCV.get_error())
-            return [holdoutCV.get_error(), var_hyperparams_config]
+            print "Error: " + str(holdoutCV.get_cost())
+            return [holdoutCV.get_cost(), var_hyperparams_config]
         else:
             raise ValueError("The specified crossvalidation mode %s is not supported"
                              %self.crossval_mode)
 
-    def get_top_N_exp(self, n_exps):
+    def get_topN_exp(self, n_exps):
         """
         Gets the best N experiments based on the cross-validation error.
 
@@ -273,7 +261,9 @@ class VariableHyperparams(object):
             attributes.
         **kwargs: list
             The list of hyperparameter's attributes to be modified in the form
-            attribute_name=attribute_value.
+            attribute_name=attribute_value. e.g.
+            reset_hyperparam('learning_rate', type_param=TypeHyperparam.RANGE,
+                              value=[0.001, 0.1])
         """
         for attribute_name in kwargs:
             if attribute_name in self.attributes_to_edit:
@@ -312,11 +302,12 @@ class Hyperparam(object):
         ----------
         name : string
             The name of the hyperparameter.
-        type_param : string
-            Can take one of the 2 values `list` or `range`.
-            It specifies if the values associated with the parameter are a list
-            of values to be tested or a range of values upon which the random
-            or grid search algorithms must generate values.
+        type_param : TypeHyperparam
+            Can take one of the 2 values `TypeHyperparam.LIST` or
+            `TypeHyperparam.RANGE`.
+            It specifies if the values associated with the hyperparameter are
+            a list of values to be tested or a range of values upon which the
+            random or grid search algorithms must generate values.
         values: list
             A list of values that the parameter can take if the parameter is of
             `list` type.  If it is of `range` type, then the list corresponds
@@ -516,54 +507,3 @@ class ParamDuplicatesWarning(Warning):
             '\n The last range of values defined for a duplicated hyperparameter will'
             ' take precedence over the other range of values.'
             %(param_duplicates))
-
-
-# Testing the cross-validation implementation by generating the parameters
-# ranges automatically and manually giving the values to be tested for some
-# parameters.
-def test():
-    trainset, testset = dp.get_dataset_toy()
-    design_matrix = trainset.get_design_matrix()
-    n_input = design_matrix.shape[1]
-    structure = [n_input, 400]
-    model = dp.get_denoising_autoencoder(structure)
-    var_hyperparams = [
-                  # Hyperparam('learning_rate', TypeHyperparam.RANGE, [1, 7], 3, int),
-                  # Hyperparam('learning_rate', TypeHyperparam.RANGE, [8, 15.21], 10, float),
-                  # Hyperparam('learning_rate', TypeHyperparam.RANGE, [0.2, 5.21], 5, int),
-                  # Hyperparam('learning_rate', TypeHyperparam.RANGE, [0, 5], 1, int),
-                  # Hyperparam('learning_rate', TypeHyperparam.RANGE, [0.2, 5], 10, float),
-                  # Hyperparam('learning_rate', TypeHyperparam.RANGE, [1, 5.5], 10, float),
-                  # Hyperparam('learning_rate', TypeHyperparam.RANGE, [1, 5.5], 10, int),
-                  # Hyperparam('learning_rate', TypeHyperparam.RANGE, [-4.4, 5.8], 3, int),
-                  # Hyperparam('learning_rate', TypeHyperparam.RANGE, [-1, -15.6], 3, int),
-                  Hyperparam('learning_rate', TypeHyperparam.LIST, [-1, -15.5], 1, float),
-                  Hyperparam('batch_size', TypeHyperparam.RANGE, [10, 12], 10, int),
-                  Hyperparam('monitoring_batches', TypeHyperparam.RANGE, [16, 20], 2, float),
-                  Hyperparam('termination_criterion', TypeHyperparam.LIST,
-                                [EpochCounter(max_epochs=10),
-                                EpochCounter(max_epochs=20)])]
-    variable_params = VariableHyperparams(var_hyperparams)
-    #variable_params.get_hyperparam('learning_rate')
-    #variable_params.reset_hyperparam('learning_rate', name=1)
-    fixed_hyperparams = {'cost': MeanSquaredReconstructionError(),
-                    'update_callbacks': None
-                   }
-    param_optimizer = HyperparamOptimization(model=model, dataset=trainset,
-                            algorithm=ExhaustiveSGD, var_hyperparams=variable_params,
-                            fixed_hyperparams=fixed_hyperparams,
-                            cost=MeanSquaredReconstructionError(),
-                            validation_batch_size=1000, train_prop=0.5,
-                            )
-
-    #param_optimizer(crossval_mode='holdout',
-    #                search_mode='random_search',
-    #                n_combinations=4)
-    param_optimizer(crossval_mode='holdout',
-                    search_mode='grid_search')
-    best_exps = param_optimizer.get_top_N_exp(3)
-    import pdb; pdb.set_trace()
-
-
-if __name__ == '__main__':
-    test()
