@@ -188,7 +188,27 @@ def make_argument_parser():
 if __name__ == "__main__":
     parser = make_argument_parser()
     args = parser.parse_args()
+<<<<<<< HEAD
+    config_file_path = args.config.name
+    suffix_to_strip = '.yaml'
+    # publish environment variables related to file name
+    if config_file_path.endswith(suffix_to_strip):
+        config_file_full_stem = config_file_path[0:-len(suffix_to_strip)]
+    else:
+        config_file_full_stem = config_file_path
+
+    for varname in ["PYLEARN2_TRAIN_FILE_NAME", #this one is deprecated
+            "PYLEARN2_TRAIN_FILE_FULL_STEM"]: #this is the new, accepted name
+        environ.putenv(varname, config_file_full_stem)
+
+    environ.putenv("PYLEARN2_TRAIN_DIR", '/'.join(config_file_path.split('/')[:-1]) )
+    environ.putenv("PYLEARN2_TRAIN_BASE_NAME", config_file_path.split('/')[-1] )
+    environ.putenv("PYLEARN2_TRAIN_FILE_STEM", config_file_full_stem.split('/')[-1] )
+
+    train_obj = pylearn2.config.yaml_parse.load(args.config)
+=======
     train_obj = serial.load_train_file(args.config)
+>>>>>>> 4499660f8dcf3332be50a9b514c660240ba1534e
     try:
         iter(train_obj)
         iterable = True

@@ -9,7 +9,8 @@ from pylearn2.utils.string_utils import preprocess
 from cPickle import BadPickleGet
 io = None
 hdf_reader = None
-
+import struct
+from pylearn2.utils import environ
 
 def load(filepath, recurse_depth=0):
 
@@ -249,3 +250,71 @@ def mkdir(filepath):
     except:
         print ("couldn't make directory '" + str(filepath) +
                "', maybe it already exists")
+
+def read_int( fin, n = 1):
+    if n == 1:
+        return struct.unpack('i', fin.read(4))[0]
+    else:
+        rval = []
+        for i in xrange(n):
+            rval.append(read_int(fin))
+        return rval
+
+#dictionary to convert lush binary matrix magic numbers
+#to dtypes
+lush_magic = {
+            507333717 : 'uint8',
+            507333716 : 'int32',
+            507333713 : 'float32',
+            507333715 : 'float64'
+        }
+
+def read_bin_lush_matrix(filepath):
+    f = open(filepath,'rb')
+    magic = read_int(f)
+    ndim = read_int(f)
+
+    if ndim == 0:
+        shape = ()
+    else:
+        shape = read_int(f, max(3, ndim))
+
+    total_elems = 1
+    for dim in shape:
+        total_elems *= dim
+
+    try:
+        dtype = lush_magic[magic]
+    except KeyError:
+        raise ValueError('Unrecognized lush magic number '+str(magic))
+
+    rval = np.fromfile(file = f, dtype = dtype, count = total_elems)
+
+    rval = rval.reshape(*shape)
+
+    f.close()
+
+    return rval
+
+def load_train_file(config_file_path):
+    """Loads and parses a yaml file for a Train object.
+    Publishes the relevant training environment variables"""
+    from pylearn2.config import yaml_parse
+
+    suffix_to_strip = '.yaml'
+
+    # publish environment variables related to file name
+    if config_file_path.endswith(suffix_to_strip):
+        config_file_full_stem = config_file_path[0:-len(suffix_to_strip)]
+    else:
+        config_file_full_stem = config_file_path
+
+    for varname in ["PYLEARN2_TRAIN_FILE_NAME", #this one is deprecated
+            "PYLEARN2_TRAIN_FILE_FULL_STEM"]: #this is the new, accepted name
+        environ.putenv(varname, config_file_full_stem)
+
+    environ.putenv("PYLEARN2_TRAIN_DIR", '/'.join(config_file_path.split('/')[:-1]) )
+    environ.putenv("PYLEARN2_TRAIN_BASE_NAME", config_file_path.split('/')[-1] )
+    environ.putenv("PYLEARN2_TRAIN_FILE_STEM", config_file_full_stem.split('/')[-1] )
+
+    return yaml_parse.load_path(config_file_path)

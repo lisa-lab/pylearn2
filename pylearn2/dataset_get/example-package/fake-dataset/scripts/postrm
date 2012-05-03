@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+# script that does stuff after removing, if needed
+#
+echo "$0: [some package-specific output goes here]"
+
+exit 0

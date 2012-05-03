@@ -1,6 +1,7 @@
 from __future__ import division
 import numpy as np
-from theano import function
+import theano.sparse
+from theano import function, config
 import theano.tensor as T
 from warnings import warn
 from pylearn2.monitor import Monitor
@@ -103,7 +104,10 @@ class SGD(TrainingAlgorithm):
         space = self.model.get_input_space()
         X = space.make_theano_batch(name='sgd_X')
 
-        self.topo = len(X.type.broadcastable) > 2
+        if isinstance(X, theano.sparse.basic.SparseVariable):
+            self.topo = False
+        else:
+            self.topo = len(X.type.broadcastable) > 2
 
         try:
             J = sum(c(model, X) for c in self.cost)
@@ -185,7 +189,7 @@ class SGD(TrainingAlgorithm):
                     raise Exception("NaN in "+param.name)
                 #
             #"""
-            
+
             self.monitor.report_batch(batch_size)
 
         for callback in self.update_callbacks:
@@ -255,8 +259,6 @@ class ExhaustiveSGD(TrainingAlgorithm):
                 cost_value.name = 'sgd_cost(' + X.name + ', ' + Y.name + ')'
             else:
                 cost_value.name = 'sgd_cost(' + X.name + ')'
-
-        #Make sure that you are not adding the same channel twice.
         if self.supervised:
             if cost_value.name not in self.monitor.channels:
                 self.monitor.add_channel(name=cost_value.name, ipt=(X,Y), val=cost_value)
@@ -389,7 +391,7 @@ class MonitorBasedLRAdjuster(object):
                              "(currently)")
         v = v[0].val_record
 
-        if len(v) < 2:
+        if len(v) < 1:
 
             if monitor.dataset is None:
                 assert len(v) == 0
@@ -397,13 +399,17 @@ class MonitorBasedLRAdjuster(object):
                         adjustor but the monitor has no entries because you didn't
                         specify a monitoring dataset""")
 
-            raise ValueError("""For some reason there are fewer than 2 monitor entries,
+            raise ValueError("""For some reason there are no monitor entries,
                     yet the MonitorBasedLRAdjuster has been called. This should NEVER happen.
-                    The training algorithm should call the monitor once on initialization, then
-                    after each parameter update should call the monitor followed by the callbacks.
+                    The Train object should call the monitor once on initialization, then
+                    call the callbacks.
                     It seems you are either calling the callback manually rather than as part of
-                    a training algorithm, or you are using an incorrectly implemented training
-                    algorithm.""")
+                    a training algorithm, or there is a problem with the Train object.""")
+        if len(v) == 1:
+            #only the initial monitoring has happened
+            #no learning has happened, so we can't adjust the learning rate yet
+            #just do nothing
+            return
 
         rval = current_learning_rate
 
@@ -428,16 +434,20 @@ class MonitorBasedTermCrit(object):
     monitors, TODO fix this issue) and checks to see if it has
     decreased by a certain proportion in the last N epochs.
     """
-    def __init__(self, prop_decrease, N):
+    def __init__(self, prop_decrease, N, channel_name=None):
+        self._channel_name = channel_name
         self.prop_decrease = prop_decrease
         self.N = N
 
     def __call__(self, model):
         monitor = model.monitor
-        assert len(monitor.channels.values()) == 1, (
-            "Only single channel monitors are supported (currently)"
-        )
-        v = monitor.channels.values()[0].val_record
+        if self._channel_name is None:
+            if len(monitor.channels) != 1:
+                raise ValueError("Only single-channel monitors are supported "
+                                 "for channel_name == None")
+            v = monitor.channels.values()[0].val_record
+        else:
+            v = monitor.channels[self._channel_name].val_record
         if len(v) < self.N:
             return True
         return v[- 1] < (1. - self.prop_decrease) * v[-self.N]

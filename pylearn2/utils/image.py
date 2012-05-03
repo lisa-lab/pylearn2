@@ -102,7 +102,8 @@ def ndarray_from_pil(pil, dtype='uint8'):
 
 
 def rescale(image, shape):
-    """ scales image to have shape """
+    """ scales image to be no larger than shape
+        PIL might give you unexpected results beyond that"""
 
     assert len(image.shape) == 3  # rows, cols, channels
     assert len(shape) == 2  # rows, cols
@@ -209,6 +210,8 @@ def load(filepath, rescale=True, dtype='float64'):
 
     return rval
 
+def save(filepath, ndarray):
+    pil_from_ndarray(ndarray).save(filepath)
 
 if __name__ == '__main__':
     black = np.zeros((50, 50, 3), dtype='uint8')

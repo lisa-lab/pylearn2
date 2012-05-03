@@ -73,16 +73,20 @@ class Autoencoder(Block, Model):
         assert nvis >= 0, "Number of visible units must be non-negative"
         assert nhid > 0, "Number of hidden units must be positive"
 
-        self.nhid = nhid
-        self.nvis = nvis
+        self.input_space = VectorSpace(nvis)
+        self.output_space = VectorSpace(nhid)
 
+        # Save a few parameters needed for resizing
+        self.nhid = nhid
+         self.irange = irange
+        self.tied_weights = tied_weights 
         if not hasattr(rng, 'randn'):
             self.rng = numpy.random.RandomState(rng)
         else:
             self.rng = rng
-        self.nhid = nhid
-        self.irange = irange
-        self.tied_weights = tied_weights
+
+
+
 
         def _resolve_callable(conf, conf_attr):
             if conf[conf_attr] is None or conf[conf_attr] == "linear":
@@ -467,7 +471,7 @@ class ContractiveAutoencoder(Autoencoder):
             SquaredError, to penalize it.
         """
         jacobian = self.jacobian_h_x(inputs)
-        return (jacobian ** 2).mean()
+        return (jacobian ** 2).sum(axis=[1,2]).mean()
 
 
 class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):

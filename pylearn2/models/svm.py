@@ -2,8 +2,9 @@
 
 from sklearn.multiclass import OneVsRestClassifier
 from sklearn.svm import SVC
+import numpy as np
 
-def DenseMulticlassSVM(C, kernel='linear'):
+class DenseMulticlassSVM(OneVsRestClassifier):
     """
     sklearn does very different things behind the scenes depending
     upon the exact identity of the class you use. The only way to
@@ -17,5 +18,16 @@ def DenseMulticlassSVM(C, kernel='linear'):
     whose tags.c_contigous flag is true, and which are in float64
     format.
     """
-    estimator = SVC(C=C, kernel=kernel)
-    return OneVsRestClassifier(estimator)
+
+    def __init__(self, C, kernel='rbf', gamma = 1.0, coef0 = 1.0, degree = 3):
+        estimator = SVC(C=C, kernel=kernel, gamma = gamma, coef0 = coef0, degree = degree)
+        super(DenseMulticlassSVM,self).__init__(estimator)
+
+    def fit(self, X, y):
+        super(DenseMulticlassSVM,self).fit(X,y)
+
+        return self
+
+    def decision_function(self, X):
+
+        return np.concatenate( [ estimator.decision_function(X) for estimator in self.estimators_ ], axis = 1)

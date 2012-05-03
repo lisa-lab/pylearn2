@@ -73,6 +73,13 @@ class SequentialSubsetIterator(SubsetIterator):
     def next(self):
         if self._batch >= self.num_batches or self._idx >= self._dataset_size:
             raise StopIteration()
+
+        # this fix the problem where dataset_size % batch_size != 0
+        elif (self._idx + self._batch_size) > self._dataset_size:
+            self._last = slice(self._idx, self._dataset_size)
+            self._idx = self._dataset_size
+            return self._last
+            
         else:
             self._last = slice(self._idx, self._idx + self._batch_size)
             self._idx += self._batch_size

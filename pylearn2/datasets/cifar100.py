@@ -16,6 +16,8 @@ class CIFAR100(dense_design_matrix.DenseDesignMatrix):
         X = N.cast['float32'](X)
         y = None #not implemented yet
 
+        self.center = center
+
         if center:
             X -= 127.5
 
@@ -26,3 +28,11 @@ class CIFAR100(dense_design_matrix.DenseDesignMatrix):
         assert not N.any(N.isnan(self.X))
         self.y_fine = N.asarray(obj['fine_labels'])
         self.y_coarse = N.asarray(obj['coarse_labels'])
+
+
+    def adjust_for_viewer(self, X):
+
+        if self.center:
+            return X / 127.5
+
+        return (X - 127.5)/127.5
