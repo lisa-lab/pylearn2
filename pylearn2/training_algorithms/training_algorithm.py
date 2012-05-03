@@ -52,3 +52,4 @@ class TrainingAlgorithm(object):
             `False` if the algorithm has converged.
         """
         raise NotImplementedError()
+

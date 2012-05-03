@@ -90,6 +90,7 @@ class VectorSpace(Space):
             Dimensionality of a vector in this space.
         sparse: bool
             Sparse vector or not
+>>>>>>> 4499660f8dcf3332be50a9b514c660240ba1534e
         """
         self.dim = dim
         self.sparse = sparse

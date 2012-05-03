@@ -1,12 +1,10 @@
 from __future__ import division
-import datetime
 import numpy as np
 import theano.sparse
 from theano import function, config
 import theano.tensor as T
 from warnings import warn
 from pylearn2.monitor import Monitor
-from pylearn2.utils.iteration import SequentialSubsetIterator
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 import pylearn2.costs.cost
 
@@ -76,7 +74,7 @@ class SGD(TrainingAlgorithm):
         self._register_update_callbacks(update_callbacks)
         self.bSetup = False
         self.first = True
-
+    
     def setup(self, model, dataset):
         """
         Initialize the training algorithm. Should be called
@@ -218,6 +216,7 @@ class ExhaustiveSGD(TrainingAlgorithm):
         self.termination_criterion = termination_criterion
         self._register_update_callbacks(update_callbacks)
         self.first = True
+        self.monitor = None
 
     def setup(self, model, dataset):
         self.model = model
@@ -261,9 +260,16 @@ class ExhaustiveSGD(TrainingAlgorithm):
             else:
                 cost_value.name = 'sgd_cost(' + X.name + ')'
         if self.supervised:
-            self.monitor.add_channel(name=cost_value.name, ipt=(X,Y), val=cost_value)
+            if cost_value.name not in self.monitor.channels:
+                self.monitor.add_channel(name=cost_value.name, ipt=(X,Y), val=cost_value)
+            else:
+                warn("Tried to add an existing channel.")
         else:
-            self.monitor.add_channel(name=cost_value.name, ipt=X, val=cost_value)
+            if cost_value.name not in self.monitor.channels:
+                self.monitor.add_channel(name=cost_value.name, ipt=X, val=cost_value)
+            else:
+                warn("Tried to add an existing channel.")
+
         params = model.get_params()
         for i, param in enumerate(params):
             if param.name is None:
@@ -327,6 +333,7 @@ class ExhaustiveSGD(TrainingAlgorithm):
             for batch in dataset:
                 grads = self.sgd_update(batch, self.learning_rate)
                 self.monitor.report_batch(batch_size)
+
                 for callback in self.update_callbacks:
                     callback(self)
         if self.termination_criterion is None:

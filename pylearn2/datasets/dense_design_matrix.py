@@ -3,11 +3,13 @@ import functools
 
 import warnings
 import numpy as np
+
 from pylearn2.utils.iteration import (
     FiniteDatasetIterator,
     resolve_iterator_class
 )
 N = np
+
 import copy
 
 from pylearn2.datasets.dataset import Dataset
@@ -203,23 +205,28 @@ class DenseDesignMatrix(Dataset):
           train_prop: Proportion of training dataset split.
         """
 
-        train = None
-        valid = None
+        train_ddm = None
+        valid_ddm = None
         if train_size !=0:
             dataset_iter = self.iterator(mode=_mode,
                     batch_size=(self.num_examples - train_size),
+                    targets=(self.y is not None),
                     num_batches=2)
             train = dataset_iter.next()
             valid = dataset_iter.next()
         elif train_prop !=0:
             size = np.ceil(self.num_examples * train_prop)
             dataset_iter = self.iterator(mode=_mode,
-                    batch_size=(self.num_examples - size))
+                    batch_size=(self.num_examples - size),
+                    targets=(self.y is not None))
             train = dataset_iter.next()
             valid = dataset_iter.next()
+            train_ddm = DenseDesignMatrix(train[0], y=train[1])
+            valid_ddm = DenseDesignMatrix(valid[0], y=valid[1])
+
         else:
             raise ValueError("Initialize either split ratio and split size to non-zero value.")
-        return (train, valid)
+        return (train_ddm, valid_ddm)
 
     def split_dataset_nfolds(self, nfolds=0):
         """
@@ -231,8 +238,11 @@ class DenseDesignMatrix(Dataset):
           nfolds: The number of folds for the  the validation set.
         """
 
-        folds_iter = self.iterator(mode="sequential", num_batches=nfolds)
-        folds = list(folds_iter)
+        folds_iter = self.iterator(mode="sequential", num_batches=nfolds,
+                targets=(self.y is not None))
+        folds = []
+        for fold in folds_iter:
+            folds.append(DenseDesignMatrix(X=fold[0], y=fold[1]))
         return folds
 
     def split_dataset_holdout(self, train_size=0, train_prop=0):
@@ -262,8 +272,11 @@ class DenseDesignMatrix(Dataset):
           rng: Random number generation class to be used.
         """
 
-        folds_iter = self.iterator(mode="random_slice", num_batches=nfolds, rng=rng)
-        folds = list(folds_iter)
+        folds_iter = self.iterator(mode="random_slice", num_batches=nfolds,
+                targets=(self.y is not None), rng=rng)
+        folds = []
+        for fold in folds_iter:
+            folds.append(DenseDesignMatrix(X=fold[0], y=fold[1]))
         return folds
 
     def bootstrap_holdout(self, train_size=0, train_prop=0, rng=None):
@@ -279,6 +292,19 @@ class DenseDesignMatrix(Dataset):
           rng: Random number generation class to be used.
         """
         return self._apply_holdout("random_slice", train_size, train_prop)
+
+    def merge_datasets(self, datasets):
+        """
+        Merge the current dataset with the datasets passed to the function
+        
+        Parameters
+        ----------
+        datasets: list of DenseDesignMatrix
+        ddm's to be merged.
+        """
+        for dataset in datasets:
+            self.X = np.concatenate((self.X, dataset.X), axis=0)
+            self.y = np.concatenate((self.y, dataset.y), axis=0)
 
     def get_stream_position(self):
         """
