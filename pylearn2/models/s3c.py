@@ -176,9 +176,8 @@ class S3C(Model, Block):
 
     If you use S3C in published work, please cite:
 
-        Spike-and-Slab Sparse Coding for Unsupervised Feature Discovery.
-        Goodfellow, I., Courville, A., & Bengio, Y. Workshop on Challenges in
-        Learning Hierarchical Models. NIPS 2011.
+        Large-Scale Feature Learning With Spike-and-Slab Sparse Coding.
+        Goodfellow, I., Courville, A., & Bengio, Y. ICML 2012.
 
     """
 
