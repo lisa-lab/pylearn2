@@ -72,13 +72,13 @@ class Autoencoder(Block, Model):
         super(Autoencoder, self).__init__()
         assert nvis >= 0, "Number of visible units must be non-negative"
         assert nhid > 0, "Number of hidden units must be positive"
-
+	self.nvis = nvis
         self.input_space = VectorSpace(nvis)
         self.output_space = VectorSpace(nhid)
 
         # Save a few parameters needed for resizing
         self.nhid = nhid
-         self.irange = irange
+        self.irange = irange
         self.tied_weights = tied_weights 
         if not hasattr(rng, 'randn'):
             self.rng = numpy.random.RandomState(rng)
