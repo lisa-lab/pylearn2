@@ -69,6 +69,7 @@ class DBM(Model):
 
         """
 
+        self.sampling_steps = 5
         self.monitor_params = monitor_params
 
         self.use_cd = use_cd
