@@ -115,7 +115,7 @@ def rescale(image, shape):
     rval = ndarray_from_pil(i, dtype=image.dtype)
 
     return rval
-
+resize = rescale
 
 def fit_inside(image, shape):
     """ scales image down to fit inside shape
