@@ -178,7 +178,6 @@ def make_argument_parser():
         formatter_class=argparse.RawTextHelpFormatter
     )
     parser.add_argument('config', action='store',
-                        type=argparse.FileType('r'),
                         choices=None,
                         help='A YAML configuration file specifying the '
                              'training procedure')
