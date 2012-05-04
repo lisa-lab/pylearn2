@@ -34,6 +34,7 @@ learning updates will be based on marginalizing out this topmost layer
 to reduce noise a bit
 each round of negative phase sampling should start by sampling the topmost
 layer, then sampling downward from there
+actually, couldn't I marginalize out all the odd or all the even layers?
 """)
 
 class Sampler:
@@ -227,51 +228,59 @@ class DBM(Model):
 
     def get_sampling_updates(self):
 
-
         assert not self.use_cd
 
         ip = self.inference_procedure
 
         rval = {}
 
+        rval[self.V_chains] = self.V_chains
+        for H_chains in self.H_chains:
+            rval[H_chains] = H_chains
+
         sample_from = Sampler(RandomStreams(17))
 
+        warnings.warn("""TODO: update the sampler
+                to sample all odd and then all even layers
+                simultaneously""")
 
-        #sample the visible units
-        V_prob = ip.infer_H_hat_one_sided(other_H_hat = self.H_chains[0],
-                W = self.W[0].T, b = self.bias_vis)
+        for i in xrange(self.sampling_steps):
+            #sample the visible units
+            V_prob = ip.infer_H_hat_one_sided(
+                    other_H_hat = rval[self.H_chains[0]],
+                    W = self.W[0].T, b = self.bias_vis)
 
-        V_sample = sample_from(V_prob)
+            V_sample = sample_from(V_prob)
 
-        rval[self.V_chains] = V_sample
+            rval[self.V_chains] = V_sample
 
-        #sample the first hidden layer unless this is also the last hidden layer)
-        if len(self.H_chains) > 1:
-            prob = ip.infer_H_hat_two_sided(H_hat_below = rval[self.V_chains], H_hat_above = self.H_chains[1], W_below = self.W[0], W_above = self.W[1], b = self.bias_hid[0])
+            #sample the first hidden layer unless this is also the last hidden layer)
+            if len(self.H_chains) > 1:
+                prob = ip.infer_H_hat_two_sided(H_hat_below = rval[self.V_chains], H_hat_above = rval[self.H_chains[1]], W_below = self.W[0], W_above = self.W[1], b = self.bias_hid[0])
+
+                sample = sample_from(prob)
+
+                rval[self.H_chains[0]] = sample
+
+            #sample the intermediate hidden layers
+            for i in xrange(1,len(self.H_chains)-1):
+                prob = ip.infer_H_hat_two_sided(H_hat_below = rval[self.H_chains[i-1]], H_hat_above = rval[self.H_chains[i+1]],
+                                                W_below = self.W[i], W_above = self.W[i+1], b = self.bias_hid[i])
+                sample = sample_from(prob)
+
+                rval[self.H_chains[i-1]] = sample
+
+            #sample the last hidden layer
+            if len(self.H_chains) > 1:
+                ipt = rval[self.H_chains[-2]]
+            else:
+                ipt = rval[self.V_chains]
+
+            prob = ip.infer_H_hat_one_sided(other_H_hat = ipt, W = self.W[-1], b = self.bias_hid[-1])
 
             sample = sample_from(prob)
 
-            rval[self.H_chains[0]] = sample
-
-        #sample the intermediate hidden layers
-        for i in xrange(1,len(self.H_chains)-1):
-            prob = ip.infer_H_hat_two_sided(H_hat_below = rval[self.H_chains[i-1]], H_hat_above = self.H_chains[i+1],
-                                            W_below = self.W[i], W_above = self.W[i+1], b = self.bias_hid[i])
-            sample = sample_from(prob)
-
-            rval[self.H_chains[i-1]] = sample
-
-        #sample the last hidden layer
-        if len(self.H_chains) > 1:
-            ipt = rval[self.H_chains[-2]]
-        else:
-            ipt = self.V_chains
-
-        prob = ip.infer_H_hat_one_sided(other_H_hat = ipt, W = self.W[-1], b = self.bias_hid[-1])
-
-        sample = sample_from(prob)
-
-        rval[self.H_chains[-1]] = sample
+            rval[self.H_chains[-1]] = sample
 
         return rval
 
