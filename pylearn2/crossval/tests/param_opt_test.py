@@ -20,10 +20,7 @@ def main():
     # values or the range of values the hyperparameter can take on. The data
     # type and the number of grid points (if the grid search algorithm will be
     # eventually used) are also specified for each hyperparameter.
-    # Note: when specifying the batch_size and monitoring_batches, make sure
-    # that they are valid iteration parameters. For examples, a dataset of
-    # 1000 examples can only provide 5 batches with batch_size 200, but if
-    # monitoring_batches is 10 batches, Monitor will throw an error.
+    import numpy as np
     var_hyperparams = [
                   opt.Hyperparam('learning_rate', opt.TypeHyperparam.LIST, [0.1], 1, float),
                   opt.Hyperparam('batch_size', opt.TypeHyperparam.LIST, [100], 1, int),
