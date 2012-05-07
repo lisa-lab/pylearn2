@@ -180,14 +180,13 @@ class HyperparamOptimization(object):
         config.update(var_hyperparams_config)
         train_algo = self.algorithm(**config)
         if self.crossval_mode == 'kfold':
-            #crossval.KFoldCrossValidation
             kfoldCV = cv.KFoldCrossValidation(model=self.model,
                             algorithm=train_algo,
                             cost=self.cost,
                             dataset=self.dataset,
                             validation_batch_size=self.validation_batch_size)
             kfoldCV.crossvalidate_model()
-            print "Error: " + str(kfoldCV.get_cost())
+            #print "Error: " + str(kfoldCV.get_cost())
             return [kfoldCV.get_cost(), var_hyperparams_config]
         elif self.crossval_mode == 'holdout':
             holdoutCV = cv.HoldoutCrossValidation(model=self.model,
@@ -197,7 +196,7 @@ class HyperparamOptimization(object):
                             validation_batch_size=self.validation_batch_size,
                             train_prop=self.train_prop)
             holdoutCV.crossvalidate_model()
-            print "Error: " + str(holdoutCV.get_cost())
+            #print "Error: " + str(holdoutCV.get_cost())
             return [holdoutCV.get_cost(), var_hyperparams_config]
         else:
             raise ValueError("The specified crossvalidation mode %s is not supported"
@@ -317,25 +316,24 @@ class Hyperparam(object):
             This option is associated with the grid search algorithm and it
             specifies the number of grid points to generate along the
             hyperparameter axis.
-        TODO:
         data_type: python data type conversion built-in function.
-            Can be any of the python built-in function for converting from one
-            data type to another such as float() or int().
+            Can be one of the 2 python built-in function for converting from one
+            data type to another: float or int.
         """
         self.name = name
         self.type_param = type_param
         self.values = sorted(values)
+        self.data_type = data_type
         # Check if the parameter is specified correctly.
-        self.error_msg = 'The parameter %s is not specified correctly.' %self.name
+        self.error_msg = 'The hyperparameter %s is not specified correctly.' %self.name
         self.check_param_init_spec()
         self.n_grid_points = n_grid_points
-        self.data_type = data_type
         self.data_conv = get_data_conv[data_type]
         self.discretized_interval = []
 
     def check_param_init_spec(self):
         """
-        Checks that the information provided for the variable hyperparameter is
+        Checks that the information provided for the hyperparameter object is
         valid.
         """
         if self.type_param == 'range' and len(self.values) != 2:
@@ -350,6 +348,12 @@ class Hyperparam(object):
             raise ListParamError1(self.error_msg +
                   ' For the list type of parameter, you must specify at least'
                   ' a value for the parameter to take.')
+        elif self.data_type not in [float, int]:
+            raise InvalidDataType(self.error_msg +
+                  ' The invalid data type %s was specified.'
+                  ' The data type for the hyperparameter must be int or float.'
+                  % self.data_type)
+
     def check_param_discretized_spec(self):
         if self.type_param == 'range' and len(self.values) == 1:
                 raise RangeParamError3(self.error_msg +
@@ -421,6 +425,13 @@ class Hyperparam(object):
                                                               max_number)
 
 # Definition of exceptions and warnings in this module.
+class InvalidDataType(Exception):
+    """
+       Exception raised when not specifying a valid data type for
+       a hyperparameter
+    """
+    pass
+
 class RangeParamError1(Exception):
     """
        Exception raised when not specifying a lower or upper bounds for the
