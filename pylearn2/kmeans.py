@@ -38,8 +38,7 @@ class KMeans(Block, Model):
         Block.__init__(self)
         Model.__init__(self)
 
-        self.input_space = VectorSpace(nvis)
-
+        self.reset_params()
         self.k = k
         self.convergence_th = convergence_th
         if max_iter:
@@ -201,4 +200,6 @@ class KMeans(Block, Model):
 
     def get_weights_format(self):
         return ['h','v']
-
+    
+    def reset_params(self):
+        self.input_space = VectorSpace(self.nvis)

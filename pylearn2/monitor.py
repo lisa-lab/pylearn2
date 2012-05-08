@@ -32,6 +32,7 @@ class Monitor(object):
             An object that implements the `Model` interface specified in
             `pylearn2.models`.
         """
+        self.reset_monitor(model)
         self.model = model
         self.channels = {}
         self._num_batches_seen = 0
@@ -141,7 +142,25 @@ class Monitor(object):
     def run_prereqs(self, X):
         for prereq in self.prereqs:
             prereq(X)
-
+    
+    """
+        Reset the monitor vars to reuse the monitor object in crossvalidation.
+    """
+    def reset_monitor(self, model):
+        self.model = model
+        self.channels = {}
+        self._num_batches_seen = 0
+        self._examples_seen = 0
+        self._dataset = None
+        self._dirty = True
+        self._rng_seed = None
+        self.names_to_del = []
+        # Determine whether the model should use topological or vector form of
+        # examples. If the model acts on a space with more than the batch index
+        # and channel dimension, the model has topological dimensions, so the
+        # topological view of the data should be used.
+        self.topo = len(self.model.get_input_space().make_theano_batch().type.broadcastable) > 2
+        self.require_label = False
 
     def get_batches_seen(self):
         """ Returns the number of batches the model has learned on (assuming

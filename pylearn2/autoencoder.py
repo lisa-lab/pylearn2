@@ -72,32 +72,19 @@ class Autoencoder(Block, Model):
         super(Autoencoder, self).__init__()
         assert nvis >= 0, "Number of visible units must be non-negative"
         assert nhid > 0, "Number of hidden units must be positive"
-
+	self.nvis = nvis
         self.input_space = VectorSpace(nvis)
         self.output_space = VectorSpace(nhid)
 
         # Save a few parameters needed for resizing
         self.nhid = nhid
         self.irange = irange
-        self.tied_weights = tied_weights
+        self.tied_weights = tied_weights 
         if not hasattr(rng, 'randn'):
             self.rng = numpy.random.RandomState(rng)
         else:
             self.rng = rng
-        self._initialize_hidbias()
-        if nvis > 0:
-            self._initialize_visbias(nvis)
-            self._initialize_weights(nvis)
-        else:
-            self.visbias = None
-            self.weights = None
 
-        seed = int(self.rng.randint(2 ** 30))
-        self.s_rng = RandomStreams(seed)
-        if tied_weights:
-            self.w_prime = self.weights.T
-        else:
-            self._initialize_w_prime(nvis)
 
         def _resolve_callable(conf, conf_attr):
             if conf[conf_attr] is None or conf[conf_attr] == "linear":
@@ -118,13 +105,7 @@ class Autoencoder(Block, Model):
 
         self.act_enc = _resolve_callable(locals(), 'act_enc')
         self.act_dec = _resolve_callable(locals(), 'act_dec')
-        self._params = [
-            self.visbias,
-            self.hidbias,
-            self.weights,
-        ]
-        if not self.tied_weights:
-            self._params.append(self.w_prime)
+        self.reset_params(rng)
 
     def _initialize_weights(self, nvis, rng=None, irange=None):
         if rng is None:
@@ -166,6 +147,36 @@ class Autoencoder(Block, Model):
             name='Wprime',
             borrow=True
         )
+    
+    #Reset the parameters of the model
+    def reset_params(self, rng=None):
+        self.input_space = VectorSpace(self.nvis)
+        self.output_space = VectorSpace(self.nhid)
+
+        # Save a few parameters needed for resizing
+        if rng is None:
+            rng = self.rng
+        self._initialize_hidbias()
+        if self.nvis > 0:
+            self._initialize_visbias(self.nvis)
+            self._initialize_weights(self.nvis)
+        else:
+            self.visbias = None
+            self.weights = None
+
+        seed = int(self.rng.randint(2 ** 30))
+        self.s_rng = RandomStreams(seed)
+        if self.tied_weights:
+            self.w_prime = self.weights.T
+        else:
+            self._initialize_w_prime(self.nvis)
+        self._params = [
+            self.visbias,
+            self.hidbias,
+            self.weights,
+        ]
+        if not self.tied_weights:
+            self._params.append(self.w_prime)
 
     def set_visible_size(self, nvis, rng=None):
         """
@@ -497,7 +508,6 @@ class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
         self.corruptor = corruptor
         self.num_corruptions = num_corruptions
 
-
     def higher_order_penalty(self, inputs):
         """
         Stochastic approximation of Hessian Frobenius norm
@@ -565,7 +575,6 @@ class DeepComposedAutoencoder(Autoencoder):
     def get_params(self):
         return reduce(operator.add,
                       [ae.get_params() for ae in self.autoencoders])
-
 
 def build_stacked_ae(nvis, nhids, act_enc, act_dec,
                      tied_weights=False, irange=1e-3, rng=None,

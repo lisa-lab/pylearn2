@@ -90,10 +90,11 @@ class VectorSpace(Space):
             Dimensionality of a vector in this space.
         sparse: bool
             Sparse vector or not
+
         """
         self.dim = dim
         self.sparse = sparse
-        
+
     @functools.wraps(Space.get_origin)
     def get_origin(self):
         return np.zeros((self.dim,))

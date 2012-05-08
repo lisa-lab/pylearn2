@@ -14,7 +14,6 @@ import warnings
 from theano.gof.op import get_debug_values, debug_error_message, debug_assert
 from pylearn2.utils import make_name, sharedX, as_floatX
 from pylearn2.expr.information_theory import entropy_binary_vector
-from theano.printing import Print
 from pylearn2.base import Block
 from pylearn2.space import VectorSpace
 from pylearn2.utils.mem import get_memory_usage
@@ -180,8 +179,6 @@ class S3C(Model, Block):
         Goodfellow, I., Courville, A., & Bengio, Y. ICML 2012.
 
     """
-
-
     def __init__(self, nvis, nhid, irange, init_bias_hid,
                        init_B, min_B, max_B,
                        init_alpha, min_alpha, max_alpha, init_mu,
@@ -307,10 +304,11 @@ class S3C(Model, Block):
                 filters_per_rf = self.nhid / total_rfs
 
                 idx = 0
-                for r in xrange(num_row_steps):
+	        for r in xrange(num_row_steps):
                     rc = r * local_rf_stride[0]
                     for c in xrange(num_col_steps):
                         cc = c * local_rf_stride[1]
+
 
                         for i in xrange(filters_per_rf):
 
@@ -323,7 +321,6 @@ class S3C(Model, Block):
                                 local_rf = self.rng.uniform(-self.irange,
                                             self.irange,
                                             (local_rf_shape[0], local_rf_shape[1], s[2]) )
-
 
 
                             W_img[idx,rc:rc+local_rf_shape[0],
@@ -378,7 +375,6 @@ class S3C(Model, Block):
 
         self.init_unit_W = init_unit_W
 
-
         self.print_interval = print_interval
 
         self.constrain_W_norm = constrain_W_norm
@@ -429,6 +425,17 @@ class S3C(Model, Block):
             self.rng = np.random.RandomState([1.,2.,3.])
         else:
             self.rng = np.random.RandomState(self.seed)
+    
+    def reset_params(self, rng=None):
+        """
+         redo_everything function does everything we want to do.
+        """
+        if rng is not None:
+            self.rng = rng
+        else:
+            self.reset_rng()
+        self.input_space = VectorSpace(self.nvis)
+        self.redo_everything()
 
     def redo_everything(self):
 
@@ -938,6 +945,7 @@ class S3C(Model, Block):
         return term1 + term2 + term3 + term4 + term5
 
 
+
     def expected_log_prob_vhs_batch(self, V, H_hat, S_hat, var_s0_hat, var_s1_hat):
 
         half = as_floatX(0.5)
@@ -1264,6 +1272,7 @@ def damp(old, new, new_coeff):
 
     if new_coeff == 1.0:
         return new
+
 
     old_coeff = as_floatX(1.) - new_coeff
 
