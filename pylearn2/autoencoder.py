@@ -86,8 +86,6 @@ class Autoencoder(Block, Model):
             self.rng = rng
 
 
-
-
         def _resolve_callable(conf, conf_attr):
             if conf[conf_attr] is None or conf[conf_attr] == "linear":
                 return None
