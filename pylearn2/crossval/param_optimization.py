@@ -133,7 +133,7 @@ class HyperparamOptimization(object):
 
     def generate_hyperparams_combinations(self):
         """
-        Generates combinations of hyperparameters values when executing the
+        Generates some combinations of hyperparameters values when executing the
         random search algorithm. The number of combinations generated is
         specified by `n_combinations`.
         """
@@ -204,7 +204,7 @@ class HyperparamOptimization(object):
 
     def get_topN_exp(self, n_exps):
         """
-        Gets the best N experiments based on the cross-validation error.
+        Gets the N best experiments based on the cross-validation error.
 
         Parameters
         ----------
@@ -472,7 +472,7 @@ class RangeParamWarning1(Warning):
 class RangeParamWarning2(Warning):
     """
        Warning issued when it was not possible to generate the user-defined
-       number of grid points for a range type of hyperparameter. It was not
+       number of grid points for a `range` type of hyperparameter. It was not
        possible to satisfy the user's specification on the hyperparameter's
        data type and range of values.
     """
@@ -509,7 +509,7 @@ class RangeParamWarning4(Warning):
 
 class ParamDuplicatesWarning(Warning):
     """
-       Warning issued when more than range of values was given for a
+       Warning issued when more than one range of values was given for a
        hyperameter.
     """
     def __init__(self, param_duplicates):
