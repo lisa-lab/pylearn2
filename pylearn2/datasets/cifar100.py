@@ -1,12 +1,15 @@
+
 import numpy as N
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils import serial
 
 class CIFAR100(dense_design_matrix.DenseDesignMatrix):
-
     def __init__(self, which_set, center = False):
+
         assert which_set in ['train','test']
+
         path = "${PYLEARN2_DATA_PATH}/cifar100/cifar-100-python/"+which_set
+
         obj = serial.load(path)
         X = obj['data']
 
@@ -26,6 +29,7 @@ class CIFAR100(dense_design_matrix.DenseDesignMatrix):
         super(CIFAR100,self).__init__(X = X, y =y, view_converter = view_converter)
 
         assert not N.any(N.isnan(self.X))
+
         self.y_fine = N.asarray(obj['fine_labels'])
         self.y_coarse = N.asarray(obj['coarse_labels'])
 
