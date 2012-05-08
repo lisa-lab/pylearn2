@@ -263,12 +263,12 @@ class ExhaustiveSGD(TrainingAlgorithm):
             if cost_value.name not in self.monitor.channels:
                 self.monitor.add_channel(name=cost_value.name, ipt=(X,Y), val=cost_value)
             else:
-                warn("Tried to add an existing channel.")
+                raise("Tried to add an existing channel.")
         else:
             if cost_value.name not in self.monitor.channels:
                 self.monitor.add_channel(name=cost_value.name, ipt=X, val=cost_value)
             else:
-                warn("Tried to add an existing channel.")
+                raise("Tried to add an existing channel.")
 
         params = model.get_params()
         for i, param in enumerate(params):
