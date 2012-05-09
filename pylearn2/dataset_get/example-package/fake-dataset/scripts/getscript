@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+
+# script that fetches the data, if needed
+#
+echo "$0: [some package-specific output goes here]"
+
+exit 0
