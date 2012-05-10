@@ -1,9 +1,10 @@
 import numpy as N
+np = N
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils import serial
 
 class MNIST(dense_design_matrix.DenseDesignMatrix):
-    def __init__(self, which_set, center = False):
+    def __init__(self, which_set, center = False, shuffle = False):
 
         if which_set not in ['train','test']:
             if which_set == 'valid':
@@ -36,6 +37,18 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
 
         if center:
             X -= X.mean(axis=0)
+
+        if shuffle:
+            self.shuffle_rng = np.random.RandomState([1,2,3])
+            for i in xrange(X.shape[0]):
+                j = self.shuffle_rng.randint(X.shape[0])
+                tmp = X[i,:]
+                X[i,:] = X[j,:]
+                X[j,:] = tmp
+                tmp = y[i]
+                y[i] = y[j]
+                y[j] = tmp
+
 
         view_converter = dense_design_matrix.DefaultViewConverter((28,28,1))
 
