@@ -285,6 +285,52 @@ class DBM(Model):
 
         return rval
 
+    def rao_blackwellize(self, V_sample, H_samples):
+        """ Returns a new H_samples list with the the even-numbered
+        layers of hidden samples replaced by activation probabilities """
+
+
+        #TODO: update this so user can control whether
+        #to integrate out odd or even layers
+        #for now always integrates out even hidden layers
+        #because this makes sure it always integrates out
+        #something even when the DBM is just an RBM
+
+        ip = self.inference_procedure
+
+        rval = [ H_sample for H_sample in H_samples ]
+
+        for i in xrange(0,len(rval),2):
+            #Special case for layer 0--it is attached to the input
+            if i ==  0:
+                #Only do this case if it is not the last layer. Otherwise the last layer special case will catch it
+                if len(self.H_chains) > 1:
+                    assert False #debugging check that this doesn't execute in a small model. feel free to remove
+                    rval[i] = ip.infer_H_hat_two_sided(H_hat_below = V_sample, H_hat_above = rval[H_samples[i+1]],
+                            W_below = self.W[0], W_above = self.W[1], b = self.bias_hid[0])
+
+            if i > 0 and i < len(rval) - 1:
+                assert False #debugging check that this doesn't execute in a small model. feel free to remove
+                #Case for intermediate layers
+                rval[i] = ip.infer_H_hat_two_sided(H_hat_below = H_samples[i-1], H_hat_above = H_samples[i+1],
+                        W_below = self.W[i], W_above = self.W[i+1], b = self.bias_hid[i])
+
+            if i == len(rval) - 1:
+                #case for final layer
+
+                if len(rval) > 1:
+                    assert False #debugging check that this doesn't execute in a small model. feel free to remove
+                    assert H_samples[-2] is H_samples[i-1]
+                    ipt = H_samples[-2]
+                else:
+                    ipt = V_sample
+
+                assert self.bias_hid[i] is self.bias_hid[-1]
+
+                rval[i] = ip.infer_H_hat_one_sided(other_H_hat = ipt, W = self.W[-1], b = self.bias_hid[-1])
+
+        return rval
+
 
     def get_cd_neg_phase_grads(self, V, H_hat):
 
@@ -328,9 +374,11 @@ class DBM(Model):
 
     def get_neg_phase_grads_from_samples(self, V_sample, H_samples):
 
-        obj = self.expected_energy(V_hat = V_sample, H_hat = H_samples)
+        H_rao_blackwell = self.rao_blackwellize(V_sample, H_samples)
 
-        constants = list(set(H_samples).union([V_sample]))
+        obj = self.expected_energy(V_hat = V_sample, H_hat = H_rao_blackwell)
+
+        constants = list(set(H_rao_blackwell).union([V_sample]))
 
         params = self.get_params()
 
