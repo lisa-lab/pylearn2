@@ -491,4 +491,6 @@ def from_dataset(dataset, num_examples):
             #This patches a case where control.get_load_data() is false so dataset.X is None
             #This logic should be removed whenever we implement lazy loading
         raise
-    return DenseDesignMatrix(topo_view=V)
+    rval =  DenseDesignMatrix(topo_view=V)
+    rval.adjust_for_viewer = dataset.adjust_for_viewer
+    return rval
