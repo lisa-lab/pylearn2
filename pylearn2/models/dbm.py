@@ -139,8 +139,11 @@ class DBM(Model):
         #make the negative chains
         if not self.use_cd:
             self.V_chains = self.make_chains(self.bias_vis)
+            self.V_chains.name = 'dbm_V_chains'
 
             self.H_chains = [ self.make_chains(bias_hid) for bias_hid in self.bias_hid ]
+            for i, H_chain in enumerate(self.H_chains):
+                H_chain.name = 'dbm_H[%d]_chain' % i
 
 
     def make_chains(self, bias):
@@ -408,6 +411,8 @@ class DBM(Model):
             assert self.bias_hid[i].name is not None
 
         rval = list(rval)
+
+        assert self.bias_hid[0] in rval
 
         return rval
 
