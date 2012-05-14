@@ -747,21 +747,7 @@ class InferenceProcedure:
                                 variational parameters
         """
 
-
-        raise NotImplementedError("This method is not implemented yet. The code in this file is just copy-pasted from S3C")
-
-        #NOTE: I don't think this method needs to be implemented for the current project
-
-        """
-        alpha = self.model.alpha
-
-
-        var_s0_hat = 1. / alpha
-        var_s1_hat = self.var_s1_hat()
-
-
         H   =    self.init_H_hat(V)
-        Mu1 =    self.init_S_hat(V)
 
         def check_H(my_H, my_V):
             if my_H.dtype != config.floatX:
@@ -783,33 +769,34 @@ class InferenceProcedure:
 
                 assert Hv.shape[0] == Vv.shape[0]
 
-        check_H(H,V)
+        for H_elem in H:
+            check_H(H_elem, V)
 
         def make_dict():
 
             return {
                     'H_hat' : H,
-                    'S_hat' : Mu1,
-                    'var_s0_hat' : var_s0_hat,
-                    'var_s1_hat': var_s1_hat,
                     }
 
         history = [ make_dict() ]
 
-        for new_H_coeff, new_S_coeff in zip(self.h_new_coeff_schedule, self.s_new_coeff_schedule):
+        for layer in self.layer_update_schedule:
 
-            new_Mu1 = self.infer_S_hat(V, H, Mu1)
-
-            if self.clip_reflections:
-                clipped_Mu1 = reflection_clip(Mu1 = Mu1, new_Mu1 = new_Mu1, rho = self.rho)
+            if layer == 0:
+                if len(self.model.W) > 1:
+                    H[layer] = self.infer_H_hat_one_sided(other_H = V, W = self.model.W[0], bias = self.model.bias_hid[0])
+            elif layer == len(self.model.W) -1:
+                if len(self.model.W) == 1:
+                    ipt = V
+                else:
+                    ipt = H[layer-1]
+                H[layer] = self.infer_H_hat_one_sided(other_H = ipt, W = self.model.W[layer], bias = self.model.bias_hid[0])
             else:
-                clipped_Mu1 = new_Mu1
-            Mu1 = self.damp(old = Mu1, new = clipped_Mu1, new_coeff = new_S_coeff)
-            new_H = self.infer_H_hat(V, H, Mu1)
+                H[layer] = self.infer_H_hat_two_sided(H_below = H[layer-1], H_above = H[layer+1],
+                        W_below = self.model.W[layer], W_above = self.model.W[layer+1],
+                        bias = self.model.bias_hid[layer])
 
-            H = self.damp(old = H, new = new_H, new_coeff = new_H_coeff)
-
-            check_H(H,V)
+            check_H(H[layer],V)
 
             history.append(make_dict())
 
@@ -817,7 +804,6 @@ class InferenceProcedure:
             return history
         else:
             return history[-1]
-        """
 
     def init_H_hat(self, V):
         """ Returns a list of matrices of hidden units, with same batch size as V
