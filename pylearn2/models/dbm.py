@@ -15,6 +15,7 @@ from theano.gof.op import get_debug_values, debug_error_message
 from pylearn2.utils import make_name, sharedX, as_floatX
 from pylearn2.expr.information_theory import entropy_binary_vector
 from theano.tensor.shared_randomstreams import RandomStreams
+from pylearn2.models.rbm import RBM
 
 warnings.warn('s3c changing the recursion limit')
 import sys
@@ -26,16 +27,7 @@ from pylearn2.models.s3c import full_min
 from pylearn2.models.s3c import full_max
 from theano.printing import min_informative_str
 from theano.printing import Print
-
-warnings.warn("""
-TODO/NOTES
-The sampler ought to store the state of all but the topmost hidden layer
-learning updates will be based on marginalizing out this topmost layer
-to reduce noise a bit
-each round of negative phase sampling should start by sampling the topmost
-layer, then sampling downward from there
-actually, couldn't I marginalize out all the odd or all the even layers?
-""")
+from scipy import io
 
 class Sampler:
     def __init__(self, theano_rng):
@@ -821,5 +813,53 @@ class InferenceProcedure:
 
         return H_hat
 
+def load_matlab_dbm(path):
+    """ Loads a two layer DBM stored in the format used by Ruslan Salakhutdinov's
+    matlab demo"""
 
+    d = io.loadmat(path)
+
+    for key in d:
+        try:
+            d[key] = np.cast[config.floatX](d[key])
+        except:
+            pass
+
+    visbiases = d['visbiases']
+    assert len(visbiases.shape) == 2
+    assert visbiases.shape[0] == 1
+    visbiases = visbiases[0,:]
+
+    hidbiases = d['hidbiases']
+    assert len(hidbiases.shape) == 2
+    assert hidbiases.shape[0] == 1
+    hidbiases = hidbiases[0,:]
+
+    penbiases = d['penbiases']
+    assert len(penbiases.shape) == 2
+    assert penbiases.shape[0] == 1
+    penbiases = penbiases[0,:]
+
+    vishid = d['vishid']
+    hidpen = d['hidpen']
+
+    D ,= visbiases.shape
+    N1 ,= hidbiases.shape
+    N2 ,= penbiases.shape
+
+    assert vishid.shape == (D,N1)
+    assert hidpen.shape == (N1,N2)
+
+    rbms = [ RBM( nvis = D, nhid = N1),
+            RBM( nvis = N1, nhid = N2) ]
+
+    dbm = DBM(rbms, negative_chains = 1)
+
+    dbm.bias_vis.set_value(visbiases)
+    dbm.bias_hid[0].set_value(hidbiases)
+    dbm.bias_hid[1].set_value(penbiases)
+    dbm.W[0].set_value(vishid)
+    dbm.W[1].set_value(hidpen)
+
+    return dbm
 
