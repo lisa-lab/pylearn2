@@ -858,7 +858,7 @@ class S3C(Model, Block):
 
 
     def random_design_matrix(self, batch_size, theano_rng,
-                            H_sample = None):
+                            H_sample = None, S_sample = None):
         """
             H_sample: a matrix of values of H
                       if none is provided, samples one from the prior
@@ -881,7 +881,10 @@ class S3C(Model, Block):
         else:
             assert len(H_sample.type.broadcastable) == 2
 
-        pos_s_sample = theano_rng.normal( size = hid_shape, avg = self.mu, std = T.sqrt(1./self.alpha) )
+        if S_sample is None:
+            pos_s_sample = theano_rng.normal( size = hid_shape, avg = self.mu, std = T.sqrt(1./self.alpha) )
+        else:
+            pos_s_sample = S_sample
 
         final_hs_sample = H_sample * pos_s_sample
 
