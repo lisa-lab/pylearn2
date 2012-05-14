@@ -665,14 +665,11 @@ class InferenceProcedure:
         return rval
 
 
-    def __init__(self, monitor_kl = False):
+    def __init__(self, layer_schedule = None, monitor_kl = False):
         self.autonomous = False
         self.model = None
         self.monitor_kl = monitor_kl
-        #for the current project, DBM need not implement its own inference, so the constructor
-        #doesn't need an update schedule, etc.
-        #note: can't do monitor_em_functional since Z is not tractable
-
+        self.layer_schedule = layer_schedule
 
     def register_model(self, model):
         self.model = model
@@ -715,6 +712,8 @@ class InferenceProcedure:
         total = bottom_up + top_down + b
 
         H_hat = T.nnet.sigmoid(total)
+
+        return H_hat
 
     def infer_H_hat_one_sided(self, other_H_hat, W, b):
         """ W should be arranged such that other_H_hat.shape[1] == W.shape[0] """
@@ -772,21 +771,24 @@ class InferenceProcedure:
 
         history = [ make_dict() ]
 
-        for layer in self.layer_update_schedule:
+        for layer in self.layer_schedule:
+
+            assert H[layer] is not None
 
             if layer == 0:
-                if len(self.model.W) > 1:
-                    H[layer] = self.infer_H_hat_one_sided(other_H = V, W = self.model.W[0], bias = self.model.bias_hid[0])
-            elif layer == len(self.model.W) -1:
-                if len(self.model.W) == 1:
-                    ipt = V
-                else:
-                    ipt = H[layer-1]
-                H[layer] = self.infer_H_hat_one_sided(other_H = ipt, W = self.model.W[layer], bias = self.model.bias_hid[0])
+                ipt = V
             else:
-                H[layer] = self.infer_H_hat_two_sided(H_below = H[layer-1], H_above = H[layer+1],
+                ipt = H[layer-1]
+
+            if layer == len(self.model.W) -1:
+                H[layer] = self.infer_H_hat_one_sided(other_H_hat = ipt, W = self.model.W[layer], b = self.model.bias_hid[layer])
+                assert H[layer] is not None
+            else:
+
+                H[layer] = self.infer_H_hat_two_sided(H_hat_below = ipt, H_hat_above = H[layer+1],
                         W_below = self.model.W[layer], W_above = self.model.W[layer+1],
-                        bias = self.model.bias_hid[layer])
+                        b = self.model.bias_hid[layer])
+                assert H[layer] is not None
 
             check_H(H[layer],V)
 
