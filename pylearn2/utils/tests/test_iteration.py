@@ -92,7 +92,7 @@ def test_random_slice():
     for iter_slice in iterator:
         assert iter_slice.start >= 0
         assert iter_slice.step is None or iter_slice.step == 1
-        assert iter_slice.stop < 50
+        assert iter_slice.stop <= 50
         assert iter_slice.stop - iter_slice.start == 5
         num += 1
     assert num == 10
