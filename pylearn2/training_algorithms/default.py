@@ -35,13 +35,14 @@ class DefaultTrainingAlgorithm(object):
 
         self.monitor = Monitor.get_monitor(model)
         X = T.matrix()
+        Y = T.matrix()
         if self.monitoring_dataset is not None:
             self.monitor.set_dataset(dataset=self.monitoring_dataset,
                                 mode="sequential",
                                 batch_size=self.batch_size,
                                 num_batches=self.monitoring_batches)
             X.tag.test_value = self.monitoring_dataset.get_batch_design(2)
-            channels = model.get_monitoring_channels(X)
+            channels = model.get_monitoring_channels(X,Y)
             if not isinstance(channels, dict):
                 raise TypeError("model.get_monitoring_channels must return a "
                                 "dictionary, but it returned " + str(channels))
@@ -53,7 +54,7 @@ class DefaultTrainingAlgorithm(object):
                 else:
                     prereqs = None
                 self.monitor.add_channel(name=name,
-                                         ipt=X,
+                                         ipt=(X,Y),
                                          val=J,
                                          prereqs=prereqs)
         self.first = True

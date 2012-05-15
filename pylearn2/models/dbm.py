@@ -127,7 +127,8 @@ class DBM(Model):
 
         if self.num_classes > 0:
             self.bias_class = sharedX(np.zeros((self.num_classes,)), name = 'bias_class')
-            self.W_class = sharedX( .001 * self.rng.randn((self.rbms[-1].nhid, self.num_classes)),
+            nhid = self.bias_hid[-1].get_value().shape[0]
+            self.W_class = sharedX( .001 * self.rng.randn(nhid, self.num_classes),
                                     name = 'W_class')
 
         self.redo_everything()
@@ -316,7 +317,7 @@ class DBM(Model):
                 prob = ip.infer_H_hat_one_sided(other_H_hat = ipt, W = self.W[-1], b = self.bias_hid[-1])
             else:
                 prob = ip.infer_H_hat_two_sided(H_hat_below = ipt, H_hat_above = rval[self.Y_chains],
-                        W_below = self.W[i], W_above = self.W_class, b = self.bias_hid[-1])
+                        W_below = self.W[-1], W_above = self.W_class, b = self.bias_hid[-1])
 
             sample = sample_from(prob)
 
@@ -345,7 +346,7 @@ class DBM(Model):
 
         rval_H = [ H_sample for H_sample in H_samples ]
 
-        assert (Y_sample is None) == (self.num_samples == 0)
+        assert (Y_sample is None) == (self.num_classes == 0)
 
         for i in xrange(0,len(rval_H),2):
             #Special case for layer 0--it is attached to the input
@@ -585,7 +586,7 @@ class DBM(Model):
         assert len(total.type.broadcastable) == 0
 
         if Y_hat is not None:
-            weights_contrib = (T.dot(H_hat[-1], self.model.W_class) * Y_hat).sum(axis=1).mean()
+            weights_contrib = (T.dot(H_hat[-1], self.W_class) * Y_hat).sum(axis=1).mean()
             bias_contrib = T.dot(T.mean(Y_hat,axis=0), self.bias_class)
             total = total + weights_contrib + bias_contrib
 
@@ -663,7 +664,9 @@ class DBM(Model):
 
         if Y_hat is not None:
             weights_contrib = (T.dot(H_hat[-1], self.W_class) * Y_hat).sum(axis=1)
-            bias_contrib = T.dot(H_hat[-1], Y_hat)
+            assert weights_contrib.ndim == 1
+            bias_contrib = T.dot(Y_hat, self.bias_class)
+            assert bias_contrib.ndim == 1
             total = total + weights_contrib + bias_contrib
 
         assert len(total.type.broadcastable) == 1
@@ -736,22 +739,8 @@ class InferenceProcedure:
 
         """
 
-    def get_monitoring_channels(self, V, model):
-
-        rval = {}
-
-        if self.monitor_kl or self.monitor_em_functional:
-            obs_history = self.infer(V, return_history = True)
-
-            for i in xrange(1, 2 + len(self.h_new_coeff_schedule)):
-                obs = obs_history[i-1]
-                if self.monitor_kl:
-                    rval['trunc_KL_'+str(i)] = self.truncated_KL(V, model, obs).mean()
-                if self.monitor_em_functional:
-                    rval['em_functional_'+str(i)] = self.em_functional(V, model, obs).mean()
-
-        return rval
-
+    def get_monitoring_channels(self):
+        raise NotImplementedError()
 
     def __init__(self, layer_schedule = None, monitor_kl = False):
         self.autonomous = False
@@ -761,10 +750,8 @@ class InferenceProcedure:
 
     def register_model(self, model):
         self.model = model
-        if self.model.num_classes > 0:
-            raise NotImplementedError("This inference procedure doesn't support using a class variable as part of the DBM yet")
 
-    def truncated_KL(self, V, obs, no_v_bias = False):
+    def truncated_KL(self, V, Y, obs, no_v_bias = False):
         """ KL divergence between variation and true posterior, dropping terms that don't
             depend on the variational parameters
 
@@ -777,6 +764,8 @@ class InferenceProcedure:
             <truncated version>        = -sum_h Q(h) log P( h, v) + sum_h Q(h) log Q(h)
                                        = -sum_h Q(h) log exp( -E (h,v)) + sum_h Q(h) log Z + sum_H Q(h) log Q(h)
             <truncated version>        = sum_h Q(h) E(h, v) + sum_h Q(h) log Q(h)
+
+            this comment was written before adding support for Y
         """
 
         H_hat = obs['H_hat']
@@ -787,13 +776,12 @@ class InferenceProcedure:
 
         entropy_term = - self.model.entropy_h(H_hat = H_hat)
         assert len(entropy_term.type.broadcastable) == 1
-        energy_term = self.model.expected_energy_batch(V_hat = V, H_hat = H_hat, no_v_bias = no_v_bias)
+        energy_term = self.model.expected_energy_batch(V_hat = V, H_hat = H_hat, Y_hat = Y, no_v_bias = no_v_bias)
         assert len(energy_term.type.broadcastable) == 1
 
         KL = entropy_term + energy_term
 
         return KL
-
 
     def infer_H_hat_two_sided(self, H_hat_below, W_below, H_hat_above, W_above, b):
 
@@ -807,6 +795,11 @@ class InferenceProcedure:
 
     def infer_H_hat_one_sided(self, other_H_hat, W, b):
         """ W should be arranged such that other_H_hat.shape[1] == W.shape[0] """
+
+        if W is self.model.W[-1]:
+            assert self.model.num_classes == 0
+            #shouldn't be using one-sided inference when there is also top-down influence from
+            #labels
 
         dot = T.dot(other_H_hat, W)
         presigmoid = dot + b
@@ -836,6 +829,9 @@ class InferenceProcedure:
                                 returns a dictionary containing the final
                                 variational parameters
         """
+
+        if self.model.num_classes > 0:
+            raise NotImplementedError("This inference procedure doesn't support using a class variable as part of the DBM yet")
 
         H   =    self.init_H_hat(V)
 

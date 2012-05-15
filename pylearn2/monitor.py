@@ -289,6 +289,7 @@ class Monitor(object):
             The display name in the monitor.
         ipt: tensor_like
             The symbolic tensor which should be clamped to the data.
+            (or a (features,targets) list/tuple containing two symbolic tensors)
         val: tensor_like
             The value (function of `ipt`) to be tracked.
         """
@@ -298,6 +299,7 @@ class Monitor(object):
                              name)
         if isinstance(ipt, (list, tuple)):
             self.require_label = True
+            assert len(ipt) == 2
         self.channels[name] = MonitorChannel(ipt, val, name, prereqs)
         self._dirty = True
 
@@ -361,6 +363,8 @@ class MonitorChannel(object):
         self.graph_input = graph_input
         self.val = val
         self.val_shared = sharedX(0.0, name + "_tracker")
+        if not hasattr(val,'dtype'):
+            raise TypeError('Monitor channel '+name+' has value of type '+str(type(val)))
         if val.dtype != self.val_shared.dtype:
             raise ValueError('monitor channels are expected to have dtype ' \
                     +str(self.val_shared.dtype) + ' but "'+name+'" has dtype '\
