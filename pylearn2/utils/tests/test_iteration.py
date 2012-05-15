@@ -29,6 +29,26 @@ def test_misc_exceptions():
     assert raised
 
 
+def test_correct_sequential_slices():
+    iterator = SequentialSubsetIterator(10, 3, 4)
+    sl = iterator.next()
+    assert sl.start == 0
+    assert sl.stop == 3
+    assert sl.step is None
+    sl = iterator.next()
+    assert sl.start == 3
+    assert sl.stop == 6
+    assert sl.step is None
+    sl = iterator.next()
+    assert sl.start == 6
+    assert sl.stop == 9
+    assert sl.step is None
+    sl = iterator.next()
+    assert sl.start == 9
+    assert sl.stop == 10
+    assert sl.step is None
+
+
 def test_sequential_num_batches_and_batch_size():
     try:
         # This should be fine, we have enough examples for 4 batches
