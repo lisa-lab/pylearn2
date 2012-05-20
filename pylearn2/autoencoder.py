@@ -34,7 +34,7 @@ class Autoencoder(Block, Model):
     much of the necessary functionality and override what they need.
     """
     def __init__(self, nvis, nhid, act_enc, act_dec,
-                 tied_weights=False, irange=None, rng=9001):
+                 tied_weights=False, irange=1e-3, rng=9001):
         """
         Allocate an autoencoder object.
 
@@ -78,6 +78,7 @@ class Autoencoder(Block, Model):
 
         # Save a few parameters needed for resizing
         self.nhid = nhid
+        self.irange = irange
         self.tied_weights = tied_weights
         if not hasattr(rng, 'randn'):
             self.rng = numpy.random.RandomState(rng)
@@ -86,7 +87,7 @@ class Autoencoder(Block, Model):
         self._initialize_hidbias()
         if nvis > 0:
             self._initialize_visbias(nvis)
-            self._initialize_weights(nvis, irange=irange)
+            self._initialize_weights(nvis)
         else:
             self.visbias = None
             self.weights = None
@@ -96,7 +97,7 @@ class Autoencoder(Block, Model):
         if tied_weights:
             self.w_prime = self.weights.T
         else:
-            self._initialize_w_prime(nvis, irange=irange)
+            self._initialize_w_prime(nvis)
 
         def _resolve_callable(conf, conf_attr):
             if conf[conf_attr] is None or conf[conf_attr] == "linear":
@@ -129,13 +130,10 @@ class Autoencoder(Block, Model):
         if rng is None:
             rng = self.rng
         if irange is None:
-            # Xavier's smart default.
-            # Equation 16 of Glorot et al, AISTATS 2010.
-            # Doubled and then halved to maintain compatibility with previous
-            # semantics of "irange".
-            irange = 2 * numpy.sqrt(6 / (nvis + self.nhid))
+            irange = self.irange
+        # TODO: use weight scaling factor if provided, Xavier's default else
         self.weights = sharedX(
-            rng.uniform(-irange / 2., irange / 2., size=(nvis, self.nhid)),
+            (.5 - rng.rand(nvis, self.nhid)) * irange,
             name='W',
             borrow=True
         )
@@ -155,18 +153,16 @@ class Autoencoder(Block, Model):
         )
 
     def _initialize_w_prime(self, nvis, rng=None, irange=None):
-        if self.tied_weights:
-            raise ValueError("Can't initialize w_prime in tied weights model")
+        assert not self.tied_weights, (
+            "Can't initialize w_prime in tied weights model; "
+            "this method shouldn't have been called"
+        )
         if rng is None:
             rng = self.rng
         if irange is None:
-            # Xavier's smart default.
-            # Equation 16 of Glorot et al, AISTATS 2010.
-            # Doubled and then halved to maintain compatibility with previous
-            # semantics of "irange".
-            irange = 2 * numpy.sqrt(6 / (nvis + self.nhid))
+            irange = self.irange
         self.w_prime = sharedX(
-            rng.uniform(-irange / 2., irange / 2., size=(nvis, self.nhid)),
+            (.5 - rng.rand(self.nhid, nvis)) * irange,
             name='Wprime',
             borrow=True
         )
@@ -322,7 +318,7 @@ class DenoisingAutoencoder(Autoencoder):
     reconstructing a noisy version of it.
     """
     def __init__(self, corruptor, nvis, nhid, act_enc, act_dec,
-                 tied_weights=False, irange=None, rng=9001):
+                 tied_weights=False, irange=1e-3, rng=9001):
         """
         Allocate a denoising autoencoder object.
 
@@ -470,7 +466,7 @@ class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
     Adds higher orders regularization
     """
     def __init__(self, corruptor, num_corruptions, nvis, nhid, act_enc,
-                    act_dec, tied_weights=False, irange=None, rng=9001):
+                    act_dec, tied_weights=False, irange=1e-3, rng=9001):
         """
         Allocate a higher order contractive autoencoder object.
 
@@ -572,7 +568,7 @@ class DeepComposedAutoencoder(Autoencoder):
 
 
 def build_stacked_ae(nvis, nhids, act_enc, act_dec,
-                     tied_weights=False, irange=None, rng=None,
+                     tied_weights=False, irange=1e-3, rng=None,
                      corruptor=None, contracting=False):
     """Allocate a stack of autoencoders."""
     if not hasattr(rng, 'randn'):
