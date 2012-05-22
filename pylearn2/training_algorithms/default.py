@@ -80,6 +80,10 @@ class DefaultTrainingAlgorithm(object):
                         model.force_batch_size)
 
         for i in xrange(self.batches_per_iter):
-            model.learn(dataset, batch_size)
+            # model.learn and self.train both return False when training should terminate.
+            learn_more = model.learn(dataset, batch_size)
+            if not learn_more:
+                return False
             model.monitor.report_batch( batch_size )
+
         return True
