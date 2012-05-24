@@ -1,5 +1,5 @@
 import theano
-from theano import tensor
+from theano import tensor, config
 import numpy
 import linear_cg
 import scipy.linalg
@@ -9,10 +9,10 @@ def test_linear_cg():
     rng = numpy.random.RandomState([1,2,3])
     n = 5
     M = rng.randn(2*n,n)
-    M = numpy.dot(M.T,M)
-    b = rng.randn(n)
-    c = rng.randn()
-    x = theano.shared(rng.randn(n))
+    M = numpy.dot(M.T,M).astype(config.floatX)
+    b = rng.randn(n).astype(config.floatX)
+    c = rng.randn(1).astype(config.floatX)[0]
+    x = theano.shared(rng.randn(n).astype(config.floatX))
     f = 0.5 * tensor.dot(x,tensor.dot(M,x)) - tensor.dot(b,x) + c
     sol = linear_cg.linear_cg(f,[x])
 
