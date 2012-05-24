@@ -1,4 +1,5 @@
-import numpy as N
+import numpy as np
+N = np
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils import serial
 
@@ -34,6 +35,17 @@ class CIFAR100(dense_design_matrix.DenseDesignMatrix):
 
 
     def adjust_for_viewer(self, X):
+
+        #this is a bit of a hack
+        #it detects older saved pkls, which are probably preprocessed somehow
+        #really, the preprocessing needs to update the behavior of adjust_for_viewer
+        if not hasattr(self, 'center'):
+            rval = X.copy()
+            rval = rval.T
+
+            rval /= np.abs(rval).max(axis=0)
+            return rval.T
+
 
         if self.center:
             return X / 127.5

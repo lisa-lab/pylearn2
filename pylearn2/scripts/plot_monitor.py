@@ -125,6 +125,8 @@ while True:
 
     ax.set_position([x0, y0, width * 0.8, height])
 
+    ax.ticklabel_format( scilimits = (-3,3), axis = 'both')
+
     plt.xlabel('# examples')
 
 

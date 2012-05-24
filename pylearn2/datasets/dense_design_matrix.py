@@ -398,7 +398,13 @@ class DenseDesignMatrix(Dataset):
         return self.X.shape[0]
 
     def get_batch_design(self, batch_size, include_labels=False):
-        idx = self.rng.randint(self.X.shape[0] - batch_size + 1)
+        try:
+            idx = self.rng.randint(self.X.shape[0] - batch_size + 1)
+        except ValueError:
+            if batch_size > self.X.shape[0]:
+                raise ValueError("Requested "+str(batch_size)+" examples"
+                    "from a dataset containing only "+str(self.X.shape[0]))
+            raise
         rx = self.X[idx:idx + batch_size, :]
         if include_labels:
             ry = self.y[idx:idx + batch_size]
@@ -485,4 +491,6 @@ def from_dataset(dataset, num_examples):
             #This patches a case where control.get_load_data() is false so dataset.X is None
             #This logic should be removed whenever we implement lazy loading
         raise
-    return DenseDesignMatrix(topo_view=V)
+    rval =  DenseDesignMatrix(topo_view=V)
+    rval.adjust_for_viewer = dataset.adjust_for_viewer
+    return rval

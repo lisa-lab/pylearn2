@@ -3,13 +3,15 @@ The module defining the Monitor and MonitorChannel objects used for
 tracking the changes in values of various quantities throughout training
 """
 import time
-from theano import function, shared
+from theano import function
 import theano.sparse
 import copy
 from pylearn2.config import yaml_parse
 from pylearn2.utils.string_utils import number_aware_alphabetical_key
+from pylearn2.utils import sharedX
 from theano import config
 import numpy as np
+from theano import tensor as T
 
 class Monitor(object):
     """
@@ -49,7 +51,7 @@ class Monitor(object):
             self.topo = False
         else:
             self.topo = len(vector.type.broadcastable) > 2
-                
+
         self.require_label = False
 
     def set_dataset(self, dataset, mode, batch_size=None, num_batches=None):
@@ -184,7 +186,7 @@ class Monitor(object):
         init_names = dir(self)
         updates = {}
         for channel in self.channels.values():
-            updates[channel.val_shared] = 0.0
+            updates[channel.val_shared] = np.cast[config.floatX](0.0)
         print "compiling begin_record_entry..."
         t1 = time.time()
         self.begin_record_entry = function(inputs=[], updates=updates)
@@ -206,17 +208,23 @@ class Monitor(object):
         it = self.dataset.iterator(mode=self._iteration_mode,
                                    num_batches=self._num_batches,
                                    batch_size=self._batch_size)
-        num_examples = float(it.num_examples)
+        num_examples = np.cast[config.floatX](float(it.num_examples))
         for channel in self.channels.values():
             if isinstance(channel.graph_input, (list, tuple)):
                 givens[channel.graph_input[0]] = X
                 givens[channel.graph_input[1]] = Y
             else:
                 givens[channel.graph_input] = X
-            val = channel.val * (X.shape[0] / num_examples)
+            val = channel.val * T.cast(X.shape[0], config.floatX) / num_examples
             updates[channel.val_shared] = channel.val_shared + val
         print "compiling accum..."
         t1 = time.time()
+        for key in updates:
+            if key.dtype != updates[key].dtype:
+                raise TypeError('Monitoring channel shared variable ' \
+                        + key.name + ' has dtype ' + key.dtype + \
+                        ' but is driven by an expression with type ' + \
+                        updates[key].dtype)
         if self.require_label:
             self.accum = function([X, Y], givens=givens, updates=updates)
         else:
@@ -352,7 +360,14 @@ class MonitorChannel(object):
         self.prereqs = prereqs
         self.graph_input = graph_input
         self.val = val
-        self.val_shared = shared(0.0, name + "_tracker")
+        self.val_shared = sharedX(0.0, name + "_tracker")
+        if val.dtype != self.val_shared.dtype:
+            raise ValueError('monitor channels are expected to have dtype ' \
+                    +str(self.val_shared.dtype) + ' but "'+name+'" has dtype '\
+                    +str(val.dtype))
+        if val.ndim != 0:
+            raise ValueError('monitor channels are supposed to have zero dimensions ' \
+                    ' but "'+name+'" has '+str(val.ndim))
         # Value of the desired quantity at measurement time.
         self.val_record = []
         # Number of batches seen at measurement time.

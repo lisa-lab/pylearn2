@@ -15,6 +15,8 @@ from theano.gof.op import get_debug_values, debug_error_message
 from pylearn2.utils import make_name, sharedX, as_floatX
 from pylearn2.expr.information_theory import entropy_binary_vector
 from theano.tensor.shared_randomstreams import RandomStreams
+from pylearn2.models.rbm import RBM
+from pylearn2.expr.nnet import sigmoid_numpy
 
 warnings.warn('s3c changing the recursion limit')
 import sys
@@ -26,23 +28,21 @@ from pylearn2.models.s3c import full_min
 from pylearn2.models.s3c import full_max
 from theano.printing import min_informative_str
 from theano.printing import Print
-
-warnings.warn("""
-TODO/NOTES
-The sampler ought to store the state of all but the topmost hidden layer
-learning updates will be based on marginalizing out this topmost layer
-to reduce noise a bit
-each round of negative phase sampling should start by sampling the topmost
-layer, then sampling downward from there
-actually, couldn't I marginalize out all the odd or all the even layers?
-""")
+from scipy import io
 
 class Sampler:
-    def __init__(self, theano_rng):
+    def __init__(self, theano_rng, kind = 'binomial'):
         self.theano_rng = theano_rng
+        self.kind = kind
 
     def __call__(self, P):
-        return self.theano_rng.binomial(size = P.shape, n = 1, p = P, dtype = P.dtype)
+        kind = self.kind
+        if kind == 'binomial':
+            return self.theano_rng.binomial(size = P.shape, n = 1, p = P, dtype = P.dtype)
+        elif kind == 'multinomial':
+            return self.theano_rng.multinomial( n = 1, pvals = P, dtype = P.dtype)
+        else:
+            raise ValueError("Unrecognized sampling kind: "+kind)
 
 class DBM(Model):
 
@@ -51,6 +51,7 @@ class DBM(Model):
                         negative_chains = 0,
                        inference_procedure = None,
                        monitor_params = False,
+                       num_classes = 0,
                        print_interval = 10000):
         """
             rbms: list of rbms to stack
@@ -66,13 +67,16 @@ class DBM(Model):
             inference_procedure: a pylearn2.models.dbm.InferenceProcedure object
                 (if None, assumes the model is not meant to run on its own)
             print_interval: every print_interval examples, print out a status summary
-
+            num_classes: if > 0, makes an extra visible layer attached to the deepest
+                        hidden layer. this layer is one-hot and driven by the labels
+                        from the data
         """
 
         self.sampling_steps = 5
         self.monitor_params = monitor_params
 
         self.use_cd = use_cd
+        self.num_classes = num_classes
 
         if use_cd:
             assert negative_chains == 0
@@ -121,6 +125,11 @@ class DBM(Model):
 
         self.reset_rng()
 
+        if self.num_classes > 0:
+            self.bias_class = sharedX(np.zeros((self.num_classes,)), name = 'bias_class')
+            self.W_class = sharedX( .001 * self.rng.randn((self.rbms[-1].nhid, self.num_classes)),
+                                    name = 'W_class')
+
         self.redo_everything()
 
     def reset_rng(self):
@@ -130,6 +139,7 @@ class DBM(Model):
         """ compiles learn_func if necessary
             makes new negative chains
             does not reset weights or biases
+            TODO: figure out how to make the semantics of this cleaner / more in line with other models
         """
 
         #compile learn_func if necessary
@@ -139,8 +149,21 @@ class DBM(Model):
         #make the negative chains
         if not self.use_cd:
             self.V_chains = self.make_chains(self.bias_vis)
+            self.V_chains.name = 'dbm_V_chains'
 
             self.H_chains = [ self.make_chains(bias_hid) for bias_hid in self.bias_hid ]
+            for i, H_chain in enumerate(self.H_chains):
+                H_chain.name = 'dbm_H[%d]_chain' % i
+
+            if self.num_classes > 0:
+                P = np.zeros((self.negative_chains, self.num_classes)) \
+                        + T.nnet.softmax( self.bias_class )
+                temp_theano_rng = RandomStreams(87)
+                sample_from = Sampler(temp_theano_rng, 'multinomial')
+                values = function([],sample_from(P))()
+                self.Y_chains = sharedX(values, 'Y_chains')
+            else:
+                self.Y_chains = None
 
 
     def make_chains(self, bias):
@@ -161,7 +184,7 @@ class DBM(Model):
 
         driver = self.rng.uniform(0.0, 1.0, shape)
 
-        thresh = 1./(1.+np.exp(-b))
+        thresh = sigmoid_numpy(b)
 
         value = driver < thresh
 
@@ -225,6 +248,13 @@ class DBM(Model):
             print " norms: ",(norms.min(),norms.mean(),norms.max())
             bh = self.bias_hid[i].get_value(borrow=True)
             print "bias_hid[%d]"%i,(bh.min(),bh.mean(),bh.max())
+        if self.num_classes > 0:
+            W = self.W_class.get_value(borrow=True)
+            print "W_class",(W.min(),W.mean(),W.max())
+            norms = numpy_norms(W)
+            print " norms: ",(norms.min(),norms.mean(),norms.max())
+            bc = self.bias_class.get_value(borrow=True)
+            print "bias_class",(bc.min(),bc.mean(),bc.max())
 
 
     def get_sampling_updates(self):
@@ -238,8 +268,13 @@ class DBM(Model):
         rval[self.V_chains] = self.V_chains
         for H_chains in self.H_chains:
             rval[H_chains] = H_chains
+        if self.num_classes > 0:
+            rval[self.Y_chains] = self.Y_chains
 
-        sample_from = Sampler(RandomStreams(17))
+        driver = RandomStreams(17)
+        sample_from = Sampler(driver)
+        sample_multi = Sampler(driver,'multinomial')
+
 
         warnings.warn("""TODO: update the sampler
                 to sample all odd and then all even layers
@@ -277,23 +312,89 @@ class DBM(Model):
             else:
                 ipt = rval[self.V_chains]
 
-            prob = ip.infer_H_hat_one_sided(other_H_hat = ipt, W = self.W[-1], b = self.bias_hid[-1])
+            if self.num_classes == 0:
+                prob = ip.infer_H_hat_one_sided(other_H_hat = ipt, W = self.W[-1], b = self.bias_hid[-1])
+            else:
+                prob = ip.infer_H_hat_two_sided(H_hat_below = ipt, H_hat_above = rval[self.Y_chains],
+                        W_below = self.W[i], W_above = self.W_class, b = self.bias_hid[-1])
 
             sample = sample_from(prob)
 
             rval[self.H_chains[-1]] = sample
 
+            #sample the class labels
+            if self.num_classes > 0:
+                prob = ip.infer_Y_hat( H_hat = rval[self.H_chains[-1]] )
+                sample = sample_multi(prob)
+                rval[self.Y_chains] = sample
+
         return rval
 
+    def rao_blackwellize(self, V_sample, H_samples, Y_sample = None):
+        """ Returns a new H_samples list with the the even-numbered
+        layers of hidden samples replaced by activation probabilities """
 
-    def get_cd_neg_phase_grads(self, V, H_hat):
+
+        #TODO: update this so user can control whether
+        #to integrate out odd or even layers
+        #for now always integrates out even hidden layers
+        #because this makes sure it always integrates out
+        #something even when the DBM is just an RBM
+
+        ip = self.inference_procedure
+
+        rval_H = [ H_sample for H_sample in H_samples ]
+
+        assert (Y_sample is None) == (self.num_samples == 0)
+
+        for i in xrange(0,len(rval_H),2):
+            #Special case for layer 0--it is attached to the input
+            if i ==  0:
+                #Only do this case if it is not the last layer. Otherwise the last layer special case will catch it
+                if len(self.H_chains) > 1:
+                    rval_H[i] = ip.infer_H_hat_two_sided(H_hat_below = V_sample, H_hat_above = rval_H[H_samples[i+1]],
+                            W_below = self.W[0], W_above = self.W[1], b = self.bias_hid[0])
+
+            if i > 0 and i < len(rval_H) - 1:
+                #Case for intermediate layers
+                rval_H[i] = ip.infer_H_hat_two_sided(H_hat_below = H_samples[i-1], H_hat_above = H_samples[i+1],
+                        W_below = self.W[i], W_above = self.W[i+1], b = self.bias_hid[i])
+
+            if i == len(rval_H) - 1:
+                #case for final layer
+                if len(rval_H) > 1:
+                    assert H_samples[-2] is H_samples[i-1]
+                    ipt = H_samples[-2]
+                else:
+                    ipt = V_sample
+
+                assert self.bias_hid[i] is self.bias_hid[-1]
+
+                if Y_sample is None:
+                    rval_H[i] = ip.infer_H_hat_one_sided(other_H_hat = ipt, W = self.W[-1], b = self.bias_hid[-1])
+                else:
+                    rval_H[i] = ip.infer_H_hat_two_sided(H_hat_below = ipt, W_below = self.W[-1], b = self.bias_hid[-1],
+                            W_above = self.W_class, H_hat_above = Y_sample)
+
+        if Y_sample is None:
+            rval_Y = None
+        else:
+            if len(rval_H) % 2 == 0:
+                rval_Y = ip.infer_Y_hat(H_hat = H_samples[-1])
+            else:
+                rval_Y = Y_sample
+
+        return rval_H, rval_Y
+
+    def get_cd_neg_phase_grads(self, V, H_hat, Y = None):
 
         assert self.use_cd
         assert not hasattr(self, 'V_chains')
-
         assert len(H_hat) == len(self.rbms)
+        assert (Y is None) == (self.num_classes == 0)
 
-        sample_from = Sampler(RandomStreams(17))
+        driver = RandomStreams(42)
+        sample_from = Sampler(driver)
 
         H_samples = []
 
@@ -302,35 +403,46 @@ class DBM(Model):
 
         ip = self.inference_procedure
 
-        for i in xrange(len(H_hat)-1,-1,-1):
+        #leave the top layer as-is: a sample from Q
+        #use it as the starting point to resample everything else
+        # (the lower hidden layers, V, and, if applicable, Y)
 
+        if Y is None:
+            Y_sample = None
+        else:
+            Y_hat = ip.infer_class(H_hat = H_samples[-1])
+            sample_multinomial = Sampler(driver,'multinomial')
+            Y_sample = sample_multinomial(Y_hat)
+
+        for i in xrange(len(H_samples)-2,-1,-1):
             if i > 0:
-                P = ip.infer_H_hat_two_sided(H_hat_below = H_samples[i-1], H_hat_above = H_samples[i+1],
-                        W_below = self.W[i], W_above = self.W[i+1], b = self.bias_hid[i])
-                H_samples[i] = sample_from(P)
-
-        if len(H_hat) > 1:
-            H_hat[0] = sample_from(ip.infer_H_hat_two_sided(H_hat_below = V, H_hat_above = H_samples[1],
-                    W_below = self.W[0], W_above = self.W[1], b = self.bias_hid[0]))
+                H_hat_below = H_samples[i-1]
+            else:
+                H_hat_below = V
+            prob = ip.infer_H_hat_two_sided( H_hat_below = H_hat_below, H_hat_above = H_samples[i+1],
+                    W_below = self.W[i], W_above = self.W[i+1], b = self.bias_hid[i])
+            H_samples[i] = sample_from(prob)
 
         V_sample = sample_from(ip.infer_H_hat_one_sided(other_H_hat = H_hat[0], W = self.W[0].T, b = self.bias_vis))
 
-        return self.get_neg_phase_grads_from_samples(V_sample, H_samples)
+        return self.get_neg_phase_grads_from_samples(V_sample, H_samples, Y_sample)
 
     def get_neg_phase_grads(self):
         """ returns a dictionary mapping from parameters to negative phase gradients
-            (assuming you're doing gradient ascent on variational free energy)
+            (assuming you're doing gradient ascent on negative variational free energy)
         """
 
         assert not self.use_cd
 
-        return self.get_neg_phase_grads_from_samples(self.V_chains, self.H_chains)
+        return self.get_neg_phase_grads_from_samples(self.V_chains, self.H_chains, self.Y_chains)
 
-    def get_neg_phase_grads_from_samples(self, V_sample, H_samples):
+    def get_neg_phase_grads_from_samples(self, V_sample, H_samples, Y_sample = None):
 
-        obj = self.expected_energy(V_hat = V_sample, H_hat = H_samples)
+        H_rao_blackwell, Y_rao_blackwell = self.rao_blackwellize(V_sample, H_samples, Y_sample)
 
-        constants = list(set(H_samples).union([V_sample]))
+        obj = self.expected_energy(V_hat = V_sample, H_hat = H_rao_blackwell, Y_hat = Y_rao_blackwell)
+
+        constants = list(set(H_rao_blackwell).union([V_sample, Y_rao_blackwell]))
 
         params = self.get_params()
 
@@ -359,7 +471,12 @@ class DBM(Model):
             assert self.W[i].name is not None
             assert self.bias_hid[i].name is not None
 
+        if self.num_classes > 0:
+            rval = rval.union([self.W_class, self.bias_class])
+
         rval = list(rval)
+
+        assert self.bias_hid[0] in rval
 
         return rval
 
@@ -406,7 +523,7 @@ class DBM(Model):
 
         #return V_sample
 
-    def expected_energy(self, V_hat, H_hat, no_v_bias = False):
+    def expected_energy(self, V_hat, H_hat, Y_hat = None, no_v_bias = False):
         """ expected energy of the model under the mean field distribution
             defined by V_hat and H_hat
             alternately, could be expectation of the energy function across
@@ -415,6 +532,7 @@ class DBM(Model):
             if no_v_bias is True, ignores the contribution from biases on visible units
         """
 
+        assert (Y_hat is None) == (self.num_classes == 0)
 
         V_name = make_name(V_hat, 'anon_V_hat')
         assert isinstance(H_hat, (list,tuple))
@@ -466,6 +584,11 @@ class DBM(Model):
 
         assert len(total.type.broadcastable) == 0
 
+        if Y_hat is not None:
+            weights_contrib = (T.dot(H_hat[-1], self.model.W_class) * Y_hat).sum(axis=1).mean()
+            bias_contrib = T.dot(T.mean(Y_hat,axis=0), self.bias_class)
+            total = total + weights_contrib + bias_contrib
+
         rval =  - total
 
         #rval.name = 'dbm_expected_energy('+V_name+','+str(H_names)+')'
@@ -474,7 +597,7 @@ class DBM(Model):
 
 
 
-    def expected_energy_batch(self, V_hat, H_hat, no_v_bias = False):
+    def expected_energy_batch(self, V_hat, H_hat, Y_hat = None, no_v_bias = False):
         """ expected energy of the model under the mean field distribution
             defined by V_hat and H_hat
             alternately, could be expectation of the energy function across
@@ -484,6 +607,8 @@ class DBM(Model):
         """
 
         warnings.warn("TODO: write unit test verifying expected_energy_batch/m = expected_energy")
+
+        assert (Y_hat is None) == (self.num_classes == 0)
 
         V_name = make_name(V_hat, 'anon_V_hat')
         assert isinstance(H_hat, (list,tuple))
@@ -536,6 +661,11 @@ class DBM(Model):
 
         total = total + highest_bias_contrib
 
+        if Y_hat is not None:
+            weights_contrib = (T.dot(H_hat[-1], self.W_class) * Y_hat).sum(axis=1)
+            bias_contrib = T.dot(H_hat[-1], Y_hat)
+            total = total + weights_contrib + bias_contrib
+
         assert len(total.type.broadcastable) == 1
 
         rval =  - total
@@ -567,6 +697,7 @@ class DBM(Model):
         return total
 
     def redo_theano(self):
+        raise NotImplementedError("Not yet supported-- current project does not require DBM to learn on its own")
         try:
             self.compile_mode()
             init_names = dir(self)
@@ -583,9 +714,11 @@ class DBM(Model):
             self.deploy_mode()
 
     def learn(self, dataset, batch_size):
+        raise NotImplementedError("Not yet supported-- current project does not require DBM to learn on its own")
         self.learn_mini_batch(dataset.get_batch_design(batch_size))
 
     def learn_mini_batch(self, X):
+        raise NotImplementedError("Not yet supported-- current project does not require DBM to learn on its own")
 
         self.learn_func(X)
 
@@ -620,17 +753,16 @@ class InferenceProcedure:
         return rval
 
 
-    def __init__(self, monitor_kl = False):
+    def __init__(self, layer_schedule = None, monitor_kl = False):
         self.autonomous = False
         self.model = None
         self.monitor_kl = monitor_kl
-        #for the current project, DBM need not implement its own inference, so the constructor
-        #doesn't need an update schedule, etc.
-        #note: can't do monitor_em_functional since Z is not tractable
-
+        self.layer_schedule = layer_schedule
 
     def register_model(self, model):
         self.model = model
+        if self.model.num_classes > 0:
+            raise NotImplementedError("This inference procedure doesn't support using a class variable as part of the DBM yet")
 
     def truncated_KL(self, V, obs, no_v_bias = False):
         """ KL divergence between variation and true posterior, dropping terms that don't
@@ -671,6 +803,8 @@ class InferenceProcedure:
 
         H_hat = T.nnet.sigmoid(total)
 
+        return H_hat
+
     def infer_H_hat_one_sided(self, other_H_hat, W, b):
         """ W should be arranged such that other_H_hat.shape[1] == W.shape[0] """
 
@@ -680,6 +814,15 @@ class InferenceProcedure:
         H_hat = T.nnet.sigmoid(presigmoid)
 
         return H_hat
+
+    def infer_Y_hat(self, H_hat):
+
+        dot = T.dot(H_hat, self.model.W_class)
+        presoftmax = dot + self.model.bias_class
+
+        Y_hat = T.nnet.softmax(presoftmax)
+
+        return Y_hat
 
     def infer(self, V, return_history = False):
         """
@@ -694,21 +837,7 @@ class InferenceProcedure:
                                 variational parameters
         """
 
-
-        raise NotImplementedError("This method is not implemented yet. The code in this file is just copy-pasted from S3C")
-
-        #NOTE: I don't think this method needs to be implemented for the current project
-
-        """
-        alpha = self.model.alpha
-
-
-        var_s0_hat = 1. / alpha
-        var_s1_hat = self.var_s1_hat()
-
-
         H   =    self.init_H_hat(V)
-        Mu1 =    self.init_S_hat(V)
 
         def check_H(my_H, my_V):
             if my_H.dtype != config.floatX:
@@ -730,33 +859,37 @@ class InferenceProcedure:
 
                 assert Hv.shape[0] == Vv.shape[0]
 
-        check_H(H,V)
+        for H_elem in H:
+            check_H(H_elem, V)
 
         def make_dict():
 
             return {
                     'H_hat' : H,
-                    'S_hat' : Mu1,
-                    'var_s0_hat' : var_s0_hat,
-                    'var_s1_hat': var_s1_hat,
                     }
 
         history = [ make_dict() ]
 
-        for new_H_coeff, new_S_coeff in zip(self.h_new_coeff_schedule, self.s_new_coeff_schedule):
+        for layer in self.layer_schedule:
 
-            new_Mu1 = self.infer_S_hat(V, H, Mu1)
+            assert H[layer] is not None
 
-            if self.clip_reflections:
-                clipped_Mu1 = reflection_clip(Mu1 = Mu1, new_Mu1 = new_Mu1, rho = self.rho)
+            if layer == 0:
+                ipt = V
             else:
-                clipped_Mu1 = new_Mu1
-            Mu1 = self.damp(old = Mu1, new = clipped_Mu1, new_coeff = new_S_coeff)
-            new_H = self.infer_H_hat(V, H, Mu1)
+                ipt = H[layer-1]
 
-            H = self.damp(old = H, new = new_H, new_coeff = new_H_coeff)
+            if layer == len(self.model.W) -1:
+                H[layer] = self.infer_H_hat_one_sided(other_H_hat = ipt, W = self.model.W[layer], b = self.model.bias_hid[layer])
+                assert H[layer] is not None
+            else:
 
-            check_H(H,V)
+                H[layer] = self.infer_H_hat_two_sided(H_hat_below = ipt, H_hat_above = H[layer+1],
+                        W_below = self.model.W[layer], W_above = self.model.W[layer+1],
+                        b = self.model.bias_hid[layer])
+                assert H[layer] is not None
+
+            check_H(H[layer],V)
 
             history.append(make_dict())
 
@@ -764,7 +897,6 @@ class InferenceProcedure:
             return history
         else:
             return history[-1]
-        """
 
     def init_H_hat(self, V):
         """ Returns a list of matrices of hidden units, with same batch size as V
@@ -782,5 +914,53 @@ class InferenceProcedure:
 
         return H_hat
 
+def load_matlab_dbm(path):
+    """ Loads a two layer DBM stored in the format used by Ruslan Salakhutdinov's
+    matlab demo"""
 
+    d = io.loadmat(path)
+
+    for key in d:
+        try:
+            d[key] = np.cast[config.floatX](d[key])
+        except:
+            pass
+
+    visbiases = d['visbiases']
+    assert len(visbiases.shape) == 2
+    assert visbiases.shape[0] == 1
+    visbiases = visbiases[0,:]
+
+    hidbiases = d['hidbiases']
+    assert len(hidbiases.shape) == 2
+    assert hidbiases.shape[0] == 1
+    hidbiases = hidbiases[0,:]
+
+    penbiases = d['penbiases']
+    assert len(penbiases.shape) == 2
+    assert penbiases.shape[0] == 1
+    penbiases = penbiases[0,:]
+
+    vishid = d['vishid']
+    hidpen = d['hidpen']
+
+    D ,= visbiases.shape
+    N1 ,= hidbiases.shape
+    N2 ,= penbiases.shape
+
+    assert vishid.shape == (D,N1)
+    assert hidpen.shape == (N1,N2)
+
+    rbms = [ RBM( nvis = D, nhid = N1),
+            RBM( nvis = N1, nhid = N2) ]
+
+    dbm = DBM(rbms, negative_chains = 1)
+
+    dbm.bias_vis.set_value(visbiases)
+    dbm.bias_hid[0].set_value(hidbiases)
+    dbm.bias_hid[1].set_value(penbiases)
+    dbm.W[0].set_value(vishid)
+    dbm.W[1].set_value(hidpen)
+
+    return dbm
 
