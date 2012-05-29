@@ -94,6 +94,7 @@ class DenseDesignMatrix(Dataset):
     @functools.wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
                  topo=None, targets=None, rng=None):
+
         # TODO: Refactor, deduplicate with set_iteration_scheme
         if mode is None:
             if hasattr(self, '_iter_subset_class'):
@@ -407,14 +408,21 @@ class DenseDesignMatrix(Dataset):
             raise
         rx = self.X[idx:idx + batch_size, :]
         if include_labels:
+            if self.y is None:
+                return rx, None
             ry = self.y[idx:idx + batch_size]
             return rx, ry
         rx = np.cast[config.floatX](rx)
         return rx
 
-    def get_batch_topo(self, batch_size):
-        batch_design = self.get_batch_design(batch_size)
+    def get_batch_topo(self, batch_size, include_labels = False):
+        if include_labels:
+            batch_design, labels = self.get_batch_design(batch_size, True)
+        else:
+            batch_design = self.get_batch_design(batch_size)
         rval = self.view_converter.design_mat_to_topo_view(batch_design)
+        if include_labels:
+            return rval, labels
         return rval
 
     def view_shape(self):
@@ -422,6 +430,9 @@ class DenseDesignMatrix(Dataset):
 
     def weights_view_shape(self):
         return self.view_converter.weights_view_shape()
+
+    def has_targets(self):
+        return self.y is not None
 
 
 class DefaultViewConverter(object):
@@ -483,14 +494,14 @@ class DefaultViewConverter(object):
 
 def from_dataset(dataset, num_examples):
     try:
-        V = dataset.get_batch_topo(num_examples)
+        V, y = dataset.get_batch_topo(num_examples,True)
     except:
-        if isinstance(dataset, DenseDesignMatrix):
-            warnings.warn("from_dataset wasn't able to make subset of dataset, using the whole thing")
-            return DenseDesignMatrix(X = None, view_converter = dataset.view_converter)
-            #This patches a case where control.get_load_data() is false so dataset.X is None
-            #This logic should be removed whenever we implement lazy loading
+        if isinstance(dataset, DenseDesignMatrix) and dataset.X is None and not control.get_load_data():
+                warnings.warn("from_dataset wasn't able to make subset of dataset, using the whole thing")
+                return DenseDesignMatrix(X = None, view_converter = dataset.view_converter)
+                #This patches a case where control.get_load_data() is false so dataset.X is None
+                #This logic should be removed whenever we implement lazy loading
         raise
-    rval =  DenseDesignMatrix(topo_view=V)
+    rval =  DenseDesignMatrix(topo_view=V,y=y)
     rval.adjust_for_viewer = dataset.adjust_for_viewer
     return rval
