@@ -448,7 +448,10 @@ class DBM(Model):
 
         obj = self.expected_energy(V_hat = V_sample, H_hat = H_rao_blackwell, Y_hat = Y_rao_blackwell)
 
-        constants = list(set(H_rao_blackwell).union([V_sample, Y_rao_blackwell]))
+        constants = list(set(H_rao_blackwell).union([V_sample]))
+
+        if Y_rao_blackwell is not None:
+            constants = constants.union(Y_rao_blackwell)
 
         params = self.get_params()
 
@@ -914,6 +917,12 @@ class InferenceProcedure:
             H_hat.append(mat)
 
         return H_hat
+
+    def init_Y_hat(self, V):
+        value = T.nnet.sigmoid(self.model.bias_class)
+        mat = T.alloc(value, V.shape[0], value.shape[0])
+
+        return mat
 
 def load_matlab_dbm(path):
     """ Loads a two layer DBM stored in the format used by Ruslan Salakhutdinov's
