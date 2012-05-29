@@ -1214,6 +1214,14 @@ class S3C(Model, Block):
             self.deploy_mode()
 
     def learn(self, dataset, batch_size):
+
+        if self.set_B_to_marginal_precision:
+            assert not self.tied_B
+
+            var = dataset.X.var(axis=0)
+
+            self.B_driver.set_value( 1. / (var + .01))
+
         if self.stop_after_hack is not None:
             if self.monitor.examples_seen > self.stop_after_hack:
                 print 'stopping due to too many examples seen'
@@ -1246,6 +1254,11 @@ class S3C(Model, Block):
     def learn_mini_batch(self, X):
 
         self.learn_func(X)
+
+        if self.momentum_saturation_example is not None:
+            alpha = float(self.monitor.get_examples_seen()) / float(self.momentum_saturation_example)
+            alpha = min(alpha, 1.0)
+            self.momentum.set_value(np.cast[config.floatX]( (1.-alpha) * self.init_momentum + alpha * self.final_momentum))
 
         if self.monitor.get_examples_seen() % self.print_interval == 0:
             self.print_status()
@@ -1354,24 +1367,52 @@ class E_Step(object):
         rval = {}
 
         if self.autonomous:
-            if self.monitor_kl or self.monitor_energy_functional or self.monitor_s_mag:
+            if self.monitor_kl or self.monitor_energy_functional or self.monitor_s_mag \
+                    or self.monitor_ranges:
                 obs_history = self.model.get_hidden_obs(V, return_history = True)
                 assert isinstance(obs_history, list)
+
+
+                final_vals = obs_history[-1]
+                S_hat = final_vals['S_hat']
+                H_hat = final_vals['H_hat']
+                HS = H_hat * S_hat
+
+                hs_max = T.max(HS,axis=0)
+                hs_min = T.min(HS,axis=0)
+
+                hs_range = hs_max - hs_min
+
+                rval['hs_range_min'] = T.min(hs_range)
+                rval['hs_range_mean'] = T.mean(hs_range)
+                rval['hs_range_max'] = T.max(hs_range)
+
+                h_max = T.max(H_hat,axis=0)
+                h_min = T.min(H_hat,axis=0)
+
+                h_range = h_max - h_min
+
+                rval['h_range_min'] = T.min(h_range)
+                rval['h_range_mean'] = T.mean(h_range)
+                rval['h_range_max'] = T.max(h_range)
+
+
+
 
                 for i in xrange(1, 2 + len(self.h_new_coeff_schedule)):
                     obs = obs_history[i-1]
                     if self.monitor_kl:
                         if i == 1:
-                            rval['trunc_KL_'+str(i)] = self.truncated_KL(V, obs).mean()
+                            rval['trunc_KL_'+str(i)] = self.truncated_KL(V, obs =  obs).mean()
                         else:
                             coeff = self.h_new_coeff_schedule[i-2]
-                            rval['trunc_KL_'+str(i)+'.2(h '+str(coeff)+')'] = self.truncated_KL(V,obs).mean()
+                            rval['trunc_KL_'+str(i)+'.2(h '+str(coeff)+')'] = self.truncated_KL(V,obs = obs).mean()
                             obs = {}
                             for key in obs_history[i-1]:
                                 obs[key] = obs_history[i-1][key]
                             obs['H_hat'] = obs_history[i-2]['H_hat']
                             coeff = self.s_new_coeff_schedule[i-2]
-                            rval['trunc_KL_'+str(i)+'.1(s '+str(coeff)+')'] = self.truncated_KL(V,obs).mean()
+                            rval['trunc_KL_'+str(i)+'.1(s '+str(coeff)+')'] = self.truncated_KL(V,obs = obs).mean()
                             obs = obs_history[i-1]
                     if self.monitor_energy_functional:
                         rval['energy_functional_'+str(i)] = self.energy_functional(V, self.model, obs).mean()
@@ -1387,7 +1428,8 @@ class E_Step(object):
                        monitor_kl = False,
                        monitor_energy_functional = False,
                        monitor_s_mag = False,
-                       rho = 0.5):
+                       rho = 0.5,
+                       monitor_ranges = False):
         """Parameters
         --------------
         h_new_coeff_schedule:
@@ -1405,6 +1447,10 @@ class E_Step(object):
                     i.e. it will default to no damping beyond the reflection clipping
         clip_reflections, rho : if clip_reflections is true, the update to S_hat[i,j] is
             bounded on one side by - rho * S_hat[i,j] and unbounded on the other side
+        monitor_ranges: if True, adds the channels h_range_<min,mean,max> and
+                        hs_range_<min,mean_max>  showing the amounts that different
+                        h_hat and s_hat variational parameters change across the
+                        monitoring dataset
         """
 
         self.autonomous = True
@@ -1429,6 +1475,7 @@ class E_Step(object):
         self.h_new_coeff_schedule = h_new_coeff_schedule
         self.monitor_kl = monitor_kl
         self.monitor_energy_functional = monitor_energy_functional
+        self.monitor_ranges = monitor_ranges
 
         if self.autonomous:
             self.rho = as_floatX(rho)
@@ -1461,9 +1508,12 @@ class E_Step(object):
     def register_model(self, model):
         self.model = model
 
-    def truncated_KL(self, V, obs):
+    def truncated_KL(self, V, Y = None, obs = None):
         """ KL divergence between variation and true posterior, dropping terms that don't
             depend on the variational parameters """
+
+        assert Y is None
+        assert obs is not None
 
         H_hat = obs['H_hat']
         var_s0_hat = obs['var_s0_hat']
@@ -1767,6 +1817,7 @@ class Grad_M_Step:
     """
 
     def __init__(self, learning_rate = None, B_learning_rate_scale  = 1,
+            alpha_learning_rate_scale = 1.,
             W_learning_rate_scale = 1, p_penalty = 0.0, B_penalty = 0.0, alpha_penalty = 0.0):
 
         self.autonomous = True
@@ -1779,6 +1830,7 @@ class Grad_M_Step:
 
         self.B_learning_rate_scale = np.cast[config.floatX](float(B_learning_rate_scale))
         self.W_learning_rate_scale = np.cast[config.floatX](float(W_learning_rate_scale))
+        self.alpha_learning_rate_scale = np.cast[config.floatX](float(alpha_learning_rate_scale))
         self.p_penalty = as_floatX(p_penalty)
         self.B_penalty = as_floatX(B_penalty)
         self.alpha_penalty = as_floatX(alpha_penalty)
@@ -1808,31 +1860,40 @@ class Grad_M_Step:
                 #can't use *= since this is a numpy ndarray now
                 learning_rate = learning_rate * self.B_learning_rate_scale
 
-            if param is model.W and model.constrain_W_norm:
-                #project the gradient into the tangent space of the unit hypersphere
-                #see "On Gradient Adaptation With Unit Norm Constraints"
-                #this is the "true gradient" method on a sphere
-                #it computes the gradient, projects the gradient into the tangent space of the sphere,
-                #then moves a certain distance along a geodesic in that direction
+            if param is model.alpha:
+                learning_rate = learning_rate * self.alpha_learning_rate_scale
 
-                g_k = learning_rate * grad
+            if model.momentum_saturation_example is None:
+                if param is model.W and model.constrain_W_norm:
+                    #project the gradient into the tangent space of the unit hypersphere
+                    #see "On Gradient Adaptation With Unit Norm Constraints"
+                    #this is the "true gradient" method on a sphere
+                    #it computes the gradient, projects the gradient into the tangent space of the sphere,
+                    #then moves a certain distance along a geodesic in that direction
 
-                h_k = g_k -  (g_k*model.W).sum(axis=0) * model.W
+                    g_k = learning_rate * grad
 
-                theta_k = T.sqrt(1e-8+T.sqr(h_k).sum(axis=0))
+                    h_k = g_k -  (g_k*model.W).sum(axis=0) * model.W
 
-                u_k = h_k / theta_k
+                    theta_k = T.sqrt(1e-8+T.sqr(h_k).sum(axis=0))
 
-                updates[model.W] = T.cos(theta_k) * model.W + T.sin(theta_k) * u_k
+                    u_k = h_k / theta_k
 
+                    updates[model.W] = T.cos(theta_k) * model.W + T.sin(theta_k) * u_k
+
+                else:
+                    pparam = param
+
+                    inc = learning_rate * grad
+
+                    updated_param = pparam + inc
+
+                    updates[param] = updated_param
             else:
-                pparam = param
-
-                inc = learning_rate * grad
-
-                updated_param = pparam + inc
-
-                updates[param] = updated_param
+                #use momentum
+                inc = model.params_to_incs[param]
+                updates[inc] = model.momentum * inc + learning_rate * grad
+                updates[param] = param + inc
 
         return updates
 
