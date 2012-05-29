@@ -2,6 +2,7 @@
 import sys
 from pylearn2.utils import serial
 import cPickle
+import pickle
 import time
 from theano.printing import min_informative_str
 
@@ -24,6 +25,8 @@ will load an object obj from foo.pkl and analyze obj.my_field["my_key"][3]
 if len(sys.argv) == 1:
     usage()
     sys.exit(-1)
+
+hp = pickle.HIGHEST_PROTOCOL
 
 filepath = sys.argv[1]
 
@@ -56,7 +59,7 @@ print 'object: '+str(orig_obj)
 print 'object, longer description:\n'+min_informative_str(orig_obj, indent_level = 1)
 
 t1 = time.time()
-s = cPickle.dumps(orig_obj)
+s = cPickle.dumps(orig_obj, hp)
 t2 = time.time()
 prev_ts = t2 - t1
 
@@ -109,7 +112,7 @@ if not (isinstance(orig_obj, dict) or isinstance(orig_obj, list) ):
 
         #print hasattr(orig_obj, 'names_to_del')
         t1 = time.time()
-        s = cPickle.dumps(orig_obj)
+        s = cPickle.dumps(orig_obj, hp)
         t2 = time.time()
         new_ts = t2 - t1
         diff_ts = prev_ts - new_ts
@@ -131,9 +134,9 @@ if isinstance(orig_obj, dict):
     keys = [ key for key in orig_obj.keys() ]
 
     for key in keys:
-        del orig_obj[key]
+        orig_obj[key] = None
 
-        s = cPickle.dumps(orig_obj)
+        s = cPickle.dumps(orig_obj, hp)
         new_bytes = len(s)
         t1 = time.time()
         x = cPickle.loads(s)
@@ -143,7 +146,22 @@ if isinstance(orig_obj, dict):
         prev_t = new_t
         diff_bytes = prev_bytes - new_bytes
         prev_bytes = new_bytes
-        print key+': \t\t\t\t'+str(diff_bytes)+'\t\t\t'+str(diff_t)
+        print 'val for '+str(key)+': \t\t\t\t'+str(diff_bytes)+'\t\t\t'+str(diff_t)
+
+    for key in keys:
+        del orig_obj[key]
+
+        s = cPickle.dumps(orig_obj, hp)
+        new_bytes = len(s)
+        t1 = time.time()
+        x = cPickle.loads(s)
+        t2 = time.time()
+        new_t = t2 - t1
+        diff_t = prev_t - new_t
+        prev_t = new_t
+        diff_bytes = prev_bytes - new_bytes
+        prev_bytes = new_bytes
+        print str(key)+': \t\t\t\t'+str(diff_bytes)+'\t\t\t'+str(diff_t)
 
 
 if isinstance(orig_obj, list):
@@ -157,7 +175,7 @@ if isinstance(orig_obj, list):
         del orig_obj[0]
 
         t1 = time.time()
-        s = cPickle.dumps(orig_obj)
+        s = cPickle.dumps(orig_obj, hp)
         t2 = time.time()
         new_ts = t2 - t1
         diff_ts = prev_ts - new_ts
