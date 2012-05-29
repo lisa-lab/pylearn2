@@ -226,7 +226,9 @@ class Monitor(object):
                         ' but is driven by an expression with type ' + \
                         updates[key].dtype)
         if self.require_label:
-            self.accum = function([X, Y], givens=givens, updates=updates)
+            #some code may be written in terms of Y, but the subclasses in use might not
+            #actually return expressions involving Y, so we disable the unused_input error
+            self.accum = function([X, Y], givens=givens, updates=updates, on_unused_input = 'ignore')
         else:
             self.accum = function([X], givens=givens, updates=updates)
         t2 = time.time()
@@ -298,6 +300,10 @@ class Monitor(object):
             raise ValueError("Tried to create the same channel twice (%s)" %
                              name)
         if isinstance(ipt, (list, tuple)):
+            if self.dataset is not None:
+                if not self.dataset.has_targets():
+                    raise ValueError("Tried to create a channel ("+name \
+                            +") that uses targets, but monitoring dataset has no targets")
             self.require_label = True
             assert len(ipt) == 2
         self.channels[name] = MonitorChannel(ipt, val, name, prereqs)
