@@ -4,7 +4,7 @@ from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils import serial
 
 class MNIST(dense_design_matrix.DenseDesignMatrix):
-    def __init__(self, which_set, center = False, shuffle = False):
+    def __init__(self, which_set, center = False, shuffle = False, one_hot = False):
 
         if which_set not in ['train','test']:
             if which_set == 'valid':
@@ -23,6 +23,12 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
         X = obj['data']
         X = N.cast['float32'](X)
         y = N.asarray(obj['labels'])
+        self.one_hot = one_hot
+        if one_hot:
+            one_hot = N.zeros((y.shape[0],10),dtype='float32')
+            for i in xrange(y.shape[0]):
+                one_hot[i,y[i]] = 1.
+            y = one_hot
 
         assert len(X.shape) == 2
         assert X.shape[1] == 784
@@ -62,13 +68,20 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
 
 class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
 
-    def __init__(self, which_set, center = False):
+    def __init__(self, which_set, center = False, one_hot = False):
         path = "${PYLEARN2_DATA_PATH}/mnist/mnist_rotation_back_image/"+which_set
 
         obj = serial.load(path)
         X = obj['data']
         X = N.cast['float32'](X)
         y = N.asarray(obj['labels'])
+
+        self.one_hot = one_hot
+        if one_hot:
+            one_hot = N.zeros((y.shape[0],10),dtype='float32')
+            for i in xrange(y.shape[0]):
+                one_hot[i,y[i]] = 1.
+            y = one_hot
 
         if center:
             X -= X.mean(axis=0)
