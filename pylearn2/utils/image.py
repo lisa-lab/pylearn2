@@ -23,7 +23,8 @@ def show(image):
         if image.dtype == 'int8':
             image = np.cast['uint8'](image)
         elif str(image.dtype).startswith('float'):
-            image *= 255.
+            #don't use *=, we don't want to modify the input array
+            image = image * 255.
             image = np.cast['uint8'](image)
 
         #PIL is too stupid to handle single-channel arrays
