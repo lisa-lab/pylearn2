@@ -131,3 +131,8 @@ class Dataset(object):
         """
 
         raise NotImplementedError()
+
+    def has_targets(self):
+        """ Returns true if the dataset includes targets """
+
+        raise NotImplementedError()

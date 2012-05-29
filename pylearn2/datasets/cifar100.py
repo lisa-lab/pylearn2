@@ -36,6 +36,7 @@ class CIFAR100(dense_design_matrix.DenseDesignMatrix):
 
     def adjust_for_viewer(self, X):
 
+
         #this is a bit of a hack
         #it detects older saved pkls, which are probably preprocessed somehow
         #really, the preprocessing needs to update the behavior of adjust_for_viewer
@@ -43,7 +44,7 @@ class CIFAR100(dense_design_matrix.DenseDesignMatrix):
             rval = X.copy()
             rval = rval.T
 
-            rval /= np.abs(rval).max(axis=0)
+            rval /= np.abs(rval).max()
             return rval.T
 
 
