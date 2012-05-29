@@ -28,6 +28,7 @@ from pylearn2.models.s3c import full_min
 from pylearn2.models.s3c import full_max
 from theano.printing import min_informative_str
 from theano.printing import Print
+from pylearn2.space import VectorSpace
 from scipy import io
 
 class Sampler:
@@ -45,6 +46,7 @@ class Sampler:
             raise ValueError("Unrecognized sampling kind: "+kind)
 
 class DBM(Model):
+
 
     def __init__(self, rbms,
                     use_cd = False,
@@ -132,6 +134,9 @@ class DBM(Model):
                                     name = 'W_class')
 
         self.redo_everything()
+
+    def get_output_space(self):
+        return VectorSpace(self.num_classes)
 
     def reset_rng(self):
         self.rng = np.random.RandomState([1,2,3])
