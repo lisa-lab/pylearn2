@@ -882,8 +882,9 @@ class S3C(Model, Block):
                 self.censored_updates[param] = self.censored_updates[param].union(set([updates[param]]))
 
 
-    def random_design_matrix(self, batch_size, theano_rng,
-                            H_sample = None, S_sample = None):
+    def random_design_matrix(self, batch_size, theano_rng = None,
+                            H_sample = None, S_sample = None,
+                            full_sample = True):
         """
             H_sample: a matrix of values of H
                       if none is provided, samples one from the prior
@@ -891,6 +892,11 @@ class S3C(Model, Block):
                         to specific hidden units look like, or when sampling
                         from a larger model that s3c is part of)
         """
+
+        if theano_rng is None:
+            assert H_sample is not None
+            assert S_sample is not None
+            assert full_sample == False
 
         if not hasattr(self,'p'):
             self.make_pseudoparams()
@@ -917,10 +923,12 @@ class S3C(Model, Block):
 
         V_mean = T.dot(final_hs_sample, self.W.T)
 
-        warnings.warn('showing conditional means (given sampled h and s) on visible units rather than true samples')
-        return V_mean
 
-        V_sample = theano_rng.normal( size = V_mean.shape, avg = V_mean, std = self.B)
+        if not full_sample:
+            warnings.warn('showing conditional means (given sampled h and s) on visible units rather than true samples')
+            return V_mean
+
+        V_sample = theano_rng.normal( size = V_mean.shape, avg = V_mean, std = T.sqrt(1./self.B))
 
         return V_sample
 
