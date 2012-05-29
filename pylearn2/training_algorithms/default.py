@@ -37,6 +37,8 @@ class DefaultTrainingAlgorithm(object):
         X = T.matrix()
         Y = T.matrix()
         if self.monitoring_dataset is not None:
+            if not self.monitoring_dataset.has_targets():
+                Y = None
             self.monitor.set_dataset(dataset=self.monitoring_dataset,
                                 mode="sequential",
                                 batch_size=self.batch_size,
@@ -53,8 +55,14 @@ class DefaultTrainingAlgorithm(object):
                     J, prereqs = J
                 else:
                     prereqs = None
+
+                if Y is not None:
+                    ipt = (X,Y)
+                else:
+                    ipt = X
+
                 self.monitor.add_channel(name=name,
-                                         ipt=(X,Y),
+                                         ipt=ipt,
                                          val=J,
                                          prereqs=prereqs)
         self.first = True
