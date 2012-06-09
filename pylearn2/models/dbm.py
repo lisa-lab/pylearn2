@@ -760,7 +760,7 @@ class InferenceProcedure:
     def register_model(self, model):
         self.model = model
 
-    def truncated_KL(self, V, Y, obs, no_v_bias = False):
+    def truncated_KL(self, V, obs, Y = None, no_v_bias = False):
         """ KL divergence between variation and true posterior, dropping terms that don't
             depend on the variational parameters
 
