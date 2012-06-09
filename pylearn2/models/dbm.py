@@ -53,6 +53,7 @@ class DBM(Model):
                         negative_chains = 0,
                        inference_procedure = None,
                        monitor_params = False,
+                       sampling_steps = 5,
                        num_classes = 0,
                        print_interval = 10000):
         """
@@ -74,7 +75,7 @@ class DBM(Model):
                         from the data
         """
 
-        self.sampling_steps = 5
+        self.sampling_steps = sampling_steps
         self.monitor_params = monitor_params
 
         self.use_cd = use_cd
