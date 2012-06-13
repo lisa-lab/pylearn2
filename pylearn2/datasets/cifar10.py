@@ -3,7 +3,6 @@ _logger = logging.getLogger('pylearn2.datasets.cifar10')
 
 import numpy as N
 from pylearn2.datasets import dense_design_matrix
-from pylearn.datasets import cifar10
 
 class CIFAR10(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, which_set, center = False):
