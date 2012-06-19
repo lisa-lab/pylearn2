@@ -25,8 +25,8 @@ def color_to_gray(color):
     W_G = 0.587
 
     red_channel = color[:,:,:,0:1]
-    blue_channel = color[:,:,:,1:2]
-    green_channel = color[:,:,:,2:3]
+    blue_channel = color[:,:,:,2:3]
+    green_channel = color[:,:,:,1:2]
 
     Y_prime = W_R * red_channel + W_G * green_channel + W_B * blue_channel
 
