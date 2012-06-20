@@ -80,18 +80,21 @@ class PatchViewer(object):
 
 
         if recenter:
+            assert patch.shape[0] <= self.patch_shape[0]
+            assert patch.shape[1] <= self.patch_shape[1]
             rs_pad = (self.patch_shape[0] - patch.shape[0]) / 2
             re_pad = self.patch_shape[0] - rs_pad - patch.shape[0]
             cs_pad = (self.patch_shape[1] - patch.shape[1]) / 2
             ce_pad = self.patch_shape[1] - cs_pad - patch.shape[1]
         else:
+            if patch.shape[0:2] != self.patch_shape:
+                raise ValueError('Expected patch with shape %s, got %s' %
+                                 (str(self.patch_shape), str(patch.shape)))
             rs_pad = 0
             re_pad = 0
             cs_pad = 0
             ce_pad = 0
-            if patch.shape[0:2] != self.patch_shape:
-                raise ValueError('Expected patch with shape %s, got %s' %
-                                 (str(self.patch_shape), str(patch.shape)))
+
         temp = patch.copy()
 
         assert (not N.any(N.isnan(temp))) and (not N.any(N.isinf(temp)))
