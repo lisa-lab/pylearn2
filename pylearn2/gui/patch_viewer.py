@@ -70,7 +70,7 @@ class PatchViewer(object):
         self.cur_pos = (0, 0)
 
     #0 is perfect gray. If not rescale, assumes images are in [-1,1]
-    def add_patch(self, patch, rescale=True, recenter=False, activation=None):
+    def add_patch(self, patch, rescale=True, recenter=True, activation=None):
         """
         :param recenter: if patch has smaller dimensions than self.patch, recenter will pad the
         image to the appropriate size before displaying.
@@ -78,18 +78,18 @@ class PatchViewer(object):
         if (patch.min() == patch.max()) and (rescale or patch.min() == 0.0):
             print "Warning: displaying totally blank patch"
 
-        if patch.shape[0:2] != self.patch_shape:
-            raise ValueError('Expected patch with shape %s, got %s' %
-                             (str(self.patch_shape), str(patch.shape)))
 
         if recenter:
-            assert patch.shape[0] < self.patch_shape[0]
-            assert patch.shape[1] < self.patch_shape[1]
+            assert patch.shape[0] <= self.patch_shape[0]
+            assert patch.shape[1] <= self.patch_shape[1]
             rs_pad = (self.patch_shape[0] - patch.shape[0]) / 2
             re_pad = self.patch_shape[0] - rs_pad - patch.shape[0]
             cs_pad = (self.patch_shape[1] - patch.shape[1]) / 2
             ce_pad = self.patch_shape[1] - cs_pad - patch.shape[1]
         else:
+            if patch.shape[0:2] != self.patch_shape:
+                raise ValueError('Expected patch with shape %s, got %s' %
+                                 (str(self.patch_shape), str(patch.shape)))
             rs_pad = 0
             re_pad = 0
             cs_pad = 0
