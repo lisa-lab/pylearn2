@@ -47,7 +47,6 @@ class Sampler:
 
 class DBM(Model):
 
-
     def __init__(self, rbms,
                     use_cd = False,
                         negative_chains = 0,
@@ -106,7 +105,6 @@ class DBM(Model):
 
         self.inference_procedure = inference_procedure
         self.inference_procedure.register_model(self)
-        self.autonomous = False
         if self.inference_procedure.autonomous:
             raise NotImplementedError("No such thing as an autonomous DBM yet")
 
@@ -726,8 +724,42 @@ class DBM(Model):
             self.deploy_mode()
 
     def learn(self, dataset, batch_size):
-        raise NotImplementedError("Not yet supported-- current project does not require DBM to learn on its own")
-        self.learn_mini_batch(dataset.get_batch_design(batch_size))
+        #TODO [for IG, not LY]: always uses exhaustive iteration, regardless of how the dataset is configured.
+        #clean this up a bit
+
+        warnings.warn(" This method isn't tested yet")
+
+        def make_iterator():
+            self.iterator = dataset.iterator(
+                    mode = 'sequential',
+                    batch_size = batch_size,
+                    targets = self.dbm.num_classes > 0)
+
+        if self.iterator is None:
+            self.batch_size = batch_size
+            self.dataset = dataset
+            self.register_names_to_del(['dataset','iterator'])
+            make_iterator()
+        else:
+            assert dataset is self.dataset
+            assert batch_size == self.batch_size
+        if self.num_classes > 0:
+            try:
+                X, Y = self.iterator.next()
+            except StopIteration:
+                print 'Finished a dataset-epoch'
+                make_iterator()
+                X, Y = self.iterator.next()
+        else:
+            Y = None
+            try:
+                X = self.iterator.next()
+            except StopIteration:
+                print 'Finished a dataset-epoch'
+                make_iterator()
+                X = self.iterator.next()
+
+        self.learn_mini_batch(X,Y)
 
     def learn_mini_batch(self, X):
         raise NotImplementedError("Not yet supported-- current project does not require DBM to learn on its own")
@@ -746,7 +778,7 @@ class InferenceProcedure:
 
         Variational inference
 
-        """
+    """
 
     def get_monitoring_channels(self):
         raise NotImplementedError()
