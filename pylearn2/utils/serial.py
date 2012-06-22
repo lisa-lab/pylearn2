@@ -253,7 +253,10 @@ def mkdir(filepath):
 
 def read_int( fin, n = 1):
     if n == 1:
-        return struct.unpack('i', fin.read(4))[0]
+        s = fin.read(4)
+        if len(s) != 4:
+            raise ValueError('fin did not contain 4 bytes')
+        return struct.unpack('i', s)[0]
     else:
         rval = []
         for i in xrange(n):
@@ -271,7 +274,10 @@ lush_magic = {
 
 def read_bin_lush_matrix(filepath):
     f = open(filepath,'rb')
-    magic = read_int(f)
+    try:
+        magic = read_int(f)
+    except ValueError:
+        raise ValueError("Couldn't read magic number")
     ndim = read_int(f)
 
     if ndim == 0:
@@ -289,6 +295,12 @@ def read_bin_lush_matrix(filepath):
         raise ValueError('Unrecognized lush magic number '+str(magic))
 
     rval = np.fromfile(file = f, dtype = dtype, count = total_elems)
+
+    excess = f.read(-1)
+
+    if excess != '':
+        raise ValueError(str(len(excess))+' extra bytes found at end of file.'
+                ' This indicates  mismatch between header and content')
 
     rval = rval.reshape(*shape)
 

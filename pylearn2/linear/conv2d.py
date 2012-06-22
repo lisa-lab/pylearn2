@@ -6,7 +6,6 @@ from theano.tensor.nnet.conv import conv2d
 from pylearn2.linear.linear_transform import LinearTransform as P2LT
 import functools
 
-
 class Conv2D(OrigConv2D):
     """ Extend the TheanoLinear Conv2d class to support everything
     needed for a pylearn2 linear operator """
