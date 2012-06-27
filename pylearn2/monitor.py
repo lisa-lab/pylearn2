@@ -33,14 +33,6 @@ class Monitor(object):
             `pylearn2.models`.
         """
         self.reset_monitor(model)
-        self.model = model
-        self.channels = {}
-        self._num_batches_seen = 0
-        self._examples_seen = 0
-        self._dataset = None
-        self._dirty = True
-        self._rng_seed = None
-        self.names_to_del = []
         # Determine whether the model should use topological or vector form of
         # examples. If the model acts on a space with more than the batch index
         # and channel dimension, the model has topological dimensions, so the
@@ -50,7 +42,7 @@ class Monitor(object):
             self.topo = False
         else:
             self.topo = len(vector.type.broadcastable) > 2
-                
+
         self.require_label = False
 
     def set_dataset(self, dataset, mode, batch_size=None, num_batches=None):
@@ -142,9 +134,10 @@ class Monitor(object):
     def run_prereqs(self, X):
         for prereq in self.prereqs:
             prereq(X)
-    
+
     """
-        Reset the monitor vars to reuse the monitor object in crossvalidation.
+        This function resets the monitor class attributes for possible reuse
+        instead of creating a new monitor class from scratch.
     """
     def reset_monitor(self, model):
         self.model = model
