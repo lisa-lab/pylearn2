@@ -65,14 +65,14 @@ class BatchGradientDescent:
 
     def _cache_values(self):
 
-        self.cache = [ param.get_value() for param in self.params ]
+        self.cache = [ param.get_value(borrow=False) for param in self.params ]
 
     def _goto_alpha(self, alpha):
 
-        for param, cached_value, grad in zip(self.params, self.cache):
+        for param, cached_value in zip(self.params, self.cache):
             assert not np.any(np.isnan(cached_value))
             grad_shared = self.param_to_grad_shared[param]
-            grad = self.grad_H.get_value()
+            grad = grad_shared.get_value()
             assert not np.any(np.isnan(grad))
             assert not np.any(np.isinf(grad))
             mul = alpha * grad
@@ -82,11 +82,13 @@ class BatchGradientDescent:
 
     def _normalize_grad(self):
 
-        n = sum([norm_sq(elem) for elem in self.param_to_grad_shared.keys()])
+        n = sum([norm_sq(elem) for elem in self.param_to_grad_shared.values()])
         n = np.sqrt(n)
 
-        for param in self.params:
-            scale(param, 1./n)
+        for grad_shared in self.param_to_grad_shared.values():
+            scale(grad_shared, 1./n)
+
+        return n
 
     def minimize(self, * inputs ):
 
@@ -97,13 +99,12 @@ class BatchGradientDescent:
         if self.verbose:
             print orig_obj
 
-        while True:
 
+        while True:
             best_obj, best_alpha, best_alpha_ind = self.obj( * inputs), 0., -1
-            assert best_obj <= orig_obj
-            self.cache_values()
+            self._cache_values()
             self._compute_grad(*inputs)
-            self._normalize_grad()
+            norm = self._normalize_grad()
 
             prev_best_obj = best_obj
 
@@ -113,10 +114,15 @@ class BatchGradientDescent:
                 if self.verbose:
                     print '\t',alpha,obj
 
-                if obj < best_obj:
+                #Use <= rather than = so if there are ties
+                #the bigger step size wins
+                if obj <= best_obj:
                     best_obj = obj
                     best_alpha = alpha
                     best_alpha_ind = ind
+                #end if obj
+            #end for ind, alpha
+
 
             if self.verbose:
                 print best_obj
@@ -125,11 +131,27 @@ class BatchGradientDescent:
             assert best_obj <= prev_best_obj
             self._goto_alpha(best_alpha)
 
+            if best_obj == prev_best_obj:
+                break
+
             if best_alpha_ind < 1 and alpha_list[0] > 3e-7:
                 alpha_list = [ alpha / 3. for alpha in alpha_list ]
             elif best_alpha_ind > len(alpha_list) -2:
                 alpha_list = [ alpha * 2. for alpha in alpha_list ]
             elif best_alpha_ind == -1 and alpha_list[0] <= 3e-7:
-                break
+                if alpha_list[-1] > 1:
+                    break
+                for i in xrange(len(alpha_list)):
+                    for j in xrange(i,len(alpha_list)):
+                        alpha_list[j] *= 1.5
+                    #end for j
+                #end for i
+            #end check on alpha_ind
+        #end while
+
+
+
+        if norm > 1e-2:
+            warnings.warn(str(norm)+" seems pretty big for a gradient at convergence...")
 
         return best_obj
