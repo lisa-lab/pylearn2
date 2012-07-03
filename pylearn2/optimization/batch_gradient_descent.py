@@ -1,8 +1,10 @@
 import numpy as np
+import warnings
 from pylearn2.utils import sharedX
 from theano import config
 from theano import function
 from theano.printing import Print
+from theano.printing import min_informative_str
 
 import theano.tensor as T
 
@@ -10,7 +12,7 @@ def norm_sq(s):
     return np.square(s.get_value()).sum()
 
 def scale(s, a):
-    s.set_value(s.get_value() * a)
+    s.set_value(s.get_value() * np.cast[config.floatX](a))
 
 class BatchGradientDescent:
     """ A class for minimizing a function via the method of steepest
