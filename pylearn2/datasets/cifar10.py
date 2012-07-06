@@ -72,8 +72,14 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
                 'cifar10',
                 'cifar-10-batches-py',
                 file)
-        _logger.info('loading file %s' % fname)
-        fo = open(fname, 'rb')
-        dict = cPickle.load(fo)
-        fo.close()
+        try:
+            from pylearn2.datasets.dataset_loader import DatasetLoader            
+            _logger.info('loading file %s from DatasetLoader' % fname)
+            data_loader = DatasetLoader()
+            dict = data_loader.load_dataset(fname)
+        except NameError:
+            _logger.info('loading file %s from the remote dataset server' % fname)
+            fo = open(fname, 'rb')
+            dict = cPickle.load(fo)
+            fo.close()
         return dict
