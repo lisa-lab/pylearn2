@@ -3,7 +3,7 @@
 import sys
 
 # Third-party imports
-from numpy import inf
+import numpy
 import theano
 from theano import tensor
 
@@ -19,7 +19,8 @@ class SGDOptimizer(Optimizer):
     Supports constant learning rates, or decreasing like 1/t after an initial
     period.
     """
-    def __init__(self, params, base_lr, anneal_start=None, **kwargs):
+    def __init__(self, params, base_lr, anneal_start=None, use_adagrad=False,
+                 ** kwargs):
         """
         Construct an SGDOptimizer.
 
@@ -35,6 +36,9 @@ class SGDOptimizer(Optimizer):
             Number of steps after which to start annealing the learning
             rate at a 1/t schedule, where t is the number of stochastic
             gradient updates.
+        use_adagrad : bool
+            'adagrad' adaptive learning rate scheme is used. If set to True,
+        base_lr is used as e0.
 
         Notes
         -----
@@ -47,6 +51,10 @@ class SGDOptimizer(Optimizer):
 
         Parameter-specific bounding values can be specified by passing
         keyword arguments <param>_clip, which should be a (min, max) pair.
+
+        Adagrad is recommended with sparse inputs. It normalizes the base
+        learning rate of a parameter theta_i by the accumulated 2-norm of its
+        gradient: e{ti} = e0 / sqrt( sum_t (dL_t / dtheta_i)^2 )
         """
         if hasattr(params, '__iter__'):
             self.params = params
@@ -59,6 +67,16 @@ class SGDOptimizer(Optimizer):
             self.anneal_start = None
         else:
             self.anneal_start = as_floatX(anneal_start)
+
+        # Create accumulators and epsilon0's
+        self.use_adagrad = use_adagrad
+        if self.use_adagrad:
+            self.accumulators = {}
+            self.e0s = {}
+            for param in self.params:
+                self.accumulators[param] = theano.shared(value=as_floatX(0.),
+                                                         name='acc_%s' % param.name)
+                self.e0s[param] = as_floatX(base_lr)
 
         # Set up the clipping values
         self.clipping_values = {}
@@ -144,7 +162,7 @@ class SGDOptimizer(Optimizer):
         # to lower the learning rate gradually after a certain amount of time.
         self.annealed = sharedX(base_lr, 'annealed')
 
-    def learning_rate_updates(self):
+    def learning_rate_updates(self, gradients):
         """
         Compute a dictionary of shared variable updates related to annealing
         the learning rate.
@@ -158,24 +176,31 @@ class SGDOptimizer(Optimizer):
         """
         ups = {}
 
-        # Annealing coefficient. Here we're using a formula of
-        # min(base_lr, anneal_start / (iteration + 1))
-        if self.anneal_start is None:
-            annealed = sharedX(self.base_lr)
+        if self.use_adagrad:
+            learn_rates = []
+            for param, gp in zip(self.params, gradients):
+                acc = self.accumulators[param]
+                ups[acc] = acc + (gp ** 2).sum()
+                learn_rates.append(self.e0s[param] / (ups[acc] ** .5))
         else:
-            frac = self.anneal_start / (self.iteration + 1.)
-            annealed = tensor.minimum(
-                    as_floatX(frac),
-                    self.base_lr  # maximum learning rate
-                    )
+            # Annealing coefficient. Here we're using a formula of
+            # min(base_lr, anneal_start / (iteration + 1))
+            if self.anneal_start is None:
+                annealed = sharedX(self.base_lr)
+            else:
+                frac = self.anneal_start / (self.iteration + 1.)
+                annealed = tensor.minimum(
+                                          as_floatX(frac),
+                                          self.base_lr  # maximum learning rate
+                                          )
 
-        # Update the shared variable for the annealed learning rate.
-        ups[self.annealed] = annealed
-        ups[self.iteration] = self.iteration + 1
+            # Update the shared variable for the annealed learning rate.
+            ups[self.annealed] = annealed
+            ups[self.iteration] = self.iteration + 1
 
-        # Calculate the learning rates for each parameter, in the order
-        # they appear in self.params
-        learn_rates = [annealed * self.learning_rates[p] for p in self.params]
+            # Calculate the learning rates for each parameter, in the order
+            # they appear in self.params
+            learn_rates = [annealed * self.learning_rates[p] for p in self.params]
         return ups, learn_rates
 
     def updates(self, gradients):
@@ -203,10 +228,10 @@ class SGDOptimizer(Optimizer):
         """
         ups = {}
         # Add the learning rate/iteration updates
-        l_ups, learn_rates = self.learning_rate_updates()
+        l_ups, learn_rates = self.learning_rate_updates(gradients)
         safe_update(ups, l_ups)
 
-        # Get the updates from sgd_updates
+        # Get the updates from sgd_updates, a PyLearn library function.
         p_up = dict(self.sgd_updates(self.params, gradients, learn_rates))
 
         # Add the things in p_up to ups
@@ -249,7 +274,6 @@ class SGDOptimizer(Optimizer):
         grads = [tensor.grad(cost, p) for p in self.params]
         return self.updates(gradients=grads)
 
-
     def sgd_updates(self, params, grads, stepsizes):
         """Return a list of (pairs) that can be used as updates in theano.function to
         implement stochastic gradient descent.
@@ -286,5 +310,5 @@ class SGDOptimizer(Optimizer):
         updates = []
         for s, p, gp, m, h in zip(stepsizes, params, grads, momentum, headings):
             updates.append((p, p + s * h))
-            updates.append((h, m*h - (1.0-m)*gp))
+            updates.append((h, m * h - (1.0 - m) * gp))
         return updates
