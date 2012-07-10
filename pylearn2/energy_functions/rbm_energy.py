@@ -114,6 +114,8 @@ class GRBM_Type_1(GRBM_EnergyFunction):
     def free_energy(self, V):
         V_name = 'V' if V.name is None else V.name
 
+        assert V.ndim == 2
+
         bias_term = T.dot(V,self.bias_vis)
         bias_term.name = 'bias_term'
         assert len(bias_term.type.broadcastable) == 1
