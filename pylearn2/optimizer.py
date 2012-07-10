@@ -68,7 +68,7 @@ class SGDOptimizer(Optimizer):
             self.accumulators = {}
             self.e0s = {}
             for param in self.params:
-                self.accumulators[param] = theano.shared(value=as_floatX(0),
+                self.accumulators[param] = theano.shared(value=as_floatX(0.),
                                                          name='acc_%s' % param.name)
                 self.e0s[param] = as_floatX(base_lr)
 
