@@ -95,3 +95,5 @@ def kl_divergence(q,p):
     inside_parens = trace_term + quad_term + log_term - k
 
     rval = 0.5 * inside_parens
+
+    return rval
