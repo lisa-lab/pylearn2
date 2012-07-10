@@ -128,9 +128,11 @@ class Dataset(object):
 
             for example, for MNIST X will lie in [0,1] and the return value
                 should be X*2-1
+
+            Default is to do nothing
         """
 
-        raise NotImplementedError()
+        return X
 
     def has_targets(self):
         """ Returns true if the dataset includes targets """
