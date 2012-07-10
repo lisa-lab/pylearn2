@@ -1,10 +1,12 @@
 import numpy as N
 np = N
 from pylearn2.datasets import dense_design_matrix
+from pylearn2.datasets import control
 from pylearn2.utils import serial
 
 class MNIST(dense_design_matrix.DenseDesignMatrix):
-    def __init__(self, which_set, center = False, shuffle = False, one_hot = False):
+    def __init__(self, which_set, center = False, shuffle = False,
+            one_hot = False, binarize = False):
 
         if which_set not in ['train','test']:
             if which_set == 'valid':
@@ -17,50 +19,60 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
                     (which_set,)+'". Valid values are ["train","test"].')
 
 
-        path = "${PYLEARN2_DATA_PATH}/mnist/mnist-python/%s.pkl" % which_set
+        if control.get_load_data():
+            path = "${PYLEARN2_DATA_PATH}/mnist/mnist-python/%s.pkl" % which_set
 
-        obj = serial.load(path)
-        X = obj['data']
-        X = N.cast['float32'](X)
-        y = N.asarray(obj['labels'])
-        self.one_hot = one_hot
-        if one_hot:
-            one_hot = N.zeros((y.shape[0],10),dtype='float32')
-            for i in xrange(y.shape[0]):
-                one_hot[i,y[i]] = 1.
-            y = one_hot
+            obj = serial.load(path)
+            X = obj['data']
+            X = N.cast['float32'](X)
 
-        assert len(X.shape) == 2
-        assert X.shape[1] == 784
+            if binarize:
+                X = ( X > 0.5).astype('float32')
 
-        if which_set == 'train':
-            assert X.shape[0] == 60000
-        elif which_set == 'test':
-            assert X.shape[0] == 10000
+            y = N.asarray(obj['labels']).astype('float32')
+            self.one_hot = one_hot
+            if one_hot:
+                one_hot = N.zeros((y.shape[0],10),dtype='float32')
+                for i in xrange(y.shape[0]):
+                    one_hot[i,y[i]] = 1.
+                y = one_hot
+
+            assert len(X.shape) == 2
+            assert X.shape[1] == 784
+
+            if which_set == 'train':
+                assert X.shape[0] == 60000
+            elif which_set == 'test':
+                assert X.shape[0] == 10000
+            else:
+                assert False
+
+
+            if center:
+                X -= X.mean(axis=0)
+
+            if shuffle:
+                self.shuffle_rng = np.random.RandomState([1,2,3])
+                for i in xrange(X.shape[0]):
+                    j = self.shuffle_rng.randint(X.shape[0])
+                    tmp = X[i,:]
+                    X[i,:] = X[j,:]
+                    X[j,:] = tmp
+                    tmp = y[i]
+                    y[i] = y[j]
+                    y[j] = tmp
+
+
+            view_converter = dense_design_matrix.DefaultViewConverter((28,28,1))
+
+            super(MNIST,self).__init__(X = X, y = y, view_converter = view_converter)
+
+            assert not N.any(N.isnan(self.X))
         else:
-            assert False
-
-
-        if center:
-            X -= X.mean(axis=0)
-
-        if shuffle:
-            self.shuffle_rng = np.random.RandomState([1,2,3])
-            for i in xrange(X.shape[0]):
-                j = self.shuffle_rng.randint(X.shape[0])
-                tmp = X[i,:]
-                X[i,:] = X[j,:]
-                X[j,:] = tmp
-                tmp = y[i]
-                y[i] = y[j]
-                y[j] = tmp
-
-
-        view_converter = dense_design_matrix.DefaultViewConverter((28,28,1))
-
-        super(MNIST,self).__init__(X = X, y = y, view_converter = view_converter)
-
-        assert not N.any(N.isnan(self.X))
+            #data loading is disabled, just make something that defines the right topology
+            topo = np.zeros((1,28,28,1))
+            super(MNIST,self).__init__(topo_view = topo)
+            self.X = None
 
     def adjust_for_viewer(self, X):
         return N.clip(X*2.-1.,-1.,1.)
