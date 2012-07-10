@@ -1,14 +1,12 @@
 from __future__ import division
-import datetime
 import numpy as np
 import theano.sparse
-from theano import function, config
+from theano import function
 import theano.tensor as T
-from warnings import warn
 from pylearn2.monitor import Monitor
-from pylearn2.utils.iteration import SequentialSubsetIterator
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 import pylearn2.costs.cost
+from theano.printing import Print
 
 
 # TODO: This needs renaming based on specifics. Specifically it needs
@@ -144,8 +142,11 @@ class SGD(TrainingAlgorithm):
 
         model.censor_updates(updates)
         for param in updates:
-            if updates[param] is None:
+            if updates[param].name is None:
                 updates[param].name = 'censor(sgd_update(' + param.name + '))'
+
+        for param in model.get_params():
+            assert param in updates
 
         self.sgd_update = function([X, learning_rate], updates=updates,
                                    name='sgd_update')
@@ -282,7 +283,7 @@ class ExhaustiveSGD(TrainingAlgorithm):
                 updates[param].name = 'sgd_update(' + param.name + ')'
         model.censor_updates(updates)
         for param in updates:
-            if updates[param] is None:
+            if updates[param].name is None:
                 updates[param].name = 'censor(sgd_update(' + param.name + '))'
 
         if self.supervised:
