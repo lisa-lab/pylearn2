@@ -368,11 +368,13 @@ class RBM(Block, Model):
         return ['v', 'h']
 
 
-    def get_monitoring_channels(self, V):
+    def get_monitoring_channels(self, V, Y = None):
 
         theano_rng = RandomStreams(42)
 
-        norms = theano_norms(self.weights)
+        #TODO: re-enable this in the case where self.transformer
+        #is a matrix multiply
+        #norms = theano_norms(self.weights)
 
         H = self.mean_h_given_v(V)
 
@@ -387,11 +389,11 @@ class RBM(Block, Model):
                  'h_min' : T.min(h),
                  'h_mean': T.mean(h),
                  'h_max' : T.max(h),
-                 'W_min' : T.min(self.weights),
-                 'W_max' : T.max(self.weights),
-                 'W_norms_min' : T.min(norms),
-                 'W_norms_max' : T.max(norms),
-                 'W_norms_mean' : T.mean(norms),
+                 #'W_min' : T.min(self.weights),
+                 #'W_max' : T.max(self.weights),
+                 #'W_norms_min' : T.min(norms),
+                 #'W_norms_max' : T.max(norms),
+                 #'W_norms_mean' : T.mean(norms),
                 'reconstruction_error' : self.reconstruction_error(V, theano_rng) }
 
     def ml_gradients(self, pos_v, neg_v):
