@@ -990,7 +990,8 @@ class mu_pooled_ssRBM(RBM):
         # sample h given v
         h_mean = self.mean_h_given_v(v)
         h_mean_shape = (batch_size, self.nhid)
-        h_sample = as_floatX(rng.uniform(size=h_mean_shape) < h_mean)
+        h_sample = rng.binomial(size=h_mean_shape,
+                n = 1, p = h_mean, dtype = h_mean.dtype)
 
         # sample s given (v,h)
         s_mu, s_var = self.mean_var_s_given_v_h1(v)
