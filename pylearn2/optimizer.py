@@ -3,6 +3,7 @@
 import sys
 
 # Third-party imports
+import numpy
 from numpy import inf
 import theano
 from theano import tensor
@@ -19,7 +20,8 @@ class SGDOptimizer(Optimizer):
     Supports constant learning rates, or decreasing like 1/t after an initial
     period.
     """
-    def __init__(self, params, base_lr, anneal_start=None, **kwargs):
+    def __init__(self, params, base_lr, anneal_start=None, use_adagrad=False,
+                 ** kwargs):
         """
         Construct an SGDOptimizer.
 
@@ -59,6 +61,16 @@ class SGDOptimizer(Optimizer):
             self.anneal_start = None
         else:
             self.anneal_start = as_floatX(anneal_start)
+
+        # Create accumulators and epsilon0's
+        self.use_adagrad = use_adagrad
+        if self.use_adagrad:
+            self.accumulators = {}
+            self.e0s = {}
+            for param in self.params:
+                self.accumulators[param] = theano.shared(value=as_floatX(0),
+                                                         name='acc_%s' % param.name)
+                self.e0s[param] = as_floatX(base_lr)
 
         # Set up the clipping values
         self.clipping_values = {}
@@ -206,8 +218,16 @@ class SGDOptimizer(Optimizer):
         l_ups, learn_rates = self.learning_rate_updates()
         safe_update(ups, l_ups)
 
-        # Get the updates from sgd_updates
-        p_up = dict(self.sgd_updates(self.params, gradients, learn_rates))
+        if self.use_adagrad:
+            p_up = {}
+            for param, gp in zip(self.params, gradients):
+                acc = self.accumulators[param]
+                p_up[acc] = acc + (gp ** 2).sum()
+                adagrad = self.e0s[param] / (p_up[acc] ** .5)
+                p_up[param] = param - adagrad * gp
+        else:
+            # Get the updates from sgd_updates, a PyLearn library function.
+            p_up = dict(sgd_updates(self.params, gradients, learn_rates))
 
         # Add the things in p_up to ups
         safe_update(ups, p_up)
