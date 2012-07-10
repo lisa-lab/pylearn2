@@ -20,6 +20,7 @@ from pylearn2.utils import as_floatX, safe_update, sharedX
 from pylearn2.models import Model
 from pylearn2.optimizer import SGDOptimizer
 from pylearn2.expr.basic import theano_norms
+from pylearn2.expr.nnet import inverse_sigmoid_numpy
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.space import VectorSpace
 theano.config.warn.sum_div_dimshuffle_bug = False
@@ -197,7 +198,8 @@ class RBM(Block, Model):
             vis_space = None,
             hid_space = None,
             transformer = None,
-            irange=0.5, rng=None, init_bias_vis = 0.0, init_bias_hid=0.0,
+            irange=0.5, rng=None, init_bias_vis = None,
+            init_bias_vis_marginals = None, init_bias_hid=0.0,
             base_lr = 1e-3, anneal_start = None, nchains = 100, sml_gibbs_steps = 1,
             random_patches_src = None,
             monitor_reconstruction = False):
@@ -221,6 +223,8 @@ class RBM(Block, Model):
             A pylearn2.space.Space object describing what kind of vector
             space the RBM's hidden units live in. Don't specify if you used
             nvis / nhid
+        init_bias_vis_marginals: either None, or a Dataset to use to initialize
+            the visible biases to the inverse sigmoid of the data marginals
         irange : float, optional
             The size of the initial interval around 0 for weights.
         rng : RandomState object or seed
@@ -247,6 +251,20 @@ class RBM(Block, Model):
         Model.__init__(self)
         Block.__init__(self)
 
+        if init_bias_vis_marginals is not None:
+            assert init_bias_vis is None
+            X = init_bias_vis_marginals.X
+            assert X.min() >= 0.0
+            assert X.max() <= 1.0
+
+            marginals = X.mean(axis=0)
+
+            #rescale the marginals a bit to avoid NaNs
+            init_bias_vis = inverse_sigmoid_numpy(.01 + .98 * marginals)
+
+
+        if init_bias_vis is None:
+            init_bias_vis = 0.0
 
         if rng is None:
             # TODO: global rng configuration stuff.
