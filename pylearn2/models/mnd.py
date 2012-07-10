@@ -76,14 +76,16 @@ def kl_divergence(q,p):
 
     beta_q = q.beta
     beta_p = p.beta
-    beta_p_inv = 1./beta_p
+    beta_q_inv = 1./beta_q
 
-    trace_term = T.dot(beta_q,beta_p_inv)
+    trace_term = T.dot(beta_q_inv,beta_p)
+    assert trace_term.ndim == 0
 
     mu_p = p.mu
     mu_q = q.mu
 
     quad_term = T.dot(beta_p, T.sqr(mu_p-mu_q))
+    assert quad_term.ndim == 0
 
     # - log ( det Sigma_q / det Sigma_p)
     # = log det Sigma_p - log det Sigma_q
@@ -91,8 +93,10 @@ def kl_divergence(q,p):
     # = sum(log(beta_p_inv)) - sum(log(beta_q_inv))
     # = sum(log(beta_q)) - sum(log(beta_p))
     log_term = T.sum(T.log(beta_q)) - T.sum(T.log(beta_p))
+    assert log_term.ndim == 0
 
     inside_parens = trace_term + quad_term + log_term - k
+    assert inside_parens.ndim == 0
 
     rval = 0.5 * inside_parens
 
