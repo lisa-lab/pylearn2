@@ -719,8 +719,9 @@ class RBM(Block, Model):
 
         Notes
         -----
-        The reconstruction used to assess error is deterministic, i.e.
-        no sampling is done, to reduce noise in the estimate.
+        The reconstruction used to assess error samples only the hidden
+        units. For the visible units, it uses the conditional mean.
+        No sampling of the visible units is done, to reduce noise in the estimate.
         """
         sample, _locals = self.gibbs_step_for_v(v, rng)
         return ((_locals['v_mean'] - v) ** 2).sum(axis=1).mean()
