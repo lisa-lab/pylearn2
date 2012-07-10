@@ -326,7 +326,10 @@ class DenseDesignMatrix(Dataset):
             examples. If unspecified, the entire dataset (`self.X`) is used
             instead.
 
-        TODO: why isn't this parameter named X?
+            This parameter is not named X because X is generally used to
+            refer to the design matrix for the current problem. In this
+            case we want to make it clear that `mat` need not be the design
+            matrix defining the dataset.
         """
         if self.view_converter is None:
             raise Exception("Tried to call get_topological_view on a dataset "
