@@ -63,3 +63,36 @@ def fit(dataset, n_samples=None):
     else:
         X = dataset.get_design_matrix()
     return MND(sigma=N.cov(X.T), mu=X.mean(axis=0))
+
+
+class AdditiveDiagonalMND:
+
+    def __init__(self, init_beta, nvis):
+        """ A conditional distribution that adds
+        gaussian noise with diagonal precision
+        matrix beta to another variable that it
+        conditions on
+        """
+
+        self.__dict__.update(locals())
+        del self.self
+
+        self.beta = sharedX(np.ones((nvis,))*init_beta)
+        assert self.beta.ndim == 1
+
+        self.s_rng = RandomStreams(17)
+
+    def random_design_matrix(self, X):
+        """ X: a theano variable containing a design matrix
+        of observations of the random vector to condition on."""
+        Z = self.s_rng.normal(size=X.shape,
+                              avg=X, std=1./T.sqrt(self.beta), dtype=config.floatX)
+        return Z
+
+    def is_symmetric(self):
+        """ A property of conditional distributions
+        P(Y|X)
+        Return true if P(y|x) = P(x|y) for all x,y
+        """
+
+        return True
