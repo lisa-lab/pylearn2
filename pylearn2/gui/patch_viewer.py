@@ -4,7 +4,7 @@ from pylearn2.datasets.dense_design_matrix import DefaultViewConverter
 from pylearn2.utils.image import show
 
 def make_viewer(mat, grid_shape=None, patch_shape=None, activation=None, pad=None, is_color = False, rescale = True):
-    """ Given filters in rows, guesses dimensions of patchse
+    """ Given filters in rows, guesses dimensions of patches
         and nice dimensions for the PatchViewer and returns a PatchViewer
         containing visualizations of the filters"""
 
