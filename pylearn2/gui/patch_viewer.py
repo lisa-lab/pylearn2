@@ -62,9 +62,6 @@ class PatchViewer(object):
         self.patch_shape = patch_shape
         self.grid_shape = grid_shape
 
-        #print "Made patch viewer with "+str(grid_shape)+" panels and patch
-        # size "+str(patch_shape)
-
     def clear(self):
         self.image[:] = 0.5
         self.cur_pos = (0, 0)
@@ -125,10 +122,7 @@ class PatchViewer(object):
                             (self.patch_shape[1] + self.pad[1]))
         ce = cs + self.patch_shape[1]
 
-        #print self.cur_pos
-        #print cs
 
-        #print (temp.min(), temp.max(), temp.argmax())
 
         temp *= (temp > 0)
 
