@@ -590,7 +590,7 @@ class RBM(Block, Model):
 
     def mean_h_given_v(self, v):
         """
-        Compute the mean activation of the visibles given hidden unit
+        Compute the mean activation of the hidden units given visible unit
         configurations for a set of training examples.
 
         Parameters
