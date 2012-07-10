@@ -633,7 +633,7 @@ class RBM(Block, Model):
             hidden units.
         """
         if isinstance(h, tensor.Variable):
-            return nnet.sigmoid(self.bias_vis + tensor.dot(h, self.weights.T))
+            return nnet.sigmoid(self.input_to_v_from_h(h))
         else:
             return [self.mean_v_given_h(hid) for hid in h]
 
