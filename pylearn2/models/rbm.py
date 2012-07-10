@@ -659,6 +659,10 @@ class RBM(Block, Model):
         return (-tensor.dot(v, self.bias_vis) -
                  nnet.softplus(sigmoid_arg).sum(axis=1))
 
+    def free_energy(self, V):
+        return self.free_energy_given_v(V)
+
+
     def free_energy_given_h(self, h):
         """
         Calculate the free energy of a hidden unit configuration by
