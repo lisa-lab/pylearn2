@@ -584,7 +584,7 @@ class RBM(Block, Model):
             visible unit for each row of h.
         """
         if isinstance(h, tensor.Variable):
-            return self.bias_vis + tensor.dot(h, self.weights.T)
+            return self.bias_vis + self.transformer.lmul_T(h)
         else:
             return [self.input_to_v_from_h(hid) for hid in h]
 
