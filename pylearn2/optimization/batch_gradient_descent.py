@@ -115,7 +115,7 @@ class BatchGradientDescent:
 
 
         iters = 0
-        while iters < self.max_iter:
+        while iters != self.max_iter:
             iters += 1
             best_obj, best_alpha, best_alpha_ind = self.obj( * inputs), 0., -1
             self._cache_values()
