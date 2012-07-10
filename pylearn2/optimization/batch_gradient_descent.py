@@ -19,7 +19,8 @@ class BatchGradientDescent:
     descent.
     """
 
-    def __init__(self, objective, params, inputs = None):
+    def __init__(self, objective, params, inputs = None,
+            param_constrainers = None, max_iter = -1):
         """ objective: a theano expression to be minimized
                        should be a function of params and,
                        if provided, inputs
@@ -27,11 +28,24 @@ class BatchGradientDescent:
                     These are the optimization variables
             inputs: (Optional) A list of theano variables
                     to serve as inputs to the graph.
+            param_constrainers: (Optional) A list of callables
+                    to be called on all updates dictionaries to
+                    be applied to params. This is how you implement
+                    constrained optimization.
 
             Calling the ``minimize'' method with values for
             for ``inputs'' will update ``params'' to minimize
             ``objective''.
         """
+
+        self.max_iter = max_iter
+
+        if inputs is None:
+            inputs = []
+
+        if param_constrainers is None:
+            param_constrainers = []
+
         obj = objective
 
         self.verbose = False
@@ -63,22 +77,22 @@ class BatchGradientDescent:
         if self.verbose:
             print 'done'
 
-    def _cache_values(self):
-
-        self.cache = [ param.get_value(borrow=False) for param in self.params ]
-
-    def _goto_alpha(self, alpha):
-
-        for param, cached_value in zip(self.params, self.cache):
-            assert not np.any(np.isnan(cached_value))
-            grad_shared = self.param_to_grad_shared[param]
-            grad = grad_shared.get_value()
-            assert not np.any(np.isnan(grad))
-            assert not np.any(np.isinf(grad))
+        self.param_to_cache = {}
+        alpha = T.scalar(name = 'alpha')
+        cache_updates = {}
+        goto_updates = {}
+        for param in params:
+            self.param_to_cache[param] = sharedX(param.get_value(borrow=False))
+            cache_updates[self.param_to_cache[param]] = param
+            cached = self.param_to_cache[param]
+            grad = self.param_to_grad_shared[param]
             mul = alpha * grad
-            assert not np.any(np.isnan(mul))
-            diff = cached_value - mul
-            param.set_value(diff)
+            diff = cached - mul
+            goto_updates[param] = diff
+        self._cache_values = function([],updates = cache_updates)
+        for param_constrainer in param_constrainers:
+            param_constrainer(goto_updates)
+        self._goto_alpha = function([alpha], updates = goto_updates)
 
     def _normalize_grad(self):
 
@@ -100,7 +114,9 @@ class BatchGradientDescent:
             print orig_obj
 
 
-        while True:
+        iters = 0
+        while iters < self.max_iter:
+            iters += 1
             best_obj, best_alpha, best_alpha_ind = self.obj( * inputs), 0., -1
             self._cache_values()
             self._compute_grad(*inputs)
