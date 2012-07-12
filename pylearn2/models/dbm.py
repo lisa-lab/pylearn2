@@ -134,6 +134,17 @@ class DBM(Model):
 
         self.redo_everything()
 
+
+    def get_weights(self):
+        x = raw_input('which weights?')
+        assert x in ['0','1']
+        if x == '0':
+            return self.W[0].get_value()
+        return np.dot(self.W[0].get_value(),self.W[1].get_value())
+
+    def get_input_space(self):
+        return self.rbms[0].get_input_space()
+
     def get_output_space(self):
         return VectorSpace(self.num_classes)
 
