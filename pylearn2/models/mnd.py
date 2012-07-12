@@ -37,6 +37,18 @@ class DiagonalMND(Model):
 
         return  0.5 * T.dot( sq, self.beta )
 
+
+    def log_prob(self, X):
+
+        return -self.free_energy(X) - self.log_partition_function()
+
+    def log_partition_function(self):
+        # Z^-1 = (2pi)^{-nvis/2} det( beta^-1 )^{-1/2}
+        # Z = (2pi)^(nvis/2) sqrt( det( beta^-1) )
+        # log Z = (nvis/2) log 2pi - (1/2) sum(log(beta))
+
+        return float(self.nvis)/2. * np.log(2*np.pi) - 0.5 * T.sum(T.log(self.beta))
+
     def redo_theano(self):
 
         init_names = dir(self)

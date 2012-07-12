@@ -131,3 +131,21 @@ class Test_DiagonalMND:
         assert kl <= tol
         assert not (kl > tol )
 
+
+def test_log_partition_function():
+    """ tests that the log partition function is right in the simple 1D case"""
+
+    sigma = 2.3
+    model = DiagonalMND(nvis=1,init_beta=1/np.square(sigma),
+            min_beta = 1e-6, max_beta = 1e6, init_mu = 17.)
+
+    log_Z = model.log_partition_function()
+
+    log_Z = function([],log_Z)()
+
+    ground = np.log( sigma * np.sqrt(2.*np.pi))
+
+    print ground
+    print log_Z
+
+    assert np.allclose(ground, log_Z)
