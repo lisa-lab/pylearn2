@@ -74,18 +74,16 @@ def get_weights_report(model_path = None, model = None, rescale = 'individual', 
             control.pop_load_data()
             print '...done'
 
-        if hasattr(model,'get_weights'):
+        try:
             W = model.get_weights()
-
-        if 'weightsShared' in dir(model):
-            W = model.weightsShared.get_value()
-
-        if 'W' in dir(model):
-            if hasattr(model.W,'__array__'):
-                warnings.warn('model.W is an ndarray; I can figure out how to display this but that seems like a sign of a bad bug')
-                W = model.W
-            else:
-                W = model.W.get_value()
+        except AttributeError, e:
+            raise AttributeError("""
+Encountered an AttributeError while trying to call get_weights on a model.
+This probably means you need to implement get_weights for this model class,
+but look at the original exception to be sure.
+If this is an older model class, it may have weights stored as weightsShared,
+etc.
+Original exception: """+str(e))
 
         has_D = False
         if 'D' in dir(model):
