@@ -85,7 +85,7 @@ if global_rescale:
 
 if len(examples.shape) != 4:
     print 'sorry, view_examples.py only supports image examples for now.'
-    print 'this dataset has '+str(len(examples)-2)+' topological dimensions'
+    print 'this dataset has '+str(len(examples.shape)-2)+' topological dimensions'
     quit(-1)
 #
 
