@@ -7,3 +7,8 @@ def test_range():
     for X in [train.X, test.X ]:
         assert X.min() == 0.0
         assert X.max() == 1.0
+
+def test_topo():
+    """Tests that a topological batch has 4 dimensions"""
+    topo = train.get_batch_topo(1)
+    assert topo.ndim == 4
