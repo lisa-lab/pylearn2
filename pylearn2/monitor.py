@@ -233,7 +233,7 @@ class Monitor(object):
         else:
             self.accum = function([X], givens=givens, updates=updates)
         t2 = time.time()
-        print "graph size: ",len(self.accum.maker.env.toposort())
+        print "graph size: ",len(self.accum.maker.fgraph.toposort())
         print "took "+str(t2-t1)+" seconds"
         final_names = dir(self)
         self.register_names_to_del([name for name in final_names
