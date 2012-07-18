@@ -54,6 +54,7 @@ class DBM(Model):
                        monitor_params = False,
                        sampling_steps = 5,
                        num_classes = 0,
+                       init_beta = None,
                        print_interval = 10000):
         """
             rbms: list of rbms to stack
@@ -73,6 +74,8 @@ class DBM(Model):
                         hidden layer. this layer is one-hot and driven by the labels
                         from the data
         """
+
+        self.init_beta = init_beta
 
         self.sampling_steps = sampling_steps
         self.monitor_params = monitor_params
@@ -181,6 +184,9 @@ class DBM(Model):
             else:
                 self.Y_chains = None
 
+        if hasattr(self, 'init_beta') and self.init_beta is not None:
+            self.beta = sharedX( np.zeros( self.bias_vis.get_value().shape) + self.init_beta, name = 'beta')
+
 
     def make_chains(self, bias):
         """ make the shared variable representing a layer of
@@ -209,7 +215,7 @@ class DBM(Model):
     def set_monitoring_channel_prefix(self, prefix):
         self.monitoring_channel_prefix = prefix
 
-    def get_monitoring_channels(self, V):
+    def get_monitoring_channels(self, V, Y =  None):
 
         try:
             self.compile_mode()
@@ -497,6 +503,9 @@ class DBM(Model):
 
         assert self.bias_hid[0] in rval
 
+        if hasattr(self,'beta'):
+            rval.append(self.beta)
+
         return rval
 
     def make_learn_func(self, V):
@@ -536,6 +545,10 @@ class DBM(Model):
 
         for rbm in self.rbms:
             rbm.censor_updates(updates)
+
+        if hasattr(self,'beta') and self.beta in updates:
+            #todo--censorship cache, etc.
+            updates[self.beta] = T.clip(updates[self.beta],1e-4,1e6)
 
     def random_design_matrix(self, batch_size, theano_rng):
         raise NotImplementedError()
