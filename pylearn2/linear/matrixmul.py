@@ -1,6 +1,8 @@
 from pylearn2.packaged_dependencies.theano_linear.matrixmul import MatrixMul as OrigMatrixMul
 from pylearn2.linear.linear_transform import LinearTransform as PL2LT
 import functools
+import numpy as np
+from pylearn2.utils import sharedX
 
 class MatrixMul(OrigMatrixMul):
     """ The most basic LinearTransform: matrix multiplication. See TheanoLinear

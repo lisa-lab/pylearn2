@@ -77,6 +77,12 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         #assumes no preprocessing. need to make preprocessors mark the new ranges
         rval = X.copy()
 
+        #patch old pkl files
+        if not hasattr(self,'center'):
+            self.center = False
+        if not hasattr(self,'rescale'):
+            self.rescale = False
+
         if not self.center:
             rval -= 127.5
 

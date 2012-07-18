@@ -683,3 +683,10 @@ class ZCA(object):
             self.fit(X)
         new_X = np.dot(X - self.mean_, self.P_)
         dataset.set_design_matrix(new_X)
+
+    def invert(self):
+        self.inv_P_ = np.linalg.inv(self.P_)
+
+    def inverse(self, X):
+        return np.dot(X, self.inv_P_) + self.mean_
+
