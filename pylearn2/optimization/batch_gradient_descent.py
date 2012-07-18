@@ -106,6 +106,8 @@ class BatchGradientDescent:
 
     def minimize(self, * inputs ):
 
+        if self.verbose:
+            print 'minimizing'
         alpha_list = [ .001, .005, .01, .05, .1 ]
 
         orig_obj = self.obj(*inputs)
@@ -152,11 +154,19 @@ class BatchGradientDescent:
 
             if best_alpha_ind < 1 and alpha_list[0] > 3e-7:
                 alpha_list = [ alpha / 3. for alpha in alpha_list ]
+                if self.verbose:
+                    print 'shrinking the step size'
             elif best_alpha_ind > len(alpha_list) -2:
                 alpha_list = [ alpha * 2. for alpha in alpha_list ]
+                if self.verbose:
+                    print 'growing the step size'
             elif best_alpha_ind == -1 and alpha_list[0] <= 3e-7:
                 if alpha_list[-1] > 1:
+                    if self.verbose:
+                        print 'converged'
                     break
+                if self.verbose:
+                    print 'expanding the range of step sizes'
                 for i in xrange(len(alpha_list)):
                     for j in xrange(i,len(alpha_list)):
                         alpha_list[j] *= 1.5
