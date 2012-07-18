@@ -55,6 +55,7 @@ class DBM(Model):
                        sampling_steps = 5,
                        num_classes = 0,
                        init_beta = None,
+                       min_beta = None,
                        print_interval = 10000):
         """
             rbms: list of rbms to stack
@@ -76,6 +77,7 @@ class DBM(Model):
         """
 
         self.init_beta = init_beta
+        self.min_beta = min_beta
 
         self.sampling_steps = sampling_steps
         self.monitor_params = monitor_params
@@ -548,7 +550,10 @@ class DBM(Model):
 
         if hasattr(self,'beta') and self.beta in updates:
             #todo--censorship cache, etc.
-            updates[self.beta] = T.clip(updates[self.beta],1e-4,1e6)
+            min_beta = 1e-4
+            if hasattr(self,'min_beta') and self.min_beta is not None:
+                min_beta = self.min_beta
+            updates[self.beta] = T.clip(updates[self.beta],min_beta,1e6)
 
     def random_design_matrix(self, batch_size, theano_rng):
         raise NotImplementedError()
