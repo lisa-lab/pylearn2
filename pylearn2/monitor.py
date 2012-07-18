@@ -112,11 +112,12 @@ class Monitor(object):
                 # make sure the iterator gave us the right size
                 # the averaging code assumes all batches are the same size
                 # assert X.shape[0] == self._batch_size
-                self.run_prereqs(X)
                 if self.require_label:
                     X, y = X
+                    self.run_prereqs(X,y)
                     self.accum(X, y)
                 else:
+                    self.run_prereqs(X)
                     self.accum(X)
                 count += 1
 
@@ -140,9 +141,9 @@ class Monitor(object):
 
                 print "\t%s: %s" % (channel_name, val_str)
 
-    def run_prereqs(self, X):
+    def run_prereqs(self, X, y = None):
         for prereq in self.prereqs:
-            prereq(X)
+            prereq(X,y)
 
 
     def get_batches_seen(self):
