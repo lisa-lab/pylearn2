@@ -275,27 +275,30 @@ class RBM(Block, Model):
             #if we don't specify things in terms of spaces and a transformer,
             #assume dense matrix multiplication and work off of nvis, nhid
             assert hid_space is None
-            assert transformer is None
+            assert transformer is None or isinstance(transformer,MatrixMul)
             assert nvis is not None
             assert nhid is not None
 
-            if random_patches_src is None:
-                W = rng.uniform(-irange, irange, (nvis, nhid))
-            else:
-                if hasattr(random_patches_src, '__array__'):
-                    W = irange * random_patches_src.T
-                    assert W.shape == (nvis, nhid)
+            if transformer is None:
+                if random_patches_src is None:
+                    W = rng.uniform(-irange, irange, (nvis, nhid))
                 else:
-                    #assert type(irange) == type(0.01)
-                    #assert irange == 0.01
-                    W = irange * random_patches_src.get_batch_design(nhid).T
+                    if hasattr(random_patches_src, '__array__'):
+                        W = irange * random_patches_src.T
+                        assert W.shape == (nvis, nhid)
+                    else:
+                        #assert type(irange) == type(0.01)
+                        #assert irange == 0.01
+                        W = irange * random_patches_src.get_batch_design(nhid).T
 
-            self.transformer = MatrixMul(  sharedX(
-                    W,
-                    name='W',
-                    borrow=True
+                self.transformer = MatrixMul(  sharedX(
+                        W,
+                        name='W',
+                        borrow=True
+                    )
                 )
-            )
+            else:
+                self.transformer = transformer
 
             self.vis_space = VectorSpace(nvis)
             self.hid_space = VectorSpace(nhid)
