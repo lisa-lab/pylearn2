@@ -1,11 +1,12 @@
 import os, cPickle, logging
 _logger = logging.getLogger('pylearn2.datasets.cifar10')
 
-import numpy as N
+import numpy as np
+N = np
 from pylearn2.datasets import dense_design_matrix
 
 class CIFAR10(dense_design_matrix.DenseDesignMatrix):
-    def __init__(self, which_set, center = False):
+    def __init__(self, which_set, center = False, rescale = False):
 
         # note: there is no such thing as the cifar10 validation set;
         # quit pretending that there is.
@@ -57,12 +58,35 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
 
         if center:
             X -= 127.5
+        self.center = center
+
+        if rescale:
+            X /= 127.5
+        self.rescale = rescale
+
+        if which_set == 'test':
+            assert X.shape[0] == 10000
 
         view_converter = dense_design_matrix.DefaultViewConverter((32,32,3))
 
         super(CIFAR10,self).__init__(X = X, y = y, view_converter = view_converter)
 
         assert not N.any(N.isnan(self.X))
+
+    def adjust_for_viewer(self, X):
+        #assumes no preprocessing. need to make preprocessors mark the new ranges
+        rval = X.copy()
+
+        if not self.center:
+            rval -= 127.5
+
+        if not self.rescale:
+            rval /= 127.5
+
+        rval = np.clip(rval,-1.,1.)
+
+        return rval
+
 
     @classmethod
     def _unpickle(cls, file):
