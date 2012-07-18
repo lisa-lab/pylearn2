@@ -126,6 +126,7 @@ class SGD(TrainingAlgorithm):
         grads = dict(zip(params, T.grad(J, params)))
 
         for param in grads:
+
             if grads[param].name is None:
                 grads[param].name = ('grad(%(costname)s, %(paramname)s)' %
                                      {'costname': J.name,
