@@ -25,14 +25,14 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
             path = "${PYLEARN2_DATA_PATH}/mnist/"
             if which_set == 'train':
                 im_path = path + 'train-images-idx3-ubyte'
-                label_path = path + 'train-labels-idx3-ubyte'
+                label_path = path + 'train-labels-idx1-ubyte'
             else:
                 assert which_set == 'test'
                 im_path = path + 't10k-images-idx3-ubyte'
-                label_path = path + 't10k-labels-idx3-ubyte'
+                label_path = path + 't10k-labels-idx1-ubyte'
 
             topo_view = read_mnist_images(im_path, dtype='float32')
-            y = read_mnist_images(im_path, dtype='float32')
+            y = read_mnist_labels(label_path)
 
             if binarize:
                 topo_view = ( topo_view > 0.5).astype('float32')
