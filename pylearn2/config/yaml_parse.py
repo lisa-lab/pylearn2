@@ -200,7 +200,7 @@ def try_to_import(tag_suffix):
     except ImportError, e:
         # We know it's an ImportError, but is it an ImportError related to
         # this path,
-        #o r did the module we're importing have an unrelated ImportError?
+        # or did the module we're importing have an unrelated ImportError?
         # and yes, this test can still have false positives, feel free to
         # improve it
         pieces = modulename.split('.')
@@ -214,10 +214,24 @@ def try_to_import(tag_suffix):
             raise ImportError("Could not import %s; ImportError was %s" %
                               (modulename, str_e))
         else:
-            # The module being imported contains an error.
-            # Pass the original exception on up, with the original stack
-            # trace preserved
-            raise
+
+            pcomponents = components[:-1]
+            assert len(pcomponents) >= 1
+            j = 1
+            while j <= len(pcomponents):
+                modulename = '.'.join(pcomponents[:j])
+                try:
+                    exec('import %s' % modulename)
+                except:
+                    base_msg = 'Could not import %s' % modulename
+                    if j > 1:
+                        modulename = '.'.join(pcomponents[:j-1])
+                        base_msg += ' but could import %s' % modulename
+                    raise ImportError(base_msg + '. Original exception: '+str(e))
+                j += 1
+
+
+
     try:
         obj = eval(tag_suffix)
     except AttributeError, e:
