@@ -94,40 +94,44 @@ class LogisticRegressionLayer(Block, Model):
 class CumulativeProbabilitiesLayer(LogisticRegressionLayer):
     """
     A layer whose output is seen as a discrete cumulative distribution
-    function, i.e. unit i outputs p(y <= i | x).
+    function, i.e. unit i outputs :math:`p(y \\leq i | x)`.
 
     To ensure that the outputs are in ascending order, the weights
     matrix is shared between all units and the bias b_i are transformed
     into
-            c_i = c_{i-1} + softplus(b_i), c_0 = b_0,
+
+    .. math::
+
+        c_i = c_{i-1} + softplus(b_i), c_0 = b_0,
+
     so that they are in ascending order.
 
     The outputs are used to compute p_y_given_x as
-            p(y = i | x) = p(y <= i | x) - p(y <= i - 1 | x)
 
-                             |  output_i - output_{i-1}, i > 0
-                         =  -+
-                             |  output_i               , i = 0
+    .. math::
+
+        p(y = i | x) = p(y <= i | x) - p(y <= i - 1 | x)
 
     In the special case where some units are saturated, some
-    p(y = i | x) = 0 may appear, which can cause problem with regular
-    negative log likelihood. It is recommended that the cost function used
-    for this layer relies instead on p(y <= i | x), such as
-    cost = -sum_over_i(indicator(y <= i) * log(p(y <= i | x)) +
-                       indicator(y > i) * log(1 - p(y <= i | x)))
+    :math:`p(y = i | x) = 0` may appear, which can cause problem with
+    regular negative log likelihood. It is recommended that the cost
+    function used for this layer relies instead on
+    :math:`p(y \\leq i | x)`.
     """
 
     def __init__(self, nvis, nclasses):
         """
         Initialize the parameters, with W being shared between all units.
 
-        :type nvis: int
-        :param nvis: number of input units, the dimension of the space in
-                     which the datapoints lie.
+        Parameters
+        ----------
+        nvis : int
+            number of input units, the dimension of the space in which the
+            datapoints lie.
 
-        :type nclasses: int
-        :param nclasses: number of output units, the dimension of the space
-                         in which the labels lie.
+        nclasses : int
+            number of output units, the dimension of the space in which the
+            labels lie.
         """
         super(CumulativeProbabilitiesLayer, self).__init__(nvis, nclasses)
 
@@ -137,13 +141,20 @@ class CumulativeProbabilitiesLayer(LogisticRegressionLayer):
 
     def p_y_ie_n(self, inp):
         """
-        Computes the p(y <= i | x) vector given an input.
+        Computes the :math:`p(y <= i | x)` vector given an input.
 
         The implementation of this function relies on transformation
         matrices, which are explained within the code.
 
-        :type inp: theano.tensor.TensorType
-        :param inp: the input used to compute p_y_ie_n
+        Parameters
+        ----------
+        inp : theano.tensor.TensorType
+            The input used to compute p_y_ie_n
+
+        Returns
+        -------
+        p_y_ie_n : tensor_like
+            Theano symbolic expression for :math:`p(y \\leq i | x)`
         """
         # As explained in the class docstring, to ensure that the outputs
         # are in ascending order, the W weights matrix is shared between
@@ -211,15 +222,26 @@ class CumulativeProbabilitiesLayer(LogisticRegressionLayer):
 
     def p_y_given_x(self, inp):
         """
-        Computes p(y = i | x) as p(y <= i | x) - p(y <= i - 1 | x).
+        Computes :math:`p(y = i | x)` as
+
+        .. math::
+
+            p(y = i | x) = p(y \leq i | x) - p(y \leq i - 1 | x)
 
         As mentionned in the p_y_ie_n function, the cost function should
         not rely on p_y_given_x because of the zero probabilities that can
         arise if the output units are saturated. It is instead recommended
         to use p_y_ie_n in the cost function expression.
 
-        :type inp: theano.tensor.TensorType
-        :param inp: the input used to compute p_y_given_x
+        Parameters
+        ----------
+        inp : theano.tensor.TensorType
+            The input used to compute p_y_given_x
+
+        Returns
+        -------
+        p_y_given_x : tensor_like
+            Theano symbolic expression for :math:`p(y = i | x)`
         """
         # The expression for p(y = i | x) can be represented in matricial
         # form as
