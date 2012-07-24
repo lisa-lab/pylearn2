@@ -24,6 +24,7 @@ __docformat__ = 'restructedtext en'
 
 # Third-party imports
 import numpy
+import theano
 from theano import tensor
 
 # Local imports
@@ -131,6 +132,7 @@ class CumulativeProbabilitiesLayer(LogisticRegressionLayer):
         super(CumulativeProbabilitiesLayer, self).__init__(nvis, nclasses)
 
         self.W = sharedX(numpy.zeros((nvis, 1)), name='W', borrow=True)
+        self._params = [self.W, self.b]
 
 
     def p_y_ie_n(self, inp):
@@ -153,7 +155,7 @@ class CumulativeProbabilitiesLayer(LogisticRegressionLayer):
         #      = c_{i-2} + softplus(b_{i-1}) + softplus(b_i)
         #      = ... = c_0 + softplus(b_1) + ... + softplus(b_i)
         #
-        # which can be represented as
+        # which can be matricially represented as
         #
         # | c_0 |   | 1 0 ... 0 |   | b_0 |   | 0 0 0 ... 0 |           | b_0 |
         # | c_1 | = | 1 0 ... 0 | * | b_1 | + | 0 1 0 ... 0 | * softplus| b_1 |
@@ -190,10 +192,10 @@ class CumulativeProbabilitiesLayer(LogisticRegressionLayer):
         k2 = theano.shared(value=k2_val, name='k2')
 
         # The K_1 * B term
-        b0_term = T.dot(self.b, k1)
+        b0_term = tensor.dot(self.b, k1)
 
         # The K_2 * softplus(B) term
-        softplus_term = T.dot(T.nnet.softplus(self.b), k2)
+        softplus_term = tensor.dot(tensor.nnet.softplus(self.b), k2)
 
         # The constructed bias that is ensured to be in ascending order
         c = b0_term + softplus_term
@@ -202,10 +204,10 @@ class CumulativeProbabilitiesLayer(LogisticRegressionLayer):
         weights_constructor_val = numpy.ones((1, self.nclasses))
         weights_constructor = theano.shared(value=weights_constructor_val,
                                             name='weights_constructor')
-        weights_matrix = T.dot(self.W,  weights_constructor)
+        weights_matrix = tensor.dot(self.W,  weights_constructor)
 
         # Compute p(y <= i | x)
-        return T.nnet.sigmoid(T.dot(self.input, weights_matrix) + c)
+        return tensor.nnet.sigmoid(tensor.dot(inp, weights_matrix) + c)
 
     def p_y_given_x(self, inp):
         """
@@ -239,4 +241,4 @@ class CumulativeProbabilitiesLayer(LogisticRegressionLayer):
         p_y_given_x_mat = theano.shared(value=a, name='p_y_given_x_mat')
 
         # Compute p_y_given_x
-        return T.dot(self.p_y_ie_n(inp), p_y_given_x_mat)
+        return tensor.dot(self.p_y_ie_n(inp), p_y_given_x_mat)
