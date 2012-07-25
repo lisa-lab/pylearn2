@@ -77,18 +77,48 @@ class LogisticRegressionLayer(Block, Model):
         self._params = [self.W, self.b]
 
     def p_y_given_x(self, inp):
-        """TODO: docstring"""
+        """
+        Computes :math:`p(y = i | x)` corresponding to the
+        layer's output.
+
+        Parameters
+        ----------
+        inp : tensor_like
+            The input used to compute p_y_given_x
+
+        Returns
+        -------
+        p_y_given_x : tensor_like
+            Theano symbolic expression for :math:`p(y = i | x)`
+        """
         # compute vector of class-membership probabilities in symbolic form
         return tensor.nnet.softmax(tensor.dot(inp, self.W) + self.b)
 
     def predict_y(self, inp):
-        """TODO: docstring"""
+        """
+        Predicts y given x by choosing :math:`argmax_i P(Y=i|x,W,b)`.
+
+        Parameters
+        ----------
+        inp : tensor_like
+            The input used to predict y
+
+        Returns
+        -------
+        predict_y : tensor_like
+            Theano symbolic expression for the predicted y
+        """
         # compute prediction as class whose probability is maximal in
         # symbolic form
         return tensor.argmax(self.p_y_given_x(inp), axis=1)
 
     def __call__(self, inp):
-        """TODO: docstring"""
+        """
+        Forward propagate (symbolic) input through this module.
+
+        This just aliases the `p_y_given_x` function for syntactic
+        sugar/convenience.
+        """
         return self.p_y_given_x(inp)
 
 class CumulativeProbabilitiesLayer(LogisticRegressionLayer):
@@ -110,7 +140,7 @@ class CumulativeProbabilitiesLayer(LogisticRegressionLayer):
 
     .. math::
 
-        p(y = i | x) = p(y <= i | x) - p(y <= i - 1 | x)
+        p(y = i | x) = p(y <= i | x) - p(y \leq i - 1 | x)
 
     In the special case where some units are saturated, some
     :math:`p(y = i | x) = 0` may appear, which can cause problem with
@@ -141,14 +171,14 @@ class CumulativeProbabilitiesLayer(LogisticRegressionLayer):
 
     def p_y_ie_n(self, inp):
         """
-        Computes the :math:`p(y <= i | x)` vector given an input.
+        Computes the :math:`p(y \\leq i | x)` vector given an input.
 
         The implementation of this function relies on transformation
         matrices, which are explained within the code.
 
         Parameters
         ----------
-        inp : theano.tensor.TensorType
+        inp : tensor_like
             The input used to compute p_y_ie_n
 
         Returns
@@ -211,7 +241,7 @@ class CumulativeProbabilitiesLayer(LogisticRegressionLayer):
         # The constructed bias that is ensured to be in ascending order
         c = b0_term + softplus_term
 
-        # Since W is a columns vector, we need to expand it into a matrix.
+        # Since W is a column vector, we need to expand it into a matrix.
         weights_constructor_val = numpy.ones((1, self.nclasses))
         weights_constructor = theano.shared(value=weights_constructor_val,
                                             name='weights_constructor')
@@ -222,20 +252,20 @@ class CumulativeProbabilitiesLayer(LogisticRegressionLayer):
 
     def p_y_given_x(self, inp):
         """
-        Computes :math:`p(y = i | x)` as
+        Computes the :math:`p(y = i | x)` vector as
 
         .. math::
 
             p(y = i | x) = p(y \leq i | x) - p(y \leq i - 1 | x)
 
-        As mentionned in the p_y_ie_n function, the cost function should
+        As mentioned in the p_y_ie_n function, the cost function should
         not rely on p_y_given_x because of the zero probabilities that can
         arise if the output units are saturated. It is instead recommended
         to use p_y_ie_n in the cost function expression.
 
         Parameters
         ----------
-        inp : theano.tensor.TensorType
+        inp : tensor_like
             The input used to compute p_y_given_x
 
         Returns
