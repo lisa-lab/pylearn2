@@ -48,8 +48,15 @@ class DatasetLoader:
 
         # dataset paths
         #
-        self.dataset_local_dir = string_utils.preprocess(
-            '${PYLEARN2_LOCAL_DATA_ROOT}')
+        try:
+            self.dataset_local_dir = string_utils.preprocess(
+                '${PYLEARN2_LOCAL_DATA_ROOT}')
+            # lock to create local copies of datasets inside current_local_dir
+            self.dir_lock_in = os.path.join(self.dataset_local_dir, 'lock')
+
+        except KeyError:
+            self.dataset_local_dir = None
+            self.dir_lock_in = None
 
         # only allow single remote dir
         self.dataset_remote_dir = string_utils.preprocess(
@@ -89,12 +96,16 @@ class DatasetLoader:
 
     def load_dataset(self, fname):
         # called by e.g. cifar10.py
+        if self.dataset_local_dir:
+            local_fname = os.path.join(self.dataset_local_dir,
+                                       os.path.relpath(fname,
+                                                       self.dataset_remote_dir))
+            remote_fname = fname
 
-        local_fname = os.path.join(self.dataset_local_dir,
-                                   os.path.relpath(fname, self.dataset_remote_dir))
-        remote_fname = fname
+            existing = self.check_existence(local_fname)
 
-        existing = self.check_existence(local_fname)
+        else:
+            existing = False
 
         if existing:
             dict = self.load_existing_dataset(local_fname)
