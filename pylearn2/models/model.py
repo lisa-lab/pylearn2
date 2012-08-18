@@ -51,6 +51,9 @@ class Model(object):
         """
         return {}
 
+    def set_batch_size(self, batch_size):
+        pass
+
     def score(self, V):
         """
         Compute a "score function" for this model, if this model has
