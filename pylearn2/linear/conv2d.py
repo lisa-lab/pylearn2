@@ -69,8 +69,8 @@ def make_random_conv2D(irange, input_space, output_space,
 
     rng = np.random.RandomState([1,2,3])
 
-    W = sharedX( rng.randn( output_space.nchannels, input_space.nchannels, \
-            kernel_shape[0], kernel_shape[1]) )
+    W = sharedX( rng.uniform(-irange,irange,( output_space.nchannels, input_space.nchannels, \
+            kernel_shape[0], kernel_shape[1])))
 
     return Conv2D(filters = W, \
         img_shape = (batch_size, input_space.nchannels,\
