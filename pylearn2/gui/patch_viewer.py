@@ -96,9 +96,20 @@ class PatchViewer(object):
             print "Warning: displaying totally blank patch"
 
 
+        if self.is_color:
+            assert patch.ndim == 3
+            assert patch.shape[-1] == 3
+        else:
+            assert patch.ndim in [2,3]
+            if patch.ndim == 3:
+                if patch.shape[-1] != 1:
+                    raise ValueError("Expected 2D patch or 3D patch with 1 channel, but got patch with shape "+str(patch.shape))
+
         if recenter:
             assert patch.shape[0] <= self.patch_shape[0]
-            assert patch.shape[1] <= self.patch_shape[1]
+            if patch.shape[1] > self.patch_shape[1]:
+                raise ValueError("Given patch of width %d but only patches up to width %d fit" \
+                        % (patch.shape[1],self.patch_shape[1]))
             rs_pad = (self.patch_shape[0] - patch.shape[0]) / 2
             re_pad = self.patch_shape[0] - rs_pad - patch.shape[0]
             cs_pad = (self.patch_shape[1] - patch.shape[1]) / 2
@@ -132,15 +143,18 @@ class PatchViewer(object):
         assert temp.max() <= 1.0
 
         if self.cur_pos == (0, 0):
-            self.image[:] = 0.5
+            self.clear()
 
         rs = self.pad[0] + (self.cur_pos[0] *
                             (self.patch_shape[0] + self.pad[0]))
         re = rs + self.patch_shape[0]
 
+        assert self.cur_pos[1] <= self.grid_shape[1]
         cs = self.pad[1] + (self.cur_pos[1] *
                             (self.patch_shape[1] + self.pad[1]))
         ce = cs + self.patch_shape[1]
+
+        assert ce <= self.image.shape[1]
 
 
 
@@ -149,6 +163,7 @@ class PatchViewer(object):
         if len(temp.shape) == 2:
             temp = temp[:, :, N.newaxis]
 
+        assert ce-ce_pad <= self.image.shape[1]
         self.image[rs + rs_pad:re - re_pad, cs + cs_pad:ce - ce_pad, :] = temp
 
         if activation is not None:
