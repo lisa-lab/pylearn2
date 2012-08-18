@@ -986,7 +986,7 @@ class InferenceProcedure:
 
         return mat
 
-def load_matlab_dbm(path):
+def load_matlab_dbm(path, num_chains = 1):
     """ Loads a two layer DBM stored in the format used by Ruslan Salakhutdinov's
     matlab demo"""
 
@@ -1026,7 +1026,7 @@ def load_matlab_dbm(path):
     rbms = [ RBM( nvis = D, nhid = N1),
             RBM( nvis = N1, nhid = N2) ]
 
-    dbm = DBM(rbms, negative_chains = 1)
+    dbm = DBM(rbms, negative_chains = num_chains)
 
     dbm.bias_vis.set_value(visbiases)
     dbm.bias_hid[0].set_value(hidbiases)
