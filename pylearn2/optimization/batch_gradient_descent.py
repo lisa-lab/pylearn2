@@ -20,7 +20,8 @@ class BatchGradientDescent:
     """
 
     def __init__(self, objective, params, inputs = None,
-            param_constrainers = None, max_iter = -1):
+            param_constrainers = None, max_iter = -1,
+            lr_scalers = None):
         """ objective: a theano expression to be minimized
                        should be a function of params and,
                        if provided, inputs
@@ -86,7 +87,11 @@ class BatchGradientDescent:
             cache_updates[self.param_to_cache[param]] = param
             cached = self.param_to_cache[param]
             grad = self.param_to_grad_shared[param]
-            mul = alpha * grad
+            if lr_scalers is not None and param in lr_scalers:
+                scaled_alpha = alpha * lr_scalers[param]
+            else:
+                scaled_alpha = alpha
+            mul = scaled_alpha * grad
             diff = cached - mul
             goto_updates[param] = diff
         self._cache_values = function([],updates = cache_updates)
@@ -149,8 +154,8 @@ class BatchGradientDescent:
             assert best_obj <= prev_best_obj
             self._goto_alpha(best_alpha)
 
-            if best_obj == prev_best_obj:
-                break
+            #if best_obj == prev_best_obj and alpha_list[0] < 1e-5:
+            #    break
 
             if best_alpha_ind < 1 and alpha_list[0] > 3e-7:
                 alpha_list = [ alpha / 3. for alpha in alpha_list ]
@@ -174,8 +179,6 @@ class BatchGradientDescent:
                 #end for i
             #end check on alpha_ind
         #end while
-
-
 
         if norm > 1e-2:
             warnings.warn(str(norm)+" seems pretty big for a gradient at convergence...")

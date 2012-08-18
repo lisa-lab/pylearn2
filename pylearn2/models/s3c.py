@@ -1595,6 +1595,8 @@ class E_Step(object):
         mean_term = mu * alpha
         mean_term.name = 'infer_S_hat:mean_term'
 
+        assert V.dtype == config.floatX
+        assert BW.dtype == config.floatX
         data_term = T.dot(V, BW)
         data_term.name = 'infer_S_hat:data_term'
 
@@ -1610,16 +1612,23 @@ class E_Step(object):
         for i1v, Vv in get_debug_values(iterm_part_1, V):
             assert i1v.shape[0] == Vv.shape[0]
 
+
+        assert mean_term.dtype == config.floatX
+        assert data_term.dtype == config.floatX
+        assert interaction_term.dtype == config.floatX
+
         debug_interm = mean_term + data_term
         debug_interm.name = 'infer_S_hat:debug_interm'
 
         numer = debug_interm + interaction_term
         numer.name = 'infer_S_hat:numer'
+        assert numer.dtype == config.floatX
 
         alpha = self.model.alpha
         w = self.model.w
 
         denom = alpha + w
+        assert denom.dtype == config.floatX
         denom.name = 'infer_S_hat:denom'
 
         S_hat =  numer / denom
@@ -1774,6 +1783,9 @@ class E_Step(object):
             new_H_coeff = as_floatX(new_H_coeff)
             new_S_coeff = as_floatX(new_S_coeff)
 
+            assert V.dtype == config.floatX
+            assert H_hat.dtype == config.floatX
+            assert S_hat.dtype == config.floatX
             new_S_hat = self.infer_S_hat(V, H_hat, S_hat)
             assert new_S_hat.type.dtype == config.floatX
 
