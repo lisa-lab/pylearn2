@@ -37,7 +37,8 @@ class SGD(TrainingAlgorithm):
         cost : object
             An object implementing the pylearn2 cost interface.
         batch_size : int, optional
-            Batch size per update. TODO: What if this is not provided?
+            Batch size per update.
+            If None, uses model.force_batch_size
         batches_per_iter : int, optional
             How many batch updates per epoch. Default is 1000.
             TODO: Is there any way to specify "as many as the dataset
@@ -92,6 +93,9 @@ class SGD(TrainingAlgorithm):
 
         self.model = model
 
+        if self.batch_size is None:
+            self.batch_size = model.force_batch_size
+
         self.monitor = Monitor.get_monitor(model)
         self.monitor.set_dataset(dataset=self.monitoring_dataset,
                                  mode="sequential",
@@ -117,7 +121,7 @@ class SGD(TrainingAlgorithm):
         if J.name is None:
             J.name = 'sgd_cost(' + X.name + ')'
         self.monitor.add_channel(name=J.name, ipt=X, val=J)
-        params = model.get_params()
+        params = list(model.get_params())
 
         for i, param in enumerate(params):
             if param.name is None:
