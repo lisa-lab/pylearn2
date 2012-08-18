@@ -6,7 +6,8 @@ N = np
 from pylearn2.datasets import dense_design_matrix
 
 class CIFAR10(dense_design_matrix.DenseDesignMatrix):
-    def __init__(self, which_set, center = False, rescale = False, gcn = None):
+    def __init__(self, which_set, center = False, rescale = False, gcn = None,
+            one_hot = False):
 
         # note: there is no such thing as the cifar10 validation set;
         # quit pretending that there is.
@@ -55,6 +56,19 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
 
         X = N.cast['float32'](Xs[which_set])
         y = Ys[which_set]
+
+        if isinstance(y,list):
+            y = np.asarray(y)
+
+        if which_set == 'test':
+            assert y.shape[0] == 10000
+
+        self.one_hot = one_hot
+        if one_hot:
+            one_hot = np.zeros((y.shape[0],10),dtype='float32')
+            for i in xrange(y.shape[0]):
+                one_hot[i,y[i]] = 1.
+            y = one_hot
 
         if center:
             X -= 127.5
