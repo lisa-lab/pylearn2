@@ -77,6 +77,11 @@ class Space(object):
         """
         raise NotImplementedError()
 
+    def make_batch_theano(self, name = None, dtype = None):
+        """ An alias to make_theano_batch """
+
+        return self.make_theano_batch(name = name, dtype = dtype)
+
 
 class VectorSpace(Space):
     """A space whose points are defined as fixed-length vectors."""
@@ -93,7 +98,7 @@ class VectorSpace(Space):
         """
         self.dim = dim
         self.sparse = sparse
-        
+
     @functools.wraps(Space.get_origin)
     def get_origin(self):
         return np.zeros((self.dim,))
