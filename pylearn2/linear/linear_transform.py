@@ -26,3 +26,8 @@ class LinearTransform(object):
             space; you are not responsible for doing so here."""
 
         raise NotImplementedError()
+
+    def set_batch_size(self, batch_size):
+        """ Some transformers such as Conv2D have a fixed batch size.
+        Use this method to change the batch size. """
+        pass
