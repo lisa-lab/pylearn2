@@ -21,7 +21,7 @@ class Model(object):
         """
         raise NotImplementedError()
 
-    def get_monitoring_channels(self, V):
+    def get_monitoring_channels(self, V, Y = None):
         """
         Get monitoring channels for this model.
 
@@ -32,6 +32,8 @@ class Model(object):
             first axis and features along the second. This is data on which
             the monitoring quantities will be calculated (e.g., a validation
             set).
+        Y : optional class labels. Usually I have been representing them as
+            a one-hot design matrix but we don't really have a standard yet.
 
         Returns
         -------
