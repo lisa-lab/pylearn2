@@ -1,4 +1,5 @@
-import numpy as N
+import numpy as np
+N = np
 from PIL import Image
 from pylearn2.datasets.dense_design_matrix import DefaultViewConverter
 from pylearn2.utils.image import show
@@ -18,7 +19,7 @@ def make_viewer(mat, grid_shape=None, patch_shape=None, activation=None, pad=Non
         assert mat.shape[1] % num_channels == 0
         patch_shape = PatchViewer.pick_shape(mat.shape[1] / num_channels, exact = True)
         assert patch_shape[0] * patch_shape[1] * num_channels == mat.shape[1]
-    rval = PatchViewer(grid_shape, patch_shape, pad=pad)
+    rval = PatchViewer(grid_shape, patch_shape, pad=pad, is_color = is_color)
     topo_shape = (patch_shape[0], patch_shape[1], num_channels)
     view_converter = DefaultViewConverter(topo_shape)
     topo_view = view_converter.design_mat_to_topo_view(mat)
@@ -39,31 +40,50 @@ def make_viewer(mat, grid_shape=None, patch_shape=None, activation=None, pad=Non
 
 
 class PatchViewer(object):
-    def __init__(self, grid_shape, patch_shape, is_color=False, pad = None):
+    def __init__(self, grid_shape, patch_shape, is_color=False, pad = None,
+            background = None ):
+        if background is None:
+            if is_color:
+                background = np.zeros((3,))
+            else:
+                background = 0.
+        self.background = background
         assert len(grid_shape) == 2
         assert len(patch_shape) == 2
+        for shape in [grid_shape, patch_shape]:
+            for elem in shape:
+                assert isinstance(elem,int)
         self.is_color = is_color
         if pad is None:
             self.pad = (5, 5)
         else:
             self.pad = pad
+        #these are the colors of the activation shells
         self.colors = [N.asarray([1, 1, 0]), N.asarray([1, 0, 1]), N.asarray([0,1,0])]
 
         height = (self.pad[0] * (1 + grid_shape[0]) + grid_shape[0] *
                   patch_shape[0])
         width = (self.pad[1] * (1 + grid_shape[1]) + grid_shape[1] *
                  patch_shape[1])
-
-        image_shape = (height, width, 3)
-
-        self.image = N.zeros(image_shape) + 0.5
-        self.cur_pos = (0, 0)
-
         self.patch_shape = patch_shape
         self.grid_shape = grid_shape
 
+        image_shape = (height, width, 3)
+
+        self.image = N.zeros(image_shape)
+        assert self.image.shape[1] == (self.pad[1] * (1 + self.grid_shape[1]) + self.grid_shape[1] *
+                                 self.patch_shape[1])
+        self.cur_pos = (0, 0)
+        #needed to render in the background color
+        self.clear()
+
+
     def clear(self):
-        self.image[:] = 0.5
+        if self.is_color:
+            for i in xrange(3):
+                self.image[:,:,i] = self.background[i] * .5 + .5
+        else:
+            self.image[:] = self.background * .5 + .5
         self.cur_pos = (0, 0)
 
     #0 is perfect gray. If not rescale, assumes images are in [-1,1]
