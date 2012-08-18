@@ -82,6 +82,9 @@ class Model(object):
         """
         return T.grad(-self.free_energy(V).sum(), V)
 
+    def get_lr_scalers(self):
+        return {}
+
     def censor_updates(self, updates):
         """
         updates: a dictionary mapping shared variables to symbolic values
