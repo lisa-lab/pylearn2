@@ -56,6 +56,10 @@ class Conv2D(OrigConv2D):
 
         return xfilters
 
+    def set_batch_size(self, batch_size):
+        self._img_shape = tuple([ batch_size ] + list(self._img_shape[1:]))
+
+
 
 def make_random_conv2D(irange, input_space, output_space,
         kernel_shape, batch_size, \
