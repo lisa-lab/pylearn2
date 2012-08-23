@@ -1,5 +1,4 @@
 import numpy as np
-N = np
 from PIL import Image
 from pylearn2.datasets.dense_design_matrix import DefaultViewConverter
 from pylearn2.utils.image import show
@@ -59,7 +58,7 @@ class PatchViewer(object):
         else:
             self.pad = pad
         #these are the colors of the activation shells
-        self.colors = [N.asarray([1, 1, 0]), N.asarray([1, 0, 1]), N.asarray([0,1,0])]
+        self.colors = [np.asarray([1, 1, 0]), np.asarray([1, 0, 1]), np.asarray([0,1,0])]
 
         height = (self.pad[0] * (1 + grid_shape[0]) + grid_shape[0] *
                   patch_shape[0])
@@ -70,7 +69,7 @@ class PatchViewer(object):
 
         image_shape = (height, width, 3)
 
-        self.image = N.zeros(image_shape)
+        self.image = np.zeros(image_shape)
         assert self.image.shape[1] == (self.pad[1] * (1 + self.grid_shape[1]) + self.grid_shape[1] *
                                  self.patch_shape[1])
         self.cur_pos = (0, 0)
@@ -125,10 +124,10 @@ class PatchViewer(object):
 
         temp = patch.copy()
 
-        assert (not N.any(N.isnan(temp))) and (not N.any(N.isinf(temp)))
+        assert (not np.any(np.isnan(temp))) and (not np.any(np.isinf(temp)))
 
         if rescale:
-            scale = N.abs(temp).max()
+            scale = np.abs(temp).max()
             if scale > 0:
                 temp /= scale
         else:
@@ -156,12 +155,10 @@ class PatchViewer(object):
 
         assert ce <= self.image.shape[1]
 
-
-
         temp *= (temp > 0)
 
         if len(temp.shape) == 2:
-            temp = temp[:, :, N.newaxis]
+            temp = temp[:, :, np.newaxis]
 
         assert ce-ce_pad <= self.image.shape[1]
         self.image[rs + rs_pad:re - re_pad, cs + cs_pad:ce - ce_pad, :] = temp
@@ -175,7 +172,7 @@ class PatchViewer(object):
                 assert 2 * shell + 2 < self.pad[0]
                 assert 2 * shell + 2 < self.pad[1]
                 if amt >= 0:
-                    act = amt * N.asarray(self.colors[shell])
+                    act = amt * np.asarray(self.colors[shell])
                     self.image[rs + rs_pad - shell - 1,
                                cs + cs_pad - shell - 1:
                                ce - ce_pad + 1 + shell,
@@ -204,7 +201,7 @@ class PatchViewer(object):
         if subtract_mean:
             myvid -= vid.mean()
         if rescale:
-            scale = N.abs(myvid).max()
+            scale = np.abs(myvid).max()
             if scale == 0:
                 scale = 1
             myvid /= scale
@@ -216,7 +213,7 @@ class PatchViewer(object):
 
     def get_img(self):
         #print 'image range '+str((self.image.min(), self.image.max()))
-        x = N.cast['uint8'](self.image * 255.0)
+        x = np.cast['uint8'](self.image * 255.0)
         if x.shape[2] == 1:
             x = x[:, :, 0]
         img = Image.fromarray(x)
@@ -231,13 +228,16 @@ class PatchViewer(object):
         If exact, fits exactly n elements
         """
 
+        if not isinstance(n,int):
+            raise TypeError("n must be an integer, but is "+str(type(n)))
+
         if exact:
 
             best_r = -1
             best_c = -1
             best_ratio = 0
 
-            for r in xrange(1,int(N.sqrt(n))+1):
+            for r in xrange(1,int(np.sqrt(n))+1):
                 if n % r != 0:
                     continue
                 c = n / r
@@ -251,8 +251,8 @@ class PatchViewer(object):
 
             return (best_r, best_c)
 
-
-        r = c = int(N.floor(N.sqrt(n)))
+        sqrt = np.sqrt(n)
+        r = c = int(np.floor(sqrt))
         while r * c < n:
             c += 1
         return (r, c)
