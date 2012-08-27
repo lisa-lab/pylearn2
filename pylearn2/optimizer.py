@@ -74,7 +74,7 @@ class SGDOptimizer(Optimizer):
             self.accumulators = {}
             self.e0s = {}
             for param in self.params:
-                self.accumulators[param] = theano.shared(value=as_floatX(0.),
+                self.accumulators[param] = theano.shared(value=numpy.array(0., dtype=theano.config.floatX),
                                                          name='acc_%s' % param.name)
                 self.e0s[param] = as_floatX(base_lr)
 
@@ -87,9 +87,9 @@ class SGDOptimizer(Optimizer):
             if clip_name in kwargs:
                 if clip_name in clip_names_seen:
                     print >> sys.stderr, ('Warning: In SGDOptimizer, '
-                            'at least two parameters have the same name. '
-                            'Both will be affected by the keyword argument '
-                            '%s.' % clip_name)
+                                          'at least two parameters have the same name. '
+                                          'Both will be affected by the keyword argument '
+                                          '%s.' % clip_name)
                 clip_names_seen.add(clip_name)
                 p_min, p_max = kwargs[clip_name]
                 assert p_min <= p_max
@@ -101,13 +101,13 @@ class SGDOptimizer(Optimizer):
         for kw in kwargs.iterkeys():
             if kw[-5:] == '_clip':
                 print >> sys.stderr, ('Warning: in SGDOptimizer, '
-                        'keyword argument %s will be ignored, '
-                        'because no parameter was found with name %s.'
-                        % (kw, kw[:-5]))
+                                      'keyword argument %s will be ignored, '
+                                      'because no parameter was found with name %s.'
+                                      % (kw, kw[:-5]))
 
-        self.learning_rates_setup(base_lr, **kwargs)
+        self.learning_rates_setup(base_lr, ** kwargs)
 
-    def learning_rates_setup(self, base_lr, **kwargs):
+    def learning_rates_setup(self, base_lr, ** kwargs):
         """
         Initializes parameter-specific learning rate dictionary and shared
         variables for the annealed base learning rate and iteration number.
@@ -135,9 +135,9 @@ class SGDOptimizer(Optimizer):
             lr_name = '%s_lr' % parameter.name
             if lr_name in lr_names_seen:
                 print >> sys.stderr, ('Warning: In SGDOptimizer, '
-                        'at least two parameters have the same name. '
-                        'Both will be affected by the keyword argument '
-                        '%s.' % lr_name)
+                                      'at least two parameters have the same name. '
+                                      'Both will be affected by the keyword argument '
+                                      '%s.' % lr_name)
             lr_names_seen.add(parameter.name)
 
             thislr = kwargs.get(lr_name, 1.)
@@ -150,9 +150,9 @@ class SGDOptimizer(Optimizer):
         for kw in kwargs.iterkeys():
             if kw[-3:] == '_lr':
                 print >> sys.stderr, ('Warning: in SGDOptimizer, '
-                        'keyword argument %s will be ignored, '
-                        'because no parameter was found with name %s.'
-                        % (kw, kw[:-3]))
+                                      'keyword argument %s will be ignored, '
+                                      'because no parameter was found with name %s.'
+                                      % (kw, kw[:-3]))
 
         # A shared variable for storing the iteration number.
         self.iteration = sharedX(theano._asarray(0, dtype='int32'),
