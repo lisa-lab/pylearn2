@@ -21,7 +21,7 @@ class BatchGradientDescent:
 
     def __init__(self, objective, params, inputs = None,
             param_constrainers = None, max_iter = -1,
-            lr_scalers = None):
+            lr_scalers = None, verbose = False):
         """ objective: a theano expression to be minimized
                        should be a function of params and,
                        if provided, inputs
@@ -49,7 +49,7 @@ class BatchGradientDescent:
 
         obj = objective
 
-        self.verbose = False
+        self.verbose = verbose
 
         param_to_grad_sym = {}
         param_to_grad_shared = {}
@@ -98,6 +98,11 @@ class BatchGradientDescent:
         for param_constrainer in param_constrainers:
             param_constrainer(goto_updates)
         self._goto_alpha = function([alpha], updates = goto_updates)
+
+        if objective.dtype == "float32":
+            self.tol = 1e-6
+        else:
+            self.tol = 3e-7
 
     def _normalize_grad(self):
 
@@ -156,8 +161,7 @@ class BatchGradientDescent:
 
             #if best_obj == prev_best_obj and alpha_list[0] < 1e-5:
             #    break
-
-            if best_alpha_ind < 1 and alpha_list[0] > 3e-7:
+            if best_alpha_ind < 1 and alpha_list[0] > self.tol:
                 alpha_list = [ alpha / 3. for alpha in alpha_list ]
                 if self.verbose:
                     print 'shrinking the step size'
@@ -165,7 +169,7 @@ class BatchGradientDescent:
                 alpha_list = [ alpha * 2. for alpha in alpha_list ]
                 if self.verbose:
                     print 'growing the step size'
-            elif best_alpha_ind == -1 and alpha_list[0] <= 3e-7:
+            elif best_alpha_ind == -1 and alpha_list[0] <= self.tol:
                 if alpha_list[-1] > 1:
                     if self.verbose:
                         print 'converged'
