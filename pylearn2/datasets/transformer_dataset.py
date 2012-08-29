@@ -43,6 +43,10 @@ class TransformerDataset(Dataset):
         final_iterator = TransformerIterator(raw_iterator, self)
 
         return final_iterator
+        
+    def has_targets(self):
+        return self.raw.y is not None
+
 
 class TransformerIterator(object):
 
@@ -63,3 +67,7 @@ class TransformerIterator(object):
             rval = self.transformer_dataset.transformer.perform(raw_batch)
 
         return rval
+
+    @property
+    def num_examples(self):
+        return self.raw_iterator.num_examples
