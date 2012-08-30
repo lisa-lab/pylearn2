@@ -53,12 +53,10 @@ class SGD(TrainingAlgorithm):
                             model.set_batch_size(batch_size) in an attempt
                             to change model.force_batch_size
 
-
             Parameters are updated by the formula:
 
             inc := momentum * inc - learning_rate * d cost / d param
             param := param + inc
-
         """
 
         self.learning_rate = float(learning_rate)
@@ -99,8 +97,8 @@ class SGD(TrainingAlgorithm):
         # separately from training batch size, e.g. if you would rather
         # monitor on one somewhat big batch but update on many small
         # batches.
-        self.monitor.set_dataset(dataset=self.monitoring_dataset,
-                                 mode='shuffled_sequential',
+        self.monitor.add_dataset(dataset=self.monitoring_dataset,
+                                 mode='sequential',
                                  batch_size=self.batch_size,
                                  num_batches=self.monitoring_batches,
                                  target_space=self.cost.get_target_space(model, dataset))
@@ -152,11 +150,11 @@ class SGD(TrainingAlgorithm):
         else:
             cost_channels = self.cost.get_monitoring_channels(model, X)
             ipt = X
-        self.monitor.add_channel(name=cost_value.name, ipt=ipt, val=cost_value)
+        self.monitor.add_channel(name=cost_value.name, ipt=ipt, val=cost_value, dataset=self.monitoring_dataset)
         for key in cost_channels:
-            self.monitor.add_channel(name=key, ipt=ipt, val=cost_channels[key])
+            self.monitor.add_channel(name=key, ipt=ipt, val=cost_channels[key], dataset=monitoring_dataset)
         if self.momentum:
-            self.monitor.add_channel(name='momentum', ipt=ipt, val=self.momentum)
+            self.monitor.add_channel(name='momentum', ipt=ipt, val=self.momentum, dataset=self.monitoring_dataset)
 
         params = list(model.get_params())
         assert len(params) > 0
