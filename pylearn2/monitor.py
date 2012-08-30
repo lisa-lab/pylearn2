@@ -74,18 +74,18 @@ class Monitor(object):
             'sequential' and `batch_size` is specified (number of
             batches will be calculated based on full dataset size).
         """
-        try:
-            it = dataset.iterator(mode=mode, batch_size=batch_size,
-                                  num_batches=num_batches,
-                                  topo=self.topo,
-                                  targets=self.require_label)
-            # TODO: handle random seeds.
-            actual_batch_size = it.batch_size
-            if batch_size is not None:
-                assert actual_batch_size == batch_size
-        except ValueError as exc:
-            raise ValueError("invalid iteration parameters in "
-                             "Monitor.set_dataset: " + str(exc))
+        for (d, m, b, n) in zip(dataset, mode, batch_size, num_batches):
+            try:
+                it = d.iterator(mode=m, batch_size=b,
+                                      num_batches=n,
+                                      topo=self.topo,
+                                      targets=self.require_label)
+                # TODO: handle random seeds.
+                if it.uneven:
+                    raise NotImplementedError("The monitor's averaging is wrong if the batch size changes'")
+            except ValueError as exc:
+                raise ValueError("invalid iteration parameters in "
+                                 "Monitor.set_dataset: " + str(exc))
         self._dataset = dataset
         self._iteration_mode = mode
         # This handles the case where batch_size was inferred from
@@ -103,65 +103,49 @@ class Monitor(object):
         if self._dirty:
             self.redo_theano()
         model = self.model
-        d = self._dataset
-        if d:
-            if isinstance(d, basestring):
-                d = yaml_parse.load(d)
-                self._dataset = d
-            myiterator = d.iterator(mode=self._iteration_mode,
-                                    batch_size=self._batch_size,
-                                    num_batches=self._num_batches,
-                                    topo=self.topo,
-                                    targets=self.require_label)
-            self.begin_record_entry()
-            count = 0
-            for iteration, batch in enumerate(myiterator):
-                if self.require_label:
-                    X, y = batch
-                else:
-                    X = batch
-                    batch = [ X ]
-                # make sure the iterator gave us the right size
-                # the averaging code assumes all batches are the same size
-                # DO NOT COMMENT THIS OUT!
-                if X.shape[0] != self._batch_size:
-                    # Unit tests expect this to be NotImplementedError rather
-                    # than some other kind of error, so if you change it run the
-                    # tests and fix them
-                    raise NotImplementedError("monitor currently expects iterator "
-                            "to give batches of all the same size, but this "
-                            "iterator did not. Need to make monitor support "
-                            "varying batch sizes and/or make iterator "
-                            "configurable to reject varying batch sizes "
-                            "(ie, for use with convolutional models that have a hardcoded batch size).")
-                self.run_prereqs(*batch)
-                try:
-                    self.accum(*batch)
-                except RuntimeError, e:
-                    if str(e).find("Could not allocate memory on device") != -1:
-                            print 'Ran out of memory trying to call accum on tensor of shape ',X.shape
-                            raise
-                count += 1
+        dataset = self._dataset
+        for d, i, b, n, a in zip(dataset, self._iteration_mode, self._batch_size,
+                                 self._num_batches, self.accum):
+            if d:
+                if isinstance(d, basestring):
+                    d = yaml_parse.load(d)
+                    self._dataset = d
+                myiterator = d.iterator(mode=i,
+                                        batch_size=b,
+                                        num_batches=n,
+                                        topo=self.topo,
+                                        targets=self.require_label)
+                self.begin_record_entry()
+                count = 0
+                for iteration, X in enumerate(myiterator):
+                    if self.require_label:
+                        X, y = X
+                        self.run_prereqs(X,y)
+                        a(X, y)
+                    else:
+                        self.run_prereqs(X)
+                        a(X)
+                    count += 1
 
+        # TODO: use logging infrastructure so that user can configure
+        # formatting
+        print "Monitoring step:"
+        print "\tBatches seen: %d" % self._num_batches_seen
+        print "\tExamples seen: %d" % self._examples_seen
+        for channel_name in sorted(self.channels.keys(), key=number_aware_alphabetical_key):
+            channel = self.channels[channel_name]
+            channel.batch_record.append(self._num_batches_seen)
+            channel.example_record.append(self._examples_seen)
+            val = channel.val_shared.get_value(borrow=True)
+            channel.val_record.append(val)
             # TODO: use logging infrastructure so that user can configure
             # formatting
-            print "Monitoring step:"
-            print "\tBatches seen: %d" % self._num_batches_seen
-            print "\tExamples seen: %d" % self._examples_seen
-            for channel_name in sorted(self.channels.keys(), key=number_aware_alphabetical_key):
-                channel = self.channels[channel_name]
-                channel.batch_record.append(self._num_batches_seen)
-                channel.example_record.append(self._examples_seen)
-                val = channel.val_shared.get_value(borrow=True)
-                channel.val_record.append(val)
-                # TODO: use logging infrastructure so that user can configure
-                # formatting
-                if abs(val) < 1e4:
-                    val_str = str(val)
-                else:
-                    val_str = '%.3e' % val
+            if abs(val) < 1e4:
+                val_str = str(val)
+            else:
+                val_str = '%.3e' % val
 
-                print "\t%s: %s" % (channel_name, val_str)
+            print "\t%s: %s" % (channel_name, val_str)
 
     def run_prereqs(self, X, y = None):
         for prereq in self.prereqs:
@@ -231,37 +215,45 @@ class Monitor(object):
                 Y = self.model.get_output_space().make_theano_batch(name = "monitoring_Y")
 
         print 'monitored channels: '+str(self.channels.keys())
-        it = self.dataset.iterator(mode=self._iteration_mode,
-                                   num_batches=self._num_batches,
-                                   batch_size=self._batch_size)
-        num_examples = np.cast[config.floatX](float(it.num_examples))
+        it = [d.iterator(mode=i, num_batches=n, batch_size=b) \
+              for d, i, n, b in zip(self.dataset, self._iteration_mode,
+                                    self._num_batches, self._batch_size)]
+        num_examples = [np.cast[config.floatX](float(i.num_examples)) for i in it]
+        givens = [{} for d in self.dataset]
+        updates = [{} for d in self.dataset]
         for channel in self.channels.values():
+            index = self.dataset.index(channel.dataset)
+            d = self.dataset[index]
+            g = givens[index]
+            n = num_examples[index]
+            u = updates[index]
             if isinstance(channel.graph_input, (list, tuple)):
-                givens[channel.graph_input[0]] = X
-                if channel.graph_input[1].ndim != Y.ndim:
-                    raise ValueError("Channel %s has label dimension %d, should have %d." % (str(channel),
-                        channel.graph_input[1].ndim, Y.ndim))
-                givens[channel.graph_input[1]] = Y
+                g[channel.graph_input[0]] = X
+                g[channel.graph_input[1]] = Y
             else:
-                givens[channel.graph_input] = X
-            val = channel.val * T.cast(X.shape[0], config.floatX) / num_examples
-            updates[channel.val_shared] = channel.val_shared + val
+                g[channel.graph_input] = X
+            val = channel.val * T.cast(X.shape[0], config.floatX) / n
+            u[channel.val_shared] = channel.val_shared + val
         print "compiling accum..."
         t1 = time.time()
-        for key in updates:
-            if key.dtype != updates[key].dtype:
-                raise TypeError('Monitoring channel shared variable ' \
-                        + key.name + ' has dtype ' + key.dtype + \
-                        ' but is driven by an expression with type ' + \
-                        updates[key].dtype)
-        if self.require_label:
-            #some code may be written in terms of Y, but the subclasses in use might not
-            #actually return expressions involving Y, so we disable the unused_input error
-            self.accum = function([X, Y], givens=givens, updates=updates, on_unused_input = 'ignore')
-        else:
-            self.accum = function([X], givens=givens, updates=updates)
+        for up in updates:
+            for key in up:
+                if key.dtype != up[key].dtype:
+                    raise TypeError('Monitoring channel shared variable ' \
+                            + key.name + ' has dtype ' + key.dtype + \
+                            ' but is driven by an expression with type ' + \
+                            up[key].dtype)
+        self.accum = []
+        for g, u in zip (givens, updates):
+            if self.require_label:
+                #some code may be written in terms of Y, but the subclasses in use might not
+                #actually return expressions involving Y, so we disable the unused_input error
+                self.accum.append(function([X, Y], givens=g, updates=u, on_unused_input = 'ignore'))
+            else:
+                self.accum.append(function([X], givens=g, updates=u))
         t2 = time.time()
-        print "graph size: ",len(self.accum.maker.fgraph.toposort())
+        for a in self.accum:
+            print "graph size: ",len(a.maker.fgraph.toposort())
         print "took "+str(t2-t1)+" seconds"
         final_names = dir(self)
         self.register_names_to_del([name for name in final_names
@@ -309,7 +301,7 @@ class Monitor(object):
     def __setstate__(self, d):
         self.__dict__.update(d)
 
-    def add_channel(self, name, ipt, val, prereqs=None):
+    def add_channel(self, name, ipt, val, dataset, prereqs=None):
         """
         Asks the monitor to start tracking a new value.  Can be called even
         after the monitor is already in use.
@@ -329,16 +321,13 @@ class Monitor(object):
             raise ValueError("Tried to create the same channel twice (%s)" %
                              name)
         if isinstance(ipt, (list, tuple)):
-            if self.dataset is not None:
-                if not self.dataset.has_targets():
+            if dataset is not None:
+                if not dataset.has_targets():
                     raise ValueError("Tried to create a channel ("+name \
                             +") that uses targets, but monitoring dataset has no targets")
             self.require_label = True
             assert len(ipt) == 2
-            assert ipt[1].ndim < 3
-        new_channel = MonitorChannel(ipt, val, name, prereqs)
-        assert hasattr(new_channel, 'name')
-        self.channels[name] = new_channel
+        self.channels[name] = MonitorChannel(ipt, val, name, dataset, prereqs)
         self._dirty = True
 
     def _sanity_check(self):
@@ -393,7 +382,7 @@ class MonitorChannel(object):
     """
     A class representing a specific quantity to be monitored.
     """
-    def __init__(self, graph_input, val, name, prereqs=None):
+    def __init__(self, graph_input, val, name, dataset, prereqs=None):
         """
         Creates a channel for a quantity to be monitored.
 
@@ -426,6 +415,8 @@ class MonitorChannel(object):
         if val.ndim != 0:
             raise ValueError('monitor channels are supposed to have zero dimensions ' \
                     ' but "'+name+'" has '+str(val.ndim))
+        # Dataset monitored by thgis channel
+        self.dataset = dataset
         # Value of the desired quantity at measurement time.
         self.val_record = []
         # Number of batches seen at measurement time.
