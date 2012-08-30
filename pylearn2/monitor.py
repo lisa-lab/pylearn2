@@ -74,6 +74,19 @@ class Monitor(object):
             'sequential' and `batch_size` is specified (number of
             batches will be calculated based on full dataset size).
         """
+        # The user can ommit using lists if only one dataset is set
+        if not isinstance(dataset, list):
+            dataset = [dataset]
+        if not isinstance(mode, list):
+            mode = [mode]
+        if not isinstance(batch_size, list):
+            batch_size = [batch_size]
+        if not isinstance(num_batches, list):
+            num_batches = [num_batches]
+        if len(dataset) != len(mode) or len(dataset) != len(batch_size) \
+                                     or len(dataset) != len(num_batches):
+            raise ValueError("make sure each dataset has its iteration " + \
+	                     "mode, batch size and number of batches.")
         for (d, m, b, n) in zip(dataset, mode, batch_size, num_batches):
             try:
                 it = d.iterator(mode=m, batch_size=b,
@@ -104,6 +117,7 @@ class Monitor(object):
             self.redo_theano()
         model = self.model
         dataset = self._dataset
+        self.begin_record_entry()
         for d, i, b, n, a in zip(dataset, self._iteration_mode, self._batch_size,
                                  self._num_batches, self.accum):
             if d:
@@ -115,7 +129,6 @@ class Monitor(object):
                                         num_batches=n,
                                         topo=self.topo,
                                         targets=self.require_label)
-                self.begin_record_entry()
                 count = 0
                 for iteration, X in enumerate(myiterator):
                     if self.require_label:
@@ -301,7 +314,7 @@ class Monitor(object):
     def __setstate__(self, d):
         self.__dict__.update(d)
 
-    def add_channel(self, name, ipt, val, dataset, prereqs=None):
+    def add_channel(self, name, ipt, val, dataset=None, prereqs=None):
         """
         Asks the monitor to start tracking a new value.  Can be called even
         after the monitor is already in use.
@@ -316,6 +329,12 @@ class Monitor(object):
         val: tensor_like
             The value (function of `ipt`) to be tracked.
         """
+        if dataset is None:
+            if len(self.dataset) == 1:
+                dataset = self.dataset[0]
+            else:
+                raise ValueError("No dataset specified but monitor " + \
+                                 "has more than one dataset.")
 
         if name in self.channels:
             raise ValueError("Tried to create the same channel twice (%s)" %
