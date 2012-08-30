@@ -38,7 +38,10 @@ class Monitor(object):
         self.channels = {}
         self._num_batches_seen = 0
         self._examples_seen = 0
-        self._dataset = None
+        self._dataset = []
+        self._iteration_mode = []
+        self._batch_size = []
+        self._num_batches = []
         self._dirty = True
         self._rng_seed = None
         self.names_to_del = []
@@ -54,7 +57,7 @@ class Monitor(object):
 
         self.require_label = False
 
-    def set_dataset(self, dataset, mode, batch_size=None, num_batches=None):
+    def add_dataset(self, dataset, mode, batch_size=None, num_batches=None):
         """
         Determines the data used to calculate the values of each channel.
 
@@ -98,14 +101,12 @@ class Monitor(object):
                     raise NotImplementedError("The monitor's averaging is wrong if the batch size changes'")
             except ValueError as exc:
                 raise ValueError("invalid iteration parameters in "
-                                 "Monitor.set_dataset: " + str(exc))
-        self._dataset = dataset
-        self._iteration_mode = mode
-        # This handles the case where batch_size was inferred from
-        # dataset_size and batch_size
-        self._batch_size = actual_batch_size
+                                 "Monitor.add_dataset: " + str(exc))
+        self._dataset.extend(dataset)
+        self._iteration_mode.extend(mode)
+        self._batch_size.extend(batch_size)
+        self._num_batches.extend(num_batches)
 
-        self._num_batches = num_batches
 
     def __call__(self):
         """
@@ -331,6 +332,12 @@ class Monitor(object):
             else:
                 raise ValueError("No dataset specified but monitor " + \
                                  "has more than one dataset.")
+        
+        try:
+            self.dataset.index(dataset)
+        except ValueError:
+            raise ValueError("The dataset specified is not " + \
+	                     "one of the monitor's datasets")
 
         if name in self.channels:
             raise ValueError("Tried to create the same channel twice (%s)" %
