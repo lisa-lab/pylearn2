@@ -118,7 +118,7 @@ class Monitor(object):
         model = self.model
         dataset = self._dataset
         self.begin_record_entry()
-        for d, i, b, n, a in zip(dataset, self._iteration_mode, self._batch_size, 
+        for d, i, b, n, a in zip(dataset, self._iteration_mode, self._batch_size,
                                  self._num_batches, self.accum):
             if d:
                 if isinstance(d, basestring):
@@ -226,7 +226,7 @@ class Monitor(object):
 
         print 'monitored channels: '+str(self.channels.keys())
         it = [d.iterator(mode=i, num_batches=n, batch_size=b) \
-              for d, i, n, b in zip(self.dataset, self._iteration_mode, 
+              for d, i, n, b in zip(self.dataset, self._iteration_mode,
                                     self._num_batches, self._batch_size)]
         num_examples = [np.cast[config.floatX](float(i.num_examples)) for i in it]
         givens = [{} for d in self.dataset]
@@ -332,7 +332,7 @@ class Monitor(object):
             else:
                 raise ValueError("No dataset specified but monitor " + \
                                  "has more than one dataset.")
-        
+
         try:
             self.dataset.index(dataset)
         except ValueError:
