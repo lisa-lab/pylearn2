@@ -96,3 +96,13 @@ def make_method_cost(method, superclass):
     return rval
 
 
+class GeneralCost(Cost):
+    """
+    Represents a cost that can be called either as a supervised cost or an
+    unsupervised cost.
+    """
+    def __init__(self):
+        pass
+
+    def __call__(self):
+        raise NotImplementedError()
