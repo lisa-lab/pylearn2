@@ -127,7 +127,7 @@ class SGD(TrainingAlgorithm):
                     cost_value += c(model, X)
             #cost_value = sum(c(model, X) for c in self.cost)
         else:
-            if (isinstance(self.cost, pylearn2.costs.cost.SupervisedCost)):
+            if self.cost.supervised:
                 self.supervised = True
                 cost_value = self.cost(model, X, Y)
             else:
