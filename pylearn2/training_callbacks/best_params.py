@@ -1,4 +1,7 @@
+import numpy
 from pylearn2.training_callbacks.training_callback import TrainingCallback
+import theano
+import theano.tensor as T
 
 
 class KeepBestParams(TrainingCallback):
