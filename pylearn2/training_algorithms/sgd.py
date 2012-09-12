@@ -97,7 +97,7 @@ class SGD(TrainingAlgorithm):
             self.batch_size = model.force_batch_size
 
         self.monitor = Monitor.get_monitor(model)
-        self.monitor.set_dataset(dataset=self.monitoring_dataset,
+        self.monitor.add_dataset(dataset=self.monitoring_dataset,
                                  mode="sequential",
                                  batch_size=self.batch_size,
                                  num_batches=self.monitoring_batches)
@@ -120,7 +120,8 @@ class SGD(TrainingAlgorithm):
 
         if J.name is None:
             J.name = 'sgd_cost(' + X.name + ')'
-        self.monitor.add_channel(name=J.name, ipt=X, val=J)
+        self.monitor.add_channel(name=J.name, ipt=X, val=J, 
+                                 dataset=self.monitoring_dataset)
         params = list(model.get_params())
 
         for i, param in enumerate(params):
@@ -232,7 +233,7 @@ class ExhaustiveSGD(TrainingAlgorithm):
         # separately from training batch size, e.g. if you would rather
         # monitor on one somewhat big batch but update on many small
         # batches.
-        self.monitor.set_dataset(dataset=self.monitoring_dataset,
+        self.monitor.add_dataset(dataset=self.monitoring_dataset,
                                  mode='sequential',
                                  batch_size=self.batch_size,
                                  num_batches=self.monitoring_batches)
@@ -267,9 +268,11 @@ class ExhaustiveSGD(TrainingAlgorithm):
             else:
                 cost_value.name = 'sgd_cost(' + X.name + ')'
         if self.supervised:
-            self.monitor.add_channel(name=cost_value.name, ipt=(X,Y), val=cost_value)
+            self.monitor.add_channel(name=cost_value.name, ipt=(X,Y), val=cost_value,
+                                     dataset=self.monitoring_dataset)
         else:
-            self.monitor.add_channel(name=cost_value.name, ipt=X, val=cost_value)
+            self.monitor.add_channel(name=cost_value.name, ipt=X, val=cost_value,
+                                     dataset=self.monitoring_dataset)
         params = model.get_params()
         for i, param in enumerate(params):
             if param.name is None:
