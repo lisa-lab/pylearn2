@@ -102,10 +102,12 @@ class Monitor(object):
             except ValueError as exc:
                 raise ValueError("invalid iteration parameters in "
                                  "Monitor.add_dataset: " + str(exc))
-        self._dataset.extend(dataset)
-        self._iteration_mode.extend(mode)
-        self._batch_size.extend(batch_size)
-        self._num_batches.extend(num_batches)
+
+            if not d in self._dataset:
+                self._dataset.append(d)
+                self._iteration_mode.append(m)
+                self._batch_size.append(b)
+                self._num_batches.append(n)
 
 
     def __call__(self):
