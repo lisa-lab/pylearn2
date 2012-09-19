@@ -841,12 +841,12 @@ class S3C(Model, Block):
 
 
 
-        print "compiling function..."
+        print "compiling s3c learning function..."
         t1 = time.time()
         rval = function([V], updates = learning_updates)
         t2 = time.time()
         print "... compilation took "+str(t2-t1)+" seconds"
-        print "graph size: ",len(rval.maker.env.toposort())
+        print "graph size: ",len(rval.maker.fgraph.toposort())
 
         return rval
 

@@ -7,7 +7,7 @@ class Cost(object):
     """Abstract class representing a loss function"""
     pass
 
-class SupervisedCost(object):
+class SupervisedCost(Cost):
     """Abstract class representing a cost of both features and labels"""
 
     def __call__(self, model, X, Y):
@@ -21,7 +21,7 @@ class SupervisedCost(object):
         raise NotImplementedError(str(self)+" does not implement __call__")
 
 
-class UnsupervisedCost(object):
+class UnsupervisedCost(Cost):
     """Abstract class representing a cost of features only"""
 
     def __call__(self, model, X):
