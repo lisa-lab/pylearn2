@@ -21,7 +21,8 @@ class BatchGradientDescent:
 
     def __init__(self, objective, params, inputs = None,
             param_constrainers = None, max_iter = -1,
-            lr_scalers = None, verbose = False):
+            lr_scalers = None, verbose = False, tol = None,
+            init_alpha = ( .001, .005, .01, .05, .1 ) ):
         """ objective: a theano expression to be minimized
                        should be a function of params and,
                        if provided, inputs
@@ -40,6 +41,7 @@ class BatchGradientDescent:
         """
 
         self.max_iter = max_iter
+        self.init_alpha = init_alpha
 
         if inputs is None:
             inputs = []
@@ -99,10 +101,13 @@ class BatchGradientDescent:
             param_constrainer(goto_updates)
         self._goto_alpha = function([alpha], updates = goto_updates)
 
-        if objective.dtype == "float32":
-            self.tol = 1e-6
+        if tol is None:
+            if objective.dtype == "float32":
+                self.tol = 1e-6
+            else:
+                self.tol = 3e-7
         else:
-            self.tol = 3e-7
+            self.tol = tol
 
     def _normalize_grad(self):
 
@@ -118,7 +123,7 @@ class BatchGradientDescent:
 
         if self.verbose:
             print 'minimizing'
-        alpha_list = [ .001, .005, .01, .05, .1 ]
+        alpha_list = list( self.init_alpha )
 
         orig_obj = self.obj(*inputs)
 
