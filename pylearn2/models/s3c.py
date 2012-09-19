@@ -1712,14 +1712,17 @@ class E_Step(object):
 
         return H
 
-
-    def infer(self, V, return_history = False):
-        return self.variational_inference( V, return_history)
-
     def variational_inference(self, V, return_history = False):
         """
         TODO: rename to infer (for now, infer exists as a synonym)
+        """
 
+        warnings.warn("E_Step.variational_inference is deprecated. It has been renamd to E_step.infer", stacklevel = 3)
+
+        return self.infer( V, return_history)
+
+    def infer(self, V, return_history = False):
+        """
             return_history: if True:
                                 returns a list of dictionaries with
                                 showing the history of the variational
