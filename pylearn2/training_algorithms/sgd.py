@@ -1,4 +1,5 @@
 from __future__ import division
+import time
 import numpy as np
 import theano.sparse
 from theano import function
@@ -153,8 +154,12 @@ class SGD(TrainingAlgorithm):
         for param in model.get_params():
             assert param in updates
 
+        t1 = time.time()
+        print 'compling sgd_update...'
         self.sgd_update = function([X, learning_rate], updates=updates,
                                    name='sgd_update')
+        t2 = time.time()
+        print 'took',t2-t1,' seconds'
         self.params = params
         self.bSetup = True
 
