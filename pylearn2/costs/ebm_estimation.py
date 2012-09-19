@@ -95,7 +95,6 @@ class SM(UnsupervisedCost):
             dummy = score_i_batch.sum()
             full_grad = T.grad(dummy, fX)
             return full_grad[:,i]
-        #
 
         second_derivs, ignored = scan( f, sequences = T.arange(X.shape[1]), non_sequences = [X, score] )
         second_derivs = second_derivs.T
