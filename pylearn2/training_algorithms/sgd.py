@@ -138,8 +138,15 @@ class SGD(TrainingAlgorithm):
                                       'paramname': param.name})
 
         learning_rate = T.scalar('sgd_learning_rate')
+        lr_scalers = model.get_lr_scalers()
 
-        updates = dict(zip(params, [param - learning_rate * grads[param]
+        for key in lr_scalers:
+            if key not in params:
+                raise ValueError("Tried to scale the learning rate on " +\
+                        str(key)+" which is not an optimization parameter.")
+
+        updates = dict(zip(params, [param - learning_rate * \
+                lr_scalers.get(param, 1.) * grads[param]
                                     for param in params]))
 
         for param in updates:
