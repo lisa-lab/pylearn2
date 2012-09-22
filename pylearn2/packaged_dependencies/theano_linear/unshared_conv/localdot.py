@@ -99,8 +99,10 @@ class LocalDot(LinearTransform):
 
 
     def print_status(self):
-        print ndarray_status(
+        raise NotImplementedError("TODO: fix dependence on non-existent "
+                "ndarray_status function")
+        """print ndarray_status(
                 self._filters.get_value(borrow=True),
                 msg='%s{%s}'% (self.__class__.__name__,
                     self._message))
-
+        """

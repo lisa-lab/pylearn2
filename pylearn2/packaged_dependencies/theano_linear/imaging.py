@@ -1,4 +1,4 @@
-
+import sys
 import numpy
 from PIL import Image
 
@@ -68,7 +68,7 @@ def tile_raster_images(X, img_shape,
     assert len(tile_spacing) == 2
 
     #out_shape is the shape in pixels of the returned image array
-    out_shape = [(ishp + tsp) * tshp - tsp for ishp, tshp, tsp 
+    out_shape = [(ishp + tsp) * tshp - tsp for ishp, tshp, tsp
         in zip(img_shape, tile_shape, tile_spacing)]
 
     if isinstance(X, tuple):
