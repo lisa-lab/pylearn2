@@ -122,6 +122,37 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
 
         return rval
 
+    def adjust_to_be_viewed_with(self, X, orig):
+        # if the scale is set based on the data, display X oring the scale determined
+        # by orig
+        # assumes no preprocessing. need to make preprocessors mark the new ranges
+        rval = X.copy()
+
+        #patch old pkl files
+        if not hasattr(self,'center'):
+            self.center = False
+        if not hasattr(self,'rescale'):
+            self.rescale = False
+        if not hasattr(self,'gcn'):
+            self.gcn = False
+
+        if self.gcn is not None:
+            rval = X.copy()
+            for i in xrange(rval.shape[0]):
+                rval[i,:] /= np.abs(orig[i,:]).max()
+            rval = np.clip(rval, -1., 1.)
+            return rval
+
+        if not self.center:
+            rval -= 127.5
+
+        if not self.rescale:
+            rval /= 127.5
+
+        rval = np.clip(rval,-1.,1.)
+
+        return rval
+
 
     @classmethod
     def _unpickle(cls, file):

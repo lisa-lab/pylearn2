@@ -56,6 +56,29 @@ class Conv2D(OrigConv2D):
 
         return xfilters
 
+    def lmul_sq_T(self, x):
+        """ Kind of a stupid hacky method used to support convolutional score matching.
+        Ought to find a way to make _filters symbolic rather than shared.
+        """
+        assert x.dtype == self._filters.dtype
+
+        x = x.dimshuffle(0,3,1,2)
+
+        # dot(x, sq(A).T)
+        dummy_v = T.tensor4()
+        sqfilt = T.square(self._filters)
+        z_hs = conv2d(dummy_v, sqfilt,
+                image_shape=self._img_shape,
+                filter_shape=self._filters_shape,
+                subsample=self._subsample,
+                border_mode=self._border_mode,
+                )
+        xfilters, xdummy = z_hs.owner.op.grad((dummy_v, sqfilt), (x,))
+
+        xfilters = xfilters.dimshuffle(0,2,3,1)
+
+        return xfilters
+
     def set_batch_size(self, batch_size):
         self._img_shape = tuple([ batch_size ] + list(self._img_shape[1:]))
 

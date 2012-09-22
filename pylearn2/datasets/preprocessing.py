@@ -688,5 +688,6 @@ class ZCA(object):
         self.inv_P_ = np.linalg.inv(self.P_)
 
     def inverse(self, X):
+        assert X.ndim == 2
         return np.dot(X, self.inv_P_) + self.mean_
 
