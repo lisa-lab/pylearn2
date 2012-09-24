@@ -407,6 +407,32 @@ class MonitorChannel(object):
         # fluctuate).
         self.example_record = []
 
+    def __str__(self):
+        try:
+            graph_input_str = str(self.graph_input)
+        except:
+            graph_input_str = '<bad graph input>'
+
+        try:
+            val_str = str(self.val)
+        except:
+            val_str = '<bad val>'
+
+        try:
+            name = str(self.name)
+        except:
+            name_str = '<bad name>'
+
+        try:
+            prereqs_str = str(self.prereqs)
+        except:
+            prereqs_str = '<bad prereqs>'
+
+        return "MonitorChannel(%s,%s,%s,%s)" % (graph_input_str,
+                val_str,
+                name_str,
+                prereqs_str)
+
     def __getstate__(self):
         """ TODO:
                 we need to figure out a good way of saving the other fields.
