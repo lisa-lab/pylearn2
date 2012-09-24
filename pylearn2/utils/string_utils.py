@@ -142,3 +142,60 @@ def number_aware_alphabetical_cmp(str1, str2):
 #key for sorting strings alphabetically with numbers
 number_aware_alphabetical_key = functools.cmp_to_key(number_aware_alphabetical_cmp)
 
+def match(wrong, candidates):
+    """
+        wrong: a mispelling
+        candidates: a set of correct words
+
+        returns a guess of which candidate is the right one
+
+        This should be used with a small number of candidates and a high potential
+        edit distance.
+        ie, use it to correct a wrong filename in a directory, wrong class name
+        in a module, etc. Don't use it to correct small typos of freeform natural
+        language words.
+    """
+
+    # Current implementation tries all candidates and outputs the one
+    # with the min score
+    # Could try to do something smarter
+
+    def score(w1,w2):
+        # Current implementation returns negative dot product of
+        # the two words mapped into a feature space by mapping phi
+        # Could try to do something smarter
+
+        w1 = w1.lower()
+        w2 = w2.lower()
+
+        def phi(w):
+            # Current feature mapping is to the vector of counts of
+            # all letters and two-letter sequences
+            # Could try to do something smarter
+            rval = {}
+
+            for i in xrange(len(w)):
+                l = w[i]
+                rval[l] = rval.get(l,0) + 1
+                if i < len(w)-1:
+                    b = w[i:i+2]
+                    rval[b] = rval.get(b,0) + 1
+
+            return rval
+
+        d1 = phi(w1)
+        d2 = phi(w2)
+
+        rval = 0
+
+        for key in set(d1).union(d2):
+            rval += d1.get(key,0) * d2.get(key,0)
+
+        return rval
+
+    scored_candidates = [ (-score(wrong, candidate), candidate)
+            for candidate in candidates ]
+
+    scored_candidates.sort()
+
+    return scored_candidates[0][1]
