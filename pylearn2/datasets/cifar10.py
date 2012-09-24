@@ -122,7 +122,7 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
 
         return rval
 
-    def adjust_to_be_viewed_with(self, X, orig):
+    def adjust_to_be_viewed_with(self, X, orig, per_example = False):
         # if the scale is set based on the data, display X oring the scale determined
         # by orig
         # assumes no preprocessing. need to make preprocessors mark the new ranges
@@ -138,8 +138,11 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
 
         if self.gcn is not None:
             rval = X.copy()
-            for i in xrange(rval.shape[0]):
-                rval[i,:] /= np.abs(orig[i,:]).max()
+            if per_example:
+                for i in xrange(rval.shape[0]):
+                    rval[i,:] /= np.abs(orig[i,:]).max()
+            else:
+                rval /= np.abs(orig).max()
             rval = np.clip(rval, -1., 1.)
             return rval
 

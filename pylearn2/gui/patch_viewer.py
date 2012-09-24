@@ -2,6 +2,7 @@ import numpy as np
 from PIL import Image
 from pylearn2.datasets.dense_design_matrix import DefaultViewConverter
 from pylearn2.utils.image import show
+import warnings
 
 def make_viewer(mat, grid_shape=None, patch_shape=None, activation=None, pad=None, is_color = False, rescale = True):
     """ Given filters in rows, guesses dimensions of patches
@@ -86,13 +87,13 @@ class PatchViewer(object):
         self.cur_pos = (0, 0)
 
     #0 is perfect gray. If not rescale, assumes images are in [-1,1]
-    def add_patch(self, patch, rescale=True, recenter=True, activation=None):
+    def add_patch(self, patch, rescale=True, recenter=True, activation=None, warn_blank_patch = True):
         """
         :param recenter: if patch has smaller dimensions than self.patch, recenter will pad the
         image to the appropriate size before displaying.
         """
-        if (patch.min() == patch.max()) and (rescale or patch.min() == 0.0):
-            print "Warning: displaying totally blank patch"
+        if warn_blank_patch and (patch.min() == patch.max()) and (rescale or patch.min() == 0.0):
+            warnings.warn("displaying totally blank patch")
 
 
         if self.is_color:
