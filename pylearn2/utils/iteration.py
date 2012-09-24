@@ -58,6 +58,10 @@ class SubsetIterator(object):
     def num_examples(self):
         return self.batch_size * self.num_batches
 
+    @property
+    def uneven(self):
+        return False
+
 
 class SequentialSubsetIterator(SubsetIterator):
     def __init__(self, dataset_size, batch_size, num_batches, rng=None):
@@ -67,7 +71,7 @@ class SequentialSubsetIterator(SubsetIterator):
         self._dataset_size = dataset_size
         if batch_size is None:
             if num_batches is not None:
-                batch_size = numpy.ceil(self._dataset_size / num_batches)
+                batch_size = int(numpy.ceil(self._dataset_size / num_batches))
             else:
                 raise ValueError("need one of batch_size, num_batches "
                                  "for sequential batch iteration")
