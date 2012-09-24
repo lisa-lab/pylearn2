@@ -11,6 +11,36 @@ io = None
 hdf_reader = None
 import struct
 from pylearn2.utils import environ
+from pylearn2.utils.string_utils import match
+
+def raise_cannot_open(path):
+    pieces = path.split('/')
+    for i in xrange(1,len(pieces)+1):
+        so_far = '/'.join(pieces[0:i])
+        if not os.path.exists(so_far):
+            if i == 1:
+                if so_far == '':
+                    continue
+                raise IOError('Cannot open '+path+' ('+so_far+' does not exist)')
+            parent = '/'.join(pieces[0:i-1])
+            bad = pieces[i-1]
+
+            if not os.path.isdir(parent):
+                raise IOError("Cannot open "+path+" because "+parent+" is not a directory.")
+
+            candidates = os.listdir(parent)
+
+            if len(candidates) == 0:
+                raise IOError("Cannot open "+path+" because "+parent+" is empty.")
+
+            if len(candidates) > 100:
+                # Don't attempt to guess the right name if the directory is huge
+                raise IOError("Cannot open "+path+" but can open "+parent+".")
+
+            raise IOError("Cannot open "+path+" but can open "+parent+". Did you mean "+match(bad,candidates)+" instead of "+bad+"?")
+        # end if
+    # end for
+    assert False
 
 def load(filepath, recurse_depth=0):
 
@@ -65,7 +95,13 @@ def load(filepath, recurse_depth=0):
             with open(filepath, 'rb') as f:
                 obj = cPickle.load(f)
         else:
-            obj = joblib.load(filepath)
+            try:
+                obj = joblib.load(filepath)
+            except Exception, e:
+                if os.path.exists(filepath) and not os.path.isdir(filepath):
+                    raise
+                raise_cannot_open(filepath)
+
 
     except BadPickleGet, e:
         print ('Failed to open ' + str(filepath) +
