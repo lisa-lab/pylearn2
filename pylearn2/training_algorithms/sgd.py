@@ -19,6 +19,7 @@ class SGD(TrainingAlgorithm):
     def __init__(self, learning_rate, cost, batch_size=None,
                  monitoring_batches=None, monitoring_dataset=None,
                  termination_criterion=None, update_callbacks=None):
+
         self.learning_rate = float(learning_rate)
         self.cost = cost
         self.batch_size = batch_size
@@ -39,8 +40,20 @@ class SGD(TrainingAlgorithm):
                                  mode='sequential',
                                  batch_size=self.batch_size,
                                  num_batches=self.monitoring_batches)
+
+
+        batch_size = self.batch_size
+        if hasattr(model, "force_batch_size"):
+            if model.force_batch_size > 0:
+                if batch_size is not None:
+                    if batch_size != model.force_batch_size:
+                        raise ValueError("batch_size argument to SGD conflicts with model's force_batch_size attribute")
+                else:
+                    self.batch_size = model.force_batch_size
+
         dataset.set_iteration_scheme('sequential', batch_size=self.batch_size)
-        X = T.matrix(name="%s[X]" % self.__class__.__name__)
+
+        X = model.get_input_space().make_theano_batch(name="%s[X]" % self.__class__.__name__)
         Y = T.matrix(name="%s[Y]" % self.__class__.__name__)
         try:
             iter(self.cost)
@@ -69,10 +82,20 @@ class SGD(TrainingAlgorithm):
                 cost_value.name = 'sgd_cost(' + X.name + ', ' + Y.name + ')'
             else:
                 cost_value.name = 'sgd_cost(' + X.name + ')'
+
+        # Set up monitor to model the objective value and extra channels defined by
+        # the cost
+        # TODO: also monitor things defined by the model
         if self.supervised:
-            self.monitor.add_channel(name=cost_value.name, ipt=(X,Y), val=cost_value)
+            cost_channels = self.cost.get_channels(model, X, Y)
+            ipt = (X, Y)
         else:
-            self.monitor.add_channel(name=cost_value.name, ipt=X, val=cost_value)
+            cost_channels = self.cost.get_channels(model, X)
+            ipt = X
+        self.monitor.add_channel(name=cost_value.name, ipt=ipt, val=cost_value)
+        for key in cost_channels:
+            self.monitor.add_channel(name=key, ipt=ipt, val=cost_channels[key])
+
         params = model.get_params()
         for i, param in enumerate(params):
             if param.name is None:
@@ -115,20 +138,6 @@ class SGD(TrainingAlgorithm):
         if not hasattr(self, 'sgd_update'):
             raise Exception("train called without first calling setup")
         model = self.model
-        if self.batch_size is None:
-            try:
-                batch_size = model.force_batch_size
-            except AttributeError:
-                raise ValueError("batch_size unspecified in both training "
-                                 "procedure and model")
-        else:
-            batch_size = self.batch_size
-            if hasattr(model, "force_batch_size"):
-                assert (model.force_batch_size <= 0 or
-                        batch_size == model.force_batch_size), (
-                            # TODO: more informative assertion error
-                            "invalid force_batch_size attribute"
-                        )
         for param in self.params:
             value = param.get_value(borrow=True)
             if np.any(np.isnan(value)) or np.any(np.isinf(value)):
