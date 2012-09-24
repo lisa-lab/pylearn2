@@ -8,223 +8,14 @@ from pylearn2.monitor import Monitor
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 import pylearn2.costs.cost
 from theano.printing import Print
+import warnings
 
-
-# TODO: This needs renaming based on specifics. Specifically it needs
-# "unsupervised" in its name, and some sort of qualification based on
-# its slightly unorthodox batch selection strategy.
 class SGD(TrainingAlgorithm):
-    """Stochastic Gradient Descent with an optional validation set
-    for error monitoring.
-
-    TODO: right now, assumes there is just one variable, X, i.e.
-    is designed for unsupervised learning need to support other tasks.
-
-    TODO: document parameters, especially monitoring_batches
     """
+    WRITEME
 
-    def __init__(self, learning_rate, cost, batch_size=None,
-                 batches_per_iter=1000, monitoring_batches=-1,
-                 monitoring_dataset=None, termination_criterion=None,
-                 update_callbacks=None):
-        """
-        Instantiates an SGD object.
-
-        Parameters
-        ----------
-        learning_rate : float
-            The stochastic gradient step size, relative to your cost
-            function.
-        cost : object
-            An object implementing the pylearn2 cost interface.
-        batch_size : int, optional
-            Batch size per update.
-            If None, uses model.force_batch_size
-        batches_per_iter : int, optional
-            How many batch updates per epoch. Default is 1000.
-            TODO: Is there any way to specify "as many as the dataset
-            provides"?
-        monitoring_batches : int, optional
-            WRITEME
-        monitoring_dataset : object, optional
-            WRITEME
-        termination_criterion : object, optional
-            WRITEME
-        update_callback : iterable or object, optional
-            WRITEME
-
-        Notes
-        -----
-        TODO: for now, learning_rate is just a float, but later it
-        should support passing in a class that dynamically adjusts the
-        learning rate if batch_size is None, reverts to the
-        force_batch_size field of the model if monitoring_dataset is
-        provided, uses monitoring_batches batches of data from
-        monitoring_dataset to report monitoring errors
-        """
-        #Store parameters
-        self.learning_rate = float(learning_rate)
-        self.batch_size = batch_size
-        self.batches_per_iter = batches_per_iter
-        self.cost = cost
-        if monitoring_dataset is None:
-            assert monitoring_batches == -1, ("no monitoring dataset, but "
-                                              "monitoring_batches > 0")
-        self.monitoring_dataset = monitoring_dataset
-        self.monitoring_batches = monitoring_batches
-        self.termination_criterion = termination_criterion
-        self._register_update_callbacks(update_callbacks)
-        self.bSetup = False
-        self.first = True
-
-    def setup(self, model, dataset):
-        """
-        Initialize the training algorithm. Should be called
-        once before calls to train.
-
-        Parameters
-        ----------
-        model : object
-            Model to be trained.  Object implementing the pylearn2 Model
-            interface.
-        dataset : object
-            Dataset on which to train.  Object implementing the
-            pylearn2 Dataset interface.
-        """
-
-        self.model = model
-
-        if self.batch_size is None:
-            self.batch_size = model.force_batch_size
-
-        self.monitor = Monitor.get_monitor(model)
-        self.monitor.set_dataset(dataset=self.monitoring_dataset,
-                                 mode="sequential",
-                                 batch_size=self.batch_size,
-                                 num_batches=self.monitoring_batches)
-
-
-        #Make the right kind of theano variable for the type of space
-        #the model acts on
-        space = self.model.get_input_space()
-        X = space.make_theano_batch(name='sgd_X')
-
-        if isinstance(X, theano.sparse.basic.SparseVariable):
-            self.topo = False
-        else:
-            self.topo = len(X.type.broadcastable) > 2
-
-        try:
-            J = sum(c(model, X) for c in self.cost)
-        except TypeError:
-            J = self.cost(model, X)
-
-        if J.name is None:
-            J.name = 'sgd_cost(' + X.name + ')'
-        self.monitor.add_channel(name=J.name, ipt=X, val=J)
-        params = list(model.get_params())
-
-        for i, param in enumerate(params):
-            if param.name is None:
-                param.name = 'sgd_params[%d]' % i
-
-        grads = dict(zip(params, T.grad(J, params)))
-
-        for param in grads:
-
-            if grads[param].name is None:
-                grads[param].name = ('grad(%(costname)s, %(paramname)s)' %
-                                     {'costname': J.name,
-                                      'paramname': param.name})
-
-        learning_rate = T.scalar('sgd_learning_rate')
-        lr_scalers = model.get_lr_scalers()
-
-        for key in lr_scalers:
-            if key not in params:
-                raise ValueError("Tried to scale the learning rate on " +\
-                        str(key)+" which is not an optimization parameter.")
-
-        updates = dict(zip(params, [param - learning_rate * \
-                lr_scalers.get(param, 1.) * grads[param]
-                                    for param in params]))
-
-        for param in updates:
-            if updates[param].name is None:
-                updates[param].name = 'sgd_update(' + param.name + ')'
-
-        model.censor_updates(updates)
-        for param in updates:
-            if updates[param].name is None:
-                updates[param].name = 'censor(sgd_update(' + param.name + '))'
-
-        for param in model.get_params():
-            assert param in updates
-
-        t1 = time.time()
-        print 'compling sgd_update...'
-        self.sgd_update = function([X, learning_rate], updates=updates,
-                                   name='sgd_update')
-        t2 = time.time()
-        print 'took',t2-t1,' seconds'
-        self.params = params
-        self.bSetup = True
-
-        #TODO: currently just supports doing a gradient step on J(X)
-        #      needs to support "side effects", e.g. updating persistent chains
-        #      for SML (if we decide to implement SML as SGD)
-
-    def train(self, dataset):
-        model = self.model
-        if not self.bSetup:
-            raise Exception("SGD.train called without first calling SGD.setup")
-        if self.batch_size is None:
-            batch_size = model.force_batch_size
-        else:
-            batch_size = self.batch_size
-            if hasattr(model, "force_batch_size"):
-                assert (model.force_batch_size <= 0 or
-                        batch_size == model.force_batch_size), (
-                            # TODO: more informative assertion error
-                            "invalid force_batch_size attribute"
-                        )
-        for param in self.params:
-            value = param.get_value(borrow=True)
-            if np.any(np.isnan(value)) or np.any(np.isinf(value)):
-                raise Exception("NaN in " + param.name)
-
-        self.first = False
-        for i in xrange(self.batches_per_iter):
-            if self.topo:
-                X = dataset.get_batch_topo(batch_size)
-            else:
-                X = dataset.get_batch_design(batch_size)
-
-            self.sgd_update(X, self.learning_rate)
-
-            #comment out this check when not debugging
-            """for param in self.params:
-                value = param.get_value(borrow=True)
-                if N.any(N.isnan(value)):
-                    raise Exception("NaN in "+param.name)
-                #
-            #"""
-
-            self.monitor.report_batch(batch_size)
-
-        for callback in self.update_callbacks:
-            try:
-                callback(self)
-            except Exception as e:
-                print ("WARNING: callback " + str(callback) + " failed with "
-                       + str(type(e)) + ", mesage: " + str(e))
-        if self.termination_criterion is None:
-            return True
-        else:
-            return self.termination_criterion(self.model)
-
-
-class ExhaustiveSGD(TrainingAlgorithm):
+    (This is ExhaustiveSGD renamed to just SGD)
+    """
     def __init__(self, learning_rate, cost, batch_size=None,
                  monitoring_batches=None, monitoring_dataset=None,
                  termination_criterion=None, update_callbacks=None):
@@ -292,8 +83,17 @@ class ExhaustiveSGD(TrainingAlgorithm):
                 grads[param].name = ('grad(%(costname)s, %(paramname)s)' %
                                      {'costname': cost_value.name,
                                       'paramname': param.name})
+
         learning_rate = T.scalar('sgd_learning_rate')
-        updates = dict(zip(params, [param - learning_rate * grads[param]
+        lr_scalers = model.get_lr_scalers()
+
+        for key in lr_scalers:
+            if key not in params:
+                raise ValueError("Tried to scale the learning rate on " +\
+                        str(key)+" which is not an optimization parameter.")
+
+        updates = dict(zip(params, [param - learning_rate * \
+                lr_scalers.get(param, 1.) * grads[param]
                                     for param in params]))
         for param in updates:
             if updates[param].name is None:
@@ -351,6 +151,14 @@ class ExhaustiveSGD(TrainingAlgorithm):
             return True
         else:
             return self.termination_criterion(self.model)
+
+class ExhaustiveSGD(SGD):
+
+    def __init__(self, * args, ** kwargs):
+
+        warnings.warn("ExhaustiveSGD is deprecated. It has been renamed to SGD.")
+
+        super(ExhaustiveSGD,self).__init__(*args, ** kwargs)
 
 
 class MonitorBasedLRAdjuster(object):
