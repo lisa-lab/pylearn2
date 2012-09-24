@@ -151,7 +151,7 @@ class SGD(TrainingAlgorithm):
             if np.any(np.isnan(value)) or np.any(np.isinf(value)):
                 raise Exception("NaN in " + param.name)
         self.first = False
-        dataset.set_iteration_scheme('sequential', batch_size=self.batch_size, targets=self.supervised)
+        dataset.set_iteration_scheme('sequential', batch_size=self.batch_size, targets=self.supervised, topo=self.topo)
         if self.supervised:
             for (batch_in, batch_target) in dataset:
                 self.sgd_update(batch_in, batch_target, self.learning_rate)
