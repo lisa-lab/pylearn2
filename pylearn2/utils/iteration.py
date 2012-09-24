@@ -263,6 +263,7 @@ class FiniteDatasetIterator(object):
             if self._raw_targets is None:
                 raise ValueError("Can't iterate with targets=True on a "
                                  "dataset object with no targets")
+        self._needs_cast = np.dtype(config.floatX) == self._raw_data.dtype
 
     def __iter__(self):
         return self
@@ -271,7 +272,14 @@ class FiniteDatasetIterator(object):
         next_index = self._subset_iterator.next()
         # TODO: handle fancy-index copies by allocating a buffer and
         # using numpy.take()
-        features = numpy.cast[config.floatX](self._raw_data[next_index])
+
+        # This saves us some memory (and time spent allocating it)
+        # when the dataset dtype matches floatX and next_index is not a
+        # fancy-index.
+        if self._needs_cast:
+            features = numpy.cast[config.floatX](self._raw_data[next_index])
+        else:
+            features = self._raw_data[next_index]
         if self._targets:
             return features, self._raw_targets[next_index]
         else:
