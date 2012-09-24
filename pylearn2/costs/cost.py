@@ -10,6 +10,9 @@ class Cost(object):
 class SupervisedCost(Cost):
     """Abstract class representing a cost of both features and labels"""
 
+    def get_monitoring_channels(self, model, X, Y):
+        return {}
+
     def __call__(self, model, X, Y):
         """
             model: the model the cost is applied to
@@ -23,6 +26,9 @@ class SupervisedCost(Cost):
 
 class UnsupervisedCost(Cost):
     """Abstract class representing a cost of features only"""
+
+    def get_monitoring_channels(self, model, X):
+        return {}
 
     def __call__(self, model, X):
         """

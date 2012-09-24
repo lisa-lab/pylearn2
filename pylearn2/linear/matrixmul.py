@@ -77,6 +77,7 @@ def make_local_rfs(dataset, nhid, rf_shape, stride, irange = .05, draw_patches =
         raise NotImplementedError()
         #the case below is copy-pasted from s3c and not generalized yet
         #no stride specified, use random shaped patches
+        """
         assert local_rf_max_shape is not None
 
         for idx in xrange(nhid):
@@ -101,6 +102,7 @@ def make_local_rfs(dataset, nhid, rf_shape, stride, irange = .05, draw_patches =
 
             W_img[idx,rc:rc+shape[0],
                       cc:cc+shape[1],:] = local_rf
+        """
 
 
     W = dataset.view_converter.topo_view_to_design_mat(W_img).T

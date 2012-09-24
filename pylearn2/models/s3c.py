@@ -433,11 +433,6 @@ class S3C(Model, Block):
 
         self.redo_everything()
 
-
-    def infer(self, V, return_history = False):
-        return self.e_step.variational_inference( V, return_history )
-
-
     def reset_rng(self):
         if self.seed is None:
             self.rng = np.random.RandomState([1.,2.,3.])
@@ -544,7 +539,7 @@ class S3C(Model, Block):
 
             if monitor_stats or self.monitor_functional:
 
-                obs = self.get_hidden_obs(V)
+                obs = self.infer(V)
 
                 needed_stats = set(self.monitor_stats)
 
@@ -621,7 +616,7 @@ class S3C(Model, Block):
         """ this is the symbolic transformation for the Block class """
         if not hasattr(self,'w'):
             self.make_pseudoparams()
-        obs = self.get_hidden_obs(V)
+        obs = self.infer(V)
         return obs['H_hat']
 
     def compile_mode(self):
@@ -782,13 +777,16 @@ class S3C(Model, Block):
 
         return self.e_step.infer(V, return_history)
 
+    def infer(self, V, return_history=False):
+        return self.e_step.infer(V, return_history)
+
     def make_learn_func(self, V):
         """
         V: a symbolic design matrix
         """
 
         #E step
-        hidden_obs = self.get_hidden_obs(V)
+        hidden_obs = self.infer(V)
 
         stats = SufficientStatistics.from_observations(needed_stats = self.m_step.needed_stats(),
                 V = V, **hidden_obs)
@@ -1371,7 +1369,7 @@ class E_Step(object):
         if self.autonomous:
             if self.monitor_kl or self.monitor_energy_functional or self.monitor_s_mag \
                     or self.monitor_ranges:
-                obs_history = self.model.get_hidden_obs(V, return_history = True)
+                obs_history = self.model.infer(V, return_history = True)
                 assert isinstance(obs_history, list)
 
 
@@ -1470,6 +1468,12 @@ class E_Step(object):
                 if len(s_new_coeff_schedule) != len(h_new_coeff_schedule):
                     raise ValueError('s_new_coeff_schedule has %d elems ' % (len(s_new_coeff_schedule),) + \
                             'but h_new_coeff_schedule has %d elems' % (len(h_new_coeff_schedule),) )
+
+
+        if s_new_coeff_schedule is not None:
+            assert isinstance(s_new_coeff_schedule, (list, tuple))
+        if h_new_coeff_schedule is not None:
+            assert isinstance(h_new_coeff_schedule, (list, tuple))
 
         self.s_new_coeff_schedule = s_new_coeff_schedule
 
@@ -1719,7 +1723,7 @@ class E_Step(object):
         TODO: rename to infer (for now, infer exists as a synonym)
         """
 
-        warnings.warn("E_Step.variational_inference is deprecated. It has been renamd to E_step.infer", stacklevel = 3)
+        warnings.warn("E_Step.variational_inference is deprecated. It has been renamd to E_step.infer", stacklevel = 2)
 
         return self.infer( V, return_history)
 
@@ -1745,8 +1749,8 @@ class E_Step(object):
         var_s1_hat = self.infer_var_s1_hat()
 
 
-        H_hat   =    self.init_H_hat(V)
-        S_hat =    self.init_S_hat(V)
+        H_hat = self.init_H_hat(V)
+        S_hat = self.init_S_hat(V)
 
         def check_H(my_H, my_V):
             if my_H.dtype != config.floatX:
@@ -1784,7 +1788,13 @@ class E_Step(object):
 
         count = 2
 
-        for new_H_coeff, new_S_coeff in zip(self.h_new_coeff_schedule, self.s_new_coeff_schedule):
+        h_new_coeff_schedule = self.h_new_coeff_schedule
+        s_new_coeff_schedule = self.s_new_coeff_schedule
+
+        assert isinstance(s_new_coeff_schedule, (list, tuple))
+        assert isinstance(h_new_coeff_schedule, (list, tuple))
+
+        for new_H_coeff, new_S_coeff in zip(h_new_coeff_schedule, s_new_coeff_schedule):
             new_H_coeff = as_floatX(new_H_coeff)
             new_S_coeff = as_floatX(new_S_coeff)
 
@@ -1919,7 +1929,7 @@ class Grad_M_Step:
 
     def get_monitoring_channels(self, V, model):
 
-        hid_observations = model.get_hidden_obs(V)
+        hid_observations = model.infer(V)
 
         stats = SufficientStatistics.from_observations(needed_stats = S3C.expected_log_prob_vhs_needed_stats(),
                 V = V, **hid_observations)
@@ -1943,7 +1953,7 @@ class E_Step_Scan(E_Step):
         self.h_new_coeff_schedule = sharedX( self.h_new_coeff_schedule)
         self.s_new_coeff_schedule = sharedX( self.s_new_coeff_schedule)
 
-    def variational_inference(self, V, return_history = False):
+    def infer(self, V, return_history = False):
         """
 
             return_history: if True:

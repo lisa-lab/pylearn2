@@ -13,6 +13,7 @@ __email__ = "wardefar@iro"
 import numpy as np
 import theano
 import theano.tensor as tensor
+from theano.gradient import grad_not_implemented
 
 
 def index_along_axis(index, ndim, axis):
@@ -129,7 +130,8 @@ class InsertAlongAxis(theano.Op):
         swap.remove(self.axis)
         swap.insert(0, self.axis)
         return [d_out.dimshuffle(swap)[nonconstants].dimshuffle(swap),
-                None, None]
+                grad_not_implemented(self, 1, new_length),
+                grad_not_implemented(self, 2, nonconstants)]
 
     def __str__(self):
         return "%s{ndim=%d,axis=%d,fill=%s}" % (self.__class__.__name__,

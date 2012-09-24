@@ -18,6 +18,7 @@ Presets:
 from __future__ import division
 import warnings
 import numpy
+np = numpy
 from theano import config
 
 
@@ -263,7 +264,7 @@ class FiniteDatasetIterator(object):
             if self._raw_targets is None:
                 raise ValueError("Can't iterate with targets=True on a "
                                  "dataset object with no targets")
-        self._needs_cast = np.dtype(config.floatX) == self._raw_data.dtype
+        self._needs_cast = not np.dtype(config.floatX) == self._raw_data.dtype
 
     def __iter__(self):
         return self

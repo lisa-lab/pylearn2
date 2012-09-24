@@ -31,7 +31,11 @@ def test_channel_scaling_sequential():
         vis_batch = T.matrix()
         mean = vis_batch.mean()
         monitor.add_channel(name='mean', ipt=vis_batch, val=mean)
-        monitor()
+        try:
+            monitor()
+        except NotImplementedError:
+            # make sure this was due to the unimplemented batch_size case
+            assert batch_size % num_batches != 0
         assert 'mean' in monitor.channels
         mean = monitor.channels['mean']
         assert len(mean.val_record) == 1

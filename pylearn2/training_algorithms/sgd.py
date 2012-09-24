@@ -97,7 +97,7 @@ class SGD(TrainingAlgorithm):
             cost_channels = self.cost.get_monitoring_channels(model, X, Y)
             ipt = (X, Y)
         else:
-            cost_channels = self.cost.get_channels(model, X)
+            cost_channels = self.cost.get_monitoring_channels(model, X)
             ipt = X
         self.monitor.add_channel(name=cost_value.name, ipt=ipt, val=cost_value)
         for key in cost_channels:

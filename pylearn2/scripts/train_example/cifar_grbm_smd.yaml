@@ -80,9 +80,6 @@
         # Each gradient step will be based on this many examples
         "batch_size" : 5,
 
-        # Each "epoch" will consist of this many gradient steps
-        "batches_per_iter" : 2000,
-
         # We'll monitor our progress by looking at the first 20 batches of the
         # training dataset. This is an estimate of the training error. To be
         # really exhaustive, we could use the entire training set instead,
@@ -108,13 +105,15 @@
         # We'll use the monitoring dataset to figure out when to stop training.
         #
         # In this case, we stop if there is less than a 1% decrease in the
-        # training error in the last 10 epochs.  You'll notice that the learned
+        # training error in the last epoch.  You'll notice that the learned
         # features are a bit noisy. If you'd like nice smooth features you can
         # make this criterion stricter so that the model will train for longer.
+        # (setting N to 10 should make the weights prettier, but will make it
+        # run a lot longer)
 
         "termination_criterion" : !obj:pylearn2.training_algorithms.sgd.MonitorBasedTermCrit {
             "prop_decrease" : 0.01,
-            "N" : 10,
+            "N" : 1,
         },
 
         # Let's throw a learning rate adjuster into the training algorithm.

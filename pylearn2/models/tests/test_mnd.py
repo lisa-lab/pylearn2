@@ -4,6 +4,7 @@ from pylearn2.models.mnd import kl_divergence
 from pylearn2.optimization.batch_gradient_descent import BatchGradientDescent
 from theano import config
 from theano import function
+import warnings
 floatX = config.floatX
 
 class Test_DiagonalMND:
@@ -123,9 +124,18 @@ class Test_DiagonalMND:
         kl = optimizer.minimize()
 
         if kl < 0.:
-            raise AssertionError("KL divergence should "
+
+            if config.floatX == 'float32':
+                neg_tol = 4.8e-7
+            else:
+                neg_tol = 0.
+
+            if kl < - neg_tol:
+                raise AssertionError("KL divergence should "
                     "be non-negative but is "+
                     str(kl))
+
+            warnings.warn("KL divergence is not very numerically stable, evidently")
 
         tol = 5.4e-5
         assert kl <= tol

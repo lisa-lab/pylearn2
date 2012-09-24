@@ -111,7 +111,12 @@ class Monitor(object):
             for iteration, X in enumerate(myiterator):
                 # make sure the iterator gave us the right size
                 # the averaging code assumes all batches are the same size
-                # assert X.shape[0] == self._batch_size
+                # DO NOT COMMENT THIS OUT!
+                if X.shape[0] != self._batch_size:
+                    # Unit tests expect this to be NotImplementedError rather
+                    # than some other kind of error, so if you change it run the
+                    # tests and fix them
+                    raise NotImplementedError("monitor currently expects iterator to give batches of all the same size, but this iterator did not. Need to make monitor support varying batch sizes and/or make iterator configurable to reject varying batch sizes (ie, for use with convolutional models that have a hardcoded batch size).")
                 if self.require_label:
                     X, y = X
                     self.run_prereqs(X,y)
