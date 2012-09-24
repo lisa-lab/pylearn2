@@ -134,6 +134,7 @@ class DatasetLoader:
                 data_dict = self.load_from(local_fname, location="local")
 
             else:
+                self.release_lock()
                 print "not enough space in local machine, load directly from data server"
                 data_dict = self.load_from(fname, location="server")
         else:
