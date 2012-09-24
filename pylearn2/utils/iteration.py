@@ -116,7 +116,12 @@ class SequentialSubsetIterator(SubsetIterator):
         product = self.batch_size * self.num_batches
         return min(product, self._dataset_size)
 
-class ShuffledSequentialSubsetIterator(SubsetIterator):
+    @property
+    def uneven(self):
+        return self.batch_size * self.num_batches != self._dataset_size
+
+
+class ShuffledSequentialSubsetIterator(SequentialSubsetIterator):
     def __init__(self, dataset_size, batch_size, num_batches, rng=None):
         if rng is not None and hasattr(rng, 'random_integers'):
             self._rng = rng
@@ -164,13 +169,6 @@ class ShuffledSequentialSubsetIterator(SubsetIterator):
             self._batch += 1
             return self._shuffled[self._idx: self._idx + self._batch_size]
 
-    fancy = True
-    stochastic = True
-
-    @property
-    def num_examples(self):
-        product = self.batch_size * self.num_batches
-        return min(product, self._dataset_size)
 
 class RandomUniformSubsetIterator(SubsetIterator):
     def __init__(self, dataset_size, batch_size, num_batches, rng=None):
