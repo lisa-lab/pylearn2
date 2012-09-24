@@ -80,12 +80,18 @@ class Monitor(object):
                                   topo=self.topo,
                                   targets=self.require_label)
             # TODO: handle random seeds.
+            actual_batch_size = it.batch_size
+            if batch_size is not None:
+                assert actual_batch_size == batch_size
         except ValueError as exc:
             raise ValueError("invalid iteration parameters in "
                              "Monitor.set_dataset: " + str(exc))
         self._dataset = dataset
         self._iteration_mode = mode
-        self._batch_size = batch_size
+        # This handles the case where batch_size was inferred from
+        # dataset_size and batch_size
+        self._batch_size = actual_batch_size
+
         self._num_batches = num_batches
 
     def __call__(self):
