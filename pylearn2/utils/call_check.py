@@ -5,6 +5,7 @@ of a function or class constructor.
 import functools
 import inspect
 import types
+from pylearn2.utils.string_utils import match
 
 def check_call_arguments(to_call, kwargs):
     """
@@ -48,8 +49,16 @@ def check_call_arguments(to_call, kwargs):
 
         if len(bad_keywords) > 0:
             bad = ', '.join(bad_keywords)
+            args = [ arg for arg in args if arg != 'self' ]
+            if len(args) == 0:
+                matched_str = '(It does not support any keywords, actually)'
+            else:
+                matched = [ match(keyword, args) for keyword in bad_keywords ]
+                matched_str = 'Did you mean %s?' % (', '.join(matched))
+            matched = match(bad, args)
             raise TypeError('%s does not support the following '
-                            'keywords: %s' % (orig_to_call, bad))
+                            'keywords: %s. %s' %
+                            (orig_to_call, bad, matched_str))
 
     if defaults is None:
         num_defaults = 0
