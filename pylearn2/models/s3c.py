@@ -778,7 +778,9 @@ class S3C(Model, Block):
 
     def get_hidden_obs(self, V, return_history = False):
 
-        return self.e_step.variational_inference(V, return_history)
+        warnings.warn("get_hidden_obs is deprecated, renamed infer")
+
+        return self.e_step.infer(V, return_history)
 
     def make_learn_func(self, V):
         """

@@ -81,8 +81,8 @@ class Test_S3C_Inference:
 
         V = T.matrix()
 
-        scan_result = self.e_step.variational_inference(V)
-        unrolled_result = unrolled_e_step.variational_inference(V)
+        scan_result = self.e_step.infer(V)
+        unrolled_result = unrolled_e_step.infer(V)
 
         outputs = []
 
