@@ -452,3 +452,16 @@ class MonitorChannel(object):
     def __setstate__(self, d):
         self.__dict__.update(d)
 
+
+def push_monitor(model, name):
+    """
+        When you load a model in a yaml file and you want to store its
+        old monitor under a different name and start a new monitor, wrap
+        the model in this function call """
+
+    assert hasattr(model, 'monitor')
+    setattr(model, name, model.monitor)
+    del model.monitor
+
+    return model
+
