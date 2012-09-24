@@ -3,6 +3,7 @@ import numpy as np
 from pylearn2.utils.iteration import (
     SubsetIterator,
     SequentialSubsetIterator,
+    ShuffledSequentialSubsetIterator,
     RandomSliceSubsetIterator,
     RandomUniformSubsetIterator
 )
@@ -47,6 +48,29 @@ def test_correct_sequential_slices():
     assert sl.start == 9
     assert sl.stop == 10
     assert sl.step is None
+
+def test_correct_shuffled_sequential_slices():
+
+    dataset_size = 13
+    batch_size = 3
+
+    iterator = ShuffledSequentialSubsetIterator(
+            dataset_size = dataset_size, batch_size = batch_size,
+            num_batches = None, rng = 2)
+    visited = [ False ] * dataset_size
+
+    num_batches = 0
+
+    for idxs in iterator:
+        for idx in idxs:
+            assert not visited[idx]
+            visited[idx] = True
+        num_batches += 1
+
+    print visited
+    assert all(visited)
+
+    assert num_batches == np.ceil(float(dataset_size)/float(batch_size))
 
 
 def test_sequential_num_batches_and_batch_size():

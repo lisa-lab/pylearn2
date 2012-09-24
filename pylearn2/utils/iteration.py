@@ -152,13 +152,14 @@ class ShuffledSequentialSubsetIterator(SubsetIterator):
 
         # this fix the problem where dataset_size % batch_size != 0
         elif (self._idx + self._batch_size) > self._dataset_size:
+            rval = self._shuffled[self._idx: self._dataset_size]
             self._idx = self._dataset_size
-            return self._shuffled[self._idx: self._dataset_size]
-
+            return rval
         else:
+            rval = self._shuffled[self._idx: self._idx + self._batch_size]
             self._idx += self._batch_size
             self._batch += 1
-            return self._shuffled[self._idx: self._idx + self._batch_size]
+            return rval
 
     fancy = True
     stochastic = True
