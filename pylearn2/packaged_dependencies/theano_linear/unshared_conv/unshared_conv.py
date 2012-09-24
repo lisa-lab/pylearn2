@@ -4,7 +4,13 @@ XXX
 
 import numpy
 import theano
-import StringIO
+
+# Use grad_not_implemented for versions of theano that support it
+try:
+    grad_not_implemented = theano.gradient.grad_not_implemented
+except:
+    def grad_not_implemented(op, idx, ipt):
+        return None
 
 def any_symbolic(*args):
     """
@@ -64,7 +70,8 @@ class FilterActs(Base):
                 dtype=images.dtype,
                 broadcastable=hbcast)
         if images.dtype != filters.dtype:
-            raise TypeError('dtype mismatch', (images, filters))
+            raise TypeError('dtype mismatch', (images, images.dtype, filters,
+                filters.dtype))
         return theano.gof.Apply(self,
                 [images, filters],
                 [htype()])
@@ -109,10 +116,17 @@ class FilterActs(Base):
         fcols = filters.shape[4]
         irows = images.shape[2]
         icols = images.shape[3]
+        hidacts = goutputs[0]
+        # filters and hidacts must have same dtype, upcast if needed
+        if filters.dtype == 'float32' and hidacts.dtype == 'float64':
+            filters = theano.tensor.cast(filters, 'float64')
         gimages = ImgActs(module_stride=self.module_stride)(
-                filters, goutputs[0], irows, icols)
+                filters, hidacts, irows, icols)
+        # images and hidacts must have same dtype, upcast if needed
+        if images.dtype == 'float32' and hidacts.dtype == 'float64':
+            images = theano.tensor.cast(images, 'float64')
         gfilters = WeightActs(module_stride=self.module_stride)(
-                images, goutputs[0], frows, fcols)
+                images, hidacts, frows, fcols)
         return [gimages, gfilters]
 
     def infer_shape(self, node, shapes):
@@ -221,7 +235,8 @@ class WeightActs(Base):
                 gfilters, hidacts, irows, icols)
         ghidacts = FilterActs(module_stride=self.module_stride)(
                 images, gfilters)
-        return [gimages, ghidacts, None, None]
+        return [gimages, ghidacts, grad_not_implemented(self, 2, inputs[2]),
+                grad_not_implemented(self, 3, inputs[3])]
 
     def infer_shape(self, node, shapes):
         images, hidacts, frows, fcols = node.inputs
@@ -277,7 +292,7 @@ class ImgActs(Base):
             raise TypeError('hidacts must be 5d tensor', filters)
         if filters.dtype != hidacts.dtype:
             raise TypeError('filters and hidacts must have matching dtype',
-                    (filters, hidacts))
+                    (filters, filters.dtype, hidacts, hidacts.dtype))
         return theano.gof.Apply(self,
                 [filters, hidacts, irows, icols],
                 [hidacts.type()])
@@ -348,6 +363,7 @@ class ImgActs(Base):
                 gimages, hidacts, frows, fcols)
         ghidacts = FilterActs(module_stride=self.module_stride)(
                 gimages, filters)
-        return [gfilters, ghidacts, None, None]
+        return [gfilters, ghidacts, grad_not_implemented(self, 2, inputs[2]),
+                grad_not_implemented(self, 3, inputs[3])]
 
 

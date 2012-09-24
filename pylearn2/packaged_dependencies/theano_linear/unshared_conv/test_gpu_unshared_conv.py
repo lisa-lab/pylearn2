@@ -54,8 +54,13 @@ class TestGpuFilterActs(test_unshared_conv.TestFilterActs):
     def test_insert_gpu_filter_acts(self):
         out = self.op(self.s_images, self.s_filters)
         f = self.function([], out)
+        try:
+            fgraph = f.maker.fgraph
+        except:
+            # this needs to work for older versions of theano too
+            fgraph = f.maker.env
         assert isinstance(
-                f.maker.env.toposort()[0].op,
+                fgraph.toposort()[0].op,
                 GpuFilterActs)
 
     def test_gpu_op_eq(self):

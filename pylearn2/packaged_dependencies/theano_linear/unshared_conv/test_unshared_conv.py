@@ -46,8 +46,11 @@ class TestFilterActs(unittest.TestCase):
 
     def setUp(self):
         self.op = FilterActs(self.module_stride)
-        self.s_images = theano.shared(rand(self.ishape, self.dtype))
-        self.s_filters = theano.shared(rand(self.fshape, self.dtype))
+        self.s_images = theano.shared(rand(self.ishape, self.dtype),
+                name = 's_images')
+        self.s_filters = theano.shared(
+                rand(self.fshape, self.dtype),
+                name = 's_filters')
 
     def test_type(self):
         out = self.op(self.s_images, self.s_filters)
@@ -99,7 +102,11 @@ class TestFilterActs(unittest.TestCase):
         # and then TestGpuFilterActs can use a gpu-allocated shared var
         # instead.
         def right_op(filters):
-            return self.op(self.s_images, filters)
+            rval =  self.op(self.s_images, filters)
+            rval.name = 'right_op(%s, %s)' % (self.s_images.name,
+                    filters.name)
+            assert rval.dtype == filters.dtype
+            return rval
         try:
             verify_grad(right_op, [self.s_filters.get_value()],
                     mode=self.mode)
