@@ -100,11 +100,11 @@ class SGD(TrainingAlgorithm):
         for key in cost_channels:
             self.monitor.add_channel(name=key, ipt=ipt, val=cost_channels[key])
 
-        params = model.get_params()
+        params = list(model.get_params())
         for i, param in enumerate(params):
             if param.name is None:
                 param.name = 'sgd_params[%d]' % i
-        grads = dict(zip(params, T.grad(cost_value, params)))
+        grads = dict(zip(params, T.grad(cost_value, params, disconnected_inputs = 'warn')))
         for param in grads:
             if grads[param].name is None:
                 grads[param].name = ('grad(%(costname)s, %(paramname)s)' %
@@ -142,6 +142,7 @@ class SGD(TrainingAlgorithm):
         if not hasattr(self, 'sgd_update'):
             raise Exception("train called without first calling setup")
         model = self.model
+        batch_size = self.batch_size
         for param in self.params:
             value = param.get_value(borrow=True)
             if np.any(np.isnan(value)) or np.any(np.isinf(value)):
@@ -150,14 +151,18 @@ class SGD(TrainingAlgorithm):
         dataset.set_iteration_scheme('sequential', batch_size=self.batch_size, targets=self.supervised)
         if self.supervised:
             for (batch_in, batch_target) in dataset:
-                grads = self.sgd_update(batch_in, batch_target, self.learning_rate)
-                self.monitor.report_batch(batch_size)
+                self.sgd_update(batch_in, batch_target, self.learning_rate)
+                actual_batch_size = batch_in.shape[0]
+                self.monitor.report_batch(actual_batch_size)
+                print 'batches seen', self.monitor.get_batches_seen()
                 for callback in self.update_callbacks:
                     callback(self)
         else:
             for batch in dataset:
-                grads = self.sgd_update(batch, self.learning_rate)
-                self.monitor.report_batch(batch_size)
+                self.sgd_update(batch, self.learning_rate)
+                actual_batch_size = batch.shape[0] # iterator might return a smaller batch if dataset size
+                                                   # isn't divisible by batch_size
+                self.monitor.report_batch(actual_batch_size)
                 for callback in self.update_callbacks:
                     callback(self)
         if self.termination_criterion is None:
