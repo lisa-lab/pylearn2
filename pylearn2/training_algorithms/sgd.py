@@ -32,12 +32,16 @@ class SGD(TrainingAlgorithm):
     def setup(self, model, dataset):
         self.model = model
         self.monitor = Monitor.get_monitor(model)
+        # TODO: come up with some standard scheme for associating training runs
+        # with monitors / pushing the monitor automatically, instead of just
+        # enforcing that people have called push_monitor
+        assert self.monitor.get_examples_seen() == 0
         # TODO: monitoring batch size ought to be configurable
         # separately from training batch size, e.g. if you would rather
         # monitor on one somewhat big batch but update on many small
         # batches.
         self.monitor.set_dataset(dataset=self.monitoring_dataset,
-                                 mode='sequential',
+                                 mode='shuffled_sequential',
                                  batch_size=self.batch_size,
                                  num_batches=self.monitoring_batches)
 

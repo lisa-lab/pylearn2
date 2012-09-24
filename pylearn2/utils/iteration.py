@@ -1,6 +1,19 @@
 """
 Iterators providing indices for different kinds of iteration over
 datasets.
+
+Presets:
+    sequential: iterates through fixed slices of the dataset in sequence
+    shuffled_sequential: iterates through a shuffled version of the dataset
+                 in sequence
+    random_slice: on each call to next, returns a slice of the dataset,
+                  chosen uniformly at random over contiguous slices
+                  samples with replacement, but still reports that
+                  container is empty after num_examples / batch_size calls
+    random_uniform: on each call to next, returns a random subset of the
+                  dataset.
+                  samples with replacement, but still reports that
+                  container is empty after num_examples / batch_size calls
 """
 from __future__ import division
 import warnings
@@ -10,6 +23,10 @@ from theano import config
 
 class SubsetIterator(object):
     def __init__(self, dataset_size, batch_size, num_batches, rng=None):
+        """
+            rng: either a seed value for a numpy RandomState or
+            numpy RandomState workalike
+        """
         raise NotImplementedError()
 
     def next(self):
@@ -79,7 +96,7 @@ class SequentialSubsetIterator(SubsetIterator):
             self._last = slice(self._idx, self._dataset_size)
             self._idx = self._dataset_size
             return self._last
-            
+
         else:
             self._last = slice(self._idx, self._idx + self._batch_size)
             self._idx += self._batch_size
@@ -94,6 +111,61 @@ class SequentialSubsetIterator(SubsetIterator):
         product = self.batch_size * self.num_batches
         return min(product, self._dataset_size)
 
+class ShuffledSequentialSubsetIterator(SubsetIterator):
+    def __init__(self, dataset_size, batch_size, num_batches, rng=None):
+        if rng is not None and hasattr(rng, 'random_integers'):
+            self._rng = rng
+        else:
+            self._rng = numpy.random.RandomState(rng)
+        self._dataset_size = dataset_size
+        self._shuffled = numpy.arange(self._dataset_size)
+        self._rng.shuffle(self._shuffled)
+
+        if batch_size is None:
+            if num_batches is not None:
+                batch_size = numpy.ceil(self._dataset_size / num_batches)
+            else:
+                raise ValueError("need one of batch_size, num_batches "
+                                 "for sequential batch iteration")
+        elif batch_size is not None:
+            if num_batches is not None:
+                max_num_batches = numpy.ceil(self._dataset_size / batch_size)
+                if num_batches > max_num_batches:
+                    raise ValueError("dataset of %d examples can only provide "
+                                     "%d batches with batch_size %d, but %d "
+                                     "batches were requested" %
+                                     (self._dataset_size, max_num_batches,
+                                      batch_size, num_batches))
+            else:
+                num_batches = numpy.ceil(self._dataset_size / batch_size)
+
+        self._batch_size = batch_size
+        self._num_batches = num_batches
+        self._next_batch_no = 0
+        self._idx = 0
+        self._batch = 0
+
+    def next(self):
+        if self._batch >= self.num_batches or self._idx >= self._dataset_size:
+            raise StopIteration()
+
+        # this fix the problem where dataset_size % batch_size != 0
+        elif (self._idx + self._batch_size) > self._dataset_size:
+            self._idx = self._dataset_size
+            return self._shuffled[self._idx: self._dataset_size]
+
+        else:
+            self._idx += self._batch_size
+            self._batch += 1
+            return self._shuffled[self._idx: self._idx + self._batch_size]
+
+    fancy = True
+    stochastic = True
+
+    @property
+    def num_examples(self):
+        product = self.batch_size * self.num_batches
+        return min(product, self._dataset_size)
 
 class RandomUniformSubsetIterator(SubsetIterator):
     def __init__(self, dataset_size, batch_size, num_batches, rng=None):
@@ -157,6 +229,7 @@ class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
 
 _iteration_schemes = {
     'sequential': SequentialSubsetIterator,
+    'shuffled_sequential': ShuffledSequentialSubsetIterator,
     'random_slice': RandomSliceSubsetIterator,
     'random_uniform': RandomUniformSubsetIterator,
 }
