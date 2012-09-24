@@ -87,7 +87,7 @@ class SGD(TrainingAlgorithm):
         # the cost
         # TODO: also monitor things defined by the model
         if self.supervised:
-            cost_channels = self.cost.get_channels(model, X, Y)
+            cost_channels = self.cost.get_monitoring_channels(model, X, Y)
             ipt = (X, Y)
         else:
             cost_channels = self.cost.get_channels(model, X)
