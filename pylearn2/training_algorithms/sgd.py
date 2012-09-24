@@ -55,10 +55,13 @@ class SGD(TrainingAlgorithm):
                 else:
                     self.batch_size = model.force_batch_size
 
-        dataset.set_iteration_scheme('sequential', batch_size=self.batch_size)
 
         X = model.get_input_space().make_theano_batch(name="%s[X]" % self.__class__.__name__)
+        self.topo = not X.ndim == 2
         Y = T.matrix(name="%s[Y]" % self.__class__.__name__)
+
+        dataset.set_iteration_scheme('sequential', batch_size=self.batch_size, topo = self.topo)
+
         try:
             iter(self.cost)
             iterable_cost = True
