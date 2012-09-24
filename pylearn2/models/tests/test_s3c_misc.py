@@ -65,7 +65,7 @@ class TestS3C_Misc:
         self.orig_params = self.model.get_param_values()
 
         model = self.model
-        self.mf_obs = model.e_step.variational_inference(X)
+        self.mf_obs = model.e_step.infer(X)
 
         self.stats = SufficientStatistics.from_observations(needed_stats =
                 model.m_step.needed_stats(), V =X,

@@ -6,6 +6,7 @@ from pylearn2.training_algorithms.default import DefaultTrainingAlgorithm
 import numpy as np
 from theano import tensor as T
 from pylearn2.models.s3c import S3C, E_Step, Grad_M_Step
+from nose.plugins.skip import SkipTest
 
 
 class DummyModel(Model):
@@ -35,7 +36,11 @@ def test_channel_scaling_sequential():
             monitor()
         except NotImplementedError:
             # make sure this was due to the unimplemented batch_size case
-            assert batch_size % num_batches != 0
+            if num_batches is None:
+                assert num_examples % batch_size != 0
+            else:
+                assert num_examples % num_batches != 0
+            raise SkipTest()
         assert 'mean' in monitor.channels
         mean = monitor.channels['mean']
         assert len(mean.val_record) == 1
