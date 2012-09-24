@@ -315,6 +315,18 @@ class Monitor(object):
         self.channels[name] = MonitorChannel(ipt, val, name, prereqs)
         self._dirty = True
 
+    def _sanity_check(self):
+        """
+            Sometimes we serialize models and then load them somewhere else
+            but still try to use their Monitor, and the Monitor is in a mangled
+            state. I've added some calls to _sanity_check to try to catch when
+            that happens. Not sure what to do for a long term fix. I think it
+            requires making theano graphs serializable first.
+        """
+        for name in self.channels:
+            channel = self.channels[name]
+            assert hasattr(channel, 'prereqs')
+
     @classmethod
     def get_monitor(cls, model):
         """
@@ -327,11 +339,14 @@ class Monitor(object):
             An object that implements the `Model` interface specified in
             `pylearn2.models`.
         """
+
         if hasattr(model, 'monitor'):
             rval = model.monitor
+            rval._sanity_check()
         else:
             rval = Monitor(model)
             model.monitor = rval
+
         return rval
 
     # TODO: find out if monitor.foo below are used anywhere, remove if not.

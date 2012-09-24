@@ -36,6 +36,8 @@ class Dataset(object):
             One of 'sequential', 'random_slice', or 'random_uniform',
             *or* a class that instantiates an iterator that returns
             slices or index sequences on every call to next().
+            see utils/iteration.py for documentation of the default
+            modes
         batch_size : int, optional
             The size of an individual batch. Unnecessary if `mode` is
             'sequential' and `num_batches` is specified.
