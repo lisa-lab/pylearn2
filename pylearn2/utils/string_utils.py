@@ -156,6 +156,8 @@ def match(wrong, candidates):
         language words.
     """
 
+    assert len(candidates) > 0
+
     # Current implementation tries all candidates and outputs the one
     # with the min score
     # Could try to do something smarter
@@ -163,6 +165,7 @@ def match(wrong, candidates):
     def score(w1,w2):
         # Current implementation returns negative dot product of
         # the two words mapped into a feature space by mapping phi
+        # w -> [ phi(w1), .1 phi(first letter of w), .1 phi(last letter of w) ]
         # Could try to do something smarter
 
         w1 = w1.lower()
@@ -176,22 +179,29 @@ def match(wrong, candidates):
 
             for i in xrange(len(w)):
                 l = w[i]
-                rval[l] = rval.get(l,0) + 1
+                rval[l] = rval.get(l,0.) + 1.
                 if i < len(w)-1:
                     b = w[i:i+2]
-                    rval[b] = rval.get(b,0) + 1
+                    rval[b] = rval.get(b,0.) + 1.
 
             return rval
 
         d1 = phi(w1)
         d2 = phi(w2)
 
-        rval = 0
+        def mul(d1, d2):
+            rval = 0
 
-        for key in set(d1).union(d2):
-            rval += d1.get(key,0) * d2.get(key,0)
+            for key in set(d1).union(d2):
+                rval += d1.get(key,0) * d2.get(key,0)
 
-        return rval
+            return rval
+
+        tot_score = mul(phi(w1),phi(w2)) / float(len(w1)*len(w2)) + \
+            0.1 * mul(phi(w1[0:1]), phi(w2[0:1])) + \
+            0.1 * mul(phi(w1[-1:]), phi(w2[-1:]))
+
+        return  tot_score
 
     scored_candidates = [ (-score(wrong, candidate), candidate)
             for candidate in candidates ]
