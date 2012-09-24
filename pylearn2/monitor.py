@@ -118,7 +118,12 @@ class Monitor(object):
                     self.accum(X, y)
                 else:
                     self.run_prereqs(X)
-                    self.accum(X)
+                    try:
+                        self.accum(X)
+                    except RuntimeError, e:
+                        if str(e).find("Could not allocate memory on device") != -1:
+                            print 'Ran out of memory trying to call accum on tensor of shape ',X.shape
+                            raise
                 count += 1
 
             # TODO: use logging infrastructure so that user can configure
