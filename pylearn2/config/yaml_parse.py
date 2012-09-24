@@ -5,6 +5,7 @@ from pylearn2.utils.call_check import checked_call
 from pylearn2.utils import serial
 from pylearn2.utils.string_utils import preprocess
 from pylearn2.utils.string_utils import match
+import warnings
 
 
 is_initialized = False
@@ -237,6 +238,9 @@ def try_to_import(tag_suffix):
         obj = eval(tag_suffix)
     except AttributeError, e:
         try:
+            # Try to figure out what the wrong field name was
+            # If we fail to do it, just fall back to giving the usual
+            # attribute error
             pieces = tag_suffix.split('.')
             module = '.'.join(pieces[:-1])
             field = pieces[-1]
@@ -246,9 +250,8 @@ def try_to_import(tag_suffix):
             raise AttributeError( ('Could not evaluate %s. ' % tag_suffix) +
                 'Did you mean ' + match(field, candidates) +'? '+
                 'Original error was '+str(e))
-
         except:
-            raise
+            warnings.warn("Attempt to decipher AttributeError failed")
             raise AttributeError( ('Could not evaluate %s. ' % tag_suffix) +
                 'Original error was '+str(e))
     return obj
