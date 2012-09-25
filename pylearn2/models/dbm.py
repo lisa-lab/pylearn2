@@ -462,6 +462,13 @@ class DBM(Model):
 
     def get_neg_phase_grads_from_samples(self, V_sample, H_samples, Y_sample = None):
 
+        if hasattr(self, 'V_chains'):
+            # theta must be updated using samples that were generated using gibbs sampling
+            # on theta
+            # if we use the shared variable itself, then these samples were generated using
+            # the *previous* value of theta
+            assert V_sample is not self.V_chains
+
         H_rao_blackwell, Y_rao_blackwell = self.rao_blackwellize(V_sample, H_samples, Y_sample)
 
         obj = self.expected_energy(V_hat = V_sample, H_hat = H_rao_blackwell, Y_hat = Y_rao_blackwell)
