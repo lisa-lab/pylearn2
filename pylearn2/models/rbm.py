@@ -52,13 +52,16 @@ def training_updates(visible_batch, model, sampler, optimizer):
         An instance of `Optimizer` or a derived class, or one implementing
         the optimizer interface (typically an `SGDOptimizer`).
     """
+    # Compute negative phase updates.
+    sampler_updates = sampler.updates()
+    # Compute SML gradients.
     pos_v = visible_batch
+    #neg_v = sampler_updates[sampler.particles]
     neg_v = sampler.particles
     grads = model.ml_gradients(pos_v, neg_v)
+    # Build updates dictionary combining (gradient, sampler) updates.
     ups = optimizer.updates(gradients=grads)
-
-    # Add the sampler's updates (negative phase particles, etc.).
-    safe_update(ups, sampler.updates())
+    safe_update(ups, sampler_updates)
     return ups
 
 
