@@ -152,7 +152,7 @@ class SGD(TrainingAlgorithm):
             ipt = X
         self.monitor.add_channel(name=cost_value.name, ipt=ipt, val=cost_value, dataset=self.monitoring_dataset)
         for key in cost_channels:
-            self.monitor.add_channel(name=key, ipt=ipt, val=cost_channels[key], dataset=monitoring_dataset)
+            self.monitor.add_channel(name=key, ipt=ipt, val=cost_channels[key], dataset=self.monitoring_dataset)
         if self.momentum:
             self.monitor.add_channel(name='momentum', ipt=ipt, val=self.momentum, dataset=self.monitoring_dataset)
 
