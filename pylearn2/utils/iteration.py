@@ -280,3 +280,7 @@ class FiniteDatasetIterator(object):
     @property
     def num_examples(self):
         return self._subset_iterator.num_examples
+
+    @property
+    def uneven(self):
+        return self._subset_iterator.uneven
