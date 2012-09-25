@@ -415,6 +415,7 @@ class MomentumAdjustor(TrainingCallback):
     def __call__(self, model, dataset, algorithm):
         if not self._initialized:
             self._init_momentum = algorithm.momentum.get_value()
+            self._initialized = True
         self._count += 1
         algorithm.momentum.set_value( np.cast[config.floatX](self.current_momentum()))
 
