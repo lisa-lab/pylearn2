@@ -91,11 +91,13 @@ class Train(object):
             while self.algorithm.train(dataset=self.dataset):
                 epoch_end = datetime.datetime.now()
                 print 'Time this epoch:', str(epoch_end - epoch_start)
-                epoch_start = datetime.datetime.now()
                 self.run_callbacks_and_monitoring()
                 if self.save_freq > 0 and self.epochs % self.save_freq == 0:
                     self.save()
                 self.epochs += 1
+                epoch_start = datetime.datetime.now()
+            epoch_end = datetime.datetime.now()
+            print 'Time this epoch:', str(epoch_end - epoch_start)
             self.run_callbacks_and_monitoring()
 
             if self.save_freq > 0:
