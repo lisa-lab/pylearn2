@@ -118,42 +118,23 @@ class SequentialSubsetIterator(SubsetIterator):
 
     @property
     def uneven(self):
-        return self.batch_size * self.num_batches != self._dataset_size
+        return self.batch_size * self.num_batches == self._dataset_size
 
 
 class ShuffledSequentialSubsetIterator(SequentialSubsetIterator):
     def __init__(self, dataset_size, batch_size, num_batches, rng=None):
+        super(ShuffledSequentialSubsetIterator, self).__init__(
+            dataset_size,
+            batch_size,
+            num_batches,
+            None
+        )
         if rng is not None and hasattr(rng, 'random_integers'):
             self._rng = rng
         else:
             self._rng = numpy.random.RandomState(rng)
-        self._dataset_size = dataset_size
         self._shuffled = numpy.arange(self._dataset_size)
         self._rng.shuffle(self._shuffled)
-
-        if batch_size is None:
-            if num_batches is not None:
-                batch_size = numpy.ceil(self._dataset_size / num_batches)
-            else:
-                raise ValueError("need one of batch_size, num_batches "
-                                 "for sequential batch iteration")
-        elif batch_size is not None:
-            if num_batches is not None:
-                max_num_batches = numpy.ceil(self._dataset_size / batch_size)
-                if num_batches > max_num_batches:
-                    raise ValueError("dataset of %d examples can only provide "
-                                     "%d batches with batch_size %d, but %d "
-                                     "batches were requested" %
-                                     (self._dataset_size, max_num_batches,
-                                      batch_size, num_batches))
-            else:
-                num_batches = numpy.ceil(self._dataset_size / batch_size)
-
-        self._batch_size = batch_size
-        self._num_batches = num_batches
-        self._next_batch_no = 0
-        self._idx = 0
-        self._batch = 0
 
     def next(self):
         if self._batch >= self.num_batches or self._idx >= self._dataset_size:
