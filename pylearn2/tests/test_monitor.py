@@ -27,11 +27,11 @@ def test_channel_scaling_sequential():
         num_features = 2
         monitor = Monitor(DummyModel(num_features))
         dataset = DummyDataset(num_examples, num_features)
-        monitor.set_dataset(dataset=dataset, mode=mode,
+        monitor.add_dataset(dataset=dataset, mode=mode,
                             num_batches=num_batches, batch_size=batch_size)
         vis_batch = T.matrix()
         mean = vis_batch.mean()
-        monitor.add_channel(name='mean', ipt=vis_batch, val=mean)
+        monitor.add_channel(name='mean', ipt=vis_batch, val=mean, dataset=dataset)
         try:
             monitor()
         except NotImplementedError:
