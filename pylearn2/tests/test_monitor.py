@@ -27,13 +27,9 @@ def test_channel_scaling_sequential():
         num_features = 2
         monitor = Monitor(DummyModel(num_features))
         dataset = DummyDataset(num_examples, num_features)
-        monitor.add_dataset(dataset=dataset, mode=mode,
-                            num_batches=num_batches, batch_size=batch_size)
-        vis_batch = T.matrix()
-        mean = vis_batch.mean()
-        monitor.add_channel(name='mean', ipt=vis_batch, val=mean, dataset=dataset)
         try:
-            monitor()
+            monitor.add_dataset(dataset=dataset, mode=mode,
+                                num_batches=num_batches, batch_size=batch_size)
         except NotImplementedError:
             # make sure this was due to the unimplemented batch_size case
             if num_batches is None:
@@ -41,6 +37,10 @@ def test_channel_scaling_sequential():
             else:
                 assert num_examples % num_batches != 0
             raise SkipTest()
+        vis_batch = T.matrix()
+        mean = vis_batch.mean()
+        monitor.add_channel(name='mean', ipt=vis_batch, val=mean, dataset=dataset)
+            monitor()
         assert 'mean' in monitor.channels
         mean = monitor.channels['mean']
         assert len(mean.val_record) == 1
