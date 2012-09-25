@@ -114,7 +114,11 @@ class Monitor(object):
                                     targets=self.require_label)
             self.begin_record_entry()
             count = 0
-            for iteration, X in enumerate(myiterator):
+            for iteration, batch in enumerate(myiterator):
+                if self.require_label:
+                    X, y = batch
+                else:
+                    X = batch
                 # make sure the iterator gave us the right size
                 # the averaging code assumes all batches are the same size
                 # DO NOT COMMENT THIS OUT!
@@ -123,16 +127,11 @@ class Monitor(object):
                     # than some other kind of error, so if you change it run the
                     # tests and fix them
                     raise NotImplementedError("monitor currently expects iterator to give batches of all the same size, but this iterator did not. Need to make monitor support varying batch sizes and/or make iterator configurable to reject varying batch sizes (ie, for use with convolutional models that have a hardcoded batch size).")
-                if self.require_label:
-                    X, y = X
-                    self.run_prereqs(X,y)
-                    self.accum(X, y)
-                else:
-                    self.run_prereqs(X)
-                    try:
-                        self.accum(X)
-                    except RuntimeError, e:
-                        if str(e).find("Could not allocate memory on device") != -1:
+                self.run_prereqs(*batch)
+                try:
+                    self.accum(*batch)
+                except RuntimeError, e:
+                    if str(e).find("Could not allocate memory on device") != -1:
                             print 'Ran out of memory trying to call accum on tensor of shape ',X.shape
                             raise
                 count += 1
