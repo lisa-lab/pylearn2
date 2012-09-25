@@ -5,7 +5,7 @@ import os
 import datetime
 from pylearn2.utils import serial
 import warnings
-import Monitor
+from pylearn2.monitor import Monitor
 
 class Train(object):
     """
