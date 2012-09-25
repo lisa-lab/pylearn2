@@ -157,6 +157,7 @@ class SGD(TrainingAlgorithm):
             self.monitor.add_channel(name='momentum', ipt=ipt, val=self.momentum)
 
         params = list(model.get_params())
+        assert len(params) > 0
         for i, param in enumerate(params):
             if param.name is None:
                 param.name = 'sgd_params[%d]' % i

@@ -265,6 +265,7 @@ class FiniteDatasetIterator(object):
             if self._raw_targets is None:
                 raise ValueError("Can't iterate with targets=True on a "
                                  "dataset object with no targets")
+            self._targets_need_cast = not np.dtype(config.floatX) == self._raw_targets.dtype
         self._needs_cast = not np.dtype(config.floatX) == self._raw_data.dtype
 
     def __iter__(self):
@@ -283,7 +284,10 @@ class FiniteDatasetIterator(object):
         else:
             features = self._raw_data[next_index]
         if self._targets:
-            return features, self._raw_targets[next_index]
+            targets = self._raw_targets[next_index]
+            if self._targets_need_cast:
+                targets = np.cast[config.floatX](targets)
+            return features, targets
         else:
             return features
 
