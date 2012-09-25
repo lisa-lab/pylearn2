@@ -7,18 +7,53 @@ import theano.tensor as T
 from pylearn2.monitor import Monitor
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 import pylearn2.costs.cost
+from pylearn2.utils import sharedX
 from theano.printing import Print
 import warnings
 
 class SGD(TrainingAlgorithm):
     """
-    WRITEME
+    Stochastic Gradient Descent
 
-    (This is ExhaustiveSGD renamed to just SGD)
+    WRITEME: what is a good reference to read about this algorithm?
+
+    A TrainingAlgorithm that does gradient descent on minibatches.
+
     """
     def __init__(self, learning_rate, cost, batch_size=None,
                  monitoring_batches=None, monitoring_dataset=None,
-                 termination_criterion=None, update_callbacks=None):
+                 termination_criterion=None, update_callbacks=None,
+                 init_momentum = None):
+        """
+            WRITEME
+
+            learning_rate: The learning rate to use.
+                            Train object callbacks can change the learning
+                            rate after each epoch. SGD update_callbacks
+                            can change it after each minibatch.
+            cost: a pylearn2.costs.cost.Cost object specifying the objective
+                  function to be minimized.
+            init_momentum: if None, does not use momentum
+                            otherwise, use momentum and initialize the
+                            momentum coefficient to init_momentum.
+                            Callbacks can change this over time just like
+                            the learning rate.
+
+                            If the gradient is the same on every step, then
+                            the update taken by the SGD algorithm is scaled
+                            by a factor of 1/(1-momentum).
+
+                            See section 9 of Geoffrey Hinton's "A Practical
+                            Guide to Training Restricted Boltzmann Machines"
+                            for details.
+
+
+            Parameters are updated by the formula:
+
+            inc := momentum * inc - learning_rate * d cost / d param
+            param := param + inc
+
+        """
 
         self.learning_rate = float(learning_rate)
         self.cost = cost
@@ -26,6 +61,11 @@ class SGD(TrainingAlgorithm):
         self.monitoring_dataset = monitoring_dataset
         self.monitoring_batches = monitoring_batches
         self.termination_criterion = termination_criterion
+        self.init_momenutm = init_momentum
+        if init_momentum is None:
+            self.momentum = None
+        else:
+            self.momentum = sharedX(init_momentum)
         self._register_update_callbacks(update_callbacks)
         self.first = True
 
@@ -122,9 +162,21 @@ class SGD(TrainingAlgorithm):
                 raise ValueError("Tried to scale the learning rate on " +\
                         str(key)+" which is not an optimization parameter.")
 
-        updates = dict(zip(params, [param - learning_rate * \
+        if self.momentum is None:
+            updates = dict(zip(params, [param - learning_rate * \
                 lr_scalers.get(param, 1.) * grads[param]
                                     for param in params]))
+        else:
+            updates = {}
+            for param in params:
+                inc = sharedX(param.get_value() * 0.)
+                if param.name is not None:
+                    inc.name = 'inc_'+param.name
+                updated_inc = self.momentum * inc - learning_rate * grads[param]
+                updates[inc] = updated_inc
+                updates[param] = param + updated_inc
+
+
         for param in updates:
             if updates[param].name is None:
                 updates[param].name = 'sgd_update(' + param.name + ')'
@@ -173,7 +225,7 @@ class SGD(TrainingAlgorithm):
         else:
             return self.termination_criterion(self.model)
 
-class ExhaustiveSGD(SGD):
+class ExhaustiveSGD(SGD): # deprecated!
 
     def __init__(self, * args, ** kwargs):
 
@@ -330,6 +382,33 @@ class AnnealedLearningRate(object):
     def current_learning_rate(self):
         return self._base * min(1, self._anneal_start / self._count)
 
+class MomentumAdjustor(object):
+    def __init__(self, final_momentum, start, saturate):
+        """
+            final_momentum: the momentum coefficient to use at the end
+                            of learning.
+            start: the epoch on which to start growing the momentum coefficient.
+            saturate: the epoch on which the moment should reach its final value
+        """
+        self.__dict__.update(locals())
+        del self.self
+        self._initialized = False
+        self._count = 0
+
+    def __call__(self, algorithm):
+        if not self._initialized:
+            self._init_momentum = algorithm.momentum.get_value()
+        self._count += 1
+        algorithm.momentum.set_value( self.current_momentum())
+
+    def current_momentum(self):
+        w = self.saturate - self.start
+        alpha = float(self._count - self.start) / float(w)
+        if alpha < 0.:
+            alpha = 0.
+        if alpha > 1.:
+            alpha = 1.
+        return self.init_momentum * (1.-alpha)+alpha*self.final_momentum
 
 # This might be worth rolling into the SGD logic directly at some point.
 class ConjunctionCriterion(object):
