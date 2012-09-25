@@ -119,6 +119,7 @@ class Monitor(object):
                     X, y = batch
                 else:
                     X = batch
+                    batch = [ X ]
                 # make sure the iterator gave us the right size
                 # the averaging code assumes all batches are the same size
                 # DO NOT COMMENT THIS OUT!
@@ -126,7 +127,12 @@ class Monitor(object):
                     # Unit tests expect this to be NotImplementedError rather
                     # than some other kind of error, so if you change it run the
                     # tests and fix them
-                    raise NotImplementedError("monitor currently expects iterator to give batches of all the same size, but this iterator did not. Need to make monitor support varying batch sizes and/or make iterator configurable to reject varying batch sizes (ie, for use with convolutional models that have a hardcoded batch size).")
+                    raise NotImplementedError("monitor currently expects iterator "
+                            "to give batches of all the same size, but this "
+                            "iterator did not. Need to make monitor support "
+                            "varying batch sizes and/or make iterator "
+                            "configurable to reject varying batch sizes "
+                            "(ie, for use with convolutional models that have a hardcoded batch size).")
                 self.run_prereqs(*batch)
                 try:
                     self.accum(*batch)
