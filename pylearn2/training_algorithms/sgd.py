@@ -9,7 +9,9 @@ from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 import pylearn2.costs.cost
 from pylearn2.utils import sharedX
 from theano.printing import Print
+from pylearn2.training_callbacks.training_callback import TrainingCallback
 import warnings
+from theano import config
 
 class SGD(TrainingAlgorithm):
     """
@@ -23,7 +25,7 @@ class SGD(TrainingAlgorithm):
     def __init__(self, learning_rate, cost, batch_size=None,
                  monitoring_batches=None, monitoring_dataset=None,
                  termination_criterion=None, update_callbacks=None,
-                 init_momentum = None):
+                 init_momentum = None, set_batch_size = False):
         """
             WRITEME
 
@@ -46,6 +48,10 @@ class SGD(TrainingAlgorithm):
                             See section 9 of Geoffrey Hinton's "A Practical
                             Guide to Training Restricted Boltzmann Machines"
                             for details.
+            set_batch_size: if True, and batch_size conflicts with
+                            model.force_batch_size, will call
+                            model.set_batch_size(batch_size) in an attempt
+                            to change model.force_batch_size
 
 
             Parameters are updated by the formula:
@@ -58,6 +64,7 @@ class SGD(TrainingAlgorithm):
         self.learning_rate = float(learning_rate)
         self.cost = cost
         self.batch_size = batch_size
+        self.set_batch_size = set_batch_size
         self.monitoring_dataset = monitoring_dataset
         self.monitoring_batches = monitoring_batches
         self.termination_criterion = termination_criterion
@@ -65,12 +72,24 @@ class SGD(TrainingAlgorithm):
         if init_momentum is None:
             self.momentum = None
         else:
-            self.momentum = sharedX(init_momentum)
+            self.momentum = sharedX(init_momentum, 'momentum')
         self._register_update_callbacks(update_callbacks)
         self.first = True
 
     def setup(self, model, dataset):
         self.model = model
+
+        batch_size = self.batch_size
+        if hasattr(model, "force_batch_size"):
+            if model.force_batch_size > 0:
+                if batch_size is not None:
+                    if batch_size != model.force_batch_size:
+                        if self.set_batch_size:
+                            model.set_batch_size(batch_size)
+                        else:
+                            raise ValueError("batch_size argument to SGD conflicts with model's force_batch_size attribute")
+                else:
+                    self.batch_size = model.force_batch_size
         self.monitor = Monitor.get_monitor(model)
         # TODO: come up with some standard scheme for associating training runs
         # with monitors / pushing the monitor automatically, instead of just
@@ -86,14 +105,6 @@ class SGD(TrainingAlgorithm):
                                  num_batches=self.monitoring_batches)
 
 
-        batch_size = self.batch_size
-        if hasattr(model, "force_batch_size"):
-            if model.force_batch_size > 0:
-                if batch_size is not None:
-                    if batch_size != model.force_batch_size:
-                        raise ValueError("batch_size argument to SGD conflicts with model's force_batch_size attribute")
-                else:
-                    self.batch_size = model.force_batch_size
 
 
         X = model.get_input_space().make_theano_batch(name="%s[X]" % self.__class__.__name__)
@@ -142,6 +153,8 @@ class SGD(TrainingAlgorithm):
         self.monitor.add_channel(name=cost_value.name, ipt=ipt, val=cost_value)
         for key in cost_channels:
             self.monitor.add_channel(name=key, ipt=ipt, val=cost_channels[key])
+        if self.momentum:
+            self.monitor.add_channel(name='momentum', ipt=ipt, val=self.momentum)
 
         params = list(model.get_params())
         for i, param in enumerate(params):
@@ -234,7 +247,7 @@ class ExhaustiveSGD(SGD): # deprecated!
         super(ExhaustiveSGD,self).__init__(*args, ** kwargs)
 
 
-class MonitorBasedLRAdjuster(object):
+class MonitorBasedLRAdjuster(TrainingCallback):
     """
 
     DO NOT USE AS A CALLBACK FOR THE SGD ALGORITHM.
@@ -368,6 +381,9 @@ class EpochCounter(object):
 
 
 class AnnealedLearningRate(object):
+    """ WRITEME
+    Evidently a callback for the SGD algorithm rather than the Train object?
+    """
     def __init__(self, anneal_start):
         self._initialized = False
         self._count = 0
@@ -382,7 +398,7 @@ class AnnealedLearningRate(object):
     def current_learning_rate(self):
         return self._base * min(1, self._anneal_start / self._count)
 
-class MomentumAdjustor(object):
+class MomentumAdjustor(TrainingCallback):
     def __init__(self, final_momentum, start, saturate):
         """
             final_momentum: the momentum coefficient to use at the end
@@ -395,11 +411,11 @@ class MomentumAdjustor(object):
         self._initialized = False
         self._count = 0
 
-    def __call__(self, algorithm):
+    def __call__(self, model, dataset, algorithm):
         if not self._initialized:
             self._init_momentum = algorithm.momentum.get_value()
         self._count += 1
-        algorithm.momentum.set_value( self.current_momentum())
+        algorithm.momentum.set_value( np.cast[config.floatX](self.current_momentum()))
 
     def current_momentum(self):
         w = self.saturate - self.start
@@ -408,7 +424,7 @@ class MomentumAdjustor(object):
             alpha = 0.
         if alpha > 1.:
             alpha = 1.
-        return self.init_momentum * (1.-alpha)+alpha*self.final_momentum
+        return self._init_momentum * (1.-alpha)+alpha*self.final_momentum
 
 # This might be worth rolling into the SGD logic directly at some point.
 class ConjunctionCriterion(object):
