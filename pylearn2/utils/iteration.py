@@ -118,7 +118,7 @@ class SequentialSubsetIterator(SubsetIterator):
 
     @property
     def uneven(self):
-        return self.batch_size * self.num_batches == self._dataset_size
+        return self.batch_size * self.num_batches != self._dataset_size
 
 
 class ShuffledSequentialSubsetIterator(SequentialSubsetIterator):
