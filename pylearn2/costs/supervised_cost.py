@@ -9,6 +9,7 @@ from pylearn2.costs.cost import SupervisedCost
 # import the only class that was defined here, so old code can still
 # import it
 from pylearn2.costs.cost import CrossEntropy
+import theano.tensor as T
 
 
 class CrossEntropy(SupervisedCost):
