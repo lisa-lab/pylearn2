@@ -40,7 +40,7 @@ def test_channel_scaling_sequential():
         vis_batch = T.matrix()
         mean = vis_batch.mean()
         monitor.add_channel(name='mean', ipt=vis_batch, val=mean, dataset=dataset)
-            monitor()
+        monitor()
         assert 'mean' in monitor.channels
         mean = monitor.channels['mean']
         assert len(mean.val_record) == 1
