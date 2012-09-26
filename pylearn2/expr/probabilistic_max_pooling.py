@@ -2,8 +2,18 @@
 
 An implementation of probabilistic max-pooling, based on
 
-TODO writme
+"Convolutional Deep Belief Networks for Scalable
+Unsupervised Learning of Hierarchical Representations"
+Honglak Lee, Roger Grosse, Rajesh Ranganath, and Andrew Y. Ng
+ICML 2009
 
+
+This paper defines probabilistic max-pooling in the context
+of a Convolutional Deep Belief Network (its energy function is
+more like a DBM than a DBN but it is trained like a DBN). Here
+we define probabilistic max pooling as a general layer for
+use in an energy-based model regardless of how the rest of the
+model is assembled.
 
 """
 
@@ -24,6 +34,10 @@ from theano.printing import Print
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 
 def max_pool_python(z, pool_shape):
+    """
+    Slow python implementation of probabilistic max pooling
+    for unit tests.
+    """
 
     batch_size, zr, zc, ch = z.shape
 
