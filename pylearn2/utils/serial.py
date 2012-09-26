@@ -194,6 +194,25 @@ def save(filepath, obj):
                 sys.setrecursionlimit(old_limit)
 
 
+def get_pickle_protocol():
+    """
+    Allow configuration of the pickle protocol on a per-machine basis.
+    This way, if you use multiple platforms with different versions of
+    pickle, you can configure each of them to use the highest protocol
+    supported by all of the machines that you want to be able to
+    communicate.
+    """
+    try:
+        protocol_str = os.environ['PYLEARN2_PICKLE_PROTOCOL']
+    except KeyError:
+        # If not defined, we default to 0 because this is the default
+        # protocol used by cPickle.dump (and because it results in
+        # maximum portability)
+        protocol_str = '0'
+    if protocol_str == 'pickle.HIGHEST_PROTOCOL':
+        return pickle.HIGHEST_PROTOCOL
+    return int(protocol_str)
+
 def _save(filepath, obj):
     try:
         import joblib
@@ -223,7 +242,7 @@ def _save(filepath, obj):
                 warnings.warn('Warning: .joblib suffix specified but joblib '
                               'unavailable. Using ordinary pickle.')
             with open(filepath, 'wb') as filehandle:
-                cPickle.dump(obj, filehandle)
+                cPickle.dump(obj, filehandle, get_pickle_protocol())
     except Exception, e:
         # TODO: logging, or warning
         print "cPickle has failed to write an object to " + filepath
@@ -250,7 +269,7 @@ def _save(filepath, obj):
                     'when it dies'
                 )
                 with open(filepath, 'wb') as f:
-                    cPickle.dump(obj, f)
+                    cPickle.dump(obj, f, get_pickle_protocol())
                 print ('Somehow or other, the file write worked once '
                        'we quit using the try/catch.')
             else:
@@ -272,12 +291,12 @@ def _save(filepath, obj):
 
 
 def clone_via_serialize(obj):
-    str = cPickle.dumps(obj)
+    str = cPickle.dumps(obj, get_pickle_protocol())
     return cPickle.loads(str)
 
 
 def to_string(obj):
-    return cPickle.dumps(obj)
+    return cPickle.dumps(obj, get_pickle_protocol())
 
 
 def mkdir(filepath):
