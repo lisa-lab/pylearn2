@@ -7,11 +7,21 @@ class Cost(object):
     """Abstract class representing a loss function"""
     pass
 
+    def get_target_space(self, model, dataset):
+        """
+        Specify the space in which the learning targets should live.
+        If the cost does not use targets, it should return None.
+        """
+        raise NotImplementedError()
+
 class SupervisedCost(Cost):
     """Abstract class representing a cost of both features and labels"""
 
     def get_monitoring_channels(self, model, X, Y):
         return {}
+
+    def get_target_space(self, model, dataset):
+        return model.get_output_space()
 
     def __call__(self, model, X, Y):
         """
@@ -29,6 +39,9 @@ class UnsupervisedCost(Cost):
 
     def get_monitoring_channels(self, model, X):
         return {}
+
+        def get_target_space(self, model, datatset):
+            return None
 
     def __call__(self, model, X):
         """

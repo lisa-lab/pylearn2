@@ -54,7 +54,7 @@ class Monitor(object):
 
         self.require_label = False
 
-    def set_dataset(self, dataset, mode, batch_size=None, num_batches=None):
+    def set_dataset(self, dataset, mode, batch_size=None, num_batches=None, target_space = None):
         """
         Determines the data used to calculate the values of each channel.
 
@@ -93,6 +93,7 @@ class Monitor(object):
         self._batch_size = actual_batch_size
 
         self._num_batches = num_batches
+        self.target_space = target_space
 
     def __call__(self):
         """
@@ -224,7 +225,10 @@ class Monitor(object):
             test_value = self.model.get_input_space().get_origin_batch(m)
             X.tag.test_value = np.cast[X.type.dtype](test_value)
         if self.require_label:
-            Y = self.model.get_output_space().make_theano_batch(name = "monitoring_Y")
+            if self.target_space is not None:
+                Y = self.target_space.make_theano_batch(name = "monitoring_Y")
+            else:
+                Y = self.model.get_output_space().make_theano_batch(name = "monitoring_Y")
 
         print 'monitored channels: '+str(self.channels.keys())
         it = self.dataset.iterator(mode=self._iteration_mode,
@@ -234,6 +238,9 @@ class Monitor(object):
         for channel in self.channels.values():
             if isinstance(channel.graph_input, (list, tuple)):
                 givens[channel.graph_input[0]] = X
+                if channel.graph_input[1].ndim != Y.ndim:
+                    raise ValueError("Channel %s has label dimension %d, should have %d." % (str(channel),
+                        channel.graph_input[1].ndim, Y.ndim))
                 givens[channel.graph_input[1]] = Y
             else:
                 givens[channel.graph_input] = X
@@ -328,7 +335,10 @@ class Monitor(object):
                             +") that uses targets, but monitoring dataset has no targets")
             self.require_label = True
             assert len(ipt) == 2
-        self.channels[name] = MonitorChannel(ipt, val, name, prereqs)
+            assert ipt[1].ndim < 3
+        new_channel = MonitorChannel(ipt, val, name, prereqs)
+        assert hasattr(new_channel, 'name')
+        self.channels[name] = new_channel
         self._dirty = True
 
     def _sanity_check(self):
@@ -402,6 +412,7 @@ class MonitorChannel(object):
             if two channels provide a prereq with exactly the same
             id, that prereq will only be called once
         """
+        self.name = name
         self.prereqs = prereqs
         self.graph_input = graph_input
         self.val = val
@@ -435,7 +446,7 @@ class MonitorChannel(object):
             val_str = '<bad val>'
 
         try:
-            name = str(self.name)
+            name_str = str(self.name)
         except:
             name_str = '<bad name>'
 

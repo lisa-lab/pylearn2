@@ -102,7 +102,9 @@ class SGD(TrainingAlgorithm):
         self.monitor.set_dataset(dataset=self.monitoring_dataset,
                                  mode='shuffled_sequential',
                                  batch_size=self.batch_size,
-                                 num_batches=self.monitoring_batches)
+                                 num_batches=self.monitoring_batches,
+                                 target_space=self.cost.get_target_space(model, dataset))
+        self.monitor._sanity_check()
 
 
 
