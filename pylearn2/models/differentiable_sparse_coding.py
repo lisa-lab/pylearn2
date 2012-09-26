@@ -294,7 +294,6 @@ class DifferentiableSparseCoding(object):
 
     def learn(self, dataset, batch_size):
         self.learn_mini_batch(dataset.get_batch_design(batch_size))
-    #
 
     def learn_mini_batch(self, x):
         assert self.alpha > 9e-8
