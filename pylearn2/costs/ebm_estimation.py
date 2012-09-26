@@ -119,6 +119,7 @@ class SMD(UnsupervisedCost):
     """
 
     def __init__(self, corruptor):
+        super(SMD, self).__init__()
         self.corruptor = corruptor
 
     def __call__(self, model, X):
