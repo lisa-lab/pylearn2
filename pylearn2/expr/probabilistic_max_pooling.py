@@ -212,7 +212,7 @@ def max_pool(z, pool_shape, top_down = None, theano_rng = None):
 
         return p, h, p_sample, h_sample
 
-def max_pool_python(z, pool_shape):
+def max_pool_python(z, pool_shape, top_down = None):
     """
     Slow python implementation of max_pool
     for unit tests.
@@ -228,12 +228,15 @@ def max_pool_python(z, pool_shape):
 
     h = np.zeros(z.shape, dtype = z.dtype)
     p = np.zeros( (batch_size, zr /r, zc /c, ch), dtype = z.dtype)
+    if top_down is None:
+        top_down = p.copy()
 
     for u in xrange(0,zr,r):
         for l in xrange(0,zc,c):
             pt = np.exp(z[:,u:u+r,l:l+c,:])
-            denom = pt.sum(axis=1).sum(axis=1) + 1.
-            p[:,u/r,l/c,:] = 1. - 1. / denom
+            off_pt = np.exp(-top_down[:,u/r,l/c,:])
+            denom = pt.sum(axis=1).sum(axis=1) + off_pt
+            p[:,u/r,l/c,:] = 1. - off_pt / denom
             for i in xrange(batch_size):
                 for j in xrange(ch):
                     pt[i,:,:,j] /= denom[i,j]
@@ -508,8 +511,6 @@ def max_pool_softmax_op(z, pool_shape):
     return p, h
 
 
-
-
 def profile(f):
     print 'profiling ',f
     rng = np.random.RandomState([2012,7,19])
@@ -619,20 +620,20 @@ def profile_grad(f):
     print 'final: ',sum(results)/float(trials)
 
 if __name__ == '__main__':
-    check_correctness(max_pool_softmax_op)
-    check_correctness(max_pool_softmax_with_bias_op)
-    check_correctness(max_pool_raw_graph)
-    check_correctness(max_pool_stable_graph)
-    check_sample_correctishness(max_pool_stable_graph)
-    #profile(max_pool_raw_graph)
-    #profile(max_pool_stable_graph)
-    #profile_samples(max_pool_stable_graph)
-    #profile(max_pool_softmax_op)
-    #profile(max_pool_softmax_with_bias_op)
-    #profile_grad(max_pool_raw_graph)
-    #profile_grad(max_pool_stable_graph)
-    #profile_grad(max_pool_softmax_op)
-    #profile_grad(max_pool_softmax_with_bias_op)
+    # Run benchmarks
+    # Note: profile only supports b01c format, so we
+    # can't profile the default max_pool function yet.
+    # It only works with bc01 format.
+    # Should be easy to convert profile to bc01 format
+    profile(max_pool_unstable)
+    profile(max_pool_b01c)
+    profile_samples(max_pool_b01c)
+    profile(max_pool_softmax_op)
+    profile(max_pool_softmax_with_bias_op)
+    profile_grad(max_pool_unstable)
+    profile_grad(max_pool_b01c)
+    profile_grad(max_pool_softmax_op)
+    profile_grad(max_pool_softmax_with_bias_op)
 
 
 
