@@ -11,14 +11,6 @@ class Cost(object):
     def __init__(self):
         self.supervised = None
 
-
-    def get_target_space(self, model, dataset):
-        """
-        Specify the space in which the learning targets should live.
-        If the cost does not use targets, it should return None.
-        """
-        raise NotImplementedError()
-
 class SupervisedCost(Cost):
     """
     Represents a supervised cost, i.e. a cost which uses both the model's
@@ -116,6 +108,6 @@ class GeneralCost(Cost):
     """
     def __call__(self, model, X, Y=None):
         raise NotImplementedError()
-      
+
     def get_monitoring_channels(self, model, X, Y=None):
         return {}

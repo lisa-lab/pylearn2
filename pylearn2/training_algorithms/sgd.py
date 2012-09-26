@@ -100,8 +100,7 @@ class SGD(TrainingAlgorithm):
         self.monitor.add_dataset(dataset=self.monitoring_dataset,
                                  mode='sequential',
                                  batch_size=self.batch_size,
-                                 num_batches=self.monitoring_batches,
-                                 target_space=self.cost.get_target_space(model, dataset))
+                                 num_batches=self.monitoring_batches)
         self.monitor._sanity_check()
 
 
@@ -339,20 +338,20 @@ class PatienceBasedTermCrit(object):
     A monitor-based termination criterion using a geometrically increasing
     ammount of patience. If the selected channel has decreased by a certain
     proportion when comparing to the lowest value seen yet, the patience is
-    set to a factor of the number of examples seen, which by default 
+    set to a factor of the number of examples seen, which by default
     (patience_increase=2.) ensures the model has seen as many examples as the
     number of examples that lead to the lowest value before concluding a local
     optima has been reached.
-    
+
     Note: Technically, the patience corresponds to a number of epochs to be
     independent of the size of the dataset, so be aware of that when choosing
     initial_patience.
     """
-    def __init__(self, prop_decrease, initial_patience, 
+    def __init__(self, prop_decrease, initial_patience,
                  patience_increase=2., channel_name=None):
         """
         Initialize a patience-based termination criterion.
-    
+
         Parameters
         ----------
         prop_decrease : float
@@ -374,16 +373,16 @@ class PatienceBasedTermCrit(object):
 
     def __call__(self, model):
         """
-        Returns True or False depending on whether the optimization should 
-        stop or not. The optimization should stop if it has run for a number 
+        Returns True or False depending on whether the optimization should
+        stop or not. The optimization should stop if it has run for a number
         of epochs superior to the patience without any improvement.
-        
+
         Parameters
         ----------
         model : Model
             The model used in the experiment and from which the monitor used
             in the termination criterion will be extracted.
-            
+
         Returns
         -------
         boolean
@@ -391,8 +390,8 @@ class PatienceBasedTermCrit(object):
         """
         monitor = model.monitor
         # In the case the monitor has only one channel, the channel_name can
-        # be omitted and the criterion will examine the only channel 
-        # available. However, if the monitor has multiple channels, leaving 
+        # be omitted and the criterion will examine the only channel
+        # available. However, if the monitor has multiple channels, leaving
         # the channel_name unspecified will raise an error.
         if self._channel_name is None:
             if len(monitor.channels) != 1:
@@ -401,11 +400,11 @@ class PatienceBasedTermCrit(object):
             v = monitor.channels.values()[0].val_record
         else:
             v = monitor.channels[self._channel_name].val_record
-        # If the channel value decrease is higher than the threshold, we 
+        # If the channel value decrease is higher than the threshold, we
         # update the best value to this value and we update the patience.
         if v[-1] < self.best_value * (1. - self.prop_decrease):
             # Using the max between actual patience and updated patience
-            # ensures that the model will run for at least the initial        
+            # ensures that the model will run for at least the initial
             # patience and that it would behave correctly if the user
             # chooses a dumb value (i.e. less than 1)
             self.patience = max(self.patience, len(v) * self.patience_increase)
@@ -417,17 +416,17 @@ class PatienceBasedTermCrit(object):
 class MonitorBasedTermCrit(object):
     """
     A termination criterion that pulls out the specified channel in
-    the model's monitor and checks to see if it has decreased by a 
+    the model's monitor and checks to see if it has decreased by a
     certain proportion of the lowest value in the last N epochs.
     """
     def __init__(self, prop_decrease, N, channel_name=None):
         """
         Initialize a monitor-based termination criterion.
-    
+
         Parameters
         ----------
         prop_decrease : float
-            The threshold factor by which we expect the channel value to have 
+            The threshold factor by which we expect the channel value to have
             decreased
         N : int
             Number of epochs to look back
@@ -444,25 +443,25 @@ class MonitorBasedTermCrit(object):
 
     def __call__(self, model):
         """
-        Returns True or False depending on whether the optimization should 
-        stop or not. The optimization should stop if the model has run for 
+        Returns True or False depending on whether the optimization should
+        stop or not. The optimization should stop if the model has run for
         N epochs without any improvement.
-        
+
         Parameters
         ----------
         model : Model
             The model used in the experiment and from which the monitor used
             in the termination criterion will be extracted.
-            
+
         Returns
         -------
         boolean
             True or False, indicating if the optimization should stop or not.
-        """            
+        """
         monitor = model.monitor
         # In the case the monitor has only one channel, the channel_name can
-        # be omitted and the criterion will examine the only channel 
-        # available. However, if the monitor has multiple channels, leaving 
+        # be omitted and the criterion will examine the only channel
+        # available. However, if the monitor has multiple channels, leaving
         # the channel_name unspecified will raise an error.
         if self._channel_name is None:
             if len(monitor.channels) != 1:
@@ -472,7 +471,7 @@ class MonitorBasedTermCrit(object):
         else:
             v = monitor.channels[self._channel_name].val_record
 
-        # The countdown decreases every time the termination criterion is 
+        # The countdown decreases every time the termination criterion is
         # called unless the channel value is lower than the best value times
         # the prop_decrease factor, in which case the countdown is reset to N
         # and the best value is updated
@@ -482,7 +481,7 @@ class MonitorBasedTermCrit(object):
         else:
             self.countdown = self.countdown - 1
         # The optimization continues until the countdown has reached 0,
-        # meaning that N epochs have passed without the model improving 
+        # meaning that N epochs have passed without the model improving
         # enough.
         return self.countdown > 0
 
