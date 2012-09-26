@@ -33,10 +33,190 @@ from pylearn2.utils import sharedX
 from theano.printing import Print
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 
+def max_pool(z, pool_shape, top_down = None, theano_rng = None):
+    """
+        z : a theano 4-tensor representing input from below
+        pool_shape: tuple of ints. the shape of regions to be pooled
+        top_down: (optional) a theano 4-tensor representing input from above
+                    if None, assumes top-down input is 0
+        theano_rng: (optional) a MRG_RandomStreams instance
+
+        returns:
+            a theano 4-tensor for the expected value of the detector layer h
+            a theano 4-tensor for the expected value of the pooling layer p
+            if theano_rng is not None, also returns:
+                a theano 4-tensor of samples of the detector layer
+                a theano 4-tensor of samples of the pooling layer
+
+        all 4-tensors are formatted with axes ('b', 'c', 0, 1).
+        This is for maximum speed when using theano's conv2d
+        to generate z and top_down, or when using it to infer conditionals of other layers
+        using the return values.
+
+        Detailed description:
+
+        Suppose you have a variable h that lives in a Conv2DSpace h_space and you want to
+        pool it down to a variable p that lives in a smaller Conv2DSpace p.
+
+        This function does that, using non-overlapping pools.
+
+        Specifically, consider one channel of h. h must have a height that is a multiple of
+        pool_shape[0] and a width that is a multiple of pool_shape[1]. A channel of h can
+        thus be broken down into non-overlapping rectangles of shape pool_shape.
+
+        Now consider one rectangular pooled region within one channel of h.
+        I now use 'h' to refer just to this rectangle, and 'p' to refer to just the one pooling
+        unit associated with that rectangle.
+        We assume that the space that h and p live in is constrained such that h and p are
+        both binary and p = max(h). To reduce the state-space in order to make probabilistic
+        computations cheaper we also constrain sum(h) <= 1.
+        Suppose h contains k different units. Suppose that the only term in the model's energy
+        function involving h is -(z*h).sum() (elemwise multiplication) and the only term in
+        the model's energy function involving p is -(top_down*p).sum().
+
+        Then P(h[i] = 1) = softmax( [ z[1], z[2], ..., z[k], -top_down] )[i]
+        and P(p = 1) = 1-softmax( [z[1], z[2], ..., z[k], -top_down])[k]
+
+
+        This variation of the function assumes that z, top_down, and all return values use
+        Conv2D axes ('b', 'c', 0, 1).
+        This variation of the function implements the softmax using a theano graph of exp,
+        maximum, sub, and div operations.
+
+    Performance notes:
+        It might be possible to make a faster implementation with different theano ops.
+        rather than using set_subtensor, it might be possible to use the stuff in
+        theano.sandbox.neighbours. Probably not possible, or at least nasty, because
+        that code isn't written with multiple channels in mind, and I don't think
+        just a reshape can fix it. Some work on this in galatea.cond.neighbs.py
+        At some point images2neighbs' gradient was broken so check that it has been fixed
+        before sinking too much time into this.
+
+        Stabilizing the softmax is also another source of slowness. Here it is stabilized
+        with several calls to maximum and sub. It might also be possible to stabilize it
+        with T.maximum(-top_down,T.signal.downsample.max_pool(z)). Don't know if that would
+        be faster or slower.
+
+        Elsewhere in this file I implemented the softmax with a reshape and call to Softmax /
+        SoftmaxWithBias. This is slower, even though Softmax is faster on the GPU than the
+        equivalent max/sub/exp/div graph. Maybe the reshape is too expensive.
+    """
+
+    z_name = z.name
+    if z_name is None:
+        z_name = 'anon_z'
+
+
+    batch_size, ch, zr, zc = z.shape
+
+    r, c = pool_shape
+
+    zpart = []
+
+    mx = None
+
+    if top_down is None:
+        t = 0.
+    else:
+        t = - top_down
+        t.name = 'neg_top_down'
+
+    for i in xrange(r):
+        zpart.append([])
+        for j in xrange(c):
+            cur_part = z[:,:,i:zr:r,j:zc:c]
+            if z_name is not None:
+                cur_part.name = z_name + '[%d,%d]' % (i,j)
+            zpart[i].append( cur_part )
+            if mx is None:
+                mx = T.maximum(t, cur_part)
+                if cur_part.name is not None:
+                    mx.name = 'max(-top_down,'+cur_part.name+')'
+            else:
+                max_name = None
+                if cur_part.name is not None:
+                    mx_name = 'max('+cur_part.name+','+mx.name+')'
+                mx = T.maximum(mx,cur_part)
+                mx.name = mx_name
+    mx.name = 'local_max('+z_name+')'
+
+    pt = []
+
+    for i in xrange(r):
+        pt.append([])
+        for j in xrange(c):
+            z_ij = zpart[i][j]
+            safe = z_ij - mx
+            safe.name = 'safe_z(%s)' % z_ij.name
+            cur_pt = T.exp(safe)
+            cur_pt.name = 'pt(%s)' % z_ij.name
+            pt[-1].append( cur_pt )
+
+    off_pt = T.exp(t - mx)
+    off_pt.name = 'p_tilde_off(%s)' % z_name
+    denom = off_pt
+
+    for i in xrange(r):
+        for j in xrange(c):
+            denom = denom + pt[i][j]
+    denom.name = 'denom(%s)' % z_name
+
+    off_prob = off_pt / denom
+    p = 1. - off_prob
+    p.name = 'p(%s)' % z_name
+
+    hpart = []
+    for i in xrange(r):
+        hpart.append( [ pt_ij / denom for pt_ij in pt[i] ] )
+
+    h = T.alloc(0., batch_size, ch, zr, zc)
+
+    for i in xrange(r):
+        for j in xrange(c):
+            h = T.set_subtensor(h[:,:,i:zr:r,j:zc:c],hpart[i][j])
+
+    h.name = 'h(%s)' % z_name
+
+    if theano_rng is None:
+        return p, h
+    else:
+        events = []
+        for i in xrange(r):
+            for j in xrange(c):
+                events.append(hpart[i][j])
+        events.append(off_prob)
+
+        events = [ event.dimshuffle(0,1,2,3,'x') for event in events ]
+
+        events = tuple(events)
+
+        stacked_events = T.concatenate( events, axis = 4)
+
+        batch_size, channels, rows, cols, outcomes = stacked_events.shape
+        reshaped_events = stacked_events.reshape((batch_size * rows * cols * channels, outcomes))
+
+        multinomial = theano_rng.multinomial(pvals = reshaped_events, dtype = p.dtype)
+
+        reshaped_multinomial = multinomial.reshape((batch_size, channels, rows, cols, outcomes))
+
+        h_sample = T.alloc(0., batch_size, ch, zr, zc)
+
+        idx = 0
+        for i in xrange(r):
+            for j in xrange(c):
+                h_sample = T.set_subtensor(h_sample[:,:,i:zr:r,j:zc:c],
+                        reshaped_multinomial[:,:,:,:,idx])
+                idx += 1
+
+        p_sample = 1 - reshaped_multinomial[:,:,:,:,-1]
+
+        return p, h, p_sample, h_sample
+
 def max_pool_python(z, pool_shape):
     """
-    Slow python implementation of probabilistic max pooling
+    Slow python implementation of max_pool
     for unit tests.
+    Also, this uses the ('b', 0, 1, 'c') format.
     """
 
     batch_size, zr, zc, ch = z.shape
@@ -62,12 +242,15 @@ def max_pool_python(z, pool_shape):
     return p, h
 
 
-def max_pool_raw_graph(z, pool_shape):
-    #random max pooling implemented with set_subtensor
-    #could also do this using the stuff in theano.sandbox.neighbours
-    #might want to benchmark the two approaches, see how each does on speed/memory
-    #on cpu and gpu
-    #this method is not numerically stable, use max_pool instead
+def max_pool_unstable(z, pool_shape):
+    """
+    A version of max_pool that does not numerically stabilize the softmax.
+    This is faster, but prone to both overflow and underflow in the intermediate
+    computations.
+    Mostly useful for benchmarking, to determine how much speedup we could
+    hope to get by using a better stabilization method.
+    Also, this uses the ('b', 0, 1, 'c') format.
+    """
 
     batch_size, zr, zc, ch = z.shape
 
@@ -105,41 +288,11 @@ def max_pool_raw_graph(z, pool_shape):
 
     return p, h
 
-def max_pool_stable_graph(z, pool_shape, top_down = None, theano_rng = None):
+def max_pool_b01c(z, pool_shape, top_down = None, theano_rng = None):
     """
-
-    top_down: like z, but applied to the pooling units
-              I think I handle things slightly different than Honglak does
-              Need to check this, but I think he adds top_down to all the
-              detector unit inputs.
-              Instead, I subtract it from the energy of the "off" unit
+    An implementation of max_pool but where all 4-tensors use the
+    ('b', 0, 1, 'c') format.
     """
-    #random max pooling implemented with set_subtensor
-    #could also do this using the stuff in theano.sandbox.neighbours
-    #might want to benchmark the two approaches, see how each does on speed/memory
-    #on cpu and gpu
-    #note: actually theano.sandbox.neighbours is probably a bad idea. it treats
-    #the images as being one channel, and emits all channels and positions into
-    #a 2D array. so I'd need to index each channel separately and join the channels
-    #back together, with a reshape. I expect joining num_channels is more expensive
-    #then incsubtensoring pool_rows*pool_cols, simply because we tend to have small
-    #pooling regions and a lot of channels, but I guess this worth testing.
-    #actually I might be able to do it fast with reshape-see galatea/cond/neighbs.py
-    #however, at some point the grad for this was broken. check that calling grad
-    #on images2neibs doesn't raise an exception before sinking too much time
-    #into this.
-    #here I stabilized the softplus with 4 calls to T.maximum and 5 elemwise
-    #subs. this is 10% slower than the unstable version, and the gradient
-    #is 40% slower. on GPU both the forward prop and backprop are more like
-    #100% slower!
-    #might want to dry doing a reshape, a T.nnet.softplus, and a reshape
-    #instead
-    #another way to implement the stabilization is with the max pooling operator
-    #(you'd still need to do maximum with 0)
-
-
-    #timing hack
-    #return T.nnet.sigmoid(z[:,0:z.shape[1]/pool_shape[0],0:z.shape[2]/pool_shape[1],:]), T.nnet.sigmoid(z)
 
     z_name = z.name
     if z_name is None:
@@ -250,32 +403,12 @@ def max_pool_stable_graph(z, pool_shape, top_down = None, theano_rng = None):
         return p, h, p_sample, h_sample
 
 def max_pool_softmax_with_bias_op(z, pool_shape):
-    #random max pooling implemented with set_subtensor
-    #could also do this using the stuff in theano.sandbox.neighbours
-    #might want to benchmark the two approaches, see how each does on speed/memory
-    #on cpu and gpu
-    #note: actually theano.sandbox.neighbours is probably a bad idea. it treats
-    #the images as being one channel, and emits all channels and positions into
-    #a 2D array. so I'd need to index each channel separately and join the channels
-    #back together, with a reshape. I expect joining num_channels is more expensive
-    #then incsubtensoring pool_rows*pool_cols, simply because we tend to have small
-    #pooling regions and a lot of channels, but I guess this worth testing.
-    #actually I might be able to do it fast with reshape-see galatea/cond/neighbs.py
-    #however, at some point the grad for this was broken. check that calling grad
-    #on images2neibs doesn't raise an exception before sinking too much time
-    #into this.
-    #here I stabilized the softplus with 4 calls to T.maximum and 5 elemwise
-    #subs. this is 10% slower than the unstable version, and the gradient
-    #is 40% slower. on GPU both the forward prop and backprop are more like
-    #100% slower!
-    #might want to dry doing a reshape, a T.nnet.softplus, and a reshape
-    #instead
-    #another way to implement the stabilization is with the max pooling operator
-    #(you'd still need to do maximum with 0)
+    """
+    An implementation of max_pool that uses the SoftmaxWithBias op.
+    Mostly kept around for comparison benchmarking purposes.
+    Also, this uses the ('b', 0, 1, 'c') format.
+    """
 
-
-    #timing hack
-    #return T.nnet.sigmoid(z[:,0:z.shape[1]/pool_shape[0],0:z.shape[2]/pool_shape[1],:]), T.nnet.sigmoid(z)
 
     z_name = z.name
     if z_name is None:
@@ -323,32 +456,11 @@ def max_pool_softmax_with_bias_op(z, pool_shape):
     return p, h
 
 def max_pool_softmax_op(z, pool_shape):
-    #random max pooling implemented with set_subtensor
-    #could also do this using the stuff in theano.sandbox.neighbours
-    #might want to benchmark the two approaches, see how each does on speed/memory
-    #on cpu and gpu
-    #note: actually theano.sandbox.neighbours is probably a bad idea. it treats
-    #the images as being one channel, and emits all channels and positions into
-    #a 2D array. so I'd need to index each channel separately and join the channels
-    #back together, with a reshape. I expect joining num_channels is more expensive
-    #then incsubtensoring pool_rows*pool_cols, simply because we tend to have small
-    #pooling regions and a lot of channels, but I guess this worth testing.
-    #actually I might be able to do it fast with reshape-see galatea/cond/neighbs.py
-    #however, at some point the grad for this was broken. check that calling grad
-    #on images2neibs doesn't raise an exception before sinking too much time
-    #into this.
-    #here I stabilized the softplus with 4 calls to T.maximum and 5 elemwise
-    #subs. this is 10% slower than the unstable version, and the gradient
-    #is 40% slower. on GPU both the forward prop and backprop are more like
-    #100% slower!
-    #might want to dry doing a reshape, a T.nnet.softplus, and a reshape
-    #instead
-    #another way to implement the stabilization is with the max pooling operator
-    #(you'd still need to do maximum with 0)
-
-
-    #timing hack
-    #return T.nnet.sigmoid(z[:,0:z.shape[1]/pool_shape[0],0:z.shape[2]/pool_shape[1],:]), T.nnet.sigmoid(z)
+    """
+    An implementation of max_pool that uses the SoftmaxWithBias op.
+    Mostly kept around for comparison benchmarking purposes.
+    Also, this uses the ('b', 0, 1, 'c') format.
+    """
 
     z_name = z.name
     if z_name is None:
@@ -395,148 +507,8 @@ def max_pool_softmax_op(z, pool_shape):
 
     return p, h
 
-max_pool = max_pool_stable_graph
-
-def check_correctness(f):
-    print 'checking correctness of',f
-    rng = np.random.RandomState([2012,7,19])
-    batch_size = 5
-    rows = 32
-    cols = 30
-    channels = 3
-    pool_rows = 2
-    pool_cols = 3
-    zv = rng.randn( batch_size, rows, cols, channels ).astype(config.floatX) * 2. - 3.
-
-    p_np, h_np = max_pool_python( zv, (pool_rows, pool_cols) )
-
-    z_th = T.TensorType( broadcastable=(False,False,False,False), dtype = config.floatX)()
-    z_th.name = 'z_th'
-
-    p_th, h_th = f( z_th, (pool_rows, pool_cols) )
-
-    func = function([z_th],[p_th,h_th])
-
-    pv, hv = func(zv)
-
-    assert p_np.shape == pv.shape
-    assert h_np.shape == hv.shape
-    if not np.allclose(h_np,hv):
-        print (h_np.min(),h_np.max())
-        print (hv.min(),hv.max())
-        assert False
-    assert np.allclose(p_np,pv)
-    print 'Correct'
-
-def check_sample_correctishness(f):
-    print 'checking correctness of',f
-    rng = np.random.RandomState([2012,7,19])
-    batch_size = 5
-    rows = 32
-    cols = 30
-    channels = 3
-    pool_rows = 2
-    pool_cols = 3
-    zv = rng.randn( batch_size, rows, cols, channels ).astype(config.floatX) * 2. - 3.
-
-    z_th = T.TensorType( broadcastable=(False,False,False,False), dtype = config.floatX)()
-    z_th.name = 'z_th'
-
-    theano_rng = MRG_RandomStreams(rng.randint(2147462579))
-    p_th, h_th, p_sth, h_sth = f( z_th, (pool_rows, pool_cols), theano_rng )
-
-    prob_func = function([z_th],[p_th,h_th])
-    pv, hv = prob_func(zv)
-
-    sample_func = function([z_th],[p_sth, h_sth])
-
-    acc_p = 0. * pv
-    acc_h = 0. * hv
-
-    # make sure the test gets good coverage, ie, that it includes many different
-    # activation probs for both detector and pooling layer
-    buckets = 10
-    bucket_width = 1. / float(buckets)
-    for i in xrange(buckets):
-        lower_lim = i * bucket_width
-        upper_lim = (i+1) * bucket_width
-
-        assert np.any( (pv >= lower_lim) * (pv < upper_lim) )
-        assert np.any( (hv >= lower_lim) * (hv < upper_lim) )
-
-    assert upper_lim == 1.
 
 
-    for i in xrange(10000):
-        ps, hs = sample_func(zv)
-
-        assert ps.shape == pv.shape
-        assert hs.shape == hv.shape
-
-        acc_p += ps
-        acc_h += hs
-
-    est_p = acc_p / float(i+1)
-    est_h = acc_h / float(i+1)
-
-    pd = np.abs(est_p-pv)
-    hd = np.abs(est_h-hv)
-
-    """
-    # plot maps of the estimation error, this is to see if it has some spatial pattern
-    # this is useful for detecting bugs like not handling the border correctly, etc.
-    from pylearn2.gui.patch_viewer import PatchViewer
-
-    pv = PatchViewer((pd.shape[0],pd.shape[3]),(pd.shape[1],pd.shape[2]),is_color = False)
-    for i in xrange(pd.shape[0]):
-        for j in xrange(pd.shape[3]):
-            pv.add_patch( (pd[i,:,:,j] / pd.max() )* 2.0 - 1.0, rescale = False)
-    pv.show()
-
-    pv = PatchViewer((hd.shape[0],hd.shape[3]),(hd.shape[1],hd.shape[2]),is_color = False)
-    for i in xrange(hd.shape[0]):
-        for j in xrange(hd.shape[3]):
-            pv.add_patch( (hd[i,:,:,j] / hd.max() )* 2.0 - 1.0, rescale = False)
-    pv.show()
-    """
-
-    """
-    plot expectation to estimate versus error in estimation
-    expect bigger errors for values closer to 0.5
-
-    from matplotlib import pyplot as plt
-
-    #nelem = reduce( lambda x, y : x*y, pd.shape)
-    #plt.scatter( pv.reshape(nelem), pd.reshape(nelem))
-    #plt.show()
-
-    nelem = reduce( lambda x, y : x*y, hd.shape)
-    plt.scatter( hv.reshape(nelem), hd.reshape(nelem))
-    plt.show()
-    """
-
-    # don't really know how tight this should be
-    # but you can try to pose an equivalent problem
-    # and implement it in another way
-    # using a numpy implementation in softmax_acc.py
-    # I got a max error of .17
-    assert max(pd.max(), hd.max()) < .17
-
-    # Do exhaustive checks on just the last sample
-    assert np.all( (ps ==0) + (ps == 1) )
-    assert np.all( (hs == 0) + (hs == 1) )
-
-    for k in xrange(batch_size):
-        for i in xrange(ps.shape[1]):
-            for j in xrange(ps.shape[2]):
-                for l in xrange(channels):
-                    p = ps[k,i,j,l]
-                    h = hs[k,i*pool_rows:(i+1)*pool_rows,j*pool_cols:(j+1)*pool_cols,l]
-                    assert h.shape == (pool_rows, pool_cols)
-                    assert p == h.max()
-
-
-    print 'Correctish (cant tell if samples are perfectly "correct")'
 
 def profile(f):
     print 'profiling ',f
@@ -667,118 +639,3 @@ if __name__ == '__main__':
 
 
 
-def max_pool_stable_graph_bc01(z, pool_shape, top_down = None, theano_rng = None):
-    """
-        copy-paste of max_pool_stable_graph, then edited to be formatted as (batch idx, channel, row, col)
-        rather than (batch_idx, row, col, channel)
-    """
-
-    z_name = z.name
-    if z_name is None:
-        z_name = 'anon_z'
-
-
-    batch_size, ch, zr, zc = z.shape
-
-    r, c = pool_shape
-
-    zpart = []
-
-    mx = None
-
-    if top_down is None:
-        t = 0.
-    else:
-        t = - top_down
-        t.name = 'neg_top_down'
-
-    for i in xrange(r):
-        zpart.append([])
-        for j in xrange(c):
-            cur_part = z[:,:,i:zr:r,j:zc:c]
-            if z_name is not None:
-                cur_part.name = z_name + '[%d,%d]' % (i,j)
-            zpart[i].append( cur_part )
-            if mx is None:
-                mx = T.maximum(t, cur_part)
-                if cur_part.name is not None:
-                    mx.name = 'max(-top_down,'+cur_part.name+')'
-            else:
-                max_name = None
-                if cur_part.name is not None:
-                    mx_name = 'max('+cur_part.name+','+mx.name+')'
-                mx = T.maximum(mx,cur_part)
-                mx.name = mx_name
-    mx.name = 'local_max('+z_name+')'
-
-    pt = []
-
-    for i in xrange(r):
-        pt.append([])
-        for j in xrange(c):
-            z_ij = zpart[i][j]
-            safe = z_ij - mx
-            safe.name = 'safe_z(%s)' % z_ij.name
-            cur_pt = T.exp(safe)
-            cur_pt.name = 'pt(%s)' % z_ij.name
-            pt[-1].append( cur_pt )
-
-    off_pt = T.exp(t - mx)
-    off_pt.name = 'p_tilde_off(%s)' % z_name
-    denom = off_pt
-
-    for i in xrange(r):
-        for j in xrange(c):
-            denom = denom + pt[i][j]
-    denom.name = 'denom(%s)' % z_name
-
-    off_prob = off_pt / denom
-    p = 1. - off_prob
-    p.name = 'p(%s)' % z_name
-
-    hpart = []
-    for i in xrange(r):
-        hpart.append( [ pt_ij / denom for pt_ij in pt[i] ] )
-
-    h = T.alloc(0., batch_size, ch, zr, zc)
-
-    for i in xrange(r):
-        for j in xrange(c):
-            h = T.set_subtensor(h[:,:,i:zr:r,j:zc:c],hpart[i][j])
-
-    h.name = 'h(%s)' % z_name
-
-    if theano_rng is None:
-        return p, h
-    else:
-        events = []
-        for i in xrange(r):
-            for j in xrange(c):
-                events.append(hpart[i][j])
-        events.append(off_prob)
-
-        events = [ event.dimshuffle(0,1,2,3,'x') for event in events ]
-
-        events = tuple(events)
-
-        stacked_events = T.concatenate( events, axis = 4)
-
-        batch_size, channels, rows, cols, outcomes = stacked_events.shape
-        reshaped_events = stacked_events.reshape((batch_size * rows * cols * channels, outcomes))
-
-        multinomial = theano_rng.multinomial(pvals = reshaped_events, dtype = p.dtype)
-
-        reshaped_multinomial = multinomial.reshape((batch_size, channels, rows, cols, outcomes))
-
-        h_sample = T.alloc(0., batch_size, ch, zr, zc)
-
-        idx = 0
-        for i in xrange(r):
-            for j in xrange(c):
-                h_sample = T.set_subtensor(h_sample[:,:,i:zr:r,j:zc:c],
-                        reshaped_multinomial[:,:,:,:,idx])
-                idx += 1
-
-        p_sample = 1 - reshaped_multinomial[:,:,:,:,-1]
-
-        return p, h, p_sample, h_sample
