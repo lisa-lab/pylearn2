@@ -173,3 +173,30 @@ class Conv2DSpace(Space):
                           broadcastable=(False, False, False,
                                          self.nchannels == 1)
                          )(name=name)
+
+    @staticmethod
+    def convert(tensor, src_axes, dst_axes):
+        """
+            tensor: a 4 tensor representing a batch of images
+
+            src_axes: the axis semantics of tensor
+
+            Returns a view of tensor using the axis semantics defined
+            by dst_axes. (If src_axes matches dst_axes, returns
+            tensor itself)
+
+            Useful for transferring tensors between different
+            Conv2DSpaces.
+        """
+        src_axes = tuple(src_axes)
+        dst_axes = tuple(dst_axes)
+        assert len(src_axes) == 4
+        assert len(dst_axes) == 4
+
+        if src_axes == dst_axes:
+            return tensor
+
+        shuffle = [ src_axes.index(elem) for elem in dst_axes ]
+
+        return tensor.dimshuffle(*shuffle)
+
