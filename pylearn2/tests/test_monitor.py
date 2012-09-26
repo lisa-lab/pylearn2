@@ -97,7 +97,10 @@ def test_counting():
             e_step = E_Step( h_new_coeff_schedule = [ 1. ]))
     algorithm.setup(model = model, dataset = dataset)
     algorithm.train(dataset = dataset)
-    assert model.monitor.get_batches_seen() == BATCHES
+    if not ( model.monitor.get_batches_seen() == BATCHES):
+        raise AssertionError('Should have seen '+str(BATCHES) + \
+                ' batches but saw '+str(model.monitor.get_batches_seen()))
+
     assert model.monitor.get_examples_seen() == num_examples
     assert isinstance(model.monitor.get_examples_seen(),int)
     assert isinstance(model.monitor.get_batches_seen(),int)
