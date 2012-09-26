@@ -221,7 +221,7 @@ class SGD(TrainingAlgorithm):
                 self.sgd_update(batch_in, batch_target, self.learning_rate)
                 actual_batch_size = batch_in.shape[0]
                 self.monitor.report_batch(actual_batch_size)
-                print 'batches seen', self.monitor.get_batches_seen()
+                #print 'batches seen', self.monitor.get_batches_seen()
                 for callback in self.update_callbacks:
                     callback(self)
         else:
