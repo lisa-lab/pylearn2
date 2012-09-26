@@ -103,3 +103,6 @@ class GeneralCost(Cost):
     """
     def __call__(self, model, X, Y=None):
         raise NotImplementedError()
+      
+    def get_monitoring_channels(self, model, X, Y=None):
+        return {}
