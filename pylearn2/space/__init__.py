@@ -155,11 +155,15 @@ class Conv2DSpace(Space):
 
     @functools.wraps(Space.get_origin)
     def get_origin(self):
-        return np.zeros((self.shape[0], self.shape[1], self.nchannels))
+        dims = { 0: self.shape[0], 1: self.shape[1], 'c' : self.nchannels }
+        shape = [ dims[elem] for elem in self.axes if elem != 'b' ]
+        return np.zeros(shape)
 
     @functools.wraps(Space.get_origin_batch)
     def get_origin_batch(self, n):
-        return np.zeros((n, self.shape[0], self.shape[1], self.nchannels))
+        dims = { 'b' : n, 0: self.shape[0], 1: self.shape[1], 'c' : self.nchannels }
+        shape = [ dims[elem] for elem in self.axes ]
+        return np.zeros(shape)
 
     @functools.wraps(Space.make_theano_batch)
     def make_theano_batch(self, name=None, dtype=None):
