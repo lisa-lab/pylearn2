@@ -41,6 +41,14 @@ def check_correctness(f):
 
 
 def check_correctness_bc01(f):
+
+    # Tests that the theano expression emitted by f computes the same values
+    # as the ground truth python function
+    # Note: to keep the python version as dead simple as possible (i.e., to make
+    # sure there are not bugs in the ground truth) it uses the numerically
+    # unstable verison of softmax. So this test does not work with too big of
+    # numbers.
+
     rng = np.random.RandomState([2012,7,19])
     batch_size = 5
     rows = 32
@@ -196,6 +204,11 @@ def check_sample_correctishness(f):
 
 def check_sample_correctishness_bc01(f):
 
+    # Tests that the sample mean converges to the conditional expectation given by the
+    # function
+    # Tests that p really is the max of the samples
+    # Tests that at most one h in a group is on
+
     batch_size = 5
     rows = 32
     cols = 30
@@ -305,6 +318,7 @@ def check_sample_correctishness_bc01(f):
                     h = hs[k,l,i*pool_rows:(i+1)*pool_rows,j*pool_cols:(j+1)*pool_cols]
                     assert h.shape == (pool_rows, pool_cols)
                     assert p == h.max()
+                    assert h.sum() <= 1
 
 
     """ If you made it to here, it's correctish
