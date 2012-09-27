@@ -5,6 +5,7 @@ from pylearn2.space import VectorSpace
 from pylearn2.space import Conv2DSpace
 from pylearn2.utils import sharedX
 from pylearn2.training_algorithms.sgd import SGD
+from pylearn2.training_algorithms.bgd import BGD
 from pylearn2.training_algorithms.sgd import EpochCounter
 from pylearn2.costs.cost import CrossEntropy
 from pylearn2.costs.cost import UnsupervisedCost
@@ -229,3 +230,53 @@ def test_sgd_topo():
                  save_freq=0, callbacks=None)
 
     train.main_loop()
+
+
+def test_bgd_unsup():
+
+    # tests that we can run the bgd algorithm
+    # on an supervised cost.
+    # does not test for correctness at all, just
+    # that the algorithm runs without dying
+
+    dim = 3
+    m = 10
+
+    rng = np.random.RandomState([25,9,2012])
+
+    X = rng.randn(m, dim)
+
+    dataset = DenseDesignMatrix(X=X)
+
+    m = 15
+    X = rng.randn(m, dim)
+
+
+    # including a monitoring datasets lets us test that
+    # the monitor works with supervised data
+    monitoring_dataset = DenseDesignMatrix(X=X)
+
+    model = SoftmaxModel(dim)
+
+    learning_rate = 1e-3
+    batch_size = 5
+
+    class DummyCost(UnsupervisedCost):
+
+        def __call__(self, model, X):
+            return T.square(model(X)-X).mean()
+
+    cost = DummyCost()
+
+    # We need to include this so the test actually stops running at some point
+    termination_criterion = EpochCounter(5)
+
+    algorithm = BGD(cost, batch_size=5,
+                monitoring_batches=2, monitoring_dataset= monitoring_dataset,
+                termination_criterion = termination_criterion)
+
+    train = Train(dataset, model, algorithm, save_path=None,
+                 save_freq=0, callbacks=None)
+
+    train.main_loop()
+
