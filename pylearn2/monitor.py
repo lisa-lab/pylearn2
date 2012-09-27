@@ -341,7 +341,7 @@ class Monitor(object):
         # patch old pkl files
         if '_dataset' in d:
             d['_datasets'] = [ d['_dataset'] ]
-        del d['_dataset']
+            del d['_dataset']
 
         self.__dict__.update(d)
 

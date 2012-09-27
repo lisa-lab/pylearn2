@@ -291,12 +291,15 @@ def _save(filepath, obj):
 
 
 def clone_via_serialize(obj):
-    str = cPickle.dumps(obj, get_pickle_protocol())
-    return cPickle.loads(str)
+    s = cPickle.dumps(obj, get_pickle_protocol())
+    return cPickle.loads(s)
 
 
 def to_string(obj):
     return cPickle.dumps(obj, get_pickle_protocol())
+
+def from_string(s):
+    return cPickle.loads(s)
 
 
 def mkdir(filepath):

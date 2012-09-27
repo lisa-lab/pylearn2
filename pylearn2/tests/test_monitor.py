@@ -9,6 +9,7 @@ from pylearn2.models.s3c import S3C, E_Step, Grad_M_Step
 from nose.plugins.skip import SkipTest
 from pylearn2.utils import sharedX
 from pylearn2.utils.serial import to_string
+from pylearn2.utils.serial import from_string
 from pylearn2.utils.iteration import _iteration_schemes
 from theano import shared
 
@@ -354,3 +355,13 @@ def test_valid_after_serialize():
 
     monitor.redo_theano()
 
+def test_deserialize():
+
+    # Test that a monitor can be deserialized
+
+    model = DummyModel(1)
+    monitor = Monitor.get_monitor(model)
+
+    x = to_string(monitor)
+    monitor = from_string(x)
+    y = to_string(monitor)
