@@ -30,7 +30,7 @@ class SumOfCosts(GeneralCost):
         """
         Returns the sum of the costs the SumOfCosts instance was given at
         initialization.
-        
+
         Parameters
         ----------
         model : pylearn2.models.model.Model

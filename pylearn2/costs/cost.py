@@ -4,26 +4,36 @@ the objective function for the SGD algorithm."""
 import theano.tensor as T
 
 
-class Cost(object):
+class GeneralCost(object):
     """
-    Represents a cost function.
+    Represents a cost that can be called either as a supervised cost or an
+    unsupervised cost.
     """
     def __init__(self):
-        self.supervised = None
+        raise NotImplementedError("You should implement a constructor " + \
+                                  "which at least sets a boolean value " + \
+                                  "for the 'self.supervised' attribute.")
 
-class SupervisedCost(Cost):
+    def __call__(self, model, X, Y=None):
+        raise NotImplementedError()
+
+    def get_monitoring_channels(self, model, X, Y=None):
+        return {}
+
+    def get_target_space(self, model, dataset):
+        if self.supervised:
+            return model.get_output_space()
+        else:
+            return None
+
+
+class SupervisedCost(GeneralCost):
     """
     Represents a supervised cost, i.e. a cost which uses both the model's
     output and the target in its computation.
     """
     def __init__(self):
         self.supervised = True
-
-    def get_monitoring_channels(self, model, X, Y):
-        return {}
-
-    def get_target_space(self, model, dataset):
-        return model.get_output_space()
 
     def __call__(self, model, X, Y):
         """
@@ -33,20 +43,14 @@ class SupervisedCost(Cost):
 
             Returns a symbolic expression for the loss function.
         """
-        raise NotImplementedError(str(self)+" does not implement __call__")
+        raise NotImplementedError(str(self) + " does not implement __call__")
 
 
-class UnsupervisedCost(Cost):
+class UnsupervisedCost(GeneralCost):
     """Abstract class representing a cost of features only"""
 
     def __init__(self):
         self.supervised = False
-
-    def get_monitoring_channels(self, model, X):
-        return {}
-
-        def get_target_space(self, model, datatset):
-            return None
 
     def __call__(self, model, X):
         """
@@ -55,7 +59,8 @@ class UnsupervisedCost(Cost):
 
             Returns a symbolic expression for the loss function.
         """
-        raise NotImplementedError(str(self)+" does not implement __call__")
+        raise NotImplementedError(str(self) + " does not implement __call__")
+
 
 class CrossEntropy(SupervisedCost):
     """WRITEME"""
@@ -99,15 +104,3 @@ def make_method_cost(method, superclass):
                 "subclass of Cost.") % (str(rval),str(type(rval))))
         # TODO: is there a way to directly check superclass?
     return rval
-
-
-class GeneralCost(Cost):
-    """
-    Represents a cost that can be called either as a supervised cost or an
-    unsupervised cost.
-    """
-    def __call__(self, model, X, Y=None):
-        raise NotImplementedError()
-
-    def get_monitoring_channels(self, model, X, Y=None):
-        return {}
