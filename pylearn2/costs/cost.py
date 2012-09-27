@@ -4,7 +4,7 @@ the objective function for the SGD algorithm."""
 import theano.tensor as T
 
 
-class GeneralCost(object):
+class Cost(object):
     """
     Represents a cost that can be called either as a supervised cost or an
     unsupervised cost.
@@ -27,43 +27,11 @@ class GeneralCost(object):
             return None
 
 
-class SupervisedCost(GeneralCost):
-    """
-    Represents a supervised cost, i.e. a cost which uses both the model's
-    output and the target in its computation.
-    """
+class CrossEntropy(Cost):
+    """WRITEME"""
     def __init__(self):
         self.supervised = True
 
-    def __call__(self, model, X, Y):
-        """
-            model: the model the cost is applied to
-            X: a batch of features. First axis indexes examples
-            Y: a batch of labels corresponding to X
-
-            Returns a symbolic expression for the loss function.
-        """
-        raise NotImplementedError(str(self) + " does not implement __call__")
-
-
-class UnsupervisedCost(GeneralCost):
-    """Abstract class representing a cost of features only"""
-
-    def __init__(self):
-        self.supervised = False
-
-    def __call__(self, model, X):
-        """
-            model: the model the cost is applied to
-            X: a batch of features. First axis indexes examples
-
-            Returns a symbolic expression for the loss function.
-        """
-        raise NotImplementedError(str(self) + " does not implement __call__")
-
-
-class CrossEntropy(SupervisedCost):
-    """WRITEME"""
     def __call__(self, model, X, Y):
         """WRITEME"""
         return (-Y * T.log(model(X)) - \
@@ -97,10 +65,10 @@ def make_method_cost(method, superclass):
             return fn(*args, **kwargs)
 
     rval = MethodCost()
-    if not isinstance(rval, GeneralCost):
+    if not isinstance(rval, Cost):
         raise TypeError(("make_method_cost made something that isn't a "
                 "GeneralCost instance (%s of type %s)."
                 " This probably means the superclass you provided isn't a "
-                "subclass of GeneralCost.") % (str(rval),str(type(rval))))
+                "subclass of Cost.") % (str(rval),str(type(rval))))
         # TODO: is there a way to directly check superclass?
     return rval

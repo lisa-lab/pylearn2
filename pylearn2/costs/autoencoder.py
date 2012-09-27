@@ -1,22 +1,28 @@
 from theano import tensor
 import theano.sparse
 import warnings
-from pylearn2.costs.cost import UnsupervisedCost
+from pylearn2.costs.cost import Cost
 import numpy.random
 from theano.tensor.shared_randomstreams import RandomStreams
 
-class MeanSquaredReconstructionError(UnsupervisedCost):
+class MeanSquaredReconstructionError(Cost):
+    def __init__(self):
+        self.supervised = False
+
     def __call__(self, model, X):
         return ((model.reconstruct(X) - X) ** 2).sum(axis=1).mean()
 
-class MeanBinaryCrossEntropy(UnsupervisedCost):
+class MeanBinaryCrossEntropy(Cost):
+    def __init__(self):
+        self.supervised = True
+
     def __call__(self, model, X):
         return (
             - X * tensor.log(model.reconstruct(X)) -
             (1 - X) * tensor.log(1 - model.reconstruct(X))
         ).sum(axis=1).mean()
 
-class SampledMeanBinaryCrossEntropy(UnsupervisedCost):
+class SampledMeanBinaryCrossEntropy(Cost):
     """
     ce cost that goes with sparse autoencoder with L1 regularization on activations
 
@@ -28,6 +34,7 @@ class SampledMeanBinaryCrossEntropy(UnsupervisedCost):
         self.random_stream = RandomStreams(seed=1)
         self.L1 = L1
         self.one_ratio = ratio
+        self.supervised = False
 
     def __call__(self, model, X):
         # X is theano sparse
@@ -111,9 +118,10 @@ class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
 #        ).sum(axis=1).mean()
 
 
-class ModelMethodPenalty(UnsupervisedCost):
+class ModelMethodPenalty(Cost):
     def __init__(self, method_name, coefficient=1.):
         self._method_name = method_name
+        self.supervised = False
 
     def __call__(self, model, X):
         if hasattr(model, self._method_name):
@@ -122,11 +130,12 @@ class ModelMethodPenalty(UnsupervisedCost):
             raise ValueError("no such method '%s' for model %s" %
                              (str(self._method_name), str(model)))
 
-class ScaleBy(UnsupervisedCost):
+class ScaleBy(Cost):
     def __init__(self, cost, coefficient):
     	warnings.warn('This object is now deprecated.')
         self._cost = cost
         self._coefficient = coefficient
+        self.supervised = False
 
     def __call__(self, model, X):
         return self._coefficient * self._cost(model, X)

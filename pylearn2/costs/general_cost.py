@@ -1,30 +1,31 @@
-from pylearn2.costs.cost import SupervisedCost, UnsupervisedCost, GeneralCost
+from pylearn2.costs.cost import Cost
 
 
-class SumOfCosts(GeneralCost):
+class SumOfCosts(Cost):
     """
     Combines multiple costs by summing them.
     """
     def __init__(self, costs):
         """
         Initialize the SumOfCosts object and make sure that the list of costs
-        contains only GeneralCost instances.
+        contains only Cost instances.
 
         Parameters
         ----------
         costs: list
-            List of GeneralCost objects
+            List of Cost objects
         """
         self.supervised = False
         self.costs = costs
         # Check whether the sum is a supervised cost and if all the costs are
-        # GeneralCost instances
+        # Cost instances
         for cost in self.costs:
-            if isinstance(cost, GeneralCost):
+            if isinstance(cost, Cost):
                 if cost.supervised:
                     self.supervised = True
             else:
-                raise ValueError("one of the costs is not GeneralCost instance")
+                raise ValueError("one of the costs is not " + \
+                                 "Cost instance")
 
     def __call__(self, model, X, Y=None):
         """
@@ -40,7 +41,7 @@ class SumOfCosts(GeneralCost):
         Y : tensor_like
             the target, if necessary
         """
-        # If the sum is a supervised cost, check whether the target was 
+        # If the sum is a supervised cost, check whether the target was
         # provided
         if Y is None and self.supervised is True:
             raise ValueError("no targets provided while some of the " + \
@@ -54,7 +55,7 @@ class SumOfCosts(GeneralCost):
         return sum_of_costs
 
 
-class ScaledCost(GeneralCost):
+class ScaledCost(Cost):
     """
     Represents a given cost scaled by a constant factor.
     """
@@ -74,7 +75,7 @@ class ScaledCost(GeneralCost):
     def __call__(self, model, X, Y=None):
         """
         Returns cost scaled by its scaling factor.
-        
+
         Parameters
         ----------
         model : pylearn2.models.model.Model
@@ -92,7 +93,7 @@ class ScaledCost(GeneralCost):
             return self.scaling * self.cost(model, X)
 
 
-class LxReg(GeneralCost):
+class LxReg(Cost):
     """
     L-x regularization term for the list of tensor variables provided.
     """
