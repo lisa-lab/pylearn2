@@ -151,10 +151,10 @@ class Monitor(object):
                 for iteration, X in enumerate(myiterator):
                     if self.require_label:
                         X, y = X
-                        self.run_prereqs(X,y)
+                        self.run_prereqs(X,y,d)
                         a(X, y)
                     else:
-                        self.run_prereqs(X)
+                        self.run_prereqs(X, None, d)
                         a(X)
                     count += 1
 
@@ -178,8 +178,10 @@ class Monitor(object):
 
             print "\t%s: %s" % (channel_name, val_str)
 
-    def run_prereqs(self, X, y = None):
-        for prereq in self.prereqs:
+    def run_prereqs(self, X, y, dataset):
+        if dataset not in self.prereqs:
+            return
+        for prereq in self.prereqs[dataset]:
             prereq(X,y)
 
     def get_batches_seen(self):
@@ -213,12 +215,16 @@ class Monitor(object):
         """
         self._dirty = False
 
-        self.prereqs = []
+        self.prereqs = {}
         for channel in self.channels.values():
             if channel.prereqs is not None:
+                dataset = channel.dataset
+                if dataset not in self.prereqs:
+                    self.prereqs[dataset] = []
+                prereqs = self.prereqs[dataset]
                 for prereq in channel.prereqs:
-                    if prereq not in self.prereqs:
-                        self.prereqs.append(prereq)
+                    if prereq not in prereqs:
+                        prereqs.append(prereq)
 
         init_names = dir(self)
         updates = {}

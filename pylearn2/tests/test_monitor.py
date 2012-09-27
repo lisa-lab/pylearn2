@@ -365,3 +365,65 @@ def test_deserialize():
     x = to_string(monitor)
     monitor = from_string(x)
     y = to_string(monitor)
+
+def test_prereqs_multidataset():
+
+    # Test that prereqs are run on the right datasets
+
+    NUM_DATASETS = 4
+    NUM_FEATURES = 3
+
+    model = DummyModel(NUM_FEATURES)
+    monitor = Monitor.get_monitor(model)
+
+    prereq_counters = []
+    datasets = []
+    for i in xrange(NUM_DATASETS):
+
+        batch_size = i + 1
+        num_examples = batch_size
+        dataset = DummyDataset(num_examples = num_examples,
+                num_features = NUM_FEATURES)
+        dataset.X[:] = i
+        datasets.append(dataset)
+
+        monitor.add_dataset(dataset, 'sequential', batch_size=batch_size)
+
+        prereq_counters.append(sharedX(0.))
+
+
+    class Prereq(object):
+        def __init__(self, counter_idx):
+            self.counter_idx = counter_idx
+
+        def __call__(self, X, y):
+            # We set up each dataset with a different batch size
+            # check here that we're getting the right one
+            assert X.shape[0] == self.counter_idx + 1
+            # Each dataset has different content, make sure we
+            # get the right one
+            assert X[0,0] == self.counter_idx
+            prereq_counter = prereq_counters[self.counter_idx]
+            prereq_counter.set_value(
+                prereq_counter.get_value()+1)
+
+    channels = []
+    for i in xrange(NUM_DATASETS):
+        monitor.add_channel(name = str(i),
+                ipt = model.input_space.make_theano_batch(),
+                val = prereq_counters[i],
+                dataset = datasets[i],
+                prereqs = [ Prereq(i) ])
+
+        channels.append(monitor.channels[str(i)])
+
+    for channel in channels:
+        assert len(channel.val_record) == 0
+    monitor()
+    for channel in channels:
+        assert channel.val_record == [1]
+    monitor()
+    for channel in channels:
+        assert channel.val_record == [1,2]
+
+
