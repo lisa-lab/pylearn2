@@ -8,23 +8,23 @@ class SumOfCosts(GeneralCost):
     def __init__(self, costs):
         """
         Initialize the SumOfCosts object and make sure that the list of costs
-        contains only Cost instances.
+        contains only GeneralCost instances.
 
         Parameters
         ----------
         costs: list
-            List of Cost objects
+            List of GeneralCost objects
         """
         self.supervised = False
         self.costs = costs
         # Check whether the sum is a supervised cost and if all the costs are
-        # Cost instances
+        # GeneralCost instances
         for cost in self.costs:
-            if isinstance(cost, Cost):
+            if isinstance(cost, GeneralCost):
                 if cost.supervised:
                     self.supervised = True
             else:
-                raise ValueError("one of the costs is not Cost instance")
+                raise ValueError("one of the costs is not GeneralCost instance")
 
     def __call__(self, model, X, Y=None):
         """
