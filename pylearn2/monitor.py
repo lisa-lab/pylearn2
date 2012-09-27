@@ -471,9 +471,10 @@ class MonitorChannel(object):
         self.prereqs = prereqs
         self.graph_input = graph_input
         if isinstance(val, float):
-            val = T.constant(val)
+            val = T.constant(np.cast[config.floatX](val))
         self.val = val
         self.val_shared = sharedX(0.0, name + "_tracker")
+        assert self.val_shared.dtype == config.floatX
         if not hasattr(val,'dtype'):
             raise TypeError('Monitor channel '+name+' has value of type '+str(type(val)))
         if val.dtype != self.val_shared.dtype:
