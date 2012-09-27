@@ -97,10 +97,10 @@ def make_method_cost(method, superclass):
             return fn(*args, **kwargs)
 
     rval = MethodCost()
-    if not isinstance(rval, Cost):
+    if not isinstance(rval, GeneralCost):
         raise TypeError(("make_method_cost made something that isn't a "
-                "Cost instance (%s of type %s)."
+                "GeneralCost instance (%s of type %s)."
                 " This probably means the superclass you provided isn't a "
-                "subclass of Cost.") % (str(rval),str(type(rval))))
+                "subclass of GeneralCost.") % (str(rval),str(type(rval))))
         # TODO: is there a way to directly check superclass?
     return rval
