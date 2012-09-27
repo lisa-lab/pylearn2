@@ -58,7 +58,7 @@ class Monitor(object):
 
         self.require_label = False
 
-    def add_dataset(self, dataset, mode, batch_size=None, num_batches=None):
+    def add_dataset(self, dataset, mode, batch_size=None, num_batches=None, seed = None):
         """
         Determines the data used to calculate the values of each channel.
 
@@ -87,22 +87,36 @@ class Monitor(object):
             batch_size = [batch_size]
         if not isinstance(num_batches, list):
             num_batches = [num_batches]
-        if len(dataset) != len(mode) or len(dataset) != len(batch_size) \
-                                     or len(dataset) != len(num_batches):
+        if seed is None:
+            seed = [ None ] * len(dataset)
+        if not isinstance(seed, list):
+            seed = [ seed ]
+        if any([len(l) != len(dataset) for l in [mode, batch_size, seed]]):
             raise ValueError("make sure each dataset has its iteration " + \
                         "mode, batch size and number of batches.")
-        for (d, m, b, n) in zip(dataset, mode, batch_size, num_batches):
+        for (d, m, b, n, sd) in zip(dataset, mode, batch_size, num_batches, seed):
             try:
                 it = d.iterator(mode=m, batch_size=b,
                                       num_batches=n,
                                       topo=self.topo,
-                                      targets=self.require_label)
-                # TODO: handle random seeds.
-                if it.uneven:
-                    raise NotImplementedError("The monitor's averaging is wrong if the batch size changes")
+                                      targets=self.require_label,
+                                      rng = sd)
             except ValueError as exc:
                 raise ValueError("invalid iteration parameters in "
                                  "Monitor.add_dataset: " + str(exc))
+            if it.stochastic:
+                # must be a seed, not a random number generator
+                # if it were a random number generator, different iterators using
+                # it would update its state, so we would not get the same iterator
+                # each time
+                # Also, must not be None, because this makes the iterator pick
+                # a seed based on the clock
+                if not isinstance(sd,(list,tuple,int)):
+                    raise TypeError("Monitor requires a seed (not a random number generator) when using stochastic iteration modes.")
+            else:
+                assert sd is None # the iterator should catch this, but let's double-check
+            if it.uneven:
+                raise NotImplementedError("The monitor's averaging is wrong if the batch size changes")
 
         if not d in self._datasets:
             self._datasets.append(d)
