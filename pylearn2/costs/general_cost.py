@@ -1,4 +1,4 @@
-from pylearn2.costs.cost import Cost, SupervisedCost, UnsupervisedCost, GeneralCost
+from pylearn2.costs.cost import SupervisedCost, UnsupervisedCost, GeneralCost
 
 
 class SumOfCosts(GeneralCost):
