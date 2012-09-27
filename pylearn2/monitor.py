@@ -252,7 +252,7 @@ class Monitor(object):
             #actually return expressions involving Y, so we disable the unused_input error
             self.accum = function([X, Y], givens=givens, updates=updates, on_unused_input = 'ignore')
         else:
-            self.accum = function([X], givens=givens, updates=updates)
+            self.accum = function([X], givens=givens, updates=updates, on_unused_input = 'ignore')
         t2 = time.time()
         print "graph size: ",len(self.accum.maker.fgraph.toposort())
         print "took "+str(t2-t1)+" seconds"
