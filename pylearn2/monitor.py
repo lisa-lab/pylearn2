@@ -58,7 +58,8 @@ class Monitor(object):
 
         self.require_label = False
 
-    def add_dataset(self, dataset, mode, batch_size=None, num_batches=None, seed = None):
+    def add_dataset(self, dataset, mode='sequential', batch_size=None,
+                    num_batches=None, seed = None):
         """
         Determines the data used to calculate the values of each channel.
 
