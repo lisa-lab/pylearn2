@@ -2,6 +2,7 @@
 The module defining the Monitor and MonitorChannel objects used for
 tracking the changes in values of various quantities throughout training
 """
+import warnings
 import time
 from theano import function
 import theano.sparse
@@ -38,7 +39,7 @@ class Monitor(object):
         self.channels = {}
         self._num_batches_seen = 0
         self._examples_seen = 0
-        self._dataset = []
+        self._datasets = []
         self._iteration_mode = []
         self._batch_size = []
         self._num_batches = []
@@ -103,8 +104,8 @@ class Monitor(object):
                 raise ValueError("invalid iteration parameters in "
                                  "Monitor.add_dataset: " + str(exc))
 
-        if not d in self._dataset:
-            self._dataset.append(d)
+        if not d in self._datasets:
+            self._datasets.append(d)
             self._iteration_mode.append(m)
             self._batch_size.append(b)
             self._num_batches.append(n)
@@ -117,14 +118,14 @@ class Monitor(object):
         if self._dirty:
             self.redo_theano()
         model = self.model
-        dataset = self._dataset
+        dataset = self._datasets
         self.begin_record_entry()
         for d, i, b, n, a in zip(dataset, self._iteration_mode, self._batch_size,
                                  self._num_batches, self.accum):
             if d:
                 if isinstance(d, basestring):
                     d = yaml_parse.load(d)
-                    self._dataset = d
+                    self._datasets = d
                 myiterator = d.iterator(mode=i,
                                         batch_size=b,
                                         num_batches=n,
@@ -226,14 +227,14 @@ class Monitor(object):
 
         print 'monitored channels: '+str(self.channels.keys())
         it = [d.iterator(mode=i, num_batches=n, batch_size=b) \
-              for d, i, n, b in zip(self.dataset, self._iteration_mode,
+              for d, i, n, b in zip(self._datasets, self._iteration_mode,
                                     self._num_batches, self._batch_size)]
         num_examples = [np.cast[config.floatX](float(i.num_examples)) for i in it]
-        givens = [{} for d in self.dataset]
-        updates = [{} for d in self.dataset]
+        givens = [{} for d in self._datasets]
+        updates = [{} for d in self._datasets]
         for channel in self.channels.values():
-            index = self.dataset.index(channel.dataset)
-            d = self.dataset[index]
+            index = self._datasets.index(channel.dataset)
+            d = self._datasets[index]
             g = givens[index]
             n = num_examples[index]
             u = updates[index]
@@ -294,13 +295,18 @@ class Monitor(object):
         functions, so we delete everything that can be regenerated with
         `redo_theano` by deleting the fields in `self.names_to_del`
         """
-        temp = self._dataset
-        if self._dataset and not isinstance(self._dataset, basestring):
-            try:
-                self._dataset = self._dataset.yaml_src
-            except AttributeError:
-                import warnings
-                warnings.warn('Trained model saved without indicating yaml_src')
+        temp = self._datasets
+
+        if self._datasets:
+            self._datasets = []
+            for dataset in temp:
+                if isinstance(dataset, basestring):
+                    self._datasets.append(dataset)
+                else:
+                    try:
+                        self._datasets.append(dataset.yaml_src)
+                    except AttributeError:
+                        warnings.warn('Trained model saved without indicating yaml_src')
         d = copy.copy(self.__dict__)
         self._dataset = temp
         for name in self.names_to_del:
@@ -333,14 +339,14 @@ class Monitor(object):
             id, that prereq will only be called once
         """
         if dataset is None:
-            if len(self.dataset) == 1:
-                dataset = self.dataset[0]
+            if len(self._datasets) == 1:
+                dataset = self._datasets[0]
             else:
                 raise ValueError("No dataset specified but monitor " + \
                                  "has more than one dataset.")
 
         try:
-            self.dataset.index(dataset)
+            self._datasets.index(dataset)
         except ValueError:
             raise ValueError("The dataset specified is not " + \
                 "one of the monitor's datasets")
@@ -394,10 +400,6 @@ class Monitor(object):
 
     # TODO: find out if monitor.foo below are used anywhere, remove if not.
     @property
-    def dataset(self):
-        return self._dataset
-
-    @property
     def batch_size(self):
         return self._batch_size
 
@@ -443,7 +445,7 @@ class MonitorChannel(object):
         if val.ndim != 0:
             raise ValueError('monitor channels are supposed to have zero dimensions ' \
                     ' but "'+name+'" has '+str(val.ndim))
-        # Dataset monitored by thgis channel
+        # Dataset monitored by this channel
         self.dataset = dataset
         # Value of the desired quantity at measurement time.
         self.val_record = []

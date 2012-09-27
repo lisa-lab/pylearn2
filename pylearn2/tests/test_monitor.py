@@ -8,6 +8,7 @@ from theano import tensor as T
 from pylearn2.models.s3c import S3C, E_Step, Grad_M_Step
 from nose.plugins.skip import SkipTest
 from pylearn2.utils import sharedX
+from pylearn2.utils.serial import to_string
 
 
 class DummyModel(Model):
@@ -21,6 +22,10 @@ class DummyDataset(DenseDesignMatrix):
             X=rng.uniform(1., 2., (num_examples, num_features))
         )
 
+class UnserializableDataset(DummyDataset):
+
+    def __getstate__(self):
+        raise AssertionError("Dataset should not be serialized")
 
 def test_channel_scaling_sequential():
     def channel_scaling_checker(num_examples, mode, num_batches, batch_size):
@@ -179,4 +184,23 @@ def test_prereqs_batch():
     monitor()
     assert channel.val_record == [0,0]
 
+
+def test_dont_serialize_dataset():
+
+    # Test that serializing the monitor does not serialize the dataset
+
+    BATCH_SIZE = 2
+    num_examples = 2 * BATCH_SIZE
+    NUM_FEATURES = 3
+
+    model = DummyModel(NUM_FEATURES)
+    monitor = Monitor.get_monitor(model)
+
+    monitoring_dataset = UnserializableDataset(num_examples = num_examples,
+            num_features = NUM_FEATURES)
+    monitoring_dataset.yaml_src = ""
+
+    monitor.add_dataset(monitoring_dataset, 'sequential', batch_size=BATCH_SIZE)
+
+    to_string(monitor)
 
