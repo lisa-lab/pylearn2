@@ -12,7 +12,7 @@ from pylearn2.costs.cost import CrossEntropy
 import theano.tensor as T
 
 
-class CrossEntropy(SupervisedCost):
+class CrossEntropy(Cost):
     def __init__(self):
         self.supervised = True
 
@@ -21,7 +21,7 @@ class CrossEntropy(SupervisedCost):
                 (1 - Y) * T.log(1 - model(X))).sum(axis=1).mean()
 
 
-class NegativeLogLikelihood(SupervisedCost):
+class NegativeLogLikelihood(Cost):
     """
     Represents the mean negative log-likelihood of a model's output, provided
     the target Y is one-hot encoded. Equivalent to
