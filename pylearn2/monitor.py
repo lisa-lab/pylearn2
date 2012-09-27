@@ -257,11 +257,12 @@ class Monitor(object):
         self.accum = []
         for g, u in zip (givens, updates):
             if self.require_label:
-                #some code may be written in terms of Y, but the subclasses in use might not
-                #actually return expressions involving Y, so we disable the unused_input error
+                # Some channels may not depend on the data, ie, they might just monitor the model
+                # parameters, or some shared variable updated by the training algorithm, so we
+                # need to ignore the unused input error
                 self.accum.append(function([X, Y], givens=g, updates=u, on_unused_input = 'ignore'))
             else:
-                self.accum.append(function([X], givens=g, updates=u))
+                self.accum.append(function([X], givens=g, updates=u, on_unused_input = 'ignore'))
         t2 = time.time()
         for a in self.accum:
             print "graph size: ",len(a.maker.fgraph.toposort())
