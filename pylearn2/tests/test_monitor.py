@@ -9,6 +9,8 @@ from pylearn2.models.s3c import S3C, E_Step, Grad_M_Step
 from nose.plugins.skip import SkipTest
 from pylearn2.utils import sharedX
 from pylearn2.utils.serial import to_string
+from pylearn2.utils.iteration import _iteration_schemes
+from theano import shared
 
 
 class DummyModel(Model):
@@ -215,4 +217,38 @@ def test_dont_serialize_dataset():
     monitor.add_dataset(monitoring_dataset, 'sequential', batch_size=BATCH_SIZE)
 
     to_string(monitor)
+
+def test_serialize_twice():
+
+    # Test that a monitor can be serialized twice
+    # with the same result
+
+    model = DummyModel(1)
+    monitor = Monitor.get_monitor(model)
+
+    x = to_string(monitor)
+    y = to_string(monitor)
+
+    assert x == y
+
+def test_valid_after_serialize():
+
+    # Test that serializing the monitor does not ruin it
+
+    BATCH_SIZE = 2
+    num_examples = 2 * BATCH_SIZE
+    NUM_FEATURES = 3
+
+    model = DummyModel(NUM_FEATURES)
+    monitor = Monitor.get_monitor(model)
+
+    monitoring_dataset = UnserializableDataset(num_examples = num_examples,
+            num_features = NUM_FEATURES)
+    monitoring_dataset.yaml_src = ""
+
+    monitor.add_dataset(monitoring_dataset, 'sequential', batch_size=BATCH_SIZE)
+
+    to_string(monitor)
+
+    monitor.redo_theano()
 
