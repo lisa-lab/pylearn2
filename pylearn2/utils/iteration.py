@@ -122,6 +122,9 @@ class SequentialSubsetIterator(SubsetIterator):
 
 
 class ShuffledSequentialSubsetIterator(SequentialSubsetIterator):
+
+    stochastic = True
+
     def __init__(self, dataset_size, batch_size, num_batches, rng=None):
         super(ShuffledSequentialSubsetIterator, self).__init__(
             dataset_size,
