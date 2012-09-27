@@ -1,8 +1,9 @@
 from pylearn2.monitor import Monitor
+from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 import theano.tensor as T
 
 
-class DefaultTrainingAlgorithm(object):
+class DefaultTrainingAlgorithm(TrainingAlgorithm):
     def __init__(self, batch_size=None, batches_per_iter=1000,
                  monitoring_batches=-1, monitoring_dataset=None):
         """
