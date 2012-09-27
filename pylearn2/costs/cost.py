@@ -70,7 +70,7 @@ class SumOfCosts(Cost):
         # If the sum is a supervised cost, check whether the target was
         # provided
         if Y is None and self.supervised is True:
-            raise ValueError("no targets provided while some of the " + \
+            raise ValueError("no targets provided while some of the " +
                              "costs in the sum are supervised costs")
         sum_of_costs = 0
         for cost in self.costs:
