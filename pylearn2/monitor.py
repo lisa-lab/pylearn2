@@ -44,7 +44,7 @@ class Monitor(object):
         self._batch_size = []
         self._num_batches = []
         self._dirty = True
-        self._rng_seed = None
+        self._rng_seed = []
         self.names_to_del = []
         # Determine whether the model should use topological or vector form of
         # examples. If the model acts on a space with more than the batch index
@@ -118,11 +118,12 @@ class Monitor(object):
             if it.uneven:
                 raise NotImplementedError("The monitor's averaging is wrong if the batch size changes")
 
-        if not d in self._datasets:
-            self._datasets.append(d)
-            self._iteration_mode.append(m)
-            self._batch_size.append(b)
-            self._num_batches.append(n)
+            if not d in self._datasets:
+                self._datasets.append(d)
+                self._iteration_mode.append(m)
+                self._batch_size.append(b)
+                self._num_batches.append(n)
+                self._rng_seed.append(sd)
 
     def __call__(self):
         """
@@ -134,8 +135,8 @@ class Monitor(object):
         model = self.model
         dataset = self._datasets
         self.begin_record_entry()
-        for d, i, b, n, a in zip(dataset, self._iteration_mode, self._batch_size,
-                                 self._num_batches, self.accum):
+        for d, i, b, n, a, sd in zip(dataset, self._iteration_mode, self._batch_size,
+                                 self._num_batches, self.accum, self._rng_seed):
             if d:
                 if isinstance(d, basestring):
                     d = yaml_parse.load(d)
@@ -144,7 +145,8 @@ class Monitor(object):
                                         batch_size=b,
                                         num_batches=n,
                                         topo=self.topo,
-                                        targets=self.require_label)
+                                        targets=self.require_label,
+                                        rng=sd)
                 count = 0
                 for iteration, X in enumerate(myiterator):
                     if self.require_label:
