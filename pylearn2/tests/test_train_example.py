@@ -1,6 +1,7 @@
 import pylearn2
 from pylearn2.utils.serial import load_train_file
 import os
+from nose.plugins.skip import SkipTest
 
 def test_train_example():
     """ tests that the train example script runs correctly """

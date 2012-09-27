@@ -118,10 +118,14 @@ class SequentialSubsetIterator(SubsetIterator):
 
     @property
     def uneven(self):
-        return self.batch_size * self.num_batches != self._dataset_size
+        return self.batch_size * self.num_batches > self._dataset_size
 
 
 class ShuffledSequentialSubsetIterator(SequentialSubsetIterator):
+
+    stochastic = True
+    fancy = True
+
     def __init__(self, dataset_size, batch_size, num_batches, rng=None):
         super(ShuffledSequentialSubsetIterator, self).__init__(
             dataset_size,
@@ -289,3 +293,7 @@ class FiniteDatasetIterator(object):
     @property
     def uneven(self):
         return self._subset_iterator.uneven
+
+    @property
+    def stochastic(self):
+        return self._subset_iterator.stochastic

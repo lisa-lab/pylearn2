@@ -120,7 +120,7 @@ class VectorSpace(Space):
 
 class Conv2DSpace(Space):
     """A space whose points are defined as (multi-channel) images."""
-    def __init__(self, shape, nchannels):
+    def __init__(self, shape, nchannels, axes = None):
         """
         Initialize a Conv2DSpace.
 
@@ -130,19 +130,40 @@ class Conv2DSpace(Space):
             The shape of a single image, i.e. (rows, cols).
         nchannels: int
             Number of channels in the image, i.e. 3 if RGB.
+        axes: A tuple indicating the semantics of each axis.
+                'b' : this axis is the batch index of a minibatch.
+                'c' : this axis the channel index of a minibatch.
+                <i>  : this is topological axis i (i.e., 0 for rows,
+                                  1 for cols)
+
+                For example, a PIL image has axes (0, 1, 'c') or (0, 1).
+                The pylearn2 image displaying functionality uses
+                    ('b', 0, 1, 'c') for batches and (0, 1, 'c') for images.
+                theano's conv2d operator uses ('b', 'c', 0, 1) images.
         """
         if not hasattr(shape, '__len__') or len(shape) != 2:
             raise ValueError("shape argument to Conv2DSpace must be length 2")
         self.shape = shape
         self.nchannels = nchannels
+        if axes is None:
+            # Assume pylearn2's get_topological_view format, since this is how
+            # data is currently served up. If we make better iterators change
+            # default to ('b', 'c', 0, 1) for theano conv2d
+            axes = ('b', 0, 1, 'c')
+        assert len(axes) == 4
+        self.axes = axes
 
     @functools.wraps(Space.get_origin)
     def get_origin(self):
-        return np.zeros((self.shape[0], self.shape[1], self.nchannels))
+        dims = { 0: self.shape[0], 1: self.shape[1], 'c' : self.nchannels }
+        shape = [ dims[elem] for elem in self.axes if elem != 'b' ]
+        return np.zeros(shape)
 
     @functools.wraps(Space.get_origin_batch)
     def get_origin_batch(self, n):
-        return np.zeros((n, self.shape[0], self.shape[1], self.nchannels))
+        dims = { 'b' : n, 0: self.shape[0], 1: self.shape[1], 'c' : self.nchannels }
+        shape = [ dims[elem] for elem in self.axes ]
+        return np.zeros(shape)
 
     @functools.wraps(Space.make_theano_batch)
     def make_theano_batch(self, name=None, dtype=None):
@@ -152,3 +173,30 @@ class Conv2DSpace(Space):
                           broadcastable=(False, False, False,
                                          self.nchannels == 1)
                          )(name=name)
+
+    @staticmethod
+    def convert(tensor, src_axes, dst_axes):
+        """
+            tensor: a 4 tensor representing a batch of images
+
+            src_axes: the axis semantics of tensor
+
+            Returns a view of tensor using the axis semantics defined
+            by dst_axes. (If src_axes matches dst_axes, returns
+            tensor itself)
+
+            Useful for transferring tensors between different
+            Conv2DSpaces.
+        """
+        src_axes = tuple(src_axes)
+        dst_axes = tuple(dst_axes)
+        assert len(src_axes) == 4
+        assert len(dst_axes) == 4
+
+        if src_axes == dst_axes:
+            return tensor
+
+        shuffle = [ src_axes.index(elem) for elem in dst_axes ]
+
+        return tensor.dimshuffle(*shuffle)
+

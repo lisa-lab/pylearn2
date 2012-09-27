@@ -3,15 +3,27 @@ Currently, these are primarily used to specify
 the objective function for the SGD algorithm."""
 import theano.tensor as T
 
+
 class Cost(object):
-    """Abstract class representing a loss function"""
-    pass
+    """
+    Represents a cost function.
+    """
+    def __init__(self):
+        self.supervised = None
 
 class SupervisedCost(Cost):
-    """Abstract class representing a cost of both features and labels"""
+    """
+    Represents a supervised cost, i.e. a cost which uses both the model's
+    output and the target in its computation.
+    """
+    def __init__(self):
+        self.supervised = True
 
     def get_monitoring_channels(self, model, X, Y):
         return {}
+
+    def get_target_space(self, model, dataset):
+        return model.get_output_space()
 
     def __call__(self, model, X, Y):
         """
@@ -27,8 +39,14 @@ class SupervisedCost(Cost):
 class UnsupervisedCost(Cost):
     """Abstract class representing a cost of features only"""
 
+    def __init__(self):
+        self.supervised = False
+
     def get_monitoring_channels(self, model, X):
         return {}
+
+        def get_target_space(self, model, datatset):
+            return None
 
     def __call__(self, model, X):
         """
@@ -45,6 +63,7 @@ class CrossEntropy(SupervisedCost):
         """WRITEME"""
         return (-Y * T.log(model(X)) - \
                 (1 - Y) * T.log(1 - model(X))).sum(axis=1).mean()
+
 
 def make_method_cost(method, superclass):
     """
@@ -65,7 +84,6 @@ def make_method_cost(method, superclass):
 
         my_cost = method_cost('my_crazy_new_loss_function', UnsupervisedCost)
     """
-
     class MethodCost(superclass):
         """ A Cost defined by the name of a model's method """
         def __call__(self, model, *args, **kwargs):
@@ -83,3 +101,13 @@ def make_method_cost(method, superclass):
     return rval
 
 
+class GeneralCost(Cost):
+    """
+    Represents a cost that can be called either as a supervised cost or an
+    unsupervised cost.
+    """
+    def __call__(self, model, X, Y=None):
+        raise NotImplementedError()
+
+    def get_monitoring_channels(self, model, X, Y=None):
+        return {}
