@@ -314,13 +314,19 @@ class Monitor(object):
                     except AttributeError:
                         warnings.warn('Trained model saved without indicating yaml_src')
         d = copy.copy(self.__dict__)
-        self._dataset = temp
+        self._datasets = temp
         for name in self.names_to_del:
             if name in d:
                 del d[name]
         return d
 
     def __setstate__(self, d):
+
+        # patch old pkl files
+        if '_dataset' in d:
+            d['_datasets'] = [ d['_dataset'] ]
+        del d['_dataset']
+
         self.__dict__.update(d)
 
     def add_channel(self, name, ipt, val, dataset=None, prereqs=None):
