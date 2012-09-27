@@ -460,6 +460,8 @@ class MonitorChannel(object):
         self.name = name
         self.prereqs = prereqs
         self.graph_input = graph_input
+        if isinstance(val, float):
+            val = T.constant(val)
         self.val = val
         self.val_shared = sharedX(0.0, name + "_tracker")
         if not hasattr(val,'dtype'):
