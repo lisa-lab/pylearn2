@@ -295,6 +295,11 @@ class Monitor(object):
         functions, so we delete everything that can be regenerated with
         `redo_theano` by deleting the fields in `self.names_to_del`
         """
+
+        # Patch old pickled monitors
+        if not hasattr(self, '_datasets'):
+            self._datasets = [ self._dataset ]
+
         temp = self._datasets
 
         if self._datasets:

@@ -23,9 +23,21 @@ class DummyDataset(DenseDesignMatrix):
         )
 
 class UnserializableDataset(DummyDataset):
+    """ A Dataset that raises an assertion if you try to seralize it.
+        Used to test that the monitor does not serialized its dataset.
+        Since the Model seralizes its Monitor, this would cause a copy
+        of the dataset to get saved with ever saved Model!"""
 
     def __getstate__(self):
         raise AssertionError("Dataset should not be serialized")
+
+class ArangeDataset(DenseDesignMatrix):
+    """ A dataset where example i is just the number i.
+    Makes it easy to track which sets of examples are visited."""
+    def __init__(self, num_examples):
+        X = np.zeros((num_examples,1))
+        X[:,0] = np.arange(num_examples)
+        super(ArangeDataset, self).__init__(X)
 
 def test_channel_scaling_sequential():
     def channel_scaling_checker(num_examples, mode, num_batches, batch_size):
