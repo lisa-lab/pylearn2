@@ -443,9 +443,10 @@ class RBM(Block, Model):
         return grads
 
 
-    def learn(self, dataset, batch_size):
+    def train_batch(self, dataset, batch_size):
         """ A default learning rule based on SML """
         self.learn_mini_batch(dataset.get_batch_design(batch_size))
+        return True
 
     def learn_mini_batch(self, X):
         """ A default learning rule based on SML """

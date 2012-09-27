@@ -1,8 +1,9 @@
 from pylearn2.monitor import Monitor
+from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 import theano.tensor as T
 
 
-class DefaultTrainingAlgorithm(object):
+class DefaultTrainingAlgorithm(TrainingAlgorithm):
     def __init__(self, batch_size=None, batches_per_iter=1000,
                  monitoring_batches=-1, monitoring_dataset=None):
         """
@@ -80,6 +81,17 @@ class DefaultTrainingAlgorithm(object):
                         model.force_batch_size)
 
         for i in xrange(self.batches_per_iter):
-            model.learn(dataset, batch_size)
-            model.monitor.report_batch( batch_size )
-        return True
+            # model.train_batch and self.train both return False when training should terminate.
+            learn_more = model.train_batch(dataset, batch_size)
+            model.monitor.report_batch(batch_size)
+            if not learn_more:
+                break
+       
+        # Make sure we didn't exit training loop because Model.learn
+        # hasn't been updated to new interface yet.
+        if learn_more not in [True,False]:
+            msg = ('The learn method of model %s did not return a boolean value.' +
+                   'Please update your model accordingly.')
+            raise ValueError(msg % str(model))
+
+        return learn_more
