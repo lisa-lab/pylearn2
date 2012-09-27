@@ -110,7 +110,7 @@ class SGD(TrainingAlgorithm):
         self.topo = not X.ndim == 2
         Y = T.matrix(name="%s[Y]" % self.__class__.__name__)
 
-        dataset.set_iteration_scheme('sequential', batch_size=self.batch_size, topo = self.topo)
+        dataset.set_iteration_scheme('shuffled_sequential', batch_size=self.batch_size, topo = self.topo)
 
         try:
             iter(self.cost)
@@ -216,7 +216,7 @@ class SGD(TrainingAlgorithm):
             if np.any(np.isnan(value)) or np.any(np.isinf(value)):
                 raise Exception("NaN in " + param.name)
         self.first = False
-        dataset.set_iteration_scheme('sequential', batch_size=self.batch_size, targets=self.supervised, topo=self.topo)
+        dataset.set_iteration_scheme('shuffled_sequential', batch_size=self.batch_size, targets=self.supervised, topo=self.topo)
         if self.supervised:
             for (batch_in, batch_target) in dataset:
                 self.sgd_update(batch_in, batch_target, self.learning_rate)
