@@ -7,12 +7,12 @@ import numpy as np
 from theano import tensor as T
 from pylearn2.models.s3c import S3C, E_Step, Grad_M_Step
 from nose.plugins.skip import SkipTest
+from pylearn2.utils import sharedX
 
 
 class DummyModel(Model):
     def  __init__(self, num_features):
         self.input_space = VectorSpace(num_features)
-
 
 class DummyDataset(DenseDesignMatrix):
     def __init__(self, num_examples, num_features):
@@ -104,3 +104,79 @@ def test_counting():
     assert model.monitor.get_examples_seen() == num_examples
     assert isinstance(model.monitor.get_examples_seen(),int)
     assert isinstance(model.monitor.get_batches_seen(),int)
+
+
+def test_prereqs():
+
+    # Test that prereqs get run before the monitoring channels are computed
+
+    BATCH_SIZE = 2
+    num_examples = BATCH_SIZE
+    NUM_FEATURES = 3
+
+    model = DummyModel(NUM_FEATURES)
+    monitor = Monitor.get_monitor(model)
+
+    monitoring_dataset = DummyDataset(num_examples = num_examples,
+            num_features = NUM_FEATURES)
+
+    monitor.add_dataset(monitoring_dataset, 'sequential', batch_size=BATCH_SIZE)
+
+    prereq_counter = sharedX(0.)
+    def prereq(X,y):
+        prereq_counter.set_value(
+                prereq_counter.get_value()+1.)
+
+    name = 'num_prereq_calls'
+
+    monitor.add_channel(name = name,
+            ipt = model.input_space.make_theano_batch(),
+            val = prereq_counter,
+            prereqs = [ prereq ])
+
+    channel = monitor.channels[name]
+
+    assert len(channel.val_record) == 0
+    monitor()
+    assert channel.val_record == [1]
+    monitor()
+    assert channel.val_record == [1,2]
+
+
+def test_prereqs_batch():
+
+    # Test that prereqs get run before each monitoring batch
+
+    BATCH_SIZE = 2
+    num_examples = 2 * BATCH_SIZE
+    NUM_FEATURES = 3
+
+    model = DummyModel(NUM_FEATURES)
+    monitor = Monitor.get_monitor(model)
+
+    monitoring_dataset = DummyDataset(num_examples = num_examples,
+            num_features = NUM_FEATURES)
+
+    monitor.add_dataset(monitoring_dataset, 'sequential', batch_size=BATCH_SIZE)
+
+    sign = sharedX(1.)
+    def prereq(X,y):
+        sign.set_value(
+                -sign.get_value())
+
+    name = 'batches_should_cancel_to_0'
+
+    monitor.add_channel(name = name,
+            ipt = model.input_space.make_theano_batch(),
+            val = sign,
+            prereqs = [ prereq ])
+
+    channel = monitor.channels[name]
+
+    assert len(channel.val_record) == 0
+    monitor()
+    assert channel.val_record == [0]
+    monitor()
+    assert channel.val_record == [0,0]
+
+

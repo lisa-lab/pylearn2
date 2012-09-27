@@ -89,7 +89,7 @@ class Monitor(object):
         if len(dataset) != len(mode) or len(dataset) != len(batch_size) \
                                      or len(dataset) != len(num_batches):
             raise ValueError("make sure each dataset has its iteration " + \
-	                     "mode, batch size and number of batches.")
+                        "mode, batch size and number of batches.")
         for (d, m, b, n) in zip(dataset, mode, batch_size, num_batches):
             try:
                 it = d.iterator(mode=m, batch_size=b,
@@ -98,7 +98,7 @@ class Monitor(object):
                                       targets=self.require_label)
                 # TODO: handle random seeds.
                 if it.uneven:
-                    raise NotImplementedError("The monitor's averaging is wrong if the batch size changes'")
+                    raise NotImplementedError("The monitor's averaging is wrong if the batch size changes")
             except ValueError as exc:
                 raise ValueError("invalid iteration parameters in "
                                  "Monitor.add_dataset: " + str(exc))
@@ -164,7 +164,6 @@ class Monitor(object):
     def run_prereqs(self, X, y = None):
         for prereq in self.prereqs:
             prereq(X,y)
-
 
     def get_batches_seen(self):
         """ Returns the number of batches the model has learned on (assuming
@@ -326,6 +325,12 @@ class Monitor(object):
             (or a (features,targets) list/tuple containing two symbolic tensors)
         val: tensor_like
             The value (function of `ipt`) to be tracked.
+        prereqs: list of callables that take two numpy tensors
+            (X and y, where y will be None if no labels are used)
+            each prereq must be called exactly once per each new
+            batch of data before the channel value is computed
+            if two channels provide a prereq with exactly the same
+            id, that prereq will only be called once
         """
         if dataset is None:
             if len(self.dataset) == 1:
@@ -338,7 +343,7 @@ class Monitor(object):
             self.dataset.index(dataset)
         except ValueError:
             raise ValueError("The dataset specified is not " + \
-	                     "one of the monitor's datasets")
+                "one of the monitor's datasets")
 
         if name in self.channels:
             raise ValueError("Tried to create the same channel twice (%s)" %
@@ -418,7 +423,7 @@ class MonitorChannel(object):
             and recorded.
         name : str
             The display name in the monitor.
-        prereqs: list of callables that take tensors
+        prereqs: list of callables that take numpy tensors
             each prereq must be called exactly once per each new
             batch of data before the channel value is computed
             if two channels provide a prereq with exactly the same
