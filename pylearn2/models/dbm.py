@@ -752,7 +752,7 @@ class DBM(Model):
         finally:
             self.deploy_mode()
 
-    def learn(self, dataset, batch_size):
+    def train_batch(self, dataset, batch_size):
         #TODO [for IG, not LY]: always uses exhaustive iteration, regardless of how the dataset is configured.
         #clean this up a bit
 
@@ -789,6 +789,7 @@ class DBM(Model):
                 X = self.iterator.next()
 
         self.learn_mini_batch(X,Y)
+        return True
 
     def learn_mini_batch(self, X):
         raise NotImplementedError("Not yet supported-- current project does not require DBM to learn on its own")

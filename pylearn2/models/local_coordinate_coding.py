@@ -38,7 +38,7 @@ class LocalCoordinateCoding(object):
         g = x / c
         return g
 
-    def learn(self, dataset, batch_size):
+    def train_batch(self, dataset, batch_size):
         #TODO-- this results in compilation happening every time learn is
         # called should cache the compilation results, including those
         # inside cg
@@ -112,3 +112,4 @@ class LocalCoordinateCoding(object):
         assert not N.isnan(err)
         assert not N.isinf(err)
         print 'err: ' + str(err)
+        return True

@@ -1213,7 +1213,7 @@ class S3C(Model, Block):
         finally:
             self.deploy_mode()
 
-    def learn(self, dataset, batch_size):
+    def train_batch(self, dataset, batch_size):
 
         if self.set_B_to_marginal_precision:
             assert not self.tied_B
@@ -1228,6 +1228,7 @@ class S3C(Model, Block):
                 quit(-1)
 
         self.learn_mini_batch(dataset.get_batch_design(batch_size))
+        return True
 
     def print_status(self):
             print ""

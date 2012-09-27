@@ -51,7 +51,7 @@ class KMeans(Block, Model):
 
         self.verbose = verbose
 
-    def train(self, dataset, mu=None):
+    def train_all(self, dataset, mu=None):
         """
         Process kmeans algorithm on the input to localize clusters.
         """
@@ -170,6 +170,7 @@ class KMeans(Block, Model):
 
         self.mu = sharedX( mu )
         self._params = [ self.mu ]
+        return True
 
     def get_params(self):
         #patch older pkls

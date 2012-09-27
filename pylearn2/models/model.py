@@ -6,7 +6,7 @@ import warnings
 
 
 class Model(object):
-    def train(self, dataset):
+    def train_all(self, dataset):
         """
         If implemented, performs one epoch of training.
 
@@ -18,6 +18,23 @@ class Model(object):
         Return value:
             True if the method should be called again for another epoch
             False if convergence has been reached
+        """
+        raise NotImplementedError()
+
+    def train_batch(self, dataset, batch_size):
+        """
+        If implemented, performs an update on a single minibatch.
+
+        Parameters
+        ----------
+        dataset: pylearn2.datasets.dataset.Dataset 
+                The object to draw training data from.
+        batch_size: integer
+                Size of the minibatch to draw from dataset.
+
+        Return value:
+            True if the method should be called again for another update.
+            False if convergence has been reached.
         """
         raise NotImplementedError()
 

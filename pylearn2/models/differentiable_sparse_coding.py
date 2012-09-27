@@ -292,8 +292,9 @@ class DifferentiableSparseCoding(object):
         #print 'final obj ',new_obj
         return self.get_h()
 
-    def learn(self, dataset, batch_size):
+    def train_batch(self, dataset, batch_size):
         self.learn_mini_batch(dataset.get_batch_design(batch_size))
+        return True
     #
 
     def learn_mini_batch(self, x):
