@@ -292,3 +292,7 @@ class FiniteDatasetIterator(object):
     @property
     def uneven(self):
         return self._subset_iterator.uneven
+
+    @property
+    def stochastic(self):
+        return self._subset_iterator.stochastic
