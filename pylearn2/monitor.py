@@ -363,7 +363,8 @@ class Monitor(object):
         prereqs: list of callables that take two numpy tensors
             (X and y, where y will be None if no labels are used)
             each prereq must be called exactly once per each new
-            batch of data before the channel value is computed
+            batch of data drawn *from dataset* before the channel
+            value is computed
             if two channels provide a prereq with exactly the same
             id, that prereq will only be called once
         """
