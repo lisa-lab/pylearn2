@@ -161,6 +161,108 @@ def test_prereqs():
     monitor()
     assert channel.val_record == [1,2]
 
+def test_revisit():
+
+    # Test that each call to monitor revisits exactly the same data
+
+    BATCH_SIZE = 3
+    MAX_BATCH_SIZE = 12
+    BATCH_SIZE_STRIDE = 3
+    NUM_BATCHES = 10
+    num_examples = NUM_BATCHES * BATCH_SIZE
+
+    monitoring_dataset = ArangeDataset(num_examples)
+
+    for mon_batch_size in xrange(BATCH_SIZE, MAX_BATCH_SIZE + 1,
+            BATCH_SIZE_STRIDE):
+        for num_mon_batches in [ 1, 3, num_examples / mon_batch_size, None ]:
+            for mode in sorted(_iteration_schemes):
+
+                if num_mon_batches is None and mode in ['random_uniform', 'random_slice']:
+                    continue
+
+                model = DummyModel(1)
+                monitor = Monitor.get_monitor(model)
+
+                try:
+                    try:
+                        monitor.add_dataset(monitoring_dataset, mode,
+                            batch_size=mon_batch_size, num_batches=num_mon_batches)
+                    except TypeError:
+                        monitor.add_dataset(monitoring_dataset, mode,
+                            batch_size=mon_batch_size, num_batches=num_mon_batches,
+                            seed = 0)
+                except NotImplementedError:
+                    # Monitor does not currently support uneven iterators, so skip
+                    # uneven iteration modes
+                    # Check that this is what caused the error
+                    if num_mon_batches is not None and mon_batch_size * num_mon_batches > num_examples:
+                        continue
+                    if num_mon_batches is None and num_examples % mon_batch_size != 0:
+                        continue
+                    print num_mon_batches, mon_batch_size, num_examples, mode
+                    raise
+
+                if num_mon_batches is None:
+                    num_mon_batches = num_examples / mon_batch_size
+
+                batches = [ None ] * num_mon_batches
+                visited = [ False ] * num_mon_batches
+
+                batch_idx = shared(0)
+
+                class RecorderAndValidator:
+
+                    def __init__(self):
+                        self.validate = False
+
+                    def __call__(self, X, y):
+                        """ Initially, records the batches the monitor shows it.
+                        When set to validate mode, makes sure the batches shown
+                        on the second monitor call match those from the first."""
+                        assert y is None
+
+                        idx = batch_idx.get_value()
+                        batch_idx.set_value(idx + 1)
+
+                        # Note: if the monitor starts supporting variable batch sizes,
+                        # take this out. Maybe move it to a new test that the iterator's
+                        # uneven property is set accurately
+                        assert X.shape[0] == mon_batch_size
+
+                        if self.validate:
+                            previous_batch = batches[idx]
+                            assert not visited[idx]
+                            visited[idx] = True
+                            if not np.allclose(previous_batch, X):
+                                print 'Visited different data in batch',idx
+                                print previous_batch
+                                print X
+                                print 'Iteration mode', mode
+                                assert False
+                        else:
+                            batches[idx] = X
+                        # end if
+                    # end __call__
+                #end class
+
+                prereq = RecorderAndValidator()
+
+                monitor.add_channel(name = 'dummy',
+                    ipt = model.input_space.make_theano_batch(),
+                    val = 0.,
+                    prereqs = [ prereq ])
+
+                monitor()
+
+                assert None not in batches
+
+                batch_idx.set_value(0)
+                prereq.validate = True
+
+                monitor()
+
+                assert all(visited)
 
 def test_prereqs_batch():
 
