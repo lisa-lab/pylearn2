@@ -86,6 +86,12 @@ class Train(object):
                 self.save()
         else:
             self.algorithm.setup(model=self.model, dataset=self.dataset)
+            if not hasattr(self.model, 'monitor'):
+                # TODO: is this really necessary? I just put this error here
+                # to prevent an AttributeError later, but I think we could
+                # rewrite to avoid the AttributeError
+                raise RuntimeError("The algorithm is responsible for setting"
+                        " up the Monitor, but failed to.")
             self.run_callbacks_and_monitoring()
             epoch_start = datetime.datetime.now()
             while self.algorithm.train(dataset=self.dataset):
