@@ -216,6 +216,7 @@ class Monitor(object):
         """
         self._dirty = False
 
+        init_names = dir(self)
         self.prereqs = {}
         for channel in self.channels.values():
             if channel.prereqs is not None:
@@ -227,7 +228,6 @@ class Monitor(object):
                     if prereq not in prereqs:
                         prereqs.append(prereq)
 
-        init_names = dir(self)
         updates = {}
         for channel in self.channels.values():
             updates[channel.val_shared] = np.cast[config.floatX](0.0)
