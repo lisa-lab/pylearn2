@@ -8,7 +8,7 @@ from pylearn2.training_algorithms.sgd import SGD
 from pylearn2.training_algorithms.bgd import BGD
 from pylearn2.training_algorithms.sgd import EpochCounter
 from pylearn2.costs.cost import CrossEntropy
-from pylearn2.costs.cost import UnsupervisedCost
+from pylearn2.costs.cost import Cost
 import theano.tensor as T
 import numpy as np
 
@@ -155,7 +155,7 @@ def test_sgd_unsup():
     learning_rate = 1e-3
     batch_size = 5
 
-    class DummyCost(UnsupervisedCost):
+    class DummyCost(Cost):
 
         def __call__(self, model, X):
             return T.square(model(X)-X).mean()
@@ -261,7 +261,7 @@ def test_bgd_unsup():
     learning_rate = 1e-3
     batch_size = 5
 
-    class DummyCost(UnsupervisedCost):
+    class DummyCost(Cost):
 
         def __call__(self, model, X):
             return T.square(model(X)-X).mean()
