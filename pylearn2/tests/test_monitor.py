@@ -12,11 +12,13 @@ from pylearn2.utils.serial import to_string
 from pylearn2.utils.serial import from_string
 from pylearn2.utils.iteration import _iteration_schemes
 from theano import shared
+from pylearn2.testing.prereqs import ReadVerifyPrereq
 
 
 class DummyModel(Model):
     def  __init__(self, num_features):
         self.input_space = VectorSpace(num_features)
+
 
 class DummyDataset(DenseDesignMatrix):
     def __init__(self, num_examples, num_features):
@@ -25,14 +27,10 @@ class DummyDataset(DenseDesignMatrix):
             X=rng.uniform(1., 2., (num_examples, num_features))
         )
 
-class UnserializableDataset(DummyDataset):
-    """ A Dataset that raises an assertion if you try to seralize it.
-        Used to test that the monitor does not serialized its dataset.
-        Since the Model seralizes its Monitor, this would cause a copy
-        of the dataset to get saved with ever saved Model!"""
-
     def __getstate__(self):
-        raise AssertionError("Dataset should not be serialized")
+        raise AssertionError("These unit tests only test Monitor "
+                "functionality. If the Monitor tries to serialize a "
+                "Dataset, that is an error.")
 
 class ArangeDataset(DenseDesignMatrix):
     """ A dataset where example i is just the number i.
@@ -313,11 +311,13 @@ def test_dont_serialize_dataset():
     model = DummyModel(NUM_FEATURES)
     monitor = Monitor.get_monitor(model)
 
-    monitoring_dataset = UnserializableDataset(num_examples = num_examples,
+    monitoring_dataset = DummyDataset(num_examples = num_examples,
             num_features = NUM_FEATURES)
     monitoring_dataset.yaml_src = ""
 
     monitor.add_dataset(monitoring_dataset, 'sequential', batch_size=BATCH_SIZE)
+
+    monitor()
 
     to_string(monitor)
 
@@ -345,7 +345,7 @@ def test_valid_after_serialize():
     model = DummyModel(NUM_FEATURES)
     monitor = Monitor.get_monitor(model)
 
-    monitoring_dataset = UnserializableDataset(num_examples = num_examples,
+    monitoring_dataset = DummyDataset(num_examples = num_examples,
             num_features = NUM_FEATURES)
     monitoring_dataset.yaml_src = ""
 
@@ -392,20 +392,6 @@ def test_prereqs_multidataset():
         prereq_counters.append(sharedX(0.))
 
 
-    class Prereq(object):
-        def __init__(self, counter_idx):
-            self.counter_idx = counter_idx
-
-        def __call__(self, X, y):
-            # We set up each dataset with a different batch size
-            # check here that we're getting the right one
-            assert X.shape[0] == self.counter_idx + 1
-            # Each dataset has different content, make sure we
-            # get the right one
-            assert X[0,0] == self.counter_idx
-            prereq_counter = prereq_counters[self.counter_idx]
-            prereq_counter.set_value(
-                prereq_counter.get_value()+1)
 
     channels = []
     for i in xrange(NUM_DATASETS):
@@ -413,7 +399,7 @@ def test_prereqs_multidataset():
                 ipt = model.input_space.make_theano_batch(),
                 val = prereq_counters[i],
                 dataset = datasets[i],
-                prereqs = [ Prereq(i) ])
+                prereqs = [ ReadVerifyPrereq(i, prereq_counters[i]) ])
 
         channels.append(monitor.channels[str(i)])
 
@@ -425,5 +411,9 @@ def test_prereqs_multidataset():
     monitor()
     for channel in channels:
         assert channel.val_record == [1,2]
+
+    # check that handling all these datasets did not
+    # result in them getting serialized
+    to_string(monitor)
 
 
