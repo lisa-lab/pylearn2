@@ -115,13 +115,23 @@ class Train(object):
 
     def save(self):
         """Saves the model."""
-        #TODO-- save state of dataset and training algorithm so training can be
+        #TODO-- save state of training algorithm so training can be
         # resumed after a crash
         if self.save_path is not None:
             print 'saving to', self.save_path, '...'
             save_start = datetime.datetime.now()
-            serial.save(self.save_path, self.model)
+            try:
+                # Make sure that saving does not serialize the dataset
+                self.dataset._serialization_guard = SerializationGuard()
+                serial.save(self.save_path, self.model)
+            finally:
+                self.dataset._serialization_guard = None
             save_end = datetime.datetime.now()
             delta = (save_end - save_start)
             print '...done. saving took', str(delta)
 
+class SerializationGuard(object):
+
+    def __getstate__(self):
+        raise RuntimeError("You tried to serialize something that should not"
+                " be serialized.")
