@@ -547,6 +547,42 @@ def profile(f):
         results.append(t2-t1)
     print 'final: ',sum(results)/float(trials)
 
+def profile_bc01(f):
+    print 'profiling ',f
+    rng = np.random.RandomState([2012,7,19])
+    batch_size = 80
+    rows = 26
+    cols = 27
+    channels = 30
+    pool_rows = 2
+    pool_cols = 3
+    zv = rng.randn( batch_size, channels, rows, cols).astype(config.floatX)
+
+    #put the inputs + outputs in shared variables so we don't pay GPU transfer during test
+    p_shared = sharedX(zv[:,:,0:rows:pool_rows,0:cols:pool_cols])
+    h_shared = sharedX(zv)
+    z_shared = sharedX(zv)
+
+    p_th, h_th = f( z_shared, (pool_rows, pool_cols) )
+
+    func = function([],updates = { p_shared : p_th, h_shared : h_th} )
+
+    print 'warming up'
+    for i in xrange(10):
+        func()
+
+    trials = 10
+    results = []
+
+    for i in xrange(trials):
+        t1 = time.time()
+        for j in xrange(10):
+            func()
+        t2 = time.time()
+        print t2 - t1
+        results.append(t2-t1)
+    print 'final: ',sum(results)/float(trials)
+
 def profile_samples(f):
     print 'profiling samples',f
     rng = np.random.RandomState([2012,7,19])
@@ -620,13 +656,9 @@ def profile_grad(f):
     print 'final: ',sum(results)/float(trials)
 
 if __name__ == '__main__':
-    # Run benchmarks
-    # Note: profile only supports b01c format, so we
-    # can't profile the default max_pool function yet.
-    # It only works with bc01 format.
-    # Should be easy to convert profile to bc01 format
+    profile_bc01(max_pool)
+    """
     profile(max_pool_unstable)
-    profile(max_pool_b01c)
     profile_samples(max_pool_b01c)
     profile(max_pool_softmax_op)
     profile(max_pool_softmax_with_bias_op)
@@ -634,7 +666,7 @@ if __name__ == '__main__':
     profile_grad(max_pool_b01c)
     profile_grad(max_pool_softmax_op)
     profile_grad(max_pool_softmax_with_bias_op)
-
+    """
 
 
 
