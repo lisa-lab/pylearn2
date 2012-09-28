@@ -100,6 +100,14 @@ def max_pool(z, pool_shape, top_down = None, theano_rng = None):
         Elsewhere in this file I implemented the softmax with a reshape and call to Softmax /
         SoftmaxWithBias. This is slower, even though Softmax is faster on the GPU than the
         equivalent max/sub/exp/div graph. Maybe the reshape is too expensive.
+
+        Benchmarks show that most of the time is spent in GpuIncSubtensor when running on
+        gpu. So it is mostly that which needs a faster implementation.
+        One other way to implement this would be with a linear.Conv2D.lmul_T, where the
+        convolution stride is equal to the pool width, and the thing to multiply with is
+        the hparts stacked along the channel axis. Unfortunately, conv2D doesn't work right
+        with stride > 2 and is pretty slow for stride 2. Conv3D is used to mitigat some
+        of this, but only has CPU code.
     """
 
     z_name = z.name
