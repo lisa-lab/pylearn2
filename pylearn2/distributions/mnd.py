@@ -1,5 +1,9 @@
 """A Multivariate Normal Distribution."""
-from scipy.linalg import cholesky, det, solve
+import warnings
+try:
+    from scipy.linalg import cholesky, det, solve
+except ImportError:
+    warnings.warn("Could not import some scipy.linalg functions")
 import theano.tensor as T
 from theano import config
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams

@@ -8,7 +8,10 @@ import warnings
 # Third-party imports
 import theano
 from theano import tensor
-from theano.sparse import SparseType
+try:
+    from theano.sparse import SparseType
+except ImportError:
+    warnings.warn("Could not import theano.sparse.SparseType")
 from theano.compile.mode import get_default_mode
 
 # Local imports

@@ -2,7 +2,11 @@ import theano
 from theano import tensor, config
 import numpy
 import linear_cg
-import scipy.linalg
+import warnings
+try:
+    import scipy.linalg
+except ImportError:
+    warnings.warn("Could not import scipy.linalg")
 import time
 
 def test_linear_cg():

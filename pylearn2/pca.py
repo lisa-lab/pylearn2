@@ -4,6 +4,7 @@ import sys
 # Third-party imports
 import numpy
 N = numpy
+import warnings
 from scipy import linalg, sparse
 # Warning: ridiculous.
 try:
@@ -18,9 +19,9 @@ except ImportError:
             # scipy 0.7
             from scipy.sparse.linalg.eigen.arpack import eigen_symmetric
         except ImportError:
-            print >> sys.stderr, 'Cannot import any kind of symmetric eigen' \
-                ' decomposition function from scipy.sparse.linalg'
-            sys.exit(1)
+            warnings.warn('Cannot import any kind of symmetric eigen' \
+                ' decomposition function from scipy.sparse.linalg')
+            return
 from scipy.sparse.csr import csr_matrix
 import theano
 from theano import tensor

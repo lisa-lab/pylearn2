@@ -1,7 +1,10 @@
 import warnings
 import copy
 import numpy as np
-from scipy import linalg
+try:
+    from scipy import linalg
+except ImportError:
+    warnings.warn("Could not import scipy.linalg")
 from theano import function
 import theano.tensor as T
 
