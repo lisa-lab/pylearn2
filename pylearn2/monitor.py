@@ -533,6 +533,7 @@ class MonitorChannel(object):
         """
         return {
             'example_record': self.example_record,
+            'batch_record' : self.batch_record,
             'val_record': self.val_record
         }
 
