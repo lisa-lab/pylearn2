@@ -27,7 +27,9 @@ install:
 
 script:
   - cd pylearn2/scripts/train_example/
-  - python make_dataset.py
+#We can't build the test dataset as the original is not present. We can't download the original as it
+# is too big to download each time. If present run: python make_dataset.py
+  - wget http://www.iro.umontreal.ca/~lisa/datasets/cifar10_preprocessed_train.pkl
   - cd ../../..
   - export THEANO_FLAGS=warn.ignore_bug_before=all,on_opt_error=raise,on_shape_error=raise
   - python --version
