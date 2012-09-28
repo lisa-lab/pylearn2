@@ -1,5 +1,9 @@
 import numpy as N
-from scipy import io
+import warnings
+try:
+    from scipy import io
+except ImportError:
+    warnings.warn("Could not import scipy")
 from pylearn2.datasets import dense_design_matrix
 from theano import config
 

@@ -1,7 +1,10 @@
 import numpy
 import time
-import copy
-from scipy import io
+import warnings
+try:
+    from scipy import io
+except ImportError:
+    warnings.warn("couldn't import scipy")
 
 import theano
 from theano import config
