@@ -25,10 +25,11 @@ ls ${COMPILEDIR}|wc -l
 FLAGS=warn.argmax_pushdown_bug=False,warn.gpusum_01_011_0111_bug=False,warn.sum_sum_bug=False,warn.sum_div_dimshuffle_bug=False,warn.subtensor_merge_bug=False,$FLAGS
 export PYTHONPATH=${ROOT_CWD}:$PYTHONPATH
 
-echo "executing nosetests with mode=FAST_COMPILE"
-THEANO_FLAGS=${FLAGS},mode=FAST_COMPILE ${NOSETESTS} ${ARGS}
-echo "nb element in the compiledir:"
-ls ${COMPILEDIR}|wc -l
+#We disabel as it is too slow and it is not as useful for Pylearn2 then for Theano.
+#echo "executing nosetests with mode=FAST_COMPILE"
+#THEANO_FLAGS=${FLAGS},mode=FAST_COMPILE ${NOSETESTS} ${ARGS}
+#echo "nb element in the compiledir:"
+#ls ${COMPILEDIR}|wc -l
 echo "executing nosetests with mode=FAST_RUN"
 THEANO_FLAGS=${FLAGS},mode=FAST_RUN ${NOSETESTS} ${PROFILING} ${ARGS}
 echo "nb element in the compiledir:"
