@@ -323,6 +323,7 @@ class Monitor(object):
         # Patch old pickled monitors
         if not hasattr(self, '_datasets'):
             self._datasets = [ self._dataset ]
+            del self._dataset
 
         temp = self._datasets
 
