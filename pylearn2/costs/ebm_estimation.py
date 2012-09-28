@@ -11,9 +11,6 @@ class NCE(Cost):
         by Gutmann and Hyvarinen
 
     """
-    def __init__(self):
-        self.supervised = False
-
     def h(self, X, model):
         return - T.nnet.sigmoid(self.G(X, model))
 
@@ -80,11 +77,6 @@ class SM(Cost):
         Uses the mean over visible units rather than sum over visible units
         so that hyperparameters won't depend as much on the # of visible units
     """
-
-    def __init__(self):
-        self.supervised = False
-    #
-
     def __call__(self, model, X):
         X_name = 'X' if X.name is None else X.name
 
@@ -123,7 +115,6 @@ class SMD(Cost):
     def __init__(self, corruptor):
         super(SMD, self).__init__()
         self.corruptor = corruptor
-        self.supervised = False
 
     def __call__(self, model, X):
         X_name = 'X' if X.name is None else X.name

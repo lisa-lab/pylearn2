@@ -13,8 +13,7 @@ import theano.tensor as T
 
 
 class CrossEntropy(Cost):
-    def __init__(self):
-        self.supervised = True
+    supervised = True
 
     def __call__(self, model, X, Y):
         return (-Y * T.log(model(X)) - \
@@ -34,8 +33,7 @@ class NegativeLogLikelihood(Cost):
     itself for the sake of simplicity and to make the cost more invariant to
     the dataset's size.
     """
-    def __init__(self):
-        self.supervised = True
+    supervised = True
 
     def __call__(self, model, X, Y):
         """

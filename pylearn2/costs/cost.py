@@ -9,10 +9,7 @@ class Cost(object):
     Represents a cost that can be called either as a supervised cost or an
     unsupervised cost.
     """
-    def __init__(self):
-        raise NotImplementedError("You should implement a constructor " + \
-                                  "which at least sets a boolean value " + \
-                                  "for the 'self.supervised' attribute.")
+    supervised = False
 
     def __call__(self, model, X, Y=None):
         raise NotImplementedError()
@@ -41,7 +38,6 @@ class SumOfCosts(Cost):
         costs: list
             List of Cost objects
         """
-        self.supervised = False
         self.costs = costs
         # Check whether the sum is a supervised cost and if all the costs are
         # Cost instances
@@ -134,7 +130,6 @@ class LxReg(Cost):
         x: int
             the x in "L-x regularization""
         """
-        self.supervised = False
         self.variables = variables
         self.x = x
 
