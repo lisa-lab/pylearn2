@@ -155,7 +155,7 @@ class SGD(TrainingAlgorithm):
         self.monitor.add_channel(name='sgd_cost', ipt=ipt,
                 val=cost_value, dataset=self.monitoring_dataset)
         self.monitor.add_channel(name='learning_rate', ipt=ipt,
-                val=learning_rate)
+                val=learning_rate, dataset=self.monitoring_dataset)
         for key in cost_channels:
             self.monitor.add_channel(name=key, ipt=ipt,
                     val=cost_channels[key], dataset=self.monitoring_dataset)
