@@ -148,8 +148,8 @@ class Monitor(object):
                                         topo=self.topo,
                                         targets=self.require_label,
                                         rng=sd)
-                count = 0
-                for iteration, X in enumerate(myiterator):
+
+                for X in myiterator:
                     if self.require_label:
                         X, y = X
                         self.run_prereqs(X,y,d)
@@ -157,7 +157,6 @@ class Monitor(object):
                     else:
                         self.run_prereqs(X, None, d)
                         a(X)
-                    count += 1
 
         # TODO: use logging infrastructure so that user can configure
         # formatting
