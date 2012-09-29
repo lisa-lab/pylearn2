@@ -181,6 +181,7 @@ def max_pool(z, pool_shape, top_down = None, theano_rng = None):
 
     for i in xrange(r):
         for j in xrange(c):
+            h.name = 'h_interm'
             h = T.set_subtensor(h[:,:,i:zr:r,j:zc:c],hpart[i][j])
 
     h.name = 'h(%s)' % z_name
@@ -663,8 +664,44 @@ def profile_grad(f):
         results.append(t2-t1)
     print 'final: ',sum(results)/float(trials)
 
+def profile_grad_bc01(f):
+    print 'profiling gradient of ',f
+    rng = np.random.RandomState([2012,7,19])
+    batch_size = 80
+    rows = 26
+    cols = 27
+    channels = 30
+    pool_rows = 2
+    pool_cols = 3
+    zv = rng.randn( batch_size, channels, rows, cols).astype(config.floatX)
+
+    #put the inputs + outputs in shared variables so we don't pay GPU transfer during test
+    grad_shared = sharedX(zv)
+    z_shared = sharedX(zv)
+
+    p_th, h_th = f( z_shared, (pool_rows, pool_cols) )
+
+    func = function([],updates = { grad_shared : T.grad(p_th.sum() +  h_th.sum(), z_shared)} )
+
+    print 'warming up'
+    for i in xrange(10):
+        func()
+
+    trials = 10
+    results = []
+
+    for i in xrange(trials):
+        t1 = time.time()
+        for j in xrange(10):
+            func()
+        t2 = time.time()
+        print t2 - t1
+        results.append(t2-t1)
+    print 'final: ',sum(results)/float(trials)
+
 if __name__ == '__main__':
     profile_bc01(max_pool)
+    profile_grad_bc01(max_pool)
     """
     profile(max_pool_unstable)
     profile_samples(max_pool_b01c)
