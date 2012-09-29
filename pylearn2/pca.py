@@ -21,7 +21,6 @@ except ImportError:
         except ImportError:
             warnings.warn('Cannot import any kind of symmetric eigen' \
                 ' decomposition function from scipy.sparse.linalg')
-            return
 from scipy.sparse.csr import csr_matrix
 import theano
 from theano import tensor
