@@ -131,32 +131,42 @@ class Monitor(object):
         Runs the model on the monitoring dataset in order to add one
         data point to each of the channels.
         """
+
+        # If the channels have changed at all, we need to recompile the theano
+        # functions used to compute them
         if self._dirty:
             self.redo_theano()
-        model = self.model
-        dataset = self._datasets
-        self.begin_record_entry()
-        for d, i, b, n, a, sd in zip(dataset, self._iteration_mode, self._batch_size,
-                                 self._num_batches, self.accum, self._rng_seed):
-            if d:
-                if isinstance(d, basestring):
-                    d = yaml_parse.load(d)
-                    self._datasets = d
-                myiterator = d.iterator(mode=i,
-                                        batch_size=b,
-                                        num_batches=n,
-                                        topo=self.topo,
-                                        targets=self.require_label,
-                                        rng=sd)
 
-                for X in myiterator:
-                    if self.require_label:
-                        X, y = X
-                        self.run_prereqs(X,y,d)
-                        a(X, y)
-                    else:
-                        self.run_prereqs(X, None, d)
-                        a(X)
+        model = self.model
+        datasets = self._datasets
+
+        # Set all channels' val_shared to 0
+        self.begin_record_entry()
+
+        for d, i, b, n, a, sd in zip(datasets, self._iteration_mode, self._batch_size,
+                                 self._num_batches, self.accum, self._rng_seed):
+            if isinstance(d, basestring):
+                d = yaml_parse.load(d)
+                raise NotImplementedError()
+                # need to put d back into self._datasets
+            myiterator = d.iterator(mode=i,
+                                    batch_size=b,
+                                    num_batches=n,
+                                    topo=self.topo,
+                                    targets=self.require_label,
+                                    rng=sd)
+
+            for X in myiterator:
+                if self.require_label:
+                    X, y = X
+                    self.run_prereqs(X,y,d)
+                    a(X, y)
+                else:
+                    self.run_prereqs(X, None, d)
+                    a(X)
+            # end for X
+        # end for d
+
 
         # TODO: use logging infrastructure so that user can configure
         # formatting
