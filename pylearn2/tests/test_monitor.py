@@ -123,6 +123,34 @@ def test_counting():
     assert isinstance(model.monitor.get_examples_seen(),int)
     assert isinstance(model.monitor.get_batches_seen(),int)
 
+def test_reject_empty():
+
+    # Test that Monitor raises an error if asked to iterate over 0 batches
+
+    BATCH_SIZE = 2
+    num_examples = BATCH_SIZE
+    NUM_FEATURES = 3
+
+    model = DummyModel(NUM_FEATURES)
+    monitor = Monitor.get_monitor(model)
+
+    monitoring_dataset = DummyDataset(num_examples = num_examples,
+            num_features = NUM_FEATURES)
+
+    monitor.add_dataset(monitoring_dataset, 'sequential', batch_size=BATCH_SIZE,
+            num_batches = 0)
+
+    name = 'z'
+
+    monitor.add_channel(name = name,
+            ipt = model.input_space.make_theano_batch(),
+            val = 0.,)
+
+    try:
+        monitor()
+    except ValueError:
+        return
+    assert False
 
 def test_prereqs():
 
