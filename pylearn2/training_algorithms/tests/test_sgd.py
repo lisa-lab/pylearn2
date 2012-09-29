@@ -1,4 +1,5 @@
 from pylearn2.train import Train
+from pylearn2.monitor import Monitor
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.models.model import Model
 from pylearn2.space import VectorSpace
@@ -73,6 +74,57 @@ class TopoSoftmaxModel(Model):
         # as ndim is correct
         return T.nnet.softmax(X.reshape((X.shape[0],self.dim))*self.P)
 
+def test_sgd_unspec_num_mon_batch():
+
+    # tests that if you don't specify a number of
+    # monitoring batches, SGD configures the monitor
+    # to run on all the data
+
+    m = 25
+
+    visited = [ False ] * m
+    rng = np.random.RandomState([25,9,2012])
+    X = np.zeros((m,1))
+    X[:,0] = np.arange(m)
+    dataset = DenseDesignMatrix(X=X)
+
+    model = SoftmaxModel(1)
+
+    learning_rate = 1e-3
+    batch_size = 5
+
+    class DummyCost(Cost):
+
+        def __call__(self, model, X):
+            return T.square(model(X)-X).mean()
+
+    cost = DummyCost()
+
+    algorithm = SGD(learning_rate, cost, batch_size=5,
+                 monitoring_batches=None, monitoring_dataset=dataset,
+                 termination_criterion=None, update_callbacks=None,
+                 init_momentum = None, set_batch_size = False)
+
+    algorithm.setup(dataset = dataset, model = model)
+
+    monitor = Monitor.get_monitor(model)
+
+    X = T.matrix()
+
+    def tracker(X, y):
+        assert y is None
+        assert X.shape[1] == 1
+        for i in xrange(X.shape[0]):
+            visited[int(X[i,0])] = True
+
+    monitor.add_channel(name = 'tracker',
+            ipt = X, val = 0., prereqs = [ tracker ])
+
+    monitor()
+
+    if False in visited:
+        print visited
+        assert False
 def test_sgd_sup():
 
     # tests that we can run the sgd algorithm
