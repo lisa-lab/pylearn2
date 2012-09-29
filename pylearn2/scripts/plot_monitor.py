@@ -24,12 +24,12 @@ for i, arg in enumerate(sys.argv[1:]):
     this_model_channels = model.monitor.channels
 
     if len(sys.argv) > 2:
-        prefix = "model_"+str(i)+":"
+        postfix = ":model%d" % i
     else:
-        prefix = ""
+        postfix = ""
 
     for channel in this_model_channels:
-        channels[prefix+channel] = this_model_channels[channel]
+        channels[channel+postfix] = this_model_channels[channel]
 
 
 while True:
