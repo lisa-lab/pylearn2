@@ -9,6 +9,12 @@ all of their monitoring channels and prompts the user to select
 a subset of them to be plotted.
 
 """
+__authors__ = "Ian Goodfellow"
+__copyright__ = "Copyright 2010-2012, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
+__email__ = "goodfeli@iro"
 
 from pylearn2.utils import serial
 import matplotlib.pyplot as plt

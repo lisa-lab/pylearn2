@@ -2,6 +2,7 @@
 
 import numpy as np
 from pylearn2.utils.pooling import pooling_matrix
+from pylearn2.testing.skip import skip_if_no_scipy
 
 
 def test_pooling_no_topology():
@@ -12,6 +13,7 @@ def test_pooling_no_topology():
                          [0] * 10 + [1] * 5 + [0] * 5,
                          [0] * 15 + [1] * 5])
     assert np.all(mat == expected)
+    skip_if_no_scipy()
     spmat = pooling_matrix(4, 5, sparse='csr')
     assert np.all(spmat.todense() == expected)
 
@@ -23,6 +25,7 @@ def test_pooling_1d_topology():
                          [0, 0, 1, 1, 1, 1, 0, 0],
                          [0, 0, 0, 0, 1, 1, 1, 1]])
     assert np.all(mat == expected)
+    skip_if_no_scipy()
     spmat = pooling_matrix(3, 4, 2, sparse='csr')
     assert np.all(spmat.todense() == expected)
 
@@ -34,6 +37,7 @@ def test_pooling_1d_topology_tuples():
                          [0, 0, 1, 1, 1, 1, 0, 0],
                          [0, 0, 0, 0, 1, 1, 1, 1]])
     assert np.all(mat == expected)
+    skip_if_no_scipy()
     spmat = pooling_matrix(3, 4, 2, sparse='csr')
     assert np.all(spmat.todense() == expected)
 
@@ -53,6 +57,7 @@ def test_pooling_2d_topology():
     maps[1, 2, 1:3, 2:4] = 1.
     maps[2, 2, 2:4, 2:4] = 1.
     assert np.all(mat == expected)
+    skip_if_no_scipy()
     spmat = pooling_matrix((3, 3), (2, 2), (1, 1), sparse='csr')
     assert np.all(spmat.todense() == expected)
 
@@ -71,6 +76,7 @@ def test_pooling_2d_topology_stride2():
     maps[2, 1, 4:7, 2:5] = 1.
     maps[2, 2, 4:7, 4:7] = 1.
     assert np.all(mat == expected)
+    skip_if_no_scipy()
     spmat = pooling_matrix((3, 3), (3, 3), (2, 2), sparse='csr')
     assert np.all(spmat.todense() == expected)
 
@@ -90,6 +96,7 @@ def test_pooling_2d_non_overlapping():
     maps[2, 1, 6:9, 3:6] = 1.
     maps[2, 2, 6:9, 6:9] = 1.
     assert np.all(mat == expected)
+    skip_if_no_scipy()
     spmat = pooling_matrix((3, 3), (3, 3), (3, 3), sparse='csr')
     assert np.all(spmat.todense() == expected)
 

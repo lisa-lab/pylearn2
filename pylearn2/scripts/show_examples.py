@@ -1,4 +1,10 @@
 #!/bin/env python
+__authors__ = "Ian Goodfellow"
+__copyright__ = "Copyright 2010-2012, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
+__email__ = "goodfeli@iro"
 import numpy as N
 from pylearn2.gui import patch_viewer
 from pylearn2.config import yaml_parse
