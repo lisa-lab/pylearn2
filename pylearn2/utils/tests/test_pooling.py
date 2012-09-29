@@ -2,7 +2,7 @@
 
 import numpy as np
 from pylearn2.utils.pooling import pooling_matrix
-from pylearn2.testing.skip_if_no_scipy
+from pylearn2.testing.skip import skip_if_no_scipy
 
 
 def test_pooling_no_topology():
