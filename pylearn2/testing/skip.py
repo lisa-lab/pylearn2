@@ -1,4 +1,10 @@
 """ Helper functions for determining which tests to skip. """
+__authors__ = "Ian Goodfellow"
+__copyright__ = "Copyright 2010-2012, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
+__email__ = "goodfeli@iro"
 from nose.plugins.skip import SkipTest
 import os
 

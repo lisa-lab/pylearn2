@@ -8,6 +8,12 @@ As a script:
 
     prints out all the errors in the library
 """
+__authors__ = "Ian Goodfellow"
+__copyright__ = "Copyright 2010-2012, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
+__email__ = "goodfeli@iro"
 
 from pylearn2.devtools.list_files import list_files
 from pylearn2.utils.shell import run_shell_command

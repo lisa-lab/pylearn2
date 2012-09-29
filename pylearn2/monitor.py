@@ -2,6 +2,12 @@
 The module defining the Monitor and MonitorChannel objects used for
 tracking the changes in values of various quantities throughout training
 """
+__authors__ = "Ian Goodfellow"
+__copyright__ = "Copyright 2010-2012, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
+__email__ = "goodfeli@iro"
 import warnings
 import time
 from theano import function

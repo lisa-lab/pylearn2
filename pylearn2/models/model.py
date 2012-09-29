@@ -1,4 +1,10 @@
 """Generic "model" class."""
+__authors__ = "Ian Goodfellow"
+__copyright__ = "Copyright 2010-2012, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
+__email__ = "goodfeli@iro"
 from theano import tensor as T
 from theano import shared
 import numpy as np
@@ -27,7 +33,7 @@ class Model(object):
 
         Parameters
         ----------
-        dataset: pylearn2.datasets.dataset.Dataset 
+        dataset: pylearn2.datasets.dataset.Dataset
                 The object to draw training data from.
         batch_size: integer
                 Size of the minibatch to draw from dataset.
