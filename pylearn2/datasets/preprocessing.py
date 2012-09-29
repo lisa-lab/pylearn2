@@ -22,12 +22,92 @@ import theano.tensor as T
 from pylearn2.base import Block
 from pylearn2.utils.insert_along_axis import insert_columns
 
-class ExamplewisePreprocessor(object):
+class Preprocessor(object):
+    """
+        Abstract class.
+
+        An object that can preprocess a dataset.
+
+        Preprocessing a dataset implies changing the data that
+        a dataset actually stores. This can be useful to save
+        memory--if you know you are always going to access only
+        the same processed version of the dataset, it is better
+        to process it once and discard the original.
+
+        Preprocessors are capable of modifying many aspects of
+        a dataset. For example, they can change the way that it
+        converts between different formats of data. They can
+        change the number of examples that a dataset stores.
+        In other words, preprocessors can do a lot more than
+        just example-wise transformations of the examples stored
+        in the dataset.
+    """
+
+    def apply(self, dataset, can_fit=False):
+        """
+            dataset: The dataset to act on.
+            can_fit: If True, the Preprocessor can adapt internal parameters
+                     based on the contents of dataset. Otherwise it must not
+                     fit any parameters, or must re-use old ones.
+
+            Typical usage:
+                # Learn PCA preprocessing and apply it to the training set
+                my_pca_preprocessor.apply(training_set, can_fit = True)
+                # Now apply the same transformation to the test set
+                my_pca_preprocessor.apply(test_set, can_fit = False)
+
+            Note: this method must take a dataset, rather than a numpy ndarray,
+                  for a variety of reasons:
+                      1) Preprocessors should work on any dataset, and not all
+                         datasets will store their data as ndarrays.
+                      2) Preprocessors often need to change a dataset's metadata.
+                         For example, suppose you have a DenseDesignMatrix dataset
+                         of images. If you implement a fovea Preprocessor that
+                         reduces the dimensionality of images by sampling them finely
+                         near the center and coarsely with blurring at the edges,
+                         then your preprocessor will need to change the way that the
+                         dataset converts example vectors to images for visualization.
+        """
+
+        raise NotImplementedError(str(type(self))+" does not implement an apply method.")
+
+class ExamplewisePreprocessor(Preprocessor):
+    """
+        Abstract class.
+
+        A Preprocessor that restricts the actions it can do in its
+        apply method so that it could be implemented as a Block's
+        perform method.
+
+        In other words, this Preprocessor can't modify the Dataset's
+        metadata, etc.
+
+        TODO: can these things fit themselves in their apply method?
+        That seems like a difference from Block.
+    """
+
     def as_block(self):
-        raise NotImplementedError()
+        raise NotImplementedError(str(type(self))+" does not implement as_block.")
+
+class BlockPreprocessor(ExamplewisePreprocessor):
+    """
+        An ExamplewisePreprocessor implemented by a Block.
+    """
+
+    def __init__(self, block):
+        self.block = block
+
+    def apply(self, dataset, can_fit = False):
+        assert not can_fit
+        dataset.X = self.block.perform(dataset.X)
 
 
-class Pipeline(object):
+
+class Pipeline(Preprocessor):
+    """
+        A Preprocessor that sequentially applies a list
+        of other Preprocessors.
+    """
     def __init__(self):
         self.items = []
 
@@ -36,10 +116,10 @@ class Pipeline(object):
             item.apply(dataset, can_fit)
 
 
-class ExtractGridPatches(object):
+class ExtractGridPatches(Preprocessor):
     """
-    Converts a dataset into a dataset of patches extracted along a
-    regular grid from each image.  the order of the images is
+    Converts a dataset of images into a dataset of patches extracted along a
+    regular grid from each image.  The order of the images is
     preserved.
     """
     def __init__(self, patch_shape, patch_stride):
@@ -110,7 +190,7 @@ class ExtractGridPatches(object):
         dataset.set_topological_view(output)
 
 
-class ReassembleGridPatches(object):
+class ReassembleGridPatches(Preprocessor):
     """ Converts a dataset of patches into a dataset of full examples
         This is the inverse of ExtractGridPatches for patch_stride=patch_shape
     """
@@ -195,7 +275,7 @@ class ReassembleGridPatches(object):
         dataset.set_topological_view(reassembled)
 
 
-class ExtractPatches(object):
+class ExtractPatches(Preprocessor):
     """ Converts an image dataset into a dataset of patches
         extracted at random from the original dataset. """
     def __init__(self, patch_shape, num_patches, rng=None):
@@ -639,7 +719,7 @@ class GlobalContrastNormalization(object):
         dataset.set_design_matrix(X)
 
 
-class ZCA(object):
+class ZCA(Preprocessor):
     def __init__(self, n_components=None, n_drop_components=None,
                  filter_bias=0.1):
         warnings.warn("This ZCA preprocessor class is known to yield very "
