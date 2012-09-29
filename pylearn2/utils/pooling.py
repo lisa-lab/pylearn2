@@ -3,7 +3,11 @@ Support code for pooling operations (in pooled ICA type models, for now).
 """
 import numpy as np
 import theano
-import scipy.sparse
+import warnings
+try:
+    import scipy.sparse
+except ImportError:
+    warnings.warn("Could not import scipy")
 from itertools import izip
 
 

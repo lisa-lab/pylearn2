@@ -2,6 +2,12 @@
 The module defining the Monitor and MonitorChannel objects used for
 tracking the changes in values of various quantities throughout training
 """
+__authors__ = "Ian Goodfellow"
+__copyright__ = "Copyright 2010-2012, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
+__email__ = "goodfeli@iro"
 import warnings
 import time
 from theano import function
@@ -131,32 +137,42 @@ class Monitor(object):
         Runs the model on the monitoring dataset in order to add one
         data point to each of the channels.
         """
+
+        # If the channels have changed at all, we need to recompile the theano
+        # functions used to compute them
         if self._dirty:
             self.redo_theano()
-        model = self.model
-        dataset = self._datasets
-        self.begin_record_entry()
-        for d, i, b, n, a, sd in zip(dataset, self._iteration_mode, self._batch_size,
-                                 self._num_batches, self.accum, self._rng_seed):
-            if d:
-                if isinstance(d, basestring):
-                    d = yaml_parse.load(d)
-                    self._datasets = d
-                myiterator = d.iterator(mode=i,
-                                        batch_size=b,
-                                        num_batches=n,
-                                        topo=self.topo,
-                                        targets=self.require_label,
-                                        rng=sd)
 
-                for X in myiterator:
-                    if self.require_label:
-                        X, y = X
-                        self.run_prereqs(X,y,d)
-                        a(X, y)
-                    else:
-                        self.run_prereqs(X, None, d)
-                        a(X)
+        model = self.model
+        datasets = self._datasets
+
+        # Set all channels' val_shared to 0
+        self.begin_record_entry()
+
+        for d, i, b, n, a, sd in zip(datasets, self._iteration_mode, self._batch_size,
+                                 self._num_batches, self.accum, self._rng_seed):
+            if isinstance(d, basestring):
+                d = yaml_parse.load(d)
+                raise NotImplementedError()
+                # need to put d back into self._datasets
+            myiterator = d.iterator(mode=i,
+                                    batch_size=b,
+                                    num_batches=n,
+                                    topo=self.topo,
+                                    targets=self.require_label,
+                                    rng=sd)
+
+            for X in myiterator:
+                if self.require_label:
+                    X, y = X
+                    self.run_prereqs(X,y,d)
+                    a(X, y)
+                else:
+                    self.run_prereqs(X, None, d)
+                    a(X)
+            # end for X
+        # end for d
+
 
         # TODO: use logging infrastructure so that user can configure
         # formatting
@@ -265,10 +281,15 @@ class Monitor(object):
                 g[channel.graph_input[1]] = Y
             else:
                 g[channel.graph_input] = X
+            if n == 0:
+                raise ValueError("Iterating over 0 examples results in divide by 0")
             val = channel.val * T.cast(X.shape[0], config.floatX) / n
             u[channel.val_shared] = channel.val_shared + val
+
         print "compiling accum..."
         t1 = time.time()
+
+        # Check type of update expressions
         for up in updates:
             for key in up:
                 if key.dtype != up[key].dtype:
@@ -276,6 +297,7 @@ class Monitor(object):
                             + key.name + ' has dtype ' + key.dtype + \
                             ' but is driven by an expression with type ' + \
                             up[key].dtype)
+
         self.accum = []
         for g, u in zip (givens, updates):
             if self.require_label:

@@ -1,5 +1,11 @@
 # An implementation of the model described in
 # "Differentiable Sparse Coding" by Bradley and Bagnell
+__authors__ = "Ian Goodfellow"
+__copyright__ = "Copyright 2010-2012, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
+__email__ = "goodfeli@iro"
 
 import numpy as N
 import theano.tensor as T

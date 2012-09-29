@@ -1,3 +1,5 @@
+pylearn2 tutorial example: "train_example" by Ian Goodfellow
+
 This directory contains an example of how to train a model using pylearn2.
 
 There are three steps.

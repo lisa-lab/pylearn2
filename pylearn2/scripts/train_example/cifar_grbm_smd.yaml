@@ -1,3 +1,5 @@
+# pylearn2 tutorial example: cifar_grbm_smd.yaml by Ian Goodfellow
+#
 # Read the README file before reading this file
 #
 # This is an example of yaml file, which is the main way that an experimenter
