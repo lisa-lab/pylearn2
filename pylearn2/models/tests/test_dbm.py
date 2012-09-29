@@ -10,11 +10,13 @@ import numpy as np
 from theano import config
 import theano.tensor as T
 from theano import function
+from pylearn2.testing.skip import skip_if_no_scipy
 
 def test_dbm_loader():
     """ Loads an example model and some data and makes
     sure that inference gets the same result as Ruslan
     Salakhutdino's demo code. """
+    skip_if_no_scipy()
     pylearn2_path = pylearn2.__path__[0]
     dbm_path = pylearn2_path + '/models/tests/dbm.mat'
     data_path = pylearn2_path + '/models/tests/dbm_data.mat'
