@@ -1,7 +1,11 @@
 import pylearn2
 from pylearn2.models.dbm import load_matlab_dbm
 from pylearn2.models.dbm import InferenceProcedure
-from scipy import io
+import warnings
+try:
+    from scipy import io
+except ImportError:
+    warnings.warn("Could not import scipy")
 import numpy as np
 from theano import config
 import theano.tensor as T
