@@ -275,10 +275,15 @@ class Monitor(object):
                 g[channel.graph_input[1]] = Y
             else:
                 g[channel.graph_input] = X
+            if n == 0:
+                raise ValueError("Iterating over 0 examples results in divide by 0")
             val = channel.val * T.cast(X.shape[0], config.floatX) / n
             u[channel.val_shared] = channel.val_shared + val
+
         print "compiling accum..."
         t1 = time.time()
+
+        # Check type of update expressions
         for up in updates:
             for key in up:
                 if key.dtype != up[key].dtype:
@@ -286,6 +291,7 @@ class Monitor(object):
                             + key.name + ' has dtype ' + key.dtype + \
                             ' but is driven by an expression with type ' + \
                             up[key].dtype)
+
         self.accum = []
         for g, u in zip (givens, updates):
             if self.require_label:
