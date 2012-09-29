@@ -1,7 +1,6 @@
 from __future__ import division
 import time
 import numpy as np
-import theano.sparse
 from theano import function
 import theano.tensor as T
 from pylearn2.monitor import Monitor
