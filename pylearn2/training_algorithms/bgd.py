@@ -1,6 +1,13 @@
+__authors__ = "Ian Goodfellow"
+__copyright__ = "Copyright 2010-2012, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
+__email__ = "goodfeli@iro"
 from pylearn2.monitor import Monitor
 from pylearn2.optimization.batch_gradient_descent import BatchGradientDescent
 import theano.tensor as T
+
 
 class BGD(object):
     """Batch Gradient Descent training algorithm class"""
