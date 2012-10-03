@@ -152,24 +152,25 @@ class SGD(TrainingAlgorithm):
         # the cost
         # TODO: also monitor things defined by the model
         learning_rate = self.learning_rate
-        if self.supervised:
-            cost_channels = self.cost.get_monitoring_channels(model, X, Y)
-            ipt = (X, Y)
-        else:
-            cost_channels = self.cost.get_monitoring_channels(model, X)
-            ipt = X
-        # This name must not vary, since callbacks that respond to the
-        # values in the monitor use the name to find it
-        self.monitor.add_channel(name='sgd_cost', ipt=ipt,
-                val=cost_value, dataset=self.monitoring_dataset)
-        self.monitor.add_channel(name='learning_rate', ipt=ipt,
-                val=learning_rate, dataset=self.monitoring_dataset)
-        for key in cost_channels:
-            self.monitor.add_channel(name=key, ipt=ipt,
-                    val=cost_channels[key], dataset=self.monitoring_dataset)
-        if self.momentum:
-            self.monitor.add_channel(name='momentum', ipt=ipt,
-                    val=self.momentum, dataset=self.monitoring_dataset)
+        if self.monitoring_dataset is not None:
+            if self.supervised:
+                cost_channels = self.cost.get_monitoring_channels(model, X, Y)
+                ipt = (X, Y)
+            else:
+                cost_channels = self.cost.get_monitoring_channels(model, X)
+                ipt = X
+            # These channel names must not vary, since callbacks that respond to the
+            # values in the monitor use the name to find them
+            self.monitor.add_channel(name='sgd_cost', ipt=ipt,
+                    val=cost_value, dataset=self.monitoring_dataset)
+            self.monitor.add_channel(name='learning_rate', ipt=ipt,
+                    val=learning_rate, dataset=self.monitoring_dataset)
+            for key in cost_channels:
+                self.monitor.add_channel(name=key, ipt=ipt,
+                        val=cost_channels[key], dataset=self.monitoring_dataset)
+            if self.momentum:
+                self.monitor.add_channel(name='momentum', ipt=ipt,
+                        val=self.momentum, dataset=self.monitoring_dataset)
 
         params = list(model.get_params())
         assert len(params) > 0
