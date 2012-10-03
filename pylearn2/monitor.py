@@ -399,6 +399,8 @@ class Monitor(object):
         if dataset is None:
             if len(self._datasets) == 1:
                 dataset = self._datasets[0]
+            elif len(self._datasets) == 0:
+                raise ValueError("Tried to add a channel to a monitor with no datasets.")
             else:
                 raise ValueError("No dataset specified but monitor " + \
                                  "has more than one dataset.")
