@@ -24,7 +24,8 @@ class SGD(TrainingAlgorithm):
     def __init__(self, learning_rate, cost, batch_size=None,
                  monitoring_batches=None, monitoring_dataset=None,
                  termination_criterion=None, update_callbacks=None,
-                 init_momentum = None, set_batch_size = False):
+                 init_momentum = None, set_batch_size = False,
+                 train_iteration_mode = None):
         """
             WRITEME
 
@@ -71,6 +72,9 @@ class SGD(TrainingAlgorithm):
         else:
             self.momentum = sharedX(init_momentum, 'momentum')
         self._register_update_callbacks(update_callbacks)
+        if train_iteration_mode is None:
+            train_iteration_mode = 'shuffled_sequential'
+        self.train_iteration_mode = train_iteration_mode
         self.first = True
 
     def setup(self, model, dataset):
@@ -101,7 +105,8 @@ class SGD(TrainingAlgorithm):
         # if you have a convolutional model you can't just go changing
         # the batch size everywhere, and the code should make it easy
         # to have a fixed batch size.
-        self.monitor.add_dataset(dataset=self.monitoring_dataset,
+        if self.monitoring_dataset is not None:
+            self.monitor.add_dataset(dataset=self.monitoring_dataset,
                                  mode='sequential',
                                  batch_size=self.batch_size,
                                  num_batches=self.monitoring_batches)
@@ -113,8 +118,6 @@ class SGD(TrainingAlgorithm):
         X = model.get_input_space().make_theano_batch(name="%s[X]" % self.__class__.__name__)
         self.topo = not X.ndim == 2
         Y = T.matrix(name="%s[Y]" % self.__class__.__name__)
-
-        dataset.set_iteration_scheme('shuffled_sequential', batch_size=self.batch_size, topo = self.topo)
 
         try:
             iter(self.cost)
@@ -149,24 +152,25 @@ class SGD(TrainingAlgorithm):
         # the cost
         # TODO: also monitor things defined by the model
         learning_rate = self.learning_rate
-        if self.supervised:
-            cost_channels = self.cost.get_monitoring_channels(model, X, Y)
-            ipt = (X, Y)
-        else:
-            cost_channels = self.cost.get_monitoring_channels(model, X)
-            ipt = X
-        # This name must not vary, since callbacks that respond to the
-        # values in the monitor use the name to find it
-        self.monitor.add_channel(name='sgd_cost', ipt=ipt,
-                val=cost_value, dataset=self.monitoring_dataset)
-        self.monitor.add_channel(name='learning_rate', ipt=ipt,
-                val=learning_rate, dataset=self.monitoring_dataset)
-        for key in cost_channels:
-            self.monitor.add_channel(name=key, ipt=ipt,
-                    val=cost_channels[key], dataset=self.monitoring_dataset)
-        if self.momentum:
-            self.monitor.add_channel(name='momentum', ipt=ipt,
-                    val=self.momentum, dataset=self.monitoring_dataset)
+        if self.monitoring_dataset is not None:
+            if self.supervised:
+                cost_channels = self.cost.get_monitoring_channels(model, X, Y)
+                ipt = (X, Y)
+            else:
+                cost_channels = self.cost.get_monitoring_channels(model, X)
+                ipt = X
+            # These channel names must not vary, since callbacks that respond to the
+            # values in the monitor use the name to find them
+            self.monitor.add_channel(name='sgd_cost', ipt=ipt,
+                    val=cost_value, dataset=self.monitoring_dataset)
+            self.monitor.add_channel(name='learning_rate', ipt=ipt,
+                    val=learning_rate, dataset=self.monitoring_dataset)
+            for key in cost_channels:
+                self.monitor.add_channel(name=key, ipt=ipt,
+                        val=cost_channels[key], dataset=self.monitoring_dataset)
+            if self.momentum:
+                self.monitor.add_channel(name='momentum', ipt=ipt,
+                        val=self.momentum, dataset=self.monitoring_dataset)
 
         params = list(model.get_params())
         assert len(params) > 0
@@ -228,7 +232,7 @@ class SGD(TrainingAlgorithm):
             if np.any(np.isnan(value)) or np.any(np.isinf(value)):
                 raise Exception("NaN in " + param.name)
         self.first = False
-        dataset.set_iteration_scheme('shuffled_sequential', batch_size=self.batch_size, targets=self.supervised, topo=self.topo)
+        dataset.set_iteration_scheme(self.train_iteration_mode, batch_size=self.batch_size, targets=self.supervised, topo=self.topo)
         if self.supervised:
             for (batch_in, batch_target) in dataset:
                 self.sgd_update(batch_in, batch_target)
