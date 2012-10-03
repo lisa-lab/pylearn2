@@ -57,7 +57,7 @@ class Monitor(object):
         # and channel dimension, the model has topological dimensions, so the
         # topological view of the data should be used.
         vector = model.get_input_space().make_theano_batch()
-        if isinstance(vector, theano.sparse.basic.SparseVariable):
+        if isinstance(vector.type, theano.sparse.SparseType):
             self.topo = False
         else:
             self.topo = len(vector.type.broadcastable) > 2
