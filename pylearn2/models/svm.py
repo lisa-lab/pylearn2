@@ -6,8 +6,13 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
-from sklearn.multiclass import OneVsRestClassifier
-from sklearn.svm import SVC
+import warnings
+
+try:
+    from sklearn.multiclass import OneVsRestClassifier
+    from sklearn.svm import SVC
+except ImportError:
+    warnings.warn("Could not import sklearn.")
 import numpy as np
 
 class DenseMulticlassSVM(OneVsRestClassifier):
