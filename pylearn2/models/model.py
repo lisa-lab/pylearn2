@@ -77,6 +77,10 @@ class Model(object):
     def set_batch_size(self, batch_size):
         pass
 
+    def get_weights(self):
+
+        raise NotImplementedError(str(type(self))+" does not implement get_weights (perhaps by design)")
+
     def score(self, V):
         """
         Compute a "score function" for this model, if this model has
