@@ -91,8 +91,11 @@ Original exception: """+str(e))
     if weights_view is None:
         if hasattr(model,'get_weights_format'):
             weights_format = model.get_weights_format()
-        if hasattr(model, 'weights_format'):
+        elif hasattr(model, 'weights_format'):
             weights_format = model.weights_format
+        else:
+            assert False
+
 
         assert hasattr(weights_format,'__iter__')
         assert len(weights_format) == 2
