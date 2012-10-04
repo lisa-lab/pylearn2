@@ -191,6 +191,14 @@ class SGD(TrainingAlgorithm):
                 raise ValueError("Tried to scale the learning rate on " +\
                         str(key)+" which is not an optimization parameter.")
 
+        print 'Parameter and initial learning rate summary:'
+        for param in params:
+            param_name = param.name
+            if param_name is None:
+                param_name = 'anon_param'
+            lr = learning_rate.get_value() * lr_scalers.get(param,1.)
+            print '\t'+param_name+': '+str(lr)
+
         if self.momentum is None:
             updates = dict(zip(params, [param - learning_rate * \
                 lr_scalers.get(param, 1.) * grads[param]
