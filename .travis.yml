@@ -2,9 +2,9 @@
 # http://lint.travis-ci.org/
 
 language: python
-python:
+#python:
 #Currently we use functools.cmp_to_key that is available only in python 2.7
-  - "2.7"
+#  - "2.7"
 
 # command to install dependencies
 before_install:
@@ -37,8 +37,8 @@ script:
   - echo $PYTHONPATH
   - python --version
 #  - python -c 'import scipy; print scipy.__version__, scipy.__file__'
-  - virtualenv_deactivate()
-  - echo $PYTHONPATH
-  - python --version
+ # - virtualenv_deactivate()
+ # - echo $PYTHONPATH
+ # - python --version
   - python -c 'import scipy; print scipy.__version__, scipy.__file__'
 #  - theano-nose
