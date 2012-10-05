@@ -60,3 +60,36 @@ def safe_update(dict_to, dict_from):
         dict_to[key] = val
     return dict_to
 
+
+class CallbackOp(theano.gof.op):
+    """A Theano Op that implements the identity transform but
+    also does an arbitrary (user-specified) side effect. """
+
+
+    view_map = { 0: [0] }
+
+    def __init__(self, callback):
+        self.callback = callback
+
+    def make_node(self, xin):
+        xout = xin.type.make_variable()
+        return theano.gof.Apply(op=self, inputs=[xin], outputs=[xout])
+
+    def perform(self, node, inputs, output_storage):
+        xin, = inputs
+        xout, = output_storage
+        xout[0] = xin
+        self.callback(xin)
+
+    def grad(self, inputs, output_gradients):
+        return output_gradients
+
+    def R_op(self, inputs, eval_points):
+        return [x for x in eval_points]
+
+    def __eq__(self, other):
+        return type(self) == type(other) and self.callback == other.callback
+
+    def hash(self):
+        return hash(self.callback)
+
