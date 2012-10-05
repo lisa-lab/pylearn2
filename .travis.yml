@@ -2,6 +2,7 @@
 # http://lint.travis-ci.org/
 
 language: c
+compiler: gcc
 #language: python
 #python:
 #Currently we use functools.cmp_to_key that is available only in python 2.7
