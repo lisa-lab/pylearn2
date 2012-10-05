@@ -42,7 +42,6 @@ script:
   - echo $PYTHONPATH
   - python --version
 #  - python -c 'import scipy; print scipy.__version__, scipy.__file__'
- # - virtualenv_deactivate()
  # - echo $PYTHONPATH
  # - python --version
   - python -c 'import scipy; print scipy.__version__, scipy.__file__'
