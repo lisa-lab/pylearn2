@@ -22,10 +22,10 @@ install:
 #  - "pip install -q numpy --use-mirrors"
 # Use Pillow instead of PIL as it is better packaged
   - "sudo pip install -q Pillow --use-mirrors || cat /home/travis/.pip/pip.log"
-  - "pip install -q git+git://git.assembla.com/jobman.git || cat /home/travis/.pip/pip.log"
+  - "sudo pip install -q git+git://git.assembla.com/jobman.git || cat /home/travis/.pip/pip.log"
 #We can't install SciPy as there is no BLAS installed.
-  - "pip install -q --no-deps git+git://github.com/Theano/Theano.git || cat /home/travis/.pip/pip.log"
-  - "pip install . --no-deps --use-mirrors || cat /home/travis/.pip/pip.log"
+  - "sudo pip install -q --no-deps git+git://github.com/Theano/Theano.git || cat /home/travis/.pip/pip.log"
+  - "sudo pip install . --no-deps --use-mirrors || cat /home/travis/.pip/pip.log"
 # command to run tests
 #env:
 #  - PART="theano/tensor/nnet/ theano/tensor/signal/ theano/compile/ theano/gof/ theano/misc/ theano/scalar/ theano/tests/"
