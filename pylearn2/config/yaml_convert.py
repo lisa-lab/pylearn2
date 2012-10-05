@@ -119,7 +119,6 @@ def strip_anchors(istream, ostream):
     """
     events = []
     for event in yaml.parse(istream):
-        print event
         if (type(event) is yaml.MappingStartEvent and event.anchor):
             anchor_event = key_value_events('__anchor__', event.anchor)
             event.anchor = None
