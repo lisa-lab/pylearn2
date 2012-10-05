@@ -10,8 +10,8 @@ language: c
 
 # command to install dependencies
 before_install:
-  - ls -al ~/virtualenv/python2.7/bin
-  - cat ~/virtualenv/python2.7/bin/activate
+#  - ls -al ~/virtualenv/python2.7/bin
+#  - cat ~/virtualenv/python2.7/bin/activate
   - sudo apt-get install -qq libatlas3gf-base libatlas-dev
   - sudo apt-get install python-numpy python-scipy
 
