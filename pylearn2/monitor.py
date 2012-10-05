@@ -400,10 +400,9 @@ class Monitor(object):
             if len(self._datasets) == 1:
                 dataset = self._datasets[0]
             elif len(self._datasets) == 0:
-                raise ValueError("Tried to add a channel to a monitor with no datasets.")
+                raise ValueError(_err_no_data)
             else:
-                raise ValueError("No dataset specified but monitor " + \
-                                 "has more than one dataset.")
+                raise ValueError(_err_ambig_data)
 
         try:
             self._datasets.index(dataset)
@@ -577,3 +576,7 @@ def push_monitor(model, name):
 
     return model
 
+
+_err_no_data = "You tried to add a channel to a Monitor that has no dataset."
+_err_ambig_data = ("You added a channel to a Monitor that has multiple datasets, "
+        "and did not specify which dataset to use it with.")

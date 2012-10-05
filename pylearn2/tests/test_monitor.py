@@ -13,6 +13,8 @@ from pylearn2.utils.serial import from_string
 from pylearn2.utils.iteration import _iteration_schemes
 from theano import shared
 from pylearn2.testing.prereqs import ReadVerifyPrereq
+from pylearn2.monitor import _err_no_data
+from pylearn2.monitor import _err_ambig_data
 
 
 class DummyModel(Model):
@@ -445,8 +447,7 @@ def test_prereqs_multidataset():
     to_string(monitor)
 
 
-def test_reject_bad_add():
-
+def test_reject_bad_add_dataset():
 
     model = DummyModel(1)
     monitor = Monitor.get_monitor(model)
@@ -459,3 +460,61 @@ def test_reject_bad_add():
 
     raise AssertionError("Monitor.add_dataset accepted bad arguments to "
             "add_dataset.")
+
+def test_no_data():
+
+    # test that the right error is raised if you
+    # add a channel to a monitor that has no datasets
+
+    BATCH_SIZE = 2
+    num_examples = BATCH_SIZE
+    NUM_FEATURES = 3
+
+    model = DummyModel(NUM_FEATURES)
+    monitor = Monitor.get_monitor(model)
+
+    name = 'num_prereq_calls'
+
+    try:
+        monitor.add_channel(name = name,
+            ipt = model.input_space.make_theano_batch(),
+            val = 0.)
+    except ValueError, e:
+        assert e.message == _err_no_data
+        return
+    assert False
+
+def test_ambig_data():
+
+    # test that the right error is raised if you
+    # add a channel to a monitor that has multiple datasets
+    # and don't specify the dataset
+
+    BATCH_SIZE = 2
+    num_examples = BATCH_SIZE
+    NUM_FEATURES = 3
+
+    model = DummyModel(NUM_FEATURES)
+    monitor = Monitor.get_monitor(model)
+
+    first = DummyDataset(num_examples = num_examples,
+            num_features = NUM_FEATURES)
+    second = DummyDataset(num_examples = num_examples,
+            num_features = NUM_FEATURES)
+
+    monitor.add_dataset(first, 'sequential', batch_size=BATCH_SIZE)
+    monitor.add_dataset(second, 'sequential', batch_size=BATCH_SIZE)
+
+
+    name = 'num_prereq_calls'
+
+    try:
+        monitor.add_channel(name = name,
+            ipt = model.input_space.make_theano_batch(),
+            val = 0.)
+    except ValueError, e:
+        assert e.message == _err_ambig_data
+        return
+    assert False
+
+
