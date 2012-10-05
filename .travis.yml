@@ -13,7 +13,7 @@ before_install:
 #  - ls -al ~/virtualenv/python2.7/bin
 #  - cat ~/virtualenv/python2.7/bin/activate
   - sudo apt-get install -qq libatlas3gf-base libatlas-dev
-  - sudo apt-get install python-numpy python-scipy
+  - sudo apt-get install python-numpy python-scipy python-pip
 
 install:
 #If we don't install numpy before SciPy 0.10.1, the SciPy installations fails.
