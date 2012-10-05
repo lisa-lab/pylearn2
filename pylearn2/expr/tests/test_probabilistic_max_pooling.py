@@ -56,6 +56,44 @@ def check_correctness_channelwise(f):
         print 'ave diff ',diff.mean()
         assert False
 
+def check_correctness_sigmoid_channelwise(f):
+
+    # Tests that f is equivalent to the sigmoid function when the pool size is 1
+
+    rng = np.random.RandomState([2012,7,19])
+    batch_size = 5
+    pool_size = 1
+    n = 3 * pool_size
+    zv = rng.randn(batch_size, n).astype(config.floatX) * 1. - 1.5
+    top_down_v = rng.randn(batch_size,  n / pool_size).astype(config.floatX)
+
+
+    z_th = T.matrix()
+    z_th.name = 'z_th'
+
+    top_down_th = T.matrix()
+    top_down_th.name = 'top_down_th'
+
+    p_th, h_th = f(z_th, pool_size, top_down_th)
+    h_s = T.nnet.sigmoid(z_th +  top_down_th)
+
+    func = function([z_th, top_down_th], [p_th, h_th, h_s])
+
+    pv, hv, h_s = func(zv, top_down_v)
+    p_s = h_s
+
+    assert p_s.shape == pv.shape
+    assert h_s.shape == hv.shape
+    if not np.allclose(h_s,hv):
+        print (h_s.min(),h_s.max())
+        print (hv.min(),hv.max())
+        assert False
+    if not np.allclose(p_s,pv):
+        diff = abs(p_s - pv)
+        print 'max diff ',diff.max()
+        print 'min diff ',diff.min()
+        print 'ave diff ',diff.mean()
+        assert False
 
 def check_correctness(f):
     rng = np.random.RandomState([2012,7,19])
@@ -85,6 +123,7 @@ def check_correctness(f):
         print (hv.min(),hv.max())
         assert False
     assert np.allclose(p_np,pv)
+
 
 
 def check_correctness_bc01(f):
@@ -497,6 +536,9 @@ def check_sample_correctishness_channelwise(f):
 
 def test_max_pool_channels():
     check_correctness_channelwise(max_pool_channels)
+
+def test_max_pool_channels_sigmoid():
+    check_correctness_sigmoid_channelwise(max_pool_channels)
 
 def test_max_pool_channels_samples():
     check_sample_correctishness_channelwise(max_pool_channels)
