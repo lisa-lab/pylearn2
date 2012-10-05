@@ -6,7 +6,6 @@ from pylearn2.space import VectorSpace
 from pylearn2.space import Conv2DSpace
 from pylearn2.utils import sharedX
 from pylearn2.training_algorithms.sgd import SGD
-from pylearn2.training_algorithms.bgd import BGD
 from pylearn2.training_algorithms.sgd import EpochCounter
 from pylearn2.costs.cost import CrossEntropy
 from pylearn2.costs.cost import Cost
