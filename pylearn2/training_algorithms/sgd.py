@@ -227,10 +227,10 @@ class SGD(TrainingAlgorithm):
 
         if self.supervised:
             self.sgd_update = function([X, Y], updates=updates,
-                                   name='sgd_update')
+                                   name='sgd_update', on_unused_input = 'ignore')
         else:
             self.sgd_update = function([X], updates=updates,
-                                   name='sgd_update')
+                                   name='sgd_update', on_unused_input = 'ignore')
         self.params = params
 
     def train(self, dataset):

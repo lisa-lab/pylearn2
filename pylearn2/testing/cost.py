@@ -12,11 +12,15 @@ from pylearn2.utils import CallbackOp
 class CallbackCost(Cost):
     """
     A Cost that runs callbacks on the data.
-    Returns the sum of the data as the cost.
+    Returns the sum of the data multiplied by the
+    sum of all model parameters as the cost.
     The callback is run via the CallbackOp
     so the cost must be used to compute one
     of the outputs of your theano graph if you
     want the callback to get called.
+    The is cost is designed so that the SGD algorithm
+    will result in in the CallbackOp getting
+    evaluated.
     """
 
     def __init__(self, X_callback = None, y_callback = None,
@@ -36,10 +40,13 @@ class CallbackCost(Cost):
         if not supervised:
             assert y_callback is None
 
-    def __call__(self, X, y = None):
+    def __call__(self, model, X, y = None):
 
         if self.X_callback is not None:
+            orig_X = X
             X = CallbackOp(self.X_callback)(X)
+            assert len(X.owner.inputs) == 1
+            assert orig_X is X.owner.inputs[0]
 
         if self.y_callback is not None:
             y = CallbackOp(self.y_callback)(y)
@@ -47,6 +54,10 @@ class CallbackCost(Cost):
         cost = X.sum()
         if y is not None:
             cost = cost + y.sum()
+
+        model_terms = sum([param.sum() for param in model.get_params()])
+
+        cost = cost * model_terms
 
         return cost
 

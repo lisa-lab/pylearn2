@@ -11,6 +11,8 @@ from pylearn2.costs.cost import CrossEntropy
 from pylearn2.costs.cost import Cost
 import theano.tensor as T
 import numpy as np
+from pylearn2.testing.datasets import ArangeDataset
+from pylearn2.testing.cost import CallbackCost
 
 class SoftmaxModel(Model):
     """A dummy model used for testing.
@@ -377,3 +379,53 @@ def test_reject_mon_batch_without_mon():
         return
 
     assert False
+
+
+
+def test_sgd_sequential():
+
+    # tests that requesting train_iteration_mode = 'sequential'
+    # works
+
+    dim = 2
+    batch_size = 3
+    m = 5 * batch_size
+
+    dataset = ArangeDataset(m)
+
+    model = SoftmaxModel(dim)
+
+    learning_rate = 1e-3
+    batch_size = 5
+
+    visited = [ False ] * m
+
+    def visit(X):
+        assert X.shape[1] == 1
+        assert np.all(X[1:] == X[0:-1]+1)
+        start = int(X[0,0])
+        if start > 0:
+            assert visited[start - 1]
+        for i in xrange(batch_size):
+            assert not visited[start+i]
+            visited[start+i] = 1
+
+
+    cost = CallbackCost(visit)
+
+    # We need to include this so the test actually stops running at some point
+    termination_criterion = EpochCounter(5)
+
+    algorithm = SGD(learning_rate, cost, batch_size=5,
+                train_iteration_mode = 'sequential',
+                 monitoring_dataset=None,
+                 termination_criterion=termination_criterion, update_callbacks=None,
+                 init_momentum = None, set_batch_size = False)
+
+    algorithm.setup(dataset = dataset, model = model)
+
+    algorithm.train(dataset)
+
+    assert all(visited)
+
+
