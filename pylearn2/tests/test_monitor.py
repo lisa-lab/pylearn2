@@ -445,3 +445,17 @@ def test_prereqs_multidataset():
     to_string(monitor)
 
 
+def test_reject_bad_add():
+
+
+    model = DummyModel(1)
+    monitor = Monitor.get_monitor(model)
+    dataset = DummyDataset(1,1)
+
+    try:
+        monitor.add_dataset([dataset],mode=['sequential', 'shuffled'])
+    except ValueError:
+        return
+
+    raise AssertionError("Monitor.add_dataset accepted bad arguments to "
+            "add_dataset.")
