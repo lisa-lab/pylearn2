@@ -15,6 +15,7 @@ from theano import shared
 from pylearn2.testing.prereqs import ReadVerifyPrereq
 from pylearn2.monitor import _err_no_data
 from pylearn2.monitor import _err_ambig_data
+from pylearn2.testing.datasets import ArangeDataset
 
 
 class DummyModel(Model):
@@ -34,13 +35,6 @@ class DummyDataset(DenseDesignMatrix):
                 "functionality. If the Monitor tries to serialize a "
                 "Dataset, that is an error.")
 
-class ArangeDataset(DenseDesignMatrix):
-    """ A dataset where example i is just the number i.
-    Makes it easy to track which sets of examples are visited."""
-    def __init__(self, num_examples):
-        X = np.zeros((num_examples,1))
-        X[:,0] = np.arange(num_examples)
-        super(ArangeDataset, self).__init__(X)
 
 def test_channel_scaling_sequential():
     def channel_scaling_checker(num_examples, mode, num_batches, batch_size):
