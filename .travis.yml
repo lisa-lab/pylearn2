@@ -1,13 +1,17 @@
 # After changing this file, check it on:
 # http://lint.travis-ci.org/
 
-language: python
+language: c
+#language: python
 #python:
 #Currently we use functools.cmp_to_key that is available only in python 2.7
 #  - "2.7"
 
+
 # command to install dependencies
 before_install:
+  - ls -al ~/virtualenv/python2.7/bin
+  - cat ~/virtualenv/python2.7/bin/activate
   - sudo apt-get install -qq libatlas3gf-base libatlas-dev
   - sudo apt-get install python-numpy python-scipy
 
