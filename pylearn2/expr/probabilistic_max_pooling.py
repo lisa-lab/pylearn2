@@ -203,8 +203,8 @@ def max_pool(z, pool_shape, top_down = None, theano_rng = None):
 
         stacked_events = T.concatenate( events, axis = 4)
 
-        rows = zr / pool_shape[0]
-        cols = zc / pool_shape[1]
+        rows = zr // pool_shape[0]
+        cols = zc // pool_shape[1]
         outcomes = pool_shape[0] * pool_shape[1] + 1
         assert stacked_events.ndim == 5
         for se, bs, r, c, chv in get_debug_values(stacked_events, batch_size, rows, cols, ch):

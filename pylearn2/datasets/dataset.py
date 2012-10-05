@@ -25,42 +25,6 @@ class Dataset(object):
     def __iter__(self):
         return self.iterator()
 
-    def set_iteration_scheme(self, mode=None, batch_size=None,
-                             num_batches=None, topo=False, targets=False):
-        """
-        Modify the default iteration behaviour for the dataset.
-
-        Parameters
-        ----------
-        mode : str or object, optional
-            One of 'sequential', 'random_slice', or 'random_uniform',
-            *or* a class that instantiates an iterator that returns
-            slices or index sequences on every call to next().
-            see utils/iteration.py for documentation of the default
-            modes
-        batch_size : int, optional
-            The size of an individual batch. Unnecessary if `mode` is
-            'sequential' and `num_batches` is specified.
-        num_batches : int, optional
-            The size of an individual batch. Unnecessary if `mode` is
-            'sequential' and `batch_size` is specified.
-        topo : boolean, optional
-            Whether batches returned by the iterator should present
-            examples in a topological view or not. Defaults to
-            `False`.
-
-        Notes
-        -----
-        This method modifies the behaviour when one iterates on a
-        dataset as a container, e.g. "for batch in dataset". One
-        can also override any subset of these parameters by calling
-        the `iterator()` method directly to obtain an iterator
-        with specified behaviour.
-        """
-        # TODO: the logic from DenseDesignMatrix.set_iteration_scheme
-        # is potentially better here.
-        raise NotImplementedError()
-
     def iterator(self, mode=None, batch_size=None, num_batches=None,
                  topo=None, targets=False, rng=None):
         """
