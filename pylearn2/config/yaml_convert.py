@@ -3,8 +3,10 @@ import sys
 import re
 import yaml
 import json
+import collections
 import StringIO
 
+from pylearn2.config.ordered_yaml_loader import OrderedDictYAMLLoader
 from pylearn2.utils.call_check import checked_call
 from pylearn2.utils import serial
 from pylearn2.utils.string_utils import preprocess
@@ -147,7 +149,7 @@ def yaml_to_json(istream):
     ostream = StringIO.StringIO()
     strip_anchors(istream, ostream)
     # parse to make sure we didn't break anything
-    loader = yaml.Loader(ostream)
+    loader = OrderedDictYAMLLoader(ostream)
     loader.add_multi_constructor('!obj:', multi_constructor_obj)
     loader.add_multi_constructor('!pkl:', multi_constructor_pkl)
     loader.add_constructor('!import:', multi_constructor_import)
@@ -158,6 +160,7 @@ def yaml_to_json(istream):
     finally:
         loader.dispose()
 
+    import pdb; pdb.set_trace()
     return json.dumps(rval, sort_keys=False, indent=4)
 
 
@@ -182,7 +185,8 @@ def json_to_yaml(istream):
     Performs the inverse operation to yaml_to_json.
     See yaml_to_json for details.
     """
-    dict_ = json.load(istream)
+    dict_ = json.load(istream, object_pairs_hook=collections.OrderedDict)
+    import pdb; pdb.set_trace()
 
     def depth_first_search(dict_, indent=0):
         for k, v in dict_.iteritems():
