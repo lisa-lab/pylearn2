@@ -284,4 +284,97 @@ def test_sgd_topo():
     train.main_loop()
 
 
+def test_sgd_no_mon():
 
+    # tests that we can run the sgd algorithm
+    # wihout a monitoring dataset
+    # does not test for correctness at all, just
+    # that the algorithm runs without dying
+
+    dim = 3
+    m = 10
+
+    rng = np.random.RandomState([25,9,2012])
+
+    X = rng.randn(m, dim)
+
+    idx = rng.randint(0, dim, (m,))
+    Y = np.zeros((m,dim))
+    for i in xrange(m):
+        Y[i,idx[i]] = 1
+
+    dataset = DenseDesignMatrix(X=X, y=Y)
+
+    m = 15
+    X = rng.randn(m, dim)
+
+    idx = rng.randint(0, dim, (m,))
+    Y = np.zeros((m,dim))
+    for i in xrange(m):
+        Y[i,idx[i]] = 1
+
+    model = SoftmaxModel(dim)
+
+    learning_rate = 1e-3
+    batch_size = 5
+
+    cost = CrossEntropy()
+
+    # We need to include this so the test actually stops running at some point
+    termination_criterion = EpochCounter(5)
+
+    algorithm = SGD(learning_rate, cost, batch_size=5,
+                 monitoring_dataset=None,
+                 termination_criterion=termination_criterion, update_callbacks=None,
+                 init_momentum = None, set_batch_size = False)
+
+    train = Train(dataset, model, algorithm, save_path=None,
+                 save_freq=0, callbacks=None)
+
+    train.main_loop()
+
+
+def test_reject_mon_batch_without_mon():
+
+    # tests that setting up the sgd algorithm
+    # without a monitoring dataset
+    # but with monitoring_batches specified is an error
+
+    dim = 3
+    m = 10
+
+    rng = np.random.RandomState([25,9,2012])
+
+    X = rng.randn(m, dim)
+
+    idx = rng.randint(0, dim, (m,))
+    Y = np.zeros((m,dim))
+    for i in xrange(m):
+        Y[i,idx[i]] = 1
+
+    dataset = DenseDesignMatrix(X=X, y=Y)
+
+    m = 15
+    X = rng.randn(m, dim)
+
+    idx = rng.randint(0, dim, (m,))
+    Y = np.zeros((m,dim))
+    for i in xrange(m):
+        Y[i,idx[i]] = 1
+
+    model = SoftmaxModel(dim)
+
+    learning_rate = 1e-3
+    batch_size = 5
+
+    cost = CrossEntropy()
+
+    try:
+        algorithm = SGD(learning_rate, cost, batch_size=5,
+                 monitoring_batches=3, monitoring_dataset=None,
+                 update_callbacks=None,
+                 init_momentum = None, set_batch_size = False)
+    except ValueError:
+        return
+
+    assert False

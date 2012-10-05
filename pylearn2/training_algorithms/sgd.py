@@ -65,6 +65,9 @@ class SGD(TrainingAlgorithm):
         self.set_batch_size = set_batch_size
         self.monitoring_dataset = monitoring_dataset
         self.monitoring_batches = monitoring_batches
+        if monitoring_dataset is None:
+            if monitoring_batches is not None:
+                raise ValueError("Specified an amount of monitoring batches but not a monitoring dataset.")
         self.termination_criterion = termination_criterion
         self.init_momenutm = init_momentum
         if init_momentum is None:
