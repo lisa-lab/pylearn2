@@ -160,7 +160,6 @@ def yaml_to_json(istream):
     finally:
         loader.dispose()
 
-    import pdb; pdb.set_trace()
     return json.dumps(rval, sort_keys=False, indent=4)
 
 
@@ -186,7 +185,6 @@ def json_to_yaml(istream):
     See yaml_to_json for details.
     """
     dict_ = json.load(istream, object_pairs_hook=collections.OrderedDict)
-    import pdb; pdb.set_trace()
 
     def depth_first_search(dict_, indent=0):
         for k, v in dict_.iteritems():
