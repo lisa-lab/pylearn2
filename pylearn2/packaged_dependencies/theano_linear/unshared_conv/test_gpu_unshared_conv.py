@@ -3,6 +3,13 @@ from nose.plugins.skip import SkipTest
 import numpy
 
 import theano
+
+# Skip test if cuda_ndarray is not available.
+from nose.plugins.skip import SkipTest
+import theano.sandbox.cuda as cuda_ndarray
+if cuda_ndarray.cuda_available == False:
+        raise SkipTest('Optional package cuda disabled')
+
 from theano.sandbox.cuda.var import float32_shared_constructor
 
 from .unshared_conv import FilterActs
