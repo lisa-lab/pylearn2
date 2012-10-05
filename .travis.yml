@@ -17,7 +17,8 @@ before_install:
 
 install:
 #If we don't install numpy before SciPy 0.10.1, the SciPy installations fails.
-  - "pip install -q pyyaml pyflakes --use-mirrors"
+#  - "pip install -q pyyaml pyflakes --use-mirrors"
+  - "pip install -q pyyaml pyflakes --use-mirrors" || cat /home/travis/.pip/pip.log
 #  - "pip install -q numpy --use-mirrors"
 # Use Pillow instead of PIL as it is better packaged
   - "pip install -q Pillow --use-mirrors"
