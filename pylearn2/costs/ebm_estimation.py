@@ -1,17 +1,16 @@
 """ Training costs for unsupervised learning of energy-based models """
 import theano.tensor as T
 from theano import scan
-from pylearn2.costs.cost import UnsupervisedCost
+from pylearn2.costs.cost import Cost
 
 
-class NCE(UnsupervisedCost):
+class NCE(Cost):
     """ Noise-Contrastive Estimation
 
         See "Noise-Contrastive Estimation: A new estimation principle for unnormalized models "
         by Gutmann and Hyvarinen
 
     """
-
     def h(self, X, model):
         return - T.nnet.sigmoid(self.G(X, model))
 
@@ -70,7 +69,7 @@ class NCE(UnsupervisedCost):
         assert isinstance(noise_per_clean, int)
         self.noise_per_clean = noise_per_clean
 
-class SM(UnsupervisedCost):
+class SM(Cost):
     """ Score Matching
         See eqn. 4 of "On Autoencoders and Score Matching for Energy Based Models",
         Swersky et al 2011, for details
@@ -78,11 +77,6 @@ class SM(UnsupervisedCost):
         Uses the mean over visible units rather than sum over visible units
         so that hyperparameters won't depend as much on the # of visible units
     """
-
-    def __init__(self):
-        pass
-    #
-
     def __call__(self, model, X):
         X_name = 'X' if X.name is None else X.name
 
@@ -109,7 +103,7 @@ class SM(UnsupervisedCost):
 
         return rval
 
-class SMD(UnsupervisedCost):
+class SMD(Cost):
     """ Denoising Score Matching
         See eqn. 4.3 of "A Connection Between Score Matching and Denoising Autoencoders"
         by Pascal Vincent for details

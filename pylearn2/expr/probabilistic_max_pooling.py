@@ -32,6 +32,8 @@ import time
 from pylearn2.utils import sharedX
 from theano.printing import Print
 from theano.sandbox.rng_mrg import MRG_RandomStreams
+from theano.gof.op import get_debug_values
+import warnings
 
 def max_pool(z, pool_shape, top_down = None, theano_rng = None):
     """
@@ -100,6 +102,14 @@ def max_pool(z, pool_shape, top_down = None, theano_rng = None):
         Elsewhere in this file I implemented the softmax with a reshape and call to Softmax /
         SoftmaxWithBias. This is slower, even though Softmax is faster on the GPU than the
         equivalent max/sub/exp/div graph. Maybe the reshape is too expensive.
+
+        Benchmarks show that most of the time is spent in GpuIncSubtensor when running on
+        gpu. So it is mostly that which needs a faster implementation.
+        One other way to implement this would be with a linear.Conv2D.lmul_T, where the
+        convolution stride is equal to the pool width, and the thing to multiply with is
+        the hparts stacked along the channel axis. Unfortunately, conv2D doesn't work right
+        with stride > 2 and is pretty slow for stride 2. Conv3D is used to mitigat some
+        of this, but only has CPU code.
     """
 
     z_name = z.name
@@ -173,6 +183,7 @@ def max_pool(z, pool_shape, top_down = None, theano_rng = None):
 
     for i in xrange(r):
         for j in xrange(c):
+            h.name = 'h_interm'
             h = T.set_subtensor(h[:,:,i:zr:r,j:zc:c],hpart[i][j])
 
     h.name = 'h(%s)' % z_name
@@ -192,12 +203,21 @@ def max_pool(z, pool_shape, top_down = None, theano_rng = None):
 
         stacked_events = T.concatenate( events, axis = 4)
 
-        batch_size, channels, rows, cols, outcomes = stacked_events.shape
-        reshaped_events = stacked_events.reshape((batch_size * rows * cols * channels, outcomes))
+        rows = zr / pool_shape[0]
+        cols = zc / pool_shape[1]
+        outcomes = pool_shape[0] * pool_shape[1] + 1
+        assert stacked_events.ndim == 5
+        for se, bs, r, c, chv in get_debug_values(stacked_events, batch_size, rows, cols, ch):
+            assert se.shape[0] == bs
+            assert se.shape[1] == r
+            assert se.shape[2] == c
+            assert se.shape[3] == chv
+            assert se.shape[4] == outcomes
+        reshaped_events = stacked_events.reshape((batch_size * rows * cols * ch, outcomes))
 
         multinomial = theano_rng.multinomial(pvals = reshaped_events, dtype = p.dtype)
 
-        reshaped_multinomial = multinomial.reshape((batch_size, channels, rows, cols, outcomes))
+        reshaped_multinomial = multinomial.reshape((batch_size, ch, rows, cols, outcomes))
 
         h_sample = T.alloc(0., batch_size, ch, zr, zc)
 
@@ -209,6 +229,140 @@ def max_pool(z, pool_shape, top_down = None, theano_rng = None):
                 idx += 1
 
         p_sample = 1 - reshaped_multinomial[:,:,:,:,-1]
+
+        return p, h, p_sample, h_sample
+
+
+def max_pool_channels(z, pool_size, top_down = None, theano_rng = None):
+    """
+        Unlike Honglak's convolutional max pooling, which pools over spatial
+        locations within each channels, this does max pooling in a densely
+        connected model. Here we pool groups of channels together.
+
+        z : a theano matrix representing a batch of input from below
+        pool_size: int. the number of features to combine into one pooled unit
+        top_down: (optional) a theano matrix representing input from above
+                    if None, assumes top-down input is 0
+        theano_rng: (optional) a MRG_RandomStreams instance
+
+        returns:
+            a theano matrix for the expected value of the detector layer h
+            a theano matrix for the expected value of the pooling layer p
+            if theano_rng is not None, also returns:
+                a theano matrix of samples of the detector layer
+                a theano matrix of samples of the pooling layer
+
+        all matrices are formatted as (num_example, num_features)
+
+    """
+
+    z_name = z.name
+    if z_name is None:
+        z_name = 'anon_z'
+
+
+    batch_size, n = z.shape
+
+
+    mx = None
+
+    if top_down is None:
+        t = 0.
+    else:
+        t = - top_down
+        t.name = 'neg_top_down'
+
+    zpart = []
+    for i in xrange(pool_size):
+        cur_part = z[:,i:n:pool_size]
+        if z_name is not None:
+            cur_part.name = z_name + '[%d]' % (i)
+        zpart.append( cur_part )
+        if mx is None:
+            mx = T.maximum(t, cur_part)
+            if cur_part.name is not None:
+                mx.name = 'max(-top_down,'+cur_part.name+')'
+        else:
+            max_name = None
+            if cur_part.name is not None:
+                mx_name = 'max('+cur_part.name+','+mx.name+')'
+            mx = T.maximum(mx,cur_part)
+            mx.name = mx_name
+    mx.name = 'local_max('+z_name+')'
+
+    pt = []
+
+    for i in xrange(pool_size):
+        z_i = zpart[i]
+        safe = z_i - mx
+        safe.name = 'safe_z(%s)' % z_i.name
+        cur_pt = T.exp(safe)
+        cur_pt.name = 'pt(%s)' % z_i.name
+        assert cur_pt.ndim == 2
+        pt.append( cur_pt )
+
+    off_pt = T.exp(t - mx)
+    assert off_pt.ndim == 2
+    off_pt.name = 'p_tilde_off(%s)' % z_name
+
+    denom = off_pt
+    for i in xrange(pool_size):
+        denom = denom + pt[i]
+    assert denom.ndim == 2
+    denom.name = 'denom(%s)' % z_name
+
+    off_prob = off_pt / denom
+    p = 1. - off_prob
+    p.name = 'p(%s)' % z_name
+
+    hpart = [ pt_i / denom for pt_i in pt ]
+
+    h = T.alloc(0., batch_size, n)
+
+    for i in xrange(pool_size):
+        h.name = 'h_interm'
+        hp = hpart[i]
+        sub_h = h[:,i:n:pool_size]
+        assert sub_h.ndim == 2
+        assert hp.ndim == 2
+        for hv, hsv, hpartv in get_debug_values(h, sub_h, hp):
+            print hv.shape
+            print hsv.shape
+            print hpartv.shape
+        h = T.set_subtensor(sub_h,hp)
+
+    h.name = 'h(%s)' % z_name
+
+    if theano_rng is None:
+        return p, h
+    else:
+        events = []
+        for i in xrange(pool_size):
+            events.append(hpart[i])
+        events.append(off_prob)
+
+        events = [ event.dimshuffle(0,1,'x') for event in events ]
+
+        events = tuple(events)
+
+        stacked_events = T.concatenate( events, axis = 2)
+
+        outcomes = pool_size + 1
+        reshaped_events = stacked_events.reshape((batch_size * n / pool_size, outcomes))
+
+        multinomial = theano_rng.multinomial(pvals = reshaped_events, dtype = p.dtype)
+
+        reshaped_multinomial = multinomial.reshape((batch_size, n / pool_size, outcomes))
+
+        h_sample = T.alloc(0., batch_size, n)
+
+        idx = 0
+        for i in xrange(pool_size):
+            h_sample = T.set_subtensor(h_sample[:,i:n:pool_size],
+                        reshaped_multinomial[:,:,idx])
+            idx += 1
+
+        p_sample = 1 - reshaped_multinomial[:,:,-1]
 
         return p, h, p_sample, h_sample
 
@@ -244,6 +398,33 @@ def max_pool_python(z, pool_shape, top_down = None):
 
     return p, h
 
+def max_pool_channels_python(z, pool_size, top_down = None):
+    """
+    Slow python implementation of max_pool_channels
+    for unit tests.
+    Also, this uses the ('b', 0, 1, 'c') format.
+    """
+
+    batch_size, n = z.shape
+
+    assert n % pool_size == 0
+
+    h = np.zeros(z.shape, dtype = z.dtype)
+    p = np.zeros( (batch_size, n / pool_size), dtype = z.dtype)
+    if top_down is None:
+        top_down = p.copy()
+
+    for i in xrange(0,n / pool_size):
+        pt = np.exp(z[:,i*pool_size:(i+1)*pool_size])
+        off_pt = np.exp(-top_down[:,i])
+        denom = pt.sum(axis=1) + off_pt
+        assert denom.ndim == 1
+        p[:,i] = 1. - off_pt / denom
+        for j in xrange(batch_size):
+            for k in xrange(pool_size):
+                h[j,i*pool_size+k] = pt[j,k] / denom[j]
+
+    return p, h
 
 def max_pool_unstable(z, pool_shape):
     """
@@ -547,6 +728,42 @@ def profile(f):
         results.append(t2-t1)
     print 'final: ',sum(results)/float(trials)
 
+def profile_bc01(f):
+    print 'profiling ',f
+    rng = np.random.RandomState([2012,7,19])
+    batch_size = 80
+    rows = 26
+    cols = 27
+    channels = 30
+    pool_rows = 2
+    pool_cols = 3
+    zv = rng.randn( batch_size, channels, rows, cols).astype(config.floatX)
+
+    #put the inputs + outputs in shared variables so we don't pay GPU transfer during test
+    p_shared = sharedX(zv[:,:,0:rows:pool_rows,0:cols:pool_cols])
+    h_shared = sharedX(zv)
+    z_shared = sharedX(zv)
+
+    p_th, h_th = f( z_shared, (pool_rows, pool_cols) )
+
+    func = function([],updates = { p_shared : p_th, h_shared : h_th} )
+
+    print 'warming up'
+    for i in xrange(10):
+        func()
+
+    trials = 10
+    results = []
+
+    for i in xrange(trials):
+        t1 = time.time()
+        for j in xrange(10):
+            func()
+        t2 = time.time()
+        print t2 - t1
+        results.append(t2-t1)
+    print 'final: ',sum(results)/float(trials)
+
 def profile_samples(f):
     print 'profiling samples',f
     rng = np.random.RandomState([2012,7,19])
@@ -619,14 +836,46 @@ def profile_grad(f):
         results.append(t2-t1)
     print 'final: ',sum(results)/float(trials)
 
+def profile_grad_bc01(f):
+    print 'profiling gradient of ',f
+    rng = np.random.RandomState([2012,7,19])
+    batch_size = 80
+    rows = 26
+    cols = 27
+    channels = 30
+    pool_rows = 2
+    pool_cols = 3
+    zv = rng.randn( batch_size, channels, rows, cols).astype(config.floatX)
+
+    #put the inputs + outputs in shared variables so we don't pay GPU transfer during test
+    grad_shared = sharedX(zv)
+    z_shared = sharedX(zv)
+
+    p_th, h_th = f( z_shared, (pool_rows, pool_cols) )
+
+    func = function([],updates = { grad_shared : T.grad(p_th.sum() +  h_th.sum(), z_shared)} )
+
+    print 'warming up'
+    for i in xrange(10):
+        func()
+
+    trials = 10
+    results = []
+
+    for i in xrange(trials):
+        t1 = time.time()
+        for j in xrange(10):
+            func()
+        t2 = time.time()
+        print t2 - t1
+        results.append(t2-t1)
+    print 'final: ',sum(results)/float(trials)
+
 if __name__ == '__main__':
-    # Run benchmarks
-    # Note: profile only supports b01c format, so we
-    # can't profile the default max_pool function yet.
-    # It only works with bc01 format.
-    # Should be easy to convert profile to bc01 format
+    #profile_bc01(max_pool)
+    profile_grad_bc01(max_pool)
+    """
     profile(max_pool_unstable)
-    profile(max_pool_b01c)
     profile_samples(max_pool_b01c)
     profile(max_pool_softmax_op)
     profile(max_pool_softmax_with_bias_op)
@@ -634,7 +883,7 @@ if __name__ == '__main__':
     profile_grad(max_pool_b01c)
     profile_grad(max_pool_softmax_op)
     profile_grad(max_pool_softmax_with_bias_op)
-
+    """
 
 
 

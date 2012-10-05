@@ -1,10 +1,13 @@
 import numpy as np
 from pylearn2.distributions.mnd import MND
 from theano import function
+from pylearn2.testing.skip import skip_if_no_scipy
 
 def test_seed_same():
     """Verifies that two MNDs initialized with the same
     seed produce the same samples """
+
+    skip_if_no_scipy()
 
     rng = np.random.RandomState([1,2,3])
 
@@ -42,6 +45,8 @@ def test_seed_diff():
     seeds produce samples that differ at least somewhat
     (theoretically the samples could match even under
     valid behavior but this is extremely unlikely)"""
+
+    skip_if_no_scipy()
 
     rng = np.random.RandomState([1,2,3])
 

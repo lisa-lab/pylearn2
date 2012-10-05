@@ -1,5 +1,15 @@
 """A Multivariate Normal Distribution."""
-from scipy.linalg import cholesky, det, solve
+__authors__ = "Ian Goodfellow"
+__copyright__ = "Copyright 2010-2012, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
+__email__ = "goodfeli@iro"
+import warnings
+try:
+    from scipy.linalg import cholesky, det, solve
+except ImportError:
+    warnings.warn("Could not import some scipy.linalg functions")
 import theano.tensor as T
 from theano import config
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams

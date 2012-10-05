@@ -1,3 +1,9 @@
+uthors__ = "Ian Goodfellow"
+__copyright__ = "Copyright 2010-2012, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
+__email__ = "goodfeli@iro"
 from pylearn2.packaged_dependencies.theano_linear.conv2d import Conv2d as OrigConv2D
 import theano.tensor as T
 from pylearn2.utils import sharedX

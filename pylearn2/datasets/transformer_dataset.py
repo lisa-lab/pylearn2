@@ -1,3 +1,9 @@
+__authors__ = "Ian Goodfellow"
+__copyright__ = "Copyright 2010-2012, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
+__email__ = "goodfeli@iro"
 from pylearn2.datasets.dataset import Dataset
 
 class TransformerDataset(Dataset):
@@ -43,7 +49,7 @@ class TransformerDataset(Dataset):
         final_iterator = TransformerIterator(raw_iterator, self)
 
         return final_iterator
-        
+
     def has_targets(self):
         return self.raw.y is not None
 
@@ -60,7 +66,7 @@ class TransformerIterator(object):
     def next(self):
 
         raw_batch = self.raw_iterator.next()
-        
+
         if self.raw_iterator._targets:
             rval = (self.transformer_dataset.transformer.perform(raw_batch[0]), raw_batch[1])
         else:

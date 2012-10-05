@@ -5,6 +5,8 @@ from nose.plugins.skip import SkipTest
 
 def test_train_example():
     """ tests that the train example script runs correctly """
+    if 'TRAVIS' in os.environ and os.environ['TRAVIS'] == '1':
+        raise SkipTest()
     path = pylearn2.__path__[0]
     train_example_path = path + '/scripts/train_example'
     cwd = os.getcwd()

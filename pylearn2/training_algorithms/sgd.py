@@ -1,7 +1,6 @@
 from __future__ import division
 import time
 import numpy as np
-import theano.sparse
 from theano import function
 import theano.tensor as T
 from pylearn2.monitor import Monitor
@@ -25,7 +24,8 @@ class SGD(TrainingAlgorithm):
     def __init__(self, learning_rate, cost, batch_size=None,
                  monitoring_batches=None, monitoring_dataset=None,
                  termination_criterion=None, update_callbacks=None,
-                 init_momentum = None, set_batch_size = False):
+                 init_momentum = None, set_batch_size = False,
+                 train_iteration_mode = None):
         """
             WRITEME
 
@@ -59,7 +59,7 @@ class SGD(TrainingAlgorithm):
             param := param + inc
         """
 
-        self.learning_rate = float(learning_rate)
+        self.learning_rate = sharedX(learning_rate, 'learning_rate')
         self.cost = cost
         self.batch_size = batch_size
         self.set_batch_size = set_batch_size
@@ -72,6 +72,9 @@ class SGD(TrainingAlgorithm):
         else:
             self.momentum = sharedX(init_momentum, 'momentum')
         self._register_update_callbacks(update_callbacks)
+        if train_iteration_mode is None:
+            train_iteration_mode = 'shuffled_sequential'
+        self.train_iteration_mode = train_iteration_mode
         self.first = True
 
     def setup(self, model, dataset):
@@ -97,7 +100,13 @@ class SGD(TrainingAlgorithm):
         # separately from training batch size, e.g. if you would rather
         # monitor on one somewhat big batch but update on many small
         # batches.
-        self.monitor.add_dataset(dataset=self.monitoring_dataset,
+        # IG adds note: yes, but the default should be for them to be
+        # the same. Theano convolution has a hard-coded batch size, so
+        # if you have a convolutional model you can't just go changing
+        # the batch size everywhere, and the code should make it easy
+        # to have a fixed batch size.
+        if self.monitoring_dataset is not None:
+            self.monitor.add_dataset(dataset=self.monitoring_dataset,
                                  mode='sequential',
                                  batch_size=self.batch_size,
                                  num_batches=self.monitoring_batches)
@@ -109,8 +118,6 @@ class SGD(TrainingAlgorithm):
         X = model.get_input_space().make_theano_batch(name="%s[X]" % self.__class__.__name__)
         self.topo = not X.ndim == 2
         Y = T.matrix(name="%s[Y]" % self.__class__.__name__)
-
-        dataset.set_iteration_scheme('shuffled_sequential', batch_size=self.batch_size, topo = self.topo)
 
         try:
             iter(self.cost)
@@ -140,20 +147,30 @@ class SGD(TrainingAlgorithm):
             else:
                 cost_value.name = 'sgd_cost(' + X.name + ')'
 
-        # Set up monitor to model the objective value and extra channels defined by
+        # Set up monitor to model the objective value, learning rate,
+        # momentum (if applicable), and extra channels defined by
         # the cost
         # TODO: also monitor things defined by the model
-        if self.supervised:
-            cost_channels = self.cost.get_monitoring_channels(model, X, Y)
-            ipt = (X, Y)
-        else:
-            cost_channels = self.cost.get_monitoring_channels(model, X)
-            ipt = X
-        self.monitor.add_channel(name=cost_value.name, ipt=ipt, val=cost_value, dataset=self.monitoring_dataset)
-        for key in cost_channels:
-            self.monitor.add_channel(name=key, ipt=ipt, val=cost_channels[key], dataset=self.monitoring_dataset)
-        if self.momentum:
-            self.monitor.add_channel(name='momentum', ipt=ipt, val=self.momentum, dataset=self.monitoring_dataset)
+        learning_rate = self.learning_rate
+        if self.monitoring_dataset is not None:
+            if self.supervised:
+                cost_channels = self.cost.get_monitoring_channels(model, X, Y)
+                ipt = (X, Y)
+            else:
+                cost_channels = self.cost.get_monitoring_channels(model, X)
+                ipt = X
+            # These channel names must not vary, since callbacks that respond to the
+            # values in the monitor use the name to find them
+            self.monitor.add_channel(name='sgd_cost', ipt=ipt,
+                    val=cost_value, dataset=self.monitoring_dataset)
+            self.monitor.add_channel(name='learning_rate', ipt=ipt,
+                    val=learning_rate, dataset=self.monitoring_dataset)
+            for key in cost_channels:
+                self.monitor.add_channel(name=key, ipt=ipt,
+                        val=cost_channels[key], dataset=self.monitoring_dataset)
+            if self.momentum:
+                self.monitor.add_channel(name='momentum', ipt=ipt,
+                        val=self.momentum, dataset=self.monitoring_dataset)
 
         params = list(model.get_params())
         assert len(params) > 0
@@ -167,13 +184,20 @@ class SGD(TrainingAlgorithm):
                                      {'costname': cost_value.name,
                                       'paramname': param.name})
 
-        learning_rate = T.scalar('sgd_learning_rate')
         lr_scalers = model.get_lr_scalers()
 
         for key in lr_scalers:
             if key not in params:
                 raise ValueError("Tried to scale the learning rate on " +\
                         str(key)+" which is not an optimization parameter.")
+
+        print 'Parameter and initial learning rate summary:'
+        for param in params:
+            param_name = param.name
+            if param_name is None:
+                param_name = 'anon_param'
+            lr = learning_rate.get_value() * lr_scalers.get(param,1.)
+            print '\t'+param_name+': '+str(lr)
 
         if self.momentum is None:
             updates = dict(zip(params, [param - learning_rate * \
@@ -199,10 +223,10 @@ class SGD(TrainingAlgorithm):
                 updates[param].name = 'censor(sgd_update(' + param.name + '))'
 
         if self.supervised:
-            self.sgd_update = function([X, Y, learning_rate], updates=updates,
+            self.sgd_update = function([X, Y], updates=updates,
                                    name='sgd_update')
         else:
-            self.sgd_update = function([X, learning_rate], updates=updates,
+            self.sgd_update = function([X], updates=updates,
                                    name='sgd_update')
         self.params = params
 
@@ -216,10 +240,10 @@ class SGD(TrainingAlgorithm):
             if np.any(np.isnan(value)) or np.any(np.isinf(value)):
                 raise Exception("NaN in " + param.name)
         self.first = False
-        dataset.set_iteration_scheme('shuffled_sequential', batch_size=self.batch_size, targets=self.supervised, topo=self.topo)
+        dataset.set_iteration_scheme(self.train_iteration_mode, batch_size=self.batch_size, targets=self.supervised, topo=self.topo)
         if self.supervised:
             for (batch_in, batch_target) in dataset:
-                self.sgd_update(batch_in, batch_target, self.learning_rate)
+                self.sgd_update(batch_in, batch_target)
                 actual_batch_size = batch_in.shape[0]
                 self.monitor.report_batch(actual_batch_size)
                 #print 'batches seen', self.monitor.get_batches_seen()
@@ -227,7 +251,7 @@ class SGD(TrainingAlgorithm):
                     callback(self)
         else:
             for batch in dataset:
-                self.sgd_update(batch, self.learning_rate)
+                self.sgd_update(batch)
                 actual_batch_size = batch.shape[0] # iterator might return a smaller batch if dataset size
                                                    # isn't divisible by batch_size
                 self.monitor.report_batch(actual_batch_size)
@@ -287,14 +311,12 @@ class MonitorBasedLRAdjuster(TrainingCallback):
     def __call__(self, model, dataset, algorithm):
         # TODO: more sophisticated error checking here.
         model = algorithm.model
-        current_learning_rate = algorithm.learning_rate
+        lr = algorithm.learning_rate
+        current_learning_rate = lr.get_value()
         assert hasattr(model, 'monitor'), ("no monitor associated with " +
                                            str(model))
         monitor = model.monitor
-        v = monitor.channels.values()
-        assert len(v) == 1, ("Only single channel monitors are supported "
-                             "(currently)")
-        v = v[0].val_record
+        v = monitor.channels['sgd_cost'].val_record
 
         if len(v) < 1:
 
@@ -330,7 +352,7 @@ class MonitorBasedLRAdjuster(TrainingCallback):
         rval = max(self.min_lr, rval)
         rval = min(self.max_lr, rval)
 
-        algorithm.learning_rate = rval
+        lr.set_value(np.cast[lr.dtype](rval))
 
 
 class PatienceBasedTermCrit(object):
@@ -464,10 +486,7 @@ class MonitorBasedTermCrit(object):
         # available. However, if the monitor has multiple channels, leaving
         # the channel_name unspecified will raise an error.
         if self._channel_name is None:
-            if len(monitor.channels) != 1:
-                raise ValueError("Only single-channel monitors are supported "
-                                 "for channel_name == None")
-            v = monitor.channels.values()[0].val_record
+            v = monitor.channels['sgd_cost'].val_record
         else:
             v = monitor.channels[self._channel_name].val_record
 
@@ -519,9 +538,9 @@ class AnnealedLearningRate(object):
 
     def __call__(self, algorithm):
         if not self._initialized:
-            self._base = algorithm.learning_rate
+            self._base = algorithm.learning_rate.get_value()
         self._count += 1
-        algorithm.learning_rate = self.current_learning_rate()
+        algorithm.learning_rate.set_value(self.current_learning_rate())
 
     def current_learning_rate(self):
         return self._base * min(1, self._anneal_start / self._count)

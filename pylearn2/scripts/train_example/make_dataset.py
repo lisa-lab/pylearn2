@@ -1,4 +1,6 @@
+# pylearn2 tutorial example: make_dataset.py by Ian Goodfellow
 # See README before reading this file
+#
 #
 # This script creates a preprocessed version of a dataset using pylearn2.#
 # It's not necessary to save preprocessed versions of your dataset to

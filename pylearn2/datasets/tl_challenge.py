@@ -1,4 +1,10 @@
 #The dataset for the NIPS 2011 Transfer Learning Challenge
+__authors__ = "Ian Goodfellow"
+__copyright__ = "Copyright 2010-2012, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
+__email__ = "goodfeli@iro"
 import numpy as N
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.string_utils import preprocess

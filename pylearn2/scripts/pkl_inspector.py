@@ -10,6 +10,12 @@ from theano.printing import min_informative_str
 Determines the contribution of different subcomponents of a file to its file size, serialization time,
 and deserialization time.
 """
+__authors__ = "Ian Goodfellow"
+__copyright__ = "Copyright 2010-2012, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
+__email__ = "goodfeli@iro"
 
 def usage():
     print """

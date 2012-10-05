@@ -1,3 +1,9 @@
+__authors__ = "Ian Goodfellow"
+__copyright__ = "Copyright 2010-2012, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
+__email__ = "goodfeli@iro"
 from pylearn2.packaged_dependencies.theano_linear.matrixmul import MatrixMul as OrigMatrixMul
 from pylearn2.linear.linear_transform import LinearTransform as PL2LT
 import functools

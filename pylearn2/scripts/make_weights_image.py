@@ -1,5 +1,11 @@
 #!/usr/bin/python
 #usage: python show_dimred_weights <whitener network>
+__authors__ = "Ian Goodfellow"
+__copyright__ = "Copyright 2010-2012, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
+__email__ = "goodfeli@iro"
 import sys
 from pylearn2.gui import get_weights_report
 

@@ -29,7 +29,10 @@ from pylearn2.models.s3c import full_max
 from theano.printing import min_informative_str
 from theano.printing import Print
 from pylearn2.space import VectorSpace
-from scipy import io
+try:
+    from scipy import io
+except ImportError:
+    warnings.warn("Could not import scipy")
 
 class Sampler:
     def __init__(self, theano_rng, kind = 'binomial'):

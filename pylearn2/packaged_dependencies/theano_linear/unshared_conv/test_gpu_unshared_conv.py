@@ -1,8 +1,15 @@
 import unittest
-
+from nose.plugins.skip import SkipTest
 import numpy
 
 import theano
+
+# Skip test if cuda_ndarray is not available.
+from nose.plugins.skip import SkipTest
+import theano.sandbox.cuda as cuda_ndarray
+if cuda_ndarray.cuda_available == False:
+        raise SkipTest('Optional package cuda disabled')
+
 from theano.sandbox.cuda.var import float32_shared_constructor
 
 from .unshared_conv import FilterActs
@@ -16,6 +23,13 @@ from .gpu_unshared_conv import (
         )
 
 import test_unshared_conv
+
+
+if theano.config.mode == 'FAST_COMPILE':
+    mode_with_gpu = theano.compile.mode.get_mode('FAST_RUN').including('gpu')
+else:
+    mode_with_gpu = theano.compile.mode.get_default_mode().including('gpu')
+
 
 class TestGpuFilterActs(test_unshared_conv.TestFilterActs):
     """
@@ -42,9 +56,12 @@ class TestGpuFilterActs(test_unshared_conv.TestFilterActs):
                 self.s_filters.get_value())
 
     def test_gpu_shape(self):
+        import theano.sandbox.cuda as cuda_ndarray
+        if cuda_ndarray.cuda_available == False:
+            raise SkipTest('Optional package cuda disabled')
         gpuout = self.gpu_op(self.s_images, self.s_filters)
         assert 'Cuda' in str(self.s_filters.type)
-        f = theano.function([], gpuout)
+        f = theano.function([], gpuout, mode=mode_with_gpu)
         outval = f()
         assert outval.shape == (
                 self.fshape[-2], self.fshape[-1],

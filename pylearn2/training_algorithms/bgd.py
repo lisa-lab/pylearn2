@@ -1,12 +1,20 @@
+__authors__ = "Ian Goodfellow"
+__copyright__ = "Copyright 2010-2012, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
+__email__ = "goodfeli@iro"
 from pylearn2.monitor import Monitor
 from pylearn2.optimization.batch_gradient_descent import BatchGradientDescent
 import theano.tensor as T
 
+
 class BGD(object):
     """Batch Gradient Descent training algorithm class"""
     def __init__(self, cost, batch_size=None, batches_per_iter=10,
-            updates_per_batch = 10,
-                 monitoring_batches=-1, monitoring_dataset=None):
+                 updates_per_batch = 10,
+                 monitoring_batches=-1, monitoring_dataset=None,
+                 termination_criterion = None):
         """
         if batch_size is None, reverts to the force_batch_size field of the
         model
@@ -18,6 +26,7 @@ class BGD(object):
         if monitoring_dataset is None:
             assert monitoring_batches == -1
         self.bSetup = False
+        self.termination_criterion = termination_criterion
 
     def setup(self, model, dataset):
         """
@@ -53,7 +62,7 @@ class BGD(object):
         if self.monitoring_dataset is not None:
             if not self.monitoring_dataset.has_targets():
                 Y = None
-            self.monitor.set_dataset(dataset=self.monitoring_dataset,
+            self.monitor.add_dataset(dataset=self.monitoring_dataset,
                                 mode="sequential",
                                 batch_size=self.batch_size,
                                 num_batches=self.monitoring_batches)
@@ -114,4 +123,7 @@ class BGD(object):
             X = get_data(self.batch_size)
             self.optimizer.minimize(X)
             model.monitor.report_batch( batch_size )
-        return True
+        if self.termination_criterion is None:
+            return True
+        else:
+            return self.termination_criterion(self.model)

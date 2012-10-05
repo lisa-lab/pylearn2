@@ -2,6 +2,12 @@
 The module defining the Monitor and MonitorChannel objects used for
 tracking the changes in values of various quantities throughout training
 """
+__authors__ = "Ian Goodfellow"
+__copyright__ = "Copyright 2010-2012, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
+__email__ = "goodfeli@iro"
 import warnings
 import time
 from theano import function
@@ -51,7 +57,7 @@ class Monitor(object):
         # and channel dimension, the model has topological dimensions, so the
         # topological view of the data should be used.
         vector = model.get_input_space().make_theano_batch()
-        if isinstance(vector, theano.sparse.basic.SparseVariable):
+        if isinstance(vector.type, theano.sparse.SparseType):
             self.topo = False
         else:
             self.topo = len(vector.type.broadcastable) > 2
@@ -131,33 +137,42 @@ class Monitor(object):
         Runs the model on the monitoring dataset in order to add one
         data point to each of the channels.
         """
+
+        # If the channels have changed at all, we need to recompile the theano
+        # functions used to compute them
         if self._dirty:
             self.redo_theano()
+
         model = self.model
-        dataset = self._datasets
+        datasets = self._datasets
+
+        # Set all channels' val_shared to 0
         self.begin_record_entry()
-        for d, i, b, n, a, sd in zip(dataset, self._iteration_mode, self._batch_size,
+
+        for d, i, b, n, a, sd in zip(datasets, self._iteration_mode, self._batch_size,
                                  self._num_batches, self.accum, self._rng_seed):
-            if d:
-                if isinstance(d, basestring):
-                    d = yaml_parse.load(d)
-                    self._datasets = d
-                myiterator = d.iterator(mode=i,
-                                        batch_size=b,
-                                        num_batches=n,
-                                        topo=self.topo,
-                                        targets=self.require_label,
-                                        rng=sd)
-                count = 0
-                for iteration, X in enumerate(myiterator):
-                    if self.require_label:
-                        X, y = X
-                        self.run_prereqs(X,y)
-                        a(X, y)
-                    else:
-                        self.run_prereqs(X)
-                        a(X)
-                    count += 1
+            if isinstance(d, basestring):
+                d = yaml_parse.load(d)
+                raise NotImplementedError()
+                # need to put d back into self._datasets
+            myiterator = d.iterator(mode=i,
+                                    batch_size=b,
+                                    num_batches=n,
+                                    topo=self.topo,
+                                    targets=self.require_label,
+                                    rng=sd)
+
+            for X in myiterator:
+                if self.require_label:
+                    X, y = X
+                    self.run_prereqs(X,y,d)
+                    a(X, y)
+                else:
+                    self.run_prereqs(X, None, d)
+                    a(X)
+            # end for X
+        # end for d
+
 
         # TODO: use logging infrastructure so that user can configure
         # formatting
@@ -179,8 +194,10 @@ class Monitor(object):
 
             print "\t%s: %s" % (channel_name, val_str)
 
-    def run_prereqs(self, X, y = None):
-        for prereq in self.prereqs:
+    def run_prereqs(self, X, y, dataset):
+        if dataset not in self.prereqs:
+            return
+        for prereq in self.prereqs[dataset]:
             prereq(X,y)
 
     def get_batches_seen(self):
@@ -214,14 +231,18 @@ class Monitor(object):
         """
         self._dirty = False
 
-        self.prereqs = []
+        init_names = dir(self)
+        self.prereqs = {}
         for channel in self.channels.values():
             if channel.prereqs is not None:
+                dataset = channel.dataset
+                if dataset not in self.prereqs:
+                    self.prereqs[dataset] = []
+                prereqs = self.prereqs[dataset]
                 for prereq in channel.prereqs:
-                    if prereq not in self.prereqs:
-                        self.prereqs.append(prereq)
+                    if prereq not in prereqs:
+                        prereqs.append(prereq)
 
-        init_names = dir(self)
         updates = {}
         for channel in self.channels.values():
             updates[channel.val_shared] = np.cast[config.floatX](0.0)
@@ -260,10 +281,15 @@ class Monitor(object):
                 g[channel.graph_input[1]] = Y
             else:
                 g[channel.graph_input] = X
+            if n == 0:
+                raise ValueError("Iterating over 0 examples results in divide by 0")
             val = channel.val * T.cast(X.shape[0], config.floatX) / n
             u[channel.val_shared] = channel.val_shared + val
+
         print "compiling accum..."
         t1 = time.time()
+
+        # Check type of update expressions
         for up in updates:
             for key in up:
                 if key.dtype != up[key].dtype:
@@ -271,6 +297,7 @@ class Monitor(object):
                             + key.name + ' has dtype ' + key.dtype + \
                             ' but is driven by an expression with type ' + \
                             up[key].dtype)
+
         self.accum = []
         for g, u in zip (givens, updates):
             if self.require_label:
@@ -317,6 +344,7 @@ class Monitor(object):
         # Patch old pickled monitors
         if not hasattr(self, '_datasets'):
             self._datasets = [ self._dataset ]
+            del self._dataset
 
         temp = self._datasets
 
@@ -371,6 +399,8 @@ class Monitor(object):
         if dataset is None:
             if len(self._datasets) == 1:
                 dataset = self._datasets[0]
+            elif len(self._datasets) == 0:
+                raise ValueError("Tried to add a channel to a monitor with no datasets.")
             else:
                 raise ValueError("No dataset specified but monitor " + \
                                  "has more than one dataset.")
@@ -465,9 +495,10 @@ class MonitorChannel(object):
         self.prereqs = prereqs
         self.graph_input = graph_input
         if isinstance(val, float):
-            val = T.constant(val)
+            val = T.constant(np.cast[config.floatX](val))
         self.val = val
         self.val_shared = sharedX(0.0, name + "_tracker")
+        assert self.val_shared.dtype == config.floatX
         if not hasattr(val,'dtype'):
             raise TypeError('Monitor channel '+name+' has value of type '+str(type(val)))
         if val.dtype != self.val_shared.dtype:
@@ -526,6 +557,7 @@ class MonitorChannel(object):
         """
         return {
             'example_record': self.example_record,
+            'batch_record' : self.batch_record,
             'val_record': self.val_record
         }
 

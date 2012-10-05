@@ -1,0 +1,37 @@
+# After changing this file, check it on:
+# http://lint.travis-ci.org/
+
+language: python
+python:
+#Currently we use functools.cmp_to_key that is available only in python 2.7
+  - "2.7"
+
+# command to install dependencies
+before_install:
+  - sudo apt-get install -qq libatlas3gf-base libatlas-dev
+
+install:
+#If we don't install numpy before SciPy 0.10.1, the SciPy installations fails.
+  - "pip install -q pyyaml pyflakes --use-mirrors"
+  - "pip install -q numpy --use-mirrors"
+# Use Pillow instead of PIL as it is better packaged
+  - "pip install -q Pillow --use-mirrors"
+  - "pip install -q git+git://git.assembla.com/jobman.git"
+#We can't install SciPy as there is no BLAS installed.
+  - "pip install -q --no-deps git+git://github.com/Theano/Theano.git"
+  - "pip install . --no-deps --use-mirrors"
+# command to run tests
+#env:
+#  - PART="theano/tensor/nnet/ theano/tensor/signal/ theano/compile/ theano/gof/ theano/misc/ theano/scalar/ theano/tests/"
+#  - PART="theano/scan_module/ theano/sandbox theano/sparse"
+
+script:
+  - cd pylearn2/scripts/train_example/
+#We can't build the test dataset as the original is not present. We can't download the original as it
+# is too big to download each time. If present run: python make_dataset.py
+  - wget http://www.iro.umontreal.ca/~lisa/datasets/cifar10_preprocessed_train.pkl
+  - cd ../../..
+  - export THEANO_FLAGS=warn.ignore_bug_before=all,on_opt_error=raise,on_shape_error=raise
+  - export TRAVIS=1
+  - python --version
+  - theano-nose

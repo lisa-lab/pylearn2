@@ -1,6 +1,12 @@
 """
 WRITEME
 """
+__authors__ = "Ian Goodfellow"
+__copyright__ = "Copyright 2010-2012, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
+__email__ = "goodfeli@iro"
 import os
 import datetime
 from pylearn2.utils import serial
@@ -86,6 +92,12 @@ class Train(object):
                 self.save()
         else:
             self.algorithm.setup(model=self.model, dataset=self.dataset)
+            if not hasattr(self.model, 'monitor'):
+                # TODO: is this really necessary? I just put this error here
+                # to prevent an AttributeError later, but I think we could
+                # rewrite to avoid the AttributeError
+                raise RuntimeError("The algorithm is responsible for setting"
+                        " up the Monitor, but failed to.")
             self.run_callbacks_and_monitoring()
             epoch_start = datetime.datetime.now()
             while self.algorithm.train(dataset=self.dataset):
@@ -115,13 +127,23 @@ class Train(object):
 
     def save(self):
         """Saves the model."""
-        #TODO-- save state of dataset and training algorithm so training can be
+        #TODO-- save state of training algorithm so training can be
         # resumed after a crash
         if self.save_path is not None:
             print 'saving to', self.save_path, '...'
             save_start = datetime.datetime.now()
-            serial.save(self.save_path, self.model)
+            try:
+                # Make sure that saving does not serialize the dataset
+                self.dataset._serialization_guard = SerializationGuard()
+                serial.save(self.save_path, self.model)
+            finally:
+                self.dataset._serialization_guard = None
             save_end = datetime.datetime.now()
             delta = (save_end - save_start)
             print '...done. saving took', str(delta)
 
+class SerializationGuard(object):
+
+    def __getstate__(self):
+        raise RuntimeError("You tried to serialize something that should not"
+                " be serialized.")

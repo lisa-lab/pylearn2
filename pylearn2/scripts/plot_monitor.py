@@ -9,10 +9,16 @@ all of their monitoring channels and prompts the user to select
 a subset of them to be plotted.
 
 """
+__authors__ = "Ian Goodfellow"
+__copyright__ = "Copyright 2010-2012, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
+__email__ = "goodfeli@iro"
 
 from pylearn2.utils import serial
 import matplotlib.pyplot as plt
-import numpy as N
+import numpy as np
 import sys
 from theano.printing import _TagGenerator
 from pylearn2.utils.string_utils import number_aware_alphabetical_key
@@ -24,12 +30,13 @@ for i, arg in enumerate(sys.argv[1:]):
     this_model_channels = model.monitor.channels
 
     if len(sys.argv) > 2:
-        prefix = "model_"+str(i)+":"
+        postfix = ":model%d" % i
     else:
-        prefix = ""
+        postfix = ""
 
     for channel in this_model_channels:
-        channels[prefix+channel] = this_model_channels[channel]
+        channels[channel+postfix] = this_model_channels[channel]
+
 
 while True:
 #Make a list of short codes for each channel so user can specify them easily
@@ -41,6 +48,7 @@ while True:
         codebook[code] = channel_name
         sorted_codes.append(code)
 
+    x_axis = 'example'
 
     if len(channels.values()) == 0:
         print "there are no channels to plot"
@@ -57,6 +65,7 @@ while True:
 
         print
 
+        print "Put e or b in the list somewhere to plot epochs or batches, respectively."
         response = raw_input('Enter a list of channels to plot (example: A, C,F-G)) or q to quit: ')
 
         if response == 'q':
@@ -71,6 +80,12 @@ while True:
         final_codes = set([])
 
         for code in codes:
+            if code == 'e':
+                x_axis = 'epoch'
+                continue
+            if code == 'b':
+                x_axis = 'batch'
+                continue
             if code.find('-') != -1:
                 #The current list element is a range of codes
 
@@ -127,7 +142,7 @@ while True:
 
     ax.ticklabel_format( scilimits = (-3,3), axis = 'both')
 
-    plt.xlabel('# examples')
+    plt.xlabel('# '+x_axis+'s')
 
 
 #plot the requested channels
@@ -137,16 +152,26 @@ while True:
 
         channel = channels[channel_name]
 
-        y = N.asarray(channel.val_record)
+        y = np.asarray(channel.val_record)
 
-        if N.any(N.isnan(y)):
+        if np.any(np.isnan(y)):
             print channel_name + ' contains NaNs'
 
-        if N.any(N.isinf(y)):
+        if np.any(np.isinf(y)):
             print channel_name + 'contains infinite values'
 
-        plt.plot( N.asarray(channel.example_record), \
-                  y, \
+        if x_axis == 'example':
+            x = np.asarray(channel.example_record)
+        elif x_axis == 'batch':
+            x = np.asarray(channel.batch_record)
+        elif x_axis == 'epoch':
+            x = np.arange(len(y))
+        else:
+            assert False
+
+
+        plt.plot( x,
+                  y,
                   label = channel_name)
 
 
