@@ -18,14 +18,14 @@ before_install:
 install:
 #If we don't install numpy before SciPy 0.10.1, the SciPy installations fails.
 #  - "pip install -q pyyaml pyflakes --use-mirrors"
-  - "pip install -q pyyaml pyflakes --use-mirrors || cat /home/travis/.pip/pip.log"
+  - "sudo pip install -q pyyaml pyflakes --use-mirrors || cat /home/travis/.pip/pip.log"
 #  - "pip install -q numpy --use-mirrors"
 # Use Pillow instead of PIL as it is better packaged
-  - "pip install -q Pillow --use-mirrors"
-  - "pip install -q git+git://git.assembla.com/jobman.git"
+  - "sudo pip install -q Pillow --use-mirrors || cat /home/travis/.pip/pip.log"
+  - "pip install -q git+git://git.assembla.com/jobman.git || cat /home/travis/.pip/pip.log"
 #We can't install SciPy as there is no BLAS installed.
-  - "pip install -q --no-deps git+git://github.com/Theano/Theano.git"
-  - "pip install . --no-deps --use-mirrors"
+  - "pip install -q --no-deps git+git://github.com/Theano/Theano.git || cat /home/travis/.pip/pip.log"
+  - "pip install . --no-deps --use-mirrors || cat /home/travis/.pip/pip.log"
 # command to run tests
 #env:
 #  - PART="theano/tensor/nnet/ theano/tensor/signal/ theano/compile/ theano/gof/ theano/misc/ theano/scalar/ theano/tests/"
