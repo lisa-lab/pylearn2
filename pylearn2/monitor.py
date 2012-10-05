@@ -118,7 +118,7 @@ class Monitor(object):
                 # each time
                 # Also, must not be None, because this makes the iterator pick
                 # a seed based on the clock
-                if not isinstance(sd,(list,tuple,int)):
+                if not isinstance(sd, (list, tuple, int)):
                     raise TypeError("Monitor requires a seed (not a random number generator) when using stochastic iteration modes.")
             else:
                 assert sd is None # the iterator should catch this, but let's double-check

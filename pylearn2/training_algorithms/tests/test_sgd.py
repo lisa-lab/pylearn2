@@ -13,6 +13,7 @@ import theano.tensor as T
 import numpy as np
 from pylearn2.testing.datasets import ArangeDataset
 from pylearn2.testing.cost import CallbackCost
+from pylearn2.utils.iteration import _iteration_schemes
 
 class SoftmaxModel(Model):
     """A dummy model used for testing.
@@ -387,7 +388,7 @@ def test_sgd_sequential():
     # tests that requesting train_iteration_mode = 'sequential'
     # works
 
-    dim = 2
+    dim = 1
     batch_size = 3
     m = 5 * batch_size
 
@@ -427,5 +428,84 @@ def test_sgd_sequential():
     algorithm.train(dataset)
 
     assert all(visited)
+
+
+def test_determinism():
+
+    # Verifies that running SGD twice results in the same examples getting visited
+    # in the same order
+
+    for mode in _iteration_schemes:
+        dim = 1
+        batch_size = 3
+        num_batches = 5
+        m = num_batches * batch_size
+
+        dataset = ArangeDataset(m)
+
+        model = SoftmaxModel(dim)
+
+        learning_rate = 1e-3
+        batch_size = 5
+
+        visited = [ [ -1 ] * m ]
+
+        def visit(X):
+            mx = max(visited[0])
+            counter = mx + 1
+            for i in X[:,0]:
+                i = int(i)
+                assert visited[0][i] == -1
+                visited[0][i] = counter
+                counter += 1
+
+
+        cost = CallbackCost(visit)
+
+        # We need to include this so the test actually stops running at some point
+        termination_criterion = EpochCounter(5)
+
+        def run_algorithm():
+            unsupported_modes = ['random_slice', 'random_uniform']
+            algorithm =  SGD(learning_rate, cost, batch_size=5,
+                   train_iteration_mode = mode,
+                     monitoring_dataset=None,
+                     termination_criterion=termination_criterion, update_callbacks=None,
+                     init_momentum = None, set_batch_size = False)
+
+            algorithm.setup(dataset = dataset, model = model)
+
+            raised = False
+            try:
+                algorithm.train(dataset)
+            except ValueError:
+                print mode
+                assert mode in unsupported_modes
+                raised = True
+            if mode in unsupported_modes:
+                assert raised
+                return True
+            return False
+
+        if run_algorithm():
+            continue
+
+        visited.insert(0, [ -1 ] * m)
+
+        del model.monitor
+
+        run_algorithm()
+
+        for v in visited:
+            assert len(v) == m
+            for elem in range(m):
+                assert elem in v
+
+        assert len(visited) == 2
+
+        print visited[0]
+        print visited[1]
+        assert np.all(np.asarray(visited[0]) == np.asarray(visited[1]))
+
 
 

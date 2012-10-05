@@ -11,6 +11,7 @@ from theano.printing import Print
 from pylearn2.training_callbacks.training_callback import TrainingCallback
 import warnings
 from theano import config
+from pylearn2.utils.iteration import is_stochastic
 
 class SGD(TrainingAlgorithm):
     """
@@ -79,6 +80,7 @@ class SGD(TrainingAlgorithm):
             train_iteration_mode = 'shuffled_sequential'
         self.train_iteration_mode = train_iteration_mode
         self.first = True
+        self.rng = np.random.RandomState([2012, 10, 5])
 
     def setup(self, model, dataset):
         self.model = model
@@ -243,9 +245,14 @@ class SGD(TrainingAlgorithm):
             if np.any(np.isnan(value)) or np.any(np.isinf(value)):
                 raise Exception("NaN in " + param.name)
         self.first = False
-        dataset.set_iteration_scheme(self.train_iteration_mode, batch_size=self.batch_size, targets=self.supervised, topo=self.topo)
+        rng = self.rng
+        if not is_stochastic(self.train_iteration_mode):
+            rng = None
+        iterator = dataset.iterator(mode=self.train_iteration_mode,
+                batch_size=self.batch_size, targets=self.supervised,
+                topo=self.topo, rng = rng)
         if self.supervised:
-            for (batch_in, batch_target) in dataset:
+            for (batch_in, batch_target) in iterator:
                 self.sgd_update(batch_in, batch_target)
                 actual_batch_size = batch_in.shape[0]
                 self.monitor.report_batch(actual_batch_size)
@@ -253,7 +260,7 @@ class SGD(TrainingAlgorithm):
                 for callback in self.update_callbacks:
                     callback(self)
         else:
-            for batch in dataset:
+            for batch in iterator:
                 self.sgd_update(batch)
                 actual_batch_size = batch.shape[0] # iterator might return a smaller batch if dataset size
                                                    # isn't divisible by batch_size
@@ -272,7 +279,6 @@ class ExhaustiveSGD(SGD): # deprecated!
         warnings.warn("ExhaustiveSGD is deprecated. It has been renamed to SGD.")
 
         super(ExhaustiveSGD,self).__init__(*args, ** kwargs)
-
 
 class MonitorBasedLRAdjuster(TrainingCallback):
     """
