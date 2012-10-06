@@ -50,13 +50,6 @@ class SparseDataset(Dataset):
         """
         raise NotImplementedError('Not implemented for sparse dataset')
 
-    def set_iteration_scheme(self, mode=None, batch_size=None,
-                             num_batches=None, topo=False, targets=False):
-        """
-        method inherited from Dataset
-        """
-        return self.iterator(mode, batch_size, num_batches, topo)
-
     def iterator(self, mode=None, batch_size=None, num_batches=None,
                  topo=None, targets=None, rng=None):
         """

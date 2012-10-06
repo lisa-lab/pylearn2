@@ -124,9 +124,10 @@ while True:
         final_codes ,= set(codebook.keys())
 
     fig = plt.figure()
-    ax = plt.subplot(1,1,1)
+#Make 2 subplots so the legend gets a plot to itself and won't cover up the plot
+    ax = plt.subplot(1,2,1)
 
-# Shink current axis' width by 20% so legend will still appear in the window
+# Grow current axis' width by 30%
     box = ax.get_position()
 
     try:
@@ -138,7 +139,7 @@ while True:
         x0, width, y0, height = box
 
 
-    ax.set_position([x0, y0, width * 0.8, height])
+    ax.set_position([x0, y0, width * 1.3, height])
 
     ax.ticklabel_format( scilimits = (-3,3), axis = 'both')
 
@@ -177,7 +178,9 @@ while True:
 
     plt.legend(bbox_to_anchor=(1.05, 1),  loc=2, borderaxespad=0.)
 
+
     plt.show()
 
     if not prompt:
         break
+

@@ -224,6 +224,9 @@ _iteration_schemes = {
 }
 
 
+def is_stochastic(mode):
+    return resolve_iterator_class(mode).stochastic
+
 def resolve_iterator_class(mode):
     if isinstance(mode, basestring) and mode not in _iteration_schemes:
         raise ValueError("unknown iteration mode string: %s" % mode)
@@ -297,3 +300,4 @@ class FiniteDatasetIterator(object):
     @property
     def stochastic(self):
         return self._subset_iterator.stochastic
+

@@ -77,26 +77,6 @@ class DenseDesignMatrix(Dataset):
         self._iter_topo = False
         self._iter_targets = False
 
-
-    @functools.wraps(Dataset.set_iteration_scheme)
-    def set_iteration_scheme(self, mode=None, batch_size=None,
-                             num_batches=None, topo=False, targets=False):
-        if mode is not None:
-            self._iter_subset_class = mode = resolve_iterator_class(mode)
-        elif hasattr(self, '_iter_subset_class'):
-            mode = self._iter_subset_class
-        else:
-            raise ValueError('iteration mode not provided and no default '
-                             'mode set for %s' % str(self))
-        # If this didn't raise an exception, we should be fine.
-        self._iter_batch_size = batch_size
-        self._iter_num_batches = num_batches
-        self._iter_topo = topo
-        self._iter_targets = targets
-        # Try to create an iterator with these settings.
-        rng = self.rng if mode.stochastic else None
-        test = self.iterator(mode, batch_size, num_batches, topo, rng=rng)
-
     @functools.wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
                  topo=None, targets=None, rng=None):
