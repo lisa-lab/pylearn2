@@ -122,6 +122,11 @@ class SGD(TrainingAlgorithm):
 
         X = model.get_input_space().make_theano_batch(name="%s[X]" % self.__class__.__name__)
         self.topo = not X.ndim == 2
+
+        if config.compute_test_value == 'raise':
+            if self.topo:
+                X.tag.test_value = dataset.get_batch_topo(self.batch_size)
+
         Y = T.matrix(name="%s[Y]" % self.__class__.__name__)
 
         try:
