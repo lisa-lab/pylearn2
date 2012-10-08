@@ -11,6 +11,7 @@ import numpy as np
 from theano.tensor.nnet.conv import conv2d
 from pylearn2.linear.linear_transform import LinearTransform as P2LT
 import functools
+import theano
 
 class Conv2D(OrigConv2D):
     """ Extend the TheanoLinear Conv2d class to support everything
@@ -105,12 +106,23 @@ class Conv2D(OrigConv2D):
 
         # dot(x, A.T)
         dummy_v = T.tensor4()
+        dummy_v.name = 'dummy_v'
+
+        # Since we made this variable, we need to put a tag on it
+        if theano.config.compute_test_value == 'raise':
+            dummy_v.tag.test_value = np.zeros((x.tag.test_value.shape[0],
+                self.input_space.nchannels,
+                self.input_space.shape[0],
+                self.input_space.shape[1]),
+                dtype = dummy_v.dtype)
+
         z_hs = conv2d(dummy_v, self._filters,
                 image_shape=self._img_shape,
                 filter_shape=self._filters_shape,
                 subsample=self._subsample,
                 border_mode=self._border_mode,
                 )
+
         rval, xdummy = z_hs.owner.op.grad((dummy_v, self._filters), (x,))
 
 

@@ -48,6 +48,7 @@ class BatchGradientDescent:
 
         self.max_iter = max_iter
         self.init_alpha = init_alpha
+        self.init_alpha = tuple([ float(elem) for elem in init_alpha])
 
         if inputs is None:
             inputs = []

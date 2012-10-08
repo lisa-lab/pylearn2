@@ -40,6 +40,7 @@ import theano.sparse
 from theano.tensor import TensorType
 from theano import config
 import functools
+from theano.gof.op import get_debug_values
 
 
 class Space(object):
@@ -88,6 +89,51 @@ class Space(object):
 
         return self.make_theano_batch(name = name, dtype = dtype)
 
+    def get_total_dimension(self):
+        """
+        Returns a Python int (not a theano iscalar) representing
+        the dimensionality of a point in this space.
+
+        If you format a batch of examples in this space as a
+        design matrix (i.e., VectorSpace batch) then the
+        number of columns will be equal to the total dimension.
+        """
+
+        raise NotImplementedError(str(type(self))+" does not implement get_total_dimension.")
+
+    def format_as(self, batch, space):
+        """
+        batch: a theano batch which lies in the space represented by self
+        space: a Space
+
+        returns batch formatted to lie in space
+
+        Should be invertible, i.e.
+        batch should equal
+        space.format_as(self.format_as(batch, space), self)
+        """
+
+        assert self.get_total_dimension() == space.get_total_dimension()
+
+        if self == space:
+            rval = batch
+        else:
+            rval = self._format_as(batch, space)
+
+        return rval
+
+    def _format_as(self, batch, space):
+        """
+        Helper method that implements specifics of format_as for a particular subclass.
+        """
+
+        raise NotImplementedError(str(type(self))+" does not implement _format_as.")
+
+    def validate(self, batch):
+        """ Raises an exception if batch is not a valid theano batch
+        in this space. """
+
+        raise NotImplementedError(str(type(self))+" does not implement validate.")
 
 class VectorSpace(Space):
     """A space whose points are defined as fixed-length vectors."""
@@ -123,6 +169,49 @@ class VectorSpace(Space):
         else:
             return T.matrix(name=name, dtype=dtype)
 
+    @functools.wraps(Space.get_total_dimension)
+    def get_total_dimension(self):
+        return self.dim
+
+    @functools.wraps(Space._format_as)
+    def _format_as(self, batch, space):
+
+        if isinstance(space, CompositeSpace):
+            pos = 0
+            pieces = []
+            for component in space.components:
+                width = component.get_total_dimension()
+                subtensor = batch[:,pos:pos+width]
+                pos += width
+                formatted = VectorSpace(width).format_as(subtensor, component)
+                pieces.append(formatted)
+            return tuple(pieces)
+
+        if isinstance(space, Conv2DSpace):
+            if space.axes[0] != 'b':
+                raise NotImplementedError("Will need to reshape to ('b',*) then do a dimshuffle. Be sure to make this the inverse of space._format_as(x, self)")
+            dims = { 'b' : batch.shape[0], 'c' : space.nchannels, 0 : space.shape[0], 1 : space.shape[1] }
+
+            shape = tuple( [ dims[elem] for elem in space.axes ] )
+
+            rval = batch.reshape(shape)
+
+            return rval
+
+        raise NotImplementedError("VectorSpace doesn't know how to format as "+str(type(space)))
+
+    def __eq__(self, other):
+        return type(self) == type(other) and self.dim == other.dim
+
+    def validate(self, batch):
+        if not isinstance(batch, theano.gof.Variable):
+            raise TypeError()
+        if not self.sparse and not isinstance(batch.type, theano.tensor.TensorType):
+            raise TypeError()
+        if self.sparse and not isinstance(batch.type, theano.sparse.SparseType):
+            raise TypeError()
+        if batch.ndim != 2:
+            raise ValueError()
 
 class Conv2DSpace(Space):
     """A space whose points are defined as (multi-channel) images."""
@@ -158,6 +247,12 @@ class Conv2DSpace(Space):
             axes = ('b', 0, 1, 'c')
         assert len(axes) == 4
         self.axes = axes
+
+    def __eq__(self, other):
+        return type(self) == type(other) and \
+                self.shape == other.shape and \
+                self.nchannels == other.nchannels \
+                and self.axes == other.axes
 
     @functools.wraps(Space.get_origin)
     def get_origin(self):
@@ -205,4 +300,105 @@ class Conv2DSpace(Space):
         shuffle = [ src_axes.index(elem) for elem in dst_axes ]
 
         return tensor.dimshuffle(*shuffle)
+
+    @functools.wraps(Space.get_total_dimension)
+    def get_total_dimension(self):
+        return self.shape[0] * self.shape[1] * self.nchannels
+
+    @functools.wraps(Space.validate)
+    def validate(self, batch):
+        if not isinstance(batch, theano.gof.Variable):
+            raise TypeError()
+        if not isinstance(batch.type, theano.tensor.TensorType):
+            raise TypeError()
+        if batch.ndim != 4:
+            raise ValueError()
+        for val in get_debug_values(batch):
+            assert val.shape[self.axes.index('c')] == self.nchannels
+            for coord in [0,1]:
+                assert val.shape[self.axes.index(coord)] == self.shape[coord]
+
+    @functools.wraps(Space._format_as)
+    def _format_as(self, batch, space):
+        self.validate(batch)
+        if isinstance(space, VectorSpace):
+            if self.axes[0] != 'b':
+                raise NotImplementedError("Need to dimshuffle so b is first axis before reshape")
+            return batch.reshape((batch.shape[0], self.get_total_dimension()))
+        if isinstance(space, Conv2DSpace):
+            return Conv2DSpace.convert(batch, self.axes, space.axes)
+        raise NotImplementedError("Conv2DSPace doesn't know how to format as "+str(type(space)))
+
+class CompositeSpace(Space):
+    """A Space whose points are tuples of points in other spaces """
+    def __init__(self, components):
+        assert isinstance(components, (list, tuple))
+        self.num_components = len(components)
+        assert all([isinstance(component, Space) for component in components])
+        self.components = list(components)
+
+    def __eq__(self, other):
+        return type(self) == type(other) and \
+            len(self.components) == len(other.components) and \
+            all([my_component == other_component for
+                my_component, other_component in \
+                zip(self.my_components, other.components)])
+
+    def restrict(self, subset):
+        """Returns a new Space containing only the components whose indices
+        are given in subset.
+
+        The new space will contain the components in the order given in the
+        subset list.
+
+        Note that the returned Space may not be a CompositeSpace if subset
+        contains only one index.
+        """
+
+        assert isinstance(subset, (list, tuple))
+
+        if len(subset) == 1:
+            idx, = subset
+            return self.components[idx]
+
+        return CompositeSpace([self.components[i] for i in subset])
+
+    def restrict_batch(self, batch, subset):
+        """Returns a batch containing only the components whose indices are present
+        in subset. May not be a tuple anymore if there is only one index. Outputs
+        will be ordered in the order that they appear in subset."""
+
+        self.validate(batch)
+        assert isinstance(subset, (list, tuple))
+
+        if len(subset) == 1:
+            idx, = subset
+            return batch[idx]
+
+        return tuple([batch[idx] for idx in subset])
+
+    @functools.wraps(Space.get_total_dimension)
+    def get_total_dimension(self):
+        return sum([component.get_total_dimension() for component in
+            self.components])
+
+    @functools.wraps(Space._format_as)
+    def _format_as(self, batch, space):
+        if isinstance(space, VectorSpace):
+            pieces = []
+            for component, input_piece in zip(self.components, batch):
+                width = component.get_total_dimension()
+                pieces.append(component.format_as(input_piece, VectorSpace(width)))
+            return T.concatenate(pieces, axis=1)
+
+        raise NotImplementedError("CompositeSpace does not know how to format as "+str(space))
+
+    @functools.wraps(Space.validate)
+    def validate(self, batch):
+        if not isinstance(batch, tuple):
+            raise TypeError()
+        if len(batch) != self.num_components:
+            raise ValueError()
+        for batch_elem, component in zip(batch, self.components):
+            component.validate(batch_elem)
 
