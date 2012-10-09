@@ -39,7 +39,8 @@ def run_pyflakes(no_warnings = False):
             #the file contains errors, so it's not clear how to detect if
             #pyflakes failed
             #however, if pyflakes just plain isn't installed we should get 127
-            raise RuntimeError("Couldn't run 'pyflakes "+filepath+"'."\
+            raise RuntimeError("Couldn't run 'pyflakes "+filepath+"'. "
+                    "Error code returned:" + str(rc)\
                     + "Output was: "+output)
 
         output = _filter(output, no_warnings)
