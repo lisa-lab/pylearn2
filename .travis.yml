@@ -15,8 +15,11 @@ language: c
 # command to install dependencies
 before_install:
   - sudo apt-get install -qq libatlas3gf-base libatlas-dev
-  - sudo apt-get install -qq python-numpy python-scipy python-pip python-nose
-  - sudo apt-get install -qq python-yaml pyflakes python-imaging
+    python-numpy python-scipy python-pip python-nose python-yaml
+    pyflakes python-imaging
+#  - sudo apt-get install -qq libatlas3gf-base libatlas-dev
+#  - sudo apt-get install -qq python-numpy python-scipy python-pip python-nose
+#  - sudo apt-get install -qq python-yaml pyflakes python-imaging
 
 # The "|| cat ..." part prints the error log if the pip command fails
 install:
@@ -31,9 +34,9 @@ install:
 
 script:
 # Echo some things
-  - echo $PYTHONPATH
-  - python --version
-  - python -c 'import scipy; print scipy.__version__, scipy.__file__'
+#  - echo $PYTHONPATH
+#  - python --version
+#  - python -c 'import scipy; print scipy.__version__, scipy.__file__'
 # Start testing
   - cd pylearn2/scripts/train_example/
 #We can't build the test dataset as the original is not present. We can't download the original as it
