@@ -16,7 +16,7 @@ class TestFilterActs(unittest.TestCase):
     def setUp(self):
         skip_if_no_gpu()
 
-    def test_match_valid_conv():
+    def test_match_valid_conv(self):
 
         # Tests that running FilterActs with no padding is the same as running
         # theano's conv2D in valid mode

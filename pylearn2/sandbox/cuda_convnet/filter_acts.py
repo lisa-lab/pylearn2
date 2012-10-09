@@ -59,12 +59,11 @@ class FilterActs(GpuOp):
     Currently, this op must be inserted manually, not by optimizations.
 
 
-    images:          (numImgColors, imgSizeY, imgSizeX, numImages) with stride given
-    filters:         (channels, rows, cols, filter idx)
+    images:          (channels, rows, cols, batch_size)
+    filters:         (input channels, filter rows, filter cols, output channels)
                      rows must be the same as cols
 
-    targets:         (numFilters, numModulesY, numModulesX, numImages)
-    colorIndices:    (numGroups, numFilterColors)
+    output:         (output channels, output rows, output cols, batch size)
 
     Note: all of these convolution routines are optimized for the case when
     the number of images (i.e. the minibatch size) is a multiple of 128.

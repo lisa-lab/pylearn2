@@ -1,4 +1,7 @@
-""" Helper functions for determining which tests to skip. """
+"""
+Helper functions for determining which tests to skip.
+"""
+
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -7,6 +10,7 @@ __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 from nose.plugins.skip import SkipTest
 import os
+from theano.sandbox import cuda
 
 scipy_works = True
 try:
@@ -33,3 +37,8 @@ def skip_if_no_scipy():
 def skip_if_no_sklearn():
     if not sklearn_works:
         raise SkipTest()
+
+def skip_if_no_gpu():
+    if cuda.cuda_available == False:
+        raise SkipTest('Optional package cuda disabled.')
+
