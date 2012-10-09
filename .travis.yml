@@ -1,7 +1,11 @@
 # After changing this file, check it on:
 # http://lint.travis-ci.org/
 
+## Use language: c to avoid being trapped in a virtualenv,
+# so we can use "apt-get" (instead of "pip" )to install scipy,
+# as pip takes much too long.
 language: c
+
 #language: python
 #python:
 #Currently we use functools.cmp_to_key that is available only in python 2.7
@@ -10,22 +14,21 @@ language: c
 
 # command to install dependencies
 before_install:
-#  - ls -al ~/virtualenv/python2.7/bin
-#  - cat ~/virtualenv/python2.7/bin/activate
   - sudo apt-get install -qq libatlas3gf-base libatlas-dev
-  - sudo apt-get install python-numpy python-scipy python-pip
+  - sudo apt-get install -qq python-numpy python-scipy python-pip
+  - sudo apt-get install -qq python-yaml pyflakes python-imaging
 
 install:
 #If we don't install numpy before SciPy 0.10.1, the SciPy installations fails.
 #  - "pip install -q pyyaml pyflakes --use-mirrors"
-  - "sudo pip install -q pyyaml pyflakes --use-mirrors || cat /home/travis/.pip/pip.log"
+#  - "sudo pip install -q pyyaml pyflakes --use-mirrors || cat /home/travis/.pip/pip.log"
 #  - "pip install -q numpy --use-mirrors"
 # Use Pillow instead of PIL as it is better packaged
-  - "sudo pip install -q Pillow --use-mirrors || cat /home/travis/.pip/pip.log"
+#  - "sudo pip install -q Pillow --use-mirrors || cat /home/travis/.pip/pip.log"
   - "sudo pip install -q git+git://git.assembla.com/jobman.git || cat /home/travis/.pip/pip.log"
 #We can't install SciPy as there is no BLAS installed.
   - "sudo pip install -q --no-deps git+git://github.com/Theano/Theano.git || cat /home/travis/.pip/pip.log"
-  - "sudo pip install . --no-deps --use-mirrors || cat /home/travis/.pip/pip.log"
+#?  - "sudo pip install . --no-deps --use-mirrors || cat /home/travis/.pip/pip.log"
 # command to run tests
 #env:
 #  - PART="theano/tensor/nnet/ theano/tensor/signal/ theano/compile/ theano/gof/ theano/misc/ theano/scalar/ theano/tests/"
@@ -41,8 +44,5 @@ script:
   - export TRAVIS=1
   - echo $PYTHONPATH
   - python --version
-#  - python -c 'import scipy; print scipy.__version__, scipy.__file__'
- # - echo $PYTHONPATH
- # - python --version
   - python -c 'import scipy; print scipy.__version__, scipy.__file__'
-#  - theano-nose
+  - theano-nose
