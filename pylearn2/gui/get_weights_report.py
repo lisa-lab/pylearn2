@@ -65,7 +65,7 @@ def get_weights_report(model_path = None, model = None, rescale = 'individual', 
     try:
         weights_view = model.get_weights_topo()
         h = weights_view.shape[0]
-    except AttributeError, e:
+    except NotImplementedError:
 
         if dataset is None:
             print 'loading dataset...'

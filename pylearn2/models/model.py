@@ -81,6 +81,11 @@ class Model(object):
 
         raise NotImplementedError(str(type(self))+" does not implement get_weights (perhaps by design)")
 
+    def get_weights_topo(self):
+
+        raise NotImplementedError(str(type(self))+" does not implement get_weights_topo (perhaps by design)")
+
+
     def score(self, V):
         """
         Compute a "score function" for this model, if this model has
