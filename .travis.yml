@@ -18,31 +18,28 @@ before_install:
   - sudo apt-get install -qq python-numpy python-scipy python-pip python-nose
   - sudo apt-get install -qq python-yaml pyflakes python-imaging
 
+# The "|| cat ..." part prints the error log if the pip command fails
 install:
-#If we don't install numpy before SciPy 0.10.1, the SciPy installations fails.
-#  - "pip install -q pyyaml pyflakes --use-mirrors"
-#  - "sudo pip install -q pyyaml pyflakes --use-mirrors || cat /home/travis/.pip/pip.log"
-#  - "pip install -q numpy --use-mirrors"
-# Use Pillow instead of PIL as it is better packaged
-#  - "sudo pip install -q Pillow --use-mirrors || cat /home/travis/.pip/pip.log"
   - "sudo pip install -q git+git://git.assembla.com/jobman.git || cat /home/travis/.pip/pip.log"
-#We can't install SciPy as there is no BLAS installed.
   - "sudo pip install -q --no-deps git+git://github.com/Theano/Theano.git || cat /home/travis/.pip/pip.log"
 #?  - "sudo pip install . --no-deps --use-mirrors || cat /home/travis/.pip/pip.log"
+
 # command to run tests
 #env:
 #  - PART="theano/tensor/nnet/ theano/tensor/signal/ theano/compile/ theano/gof/ theano/misc/ theano/scalar/ theano/tests/"
 #  - PART="theano/scan_module/ theano/sandbox theano/sparse"
 
 script:
-#  - cd pylearn2/scripts/train_example/
-#We can't build the test dataset as the original is not present. We can't download the original as it
-# is too big to download each time. If present run: python make_dataset.py
-#  - wget http://www.iro.umontreal.ca/~lisa/datasets/cifar10_preprocessed_train.pkl
-#  - cd ../../..
-  - export THEANO_FLAGS=warn.ignore_bug_before=all,on_opt_error=raise,on_shape_error=raise
-  - export TRAVIS=1
+# Echo some things
   - echo $PYTHONPATH
   - python --version
   - python -c 'import scipy; print scipy.__version__, scipy.__file__'
+# Start testing
+  - cd pylearn2/scripts/train_example/
+#We can't build the test dataset as the original is not present. We can't download the original as it
+# is too big to download each time. If present run: python make_dataset.py
+  - wget http://www.iro.umontreal.ca/~lisa/datasets/cifar10_preprocessed_train.pkl
+  - cd ../../..
+  - export THEANO_FLAGS=warn.ignore_bug_before=all,on_opt_error=raise,on_shape_error=raise
+  - export TRAVIS=1
   - theano-nose
