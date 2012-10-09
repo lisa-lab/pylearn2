@@ -15,7 +15,7 @@ language: c
 # command to install dependencies
 before_install:
   - sudo apt-get install -qq libatlas3gf-base libatlas-dev
-  - sudo apt-get install -qq python-numpy python-scipy python-pip
+  - sudo apt-get install -qq python-numpy python-scipy python-pip python-nose
   - sudo apt-get install -qq python-yaml pyflakes python-imaging
 
 install:
