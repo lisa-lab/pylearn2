@@ -34,14 +34,16 @@ def run_pyflakes(no_warnings = False):
 
     for filepath in files:
         output, rc = run_shell_command('pyflakes '+filepath)
-        if rc not in [0,1]:
+        if rc not in [0, 1, 5]:
             #pyflakes will return 1 if you give it an invalid file or if
             #the file contains errors, so it's not clear how to detect if
             #pyflakes failed
+            # pyflakes may also return 5 (for instance, on Travis-CI) for
+            # errors
             #however, if pyflakes just plain isn't installed we should get 127
             raise RuntimeError("Couldn't run 'pyflakes "+filepath+"'. "
                     "Error code returned:" + str(rc)\
-                    + "Output was: "+output)
+                    + " Output was: "+output)
 
         output = _filter(output, no_warnings)
 
