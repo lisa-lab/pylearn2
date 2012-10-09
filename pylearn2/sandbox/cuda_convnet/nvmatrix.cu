@@ -28,7 +28,7 @@
 #include <vector>
 #include <assert.h>
 #include <cublas.h>
-#include <cutil_inline.h>
+//#include <cutil_inline.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <fstream>
@@ -52,6 +52,35 @@ pthread_mutex_t* NVMatrix::makeMutex() {
     pthread_mutex_t* m = (pthread_mutex_t*) malloc(sizeof(pthread_mutex_t));
     pthread_mutex_init(m, NULL);
     return m;
+}
+
+NVMatrix::NVMatrix(const CudaNdarray * view,
+		int numRows, int numCols)
+{
+    //Check that the array is contiguous
+    const int * dims = CudaNdarray_HOST_DIMS(view);
+    const int * strides = CudaNdarray_HOST_STRIDES(view);
+    int total = 1;
+    for (int i = 0; i < view->nd; i++)
+    {
+	if (i + 1 == view->nd)
+	{
+	    assert(strides[i] == 4);
+        total *= dims[i];
+    }
+
+
+    //Check that there is the right total amount of elements
+    assert(total == numRows * numCols);
+
+    //Make the view
+    _numRows = numRows;
+    _numCols = numCols;
+    _numElements = numRows * numCols;
+    _ownsData = false;
+    _isTrans = false;
+    _devData = view->devdata;
+    _stride = getLeadingDim();
 }
 
 void NVMatrix::_init(int numRows, int numCols, int stride, bool isTrans) {
@@ -123,7 +152,9 @@ NVMatrix::NVMatrix(float* devData, int numRows, int numCols, int stride, bool is
 
 NVMatrix::~NVMatrix() {
     if(_ownsData && _numElements > 0) {
-        cublasStatus status = cublasFree(_devData);
+	// This line was modified by Ian Goodfellow to use device_free
+	// so that theano may keep track of device memory usage
+        cublasStatus status = device_free(_devData);
         if (status != CUBLAS_STATUS_SUCCESS) {
             fprintf(stderr, "!!!! memory free error\n");
             exit(EXIT_FAILURE);
@@ -268,6 +299,11 @@ void NVMatrix::_binaryRandomize(NVMatrix& data2, NVMatrix& target, Randomizer rn
     cutilCheckMsg("kBinaryRandomize: Kernel execution failed");
 }
 
+/* Function removed by Ian Goodfellow.
+We do not need this function in theano / pylearn2 and it uses cudaMalloc directly.
+If you need to enable it, modify it to use device_malloc instead.
+Otherwise, theano will not be able to keep track of how much memory is used on
+the device.
 void NVMatrix::initRandom(unsigned long long seed) {
     assert(!isRndInitialized());
     pthread_mutex_lock(_rndMutex);
@@ -278,6 +314,7 @@ void NVMatrix::initRandom(unsigned long long seed) {
     kSetupCurand<<<NUM_RND_BLOCKS, NUM_RND_THREADS_PER_BLOCK>>>(getCurandState(), 1 + seed*2); // so there's no chance it'll be correlated with the other one
     cutilCheckMsg("initRandom: Kernel execution failed");
 }
+*/
 
 void NVMatrix::initRandom() {
     NVMatrix::initRandom(time(0));
@@ -305,6 +342,8 @@ bool NVMatrix::isRndInitialized() {
     return b;
 }
 
+/* Function removed by Ian Goodfellow due to not needing
+   it and it using cudaFree instead of device_free 
 void NVMatrix::destroyRandom() {
     assert(isRndInitialized());
     int d = getDeviceID();
@@ -313,7 +352,7 @@ void NVMatrix::destroyRandom() {
     CUDA_CALL(cudaFree(rndDevStates[d]));
     rndDevStates.erase(d);
     pthread_mutex_unlock(_rndMutex);
-}
+} */
 
 void NVMatrix::binarizeProbs() {
     binarizeProbs(*this);
@@ -458,7 +497,10 @@ void NVMatrix::sliceCols(int startCol, int endCol, NVMatrix& target) const {
 /*
  * Guaranteed to not change the data if the number of elements doesn't change.
  * So you can use this to "reshape" a matrix.
- */
+
+Function removed by Ian Goodfellow due to not needing it and it using
+cudaFree instead of device_free
+
 bool NVMatrix::resize(int numRows, int numCols) {
     bool reallocated = false;
     if (numRows != _numRows || numCols != _numCols) {
@@ -489,6 +531,7 @@ bool NVMatrix::resize(int numRows, int numCols) {
     }
     return reallocated;
 }
+*/
 
 bool NVMatrix::resize(const NVMatrix& like) {
     setTrans(like.isTrans());

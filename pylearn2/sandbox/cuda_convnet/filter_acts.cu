@@ -24,7 +24,7 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <cutil_inline.h>
+//#include <cutil_inline.h>
 #include <nvmatrix.cuh>
 #include <cudaconv2.cuh>
 

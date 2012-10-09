@@ -1,4 +1,8 @@
 /* 
+ * This file was copied from cuda-convnet by Alex Krizhevsky
+ * It has been modified slightly by Ian Goodfellow for use with
+ * theano / pylearn2
+ *
  * Copyright (c) 2011, Alex Krizhevsky (akrizhevsky@gmail.com)
  * All rights reserved.
  *
@@ -36,7 +40,7 @@
 #include <cublas.h>
 #include <cuda.h>
 #include <curand.h>
-#include <cutil_inline.h>
+//#include <cutil_inline.h>
 #include <time.h>
 #include <curand_kernel.h>
 
@@ -101,6 +105,10 @@ public:
     NVMatrix(int numRows, int numCols, bool isTrans=false);
     NVMatrix(const Matrix& like, bool copy);
     NVMatrix(const NVMatrix& like, bool copy);
+
+    //Constructor added by Ian Goodfellow. Make a view of a CudaNdarray.
+    NVMatrix(const CudaNdarray * view, int numRows, int numCols)
+
     NVMatrix(const NVMatrix& like);
     NVMatrix(const Matrix& like);
     NVMatrix(float* devData, int numRows, int numCols, int stride, bool isTrans);

@@ -27,7 +27,7 @@
 #ifndef COMMON_CUH
 #define	COMMON_CUH
 
-#include <cutil_inline.h>
+//#include <cutil_inline.h>
 #include <nvmatrix.cuh>
 #include "conv_util.cuh"
 
