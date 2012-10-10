@@ -28,7 +28,7 @@
 #include <vector>
 #include <assert.h>
 #include <cublas.h>
-//#include <cutil_inline.h>
+#include <cutil_inline.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <fstream>
@@ -65,13 +65,28 @@ NVMatrix::NVMatrix(const CudaNdarray * view,
     {
 	if (i + 1 == view->nd)
 	{
-	    assert(strides[i] == 4);
+	    assert(strides[i] == 1);
+	}
+	else
+	{
+	    assert(strides[i] == dims[i+1] * strides[i+1]);
+	}
         total *= dims[i];
     }
 
 
-    //Check that there is the right total amount of elements
-    assert(total == numRows * numCols);
+    //Check that view actually contains numRows * numCols elements
+    if (total != numRows * numCols)
+    {
+	    fprintf(stderr, "NVMatrix asked to make a view of a CudaNdarray with %d elements",total);
+	    fprintf(stderr, " but told to arrange these in a %d x %d rectangle (of total size %d).\n",
+			    numRows, numCols, numRows * numCols);
+	    fprintf(stderr, "CudaNdarray dims: ");
+	    for (int i = 0; i < view->nd; i++)
+		    fprintf(stderr, "%d ", dims[i]);
+	    fprintf(stderr, "\n");
+	    assert(false);
+    }
 
     //Make the view
     _numRows = numRows;
@@ -110,12 +125,14 @@ NVMatrix::NVMatrix(int numRows, int numCols, bool isTrans) {
     _init(numRows, numCols, -1, isTrans);
 }
 
+/*
 NVMatrix::NVMatrix(const Matrix& like, bool copy) {
     _init(like.getNumRows(), like.getNumCols(), -1, like.isTrans());
     if (copy) {
         copyFromHost(like);
     }
 }
+*/
 
 NVMatrix::NVMatrix(const NVMatrix& like, bool copy) {
     _init(like.getNumRows(), like.getNumCols(), -1, like.isTrans());
@@ -135,10 +152,10 @@ NVMatrix::NVMatrix(const NVMatrix& like) {
 /*
  * Initializes NVMatrix with same dimensions as given matrix but
  * does not copy any data.
- */
 NVMatrix::NVMatrix(const Matrix& like) {
     _init(like.getNumRows(), like.getNumCols(), -1, false);
 }
+ */
 
 NVMatrix::NVMatrix(float* devData, int numRows, int numCols, int stride, bool isTrans) :
     _numRows(numRows),
@@ -154,14 +171,15 @@ NVMatrix::~NVMatrix() {
     if(_ownsData && _numElements > 0) {
 	// This line was modified by Ian Goodfellow to use device_free
 	// so that theano may keep track of device memory usage
-        cublasStatus status = device_free(_devData);
-        if (status != CUBLAS_STATUS_SUCCESS) {
+        int status = device_free(_devData);
+        if (status != 0) {
             fprintf(stderr, "!!!! memory free error\n");
             exit(EXIT_FAILURE);
         }
     }
 }
 
+/*
 void NVMatrix::copyFromHost(const Matrix& hostMatrix, bool resizeDeviceMatrix) {
     if (resizeDeviceMatrix) {
         resize(hostMatrix);
@@ -205,6 +223,7 @@ void NVMatrix::copyToHost(Matrix& hostMatrix, bool resizeTarget) const {
     }
     copyToHost(hostMatrix);
 }
+*/
 
 void NVMatrix::copy(NVMatrix& dest) const {
     dest.resize(*this);
@@ -314,11 +333,11 @@ void NVMatrix::initRandom(unsigned long long seed) {
     kSetupCurand<<<NUM_RND_BLOCKS, NUM_RND_THREADS_PER_BLOCK>>>(getCurandState(), 1 + seed*2); // so there's no chance it'll be correlated with the other one
     cutilCheckMsg("initRandom: Kernel execution failed");
 }
-*/
 
 void NVMatrix::initRandom() {
     NVMatrix::initRandom(time(0));
 }
+*/
 
 curandState* NVMatrix::getCurandState() {
     pthread_mutex_lock(_rndMutex);
@@ -497,9 +516,7 @@ void NVMatrix::sliceCols(int startCol, int endCol, NVMatrix& target) const {
 /*
  * Guaranteed to not change the data if the number of elements doesn't change.
  * So you can use this to "reshape" a matrix.
-
-Function removed by Ian Goodfellow due to not needing it and it using
-cudaFree instead of device_free
+ */
 
 bool NVMatrix::resize(int numRows, int numCols) {
     bool reallocated = false;
@@ -507,8 +524,9 @@ bool NVMatrix::resize(int numRows, int numCols) {
         assert(_ownsData);
         if (_numElements != numRows * numCols) {
             if (_numElements > 0) { // free old memory
-                cublasStatus status = cublasFree(_devData);
-                if (status != CUBLAS_STATUS_SUCCESS) {
+		// This line was modified by Ian Goodfellow to use device_free so theano may track device memory usage accurately
+                int status = device_free(_devData);
+                if (status != 0) {
                     fprintf(stderr, "!!!! memory free error: %X\n", status);
                     exit(EXIT_FAILURE);
                 }
@@ -531,17 +549,18 @@ bool NVMatrix::resize(int numRows, int numCols) {
     }
     return reallocated;
 }
-*/
 
 bool NVMatrix::resize(const NVMatrix& like) {
     setTrans(like.isTrans());
     return resize(like.getNumRows(), like.getNumCols());
 }
 
+/*
 bool NVMatrix::resize(const Matrix& like) {
     setTrans(like.isTrans());
     return resize(like.getNumRows(), like.getNumCols());
 }
+*/
 
 void NVMatrix::reshape(int numRows, int numCols) {
     assert(isContiguous());
@@ -738,7 +757,6 @@ void NVMatrix::eltwiseDivideByVector(NVMatrix& vec, NVMatrix& target) {
  *
  * TODO: this is a mess, fix it. it works pretty fast but it's too ugly.
  * TODO: this function is _really_ bad for very long aggregations of few columns.
- */
 template<class Agg, class BinaryOp>
 void NVMatrix::_aggregate(int axis, NVMatrix& target, Agg agg, BinaryOp op) {
     assert(axis == 0 || axis == 1);
@@ -846,6 +864,7 @@ void NVMatrix::_aggregate(int axis, NVMatrix& target, Agg agg, BinaryOp op) {
         }
     }
 }
+ */
 
 void NVMatrix::inRangeInc(float lower, float upper) {
     inRangeInc(lower, upper, *this);
@@ -924,6 +943,7 @@ void NVMatrix::scale(float _scale, NVMatrix& target) {
     }
 }
 
+/*
 template<class Agg, class BinaryOp>
 NVMatrix& NVMatrix::_aggregate(int axis, Agg agg, BinaryOp op) {
     NVMatrix *sumVec = new NVMatrix();
@@ -963,6 +983,7 @@ NVMatrix& NVMatrix::sum(int axis) {
 NVMatrix& NVMatrix::min(int axis) {
     return _aggregate(axis, NVMatrixAggs::Min(), NVMatrixBinaryOps::Second());
 }
+*/
 
 void NVMatrix::_sum_setParams(int n, dim3* blocks, dim3* threads, int* numCols) {
     int logn = int(ceil(log(double(n)) / log(2)));
@@ -972,6 +993,7 @@ void NVMatrix::_sum_setParams(int n, dim3* blocks, dim3* threads, int* numCols) 
     *threads = dim3(DP_BLOCKSIZE);
 }
 
+/*
 float NVMatrix::mean() {
     return sum() / getNumElements();
 }
@@ -1020,10 +1042,10 @@ float NVMatrix::_totalAgg(Agg agg) {
     }
     return srcCPU(0,0);
 }
+*/
 
 /*
  * Fast dot product only for matrices with same transposedness.
- */
 float NVMatrix::dotProduct(NVMatrix& b) {
     assert(isContiguous() && b.isContiguous());
     assert(isSameDims(b));
@@ -1045,7 +1067,9 @@ float NVMatrix::norm2() {
 float NVMatrix::norm() {
     return sqrt(norm2());
 }
+ */
 
+/*
 void NVMatrix::print(int startRow, int rows, int startCol, int cols) const {
     cudaThreadSynchronize();
     Matrix hm = Matrix(_numRows, _numCols);
@@ -1056,6 +1080,7 @@ void NVMatrix::print(int startRow, int rows, int startCol, int cols) const {
 void NVMatrix::print(int rows, int cols) const {
     print(0, rows, 0, cols);
 }
+*/
 
 void NVMatrix::printShape(const char* name) const {
     printf("%s: %dx%d\n", name, _numRows, _numCols);

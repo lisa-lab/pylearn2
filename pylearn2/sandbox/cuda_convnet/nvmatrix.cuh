@@ -40,11 +40,12 @@
 #include <cublas.h>
 #include <cuda.h>
 #include <curand.h>
-//#include <cutil_inline.h>
+#include <cutil_inline.h>
 #include <time.h>
 #include <curand_kernel.h>
 
-#include <matrix.h>
+//Commented by Ian Goodfellow-- we don't actually need this dependency, it just increase theano compile times
+//#include <matrix.h>
 #include "nvmatrix_kernels.cuh"
 #include "nvmatrix_operators.cuh"
 
@@ -94,28 +95,32 @@ private:
     void _init(int numRows, int numCols);
     void _init(int numRows, int numCols, int stride, bool isTrans);
     void _sum_setParams(int n, dim3* blocks, dim3* threads, int* numCols);
-    template<class Agg> float _totalAgg(Agg agg);
-    template<class Agg, class BinaryOp> void _aggregate(int axis, NVMatrix& target, Agg agg, BinaryOp op);
-    template<class Agg, class BinaryOp> NVMatrix& _aggregate(int axis, Agg agg, BinaryOp op);
+    // Commented by Ian Goodfellow because it depends on Matrix
+    // template<class Agg> float _totalAgg(Agg agg);
+    // Commented by Ian Goodfellow. Not sure if necessary
+    // template<class Agg, class BinaryOp> void _aggregate(int axis, NVMatrix& target, Agg agg, BinaryOp op);
+    // template<class Agg, class BinaryOp> NVMatrix& _aggregate(int axis, Agg agg, BinaryOp op);
     template <class Randomizer> void _unaryRandomize(NVMatrix& target, Randomizer rnd);
     template <class Randomizer> void _binaryRandomize(NVMatrix& data2, NVMatrix& target, Randomizer rnd);   
 public:
     NVMatrix();
     NVMatrix(bool isTrans);
     NVMatrix(int numRows, int numCols, bool isTrans=false);
-    NVMatrix(const Matrix& like, bool copy);
+    // Commented by IG. Depends on Matrix
+    //NVMatrix(const Matrix& like, bool copy);
     NVMatrix(const NVMatrix& like, bool copy);
 
     //Constructor added by Ian Goodfellow. Make a view of a CudaNdarray.
-    NVMatrix(const CudaNdarray * view, int numRows, int numCols)
+    NVMatrix(const CudaNdarray * view, int numRows, int numCols);
 
     NVMatrix(const NVMatrix& like);
-    NVMatrix(const Matrix& like);
+    // Commented by IG. Depends on Matrix
+    // NVMatrix(const Matrix& like);
     NVMatrix(float* devData, int numRows, int numCols, int stride, bool isTrans);
     ~NVMatrix();
 
-    static void initRandom(unsigned long long seed);
-    static void initRandom();
+    // static void initRandom(unsigned long long seed);
+    // static void initRandom();
     static int getDeviceID();
     static bool isRndInitialized();
     static curandState* getCurandState();
@@ -132,9 +137,10 @@ public:
         return &_devData[i * _numCols + j];
     }
 
-    bool isSameDims(const Matrix& m) const {
-        return m.getNumRows() == _numRows && m.getNumCols() == _numCols;
-    }
+    // Commented by IG. Depends on Matrix
+    // bool isSameDims(const Matrix& m) const {
+    //    return m.getNumRows() == _numRows && m.getNumCols() == _numCols;
+    //}
 
     bool isSameDims(const NVMatrix& m) const {
         return m.getNumRows() == _numRows && m.getNumCols() == _numCols;
@@ -208,11 +214,11 @@ public:
         resize(0,0);
     }
    
-
-    void copyFromHost(const Matrix& hostMatrix);
-    void copyFromHost(const Matrix& hostMatrix, bool resizeDeviceMatrix);
-    void copyToHost(Matrix& hostMatrix) const;
-    void copyToHost(Matrix& hostMatrix, bool resizeTarget) const;
+    // Commented by IG. Depends on Matrix
+    // void copyFromHost(const Matrix& hostMatrix);
+    // void copyFromHost(const Matrix& hostMatrix, bool resizeDeviceMatrix);
+    // void copyToHost(Matrix& hostMatrix) const;
+    // void copyToHost(Matrix& hostMatrix, bool resizeTarget) const;
     void copy(NVMatrix& dest) const;
     NVMatrix& copy() const;
     void addProduct(const NVMatrix& a, const NVMatrix &b, float scaleThis, float scaleAB);
@@ -348,7 +354,8 @@ public:
 
     bool resize(int numRows, int numCols);
     bool resize(const NVMatrix &like);
-    bool resize(const Matrix &like);
+    // Commented by IG. Depends on Matrix
+    // bool resize(const Matrix &like);
     void reshape(int numRows, int numCols);
     NVMatrix& reshaped(int numRows, int numCols);
     void copy(NVMatrix &dest, int srcStartRow, int srcEndRow, int srcStartCol, int srcEndCol, int destStartRow, int destStartCol) const;
@@ -378,6 +385,7 @@ public:
     void eltwiseDivideByVector(NVMatrix& vec);
     void tile(int timesY, int timesX, NVMatrix& target);
 
+    /* Commented by IG. Depends on _aggregate
     void addSum(NVMatrix& a, int axis, float scaleThis, float scaleSum);
     void sum(int axis, NVMatrix& target);
     NVMatrix& sum(int axis);
@@ -385,12 +393,17 @@ public:
     NVMatrix& max(int axis);
     void min(int axis, NVMatrix& target);
     NVMatrix& min(int axis);
-    float mean();
+    */
+    // Commented by IG. Depends on sum
+    // float mean();
+    /* Commented by IG. Depends on _totalAgg
     float sum();
     float max();
     float min();
+    Depend on dotProduct:
     float norm2();
     float norm();
+    */
     
     void inRangeInc(float lower, float upper);
     void inRangeInc(float lower, float upper, NVMatrix& target);
@@ -412,7 +425,8 @@ public:
     void scale(float _scale);
     void scale(float _scale, NVMatrix& target);
 
-    float dotProduct(NVMatrix& b);
+    // Commented by IG. Depends on sum
+    // float dotProduct(NVMatrix& b);
 
     /*
      * Does SOFT transpose and returns result, leaving this matrix unchanged
@@ -433,8 +447,12 @@ public:
     void flipTrans(NVMatrix& target);
     NVMatrix& flipTrans();
 
+    /*
+    Commented out by Ian Goodfellow. These methods bring in more dependencies /
+    increase the theano compile time, and we don't really need them.
     void print(int startRow, int rows, int startCol, int cols) const;
     void print(int rows, int cols) const;
+    */
     void printShape(const char* name) const;
 
     template <class Op> void applyBinaryV(Op op, NVMatrix& vec, NVMatrix& target) {
@@ -458,9 +476,11 @@ public:
     //    cudaThreadSynchronize();
     }
 
+    /* Commented by Ian Goodfellow because it depends on _totalAgg
     template<class UnaryOperator> float argMax(UnaryOperator u) {
        return _totalAgg(NVMatrixAggs::ArgMax<UnaryOperator>(u));
     }
+    */
 };
 
 #endif /* NVMATRIX_H_ */

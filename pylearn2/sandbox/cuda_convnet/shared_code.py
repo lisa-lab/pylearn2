@@ -21,12 +21,13 @@ def load_code(local_path):
     return f.read()
 
 def get_NVMatrix_code():
-    header = load_code("nvmatrix.cuh")
-    source = load_code("nvmatrix.cu")
+    header = '#include "nvmatrix.cuh"'
+    source1 = load_code("nvmatrix.cu")
+    source2 = load_code("nvmatrix_kernels.cu")
+
+    source = source1 + source2
 
     rval = header + source
 
     return rval
 
-def get_filter_acts_code():
-    raise NotImplementedError()

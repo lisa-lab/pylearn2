@@ -45,7 +45,9 @@ from theano.sandbox.cuda import GpuOp
 from theano.sandbox.cuda import CudaNdarrayType
 from theano.gof import Apply
 from pylearn2.sandbox.cuda_convnet.shared_code import get_NVMatrix_code
-from pylearn2.sandbox.cuda_convnet.shared_code import get_filter_acts_code
+from pylearn2.sandbox.cuda_convnet.shared_code import load_code
+from pylearn2.sandbox.cuda_convnet.shared_code import this_dir
+import warnings
 
 class FilterActs(GpuOp):
     """
@@ -73,6 +75,8 @@ class FilterActs(GpuOp):
 
     def __init__(self):
         self.pad = 0 # TODO: support other amounts of padding
+        self.dense_connectivity = True #TODO: support sparse connectivity pattern
+        self.stride = 1 # TODO: support other strides. TODO: figure out Alex's code. There's only one stride var, does it assume stride is same in both directions?
 
     def make_node(self, images, filters):
 
@@ -100,10 +104,18 @@ class FilterActs(GpuOp):
 
         return Apply(self, [images, filters], [targets])
 
+    def c_compile_args(self):
+        flags = ["-I"+this_dir]
+        warnings.warn("FilterActs uses -g")
+        flags += [ '-g' ]
+        return flags
+
     def c_support_code(self):
 
         rval = get_NVMatrix_code()
-        rval += get_filter_acts_code()
+        rval += '#include "cudaconv2.cuh"'
+        rval += load_code("filter_acts.cu")
+        return rval
 
     def c_code(self, node, name, inputs, outputs, sub):
 
@@ -125,36 +137,129 @@ class FilterActs(GpuOp):
         #define scaleOutput 1
         """
 
+        if self.dense_connectivity:
+            basic_setup += """
+            #define numGroups 0
+            """
+
+        if self.pad != 0:
+            raise NotImplementedError()
+        else:
+            basic_setup += """
+            #define paddingStart 0
+            """
+
+        if self.stride != 1:
+            raise NotImplementedError()
+        else:
+            basic_setup += """
+            #define moduleStride 1
+        """
+
+
         # The amount of braces that must be closed at the end
         num_braces = 0
 
+        # Convert images int nv_images, an NVMatrix, for compatibility
+        # with the cuda-convnet functions
         setup_nv_images = """
         if (%(images)s->nd != 4)
         {
             PyErr_Format(PyExc_ValueError,
-                "required nd=4, got nd=%%i, %(images)s->nd);
+                "images must have nd=4, got nd=%%i", %(images)s->nd);
             %(fail)s;
         }
 
         { //setup_nv_images brace 1
-        const int * images_dims = CudaNdarray_HOST_DIMS(images);
+        const int * images_dims = CudaNdarray_HOST_DIMS(%(images)s);
         const int img_channels = images_dims[0];
         const int imgSizeY = images_dims[1];
         const int imgSizeX = images_dims[2];
         const int batch_size = images_dims[3];
-
+        NVMatrix nv_images(%(images)s, img_channels * imgSizeY * imgSizeX, batch_size);
         """
         num_braces += 1
 
+        # Convert filters into nv_filters, an NVMatrix, for compatibility
+        # with the cuda-convnet functions
+        setup_nv_filters = """
+        if (%(filters)s->nd != 4)
+        {
+            PyErr_Format(PyExc_ValueError,
+            "filters must have nd=4, got nd=%%i", %(filters)s->nd);
+            %(fail)s;
+        }
 
-        raise NotImplementedError("""
-        TODO:
-        1) set up nv_images.
-        2) set up nv_filters.
-            check that rows == cols
-            "(numFiltersColors, filterPixels, numFilters)"
-        3) set up nv_targets
-        """)
+        { // setup_nv_filters brace 1
+        const int * filters_dims = CudaNdarray_HOST_DIMS(%(filters)s);
+        const int filter_channels = filters_dims[0];
+        const int filter_rows = filters_dims[1];
+        const int filter_cols = filters_dims[2];
+        const int num_filters = filters_dims[3];
+        """
+
+        if self.dense_connectivity:
+            setup_nv_filters += """
+            if (filter_channels != img_channels)
+            {
+                PyErr_Format(PyExc_ValueError,
+                "# input channels mismatch. images have %%d but filters have %%d.",
+                img_channels, filter_channels);
+                %(fail)s;
+            }
+            """
+
+        setup_nv_filters += """
+
+        if (filter_rows != filter_cols)
+        {
+            PyErr_Format(PyExc_ValueError,
+            "filter must be square, but have shape (%%d, %%d).",
+            filter_rows, filter_cols);
+            %(fail)s;
+        }
+
+        { // setup_nv_filters brace 2
+
+
+        NVMatrix nv_filters(%(filters)s, filter_channels * filter_rows *
+        filter_cols, num_filters);
+
+        """
+
+        num_braces += 2
+
+        if self.pad != 0:
+            raise NotImplementedError()
+        else:
+            target_rows = "imgSizeY - filter_rows + 1"
+            target_cols = "imgSizeX - filter_cols + 1"
+
+        setup_nv_targets = """
+
+
+        int target_dims [] = {
+            num_filters,
+            %(target_rows)s,
+            %(target_cols)s,
+            batch_size };
+
+        #define numModulesY target_dims[1]
+        #define numModulesX target_dims[2]
+
+        if (CudaNdarray_ensure_dims(& %(targets)s, 4, target_dims))
+        {
+            %(fail)s;
+        }
+
+        { // setup_nv_filters brace # 1
+
+        NVMatrix nv_targets(%(targets)s, target_dims[0] * target_dims[1]
+         * target_dims[2], target_dims[3]);
+
+        """
+
+        num_braces += 1
 
         # note: imgSizeX is not specified here, it is computed internally
         # (in _filterActsSparse) by the lines:
@@ -168,18 +273,27 @@ class FilterActs(GpuOp):
         # nv_filters.getNumRows() by numFilterColors
         #
         do_convolution = """
+        std::cerr << "doing convolution" << std::endl;
         convFilterActs(nv_images, nv_filters, nv_targets,
                        imgSizeY, numModulesY, numModulesX,
-                       paddingStart, moduleStride, numImgColors,
+                       paddingStart, moduleStride, img_channels,
                        numGroups, scaleTargets, scaleOutput);
+        std::cerr << "survived convolution" << std::endl;
         """
 
         braces = '}' * num_braces
 
         rval = basic_setup + \
                 setup_nv_images + \
+                setup_nv_filters + \
+                setup_nv_targets + \
                 do_convolution + \
                 braces
 
+        rval = rval % locals()
+
         return rval
 
+    def c_code_cache_version(self):
+        warnings.warn("FilterActs does not use c_code_cache_version")
+        return ()
