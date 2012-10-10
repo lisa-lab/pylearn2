@@ -16,7 +16,8 @@ language: c
 before_install:
   - sudo apt-get install -qq libatlas3gf-base libatlas-dev
     python-numpy python-scipy python-pip python-nose python-yaml
-    pyflakes python-imaging
+    #pyflakes
+    python-imaging
 #  - sudo apt-get install -qq libatlas3gf-base libatlas-dev
 #  - sudo apt-get install -qq python-numpy python-scipy python-pip python-nose
 #  - sudo apt-get install -qq python-yaml pyflakes python-imaging
