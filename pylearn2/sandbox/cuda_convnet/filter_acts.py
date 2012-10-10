@@ -108,8 +108,6 @@ class FilterActs(GpuOp):
 
     def c_compile_args(self):
         flags = ["-I"+this_dir]
-        warnings.warn("FilterActs uses -g")
-        flags += [ '-g' ]
         return flags
 
     def c_support_code(self):
