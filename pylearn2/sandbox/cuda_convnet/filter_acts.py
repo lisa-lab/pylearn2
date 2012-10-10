@@ -52,8 +52,9 @@ import warnings
 class FilterActs(GpuOp):
     """
     2D convolution implemented on GPU.
+    Technically not a true convolution, as it does not flip the kernel.
 
-    This is intended to be a very low-level, performance oriented op.
+    This is intended to be a very low-level, performance-oriented op.
 
     It will not try to fix the input for you. That would slow it down.
     The input must be in the right format. If not, it raises an exception.
@@ -64,6 +65,7 @@ class FilterActs(GpuOp):
     images:          (channels, rows, cols, batch_size)
     filters:         (input channels, filter rows, filter cols, output channels)
                      rows must be the same as cols
+                     output channels must be a multiple of 16
 
     output:         (output channels, output rows, output cols, batch size)
 
