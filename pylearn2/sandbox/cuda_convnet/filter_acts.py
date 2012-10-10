@@ -196,20 +196,22 @@ class FilterActs(GpuOp):
         const int filter_rows = filters_dims[1];
         const int filter_cols = filters_dims[2];
         const int num_filters = filters_dims[3];
-        """
 
-        if self.dense_connectivity:
-            setup_nv_filters += """
-            if (filter_channels != img_channels)
-            {
-                PyErr_Format(PyExc_ValueError,
-                "# input channels mismatch. images have %%d but filters have %%d.",
-                img_channels, filter_channels);
-                %(fail)s;
-            }
-            """
+        if (numGroups * filter_channels != img_channels)
+        {
+            PyErr_Format(PyExc_ValueError,
+            "# input channels mismatch. images have %%d but filters have %%d groups of %%d for a total of %%d.",
+            img_channels, numGroups, filter_channels, numGroups * filter_channels);
+            %(fail)s;
+        }
 
-        setup_nv_filters += """
+        if ((num_filters %% (numGroups * 16)) != 0)
+        {
+            PyErr_Format(PyExc_ValueError,
+            "Each group must have a multiple of 16 channels, but num_filters %% (numGroups * 16) = %%d %% ( %%d * 16) = %%d.",
+            num_filters, numGroups, num_filters %% (numGroups * 16));
+            %(fail)s;
+        }
 
         if (filter_rows != filter_cols)
         {
@@ -273,12 +275,10 @@ class FilterActs(GpuOp):
         # nv_filters.getNumRows() by numFilterColors
         #
         do_convolution = """
-        std::cerr << "doing convolution" << std::endl;
         convFilterActs(nv_images, nv_filters, nv_targets,
                        imgSizeY, numModulesY, numModulesX,
                        paddingStart, moduleStride, img_channels,
                        numGroups, scaleTargets, scaleOutput);
-        std::cerr << "survived convolution" << std::endl;
         """
 
         braces = '}' * num_braces
