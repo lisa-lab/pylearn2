@@ -12,8 +12,10 @@ import numpy as np
 from theano import shared
 from pylearn2.sandbox.cuda_convnet.filter_acts import FilterActs
 from theano.sandbox.cuda import gpu_from_host
+from theano.sandbox.cuda import host_from_gpu
 from theano.tensor.nnet.conv import conv2d
 from theano import function
+import warnings
 
 def test_match_valid_conv():
 
@@ -39,18 +41,35 @@ def test_match_valid_conv():
     gpu_filters = gpu_from_host(filters)
 
     output = FilterActs()(gpu_images, gpu_filters)
+    output = host_from_gpu(output)
 
     images_bc01 = images.dimshuffle(3,0,1,2)
-    filters_bc01 = images.dimshuffle(3,0,1,2)
+    filters_bc01 = filters.dimshuffle(3,0,1,2)
+    filters_bc01 = filters_bc01[:,:,::-1,::-1]
 
     output_conv2d = conv2d(images_bc01, filters_bc01,
             border_mode='valid')
+
+    output_conv2d = output_conv2d.dimshuffle(1,2,3,0)
 
     f = function([], [output, output_conv2d])
 
     output, output_conv2d = f()
 
-    assert np.allclose(output, output_conv2d)
+    warnings.warn("test_match_valid_conv success criterion is not very strict. Can we verify that this is OK?")
+    if np.abs(output - output_conv2d).max() > 2.4e-6:
+        assert type(output) == type(output_conv2d)
+        assert output.dtype == output_conv2d.dtype
+        if output.shape != output_conv2d.shape:
+            print 'cuda-convnet shape: ',output.shape
+            print 'theano shape: ',output_conv2d.shape
+            assert False
+        err = np.abs(output - output_conv2d)
+        print 'absolute error range: ', (err.min(), err.max())
+        print 'mean absolute error: ', err.mean()
+        print 'cuda-convnet value range: ', (output.min(), output.max())
+        print 'theano value range: ', (output_conv2d.min(), output_conv2d.max())
+        assert False
 
 def test_reject_rect():
 
