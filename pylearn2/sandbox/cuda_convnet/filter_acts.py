@@ -139,7 +139,7 @@ class FilterActs(GpuOp):
 
         if self.dense_connectivity:
             basic_setup += """
-            #define numGroups 0
+            #define numGroups 1
             """
 
         if self.pad != 0:
