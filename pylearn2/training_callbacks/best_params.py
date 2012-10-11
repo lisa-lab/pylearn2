@@ -58,17 +58,17 @@ class KeepBestParams(TrainingCallback):
             not used
         """
         if self.supervised:
-            self.dataset.set_iteration_scheme('sequential',
-                                              batch_size=self.batch_size,
-                                              targets=True)
+            it = self.dataset.iterator('sequential',
+                                       batch_size=self.batch_size,
+                                       targets=True)
             new_cost = numpy.mean([self.cost_function(minibatch, target)
-                                   for minibatch, target in self.dataset])
+                                   for minibatch, target in it])
         else:
-            self.dataset.set_iteration_scheme('sequential',
-                                              batch_size=self.batch_size,
-                                              targets=False)
+            it = self.dataset.iterator('sequential',
+                                       batch_size=self.batch_size,
+                                       targets=False)
             new_cost = numpy.mean([self.cost_function(minibatch)
-                                   for minibatch in self.dataset])
+                                   for minibatch in it])
         if new_cost < self.best_cost:
             self.best_cost = new_cost
             self.best_params = self.model.get_param_values()
