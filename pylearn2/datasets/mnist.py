@@ -15,7 +15,8 @@ from pylearn2.utils.mnist_ubyte import read_mnist_labels
 
 class MNIST(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, which_set, center = False, shuffle = False,
-            one_hot = False, binarize = False):
+            one_hot = False, binarize = False, start = None,
+            stop = None):
 
         if which_set not in ['train','test']:
             if which_set == 'valid':
@@ -83,6 +84,17 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
             super(MNIST,self).__init__(topo_view = topo_view , y = y)
 
             assert not N.any(N.isnan(self.X))
+
+            if start is not None:
+                assert start >= 0
+                if stop > self.X.shape[0]:
+                    raise ValueError('stop='+str(stop)+'>'+'m='+str(self.X.shape[0]))
+                assert stop > start
+                self.X = self.X[start:stop,:]
+                if self.X.shape[0] != stop - start:
+                    raise ValueError("X.shape[0]: %d. start: %d stop: %d" % (self.X.shape[0], start, stop))
+                self.y = self.y[start:stop,:]
+                assert self.y.shape[0] == stop - start
         else:
             #data loading is disabled, just make something that defines the right topology
             topo = np.zeros((1,28,28,1))
