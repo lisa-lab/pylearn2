@@ -114,11 +114,13 @@ Original exception: """+str(e))
 
         weights_view = dataset.get_weights_view(W)
         assert weights_view.shape[0] == h
-    #print 'weights_view shape '+str(weights_view.shape)
-    hr = int(np.ceil(np.sqrt(h)))
-    hc = hr
-    if 'hidShape' in dir(model):
-        hr, hc = model.hidShape
+    try:
+        hr, hc = model.get_weights_view_shape()
+    except NotImplementedError:
+        hr = int(np.ceil(np.sqrt(h)))
+        hc = hr
+        if 'hidShape' in dir(model):
+            hr, hc = model.hidShape
 
     pv = patch_viewer.PatchViewer(grid_shape=(hr,hc), patch_shape=weights_view.shape[1:3],
             is_color = weights_view.shape[-1] == 3)

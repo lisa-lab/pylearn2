@@ -27,6 +27,7 @@ class Conv2D(OrigConv2D):
         subsample = (1, 1), border_mode = 'valid',
         filters_shape = None, message = ''):
 
+
         self.input_space = input_space
         self.output_axes = output_axes
 

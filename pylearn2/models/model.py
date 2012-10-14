@@ -44,6 +44,9 @@ class Model(object):
         """
         raise NotImplementedError()
 
+    def get_weights_view_shape(self):
+        raise NotImplementedError(str(type(self))+" does not implement get_weights_view_shape (perhaps by design)")
+
     def get_monitoring_channels(self, V, Y = None):
         """
         Get monitoring channels for this model.
