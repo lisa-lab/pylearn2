@@ -1,7 +1,9 @@
 """ Classes representing loss functions.
 Currently, these are primarily used to specify
-the objective function for the SGD algorithm."""
+the objective function for the SGD and BGD
+training algorithms."""
 import theano.tensor as T
+from itertools import izip
 
 
 class Cost(object):
@@ -12,7 +14,46 @@ class Cost(object):
     supervised = False
 
     def __call__(self, model, X, Y=None):
-        raise NotImplementedError()
+        raise NotImplementedError(str(type(self))+" does not implement __call__")
+
+    def get_gradients(self, model, X, Y=None):
+        """
+        model: a pylearn2 Model instance
+        X: a batch in model.get_input_space()
+        Y: a batch in model.get_output_space()
+
+        returns: gradients, updates
+            gradients:
+                a dictionary mapping from the model's parameters
+                         to their gradients
+                The default implementation is to compute the gradients
+                using T.grad applied to the value returned by __call__.
+                However, subclasses may return other values for the gradient.
+                For example, an intractable cost may return a sampling-based
+                approximation to its gradient.
+            updates:
+                a dictionary mapping shared variables to updates that must
+                be applied to them each time these gradients are computed.
+                This is to facilitate computation of sampling-based approximate
+                gradients.
+        """
+
+        cost = self(model, X, Y)
+
+        if cost is None:
+            raise NotImplementedError(str(type(self))+" represents an intractable "
+                    " cost and does not provide a gradient approximation scheme.")
+
+        params = list(model.get_params())
+
+        grads = T.grad(cost, params, disconnected_inputs = 'ignore')
+
+        gradients = dict(izip(params, grads))
+
+        updates = {}
+
+        return gradients, updates
+
 
     def get_monitoring_channels(self, model, X, Y=None):
         return {}
