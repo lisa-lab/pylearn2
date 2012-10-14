@@ -133,7 +133,7 @@ This is a work in progress. There are many things still to do:
 Refs
 ----
 
-[1] Francois-Denis Gunther, Steven Pigeon --- Non Privileged User Package
+[1] Francois-Denis Gonthier, Steven Pigeon --- Non Privileged User Package
 Management: Use Cases, Issues, Proposed Solutions --- Pro cs. Linux
 Symposium, 2009, p. 111-122
 
