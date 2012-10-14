@@ -68,6 +68,10 @@ class BGD(object):
         else:
             obj = self.cost(model,X)
             ipt = X
+        if obj is None:
+            raise ValueError("BGD is incompatible with "+str(self.cost)+" because "
+                    " it is intractable, but BGD uses the cost function value to do "
+                    " line searches.")
 
         if self.monitoring_dataset is not None:
             if not self.monitoring_dataset.has_targets():
