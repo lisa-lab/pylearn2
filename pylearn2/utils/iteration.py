@@ -68,6 +68,7 @@ class SequentialSubsetIterator(SubsetIterator):
         if rng is not None:
             raise ValueError("non-None rng argument not supported for "
                              "sequential batch iteration")
+        assert num_batches is None or num_batches >= 0
         self._dataset_size = dataset_size
         if batch_size is None:
             if num_batches is not None:
