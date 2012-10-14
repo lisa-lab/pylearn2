@@ -67,7 +67,7 @@ class BatchGradientDescent:
         self.params = [ param for param in params ]
 
         for param in params:
-            grad = T.grad(objective, param)
+            grad = T.grad(objective, param, disconnected_inputs='ignore')
             param_to_grad_sym[param] = grad
             grad_shared = sharedX( param.get_value() )
             param_to_grad_shared[param] = grad_shared
