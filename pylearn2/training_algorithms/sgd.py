@@ -151,7 +151,7 @@ class SGD(TrainingAlgorithm):
             else:
                 self.supervised = False
                 cost_value = self.cost(model, X)
-        if cost_value.name is None:
+        if cost_value is not None and cost_value.name is None:
             if self.supervised:
                 cost_value.name = 'sgd_cost(' + X.name + ', ' + Y.name + ')'
             else:
@@ -171,8 +171,9 @@ class SGD(TrainingAlgorithm):
                 ipt = X
             # These channel names must not vary, since callbacks that respond to the
             # values in the monitor use the name to find them
-            self.monitor.add_channel(name='sgd_cost', ipt=ipt,
-                    val=cost_value, dataset=self.monitoring_dataset)
+            if cost_value is not None:
+                self.monitor.add_channel(name='sgd_cost', ipt=ipt,
+                        val=cost_value, dataset=self.monitoring_dataset)
             self.monitor.add_channel(name='learning_rate', ipt=ipt,
                     val=learning_rate, dataset=self.monitoring_dataset)
             for key in cost_channels:
@@ -187,7 +188,7 @@ class SGD(TrainingAlgorithm):
         for i, param in enumerate(params):
             if param.name is None:
                 param.name = 'sgd_params[%d]' % i
-        grads = dict(zip(params, T.grad(cost_value, params, disconnected_inputs = 'warn')))
+        grads, updates = self.cost.get_gradients(model, X, Y)
         for param in grads:
             if grads[param].name is None:
                 grads[param].name = ('grad(%(costname)s, %(paramname)s)' %
@@ -210,11 +211,10 @@ class SGD(TrainingAlgorithm):
             print '\t'+param_name+': '+str(lr)
 
         if self.momentum is None:
-            updates = dict(zip(params, [param - learning_rate * \
+            updates.update( dict(zip(params, [param - learning_rate * \
                 lr_scalers.get(param, 1.) * grads[param]
-                                    for param in params]))
+                                    for param in params])))
         else:
-            updates = {}
             for param in params:
                 inc = sharedX(param.get_value() * 0.)
                 if param.name is not None:
