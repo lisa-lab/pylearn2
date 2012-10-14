@@ -249,7 +249,7 @@ class FilterActs(GpuOp):
         #define numModulesY target_dims[1]
         #define numModulesX target_dims[2]
 
-        if (CudaNdarray_ensure_dims(& %(targets)s, 4, target_dims))
+        if (CudaNdarray_ensure_contiguous(& %(targets)s, 4, target_dims))
         {
             %(fail)s;
         }
