@@ -13,8 +13,8 @@ class BGD(object):
     """Batch Gradient Descent training algorithm class"""
     def __init__(self, cost, batch_size=None, batches_per_iter=10,
                  updates_per_batch = 10,
-                 monitoring_batches=-1, monitoring_dataset=None,
-                 termination_criterion = None):
+                 monitoring_batches=None, monitoring_dataset=None,
+                 termination_criterion = None, set_batch_size = False):
         """
         if batch_size is None, reverts to the force_batch_size field of the
         model
@@ -24,7 +24,7 @@ class BGD(object):
         del self.self
 
         if monitoring_dataset is None:
-            assert monitoring_batches == -1
+            assert monitoring_batches == None
         self.bSetup = False
         self.termination_criterion = termination_criterion
 
@@ -49,7 +49,9 @@ class BGD(object):
             self.batch_size = model.force_batch_size
         else:
             batch_size = self.batch_size
-            if hasattr(model, 'force_batch_size'):
+            if self.set_batch_size:
+                model.set_batch_size(batch_size)
+            elif hasattr(model, 'force_batch_size'):
                 if not (model.force_batch_size <= 0 or batch_size ==
                         model.force_batch_size):
                     raise ValueError("batch_size is %d but model.force_batch_size is %d" %
@@ -59,6 +61,14 @@ class BGD(object):
         X = self.model.get_input_space().make_theano_batch()
         self.topo = X.ndim != 2
         Y = T.matrix()
+
+        if self.cost.supervised:
+            obj = self.cost(model, X, Y)
+            ipt = (X,Y)
+        else:
+            obj = self.cost(model,X)
+            ipt = X
+
         if self.monitoring_dataset is not None:
             if not self.monitoring_dataset.has_targets():
                 Y = None
@@ -70,10 +80,9 @@ class BGD(object):
             if not isinstance(channels, dict):
                 raise TypeError("model.get_monitoring_channels must return a "
                                 "dictionary, but it returned " + str(channels))
+            channels.update(self.cost.get_monitoring_channels(model, X, Y))
 
-            #TODO: currently only supports unsupervised costs, support supervised too
-            obj = self.cost(model,X)
-            self.monitor.add_channel('batch_gd_objective',ipt=X,val=obj)
+            self.monitor.add_channel('batch_gd_objective',ipt=ipt,val=obj)
 
             for name in channels:
                 J = channels[name]
@@ -93,15 +102,17 @@ class BGD(object):
                                          val=J,
                                          prereqs=prereqs)
 
-
-        obj = self.cost(model,X)
+        if ipt is X:
+            ipts = [ X ]
+        else:
+            ipts = ipt
 
         self.optimizer = BatchGradientDescent(
                             objective = obj,
                             params = model.get_params(),
                             param_constrainers = [ model.censor_updates ],
                             lr_scalers = model.get_lr_scalers(),
-                            inputs = [ X ],
+                            inputs = ipts,
                             verbose = True,
                             max_iter = self.updates_per_batch)
 
@@ -120,8 +131,13 @@ class BGD(object):
             get_data = dataset.get_batch_design
 
         for i in xrange(self.batches_per_iter):
-            X = get_data(self.batch_size)
-            self.optimizer.minimize(X)
+            if self.cost.supervised:
+                X, Y = get_data(self.batch_size, include_labels=True)
+                args = [X, Y]
+            else:
+                X = get_data(self.batch_size)
+                args = [X]
+            self.optimizer.minimize(*args)
             model.monitor.report_batch( batch_size )
         if self.termination_criterion is None:
             return True
