@@ -41,6 +41,7 @@ from theano.tensor import TensorType
 from theano import config
 import functools
 from theano.gof.op import get_debug_values
+from theano.sandbox.cuda.type import CudaNdarrayType
 
 
 class Space(object):
@@ -206,8 +207,8 @@ class VectorSpace(Space):
     def validate(self, batch):
         if not isinstance(batch, theano.gof.Variable):
             raise TypeError()
-        if not self.sparse and not isinstance(batch.type, theano.tensor.TensorType):
-            raise TypeError()
+        if not self.sparse and not isinstance(batch.type, (theano.tensor.TensorType, CudaNdarrayType)):
+            raise TypeError("VectorSpace batch should be TensorType or CudaNdarrayType, got "+str(batch.type))
         if self.sparse and not isinstance(batch.type, theano.sparse.SparseType):
             raise TypeError()
         if batch.ndim != 2:
