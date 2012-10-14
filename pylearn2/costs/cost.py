@@ -50,6 +50,9 @@ class Cost(object):
                 be applied to them each time these gradients are computed.
                 This is to facilitate computation of sampling-based approximate
                 gradients.
+                The parameters should never appear in the updates dictionary.
+                This would imply that computing their gradient changes
+                their value, thus making the gradient value outdated.
         """
 
         cost = self(model, X, Y)
