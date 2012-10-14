@@ -11,9 +11,23 @@ class Cost(object):
     Represents a cost that can be called either as a supervised cost or an
     unsupervised cost.
     """
+
+    # If True, the Y argument to __call__ and get_gradients must not be None
     supervised = False
 
     def __call__(self, model, X, Y=None):
+        """
+        model: a pylearn2 Model instance
+        X: a batch in model.get_input_space()
+        Y: a batch in model.get_output_space()
+
+        Returns a symbolic expression for a cost function applied to the
+        minibatch of data.
+        Optionally, may return None. This represents that the cost function
+        is intractable but may be optimized via the get_gradients method.
+
+        """
+
         raise NotImplementedError(str(type(self))+" does not implement __call__")
 
     def get_gradients(self, model, X, Y=None):
