@@ -104,6 +104,9 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
     def adjust_for_viewer(self, X):
         return N.clip(X*2.-1.,-1.,1.)
 
+    def adjust_to_be_viewed_with(self, X, other, per_example = False):
+        return self.adjust_for_viewer(X)
+
 
 class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
 
