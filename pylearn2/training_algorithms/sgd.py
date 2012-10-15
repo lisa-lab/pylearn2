@@ -198,16 +198,11 @@ class SGD(TrainingAlgorithm):
         for i, param in enumerate(params):
             if param.name is None:
                 param.name = 'sgd_params[%d]' % i
-        if iter(self.cost):
-            if self.cost[0].supervised:
-                grads, updates = self.cost[0].get_gradients(model, X, Y)
-            else:
-                grads, updates = self.cost[0].get_gradients(model, X)
+
+        if self.cost.supervised:
+            grads, updates = self.cost.get_gradients(model, X, Y)
         else:
-            if self.cost.supervised:
-                grads, updates = self.cost.get_gradients(model, X, Y)
-            else:
-                grads, updates = self.cost.get_gradients(model, X)
+            grads, updates = self.cost.get_gradients(model, X)
 
         for param in grads:
             if grads[param].name is None:
