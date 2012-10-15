@@ -138,7 +138,7 @@ class SGD(TrainingAlgorithm):
             cost_value = 0
             self.supervised = False
             for c in self.cost:
-                if (isinstance(c, pylearn2.costs.cost.SupervisedCost)):
+                if (c.supervised):
                     self.supervised = True
                     cost_value += c(model, X, Y)
                 else:
