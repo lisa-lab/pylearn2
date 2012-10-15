@@ -15,6 +15,10 @@ from pylearn2.testing.datasets import ArangeDataset
 from pylearn2.testing.cost import CallbackCost
 from pylearn2.utils.iteration import _iteration_schemes
 
+class DummyCost(Cost):
+    def __call__(self, model, X, Y = None):
+        return T.square(model(X)-X).mean()
+
 class SoftmaxModel(Model):
     """A dummy model used for testing.
        Important properties:
@@ -94,11 +98,6 @@ def test_sgd_unspec_num_mon_batch():
 
     learning_rate = 1e-3
     batch_size = 5
-
-    class DummyCost(Cost):
-
-        def __call__(self, model, X):
-            return T.square(model(X)-X).mean()
 
     cost = DummyCost()
 
@@ -209,10 +208,6 @@ def test_sgd_unsup():
     learning_rate = 1e-3
     batch_size = 5
 
-    class DummyCost(Cost):
-
-        def __call__(self, model, X):
-            return T.square(model(X)-X).mean()
 
     cost = DummyCost()
 

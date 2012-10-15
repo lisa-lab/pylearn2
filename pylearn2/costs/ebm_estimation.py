@@ -77,7 +77,7 @@ class SM(Cost):
         Uses the mean over visible units rather than sum over visible units
         so that hyperparameters won't depend as much on the # of visible units
     """
-    def __call__(self, model, X):
+    def __call__(self, model, X, Y=None):
         X_name = 'X' if X.name is None else X.name
 
         score = model.score(X)
@@ -116,7 +116,7 @@ class SMD(Cost):
         super(SMD, self).__init__()
         self.corruptor = corruptor
 
-    def __call__(self, model, X):
+    def __call__(self, model, X, Y = None):
         X_name = 'X' if X.name is None else X.name
 
         corrupted_X = self.corruptor(X)

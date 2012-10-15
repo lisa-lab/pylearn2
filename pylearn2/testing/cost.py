@@ -40,7 +40,7 @@ class CallbackCost(Cost):
         if not supervised:
             assert y_callback is None
 
-    def __call__(self, model, X, y = None):
+    def __call__(self, model, X, Y = None):
 
         if self.X_callback is not None:
             orig_X = X
@@ -49,11 +49,11 @@ class CallbackCost(Cost):
             assert orig_X is X.owner.inputs[0]
 
         if self.y_callback is not None:
-            y = CallbackOp(self.y_callback)(y)
+            Y = CallbackOp(self.y_callback)(Y)
 
         cost = X.sum()
-        if y is not None:
-            cost = cost + y.sum()
+        if self.supervised and Y is not None:
+            cost = cost + Y.sum()
 
         model_terms = sum([param.sum() for param in model.get_params()])
 

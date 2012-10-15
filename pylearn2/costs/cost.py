@@ -4,7 +4,7 @@ the objective function for the SGD and BGD
 training algorithms."""
 import theano.tensor as T
 from itertools import izip
-
+from pylearn2.utils.call_check import checked_call
 
 class Cost(object):
     """
@@ -55,7 +55,16 @@ class Cost(object):
                 their value, thus making the gradient value outdated.
         """
 
-        cost = self(model, X, Y)
+        try:
+            cost = self(model=model, X=X, Y=Y)
+        except TypeError,e:
+            # If anybody knows how to add type(seslf) to the exception message
+            # but still preserve the stack trace, please do so
+            # The current code does neither
+            e.message += " while calling "+str(type(self))+".__call__"
+            print str(type(self))
+            print e.message
+            raise e
 
         if cost is None:
             raise NotImplementedError(str(type(self))+" represents an intractable "
