@@ -388,6 +388,51 @@ class ContractiveAutoencoder(Autoencoder):
             raise ValueError("Invalid encoder activation function: "
                              "not an elementwise function of its input")
 
+    def _activation_grad(self, inputs):
+        """
+        Calculate (symbolically) the contracting autoencoder penalty term.
+
+        Parameters
+        ----------
+        inputs : tensor_like or list of tensor_likes
+            Theano symbolic (or list thereof) representing the input
+            minibatch(es) on which the penalty is calculated. Assumed to be
+            2-tensors, with the first dimension indexing training examples and
+            the second indexing data dimensions.
+
+        Returns
+        -------
+        act_grad : tensor_like
+            2-dimensional tensor representing, dh/da for every pre/postsynaptic pair,
+            which we can easily do by taking the gradient of the sum of the
+            hidden units activations w.r.t the presynaptic activity,
+            since the gradient of hiddens.sum() with respect to hiddens is a matrix of ones!
+
+        Notes
+        -----
+        Theano's differentiation capabilities do not currently allow
+        (efficient) automatic evaluation of the Jacobian, mainly because
+        of the immature state of the `scan` operator. Here we use a
+        "semi-automatic" hack that works for hidden layers of the for
+        :math:`s(Wx + b)`, where `s` is the activation function, :math:`W`
+        is `self.weights`, and :math:`b` is `self.hidbias`, by only taking
+        the derivative of :math:`s` with respect :math:`a = Wx + b` and
+        manually constructing the Jacobian from there.
+
+        Because of this implementation depends *critically* on the
+        _hidden_inputs() method implementing only an affine transformation
+        by the weights (i.e. :math:`Wx + b`), and the activation function
+        `self.act_enc` applying an independent, elementwise operation.
+        """
+
+        # Compute the input flowing into the hidden units, i.e. the
+        # value before applying the nonlinearity/activation function
+        acts = self._hidden_input(inputs)
+        # Apply the activating nonlinearity.
+        hiddens = self.act_enc(acts)
+        act_grad = tensor.grad(hiddens.sum(), acts)
+        return act_grad
+
     def jacobian_h_x(self, inputs):
         """
         Calculate (symbolically) the contracting autoencoder penalty term.
@@ -408,39 +453,12 @@ class ContractiveAutoencoder(Autoencoder):
             transformation.
             You can then apply the penalty you want on it,
             or use the contraction_penalty method to have a default one.
-
-        Notes
-        -----
-        Theano's differentiation capabilities do not currently allow
-        (efficient) automatic evaluation of the Jacobian, mainly because
-        of the immature state of the `scan` operator. Here we use a
-        "semi-automatic" hack that works for hidden layers of the for
-        :math:`s(Wx + b)`, where `s` is the activation function, :math:`W`
-        is `self.weights`, and :math:`b` is `self.hidbias`, by only taking
-        the derivative of :math:`s` with respect :math:`a = Wx + b` and
-        manually constructing the Jacobian from there.
-
-        Because of this implementation depends *critically* on the
-        _hidden_inputs() method implementing only an affine transformation
-        by the weights (i.e. :math:`Wx + b`), and the activation function
-        `self.act_enc` applying an independent, elementwise operation.
         """
-        # Compute the input flowing into the hidden units, i.e. the
-        # value before applying the nonlinearity/activation function
-        acts = self._hidden_input(inputs)
-        # Apply the activating nonlinearity.
-        hiddens = self.act_enc(acts)
-        # We want dh/da for every pre/postsynaptic pair, which we
-        # can easily do by taking the gradient of the sum of the
-        # hidden units activations w.r.t the presynaptic activity,
-        # since the gradient of hiddens.sum() with respect to hiddens
-        # is a matrix of ones!
-        act_grad = tensor.grad(hiddens.sum(), acts)
         # As long as act_enc is an elementwise operator, the Jacobian
         # of a act_enc(Wx + b) hidden layer has a Jacobian of the
         # following form.
+        act_grad = self._activation_grad(inputs)
         jacobian = self.weights * act_grad.dimshuffle(0, 'x', 1)
-
         return jacobian
 
     def contraction_penalty(self, inputs):
@@ -464,9 +482,10 @@ class ContractiveAutoencoder(Autoencoder):
             Add this to the output of a Cost object, such as
             SquaredError, to penalize it.
         """
-        jacobian = self.jacobian_h_x(inputs)
-        return (jacobian ** 2).sum(axis=[1,2]).mean()
-
+        act_grad = self._activation_grad(inputs)
+        frob_norm = tensor.dot(tensor.sqr(act_grad), tensor.sqr(self.weights.sum(axis=0)))
+        contract_penalty = frob_norm.sum() / inputs.shape[0]
+        return contract_penalty
 
 class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
     """Higher order contractive autoencoder.
