@@ -164,10 +164,20 @@ class SGD(TrainingAlgorithm):
         learning_rate = self.learning_rate
         if self.monitoring_dataset is not None:
             if self.supervised:
-                cost_channels = self.cost.get_monitoring_channels(model, X, Y)
+                if iter(self.cost):
+                    cost_channels = []
+                    for c in self.cost:
+                        cost_channels += c.get_monitoring_channels(model, X, Y)
+                else:
+                    cost_channels = self.cost.get_monitoring_channels(model, X, Y)
                 ipt = (X, Y)
             else:
-                cost_channels = self.cost.get_monitoring_channels(model, X)
+                if iter(self.cost):
+                   cost_channels = []
+                   for c in self.cost:
+                       cost_channels += c.get_monitoring_channels(model, X)
+                else:
+                   cost_channels = self.cost.get_monitoring_channels(model, X)
                 ipt = X
             # These channel names must not vary, since callbacks that respond to the
             # values in the monitor use the name to find them
