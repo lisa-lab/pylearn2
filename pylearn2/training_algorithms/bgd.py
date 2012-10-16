@@ -14,7 +14,8 @@ class BGD(object):
     def __init__(self, cost, batch_size=None, batches_per_iter=10,
                  updates_per_batch = 10,
                  monitoring_batches=None, monitoring_dataset=None,
-                 termination_criterion = None, set_batch_size = False):
+                 termination_criterion = None, set_batch_size = False,
+                 reset_alpha = True, hacky_conjugacy = False):
         """
         if batch_size is None, reverts to the force_batch_size field of the
         model
@@ -118,7 +119,9 @@ class BGD(object):
                             lr_scalers = model.get_lr_scalers(),
                             inputs = ipts,
                             verbose = True,
-                            max_iter = self.updates_per_batch)
+                            max_iter = self.updates_per_batch,
+                            reset_alpha = self.reset_alpha,
+                            hacky_conjugacy = self.hacky_conjugacy)
 
 
         self.first = True
