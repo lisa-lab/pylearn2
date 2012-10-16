@@ -9,6 +9,7 @@ from pylearn2.optimization.batch_gradient_descent import BatchGradientDescent
 import theano.tensor as T
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.utils.iteration import is_stochastic
+import numpy as np
 
 
 class BGD(object):
@@ -57,6 +58,7 @@ class BGD(object):
 
         self.bSetup = False
         self.termination_criterion = termination_criterion
+        self.rng = np.random.RandomState([2012,10,16])
 
     def setup(self, model, dataset):
         """
