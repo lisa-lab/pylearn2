@@ -1,3 +1,12 @@
 *.pyc
 *.py~
 *.swp
+
+#Don't track the binary data files:
+*.npy
+*.pkl
+*.pickle
+
+#Don't track the image files:
+*.png
+*.jpg

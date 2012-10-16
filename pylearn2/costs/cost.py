@@ -56,7 +56,10 @@ class Cost(object):
         """
 
         try:
-            cost = self(model=model, X=X, Y=Y)
+            if Y is None:
+                cost = self(model=model, X=X)
+            else:
+                cost = self(model=model, X=X, Y=Y)
         except TypeError,e:
             # If anybody knows how to add type(seslf) to the exception message
             # but still preserve the stack trace, please do so
