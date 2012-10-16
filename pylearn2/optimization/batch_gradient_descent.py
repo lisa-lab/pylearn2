@@ -44,6 +44,17 @@ class BatchGradientDescent:
             reset_alpha: If True, reverts to using init_alpha after
                         each call. If False, the final set of alphas
                         is used at the start of the next call to minimize.
+            hacky_conjugacy: If True, tries to pick conjugate gradient directions.
+                        Reverts to direction of steepest descent for the first
+                        step in each call to minimize.
+                        "Hacky" because the conjugate direction equations are only
+                        valid on a quadratic function if the line search for the
+                        previous search direction ran to completion, but here we
+                        just pick the best of k searched positions.
+                        I'm not sure if this matters much, since I don't think
+                        nonlinear conjugate gradient is all that justified anyway,
+                        but then I don't know much about optimization so someone
+                        who does might want to look over this file.
 
             Calling the ``minimize'' method with values for
             for ``inputs'' will update ``params'' to minimize
@@ -143,6 +154,19 @@ class BatchGradientDescent:
             assert beta_pr.ndim == 0
 
             beta = T.maximum(beta_pr, 0.)
+
+            """
+
+            beta_pr is the Polak-Ribiere formula for beta.
+            According to wikipedia, the beta to use for NCG is "a matter of heuristics or taste"
+            but max(0, beta_pr) is "a popular choice... which provides direction reset automatically."
+            (ie, it is meant to revert to steepest descent when you have traveled far enough that
+            the objective function is behaving non-quadratically enough that the conjugate gradient
+            formulas aren't working anymore)
+
+            http://en.wikipedia.org/wiki/Nonlinear_conjugate_gradient_method
+
+            """
 
             self._make_conjugate = function([], updates = dict([ (grad, grad + beta * grad_to_old_grad[grad]) for
                 grad in grad_to_old_grad]))
