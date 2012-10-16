@@ -246,14 +246,15 @@ def try_to_import(tag_suffix):
             field = pieces[-1]
             candidates = dir(eval(module))
 
+            msg = ('Could not evaluate %s. ' % tag_suffix) + \
+            'Did you mean ' + match(field, candidates) +'? '+ \
+            'Original error was '+str(e)
 
-            raise AttributeError( ('Could not evaluate %s. ' % tag_suffix) +
-                'Did you mean ' + match(field, candidates) +'? '+
-                'Original error was '+str(e))
         except:
             warnings.warn("Attempt to decipher AttributeError failed")
             raise AttributeError( ('Could not evaluate %s. ' % tag_suffix) +
                 'Original error was '+str(e))
+        raise AttributeError( msg )
     return obj
 
 
