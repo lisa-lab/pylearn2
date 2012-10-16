@@ -138,7 +138,7 @@ class SGD(TrainingAlgorithm):
             cost_value = 0
             self.supervised = False
             for c in self.cost:
-                if (isinstance(c, pylearn2.costs.cost.SupervisedCost)):
+                if (c.supervised):
                     self.supervised = True
                     cost_value += c(model, X, Y)
                 else:
@@ -188,7 +188,12 @@ class SGD(TrainingAlgorithm):
         for i, param in enumerate(params):
             if param.name is None:
                 param.name = 'sgd_params[%d]' % i
-        grads, updates = self.cost.get_gradients(model, X, Y)
+
+        if self.cost.supervised:
+            grads, updates = self.cost.get_gradients(model, X, Y)
+        else:
+            grads, updates = self.cost.get_gradients(model, X)
+
         for param in grads:
             if grads[param].name is None:
                 grads[param].name = ('grad(%(costname)s, %(paramname)s)' %
