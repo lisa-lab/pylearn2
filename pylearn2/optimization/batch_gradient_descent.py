@@ -70,6 +70,7 @@ class BatchGradientDescent:
 
         self.hacky_conjugacy = hacky_conjugacy
         self.reset_alpha = reset_alpha
+        self.reset_conjugate = reset_conjugate
 
         self.max_iter = max_iter
         self.init_alpha = init_alpha

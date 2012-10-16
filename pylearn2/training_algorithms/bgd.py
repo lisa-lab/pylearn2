@@ -36,8 +36,8 @@ class BGD(object):
                 attribute by calling set_batch_size on it.
         updates_per_batch: Passed through to the optimization.BatchGradientDescent's
                    max_iters parameter
-        reset_alpha, hacky_conjugacy: passed through to the optimization.BatchGradientDescent
-                parameters of the same names
+        reset_alpha, hacky_conjugacy, reset_conjugate: passed through to the
+            optimization.BatchGradientDescent parameters of the same names
         monitoring_dataset: A Dataset or a dictionary mapping string dataset names to Datasets
         """
 
@@ -50,7 +50,6 @@ class BGD(object):
         if isinstance(monitoring_dataset, Dataset):
             self.monitoring_dataset = { '': monitoring_dataset }
         else:
-            assert isinstance(monitoring_dataset, Dataset)
             for key in monitoring_dataset:
                 assert isinstance(key, str)
                 assert isinstance(monitoring_dataset[key], Dataset)
@@ -120,7 +119,8 @@ class BGD(object):
                                     batch_size=self.batch_size,
                                     num_batches=self.monitoring_batches)
 
-                self.monitor.add_channel(dataset_name + '_batch_gd_objective',ipt=ipt,val=obj)
+                self.monitor.add_channel(dataset_name + '_batch_gd_objective',ipt=ipt,val=obj,
+                        dataset = dataset)
 
                 for name in channels:
                     J = channels[name]
@@ -155,7 +155,8 @@ class BGD(object):
                             verbose = True,
                             max_iter = self.updates_per_batch,
                             reset_alpha = self.reset_alpha,
-                            hacky_conjugacy = self.hacky_conjugacy)
+                            hacky_conjugacy = self.hacky_conjugacy,
+                            reset_conjugate = self.reset_conjugate)
 
 
         self.first = True
