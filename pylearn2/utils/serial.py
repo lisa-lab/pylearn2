@@ -12,6 +12,7 @@ hdf_reader = None
 import struct
 from pylearn2.utils import environ
 from pylearn2.utils.string_utils import match
+import shutil
 
 def raise_cannot_open(path):
     pieces = path.split('/')
@@ -148,7 +149,7 @@ def load(filepath, recurse_depth=0):
     return obj
 
 
-def save(filepath, obj):
+def save(filepath, obj, on_overwrite = 'ignore'):
     """
     Serialize `object` to a file denoted by `filepath`.
 
@@ -164,8 +165,30 @@ def save(filepath, obj):
 
     obj : object
         A Python object to be serialized.
+
+    on_overwrite: A string specifying what to do if the file already
+                exists.
+                ignore: just overwrite it
+                backup: make a copy of the file (<filepath>.bak) and
+                        delete it when done saving the new copy.
+                        this allows recovery of the old version of
+                        the file if saving the new one fails
     """
+
+
     filepath = preprocess(filepath)
+
+    if os.path.exists(filepath):
+        if on_overwrite == 'backup':
+            backup = filepath + '.bak'
+            shutil.move(filepath, backup)
+            save(filepath, obj)
+            os.remove(backup)
+            return
+        else:
+            assert on_overwrite == 'ignore'
+
+
     try:
         _save(filepath, obj)
     except RuntimeError, e:
