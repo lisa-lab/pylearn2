@@ -93,7 +93,10 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
                 self.X = self.X[start:stop,:]
                 if self.X.shape[0] != stop - start:
                     raise ValueError("X.shape[0]: %d. start: %d stop: %d" % (self.X.shape[0], start, stop))
-                self.y = self.y[start:stop,:]
+                if len(self.y.shape) > 1:
+                    self.y = self.y[start:stop,:]
+                else:
+                    self.y = self.y[start:stop]
                 assert self.y.shape[0] == stop - start
         else:
             #data loading is disabled, just make something that defines the right topology
