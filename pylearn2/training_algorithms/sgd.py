@@ -190,7 +190,7 @@ class SGD(TrainingAlgorithm):
                 param.name = 'sgd_params[%d]' % i
         grads, updates = self.cost.get_gradients(model, X, Y)
         for param in grads:
-            if grads[param].name is None:
+            if grads[param].name is None and cost_value is not None:
                 grads[param].name = ('grad(%(costname)s, %(paramname)s)' %
                                      {'costname': cost_value.name,
                                       'paramname': param.name})
