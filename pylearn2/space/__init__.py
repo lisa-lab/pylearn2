@@ -310,7 +310,7 @@ class Conv2DSpace(Space):
     def validate(self, batch):
         if not isinstance(batch, theano.gof.Variable):
             raise TypeError()
-        if not isinstance(batch.type, theano.tensor.TensorType):
+        if not isinstance(batch.type, (theano.tensor.TensorType,CudaNdarrayType)):
             raise TypeError()
         if batch.ndim != 4:
             raise ValueError()
