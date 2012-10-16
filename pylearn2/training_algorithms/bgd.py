@@ -7,6 +7,7 @@ __email__ = "goodfeli@iro"
 from pylearn2.monitor import Monitor
 from pylearn2.optimization.batch_gradient_descent import BatchGradientDescent
 import theano.tensor as T
+from pylearn2.datasets.dataset import Dataset
 
 
 class BGD(object):
@@ -17,8 +18,26 @@ class BGD(object):
                  termination_criterion = None, set_batch_size = False,
                  reset_alpha = True, hacky_conjugacy = False):
         """
-        if batch_size is None, reverts to the force_batch_size field of the
-        model
+        cost: a pylearn2 Cost
+        batch_size: Like the SGD TrainingAlgorithm, this TrainingAlgorithm
+                    still iterates over minibatches of data. The difference
+                    is that this class uses partial line searches to choose
+                    the step size along each gradient direction, and can do
+                    repeated updates on the same batch. The assumption is
+                    that you use big enough minibatches with this algorithm that
+                    a large step size will generalize reasonably well to other
+                    minibatches.
+                    To implement true Batch Gradient Descent, set the batch_size
+                    to the total number of examples available.
+                    If batch_size is None, it will revert to the model's force_batch_size
+                    attribute.
+        set_batch_size: If True, BGD will attempt to override the model's force_batch_size
+                attribute by calling set_batch_size on it.
+        updates_per_batch: Passed through to the optimization.BatchGradientDescent's
+                   max_iters parameter
+        reset_alpha, hacky_conjugacy: passed through to the optimization.BatchGradientDescent
+                parameters of the same names
+        monitoring_dataset: A Dataset or a dictionary mapping string dataset names to Datasets
         """
 
         self.__dict__.update(locals())
@@ -26,6 +45,15 @@ class BGD(object):
 
         if monitoring_dataset is None:
             assert monitoring_batches == None
+
+        if isinstance(monitoring_dataset, Dataset):
+            self.monitoring_dataset = { '': monitoring_dataset }
+        else:
+            assert isinstance(monitoring_dataset, Dataset)
+            for key in monitoring_dataset:
+                assert isinstance(key, str)
+                assert isinstance(monitoring_dataset[key], Dataset)
+
         self.bSetup = False
         self.termination_criterion = termination_criterion
 
@@ -75,37 +103,42 @@ class BGD(object):
                     " line searches.")
 
         if self.monitoring_dataset is not None:
-            if not self.monitoring_dataset.has_targets():
+            if not any([dataset.has_targets() for dataset in self.monitoring_dataset.values()]):
                 Y = None
-            self.monitor.add_dataset(dataset=self.monitoring_dataset,
-                                mode="sequential",
-                                batch_size=self.batch_size,
-                                num_batches=self.monitoring_batches)
+
             channels = model.get_monitoring_channels(X,Y)
             if not isinstance(channels, dict):
                 raise TypeError("model.get_monitoring_channels must return a "
                                 "dictionary, but it returned " + str(channels))
             channels.update(self.cost.get_monitoring_channels(model, X, Y))
 
-            self.monitor.add_channel('batch_gd_objective',ipt=ipt,val=obj)
+            for dataset_name in self.monitoring_dataset:
+                dataset = self.monitoring_dataset[dataset_name]
+                self.monitor.add_dataset(dataset=dataset,
+                                    mode="sequential",
+                                    batch_size=self.batch_size,
+                                    num_batches=self.monitoring_batches)
 
-            for name in channels:
-                J = channels[name]
-                if isinstance(J, tuple):
-                    assert len(J) == 2
-                    J, prereqs = J
-                else:
-                    prereqs = None
+                self.monitor.add_channel(dataset_name + '_batch_gd_objective',ipt=ipt,val=obj)
 
-                if Y is not None:
-                    ipt = (X,Y)
-                else:
-                    ipt = X
+                for name in channels:
+                    J = channels[name]
+                    if isinstance(J, tuple):
+                        assert len(J) == 2
+                        J, prereqs = J
+                    else:
+                        prereqs = None
 
-                self.monitor.add_channel(name=name,
-                                         ipt=ipt,
-                                         val=J,
-                                         prereqs=prereqs)
+                    if Y is not None:
+                        ipt = (X,Y)
+                    else:
+                        ipt = X
+
+                    self.monitor.add_channel(name=dataset_name + '_' + name,
+                                             ipt=ipt,
+                                             val=J,
+                                             dataset = dataset,
+                                             prereqs=prereqs)
 
         if ipt is X:
             ipts = [ X ]
