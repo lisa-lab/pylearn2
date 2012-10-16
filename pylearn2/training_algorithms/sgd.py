@@ -60,6 +60,10 @@ class SGD(TrainingAlgorithm):
             param := param + inc
         """
 
+        if isinstance(cost, (list, tuple, set)):
+            raise TypeError("SGD no longer supports using collections of Costs to represent "
+                    " a sum of Costs. Use pylearn2.costs.cost.SumOfCosts instead.")
+
         self.learning_rate = sharedX(learning_rate, 'learning_rate')
         self.cost = cost
         self.batch_size = batch_size
