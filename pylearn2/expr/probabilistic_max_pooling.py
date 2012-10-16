@@ -348,11 +348,11 @@ def max_pool_channels(z, pool_size, top_down = None, theano_rng = None):
         stacked_events = T.concatenate( events, axis = 2)
 
         outcomes = pool_size + 1
-        reshaped_events = stacked_events.reshape((batch_size * n / pool_size, outcomes))
+        reshaped_events = stacked_events.reshape((batch_size * n // pool_size, outcomes))
 
         multinomial = theano_rng.multinomial(pvals = reshaped_events, dtype = p.dtype)
 
-        reshaped_multinomial = multinomial.reshape((batch_size, n / pool_size, outcomes))
+        reshaped_multinomial = multinomial.reshape((batch_size, n // pool_size, outcomes))
 
         h_sample = T.alloc(0., batch_size, n)
 
