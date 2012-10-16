@@ -29,7 +29,8 @@ class BatchGradientDescent:
             param_constrainers = None, max_iter = -1,
             lr_scalers = None, verbose = False, tol = None,
             init_alpha = ( .001, .005, .01, .05, .1 ),
-            reset_alpha = True, hacky_conjugacy = False):
+            reset_alpha = True, hacky_conjugacy = False,
+            reset_conjugate = True):
         """ objective: a theano expression to be minimized
                        should be a function of params and,
                        if provided, inputs
@@ -45,8 +46,6 @@ class BatchGradientDescent:
                         each call. If False, the final set of alphas
                         is used at the start of the next call to minimize.
             hacky_conjugacy: If True, tries to pick conjugate gradient directions.
-                        Reverts to direction of steepest descent for the first
-                        step in each call to minimize.
                         "Hacky" because the conjugate direction equations are only
                         valid on a quadratic function if the line search for the
                         previous search direction ran to completion, but here we
@@ -55,6 +54,14 @@ class BatchGradientDescent:
                         nonlinear conjugate gradient is all that justified anyway,
                         but then I don't know much about optimization so someone
                         who does might want to look over this file.
+            reset_conjugate:
+                    has no effect unless hacky_conjugacy == True
+                    if reset_conjugate == True,
+                        reverts to direction of steepest descent for the first
+                        step in each call to minimize.
+                    otherwise, tries to make the new search direction
+                    conjugate to the last one (even though the objective function
+                    might be totally different on each call to minimize)
 
             Calling the ``minimize'' method with values for
             for ``inputs'' will update ``params'' to minimize
@@ -87,7 +94,7 @@ class BatchGradientDescent:
         for param in params:
             grad = T.grad(objective, param, disconnected_inputs='ignore')
             param_to_grad_sym[param] = grad
-            grad_shared = sharedX( param.get_value() )
+            grad_shared = sharedX( param.get_value() * 0. )
             param_to_grad_shared[param] = grad_shared
             updates[grad_shared] = grad
 
@@ -204,7 +211,23 @@ class BatchGradientDescent:
 
 
         iters = 0
-        norm = 0.
+
+        # A bit of a hack here: we multiply by norm
+        # when calling store_old_grad below. This is mostly
+        # so we store the non-normalized version of the gradient,
+        # but we can also exploit it to either clear the old grad
+        # on the first iteration by setting norm = 0 initially.
+        # This makes the algorithm reset to steepest descent on
+        # each call to minimize. Or we can set the norm to 1 to
+        # save the previous gradient, so we can try to maintain
+        # conjugacy across several calls to minimize.
+        # If self.hacky_conjugacy is False none of this matters
+        # since store_old_grad is never called anyway.
+        if self.reset_conjugate:
+            norm = 0.
+        else:
+            norm = 1.
+
         while iters != self.max_iter:
             iters += 1
             best_obj, best_alpha, best_alpha_ind = self.obj( * inputs), 0., -1

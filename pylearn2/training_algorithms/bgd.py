@@ -16,7 +16,8 @@ class BGD(object):
                  updates_per_batch = 10,
                  monitoring_batches=None, monitoring_dataset=None,
                  termination_criterion = None, set_batch_size = False,
-                 reset_alpha = True, hacky_conjugacy = False):
+                 reset_alpha = True, hacky_conjugacy = False,
+                 reset_conjugate = True):
         """
         cost: a pylearn2 Cost
         batch_size: Like the SGD TrainingAlgorithm, this TrainingAlgorithm
