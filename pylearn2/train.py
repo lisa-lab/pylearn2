@@ -135,7 +135,7 @@ class Train(object):
             try:
                 # Make sure that saving does not serialize the dataset
                 self.dataset._serialization_guard = SerializationGuard()
-                serial.save(self.save_path, self.model)
+                serial.save(self.save_path, self.model, on_overwrite = 'backup')
             finally:
                 self.dataset._serialization_guard = None
             save_end = datetime.datetime.now()
