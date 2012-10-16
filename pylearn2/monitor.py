@@ -388,6 +388,8 @@ class Monitor(object):
             (or a (features,targets) list/tuple containing two symbolic tensors)
         val: tensor_like
             The value (function of `ipt`) to be tracked.
+        dataset: A Dataset instance specifying which dataset to compute
+            this channel on.
         prereqs: list of callables that take two numpy tensors
             (X and y, where y will be None if no labels are used)
             each prereq must be called exactly once per each new
