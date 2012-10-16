@@ -2,6 +2,8 @@ import warnings
 
 from .general import is_iterable
 import theano
+from pylearn2.datasets import control
+yaml_parse = None
 
 import numpy
 
@@ -93,3 +95,21 @@ class CallbackOp(theano.gof.Op):
     def hash(self):
         return hash(self.callback)
 
+
+def get_dataless_dataset(model):
+    """
+    Loads the dataset that model was trained on, without loading data.
+    This is useful if you just need the dataset's metadata, like for
+    formatting views of the model's weights.
+    """
+
+    global yaml_parse
+    if yaml_parse is None:
+        from pylearn2.config import yaml_parse
+
+    control.push_load_data(False)
+    try:
+        rval = yaml_parse.load(model.dataset_yaml_src)
+    finally:
+        control.pop_load_data()
+    return rval
