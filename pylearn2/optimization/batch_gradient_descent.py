@@ -28,7 +28,8 @@ class BatchGradientDescent:
     def __init__(self, objective, params, inputs = None,
             param_constrainers = None, max_iter = -1,
             lr_scalers = None, verbose = False, tol = None,
-            init_alpha = ( .001, .005, .01, .05, .1 ) ):
+            init_alpha = ( .001, .005, .01, .05, .1 ),
+            reset_alpha = True, hacky_conjugacy = False):
         """ objective: a theano expression to be minimized
                        should be a function of params and,
                        if provided, inputs
@@ -40,11 +41,17 @@ class BatchGradientDescent:
                     to be called on all updates dictionaries to
                     be applied to params. This is how you implement
                     constrained optimization.
+            reset_alpha: If True, reverts to using init_alpha after
+                        each call. If False, the final set of alphas
+                        is used at the start of the next call to minimize.
 
             Calling the ``minimize'' method with values for
             for ``inputs'' will update ``params'' to minimize
             ``objective''.
         """
+
+        self.hacky_conjugacy = hacky_conjugacy
+        self.reset_alpha = reset_alpha
 
         self.max_iter = max_iter
         self.init_alpha = init_alpha
@@ -108,6 +115,38 @@ class BatchGradientDescent:
             param_constrainer(goto_updates)
         self._goto_alpha = function([alpha], updates = goto_updates)
 
+        norm = T.sqrt(sum([T.sqr(elem).sum() for elem in self.param_to_grad_shared.values()]))
+
+        normalize_grad_updates = {}
+        for grad_shared in self.param_to_grad_shared.values():
+            normalize_grad_updates[grad_shared] = grad_shared / norm
+        self._normalize_grad = function([], norm, updates = normalize_grad_updates)
+
+        if self.hacky_conjugacy:
+            grad_shared = self.param_to_grad_shared.values()
+
+            grad_to_old_grad = {}
+            for elem in grad_shared:
+                grad_to_old_grad[elem] = sharedX(elem.get_value())
+
+            self._store_old_grad = function([norm], updates = dict([(grad_to_old_grad[grad], grad * norm)
+                for grad in grad_to_old_grad]))
+
+            grad_ordered = list(grad_to_old_grad.keys())
+            old_grad_ordered = [ grad_to_old_grad[grad] for grad in grad_ordered]
+
+            def dot_product(x, y):
+                return sum([ (x_elem * y_elem).sum() for x_elem, y_elem in zip(x, y) ])
+
+            beta_pr = (dot_product(grad_ordered, grad_ordered) - dot_product(grad_ordered, old_grad_ordered)) / \
+                    (1e-7+dot_product(old_grad_ordered, old_grad_ordered))
+            assert beta_pr.ndim == 0
+
+            beta = T.maximum(beta_pr, 0.)
+
+            self._make_conjugate = function([], updates = dict([ (grad, grad + beta * grad_to_old_grad[grad]) for
+                grad in grad_to_old_grad]))
+
         if tol is None:
             if objective.dtype == "float32":
                 self.tol = 1e-6
@@ -116,6 +155,7 @@ class BatchGradientDescent:
         else:
             self.tol = tol
 
+    """
     def _normalize_grad(self):
 
         n = sum([norm_sq(elem) for elem in self.param_to_grad_shared.values()])
@@ -125,6 +165,7 @@ class BatchGradientDescent:
             scale(grad_shared, 1./n)
 
         return n
+    """
 
     def minimize(self, * inputs ):
 
@@ -139,11 +180,16 @@ class BatchGradientDescent:
 
 
         iters = 0
+        norm = 0.
         while iters != self.max_iter:
             iters += 1
             best_obj, best_alpha, best_alpha_ind = self.obj( * inputs), 0., -1
             self._cache_values()
+            if self.hacky_conjugacy:
+                self._store_old_grad(norm)
             self._compute_grad(*inputs)
+            if self.hacky_conjugacy:
+                self._make_conjugate()
             norm = self._normalize_grad()
 
             prev_best_obj = best_obj
@@ -195,6 +241,9 @@ class BatchGradientDescent:
                 #end for i
             #end check on alpha_ind
         #end while
+
+        if not self.reset_alpha:
+            self.init_alpha = alpha_list
 
         if norm > 1e-2:
             warnings.warn(str(norm)+" seems pretty big for a gradient at convergence...")
