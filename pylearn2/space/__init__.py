@@ -206,7 +206,7 @@ class VectorSpace(Space):
 
     def validate(self, batch):
         if not isinstance(batch, theano.gof.Variable):
-            raise TypeError()
+            raise TypeError("VectorSpace batch should be a theano Variable, got "+str(type(batch)))
         if not self.sparse and not isinstance(batch.type, (theano.tensor.TensorType, CudaNdarrayType)):
             raise TypeError("VectorSpace batch should be TensorType or CudaNdarrayType, got "+str(batch.type))
         if self.sparse and not isinstance(batch.type, theano.sparse.SparseType):
@@ -310,7 +310,7 @@ class Conv2DSpace(Space):
     def validate(self, batch):
         if not isinstance(batch, theano.gof.Variable):
             raise TypeError()
-        if not isinstance(batch.type, theano.tensor.TensorType):
+        if not isinstance(batch.type, (theano.tensor.TensorType,CudaNdarrayType)):
             raise TypeError()
         if batch.ndim != 4:
             raise ValueError()

@@ -60,6 +60,10 @@ class SGD(TrainingAlgorithm):
             param := param + inc
         """
 
+        if isinstance(cost, (list, tuple, set)):
+            raise TypeError("SGD no longer supports using collections of Costs to represent "
+                    " a sum of Costs. Use pylearn2.costs.cost.SumOfCosts instead.")
+
         self.learning_rate = sharedX(learning_rate, 'learning_rate')
         self.cost = cost
         self.batch_size = batch_size
@@ -195,7 +199,7 @@ class SGD(TrainingAlgorithm):
             grads, updates = self.cost.get_gradients(model, X)
 
         for param in grads:
-            if grads[param].name is None:
+            if grads[param].name is None and cost_value is not None:
                 grads[param].name = ('grad(%(costname)s, %(paramname)s)' %
                                      {'costname': cost_value.name,
                                       'paramname': param.name})
