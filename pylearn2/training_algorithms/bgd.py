@@ -8,6 +8,7 @@ from pylearn2.monitor import Monitor
 from pylearn2.optimization.batch_gradient_descent import BatchGradientDescent
 import theano.tensor as T
 from pylearn2.datasets.dataset import Dataset
+from pylearn2.utils.iteration import is_stochastic
 
 
 class BGD(object):
@@ -172,15 +173,25 @@ class BGD(object):
         else:
             get_data = dataset.get_batch_design
 
-        for i in xrange(self.batches_per_iter):
+        rng = self.rng
+        train_iteration_mode = 'shuffled_sequential'
+        if not is_stochastic(train_iteration_mode):
+            rng = None
+        iterator = dataset.iterator(mode=train_iteration_mode,
+                batch_size=self.batch_size,
+                targets=self.cost.supervised,
+                topo=self.topo,
+                rng = rng)
+        for data in iterator:
             if self.cost.supervised:
-                X, Y = get_data(self.batch_size, include_labels=True)
-                args = [X, Y]
+                args = data
+                X, Y = data
             else:
-                X = get_data(self.batch_size)
-                args = [X]
+                args = [ data ]
+                X = data
             self.optimizer.minimize(*args)
-            model.monitor.report_batch( batch_size )
+            model.monitor.report_batch( X.shape[0] )
+
         if self.termination_criterion is None:
             return True
         else:
