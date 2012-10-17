@@ -49,12 +49,8 @@ class BGD(object):
         if monitoring_dataset is None:
             assert monitoring_batches == None
 
-        if isinstance(monitoring_dataset, Dataset):
-            self.monitoring_dataset = { '': monitoring_dataset }
-        else:
-            for key in monitoring_dataset:
-                assert isinstance(key, str)
-                assert isinstance(monitoring_dataset[key], Dataset)
+
+        self._set_monitoring_dataset(monitoring_dataset)
 
         self.bSetup = False
         self.termination_criterion = termination_criterion

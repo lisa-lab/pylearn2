@@ -68,7 +68,7 @@ class SGD(TrainingAlgorithm):
         self.cost = cost
         self.batch_size = batch_size
         self.set_batch_size = set_batch_size
-        self.monitoring_dataset = monitoring_dataset
+        self._set_monitoring_dataset(monitoring_dataset)
         self.monitoring_batches = monitoring_batches
         if monitoring_dataset is None:
             if monitoring_batches is not None:
@@ -105,15 +105,6 @@ class SGD(TrainingAlgorithm):
         # with monitors / pushing the monitor automatically, instead of just
         # enforcing that people have called push_monitor
         assert self.monitor.get_examples_seen() == 0
-        # TODO: monitoring batch size ought to be configurable
-        # separately from training batch size, e.g. if you would rather
-        # monitor on one somewhat big batch but update on many small
-        # batches.
-        # IG adds note: yes, but the default should be for them to be
-        # the same. Theano convolution has a hard-coded batch size, so
-        # if you have a convolutional model you can't just go changing
-        # the batch size everywhere, and the code should make it easy
-        # to have a fixed batch size.
         if self.monitoring_dataset is not None:
             self.monitor.add_dataset(dataset=self.monitoring_dataset,
                                  mode='sequential',
