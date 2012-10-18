@@ -30,7 +30,8 @@ class BatchGradientDescent:
             lr_scalers = None, verbose = False, tol = None,
             init_alpha = ( .001, .005, .01, .05, .1 ),
             reset_alpha = True, hacky_conjugacy = False,
-            reset_conjugate = True):
+            reset_conjugate = True, gradients = None,
+            gradient_updates = None):
         """ objective: a theano expression to be minimized
                        should be a function of params and,
                        if provided, inputs
@@ -62,18 +63,21 @@ class BatchGradientDescent:
                     otherwise, tries to make the new search direction
                     conjugate to the last one (even though the objective function
                     might be totally different on each call to minimize)
+            gradients: if None, compute the gradients of obj using T.grad
+                    otherwise, a dictionary mapping from params to expressions
+                    for their gradients (this allows you to use approximate
+                    gradients computed with something other than T.grad)
+            gradient_updates: a dictionary of shared variable updates to run
+                each time the gradient is computed
 
             Calling the ``minimize'' method with values for
             for ``inputs'' will update ``params'' to minimize
             ``objective''.
         """
 
-        self.hacky_conjugacy = hacky_conjugacy
-        self.reset_alpha = reset_alpha
-        self.reset_conjugate = reset_conjugate
+        self.__dict__.update(locals())
+        del self.self
 
-        self.max_iter = max_iter
-        self.init_alpha = init_alpha
         self.init_alpha = tuple([ float(elem) for elem in init_alpha])
 
         if inputs is None:
@@ -89,11 +93,16 @@ class BatchGradientDescent:
         param_to_grad_sym = {}
         param_to_grad_shared = {}
         updates = {}
+        if self.gradient_updates is not None:
+            updates.update(self.gradient_updates)
 
         self.params = [ param for param in params ]
 
         for param in params:
-            grad = T.grad(objective, param, disconnected_inputs='ignore')
+            if self.gradients is not None and param in self.gradients:
+                grad = self.gradients[param]
+            else:
+                grad = T.grad(objective, param, disconnected_inputs='ignore')
             param_to_grad_sym[param] = grad
             grad_shared = sharedX( param.get_value() * 0. )
             param_to_grad_shared[param] = grad_shared
