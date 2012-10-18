@@ -122,15 +122,15 @@ class SumOfCosts(Cost):
             List of Cost objects
         """
         self.costs = costs
-        # Check whether the sum is a supervised cost and if all the costs are
-        # Cost instances
+        assert isinstance(costs, list)
+        assert len(costs) > 0
+
         for cost in self.costs:
-            if isinstance(cost, Cost):
-                if cost.supervised:
-                    self.supervised = True
-            else:
+            if not isinstance(cost, Cost):
                 raise ValueError("one of the costs is not " + \
                                  "Cost instance")
+
+        self.supervised = any([cost.supervised for cost in costs])
 
     def __call__(self, model, X, Y=None):
         """
@@ -151,13 +151,50 @@ class SumOfCosts(Cost):
         if Y is None and self.supervised is True:
             raise ValueError("no targets provided while some of the " +
                              "costs in the sum are supervised costs")
-        sum_of_costs = 0
-        for cost in self.costs:
-            if cost.supervised:
-                sum_of_costs = sum_of_costs + cost(model, X, Y)
-            else:
-                sum_of_costs = sum_of_costs + cost(model, X)
+
+        costs = [cost(model, X, Y) for cost in self.costs]
+
+        sum_of_costs = reduce(lambda x, y: x + y, costs)
+
         return sum_of_costs
+
+    def get_gradients(self, model, X, Y=None):
+
+        if Y is  None and self.supervised:
+            raise ValueError("no targets provided while some of the " +
+                             "costs in the sum are supervised costs")
+
+        indiv_results = [cost.get_gradients(model, X, Y) for cost in self.costs]
+
+        grads = {}
+        updates = {}
+
+        for g, u in indiv_results:
+            for param in g:
+                v = g[param]
+                if param not in grads:
+                    grads[param] = v
+                else:
+                    grads[param] = grads[param] + v
+            assert not any([state in updates for state in u])
+            updates.update(u)
+
+        return grads, updates
+
+    def get_monitoring_channels(self, model, X, Y=None, ** kwargs):
+
+        rval = {}
+
+        for cost in self.costs:
+            try:
+                rval.update(cost.get_monitoring_channels(model, X, Y, **kwargs))
+            except TypeError:
+                print 'SumOfCosts.get_monitoring_channels encountered TypeError while calling ' \
+                        + str(type(cost))+'.get_monitoring_channels'
+                raise
+
+        return rval
+
 
 
 class ScaledCost(Cost):
