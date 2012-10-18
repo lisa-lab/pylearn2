@@ -84,7 +84,20 @@ class Cost(object):
         return gradients, updates
 
 
-    def get_monitoring_channels(self, model, X, Y=None):
+    def get_monitoring_channels(self, model, X, Y=None, **kwargs):
+        """
+        Returns a dictionary mapping channel names to expressions for
+        channel values.
+
+        WRITEME: how do you do prereqs in this setup? (there is a way,
+            but I forget how right now)
+
+        model: the model to use to compute the monitoring channels
+        X, Y: symbolic expressions for the monitoring data
+        kwargs: used so that custom algorithms can use extra variables
+                for monitoring.
+
+        """
         return {}
 
     def get_target_space(self, model, dataset):
