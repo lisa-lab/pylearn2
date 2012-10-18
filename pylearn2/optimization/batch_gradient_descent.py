@@ -296,6 +296,26 @@ class BatchGradientDescent:
                         alpha_list[j] *= 1.5
                     #end for j
                 #end for i
+            else:
+                # if a step succeeded and didn't result in growing or shrinking
+                # the step size then we can probably benefit from more fine-grained
+                # exploration of the middle ranges of step size
+                # (this is especially necessary if we've executed the
+                # 'expanding the range of step sizes' case multiple times)
+                a = np.asarray(alpha_list)
+                s = a[1:]/a[:-1]
+                max_gap = 5.
+                if s.max() > max_gap:
+                    weight = .999
+                    if self.verbose:
+                        print 'shrinking the range of step sizes'
+                    alpha_list = [ (alpha ** weight) * (best_alpha ** (1.-weight)) for alpha in alpha_list ]
+                    assert all([second > first for first, second in zip(alpha_list[:-1], alpha_list[1:])])
+                    # y^(weight) best^(1-weight) / x^(weight) best^(1-weight) = (y/x)^weight
+                    # so this shrinks the ratio between each successive pair of alphas by raising it to weight
+                    # weight = .99 -> a gap of 5 is shrunk to 4.92
+
+
             #end check on alpha_ind
         #end while
 
