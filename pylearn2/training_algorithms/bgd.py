@@ -7,12 +7,12 @@ __email__ = "goodfeli@iro"
 from pylearn2.monitor import Monitor
 from pylearn2.optimization.batch_gradient_descent import BatchGradientDescent
 import theano.tensor as T
-from pylearn2.datasets.dataset import Dataset
 from pylearn2.utils.iteration import is_stochastic
 import numpy as np
+from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 
 
-class BGD(object):
+class BGD(TrainingAlgorithm):
     """Batch Gradient Descent training algorithm class"""
     def __init__(self, cost, batch_size=None, batches_per_iter=10,
                  updates_per_batch = 10,
@@ -49,12 +49,8 @@ class BGD(object):
         if monitoring_dataset is None:
             assert monitoring_batches == None
 
-        if isinstance(monitoring_dataset, Dataset):
-            self.monitoring_dataset = { '': monitoring_dataset }
-        else:
-            for key in monitoring_dataset:
-                assert isinstance(key, str)
-                assert isinstance(monitoring_dataset[key], Dataset)
+
+        self._set_monitoring_dataset(monitoring_dataset)
 
         self.bSetup = False
         self.termination_criterion = termination_criterion
@@ -96,9 +92,11 @@ class BGD(object):
 
         if self.cost.supervised:
             obj = self.cost(model, X, Y)
+            grads, grad_updates = self.cost.get_gradients(model, X, Y)
             ipt = (X,Y)
         else:
             obj = self.cost(model,X)
+            grads, grad_updates = self.cost.get_gradients(model, X)
             ipt = X
         if obj is None:
             raise ValueError("BGD is incompatible with "+str(self.cost)+" because "
@@ -116,14 +114,14 @@ class BGD(object):
             channels.update(self.cost.get_monitoring_channels(model, X, Y))
 
             for dataset_name in self.monitoring_dataset:
-                dataset = self.monitoring_dataset[dataset_name]
-                self.monitor.add_dataset(dataset=dataset,
+                monitoring_dataset = self.monitoring_dataset[dataset_name]
+                self.monitor.add_dataset(dataset=monitoring_dataset,
                                     mode="sequential",
                                     batch_size=self.batch_size,
                                     num_batches=self.monitoring_batches)
 
                 self.monitor.add_channel(dataset_name + '_batch_gd_objective',ipt=ipt,val=obj,
-                        dataset = dataset)
+                        dataset = monitoring_dataset)
 
                 for name in channels:
                     J = channels[name]
@@ -141,7 +139,7 @@ class BGD(object):
                     self.monitor.add_channel(name=dataset_name + '_' + name,
                                              ipt=ipt,
                                              val=J,
-                                             dataset = dataset,
+                                             dataset = monitoring_dataset,
                                              prereqs=prereqs)
 
         if ipt is X:
@@ -151,6 +149,8 @@ class BGD(object):
 
         self.optimizer = BatchGradientDescent(
                             objective = obj,
+                            gradients = grads,
+                            gradient_updates = grad_updates,
                             params = model.get_params(),
                             param_constrainers = [ model.censor_updates ],
                             lr_scalers = model.get_lr_scalers(),

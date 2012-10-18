@@ -1,16 +1,24 @@
 from __future__ import division
-import time
-import numpy as np
+"""
+Stochastic Gradient Descent and related functionality such as
+learning rate adaptation, momentum, and Polyak averaging.
+"""
+__authors__ = "Ian Goodfellow"
+__copyright__ = "Copyright 2010-2012, Universite de Montreal"
+__credits__ = ["Ian Goodfellow, David Warde-Farley"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow, David Warde-Farley"
+__email__ = "goodfeli@iro"
+import warnings
 from theano import function
-import theano.tensor as T
+import theano.sparse
+from theano import config
+import numpy as np
+from theano import tensor as T
 from pylearn2.monitor import Monitor
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
-import pylearn2.costs.cost
 from pylearn2.utils import sharedX
-from theano.printing import Print
 from pylearn2.training_callbacks.training_callback import TrainingCallback
-import warnings
-from theano import config
 from pylearn2.utils.iteration import is_stochastic
 
 class SGD(TrainingAlgorithm):
@@ -68,7 +76,7 @@ class SGD(TrainingAlgorithm):
         self.cost = cost
         self.batch_size = batch_size
         self.set_batch_size = set_batch_size
-        self.monitoring_dataset = monitoring_dataset
+        self._set_monitoring_dataset(monitoring_dataset)
         self.monitoring_batches = monitoring_batches
         if monitoring_dataset is None:
             if monitoring_batches is not None:
@@ -105,20 +113,6 @@ class SGD(TrainingAlgorithm):
         # with monitors / pushing the monitor automatically, instead of just
         # enforcing that people have called push_monitor
         assert self.monitor.get_examples_seen() == 0
-        # TODO: monitoring batch size ought to be configurable
-        # separately from training batch size, e.g. if you would rather
-        # monitor on one somewhat big batch but update on many small
-        # batches.
-        # IG adds note: yes, but the default should be for them to be
-        # the same. Theano convolution has a hard-coded batch size, so
-        # if you have a convolutional model you can't just go changing
-        # the batch size everywhere, and the code should make it easy
-        # to have a fixed batch size.
-        if self.monitoring_dataset is not None:
-            self.monitor.add_dataset(dataset=self.monitoring_dataset,
-                                 mode='sequential',
-                                 batch_size=self.batch_size,
-                                 num_batches=self.monitoring_batches)
         self.monitor._sanity_check()
 
 
@@ -130,31 +124,22 @@ class SGD(TrainingAlgorithm):
         if config.compute_test_value == 'raise':
             if self.topo:
                 X.tag.test_value = dataset.get_batch_topo(self.batch_size)
+            else:
+                X.tag.test_value = dataset.get_batch_design(self.batch_size)
 
         Y = T.matrix(name="%s[Y]" % self.__class__.__name__)
 
-        try:
-            iter(self.cost)
-            iterable_cost = True
-        except TypeError:
-            iterable_cost = False
-        if iterable_cost:
-            cost_value = 0
-            self.supervised = False
-            for c in self.cost:
-                if (c.supervised):
-                    self.supervised = True
-                    cost_value += c(model, X, Y)
-                else:
-                    cost_value += c(model, X)
-            #cost_value = sum(c(model, X) for c in self.cost)
+
+        if self.cost.supervised:
+            if config.compute_test_value == 'raise':
+                _, Y.tag.test_value = dataset.get_batch_design(self.batch_size, True)
+
+            self.supervised = True
+            cost_value = self.cost(model, X, Y)
+
         else:
-            if self.cost.supervised:
-                self.supervised = True
-                cost_value = self.cost(model, X, Y)
-            else:
-                self.supervised = False
-                cost_value = self.cost(model, X)
+            self.supervised = False
+            cost_value = self.cost(model, X)
         if cost_value is not None and cost_value.name is None:
             if self.supervised:
                 cost_value.name = 'sgd_cost(' + X.name + ', ' + Y.name + ')'
@@ -166,6 +151,8 @@ class SGD(TrainingAlgorithm):
         # the cost
         # TODO: also monitor things defined by the model
         learning_rate = self.learning_rate
+        # TODO: refactor this if statement to share code between here and BGD
+        # could make a TrainingAlgorithm._setup_monitor that they both call
         if self.monitoring_dataset is not None:
             if self.supervised:
                 cost_channels = self.cost.get_monitoring_channels(model, X, Y)
@@ -173,19 +160,33 @@ class SGD(TrainingAlgorithm):
             else:
                 cost_channels = self.cost.get_monitoring_channels(model, X)
                 ipt = X
-            # These channel names must not vary, since callbacks that respond to the
-            # values in the monitor use the name to find them
-            if cost_value is not None:
-                self.monitor.add_channel(name='sgd_cost', ipt=ipt,
-                        val=cost_value, dataset=self.monitoring_dataset)
-            self.monitor.add_channel(name='learning_rate', ipt=ipt,
-                    val=learning_rate, dataset=self.monitoring_dataset)
-            for key in cost_channels:
-                self.monitor.add_channel(name=key, ipt=ipt,
-                        val=cost_channels[key], dataset=self.monitoring_dataset)
-            if self.momentum:
-                self.monitor.add_channel(name='momentum', ipt=ipt,
-                        val=self.momentum, dataset=self.monitoring_dataset)
+            first_dataset = True
+            for dataset_name in self.monitoring_dataset:
+                monitoring_dataset = self.monitoring_dataset[dataset_name]
+                self.monitor.add_dataset(dataset=monitoring_dataset,
+                                     mode='sequential',
+                                     batch_size=self.batch_size,
+                                     num_batches=self.monitoring_batches)
+                if dataset_name == '':
+                    prefix = ''
+                else:
+                    prefix = dataset_name + '_'
+                # These channel names must not vary, since callbacks that respond to the
+                # values in the monitor use the name to find them
+                if cost_value is not None:
+                    self.monitor.add_channel(name=prefix + 'sgd_cost', ipt=ipt,
+                            val=cost_value, dataset=monitoring_dataset)
+                for key in cost_channels:
+                    self.monitor.add_channel(name=prefix + key, ipt=ipt,
+                            val=cost_channels[key], dataset=monitoring_dataset)
+                if first_dataset:
+                    #TODO: have Monitor support non-data-dependent channels
+                    first_dataset = False
+                    self.monitor.add_channel(name='learning_rate', ipt=ipt,
+                            val=learning_rate, dataset=monitoring_dataset)
+                    if self.momentum:
+                        self.monitor.add_channel(name='momentum', ipt=ipt,
+                                val=self.momentum, dataset=monitoring_dataset)
 
         params = list(model.get_params())
         assert len(params) > 0
@@ -197,6 +198,11 @@ class SGD(TrainingAlgorithm):
             grads, updates = self.cost.get_gradients(model, X, Y)
         else:
             grads, updates = self.cost.get_gradients(model, X)
+
+        for param in grads:
+            assert param in params
+        for param in params:
+            assert param in grads
 
         for param in grads:
             if grads[param].name is None and cost_value is not None:
@@ -233,11 +239,11 @@ class SGD(TrainingAlgorithm):
                 updates[param] = param + updated_inc
 
 
-        for param in updates:
+        for param in params:
             if updates[param].name is None:
                 updates[param].name = 'sgd_update(' + param.name + ')'
         model.censor_updates(updates)
-        for param in updates:
+        for param in params:
             if updates[param].name is None:
                 updates[param].name = 'censor(sgd_update(' + param.name + '))'
 
@@ -596,6 +602,113 @@ class MomentumAdjustor(TrainingCallback):
         if alpha > 1.:
             alpha = 1.
         return self._init_momentum * (1.-alpha)+alpha*self.final_momentum
+
+class OneOverEpoch(TrainingCallback):
+    """
+    Scales the learning rate like one over # epochs
+    """
+    def __init__(self, start, half_life = None, min_lr = 1e-6):
+        """
+            start: the epoch on which to start shrinking the learning rate
+            half_life: how many epochs after start it will take for the learning rate
+                       to lose half its value for the first time
+                        (to lose the next half of its value will take twice
+                        as long)
+            min_lr: the minimum value the learning rate can take on
+        """
+        self.__dict__.update(locals())
+        del self.self
+        self._initialized = False
+        self._count = 0
+        assert start >= 0
+        if half_life is None:
+            self.half_life = start + 1
+        else:
+            assert half_life > 0
+
+    def __call__(self, model, dataset, algorithm):
+        if not self._initialized:
+            self._init_lr = algorithm.learning_rate.get_value()
+            self._initialized = True
+        self._count += 1
+        algorithm.learning_rate.set_value( np.cast[config.floatX](self.current_lr()))
+
+    def current_lr(self):
+        if self._count < self.start:
+            scale = 1
+        else:
+            scale = float(self.half_life) / float(self._count - self.start +self.half_life)
+        lr = self._init_lr * scale
+        clipped = max(self.min_lr, lr)
+        return clipped
+
+class _PolyakWorker(object):
+    """
+    Only to be used by the PolyakAveraging TrainingCallback below.
+    Do not use directly.
+    """
+    def __init__(self, model):
+        avg_updates = {}
+        t = sharedX(1.)
+        self.param_to_mean = {}
+        for param in model.get_params():
+            mean = sharedX(param.get_value())
+            self.param_to_mean[param] = mean
+            avg_updates[mean] = mean - (mean - param) / t
+            avg_updates[t] = t + 1.
+        self.avg = function([], updates = avg_updates)
+
+    def __call__(self, algorithm):
+        self.avg()
+
+class PolyakAveraging(TrainingCallback):
+    """
+    See "A Tutorial on Stochastic Approximation Algorithms
+    for Training Restricted Boltzmann Machines and
+        Deep Belief Nets" by Kevin Swersky et al
+
+    Notes: this is usually used with a fixed, rather than
+        annealed learning rate.
+        It may be used in conjunction with momentum.
+
+    This functionality is still a work in progress. Currently,
+    your model needs to implement "add_polyak_channels" to
+    use it.
+
+    The problem is that Polyak averaging shouldn't modify
+    the model parameters. It should keep a second copy
+    that it averages in the background. This second copy
+    doesn't get to come back in and affect the learning process
+    though.
+
+    (IG tried having the second copy get pushed back into
+    the model once per epoch, but this turned out to be
+    harmful, at least in limited tests)
+
+    So we need a cleaner interface for monitoring the
+    averaged copy of the parameters, and we need to make
+    sure the saved model at the end uses the averaged
+    parameters, not the parameters used for computing
+    the gradients during training.
+    """
+
+    def __init__(self, start):
+        """
+            start: the epoch after which to start averaging
+        """
+        self.__dict__.update(locals())
+        del self.self
+        self._count = 0
+        assert start >= 1
+
+    def __call__(self, model, dataset, algorithm):
+        self._count += 1
+        if self._count == self.start:
+            self._worker = _PolyakWorker(model)
+            algorithm.update_callbacks.append(self._worker)
+            #HACK
+            model.add_polyak_channels(self._worker.param_to_mean, algorithm.monitoring_dataset)
+
 
 # This might be worth rolling into the SGD logic directly at some point.
 class ConjunctionCriterion(object):
