@@ -114,14 +114,14 @@ class BGD(TrainingAlgorithm):
             channels.update(self.cost.get_monitoring_channels(model, X, Y))
 
             for dataset_name in self.monitoring_dataset:
-                dataset = self.monitoring_dataset[dataset_name]
-                self.monitor.add_dataset(dataset=dataset,
+                monitoring_dataset = self.monitoring_dataset[dataset_name]
+                self.monitor.add_dataset(dataset=monitoring_dataset,
                                     mode="sequential",
                                     batch_size=self.batch_size,
                                     num_batches=self.monitoring_batches)
 
                 self.monitor.add_channel(dataset_name + '_batch_gd_objective',ipt=ipt,val=obj,
-                        dataset = dataset)
+                        dataset = monitoring_dataset)
 
                 for name in channels:
                     J = channels[name]
@@ -139,7 +139,7 @@ class BGD(TrainingAlgorithm):
                     self.monitor.add_channel(name=dataset_name + '_' + name,
                                              ipt=ipt,
                                              val=J,
-                                             dataset = dataset,
+                                             dataset = monitoring_dataset,
                                              prereqs=prereqs)
 
         if ipt is X:
