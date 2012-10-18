@@ -603,6 +603,113 @@ class MomentumAdjustor(TrainingCallback):
             alpha = 1.
         return self._init_momentum * (1.-alpha)+alpha*self.final_momentum
 
+class OneOverEpoch(TrainingCallback):
+    """
+    Scales the learning rate like one over # epochs
+    """
+    def __init__(self, start, half_life = None, min_lr = 1e-6):
+        """
+            start: the epoch on which to start shrinking the learning rate
+            half_life: how many epochs after start it will take for the learning rate
+                       to lose half its value for the first time
+                        (to lose the next half of its value will take twice
+                        as long)
+            min_lr: the minimum value the learning rate can take on
+        """
+        self.__dict__.update(locals())
+        del self.self
+        self._initialized = False
+        self._count = 0
+        assert start >= 0
+        if half_life is None:
+            self.half_life = start + 1
+        else:
+            assert half_life > 0
+
+    def __call__(self, model, dataset, algorithm):
+        if not self._initialized:
+            self._init_lr = algorithm.learning_rate.get_value()
+            self._initialized = True
+        self._count += 1
+        algorithm.learning_rate.set_value( np.cast[config.floatX](self.current_lr()))
+
+    def current_lr(self):
+        if self._count < self.start:
+            scale = 1
+        else:
+            scale = float(self.half_life) / float(self._count - self.start +self.half_life)
+        lr = self._init_lr * scale
+        clipped = max(self.min_lr, lr)
+        return clipped
+
+class _PolyakWorker(object):
+    """
+    Only to be used by the PolyakAveraging TrainingCallback below.
+    Do not use directly.
+    """
+    def __init__(self, model):
+        avg_updates = {}
+        t = sharedX(1.)
+        self.param_to_mean = {}
+        for param in model.get_params():
+            mean = sharedX(param.get_value())
+            self.param_to_mean[param] = mean
+            avg_updates[mean] = mean - (mean - param) / t
+            avg_updates[t] = t + 1.
+        self.avg = function([], updates = avg_updates)
+
+    def __call__(self, algorithm):
+        self.avg()
+
+class PolyakAveraging(TrainingCallback):
+    """
+    See "A Tutorial on Stochastic Approximation Algorithms
+    for Training Restricted Boltzmann Machines and
+        Deep Belief Nets" by Kevin Swersky et al
+
+    Notes: this is usually used with a fixed, rather than
+        annealed learning rate.
+        It may be used in conjunction with momentum.
+
+    This functionality is still a work in progress. Currently,
+    your model needs to implement "add_polyak_channels" to
+    use it.
+
+    The problem is that Polyak averaging shouldn't modify
+    the model parameters. It should keep a second copy
+    that it averages in the background. This second copy
+    doesn't get to come back in and affect the learning process
+    though.
+
+    (IG tried having the second copy get pushed back into
+    the model once per epoch, but this turned out to be
+    harmful, at least in limited tests)
+
+    So we need a cleaner interface for monitoring the
+    averaged copy of the parameters, and we need to make
+    sure the saved model at the end uses the averaged
+    parameters, not the parameters used for computing
+    the gradients during training.
+    """
+
+    def __init__(self, start):
+        """
+            start: the epoch after which to start averaging
+        """
+        self.__dict__.update(locals())
+        del self.self
+        self._count = 0
+        assert start >= 1
+
+    def __call__(self, model, dataset, algorithm):
+        self._count += 1
+        if self._count == self.start:
+            self._worker = _PolyakWorker(model)
+            algorithm.update_callbacks.append(self._worker)
+            #HACK
+            model.add_polyak_channels(self._worker.param_to_mean, algorithm.monitoring_dataset)
+
+
 # This might be worth rolling into the SGD logic directly at some point.
 class ConjunctionCriterion(object):
     def __init__(self, criteria):
