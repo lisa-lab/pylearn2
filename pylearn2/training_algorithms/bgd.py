@@ -149,6 +149,8 @@ class BGD(TrainingAlgorithm):
 
         self.optimizer = BatchGradientDescent(
                             objective = obj,
+                            gradients = grads,
+                            gradient_updates = grad_updates,
                             params = model.get_params(),
                             param_constrainers = [ model.censor_updates ],
                             lr_scalers = model.get_lr_scalers(),
