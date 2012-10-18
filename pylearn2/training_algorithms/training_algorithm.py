@@ -56,10 +56,17 @@ class TrainingAlgorithm(object):
         raise NotImplementedError()
 
     def _set_monitoring_dataset(self, monitoring_dataset):
+        """
+            monitoring_dataset: None for no monitoring, or
+                                Dataset, to monitor on one dataset, or
+                                dict mapping string names to Datasets
+        """
         if isinstance(monitoring_dataset, Dataset):
             self.monitoring_dataset = { '': monitoring_dataset }
         else:
-            for key in monitoring_dataset:
-                assert isinstance(key, str)
-                assert isinstance(monitoring_dataset[key], Dataset)
+            if monitoring_dataset is not None:
+                assert isinstance(monitoring_dataset, dict)
+                for key in monitoring_dataset:
+                    assert isinstance(key, str)
+                    assert isinstance(monitoring_dataset[key], Dataset)
             self.monitoring_dataset = monitoring_dataset
