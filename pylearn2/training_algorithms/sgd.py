@@ -113,11 +113,6 @@ class SGD(TrainingAlgorithm):
         # with monitors / pushing the monitor automatically, instead of just
         # enforcing that people have called push_monitor
         assert self.monitor.get_examples_seen() == 0
-        if self.monitoring_dataset is not None:
-            self.monitor.add_dataset(dataset=self.monitoring_dataset,
-                                 mode='sequential',
-                                 batch_size=self.batch_size,
-                                 num_batches=self.monitoring_batches)
         self.monitor._sanity_check()
 
 
@@ -129,31 +124,22 @@ class SGD(TrainingAlgorithm):
         if config.compute_test_value == 'raise':
             if self.topo:
                 X.tag.test_value = dataset.get_batch_topo(self.batch_size)
+            else:
+                X.tag.test_value = dataset.get_batch_design(self.batch_size)
 
         Y = T.matrix(name="%s[Y]" % self.__class__.__name__)
 
-        try:
-            iter(self.cost)
-            iterable_cost = True
-        except TypeError:
-            iterable_cost = False
-        if iterable_cost:
-            cost_value = 0
-            self.supervised = False
-            for c in self.cost:
-                if (c.supervised):
-                    self.supervised = True
-                    cost_value += c(model, X, Y)
-                else:
-                    cost_value += c(model, X)
-            #cost_value = sum(c(model, X) for c in self.cost)
+
+        if self.cost.supervised:
+            if config.compute_test_value == 'raise':
+                _, Y.tag.test_value = dataset.get_batch_design(self.batch_size, True)
+
+            self.supervised = True
+            cost_value = self.cost(model, X, Y)
+
         else:
-            if self.cost.supervised:
-                self.supervised = True
-                cost_value = self.cost(model, X, Y)
-            else:
-                self.supervised = False
-                cost_value = self.cost(model, X)
+            self.supervised = False
+            cost_value = self.cost(model, X)
         if cost_value is not None and cost_value.name is None:
             if self.supervised:
                 cost_value.name = 'sgd_cost(' + X.name + ', ' + Y.name + ')'
@@ -165,6 +151,8 @@ class SGD(TrainingAlgorithm):
         # the cost
         # TODO: also monitor things defined by the model
         learning_rate = self.learning_rate
+        # TODO: refactor this if statement to share code between here and BGD
+        # could make a TrainingAlgorithm._setup_monitor that they both call
         if self.monitoring_dataset is not None:
             if self.supervised:
                 cost_channels = self.cost.get_monitoring_channels(model, X, Y)
@@ -172,19 +160,33 @@ class SGD(TrainingAlgorithm):
             else:
                 cost_channels = self.cost.get_monitoring_channels(model, X)
                 ipt = X
-            # These channel names must not vary, since callbacks that respond to the
-            # values in the monitor use the name to find them
-            if cost_value is not None:
-                self.monitor.add_channel(name='sgd_cost', ipt=ipt,
-                        val=cost_value, dataset=self.monitoring_dataset)
-            self.monitor.add_channel(name='learning_rate', ipt=ipt,
-                    val=learning_rate, dataset=self.monitoring_dataset)
-            for key in cost_channels:
-                self.monitor.add_channel(name=key, ipt=ipt,
-                        val=cost_channels[key], dataset=self.monitoring_dataset)
-            if self.momentum:
-                self.monitor.add_channel(name='momentum', ipt=ipt,
-                        val=self.momentum, dataset=self.monitoring_dataset)
+            first_dataset = True
+            for dataset_name in self.monitoring_dataset:
+                monitoring_dataset = self.monitoring_dataset[dataset_name]
+                self.monitor.add_dataset(dataset=monitoring_dataset,
+                                     mode='sequential',
+                                     batch_size=self.batch_size,
+                                     num_batches=self.monitoring_batches)
+                if dataset_name == '':
+                    prefix = ''
+                else:
+                    prefix = dataset_name + '_'
+                # These channel names must not vary, since callbacks that respond to the
+                # values in the monitor use the name to find them
+                if cost_value is not None:
+                    self.monitor.add_channel(name=prefix + 'sgd_cost', ipt=ipt,
+                            val=cost_value, dataset=monitoring_dataset)
+                for key in cost_channels:
+                    self.monitor.add_channel(name=prefix + key, ipt=ipt,
+                            val=cost_channels[key], dataset=monitoring_dataset)
+                if first_dataset:
+                    #TODO: have Monitor support non-data-dependent channels
+                    first_dataset = False
+                    self.monitor.add_channel(name='learning_rate', ipt=ipt,
+                            val=learning_rate, dataset=monitoring_dataset)
+                    if self.momentum:
+                        self.monitor.add_channel(name='momentum', ipt=ipt,
+                                val=self.momentum, dataset=monitoring_dataset)
 
         params = list(model.get_params())
         assert len(params) > 0
@@ -196,6 +198,11 @@ class SGD(TrainingAlgorithm):
             grads, updates = self.cost.get_gradients(model, X, Y)
         else:
             grads, updates = self.cost.get_gradients(model, X)
+
+        for param in grads:
+            assert param in params
+        for param in params:
+            assert param in grads
 
         for param in grads:
             if grads[param].name is None and cost_value is not None:
@@ -232,11 +239,11 @@ class SGD(TrainingAlgorithm):
                 updates[param] = param + updated_inc
 
 
-        for param in updates:
+        for param in params:
             if updates[param].name is None:
                 updates[param].name = 'sgd_update(' + param.name + ')'
         model.censor_updates(updates)
-        for param in updates:
+        for param in params:
             if updates[param].name is None:
                 updates[param].name = 'censor(sgd_update(' + param.name + '))'
 
