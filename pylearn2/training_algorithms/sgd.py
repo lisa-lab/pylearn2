@@ -1,16 +1,24 @@
 from __future__ import division
-import time
-import numpy as np
+"""
+Stochastic Gradient Descent and related functionality such as
+learning rate adaptation, momentum, and Polyak averaging.
+"""
+__authors__ = "Ian Goodfellow"
+__copyright__ = "Copyright 2010-2012, Universite de Montreal"
+__credits__ = ["Ian Goodfellow, David Warde-Farley"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow, David Warde-Farley"
+__email__ = "goodfeli@iro"
+import warnings
 from theano import function
-import theano.tensor as T
+import theano.sparse
+from theano import config
+import numpy as np
+from theano import tensor as T
 from pylearn2.monitor import Monitor
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
-import pylearn2.costs.cost
 from pylearn2.utils import sharedX
-from theano.printing import Print
 from pylearn2.training_callbacks.training_callback import TrainingCallback
-import warnings
-from theano import config
 from pylearn2.utils.iteration import is_stochastic
 
 class SGD(TrainingAlgorithm):
