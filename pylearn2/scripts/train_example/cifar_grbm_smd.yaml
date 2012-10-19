@@ -113,7 +113,7 @@
         # (setting N to 10 should make the weights prettier, but will make it
         # run a lot longer)
 
-        "termination_criterion" : !obj:pylearn2.training_algorithms.sgd.MonitorBasedTermCrit {
+        "termination_criterion" : !obj:pylearn2.termination_criteria.MonitorBasedTerm {
             "prop_decrease" : 0.01,
             "N" : 1,
         },
