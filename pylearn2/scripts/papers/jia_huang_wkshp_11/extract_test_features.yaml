@@ -1,0 +1,12 @@
+!obj:extract_features.FeatureExtractor {
+        #I use a really small batch_size so it will work on gpu
+        batch_size : 1,
+        kmeans_path : "kmeans.pkl",
+        save_path: "test_features.npy",
+        dataset_family: extract_features.cifar100,
+        which_set: "test",
+        #This is the value from the paper
+        num_output_features: 6400,
+        #I'm not sure which kind of pooling was used in the paper
+        pool_mode: 'max'
+}
