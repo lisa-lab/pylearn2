@@ -9,13 +9,27 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
-class MonitorBasedTermCrit(object):
+import numpy as np
+
+class TerminationCriterion(object):
+    """
+    A callable used to determine if a TrainingAlgorithm should quit
+    running.
+    """
+
+    def __call__(self, model):
+        """
+        Returns True if training should continue, False otherwise
+        """
+        raise NotImplementedError(str(type(self))+" does not implement __call__")
+
+class MonitorBased(TerminationCriterion):
     """
     A termination criterion that pulls out the specified channel in
     the model's monitor and checks to see if it has decreased by a
     certain proportion of the lowest value in the last N epochs.
     """
-    def __init__(self, prop_decrease, N, channel_name=None):
+    def __init__(self, prop_decrease = .01, N = 5, channel_name=None):
         """
         Initialize a monitor-based termination criterion.
 
@@ -39,9 +53,8 @@ class MonitorBasedTermCrit(object):
 
     def __call__(self, model):
         """
-        Returns True or False depending on whether the optimization should
-        stop or not. The optimization should stop if the model has run for
-        N epochs without any improvement.
+        The optimization should stop if the model has run for
+        N epochs without sufficient improvement.
 
         Parameters
         ----------
@@ -52,7 +65,7 @@ class MonitorBasedTermCrit(object):
         Returns
         -------
         boolean
-            True or False, indicating if the optimization should stop or not.
+            True if training should continue
         """
         monitor = model.monitor
         # In the case the monitor has only one channel, the channel_name can
