@@ -18,6 +18,9 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
             one_hot = False, binarize = False, start = None,
             stop = None):
 
+        self.args = locals()
+
+
         if which_set not in ['train','test']:
             if which_set == 'valid':
                 raise ValueError("There is no such thing as the MNIST "
@@ -109,6 +112,15 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
 
     def adjust_to_be_viewed_with(self, X, other, per_example = False):
         return self.adjust_for_viewer(X)
+
+    def get_test_set(self):
+        args = {}
+        args.update(self.args)
+        del args['self']
+        args['which_set'] = 'test'
+        args['start'] = None
+        args['stop'] = None
+        return MNIST(**args)
 
 
 class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
