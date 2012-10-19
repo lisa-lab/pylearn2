@@ -15,7 +15,7 @@ class Cost(object):
     # If True, the Y argument to __call__ and get_gradients must not be None
     supervised = False
 
-    def __call__(self, model, X, Y=None):
+    def __call__(self, model, X, Y=None, ** kwargs):
         """
         model: a pylearn2 Model instance
         X: a batch in model.get_input_space()
@@ -30,7 +30,7 @@ class Cost(object):
 
         raise NotImplementedError(str(type(self))+" does not implement __call__")
 
-    def get_gradients(self, model, X, Y=None):
+    def get_gradients(self, model, X, Y=None, ** kwargs):
         """
         model: a pylearn2 Model instance
         X: a batch in model.get_input_space()
@@ -57,9 +57,9 @@ class Cost(object):
 
         try:
             if Y is None:
-                cost = self(model=model, X=X)
+                cost = self(model=model, X=X, **kwargs)
             else:
-                cost = self(model=model, X=X, Y=Y)
+                cost = self(model=model, X=X, Y=Y, **kwargs)
         except TypeError,e:
             # If anybody knows how to add type(seslf) to the exception message
             # but still preserve the stack trace, please do so
@@ -132,7 +132,7 @@ class SumOfCosts(Cost):
 
         self.supervised = any([cost.supervised for cost in costs])
 
-    def __call__(self, model, X, Y=None):
+    def __call__(self, model, X, Y=None, ** kwargs):
         """
         Returns the sum of the costs the SumOfCosts instance was given at
         initialization.
@@ -152,24 +152,28 @@ class SumOfCosts(Cost):
             raise ValueError("no targets provided while some of the " +
                              "costs in the sum are supervised costs")
 
-        costs = [cost(model, X, Y) for cost in self.costs]
+        costs = [cost(model, X, Y, **kwargs) for cost in self.costs]
 
         sum_of_costs = reduce(lambda x, y: x + y, costs)
 
         return sum_of_costs
 
-    def get_gradients(self, model, X, Y=None):
+    def get_gradients(self, model, X, Y=None, ** kwargs):
 
         if Y is  None and self.supervised:
             raise ValueError("no targets provided while some of the " +
                              "costs in the sum are supervised costs")
 
-        indiv_results = [cost.get_gradients(model, X, Y) for cost in self.costs]
+        indiv_results = [cost.get_gradients(model, X, Y, ** kwargs) for cost in self.costs]
 
         grads = {}
         updates = {}
 
+        params = model.get_params()
+
         for g, u in indiv_results:
+            assert all([param in params for param in g])
+            assert all([param in g for param in params])
             for param in g:
                 v = g[param]
                 if param not in grads:
@@ -177,6 +181,7 @@ class SumOfCosts(Cost):
                 else:
                     grads[param] = grads[param] + v
             assert not any([state in updates for state in u])
+            assert not any([state in params for state in u])
             updates.update(u)
 
         return grads, updates
