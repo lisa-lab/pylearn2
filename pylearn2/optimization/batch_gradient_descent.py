@@ -306,7 +306,7 @@ class BatchGradientDescent:
                 s = a[1:]/a[:-1]
                 max_gap = 5.
                 if s.max() > max_gap:
-                    weight = .999
+                    weight = .99
                     if self.verbose:
                         print 'shrinking the range of step sizes'
                     alpha_list = [ (alpha ** weight) * (best_alpha ** (1.-weight)) for alpha in alpha_list ]
