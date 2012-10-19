@@ -115,6 +115,7 @@ class Test_DiagonalMND:
 
         optimizer = BatchGradientDescent(
                     objective = kl,
+                    hacky_conjugacy = True,
                     params = [ p.mu, p.beta, q.mu, q.beta ],
                     param_constrainers = [ p.censor_updates,
                         q.censor_updates ])
@@ -138,6 +139,9 @@ class Test_DiagonalMND:
             warnings.warn("KL divergence is not very numerically stable, evidently")
 
         tol = 5.4e-5
+        if kl > tol:
+            print 'kl:',kl
+            print 'tol:',tol
         assert kl <= tol
         assert not (kl > tol )
 
@@ -159,3 +163,8 @@ def test_log_partition_function():
     print log_Z
 
     assert np.allclose(ground, log_Z)
+
+if __name__ == '__main__':
+    tester = Test_DiagonalMND()
+
+    tester.test_zero_optimal()
