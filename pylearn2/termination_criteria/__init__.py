@@ -91,3 +91,28 @@ class MonitorBased(TerminationCriterion):
         # enough.
         return self.countdown > 0
 
+class MatchChannel(TerminationCriterion):
+    """
+        Stop training when a cost function reaches the same value as a cost
+        function from a previous training run.
+        (Useful for getting training likelihood on entire training set to
+        match validation likelihood from an earlier early stopping run)
+    """
+
+    def __init__(self, channel_name, prev_channel_name, prev_monitor_name):
+        self.__dict__.update(locals())
+        self.target = None
+
+    def __call__(self, model):
+        if self.target is None:
+            prev_monitor = getattr(model, self.prev_monitor_name)
+            channels = prev_monitor.channels
+            prev_channel = channels[self.prev_channel_name]
+            self.target = prev_channel.val_record[-1]
+
+        monitor = model.monitor
+        channels = monitor.channels
+        channel = channels[self.channel_name]
+
+        return channel.val_record[-1] > self.target
+
