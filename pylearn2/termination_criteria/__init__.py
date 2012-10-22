@@ -83,9 +83,12 @@ class MonitorBased(TerminationCriterion):
         # and the best value is updated
         if v[- 1] < (1. - self.prop_decrease) * self.best_value:
             self.countdown = self.N
-            self.best_value = v[-1]
         else:
             self.countdown = self.countdown - 1
+
+        if v[-1] < self.best_value:
+            self.best_value = v[-1]
+
         # The optimization continues until the countdown has reached 0,
         # meaning that N epochs have passed without the model improving
         # enough.
