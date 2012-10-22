@@ -149,9 +149,10 @@ class Train(object):
             save_end = datetime.datetime.now()
             delta = (save_end - save_start)
             print '...done. saving took', str(delta)
+            self.first_save = False
 
 class SerializationGuard(object):
 
     def __getstate__(self):
-        raise RuntimeError("You tried to serialize something that should not"
+        raise IOError("You tried to serialize something that should not"
                 " be serialized.")
