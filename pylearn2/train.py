@@ -21,7 +21,7 @@ class Train(object):
     and each of the registered callbacks are called.
     """
     def __init__(self, dataset, model, algorithm=None, save_path=None,
-                 save_freq=0, callbacks=None):
+                 save_freq=0, callbacks=None, allow_overwrite=True):
         """
         Construct a Train instance.
 
@@ -47,6 +47,8 @@ class Train(object):
             A collection of callbacks that are called, one at a time,
             after each epoch.
         """
+        self.allow_overwrite = allow_overwrite
+        self.first_save = True
         self.dataset = dataset
         self.model = model
         self.algorithm = algorithm
@@ -132,6 +134,12 @@ class Train(object):
         if self.save_path is not None:
             print 'saving to', self.save_path, '...'
             save_start = datetime.datetime.now()
+            if self.first_save and (not self.allow_overwrite) \
+                and os.path.exists(self.save_path):
+                # Every job overwrites its own output on the second save and every save
+                # thereafter. The "allow_overwrite" flag only pertains to overwriting
+                # the output of previous jobs.
+                raise IOError("Trying to overwrite file when not allowed.")
             try:
                 # Make sure that saving does not serialize the dataset
                 self.dataset._serialization_guard = SerializationGuard()
