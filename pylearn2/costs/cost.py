@@ -187,6 +187,9 @@ class SumOfCosts(Cost):
         return grads, updates
 
     def get_monitoring_channels(self, model, X, Y=None, ** kwargs):
+        if Y is  None and self.supervised:
+            raise ValueError("no targets provided while some of the " +
+                             "costs in the sum are supervised costs")
 
         rval = {}
 
