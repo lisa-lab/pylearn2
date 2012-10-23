@@ -117,10 +117,10 @@ def get_dataless_dataset(model):
 
 def safe_zip(*args):
     """Like zip, but ensures arguments are of same length"""
-    assert all([len(arg) == args[0] for arg in args])
+    assert all([len(arg) == len(args[0]) for arg in args])
     return zip(*args)
 
 def safe_izip(*args):
     """Like izip, but ensures arguments are of same length"""
-    assert all([len(arg) == args[0] for arg in args])
+    assert all([len(arg) == len(args[0]) for arg in args])
     return izip(*args)
