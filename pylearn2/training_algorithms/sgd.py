@@ -20,6 +20,7 @@ from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 from pylearn2.utils import sharedX
 from pylearn2.training_callbacks.training_callback import TrainingCallback
 from pylearn2.utils.iteration import is_stochastic
+import time
 
 class SGD(TrainingAlgorithm):
     """
@@ -142,9 +143,9 @@ class SGD(TrainingAlgorithm):
             cost_value = self.cost(model, X)
         if cost_value is not None and cost_value.name is None:
             if self.supervised:
-                cost_value.name = 'sgd_cost(' + X.name + ', ' + Y.name + ')'
+                cost_value.name = 'objective(' + X.name + ', ' + Y.name + ')'
             else:
-                cost_value.name = 'sgd_cost(' + X.name + ')'
+                cost_value.name = 'objective(' + X.name + ')'
 
         # Set up monitor to model the objective value, learning rate,
         # momentum (if applicable), and extra channels defined by
@@ -172,9 +173,10 @@ class SGD(TrainingAlgorithm):
                 else:
                     prefix = dataset_name + '_'
                 # These channel names must not vary, since callbacks that respond to the
-                # values in the monitor use the name to find them
+                # values in the monitor use the name to find them. They should also match
+                # those used by BGD so that the same callbacks can be used with both algorithms.
                 if cost_value is not None:
-                    self.monitor.add_channel(name=prefix + 'sgd_cost', ipt=ipt,
+                    self.monitor.add_channel(name=prefix + 'objective', ipt=ipt,
                             val=cost_value, dataset=monitoring_dataset)
                 for key in cost_channels:
                     self.monitor.add_channel(name=prefix + key, ipt=ipt,
@@ -247,12 +249,16 @@ class SGD(TrainingAlgorithm):
             if updates[param].name is None:
                 updates[param].name = 'censor(sgd_update(' + param.name + '))'
 
+        print 'Compiling sgd_update...'
+        t1 = time.time()
         if self.supervised:
             self.sgd_update = function([X, Y], updates=updates,
                                    name='sgd_update', on_unused_input = 'ignore')
         else:
             self.sgd_update = function([X], updates=updates,
                                    name='sgd_update', on_unused_input = 'ignore')
+        t2 = time.time()
+        print '...done. Took',t2-t1,' seconds.'
         self.params = params
 
     def train(self, dataset):
@@ -345,7 +351,7 @@ class MonitorBasedLRAdjuster(TrainingCallback):
         assert hasattr(model, 'monitor'), ("no monitor associated with " +
                                            str(model))
         monitor = model.monitor
-        v = monitor.channels['sgd_cost'].val_record
+        v = monitor.channels['objective'].val_record
 
         if len(v) < 1:
 
