@@ -70,3 +70,11 @@ class TrainingAlgorithm(object):
                     assert isinstance(key, str)
                     assert isinstance(monitoring_dataset[key], Dataset)
             self.monitoring_dataset = monitoring_dataset
+
+    def continue_learning(self, model):
+        """
+        Return True to continue learning. Called after the Monitor
+        has been run on the latest parameters so the monitor may be used
+        to determine convergence.
+        """
+        raise NotImplementedError(str(type(self))+" does not implement continue_learning.")

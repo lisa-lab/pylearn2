@@ -194,6 +194,7 @@ class BGD(TrainingAlgorithm):
             self.optimizer.minimize(*args)
             model.monitor.report_batch( X.shape[0] )
 
+    def continue_learning(self, model):
         if self.termination_criterion is None:
             return True
         else:
