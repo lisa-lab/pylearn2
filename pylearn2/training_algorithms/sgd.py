@@ -21,6 +21,7 @@ from pylearn2.utils import sharedX
 from pylearn2.training_callbacks.training_callback import TrainingCallback
 from pylearn2.utils.iteration import is_stochastic
 import time
+from pylearn2.utils import safe_zip
 
 class SGD(TrainingAlgorithm):
     """
@@ -228,7 +229,7 @@ class SGD(TrainingAlgorithm):
             print '\t'+param_name+': '+str(lr)
 
         if self.momentum is None:
-            updates.update( dict(zip(params, [param - learning_rate * \
+            updates.update( dict(safe_zip(params, [param - learning_rate * \
                 lr_scalers.get(param, 1.) * grads[param]
                                     for param in params])))
         else:

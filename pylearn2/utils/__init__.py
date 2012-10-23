@@ -4,6 +4,7 @@ from .general import is_iterable
 import theano
 from pylearn2.datasets import control
 yaml_parse = None
+from itertools import izip
 
 import numpy
 
@@ -113,3 +114,13 @@ def get_dataless_dataset(model):
     finally:
         control.pop_load_data()
     return rval
+
+def safe_zip(*args):
+    """Like zip, but ensures arguments are of same length"""
+    assert all([len(arg) == args[0] for arg in args])
+    return zip(*args)
+
+def safe_izip(*args):
+    """Like izip, but ensures arguments are of same length"""
+    assert all([len(arg) == args[0] for arg in args])
+    return izip(*args)

@@ -19,6 +19,7 @@ from pylearn2.utils import sharedX
 from theano import config
 import numpy as np
 from theano import tensor as T
+from pylearn2.utils import safe_izip
 
 class Monitor(object):
     """
@@ -101,7 +102,7 @@ class Monitor(object):
         if any([len(l) != len(dataset) for l in [mode, batch_size, seed]]):
             raise ValueError("make sure each dataset has its iteration " + \
                         "mode, batch size and number of batches.")
-        for (d, m, b, n, sd) in zip(dataset, mode, batch_size, num_batches, seed):
+        for (d, m, b, n, sd) in safe_izip(dataset, mode, batch_size, num_batches, seed):
             try:
                 it = d.iterator(mode=m, batch_size=b,
                                       num_batches=n,
@@ -149,7 +150,7 @@ class Monitor(object):
         # Set all channels' val_shared to 0
         self.begin_record_entry()
 
-        for d, i, b, n, a, sd in zip(datasets, self._iteration_mode, self._batch_size,
+        for d, i, b, n, a, sd in safe_izip(datasets, self._iteration_mode, self._batch_size,
                                  self._num_batches, self.accum, self._rng_seed):
             if isinstance(d, basestring):
                 d = yaml_parse.load(d)
@@ -265,7 +266,7 @@ class Monitor(object):
 
         print 'monitored channels: '+str(self.channels.keys())
         it = [d.iterator(mode=i, num_batches=n, batch_size=b) \
-              for d, i, n, b in zip(self._datasets, self._iteration_mode,
+              for d, i, n, b in safe_izip(self._datasets, self._iteration_mode,
                                     self._num_batches, self._batch_size)]
         num_examples = [np.cast[config.floatX](float(i.num_examples)) for i in it]
         givens = [{} for d in self._datasets]
@@ -299,7 +300,7 @@ class Monitor(object):
                             up[key].dtype)
 
         self.accum = []
-        for g, u in zip (givens, updates):
+        for g, u in safe_izip(givens, updates):
             if self.require_label:
                 # Some channels may not depend on the data, ie, they might just monitor the model
                 # parameters, or some shared variable updated by the training algorithm, so we
