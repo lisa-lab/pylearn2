@@ -293,6 +293,8 @@ class SGD(TrainingAlgorithm):
                 self.monitor.report_batch(actual_batch_size)
                 for callback in self.update_callbacks:
                     callback(self)
+
+    def continue_learning(self, model):
         if self.termination_criterion is None:
             return True
         else:

@@ -43,6 +43,8 @@ class Train(object):
             automatic saving altogether. A frequency of 1 saves every
             epoch. A frequency of 2 saves every other epoch, etc. (default=0,
             i.e. never save)
+            Note: the model is always saved at the end of learning, even
+            if the final epoch is not a multiple of save_freq.
         callbacks : iterable, optional
             A collection of callbacks that are called, one at a time,
             after each epoch.
@@ -84,12 +86,16 @@ class Train(object):
         if self.algorithm is None:
             self.model.monitor = Monitor.get_monitor(self.model)
             self.run_callbacks_and_monitoring()
-            while self.model.train_all(dataset=self.dataset):
+            while True:
+                rval = self.model.train_all(dataset=self.dataset)
+                if rval is not None:
+                    raise ValueError("Model.train_all should not return anything. Use Model.continue_learning to control whether learning continues.")
+                self.epochs += 1
                 self.run_callbacks_and_monitoring()
                 if self.save_freq > 0 and self.epochs % self.save_freq == 0:
                     self.save()
-                self.epochs += 1
-            self.run_callbacks_and_monitoring()
+                if not self.continue_learning():
+                    break
             if self.save_freq > 0:
                 self.save()
         else:
@@ -101,17 +107,19 @@ class Train(object):
                 raise RuntimeError("The algorithm is responsible for setting"
                         " up the Monitor, but failed to.")
             self.run_callbacks_and_monitoring()
-            epoch_start = datetime.datetime.now()
-            while self.algorithm.train(dataset=self.dataset):
+            while True:
+                epoch_start = datetime.datetime.now()
+                rval = self.algorithm.train(dataset=self.dataset)
                 epoch_end = datetime.datetime.now()
                 print 'Time this epoch:', str(epoch_end - epoch_start)
+                if rval is not None:
+                    raise ValueError("TrainingAlgorithm.train should not return anything. Use TrainingAlgorithm.continue_learning to control whether learning continues.")
+                self.epochs += 1
                 self.run_callbacks_and_monitoring()
                 if self.save_freq > 0 and self.epochs % self.save_freq == 0:
                     self.save()
-                self.epochs += 1
-                epoch_start = datetime.datetime.now()
-            epoch_end = datetime.datetime.now()
-            print 'Time this epoch:', str(epoch_end - epoch_start)
+                if not self.algorithm.continue_learning(self.model):
+                    break
             self.run_callbacks_and_monitoring()
 
             if self.save_freq > 0:

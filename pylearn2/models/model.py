@@ -12,9 +12,18 @@ import warnings
 
 
 class Model(object):
+    """
+    A class representing a model with learnable parameters.
+    """
+
     def train_all(self, dataset):
         """
         If implemented, performs one epoch of training.
+        This method is useful for models with highly specialized training
+        algorithms for which is does not make much sense to factor the training
+        code into a separate class. It is also useful for implementors that want
+        to make their model trainable without enforcing compatibility with
+        pylearn2 TrainingAlgorithms.
 
         Parameters
         ----------
@@ -22,10 +31,21 @@ class Model(object):
                 data from
 
         Return value:
-            True if the method should be called again for another epoch
-            False if convergence has been reached
+            None
         """
-        raise NotImplementedError()
+        raise NotImplementedError(str(type(self))+" does not implement train_all.")
+
+    def continue_learning(self):
+        """
+        If train_all is used to train the model, this method is used to determine
+        when the training process has converged. This method is called after the
+        monitor has been run on the latest parameters.
+
+        Returns: True/False. True indicates training should continue.
+        """
+
+        raise NotImplementedError(str(type(self))+" does not implement continue_learning.")
+
 
     def train_batch(self, dataset, batch_size):
         """
