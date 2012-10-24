@@ -22,6 +22,7 @@ from pylearn2.training_callbacks.training_callback import TrainingCallback
 from pylearn2.utils.iteration import is_stochastic
 import time
 from pylearn2.utils import safe_zip
+from pylearn2.utils import serial
 
 class SGD(TrainingAlgorithm):
     """
@@ -633,7 +634,7 @@ class PolyakAveraging(TrainingCallback):
     the gradients during training.
     """
 
-    def __init__(self, start):
+    def __init__(self, start, save_path = None):
         """
             start: the epoch after which to start averaging
         """
@@ -649,6 +650,14 @@ class PolyakAveraging(TrainingCallback):
             algorithm.update_callbacks.append(self._worker)
             #HACK
             model.add_polyak_channels(self._worker.param_to_mean, algorithm.monitoring_dataset)
+        elif self._count > self.start:
+            saved_params = {}
+            for param in model.get_params():
+                saved_params[param] = param.get_value()
+                param.set_value(self._worker.param_to_mean[param].get_value())
+            serial.save(self.save_path, model)
+            for param in model.get_params():
+                param.set_value(saved_params[param])
 
 
 # This might be worth rolling into the SGD logic directly at some point.
