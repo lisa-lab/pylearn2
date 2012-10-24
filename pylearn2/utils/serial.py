@@ -43,7 +43,7 @@ def raise_cannot_open(path):
     # end for
     assert False
 
-def load(filepath, recurse_depth=0):
+def load(filepath, recurse_depth=0, retry = True):
 
     try:
         import joblib
@@ -89,7 +89,7 @@ def load(filepath, recurse_depth=0):
             nsec = 0.5 * (2.0 ** float(recurse_depth))
             print "Waiting " + str(nsec) + " seconds and trying again"
             time.sleep(nsec)
-            return load(filepath, recurse_depth + 1)
+            return load(filepath, recurse_depth + 1, retry)
 
     try:
         if not joblib_available:
@@ -108,16 +108,23 @@ def load(filepath, recurse_depth=0):
         print ('Failed to open ' + str(filepath) +
                ' due to BadPickleGet with exception string ' + str(e))
 
+        if not retry:
+            raise
         obj =  exponential_backoff()
     except EOFError, e:
+
         print ('Failed to open ' + str(filepath) +
                ' due to EOFError with exception string ' + str(e))
 
+        if not retry:
+            raise
         obj =  exponential_backoff()
     except ValueError, e:
         print ('Failed to open ' + str(filepath) +
                ' due to ValueError with string ' + str(e))
 
+        if not retry:
+            raise
         obj =  exponential_backoff()
     except Exception, e:
         #assert False
