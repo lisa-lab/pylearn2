@@ -166,7 +166,11 @@ while True:
         elif x_axis == 'batch':
             x = np.asarray(channel.batch_record)
         elif x_axis == 'epoch':
-            x = np.arange(len(y))
+            try:
+                x = np.asarray(channel.epoch_record)
+            except AttributeError:
+                # older saved monitors won't have epoch_record
+                x = np.arange(len(channel.batch_record))
         else:
             assert False
 
