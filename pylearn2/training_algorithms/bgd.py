@@ -14,7 +14,7 @@ from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 
 class BGD(TrainingAlgorithm):
     """Batch Gradient Descent training algorithm class"""
-    def __init__(self, cost, batch_size=None, batches_per_iter=10,
+    def __init__(self, cost, batch_size=None, batches_per_iter=None,
                  updates_per_batch = 10,
                  monitoring_batches=None, monitoring_dataset=None,
                  termination_criterion = None, set_batch_size = False,
@@ -182,6 +182,7 @@ class BGD(TrainingAlgorithm):
         iterator = dataset.iterator(mode=train_iteration_mode,
                 batch_size=self.batch_size,
                 targets=self.cost.supervised,
+                num_batches=self.batches_per_iter,
                 topo=self.topo,
                 rng = rng)
         for data in iterator:
