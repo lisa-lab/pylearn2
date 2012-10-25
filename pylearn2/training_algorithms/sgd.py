@@ -158,11 +158,14 @@ class SGD(TrainingAlgorithm):
         # could make a TrainingAlgorithm._setup_monitor that they both call
         if self.monitoring_dataset is not None:
             if self.supervised:
-                cost_channels = self.cost.get_monitoring_channels(model, X, Y)
+                custom_channels = self.cost.get_monitoring_channels(model, X, Y)
+                model_channels = model.get_monitoring_channels(X, Y)
                 ipt = (X, Y)
             else:
-                cost_channels = self.cost.get_monitoring_channels(model, X)
+                custom_channels = self.cost.get_monitoring_channels(model, X)
+                model_channels = model.get_monitoring_channels(X)
                 ipt = X
+            custom_channels.update(model_channels)
             first_dataset = True
             for dataset_name in self.monitoring_dataset:
                 monitoring_dataset = self.monitoring_dataset[dataset_name]
@@ -180,9 +183,9 @@ class SGD(TrainingAlgorithm):
                 if cost_value is not None:
                     self.monitor.add_channel(name=prefix + 'objective', ipt=ipt,
                             val=cost_value, dataset=monitoring_dataset)
-                for key in cost_channels:
+                for key in custom_channels:
                     self.monitor.add_channel(name=prefix + key, ipt=ipt,
-                            val=cost_channels[key], dataset=monitoring_dataset)
+                            val=custom_channels[key], dataset=monitoring_dataset)
                 if first_dataset:
                     #TODO: have Monitor support non-data-dependent channels
                     first_dataset = False
@@ -634,23 +637,24 @@ class PolyakAveraging(TrainingCallback):
     the gradients during training.
     """
 
-    def __init__(self, start, save_path = None):
+    def __init__(self, start, save_path = None, save_freq = 1):
         """
             start: the epoch after which to start averaging
+            (0 = start averaging immediately)
         """
         self.__dict__.update(locals())
         del self.self
         self._count = 0
-        assert start >= 1
+        assert isinstance(start, int)
+        assert start >= 0
 
     def __call__(self, model, dataset, algorithm):
-        self._count += 1
         if self._count == self.start:
             self._worker = _PolyakWorker(model)
             algorithm.update_callbacks.append(self._worker)
             #HACK
             model.add_polyak_channels(self._worker.param_to_mean, algorithm.monitoring_dataset)
-        elif self._count > self.start:
+        elif self._count > self.start and self._count % self.save_freq == 0:
             saved_params = {}
             for param in model.get_params():
                 saved_params[param] = param.get_value()
@@ -658,6 +662,7 @@ class PolyakAveraging(TrainingCallback):
             serial.save(self.save_path, model)
             for param in model.get_params():
                 param.set_value(saved_params[param])
+        self._count += 1
 
 
 # This might be worth rolling into the SGD logic directly at some point.

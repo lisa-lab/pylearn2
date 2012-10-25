@@ -159,6 +159,10 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
 
     @classmethod
     def _unpickle(cls, file):
+        """
+        TODO: wtf is this? why not just use serial.load like the CIFAR-100 class?
+        whoever wrote it shows up as "unknown" in git blame
+        """
         from pylearn2.utils import string_utils
         fname = os.path.join(
                 string_utils.preprocess('${PYLEARN2_DATA_PATH}'),

@@ -46,6 +46,7 @@ class Monitor(object):
         self.channels = {}
         self._num_batches_seen = 0
         self._examples_seen = 0
+        self._epochs_seen = 0
         self._datasets = []
         self._iteration_mode = []
         self._batch_size = []
@@ -178,12 +179,14 @@ class Monitor(object):
         # TODO: use logging infrastructure so that user can configure
         # formatting
         print "Monitoring step:"
+        print "\tEpochs seen: %d" % self._epochs_seen
         print "\tBatches seen: %d" % self._num_batches_seen
         print "\tExamples seen: %d" % self._examples_seen
         for channel_name in sorted(self.channels.keys(), key=number_aware_alphabetical_key):
             channel = self.channels[channel_name]
             channel.batch_record.append(self._num_batches_seen)
             channel.example_record.append(self._examples_seen)
+            channel.epoch_record.append(self._epochs_seen)
             val = channel.val_shared.get_value(borrow=True)
             channel.val_record.append(val)
             # TODO: use logging infrastructure so that user can configure
@@ -218,6 +221,9 @@ class Monitor(object):
         Report how many examples were learned on. """
         self._examples_seen += num_examples
         self._num_batches_seen += 1
+
+    def report_epoch(self):
+        self._epochs_seen += 1
 
     def redo_theano(self):
         """
@@ -519,6 +525,7 @@ class MonitorChannel(object):
         # Number of examples seen at measurement time (batch sizes may
         # fluctuate).
         self.example_record = []
+        self.epoch_record = []
 
     def __str__(self):
         try:
@@ -560,11 +567,15 @@ class MonitorChannel(object):
         return {
             'example_record': self.example_record,
             'batch_record' : self.batch_record,
+            'epoch_record' : self.epoch_record,
             'val_record': self.val_record
         }
 
     def __setstate__(self, d):
         self.__dict__.update(d)
+        # Patch old pickle files that don't have this field
+        if 'epoch_record' not in d:
+            self.epoch_record = range(len(self.batch_record))
 
 
 def push_monitor(model, name):

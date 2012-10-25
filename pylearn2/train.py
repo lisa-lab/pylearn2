@@ -70,7 +70,6 @@ class Train(object):
                     tokens = os.environ['PYLEARN2_TRAIN_FILE_NAME'], 'pkl'
                 self.save_path = '.'.join(tokens)
         self.save_freq = save_freq
-        self.epochs = 0
         self.callbacks = callbacks if callbacks is not None else []
 
         if hasattr(self.dataset,'yaml_src'):
@@ -90,9 +89,8 @@ class Train(object):
                 rval = self.model.train_all(dataset=self.dataset)
                 if rval is not None:
                     raise ValueError("Model.train_all should not return anything. Use Model.continue_learning to control whether learning continues.")
-                self.epochs += 1
-                self.run_callbacks_and_monitoring()
-                if self.save_freq > 0 and self.epochs % self.save_freq == 0:
+                self.model.monitor.report_epoch()
+                if self.save_freq > 0 and self.model.monitor.epochs_seen % self.save_freq == 0:
                     self.save()
                 if not self.continue_learning():
                     break
@@ -114,9 +112,9 @@ class Train(object):
                 print 'Time this epoch:', str(epoch_end - epoch_start)
                 if rval is not None:
                     raise ValueError("TrainingAlgorithm.train should not return anything. Use TrainingAlgorithm.continue_learning to control whether learning continues.")
-                self.epochs += 1
+                self.model.monitor.report_epoch()
                 self.run_callbacks_and_monitoring()
-                if self.save_freq > 0 and self.epochs % self.save_freq == 0:
+                if self.save_freq > 0 and self.model.monitor._epochs_seen % self.save_freq == 0:
                     self.save()
                 if not self.algorithm.continue_learning(self.model):
                     break
