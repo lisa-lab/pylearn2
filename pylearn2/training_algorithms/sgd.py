@@ -158,11 +158,14 @@ class SGD(TrainingAlgorithm):
         # could make a TrainingAlgorithm._setup_monitor that they both call
         if self.monitoring_dataset is not None:
             if self.supervised:
-                cost_channels = self.cost.get_monitoring_channels(model, X, Y)
+                custom_channels = self.cost.get_monitoring_channels(model, X, Y)
+                model_channels = model.get_monitoring_channels(X, Y)
                 ipt = (X, Y)
             else:
-                cost_channels = self.cost.get_monitoring_channels(model, X)
+                custom_channels = self.cost.get_monitoring_channels(model, X)
+                model_channels = model.get_monitoring_channels(X)
                 ipt = X
+            custom_channels.update(model_channels)
             first_dataset = True
             for dataset_name in self.monitoring_dataset:
                 monitoring_dataset = self.monitoring_dataset[dataset_name]
@@ -180,9 +183,9 @@ class SGD(TrainingAlgorithm):
                 if cost_value is not None:
                     self.monitor.add_channel(name=prefix + 'objective', ipt=ipt,
                             val=cost_value, dataset=monitoring_dataset)
-                for key in cost_channels:
+                for key in custom_channels:
                     self.monitor.add_channel(name=prefix + key, ipt=ipt,
-                            val=cost_channels[key], dataset=monitoring_dataset)
+                            val=custom_channels[key], dataset=monitoring_dataset)
                 if first_dataset:
                     #TODO: have Monitor support non-data-dependent channels
                     first_dataset = False
