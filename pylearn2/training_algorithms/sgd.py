@@ -637,23 +637,24 @@ class PolyakAveraging(TrainingCallback):
     the gradients during training.
     """
 
-    def __init__(self, start, save_path = None):
+    def __init__(self, start, save_path = None, save_freq = 1):
         """
             start: the epoch after which to start averaging
+            (0 = start averaging immediately)
         """
         self.__dict__.update(locals())
         del self.self
         self._count = 0
-        assert start >= 1
+        assert isinstance(start, int)
+        assert start >= 0
 
     def __call__(self, model, dataset, algorithm):
-        self._count += 1
         if self._count == self.start:
             self._worker = _PolyakWorker(model)
             algorithm.update_callbacks.append(self._worker)
             #HACK
             model.add_polyak_channels(self._worker.param_to_mean, algorithm.monitoring_dataset)
-        elif self._count > self.start:
+        elif self._count > self.start and self._count % self.save_freq == 0:
             saved_params = {}
             for param in model.get_params():
                 saved_params[param] = param.get_value()
@@ -661,6 +662,7 @@ class PolyakAveraging(TrainingCallback):
             serial.save(self.save_path, model)
             for param in model.get_params():
                 param.set_value(saved_params[param])
+        self._count += 1
 
 
 # This might be worth rolling into the SGD logic directly at some point.
