@@ -90,6 +90,8 @@ class SGD(TrainingAlgorithm):
         if init_momentum is None:
             self.momentum = None
         else:
+            assert init_momentum >= 0.
+            assert init_momentum < 1.
             self.momentum = sharedX(init_momentum, 'momentum')
         self._register_update_callbacks(update_callbacks)
         if train_iteration_mode is None:
@@ -612,6 +614,7 @@ class _PolyakWorker(object):
         self.param_to_mean = {}
         for param in model.get_params():
             mean = sharedX(param.get_value())
+            assert type(mean) == type(param)
             self.param_to_mean[param] = mean
             avg_updates[mean] = mean - (mean - param) / t
             avg_updates[t] = t + 1.
