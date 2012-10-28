@@ -28,10 +28,10 @@ class BatchGradientDescent:
     def __init__(self, objective, params, inputs = None,
             param_constrainers = None, max_iter = -1,
             lr_scalers = None, verbose = False, tol = None,
-            init_alpha = ( .001, .005, .01, .05, .1 ),
+            init_alpha = None,
             reset_alpha = True, hacky_conjugacy = False,
             reset_conjugate = True, gradients = None,
-            gradient_updates = None):
+            gradient_updates = None, line_search_mode = None):
         """ objective: a theano expression to be minimized
                        should be a function of params and,
                        if provided, inputs
@@ -77,6 +77,14 @@ class BatchGradientDescent:
 
         self.__dict__.update(locals())
         del self.self
+
+        if line_search_mode is None:
+            if init_alpha is None:
+                init_alpha  = ( .001, .005, .01, .05, .1 )
+        else:
+            assert line_search_mode == 'exhaustive'
+            if init_alpha is None:
+                init_alpha = (.5, 1.)
 
         self.init_alpha = tuple([ float(elem) for elem in init_alpha])
 
@@ -240,7 +248,6 @@ class BatchGradientDescent:
 
         while iters != self.max_iter:
             iters += 1
-            best_obj, best_alpha, best_alpha_ind = self.obj( * inputs), 0., -1
             self._cache_values()
             if self.hacky_conjugacy:
                 self._store_old_grad(norm)
@@ -249,74 +256,148 @@ class BatchGradientDescent:
                 self._make_conjugate()
             norm = self._normalize_grad()
 
-            prev_best_obj = best_obj
+            if self.line_search_mode is None:
+                best_obj, best_alpha, best_alpha_ind = self.obj( * inputs), 0., -1
+                prev_best_obj = best_obj
 
-            for ind, alpha in enumerate(alpha_list):
-                self._goto_alpha(alpha)
-                obj = self.obj(*inputs)
+                for ind, alpha in enumerate(alpha_list):
+                    self._goto_alpha(alpha)
+                    obj = self.obj(*inputs)
+                    if self.verbose:
+                        print '\t',alpha,obj
+
+                    #Use <= rather than = so if there are ties
+                    #the bigger step size wins
+                    if obj <= best_obj:
+                        best_obj = obj
+                        best_alpha = alpha
+                        best_alpha_ind = ind
+                    #end if obj
+                #end for ind, alpha
+
+
                 if self.verbose:
+                    print best_obj
+
+                assert not np.isnan(best_obj)
+                assert best_obj <= prev_best_obj
+                self._goto_alpha(best_alpha)
+
+                #if best_obj == prev_best_obj and alpha_list[0] < 1e-5:
+                #    break
+                if best_alpha_ind < 1 and alpha_list[0] > self.tol:
+                    alpha_list = [ alpha / 3. for alpha in alpha_list ]
+                    if self.verbose:
+                        print 'shrinking the step size'
+                elif best_alpha_ind > len(alpha_list) -2:
+                    alpha_list = [ alpha * 2. for alpha in alpha_list ]
+                    if self.verbose:
+                        print 'growing the step size'
+                elif best_alpha_ind == -1 and alpha_list[0] <= self.tol:
+                    if alpha_list[-1] > 1:
+                        if self.verbose:
+                            print 'converged'
+                        break
+                    if self.verbose:
+                        print 'expanding the range of step sizes'
+                    for i in xrange(len(alpha_list)):
+                        for j in xrange(i,len(alpha_list)):
+                            alpha_list[j] *= 1.5
+                        #end for j
+                    #end for i
+                else:
+                    # if a step succeeded and didn't result in growing or shrinking
+                    # the step size then we can probably benefit from more fine-grained
+                    # exploration of the middle ranges of step size
+                    # (this is especially necessary if we've executed the
+                    # 'expanding the range of step sizes' case multiple times)
+                    a = np.asarray(alpha_list)
+                    s = a[1:]/a[:-1]
+                    max_gap = 5.
+                    if s.max() > max_gap:
+                        weight = .99
+                        if self.verbose:
+                            print 'shrinking the range of step sizes'
+                        alpha_list = [ (alpha ** weight) * (best_alpha ** (1.-weight)) for alpha in alpha_list ]
+                        assert all([second > first for first, second in zip(alpha_list[:-1], alpha_list[1:])])
+                        # y^(weight) best^(1-weight) / x^(weight) best^(1-weight) = (y/x)^weight
+                        # so this shrinks the ratio between each successive pair of alphas by raising it to weight
+                        # weight = .99 -> a gap of 5 is shrunk to 4.92
+
+
+                #end check on alpha_ind
+            else:
+                assert self.line_search_mode == 'exhaustive'
+
+                # In exhaustive mode, we search until we get very little
+                # improvement (or have tried over ten points)
+                # and we dynamically pick the search points to try to
+                # maximize the improvement.
+                # The points we pick are kind of dumb; it's just a binary
+                # search. We could probably do better by fitting a function
+                # and jumping to its local minima at each step
+
+                print 'Exhaustive line search'
+
+
+                results = [ (0., self.obj(*inputs) ) ]
+                for alpha in alpha_list:
+                    assert alpha > results[-1][0]
+                    self._goto_alpha(alpha)
+                    results.append( (alpha, self.obj(*inputs) ) )
+                for alpha, obj in results:
                     print '\t',alpha,obj
 
-                #Use <= rather than = so if there are ties
-                #the bigger step size wins
-                if obj <= best_obj:
-                    best_obj = obj
-                    best_alpha = alpha
-                    best_alpha_ind = ind
-                #end if obj
-            #end for ind, alpha
+                print '\t-------'
 
+                prev_improvement = 0.
+                while True:
+                    alpha_list = [alpha for alpha, obj in results]
+                    obj = [ obj for alpha, obj in results]
+                    mn = min(obj)
+                    idx = obj.index(mn)
 
-            if self.verbose:
-                print best_obj
+                    def do_point(x):
+                        self._goto_alpha(x)
+                        res = self.obj(*inputs)
+                        print '\t',x,res
+                        for i in xrange(len(results)):
+                            elem = results[i]
+                            ex = elem[0]
+                            assert x != ex
+                            if x > ex:
+                                if i + 1 == len(results) or x < results[i+1][0]:
+                                    results.insert(i+1, (x, res))
+                                    return mn - res
+                        assert False # should be unreached
 
-            assert not np.isnan(best_obj)
-            assert best_obj <= prev_best_obj
-            self._goto_alpha(best_alpha)
+                    if idx == 0:
+                        x = (alpha_list[0] + alpha_list[1]) / 2.
+                    elif idx == len(alpha_list) - 1:
+                        x = 2 * alpha_list[-1]
+                    else:
+                        if obj[idx+1] < obj[idx-1]:
+                            x = (alpha_list[idx] + alpha_list[idx+1])/2.
+                        else:
+                            x = (alpha_list[idx] + alpha_list[idx-1])/2.
 
-            #if best_obj == prev_best_obj and alpha_list[0] < 1e-5:
-            #    break
-            if best_alpha_ind < 1 and alpha_list[0] > self.tol:
-                alpha_list = [ alpha / 3. for alpha in alpha_list ]
-                if self.verbose:
-                    print 'shrinking the step size'
-            elif best_alpha_ind > len(alpha_list) -2:
-                alpha_list = [ alpha * 2. for alpha in alpha_list ]
-                if self.verbose:
-                    print 'growing the step size'
-            elif best_alpha_ind == -1 and alpha_list[0] <= self.tol:
-                if alpha_list[-1] > 1:
-                    if self.verbose:
-                        print 'converged'
-                    break
-                if self.verbose:
-                    print 'expanding the range of step sizes'
-                for i in xrange(len(alpha_list)):
-                    for j in xrange(i,len(alpha_list)):
-                        alpha_list[j] *= 1.5
-                    #end for j
-                #end for i
-            else:
-                # if a step succeeded and didn't result in growing or shrinking
-                # the step size then we can probably benefit from more fine-grained
-                # exploration of the middle ranges of step size
-                # (this is especially necessary if we've executed the
-                # 'expanding the range of step sizes' case multiple times)
-                a = np.asarray(alpha_list)
-                s = a[1:]/a[:-1]
-                max_gap = 5.
-                if s.max() > max_gap:
-                    weight = .99
-                    if self.verbose:
-                        print 'shrinking the range of step sizes'
-                    alpha_list = [ (alpha ** weight) * (best_alpha ** (1.-weight)) for alpha in alpha_list ]
-                    assert all([second > first for first, second in zip(alpha_list[:-1], alpha_list[1:])])
-                    # y^(weight) best^(1-weight) / x^(weight) best^(1-weight) = (y/x)^weight
-                    # so this shrinks the ratio between each successive pair of alphas by raising it to weight
-                    # weight = .99 -> a gap of 5 is shrunk to 4.92
+                    improvement = do_point(x)
 
+                    if improvement > 0 and improvement < .01 * prev_improvement or len(obj) > 10:
+                        break
+                    prev_improvement = improvement
 
-            #end check on alpha_ind
+                alpha_list = [alpha for alpha, obj in results]
+                obj = [ obj for alpha, obj in results]
+                mn = min(obj)
+                idx = obj.index(mn)
+                x = alpha_list[idx]
+                self._goto_alpha(x)
+                print 'final step size: ',x
+
+                alpha_list = [ x/2., x ]
+                best_obj = mn
+
         #end while
 
         if not self.reset_alpha:

@@ -19,7 +19,7 @@ class BGD(TrainingAlgorithm):
                  monitoring_batches=None, monitoring_dataset=None,
                  termination_criterion = None, set_batch_size = False,
                  reset_alpha = True, hacky_conjugacy = False,
-                 reset_conjugate = True):
+                 reset_conjugate = True, line_search_mode = None):
         """
         cost: a pylearn2 Cost
         batch_size: Like the SGD TrainingAlgorithm, this TrainingAlgorithm
@@ -163,7 +163,8 @@ class BGD(TrainingAlgorithm):
                             max_iter = self.updates_per_batch,
                             reset_alpha = self.reset_alpha,
                             hacky_conjugacy = self.hacky_conjugacy,
-                            reset_conjugate = self.reset_conjugate)
+                            reset_conjugate = self.reset_conjugate,
+                            line_search_mode = self.line_search_mode)
 
 
         self.first = True
