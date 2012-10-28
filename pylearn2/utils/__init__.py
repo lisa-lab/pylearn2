@@ -5,6 +5,7 @@ import theano
 from pylearn2.datasets import control
 yaml_parse = None
 from itertools import izip
+cuda = None
 
 import numpy
 
@@ -124,3 +125,9 @@ def safe_izip(*args):
     """Like izip, but ensures arguments are of same length"""
     assert all([len(arg) == len(args[0]) for arg in args])
     return izip(*args)
+
+def gpu_mem_free():
+    global cuda
+    if cuda is None:
+        from theano.sandbox import cuda
+    return cuda.mem_info()[0]/1024./1024
