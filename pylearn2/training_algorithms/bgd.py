@@ -14,12 +14,12 @@ from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 
 class BGD(TrainingAlgorithm):
     """Batch Gradient Descent training algorithm class"""
-    def __init__(self, cost, batch_size=None, batches_per_iter=10,
+    def __init__(self, cost, batch_size=None, batches_per_iter=None,
                  updates_per_batch = 10,
                  monitoring_batches=None, monitoring_dataset=None,
                  termination_criterion = None, set_batch_size = False,
                  reset_alpha = True, hacky_conjugacy = False,
-                 reset_conjugate = True):
+                 reset_conjugate = True, line_search_mode = None):
         """
         cost: a pylearn2 Cost
         batch_size: Like the SGD TrainingAlgorithm, this TrainingAlgorithm
@@ -114,13 +114,17 @@ class BGD(TrainingAlgorithm):
             channels.update(self.cost.get_monitoring_channels(model, X, Y))
 
             for dataset_name in self.monitoring_dataset:
+                if dataset_name == '':
+                    prefix = ''
+                else:
+                    prefix = dataset_name + '_'
                 monitoring_dataset = self.monitoring_dataset[dataset_name]
                 self.monitor.add_dataset(dataset=monitoring_dataset,
                                     mode="sequential",
                                     batch_size=self.batch_size,
                                     num_batches=self.monitoring_batches)
 
-                self.monitor.add_channel(dataset_name + '_batch_gd_objective',ipt=ipt,val=obj,
+                self.monitor.add_channel(prefix + 'objective',ipt=ipt,val=obj,
                         dataset = monitoring_dataset)
 
                 for name in channels:
@@ -136,7 +140,7 @@ class BGD(TrainingAlgorithm):
                     else:
                         ipt = X
 
-                    self.monitor.add_channel(name=dataset_name + '_' + name,
+                    self.monitor.add_channel(name= prefix + name,
                                              ipt=ipt,
                                              val=J,
                                              dataset = monitoring_dataset,
@@ -159,7 +163,8 @@ class BGD(TrainingAlgorithm):
                             max_iter = self.updates_per_batch,
                             reset_alpha = self.reset_alpha,
                             hacky_conjugacy = self.hacky_conjugacy,
-                            reset_conjugate = self.reset_conjugate)
+                            reset_conjugate = self.reset_conjugate,
+                            line_search_mode = self.line_search_mode)
 
 
         self.first = True
@@ -182,6 +187,7 @@ class BGD(TrainingAlgorithm):
         iterator = dataset.iterator(mode=train_iteration_mode,
                 batch_size=self.batch_size,
                 targets=self.cost.supervised,
+                num_batches=self.batches_per_iter,
                 topo=self.topo,
                 rng = rng)
         for data in iterator:

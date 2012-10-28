@@ -270,7 +270,9 @@ class Monitor(object):
         if self.require_label:
             Y = self.model.get_output_space().make_theano_batch(name = "monitoring_Y")
 
-        print 'monitored channels: '+str(self.channels.keys())
+        print 'monitored channels: '
+        for key in self.channels:
+            print '\t',key
         it = [d.iterator(mode=i, num_batches=n, batch_size=b) \
               for d, i, n, b in safe_izip(self._datasets, self._iteration_mode,
                                     self._num_batches, self._batch_size)]

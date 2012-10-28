@@ -23,6 +23,7 @@ from pylearn2.utils.iteration import is_stochastic
 import time
 from pylearn2.utils import safe_zip
 from pylearn2.utils import serial
+from theano.gof.op import get_debug_values
 
 class SGD(TrainingAlgorithm):
     """
@@ -89,6 +90,8 @@ class SGD(TrainingAlgorithm):
         if init_momentum is None:
             self.momentum = None
         else:
+            assert init_momentum >= 0.
+            assert init_momentum < 1.
             self.momentum = sharedX(init_momentum, 'momentum')
         self._register_update_callbacks(update_callbacks)
         if train_iteration_mode is None:
@@ -98,6 +101,12 @@ class SGD(TrainingAlgorithm):
         self.rng = np.random.RandomState([2012, 10, 5])
 
     def setup(self, model, dataset):
+        inf_params = [ param for param in model.get_params() if np.any(np.isinf(param.get_value())) ]
+        if len(inf_params) > 0:
+            raise ValueError("These params are Inf: "+str(inf_params))
+        if any([np.any(np.isnan(param.get_value())) for param in model.get_params()]):
+            nan_params = [ param for param in model.get_params() if np.any(np.isnan(param.get_value())) ]
+            raise ValueError("These params are NaN: "+str(nan_params))
         self.model = model
 
         batch_size = self.batch_size
@@ -251,8 +260,15 @@ class SGD(TrainingAlgorithm):
                 updates[param].name = 'sgd_update(' + param.name + ')'
         model.censor_updates(updates)
         for param in params:
-            if updates[param].name is None:
-                updates[param].name = 'censor(sgd_update(' + param.name + '))'
+            update = updates[param]
+            if update.name is None:
+                update.name = 'censor(sgd_update(' + param.name + '))'
+            for update_val in get_debug_values(update):
+                if np.any(np.isinf(update_val)):
+                    raise ValueError("debug value of %s contains infs" % update.name)
+                if np.any(np.isnan(update_val)):
+                    raise ValueError("debug value of %s contains nans" % update.name)
+
 
         print 'Compiling sgd_update...'
         t1 = time.time()
@@ -598,6 +614,7 @@ class _PolyakWorker(object):
         self.param_to_mean = {}
         for param in model.get_params():
             mean = sharedX(param.get_value())
+            assert type(mean) == type(param)
             self.param_to_mean[param] = mean
             avg_updates[mean] = mean - (mean - param) / t
             avg_updates[t] = t + 1.
