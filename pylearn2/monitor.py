@@ -54,6 +54,7 @@ class Monitor(object):
         self._dirty = True
         self._rng_seed = []
         self.names_to_del = []
+        self.t0 = time.time()
         # Determine whether the model should use topological or vector form of
         # examples. If the model acts on a space with more than the batch index
         # and channel dimension, the model has topological dimensions, so the
@@ -182,8 +183,10 @@ class Monitor(object):
         print "\tEpochs seen: %d" % self._epochs_seen
         print "\tBatches seen: %d" % self._num_batches_seen
         print "\tExamples seen: %d" % self._examples_seen
+        t = time.time() - self.t0
         for channel_name in sorted(self.channels.keys(), key=number_aware_alphabetical_key):
             channel = self.channels[channel_name]
+            channel.time_record.append(t)
             channel.batch_record.append(self._num_batches_seen)
             channel.example_record.append(self._examples_seen)
             channel.epoch_record.append(self._epochs_seen)
@@ -528,6 +531,7 @@ class MonitorChannel(object):
         # fluctuate).
         self.example_record = []
         self.epoch_record = []
+        self.time_record = []
 
     def __str__(self):
         try:
@@ -569,6 +573,7 @@ class MonitorChannel(object):
         return {
             'example_record': self.example_record,
             'batch_record' : self.batch_record,
+            'time_record' : self.time_record,
             'epoch_record' : self.epoch_record,
             'val_record': self.val_record
         }
@@ -578,6 +583,8 @@ class MonitorChannel(object):
         # Patch old pickle files that don't have this field
         if 'epoch_record' not in d:
             self.epoch_record = range(len(self.batch_record))
+        if 'time_record' not in d:
+            self.time_record = [ None ] * len(self.batch_record)
 
 
 def push_monitor(model, name):

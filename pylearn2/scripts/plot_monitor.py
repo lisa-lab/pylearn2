@@ -49,6 +49,7 @@ while True:
         sorted_codes.append(code)
 
     x_axis = 'example'
+    print 'set x_axis to example'
 
     if len(channels.values()) == 0:
         print "there are no channels to plot"
@@ -65,8 +66,8 @@ while True:
 
         print
 
-        print "Put e or b in the list somewhere to plot epochs or batches, respectively."
-        response = raw_input('Enter a list of channels to plot (example: A, C,F-G)) or q to quit: ')
+        print "Put e, b, or s in the list somewhere to plot epochs, batches, or seconds, respectively."
+        response = raw_input('Enter a list of channels to plot (example: A, C,F-G, t)) or q to quit: ')
 
         if response == 'q':
             break
@@ -84,7 +85,10 @@ while True:
                 x_axis = 'epoch'
                 continue
             if code == 'b':
-                x_axis = 'batch'
+                x_axis = 'batche'
+                continue
+            if code == 's':
+                x_axis = 'second'
                 continue
             if code.find('-') != -1:
                 #The current list element is a range of codes
@@ -119,15 +123,15 @@ while True:
             else:
                 #The current list element is just a single code
                 final_codes = final_codes.union(set([code]))
-
+        # end for code in codes
     else:
         final_codes ,= set(codebook.keys())
 
     fig = plt.figure()
-#Make 2 subplots so the legend gets a plot to itself and won't cover up the plot
+    #Make 2 subplots so the legend gets a plot to itself and won't cover up the plot
     ax = plt.subplot(1,2,1)
 
-# Grow current axis' width by 30%
+    # Grow current axis' width by 30%
     box = ax.get_position()
 
     try:
@@ -146,7 +150,7 @@ while True:
     plt.xlabel('# '+x_axis+'s')
 
 
-#plot the requested channels
+    #plot the requested channels
     for code in sorted(final_codes):
 
         channel_name= codebook[code]
@@ -163,7 +167,7 @@ while True:
 
         if x_axis == 'example':
             x = np.asarray(channel.example_record)
-        elif x_axis == 'batch':
+        elif x_axis == 'batche':
             x = np.asarray(channel.batch_record)
         elif x_axis == 'epoch':
             try:
@@ -171,6 +175,8 @@ while True:
             except AttributeError:
                 # older saved monitors won't have epoch_record
                 x = np.arange(len(channel.batch_record))
+        elif x_axis == 'second':
+            x = np.asarray(channel.time_record)
         else:
             assert False
 

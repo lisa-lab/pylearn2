@@ -873,7 +873,7 @@ def profile_grad_bc01(f):
 
 if __name__ == '__main__':
     profile_bc01(max_pool)
-    #profile_grad_bc01(max_pool)
+    profile_grad_bc01(max_pool)
     """
     profile(max_pool_unstable)
     profile_samples(max_pool_b01c)
