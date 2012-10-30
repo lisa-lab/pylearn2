@@ -1,0 +1,264 @@
+.. _overview:
+
+============
+Overview
+============
+
+This page gives a high-level overview of the Pylearn2 library and
+describes how the various parts fit together.
+
+First, before learning Pylearn2 it is imperative that you have a good
+understanding of Theano. Before learning Pylearn2 you should first understand:
+    * How Theano uses Variables, Ops, and Apply nodes to represent
+      symbolic expressions.
+    * What a Theano function is.
+    * What Theano shared variables are and how they can make state persist
+      between calls to Theano functions.
+
+Once you have that under your belt, we can move on to Pylearn2 itself.
+Note that throughout this page we will mention several different classes
+and functions but not completely describe their parameters. The purpose
+of this page is to give you a basic idea of what is possible in Pylearn2,
+what kind of object is needed to accomplish various kinds of tasks, and
+where these objects are located. To find out exactly what each object or
+function does, you should read its docstring in the python code itself.
+As always, e-mail pylearn-dev@googlegroups.com if you find the documentation
+lacking, confusing, or wrong in any way.
+
+The Model class
+===============
+
+A good central starting point is the Model, defined in pylearn2.models.model.py.
+Most of Pylearn2 is designed either to train a Model or to do some
+analysis on a trained Model (evaluate its classification accuracy, etc.)
+
+A Model can be almost anything. It can be a probabilistic model that
+generates data. It can be a deterministic model that maps from inputs
+to outputs, like a support vector machine. It can be as simple as a single
+Gaussian distribution or as complex as a deep Boltzmann machine.
+The main defining feature of a Models is just that it has a set of parameters
+represented as theano shared variables.
+	
+Training a Model while avoiding Pylearn2 entanglements
+======================================================
+
+Part of the Pylearn2 vision is that users should be able to use only the pieces
+of the library that they want to. This way you don't need to learn the entire
+library in order to make use of it. If you want to learn about as little of
+Pylearn2 as possible, you can simply implement two methods:
+   * "train_all(dataset)'': This method is passed a Pylearn2 Dataset.
+      When called, it should do one pass through the dataset and update
+      the parameters accordingly. For example, k-means could assign every
+      point in the dataset to a centroid, then update the centroid to the
+      mean of all the points belong to that centroid.
+   * "continue_learning()'': This method should return True if the algorithm
+     needs to continue learning. For example, the k-means algorithm could
+     return True if the centroids moved more than a certain amount on the most
+     recent pass. (If not trained at all, this should always return True).
+
+We'll say more about what a Pylearn2 Dataset is later. For now, you just need
+to know that it is a collection of data examples.
+
+If you have a Model and a Dataset you can train them from your own python
+script like this:
+
+.. code-block:: python
+
+    while model.continue_learning():
+        model.train_all(dataset)
+
+
+This approach to training is simple and easy, and still allows for a lot
+of powerful functionality. We could imagine a more advanced while loop that
+inspects or modifies the model after each call to train_all (and indeed,
+this what the Train object does). However, it violates some of the key
+goals of the Pylearn2 Vision.
+
+Suppose that the Model is an RBM with Gaussian visible units. There are
+several ways to train such RBMs. They can be trained with contrastive divergence,
+persistent contrastive divergence, score matching, denoising score matching,
+and noise contrastive estimation. Trying to capture all of these with a
+"train_all" method is a fool's errand. In Pylearn2, we prefer to factor
+learning algorithms into many different pieces. If you don't want to
+work with the entire Pylearn2 ecosystem, train_all is an acceptable
+way to implement learning in your model. However, an ideal Pylearn2 Model
+will contain very little functionality of its own. We will later describe
+how to use TrainingAlgorithms and Costs to make a Model that can be trained
+in many different ways.
+
+First, however, we'll describe how to train a Model using the main "control center"
+of Pylearn2: the Train object.
+
+Training a Model with the Train object
+======================================
+
+In the previous section, we described how to train a Model with a simple python
+while loop. Pylearn2 provides a convenience class for training Models using several
+powerful additional features. This is the pylearn2.train.Train class.
+
+At its bare minimum, the Train class takes a dataset and a model in its constructor.
+Calling the class's main_loop method then makes it do the same thing as the simple
+while loop:
+
+
+.. code-block:: python
+
+    # This function...
+    def train(dataset, model):
+        while model.continue_learning():
+            model.train_all(dataset)
+
+    # does the same thing as this function...
+    def train(dataset, model):
+        loop = Train(dataset, model)
+	loop.main_loop()
+
+The Train class makes it easy to use several of Pylearn2's other more powerful
+features. For example, by specifying the save_path and save_freq arguments, the
+Train object can save your model after each epoch (an "epoch" is a call to train_all).
+The save can be configured not to overwrite pre-existing files. Also, note that on
+the second iteration requiring a save and all subsequent such iterations, the Train
+object will need to overwrite a file that it made earlier. When doing so, it will make
+a backup of the file that it removes if the write succeeds. If your job dies in the
+middel of the write, you can still recover the backup.
+
+These are just a few examples of the extra convenient features that come from using the
+pylearn2 Train object. Later we will describe how to make it more powerful using callbacks
+and training algorithm plugins. 
+
+Configuring the Train object with a YAML file
+=============================================
+
+Pylearn2 has to solve many problems that are not directly related to machine learning
+and as a result, not all that interesting to Pylearn2's developers, who are a bunch of
+machine learning grad students.
+
+One of these problems is how to associate a Model with a polymorphic Dataset object and
+have this association persist after the Model has been serialized, for example to disk.
+Usually Datasets are big enough that we don't want to serialize a whole copy of the Dataset
+with every Model we save. But we preprocess Datasets enough that we don't want to store
+every possible preprocessed dataset and give each model a hard link to the preprocessed
+dataset.
+
+Instead, we currently solve this problem by using the YAML markup language to store a
+description of how to make the Dataset in the Model. This is not necessarily an ideal
+solution, and if you have a better idea and some willingness to implement it, please
+let us know.
+
+First, a brief explanation of why you want to associate a Dataset with a Model. Suppose
+your model is a classifer that works on the MNIST dataset. After training the Model, you
+might want to look at the weights it has learned. MNIST consists of 28 x 28 pixel greyscale
+images, but the weights are probably stored as 784-element vectors. In order for Pylearn2's
+visualization functionality to render the weights correctly as an image, it will need to
+know that the model was trained on the MNIST dataset. This is just one example of why
+correct analysis of a saved model requires knowledge of the dataset.
+
+Annotating every Model with a correctly-formatted yaml string specifying the dataset
+would be an annoying and error-prone thing to do from inside a python script. Instead,
+we try to make all of our training jobs specifiable via a yaml file. The substring of
+that file used to describe the dataset is then stored in the Model. If you provide a
+bad description of the dataset, the job doesn't run, so the description in the Model
+should always be correct. The only way it can go wrong is if conditions change between
+when the Model is serialized and when it is deserialized (for example, if the yaml string
+refers to a file that gets moved, or if you deserialize the model file on a machine
+that has the dataset file in a different place).
+
+Using YAML for everything is thus not something we would ideally like to have designed
+into the library, but for now it is the easiest way to make your life convenient.
+
+To run an experiment using only a yaml string, the easiest thing to do is save a yaml
+file with these contents:
+
+.. code-block:: yaml
+
+	!obj:pylearn2.train.Train {
+		dataset: FILL IN DESCRIPTION OF DATASET HERE
+		model: FILL IN DESCRIPTION OF MODEL HERE
+		}
+
+You can then run the experiment with this command:
+
+.. code-block:: bash
+
+	train.py my_train_job.yaml
+
+Here, train.py is a script stored in pylearn2/scripts. Examples throughout the Pylearn2
+documentation will assume that this is in your PATH variable.
+
+
+The Monitor
+===========
+
+The Monitor is an object that monitors training of a Model. If you use the Train object
+it will be set up and maintained for you automatically, so we won't go into the details
+of how that works here.
+
+The Monitor keeps track of several "channels" on various datasets. A channel might be
+something like a classifier's accuracy, in which case the monitor could have one channel
+called "train_acc" tracking accuracy on the training set and another called "valid_acc"
+tracking accuracy on a held-out validation set.
+
+The main way that you as a user add channels is by implementing the get_monitoring_channels
+method of various objects like Models and Costs. You'll need to tell the training algorithm
+which datasets to monitor on.
+
+It's possible for you to view the channels of a saved model using the plot_monitor.py script.
+The Monitor is also an important part of many training algorithms because the algorithms have
+the ability to react to values in the monitor. For example, many training algorithms use
+"early stopping," where an iterative training method quits after accuracy on some validation
+set starts to drop, in order to prevent overfitting.
+
+TrainingAlgorithm
+=================
+
+A TrainingAlgorithm is an object that interacts with a Model to update the Model's parameters
+given some data. If you supply a TrainingAlgorithm to the Train object, it will call the
+TrainingAlgorithm to do each epoch, rather than calling the Model's train_all method.
+
+Pylearn2 includes some basic yet powerful training algorithms, SGD (Stochastic Gradient Descent)
+and BGD (Batch Gradient Descent). Both of these algorithms work by minizing some cost function
+of the model parameters and the training data. For example, to fit a logistic regression classifier,
+you could minimize log P(Y | X) where Y is training labels and X is training input features. Both
+of them are configurable to perform more advanced optimization algorithms. For example, BGD can
+be configured to do nonlinear conjugate gradient descent. SGD supports user-provided callbacks
+that can provide powerful extra features. Pylearn2 uses this callback system to implement Polyak
+averaging.
+
+Both of these training algorithms also accept a TerminationCriterion object that determines when
+to stop learning. A common practice is for the TerminationCriterion to look at channels in the
+monitor to determine when a learning algorithm has converged. This is how we implement early
+stopping as mentioned above.
+
+TrainingCallback
+=================
+
+The Train object itself also supports callbacks that run after each iteration. These allow further
+customization of the training procedure. For example, the OneOverEpoch callback can be used to 
+make the SGD algorithm use a 1/t learning rate schedule instead of a fixed learning rate.
+You can also pass in user-defined callbacks so the sky is the limit.
+
+Cost
+====
+
+A Cost is an object that describes an objective function. Pylearn2 uses these to control both the
+SGD and BGD algorithms. A Cost describes the objective function both in terms of its value, given
+some inputs and a model to provide the parameters, and its gradients. If no custom implementation
+of the gradients is provided, the default implementation simply uses Theano's symbolic differentiation
+system to provide the gradients.
+
+However, you can accomplish more powerful functionality by returning other gradients. For example,
+the log likelihood of an RBM is intractable, but its gradient can be approximate with a sampling
+procedure. You could implement RBM training with the SGD object by returning None for the objective
+function value but providing sampling-based approximations to the gradient.
+
+TODO
+    * Datasets
+    	* Design and topological views
+	* Preprocessing, Blocks, and TransformerDataset
+	* Iteration
+    * Spaces and LinearTransforms
+    * Analyzing saved models
+    	Just an overview of what's there. Should make a separate article with
+	a plot_monitor tutorial.
+Detailed description of all models, costs, etc. should be in their own section.
+We can link to individual models from the Features page.

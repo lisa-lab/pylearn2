@@ -86,7 +86,7 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
             model.monitor.report_batch(batch_size)
             if not learn_more:
                 break
-       
+
         # Make sure we didn't exit training loop because Model.learn
         # hasn't been updated to new interface yet.
         if learn_more not in [True,False]:

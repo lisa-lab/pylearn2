@@ -1,5 +1,5 @@
 ==============================
-Pylearn2: A Machine Learning Research Library
+Pylearn2: A Machine Learning research library
 ==============================
 
 Pylearn2 is a library designed to make machine learning research easy.
