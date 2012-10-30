@@ -1114,3 +1114,19 @@ def build_stacked_RBM(nvis, nhids, batch_size, vis_type='binary',
 
     # Create the stack
     return StackedBlocks(layers)
+
+class L1_ActivationCost(Cost):
+
+    def __init__(self, target, eps, coeff):
+        self.__dict__.update(locals())
+        del self.self
+
+    def __call__(self, model, X, Y = None, ** kwargs):
+        H = model.P_H_given_V(X)
+        h = H.mean(axis=0)
+        err = abs(h - self.target)
+        dead = T.maximum(err - self.eps, 0.)
+        assert dead.ndim == 1
+        rval = self.coeff * dead.mean()
+        return rval
+
