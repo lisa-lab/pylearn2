@@ -5,6 +5,8 @@ Pylearn2: A Machine Learning Research Library
 Pylearn2 is a library designed to make machine learning research easy.
 
 The Pylearn2 `documentation <http://deeplearning.net/software/pylearn2/>`_.
+If you want to build a local copy of the documentation, run
+    python ./doc/scripts/docgen.py
 
 Pylearn2 was initially developed by David
 Warde-Farley, Pascal Lamblin, Ian Goodfellow and others during the winter
@@ -28,6 +30,4 @@ Quick start and basic design rules
 - When writing reference implementations to go in the library, maximize code re-usability
   by decomposing your algorithm into a TrainingAlgorithm that trains a Model on a Dataset.
   It will probably do this by minimizing a Cost.
-If you want to build a local copy of the documentation, run
-    python ./doc/scripts/docgen.py
 
