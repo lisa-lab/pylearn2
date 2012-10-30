@@ -1,7 +1,7 @@
 .. _tutorial:
 
 ========
-Tutorial
+Quick-start example
 ========
 
 The directory pylearn2/scripts/train_example/ contains an example of

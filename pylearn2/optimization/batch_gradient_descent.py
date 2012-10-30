@@ -29,7 +29,7 @@ class BatchGradientDescent:
             param_constrainers = None, max_iter = -1,
             lr_scalers = None, verbose = False, tol = None,
             init_alpha = None,
-            reset_alpha = True, hacky_conjugacy = False,
+            reset_alpha = True, conjugate = False,
             reset_conjugate = True, gradients = None,
             gradient_updates = None, line_search_mode = None):
         """ objective: a theano expression to be minimized
@@ -46,17 +46,14 @@ class BatchGradientDescent:
             reset_alpha: If True, reverts to using init_alpha after
                         each call. If False, the final set of alphas
                         is used at the start of the next call to minimize.
-            hacky_conjugacy: If True, tries to pick conjugate gradient directions.
-                        "Hacky" because the conjugate direction equations are only
-                        valid on a quadratic function if the line search for the
-                        previous search direction ran to completion, but here we
-                        just pick the best of k searched positions.
-                        I'm not sure if this matters much, since I don't think
-                        nonlinear conjugate gradient is all that justified anyway,
-                        but then I don't know much about optimization so someone
-                        who does might want to look over this file.
+            conjugate: If True, tries to pick conjugate gradient directions.
+                       For the directions to be truly conjugate, you must use
+                       line_search_mode = 'exhaustive' and the objective function
+                       must be quadratic.
+                       Using line_search_mode = 'exhaustive' on a non-quadratic objective
+                       function implements nonlinear conjugate gradient descent.
             reset_conjugate:
-                    has no effect unless hacky_conjugacy == True
+                    has no effect unless conjugate == True
                     if reset_conjugate == True,
                         reverts to direction of steepest descent for the first
                         step in each call to minimize.
@@ -158,7 +155,7 @@ class BatchGradientDescent:
             normalize_grad_updates[grad_shared] = grad_shared / norm
         self._normalize_grad = function([], norm, updates = normalize_grad_updates)
 
-        if self.hacky_conjugacy:
+        if self.conjugate:
             grad_shared = self.param_to_grad_shared.values()
 
             grad_to_old_grad = {}
@@ -239,7 +236,7 @@ class BatchGradientDescent:
         # each call to minimize. Or we can set the norm to 1 to
         # save the previous gradient, so we can try to maintain
         # conjugacy across several calls to minimize.
-        # If self.hacky_conjugacy is False none of this matters
+        # If self.conjugate is False none of this matters
         # since store_old_grad is never called anyway.
         if self.reset_conjugate:
             norm = 0.
@@ -249,10 +246,10 @@ class BatchGradientDescent:
         while iters != self.max_iter:
             iters += 1
             self._cache_values()
-            if self.hacky_conjugacy:
+            if self.conjugate:
                 self._store_old_grad(norm)
             self._compute_grad(*inputs)
-            if self.hacky_conjugacy:
+            if self.conjugate:
                 self._make_conjugate()
             norm = self._normalize_grad()
 

@@ -1,0 +1,67 @@
+.. _features:
+
+============
+Features
+============
+
+Pylearn2 contains at least the following features. This documentation often
+gets out of date, so it probably has even more than this!
+
+If there is something missing that you would like to have, write to
+pylearn-dev@googlegroups.com. We'll tell you if we've added it and forgotten
+to add it to the list here. Or if we haven't added that feature yet, we'll
+either add it or give you advice about how to do it yourself.
+
+* Training algorithms
+    * A "default training algorithm" that asks the model to train itself
+    * Stochastic gradient descent, with extensions including
+        * Learning rate decay
+	* Momentum
+	* Polyak averaging
+	* Early stopping
+	* A simple framework for adding your own extensions
+   * Batch gradient descent with line searches
+   * Nonlinear conjugate gradient descent (with line searches)
+
+* Model Estimation Criteria
+    * Score Matching
+    * Denoising Score Matching
+    * Noise-Contrastive Estimation
+    * Cross-entropy
+    * Log-likelihood
+
+* Models
+    * Spike-and-Slab Sparse coding
+    * RBMs, including gaussian and ssRBM. Varying levels of integration into 
+       the full framework.
+    * Autoencoders, including Contractive and Denoising Autoencoders
+    * Local Coordinate Coding
+    * SVMs (we provide a wrapper around scikits.learn that makes it easy to
+            train a multiclass svm on dense training data in a memory
+            efficient way, which doesn't always happen using scikits.learn
+	    directly)
+    * Partial implementation of DBMs (contact Ian Goodfellow if you would like
+      	to complete it)
+
+* Datasets:
+    * MNIST, MNIST with background and rotations
+    * STL-10
+    * CIFAR-10, CIFAR-100
+    * NIPS Workshops 2011 Transfer Learning Challenge
+    * UTLC
+    * NORB
+    * Toronto Faces Dataset
+
+* Dataset pre-processing
+    * Contrast normalization
+    * ZCA whitening
+    * Patch extraction (for implementing convolution-like algorithms)
+    * The Coates+Lee+Ng CIFAR processing pipeline
+
+* Miscellaneous algorithms and utilities:
+    * AIS
+    * Weight visualization for single layer networks
+    * Can plot learning curves showing how user-configured quantities
+        change during learning
+
+

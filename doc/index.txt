@@ -35,7 +35,7 @@ Pylearn2 Vision
 Download
 ========
 
-No PyPI download how. You must checkout the version in github for bleeding-edge/development
+No PyPI download yet. You must checkout the version in github for bleeding-edge/development
 version, available via:
 
 .. code-block:: bash
@@ -51,8 +51,9 @@ Documentation
 
 Roughly in order of what you'll want to check out:
 
-* :ref:`introduction` -- What is Pylearn2?
-* :ref:`tutorial` -- Learn the basics.
+* :ref:`tutorial` -- Learn the basics via an example.
+* :ref:`features` -- A list of features available in the library.
+* :ref:`general_notes` -- Notes for Pylearn2 developers on the state and goals of the library.
 
 Check out how Theano can be used for Machine Learning: `Deep Learning Tutorials <http://www.deeplearning.net/tutorial>`_.
 
@@ -80,9 +81,9 @@ repository.
    :hidden:
 
    LICENSE
-   introduction
    tutorial/index
    tutorial/with_jobman
+   general_notes
    internal/index
 
 

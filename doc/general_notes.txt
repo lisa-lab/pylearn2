@@ -1,7 +1,7 @@
-.. _introduction:
+.. _general_notes:
 
 ============
-Introduction
+General Notes
 ============
 
 This is in development.
@@ -78,62 +78,6 @@ Detailed Vision
   from the model as much as possible. This includes training algorithms,
   visualization algorithms, model selection algorithms, model composition
   or averaging techniques, etc.
-
-
-Current State
-=============
-
-* No interaction with scikit.learn
-* Simple dataset interface that support only dataset where each
-  example is a vector or can be used as such
-  * 2d images are flattened, so no possible convolution without change
-* A framework is available and working
-* The component can be reused if you want. List reusable component?
-
-* Algo available
-   * Training
-      * A "default training algorithm" that asks the model to train itself
-      * SGD training
-   * Model Estimation Criteria
-      * Score Matching
-      * Denoising Score Matching
-      * Noise-Contrastive Estimation
-
-   * Models
-      * Spike-and-Slab Sparse coding
-      * Partial implementation of DBMs (contact Ian Goodfellow if you would like
-      	to complete it)
-      * RBMs, including gaussian and ssRBM. Varying levels of integration into 
-        the full framework.
-      * Autoencoders, including Contractive and Denoising Autoencoders
-      * Local Coordinate Coding
-      * SVMs (we provide a wrapper around scikits.learn that makes it easy to
-      		train a multiclass svm on dense training data in a memory
-		efficient way, which doesn't always happen using scikits.learn
-		directly)
-   * Stacking code exists, but is not integrated into the entire framework
-     and probably will get refactored a lot
-
-   * Datasets:
-      * MNIST, MNIST with background and rotations
-      * STL-10
-      * CIFAR-10, CIFAR-100
-      * NIPS Workshops 2011 Transfer Learning Challenge
-      * UTLC
-      * NORB
-      * Toronto Faces Dataset
-
-   * Dataset pre-processing
-      * Contrast normalization
-      * ZCA whitening
-      * Patch extraction (for implementing convolution-like algorithms)
-      * The Coates+Lee+Ng CIFAR processing pipeline
-
-   * Miscellaneous algorithms and utilities:
-      * AIS
-      * Weight visualization for single layer networks
-      * Can plot learning curves showing how user-configured quantities
-        change during learning
 
 
 Coding style for ALL labs code: http://deeplearning.net/software/pylearn/v2_planning/API_coding_style.html

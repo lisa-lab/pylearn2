@@ -18,7 +18,7 @@ class BGD(TrainingAlgorithm):
                  updates_per_batch = 10,
                  monitoring_batches=None, monitoring_dataset=None,
                  termination_criterion = None, set_batch_size = False,
-                 reset_alpha = True, hacky_conjugacy = False,
+                 reset_alpha = True, conjugate = False,
                  reset_conjugate = True, line_search_mode = None):
         """
         cost: a pylearn2 Cost
@@ -38,7 +38,7 @@ class BGD(TrainingAlgorithm):
                 attribute by calling set_batch_size on it.
         updates_per_batch: Passed through to the optimization.BatchGradientDescent's
                    max_iters parameter
-        reset_alpha, hacky_conjugacy, reset_conjugate: passed through to the
+        reset_alpha, conjugate, reset_conjugate: passed through to the
             optimization.BatchGradientDescent parameters of the same names
         monitoring_dataset: A Dataset or a dictionary mapping string dataset names to Datasets
         """
@@ -162,7 +162,7 @@ class BGD(TrainingAlgorithm):
                             verbose = True,
                             max_iter = self.updates_per_batch,
                             reset_alpha = self.reset_alpha,
-                            hacky_conjugacy = self.hacky_conjugacy,
+                            conjugate = self.conjugate,
                             reset_conjugate = self.reset_conjugate,
                             line_search_mode = self.line_search_mode)
 
