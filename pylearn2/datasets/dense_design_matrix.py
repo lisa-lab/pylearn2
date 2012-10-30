@@ -503,3 +503,23 @@ def from_dataset(dataset, num_examples):
     rval.adjust_for_viewer = dataset.adjust_for_viewer
 
     return rval
+
+def dataset_range(dataset, start, stop):
+
+    if dataset.X is None:
+        return copy.copy(dataset)
+    X = dataset.X[start:stop, :]
+    if dataset.y is None:
+        y = None
+    else:
+        if dataset.y.ndim == 2:
+            y = dataset.y[start:stop,:]
+        else:
+            y = dataset.y[start:stop]
+        assert X.shape[0] == y.shape[0]
+    assert X.shape[0] == stop - start
+    topo = dataset.get_topological_view(X)
+    rval = DenseDesignMatrix(topo_view = topo, y = y)
+    rval.adjust_for_viewer = dataset.adjust_for_viewer
+    return rval
+
