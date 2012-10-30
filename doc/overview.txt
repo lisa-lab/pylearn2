@@ -251,14 +251,66 @@ the log likelihood of an RBM is intractable, but its gradient can be approximate
 procedure. You could implement RBM training with the SGD object by returning None for the objective
 function value but providing sampling-based approximations to the gradient.
 
-TODO
-    * Datasets
-    	* Design and topological views
-	* Preprocessing, Blocks, and TransformerDataset
-	* Iteration
-    * Spaces and LinearTransforms
-    * Analyzing saved models
-    	Just an overview of what's there. Should make a separate article with
-	a plot_monitor tutorial.
-Detailed description of all models, costs, etc. should be in their own section.
-We can link to individual models from the Features page.
+Datasets
+========
+
+One of the key principles of Pylearn2 development is that we make features when we need them.
+One place where this is pretty obvious is the Dataset section of the library. Most people that
+actually use pylearn2 use it to train complicated models like RBMs on little image patch datasets
+like MNIST or CIFAR-10. This is one section of the library you can really expect to grow as we
+move to datasets that don't fit in memory, use more exotic data types, etc.
+
+For now, there are two basic ways data can be viewed: as a design matrix or as a "topological
+view." The topological view is basically the true underlying form of the data. A batch of image
+data is a 4-tensor with one axis indexing into different images, one axis indexing into image
+channels (red, green, blue), and two topological axes indexing the rows and columns of the image.
+In the design matrix view, the image is flattened into a row vector of size rows * columns * channels.
+
+Different pieces of pylearn2 functionality may ask the dataset for different views of the same
+data. The Dataset object should be able to provide either view at any time. You might want to train
+a densely connected RBM on design matrices, or a convolutional MLP on topological views, or you
+might just want to display an image of a topological view to the user.
+
+The datasets directory includes a Preprocessor class that can modify a Dataset. This should not be
+considered a way of implementing view conversion, since a Dataset should always be ready to provide
+either view of its data rapidly. Preprocessors are powerful and can modify datasets in many ways,
+including changing their number of examples or what kind of data they store. For example, you might
+want to preprocess the CIFAR-10 dataset of 50,000 32x32 images into a dataset of 200,000 6x6 image
+patches.
+
+Many common preprocessing operations can be easily represented by Blocks, a kind of Pylearn2 class
+that takes a batch of input examples, processes them independently, and returns a batch of output
+examples. To avoid separately implementing the same operation as both a Block and a Preprocessor,
+there is a generic BlockPreprocessor that can map a Block over a whole Dataset.
+
+Preprocessors are used when you have an expensive operation that you want to do once and save. If
+you have cheap preprocessing that you would like to do on the fly for each batch, you can do this
+with the TransformerDataset.
+
+Datasets should be considered relatively abstract entities; in particular we should not assume
+that they contain a finite number of examples, or that jumping to a particular example index is
+easy. For example, consider the dataset of small patches drawn from a collection of large, irregularly
+sized images. Due to the irregular size of the images we need to know the size of each of them
+in advance if we want to jump to patch number 543,286,932. pylearn2.utils.iteration provides
+interfaces for abstractly iterating through examples. It supports iteration schemes such as
+continually drawing random examples from an endless stream.
+
+Spaces and LinearTransforms
+===========================
+Many of our models can be described largely in terms of linear transformations from one space
+to another. Often changing the exact type of linear transformation can be a useful modeling operation.
+For example, to scale RBMs to work on large images, we can replace all the matrix multiplies in
+the model description with convolutions. Pylearn2 uses the TheanoLinear library to provide
+abstract LinearTransforms. If you write your model in terms of transforming from one Pylearn2
+Space to another using a LinearTransform, then your model can easily be converted between
+dense, convolutional, tiled convolutional, locally connected without weight sharing, etc. just
+by plugging in the right LinearTransform with compatible Spaces.
+
+Analyzing saved models
+======================
+A variety of scripts let you analyze your saved models:
+    * plot_monitor.py lets you plot channels recorded in the model's monitor
+    * print_monitor.py prints out the final value of each channel in the monitor.
+    * summarize_model.py prints out a few statistics of the model's parameters
+    * show_weights.py displays a visualization of the weights of your model's first layer.
+
