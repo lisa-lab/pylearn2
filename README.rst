@@ -29,7 +29,6 @@ Quick start and basic design rules
   by decomposing your algorithm into a TrainingAlgorithm that trains a Model on a Dataset.
   It will probably do this by minimizing a Cost.
 
-
 If you want to build a local copy of the documentation, run
     python ./doc/scripts/docgen.py
 
