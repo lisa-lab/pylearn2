@@ -92,7 +92,9 @@ class Train(object):
                 self.model.monitor.report_epoch()
                 if self.save_freq > 0 and self.model.monitor.epochs_seen % self.save_freq == 0:
                     self.save()
-                if not self.continue_learning():
+                continue_learning = self.continue_learning()
+                assert continue_learning in [True, False]
+                if not continue_learning:
                     break
             if self.save_freq > 0:
                 self.save()
@@ -116,9 +118,11 @@ class Train(object):
                 self.run_callbacks_and_monitoring()
                 if self.save_freq > 0 and self.model.monitor._epochs_seen % self.save_freq == 0:
                     self.save()
-                if not self.algorithm.continue_learning(self.model):
+                continue_learning =  self.algorithm.continue_learning(self.model)
+                assert continue_learning in [True, False]
+                if not continue_learning:
+                    print 'exit via case A'
                     break
-            self.run_callbacks_and_monitoring()
 
             if self.save_freq > 0:
                 self.save()
