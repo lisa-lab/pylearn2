@@ -16,8 +16,9 @@ for param in model.get_params():
         name = '<anon>'
     v = param.get_value()
     print name+': '+str((v.min(),v.mean(),v.max()))+' '+str(v.shape)
-    v = np.abs(v)
-    print 'abs('+name+'): '+str((v.min(),v.mean(),v.max()))
+    if np.sign(v.min()) != np.sign(v.max()):
+        v = np.abs(v)
+        print 'abs('+name+'): '+str((v.min(),v.mean(),v.max()))
 if hasattr(model,'monitor'):
     print 'trained on',model.monitor.get_examples_seen(),' examples'
     print 'which corresponds to',model.monitor.get_batches_seen(),' batches'
