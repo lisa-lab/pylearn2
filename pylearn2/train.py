@@ -121,7 +121,6 @@ class Train(object):
                 continue_learning =  self.algorithm.continue_learning(self.model)
                 assert continue_learning in [True, False]
                 if not continue_learning:
-                    print 'exit via case A'
                     break
 
             if self.save_freq > 0:
