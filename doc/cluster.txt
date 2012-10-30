@@ -1,0 +1,49 @@
+.. _cluster:
+
+============
+Working with computer clusters
+============
+
+Pylearn2 doesn't have any features explicitly designed to run large batches
+of experiments on computer clusters, but other related tools exist that enable
+you to run your Pylearn2 experiments in that way.
+
+Jobdispatch
+===========
+
+Script that allows you to submit jobs in an standard interface to multiple
+cluster that use different scheduler.
+
+Jobman
+======
+
+Allow to make a db of all wanted jobs to run and manage there
+executions(ensure all ended correctly, ...). It support grid search
+and random search out of the box. The experiment descriptions are compatible
+with pylearn2's yaml format.
+
+There is the Hyperplot project that allow to produce graphs and/or tables
+with jobman jobs: https://www.assembla.com/code/hyperplot/mercurial/nodes
+
+Use postgres as a back-end database.
+
+Hyperopt
+========
+
+James project that allow to do "smart" hyper-parameter search. It also allow to manage jobs similar to jobman, but use mangodb as a back-end batabase.
+
+It support atomic reservation of jobs.
+
+For distributed optimization there are a few commandline utilities of interest:
+* hyperopt-mongo-search controls an optimization experiment
+* hyperopt-mongo-worker runs on worker nodes and polls a mongodb for
+experiments that need to be run.
+* hyperopt-mongo-show wraps a couple of visualization strategies of
+running experiments.
+
+There is documentation coming along here:
+https://github.com/jaberg/hyperopt/wiki
+
+Fred doesn't have time to work on a switch from jobman to hyperopt to
+manage jobs. You can do try it if you want, but Fred won't be able to
+help much.

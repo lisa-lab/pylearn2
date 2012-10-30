@@ -1,71 +1,41 @@
-.. _general_notes:
+.. _vision:
 
 ============
-General Notes
-============
-
-This is in development.
-
-
 Pylearn2 Vision
-===============
+============
 
+A brief statement of the Pylearn2 vision is given on the :ref:`index` page.
+Here we explore some points of the vision statement in more detail:
 
-* We build the parts when we need them.
-* A machine learning toolbox for easy scientific experimentation
-* Pylearn2 should contain all relevent models/algorithms published by the lab.
-* Can reuse scikit.learn algo when pertinant
-* Published models can support the scikit.learn interface
-* Dataset interface for vector, images, video, ...
-* Small framework for all what is needed for one normal MLP/RBM/SDA/Convolution experiments.
-* Easy reuse of sub-component of Pylearn2.
-   * You don't need to invest in the entire stack in order to use parts of it.
-* Support cross-platform serialization of learned models.
-
-
-Detailed Vision
-===============
-
-* We build the parts when we need them or shortly before
+* We build the parts of the library when we need them or shortly before.
    * There is NOT a big programming effort for stuff that we are not sure we will use.
-      * Don't over-enginer (This killed Pylearn1)
-   * We should keep in mind the Vision when coding to don't other futur posibility.
+   * Don't over-engineer. This killed Pylearn1. Start with simple interfaces and introduce
+     generality as it is needed. Don't try to make everything fully general from the start.
+   * That being said, keep the overall Vision in mind while coding. Try to design interfaces
+     that will be easy to modify in the future to support predictable desired features.
 
-* A machine learning toolbox for easy scientific experimentation
-   * This means it is OK to expect a high level of sophistication from our users
-   * It also means the framework should not restrict very much what is possible
-      * These are very different design goals/a very different target user from say scikit-learn where everything should have a "fit" method that just works out of the box.
-
-* Pylearn2 should contain all relevent  models/algorithms published by the lab.
-* Can reuse scikit.learn algo when pertinant
-* Published models can support the scikit.learn interface
-   * When we have one model working publish it on the scikit.learn related projects
+* Pylearn2 is a machine learning toolbox for scientific experimentation.
+   * This means it is OK to expect a high level of machine learning sophistication
+     from our users.
+   * It also means the framework should not restrict very much what is possible.
+   * These are very different design goals / a very different target user from
+     say scikit-learn where everything should have a "fit" method that just works
+     out of the box.
+* One goal we used to have but no one seems to actually work is supporting the
+  scikit.learn interface. It could make sense to add support for the the scikit-learn
+  interface to one of our models such as S3C, RBMs, or autoencoders and add it to
       * https://github.com/scikit-learn/scikit-learn/wiki/Related-Projects
 
 * Dataset interface
-    * reuse scikit-data interface? compatibility? As much as possible.
-    * support many topologies: time series, images, videos ...
-    * can be used for convolution, tiled convolution, local receptive fields with no tied weights, Toronto's fovea-approximating techniques, ...
-
-* Small framework to allow doing all what is needed for one
-  normal MLP/RBM/SDA/Convolution/stacking layers/online training experiments.
-
-    * Stacking layers, online training, different criteria in different phases.
-    * Allow to easily change dataset, hyper-parameter, other
-      configurable options...
-
-* Easy reuse of sub-component of Pylearn2. This is useful in the framework
-  don't fit some need(this will happen).
-
-     * You don't need to invest in the entire stack in order to use parts of it.
-
-* Support cross-platform serialization of learned models.
-   * Allow to submit model to competitions and perform different part of experiment on different cluster easily
-   * GPU->CPU CPU->GPU
+    * Pylearn2 datasets need to be able to understand topology. Many kinds of data
+      have different kinds of topology: 1-D topology like a measurement collected over
+      time, 2-D topology like images, 3-D topology like videos, etc.
+    * Pylearn2 models may use topology in different ways:  convolution, tiled convolution,
+      local receptive fields with no tied weights, Toronto's fovea-approximating techniques,
+      etc.
 
 * Support many views for each object. Make it easy for different
   component play different roles. 
-
    * For example, generative models and datasets both define probability
      distributions that we should be able to sample from.
 
@@ -80,44 +50,3 @@ Detailed Vision
   or averaging techniques, etc.
 
 
-Coding style for ALL labs code: http://deeplearning.net/software/pylearn/v2_planning/API_coding_style.html
-Docstring convention?!?!?:
-
-Jobdispatch
-===========
-
-Script that allow to submit jobs in an standard interface to multiple
-cluster that use different scheduler.
-
-Jobman
-======
-
-Allow to make a db of all wanted jobs to run and manage there
-executions(ensure all ended correctly, ...). It support grid search
-and random search out of the box.
-
-There is the Hyperplot project that allow to produce graphs and/or tables
-with jobman jobs: https://www.assembla.com/code/hyperplot/mercurial/nodes
-
-Use postgres as a back-end database.
-
-Hyperopt
-========
-
-James project that allow to do "smart" hyper-parameter search. It also allow to manage jobs similar to jobman, but use mangodb as a back-end batabase.
-
-It support atomic reservation of jobs.
-
-For distributed optimization there are a few commandline utilities of interest:
-* hyperopt-mongo-search controls an optimization experiment
-* hyperopt-mongo-worker runs on worker nodes and polls a mongodb for
-experiments that need to be run.
-* hyperopt-mongo-show wraps a couple of visualization strategies of
-running experiments.
-
-There is documentation coming along here:
-https://github.com/jaberg/hyperopt/wiki
-
-Fred don't have time to work on a switch from jobman to hyperopt to
-manage jobs. You can do try it if you want, but I won't be able to
-help much.
