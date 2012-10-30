@@ -193,13 +193,14 @@ class SumOfCosts(Cost):
 
         rval = {}
 
-        for cost in self.costs:
+        for i, cost in enumerate(self.costs):
             try:
                 rval.update(cost.get_monitoring_channels(model, X, Y, **kwargs))
             except TypeError:
                 print 'SumOfCosts.get_monitoring_channels encountered TypeError while calling ' \
                         + str(type(cost))+'.get_monitoring_channels'
                 raise
+            rval['term_'+str(i)] = cost(model, X, Y, ** kwargs)
 
         return rval
 
