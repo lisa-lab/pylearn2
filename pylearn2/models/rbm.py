@@ -13,6 +13,7 @@ import theano
 from theano import tensor
 T = tensor
 from theano.tensor import nnet
+from pylearn2.costs.cost import Cost
 
 # Local imports
 from pylearn2.base import Block, StackedBlocks
@@ -367,8 +368,8 @@ class RBM(Block, Model):
 
         return weights.get_value(borrow=borrow)
 
-    def get_weights_topo(self, borrow=False):
-        return self.transformer.get_weights_topo(borrow = borrow)
+    def get_weights_topo(self):
+        return self.transformer.get_weights_topo()
 
     def get_weights_format(self):
         return ['v', 'h']
@@ -824,7 +825,7 @@ class GaussianBinaryRBM(RBM):
         return self.energy_function.score(V)
 
     def P_H_given_V(self, V):
-        return self.energy_function.P_H_given(V)
+        return self.energy_function.mean_H_given_V(V)
 
     def mean_v_given_h(self, h):
         """
