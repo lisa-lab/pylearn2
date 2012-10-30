@@ -321,6 +321,7 @@ class ExtractPatches(Preprocessor):
             args.append(channel_slice)
             output[i, :] = X[args]
         dataset.set_topological_view(output)
+        dataset.y = None
 
 
 class ExamplewiseUnitNormBlock(Block):
@@ -754,6 +755,7 @@ class ZCA(Preprocessor):
         # TODO: logging
         print 'computing zca'
         eigs, eigv = linalg.eigh(np.dot(X.T, X) / X.shape[0])
+        print 'done with eigh'
         assert not np.any(np.isnan(eigs))
         assert not np.any(np.isnan(eigv))
         if self.n_components:

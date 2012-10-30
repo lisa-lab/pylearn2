@@ -508,14 +508,14 @@ def dataset_range(dataset, start, stop):
 
     if dataset.X is None:
         return copy.copy(dataset)
-    X = dataset.X[start:stop, :]
+    X = dataset.X[start:stop, :].copy()
     if dataset.y is None:
         y = None
     else:
         if dataset.y.ndim == 2:
-            y = dataset.y[start:stop,:]
+            y = dataset.y[start:stop,:].copy()
         else:
-            y = dataset.y[start:stop]
+            y = dataset.y[start:stop].copy()
         assert X.shape[0] == y.shape[0]
     assert X.shape[0] == stop - start
     topo = dataset.get_topological_view(X)
