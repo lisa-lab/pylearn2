@@ -342,7 +342,10 @@ class BatchGradientDescent:
 
                 results = [ (0., self.obj(*inputs) ) ]
                 for alpha in alpha_list:
-                    assert alpha > results[-1][0]
+                    if not (alpha > results[-1][0]):
+                        print 'alpha: ',alpha
+                        print 'most recent alpha (should be smaller):',results[-1][0]
+                        assert False
                     self._goto_alpha(alpha)
                     results.append( (alpha, self.obj(*inputs) ) )
                 for alpha, obj in results:
@@ -395,6 +398,8 @@ class BatchGradientDescent:
                 self._goto_alpha(x)
                 print 'final step size: ',x
 
+                if idx == 0:
+                    x = alpha_list[1]
                 alpha_list = [ x/2., x ]
                 best_obj = mn
 
