@@ -73,7 +73,7 @@ class MonitorBased(TerminationCriterion):
         # available. However, if the monitor has multiple channels, leaving
         # the channel_name unspecified will raise an error.
         if self._channel_name is None:
-            v = monitor.channels['sgd_cost'].val_record
+            v = monitor.channels['objective'].val_record
         else:
             v = monitor.channels[self._channel_name].val_record
 
@@ -117,5 +117,6 @@ class MatchChannel(TerminationCriterion):
         channels = monitor.channels
         channel = channels[self.channel_name]
 
-        return channel.val_record[-1] > self.target
+        rval =  channel.val_record[-1] > self.target
+        return rval
 
