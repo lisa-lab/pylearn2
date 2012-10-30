@@ -2,7 +2,7 @@
 Welcome
 =======
 
-Pylearn2 is still undergoing rapid development. Don't expect a clean road without bump!
+Pylearn2 is still undergoing rapid development. Don't expect a clean road without bumps!
 If you find a bug please write to pylearn-dev@googlegroups.com.
 If you're a Pylearn2 developer and you find a bug, please write a unit test for it so
 the bug doesn't come back!
