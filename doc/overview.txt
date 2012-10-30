@@ -172,8 +172,8 @@ file with these contents:
 .. code-block:: yaml
 
 	!obj:pylearn2.train.Train {
-		dataset: FILL IN DESCRIPTION OF DATASET HERE
-		model: FILL IN DESCRIPTION OF MODEL HERE
+		dataset : FILL IN DESCRIPTION OF DATASET HERE
+		model : FILL IN DESCRIPTION OF MODEL HERE
 		}
 
 You can then run the experiment with this command:
