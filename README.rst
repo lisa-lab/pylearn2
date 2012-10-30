@@ -28,7 +28,6 @@ Quick start and basic design rules
 - When writing reference implementations to go in the library, maximize code re-usability
   by decomposing your algorithm into a TrainingAlgorithm that trains a Model on a Dataset.
   It will probably do this by minimizing a Cost.
-
 If you want to build a local copy of the documentation, run
     python ./doc/scripts/docgen.py
 
