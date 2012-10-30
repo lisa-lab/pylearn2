@@ -10,7 +10,10 @@ the bug doesn't come back!
 
 
 Pylearn2 is a machine learning library. Most of its functionality is built on top of
-Theano.
+`Theano <http://deeplearning.net/software/theano/>`_. 
+This means you can write Pylearn2 plugins (new models, algorithms, etc) using
+mathematical expressions, and theano will optimize and stabilize those expressions for
+you, and compile them to a backend of your choice (CPU or GPU).
 
 Pylearn2 Vision
 ===============
@@ -43,8 +46,15 @@ version, available via:
 
    git clone git://github.com/lisa-lab/pylearn.git
 
+Dependencies
+============
 
-There is dependency on Theano and the `old Pylearn <http://deeplearning.net/software/pylearn/>`_ project. You should also install them
+* `Theano <http://deeplearning.net/software/theano/>`_ and its dependencies are required to use
+  Pylearn2.
+* PyYAML is required for most functionality.
+* The original `Pylearn <http://deeplearning.net/software/pylearn/>`_ project is require for some
+  features (TODO write which features this is. I don't think very many).
+* Some features (SVMs) depend on scikits-learn.
 
 
 Documentation
@@ -54,8 +64,8 @@ Roughly in order of what you'll want to check out:
 
 * :ref:`tutorial` -- Learn the basics via an example.
 * :ref:`features` -- A list of features available in the library.
-* :ref:`general_notes` -- Notes for Pylearn2 developers on the state and goals of the library.
 * :ref:`cluster` -- The tools we use at LISA for running Pylearn2 jobs on HPC clusters.
+* :ref:`vision` -- Some more detailed elaboration of some points of the Pylearn2 vision.
 
 
 Community
@@ -85,16 +95,6 @@ Developer
 http://deeplearning.net/software/pylearn/v2_planning/API_coding_style.html
 
 
-
-.. toctree::
-   :maxdepth: 1
-   :hidden:
-
-   LICENSE
-   tutorial/index
-   tutorial/with_jobman
-   general_notes
-   internal/index
 
 
 .. _pylearn-dev: https://groups.google.com/group/pylearn-dev
