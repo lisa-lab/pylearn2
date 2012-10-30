@@ -10,7 +10,7 @@ import functools
 import numpy as np
 from pylearn2.utils import sharedX
 
-class MatrixMul(OrigMatrixMul):
+class MatrixMul(OrigMatrixMul, PL2LT):
     """ The most basic LinearTransform: matrix multiplication. See TheanoLinear
     for more documentation. """
 
