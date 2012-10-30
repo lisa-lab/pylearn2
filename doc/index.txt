@@ -2,31 +2,41 @@
 Welcome
 =======
 
-Pylearn2 is still in heavy development. Don't expect a clean road without bump!
+Pylearn2 is still undergoing rapid development. Don't expect a clean road without bump!
+If you find a bug please write to pylearn-dev@googlegroups.com.
+If you're a Pylearn2 developer and you find a bug, please write a unit test for it so
+the bug doesn't come back!
 
-Pylearn2 is a machine learning library build on top of Theano.
+
+Pylearn2 is a machine learning library. Most of its functionality is built on top of
+Theano.
 
 Pylearn2 Vision
 ===============
 
-* We build the parts when we need them.
-* A machine learning toolbox for easy scientific experimentation
-* Pylearn2 should contain all relevent models/algorithms published by the lab.
-* Can reuse scikit.learn algo when pertinant
-* Published models can support the scikit.learn interface
+* Researchers add features as they need them. We avoid getting bogged down by too
+  much top-down planning in advance.
+* A machine learning toolbox for easy scientific experimentation.
+* All models/algorithms published by the LISA lab should have reference implementations
+  in Pylearn2.
+* Pylearn2 may wrap other libraries such as scikits.learn when this is practical
+* Pylearn2 differs from scikits.learn in that Pylearn2 aims to provide great flexibility
+  and make it possible for a researcher to do almost anything, while scikits.learn
+  aims to work as a "black box" that can produce good results even if the user does not
+  understand the implementation
 * Dataset interface for vector, images, video, ...
 * Small framework for all what is needed for one normal MLP/RBM/SDA/Convolution experiments.
 * Easy reuse of sub-component of Pylearn2.
-   * You don't need to invest in the entire stack in order to use parts of it.
+* Using one sub-component of the library does not force you to use / learn to use all of
+  the other sub-components if you choose not to.
 * Support cross-platform serialization of learned models.
-
-But it is also approachable enough to be used in the classroom
-(IFT6266 at the University of Montreal).
+* Remain approachable enough to be used in the classroom (IFT6266 at the University of Montreal).
 
 Download
 ========
 
-No PyPI download how. You must checkout the version in github for bleeding-edge/development version, available via:
+No PyPI download how. You must checkout the version in github for bleeding-edge/development
+version, available via:
 
 .. code-block:: bash
 
@@ -49,15 +59,17 @@ Check out how Theano can be used for Machine Learning: `Deep Learning Tutorials 
 Community
 =========
 
-* Register and post to `pylearn-dev`_ if you want to talk to the developers.
+* Register and post to `pylearn-dev`_ if you want to talk to the developers. We don't bite.
 
-* Register to `pylearn2-github`_ if you want to receive an email for all changes to the GitHub repository.
+* Register to `pylearn2-github`_ if you want to receive an email for all changes to the GitHub
+repository.
 
 * Register to `theano-buildbot`_ if you want to receive our daily
   buildbot email. This is the buildbot for Pylearn2, Theano, Pylearn
   and the Deep Learning Tutorial.
 
-* Ask/view questions/answers at `metaoptimize/qa/tags/theano`_ (it's like stack overflow for machine learning)
+* Ask/view questions/answers about machine learning in general at
+`metaoptimize/qa/tags/theano`_ (it's like stack overflow for machine learning)
 
 * We use the `github issues <https://github.com/lisa-lab/pylearn/issues>`_ to stay organized.
 

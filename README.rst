@@ -1,30 +1,35 @@
 ==============================
-Pylearn experimental framework
+Pylearn2: The Machine Learning Research Library
 ==============================
 
-This repository contains the experimental framework, developed by David
+Pylearn2 is a library designed to make machine learning research easy.
+
+The Pylearn2 `documentation <http://deeplearning.net/software/pylearn2/>`_.
+
+Pylearn2 was initially developed by David
 Warde-Farley, Pascal Lamblin, Ian Goodfellow and others during the winter
-2011 offering of `IFT6266 <http://www.iro.umontreal.ca/~pift6266/>`_.
+2011 offering of `IFT6266 <http://www.iro.umontreal.ca/~pift6266/>`_, and
+is now developed by the LISA lab.
 
-The Pylearn2 `documentations <http://deeplearning.net/software/pylearn2/>`_.
 
-Basic design rules
+Quick start and basic design rules
 ------------------
 
-- There are `examples <https://github.com/lisa-lab/pylearn/tree/master/pylearn2/scripts/train_example>`_.
-  They cover how to create a dataset, how to train and how to inspect the model.
-
-- Models should implement the Block interface.
-- Methods on these models should expect Theano expressions as arguments and
-  return Theano variables (except in a few select cases where the modules are
-  trained once and never, ever fine-tuned, for example the K-Means module)
-- Parameters should be Theano shared variables.
-- Other than the shared variables, the methods should have no side effects in
-  the form of storing intermediate state.
-- Penalties and whatnot should be generally kept separate from the actual model
-  class, and implemented as subclasses of the "Cost" object. We break this rule
-  currently in the case of ContractingAutoencoder because the model is
-  intimately tied to the penalty, and just have a contracting_penalty() method
-  that returns the relevant bits to be added to the cost function.
 - Subscribe to the `pylearn-dev Google group
-  <http://groups.google.com/group/pylearn-dev>`_ for important updates.
+  <http://groups.google.com/group/pylearn-dev>`_ for important updates. Please write
+  to this list for troubleshooting help or any feedback you have about the library,
+  even if you're not a Pylearn2 developer.
+- There are `examples <https://github.com/lisa-lab/pylearn/tree/master/pylearn2/scripts/train_example>`_.
+  They cover how to create a dataset and how to train and how to inspect the model.
+- Pylearn2 should not force users to commit to the whole library. If someone just wants
+  to implement a Model, they should be able to do that and not need to implement
+  a TrainingAlgorithm. Try not to write library features that force users to buy into
+  the whole library.
+- When writing reference implementations to go in the library, maximize code re-usability
+  by decomposing your algorithm into a TrainingAlgorithm that trains a Model on a Dataset.
+  It will probably do this by minimizing a Cost.
+
+
+If you want to build a local copy of the documentation, run
+    python ./doc/scripts/docgen.py
+

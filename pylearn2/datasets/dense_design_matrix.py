@@ -507,7 +507,7 @@ def from_dataset(dataset, num_examples):
 def dataset_range(dataset, start, stop):
 
     if dataset.X is None:
-        return copy.copy(dataset)
+        return DenseDesignMatrix(X = None, y = None, view_converter = dataset.view_converter)
     X = dataset.X[start:stop, :].copy()
     if dataset.y is None:
         y = None

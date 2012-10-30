@@ -213,6 +213,9 @@ class Monitor(object):
         """
         return self._num_batches_seen
 
+    def get_epochs_seen(self):
+        return self._epochs_seen
+
     def get_examples_seen(self):
         """ Returns the number of examples the model has learned on (assuming
         that the learning code has been calling Monitor.report_batch correctly)
