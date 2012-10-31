@@ -75,10 +75,12 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
                 self.shuffle_rng = np.random.RandomState([1,2,3])
                 for i in xrange(topo_view.shape[0]):
                     j = self.shuffle_rng.randint(m)
-                    tmp = topo_view[i,:,:,:]
+                    # Copy ensures that memory is not aliased.
+                    tmp = topo_view[i,:,:,:].copy()
                     topo_view[i,:,:,:] = topo_view[j,:,:,:]
                     topo_view[j,:,:,:] = tmp
-                    tmp = y[i]
+                    # Note: slicing with i:i+1 works for both one_hot=True/False.
+                    tmp = y[i:i+1].copy()
                     y[i] = y[j]
                     y[j] = tmp
 
