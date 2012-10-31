@@ -169,6 +169,9 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
                 'cifar10',
                 'cifar-10-batches-py',
                 file)
+        if not os.path.exists(fname):
+            raise IOError(fname+" was not found. You probably need to download "
+                    " the CIFAR-10 dataset from http://www.cs.utoronto.ca/~kriz/cifar.html")
         _logger.info('loading file %s' % fname)
         fo = open(fname, 'rb')
         dict = cPickle.load(fo)

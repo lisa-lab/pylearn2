@@ -28,7 +28,7 @@ class BatchGradientDescent:
     def __init__(self, objective, params, inputs = None,
             param_constrainers = None, max_iter = -1,
             lr_scalers = None, verbose = False, tol = None,
-            init_alpha = None,
+            init_alpha = None, min_init_alpha = None,
             reset_alpha = True, conjugate = False,
             reset_conjugate = True, gradients = None,
             gradient_updates = None, line_search_mode = None):
@@ -397,6 +397,10 @@ class BatchGradientDescent:
 
                 if idx == 0:
                     x = alpha_list[1]
+
+                if self.min_init_alpha is not None:
+                    x = max(x, 2. * self.min_init_alpha)
+
                 alpha_list = [ x/2., x ]
                 best_obj = mn
 

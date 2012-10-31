@@ -2,7 +2,13 @@ pylearn2 tutorial example: "train_example" by Ian Goodfellow
 
 This directory contains an example of how to train a model using pylearn2.
 
-There are three steps.
+If you are not working from the LISA lab, you'll need to setup
+the dataset yourself. Download the CIFAR-10 dataset from
+http://www.cs.utoronto.ca/~kriz/cifar.html
+and put it in your $PYLEARN2_DATA_PATH directory. 
+
+Once you have the data, there are three steps to do in pylearn2.
+
 First, we create a preprocessed dataset and save it
 to the filesystem. Then we train a model on that dataset using
 the train.py script. Finally we can inspect the model to see
