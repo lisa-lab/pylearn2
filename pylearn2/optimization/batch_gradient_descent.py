@@ -364,7 +364,8 @@ class BatchGradientDescent:
                         for i in xrange(len(results)):
                             elem = results[i]
                             ex = elem[0]
-                            assert x != ex
+                            if x == ex:
+                                raise AssertionError(str(ex)+" is already in the list.")
                             if x > ex:
                                 if i + 1 == len(results) or x < results[i+1][0]:
                                     results.insert(i+1, (x, res))
