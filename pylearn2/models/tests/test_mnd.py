@@ -115,7 +115,7 @@ class Test_DiagonalMND:
 
         optimizer = BatchGradientDescent(
                     objective = kl,
-                    hacky_conjugacy = True,
+                    conjugate = True,
                     params = [ p.mu, p.beta, q.mu, q.beta ],
                     param_constrainers = [ p.censor_updates,
                         q.censor_updates ])
