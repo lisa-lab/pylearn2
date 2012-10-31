@@ -21,4 +21,5 @@ for param in model.get_params():
         print 'abs('+name+'): '+str((v.min(),v.mean(),v.max()))
 if hasattr(model,'monitor'):
     print 'trained on',model.monitor.get_examples_seen(),' examples'
-    print 'which corresponds to',model.monitor.get_batches_seen(),' batches'
+    print 'which corresponds to',model.monitor.get_batches_seen(),'batches'
+    print model.monitor.get_epochs_seen(),'epochs'
