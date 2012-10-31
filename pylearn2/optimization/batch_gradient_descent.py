@@ -382,6 +382,9 @@ class BatchGradientDescent:
                         else:
                             x = (alpha_list[idx] + alpha_list[idx-1])/2.
 
+                    if x < 1e-20:
+                        break
+
                     improvement = do_point(x)
 
                     if improvement > 0 and improvement < .01 * prev_improvement or len(obj) > 10:
