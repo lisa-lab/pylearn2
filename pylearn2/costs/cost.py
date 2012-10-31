@@ -154,7 +154,10 @@ class SumOfCosts(Cost):
 
         costs = [cost(model, X, Y, **kwargs) for cost in self.costs]
 
-        sum_of_costs = reduce(lambda x, y: x + y, costs)
+        if any([cost is None for cost in costs]):
+            sum_of_costs = None
+        else:
+            sum_of_costs = reduce(lambda x, y: x + y, costs)
 
         return sum_of_costs
 
@@ -200,7 +203,9 @@ class SumOfCosts(Cost):
                 print 'SumOfCosts.get_monitoring_channels encountered TypeError while calling ' \
                         + str(type(cost))+'.get_monitoring_channels'
                 raise
-            rval['term_'+str(i)] = cost(model, X, Y, ** kwargs)
+            value = cost(model, X, Y, ** kwargs)
+            if value is not None:
+                rval['term_'+str(i)] = value
 
         return rval
 
