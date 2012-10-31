@@ -120,3 +120,18 @@ class MatchChannel(TerminationCriterion):
         rval =  channel.val_record[-1] > self.target
         return rval
 
+class ChannelTarget(TerminationCriterion):
+    """
+        Stop training when a cost function reaches some target value.
+    """
+
+    def __init__(self, channel_name, target):
+        self.__dict__.update(locals())
+
+    def __call__(self, model):
+        monitor = model.monitor
+        channels = monitor.channels
+        channel = channels[self.channel_name]
+
+        rval =  channel.val_record[-1] > self.target
+        return rval
