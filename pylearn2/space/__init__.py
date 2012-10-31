@@ -429,3 +429,7 @@ class CompositeSpace(Space):
         for batch_elem, component in zip(batch, self.components):
             component.validate(batch_elem)
 
+    @functools.wraps(Space.get_origin_batch)
+    def get_origin_batch(self, n):
+        return tuple([component.get_origin_batch(n) for component in self.components])
+
