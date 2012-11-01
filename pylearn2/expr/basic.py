@@ -157,3 +157,7 @@ def inner_product(xs, ys=None):
         ys = [x for x in xs]
     return sum((x * y).sum() for x, y in zip(xs, ys))
 
+def is_binary(x):
+    return np.all( (x == 0) + (x == 1))
+
+

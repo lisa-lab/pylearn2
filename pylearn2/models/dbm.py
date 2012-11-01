@@ -157,7 +157,7 @@ class DBM_Layer(Model):
         raise NotImplementedError("%s doesn't implement make_state" %
                 type(self))
 
-    def get_sampling_updates(self, state_below = None, state_above = None,
+    def sample(self, state_below = None, state_above = None,
             layer_above = None,
             theano_rng = None):
         """
@@ -240,7 +240,7 @@ class BinaryVisLayer(DBM_VisibleLayer):
     def get_params(self):
         return set([self.bias])
 
-    def get_sampling_updates(self, state_below = None, state_above = None,
+    def sample(self, state_below = None, state_above = None,
             layer_above = None,
             theano_rng = None):
 
