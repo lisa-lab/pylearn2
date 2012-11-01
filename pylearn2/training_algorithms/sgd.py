@@ -30,6 +30,8 @@ import logging
 
 log = logging.getLogger(__name__)
 
+from pylearn2.search_direction.search_direction import IdentitySD
+
 class SGD(TrainingAlgorithm):
     """
     Stochastic Gradient Descent
@@ -44,7 +46,7 @@ class SGD(TrainingAlgorithm):
                  termination_criterion=None, update_callbacks=None,
                  init_momentum = None, set_batch_size = False,
                  train_iteration_mode = None, batches_per_iter=None,
-                 check_for_nan=False):
+                 check_for_nan=False, search_direction=None):
         """
             WRITEME
 
@@ -107,6 +109,10 @@ class SGD(TrainingAlgorithm):
         self.first = True
         self.rng = np.random.RandomState([2012, 10, 5])
         self.check_for_nan = check_for_nan
+        if search_direction is None:
+            self.search_direction = IdentitySD()
+        else:
+            self.search_direction = search_direction
 
     def setup(self, model, dataset):
         inf_params = [ param for param in model.get_params() if np.any(np.isinf(param.get_value())) ]
@@ -222,6 +228,10 @@ class SGD(TrainingAlgorithm):
             grads, updates = self.cost.get_gradients(model, X, Y)
         else:
             grads, updates = self.cost.get_gradients(model, X)
+
+        info, updates = self.search_direction.dir_from_grad(grads, learning_rate)
+        self.monitor.add_channel(name='info', ipt=ipt,
+                                val=info, dataset=monitoring_dataset)
 
         for param in grads:
             assert param in params
