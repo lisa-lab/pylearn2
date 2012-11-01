@@ -1,6 +1,6 @@
 import pylearn2
-from pylearn2.models.dbm import load_matlab_dbm
-from pylearn2.models.dbm import InferenceProcedure
+from pylearn2.models.dense_binary_dbm import load_matlab_dbm
+from pylearn2.models.dense_binary_dbm import InferenceProcedure
 import warnings
 try:
     from scipy import io
