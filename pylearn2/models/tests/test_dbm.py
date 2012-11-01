@@ -20,10 +20,13 @@ def check_binary_samples(value, expected_shape, expected_mean, tol):
     assert value.shape == expected_shape
     assert is_binary(value)
     mean = value.mean(axis=0)
-    if np.abs(value-expected_mean).max() > tol:
-        print value
+    max_error = np.abs(mean-expected_mean).max()
+    if max_error > tol:
+        print 'Actual mean:'
+        print mean
+        print 'Expected mean:'
         print expected_mean
-        print np.abs(value-expected_mean).max()
+        print 'Maximal error:', max_error
         raise ValueError("Samples don't seem to have the right mean.")
 
 def test_binary_vis_layer_make_state():
@@ -32,8 +35,8 @@ def test_binary_vis_layer_make_state():
     # a shared variable whose value
 
     n = 5
-    num_samples = 100
-    tol = .01
+    num_samples = 1000
+    tol = .04
 
     layer = BinaryVisLayer(nvis = n)
 
@@ -45,7 +48,7 @@ def test_binary_vis_layer_make_state():
     value = init_state.get_value()
 
 
-    mean = np.ones((n,))
+    mean = np.ones((n,)) * 0.5
 
     check_binary_samples(value, (num_samples, n), mean, tol)
 
