@@ -46,6 +46,7 @@ while True:
     for channel_name in sorted(channels, key = number_aware_alphabetical_key):
         code = tag_generator.get_tag()
         codebook[code] = channel_name
+        codebook['<'+channel_name+'>'] = channel_name
         sorted_codes.append(code)
 
     x_axis = 'example'
@@ -67,7 +68,7 @@ while True:
         print
 
         print "Put e, b, or s in the list somewhere to plot epochs, batches, or seconds, respectively."
-        response = raw_input('Enter a list of channels to plot (example: A, C,F-G, t)) or q to quit: ')
+        response = raw_input('Enter a list of channels to plot (example: A, C,F-G, t, <test_err>) or q to quit: ')
 
         if response == 'q':
             break
@@ -84,13 +85,14 @@ while True:
             if code == 'e':
                 x_axis = 'epoch'
                 continue
-            if code == 'b':
+            elif code == 'b':
                 x_axis = 'batche'
-                continue
-            if code == 's':
+            elif code == 's':
                 x_axis = 'second'
-                continue
-            if code.find('-') != -1:
+            elif code.startswith('<'):
+                assert code.endswith('>')
+                final_codes.add(code)
+            elif code.find('-') != -1:
                 #The current list element is a range of codes
 
                 rng = code.split('-')
