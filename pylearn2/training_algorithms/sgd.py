@@ -229,9 +229,12 @@ class SGD(TrainingAlgorithm):
         else:
             grads, updates = self.cost.get_gradients(model, X)
 
-        info, updates = self.search_direction.dir_from_grad(grads, learning_rate)
-        self.monitor.add_channel(name='info', ipt=ipt,
-                                val=info, dataset=monitoring_dataset)
+        # This is where the method computing the search direction gets called.
+        # As a reminder, if no SearchDirection object was provided at 
+        # initialization, an IdentitySD object, which computes the identity 
+        # function on the gradient, was created.
+        direction, sup_updates = self.search_direction.dir_from_grad(grads)
+        updates.update(sup_updates)
 
         for param in grads:
             assert param in params
@@ -259,9 +262,13 @@ class SGD(TrainingAlgorithm):
             lr = learning_rate.get_value() * lr_scalers.get(param,1.)
             log.info('\t' + param_name + ': ' + str(lr))
 
+        # The updates are computed on the search direction, which is the
+        # gradient if no SearchDirection object was provided at 
+        # initialization. We should consider cleaning up the SGD class 
+        # a bit, since some old options might have become redundant.
         if self.momentum is None:
             updates.update( dict(safe_zip(params, [param - learning_rate * \
-                lr_scalers.get(param, 1.) * grads[param]
+                lr_scalers.get(param, 1.) * direction[param]
                                     for param in params])))
         else:
             for param in params:
