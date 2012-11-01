@@ -130,6 +130,363 @@ class DBM(Model):
         assert rval.ndim == 1
         return rval
 
+    def setup_rng(self):
+        self.rng = np.random.RandomState([2012, 10, 17])
+
+    def get_output_space(self):
+        return self.hidden_layers[-1].get_output_space()
+
+    def _update_layer_input_spaces(self):
+        """
+            Tells each layer what its input space should be.
+            Note: this usually resets the layer's parameters!
+        """
+        visible_layer = self.visible_layer
+        hidden_layers = self.hidden_layers
+        self.hidden_layers[0].set_input_space(visible_layer.space)
+        for i in xrange(1,len(hidden_layers)):
+            hidden_layers[i].set_input_space(hidden_layers[i-1].get_output_space())
+
+    def add_layers(self, layers):
+        """
+            Add new layers on top of the existing hidden layers
+        """
+
+        # Patch old pickle files
+        if not hasattr(self, 'rng'):
+            self.setup_rng()
+
+        hidden_layers = self.hidden_layers
+        assert len(hidden_layers) > 0
+        for layer in layers:
+            assert layer.get_dbm() is None
+            layer.set_dbm(self)
+            layer.set_input_space(hidden_layers[-1].get_output_space())
+            hidden_layers.append(layer)
+            assert layer.layer_name not in self.layer_names
+            self.layer_names.add(layer.layer_name)
+
+    def freeze(self, parameter_set):
+        # patch old pickle files
+        if not hasattr(self, 'freeze_set'):
+            self.freeze_set = set([])
+
+        self.freeze_set = self.freeze_set.union(parameter_set)
+
+    def get_params(self):
+
+        for param in self.visible_layer.get_params():
+            assert param.name is not None
+        rval = self.visible_layer.get_params()
+        for layer in self.hidden_layers:
+            for param in layer.get_params():
+                if param.name is None:
+                    print type(layer)
+                    assert False
+            rval = rval.union(layer.get_params())
+
+        rval = set([elem for elem in rval if elem not in self.freeze_set])
+
+        return rval
+
+    def set_batch_size(self, batch_size):
+        self.batch_size = batch_size
+        self.force_batch_size = batch_size
+
+        for layer in self.hidden_layers:
+            layer.set_batch_size(batch_size)
+
+    def censor_updates(self, updates):
+        self.visible_layer.censor_updates(updates)
+        for layer in self.hidden_layers:
+            layer.censor_updates(updates)
+
+    def get_input_space(self):
+        return self.visible_layer.space
+
+    def get_lr_scalers(self):
+        rval = {}
+
+        params = self.get_params()
+
+        for layer in self.hidden_layers + [ self.visible_layer ]:
+            contrib = layer.get_lr_scalers()
+
+            # No two layers can contend to scale a parameter
+            assert not any([key in rval for key in contrib])
+            # Don't try to scale anything that's not a parameter
+            assert all([key in params for key in contrib])
+
+            rval.update(contrib)
+        assert all([isinstance(val, float) for val in rval.values()])
+
+        return rval
+
+    def get_weights(self):
+        return self.hidden_layers[0].get_weights()
+
+    def get_weights_view_shape(self):
+        return self.hidden_layers[0].get_weights_view_shape()
+
+    def get_weights_format(self):
+        return self.hidden_layers[0].get_weights_format()
+
+    def get_weights_topo(self):
+        return self.hidden_layers[0].get_weights_topo()
+
+    def make_layer_to_state(self, num_examples):
+
+        """ Makes and returns a dictionary mapping layers to states.
+            By states, we mean here a real assignment, not a mean field state.
+            For example, for a layer containing binary random variables, the
+            state will be a shared variable containing values in {0,1}, not
+            [0,1].
+            The visible layer will be included.
+            Uses a dictionary so it is easy to unambiguously index a layer
+            without needing to remember rules like vis layer = 0, hiddens start
+            at 1, etc.
+        """
+
+        # Make a list of all layers
+        layers = [self.visible_layer] + self.hidden_layers
+
+        rng = np.random.RandomState([2012,9,11])
+
+        states = [ layer.make_state(num_examples, rng) for layer in layers ]
+
+        zipped = safe_zip(layers, states)
+
+        def recurse_check(layer, state):
+            if isinstance(state, (list, tuple)):
+                for elem in state:
+                    recurse_check(layer, elem)
+            else:
+                val = state.get_value()
+                m = val.shape[0]
+                if m != num_examples:
+                    raise ValueError(layer.layer_name+" gave state with "+str(m)+ \
+                            " examples in some component. We requested "+str(num_examples))
+
+        for layer, state in zipped:
+            recurse_check(layer, state)
+
+        rval = dict(zipped)
+
+        return rval
+
+    def mcmc_steps(self, layer_to_state, theano_rng, layer_to_clamp = None,
+            num_steps = 1):
+        """
+            layer_to_state: a dictionary mapping the SuperDBM_Layer instances
+                            contained in self to theano variables representing
+                            batches of samples of them.
+            theano_rng: a MRG_RandomStreams object
+            layer_to_clamp: (optional) a dictionary mapping layers to bools
+                            if a layer is not in the dictionary, defaults to False
+                            True indicates that this layer should be clamped, so
+                            we are sampling from a conditional distribution rather
+                            than the joint
+            returns:
+                layer_to_updated_state
+                    dict mapping layers to theano variables representing the updated
+                    samples
+            Note: this does Gibbs sampling, starting with the visible layer, and
+            then working upward. If you initialize the visible sample with data,
+            it will be discarded with no influence, since the visible layer is
+            the first layer to be sampled
+            sampled. To start Gibbs sampling from data you must do at least one
+            sampling step explicitly clamping the visible units.
+        """
+
+        # Validate num_steps
+        assert isinstance(num_steps, int)
+        assert num_steps > 0
+
+        # Implement the num_steps > 1 case by repeatedly calling the num_steps == 1 case
+        if num_steps != 1:
+            for i in xrange(num_steps):
+                layer_to_state = self.mcmc_steps(layer_to_state, theano_rng, layer_to_clamp,
+                        num_steps = 1)
+            return layer_to_state
+
+        # The rest of the function is the num_steps = 1 case
+
+        assert len(self.hidden_layers) > 0 # current code assumes this, though we could certainly
+                                           # relax this constraint
+
+        # Validate layer_to_clamp / make sure layer_to_clamp is a fully populated dictionary
+        if layer_to_clamp is None:
+            layer_to_clamp = {}
+
+        for key in layer_to_clamp:
+            assert key is self.visible_layer or key in self.hidden_layers
+
+        for layer in [self.visible_layer] + self.hidden_layers:
+            if layer not in layer_to_clamp:
+                layer_to_clamp[layer] = False
+
+        #Assemble the return value
+        layer_to_updated = {}
+
+        #Sample the visible layer
+        vis_state = layer_to_state[self.visible_layer]
+        if layer_to_clamp[self.visible_layer]:
+            vis_sample = vis_state
+        else:
+            first_hid = self.hidden_layers[0]
+            state_above = layer_to_state[first_hid]
+            state_above = first_hid.downward_state(state_above)
+
+            vis_sample = self.visible_layer.get_sampling_updates(
+                    state_above = state_above,
+                    layer_above = first_hid,
+                    theano_rng = theano_rng)
+        layer_to_updated[self.visible_layer] = vis_sample
+
+        for i, this_layer in enumerate(self.hidden_layers):
+            # Iteration i does the Gibbs step for hidden_layers[i]
+
+            # Get the sampled state of the layer below so we can condition
+            # on it in our Gibbs update
+            if i == 0:
+                layer_below = self.visible_layer
+            else:
+                layer_below = self.hidden_layers[i-1]
+
+            # We want to sample from each conditional distribution
+            # ***sequentially*** so we must use the updated version
+            # of the state for the layers whose updates we have
+            # calculcated already. If we used the raw value from
+            # layer_to_state
+            # then we would sample from each conditional
+            # ***simultaneously*** which does not implement MCMC
+            # sampling.
+            state_below = layer_to_updated[layer_below]
+
+            state_below = layer_below.upward_state(state_below)
+
+            # Get the sampled state of the layer above so we can condition
+            # on it in our Gibbs step
+            if i + 1 < len(self.hidden_layers):
+                layer_above = self.hidden_layers[i + 1]
+                state_above = layer_to_state[layer_above]
+                state_above = layer_above.downward_state(state_above)
+            else:
+                state_above = None
+                layer_above = None
+
+            if layer_to_clamp[this_layer]:
+                this_state = layer_to_state[this_layer]
+                this_sample = this_state
+            else:
+                # Compute the Gibbs sampling update
+                # Sample the state of this layer conditioned
+                # on its Markov blanket (the layer above and
+                # layer below)
+                this_sample = this_layer.get_sampling_updates(
+                        state_below = state_below,
+                        state_above = state_above,
+                        layer_above = layer_above,
+                        theano_rng = theano_rng)
+
+            layer_to_updated[this_layer] = this_sample
+
+        assert all([layer in layer_to_updated for layer in layer_to_state])
+        assert all([layer in layer_to_state for layer in layer_to_updated])
+
+        # Check that clamping worked
+        for layer in layer_to_clamp:
+            if layer_to_clamp[layer]:
+                assert layer_to_state[layer] is layer_to_updated[layer]
+
+        return layer_to_updated
+
+    def get_sampling_updates(self, layer_to_state, theano_rng,
+            layer_to_clamp = None, num_steps = 1, return_layer_to_updated = False):
+        """
+            This method is for getting an updates dictionary for a theano function.
+            It thus implies that the samples are represented as shared variables.
+            If you want an expression for a sampling step applied to arbitrary
+            theano variables, use the 'mcmc_steps' method. This is a wrapper around
+            that method.
+
+            layer_to_state: a dictionary mapping the SuperDBM_Layer instances
+                            contained in self to shared variables representing
+                            batches of samples of them.
+                            (you can allocate one by calling
+                            self.make_layer_to_state)
+            theano_rng: a MRG_RandomStreams object
+            layer_to_clamp: (optional) a dictionary mapping layers to bools
+                            if a layer is not in the dictionary, defaults to False
+                            True indicates that this layer should be clamped, so
+                            we are sampling from a conditional distribution rather
+                            than the joint
+            returns a dictionary mapping each shared variable to an expression
+                     to update it. Repeatedly applying these updates does MCMC
+                     sampling.
+
+            Note: this does Gibbs sampling, starting with the visible layer, and
+            then working upward. If you initialize the visible sample with data,
+            it will be discarded with no influence, since the visible layer is
+            the first layer to be sampled
+            sampled. To start Gibbs sampling from data you must do at least one
+            sampling step explicitly clamping the visible units.
+        """
+
+        updated = self.mcmc_steps(layer_to_state, theano_rng, layer_to_clamp, num_steps)
+
+        rval = {}
+
+        def add_updates(old, new):
+            if isinstance(old, (list, tuple)):
+                for old_elem, new_elem in safe_izip(old, new):
+                    add_updates(old_elem, new_elem)
+            else:
+                rval[old] = new
+
+        # Validate layer_to_clamp / make sure layer_to_clamp is a fully populated dictionary
+        if layer_to_clamp is None:
+            layer_to_clamp = {}
+
+        for key in layer_to_clamp:
+            assert key is self.visible_layer or key in self.hidden_layers
+
+        for layer in [self.visible_layer] + self.hidden_layers:
+            if layer not in layer_to_clamp:
+                layer_to_clamp[layer] = False
+
+        # Translate update expressions into theano updates
+        for layer in layer_to_state:
+            old = layer_to_state[layer]
+            new = updated[layer]
+            if layer_to_clamp[layer]:
+                assert new is old
+            else:
+                add_updates(old, new)
+
+        assert isinstance(self.hidden_layers, list)
+
+        if return_layer_to_updated:
+            return rval, updated
+
+        return rval
+
+    def get_monitoring_channels(self, X, Y = None):
+
+        q = self.mf(X)
+
+        rval = {}
+
+        for state, layer in safe_zip(q, self.hidden_layers):
+            ch = layer.get_monitoring_channels_from_state(state)
+            for key in ch:
+                rval['mf_'+layer.layer_name+'_'+key]  = ch[key]
+        return rval
+
+    def get_test_batch_size(self):
+        return self.batch_size
+
+
 
 class Layer(Model):
     """

@@ -13,6 +13,8 @@ from theano.sandbox.rng_mrg import MRG_RandomStreams
 from pylearn2.expr.basic import is_binary
 from pylearn2.expr.nnet import inverse_sigmoid_numpy
 from pylearn2.models.dbm import BinaryVector
+from pylearn2.models.dbm import BinaryVectorMaxPool
+from pylearn2.models.dbm import DBM
 from pylearn2.utils import sharedX
 
 def check_binary_samples(value, expected_shape, expected_mean, tol):
