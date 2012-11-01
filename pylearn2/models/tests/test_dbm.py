@@ -12,7 +12,7 @@ from theano.sandbox.rng_mrg import MRG_RandomStreams
 
 from pylearn2.expr.basic import is_binary
 from pylearn2.expr.nnet import inverse_sigmoid_numpy
-from pylearn2.models.dbm import BinaryVisLayer
+from pylearn2.models.dbm import BinaryVector
 from pylearn2.utils import sharedX
 
 def check_binary_samples(value, expected_shape, expected_mean, tol):
@@ -37,14 +37,14 @@ def check_binary_samples(value, expected_shape, expected_mean, tol):
 
 def test_binary_vis_layer_make_state():
 
-    # Verifies that BinaryVisLayer.make_state creates
+    # Verifies that BinaryVector.make_state creates
     # a shared variable whose value passes check_binary_samples
 
     n = 5
     num_samples = 1000
     tol = .04
 
-    layer = BinaryVisLayer(nvis = n)
+    layer = BinaryVector(nvis = n)
 
     rng = np.random.RandomState([2012,11,1])
 
@@ -63,7 +63,7 @@ def test_binary_vis_layer_make_state():
 
 def test_binary_vis_layer_sample():
 
-    # Verifies that BinaryVisLayer.sample returns an expression
+    # Verifies that BinaryVector.sample returns an expression
     # whose value passes check_binary_samples
 
     assert hasattr(np, 'exp')
@@ -84,7 +84,7 @@ def test_binary_vis_layer_sample():
         def downward_message(self, state):
             return state
 
-    vis = BinaryVisLayer(nvis=n)
+    vis = BinaryVector(nvis=n)
     hid = DummyLayer()
 
     rng = np.random.RandomState([2012,11,1,259])

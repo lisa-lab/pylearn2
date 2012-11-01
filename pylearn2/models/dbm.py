@@ -19,6 +19,7 @@ import time
 import warnings
 
 from theano import function
+from theano.gof.op import get_debug_values
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 import theano.tensor as T
 
@@ -191,6 +192,39 @@ class Layer(Model):
 
         raise NotImplementedError("%s doesn't implement get_sampling_updates" %
                 type(self))
+
+    def expected_energy_term(self, state,
+                                   average,
+                                   state_below,
+                                   average_below):
+        """
+
+            Returns a term of the expected energy of the entire model.
+            This term should correspond to the expected value of terms
+            of the energy function that:
+                -involve this layer only
+                -if there is a layer below, include terms that
+                 involve both this layer and the layer below
+            Do not include terms that involve the layer below only.
+            Do not include any terms that involve the layer above, if it
+            exists, in any way (the interface doesn't let you see the layer
+            above anyway).
+
+            state_below: the upward state of the layer below.
+            state: the total state of this layer
+
+            average_below: if True, the layer below is one of the variables to
+                integrate over in the expectation, and state_below gives its
+                variational parameters. if False, that layer is to be held constant
+                and state_below gives a set of assignments to it
+            average: like average_below, but for 'state' rather than 'state_below'
+
+            returns: a 1-d theano tensor giving the expected energy term for each example
+
+
+        """
+        raise NotImplementedError(str(type(self))+" does not implement expected_energy_term.")
+
 
 class VisibleLayer(Layer):
     """
@@ -600,3 +634,68 @@ class BinaryVectorMaxPool(HiddenLayer):
         h_state.name = 'h_sample_shared'
 
         return p_state, h_state
+
+    def expected_energy_term(self, state, average, state_below, average_below):
+
+        self.input_space.validate(state_below)
+
+        if self.requires_reformat:
+            if not isinstance(state_below, tuple):
+                for sb in get_debug_values(state_below):
+                    if sb.shape[0] != self.dbm.batch_size:
+                        raise ValueError("self.dbm.batch_size is %d but got shape of %d" % (self.dbm.batch_size, sb.shape[0]))
+                    assert reduce(lambda x,y: x * y, sb.shape[1:]) == self.input_dim
+
+            state_below = self.input_space.format_as(state_below, self.desired_space)
+
+        downward_state = self.downward_state(state)
+        self.h_space.validate(downward_state)
+
+        # Energy function is linear so it doesn't matter if we're averaging or not
+        # Specifically, our terms are -u^T W d - b^T d where u is the upward state of layer below
+        # and d is the downward state of this layer
+
+        bias_term = T.dot(downward_state, self.b)
+        weights_term = (self.transformer.lmul(state_below) * downward_state).sum(axis=1)
+
+        rval = -bias_term - weights_term
+
+        assert rval.ndim == 1
+
+        return rval
+
+    def mf_update(self, state_below, state_above, layer_above = None, double_weights = False, iter_name = None):
+
+        self.input_space.validate(state_below)
+
+        if self.requires_reformat:
+            if not isinstance(state_below, tuple):
+                for sb in get_debug_values(state_below):
+                    if sb.shape[0] != self.dbm.batch_size:
+                        raise ValueError("self.dbm.batch_size is %d but got shape of %d" % (self.dbm.batch_size, sb.shape[0]))
+                    assert reduce(lambda x,y: x * y, sb.shape[1:]) == self.input_dim
+
+            state_below = self.input_space.format_as(state_below, self.desired_space)
+
+        if iter_name is None:
+            iter_name = 'anon'
+
+        if state_above is not None:
+            assert layer_above is not None
+            msg = layer_above.downward_message(state_above)
+            msg.name = 'msg_from_'+layer_above.layer_name+'_to_'+self.layer_name+'['+iter_name+']'
+        else:
+            msg = None
+
+        if double_weights:
+            state_below = 2. * state_below
+            state_below.name = self.layer_name + '_'+iter_name + '_2state'
+        z = self.transformer.lmul(state_below) + self.b
+        if self.layer_name is not None and iter_name is not None:
+            z.name = self.layer_name + '_' + iter_name + '_z'
+        p,h = max_pool_channels(z, self.pool_size, msg)
+
+        p.name = self.layer_name + '_p_' + iter_name
+        h.name = self.layer_name + '_h_' + iter_name
+
+        return p, h
