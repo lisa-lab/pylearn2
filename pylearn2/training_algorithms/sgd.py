@@ -590,6 +590,8 @@ class OneOverEpoch(TrainingCallback):
     def __call__(self, model, dataset, algorithm):
         if not self._initialized:
             self._init_lr = algorithm.learning_rate.get_value()
+            if self._init_lr < self.min_lr:
+                raise ValueError("The initial learning rate is smaller than the minimum allowed learning rate.")
             self._initialized = True
         self._count += 1
         algorithm.learning_rate.set_value( np.cast[config.floatX](self.current_lr()))
