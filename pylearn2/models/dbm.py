@@ -17,6 +17,7 @@ import numpy as np
 import sys
 import warnings
 
+from theano.printing import Print
 import theano.tensor as T
 
 from pylearn2.expr.nnet import inverse_sigmoid_numpy
@@ -161,7 +162,6 @@ class DBM_Layer(Model):
             layer_above = None,
             theano_rng = None):
         """
-
             state_below is layer_below.upward_state(full_state_below)
             where full_state_below is the same kind of object as you get
             out of layer_below.make_state
@@ -245,9 +245,12 @@ class BinaryVisLayer(DBM_VisibleLayer):
             theano_rng = None):
 
         assert state_below is None
+
         msg = layer_above.downward_message(state_above)
 
-        z = msg + self.bias
+        bias = self.bias
+
+        z = msg + bias
 
         phi = T.nnet.sigmoid(z)
 
