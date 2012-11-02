@@ -17,6 +17,7 @@ from pylearn2.expr.nnet import inverse_sigmoid_numpy
 from pylearn2.models.dbm import BinaryVector
 from pylearn2.models.dbm import BinaryVectorMaxPool
 from pylearn2.models.dbm import DBM
+from pylearn2.models.dbm import Softmax
 from pylearn2.space import VectorSpace
 from pylearn2.utils import sharedX
 
@@ -124,12 +125,12 @@ def check_bvmp_samples(value, num_samples, n, pool_size, mean, tol):
     tol: amount the emprical mean is allowed to deviate from the analytical expectation
 
     checks that:
-        all values are binary
-        detector layer units are mutually exclusive
-        pooled unit is max of the detector units
-        correct number of samples is present
-        variables are of the right shapes
-        samples converge to the right expected value
+        1) all values are binary
+        2) detector layer units are mutually exclusive
+        3) pooled unit is max of the detector units
+        4) correct number of samples is present
+        5) variables are of the right shapes
+        6) samples converge to the right expected value
     """
 
     pv, hv = value
@@ -480,4 +481,53 @@ def test_bvmp_mf_sample_consistent():
     # We must also run with a larger number to test the general case
     for pool_size in [1, 2, 5]:
         do_test(pool_size)
+
+def check_multinomial_samples(value, expected_shape, expected_mean, tol):
+    """
+    Tests that a matrix of multinomial samples (observations in rows, variables
+        in columns)
+    1) Has the right shape
+    2) Is binary
+    3) Has one 1 per row
+    4) Converges to the right mean
+    """
+    assert value.shape == expected_shape
+    assert is_binary(value)
+    assert np.all(value.sum(axis=1) == 1)
+    mean = value.mean(axis=0)
+    max_error = np.abs(mean-expected_mean).max()
+    if max_error > tol:
+        print 'Actual mean:'
+        print mean
+        print 'Expected mean:'
+        print expected_mean
+        print 'Maximal error:', max_error
+        raise ValueError("Samples don't seem to have the right mean.")
+
+def test_softmax_make_state():
+
+    # Verifies that BinaryVector.make_state creates
+    # a shared variable whose value passes check_multinomial_samples
+
+    n = 5
+    num_samples = 1000
+    tol = .04
+
+    layer = Softmax(n_classes = n, layer_name = 'y')
+
+    rng = np.random.RandomState([2012, 11, 1, 11])
+
+    z = 3 * rng.randn(n)
+
+    mean = np.exp(z)
+    mean /= mean.sum()
+
+    layer.set_biases(z.astype(config.floatX))
+
+    state = layer.make_state(num_examples=num_samples,
+            numpy_rng=rng)
+
+    value = state.get_value()
+
+    check_multinomial_samples(value, (num_samples, n), mean, tol)
 
