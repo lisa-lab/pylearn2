@@ -234,7 +234,7 @@ class DBM(Model):
     def get_weights_topo(self):
         return self.hidden_layers[0].get_weights_topo()
 
-    def make_layer_to_state(self, num_examples):
+    def make_layer_to_state(self, num_examples, rng=None):
 
         """ Makes and returns a dictionary mapping layers to states.
             By states, we mean here a real assignment, not a mean field state.
@@ -250,7 +250,8 @@ class DBM(Model):
         # Make a list of all layers
         layers = [self.visible_layer] + self.hidden_layers
 
-        rng = np.random.RandomState([2012,9,11])
+        if rng is None:
+            rng = self.rng
 
         states = [ layer.make_state(num_examples, rng) for layer in layers ]
 
@@ -518,7 +519,7 @@ class Layer(Model):
         """
         Assigns this layer to a DBM.
         """
-        assert self.get_debm() is None
+        assert self.get_dbm() is None
         self.dbm = dbm
 
     def get_total_state_space(self, state):
@@ -726,6 +727,20 @@ class BinaryVector(VisibleLayer):
         sample = driver < mean
 
         rval = sharedX(sample, name = 'v_sample_shared')
+
+        return rval
+
+    def expected_energy_term(self, state, average, state_below = None, average_below = None):
+
+        assert state_below is None
+        assert average_below is None
+        assert average in [True, False]
+        self.space.validate(state)
+
+        # Energy function is linear so it doesn't matter if we're averaging or not
+        rval = -T.dot(state, self.bias)
+
+        assert rval.ndim == 1
 
         return rval
 
