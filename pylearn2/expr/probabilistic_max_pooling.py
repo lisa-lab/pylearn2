@@ -357,7 +357,11 @@ def max_pool_channels(z, pool_size, top_down = None, theano_rng = None):
             warnings.warn("TODO: make max_pool_channels use binomial rather than multinomial "
                     "sampling when pool_size == 1")
 
+        t1 = time.time()
         multinomial = theano_rng.multinomial(pvals = reshaped_events, dtype = p.dtype)
+        t2 = time.time()
+        if t2 - t1 > 0.5:
+            warnings.warn("TODO: speed up random number seeding. max pooling spent "+str(t2-t1)+" in a call to theano_rng.multinomial.")
 
         reshaped_multinomial = multinomial.reshape((batch_size, n // pool_size, outcomes))
 
