@@ -261,14 +261,23 @@ def test_bvmp_mf_energy_consistent():
         on_probs = [on_prob / denom for on_prob in on_probs]
         assert np.allclose(1., off_prob + sum(on_probs))
 
+        # np.asarray(on_probs) doesn't make a numpy vector, so I do it manually
+        wtf_numpy = np.zeros((pool_size_1,))
+        for i in xrange(pool_size_1):
+            wtf_numpy[i] = on_probs[i]
+        on_probs = wtf_numpy
+
         # Check that they match
         if not np.allclose(expected_p, 1. - off_prob):
             print 'mean field expectation of p:',expected_p
             print 'expectation of p based on enumerating energy function values:',1. - off_prob
             assert False
-        assert np.allclose(expected_h, np.asarray(on_probs))
+        if not np.allclose(expected_h, on_probs):
+            print 'mean field expectation of h:',expected_h
+            print 'expectation of h based on enumerating energy function values:',on_probs
+            assert False
 
 
-    for pool_size in [1]: #2,5]:
+    for pool_size in [1, 2, 5]:
         do_test(pool_size)
 
