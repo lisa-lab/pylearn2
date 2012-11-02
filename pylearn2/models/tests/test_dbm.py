@@ -531,3 +531,89 @@ def test_softmax_make_state():
 
     check_multinomial_samples(value, (num_samples, n), mean, tol)
 
+def test_softmax_mf_energy_consistent():
+
+    # A test of the Softmax class
+    # Verifies that the mean field update is consistent with
+    # the energy function
+
+    # Since a Softmax layer contains only one random variable
+    # (with n_classes possible values) the mean field assumption
+    # does not impose any restriction so mf_update simply gives
+    # the true expected value of h given v.
+    # We also know P(h |  v)
+    #  = P(h, v) / P( v)
+    #  = P(h, v) / sum_h P(h, v)
+    #  = exp(-E(h, v)) / sum_h exp(-E(h, v))
+    # So we can check that computing P(h | v) with both
+    # methods works the same way
+
+    rng = np.random.RandomState([2012,11,1,1131])
+
+    # Make DBM
+    num_vis = rng.randint(1,11)
+    n_classes = rng.randint(1, 11)
+
+    v = BinaryVector(num_vis)
+    v.set_biases(rng.uniform(-1., 1., (num_vis,)).astype(config.floatX))
+
+    y = Softmax(
+            n_classes = n_classes,
+            layer_name = 'y',
+            irange = 1.)
+    y.set_biases(rng.uniform(-1., 1., (n_classes,)).astype(config.floatX))
+
+    dbm = DBM(visible_layer = v,
+            hidden_layers = [y],
+            batch_size = 1,
+            niter = 50)
+
+    # Randomly pick a v to condition on
+    # (Random numbers are generated via dbm.rng)
+    layer_to_state = dbm.make_layer_to_state(1)
+    v_state = layer_to_state[v]
+    y_state = layer_to_state[y]
+
+    # Infer P(y | v) using mean field
+    expected_y = y.mf_update(
+            state_below = v.upward_state(v_state))
+
+    expected_y = expected_y[0, :]
+
+    expected_y = expected_y.eval()
+
+    # Infer P(y | v) using the energy function
+    energy = dbm.energy(V = v_state,
+            hidden = [y_state])
+    unnormalized_prob = T.exp(-energy)
+    assert unnormalized_prob.ndim == 1
+    unnormalized_prob = unnormalized_prob[0]
+    unnormalized_prob = function([], unnormalized_prob)
+
+    def compute_unnormalized_prob(which):
+        write_y = np.zeros((n_classes,))
+        write_y[which] = 1.
+
+        y_value = y_state.get_value()
+
+        y_value[0, :] = write_y
+
+        y_state.set_value(y_value)
+
+        return unnormalized_prob()
+
+    probs = [compute_unnormalized_prob(idx) for idx in xrange(n_classes)]
+    denom = sum(probs)
+    probs = [on_prob / denom for on_prob in probs]
+
+    # np.asarray(probs) doesn't make a numpy vector, so I do it manually
+    wtf_numpy = np.zeros((n_classes,))
+    for i in xrange(n_classes):
+        wtf_numpy[i] = probs[i]
+    probs = wtf_numpy
+
+    if not np.allclose(expected_y, probs):
+        print 'mean field expectation of h:',expected_y
+        print 'expectation of h based on enumerating energy function values:',probs
+        assert False
+

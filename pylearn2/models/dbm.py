@@ -31,6 +31,7 @@ from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.models.model import Model
 from pylearn2.space import CompositeSpace
 from pylearn2.space import Conv2DSpace
+from pylearn2.space import Space
 from pylearn2.space import VectorSpace
 from pylearn2.utils import safe_zip
 from pylearn2.utils import sharedX
