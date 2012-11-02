@@ -214,6 +214,8 @@ def test_bvmp_make_state():
 
         mean = function([], mean)()
 
+        mean = [ mn[0,:] for mn in mean ]
+
         state = layer.make_state(num_examples=num_samples,
                 numpy_rng=rng)
 
