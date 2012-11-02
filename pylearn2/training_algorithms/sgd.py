@@ -264,8 +264,8 @@ class SGD(TrainingAlgorithm):
 
         # The updates are computed on the search direction, which is the
         # gradient if no SearchDirection object was provided at 
-        # initialization. We should consider cleaning up the SGD class 
-        # a bit, since some old options might have become redundant.
+        # initialization.
+        # TODO: remove SGD.momentum and implement momentum as a SearchDirection
         if self.momentum is None:
             updates.update( dict(safe_zip(params, [param - learning_rate * \
                 lr_scalers.get(param, 1.) * direction[param]

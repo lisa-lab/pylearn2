@@ -11,15 +11,10 @@ class SearchDirection(object):
     represent the standard gradient descent), or a function of the gradient and
     the number of previous updates (which can lead to annealing), or even a
     function of all previous gradients (momentum, adagrad, etc.)
+    
+    Theano functions computing gradients must apply all of these updates in 
+    order for successive calls to the function to be correct.
     """
-    def __init__(self):
-        """
-        The __init__ method should store parameters used to compute the 
-        transformed gradient (decay rate of annealing and such...).
-        """
-        raise NotImplementedError(str(type(self))+" does not implement "+ \
-                                  "__init__.")
-
     def dir_from_grad(self, gradients):
         """
         Computes a transformation of the gradient and returns it in the form
@@ -28,17 +23,18 @@ class SearchDirection(object):
         
         Parameters
         ----------
-        gradients: dictionary mapping parameters (tensor-like theano 
-                   variables) to gradients (tensor-like theano 
-                   variables). The only parameter dir_from_grad should 
-                   ever accept.
+        gradients: dictionary 
+                   Maps parameters (tensor-like theano variables) to gradients
+                   (tensor-like theano variables). The only parameter 
+                   dir_from_grad should ever accept.
         Returns
         -------
-        direction: dictionary mapping parameters (tensor-like theano 
-                   variables) to transformed gradients (tensor-like theano
-                   variables)
-        updates:   dictionary mapping persistent variables used in the 
-                   transformation of the gradient to their updated value
+        direction: dictionary 
+                   Maps parameters (tensor-like theano variables) to 
+                   transformed gradients (tensor-like theano variables)
+        updates:   dictionary
+                   Maps persistent variables used in the transformation of the
+                   gradient to their updated value
         """
         raise NotImplementedError(str(type(self))+" does not implement "+ \
                                   "dir_from_grad.")
