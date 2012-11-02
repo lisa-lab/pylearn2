@@ -1119,3 +1119,286 @@ class BinaryVectorMaxPool(HiddenLayer):
         h.name = self.layer_name + '_h_' + iter_name
 
         return p, h
+
+class Softmax(HiddenLayer):
+
+    def __init__(self, n_classes, layer_name, irange = None,
+                 sparse_init = None, W_lr_scale = None):
+
+        if isinstance(W_lr_scale, str):
+            W_lr_scale = float(W_lr_scale)
+
+        self.__dict__.update(locals())
+        del self.self
+
+        assert isinstance(n_classes, int)
+
+        self.output_space = VectorSpace(n_classes)
+        self.b = sharedX( np.zeros((n_classes,)), name = 'softmax_b')
+
+    def get_lr_scalers(self):
+
+        rval = {}
+
+        # Patch old pickle files
+        if not hasattr(self, 'W_lr_scale'):
+            self.W_lr_scale = None
+
+        if self.W_lr_scale is not None:
+            assert isinstance(self.W_lr_scale, float)
+            rval[self.W] = self.W_lr_scale
+
+        return rval
+
+    def get_total_state_space(self):
+        return self.output_space
+
+    def get_monitoring_channels_from_state(self, state):
+
+        mx = state.max(axis=1)
+
+        return {
+                'mean_max_class' : mx.mean(),
+                'max_max_class' : mx.max(),
+                'min_max_class' : mx.min()
+        }
+
+    def set_input_space(self, space):
+        self.input_space = space
+
+        if not isinstance(space, Space):
+            raise TypeError("Expected Space, got "+
+                    str(space)+" of type "+str(type(space)))
+
+        self.input_dim = space.get_total_dimension()
+        self.needs_reformat = not isinstance(space, VectorSpace)
+
+        self.desired_space = VectorSpace(self.input_dim)
+
+        if not self.needs_reformat:
+            assert self.desired_space == self.input_space
+
+        rng = self.dbm.rng
+
+        if self.irange is not None:
+            assert self.sparse_init is None
+            W = rng.uniform(-self.irange,self.irange, (self.input_dim,self.n_classes))
+        else:
+            assert self.sparse_init is not None
+            W = np.zeros((self.input_dim, self.n_classes))
+            for i in xrange(self.n_classes):
+                for j in xrange(self.sparse_init):
+                    idx = rng.randint(0, self.input_dim)
+                    while W[idx, i] != 0.:
+                        idx = rng.randint(0, self.input_dim)
+                    W[idx, i] = rng.randn()
+
+        self.W = sharedX(W,  'softmax_W' )
+
+        self._params = [ self.b, self.W ]
+    def get_weights_topo(self):
+        if not isinstance(self.input_space, Conv2DSpace):
+            raise NotImplementedError()
+        desired = self.W.get_value().T
+        ipt = self.desired_space.format_as(desired, self.input_space)
+        rval = Conv2DSpace.convert_numpy(ipt, self.input_space.axes, ('b', 0, 1, 'c'))
+        return rval
+
+    def get_weights(self):
+        if not isinstance(self.input_space, VectorSpace):
+            raise NotImplementedError()
+
+        return self.W.get_value()
+
+    def set_weights(self, weights):
+        self.W.set_value(weights)
+
+    def set_biases(self, biases):
+        self.b.set_value(biases)
+
+    def get_biases(self):
+        return self.b.get_value()
+
+    def get_weights_format(self):
+        return ('v', 'h')
+
+    def get_sampling_updates(self, state_below = None, state_above = None,
+            layer_above = None,
+            theano_rng = None):
+
+        warnings.warn("Softmax sampling is not tested")
+
+        if state_above is not None:
+            raise NotImplementedError()
+
+        self.input_space.validate(state_below)
+
+        # patch old pickle files
+        if not hasattr(self, 'needs_reformat'):
+            self.needs_reformat = self.needs_reshape
+            del self.needs_reshape
+
+        if self.needs_reformat:
+            state_below = self.input_space.format_as(state_below, self.desired_space)
+
+        self.desired_space.validate(state_below)
+
+
+        z = T.dot(state_below, self.W) + self.b
+        h_exp = T.nnet.softmax(z)
+        h_sample = theano_rng.multinomial(pvals = h_exp, dtype = h_exp.dtype)
+
+        return h_sample
+
+    def mf_update(self, state_below, state_above = None, layer_above = None, double_weights = False, iter_name = None):
+        if state_above is not None:
+            raise NotImplementedError()
+
+        if double_weights:
+            raise NotImplementedError()
+
+        self.input_space.validate(state_below)
+
+        # patch old pickle files
+        if not hasattr(self, 'needs_reformat'):
+            self.needs_reformat = self.needs_reshape
+            del self.needs_reshape
+
+        if self.needs_reformat:
+            state_below = self.input_space.format_as(state_below, self.desired_space)
+
+        self.desired_space.validate(state_below)
+
+
+        """
+        from pylearn2.utils import serial
+        X = serial.load('/u/goodfeli/galatea/dbm/inpaint/expdir/cifar10_N3_interm_2_features.pkl')
+        state_below = Verify(X,'features')(state_below)
+        """
+
+        assert self.W.ndim == 2
+        assert state_below.ndim == 2
+
+        b = self.b
+
+        Z = T.dot(state_below, self.W) + b
+
+        #Z = Print('Z')(Z)
+
+        rval = T.nnet.softmax(Z)
+
+        return rval
+
+    def downward_message(self, downward_state):
+
+        rval =  T.dot(downward_state, self.W.T)
+
+        rval = self.desired_space.format_as(rval, self.input_space)
+
+        return rval
+
+    def recons_cost(self, Y, Y_hat_unmasked, drop_mask_Y, scale):
+        """
+            scale is because the visible layer also goes into the
+            cost. it uses the mean over units and examples, so that
+            the scale of the cost doesn't change too much with batch
+            size or example size.
+            we need to multiply this cost by scale to make sure that
+            it is put on the same scale as the reconstruction cost
+            for the visible units. ie, scale should be 1/nvis
+        """
+
+
+        Y_hat = Y_hat_unmasked
+        assert hasattr(Y_hat, 'owner')
+        owner = Y_hat.owner
+        assert owner is not None
+        op = owner.op
+        if isinstance(op, Print):
+            assert len(owner.inputs) == 1
+            Y_hat, = owner.inputs
+            owner = Y_hat.owner
+            op = owner.op
+        assert isinstance(op, T.nnet.Softmax)
+        z ,= owner.inputs
+        assert z.ndim == 2
+
+        z = z - z.max(axis=1).dimshuffle(0, 'x')
+        log_prob = z - T.exp(z).sum(axis=1).dimshuffle(0, 'x')
+        # we use sum and not mean because this is really one variable per row
+        log_prob_of = (Y * log_prob).sum(axis=1)
+        masked = log_prob_of * drop_mask_Y
+        assert masked.ndim == 1
+
+        rval = masked.mean() * scale
+
+        return - rval
+
+    def make_state(self, num_examples, numpy_rng):
+        """ Returns a shared variable containing an actual state
+           (not a mean field state) for this variable.
+        """
+
+        t1 = time.time()
+
+        empty_input = self.output_space.get_origin_batch(num_examples)
+        h_state = sharedX(empty_input)
+
+        default_z = T.zeros_like(h_state) + self.b
+
+        theano_rng = MRG_RandomStreams(numpy_rng.randint(2 ** 16))
+
+        h_exp = T.nnet.softmax(default_z)
+
+        h_sample = theano_rng.multinomial(pvals = h_exp, dtype = h_exp.dtype)
+
+        p_state = sharedX( self.output_space.get_origin_batch(
+            num_examples))
+
+
+        t2 = time.time()
+
+        f = function([], updates = {
+            h_state : h_sample
+            })
+
+        t3 = time.time()
+
+        f()
+
+        t4 = time.time()
+
+        print str(self)+'.make_state took',t4-t1
+        print '\tcompose time:',t2-t1
+        print '\tcompile time:',t3-t2
+        print '\texecute time:',t4-t3
+
+        h_state.name = 'softmax_sample_shared'
+
+        return h_state
+
+    def get_weight_decay(self, coeff):
+        if isinstance(coeff, str):
+            coeff = float(coeff)
+        assert isinstance(coeff, float)
+        return coeff * T.sqr(self.W).sum()
+
+    def expected_energy_term(self, state, average, state_below, average_below):
+
+        self.input_space.validate(state_below)
+        if self.needs_reformat:
+            state_below = self.input_space.format_as(state_below, self.desired_space)
+        self.desired_space.validate(state_below)
+
+        # Energy function is linear so it doesn't matter if we're averaging or not
+        # Specifically, our terms are -u^T W d - b^T d where u is the upward state of layer below
+        # and d is the downward state of this layer
+
+        bias_term = T.dot(state, self.b)
+        weights_term = (T.dot(state_below, self.W) * state).sum(axis=1)
+
+        rval = -bias_term - weights_term
+
+        assert rval.ndim == 1
+
+        return rval
