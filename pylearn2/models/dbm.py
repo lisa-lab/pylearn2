@@ -482,6 +482,9 @@ class DBM(Model):
         rval = {}
 
         for state, layer in safe_zip(q, self.hidden_layers):
+            ch = layer.get_monitoring_channels()
+            for key in ch:
+                rval[layer.layer_name+'_'+key] = ch[key]
             ch = layer.get_monitoring_channels_from_state(state)
             for key in ch:
                 rval['mf_'+layer.layer_name+'_'+key]  = ch[key]
@@ -531,6 +534,13 @@ class Layer(Model):
         """
         raise NotImplementedError(str(type(self))+" does not implement " +\
                 "get_total_state_space()")
+
+
+    def get_monitoring_channels(self):
+        """
+        TODO WRITME
+        """
+        return {}
 
     def get_monitoring_channels_from_state(self, state):
         """
@@ -771,7 +781,8 @@ class BinaryVectorMaxPool(HiddenLayer):
             irange = None,
             sparse_init = None,
             include_prob = 1.0,
-            init_bias = 0.):
+            init_bias = 0.,
+            mask_weights = None):
         """
 
             include_prob: probability of including a weight element in the set
@@ -783,6 +794,7 @@ class BinaryVectorMaxPool(HiddenLayer):
         del self.self
 
         self.b = sharedX( np.zeros((self.detector_layer_dim,)) + init_bias, name = layer_name + '_b')
+
 
     def set_input_space(self, space):
         """ Note: this resets parameters! """
