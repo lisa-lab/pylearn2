@@ -1224,14 +1224,17 @@ class Softmax(HiddenLayer):
     def get_weights_format(self):
         return ('v', 'h')
 
-    def get_sampling_updates(self, state_below = None, state_above = None,
+    def sample(self, state_below = None, state_above = None,
             layer_above = None,
             theano_rng = None):
 
-        warnings.warn("Softmax sampling is not tested")
-
         if state_above is not None:
+            # If you implement this case, also add a unit test for it.
+            # Or at least add a warning that it is not tested.
             raise NotImplementedError()
+
+        if theano_rng is None:
+            raise ValueError("theano_rng is required; it just defaults to None so that it may appear after layer_above / state_above in the list.")
 
         self.input_space.validate(state_below)
 

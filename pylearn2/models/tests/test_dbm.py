@@ -617,3 +617,66 @@ def test_softmax_mf_energy_consistent():
         print 'expectation of h based on enumerating energy function values:',probs
         assert False
 
+def test_softmax_mf_sample_consistent():
+
+    # A test of the Softmax class
+    # Verifies that the mean field update is consistent with
+    # the sampling function
+
+    # Since a Softmax layer contains only one random variable
+    # (with n_classes possible values) the mean field assumption
+    # does not impose any restriction so mf_update simply gives
+    # the true expected value of h given v.
+    # We can thus use mf_update to compute the expected value
+    # of a sample of y conditioned on v, and check that samples
+    # drawn using the layer's sample method convert to that
+    # value.
+
+    rng = np.random.RandomState([2012,11,1,1154])
+    theano_rng = MRG_RandomStreams(2012+11+1+1154)
+    num_samples = 1000
+    tol = .042
+
+    # Make DBM
+    num_vis = rng.randint(1,11)
+    n_classes = rng.randint(1, 11)
+
+    v = BinaryVector(num_vis)
+    v.set_biases(rng.uniform(-1., 1., (num_vis,)).astype(config.floatX))
+
+    y = Softmax(
+            n_classes = n_classes,
+            layer_name = 'y',
+            irange = 1.)
+    y.set_biases(rng.uniform(-1., 1., (n_classes,)).astype(config.floatX))
+
+    dbm = DBM(visible_layer = v,
+            hidden_layers = [y],
+            batch_size = 1,
+            niter = 50)
+
+    # Randomly pick a v to condition on
+    # (Random numbers are generated via dbm.rng)
+    layer_to_state = dbm.make_layer_to_state(1)
+    v_state = layer_to_state[v]
+    y_state = layer_to_state[y]
+
+    # Infer P(y | v) using mean field
+    expected_y = y.mf_update(
+            state_below = v.upward_state(v_state))
+
+    expected_y = expected_y[0, :]
+
+    expected_y = expected_y.eval()
+
+    # copy all the states out into a batch size of num_samples
+    cause_copy = sharedX(np.zeros((num_samples,))).dimshuffle(0,'x')
+    v_state = v_state[0,:] + cause_copy
+    y_state = y_state[0,:] + cause_copy
+
+    y_samples = y.sample(state_below = v.upward_state(v_state), theano_rng=theano_rng)
+
+    y_samples = function([], y_samples)()
+
+    check_multinomial_samples(y_samples, (num_samples, n_classes), expected_y, tol)
+
