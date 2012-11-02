@@ -1032,6 +1032,8 @@ class BinaryVectorMaxPool(HiddenLayer):
                 pool_size = self.pool_size,
                 theano_rng = theano_rng)
 
+        assert h_sample.dtype == default_z.dtype
+
         p_state = sharedX( self.output_space.get_origin_batch(
             num_examples))
 
