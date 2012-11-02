@@ -161,12 +161,17 @@ def check_bvmp_samples(value, num_samples, n, pool_size, mean, tol):
         assert np.max(sub_h.sum(axis=1)) == 1
 
     p, h = mean
+    assert p.ndim == 1
+    assert h.ndim == 1
     emp_p = pv.mean(axis=0)
     emp_h = hv.mean(axis=0)
 
     max_diff = np.abs(p - emp_p).max()
     if max_diff > tol:
-        assert False
+        print 'expected value of pooling units: ',p
+        print 'empirical expectation: ',emp_p
+        print 'maximum difference: ',max_diff
+        raise ValueError("Pooling unit samples have an unlikely mean.")
     max_diff = np.abs(h - emp_h).max()
     if max_diff > tol:
         assert False
@@ -386,6 +391,90 @@ def test_bvmp_mf_energy_consistent():
             print 'mean field expectation of h:',expected_h
             print 'expectation of h based on enumerating energy function values:',on_probs
             assert False
+
+    # 1 is an important corner case
+    # We must also run with a larger number to test the general case
+    for pool_size in [1, 2, 5]:
+        do_test(pool_size)
+
+def test_bvmp_mf_sample_consistent():
+
+    # A test of the BinaryVectorMaxPool class
+    # Verifies that the mean field update is consistent with
+    # the sampling function
+
+    # Specifically, in a DBM consisting of (v, h1, h2), the
+    # lack of intra-layer connections means that
+    # P(h1|v, h2) is factorial so mf_update tells us the true
+    # conditional.
+    # We can thus use mf_update to compute the expected value
+    # of a sample of h1 from v and h2, and check that samples
+    # drawn using the layer's sample method convert to that
+    # value.
+
+    rng = np.random.RandomState([2012,11,1,1016])
+    theano_rng = MRG_RandomStreams(2012+11+1+1036)
+    num_samples = 1000
+    tol = .042
+
+    def do_test(pool_size_1):
+
+        # Make DBM and read out its pieces
+        dbm = make_random_basic_binary_dbm(
+                rng = rng,
+                pool_size_1 = pool_size_1,
+                )
+
+        v = dbm.visible_layer
+        h1, h2 = dbm.hidden_layers
+
+        num_p = h1.get_output_space().dim
+
+        # Choose which unit we will test
+        p_idx = rng.randint(num_p)
+
+        # Randomly pick a v, h1[-p_idx], and h2 to condition on
+        # (Random numbers are generated via dbm.rng)
+        layer_to_state = dbm.make_layer_to_state(1)
+        v_state = layer_to_state[v]
+        h1_state = layer_to_state[h1]
+        h2_state = layer_to_state[h2]
+
+        # Debugging checks
+        num_h = h1.detector_layer_dim
+        assert num_p * pool_size_1 == num_h
+        pv, hv = h1_state
+        assert pv.get_value().shape == (1, num_p)
+        assert hv.get_value().shape == (1, num_h)
+
+        # Infer P(h1[i] | h2, v) using mean field
+        expected_p, expected_h = h1.mf_update(
+                state_below = v.upward_state(v_state),
+                state_above = h2.downward_state(h2_state),
+                layer_above = h2)
+
+        expected_p = expected_p[0, :]
+        expected_h = expected_h[0, :]
+
+        expected_p, expected_h = function([], [expected_p, expected_h])()
+
+        # copy all the states out into a batch size of num_samples
+        cause_copy = sharedX(np.zeros((num_samples,))).dimshuffle(0,'x')
+        v_state = v_state[0,:] + cause_copy
+        p, h = h1_state
+        h1_state = (p[0,:] + cause_copy, h[0,:] + cause_copy)
+        p, h = h2_state
+        h2_state = (p[0,:] + cause_copy, h[0,:] + cause_copy)
+
+        h1_samples = h1.sample(state_below = v.upward_state(v_state),
+                            state_above = h2.downward_state(h2_state),
+                            layer_above = h2, theano_rng = theano_rng)
+
+        h1_samples = function([], h1_samples)()
+
+
+        check_bvmp_samples(h1_samples, num_samples, num_h, pool_size, (expected_p, expected_h), tol)
+
 
     # 1 is an important corner case
     # We must also run with a larger number to test the general case

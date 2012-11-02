@@ -590,7 +590,10 @@ class Layer(Model):
             total state consists of more than one shared variable
         """
 
-        raise NotImplementedError("%s doesn't implement get_sampling_updates" %
+        if hasattr(self, 'get_sampling_updates'):
+            raise AssertionError("Looks like "+str(type(self))+" needs to rename get_sampling_updates to sample.")
+
+        raise NotImplementedError("%s doesn't implement sample" %
                 type(self))
 
     def expected_energy_term(self, state,
@@ -978,9 +981,12 @@ class BinaryVectorMaxPool(HiddenLayer):
 
         return rval
 
-    def get_sampling_updates(self, state_below = None, state_above = None,
+    def sample(self, state_below = None, state_above = None,
             layer_above = None,
             theano_rng = None):
+
+        if theano_rng is None:
+            raise ValueError("theano_rng is required; it just defaults to None so that it may appear after layer_above / state_above in the list.")
 
         if state_above is not None:
             msg = layer_above.downward_message(state_above)
