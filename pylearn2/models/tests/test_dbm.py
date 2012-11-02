@@ -17,6 +17,7 @@ from pylearn2.expr.nnet import inverse_sigmoid_numpy
 from pylearn2.models.dbm import BinaryVector
 from pylearn2.models.dbm import BinaryVectorMaxPool
 from pylearn2.models.dbm import DBM
+from pylearn2.space import VectorSpace
 from pylearn2.utils import sharedX
 
 def check_binary_samples(value, expected_shape, expected_mean, tol):
@@ -112,6 +113,109 @@ def test_binary_vis_layer_sample():
 
     check_binary_samples(sample, (num_samples, n), mean, tol)
 
+def check_bvmp_samples(value, num_samples, n, pool_size, mean, tol):
+    """
+    bvmp=BinaryVectorMaxPool
+    value: a tuple giving (pooled batch, detector batch)   (all made with same params)
+    num_samples: number of samples there should be in the batch
+    n: detector layer dimension
+    pool_size: size of each pool region
+    mean: (expected value of pool unit, expected value of detector units)
+    tol: amount the emprical mean is allowed to deviate from the analytical expectation
+
+    checks that:
+        all values are binary
+        detector layer units are mutually exclusive
+        pooled unit is max of the detector units
+        correct number of samples is present
+        variables are of the right shapes
+        samples converge to the right expected value
+    """
+
+    pv, hv = value
+
+    assert n % pool_size == 0
+    num_pools = n // pool_size
+
+    assert pv.ndim == 2
+    assert pv.shape[0] == num_samples
+    assert pv.shape[1] == num_pools
+
+    assert hv.ndim == 2
+    assert hv.shape[0] == num_samples
+    assert hv.shape[1] == n
+
+    assert is_binary(pv)
+    assert is_binary(hv)
+
+    for i in xrange(num_pools):
+        sub_p = pv[:,i]
+        assert sub_p.shape == (num_samples,)
+        sub_h = hv[:,i*pool_size:(i+1)*pool_size]
+        assert sub_h.shape == (num_samples, pool_size)
+        if not np.all(sub_p == sub_h.max(axis=1)):
+            for j in xrange(num_samples):
+                print sub_p[j], sub_h[j,:]
+                assert sub_p[j] == sub_h[j,:]
+            assert False
+        assert np.max(sub_h.sum(axis=1)) == 1
+
+    p, h = mean
+    emp_p = pv.mean(axis=0)
+    emp_h = hv.mean(axis=0)
+
+    max_diff = np.abs(p - emp_p).max()
+    if max_diff > tol:
+        assert False
+    max_diff = np.abs(h - emp_h).max()
+    if max_diff > tol:
+        assert False
+
+def test_bvmp_make_state():
+
+    # Verifies that BinaryVector.make_state creates
+    # a shared variable whose value passes check_binary_samples
+
+    num_pools = 3
+    num_samples = 1000
+    tol = .04
+    rng = np.random.RandomState([2012,11,1,9])
+    # pool_size=1 is an important corner case
+    for pool_size in [1, 2, 5]:
+        n = num_pools * pool_size
+
+        layer = BinaryVectorMaxPool(
+                detector_layer_dim=n,
+                layer_name='h',
+                irange=1.,
+                pool_size=pool_size)
+
+        # This is just to placate mf_update below
+        input_space = VectorSpace(1)
+        class DummyDBM(object):
+            def __init__(self):
+                self.rng = rng
+        layer.set_dbm(DummyDBM())
+        layer.set_input_space(input_space)
+
+        layer.set_biases(rng.uniform(-pool_size, 1., (n,)).astype(config.floatX))
+
+        # To find the mean of the samples, we use mean field with an input of 0
+        mean = layer.mf_update(
+                state_below=T.alloc(0., 1, 1),
+                state_above=None,
+                layer_above=None)
+
+        mean = function([], mean)()
+
+        state = layer.make_state(num_examples=num_samples,
+                numpy_rng=rng)
+
+        value = [elem.get_value() for elem in state]
+
+        check_bvmp_samples(value, num_samples, n, pool_size, mean, tol)
+
+
 def make_random_basic_binary_dbm(
         rng,
         pool_size_1,
@@ -149,14 +253,14 @@ def make_random_basic_binary_dbm(
 
     h1 = BinaryVectorMaxPool(
             detector_layer_dim = num_h1,
-            pool_size = num_h1,
+            pool_size = pool_size_1,
             layer_name = 'h1',
             irange = 1.)
     h1.set_biases(rng.uniform(-1., 1., (num_h1,)).astype(config.floatX))
 
     h2 = BinaryVectorMaxPool(
             detector_layer_dim = num_h2,
-            pool_size = num_h2,
+            pool_size = pool_size_2,
             layer_name = 'h2',
             irange = 1.)
     h2.set_biases(rng.uniform(-1., 1., (num_h2,)).astype(config.floatX))
@@ -194,11 +298,6 @@ def test_bvmp_mf_energy_consistent():
         dbm = make_random_basic_binary_dbm(
                 rng = rng,
                 pool_size_1 = pool_size_1,
-                # All these 1s are a debugging hack, remove these arguments
-                num_vis = 1,
-                num_pool_1 = 1,
-                num_pool_2 = 1,
-                pool_size_2 = 1
                 )
 
         v = dbm.visible_layer
@@ -216,6 +315,13 @@ def test_bvmp_mf_energy_consistent():
         h1_state = layer_to_state[h1]
         h2_state = layer_to_state[h2]
 
+        # Debugging checks
+        num_h = h1.detector_layer_dim
+        assert num_p * pool_size_1 == num_h
+        pv, hv = h1_state
+        assert pv.get_value().shape == (1, num_p)
+        assert hv.get_value().shape == (1, num_h)
+
         # Infer P(h1[i] | h2, v) using mean field
         expected_p, expected_h = h1.mf_update(
                 state_below = v.upward_state(v_state),
@@ -231,6 +337,8 @@ def test_bvmp_mf_energy_consistent():
         energy = dbm.energy(V = v_state,
                 hidden = [h1_state, h2_state])
         unnormalized_prob = T.exp(-energy)
+        assert unnormalized_prob.ndim == 1
+        unnormalized_prob = unnormalized_prob[0]
         unnormalized_prob = function([], unnormalized_prob)
 
         p_state, h_state = h1_state
@@ -271,13 +379,16 @@ def test_bvmp_mf_energy_consistent():
         if not np.allclose(expected_p, 1. - off_prob):
             print 'mean field expectation of p:',expected_p
             print 'expectation of p based on enumerating energy function values:',1. - off_prob
+            print 'pool_size_1:',pool_size_1
+
             assert False
         if not np.allclose(expected_h, on_probs):
             print 'mean field expectation of h:',expected_h
             print 'expectation of h based on enumerating energy function values:',on_probs
             assert False
 
-
+    # 1 is an important corner case
+    # We must also run with a larger number to test the general case
     for pool_size in [1, 2, 5]:
         do_test(pool_size)
 
