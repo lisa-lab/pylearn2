@@ -20,6 +20,7 @@ import warnings
 
 from theano import function
 from theano.gof.op import get_debug_values
+from theano.printing import Print
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 import theano.tensor as T
 
