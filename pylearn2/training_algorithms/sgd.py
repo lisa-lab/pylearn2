@@ -23,7 +23,12 @@ from pylearn2.utils.iteration import is_stochastic
 import time
 from pylearn2.utils import safe_zip
 from pylearn2.utils import serial
+from pylearn2.utils.timing import log_timing
 from theano.gof.op import get_debug_values
+import logging
+
+
+log = logging.getLogger("pylearn2.training_algorithms.sgd")
 
 class SGD(TrainingAlgorithm):
     """
@@ -233,13 +238,13 @@ class SGD(TrainingAlgorithm):
                 raise ValueError("Tried to scale the learning rate on " +\
                         str(key)+" which is not an optimization parameter.")
 
-        print 'Parameter and initial learning rate summary:'
+        log.info('Parameter and initial learning rate summary:')
         for param in params:
             param_name = param.name
             if param_name is None:
                 param_name = 'anon_param'
             lr = learning_rate.get_value() * lr_scalers.get(param,1.)
-            print '\t'+param_name+': '+str(lr)
+            log.info('\t' + param_name + ': ' + str(lr))
 
         if self.momentum is None:
             updates.update( dict(safe_zip(params, [param - learning_rate * \
@@ -270,16 +275,14 @@ class SGD(TrainingAlgorithm):
                     raise ValueError("debug value of %s contains nans" % update.name)
 
 
-        print 'Compiling sgd_update...'
-        t1 = time.time()
-        if self.supervised:
-            self.sgd_update = function([X, Y], updates=updates,
-                                   name='sgd_update', on_unused_input = 'ignore')
-        else:
-            self.sgd_update = function([X], updates=updates,
-                                   name='sgd_update', on_unused_input = 'ignore')
-        t2 = time.time()
-        print '...done. Took',t2-t1,' seconds.'
+        with log_timing(log, 'Compiling sgd_update'):
+            if self.supervised:
+                fn_inputs = [X, Y]
+            else:
+                fn_inputs = [X]
+            self.sgd_update = function(fn_inputs, updates=updates,
+                                       name='sgd_update',
+                                       on_unused_input='ignore')
         self.params = params
 
     def train(self, dataset):
@@ -303,7 +306,6 @@ class SGD(TrainingAlgorithm):
                 self.sgd_update(batch_in, batch_target)
                 actual_batch_size = batch_in.shape[0]
                 self.monitor.report_batch(actual_batch_size)
-                #print 'batches seen', self.monitor.get_batches_seen()
                 for callback in self.update_callbacks:
                     callback(self)
         else:
@@ -400,12 +402,10 @@ class MonitorBasedLRAdjuster(TrainingCallback):
 
         if v[-1] > self.high_trigger * v[-2]:
             rval *= self.shrink_amt
-            # TODO: logging infrastructure
-            print "shrinking learning rate to", rval
+            log.info("shrinking learning rate to %f" % rval)
         elif v[-2] > self.low_trigger * v[-2]:
             rval *= self.grow_amt
-            # TODO: logging infrastructure
-            print "growing learning rate to", rval
+            log.info("growing learning rate to %f" % rval)
 
         rval = max(self.min_lr, rval)
         rval = min(self.max_lr, rval)

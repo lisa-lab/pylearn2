@@ -43,7 +43,7 @@ if __name__ == '__main__':
     state = DD()
 
     state.yaml_template = '''
-        !obj:pylearn2.scripts.train.Train {
+        !obj:pylearn2.train.Train {
         "dataset": !obj:pylearn2.datasets.npy_npz.NpyDataset &dataset {
             "file" : "%(file)s"
         },

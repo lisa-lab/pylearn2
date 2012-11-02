@@ -19,20 +19,15 @@ __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 # Standard library imports
 import argparse
-import datetime
 import gc
+import logging
 import os
-import warnings
 
 # Third-party imports
 import numpy as np
 
 # Local imports
-import pylearn2.config.yaml_parse
 from pylearn2.utils import serial
-from pylearn2.utils import environ
-from pylearn2.monitor import Monitor
-from pylearn2.train import Train
 
 
 class FeatureDump(object):
@@ -67,6 +62,18 @@ def make_argument_parser():
         epilog='\n'.join(__doc__.strip().split('\n')[1:]).strip(),
         formatter_class=argparse.RawTextHelpFormatter
     )
+    parser.add_argument('--level-name', '-L',
+                        action='store_true',
+                        help='Display the log level (e.g. DEBUG, INFO) '
+                             'for each logged message')
+    parser.add_argument('--source-logger', '-S',
+                        action='store_true',
+                        help='Display the logger name from which each '
+                             'logged message originates')
+    parser.add_argument('--timestamp', '-T',
+                        action='store_true',
+                        help='Display human-readable timestamps for '
+                             'each logged message')
     parser.add_argument('config', action='store',
                         choices=None,
                         help='A YAML configuration file specifying the '
@@ -83,6 +90,18 @@ if __name__ == "__main__":
         iterable = True
     except TypeError as e:
         iterable = False
+
+    # Configure the logging module
+    format_strs = ['%(message)s']
+    if args.source_logger:
+        format_strs.insert(0, '%(name)s')
+    if args.level_name:
+        format_strs.insert(0, '%(levelname)s')
+    if args.timestamp:
+        format_strs.insert(0, '%(asctime)s')
+    logging.basicConfig(format=' '.join(format_strs))
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)
     if iterable:
         for number, subobj in enumerate(iter(train_obj)):
             # Publish a variable indicating the training phase.

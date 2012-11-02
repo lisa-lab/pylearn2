@@ -10,8 +10,14 @@ __email__ = "goodfeli@iro"
 import os
 import datetime
 from pylearn2.utils import serial
+import logging
 import warnings
 from pylearn2.monitor import Monitor
+from pylearn2.utils.timing import log_timing
+
+
+log = logging.getLogger('pylearn2.train')
+
 
 class Train(object):
     """
@@ -108,10 +114,8 @@ class Train(object):
                         " up the Monitor, but failed to.")
             self.run_callbacks_and_monitoring()
             while True:
-                epoch_start = datetime.datetime.now()
-                rval = self.algorithm.train(dataset=self.dataset)
-                epoch_end = datetime.datetime.now()
-                print 'Time this epoch:', str(epoch_end - epoch_start)
+                with log_timing(log, None, final_msg='Time this epoch:'):
+                    rval = self.algorithm.train(dataset=self.dataset)
                 if rval is not None:
                     raise ValueError("TrainingAlgorithm.train should not return anything. Use TrainingAlgorithm.continue_learning to control whether learning continues.")
                 self.model.monitor.report_epoch()
@@ -132,33 +136,30 @@ class Train(object):
             try:
                 callback(self.model, self.dataset, self.algorithm)
             except TypeError, e:
-                print 'Failure during callback '+str(callback)
+                logging.warning('Failure during callback ' + str(callback))
                 raise
-
 
     def save(self):
         """Saves the model."""
         #TODO-- save state of training algorithm so training can be
         # resumed after a crash
         if self.save_path is not None:
-            print 'saving to', self.save_path, '...'
-            save_start = datetime.datetime.now()
-            if self.first_save and (not self.allow_overwrite) \
-                and os.path.exists(self.save_path):
-                # Every job overwrites its own output on the second save and every save
-                # thereafter. The "allow_overwrite" flag only pertains to overwriting
-                # the output of previous jobs.
-                raise IOError("Trying to overwrite file when not allowed.")
-            try:
-                # Make sure that saving does not serialize the dataset
-                self.dataset._serialization_guard = SerializationGuard()
-                serial.save(self.save_path, self.model, on_overwrite = 'backup')
-            finally:
-                self.dataset._serialization_guard = None
-            save_end = datetime.datetime.now()
-            delta = (save_end - save_start)
-            print '...done. saving took', str(delta)
+            with log_timing(log, 'Saving to ' + self.save_path):
+                if self.first_save and (not self.allow_overwrite) \
+                    and os.path.exists(self.save_path):
+                    # Every job overwrites its own output on the second save
+                    # and every save thereafter. The "allow_overwrite" flag
+                    # only pertains to overwriting the output of previous jobs.
+                    raise IOError("Trying to overwrite file when not allowed.")
+                try:
+                    # Make sure that saving does not serialize the dataset
+                    self.dataset._serialization_guard = SerializationGuard()
+                    serial.save(self.save_path, self.model,
+                                on_overwrite='backup')
+                finally:
+                    self.dataset._serialization_guard = None
             self.first_save = False
+
 
 class SerializationGuard(object):
 

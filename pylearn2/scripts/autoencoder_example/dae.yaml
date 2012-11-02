@@ -1,4 +1,4 @@
-!obj:pylearn2.scripts.train.Train {
+!obj:pylearn2.train.Train {
     "dataset": !obj:pylearn2.datasets.npy_npz.NpyDataset &dataset {
         "file" : 'garbage.npy' # Should be an N x 300 matrix on disk.
     },

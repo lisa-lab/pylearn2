@@ -17,7 +17,7 @@
 # through the loop, the model is trained on data from a training dataset, then
 # saved to file.
 
-!obj:pylearn2.scripts.train.Train {
+!obj:pylearn2.train.Train {
     # The !pkl tag is used to create an object from a pkl file. Here we retrieve
     #the dataset made by make_dataset.py and use it as our training dataset.
     "dataset": !pkl: "cifar10_preprocessed_train.pkl",
