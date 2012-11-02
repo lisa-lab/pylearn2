@@ -844,6 +844,38 @@ class BinaryVectorMaxPool(HiddenLayer):
         W ,= self.transformer.get_params()
         assert W.name is not None
 
+        if self.mask_weights is not None:
+            assert self.input_dim == 625
+            assert self.detector_layer_dim == 1156
+            mask = np.zeros((self.input_dim, self.detector_layer_dim),
+                    dtype='float32')
+            input_width = 25
+            pool_width = 9
+            idx = 0
+            for r in xrange(input_width-pool_width+1):
+                for c in xrange(input_width-pool_width+1):
+                    for channel in xrange(4):
+                        for sr in xrange(pool_width):
+                            for sc in xrange(pool_width):
+                                fr = r + sr
+                                fc = c + sc
+                                coord = fr * input_width + fc
+                                mask[coord, idx] = 1.
+                        idx += 1
+            assert idx == self.detector_layer_dim
+            self.mask = sharedX(mask)
+
+    def censor_updates(self, updates):
+
+        # Patch old pickle files
+        if not hasattr(self, 'mask_weights'):
+            self.mask_weights = None
+
+        if self.mask_weights is not None:
+            W ,= self.transformer.get_params()
+            if W in updates:
+                updates[W] = updates[W] * self.mask
+
     def get_total_state_space(self):
         return CompositeSpace((self.output_space, self.h_space))
 
