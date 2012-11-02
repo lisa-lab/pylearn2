@@ -953,6 +953,27 @@ class BinaryVectorMaxPool(HiddenLayer):
         p,h = total_state
         return h
 
+    def get_monitoring_channels(self):
+
+        W ,= self.transformer.get_params()
+
+        assert W.ndim == 2
+
+        sq_W = T.sqr(W)
+
+        row_norms = T.sqrt(sq_W.sum(axis=1))
+        col_norms = T.sqrt(sq_W.sum(axis=0))
+
+        return {
+              'row_norms_min'  : row_norms.min(),
+              'row_norms_mean' : row_norms.mean(),
+              'row_norms_max'  : row_norms.max(),
+              'col_norms_min'  : col_norms.min(),
+              'col_norms_mean' : col_norms.mean(),
+              'col_norms_max'  : col_norms.max(),
+            }
+
+
     def get_monitoring_channels_from_state(self, state):
 
         P, H = state
@@ -1062,14 +1083,15 @@ class BinaryVectorMaxPool(HiddenLayer):
            (not a mean field state) for this variable.
         """
 
-        t1 = time.time()
-
         empty_input = self.h_space.get_origin_batch(num_examples)
-        h_state = sharedX(empty_input)
+        empty_output = self.output_space.get_origin_batch(num_examples)
 
-        default_z = T.zeros_like(h_state) + self.b
+        h_state = sharedX(empty_input)
+        p_state = sharedX(empty_output)
 
         theano_rng = MRG_RandomStreams(numpy_rng.randint(2 ** 16))
+
+        default_z = T.zeros_like(h_state) + self.b
 
         p_exp, h_exp, p_sample, h_sample = max_pool_channels(
                 z = default_z,
@@ -1078,26 +1100,12 @@ class BinaryVectorMaxPool(HiddenLayer):
 
         assert h_sample.dtype == default_z.dtype
 
-        p_state = sharedX( self.output_space.get_origin_batch(
-            num_examples))
-
-        t2 = time.time()
-
         f = function([], updates = {
             p_state : p_sample,
             h_state : h_sample
             })
 
-        t3 = time.time()
-
         f()
-
-        t4 = time.time()
-
-        print str(self)+'.make_state took',t4-t1
-        print '\tcompose time:',t2-t1
-        print '\tcompile time:',t3-t2
-        print '\texecute time:',t4-t3
 
         p_state.name = 'p_sample_shared'
         h_state.name = 'h_sample_shared'
