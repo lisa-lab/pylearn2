@@ -34,6 +34,7 @@ from pylearn2.space import Conv2DSpace
 from pylearn2.space import Space
 from pylearn2.space import VectorSpace
 from pylearn2.utils import safe_zip
+from pylearn2.utils import safe_izip
 from pylearn2.utils import sharedX
 
 warnings.warn("DBM changing the recursion limit.")
@@ -340,7 +341,7 @@ class DBM(Model):
             state_above = layer_to_state[first_hid]
             state_above = first_hid.downward_state(state_above)
 
-            vis_sample = self.visible_layer.get_sampling_updates(
+            vis_sample = self.visible_layer.sample(
                     state_above = state_above,
                     layer_above = first_hid,
                     theano_rng = theano_rng)
@@ -386,7 +387,7 @@ class DBM(Model):
                 # Sample the state of this layer conditioned
                 # on its Markov blanket (the layer above and
                 # layer below)
-                this_sample = this_layer.get_sampling_updates(
+                this_sample = this_layer.sample(
                         state_below = state_below,
                         state_above = state_above,
                         layer_above = layer_above,
