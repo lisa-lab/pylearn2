@@ -272,6 +272,8 @@ def max_pool_channels(z, pool_size, top_down = None, theano_rng = None):
         t = - top_down
         t.name = 'neg_top_down'
 
+    warnings.warn("TODO: make max_pool_channels use sigmoid instead of a big graph when pool_size == 1")
+
     zpart = []
     for i in xrange(pool_size):
         cur_part = z[:,i:n:pool_size]
@@ -314,6 +316,7 @@ def max_pool_channels(z, pool_size, top_down = None, theano_rng = None):
     off_prob = off_pt / denom
     p = 1. - off_prob
     p.name = 'p(%s)' % z_name
+    assert p.dtype == z.dtype
 
     hpart = [ pt_i / denom for pt_i in pt ]
 
@@ -350,11 +353,15 @@ def max_pool_channels(z, pool_size, top_down = None, theano_rng = None):
         outcomes = pool_size + 1
         reshaped_events = stacked_events.reshape((batch_size * n // pool_size, outcomes))
 
+        if pool_size == 1:
+            warnings.warn("TODO: make max_pool_channels use binomial rather than multinomial "
+                    "sampling when pool_size == 1")
+
         multinomial = theano_rng.multinomial(pvals = reshaped_events, dtype = p.dtype)
 
         reshaped_multinomial = multinomial.reshape((batch_size, n // pool_size, outcomes))
 
-        h_sample = T.alloc(0., batch_size, n)
+        h_sample = T.zeros_like(z)
 
         idx = 0
         for i in xrange(pool_size):
@@ -363,6 +370,8 @@ def max_pool_channels(z, pool_size, top_down = None, theano_rng = None):
             idx += 1
 
         p_sample = 1 - reshaped_multinomial[:,:,-1]
+
+        assert h_sample.dtype == z.dtype
 
         return p, h, p_sample, h_sample
 
