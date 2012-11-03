@@ -682,3 +682,14 @@ def test_softmax_mf_sample_consistent():
 
     check_multinomial_samples(y_samples, (num_samples, n_classes), expected_y, tol)
 
+def test_extra():
+    """
+    Test functionality that remains private, if available.
+    """
+
+    try:
+        import galatea
+    except ImportError:
+        return
+    from galatea.dbm.pylearn2_bridge import run_unit_tests
+    run_unit_tests()
