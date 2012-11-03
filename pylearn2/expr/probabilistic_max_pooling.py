@@ -266,6 +266,17 @@ def max_pool_channels(z, pool_size, top_down = None, theano_rng = None):
         total_input = z + top_down
         p = T.nnet.sigmoid(total_input)
         h = p
+
+        if theano_rng is None:
+            return p, h
+        else:
+            t1 = time.time()
+            p_samples = theano_rng.binomial(p=p, size=p.shape, dtype=p.dtype, n=1)
+            t2 = time.time()
+            if t2 - t1 > 0.5:
+                warnings.warn("TODO: speed up random number seeding. max pooling spent "+str(t2-t1)+" in a call to theano_rng.binomial.")
+            h_samples = p_samples
+            return p_samples, h_samples, p_samples, h_samples
     else:
         batch_size, n = z.shape
 
@@ -355,10 +366,6 @@ def max_pool_channels(z, pool_size, top_down = None, theano_rng = None):
 
         outcomes = pool_size + 1
         reshaped_events = stacked_events.reshape((batch_size * n // pool_size, outcomes))
-
-        if pool_size == 1:
-            warnings.warn("TODO: make max_pool_channels use binomial rather than multinomial "
-                    "sampling when pool_size == 1")
 
         t1 = time.time()
         multinomial = theano_rng.multinomial(pvals = reshaped_events, dtype = p.dtype)
