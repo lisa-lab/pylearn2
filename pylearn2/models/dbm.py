@@ -1483,6 +1483,150 @@ class Softmax(HiddenLayer):
 
         return rval
 
+class InferenceProcedure(object):
+    """
+    TODO WRITEME
+    """
+
+    def set_dbm(self, dbm):
+        self.dbm = dbm
+
+    def mf(self, V, Y = None, return_history = False, niter = None, block_grad = None):
+        """
+        TODO WRITEME
+        """
+
+        raise NotImplementedError(str(type(self))+" does not implement mf.")
+
+class WeightDoubling(InferenceProcedure):
+
+    def mf(self, V, Y = None, return_history = False, niter = None, block_grad = None):
+
+        dbm = self.dbm
+
+        assert Y not in [True, False, 0, 1]
+        assert return_history in [True, False, 0, 1]
+
+        if Y is not None:
+            dbm.hidden_layers[-1].get_output_space().validate(Y)
+
+        if niter is None:
+            niter = dbm.niter
+
+        H_hat = []
+        for i in xrange(0,len(dbm.hidden_layers)-1):
+            #do double weights update for_layer_i
+            if i == 0:
+                H_hat.append(dbm.hidden_layers[i].mf_update(
+                    state_above = None,
+                    double_weights = True,
+                    state_below = dbm.visible_layer.upward_state(V),
+                    iter_name = '0'))
+            else:
+                H_hat.append(dbm.hidden_layers[i].mf_update(
+                    state_above = None,
+                    double_weights = True,
+                    state_below = dbm.hidden_layers[i-1].upward_state(H_hat[i-1]),
+                    iter_name = '0'))
+
+        #last layer does not need its weights doubled, even on the first pass
+        if len(dbm.hidden_layers) > 1:
+            H_hat.append(dbm.hidden_layers[-1].mf_update(
+                state_above = None,
+                state_below = dbm.hidden_layers[-2].upward_state(H_hat[-1])))
+        else:
+            H_hat.append(dbm.hidden_layers[-1].mf_update(
+                state_above = None,
+                state_below = dbm.visible_layer.upward_state(V)))
+
+        # Make corrections for if we're also running inference on Y
+        if Y is not None:
+            state_above = dbm.hidden_layers[-1].downward_state(Y)
+            layer_above = dbm.hidden_layers[-1]
+            assert len(dbm.hidden_layers) > 1
+
+            # Last layer before Y does not need its weights doubled
+            # because it already has top down input
+            if len(dbm.hidden_layers) > 2:
+                state_below = dbm.hidden_layers[-3].upward_state(H_hat[-3])
+            else:
+                state_below = dbm.visible_layer.upward_state(V)
+
+            H_hat[-2] = dbm.hidden_layers[-2].mf_update(
+                            state_below = state_below,
+                            state_above = state_above,
+                            layer_above = layer_above)
+
+            # Last layer is clamped to Y
+            H_hat[-1] = Y
+
+
+
+        if block_gradient == 1:
+            H_hat = block(H_hat)
+
+        history = [ list(H_hat) ]
+
+
+        #we only need recurrent inference if there are multiple layers
+        if len(H_hat) > 1:
+            for i in xrange(niter-1):
+                for j in xrange(0,len(H_hat),2):
+                    if j == 0:
+                        state_below = dbm.visible_layer.upward_state(V)
+                    else:
+                        state_below = dbm.hidden_layers[j-1].upward_state(H_hat[j-1])
+                    if j == len(H_hat) - 1:
+                        state_above = None
+                        layer_above = None
+                    else:
+                        state_above = dbm.hidden_layers[j+1].downward_state(H_hat[j+1])
+                        layer_above = dbm.hidden_layers[j+1]
+                    H_hat[j] = dbm.hidden_layers[j].mf_update(
+                            state_below = state_below,
+                            state_above = state_above,
+                            layer_above = layer_above)
+
+                if Y is not None:
+                    H_hat[-1] = Y
+
+                for j in xrange(1,len(H_hat),2):
+                    state_below = dbm.hidden_layers[j-1].upward_state(H_hat[j-1])
+                    if j == len(H_hat) - 1:
+                        state_above = None
+                        state_above = None
+                    else:
+                        state_above = dbm.hidden_layers[j+1].downward_state(H_hat[j+1])
+                        layer_above = dbm.hidden_layers[j+1]
+                    H_hat[j] = dbm.hidden_layers[j].mf_update(
+                            state_below = state_below,
+                            state_above = state_above,
+                            layer_above = layer_above)
+                    #end ifelse
+                #end for odd layer
+
+                if Y is not None:
+                    H_hat[-1] = Y
+
+                if block_grad == i:
+                    H_hat = block(H_hat)
+
+                history.append(list(H_hat))
+            # end for mf iter
+        # end if recurrent
+
+        # Run some checks on the output
+        for layer, state in safe_izip(dbm.hidden_layers, H_hat):
+            upward_state = layer.upward_state(state)
+            layer.get_output_space().validate(upward_state)
+        if Y is not None:
+            assert all([elem[-1] is Y for elem in history])
+            assert H_hat[-1] is Y
+
+        if return_history:
+            return history
+        else:
+            return H_hat
 
 def flatten(l):
     rval = []
