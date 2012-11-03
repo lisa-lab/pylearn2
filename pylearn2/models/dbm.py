@@ -477,7 +477,8 @@ class DBM(Model):
 
     def get_monitoring_channels(self, X, Y = None):
 
-        q = self.mf(X)
+        history = self.mf(X, return_history = True)
+        q = history[-1]
 
         rval = {}
 
@@ -488,6 +489,25 @@ class DBM(Model):
             ch = layer.get_monitoring_channels_from_state(state)
             for key in ch:
                 rval['mf_'+layer.layer_name+'_'+key]  = ch[key]
+
+
+
+        if len(history) > 1:
+            prev_q = history[-2]
+
+            flat_q = flatten(q)
+            flat_prev_q = flatten(prev_q)
+
+            mx = None
+            for new, old in safe_zip(flat_q, flat_prev_q):
+                cur_mx = abs(new - old).max()
+                if mx is None:
+                    mx = cur_mx
+                else:
+                    mx = T.maximum(mx, cur_mx)
+
+            rval['max_var_param_diff'] = mx
+
         return rval
 
     def get_test_batch_size(self):
@@ -1462,3 +1482,13 @@ class Softmax(HiddenLayer):
         assert rval.ndim == 1
 
         return rval
+
+
+def flatten(l):
+    rval = []
+    for elem in l:
+        if isinstance(elem, (list, tuple)):
+            rval.extend(flatten(elem))
+        else:
+            rval.append(elem)
+    return rval
