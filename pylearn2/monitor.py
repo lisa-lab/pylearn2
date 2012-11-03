@@ -20,6 +20,12 @@ from theano import config
 import numpy as np
 from theano import tensor as T
 from pylearn2.utils import safe_izip
+from pylearn2.utils.timing import log_timing
+import logging
+
+
+log = logging.getLogger("pylearn2.monitor")
+
 
 class Monitor(object):
     """
@@ -177,12 +183,10 @@ class Monitor(object):
         # end for d
 
 
-        # TODO: use logging infrastructure so that user can configure
-        # formatting
-        print "Monitoring step:"
-        print "\tEpochs seen: %d" % self._epochs_seen
-        print "\tBatches seen: %d" % self._num_batches_seen
-        print "\tExamples seen: %d" % self._examples_seen
+        log.info("Monitoring step:")
+        log.info("\tEpochs seen: %d" % self._epochs_seen)
+        log.info("\tBatches seen: %d" % self._num_batches_seen)
+        log.info("\tExamples seen: %d" % self._examples_seen)
         t = time.time() - self.t0
         for channel_name in sorted(self.channels.keys(), key=number_aware_alphabetical_key):
             channel = self.channels[channel_name]
@@ -199,7 +203,7 @@ class Monitor(object):
             else:
                 val_str = '%.3e' % val
 
-            print "\t%s: %s" % (channel_name, val_str)
+            log.info("\t%s: %s" % (channel_name, val_str))
 
     def run_prereqs(self, X, y, dataset):
         if dataset not in self.prereqs:
@@ -259,11 +263,8 @@ class Monitor(object):
         updates = {}
         for channel in self.channels.values():
             updates[channel.val_shared] = np.cast[config.floatX](0.0)
-        print "compiling begin_record_entry..."
-        t1 = time.time()
-        self.begin_record_entry = function(inputs=[], updates=updates)
-        t2 = time.time()
-        print "took " + str(t2 - t1) + " seconds"
+        with log_timing(log, "compiling begin_record_entry"):
+            self.begin_record_entry = function(inputs=[], updates=updates)
         updates = {}
         givens = {}
         #Get the appropriate kind of theano variable to represent the data the model
@@ -276,9 +277,9 @@ class Monitor(object):
         if self.require_label:
             Y = self.model.get_output_space().make_theano_batch(name = "monitoring_Y")
 
-        print 'monitored channels: '
+        log.info('Monitored channels: ')
         for key in sorted(self.channels.keys()):
-            print '\t',key
+            log.info('\t%s' % key)
         it = [d.iterator(mode=i, num_batches=n, batch_size=b) \
               for d, i, n, b in safe_izip(self._datasets, self._iteration_mode,
                                     self._num_batches, self._batch_size)]
@@ -301,31 +302,27 @@ class Monitor(object):
             val = channel.val * T.cast(X.shape[0], config.floatX) / n
             u[channel.val_shared] = channel.val_shared + val
 
-        print "compiling accum..."
-        t1 = time.time()
+        with log_timing(log, "Compiling accum"):
+            # Check type of update expressions
+            for up in updates:
+                for key in up:
+                    if key.dtype != up[key].dtype:
+                        raise TypeError('Monitoring channel shared variable ' \
+                                + key.name + ' has dtype ' + key.dtype + \
+                                ' but is driven by an expression with type ' + \
+                                up[key].dtype)
 
-        # Check type of update expressions
-        for up in updates:
-            for key in up:
-                if key.dtype != up[key].dtype:
-                    raise TypeError('Monitoring channel shared variable ' \
-                            + key.name + ' has dtype ' + key.dtype + \
-                            ' but is driven by an expression with type ' + \
-                            up[key].dtype)
-
-        self.accum = []
-        for g, u in safe_izip(givens, updates):
-            if self.require_label:
-                # Some channels may not depend on the data, ie, they might just monitor the model
-                # parameters, or some shared variable updated by the training algorithm, so we
-                # need to ignore the unused input error
-                self.accum.append(function([X, Y], givens=g, updates=u, on_unused_input = 'ignore'))
-            else:
-                self.accum.append(function([X], givens=g, updates=u, on_unused_input = 'ignore'))
-        t2 = time.time()
-        for a in self.accum:
-            print "graph size: ",len(a.maker.fgraph.toposort())
-        print "took "+str(t2-t1)+" seconds"
+            self.accum = []
+            for g, u in safe_izip(givens, updates):
+                if self.require_label:
+                    # Some channels may not depend on the data, ie, they might just monitor the model
+                    # parameters, or some shared variable updated by the training algorithm, so we
+                    # need to ignore the unused input error
+                    self.accum.append(function([X, Y], givens=g, updates=u, on_unused_input = 'ignore'))
+                else:
+                    self.accum.append(function([X], givens=g, updates=u, on_unused_input = 'ignore'))
+            for a in self.accum:
+                log.info("graph size: %d" % len(a.maker.fgraph.toposort()))
         final_names = dir(self)
         self.register_names_to_del([name for name in final_names
                                     if name not in init_names])

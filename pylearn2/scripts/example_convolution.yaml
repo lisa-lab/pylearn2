@@ -1,4 +1,4 @@
-!obj:pylearn2.scripts.train.Train {
+!obj:pylearn2.train.Train {
     "dataset": &src !pkl: "${PYLEARN2_DATA_PATH}/cifar10/pylearn2_whitened/train.pkl",
 
     "model": !obj:pylearn2.models.rbm.GaussianBinaryRBM {
