@@ -19,7 +19,7 @@ class BGD(TrainingAlgorithm):
                  monitoring_batches=None, monitoring_dataset=None,
                  termination_criterion = None, set_batch_size = False,
                  reset_alpha = True, conjugate = False,
-                 min_init_alpha = None,
+                 min_init_alpha = .001,
                  reset_conjugate = True, line_search_mode = None):
         """
         cost: a pylearn2 Cost
