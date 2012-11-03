@@ -8,7 +8,6 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 import os
-import datetime
 from pylearn2.utils import serial
 import logging
 import warnings
