@@ -114,6 +114,9 @@ class Test_DiagonalMND:
         q = self.q
 
         optimizer = BatchGradientDescent(
+                    max_iter = 100,
+                    line_search_mode = 'exhaustive',
+                    verbose = True,
                     objective = kl,
                     conjugate = True,
                     params = [ p.mu, p.beta, q.mu, q.beta ],
@@ -166,5 +169,4 @@ def test_log_partition_function():
 
 if __name__ == '__main__':
     tester = Test_DiagonalMND()
-
     tester.test_zero_optimal()

@@ -244,6 +244,8 @@ class BatchGradientDescent:
             norm = 1.
 
         while iters != self.max_iter:
+            if self.verbose:
+                print iters
             iters += 1
             self._cache_values()
             if self.conjugate:
