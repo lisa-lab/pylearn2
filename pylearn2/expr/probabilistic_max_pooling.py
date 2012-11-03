@@ -260,80 +260,83 @@ def max_pool_channels(z, pool_size, top_down = None, theano_rng = None):
     if z_name is None:
         z_name = 'anon_z'
 
-
-    batch_size, n = z.shape
-
-
-    mx = None
-
-    if top_down is None:
-        t = 0.
+    if pool_size == 1:
+        if top_down is None:
+            top_down = 0.
+        total_input = z + top_down
+        p = T.nnet.sigmoid(total_input)
+        h = p
     else:
-        t = - top_down
-        t.name = 'neg_top_down'
+        batch_size, n = z.shape
 
-    warnings.warn("TODO: make max_pool_channels use sigmoid instead of a big graph when pool_size == 1")
+        mx = None
 
-    zpart = []
-    for i in xrange(pool_size):
-        cur_part = z[:,i:n:pool_size]
-        if z_name is not None:
-            cur_part.name = z_name + '[%d]' % (i)
-        zpart.append( cur_part )
-        if mx is None:
-            mx = T.maximum(t, cur_part)
-            if cur_part.name is not None:
-                mx.name = 'max(-top_down,'+cur_part.name+')'
+        if top_down is None:
+            t = 0.
         else:
-            max_name = None
-            if cur_part.name is not None:
-                mx_name = 'max('+cur_part.name+','+mx.name+')'
-            mx = T.maximum(mx,cur_part)
-            mx.name = mx_name
-    mx.name = 'local_max('+z_name+')'
+            t = - top_down
+            t.name = 'neg_top_down'
 
-    pt = []
+        zpart = []
+        for i in xrange(pool_size):
+            cur_part = z[:,i:n:pool_size]
+            if z_name is not None:
+                cur_part.name = z_name + '[%d]' % (i)
+            zpart.append( cur_part )
+            if mx is None:
+                mx = T.maximum(t, cur_part)
+                if cur_part.name is not None:
+                    mx.name = 'max(-top_down,'+cur_part.name+')'
+            else:
+                max_name = None
+                if cur_part.name is not None:
+                    mx_name = 'max('+cur_part.name+','+mx.name+')'
+                mx = T.maximum(mx,cur_part)
+                mx.name = mx_name
+        mx.name = 'local_max('+z_name+')'
 
-    for i in xrange(pool_size):
-        z_i = zpart[i]
-        safe = z_i - mx
-        safe.name = 'safe_z(%s)' % z_i.name
-        cur_pt = T.exp(safe)
-        cur_pt.name = 'pt(%s)' % z_i.name
-        assert cur_pt.ndim == 2
-        pt.append( cur_pt )
+        pt = []
 
-    off_pt = T.exp(t - mx)
-    assert off_pt.ndim == 2
-    off_pt.name = 'p_tilde_off(%s)' % z_name
+        for i in xrange(pool_size):
+            z_i = zpart[i]
+            safe = z_i - mx
+            safe.name = 'safe_z(%s)' % z_i.name
+            cur_pt = T.exp(safe)
+            cur_pt.name = 'pt(%s)' % z_i.name
+            assert cur_pt.ndim == 2
+            pt.append( cur_pt )
 
-    denom = off_pt
-    for i in xrange(pool_size):
-        denom = denom + pt[i]
-    assert denom.ndim == 2
-    denom.name = 'denom(%s)' % z_name
+        off_pt = T.exp(t - mx)
+        assert off_pt.ndim == 2
+        off_pt.name = 'p_tilde_off(%s)' % z_name
 
-    off_prob = off_pt / denom
-    p = 1. - off_prob
+        denom = off_pt
+        for i in xrange(pool_size):
+            denom = denom + pt[i]
+        assert denom.ndim == 2
+        denom.name = 'denom(%s)' % z_name
+
+        off_prob = off_pt / denom
+        p = 1. - off_prob
+        assert p.dtype == z.dtype
+
+        hpart = [ pt_i / denom for pt_i in pt ]
+
+        h = T.alloc(0., batch_size, n)
+
+        for i in xrange(pool_size):
+            h.name = 'h_interm'
+            hp = hpart[i]
+            sub_h = h[:,i:n:pool_size]
+            assert sub_h.ndim == 2
+            assert hp.ndim == 2
+            for hv, hsv, hpartv in get_debug_values(h, sub_h, hp):
+                print hv.shape
+                print hsv.shape
+                print hpartv.shape
+            h = T.set_subtensor(sub_h,hp)
+
     p.name = 'p(%s)' % z_name
-    assert p.dtype == z.dtype
-
-    hpart = [ pt_i / denom for pt_i in pt ]
-
-    h = T.alloc(0., batch_size, n)
-
-    for i in xrange(pool_size):
-        h.name = 'h_interm'
-        hp = hpart[i]
-        sub_h = h[:,i:n:pool_size]
-        assert sub_h.ndim == 2
-        assert hp.ndim == 2
-        for hv, hsv, hpartv in get_debug_values(h, sub_h, hp):
-            print hv.shape
-            print hsv.shape
-            print hpartv.shape
-        h = T.set_subtensor(sub_h,hp)
-
     h.name = 'h(%s)' % z_name
 
     if theano_rng is None:
