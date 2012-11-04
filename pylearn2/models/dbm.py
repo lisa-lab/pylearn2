@@ -67,7 +67,7 @@ class DBM(Model):
             batch_size,
             visible_layer,
             hidden_layers,
-            niter):
+            niter, inference_procedure=None):
         """
             batch_size:
                 The batch size the model should use.
@@ -90,6 +90,8 @@ class DBM(Model):
         self._update_layer_input_spaces()
         self.force_batch_size = batch_size
         self.freeze_set = set([])
+        if inference_procedure is not None:
+            inference_procedure.set_dbm(self)
 
     def energy(self, V, hidden):
         """
@@ -1098,6 +1100,11 @@ class BinaryVectorMaxPool(HiddenLayer):
 
         return rval
 
+    def init_mf_state(self):
+        rval = max_pool_channels(z = self.b.dimshuffle('x', 0),
+                pool_size = self.pool_size)
+        return rval
+
     def make_state(self, num_examples, numpy_rng):
         """ Returns a shared variable containing an actual state
            (not a mean field state) for this variable.
@@ -1414,6 +1421,9 @@ class Softmax(HiddenLayer):
 
         return - rval
 
+    def init_mf_state(self):
+        return T.nnet.softmax(self.b.dimshuffle('x', 0))
+
     def make_state(self, num_examples, numpy_rng):
         """ Returns a shared variable containing an actual state
            (not a mean field state) for this variable.
@@ -1562,7 +1572,7 @@ class WeightDoubling(InferenceProcedure):
 
 
 
-        if block_gradient == 1:
+        if block_grad == 1:
             H_hat = block(H_hat)
 
         history = [ list(H_hat) ]
