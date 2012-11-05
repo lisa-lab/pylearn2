@@ -868,25 +868,10 @@ class BinaryVectorMaxPool(HiddenLayer):
         assert W.name is not None
 
         if self.mask_weights is not None:
-            assert self.input_dim == 625
-            assert self.detector_layer_dim == 1156
-            mask = np.zeros((self.input_dim, self.detector_layer_dim),
-                    dtype='float32')
-            input_width = 25
-            pool_width = 9
-            idx = 0
-            for r in xrange(input_width-pool_width+1):
-                for c in xrange(input_width-pool_width+1):
-                    for channel in xrange(4):
-                        for sr in xrange(pool_width):
-                            for sc in xrange(pool_width):
-                                fr = r + sr
-                                fc = c + sc
-                                coord = fr * input_width + fc
-                                mask[coord, idx] = 1.
-                        idx += 1
-            assert idx == self.detector_layer_dim
-            self.mask = sharedX(mask)
+            expected_shape =  (self.input_dim, self.detector_layer_dim)
+            if expected_shape != self.mask_weights.shape:
+                raise ValueError("Expected mask with shape "+str(expected_shape)+" but got "+str(self.mask_weights.shape))
+            self.mask = sharedX(self.mask_weights)
 
     def censor_updates(self, updates):
 
