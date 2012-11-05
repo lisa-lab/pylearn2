@@ -15,7 +15,7 @@ from pylearn2.monitor import Monitor
 from pylearn2.utils.timing import log_timing
 
 
-log = logging.getLogger('pylearn2.train')
+log = logging.getLogger(__name__)
 
 
 class Train(object):

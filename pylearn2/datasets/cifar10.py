@@ -1,5 +1,5 @@
 import os, cPickle, logging
-_logger = logging.getLogger('pylearn2.datasets.cifar10')
+_logger = logging.getLogger(__name__)
 
 import numpy as np
 N = np
