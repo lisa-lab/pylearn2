@@ -33,6 +33,7 @@ from pylearn2.space import CompositeSpace
 from pylearn2.space import Conv2DSpace
 from pylearn2.space import Space
 from pylearn2.space import VectorSpace
+from pylearn2.utils import block_gradient
 from pylearn2.utils import safe_zip
 from pylearn2.utils import safe_izip
 from pylearn2.utils import sharedX
@@ -1646,3 +1647,14 @@ def flatten(l):
         else:
             rval.append(elem)
     return rval
+
+def block(l):
+    new = []
+    for elem in l:
+        if isinstance(elem, (list, tuple)):
+            new.append(block(elem))
+        else:
+            new.append(block_gradient(elem))
+    if isinstance(l, tuple):
+        return tuple(new)
+    return new
