@@ -28,7 +28,7 @@ from theano.gof.op import get_debug_values
 import logging
 
 
-log = logging.getLogger("pylearn2.training_algorithms.sgd")
+log = logging.getLogger(__name__)
 
 class SGD(TrainingAlgorithm):
     """

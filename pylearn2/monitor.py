@@ -23,8 +23,7 @@ from pylearn2.utils import safe_izip
 from pylearn2.utils.timing import log_timing
 import logging
 
-
-log = logging.getLogger("pylearn2.monitor")
+log = logging.getLogger(__name__)
 
 
 class Monitor(object):
