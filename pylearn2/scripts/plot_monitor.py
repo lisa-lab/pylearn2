@@ -26,7 +26,13 @@ from pylearn2.utils.string_utils import number_aware_alphabetical_key
 channels = {}
 
 for i, arg in enumerate(sys.argv[1:]):
-    model = serial.load(arg)
+    try:
+        model = serial.load(arg)
+    except:
+        if arg.endswith('.yaml'):
+            print >> sys.stderr, arg+" is a yaml config file, you need to load a trained model."
+            quit(-1)
+        raise
     this_model_channels = model.monitor.channels
 
     if len(sys.argv) > 2:
