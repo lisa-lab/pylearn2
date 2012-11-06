@@ -804,6 +804,7 @@ class BinaryVectorMaxPool(HiddenLayer):
             layer_name,
             irange = None,
             sparse_init = None,
+            sparse_stdev = 1.,
             include_prob = 1.0,
             init_bias = 0.,
             mask_weights = None):
@@ -859,6 +860,7 @@ class BinaryVectorMaxPool(HiddenLayer):
                     while W[idx, i] != 0:
                         idx = rng.randint(0, self.input_dim)
                     W[idx, i] = rng.randn()
+            W *= self.sparse_stdev
 
         W = sharedX(W)
         W.name = self.layer_name + '_W'
