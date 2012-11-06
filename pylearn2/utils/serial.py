@@ -190,7 +190,10 @@ def save(filepath, obj, on_overwrite = 'ignore'):
             backup = filepath + '.bak'
             shutil.move(filepath, backup)
             save(filepath, obj)
-            os.remove(backup)
+            try:
+                os.remove(backup)
+            except Exception, e:
+                warnings.warn("Got an error while traing to remove "+backup+":"+str(e))
             return
         else:
             assert on_overwrite == 'ignore'
