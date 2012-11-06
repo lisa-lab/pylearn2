@@ -339,14 +339,20 @@ class BatchGradientDescent:
                 print 'Exhaustive line search'
 
 
-                results = [ (0., self.obj(*inputs) ) ]
+                obj = self.obj(*inputs)
+                if np.isnan(obj):
+                    print "Objective is NaN for these parameters."
+                results = [ (0., obj ) ]
                 for alpha in alpha_list:
                     if not (alpha > results[-1][0]):
                         print 'alpha: ',alpha
                         print 'most recent alpha (should be smaller):',results[-1][0]
                         assert False
                     self._goto_alpha(alpha)
-                    results.append( (alpha, self.obj(*inputs) ) )
+                    obj = self.obj(*inputs)
+                    if np.isnan(obj):
+                        obj = np.inf
+                    results.append( (alpha, obj) )
                 for alpha, obj in results:
                     print '\t',alpha,obj
 
