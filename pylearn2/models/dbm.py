@@ -1,11 +1,12 @@
 """
-This module contains functionality related to Deep Boltzmann Machines.
+This module contains functionality related to deep Boltzmann machines.
 They are implemented generically in order to make it easy to support
 convolution versions, etc.
 
-Most of the code needed to actually use the DBM is still in Ian's private
-repo. He'll move it here after he has a paper, or if you need it, you
-can write to him to make an arrangement.
+Some of the code needed to actually use a DBM might not be in this
+repository yet. Ian is gradually moving pieces of it over from his
+private repository. Some of his code contains private research ideas
+that he can't move to this repository until he has a paper on them.
 """
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2012, Universite de Montreal"
@@ -1087,7 +1088,10 @@ class BinaryVectorMaxPool(HiddenLayer):
         return rval
 
     def init_mf_state(self):
-        rval = max_pool_channels(z = self.b.dimshuffle('x', 0),
+        # work around theano bug with broadcasted vectors
+        z = T.alloc(0., self.dbm.batch_size, self.detector_layer_dim).astype(self.b.dtype) + \
+                self.b.dimshuffle('x', 0)
+        rval = max_pool_channels(z = z,
                 pool_size = self.pool_size)
         return rval
 
