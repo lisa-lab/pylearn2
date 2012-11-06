@@ -399,7 +399,7 @@ class BatchGradientDescent:
                 idx = obj.index(mn)
                 x = alpha_list[idx]
                 self._goto_alpha(x)
-                print 'final step size: ',x
+                print mn
 
                 if idx == 0:
                     x = alpha_list[1]
