@@ -363,6 +363,9 @@ class BatchGradientDescent:
                         self._goto_alpha(x)
                         res = self.obj(*inputs)
                         print '\t',x,res
+                        # Regard NaN results as infinitely bad so they won't be picked as the min objective
+                        if np.isnan(res):
+                            res = np.inf
                         for i in xrange(len(results)):
                             elem = results[i]
                             ex = elem[0]
@@ -389,7 +392,7 @@ class BatchGradientDescent:
 
                     improvement = do_point(x)
 
-                    if improvement > 0 and improvement < .01 * prev_improvement or len(obj) > 10:
+                    if (improvement > 0 and improvement < .01 * prev_improvement) or len(obj) > 10:
                         break
                     prev_improvement = improvement
 
@@ -400,6 +403,7 @@ class BatchGradientDescent:
                 x = alpha_list[idx]
                 self._goto_alpha(x)
                 print mn
+                assert not np.isnan(mn)
 
                 if idx == 0:
                     x = alpha_list[1]
