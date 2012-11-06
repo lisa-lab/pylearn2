@@ -858,10 +858,14 @@ class BinaryVectorMaxPool(HiddenLayer):
         else:
             assert self.sparse_init is not None
             W = np.zeros((self.input_dim, self.detector_layer_dim))
+            def mask_rejects(idx, i):
+                if self.mask_weights is None:
+                    return False
+                return self.mask_weights[idx, i] == 0.
             for i in xrange(self.detector_layer_dim):
                 for j in xrange(self.sparse_init):
                     idx = rng.randint(0, self.input_dim)
-                    while W[idx, i] != 0:
+                    while W[idx, i] != 0 or mask_rejects(idx, i):
                         idx = rng.randint(0, self.input_dim)
                     W[idx, i] = rng.randn()
             W *= self.sparse_stdev
@@ -1450,7 +1454,8 @@ class Softmax(HiddenLayer):
         return - rval
 
     def init_mf_state(self):
-        return T.nnet.softmax(self.b.dimshuffle('x', 0))
+        rval =  T.nnet.softmax(self.b.dimshuffle('x', 0)) + T.alloc(0., self.dbm.batch_size, self.n_classes).astype(config.floatX)
+        return rval
 
     def make_state(self, num_examples, numpy_rng):
         """ Returns a shared variable containing an actual state
