@@ -19,6 +19,7 @@ import sys
 import time
 import warnings
 
+from theano import config
 from theano import function
 from theano.gof.op import get_debug_values
 from theano.printing import Print
@@ -685,6 +686,9 @@ class HiddenLayer(Layer):
     def downward_state(self, total_state):
         return total_state
 
+    def get_range_rewards(self, state, coess):
+        raise NotImplementedError(str(type(self))+" does not implement get_range_rewards")
+
     def get_l1_act_cost(self, state, target, coeff, eps):
         raise NotImplementedError(str(type(self))+" does not implement get_l1_act_cost")
 
@@ -1020,6 +1024,39 @@ class BinaryVectorMaxPool(HiddenLayer):
 
         return rval
 
+    def get_range_rewards(self, state, coeffs):
+        rval = 0.
+
+        P, H = state
+        self.output_space.validate(P)
+        self.h_space.validate(H)
+
+
+        if self.pool_size == 1:
+            # If the pool size is 1 then pools = detectors
+            # and we should not penalize pools and detectors separately
+            assert len(state) == 2
+            assert isinstance(coeffs, float)
+            _, state = state
+            state = [state]
+            coeffs = [coeffs]
+        else:
+            assert all([len(elem) == 2 for elem in [state, coeffs]])
+
+        for s, c in safe_zip(state, coeffs):
+            assert all([isinstance(elem, float) for elem in [c]])
+            if c == 0.:
+                continue
+            mx = s.max(axis=0)
+            assert hasattr(mx.owner.op, 'grad')
+            assert mx.ndim == 1
+            mn = s.min(axis=0)
+            assert hasattr(mn.owner.op, 'grad')
+            assert mn.ndim == 1
+            r = mx - mn
+            rval += (1 - r).mean()*c
+
+        return rval
 
     def get_l1_act_cost(self, state, target, coeff, eps = None):
         rval = 0.
@@ -1033,7 +1070,9 @@ class BinaryVectorMaxPool(HiddenLayer):
             # If the pool size is 1 then pools = detectors
             # and we should not penalize pools and detectors separately
             assert len(state) == 2
-            assert isinstance(target, float)
+            if not isinstance(target, float):
+                raise TypeError("BinaryVectorMaxPool.get_l1_act_cost expected target of type float " + \
+                        " but an instance named "+self.layer_name + " got target "+str(target) + " of type "+str(type(target)))
             assert isinstance(coeff, float)
             _, state = state
             state = [state]
@@ -1346,14 +1385,10 @@ class Softmax(HiddenLayer):
         if self.needs_reformat:
             state_below = self.input_space.format_as(state_below, self.desired_space)
 
+        for value in get_debug_values(state_below):
+            assert value.shape[0] == self.dbm.batch_size
+
         self.desired_space.validate(state_below)
-
-
-        """
-        from pylearn2.utils import serial
-        X = serial.load('/u/goodfeli/galatea/dbm/inpaint/expdir/cifar10_N3_interm_2_features.pkl')
-        state_below = Verify(X,'features')(state_below)
-        """
 
         assert self.W.ndim == 2
         assert state_below.ndim == 2
@@ -1362,9 +1397,10 @@ class Softmax(HiddenLayer):
 
         Z = T.dot(state_below, self.W) + b
 
-        #Z = Print('Z')(Z)
-
         rval = T.nnet.softmax(Z)
+
+        for value in get_debug_values(rval):
+            assert value.shape[0] == self.dbm.batch_size
 
         return rval
 
