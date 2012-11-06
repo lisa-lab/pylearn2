@@ -186,11 +186,11 @@ class Conv2D(OrigConv2D):
 
 def make_random_conv2D(irange, input_space, output_space,
         kernel_shape, batch_size, \
-        subsample = (1,1), border_mode = 'valid', message = ""):
+        subsample = (1,1), border_mode = 'valid', message = "", rng = None):
     """ Creates a Conv2D with random kernels """
 
-
-    rng = np.random.RandomState([1,2,3])
+    if rng is None:
+        rng = np.random.RandomState([2012,11,6,9])
 
     W = sharedX( rng.uniform(-irange,irange,( output_space.nchannels, input_space.nchannels, \
             kernel_shape[0], kernel_shape[1])))
@@ -203,3 +203,33 @@ def make_random_conv2D(irange, input_space, output_space,
         filters_shape = W.get_value(borrow=True).shape, message = message)
 
 
+def make_sparse_random_conv2D(num_nonzero, input_space, output_space,
+        kernel_shape, batch_size, \
+        subsample = (1,1), border_mode = 'valid', message = "", rng=None):
+    """ Creates a Conv2D with random kernels, where the randomly initialized
+    values are sparse"""
+
+    if rng is None:
+        rng = np.random.RandomState([2012, 11, 6])
+
+    W = np.zeros(( output_space.nchannels, input_space.nchannels, \
+            kernel_shape[0], kernel_shape[1]))
+
+    def random_coord():
+        return [ rng.randint(dim) for dim in W.shape ]
+
+    for i in xrange(num_nonzero):
+        o, ch, r, c = random_coord()
+        while W[o, ch, r, c] != 0:
+            o, ch, r, c = random_coord()
+        W[o, ch, r, c] = rng.randn()
+
+
+    W = sharedX( W)
+
+    return Conv2D(filters = W,
+        batch_size = batch_size,
+        input_space = input_space,
+        output_axes = output_space.axes,
+        subsample = subsample, border_mode = border_mode,
+        filters_shape = W.get_value(borrow=True).shape, message = message)
