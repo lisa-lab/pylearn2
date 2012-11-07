@@ -20,7 +20,6 @@ from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 from pylearn2.utils import sharedX
 from pylearn2.training_callbacks.training_callback import TrainingCallback
 from pylearn2.utils.iteration import is_stochastic
-import time
 from pylearn2.utils import safe_zip
 from pylearn2.utils import serial
 from pylearn2.utils.timing import log_timing
@@ -290,10 +289,13 @@ class SGD(TrainingAlgorithm):
             raise Exception("train called without first calling setup")
         model = self.model
         batch_size = self.batch_size
+
+        # Make sure none of the parameters have bad values
         for param in self.params:
             value = param.get_value(borrow=True)
             if np.any(np.isnan(value)) or np.any(np.isinf(value)):
                 raise Exception("NaN in " + param.name)
+
         self.first = False
         rng = self.rng
         if not is_stochastic(self.train_iteration_mode):
@@ -323,13 +325,6 @@ class SGD(TrainingAlgorithm):
         else:
             return self.termination_criterion(self.model)
 
-class ExhaustiveSGD(SGD): # deprecated!
-
-    def __init__(self, * args, ** kwargs):
-
-        warnings.warn("ExhaustiveSGD is deprecated. It has been renamed to SGD.")
-
-        super(ExhaustiveSGD,self).__init__(*args, ** kwargs)
 
 class MonitorBasedLRAdjuster(TrainingCallback):
     """
@@ -746,3 +741,11 @@ class DisjunctionCriterion(object):
 
     def __call__(self, model):
         return any(criterion(model) for criterion in self._criteria)
+
+class ExhaustiveSGD(SGD): # deprecated!
+
+    def __init__(self, * args, ** kwargs):
+
+        warnings.warn("ExhaustiveSGD is deprecated. It has been renamed to SGD.")
+
+        super(ExhaustiveSGD,self).__init__(*args, ** kwargs)
