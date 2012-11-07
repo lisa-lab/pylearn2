@@ -5,6 +5,7 @@ import matplotlib.axes
 import os
 from pylearn2.utils import string_utils as string
 from tempfile import NamedTemporaryFile
+from multiprocessing import Process
 import warnings
 
 
@@ -40,6 +41,32 @@ def imview(*args, **kwargs):
     if len(args) < 5 and 'interpolation' not in kwargs:
         kwargs['interpolation'] = 'nearest'
     plt.imshow(*args, **kwargs)
+
+
+def imview_async(*args, **kwargs):
+    """
+    A version of `imview` that forks a separate process and
+    immediately shows the image.
+
+    Supports the `window_title` keyword argument to cope with
+    the title always being 'Figure 1'.
+
+    Returns the `multiprocessing.Process` handle.
+    """
+    if 'figure' in kwargs:
+        raise ValueError("passing a figure argument not supported")
+
+    def fork_image_viewer():
+        f = plt.figure()
+        kwargs['figure'] = f
+        imview(*args, **kwargs)
+        if 'window_title' in kwargs:
+            f.set_window_title(kwargs['window_title'])
+        plt.show()
+
+    p = Process(None, fork_image_viewer)
+    p.start()
+    return p
 
 
 def show(image):
