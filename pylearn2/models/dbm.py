@@ -1684,12 +1684,19 @@ class WeightDoubling(InferenceProcedure):
             return H_hat
 
 def flatten(l):
-    rval = []
-    for elem in l:
-        if isinstance(elem, (list, tuple)):
-            rval.extend(flatten(elem))
-        else:
-            rval.append(elem)
+    """
+    Turns a nested graph of lists/tuples/other objects
+    into a list of objects.
+    """
+    if isinstance(l, (list, tuple)):
+        rval = []
+        for elem in l:
+            if isinstance(elem, (list, tuple)):
+                rval.extend(flatten(elem))
+            else:
+                rval.append(elem)
+    else:
+        return [l]
     return rval
 
 def block(l):
