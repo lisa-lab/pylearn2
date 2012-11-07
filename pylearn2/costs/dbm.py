@@ -62,7 +62,17 @@ class PCD(Cost):
 
             wrong = T.neq(true, pred)
             err = T.cast(wrong.mean(), X.dtype)
-            rval['err'] = err
+            rval['misclass'] = err
+
+            if len(model.hidden_layers) > 1:
+                q = model.mf(X, Y = Y)
+                pen = model.hidden_layers[-2].upward_state(q[-2])
+                Y_recons = model.hidden_layers[-1].mf_update(state_below = pen)
+                pred = T.argmax(Y_recons, axis=1)
+                wrong = T.neq(true, pred)
+
+                rval['recons_misclass'] = T.cast(wrong.mean(), X.dtype)
+
 
         return rval
 

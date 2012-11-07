@@ -513,6 +513,18 @@ class DBM(Model):
 
             rval['max_var_param_diff'] = mx
 
+            for layer, new, old in safe_zip(self.hidden_layers,
+                q, prev_q):
+                sum_diff = 0.
+                for sub_new, sub_old in safe_zip(flatten(new), flatten(old)):
+                    sum_diff += abs(sub_new - sub_old).sum()
+                denom = self.batch_size * layer.get_total_state_space().get_total_dimension()
+                denom = np.cast[config.floatX](denom)
+                rval['mean_'+layer.layer_name+'_var_param_diff'] = sum_diff / denom
+
+
+
+
         return rval
 
     def get_test_batch_size(self):
