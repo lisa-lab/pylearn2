@@ -545,10 +545,14 @@ class ExponentialDecay(object):
         assert isinstance(min_lr, float)
         self.__dict__.update(locals())
         del self.self
+        self._count = 0
 
     def __call__(self, algorithm):
-        cur_lr = algorithm.learning_rate.get_value()
-        new_lr = max(cur_lr / self.decay_factor, self.min_lr)
+        if self._count == 0:
+            self._base_lr = algorithm.learning_rate.get_value()
+        self._count += 1
+        cur_lr = self._base_lr / (self.decay_factor ** self._count)
+        new_lr = max(cur_lr, self.min_lr)
         new_lr = np.cast[config.floatX](new_lr)
         algorithm.learning_rate.set_value(new_lr)
 
