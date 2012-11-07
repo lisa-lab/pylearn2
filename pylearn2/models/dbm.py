@@ -1010,19 +1010,25 @@ class BinaryVectorMaxPool(HiddenLayer):
             v_mean = var.mean(axis=0)
             v_range = v_max - v_min
 
+            # max_x.mean_u is "the mean over *u*nits of the max over e*x*amples"
+            # The x and u are included in the name because otherwise its hard
+            # to remember which axis is which when reading the monitor
+            # I use inner.outer rather than outer_of_inner or something like that
+            # because I want mean_x.* to appear next to each other in the alphabetical
+            # list, as these are commonly plotted together
             for key, val in [
-                    ('max_max', v_max.max()),
-                    ('max_mean', v_max.mean()),
-                    ('max_min', v_max.min()),
-                    ('min_max', v_min.max()),
-                    ('min_mean', v_min.mean()),
-                    ('min_max', v_min.max()),
-                    ('range_max', v_range.max()),
-                    ('range_mean', v_range.mean()),
-                    ('range_min', v_range.min()),
-                    ('mean_max', v_mean.max()),
-                    ('mean_mean', v_mean.mean()),
-                    ('mean_min', v_mean.min())
+                    ('max_x.max_u', v_max.max()),
+                    ('max_x.mean_u', v_max.mean()),
+                    ('max_x.min_u', v_max.min()),
+                    ('min_x.max_u', v_min.max()),
+                    ('min_x.mean_u', v_min.mean()),
+                    ('min_x.min_u', v_min.min()),
+                    ('range_x.max_u', v_range.max()),
+                    ('range_x.mean_u', v_range.mean()),
+                    ('range_x.min_u', v_range.min()),
+                    ('mean_x.max_u', v_mean.max()),
+                    ('mean_x.mean_u', v_mean.mean()),
+                    ('mean_x.min_u', v_mean.min())
                     ]:
                 rval[prefix+key] = val
 
