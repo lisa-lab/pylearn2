@@ -11,22 +11,25 @@ import warnings
 def imview(*args, **kwargs):
     """
     A more sensible matplotlib-based image viewer command,
-    a wrapper around `imshow`.
+    a wrapper around `matplotlib.pyplot.imshow`.
 
     Parameters are identical to `matplotlib.pyplot.imshow`
-    but this makes modifications to the current figure
-    (or the figure supplied by the `figure` keyword argument)
-    first, to make the axes use the full frame.
+    but this behaves somewhat differently:
 
-    It also turns on 'nearest' interpolation by default.
-    This can be overridden with the 'interpolation'
-    keyword argument.
+      * By default, it creates a new figure (unless a
+        `figure` keyword argument is supplied.
+      * It modifies the axes of that figure to use the
+        full frame, without ticks or tick labels.
+      * It turns on `nearest` interpolation by default
+        (i.e., it does not antialias pixel data). This
+        can be overridden with the `interpolation`
+        argument as in `imshow`.
 
     All other arguments and keyword arguments are passed
     on to `imshow`.`
     """
     if 'figure' not in kwargs:
-        f = plt.gcf()
+        f = plt.figure()
     else:
         f = kwargs['figure']
     new_ax = matplotlib.axes.Axes(f, [0, 0, 1, 1],
