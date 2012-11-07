@@ -492,9 +492,6 @@ class PatienceBasedTermCrit(object):
 
         return len(v) < self.patience
 
-
-
-
 class EpochCounter(object):
     def  __init__(self, max_epochs):
         """
@@ -516,10 +513,12 @@ class EpochCounter(object):
         self._epochs_done += 1
         return self._epochs_done < self._max_epochs
 
-
 class AnnealedLearningRate(object):
-    """ WRITEME
-    Evidently a callback for the SGD algorithm rather than the Train object?
+    """
+    This is a callback for the SGD algorithm rather than the Train object.
+    This anneals the learning rate to decrease as 1/t where t is the number
+    of gradient descent updates done so far. Use OneOverEpoch as Train object
+    callback if you would prefer 1/t where t is epochs.
     """
     def __init__(self, anneal_start):
         self._initialized = False
@@ -534,6 +533,30 @@ class AnnealedLearningRate(object):
 
     def current_learning_rate(self):
         return self._base * min(1, self._anneal_start / self._count)
+
+class ExponentialDecay(object):
+    """
+    This is a callback for the SGD algorithm rather than the Train object.
+    This anneals the learning rate by dividing by decay_factor after each
+    gradient descent step. It will not shrink the learning rate beyond
+    min_lr.
+    """
+    def __init__(self, decay_factor, min_lr):
+        if isinstance(decay_factor, str):
+            decay_factor = float(decay_factor)
+        if isinstance(min_lr, str):
+            min_lr = float(min_lr)
+        assert isinstance(decay_factor, float)
+        assert isinstance(min_lr, float)
+        self.__dict__.update(locals())
+        del self.self
+
+    def __call__(self, algorithm):
+        cur_lr = algorithm.learning_rate.get_value()
+        new_lr = max(cur_lr / self.decay_factor, self.min_lr)
+        new_lr = np.cast[config.floatX](new_lr)
+        algorithm.learning_rate.set_value(new_lr)
+
 
 class MomentumAdjustor(TrainingCallback):
     def __init__(self, final_momentum, start, saturate):
