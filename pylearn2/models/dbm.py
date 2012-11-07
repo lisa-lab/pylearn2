@@ -565,7 +565,7 @@ class Layer(Model):
         assert self.get_dbm() is None
         self.dbm = dbm
 
-    def get_total_state_space(self, state):
+    def get_total_state_space(self):
         """
         Returns the Space that the layer's total state lives in.
         """
