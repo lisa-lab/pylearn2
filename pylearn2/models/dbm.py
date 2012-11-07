@@ -513,6 +513,18 @@ class DBM(Model):
 
             rval['max_var_param_diff'] = mx
 
+            for layer, new, old in safe_zip(self.hidden_layers,
+                q, prev_q):
+                sum_diff = 0.
+                for sub_new, sub_old in safe_zip(flatten(new), flatten(old)):
+                    sum_diff += abs(sub_new - sub_old).sum()
+                denom = self.batch_size * layer.get_total_state_space().get_total_dimension()
+                denom = np.cast[config.floatX](denom)
+                rval['mean_'+layer.layer_name+'_var_param_diff'] = sum_diff / denom
+
+
+
+
         return rval
 
     def get_test_batch_size(self):
@@ -553,7 +565,7 @@ class Layer(Model):
         assert self.get_dbm() is None
         self.dbm = dbm
 
-    def get_total_state_space(self, state):
+    def get_total_state_space(self):
         """
         Returns the Space that the layer's total state lives in.
         """
@@ -1678,12 +1690,19 @@ class WeightDoubling(InferenceProcedure):
             return H_hat
 
 def flatten(l):
-    rval = []
-    for elem in l:
-        if isinstance(elem, (list, tuple)):
-            rval.extend(flatten(elem))
-        else:
-            rval.append(elem)
+    """
+    Turns a nested graph of lists/tuples/other objects
+    into a list of objects.
+    """
+    if isinstance(l, (list, tuple)):
+        rval = []
+        for elem in l:
+            if isinstance(elem, (list, tuple)):
+                rval.extend(flatten(elem))
+            else:
+                rval.append(elem)
+    else:
+        return [l]
     return rval
 
 def block(l):

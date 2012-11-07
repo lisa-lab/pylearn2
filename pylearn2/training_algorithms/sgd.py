@@ -20,7 +20,6 @@ from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 from pylearn2.utils import sharedX
 from pylearn2.training_callbacks.training_callback import TrainingCallback
 from pylearn2.utils.iteration import is_stochastic
-import time
 from pylearn2.utils import safe_zip
 from pylearn2.utils import serial
 from pylearn2.utils.timing import log_timing
@@ -290,10 +289,13 @@ class SGD(TrainingAlgorithm):
             raise Exception("train called without first calling setup")
         model = self.model
         batch_size = self.batch_size
+
+        # Make sure none of the parameters have bad values
         for param in self.params:
             value = param.get_value(borrow=True)
             if np.any(np.isnan(value)) or np.any(np.isinf(value)):
                 raise Exception("NaN in " + param.name)
+
         self.first = False
         rng = self.rng
         if not is_stochastic(self.train_iteration_mode):
@@ -323,13 +325,6 @@ class SGD(TrainingAlgorithm):
         else:
             return self.termination_criterion(self.model)
 
-class ExhaustiveSGD(SGD): # deprecated!
-
-    def __init__(self, * args, ** kwargs):
-
-        warnings.warn("ExhaustiveSGD is deprecated. It has been renamed to SGD.")
-
-        super(ExhaustiveSGD,self).__init__(*args, ** kwargs)
 
 class MonitorBasedLRAdjuster(TrainingCallback):
     """
@@ -492,9 +487,6 @@ class PatienceBasedTermCrit(object):
 
         return len(v) < self.patience
 
-
-
-
 class EpochCounter(object):
     def  __init__(self, max_epochs):
         """
@@ -516,10 +508,12 @@ class EpochCounter(object):
         self._epochs_done += 1
         return self._epochs_done < self._max_epochs
 
-
 class AnnealedLearningRate(object):
-    """ WRITEME
-    Evidently a callback for the SGD algorithm rather than the Train object?
+    """
+    This is a callback for the SGD algorithm rather than the Train object.
+    This anneals the learning rate to decrease as 1/t where t is the number
+    of gradient descent updates done so far. Use OneOverEpoch as Train object
+    callback if you would prefer 1/t where t is epochs.
     """
     def __init__(self, anneal_start):
         self._initialized = False
@@ -534,6 +528,34 @@ class AnnealedLearningRate(object):
 
     def current_learning_rate(self):
         return self._base * min(1, self._anneal_start / self._count)
+
+class ExponentialDecay(object):
+    """
+    This is a callback for the SGD algorithm rather than the Train object.
+    This anneals the learning rate by dividing by decay_factor after each
+    gradient descent step. It will not shrink the learning rate beyond
+    min_lr.
+    """
+    def __init__(self, decay_factor, min_lr):
+        if isinstance(decay_factor, str):
+            decay_factor = float(decay_factor)
+        if isinstance(min_lr, str):
+            min_lr = float(min_lr)
+        assert isinstance(decay_factor, float)
+        assert isinstance(min_lr, float)
+        self.__dict__.update(locals())
+        del self.self
+        self._count = 0
+
+    def __call__(self, algorithm):
+        if self._count == 0:
+            self._base_lr = algorithm.learning_rate.get_value()
+        self._count += 1
+        cur_lr = self._base_lr / (self.decay_factor ** self._count)
+        new_lr = max(cur_lr, self.min_lr)
+        new_lr = np.cast[config.floatX](new_lr)
+        algorithm.learning_rate.set_value(new_lr)
+
 
 class MomentumAdjustor(TrainingCallback):
     def __init__(self, final_momentum, start, saturate):
@@ -723,3 +745,11 @@ class DisjunctionCriterion(object):
 
     def __call__(self, model):
         return any(criterion(model) for criterion in self._criteria)
+
+class ExhaustiveSGD(SGD): # deprecated!
+
+    def __init__(self, * args, ** kwargs):
+
+        warnings.warn("ExhaustiveSGD is deprecated. It has been renamed to SGD.")
+
+        super(ExhaustiveSGD,self).__init__(*args, ** kwargs)

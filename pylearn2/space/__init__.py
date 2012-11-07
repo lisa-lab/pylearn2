@@ -212,7 +212,7 @@ class VectorSpace(Space):
         if self.sparse and not isinstance(batch.type, theano.sparse.SparseType):
             raise TypeError()
         if batch.ndim != 2:
-            raise ValueError()
+            raise ValueError('VectorSpace batches must be 2D, got %d dimensions' % batch.ndim)
 
 class Conv2DSpace(Space):
     """A space whose points are defined as (multi-channel) images."""
