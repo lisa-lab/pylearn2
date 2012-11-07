@@ -1,9 +1,42 @@
 import numpy as np
 from PIL import Image
+import matplotlib.pyplot as plt
+import matplotlib.axes
 import os
 from pylearn2.utils import string_utils as string
 from tempfile import NamedTemporaryFile
 import warnings
+
+
+def imview(*args, **kwargs):
+    """
+    A more sensible matplotlib-based image viewer command,
+    a wrapper around `imshow`.
+
+    Parameters are identical to `matplotlib.pyplot.imshow`
+    but this makes modifications to the current figure
+    (or the figure supplied by the `figure` keyword argument)
+    first, to make the axes use the full frame.
+
+    It also turns on 'nearest' interpolation by default.
+    This can be overridden with the 'interpolation'
+    keyword argument.
+
+    All other arguments and keyword arguments are passed
+    on to `imshow`.`
+    """
+    if 'figure' not in kwargs:
+        f = plt.gcf()
+    else:
+        f = kwargs['figure']
+    new_ax = matplotlib.axes.Axes(f, [0, 0, 1, 1],
+                                  xticks=[], yticks=[],
+                                  frame_on=False)
+    f.delaxes(f.gca())
+    f.add_axes(new_ax)
+    if len(args) < 5 and 'interpolation' not in kwargs:
+        kwargs['interpolation'] = 'nearest'
+    plt.imshow(*args, **kwargs)
 
 
 def show(image):
