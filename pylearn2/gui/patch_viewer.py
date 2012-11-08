@@ -2,6 +2,7 @@ import numpy as np
 from PIL import Image
 from pylearn2.datasets.dense_design_matrix import DefaultViewConverter
 from pylearn2.utils.image import show
+from pylearn2.utils import image
 import warnings
 
 def make_viewer(mat, grid_shape=None, patch_shape=None, activation=None, pad=None, is_color = False, rescale = True):
@@ -210,6 +211,7 @@ class PatchViewer(object):
             self.add_patch(myvid[:, :, i], rescale=False, recenter=recenter)
 
     def show(self):
+        #image.imview_async(self.image)
         show(self.image)
 
     def get_img(self):

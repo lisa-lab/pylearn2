@@ -193,6 +193,10 @@ class DBM(Model):
                     assert False
             rval = rval.union(layer.get_params())
 
+        # Patch pickle files that predate the freeze_set feature
+        if not hasattr(self, 'freeze_set'):
+            self.freeze_set = set([])
+
         rval = set([elem for elem in rval if elem not in self.freeze_set])
 
         return rval
@@ -299,12 +303,10 @@ class DBM(Model):
                 layer_to_updated_state
                     dict mapping layers to theano variables representing the updated
                     samples
-            Note: this does Gibbs sampling, starting with the visible layer, and
-            then working upward. If you initialize the visible sample with data,
-            it will be discarded with no influence, since the visible layer is
-            the first layer to be sampled
-            sampled. To start Gibbs sampling from data you must do at least one
-            sampling step explicitly clamping the visible units.
+
+            The specific sampling schedule used is to sample all of the even-idexed
+            layers of model.hidden_layers, then the visible layer and all the odd-indexed
+            layers.
         """
 
         # Validate num_steps
@@ -337,22 +339,7 @@ class DBM(Model):
         #Assemble the return value
         layer_to_updated = {}
 
-        #Sample the visible layer
-        vis_state = layer_to_state[self.visible_layer]
-        if layer_to_clamp[self.visible_layer]:
-            vis_sample = vis_state
-        else:
-            first_hid = self.hidden_layers[0]
-            state_above = layer_to_state[first_hid]
-            state_above = first_hid.downward_state(state_above)
-
-            vis_sample = self.visible_layer.sample(
-                    state_above = state_above,
-                    layer_above = first_hid,
-                    theano_rng = theano_rng)
-        layer_to_updated[self.visible_layer] = vis_sample
-
-        for i, this_layer in enumerate(self.hidden_layers):
+        for i, this_layer in list(enumerate(self.hidden_layers))[::2]:
             # Iteration i does the Gibbs step for hidden_layers[i]
 
             # Get the sampled state of the layer below so we can condition
@@ -361,17 +348,7 @@ class DBM(Model):
                 layer_below = self.visible_layer
             else:
                 layer_below = self.hidden_layers[i-1]
-
-            # We want to sample from each conditional distribution
-            # ***sequentially*** so we must use the updated version
-            # of the state for the layers whose updates we have
-            # calculcated already. If we used the raw value from
-            # layer_to_state
-            # then we would sample from each conditional
-            # ***simultaneously*** which does not implement MCMC
-            # sampling.
-            state_below = layer_to_updated[layer_below]
-
+            state_below = layer_to_state[layer_below]
             state_below = layer_below.upward_state(state_below)
 
             # Get the sampled state of the layer above so we can condition
@@ -400,13 +377,74 @@ class DBM(Model):
 
             layer_to_updated[this_layer] = this_sample
 
-        assert all([layer in layer_to_updated for layer in layer_to_state])
-        assert all([layer in layer_to_state for layer in layer_to_updated])
+        #Sample the visible layer
+        vis_state = layer_to_state[self.visible_layer]
+        if layer_to_clamp[self.visible_layer]:
+            vis_sample = vis_state
+        else:
+            first_hid = self.hidden_layers[0]
+            state_above = layer_to_updated[first_hid]
+            state_above = first_hid.downward_state(state_above)
 
+            vis_sample = self.visible_layer.sample(
+                    state_above = state_above,
+                    layer_above = first_hid,
+                    theano_rng = theano_rng)
+        layer_to_updated[self.visible_layer] = vis_sample
+
+        # Sample the odd-numbered layers
+        for i, this_layer in list(enumerate(self.hidden_layers))[1::2]:
+
+            # Get the sampled state of the layer below so we can condition
+            # on it in our Gibbs update
+            layer_below = self.hidden_layers[i-1]
+
+            # We want to sample from each conditional distribution
+            # ***sequentially*** so we must use the updated version
+            # of the state for the layers whose updates we have
+            # calculcated already, in layer_to_updated.
+            # If we used the original value from
+            # layer_to_state
+            # then we would sample from each conditional
+            # ***simultaneously*** which does not implement MCMC
+            # sampling.
+            state_below = layer_to_updated[layer_below]
+
+            state_below = layer_below.upward_state(state_below)
+
+            # Get the sampled state of the layer above so we can condition
+            # on it in our Gibbs step
+            if i + 1 < len(self.hidden_layers):
+                layer_above = self.hidden_layers[i + 1]
+                state_above = layer_to_updated[layer_above]
+                state_above = layer_above.downward_state(state_above)
+            else:
+                state_above = None
+                layer_above = None
+
+            if layer_to_clamp[this_layer]:
+                this_state = layer_to_state[this_layer]
+                this_sample = this_state
+            else:
+                # Compute the Gibbs sampling update
+                # Sample the state of this layer conditioned
+                # on its Markov blanket (the layer above and
+                # layer below)
+                this_sample = this_layer.sample(
+                        state_below = state_below,
+                        state_above = state_above,
+                        layer_above = layer_above,
+                        theano_rng = theano_rng)
+
+            layer_to_updated[this_layer] = this_sample
+
+        # Check that all layers were updated
+        assert all([layer in layer_to_updated for layer in layer_to_state])
+        # Check that we didn't accidentally treat any other object as a layer
+        assert all([layer in layer_to_state for layer in layer_to_updated])
         # Check that clamping worked
-        for layer in layer_to_clamp:
-            if layer_to_clamp[layer]:
-                assert layer_to_state[layer] is layer_to_updated[layer]
+        assert all([(layer_to_state[layer] is layer_to_updated[layer]) == \
+                layer_to_clamp[layer] for layer in layer_to_state])
 
         return layer_to_updated
 
@@ -434,12 +472,9 @@ class DBM(Model):
                      to update it. Repeatedly applying these updates does MCMC
                      sampling.
 
-            Note: this does Gibbs sampling, starting with the visible layer, and
-            then working upward. If you initialize the visible sample with data,
-            it will be discarded with no influence, since the visible layer is
-            the first layer to be sampled
-            sampled. To start Gibbs sampling from data you must do at least one
-            sampling step explicitly clamping the visible units.
+            The specific sampling schedule used is to sample all of the even-idexed
+            layers of model.hidden_layers, then the visible layer and all the odd-indexed
+            layers.
         """
 
         updated = self.mcmc_steps(layer_to_state, theano_rng, layer_to_clamp, num_steps)
@@ -689,6 +724,9 @@ class VisibleLayer(Layer):
     class.
     """
 
+    def get_total_state_space(self):
+        return self.get_input_space()
+
 class HiddenLayer(Layer):
     """
     Abstract class.
@@ -751,8 +789,6 @@ class BinaryVector(VisibleLayer):
     def set_biases(self, biases):
         self.bias.set_value(biases)
 
-    def get_total_state_space(self):
-        return self.get_input_space()
 
     def get_params(self):
         return set([self.bias])

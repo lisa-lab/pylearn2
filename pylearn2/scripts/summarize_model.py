@@ -22,4 +22,7 @@ for param in model.get_params():
 if hasattr(model,'monitor'):
     print 'trained on',model.monitor.get_examples_seen(),' examples'
     print 'which corresponds to',model.monitor.get_batches_seen(),'batches'
-    print model.monitor.get_epochs_seen(),'epochs'
+    try:
+        print model.monitor.get_epochs_seen(),'epochs'
+    except:
+        pass

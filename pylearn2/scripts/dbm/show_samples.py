@@ -78,7 +78,7 @@ if hasattr(model.visible_layer, 'beta'):
 print 'showing seed data...'
 show()
 
-print 'How many Gibbs steps should I run with the seed data clamped? (0 = ignore seed data) '
+print 'How many Gibbs steps should I run with the seed data clamped? (negative = ignore seed data) '
 x = int(input())
 
 
@@ -121,19 +121,17 @@ def validate_all_samples():
 
 validate_all_samples()
 
-if vis_sample.ndim == 4:
-    vis_sample.set_value(vis_batch)
-else:
-    vis_sample.set_value(dataset.get_design_matrix(vis_batch))
+if x >= 0:
+    if vis_sample.ndim == 4:
+        vis_sample.set_value(vis_batch)
+    else:
+        vis_sample.set_value(dataset.get_design_matrix(vis_batch))
 
 validate_all_samples()
 
 theano_rng = MRG_RandomStreams(2012+9+18)
 
 if x > 0:
-    # Initial rounds of clamped sampling so the seed data gets to have an influence
-    # The sampling is bottom-to-top so if we don't do an initial round where we
-    # explicitly clamp vis_sample, its initial value gets discarded with no influence
     sampling_updates = model.get_sampling_updates(layer_to_state, theano_rng,
             layer_to_clamp = { model.visible_layer : True }, num_steps = x)
 
