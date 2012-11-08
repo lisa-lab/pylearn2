@@ -42,7 +42,7 @@ class SGD(TrainingAlgorithm):
                  monitoring_batches=None, monitoring_dataset=None,
                  termination_criterion=None, update_callbacks=None,
                  init_momentum = None, set_batch_size = False,
-                 train_iteration_mode = None):
+                 train_iteration_mode = None, batches_per_iter=None):
         """
             WRITEME
 
@@ -84,6 +84,7 @@ class SGD(TrainingAlgorithm):
         self.cost = cost
         self.batch_size = batch_size
         self.set_batch_size = set_batch_size
+        self.batches_per_iter = batches_per_iter
         self._set_monitoring_dataset(monitoring_dataset)
         self.monitoring_batches = monitoring_batches
         if monitoring_dataset is None:
@@ -302,7 +303,7 @@ class SGD(TrainingAlgorithm):
             rng = None
         iterator = dataset.iterator(mode=self.train_iteration_mode,
                 batch_size=self.batch_size, targets=self.supervised,
-                topo=self.topo, rng = rng)
+                topo=self.topo, rng = rng, num_batches = self.batches_per_iter)
         if self.supervised:
             for (batch_in, batch_target) in iterator:
                 self.sgd_update(batch_in, batch_target)
