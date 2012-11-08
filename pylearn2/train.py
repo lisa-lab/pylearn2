@@ -97,12 +97,10 @@ class Train(object):
                 self.model.monitor.report_epoch()
                 if self.save_freq > 0 and self.model.monitor.epochs_seen % self.save_freq == 0:
                     self.save()
-                continue_learning = self.continue_learning()
+                continue_learning = self.model.continue_learning()
                 assert continue_learning in [True, False]
                 if not continue_learning:
                     break
-            if self.save_freq > 0:
-                self.save()
         else:
             self.algorithm.setup(model=self.model, dataset=self.dataset)
             if not hasattr(self.model, 'monitor'):
@@ -126,8 +124,10 @@ class Train(object):
                 if not continue_learning:
                     break
 
-            if self.save_freq > 0:
-                self.save()
+        self.model.monitor.training_succeded = True
+
+        if self.save_freq > 0:
+            self.save()
 
     def run_callbacks_and_monitoring(self):
         self.model.monitor()

@@ -47,6 +47,7 @@ class Monitor(object):
             An object that implements the `Model` interface specified in
             `pylearn2.models`.
         """
+        self.training_succeeded = False
         self.model = model
         self.channels = {}
         self._num_batches_seen = 0

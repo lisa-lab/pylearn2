@@ -9,8 +9,6 @@ import warnings
 from pylearn2.utils import sharedX
 from theano import config
 from theano import function
-from theano.printing import Print
-from theano.printing import min_informative_str
 
 import theano.tensor as T
 
