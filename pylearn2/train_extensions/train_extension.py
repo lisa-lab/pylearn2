@@ -1,5 +1,5 @@
 
-class TrainingCallback(object):
+class TrainExtension(object):
     """ An object called by pylearn2.scripts.train after each epoch of training
         Useful for monitoring and similar functionality.
     """
