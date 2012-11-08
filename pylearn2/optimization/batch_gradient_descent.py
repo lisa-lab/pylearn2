@@ -147,10 +147,16 @@ class BatchGradientDescent:
         self._goto_alpha = function([alpha], updates = goto_updates)
 
         norm = T.sqrt(sum([T.sqr(elem).sum() for elem in self.param_to_grad_shared.values()]))
-
         normalize_grad_updates = {}
         for grad_shared in self.param_to_grad_shared.values():
             normalize_grad_updates[grad_shared] = grad_shared / norm
+
+        # useful for monitoring
+        self.ave_grad_size = sharedX(0.)
+        new_weight = .01
+        normalize_grad_updates[self.ave_grad_size] = new_weight * norm + (1.-new_weight) * self.ave_grad_size
+
+
         self._normalize_grad = function([], norm, updates = normalize_grad_updates)
 
         if self.conjugate:
@@ -200,18 +206,8 @@ class BatchGradientDescent:
             self.tol = tol
 
         self.ave_step_size = sharedX(0.)
+        self.ave_grad_mult = sharedX(0.)
 
-    """
-    def _normalize_grad(self):
-
-        n = sum([norm_sq(elem) for elem in self.param_to_grad_shared.values()])
-        n = np.sqrt(n)
-
-        for grad_shared in self.param_to_grad_shared.values():
-            scale(grad_shared, 1./n)
-
-        return n
-    """
 
     def minimize(self, * inputs ):
 
@@ -424,6 +420,7 @@ class BatchGradientDescent:
                 alpha_list = [ x/2., x ]
                 best_obj = mn
             # end if branching on type of line search
+
             new_weight = .01
             old = self.ave_step_size.get_value()
             update = new_weight * step_size + (1-new_weight) * old
@@ -431,6 +428,12 @@ class BatchGradientDescent:
             if self.ave_step_size.dtype == 'float32':
                 assert update.dtype == 'float32'
             self.ave_step_size.set_value(update)
+
+            old = self.ave_grad_mult.get_value()
+            update = new_weight * (step_size / norm) + (1. - new_weight) * old
+            update = np.cast[config.floatX](update)
+            self.ave_grad_mult.set_value(update)
+
 
         # end while
 
