@@ -1296,7 +1296,14 @@ class BinaryVectorMaxPool(HiddenLayer):
 class Softmax(HiddenLayer):
 
     def __init__(self, n_classes, layer_name, irange = None,
-                 sparse_init = None, W_lr_scale = None):
+                 sparse_init = None, W_lr_scale = None,
+                 copies = 1):
+        """
+            copies: we regard the layer as being copied <copies> times
+                   all sample and mean field states are the *average* of
+                   all of these copies, and the weights to each copy are
+                   tied.
+        """
 
         if isinstance(W_lr_scale, str):
             W_lr_scale = float(W_lr_scale)
@@ -1369,6 +1376,7 @@ class Softmax(HiddenLayer):
         self.W = sharedX(W,  'softmax_W' )
 
         self._params = [ self.b, self.W ]
+
     def get_weights_topo(self):
         if not isinstance(self.input_space, Conv2DSpace):
             raise NotImplementedError()
@@ -1398,6 +1406,9 @@ class Softmax(HiddenLayer):
     def sample(self, state_below = None, state_above = None,
             layer_above = None,
             theano_rng = None):
+
+        if self.copies != 1:
+            raise NotImplementedError("need to draw self.copies samples and average them together.")
 
         if state_above is not None:
             # If you implement this case, also add a unit test for it.
@@ -1464,7 +1475,7 @@ class Softmax(HiddenLayer):
 
     def downward_message(self, downward_state):
 
-        rval =  T.dot(downward_state, self.W.T)
+        rval =  T.dot(downward_state, self.W.T) * self.copies
 
         rval = self.desired_space.format_as(rval, self.input_space)
 
@@ -1503,7 +1514,7 @@ class Softmax(HiddenLayer):
         masked = log_prob_of * drop_mask_Y
         assert masked.ndim == 1
 
-        rval = masked.mean() * scale
+        rval = masked.mean() * scale * self.copies
 
         return - rval
 
@@ -1515,6 +1526,9 @@ class Softmax(HiddenLayer):
         """ Returns a shared variable containing an actual state
            (not a mean field state) for this variable.
         """
+
+        if self.copies != 1:
+            raise NotImplementedError("need to make self.copies samples and average them together.")
 
         t1 = time.time()
 
@@ -1575,6 +1589,8 @@ class Softmax(HiddenLayer):
         weights_term = (T.dot(state_below, self.W) * state).sum(axis=1)
 
         rval = -bias_term - weights_term
+
+        rval *= self.copies
 
         assert rval.ndim == 1
 
