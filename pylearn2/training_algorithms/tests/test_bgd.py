@@ -88,7 +88,7 @@ def test_bgd_unsup():
                 termination_criterion = termination_criterion)
 
     train = Train(dataset, model, algorithm, save_path=None,
-                 save_freq=0, callbacks=None)
+                 save_freq=0, extensions=None)
 
     train.main_loop()
 

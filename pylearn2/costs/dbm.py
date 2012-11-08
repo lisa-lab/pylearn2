@@ -145,18 +145,11 @@ class PCD(Cost):
 
         model.layer_to_chains = layer_to_chains
 
-        orig_V = layer_to_chains[model.visible_layer] # rm
-        orig_Y = layer_to_chains[model.hidden_layers[-1]] # rm
-
         # Note that we replace layer_to_chains with a dict mapping to the new
         # state of the chains
         updates, layer_to_chains = model.get_sampling_updates(layer_to_chains,
                 self.theano_rng, num_steps=self.num_gibbs_steps,
                 return_layer_to_updated = True)
-
-        assert self.num_gibbs_steps >= len(model.hidden_layers) # rm
-        assert orig_Y in theano.gof.graph.ancestors([layer_to_chains[model.visible_layer]]) # rm
-        assert updates[orig_V] is layer_to_chains[model.visible_layer] #rm
 
         warnings.warn("""TODO: reduce variance of negative phase by integrating out
                 the even-numbered layers. The Rao-Blackwellize method can do this
