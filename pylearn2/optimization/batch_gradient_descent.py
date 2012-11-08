@@ -199,6 +199,8 @@ class BatchGradientDescent:
         else:
             self.tol = tol
 
+        self.ave_step_size = sharedX(0.)
+
     """
     def _normalize_grad(self):
 
@@ -279,6 +281,8 @@ class BatchGradientDescent:
                 assert not np.isnan(best_obj)
                 assert best_obj <= prev_best_obj
                 self._goto_alpha(best_alpha)
+
+                step_size = best_alpha
 
                 #if best_obj == prev_best_obj and alpha_list[0] < 1e-5:
                 #    break
@@ -406,6 +410,8 @@ class BatchGradientDescent:
                 idx = obj.index(mn)
                 x = alpha_list[idx]
                 self._goto_alpha(x)
+                # used for statistics gathering
+                step_size = x
                 print mn
                 assert not np.isnan(mn)
 
@@ -417,8 +423,17 @@ class BatchGradientDescent:
 
                 alpha_list = [ x/2., x ]
                 best_obj = mn
+            # end if branching on type of line search
+            new_weight = .01
+            old = self.ave_step_size.get_value()
+            update = new_weight * step_size + (1-new_weight) * old
+            update = np.cast[config.floatX](update)
+            if self.ave_step_size.dtype == 'float32':
+                assert update.dtype == 'float32'
+            self.ave_step_size.set_value(update)
 
-        #end while
+        # end while
+
 
         if not self.reset_alpha:
             self.init_alpha = alpha_list
