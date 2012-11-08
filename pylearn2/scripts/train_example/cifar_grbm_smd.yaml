@@ -20,87 +20,87 @@
 !obj:pylearn2.train.Train {
     # The !pkl tag is used to create an object from a pkl file. Here we retrieve
     #the dataset made by make_dataset.py and use it as our training dataset.
-    "dataset": !pkl: "cifar10_preprocessed_train.pkl",
+    dataset: !pkl: "cifar10_preprocessed_train.pkl",
 
     #Next we make the model to be trained. It is a Binary Gaussian RBM
-    "model": !obj:pylearn2.models.rbm.GaussianBinaryRBM {
+    model: !obj:pylearn2.models.rbm.GaussianBinaryRBM {
 
         # The RBM needs 192 visible units (its inputs are 8x8 patches with 3
         # color channels)
-        "nvis" : 192,
+        nvis : 192,
 
         # We'll use 400 hidden units for this RBM. That's a small number but we
         # want this ex example script to train quickly.
-        "nhid" : 400,
+        nhid : 400,
 
         # The elements of the weight matrices of the RBM will be drawn
         # independently from U(-0.05, 0.05)
-        "irange" : 0.05,
+        irange : 0.05,
 
         # There are many ways to parameterize a GRBM. Here we use a
         # parameterization that makes the correspondence to denoising
         # autoencoders more clear.
-        "energy_function_class" : !obj:pylearn2.energy_functions.rbm_energy.grbm_type_1 {},
+        energy_function_class : !obj:pylearn2.energy_functions.rbm_energy.grbm_type_1 {},
 
         # Some learning algorithms are capable of estimating the standard
         # deviation of the visible units of a GRBM successfully, others are not
         # and just fix the standard deviation to 1.  We're going to show off
         # and learn the standard deviation.
-        "learn_sigma" : True,
+        learn_sigma : True,
 
         # Learning works better if we provide a smart initialization for the
         # parameters.  Here we start sigma at .4 , which is about the same
         # standard deviation as the training data. We start the biases on the
         # hidden units at -2, which will make them have fairly sparse
         # activations.
-        "init_sigma" : .4,
-        "init_bias_hid" : -2.,
+        init_sigma : .4,
+        init_bias_hid : -2.,
 
         # Some GRBM training algorithms can't handle the visible units being
         # noisy and just use their mean for all computations. We will show off
         # and not use that hack here.
-        "mean_vis" : False,
+        mean_vis : False,
 
         # One hack we will make is we will scale back the gradient steps on the
         # sigma parameter. This way we don't need to worry about sigma getting
         # too small prematurely (if it gets too small too fast the learning
         # signal gets weak).
-        "sigma_lr_scale" : 1e-3
+        sigma_lr_scale : 1e-3
 
     },
 
     # Next we need to specify the training algorithm that will be used to train
     # the model.  Here we use stochastic gradient descent.
 
-    "algorithm": !obj:pylearn2.training_algorithms.sgd.SGD {
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
         # The learning rate determines how big of steps the learning algorithm
         # takes.  Here we use fairly big steps initially because we have a
         # learning rate adjustment scheme that will scale them down if
         # necessary.
-        "learning_rate" : 1e-1,
+        learning_rate : 1e-1,
 
         # Each gradient step will be based on this many examples
-        "batch_size" : 5,
+        batch_size : 5,
 
         # We'll monitor our progress by looking at the first 20 batches of the
         # training dataset. This is an estimate of the training error. To be
         # really exhaustive, we could use the entire training set instead,
         # or to avoid overfitting, we could use held out data instead.
-        "monitoring_batches" : 20,
+        monitoring_batches : 20,
 
-        "monitoring_dataset" : !pkl: "cifar10_preprocessed_train.pkl",
+        monitoring_dataset : !pkl: "cifar10_preprocessed_train.pkl",
 
         # Here we specify the objective function that stochastic gradient
         # descent should minimize.  In this case we use denoising score
         # matching, which makes this RBM behave as a denoising autoencoder.
 
-        "cost" : !obj:pylearn2.costs.ebm_estimation.SMD {
+        cost : !obj:pylearn2.costs.ebm_estimation.SMD {
 
             # Denoising score matching uses a corruption process to transform
             # the raw data.  Here we use additive gaussian noise.
 
-            "corruptor" : !obj:pylearn2.corruption.GaussianCorruptor {
-                    "stdev" : 0.4
+            corruptor : !obj:pylearn2.corruption.GaussianCorruptor {
+                    stdev : 0.4
             },
         },
 
@@ -113,20 +113,24 @@
         # (setting N to 10 should make the weights prettier, but will make it
         # run a lot longer)
 
-        "termination_criterion" : !obj:pylearn2.termination_criteria.MonitorBased {
-            "prop_decrease" : 0.01,
-            "N" : 1,
+        termination_criterion : !obj:pylearn2.termination_criteria.MonitorBased {
+            prop_decrease : 0.01,
+            N : 1,
         },
 
         # Let's throw a learning rate adjuster into the training algorithm.
-        # This is a bit of a hack but works well in practice. It will shrink
-        # the learning rate if the objective goes up and increase the learning
-        # rate if the objective decreases too slowly. This makes our learning
-        # rate hyperparameter less important to get right.
+        # To do this we'll use an "extension," which is basically an event
+        # handler that can be registered with the Train object.
+        # This particular one is triggered on each epoch.
+        # It will shrink the learning rate if the objective goes up and increase
+        # the learning rate if the objective decreases too slowly. This makes
+        # our learning rate hyperparameter less important to get right.
+        # This is not a very mathematically principled approach, but it works
+        # well in practice.
         },
-    "callbacks" : [!obj:pylearn2.training_algorithms.sgd.MonitorBasedLRAdjuster {}],
+    extensions : [!obj:pylearn2.training_algorithms.sgd.MonitorBasedLRAdjuster {}],
     #Finally, request that the model be saved after each epoch
-    "save_freq" : 1
+    save_freq : 1
 }
 
 
