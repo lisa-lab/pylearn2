@@ -18,7 +18,7 @@ from theano import tensor as T
 from pylearn2.monitor import Monitor
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 from pylearn2.utils import sharedX
-from pylearn2.training_callbacks.training_callback import TrainingCallback
+from pylearn2.train_extensions import TrainExtension
 from pylearn2.utils.iteration import is_stochastic
 from pylearn2.utils import safe_zip
 from pylearn2.utils import serial
@@ -327,17 +327,10 @@ class SGD(TrainingAlgorithm):
             return self.termination_criterion(self.model)
 
 
-class MonitorBasedLRAdjuster(TrainingCallback):
+class MonitorBasedLRAdjuster(TrainExtension):
     """
-
-    DO NOT USE AS A CALLBACK FOR THE SGD ALGORITHM.
-
-    THIS IS A CALLBACK FOR THE TRAIN OBJECT, WHICH ONLY MAKES
-    SENSE IF TRAIN IS USING THE SGD ALGORITHM. IT IS NOT A
-    CALLBACK FOR THE SGD ALGORITHM.
-
-
-    A learning rate adjuster that pulls out the only channel
+    A TrainExtension that uses the on_monitor callback to adjust
+    the learning rate on each epoch. It pulls out the only channel
     in the model's monitor (this won't work for multiple-channel
     monitors, TODO fix this issue) and adjusts the learning rate
     based on what happened to the monitoring error on the last
@@ -364,7 +357,7 @@ class MonitorBasedLRAdjuster(TrainingCallback):
         self.min_lr = min_lr
         self.max_lr = max_lr
 
-    def __call__(self, model, dataset, algorithm):
+    def on_monitor(self, model, dataset, algorithm):
         # TODO: more sophisticated error checking here.
         model = algorithm.model
         lr = algorithm.learning_rate
@@ -558,7 +551,7 @@ class ExponentialDecay(object):
         algorithm.learning_rate.set_value(new_lr)
 
 
-class MomentumAdjustor(TrainingCallback):
+class MomentumAdjustor(TrainExtension):
     def __init__(self, final_momentum, start, saturate):
         """
             final_momentum: the momentum coefficient to use at the end
@@ -571,7 +564,7 @@ class MomentumAdjustor(TrainingCallback):
         self._initialized = False
         self._count = 0
 
-    def __call__(self, model, dataset, algorithm):
+    def on_monitor(self, model, dataset, algorithm):
         if not self._initialized:
             self._init_momentum = algorithm.momentum.get_value()
             self._initialized = True
@@ -587,7 +580,7 @@ class MomentumAdjustor(TrainingCallback):
             alpha = 1.
         return self._init_momentum * (1.-alpha)+alpha*self.final_momentum
 
-class OneOverEpoch(TrainingCallback):
+class OneOverEpoch(TrainExtension):
     """
     Scales the learning rate like one over # epochs
     """
@@ -610,7 +603,7 @@ class OneOverEpoch(TrainingCallback):
         else:
             assert half_life > 0
 
-    def __call__(self, model, dataset, algorithm):
+    def on_monitor(self, model, dataset, algorithm):
         if not self._initialized:
             self._init_lr = algorithm.learning_rate.get_value()
             if self._init_lr < self.min_lr:
@@ -648,7 +641,7 @@ class _PolyakWorker(object):
     def __call__(self, algorithm):
         self.avg()
 
-class PolyakAveraging(TrainingCallback):
+class PolyakAveraging(TrainExtension):
     """
     See "A Tutorial on Stochastic Approximation Algorithms
     for Training Restricted Boltzmann Machines and
@@ -677,6 +670,9 @@ class PolyakAveraging(TrainingCallback):
     sure the saved model at the end uses the averaged
     parameters, not the parameters used for computing
     the gradients during training.
+
+    TOOD: make use of the new on_save callback instead
+        of duplicating Train's save_freq flag
     """
 
     def __init__(self, start, save_path = None, save_freq = 1):
@@ -690,7 +686,7 @@ class PolyakAveraging(TrainingCallback):
         assert isinstance(start, int)
         assert start >= 0
 
-    def __call__(self, model, dataset, algorithm):
+    def on_monitor(self, model, dataset, algorithm):
         if self._count == self.start:
             self._worker = _PolyakWorker(model)
             algorithm.update_callbacks.append(self._worker)

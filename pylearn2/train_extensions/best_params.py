@@ -1,12 +1,12 @@
 import numpy
 np = numpy
-from pylearn2.training_callbacks.training_callback import TrainingCallback
+from pylearn2.train_extensions import TrainExtension
 import theano
 import theano.tensor as T
 from pylearn2.utils import serial
 
 
-class KeepBestParams(TrainingCallback):
+class KeepBestParams(TrainExtension):
     """
     A callback which keeps track of a model's best parameters based on its
     performance for a given cost on a given dataset.
@@ -45,7 +45,7 @@ class KeepBestParams(TrainingCallback):
         self.best_cost = numpy.inf
         self.best_params = model.get_param_values()
 
-    def __call__(self, model, dataset, algorithm):
+    def on_monitor(self, model, dataset, algorithm):
         """
         Looks whether the model performs better than earlier. If it's the
         case, records the model's parameters.
@@ -82,7 +82,7 @@ class KeepBestParams(TrainingCallback):
         return self.best_params
 
 
-class MonitorBasedSaveBest(TrainingCallback):
+class MonitorBasedSaveBest(TrainExtension):
     """
     A callback that saves a copy of the model every time it achieves
     a new minimal value of a monitoring channel.
@@ -100,7 +100,7 @@ class MonitorBasedSaveBest(TrainingCallback):
         self.best_cost = np.inf
 
 
-    def __call__(self, model, dataset, algorithm):
+    def on_monitor(self, model, dataset, algorithm):
         """
         Looks whether the model performs better than earlier. If it's the
         case, saves the model.

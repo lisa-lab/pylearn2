@@ -22,11 +22,11 @@ class Train(object):
     """
     A class representing the main loop of the training script.  Trains the
     specified model using the specified algorithm on the specified dataset.
-    After each call to the training algorithm, the model is saved to save_path
-    and each of the registered callbacks are called.
+    After each call to the training algorithm, the model is saved to save_path.
+    May be enhanced with TrainExtension plugins.
     """
     def __init__(self, dataset, model, algorithm=None, save_path=None,
-                 save_freq=0, callbacks=None, allow_overwrite=True):
+                 save_freq=0, extensions=None, allow_overwrite=True):
         """
         Construct a Train instance.
 
@@ -50,9 +50,9 @@ class Train(object):
             i.e. never save)
             Note: the model is always saved at the end of learning, even
             if the final epoch is not a multiple of save_freq.
-        callbacks : iterable, optional
-            A collection of callbacks that are called, one at a time,
-            after each epoch.
+        extensions : iterable, optional
+            A collection of TrainExtension objects whose callbacks are
+            triggered at various points in learning.
         """
         self.allow_overwrite = allow_overwrite
         self.first_save = True
@@ -75,7 +75,7 @@ class Train(object):
                     tokens = os.environ['PYLEARN2_TRAIN_FILE_NAME'], 'pkl'
                 self.save_path = '.'.join(tokens)
         self.save_freq = save_freq
-        self.callbacks = callbacks if callbacks is not None else []
+        self.extensions = extensions if extensions is not None else []
 
         if hasattr(self.dataset,'yaml_src'):
             self.model.dataset_yaml_src = self.dataset.yaml_src
@@ -131,17 +131,19 @@ class Train(object):
 
     def run_callbacks_and_monitoring(self):
         self.model.monitor()
-        for callback in self.callbacks:
+        for extension in self.extensions:
             try:
-                callback(self.model, self.dataset, self.algorithm)
+                extension.on_monitor(self.model, self.dataset, self.algorithm)
             except TypeError, e:
-                logging.warning('Failure during callback ' + str(callback))
+                logging.warning('Failure during callback ' + str(extension))
                 raise
 
     def save(self):
         """Saves the model."""
         #TODO-- save state of training algorithm so training can be
         # resumed after a crash
+        for extension in self.extensions:
+            extension.on_save(self.model, self.dataset, self.algorithm)
         if self.save_path is not None:
             with log_timing(log, 'Saving to ' + self.save_path):
                 if self.first_save and (not self.allow_overwrite) \
