@@ -175,7 +175,7 @@ def test_sgd_sup():
                  init_momentum = None, set_batch_size = False)
 
     train = Train(dataset, model, algorithm, save_path=None,
-                 save_freq=0, callbacks=None)
+                 save_freq=0, extensions=None)
 
     train.main_loop()
 
@@ -220,7 +220,7 @@ def test_sgd_unsup():
                  init_momentum = None, set_batch_size = False)
 
     train = Train(dataset, model, algorithm, save_path=None,
-                 save_freq=0, callbacks=None)
+                 save_freq=0, extensions=None)
 
     train.main_loop()
 
@@ -276,7 +276,7 @@ def test_sgd_topo():
                  init_momentum = None, set_batch_size = False)
 
     train = Train(dataset, model, algorithm, save_path=None,
-                 save_freq=0, callbacks=None)
+                 save_freq=0, extensions=None)
 
     train.main_loop()
 
@@ -326,7 +326,7 @@ def test_sgd_no_mon():
                  init_momentum = None, set_batch_size = False)
 
     train = Train(dataset, model, algorithm, save_path=None,
-                 save_freq=0, callbacks=None)
+                 save_freq=0, extensions=None)
 
     train.main_loop()
 

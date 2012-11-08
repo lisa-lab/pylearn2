@@ -40,7 +40,7 @@ def test_serialization_guard():
     algorithm = DummyAlgorithm()
 
     train = Train(dataset, model, algorithm, save_path='_tmp_unit_test.pkl',
-                 save_freq=1, callbacks=None)
+                 save_freq=1, extensions=None)
 
     try:
         train.main_loop()
