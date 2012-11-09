@@ -7,6 +7,7 @@ __email__ = "goodfeli@iro"
 import numpy as np
 import warnings
 from pylearn2.utils import sharedX
+from pylearn2.utils import safe_zip
 from theano import config
 from theano import function
 
@@ -126,7 +127,7 @@ class BatchGradientDescent:
         if self.verbose:
             print 'batch gradient class compiling objective function'
         if self.accumulate:
-            self.obj = Accumulator(inputs, updates = updates)
+            self.obj = Accumulator(inputs, obj)
         else:
             self.obj = function(inputs, obj)
         if self.verbose:
@@ -180,7 +181,7 @@ class BatchGradientDescent:
             old_grad_ordered = [ grad_to_old_grad[grad] for grad in grad_ordered]
 
             def dot_product(x, y):
-                return sum([ (x_elem * y_elem).sum() for x_elem, y_elem in zip(x, y) ])
+                return sum([ (x_elem * y_elem).sum() for x_elem, y_elem in safe_zip(x, y) ])
 
             beta_pr = (dot_product(grad_ordered, grad_ordered) - dot_product(grad_ordered, old_grad_ordered)) / \
                     (1e-7+dot_product(old_grad_ordered, old_grad_ordered))
@@ -323,7 +324,7 @@ class BatchGradientDescent:
                         if self.verbose:
                             print 'shrinking the range of step sizes'
                         alpha_list = [ (alpha ** weight) * (best_alpha ** (1.-weight)) for alpha in alpha_list ]
-                        assert all([second > first for first, second in zip(alpha_list[:-1], alpha_list[1:])])
+                        assert all([second > first for first, second in safe_zip(alpha_list[:-1], alpha_list[1:])])
                         # y^(weight) best^(1-weight) / x^(weight) best^(1-weight) = (y/x)^weight
                         # so this shrinks the ratio between each successive pair of alphas by raising it to weight
                         # weight = .99 -> a gap of 5 is shrunk to 4.92
@@ -459,6 +460,17 @@ class BatchGradientDescent:
 
 class Accumulator(object):
     def __init__(self, inputs, outputs = None, updates = None):
+        """
+            Standin for a theano function with the given inputs, outputs, updates.
+            Here in the __init__ method you give the same expression as usual.
+            However, instead of passing __call__ the input variables directly, you pass it batches,
+            where each batch is a list containing the inputs for that batch.
+            It returns the average value of the function, averaged across batches,
+            taking batch size into account. The average of all updates is also applied.
+            One extra change: if any of the inputs is a shared variable, then this can
+                assign to that variable, while theano.function would refuse to.
+                Those shared variables will be left with the value of the last batch when __call__ returns.
+        """
         batch_size = T.cast(inputs[0].shape[0], 'float32')
         total_examples = T.scalar()
         transformed_updates = {}
@@ -468,16 +480,44 @@ class Accumulator(object):
             for var in updates:
                 update = updates[var]
                 transformed_updates[var] = var + (batch_size / total_examples) * update
-        self._func = function(inputs + [total_examples], outputs=outputs, updates=transformed_updates)
+        self._shared_mask = [ hasattr(elem, 'get_value') for elem in inputs]
+        true_inputs = self._true_inputs(inputs)
+        self._shared = self._shared_inputs(inputs)
+        if outputs is not None:
+            if not isinstance(outputs, list):
+                outputs = [ outputs ]
+            outputs = [ output * (batch_size / total_examples) for output in outputs]
+        self._func = function(true_inputs + [total_examples], outputs=outputs, updates=transformed_updates)
+
+    def _true_inputs(self, inputs):
+        return [elem for elem, shared in safe_zip(inputs, self._shared_mask) if not shared ]
+
+    def _shared_inputs(self, inputs):
+        return [elem for elem, shared in safe_zip(inputs, self._shared_mask) if shared ]
+
+    def _set_shared(self, inputs):
+        for elem, mask, shared in safe_zip(inputs, self._shared_mask, self._shared):
+            if mask:
+                shared.set_value(elem)
 
     def __call__(self, * batches ):
-        total_examples = np.cast[config.floatX](sum([batch.shape[0] for batch in batches]))
+        for batch in batches:
+            if not isinstance(batch, list):
+                raise TypeError("Expected each argument to be a list, but one argument is " + \
+                        str(batch) + " of type "+str(type(batch)))
+        total_examples = np.cast[config.floatX](sum([batch[0].shape[0] for batch in batches]))
         if self.has_updates:
             self._clear()
-        augmented = batches[0] + [total_examples]
-        rval = self.func(*augmented)
+        augmented = self._true_inputs(batches[0]) + [total_examples]
+        self._set_shared(batches[0])
+        rval = self._func(*augmented)
         for batch in batches[1:]:
-            augmented = batch + [total_examples]
-            rval += self._func(*augmented)
+            augmented = self._true_inputs(batch) + [total_examples]
+            self._set_shared(batch)
+            # This works if there is no output, because the output is an empty list
+            cur_out = self._func(*augmented)
+            rval = [ x + y for x, y in safe_zip(rval, cur_out)]
+        if len(rval) == 1:
+            return rval[0]
         return rval
 
