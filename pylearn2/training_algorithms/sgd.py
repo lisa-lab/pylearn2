@@ -70,7 +70,10 @@ class SGD(TrainingAlgorithm):
             raise TypeError("SGD no longer supports using collections of Costs to represent "
                     " a sum of Costs. Use pylearn2.costs.cost.SumOfCosts instead.")
 
-        self.learning_rate = sharedX(learning_rate, 'learning_rate')
+        if isinstance(learning_rate, theano.compile.SharedVariable):
+            self.learning_rate = learning_rate
+        else:
+            self.learning_rate = sharedX(learning_rate, 'learning_rate')
         self.cost = cost
         self.batch_size = batch_size
         self.set_batch_size = set_batch_size
