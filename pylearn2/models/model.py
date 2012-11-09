@@ -249,6 +249,11 @@ class Model(object):
         Parameters may be included here but held constant during
         learning via the `censor_updates` method.
         """
+        # I think there's a bug here, because get_params returns a set
+        # but sets have no defined iteration order, so get_param_values
+        # might return things in one order and set_param_values might
+        # try to put them back in in a different order
+        assert not isinstance(self.get_params(), set)
         return [param.get_value(borrow=borrow) for param in self.get_params()]
 
     def set_param_values(self, values, borrow=False):
