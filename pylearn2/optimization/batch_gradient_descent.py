@@ -29,7 +29,8 @@ class BatchGradientDescent:
             init_alpha = None, min_init_alpha = 1e-3,
             reset_alpha = True, conjugate = False,
             reset_conjugate = True, gradients = None,
-            gradient_updates = None, line_search_mode = None):
+            gradient_updates = None, line_search_mode = None,
+            accumulate = False):
         """ objective: a theano expression to be minimized
                        should be a function of params and,
                        if provided, inputs
@@ -115,13 +116,19 @@ class BatchGradientDescent:
 
         if self.verbose:
             print 'batch gradient class compiling gradient function'
-        self._compute_grad = function(inputs, updates = updates )
+        if self.accumulate:
+            self._compute_grad = Accumulator(inputs, updates = updates)
+        else:
+            self._compute_grad = function(inputs, updates = updates )
         if self.verbose:
             print 'done'
 
         if self.verbose:
             print 'batch gradient class compiling objective function'
-        self.obj = function(inputs, obj)
+        if self.accumulate:
+            self.obj = Accumulator(inputs, updates = updates)
+        else:
+            self.obj = function(inputs, obj)
         if self.verbose:
             print 'done'
 
@@ -449,3 +456,28 @@ class BatchGradientDescent:
             warnings.warn(str(norm)+" seems pretty big for a gradient at convergence...")
 
         return best_obj
+
+class Accumulator(object):
+    def __init__(self, inputs, outputs = None, updates = None):
+        batch_size = T.cast(inputs[0].shape[0], 'float32')
+        total_examples = T.scalar()
+        transformed_updates = {}
+        self.has_updates = updates is not None
+        if self.has_updates:
+            self._clear = function([], updates = [ (var, 0. * var) for var in updates])
+            for var in updates:
+                update = updates[var]
+                transformed_updates[var] = var + (batch_size / total_examples) * update
+        self._func = function(inputs + [total_examples], outputs=outputs, updates=transformed_updates)
+
+    def __call__(self, * batches ):
+        total_examples = np.cast[config.floatX](sum([batch.shape[0] for batch in batches]))
+        if self.has_updates:
+            self._clear()
+        augmented = batches[0] + [total_examples]
+        rval = self.func(*augmented)
+        for batch in batches[1:]:
+            augmented = batch + [total_examples]
+            rval += self._func(*augmented)
+        return rval
+
