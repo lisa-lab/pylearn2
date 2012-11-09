@@ -750,7 +750,8 @@ class BinaryVector(VisibleLayer):
 
     def __init__(self,
             nvis,
-            bias_from_marginals = None):
+            bias_from_marginals = None,
+            center = False):
         """
             nvis: the dimension of the space
             bias_from_marginals: a dataset, whose marginals are used to
@@ -783,11 +784,20 @@ class BinaryVector(VisibleLayer):
 
         self.bias = sharedX(init_bias, 'visible_bias')
 
+        if center:
+            self.offset = sharedX(sigmoid_numpy(init_bias))
+
     def get_biases(self):
         return self.bias.get_value()
 
     def set_biases(self, biases):
         self.bias.set_value(biases)
+
+    def upward_state(self, total_state):
+        if self.center:
+            return total_state - self.offset
+        else:
+            return total_state
 
 
     def get_params(self):
@@ -796,6 +806,9 @@ class BinaryVector(VisibleLayer):
     def sample(self, state_below = None, state_above = None,
             layer_above = None,
             theano_rng = None):
+
+        if self.center:
+            raise NotImplementedError()
 
         assert state_below is None
 
@@ -823,6 +836,9 @@ class BinaryVector(VisibleLayer):
         return rval
 
     def expected_energy_term(self, state, average, state_below = None, average_below = None):
+
+        if self.center:
+            raise NotImplementedError()
 
         assert state_below is None
         assert average_below is None
@@ -859,6 +875,7 @@ class BinaryVectorMaxPool(HiddenLayer):
             sparse_stdev = 1.,
             include_prob = 1.0,
             init_bias = 0.,
+            center = False,
             mask_weights = None):
         """
 
@@ -871,6 +888,11 @@ class BinaryVectorMaxPool(HiddenLayer):
         del self.self
 
         self.b = sharedX( np.zeros((self.detector_layer_dim,)) + init_bias, name = layer_name + '_b')
+
+        if self.center:
+            if self.pool_size != 1:
+                raise NotImplementedError()
+            self.offset = sharedX(sigmoid_numpy(self.b.get_value()))
 
 
     def set_input_space(self, space):
@@ -1014,10 +1036,18 @@ class BinaryVectorMaxPool(HiddenLayer):
         p,h = total_state
         self.h_space.validate(h)
         self.output_space.validate(p)
+
+        if self.center:
+            return p - self.offset
+
         return p
 
     def downward_state(self, total_state):
         p,h = total_state
+
+        if self.center:
+            return h - self.offset
+
         return h
 
     def get_monitoring_channels(self):
@@ -1161,6 +1191,9 @@ class BinaryVectorMaxPool(HiddenLayer):
             layer_above = None,
             theano_rng = None):
 
+        if self.center:
+            raise NotImplementedError()
+
         if theano_rng is None:
             raise ValueError("theano_rng is required; it just defaults to None so that it may appear after layer_above / state_above in the list.")
 
@@ -1230,6 +1263,9 @@ class BinaryVectorMaxPool(HiddenLayer):
 
     def expected_energy_term(self, state, average, state_below, average_below):
 
+        if self.center:
+            raise NotImplementedError()
+
         self.input_space.validate(state_below)
 
         if self.requires_reformat:
@@ -1298,7 +1334,7 @@ class Softmax(HiddenLayer):
     def __init__(self, n_classes, layer_name, irange = None,
                  sparse_init = None, W_lr_scale = None,
                  b_lr_scale = None,
-                 copies = 1):
+                 copies = 1, center = False):
         """
             copies: we regard the layer as being copied <copies> times
                    all sample and mean field states are the *average* of
@@ -1317,6 +1353,10 @@ class Softmax(HiddenLayer):
         self.output_space = VectorSpace(n_classes)
         self.b = sharedX( np.zeros((n_classes,)), name = 'softmax_b')
 
+        if self.center:
+            b = self.b.get_value()
+            self.offset = sharedX(np.exp(b) / np.exp(b).sum())
+
     def get_lr_scalers(self):
 
         rval = {}
@@ -1328,6 +1368,9 @@ class Softmax(HiddenLayer):
         if self.W_lr_scale is not None:
             assert isinstance(self.W_lr_scale, float)
             rval[self.W] = self.W_lr_scale
+
+        if not hasattr(self, 'b_lr_scale'):
+            self.b_lr_scale = None
 
         if self.b_lr_scale is not None:
             assert isinstance(self.b_lr_scale, float)
@@ -1411,6 +1454,7 @@ class Softmax(HiddenLayer):
     def sample(self, state_below = None, state_above = None,
             layer_above = None,
             theano_rng = None):
+
 
         if self.copies != 1:
             raise NotImplementedError("need to draw self.copies samples and average them together.")
@@ -1582,7 +1626,20 @@ class Softmax(HiddenLayer):
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         return coeff * T.sqr(self.W).sum()
 
+    def upward_state(self, state):
+        if self.center:
+            return state - self.offset
+        return state
+
+    def downward_state(self, state):
+        if self.center:
+            return state - self.offset
+        return state
+
     def expected_energy_term(self, state, average, state_below, average_below):
+
+        if self.center:
+            raise NotImplementedError()
 
         self.input_space.validate(state_below)
         if self.needs_reformat:
