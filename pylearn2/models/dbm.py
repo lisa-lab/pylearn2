@@ -1460,7 +1460,8 @@ class Softmax(HiddenLayer):
             state_below = self.input_space.format_as(state_below, self.desired_space)
 
         for value in get_debug_values(state_below):
-            assert value.shape[0] == self.dbm.batch_size
+            if value.shape[0] != self.dbm.batch_size:
+                raise ValueError("state_below should have batch size "+str(self.dbm.batch_size)+" but has "+str(value.shape[0]))
 
         self.desired_space.validate(state_below)
 
