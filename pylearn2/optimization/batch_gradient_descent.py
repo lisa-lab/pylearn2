@@ -153,8 +153,8 @@ class BatchGradientDescent:
 
         # useful for monitoring
         self.ave_grad_size = sharedX(0.)
-        new_weight = .01
-        normalize_grad_updates[self.ave_grad_size] = new_weight * norm + (1.-new_weight) * self.ave_grad_size
+        self.new_weight = sharedX(1.)
+        normalize_grad_updates[self.ave_grad_size] = self.new_weight * norm + (1.-self.new_weight) * self.ave_grad_size
 
 
         self._normalize_grad = function([], norm, updates = normalize_grad_updates)
@@ -421,7 +421,7 @@ class BatchGradientDescent:
                 best_obj = mn
             # end if branching on type of line search
 
-            new_weight = .01
+            new_weight = self.new_weight.get_value()
             old = self.ave_step_size.get_value()
             update = new_weight * step_size + (1-new_weight) * old
             update = np.cast[config.floatX](update)
@@ -433,6 +433,10 @@ class BatchGradientDescent:
             update = new_weight * (step_size / norm) + (1. - new_weight) * old
             update = np.cast[config.floatX](update)
             self.ave_grad_mult.set_value(update)
+            # it is initialized to 1 to get all the means started at data points,
+            # but then we turn it into a running average
+            if new_weight == 1.:
+                self.new_weight.set_value(.01)
 
 
         # end while
