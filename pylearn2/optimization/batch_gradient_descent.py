@@ -26,7 +26,7 @@ class BatchGradientDescent:
 
     def __init__(self, objective, params, inputs = None,
             param_constrainers = None, max_iter = -1,
-            lr_scalers = None, verbose = False, tol = None,
+            lr_scalers = None, verbose = 0, tol = None,
             init_alpha = None, min_init_alpha = 1e-3,
             reset_alpha = True, conjugate = False,
             reset_conjugate = True, gradients = None,
@@ -249,7 +249,7 @@ class BatchGradientDescent:
 
         while iters != self.max_iter:
             if self.verbose:
-                print iters
+                print 'batch gradient descent iteration',iters
             iters += 1
             self._cache_values()
             if self.conjugate:
@@ -342,7 +342,8 @@ class BatchGradientDescent:
                 # search. We could probably do better by fitting a function
                 # and jumping to its local minima at each step
 
-                print 'Exhaustive line search'
+                if self.verbose > 1:
+                    print 'Exhaustive line search'
 
 
                 obj = self.obj(*inputs)
@@ -359,10 +360,11 @@ class BatchGradientDescent:
                     if np.isnan(obj):
                         obj = np.inf
                     results.append( (alpha, obj) )
-                for alpha, obj in results:
-                    print '\t',alpha,obj
+                if self.verbose > 1:
+                    for alpha, obj in results:
+                        print '\t',alpha,obj
 
-                print '\t-------'
+                    print '\t-------'
 
                 prev_improvement = 0.
                 while True:
@@ -374,7 +376,8 @@ class BatchGradientDescent:
                     def do_point(x):
                         self._goto_alpha(x)
                         res = self.obj(*inputs)
-                        print '\t',x,res
+                        if self.verbose > 1:
+                            print '\t',x,res
                         # Regard NaN results as infinitely bad so they won't be picked as the min objective
                         if np.isnan(res):
                             res = np.inf
@@ -416,7 +419,7 @@ class BatchGradientDescent:
                 self._goto_alpha(x)
                 # used for statistics gathering
                 step_size = x
-                print mn
+                print 'best objective: ',mn
                 assert not np.isnan(mn)
 
                 if idx == 0:
