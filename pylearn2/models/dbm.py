@@ -955,7 +955,7 @@ class BinaryVectorMaxPool(HiddenLayer):
     def get_weight_decay(self, coeff):
         if isinstance(coeff, str):
             coeff = float(coeff)
-        assert isinstance(coeff, float)
+        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
@@ -1131,7 +1131,7 @@ class BinaryVectorMaxPool(HiddenLayer):
             if not isinstance(target, float):
                 raise TypeError("BinaryVectorMaxPool.get_l1_act_cost expected target of type float " + \
                         " but an instance named "+self.layer_name + " got target "+str(target) + " of type "+str(type(target)))
-            assert isinstance(coeff, float)
+            assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
             _, state = state
             state = [state]
             target = [target]
@@ -1148,7 +1148,7 @@ class BinaryVectorMaxPool(HiddenLayer):
                 warnings.warn("Do you really want to regularize the detector units to be sparser than the pooling units?")
 
         for s, t, c, e in safe_zip(state, target, coeff, eps):
-            assert all([isinstance(elem, float) for elem in [t, c, e]])
+            assert all([isinstance(elem, float) or hasattr(elem, 'dtype') for elem in [t, c, e]])
             if c == 0.:
                 continue
             m = s.mean(axis=0)
@@ -1579,7 +1579,7 @@ class Softmax(HiddenLayer):
     def get_weight_decay(self, coeff):
         if isinstance(coeff, str):
             coeff = float(coeff)
-        assert isinstance(coeff, float)
+        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         return coeff * T.sqr(self.W).sum()
 
     def expected_energy_term(self, state, average, state_below, average_below):
