@@ -1480,6 +1480,9 @@ class Softmax(HiddenLayer):
 
     def downward_message(self, downward_state):
 
+        if not hasattr(self, 'copies'):
+            self.copies = 1
+
         rval =  T.dot(downward_state, self.W.T) * self.copies
 
         rval = self.desired_space.format_as(rval, self.input_space)
