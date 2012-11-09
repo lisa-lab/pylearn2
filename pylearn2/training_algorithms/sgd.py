@@ -56,19 +56,6 @@ class SGD(TrainingAlgorithm):
                             can change it after each minibatch.
             cost: a pylearn2.costs.cost.Cost object specifying the objective
                   function to be minimized.
-            init_momentum: if None, does not use momentum
-                            otherwise, use momentum and initialize the
-                            momentum coefficient to init_momentum.
-                            Callbacks can change this over time just like
-                            the learning rate.
-
-                            If the gradient is the same on every step, then
-                            the update taken by the SGD algorithm is scaled
-                            by a factor of 1/(1-momentum).
-
-                            See section 9 of Geoffrey Hinton's "A Practical
-                            Guide to Training Restricted Boltzmann Machines"
-                            for details.
             set_batch_size: if True, and batch_size conflicts with
                             model.force_batch_size, will call
                             model.set_batch_size(batch_size) in an attempt
@@ -76,8 +63,7 @@ class SGD(TrainingAlgorithm):
 
             Parameters are updated by the formula:
 
-            inc := momentum * inc - learning_rate * d cost / d param
-            param := param + inc
+            param := param - learning_rate * d cost / d param
         """
 
         if isinstance(cost, (list, tuple, set)):
@@ -95,13 +81,6 @@ class SGD(TrainingAlgorithm):
             if monitoring_batches is not None:
                 raise ValueError("Specified an amount of monitoring batches but not a monitoring dataset.")
         self.termination_criterion = termination_criterion
-        self.init_momenutm = init_momentum
-        if init_momentum is None:
-            self.momentum = None
-        else:
-            assert init_momentum >= 0.
-            assert init_momentum < 1.
-            self.momentum = sharedX(init_momentum, 'momentum')
         self._register_update_callbacks(update_callbacks)
         if train_iteration_mode is None:
             train_iteration_mode = 'shuffled_sequential'
@@ -214,9 +193,6 @@ class SGD(TrainingAlgorithm):
                     first_dataset = False
                     self.monitor.add_channel(name='learning_rate', ipt=ipt,
                             val=learning_rate, dataset=monitoring_dataset)
-                    if self.momentum:
-                        self.monitor.add_channel(name='momentum', ipt=ipt,
-                                val=self.momentum, dataset=monitoring_dataset)
 
         params = list(model.get_params())
         assert len(params) > 0
@@ -263,22 +239,11 @@ class SGD(TrainingAlgorithm):
             log.info('\t' + param_name + ': ' + str(lr))
 
         # The updates are computed on the search direction, which is the
-        # gradient if no SearchDirection object was provided at 
+        # gradient if no SearchDirection object was provided at
         # initialization.
-        # TODO: remove SGD.momentum and implement momentum as a SearchDirection
-        if self.momentum is None:
-            updates.update( dict(safe_zip(params, [param - learning_rate * \
-                lr_scalers.get(param, 1.) * direction[param]
-                                    for param in params])))
-        else:
-            for param in params:
-                inc = sharedX(param.get_value() * 0.)
-                if param.name is not None:
-                    inc.name = 'inc_'+param.name
-                updated_inc = self.momentum * inc - learning_rate * grads[param]
-                updates[inc] = updated_inc
-                updates[param] = param + updated_inc
-
+        updates.update(dict(safe_zip(params, [param - learning_rate * \
+                       lr_scalers.get(param, 1.) * direction[param]
+                       for param in params])))
 
         for param in params:
             if updates[param].name is None:
@@ -585,6 +550,7 @@ class ExponentialDecay(object):
         algorithm.learning_rate.set_value(new_lr)
 
 
+# TODO: decide whether this class is still relevant with SearchDirection
 class MomentumAdjustor(TrainExtension):
     def __init__(self, final_momentum, start, saturate):
         """
