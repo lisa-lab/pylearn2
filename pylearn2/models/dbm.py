@@ -1297,6 +1297,7 @@ class Softmax(HiddenLayer):
 
     def __init__(self, n_classes, layer_name, irange = None,
                  sparse_init = None, W_lr_scale = None,
+                 b_lr_scale = None,
                  copies = 1):
         """
             copies: we regard the layer as being copied <copies> times
@@ -1327,6 +1328,10 @@ class Softmax(HiddenLayer):
         if self.W_lr_scale is not None:
             assert isinstance(self.W_lr_scale, float)
             rval[self.W] = self.W_lr_scale
+
+        if self.b_lr_scale is not None:
+            assert isinstance(self.b_lr_scale, float)
+            rval[self.b] = self.b_lr_scale
 
         return rval
 
