@@ -19,6 +19,12 @@ for param in model.get_params():
     if np.sign(v.min()) != np.sign(v.max()):
         v = np.abs(v)
         print 'abs('+name+'): '+str((v.min(),v.mean(),v.max()))
+    if v.ndim == 2:
+        row_norms = np.sqrt(np.square(v).sum(axis=1))
+        print name +" row norms: ",(row_norms.min(), row_norms.mean(), row_norms.max())
+        col_norms = np.sqrt(np.square(v).sum(axis=0))
+        print name +" col norms: ",(col_norms.min(), col_norms.mean(), col_norms.max())
+
 if hasattr(model,'monitor'):
     print 'trained on',model.monitor.get_examples_seen(),' examples'
     print 'which corresponds to',model.monitor.get_batches_seen(),'batches'

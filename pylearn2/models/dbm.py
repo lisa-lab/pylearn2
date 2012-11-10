@@ -794,6 +794,10 @@ class BinaryVector(VisibleLayer):
         self.bias.set_value(biases)
 
     def upward_state(self, total_state):
+
+        if not hasattr(self, 'center'):
+            self.center = False
+
         if self.center:
             return total_state - self.offset
         else:
@@ -1037,6 +1041,9 @@ class BinaryVectorMaxPool(HiddenLayer):
         self.h_space.validate(h)
         self.output_space.validate(p)
 
+        if not hasattr(self, 'center'):
+            self.center = False
+
         if self.center:
             return p - self.offset
 
@@ -1044,6 +1051,9 @@ class BinaryVectorMaxPool(HiddenLayer):
 
     def downward_state(self, total_state):
         p,h = total_state
+
+        if not hasattr(self, 'center'):
+            self.center = False
 
         if self.center:
             return h - self.offset
@@ -1190,6 +1200,9 @@ class BinaryVectorMaxPool(HiddenLayer):
     def sample(self, state_below = None, state_above = None,
             layer_above = None,
             theano_rng = None):
+
+        if not hasattr(self, 'center'):
+            self.center = False
 
         if self.center:
             raise NotImplementedError()
@@ -1633,6 +1646,8 @@ class Softmax(HiddenLayer):
         return state
 
     def downward_state(self, state):
+        if not hasattr(self, 'center'):
+            self.center = False
         if self.center:
             return state - self.offset
         return state
