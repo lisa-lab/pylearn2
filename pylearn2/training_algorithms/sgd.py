@@ -481,26 +481,6 @@ class PatienceBasedTermCrit(object):
 
         return len(v) < self.patience
 
-class EpochCounter(object):
-    def  __init__(self, max_epochs):
-        """
-        A termination criterion that uses internal state to
-        trigger termination after a fixed number of calls
-        (epochs).
-
-        Parameters
-        ----------
-        max_epochs : int
-            Number of epochs (i.e. calls to this object's `__call__`
-           method) for which this termination criterion should
-           return `True`.
-        """
-        self._max_epochs = max_epochs
-        self._epochs_done = 0
-
-    def __call__(self, model):
-        self._epochs_done += 1
-        return self._epochs_done < self._max_epochs
 
 class AnnealedLearningRate(object):
     """
@@ -750,3 +730,8 @@ class ExhaustiveSGD(SGD): # deprecated!
         warnings.warn("ExhaustiveSGD is deprecated. It has been renamed to SGD.")
 
         super(ExhaustiveSGD,self).__init__(*args, ** kwargs)
+
+# This class was moved to the new submodule, but I import
+# a reference to it here to avoid breaking the old interface.
+from pylearn2.termination_criteria import EpochCounter
+

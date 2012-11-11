@@ -135,3 +135,24 @@ class ChannelTarget(TerminationCriterion):
 
         rval =  channel.val_record[-1] > self.target
         return rval
+
+class EpochCounter(TerminationCriterion):
+    def  __init__(self, max_epochs):
+        """
+        A termination criterion that uses internal state to
+        trigger termination after a fixed number of calls
+        (epochs).
+
+        Parameters
+        ----------
+        max_epochs : int
+            Number of epochs (i.e. calls to this object's `__call__`
+           method) after which this termination criterion should
+           return `False`.
+        """
+        self._max_epochs = max_epochs
+        self._epochs_done = 0
+
+    def __call__(self, model):
+        self._epochs_done += 1
+        return self._epochs_done < self._max_epochs
