@@ -736,6 +736,9 @@ class HiddenLayer(Layer):
     def downward_state(self, total_state):
         return total_state
 
+    def get_stdev_rewards(self, state, coess):
+        raise NotImplementedError(str(type(self))+" does not implement get_stdev_rewards")
+
     def get_range_rewards(self, state, coess):
         raise NotImplementedError(str(type(self))+" does not implement get_range_rewards")
 
@@ -879,6 +882,8 @@ class BinaryVectorMaxPool(HiddenLayer):
             sparse_stdev = 1.,
             include_prob = 1.0,
             init_bias = 0.,
+            W_lr_scale = None,
+            b_lr_scale = None,
             center = False,
             mask_weights = None):
         """
@@ -897,6 +902,27 @@ class BinaryVectorMaxPool(HiddenLayer):
             if self.pool_size != 1:
                 raise NotImplementedError()
             self.offset = sharedX(sigmoid_numpy(self.b.get_value()))
+
+    def get_lr_scalers(self):
+
+        if not hasattr(self, 'W_lr_scale'):
+            self.W_lr_scale = None
+
+        if not hasattr(self, 'b_lr_scale'):
+            self.b_lr_scale = None
+
+        rval = {}
+
+        if self.W_lr_scale is not None:
+            W, = self.transformer.get_params()
+            rval[W] = self.W_lr_scale
+
+        if self.b_lr_scale is not None:
+            rval[self.b] = self.b_lr_scale
+
+        return rval
+
+
 
 
     def set_input_space(self, space):
@@ -1122,6 +1148,37 @@ class BinaryVectorMaxPool(HiddenLayer):
 
         return rval
 
+    def get_stdev_rewards(self, state, coeffs):
+        rval = 0.
+
+        P, H = state
+        self.output_space.validate(P)
+        self.h_space.validate(H)
+
+
+        if self.pool_size == 1:
+            # If the pool size is 1 then pools = detectors
+            # and we should not penalize pools and detectors separately
+            assert len(state) == 2
+            if isinstance(coeffs, str):
+                coeffs = float(coeffs)
+            assert isinstance(coeffs, float)
+            _, state = state
+            state = [state]
+            coeffs = [coeffs]
+        else:
+            assert all([len(elem) == 2 for elem in [state, coeffs]])
+
+        for s, c in safe_zip(state, coeffs):
+            assert all([isinstance(elem, float) for elem in [c]])
+            if c == 0.:
+                continue
+            mn = s.mean(axis=0)
+            dev = s - mn
+            stdev = T.sqrt(T.sqr(dev).mean(axis=0))
+            rval += (0.5 - stdev).mean()*c
+
+        return rval
     def get_range_rewards(self, state, coeffs):
         rval = 0.
 
@@ -1134,6 +1191,8 @@ class BinaryVectorMaxPool(HiddenLayer):
             # If the pool size is 1 then pools = detectors
             # and we should not penalize pools and detectors separately
             assert len(state) == 2
+            if isinstance(coeffs, str):
+                coeffs = float(coeffs)
             assert isinstance(coeffs, float)
             _, state = state
             state = [state]
