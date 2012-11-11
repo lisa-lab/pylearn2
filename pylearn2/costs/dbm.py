@@ -29,7 +29,11 @@ class PCD(Cost):
     TODO add citation to Tieleman paper, Younes paper
     """
 
-    def __init__(self, num_chains, num_gibbs_steps, supervised = False):
+    def __init__(self, num_chains, num_gibbs_steps, supervised = False, toronto_neg=False):
+        """
+            toronto_neg: If True, use a bit of mean field in the negative phase.
+                        Ruslan Salakhutdinov's matlab code does this.
+        """
         self.__dict__.update(locals())
         del self.self
         self.theano_rng = MRG_RandomStreams(2012 + 10 + 14)
@@ -75,8 +79,6 @@ class PCD(Cost):
 
 
         return rval
-
-
 
     def get_gradients(self, model, X, Y=None):
         """
@@ -151,22 +153,54 @@ class PCD(Cost):
                 self.theano_rng, num_steps=self.num_gibbs_steps,
                 return_layer_to_updated = True)
 
-        warnings.warn("""TODO: reduce variance of negative phase by integrating out
-                the even-numbered layers. The Rao-Blackwellize method can do this
-                for you when expected gradient = gradient of expectation, but doing
-                this in general is trickier.""")
-        #layer_to_chains = model.rao_blackwellize(layer_to_chains)
 
-        expected_energy_p = model.energy(layer_to_chains[model.visible_layer],
-                [layer_to_chains[layer] for layer in model.hidden_layers]).mean()
+        if self.toronto_neg:
+            # Ruslan Salakhutdinov's undocumented negative phase from
+            # http://www.mit.edu/~rsalakhu/code_DBM/dbm_mf.m
+            # IG copied it here without fully understanding it, so it
+            # only applies to exactly the same model structure as
+            # in that code.
 
-        samples = flatten(layer_to_chains.values())
-        for i, sample in enumerate(samples):
-            if sample.name is None:
-                sample.name = 'sample_'+str(i)
+            assert isinstance(model.visible_layer, dbm.BinaryVector)
+            assert isinstance(model.hidden_layers[0], dbm.BinaryVectorMaxPool)
+            assert model.hidden_layers[0].pool_size == 1
+            assert isinstance(model.hidden_layers[1], dbm.BinaryVectorMaxPool)
+            assert model.hidden_layers[1].pool_size == 1
+            assert isinstance(model.hidden_layers[2], dbm.Softmax)
+            assert len(model.hidden_layers) == 3
 
-        neg_phase_grads = dict(safe_zip(params, T.grad(-expected_energy_p, params, consider_constant
-            = samples, disconnected_inputs='ignore')))
+            V_samples = layer_to_chains[model.visible_layer]
+            H1_samples, H2_samples, Y_samples = [layer_to_chains[layer] for layer in model.hidden_layers]
+
+            H1_mf = model.hidden_layers[0].mf_update(state_below=model.visible_layer.upward_state(V_samples),
+                                                    state_above=model.hidden_layers[1].downward_state(H2_samples),
+                                                    layer_above=model.hidden_layers[1])
+            Y_mf = model.hidden_layers[2].mf_update(state_below=model.hidden_layers[1].upward_state(H2_samples))
+            H2_mf = model.hidden_layers[1].mf_update(state_below=model.hidden_layers[0].upward_state(H1_mf),
+                                                    state_above=model.hidden_layers[2].downward_state(Y_mf),
+                                                    layer_above=model.hidden_layers[2])
+
+            expected_energy_p = model.energy(V_samples, [H1_mf, H2_mf, Y_samples]).mean()
+
+            constants = flatten([V_samples, H1_mf, H2_mf, Y_samples])
+
+            neg_phase_grads = dict(safe_zip(params, T.grad(-expected_energy_p, params, consider_constant = constants)))
+        else:
+            warnings.warn("""TODO: reduce variance of negative phase by integrating out
+                    the even-numbered layers. The Rao-Blackwellize method can do this
+                    for you when expected gradient = gradient of expectation, but doing
+                    this in general is trickier.""")
+            #layer_to_chains = model.rao_blackwellize(layer_to_chains)
+            expected_energy_p = model.energy(layer_to_chains[model.visible_layer],
+                    [layer_to_chains[layer] for layer in model.hidden_layers]).mean()
+
+            samples = flatten(layer_to_chains.values())
+            for i, sample in enumerate(samples):
+                if sample.name is None:
+                    sample.name = 'sample_'+str(i)
+
+            neg_phase_grads = dict(safe_zip(params, T.grad(-expected_energy_p, params, consider_constant
+                = samples, disconnected_inputs='ignore')))
 
 
         for param in list(gradients.keys()):
