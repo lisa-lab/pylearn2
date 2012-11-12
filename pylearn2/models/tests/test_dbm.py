@@ -230,7 +230,8 @@ def make_random_basic_binary_dbm(
         num_vis = None,
         num_pool_1 = None,
         num_pool_2 = None,
-        pool_size_2 = None
+        pool_size_2 = None,
+        center = False
         ):
     """
     Makes a DBM with BinaryVector for the visible layer,
@@ -256,22 +257,24 @@ def make_random_basic_binary_dbm(
     num_h1 = num_pool_1 * pool_size_1
     num_h2 = num_pool_2 * pool_size_2
 
-    v = BinaryVector(num_vis)
-    v.set_biases(rng.uniform(-1., 1., (num_vis,)).astype(config.floatX))
+    v = BinaryVector(num_vis, center=center)
+    v.set_biases(rng.uniform(-1., 1., (num_vis,)).astype(config.floatX), recenter=center)
 
     h1 = BinaryVectorMaxPool(
             detector_layer_dim = num_h1,
             pool_size = pool_size_1,
             layer_name = 'h1',
+            center = center,
             irange = 1.)
-    h1.set_biases(rng.uniform(-1., 1., (num_h1,)).astype(config.floatX))
+    h1.set_biases(rng.uniform(-1., 1., (num_h1,)).astype(config.floatX), recenter=center)
 
     h2 = BinaryVectorMaxPool(
+            center = center,
             detector_layer_dim = num_h2,
             pool_size = pool_size_2,
             layer_name = 'h2',
             irange = 1.)
-    h2.set_biases(rng.uniform(-1., 1., (num_h2,)).astype(config.floatX))
+    h2.set_biases(rng.uniform(-1., 1., (num_h2,)).astype(config.floatX), recenter=center)
 
     dbm = DBM(visible_layer = v,
             hidden_layers = [h1, h2],
@@ -399,6 +402,127 @@ def test_bvmp_mf_energy_consistent():
     # We must also run with a larger number to test the general case
     for pool_size in [1, 2, 5]:
         do_test(pool_size)
+
+
+def test_bvmp_mf_energy_consistent_center():
+
+    # A test of the BinaryVectorMaxPool class
+    # Verifies that the mean field update is consistent with
+    # the energy function when using Gregoire Montavon's centering
+    # trick.
+
+    # Specifically, in a DBM consisting of (v, h1, h2), the
+    # lack of intra-layer connections means that
+    # P(h1|v, h2) is factorial so mf_update tells us the true
+    # conditional.
+    # We also know P(h1[i] | h1[-i], v)
+    #  = P(h, v) / P(h[-i], v)
+    #  = P(h, v) / sum_h[i] P(h, v)
+    #  = exp(-E(h, v)) / sum_h[i] exp(-E(h, v))
+    # So we can check that computing P(h[i] | v) with both
+    # methods works the same way
+
+    rng = np.random.RandomState([2012,11,1,613])
+
+    def do_test(pool_size_1):
+
+        # Make DBM and read out its pieces
+        dbm = make_random_basic_binary_dbm(
+                rng = rng,
+                pool_size_1 = pool_size_1,
+                pool_size_2 = 1, # centering is only updated for pool size 1
+                center = True
+                )
+
+        v = dbm.visible_layer
+        h1, h2 = dbm.hidden_layers
+
+        num_p = h1.get_output_space().dim
+
+        # Choose which unit we will test
+        p_idx = rng.randint(num_p)
+
+        # Randomly pick a v, h1[-p_idx], and h2 to condition on
+        # (Random numbers are generated via dbm.rng)
+        layer_to_state = dbm.make_layer_to_state(1)
+        v_state = layer_to_state[v]
+        h1_state = layer_to_state[h1]
+        h2_state = layer_to_state[h2]
+
+        # Debugging checks
+        num_h = h1.detector_layer_dim
+        assert num_p * pool_size_1 == num_h
+        pv, hv = h1_state
+        assert pv.get_value().shape == (1, num_p)
+        assert hv.get_value().shape == (1, num_h)
+
+        # Infer P(h1[i] | h2, v) using mean field
+        expected_p, expected_h = h1.mf_update(
+                state_below = v.upward_state(v_state),
+                state_above = h2.downward_state(h2_state),
+                layer_above = h2)
+
+        expected_p = expected_p[0, p_idx]
+        expected_h = expected_h[0, p_idx * pool_size_1 : (p_idx + 1) * pool_size_1]
+
+        expected_p, expected_h = function([], [expected_p, expected_h])()
+
+        # Infer P(h1[i] | h2, v) using the energy function
+        energy = dbm.energy(V = v_state,
+                hidden = [h1_state, h2_state])
+        unnormalized_prob = T.exp(-energy)
+        assert unnormalized_prob.ndim == 1
+        unnormalized_prob = unnormalized_prob[0]
+        unnormalized_prob = function([], unnormalized_prob)
+
+        p_state, h_state = h1_state
+
+        def compute_unnormalized_prob(which_detector):
+            write_h = np.zeros((pool_size_1,))
+            if which_detector is None:
+                write_p = 0.
+            else:
+                write_p = 1.
+                write_h[which_detector] = 1.
+
+            h_value = h_state.get_value()
+            p_value = p_state.get_value()
+
+            h_value[0, p_idx * pool_size_1 : (p_idx + 1) * pool_size_1] = write_h
+            p_value[0, p_idx] = write_p
+
+            h_state.set_value(h_value)
+            p_state.set_value(p_value)
+
+            return unnormalized_prob()
+
+        off_prob = compute_unnormalized_prob(None)
+        on_probs = [compute_unnormalized_prob(idx) for idx in xrange(pool_size_1)]
+        denom = off_prob + sum(on_probs)
+        off_prob /= denom
+        on_probs = [on_prob / denom for on_prob in on_probs]
+        assert np.allclose(1., off_prob + sum(on_probs))
+
+        # np.asarray(on_probs) doesn't make a numpy vector, so I do it manually
+        wtf_numpy = np.zeros((pool_size_1,))
+        for i in xrange(pool_size_1):
+            wtf_numpy[i] = on_probs[i]
+        on_probs = wtf_numpy
+
+        # Check that they match
+        if not np.allclose(expected_p, 1. - off_prob):
+            print 'mean field expectation of p:',expected_p
+            print 'expectation of p based on enumerating energy function values:',1. - off_prob
+            print 'pool_size_1:',pool_size_1
+
+            assert False
+        if not np.allclose(expected_h, on_probs):
+            print 'mean field expectation of h:',expected_h
+            print 'expectation of h based on enumerating energy function values:',on_probs
+            assert False
+
+    # 1 is the only pool size for which centering is implemented
+    do_test(1)
 
 def test_bvmp_mf_sample_consistent():
 

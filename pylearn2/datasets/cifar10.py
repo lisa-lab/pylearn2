@@ -156,6 +156,10 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
 
         return rval
 
+    def get_test_set(self):
+        return CIFAR10(which_set='test', center=self.center, rescale=self.rescale, gcn=self.gcn,
+                one_hot=self.one_hot)
+
 
     @classmethod
     def _unpickle(cls, file):

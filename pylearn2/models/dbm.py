@@ -793,8 +793,11 @@ class BinaryVector(VisibleLayer):
     def get_biases(self):
         return self.bias.get_value()
 
-    def set_biases(self, biases):
+    def set_biases(self, biases, recenter=False):
         self.bias.set_value(biases)
+        if recenter:
+            assert self.center
+            self.offset.set_value(sigmoid_numpy(self.bias.get_value()))
 
     def upward_state(self, total_state):
 
@@ -814,8 +817,6 @@ class BinaryVector(VisibleLayer):
             layer_above = None,
             theano_rng = None):
 
-        if self.center:
-            raise NotImplementedError()
 
         assert state_below is None
 
@@ -845,7 +846,7 @@ class BinaryVector(VisibleLayer):
     def expected_energy_term(self, state, average, state_below = None, average_below = None):
 
         if self.center:
-            raise NotImplementedError()
+            state = state - self.offset
 
         assert state_below is None
         assert average_below is None
@@ -921,9 +922,6 @@ class BinaryVectorMaxPool(HiddenLayer):
             rval[self.b] = self.b_lr_scale
 
         return rval
-
-
-
 
     def set_input_space(self, space):
         """ Note: this resets parameters! """
@@ -1025,8 +1023,13 @@ class BinaryVectorMaxPool(HiddenLayer):
         W, = self.transformer.get_params()
         W.set_value(weights)
 
-    def set_biases(self, biases):
+    def set_biases(self, biases, recenter = False):
         self.b.set_value(biases)
+        if recenter:
+            assert self.center
+            if self.pool_size != 1:
+                raise NotImplementedError()
+            self.offset.set_value(sigmoid_numpy(self.b.get_value()))
 
     def get_biases(self):
         return self.b.get_value()
@@ -1260,12 +1263,6 @@ class BinaryVectorMaxPool(HiddenLayer):
             layer_above = None,
             theano_rng = None):
 
-        if not hasattr(self, 'center'):
-            self.center = False
-
-        if self.center:
-            raise NotImplementedError()
-
         if theano_rng is None:
             raise ValueError("theano_rng is required; it just defaults to None so that it may appear after layer_above / state_above in the list.")
 
@@ -1335,8 +1332,8 @@ class BinaryVectorMaxPool(HiddenLayer):
 
     def expected_energy_term(self, state, average, state_below, average_below):
 
-        if self.center:
-            raise NotImplementedError()
+        # Don't need to do anything special for centering, upward_state / downward state
+        # make it all just work
 
         self.input_space.validate(state_below)
 
@@ -1514,8 +1511,11 @@ class Softmax(HiddenLayer):
     def set_weights(self, weights):
         self.W.set_value(weights)
 
-    def set_biases(self, biases):
+    def set_biases(self, biases, recenter=False):
         self.b.set_value(biases)
+        if recenter:
+            assert self.center
+            self.offset.set_value( (np.exp(biases) / np.exp(biases).sum()).astype(self.offset.dtype))
 
     def get_biases(self):
         return self.b.get_value()
@@ -1714,7 +1714,7 @@ class Softmax(HiddenLayer):
     def expected_energy_term(self, state, average, state_below, average_below):
 
         if self.center:
-            raise NotImplementedError()
+            state = state - self.offset
 
         self.input_space.validate(state_below)
         if self.needs_reformat:
