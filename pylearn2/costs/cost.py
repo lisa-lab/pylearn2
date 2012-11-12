@@ -175,7 +175,9 @@ class SumOfCosts(Cost):
         params = model.get_params()
 
         for g, u in indiv_results:
-            assert all([param in params for param in g])
+            for param in g:
+                if param not in params:
+                    raise ValueError("A shared variable ("+str(param)+") that is not a parameter appeared in a cost gradient dictionary.")
             assert all([param in g for param in params])
             for param in g:
                 v = g[param]
