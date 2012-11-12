@@ -1823,7 +1823,7 @@ class WeightDoubling(InferenceProcedure):
 
         #we only need recurrent inference if there are multiple layers
         if len(H_hat) > 1:
-            for i in xrange(niter-1):
+            for i in xrange(1, niter):
                 for j in xrange(0,len(H_hat),2):
                     if j == 0:
                         state_below = dbm.visible_layer.upward_state(V)
