@@ -18,10 +18,10 @@ class Train(object):
     A class representing the main loop of the training script.  Trains the
     specified model using the specified algorithm on the specified dataset.
     After each call to the training algorithm, the model is saved to save_path
-    and each of the registered callbacks are called.
+    and each of the registered allbacks are called.
     """
     def __init__(self, dataset, model, algorithm=None, save_path=None,
-                 save_freq=0, callbacks=None):
+                 save_freq=0, max_epochs=200, callbacks=None):
         """
         Construct a Train instance.
 
@@ -50,6 +50,7 @@ class Train(object):
         self.dataset = dataset
         self.model = model
         self.algorithm = algorithm
+        self.max_epochs = max_epochs
         if save_path is not None:
             if save_freq == 0:
                 warnings.warn('save_path specified but save_freq is 0 '
@@ -68,6 +69,8 @@ class Train(object):
         self.save_freq = save_freq
         self.epochs = 0
         self.callbacks = callbacks if callbacks is not None else []
+        # HACK - GD (13 Nov 2012)
+        self.algorithm.callbacks = self.callbacks
 
         if hasattr(self.dataset,'yaml_src'):
             self.model.dataset_yaml_src = self.dataset.yaml_src
@@ -82,11 +85,15 @@ class Train(object):
         if self.algorithm is None:
             self.model.monitor = Monitor.get_monitor(self.model)
             self.run_callbacks_and_monitoring()
-            while self.model.train_all(dataset=self.dataset):
+            while True:
+                self.model.train_all(dataset=self.dataset)
                 self.run_callbacks_and_monitoring()
                 if self.save_freq > 0 and self.epochs % self.save_freq == 0:
                     self.save()
                 self.epochs += 1
+                if self.epochs > self.max_epochs:
+                    break
+
             self.run_callbacks_and_monitoring()
             if self.save_freq > 0:
                 self.save()
@@ -100,14 +107,22 @@ class Train(object):
                         " up the Monitor, but failed to.")
             self.run_callbacks_and_monitoring()
             epoch_start = datetime.datetime.now()
-            while self.algorithm.train(dataset=self.dataset):
+            # outer loop
+            self.model.epochs = 0
+            self.model.batches_seen = 0
+            while True:
+                epoch_start = datetime.datetime.now()
+                self.algorithm.train(dataset=self.dataset)
                 epoch_end = datetime.datetime.now()
                 print 'Time this epoch:', str(epoch_end - epoch_start)
                 self.run_callbacks_and_monitoring()
+                self.epochs += 1
+                self.model.epochs = self.epochs
                 if self.save_freq > 0 and self.epochs % self.save_freq == 0:
                     self.save()
-                self.epochs += 1
-                epoch_start = datetime.datetime.now()
+                if self.epochs > self.max_epochs:
+                    break
+
             epoch_end = datetime.datetime.now()
             print 'Time this epoch:', str(epoch_end - epoch_start)
             self.run_callbacks_and_monitoring()
@@ -130,12 +145,13 @@ class Train(object):
         #TODO-- save state of training algorithm so training can be
         # resumed after a crash
         if self.save_path is not None:
-            print 'saving to', self.save_path, '...'
+            save_path = self.save_path + '_e%i.pkl' % self.epochs
+            print 'saving to', save_path, '...'
             save_start = datetime.datetime.now()
             try:
                 # Make sure that saving does not serialize the dataset
                 self.dataset._serialization_guard = SerializationGuard()
-                serial.save(self.save_path, self.model)
+                serial.save(save_path, self.model)
             finally:
                 self.dataset._serialization_guard = None
             save_end = datetime.datetime.now()
