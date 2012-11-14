@@ -77,6 +77,9 @@ def train_experiment(state, channel):
                  'and parameters to contain only one single model.'))
     else:
         # print "Executing the model."
+        # (GD) HACK HACK
+        train_obj.model.jobman_channel = channel
+        train_obj.model.jobman_state = state
         train_obj.main_loop()
         # This line will call a function defined by the user and pass train_obj
         # to it.
