@@ -21,7 +21,7 @@ class Train(object):
     and each of the registered allbacks are called.
     """
     def __init__(self, dataset, model, algorithm=None, save_path=None,
-                 save_freq=0, max_epochs=200, callbacks=None):
+                 save_freq=0, max_epochs=-1, max_cpu_time=-1, callbacks=None):
         """
         Construct a Train instance.
 
@@ -51,6 +51,7 @@ class Train(object):
         self.model = model
         self.algorithm = algorithm
         self.max_epochs = max_epochs
+        self.max_cpu_time = max_cpu_time
         if save_path is not None:
             if save_freq == 0:
                 warnings.warn('save_path specified but save_freq is 0 '
@@ -91,7 +92,9 @@ class Train(object):
                 if self.save_freq > 0 and self.epochs % self.save_freq == 0:
                     self.save()
                 self.epochs += 1
-                if self.epochs > self.max_epochs:
+                if self.max_epochs!=-1 and self.epochs > self.max_epochs:
+                    break
+                if self.max_cpu_time!=-1 and self.model.cpu_time > self.max_cpu_time:
                     break
 
             self.run_callbacks_and_monitoring()
@@ -105,6 +108,7 @@ class Train(object):
                 # rewrite to avoid the AttributeError
                 raise RuntimeError("The algorithm is responsible for setting"
                         " up the Monitor, but failed to.")
+
             self.model.epochs = 0
             self.model.batches_seen = 0
             self.run_callbacks_and_monitoring()
@@ -118,9 +122,13 @@ class Train(object):
                 self.epochs += 1
                 self.model.epochs = self.epochs
                 self.run_callbacks_and_monitoring()
+
                 if self.save_freq > 0 and self.epochs % self.save_freq == 0:
                     self.save()
-                if self.epochs > self.max_epochs:
+
+                if self.max_epochs!=-1 and self.epochs > self.max_epochs:
+                    break
+                if self.max_cpu_time!=-1 and self.model.cpu_time > self.max_cpu_time:
                     break
 
             epoch_end = datetime.datetime.now()
