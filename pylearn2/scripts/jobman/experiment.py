@@ -81,7 +81,4 @@ def train_experiment(state, channel):
         train_obj.model.jobman_channel = channel
         train_obj.model.jobman_state = state
         train_obj.main_loop()
-        # This line will call a function defined by the user and pass train_obj
-        # to it.
-        state.results = jobman.tools.resolve(state.extract_results)(train_obj)
         return channel.COMPLETE
