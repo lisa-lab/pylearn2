@@ -105,19 +105,19 @@ class Train(object):
                 # rewrite to avoid the AttributeError
                 raise RuntimeError("The algorithm is responsible for setting"
                         " up the Monitor, but failed to.")
+            self.model.epochs = 0
+            self.model.batches_seen = 0
             self.run_callbacks_and_monitoring()
             epoch_start = datetime.datetime.now()
             # outer loop
-            self.model.epochs = 0
-            self.model.batches_seen = 0
             while True:
                 epoch_start = datetime.datetime.now()
                 self.algorithm.train(dataset=self.dataset)
                 epoch_end = datetime.datetime.now()
                 print 'Time this epoch:', str(epoch_end - epoch_start)
-                self.run_callbacks_and_monitoring()
                 self.epochs += 1
                 self.model.epochs = self.epochs
+                self.run_callbacks_and_monitoring()
                 if self.save_freq > 0 and self.epochs % self.save_freq == 0:
                     self.save()
                 if self.epochs > self.max_epochs:
