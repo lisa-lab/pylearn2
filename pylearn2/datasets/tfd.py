@@ -58,7 +58,7 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
         # get labels
         if which_set != 'unlabeled':
             data_y = data['labs_ex'][set_indices]
-            data_y = data_y[ex_range]
+            data_y = data_y[ex_range] -1
             if shuffle:
                 data_y = data_y[rand_idx]
         else:
