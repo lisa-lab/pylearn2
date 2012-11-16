@@ -580,11 +580,15 @@ class MonitorChannel(object):
 
     def __setstate__(self, d):
         self.__dict__.update(d)
-        # Patch old pickle files that don't have this field
+        if 'batch_record' not in d:
+            self.batch_record = [None] * len(self.val_record)
+        # Patch old pickle files that don't have the "epoch_record" field
         if 'epoch_record' not in d:
-            self.epoch_record = range(len(self.batch_record))
+            # This is not necessarily correct but it is in the most common use
+            # case where you don't add monitoring channels over time.
+            self.epoch_record = range(len(self.val_record))
         if 'time_record' not in d:
-            self.time_record = [ None ] * len(self.batch_record)
+            self.time_record = [ None ] * len(self.val_record)
 
 
 def push_monitor(model, name):
