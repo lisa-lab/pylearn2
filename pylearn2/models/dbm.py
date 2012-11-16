@@ -894,7 +894,8 @@ class BinaryVectorMaxPool(HiddenLayer):
             W_lr_scale = None,
             b_lr_scale = None,
             center = False,
-            mask_weights = None):
+            mask_weights = None,
+            copies = 1):
         """
 
             include_prob: probability of including a weight element in the set
@@ -1089,7 +1090,10 @@ class BinaryVectorMaxPool(HiddenLayer):
         if self.center:
             return p - self.offset
 
-        return p
+        if not hasattr(self, 'copies'):
+            self.copies = 1
+
+        return p * self.copies
 
     def downward_state(self, total_state):
         p,h = total_state
@@ -1100,7 +1104,7 @@ class BinaryVectorMaxPool(HiddenLayer):
         if self.center:
             return h - self.offset
 
-        return h
+        return h * self.copies
 
     def get_monitoring_channels(self):
 
@@ -1336,7 +1340,7 @@ class BinaryVectorMaxPool(HiddenLayer):
         if self.requires_reformat:
             rval = self.desired_space.format_as(rval, self.input_space)
 
-        return rval
+        return rval * self.copies
 
     def init_mf_state(self):
         # work around theano bug with broadcasted vectors
@@ -1350,6 +1354,10 @@ class BinaryVectorMaxPool(HiddenLayer):
         """ Returns a shared variable containing an actual state
            (not a mean field state) for this variable.
         """
+
+        if self.copies != 1:
+            raise NotImplementedError()
+
 
         empty_input = self.h_space.get_origin_batch(num_examples)
         empty_output = self.output_space.get_origin_batch(num_examples)
@@ -1410,7 +1418,34 @@ class BinaryVectorMaxPool(HiddenLayer):
 
         assert rval.ndim == 1
 
-        return rval
+        return rval * self.copies
+
+    def linear_feed_forward_approximation(self, state_below):
+        """
+        Used to implement TorontoSparsity. Unclear exactly what properties of it are
+        important or how to implement it for other layers.
+
+        Properties it must have:
+            output is same kind of data structure (ie, tuple of theano 2-tensors)
+            as mf_update
+
+        Properties it probably should have for other layer types:
+            An infinitesimal change in state_below or the parameters should cause the same sign of change
+            in the output of linear_feed_forward_approximation and in mf_update
+
+            Should not have any non-linearities that cause the gradient to shrink
+
+            Should disregard top-down feedback
+        """
+
+        z = self.transformer.lmul(state_below) + self.b
+
+        if self.pool_size != 1:
+            # Should probably implement sum pooling for the non-pooled version,
+            # but in reality it's not totally clear what the right answer is
+            raise NotImplementedError()
+
+        return z, z
 
     def mf_update(self, state_below, state_above, layer_above = None, double_weights = False, iter_name = None):
 
@@ -1758,6 +1793,8 @@ class Softmax(HiddenLayer):
         if not hasattr(self, 'center'):
             self.center = False
         if self.center:
+            warnings.warn("TODO: write a unit test verifying that inference or sampling "
+                    "below a centered Softmax layer works")
             return state - self.offset
         return state
 
