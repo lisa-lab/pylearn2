@@ -334,6 +334,35 @@ class SGD(TrainingAlgorithm):
         else:
             return self.termination_criterion(self.model)
 
+"""
+TODO: implement Nesterov momentum. Easiest way to do it is via equivalence
+between regular momentum and Nesterov momentum described in this note from
+Nicolas Boulanger-Lewandowski:
+
+
+Yes, I found that the following change of variable simplifies the implementation of Nesterov momentum.
+It is in the same form as regular momentum in the sense that both velocity and parameter updates depend
+only on the gradient at the current value of the parameters.
+
+In short:
+
+regular momentum:
+(1) v_t = mu * v_t-1 - lr * gradient_f(params_t)
+(2) params_t = params_t-1 + v_t
+(3) params_t = params_t-1 + mu * v_t-1 - lr * gradient_f(params_t-1)
+
+Nesterov momentum:
+(4) v_t = mu * v_t-1 - lr * gradient_f(params_t-1 + mu * v_t-1)
+(5) params_t = params_t-1 + v_t
+
+alternate formulation for Nesterov momentum:
+(6) v_t = mu * v_t-1 - lr * gradient_f(params_t-1)
+(7) params_t = params_t-1 + mu * v_t - lr * gradient_f(params_t-1)
+(8) params_t = params_t-1 + mu**2 * v_t-1 - (1+mu) * lr * gradient_f(params_t-1)
+
+So with Theano you can use (1) then either (2) or (7)/(8) to have both options.
+
+"""
 
 class MonitorBasedLRAdjuster(TrainExtension):
     """
