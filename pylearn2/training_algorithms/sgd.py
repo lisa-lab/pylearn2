@@ -104,6 +104,7 @@ class SGD(TrainingAlgorithm):
         self.train_iteration_mode = train_iteration_mode
         self.first = True
         self.rng = np.random.RandomState([2012, 10, 5])
+        self.check_for_nan = check_for_nan
 
     def setup(self, model, dataset):
         inf_params = [ param for param in model.get_params() if np.any(np.isinf(param.get_value())) ]
@@ -280,9 +281,14 @@ class SGD(TrainingAlgorithm):
                 fn_inputs = [X, Y]
             else:
                 fn_inputs = [X]
+            if self.check_for_nan:
+                mode = NanGuardMode(True,True)
+            else:
+                mode = None
             self.sgd_update = function(fn_inputs, updates=updates,
                                        name='sgd_update',
-                                       on_unused_input='ignore')
+                                       on_unused_input='ignore',
+                                       mode=mode)
         self.params = params
 
     def train(self, dataset):

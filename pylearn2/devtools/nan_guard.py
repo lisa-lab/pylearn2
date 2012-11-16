@@ -13,9 +13,19 @@ class NanGuardMode(Mode):
                     assert not np.any(np.isinf(x))
             fn()
             outputs = fn.outputs
-            for x in outputs:
+            for i, x in enumerate(outputs):
                 if nan_is_error:
-                    assert not np.any(np.isnan(x))
+                    if np.any(np.isnan(x)):
+                        print 'NaN detected'
+                        print 'In output ',i
+                        print 'Inputs: '
+                        for ivar, ival in zip(node.inputs, fn.inputs):
+                            print 'var'
+                            print ivar
+                            print 'val'
+                            print ival
+                        print node
+                        assert False
                 if inf_is_error:
                     assert not np.any(np.isinf(x))
         wrap_linker = theano.gof.WrapLinkerMany([theano.gof.OpWiseCLinker()], [nan_check])
