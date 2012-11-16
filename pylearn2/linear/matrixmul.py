@@ -16,7 +16,7 @@ class MatrixMul(OrigMatrixMul, PL2LT):
 
     @functools.wraps(PL2LT.get_params)
     def get_params(self):
-        return set([self._W])
+        return [self._W]
 
 def make_local_rfs(dataset, nhid, rf_shape, stride, irange = .05, draw_patches = False, rng = None):
     """

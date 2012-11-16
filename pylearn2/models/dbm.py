@@ -183,6 +183,7 @@ class DBM(Model):
 
     def get_params(self):
 
+        rval = []
         for param in self.visible_layer.get_params():
             assert param.name is not None
         rval = self.visible_layer.get_params()
@@ -191,13 +192,17 @@ class DBM(Model):
                 if param.name is None:
                     print type(layer)
                     assert False
-            rval = rval.union(layer.get_params())
+            layer_params = layer.get_params()
+            assert not isinstance(layer_params, set)
+            for param in layer_params:
+                if param not in rval:
+                    rval.append(param)
 
         # Patch pickle files that predate the freeze_set feature
         if not hasattr(self, 'freeze_set'):
             self.freeze_set = set([])
 
-        rval = set([elem for elem in rval if elem not in self.freeze_set])
+        rval = [elem for elem in rval if elem not in self.freeze_set]
 
         return rval
 
@@ -811,7 +816,7 @@ class BinaryVector(VisibleLayer):
 
 
     def get_params(self):
-        return set([self.bias])
+        return [self.bias]
 
     def sample(self, state_below = None, state_above = None,
             layer_above = None,
@@ -1000,7 +1005,12 @@ class BinaryVectorMaxPool(HiddenLayer):
         assert self.b.name is not None
         W ,= self.transformer.get_params()
         assert W.name is not None
-        return self.transformer.get_params().union([self.b])
+        rval = self.transformer.get_params()
+        assert not isinstance(rval, set)
+        rval = list(rval)
+        assert self.b not in rval
+        rval.append(self.b)
+        return rval
 
     def get_weight_decay(self, coeff):
         if isinstance(coeff, str):

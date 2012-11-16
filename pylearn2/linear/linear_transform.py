@@ -19,7 +19,7 @@ class LinearTransform(object):
         need to add to make a TheanoLinear LinearTransform work with pylearn2"""
 
     def get_params(self):
-        """ Return a set of parameters that govern the linear transformation """
+        """ Return a list of parameters that govern the linear transformation """
 
         raise NotImplementedError()
 
