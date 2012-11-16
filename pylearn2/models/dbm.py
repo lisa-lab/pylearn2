@@ -750,6 +750,9 @@ class HiddenLayer(Layer):
     def get_l1_act_cost(self, state, target, coeff, eps):
         raise NotImplementedError(str(type(self))+" does not implement get_l1_act_cost")
 
+    def get_l2_act_cost(self, state, target, coeff):
+        raise NotImplementedError(str(type(self))+" does not implement get_l2_act_cost")
+
 class BinaryVector(VisibleLayer):
     """
     A DBM visible layer consisting of binary random variables living
@@ -1269,9 +1272,46 @@ class BinaryVectorMaxPool(HiddenLayer):
 
         return rval
 
+    def get_l2_act_cost(self, state, target, coeff):
+        rval = 0.
+
+        P, H = state
+        self.output_space.validate(P)
+        self.h_space.validate(H)
+
+
+        if self.pool_size == 1:
+            # If the pool size is 1 then pools = detectors
+            # and we should not penalize pools and detectors separately
+            assert len(state) == 2
+            if not isinstance(target, float):
+                raise TypeError("BinaryVectorMaxPool.get_l1_act_cost expected target of type float " + \
+                        " but an instance named "+self.layer_name + " got target "+str(target) + " of type "+str(type(target)))
+            assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
+            _, state = state
+            state = [state]
+            target = [target]
+            coeff = [coeff]
+        else:
+            assert all([len(elem) == 2 for elem in [state, target, coeff]])
+            if target[1] < target[0]:
+                warnings.warn("Do you really want to regularize the detector units to be sparser than the pooling units?")
+
+        for s, t, c in safe_zip(state, target, coeff):
+            assert all([isinstance(elem, float) or hasattr(elem, 'dtype') for elem in [t, c]])
+            if c == 0.:
+                continue
+            m = s.mean(axis=0)
+            assert m.ndim == 1
+            rval += T.maximum(T.square(m-t),0.).mean()*c
+
+        return rval
+
     def sample(self, state_below = None, state_above = None,
             layer_above = None,
             theano_rng = None):
+        if self.copies != 1:
+            raise NotImplementedError()
 
         if theano_rng is None:
             raise ValueError("theano_rng is required; it just defaults to None so that it may appear after layer_above / state_above in the list.")
