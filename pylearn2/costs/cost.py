@@ -4,7 +4,7 @@ the objective function for the SGD and BGD
 training algorithms."""
 import theano.tensor as T
 from itertools import izip
-from pylearn2.utils.call_check import checked_call
+from pylearn2.utils import safe_zip
 
 class Cost(object):
     """
@@ -119,18 +119,26 @@ class SumOfCosts(Cost):
         Parameters
         ----------
         costs: list
-            List of Cost objects
+            List of Cost objects or (coeff, Cost) pairs
         """
-        self.costs = costs
         assert isinstance(costs, list)
         assert len(costs) > 0
 
-        for cost in self.costs:
+        self.costs = []
+        self.coeffs = []
+
+        for cost in costs:
+            if isinstance(cost, (list, tuple)):
+                coeff, cost = cost
+            else:
+                coeff = 1.
+            self.coeffs.append(coeff)
+            self.costs.append(cost)
             if not isinstance(cost, Cost):
                 raise ValueError("one of the costs is not " + \
                                  "Cost instance")
 
-        self.supervised = any([cost.supervised for cost in costs])
+        self.supervised = any([cost.supervised for cost in self.costs])
 
     def __call__(self, model, X, Y=None, ** kwargs):
         """
@@ -152,35 +160,52 @@ class SumOfCosts(Cost):
             raise ValueError("no targets provided while some of the " +
                              "costs in the sum are supervised costs")
 
-        costs = [cost(model, X, Y, **kwargs) for cost in self.costs]
+        costs = []
+        for cost in self.costs:
+            if cost.supervised:
+                Y_to_pass = Y
+            else:
+                Y_to_pass = None
+            costs.append(cost(model, X, Y_to_pass, **kwargs))
+        assert len(costs) > 0
 
         if any([cost is None for cost in costs]):
             sum_of_costs = None
         else:
+            costs = [coeff * cost for coeff, cost in safe_zip(self.coeffs, costs)]
+            assert len(costs) > 0
             sum_of_costs = reduce(lambda x, y: x + y, costs)
 
         return sum_of_costs
 
     def get_gradients(self, model, X, Y=None, ** kwargs):
 
-        if Y is  None and self.supervised:
+        if Y is None and self.supervised:
             raise ValueError("no targets provided while some of the " +
                              "costs in the sum are supervised costs")
 
-        indiv_results = [cost.get_gradients(model, X, Y, ** kwargs) for cost in self.costs]
+        indiv_results = []
+        for cost in self.costs:
+            if cost.supervised:
+                Y_to_pass = Y
+            else:
+                Y_to_pass = None
+            result = cost.get_gradients(model, X, Y_to_pass, ** kwargs)
+            indiv_results.append(result)
+
 
         grads = {}
         updates = {}
 
         params = model.get_params()
 
-        for g, u in indiv_results:
+        for coeff, packed in zip(self.coeffs, indiv_results):
+            g, u = packed
             for param in g:
                 if param not in params:
                     raise ValueError("A shared variable ("+str(param)+") that is not a parameter appeared in a cost gradient dictionary.")
-            assert all([param in g for param in params])
             for param in g:
-                v = g[param]
+                v = coeff * g[param]
                 if param not in grads:
                     grads[param] = v
                 else:
