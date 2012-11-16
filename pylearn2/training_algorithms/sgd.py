@@ -23,6 +23,7 @@ from pylearn2.utils.iteration import is_stochastic
 from pylearn2.utils import safe_zip
 from pylearn2.utils import serial
 from pylearn2.utils.timing import log_timing
+from pylearn2.devtools.nan_guard import NanGuardMode
 from theano.gof.op import get_debug_values
 import logging
 
@@ -42,7 +43,8 @@ class SGD(TrainingAlgorithm):
                  monitoring_batches=None, monitoring_dataset=None,
                  termination_criterion=None, update_callbacks=None,
                  init_momentum = None, set_batch_size = False,
-                 train_iteration_mode = None, batches_per_iter=None):
+                 train_iteration_mode = None, batches_per_iter=None,
+                 check_for_nan=False):
         """
             WRITEME
 
