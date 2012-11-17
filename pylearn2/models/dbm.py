@@ -21,6 +21,7 @@ import warnings
 
 from theano import config
 from theano import function
+from theano import gof
 from theano.gof.op import get_debug_values
 from theano.printing import Print
 from theano.sandbox.rng_mrg import MRG_RandomStreams
@@ -1959,6 +1960,12 @@ class WeightDoubling(InferenceProcedure):
         for layer, state in safe_izip(dbm.hidden_layers, H_hat):
             upward_state = layer.upward_state(state)
             layer.get_output_space().validate(upward_state)
+        for elem in flatten(H_hat):
+            for value in get_debug_values(elem):
+                assert value.shape[0] == dbm.batch_size
+            assert V in gof.graph.ancestors([elem])
+            if Y is not None:
+                assert Y in gof.graph.ancestors([elem])
         if Y is not None:
             assert all([elem[-1] is Y for elem in history])
             assert H_hat[-1] is Y
