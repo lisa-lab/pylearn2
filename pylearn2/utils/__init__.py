@@ -153,3 +153,17 @@ class _ElemwiseNoGradient(theano.tensor.Elemwise):
 # However, this version doesn't require as much long range
 # communication between parts of the code
 block_gradient = _ElemwiseNoGradient(theano.scalar.identity)
+
+
+def safe_union(a, b):
+    """
+    Does the logic of a union operation without the non-deterministic
+    ordering of python sets
+    """
+    assert isinstance(a, list)
+    assert isinstance(b, list)
+    c = []
+    for x in a + b:
+        if x not in c:
+            c.append(x)
+    return c
