@@ -230,7 +230,12 @@ class SumOfCosts(Cost):
                 print 'SumOfCosts.get_monitoring_channels encountered TypeError while calling ' \
                         + str(type(cost))+'.get_monitoring_channels'
                 raise
-            value = cost(model, X, Y, ** kwargs)
+
+            Y_to_pass = Y
+            if not cost.supervised:
+                Y_to_pass = None
+
+            value = cost(model, X, Y_to_pass, ** kwargs)
             if value is not None:
                 rval['term_'+str(i)] = value
 
