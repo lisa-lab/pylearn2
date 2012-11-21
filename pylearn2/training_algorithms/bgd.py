@@ -20,7 +20,8 @@ class BGD(TrainingAlgorithm):
                  termination_criterion = None, set_batch_size = False,
                  reset_alpha = True, conjugate = False,
                  min_init_alpha = .001,
-                 reset_conjugate = True, line_search_mode = None):
+                 reset_conjugate = True, line_search_mode = None,
+                 verbose_optimization=False):
         """
         cost: a pylearn2 Cost
         batch_size: Like the SGD TrainingAlgorithm, this TrainingAlgorithm
@@ -160,7 +161,7 @@ class BGD(TrainingAlgorithm):
                             param_constrainers = [ model.censor_updates ],
                             lr_scalers = model.get_lr_scalers(),
                             inputs = ipts,
-                            verbose = True,
+                            verbose = self.verbose_optimization,
                             max_iter = self.updates_per_batch,
                             reset_alpha = self.reset_alpha,
                             conjugate = self.conjugate,
