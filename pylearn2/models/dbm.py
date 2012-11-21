@@ -214,6 +214,8 @@ class DBM(Model):
         for layer in self.hidden_layers:
             layer.set_batch_size(batch_size)
 
+        self.inference_procedure.set_batch_size(batch_size)
+
     def censor_updates(self, updates):
         self.visible_layer.censor_updates(updates)
         for layer in self.hidden_layers:
@@ -1838,6 +1840,12 @@ class InferenceProcedure(object):
         """
 
         raise NotImplementedError(str(type(self))+" does not implement mf.")
+
+    def set_batch_size(self, batch_size):
+        """
+        If the inference procedure is dependent on a batch size at all, makes the
+        necessary internal configurations to work with that batch size.
+        """
 
 class WeightDoubling(InferenceProcedure):
 
