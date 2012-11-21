@@ -419,7 +419,8 @@ class BatchGradientDescent:
                 self._goto_alpha(x)
                 # used for statistics gathering
                 step_size = x
-                print 'best objective: ',mn
+                if self.verbose:
+                    print 'best objective: ',mn
                 assert not np.isnan(mn)
 
                 if idx == 0:
@@ -456,8 +457,12 @@ class BatchGradientDescent:
         if not self.reset_alpha:
             self.init_alpha = alpha_list
 
-        if norm > 1e-2:
-            warnings.warn(str(norm)+" seems pretty big for a gradient at convergence...")
+        # The way this optimizer is used (with max_iters set to 3 or 5 so it doesn't go too
+        # far on one minibatch) this warning doesn't make a lot of sense, but we might want
+        # a switch to turn it on if you really are trying to absolutely minimize the objective
+        # for the current inputs.
+        # if norm > 1e-2:
+        #    warnings.warn(str(norm)+" seems pretty big for a gradient at convergence...")
 
         return best_obj
 
