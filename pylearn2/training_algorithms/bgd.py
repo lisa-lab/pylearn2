@@ -20,7 +20,8 @@ class BGD(TrainingAlgorithm):
                  termination_criterion = None, set_batch_size = False,
                  reset_alpha = True, conjugate = False,
                  min_init_alpha = .001,
-                 reset_conjugate = True, line_search_mode = None):
+                 reset_conjugate = True, line_search_mode = None,
+                 verbose_optimization=False):
         """
         cost: a pylearn2 Cost
         batch_size: Like the SGD TrainingAlgorithm, this TrainingAlgorithm
@@ -88,8 +89,10 @@ class BGD(TrainingAlgorithm):
 
         self.monitor = Monitor.get_monitor(model)
         X = self.model.get_input_space().make_theano_batch()
+        X.name = 'BGD_X'
         self.topo = X.ndim != 2
         Y = T.matrix()
+        Y.name = 'BGD_Y'
 
         if self.cost.supervised:
             obj = self.cost(model, X, Y)
@@ -99,6 +102,7 @@ class BGD(TrainingAlgorithm):
             obj = self.cost(model,X)
             grads, grad_updates = self.cost.get_gradients(model, X)
             ipt = X
+            Y = None
         if obj is None:
             raise ValueError("BGD is incompatible with "+str(self.cost)+" because "
                     " it is intractable, but BGD uses the cost function value to do "
@@ -147,10 +151,10 @@ class BGD(TrainingAlgorithm):
                                              dataset = monitoring_dataset,
                                              prereqs=prereqs)
 
-        if ipt is X:
-            ipts = [ X ]
+        if self.cost.supervised:
+            ipts = [X, Y]
         else:
-            ipts = ipt
+            ipts = [X]
 
         self.optimizer = BatchGradientDescent(
                             objective = obj,
@@ -160,7 +164,7 @@ class BGD(TrainingAlgorithm):
                             param_constrainers = [ model.censor_updates ],
                             lr_scalers = model.get_lr_scalers(),
                             inputs = ipts,
-                            verbose = True,
+                            verbose = self.verbose_optimization,
                             max_iter = self.updates_per_batch,
                             reset_alpha = self.reset_alpha,
                             conjugate = self.conjugate,

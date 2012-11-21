@@ -21,6 +21,7 @@ import warnings
 
 from theano import config
 from theano import function
+from theano import gof
 from theano.gof.op import get_debug_values
 from theano.printing import Print
 from theano.sandbox.rng_mrg import MRG_RandomStreams
@@ -183,6 +184,7 @@ class DBM(Model):
 
     def get_params(self):
 
+        rval = []
         for param in self.visible_layer.get_params():
             assert param.name is not None
         rval = self.visible_layer.get_params()
@@ -191,13 +193,17 @@ class DBM(Model):
                 if param.name is None:
                     print type(layer)
                     assert False
-            rval = rval.union(layer.get_params())
+            layer_params = layer.get_params()
+            assert not isinstance(layer_params, set)
+            for param in layer_params:
+                if param not in rval:
+                    rval.append(param)
 
         # Patch pickle files that predate the freeze_set feature
         if not hasattr(self, 'freeze_set'):
             self.freeze_set = set([])
 
-        rval = set([elem for elem in rval if elem not in self.freeze_set])
+        rval = [elem for elem in rval if elem not in self.freeze_set]
 
         return rval
 
@@ -207,6 +213,8 @@ class DBM(Model):
 
         for layer in self.hidden_layers:
             layer.set_batch_size(batch_size)
+
+        self.inference_procedure.set_batch_size(batch_size)
 
     def censor_updates(self, updates):
         self.visible_layer.censor_updates(updates)
@@ -745,6 +753,9 @@ class HiddenLayer(Layer):
     def get_l1_act_cost(self, state, target, coeff, eps):
         raise NotImplementedError(str(type(self))+" does not implement get_l1_act_cost")
 
+    def get_l2_act_cost(self, state, target, coeff):
+        raise NotImplementedError(str(type(self))+" does not implement get_l2_act_cost")
+
 class BinaryVector(VisibleLayer):
     """
     A DBM visible layer consisting of binary random variables living
@@ -811,7 +822,7 @@ class BinaryVector(VisibleLayer):
 
 
     def get_params(self):
-        return set([self.bias])
+        return [self.bias]
 
     def sample(self, state_below = None, state_above = None,
             layer_above = None,
@@ -886,7 +897,8 @@ class BinaryVectorMaxPool(HiddenLayer):
             W_lr_scale = None,
             b_lr_scale = None,
             center = False,
-            mask_weights = None):
+            mask_weights = None,
+            copies = 1):
         """
 
             include_prob: probability of including a weight element in the set
@@ -1000,7 +1012,12 @@ class BinaryVectorMaxPool(HiddenLayer):
         assert self.b.name is not None
         W ,= self.transformer.get_params()
         assert W.name is not None
-        return self.transformer.get_params().union([self.b])
+        rval = self.transformer.get_params()
+        assert not isinstance(rval, set)
+        rval = list(rval)
+        assert self.b not in rval
+        rval.append(self.b)
+        return rval
 
     def get_weight_decay(self, coeff):
         if isinstance(coeff, str):
@@ -1076,7 +1093,10 @@ class BinaryVectorMaxPool(HiddenLayer):
         if self.center:
             return p - self.offset
 
-        return p
+        if not hasattr(self, 'copies'):
+            self.copies = 1
+
+        return p * self.copies
 
     def downward_state(self, total_state):
         p,h = total_state
@@ -1087,7 +1107,7 @@ class BinaryVectorMaxPool(HiddenLayer):
         if self.center:
             return h - self.offset
 
-        return h
+        return h * self.copies
 
     def get_monitoring_channels(self):
 
@@ -1259,9 +1279,46 @@ class BinaryVectorMaxPool(HiddenLayer):
 
         return rval
 
+    def get_l2_act_cost(self, state, target, coeff):
+        rval = 0.
+
+        P, H = state
+        self.output_space.validate(P)
+        self.h_space.validate(H)
+
+
+        if self.pool_size == 1:
+            # If the pool size is 1 then pools = detectors
+            # and we should not penalize pools and detectors separately
+            assert len(state) == 2
+            if not isinstance(target, float):
+                raise TypeError("BinaryVectorMaxPool.get_l1_act_cost expected target of type float " + \
+                        " but an instance named "+self.layer_name + " got target "+str(target) + " of type "+str(type(target)))
+            assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
+            _, state = state
+            state = [state]
+            target = [target]
+            coeff = [coeff]
+        else:
+            assert all([len(elem) == 2 for elem in [state, target, coeff]])
+            if target[1] < target[0]:
+                warnings.warn("Do you really want to regularize the detector units to be sparser than the pooling units?")
+
+        for s, t, c in safe_zip(state, target, coeff):
+            assert all([isinstance(elem, float) or hasattr(elem, 'dtype') for elem in [t, c]])
+            if c == 0.:
+                continue
+            m = s.mean(axis=0)
+            assert m.ndim == 1
+            rval += T.maximum(T.square(m-t),0.).mean()*c
+
+        return rval
+
     def sample(self, state_below = None, state_above = None,
             layer_above = None,
             theano_rng = None):
+        if self.copies != 1:
+            raise NotImplementedError()
 
         if theano_rng is None:
             raise ValueError("theano_rng is required; it just defaults to None so that it may appear after layer_above / state_above in the list.")
@@ -1286,7 +1343,7 @@ class BinaryVectorMaxPool(HiddenLayer):
         if self.requires_reformat:
             rval = self.desired_space.format_as(rval, self.input_space)
 
-        return rval
+        return rval * self.copies
 
     def init_mf_state(self):
         # work around theano bug with broadcasted vectors
@@ -1300,6 +1357,13 @@ class BinaryVectorMaxPool(HiddenLayer):
         """ Returns a shared variable containing an actual state
            (not a mean field state) for this variable.
         """
+
+        if not hasattr(self, 'copies'):
+            self.copies = 1
+
+        if self.copies != 1:
+            raise NotImplementedError()
+
 
         empty_input = self.h_space.get_origin_batch(num_examples)
         empty_output = self.output_space.get_origin_batch(num_examples)
@@ -1360,7 +1424,34 @@ class BinaryVectorMaxPool(HiddenLayer):
 
         assert rval.ndim == 1
 
-        return rval
+        return rval * self.copies
+
+    def linear_feed_forward_approximation(self, state_below):
+        """
+        Used to implement TorontoSparsity. Unclear exactly what properties of it are
+        important or how to implement it for other layers.
+
+        Properties it must have:
+            output is same kind of data structure (ie, tuple of theano 2-tensors)
+            as mf_update
+
+        Properties it probably should have for other layer types:
+            An infinitesimal change in state_below or the parameters should cause the same sign of change
+            in the output of linear_feed_forward_approximation and in mf_update
+
+            Should not have any non-linearities that cause the gradient to shrink
+
+            Should disregard top-down feedback
+        """
+
+        z = self.transformer.lmul(state_below) + self.b
+
+        if self.pool_size != 1:
+            # Should probably implement sum pooling for the non-pooled version,
+            # but in reality it's not totally clear what the right answer is
+            raise NotImplementedError()
+
+        return z, z
 
     def mf_update(self, state_below, state_above, layer_above = None, double_weights = False, iter_name = None):
 
@@ -1708,6 +1799,8 @@ class Softmax(HiddenLayer):
         if not hasattr(self, 'center'):
             self.center = False
         if self.center:
+            warnings.warn("TODO: write a unit test verifying that inference or sampling "
+                    "below a centered Softmax layer works")
             return state - self.offset
         return state
 
@@ -1750,6 +1843,12 @@ class InferenceProcedure(object):
         """
 
         raise NotImplementedError(str(type(self))+" does not implement mf.")
+
+    def set_batch_size(self, batch_size):
+        """
+        If the inference procedure is dependent on a batch size at all, makes the
+        necessary internal configurations to work with that batch size.
+        """
 
 class WeightDoubling(InferenceProcedure):
 
@@ -1872,6 +1971,16 @@ class WeightDoubling(InferenceProcedure):
         for layer, state in safe_izip(dbm.hidden_layers, H_hat):
             upward_state = layer.upward_state(state)
             layer.get_output_space().validate(upward_state)
+        if Y is not None:
+            inferred = H_hat[:-1]
+        else:
+            inferred = H_hat
+        for elem in flatten(inferred):
+            for value in get_debug_values(elem):
+                assert value.shape[0] == dbm.batch_size
+            assert V in gof.graph.ancestors([elem])
+            if Y is not None:
+                assert Y in gof.graph.ancestors([elem])
         if Y is not None:
             assert all([elem[-1] is Y for elem in history])
             assert H_hat[-1] is Y

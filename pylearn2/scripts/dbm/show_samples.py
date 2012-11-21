@@ -181,7 +181,9 @@ while True:
         state = layer_to_state[model.hidden_layers[-1]]
         value = state.get_value()
         y = np.argmax(value, axis=1)
-        print y
+        assert y.ndim == 1
+        for i in xrange(0, y.shape[0], cols):
+            print y[i:i+cols]
 
 
 

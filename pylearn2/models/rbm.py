@@ -24,6 +24,7 @@ from pylearn2.expr.basic import theano_norms
 from pylearn2.expr.nnet import inverse_sigmoid_numpy
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.space import VectorSpace
+from pylearn2.utils import safe_union
 theano.config.warn.sum_div_dimshuffle_bug = False
 
 if 0:
@@ -336,7 +337,7 @@ class RBM(Block, Model):
 
 
         self.__dict__.update(nhid=nhid, nvis=nvis)
-        self._params = list(self.transformer.get_params().union([self.bias_vis, self.bias_hid]))
+        self._params = safe_union(self.transformer.get_params(), [self.bias_vis, self.bias_hid])
 
         self.base_lr = base_lr
         self.anneal_start = anneal_start

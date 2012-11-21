@@ -118,7 +118,11 @@ def get_dataless_dataset(model):
 
 def safe_zip(*args):
     """Like zip, but ensures arguments are of same length"""
-    assert all([len(arg) == len(args[0]) for arg in args])
+    base = len(args[0])
+    for i, arg in enumerate(args[1:]):
+        if len(arg) != base:
+            raise ValueError("Argument 0 has length "+str(base)+\
+                " but argument "+str(i+1)+" has length "+str(len(arg)))
     return zip(*args)
 
 def safe_izip(*args):
@@ -149,3 +153,17 @@ class _ElemwiseNoGradient(theano.tensor.Elemwise):
 # However, this version doesn't require as much long range
 # communication between parts of the code
 block_gradient = _ElemwiseNoGradient(theano.scalar.identity)
+
+
+def safe_union(a, b):
+    """
+    Does the logic of a union operation without the non-deterministic
+    ordering of python sets
+    """
+    assert isinstance(a, list)
+    assert isinstance(b, list)
+    c = []
+    for x in a + b:
+        if x not in c:
+            c.append(x)
+    return c

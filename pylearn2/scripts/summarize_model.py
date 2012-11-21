@@ -5,6 +5,7 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
+
 import numpy as np
 import sys
 path = sys.argv[1]
@@ -32,3 +33,10 @@ if hasattr(model,'monitor'):
         print model.monitor.get_epochs_seen(),'epochs'
     except:
         pass
+    if hasattr(model.monitor, 'training_succeeded'):
+        if model.monitor.training_succeeded:
+            print 'Training succeeded'
+        else:
+            print 'Training was not yet completed at the time of this save.'
+    else:
+        print 'This pickle file is damaged, or was made before the Monitor tracked whether training completed.'
