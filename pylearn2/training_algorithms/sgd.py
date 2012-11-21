@@ -328,6 +328,12 @@ class SGD(TrainingAlgorithm):
                 for callback in self.update_callbacks:
                     callback(self)
 
+        # Make sure none of the parameters have bad values
+        for param in self.params:
+            value = param.get_value(borrow=True)
+            if np.any(np.isnan(value)) or np.any(np.isinf(value)):
+                raise Exception("NaN in " + param.name)
+
     def continue_learning(self, model):
         if self.termination_criterion is None:
             return True
