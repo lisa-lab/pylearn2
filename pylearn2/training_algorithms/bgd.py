@@ -89,8 +89,10 @@ class BGD(TrainingAlgorithm):
 
         self.monitor = Monitor.get_monitor(model)
         X = self.model.get_input_space().make_theano_batch()
+        X.name = 'BGD_X'
         self.topo = X.ndim != 2
         Y = T.matrix()
+        Y.name = 'BGD_Y'
 
         if self.cost.supervised:
             obj = self.cost(model, X, Y)
