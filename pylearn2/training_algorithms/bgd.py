@@ -102,6 +102,7 @@ class BGD(TrainingAlgorithm):
             obj = self.cost(model,X)
             grads, grad_updates = self.cost.get_gradients(model, X)
             ipt = X
+            Y = None
         if obj is None:
             raise ValueError("BGD is incompatible with "+str(self.cost)+" because "
                     " it is intractable, but BGD uses the cost function value to do "
@@ -150,10 +151,10 @@ class BGD(TrainingAlgorithm):
                                              dataset = monitoring_dataset,
                                              prereqs=prereqs)
 
-        if ipt is X:
-            ipts = [ X ]
+        if self.cost.supervised:
+            ipts = [X, Y]
         else:
-            ipts = ipt
+            ipts = [X]
 
         self.optimizer = BatchGradientDescent(
                             objective = obj,
