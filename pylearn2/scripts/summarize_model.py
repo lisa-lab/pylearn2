@@ -37,6 +37,6 @@ if hasattr(model,'monitor'):
         if model.monitor.training_succeeded:
             print 'Training succeeded'
         else:
-            print 'Training was not yet completed at the time of this job.'
+            print 'Training was not yet completed at the time of this save.'
     else:
         print 'This pickle file is damaged, or was made before the Monitor tracked whether training completed.'
