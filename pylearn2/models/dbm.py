@@ -1971,7 +1971,11 @@ class WeightDoubling(InferenceProcedure):
         for layer, state in safe_izip(dbm.hidden_layers, H_hat):
             upward_state = layer.upward_state(state)
             layer.get_output_space().validate(upward_state)
-        for elem in flatten(H_hat):
+        if Y is not None:
+            inferred = H_hat[:-1]
+        else:
+            inferred = H_hat
+        for elem in flatten(inferred):
             for value in get_debug_values(elem):
                 assert value.shape[0] == dbm.batch_size
             assert V in gof.graph.ancestors([elem])
