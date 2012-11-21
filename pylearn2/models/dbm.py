@@ -1358,6 +1358,9 @@ class BinaryVectorMaxPool(HiddenLayer):
            (not a mean field state) for this variable.
         """
 
+        if not hasattr(self, 'copies'):
+            self.copies = 1
+
         if self.copies != 1:
             raise NotImplementedError()
 
