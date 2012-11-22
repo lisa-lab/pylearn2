@@ -11,6 +11,7 @@ from pylearn2.base import Block
 
 class SampleBernoulli(Block):
     def __init__(self, theano_rng = None):
+        super(SampleBernoulli, self).__init__()
         if theano_rng is None:
             theano_rng = MRG_RandomStreams(2012+11+22)
         self.__dict__.update(locals())

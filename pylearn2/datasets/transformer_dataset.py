@@ -54,6 +54,8 @@ class TransformerIterator(object):
     def __init__(self, raw_iterator, transformer_dataset):
         self.raw_iterator = raw_iterator
         self.transformer_dataset = transformer_dataset
+        self.stochastic = raw_iterator.stochastic
+        self.uneven = raw_iterator.uneven
 
     def __iter__(self):
         return self
