@@ -76,7 +76,7 @@ norms = N.asarray( [
         N.sqrt(N.sum(N.square(examples[i,:])))
                     for i in xrange(examples.shape[0])
                     ])
-print 'norms of exmaples: '
+print 'norms of examples: '
 print '\tmin: ',norms.min()
 print '\tmean: ',norms.mean()
 print '\tmax: ',norms.max()
