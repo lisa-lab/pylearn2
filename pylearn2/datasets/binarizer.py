@@ -22,5 +22,5 @@ class Binarizer(TransformerDataset):
 
         transformer = SampleBernoulli()
 
-        super(Binarizer, self).__init__(raw, transformer)
+        super(Binarizer, self).__init__(raw, transformer, space_preserving=True)
 

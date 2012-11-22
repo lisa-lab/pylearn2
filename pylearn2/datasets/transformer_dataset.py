@@ -11,14 +11,14 @@ class TransformerDataset(Dataset):
         A dataset that applies a transformation on the fly
         as examples are requested.
     """
-    def __init__(self, raw, transformer, cpu_only = False):
+    def __init__(self, raw, transformer, cpu_only = False,
+            space_preserving=False):
         """
             raw: a pylearn2 Dataset that provides raw data
             transformer: a pylearn2 Block to transform the data
         """
-        self.raw = raw
-        self.transformer = transformer
-        self.transformer.cpu_only = cpu_only
+        self.__dict__.update(locals())
+        del self.self
 
     def get_batch_design(self, batch_size):
         X = self.raw.get_batch_design(batch_size)
@@ -26,14 +26,15 @@ class TransformerDataset(Dataset):
         return X
 
     def get_batch_topo(self, batch_size):
-        """ there's no concept of a topology-aware
-        transformation right now so we just treat the
-        dataset as consisting of big 1D images
-        this is kind of a hack, long term solution is
-        to make topo pipeline support having 0 topological
-        dimensions (right now I believe it only supports 2,
-        it should support N >= 0)"""
+        """
+        If the transformer has changed the space, we don't have a good
+        idea of how to do topology in the new space.
+        If the transformer just changes the values in the original space,
+        we can have the raw dataset provide the topology.
+        """
         X = self.get_batch_design(batch_size)
+        if self.space_preserving:
+            return self.raw.get_topological_view(X)
         return X.reshape(X.shape[0],X.shape[1],1,1)
 
     def iterator(self, mode=None, batch_size=None, num_batches=None,
@@ -47,6 +48,16 @@ class TransformerDataset(Dataset):
 
     def has_targets(self):
         return self.raw.y is not None
+
+    def adjust_for_viewer(self, X):
+        if self.space_preserving:
+            return self.raw.adjust_for_viewer(X)
+        return X
+
+    def get_weights_view(self, *args, **kwargs):
+        if self.space_preserving:
+            return self.raw.get_weights_view(*args, **kwargs)
+        raise NotImplementedError()
 
 
 class TransformerIterator(object):
