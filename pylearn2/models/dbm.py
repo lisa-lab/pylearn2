@@ -788,7 +788,9 @@ class BinaryVector(VisibleLayer):
             X = bias_from_marginals.get_design_matrix()
             assert X.max() == 1.
             assert X.min() == 0.
-            assert not np.any( (X > 0.) * (X < 1.) )
+            # removed this check so we can initialize the marginals
+            # with a dataset of bernoulli params
+            # assert not np.any( (X > 0.) * (X < 1.) )
 
             mean = X.mean(axis=0)
 

@@ -1,7 +1,6 @@
 """Base class for the components in other modules."""
 # Standard library imports
 import cPickle
-import inspect
 import os.path
 import warnings
 
@@ -13,9 +12,6 @@ try:
 except ImportError:
     warnings.warn("Could not import theano.sparse.SparseType")
 from theano.compile.mode import get_default_mode
-
-# Local imports
-from pylearn2.utils import subdict
 
 theano.config.warn.sum_div_dimshuffle_bug = False
 
@@ -30,63 +26,21 @@ else:
 class Block(object):
     """
     Basic building block for deep architectures.
+    WRITEME: what kind of deep architectures? just feed-forward MLPs?
+    WRITEME: how is this different from a theano Op? just the autogen
+            of the perform method, and the inverse function?
     """
     def __init__(self):
         self.fn = None
         self.cpu_only = False
 
     def __call__(self, inputs):
+        """
+        WRITEME: what does this function do?
+        WRITEME: how should inputs be formatted? is it a single tensor, a list
+            of tensors, a tuple of tensors?
+        """
         raise NotImplementedError('__call__')
-
-    def save(self, save_file):
-        """
-        Dumps the entire object to a pickle file.
-        Individual classes should override __getstate__ and __setstate__
-        to deal with object versioning in the case of API changes.
-        """
-        warnings.warn("This is deprecated; use serial.save",
-                      DeprecationWarning, stacklevel=1)
-        self.fn = None
-        save_dir = os.path.dirname(save_file)
-        if save_dir and not os.path.exists(save_dir):
-            os.makedirs(save_dir)
-
-        fhandle = open(save_file, 'w')
-        cPickle.dump(self, fhandle, -1)
-        fhandle.close()
-
-    @classmethod
-    def fromdict(cls, conf, **kwargs):
-        """ Alternative way to build a block, by using a dictionary """
-        warnings.warn("This is deprecated and going away in the near future",
-                      DeprecationWarning, stacklevel=1)
-        arglist = []
-        kwargs.update(conf)
-        # Loop over all superclasses of cls
-        # NB : Supposes that "cls" is the first element returned by "getmro()"
-        for elem in inspect.getmro(cls):
-            # Extend arglist with arguments of elem.__init__
-            argspec = inspect.getargspec(elem.__init__)
-            arglist.extend(argspec[0])
-            # If a keyworkds argument is not expected, then break the loop
-            if argspec[2] is None:
-                break
-        # Build the class with appropriated arguments
-        return cls(**subdict(kwargs, arglist))
-
-    @classmethod
-    def load(cls, load_file):
-        """Load a serialized block."""
-        warnings.warn("This is deprecated and going away in the near future",
-                      DeprecationWarning, stacklevel=1)
-        if not os.path.isfile(load_file):
-            raise IOError('File %s does not exist' % load_file)
-        obj = cPickle.load(open(load_file))
-        if isinstance(obj, cls):
-            return obj
-        else:
-            raise TypeError('unpickled object was of wrong class: %s' %
-                            obj.__class__)
 
     def function(self, name=None):
         """ Returns a compiled theano function to compute a representation """
