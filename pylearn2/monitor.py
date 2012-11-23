@@ -77,7 +77,7 @@ class Monitor(object):
     def set_theano_function_mode(self, mode):
         if self.theano_function_mode != mode:
             self._dirty = True
-            self.theano_function_mode = None
+            self.theano_function_mode = mode
 
     def add_dataset(self, dataset, mode='sequential', batch_size=None,
                     num_batches=None, seed = None):
