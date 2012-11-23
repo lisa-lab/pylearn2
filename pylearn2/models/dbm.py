@@ -94,8 +94,9 @@ class DBM(Model):
         self._update_layer_input_spaces()
         self.force_batch_size = batch_size
         self.freeze_set = set([])
-        if inference_procedure is not None:
-            inference_procedure.set_dbm(self)
+        if inference_procedure is None:
+            self.inference_procedure = WeightDoubling()
+        self.inference_procedure.set_dbm(self)
 
     def energy(self, V, hidden):
         """
@@ -1498,8 +1499,9 @@ class Softmax(HiddenLayer):
                  b_lr_scale = None,
                  copies = 1, center = False):
         """
-            copies: we regard the layer as being copied <copies> times
-                   all sample and mean field states are the *average* of
+            copies: We regard the layer as being replicated so that there
+                   are <copies> instances of it.
+                   All sample and mean field states are the *average* of
                    all of these copies, and the weights to each copy are
                    tied.
         """
