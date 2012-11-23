@@ -10,6 +10,7 @@ import theano.tensor as T
 from pylearn2.utils.iteration import is_stochastic
 import numpy as np
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
+from pylearn2.utils import safe_zip
 
 
 class BGD(TrainingAlgorithm):
@@ -21,7 +22,7 @@ class BGD(TrainingAlgorithm):
                  reset_alpha = True, conjugate = False,
                  min_init_alpha = .001,
                  reset_conjugate = True, line_search_mode = None,
-                 verbose_optimization=False):
+                 verbose_optimization=False, scale_step=1.):
         """
         cost: a pylearn2 Cost
         batch_size: Like the SGD TrainingAlgorithm, this TrainingAlgorithm
@@ -203,7 +204,9 @@ class BGD(TrainingAlgorithm):
             else:
                 args = [ data ]
                 X = data
+            self.before_step(model)
             self.optimizer.minimize(*args)
+            self.after_step(model)
             model.monitor.report_batch( X.shape[0] )
 
     def continue_learning(self, model):
@@ -211,3 +214,14 @@ class BGD(TrainingAlgorithm):
             return True
         else:
             return self.termination_criterion(self.model)
+
+    def before_step(self, model):
+        if self.scale_step != 1.:
+            self.params = list(model.get_params())
+            self.value = [ param.get_value() for param in self.params ]
+
+    def after_step(self, model):
+        if self.scale_step != 1:
+            for param, value in safe_zip(self.params, self.value):
+                value = (1.-self.scale_step) * value + self.scale_step * param.get_value()
+                param.set_value(value)
