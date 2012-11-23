@@ -206,6 +206,8 @@ class DBM(Model):
 
         rval = [elem for elem in rval if elem not in self.freeze_set]
 
+        assert all([elem.name is not None for elem in rval])
+
         return rval
 
     def set_batch_size(self, batch_size):

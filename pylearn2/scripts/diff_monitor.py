@@ -25,6 +25,10 @@ import sys
 from pylearn2.utils import serial
 import numpy as np
 
+# equal -> compare val record entries with np.all(x == y)
+# allclose -> compare val record entries with np.allclose(x, y)
+cmp_mode = 'equal'
+
 # Load the records
 _, model_0_path, model_1_path = sys.argv
 
@@ -88,8 +92,16 @@ while len(clean) > 0:
             bad_channel.append(channel)
             continue
 
-        if not np.allclose(channel_0.val_record[record],
-                channel_1.val_record[record]):
+        if cmp_mode == 'equal':
+            match = np.all(channel_0.val_record[record] ==
+                    channel_1.val_record[record])
+        elif cmp_mode == 'allclose':
+            match = np.allclose(channel_0.val_record[record],
+                channel_1.val_record[record])
+        else:
+            assert False # unrecognized cmp_mode
+
+        if not match:
             print channel+'.val_record differs at record entry',record
             print '\t',channel_0.val_record[record], 'vs', channel_1.val_record[record]
             bad_channel.append(channel)

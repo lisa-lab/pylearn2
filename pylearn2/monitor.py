@@ -72,6 +72,12 @@ class Monitor(object):
             self.topo = len(vector.type.broadcastable) > 2
 
         self.require_label = False
+        self.theano_function_mode = None
+
+    def set_theano_function_mode(self, mode):
+        if self.theano_function_mode != mode:
+            self._dirty = True
+            self.theano_function_mode = None
 
     def add_dataset(self, dataset, mode='sequential', batch_size=None,
                     num_batches=None, seed = None):
@@ -264,7 +270,7 @@ class Monitor(object):
         for channel in self.channels.values():
             updates[channel.val_shared] = np.cast[config.floatX](0.0)
         with log_timing(log, "compiling begin_record_entry"):
-            self.begin_record_entry = function(inputs=[], updates=updates)
+            self.begin_record_entry = function(inputs=[], updates=updates, mode=self.theano_function_mode)
         updates = {}
         givens = {}
         #Get the appropriate kind of theano variable to represent the data the model
@@ -318,9 +324,9 @@ class Monitor(object):
                     # Some channels may not depend on the data, ie, they might just monitor the model
                     # parameters, or some shared variable updated by the training algorithm, so we
                     # need to ignore the unused input error
-                    self.accum.append(function([X, Y], givens=g, updates=u, on_unused_input = 'ignore'))
+                    self.accum.append(function([X, Y], givens=g, updates=u, on_unused_input = 'ignore', mode=self.theano_function_mode))
                 else:
-                    self.accum.append(function([X], givens=g, updates=u, on_unused_input = 'ignore'))
+                    self.accum.append(function([X], givens=g, updates=u, on_unused_input = 'ignore', mode=self.theano_function_mode))
             for a in self.accum:
                 log.info("graph size: %d" % len(a.maker.fgraph.toposort()))
         final_names = dir(self)

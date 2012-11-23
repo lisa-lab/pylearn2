@@ -31,7 +31,7 @@ class BatchGradientDescent:
             reset_alpha = True, conjugate = False,
             reset_conjugate = True, gradients = None,
             gradient_updates = None, line_search_mode = None,
-            accumulate = False):
+            accumulate = False, theano_function_mode=None):
         """ objective: a theano expression to be minimized
                        should be a function of params and,
                        if provided, inputs
@@ -120,7 +120,7 @@ class BatchGradientDescent:
         if self.accumulate:
             self._compute_grad = Accumulator(inputs, updates = updates)
         else:
-            self._compute_grad = function(inputs, updates = updates )
+            self._compute_grad = function(inputs, updates = updates, mode=self.theano_function_mode, name='BatchGradientDescent._compute_grad')
         if self.verbose:
             print 'done'
 
@@ -129,7 +129,7 @@ class BatchGradientDescent:
         if self.accumulate:
             self.obj = Accumulator(inputs, obj)
         else:
-            self.obj = function(inputs, obj)
+            self.obj = function(inputs, obj, mode=self.theano_function_mode, name='BatchGradientDescent.obj')
         if self.verbose:
             print 'done'
 
@@ -138,7 +138,13 @@ class BatchGradientDescent:
         cache_updates = {}
         goto_updates = {}
         for param in params:
-            self.param_to_cache[param] = sharedX(param.get_value(borrow=False))
+            if param.name is None:
+                assert False # just for debugging, remove
+                param_name = 'anon_param'
+            else:
+                param_name = param.name
+            cache_name = 'BatchGradientDescent.param_to_cache[%s]' % param_name
+            self.param_to_cache[param] = sharedX(param.get_value(borrow=False), name=cache_name)
             cache_updates[self.param_to_cache[param]] = param
             cached = self.param_to_cache[param]
             grad = self.param_to_grad_shared[param]
@@ -149,10 +155,10 @@ class BatchGradientDescent:
             mul = scaled_alpha * grad
             diff = cached - mul
             goto_updates[param] = diff
-        self._cache_values = function([],updates = cache_updates)
+        self._cache_values = function([],updates = cache_updates, mode=self.theano_function_mode, name='BatchGradientDescent._cache_values')
         for param_constrainer in param_constrainers:
             param_constrainer(goto_updates)
-        self._goto_alpha = function([alpha], updates = goto_updates)
+        self._goto_alpha = function([alpha], updates = goto_updates, mode=self.theano_function_mode, name='BatchGradientDescent._goto_alpha')
 
         norm = T.sqrt(sum([T.sqr(elem).sum() for elem in self.param_to_grad_shared.values()]))
         normalize_grad_updates = {}
@@ -165,7 +171,8 @@ class BatchGradientDescent:
         normalize_grad_updates[self.ave_grad_size] = self.new_weight * norm + (1.-self.new_weight) * self.ave_grad_size
 
 
-        self._normalize_grad = function([], norm, updates = normalize_grad_updates)
+        self._normalize_grad = function([], norm, updates = normalize_grad_updates, mode=self.theano_function_mode,
+                name='BatchGradientDescent._normalize_grad')
 
         if self.conjugate:
             grad_shared = self.param_to_grad_shared.values()
@@ -175,7 +182,7 @@ class BatchGradientDescent:
                 grad_to_old_grad[elem] = sharedX(elem.get_value())
 
             self._store_old_grad = function([norm], updates = dict([(grad_to_old_grad[grad], grad * norm)
-                for grad in grad_to_old_grad]))
+                for grad in grad_to_old_grad]), mode=self.theano_function_mode, name='BatchGradientDescent._store_old_grad')
 
             grad_ordered = list(grad_to_old_grad.keys())
             old_grad_ordered = [ grad_to_old_grad[grad] for grad in grad_ordered]
@@ -203,7 +210,7 @@ class BatchGradientDescent:
             """
 
             self._make_conjugate = function([], updates = dict([ (grad, grad + beta * grad_to_old_grad[grad]) for
-                grad in grad_to_old_grad]))
+                grad in grad_to_old_grad]), mode=self.theano_function_mode, name='BatchGradientDescent._make_conjugate')
 
         if tol is None:
             if objective.dtype == "float32":

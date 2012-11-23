@@ -23,7 +23,6 @@ from pylearn2.utils.iteration import is_stochastic
 from pylearn2.utils import safe_zip
 from pylearn2.utils import serial
 from pylearn2.utils.timing import log_timing
-from pylearn2.devtools.nan_guard import NanGuardMode
 from theano.gof.op import get_debug_values
 import logging
 
@@ -44,7 +43,7 @@ class SGD(TrainingAlgorithm):
                  termination_criterion=None, update_callbacks=None,
                  init_momentum = None, set_batch_size = False,
                  train_iteration_mode = None, batches_per_iter=None,
-                 check_for_nan=False):
+                 theano_function_mode = None):
         """
             WRITEME
 
@@ -71,6 +70,12 @@ class SGD(TrainingAlgorithm):
                             model.force_batch_size, will call
                             model.set_batch_size(batch_size) in an attempt
                             to change model.force_batch_size
+            theano_function_mode: The theano mode to compile the updates function with.
+                            Note that pylearn2 includes some wraplinker modes that are
+                            not bundled with theano. See pylearn2.devtools. These
+                            extra modes let you do things like check for NaNs at every
+                            step, or record md5 digests of all computations performed
+                            by the update function to help isolate problems with nondeterminism.
 
             Parameters are updated by the formula:
 
@@ -106,7 +111,7 @@ class SGD(TrainingAlgorithm):
         self.train_iteration_mode = train_iteration_mode
         self.first = True
         self.rng = np.random.RandomState([2012, 10, 5])
-        self.check_for_nan = check_for_nan
+        self.theano_function_mode = theano_function_mode
 
     def setup(self, model, dataset):
         inf_params = [ param for param in model.get_params() if np.any(np.isinf(param.get_value())) ]
@@ -283,14 +288,10 @@ class SGD(TrainingAlgorithm):
                 fn_inputs = [X, Y]
             else:
                 fn_inputs = [X]
-            if self.check_for_nan:
-                mode = NanGuardMode(True,True)
-            else:
-                mode = None
             self.sgd_update = function(fn_inputs, updates=updates,
                                        name='sgd_update',
                                        on_unused_input='ignore',
-                                       mode=mode)
+                                       mode=self.theano_function_mode)
         self.params = params
 
     def train(self, dataset):

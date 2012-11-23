@@ -22,7 +22,7 @@ class BGD(TrainingAlgorithm):
                  reset_alpha = True, conjugate = False,
                  min_init_alpha = .001,
                  reset_conjugate = True, line_search_mode = None,
-                 verbose_optimization=False, scale_step=1.):
+                 verbose_optimization=False, scale_step=1., theano_function_mode=None):
         """
         cost: a pylearn2 Cost
         batch_size: Like the SGD TrainingAlgorithm, this TrainingAlgorithm
@@ -89,6 +89,7 @@ class BGD(TrainingAlgorithm):
                             (batch_size, model.force_batch_size))
 
         self.monitor = Monitor.get_monitor(model)
+        self.monitor.set_theano_function_mode(self.theano_function_mode)
         X = self.model.get_input_space().make_theano_batch()
         X.name = 'BGD_X'
         self.topo = X.ndim != 2
@@ -157,11 +158,14 @@ class BGD(TrainingAlgorithm):
         else:
             ipts = [X]
 
+        params = model.get_params()
+        assert all([elem.name is not None for elem in params])
+
         self.optimizer = BatchGradientDescent(
                             objective = obj,
                             gradients = grads,
                             gradient_updates = grad_updates,
-                            params = model.get_params(),
+                            params = params,
                             param_constrainers = [ model.censor_updates ],
                             lr_scalers = model.get_lr_scalers(),
                             inputs = ipts,
@@ -171,7 +175,8 @@ class BGD(TrainingAlgorithm):
                             conjugate = self.conjugate,
                             reset_conjugate = self.reset_conjugate,
                             min_init_alpha = self.min_init_alpha,
-                            line_search_mode = self.line_search_mode)
+                            line_search_mode = self.line_search_mode,
+                            theano_function_mode=self.theano_function_mode)
 
 
         self.first = True
