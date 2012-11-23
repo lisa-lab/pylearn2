@@ -46,12 +46,17 @@ for channel in channels_1:
         print channel+' is in model 1 but not model 0'
 
 # Print the difference in length between the records
+for channel in intersect:
+    channel_0, channel_1 = [d[channel] for d in [channels_0, channels_1]]
+    len_0, len_1 = [len(ch.batch_record) for ch in [channel_0, channel_1]]
+    print 'Length of',channel,'differs:',len_0,'vs',len_1
+    channel_0.length = min(len_0, len_1)
 
 
 # Print numerical differences between the channels
 record = 0
 clean = intersect
-while True:
+while len(clean) > 0:
     bad_channel = []
     for channel in clean:
         channel_0 = channels_0[channel]
