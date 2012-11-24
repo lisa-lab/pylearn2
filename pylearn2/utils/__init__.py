@@ -8,6 +8,8 @@ from itertools import izip
 cuda = None
 
 import numpy
+np = numpy
+import hashlib
 
 def make_name(variable, anon = "anonymous_variable"):
     """
@@ -167,3 +169,14 @@ def safe_union(a, b):
         if x not in c:
             c.append(x)
     return c
+
+def hex_digest(x):
+
+    assert isinstance(x, np.ndarray)
+    #rval = ''.join(('%2x' % ord(a)).replace(' ', '0') for a in rval)
+    rval = hashlib.md5(x.tostring()).hexdigest()
+    rval = rval + '|strides=[' + ','.join(str(stride) for stride in x.strides) + ']'
+    rval = rval + '|shape=[' + ','.join(str(s) for s in x.shape) + ']'
+    return rval
+
+

@@ -77,13 +77,13 @@ class BatchGradientDescent:
 
         if line_search_mode is None:
             if init_alpha is None:
-                init_alpha  = ( .001, .005, .01, .05, .1 )
+                init_alpha  = (.001, .005, .01, .05, .1)
         else:
             assert line_search_mode == 'exhaustive'
             if init_alpha is None:
                 init_alpha = (.5, 1.)
 
-        self.init_alpha = tuple([ float(elem) for elem in init_alpha])
+        self.init_alpha = tuple([float(elem) for elem in init_alpha])
 
         if inputs is None:
             inputs = []
@@ -109,7 +109,9 @@ class BatchGradientDescent:
             else:
                 grad = T.grad(objective, param, disconnected_inputs='ignore')
             param_to_grad_sym[param] = grad
-            grad_shared = sharedX( param.get_value() * 0. )
+            param_name = param.name
+            grad_name = 'BatchGradientDescent.grad_' + param_name
+            grad_shared = sharedX( param.get_value() * 0., name=grad_name)
             param_to_grad_shared[param] = grad_shared
             updates[grad_shared] = grad
 
@@ -139,7 +141,6 @@ class BatchGradientDescent:
         goto_updates = {}
         for param in params:
             if param.name is None:
-                assert False # just for debugging, remove
                 param_name = 'anon_param'
             else:
                 param_name = param.name
@@ -161,6 +162,7 @@ class BatchGradientDescent:
         self._goto_alpha = function([alpha], updates = goto_updates, mode=self.theano_function_mode, name='BatchGradientDescent._goto_alpha')
 
         norm = T.sqrt(sum([T.sqr(elem).sum() for elem in self.param_to_grad_shared.values()]))
+        norm.name = 'BatchGradientDescent.norm'
         normalize_grad_updates = {}
         for grad_shared in self.param_to_grad_shared.values():
             normalize_grad_updates[grad_shared] = grad_shared / norm
@@ -170,7 +172,6 @@ class BatchGradientDescent:
         self.new_weight = sharedX(1.)
         normalize_grad_updates[self.ave_grad_size] = self.new_weight * norm + (1.-self.new_weight) * self.ave_grad_size
 
-
         self._normalize_grad = function([], norm, updates = normalize_grad_updates, mode=self.theano_function_mode,
                 name='BatchGradientDescent._normalize_grad')
 
@@ -179,7 +180,7 @@ class BatchGradientDescent:
 
             grad_to_old_grad = {}
             for elem in grad_shared:
-                grad_to_old_grad[elem] = sharedX(elem.get_value())
+                grad_to_old_grad[elem] = sharedX(elem.get_value(), 'old_'+elem.name)
 
             self._store_old_grad = function([norm], updates = dict([(grad_to_old_grad[grad], grad * norm)
                 for grad in grad_to_old_grad]), mode=self.theano_function_mode, name='BatchGradientDescent._store_old_grad')
@@ -260,6 +261,7 @@ class BatchGradientDescent:
             iters += 1
             self._cache_values()
             if self.conjugate:
+                print 'calling _store_old_grad with norm =',norm
                 self._store_old_grad(norm)
             self._compute_grad(*inputs)
             if self.conjugate:

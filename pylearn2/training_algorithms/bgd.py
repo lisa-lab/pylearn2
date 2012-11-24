@@ -12,7 +12,6 @@ import numpy as np
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 from pylearn2.utils import safe_zip
 
-
 class BGD(TrainingAlgorithm):
     """Batch Gradient Descent training algorithm class"""
     def __init__(self, cost, batch_size=None, batches_per_iter=None,
