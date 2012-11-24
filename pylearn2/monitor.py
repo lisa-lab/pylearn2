@@ -8,6 +8,7 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
+from collections import OrderedDict
 import warnings
 import time
 from theano import function
@@ -49,7 +50,7 @@ class Monitor(object):
         """
         self.training_succeeded = False
         self.model = model
-        self.channels = {}
+        self.channels = OrderedDict()
         self._num_batches_seen = 0
         self._examples_seen = 0
         self._epochs_seen = 0
@@ -255,7 +256,7 @@ class Monitor(object):
         self._dirty = False
 
         init_names = dir(self)
-        self.prereqs = {}
+        self.prereqs = OrderedDict()
         for channel in self.channels.values():
             if channel.prereqs is not None:
                 dataset = channel.dataset
@@ -266,14 +267,14 @@ class Monitor(object):
                     if prereq not in prereqs:
                         prereqs.append(prereq)
 
-        updates = {}
+        updates = OrderedDict()
         for channel in self.channels.values():
             updates[channel.val_shared] = np.cast[config.floatX](0.0)
         with log_timing(log, "compiling begin_record_entry"):
             self.begin_record_entry = function(inputs=[], updates=updates, mode=self.theano_function_mode,
                     name = 'Monitor.begin_record_entry')
-        updates = {}
-        givens = {}
+        updates = OrderedDict()
+        givens = OrderedDict()
         #Get the appropriate kind of theano variable to represent the data the model
         #acts on
         X = self.model.get_input_space().make_theano_batch(name = "monitoring_X")
@@ -291,8 +292,8 @@ class Monitor(object):
               for d, i, n, b in safe_izip(self._datasets, self._iteration_mode,
                                     self._num_batches, self._batch_size)]
         num_examples = [np.cast[config.floatX](float(i.num_examples)) for i in it]
-        givens = [{} for d in self._datasets]
-        updates = [{} for d in self._datasets]
+        givens = [OrderedDict() for d in self._datasets]
+        updates = [OrderedDict() for d in self._datasets]
         for channel in self.channels.values():
             index = self._datasets.index(channel.dataset)
             d = self._datasets[index]
