@@ -9,7 +9,45 @@ from theano.compile import Mode
 import theano
 from pylearn2.utils import hex_digest
 
-class Record(Mode):
+class MismatchError(Exception):
+    """
+    Raised by Record.handle_line when the
+    current execution doesn't match the replay
+    of a record.
+    """
+
+class Record(object):
+    def __init__(self, path, replay=False):
+        if replay:
+            self.f = open(path, 'r')
+        else:
+            self.f = open(path, 'w')
+        self.__dict__.update(locals())
+
+    def handle_line(self, line):
+        assert line.endswith('\n')
+        assert line[:-2].find('\n') == -1
+        if self.replay:
+            old_line = self.f.readline()
+            if old_line != line:
+                msg = 'Replay detected mismatch.\n'
+                msg += ' I wanted to write:\n'
+                if len(line) > 100:
+                    msg += line[0:100]+'...'
+                else:
+                    msg += line
+                msg += '\nwhen previous job wrote:\n'
+                if len(old_line) > 100:
+                    msg += old_line[0:100]+'...'
+                else:
+                    msg += old_line
+                raise MismatchError(msg)
+        else:
+            self.f.write(line)
+
+
+
+class RecordMode(Mode):
     """
     Records all computations done with a function in a file at output_path
     Prints the index of each apply node and md5 digests of the numpy ndarrays
@@ -17,46 +55,28 @@ class Record(Mode):
     """
     def __init__(self, path, replay=False):
 
-        if replay:
-            f = open(path, 'r')
-        else:
-            f = open(path, 'w')
+        self.record = Record(path, replay)
 
         known_fgraphs = set([])
 
         def handle_line(line, i, node, fn):
-            assert line.endswith('\n')
-            if replay:
-                old_line = f.readline()
-                if old_line != line:
-                    print 'Replay detected mismatch'
-                    print 'I wanted to write:'
-                    if len(line) > 100:
-                        print line[0:100]+'...'
-                    else:
-                        print line
-                    print 'when previous job wrote:'
-                    if len(old_line) > 100:
-                        print old_line[0:100]+'...'
-                    else:
-                        print old_line
-                    print 'while processing node i='+str(i)+':'
-                    print 'str(node):',str(node)
-                    print 'Symbolic inputs: '
-                    for elem in node.inputs:
-                        print theano.printing.min_informative_str(elem)
-                    print 'str(output) of outputs: '
-                    for elem in fn.outputs:
-                        assert isinstance(elem, list)
-                        elem, = elem
-                        print str(elem)
-                    print '__repr__ of outputs: '
-                    for elem in fn.outputs:
-                        print elem[0].__repr__()
-                    print 'function name: '+node.fgraph.name
-                    raise AssertionError("Non-determinism detected.")
-            else:
-                f.write(line)
+            try:
+                self.record.handle_line(line)
+            except MismatchError, e:
+                print 'Got this MismatchError:'
+                print e
+                print 'while processing node i='+str(i)+':'
+                print 'str(node):',str(node)
+                print 'Symbolic inputs: '
+                for elem in node.inputs:
+                    print theano.printing.min_informative_str(elem)
+                print 'str(output) of outputs: '
+                for elem in fn.outputs:
+                    assert isinstance(elem, list)
+                    elem, = elem
+                    print str(elem)
+                print 'function name: '+node.fgraph.name
+                raise AssertionError("Non-determinism detected.")
 
         def callback(i, node, fn):
             fgraph = node.fgraph
@@ -85,4 +105,4 @@ class Record(Mode):
             handle_line(line, i, node, fn)
 
         wrap_linker = theano.gof.WrapLinkerMany([theano.gof.OpWiseCLinker()], [callback])
-        super(Record, self).__init__(wrap_linker, optimizer='fast_run')
+        super(RecordMode, self).__init__(wrap_linker, optimizer='fast_run')
