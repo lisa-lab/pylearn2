@@ -2,8 +2,8 @@ import theano
 import theano.tensor as TT
 import numpy
 import minres
-import time
 
+from collections import OrderedDict
 
 def test_1():
     n = 100
@@ -21,7 +21,7 @@ def test_1():
     tA = theano.shared(A.astype(theano.config.floatX))
     tb = theano.shared(b.astype(theano.config.floatX))
     tM = theano.shared(M.astype(theano.config.floatX))
-    compute_Av = lambda x: ([TT.dot(tA, x)], {})
+    compute_Av = lambda x: ([TT.dot(tA, x)], OrderedDict())
     xs, flag, iters, relres, relAres, Anorm, Acond, xnorm, Axnorm, updates = \
             minres.minres(compute_Av,
                    [tb],
@@ -68,7 +68,7 @@ def test_2():
     maxit = 50
     tA = theano.shared(A.astype(theano.config.floatX))
     tb = theano.shared(b.astype(theano.config.floatX))
-    compute_Av = lambda x: ([TT.dot(tA, x)], {})
+    compute_Av = lambda x: ([TT.dot(tA, x)], OrderedDict())
     xs, flag, iters, relres, relAres, Anorm, Acond, xnorm, Axnorm, updates = \
             minres.minres(compute_Av,
                    [tb],

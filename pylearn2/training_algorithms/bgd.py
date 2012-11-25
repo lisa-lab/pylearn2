@@ -164,7 +164,6 @@ class BGD(TrainingAlgorithm):
             ipts = [X]
 
         params = model.get_params()
-        assert all([elem.name is not None for elem in params])
 
         self.optimizer = BatchGradientDescent(
                             objective = obj,
