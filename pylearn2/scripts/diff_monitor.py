@@ -53,7 +53,8 @@ for channel in channels_1:
 for channel in intersect:
     channel_0, channel_1 = [d[channel] for d in [channels_0, channels_1]]
     len_0, len_1 = [len(ch.batch_record) for ch in [channel_0, channel_1]]
-    print 'Length of',channel,'differs:',len_0,'vs',len_1
+    if len_0 != len_1:
+        print 'Length of',channel,'differs:',len_0,'vs',len_1
     channel_0.length = min(len_0, len_1)
 
 

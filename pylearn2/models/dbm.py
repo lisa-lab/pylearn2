@@ -97,7 +97,7 @@ class DBM(Model):
         self.force_batch_size = batch_size
         self.freeze_set = set([])
         if inference_procedure is None:
-            self.inference_procedure = WeightDoubling()
+            self.setup_inference_procedure()
         self.inference_procedure.set_dbm(self)
 
     def energy(self, V, hidden):
@@ -144,6 +144,12 @@ class DBM(Model):
 
     def setup_rng(self):
         self.rng = np.random.RandomState([2012, 10, 17])
+
+    def setup_inference_procedure(self):
+        if not hasattr(self, 'inference_procedure') or \
+                self.inference_procedure is None:
+            self.inference_procedure = WeightDoubling()
+            self.inference_procedure.set_dbm(self)
 
     def get_output_space(self):
         return self.hidden_layers[-1].get_output_space()
