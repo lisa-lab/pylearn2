@@ -217,8 +217,13 @@ class BatchGradientDescent:
 
             """
 
-            self._make_conjugate = function([], updates = OrderedDict([ (grad, grad + beta * grad_to_old_grad[grad]) for
-                grad in grad_to_old_grad]), mode=self.theano_function_mode, name='BatchGradientDescent._make_conjugate')
+
+            make_conjugate_updates = [(grad, grad + beta * grad_to_old_grad[grad]) for grad in grad_ordered]
+
+
+            self._make_conjugate = function([], updates=make_conjugate_updates,
+                    mode=self.theano_function_mode, name='BatchGradientDescent._make_conjugate')
+
 
         if tol is None:
             if objective.dtype == "float32":
@@ -268,7 +273,6 @@ class BatchGradientDescent:
             iters += 1
             self._cache_values()
             if self.conjugate:
-                print 'calling _store_old_grad with norm =',norm
                 self._store_old_grad(norm)
             self._compute_grad(*inputs)
             if self.conjugate:

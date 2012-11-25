@@ -4,6 +4,7 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
+from collections import OrderedDict
 from pylearn2.monitor import Monitor
 from pylearn2.optimization.batch_gradient_descent import BatchGradientDescent
 import theano.tensor as T
@@ -104,6 +105,11 @@ class BGD(TrainingAlgorithm):
             grads, grad_updates = self.cost.get_gradients(model, X)
             ipt = X
             Y = None
+
+        assert isinstance(grads, OrderedDict)
+        assert isinstance(grad_updates, OrderedDict)
+
+
         if obj is None:
             raise ValueError("BGD is incompatible with "+str(self.cost)+" because "
                     " it is intractable, but BGD uses the cost function value to do "
