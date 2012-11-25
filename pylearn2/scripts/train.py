@@ -91,7 +91,12 @@ if __name__ == "__main__":
     except TypeError as e:
         iterable = False
 
-    # Configure the logging module
+    # Configure the logging module.
+    # Disable the default handler on the pylearn2 root logger.
+    pl2_logger = logging.getLogger('pylearn2')
+    while len(pl2_logger.handlers) > 0:
+        pl2_logger.handlers.pop()
+    # Configure the format string based on command line options.
     format_strs = ['%(message)s']
     if args.source_logger:
         format_strs.insert(0, '%(name)s')
