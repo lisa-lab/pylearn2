@@ -109,7 +109,10 @@ class BatchGradientDescent:
             else:
                 grad = T.grad(objective, param, disconnected_inputs='ignore')
             param_to_grad_sym[param] = grad
-            param_name = param.name
+            if param.name is not None:
+                param_name = param.name
+            else:
+                param.name = 'anon_param'
             grad_name = 'BatchGradientDescent.grad_' + param_name
             grad_shared = sharedX( param.get_value() * 0., name=grad_name)
             param_to_grad_shared[param] = grad_shared

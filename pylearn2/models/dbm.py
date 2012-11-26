@@ -834,6 +834,9 @@ class BinaryVector(VisibleLayer):
         else:
             rval = total_state
 
+        if not hasattr(self, 'copies'):
+            self.copies = 1
+
         return rval * self.copies
 
 

@@ -20,10 +20,23 @@ class TransformerDataset(Dataset):
         self.__dict__.update(locals())
         del self.self
 
-    def get_batch_design(self, batch_size):
-        X = self.raw.get_batch_design(batch_size)
+    def get_batch_design(self, batch_size, include_labels=False):
+        raw = self.raw.get_batch_design(batch_size, include_labels)
+        if include_labels:
+            X, y = raw
+        else:
+            X = raw
         X = self.transformer.perform(X)
+        if include_labels:
+            return X, y
         return X
+
+    def get_test_set(self):
+        return TransformerDataset(raw=self.raw.get_test_set(),
+                transformer=self.transformer,
+                cpu_only=self.cpu_only,
+                space_preserving=self.space_preserving)
+
 
     def get_batch_topo(self, batch_size):
         """
@@ -58,6 +71,14 @@ class TransformerDataset(Dataset):
         if self.space_preserving:
             return self.raw.get_weights_view(*args, **kwargs)
         raise NotImplementedError()
+
+    def get_topological_view(self, *args, **kwargs):
+        if self.space_preserving:
+            return self.raw.get_weights_view(*args, **kwargs)
+        raise NotImplementedError()
+
+    def adjust_to_be_viewed_with(self, *args, **kwargs):
+        return self.raw.adjust_to_be_viewed_with(*args, **kwargs)
 
 
 class TransformerIterator(object):
