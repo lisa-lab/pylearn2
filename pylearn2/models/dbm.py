@@ -765,7 +765,8 @@ class BinaryVector(VisibleLayer):
     def __init__(self,
             nvis,
             bias_from_marginals = None,
-            center = False):
+            center = False,
+            copies = 1):
         """
             nvis: the dimension of the space
             bias_from_marginals: a dataset, whose marginals are used to
@@ -818,9 +819,11 @@ class BinaryVector(VisibleLayer):
             self.center = False
 
         if self.center:
-            return total_state - self.offset
+            rval = total_state - self.offset
         else:
-            return total_state
+            rval = total_state
+
+        return rval * self.copies
 
 
     def get_params(self):
@@ -832,6 +835,8 @@ class BinaryVector(VisibleLayer):
 
 
         assert state_below is None
+        if self.copies != 1:
+            raise NotImplementedError()
 
         msg = layer_above.downward_message(state_above)
 
@@ -848,6 +853,8 @@ class BinaryVector(VisibleLayer):
 
     def make_state(self, num_examples, numpy_rng):
 
+        if self.copies != 1:
+            raise NotImplementedError()
         driver = numpy_rng.uniform(0.,1., (num_examples, self.nvis))
         mean = sigmoid_numpy(self.bias.get_value())
         sample = driver < mean
@@ -871,7 +878,7 @@ class BinaryVector(VisibleLayer):
 
         assert rval.ndim == 1
 
-        return rval
+        return rval * self.copies
 
 class BinaryVectorMaxPool(HiddenLayer):
     """
