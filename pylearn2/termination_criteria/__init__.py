@@ -156,3 +156,42 @@ class EpochCounter(TerminationCriterion):
     def __call__(self, model):
         self._epochs_done += 1
         return self._epochs_done < self._max_epochs
+
+class And(TerminationCriterion):
+    def __init__(self, criteria):
+        """
+        Termination criterion representing the logical conjunction
+        of several individual criteria. Optimization continues only
+        if every constituent criterion returns `True`.
+
+        Parameters
+        ----------
+        criteria : iterable
+            A sequence of callables representing termination criteria,
+            with a return value of True indicating that the gradient
+            descent should continue.
+        """
+        self._criteria = list(criteria)
+
+    def __call__(self, model):
+        return all(criterion(model) for criterion in self._criteria)
+
+
+class Or(TerminationCriterion):
+    def __init__(self, criteria):
+        """
+        Termination criterion representing the logical disjunction
+        of several individual criteria. Optimization continues if
+        any of the constituent criteria return `True`.
+
+        Parameters
+        ----------
+        criteria : iterable
+            A sequence of callables representing termination criteria,
+            with a return value of True indicating that gradient
+            descent should continue.
+        """
+        self._criteria = list(criteria)
+
+    def __call__(self, model):
+        return any(criterion(model) for criterion in self._criteria)
