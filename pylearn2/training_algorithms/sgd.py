@@ -727,45 +727,6 @@ class PolyakAveraging(TrainExtension):
         self._count += 1
 
 
-# This might be worth rolling into the SGD logic directly at some point.
-class ConjunctionCriterion(object):
-    def __init__(self, criteria):
-        """
-        Termination criterion representing the logical conjunction
-        of several individual criteria. Optimization continues only
-        if every constituent criterion returns `True`.
-
-        Parameters
-        ----------
-        criteria : iterable
-            A sequence of callables representing termination criteria,
-            with a return value of True indicating that the gradient
-            descent should continue.
-        """
-        self._criteria = list(criteria)
-
-    def __call__(self, model):
-        return all(criterion(model) for criterion in self._criteria)
-
-
-class DisjunctionCriterion(object):
-    def __init__(self, criteria):
-        """
-        Termination criterion representing the logical disjunction
-        of several individual criteria. Optimization continues if
-        any of the constituent criteria return `True`.
-
-        Parameters
-        ----------
-        criteria : iterable
-            A sequence of callables representing termination criteria,
-            with a return value of True indicating that gradient
-            descent should continue.
-        """
-        self._criteria = list(criteria)
-
-    def __call__(self, model):
-        return any(criterion(model) for criterion in self._criteria)
 
 class ExhaustiveSGD(SGD): # deprecated!
 
@@ -775,7 +736,8 @@ class ExhaustiveSGD(SGD): # deprecated!
 
         super(ExhaustiveSGD,self).__init__(*args, ** kwargs)
 
-# This class was moved to the new submodule, but I import
-# a reference to it here to avoid breaking the old interface.
+# This classes were moved to the new submodule, but I import
+# a reference to them here to avoid breaking the old interface.
 from pylearn2.termination_criteria import EpochCounter
-
+from pylearn2.termination_criteria import And as DisjunctionCriterion
+from pylearn2.termination_criteria import Or as ConjunctionCriterion
