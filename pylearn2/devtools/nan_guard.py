@@ -1,3 +1,10 @@
+__authors__ = "Ian Goodfellow"
+__copyright__ = "Copyright 2010-2012, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
+__email__ = "goodfeli@iro"
+
 from theano.compile import Mode
 import theano
 import numpy as np
@@ -42,7 +49,7 @@ class NanGuardMode(Mode):
                 do_check_on(x, node, fn, True)
             fn()
             outputs = fn.outputs
-            for i, x in enumerate(flatten(outputs)):
+            for j, x in enumerate(flatten(outputs)):
                 do_check_on(x, node, fn, False)
 
         wrap_linker = theano.gof.WrapLinkerMany([theano.gof.OpWiseCLinker()], [nan_check])

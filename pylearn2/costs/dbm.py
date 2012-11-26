@@ -10,6 +10,8 @@ __maintainer__ = "Ian Goodfellow"
 
 import warnings
 
+from collections import OrderedDict
+
 import theano
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 from theano import tensor as T
@@ -49,7 +51,7 @@ class PCD(Cost):
         return None
 
     def get_monitoring_channels(self, model, X, Y = None):
-        rval = {}
+        rval = OrderedDict()
 
         history = model.mf(X, return_history = True)
         q = history[-1]
@@ -86,8 +88,8 @@ class PCD(Cost):
         the negative log likelihood.
         """
 
-        layer_to_clamp = { model.visible_layer: True }
-        layer_to_pos_samples = { model.visible_layer: X}
+        layer_to_clamp = OrderedDict([(model.visible_layer, True )])
+        layer_to_pos_samples = OrderedDict([(model.visible_layer, X)])
         if self.supervised:
             assert Y is not None
             # note: if the Y layer changes to something without linear energy,
@@ -121,7 +123,7 @@ class PCD(Cost):
         # The gradients of the expected energy under q are easy, we can just do that in theano
         expected_energy_q = model.energy(X, q).mean()
         params = list(model.get_params())
-        gradients = dict(safe_zip(params, T.grad(expected_energy_q, params,
+        gradients = OrderedDict(safe_zip(params, T.grad(expected_energy_q, params,
             consider_constant = pos_samples,
             disconnected_inputs = 'ignore')))
 
@@ -182,7 +184,7 @@ class PCD(Cost):
 
             constants = flatten([V_samples, H1_mf, H2_mf, Y_samples])
 
-            neg_phase_grads = dict(safe_zip(params, T.grad(-expected_energy_p, params, consider_constant = constants)))
+            neg_phase_grads = OrderedDict(safe_zip(params, T.grad(-expected_energy_p, params, consider_constant = constants)))
         else:
             warnings.warn("""TODO: reduce variance of negative phase by integrating out
                     the even-numbered layers. The Rao-Blackwellize method can do this
@@ -197,7 +199,7 @@ class PCD(Cost):
                 if sample.name is None:
                     sample.name = 'sample_'+str(i)
 
-            neg_phase_grads = dict(safe_zip(params, T.grad(-expected_energy_p, params, consider_constant
+            neg_phase_grads = OrderedDict(safe_zip(params, T.grad(-expected_energy_p, params, consider_constant
                 = samples, disconnected_inputs='ignore')))
 
 
@@ -239,7 +241,7 @@ class VariationalPCD(Cost):
         return None
 
     def get_monitoring_channels(self, model, X, Y = None):
-        rval = {}
+        rval = OrderedDict()
 
         history = model.mf(X, return_history = True)
         q = history[-1]
@@ -312,7 +314,7 @@ class VariationalPCD(Cost):
         # The gradients of the expected energy under q are easy, we can just do that in theano
         expected_energy_q = model.expected_energy(X, q).mean()
         params = list(model.get_params())
-        gradients = dict(safe_zip(params, T.grad(expected_energy_q, params,
+        gradients = OrderedDict(safe_zip(params, T.grad(expected_energy_q, params,
             consider_constant = variational_params,
             disconnected_inputs = 'ignore')))
 
@@ -373,7 +375,7 @@ class VariationalPCD(Cost):
 
             constants = flatten([V_samples, H1_mf, H2_mf, Y_samples])
 
-            neg_phase_grads = dict(safe_zip(params, T.grad(-expected_energy_p, params, consider_constant = constants)))
+            neg_phase_grads = OrderedDict(safe_zip(params, T.grad(-expected_energy_p, params, consider_constant = constants)))
         else:
             warnings.warn("""TODO: reduce variance of negative phase by integrating out
                     the even-numbered layers. The Rao-Blackwellize method can do this
@@ -388,7 +390,7 @@ class VariationalPCD(Cost):
                 if sample.name is None:
                     sample.name = 'sample_'+str(i)
 
-            neg_phase_grads = dict(safe_zip(params, T.grad(-expected_energy_p, params, consider_constant
+            neg_phase_grads = OrderedDict(safe_zip(params, T.grad(-expected_energy_p, params, consider_constant
                 = samples, disconnected_inputs='ignore')))
 
 
@@ -461,14 +463,14 @@ class TorontoSparsity(Cost):
     def get_gradients(self, model, X, Y=None, **kwargs):
         obj, scratch = self.base_cost(model, X, Y, return_locals=True, **kwargs)
 
-        interm_grads = {}
+        interm_grads = OrderedDict()
 
 
         H_hat = scratch['H_hat']
         terms = scratch['terms']
         hidden_layers = scratch['hidden_layers']
 
-        grads = {}
+        grads = OrderedDict()
 
         assert len(H_hat) == len(terms)
         assert len(terms) == len(hidden_layers)
@@ -498,7 +500,7 @@ class TorontoSparsity(Cost):
             fake_state = layer.linear_feed_forward_approximation(state_below)
 
             fake_components = flatten(fake_state)
-            real_grads = dict(safe_zip(fake_components, real_grads))
+            real_grads = OrderedDict(safe_zip(fake_components, real_grads))
 
             params = list(layer.get_params())
             fake_grads = T.grad(cost=None, consider_constant=flatten(state_below),
@@ -510,7 +512,7 @@ class TorontoSparsity(Cost):
                 else:
                     grads[param] = grad
 
-        return grads, {}
+        return grads, OrderedDict()
 
 
 

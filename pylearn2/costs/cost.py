@@ -5,6 +5,7 @@ training algorithms."""
 import theano.tensor as T
 from itertools import izip
 from pylearn2.utils import safe_zip
+from collections import OrderedDict
 
 class Cost(object):
     """
@@ -77,9 +78,9 @@ class Cost(object):
 
         grads = T.grad(cost, params, disconnected_inputs = 'ignore')
 
-        gradients = dict(izip(params, grads))
+        gradients = OrderedDict(izip(params, grads))
 
-        updates = {}
+        updates = OrderedDict()
 
         return gradients, updates
 
@@ -98,7 +99,7 @@ class Cost(object):
                 for monitoring.
 
         """
-        return {}
+        return OrderedDict()
 
     def get_target_space(self, model, dataset):
         if self.supervised:
@@ -194,8 +195,8 @@ class SumOfCosts(Cost):
             indiv_results.append(result)
 
 
-        grads = {}
-        updates = {}
+        grads = OrderedDict()
+        updates = OrderedDict()
 
         params = model.get_params()
 
@@ -221,7 +222,7 @@ class SumOfCosts(Cost):
             raise ValueError("no targets provided while some of the " +
                              "costs in the sum are supervised costs")
 
-        rval = {}
+        rval = OrderedDict()
 
         for i, cost in enumerate(self.costs):
             try:

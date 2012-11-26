@@ -4,13 +4,14 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
+from collections import OrderedDict
 from pylearn2.monitor import Monitor
 from pylearn2.optimization.batch_gradient_descent import BatchGradientDescent
 import theano.tensor as T
 from pylearn2.utils.iteration import is_stochastic
 import numpy as np
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
-
+from pylearn2.utils import safe_zip
 
 class BGD(TrainingAlgorithm):
     """Batch Gradient Descent training algorithm class"""
@@ -21,7 +22,7 @@ class BGD(TrainingAlgorithm):
                  reset_alpha = True, conjugate = False,
                  min_init_alpha = .001,
                  reset_conjugate = True, line_search_mode = None,
-                 verbose_optimization=False):
+                 verbose_optimization=False, scale_step=1., theano_function_mode=None):
         """
         cost: a pylearn2 Cost
         batch_size: Like the SGD TrainingAlgorithm, this TrainingAlgorithm
@@ -88,6 +89,7 @@ class BGD(TrainingAlgorithm):
                             (batch_size, model.force_batch_size))
 
         self.monitor = Monitor.get_monitor(model)
+        self.monitor.set_theano_function_mode(self.theano_function_mode)
         X = self.model.get_input_space().make_theano_batch()
         X.name = 'BGD_X'
         self.topo = X.ndim != 2
@@ -103,6 +105,11 @@ class BGD(TrainingAlgorithm):
             grads, grad_updates = self.cost.get_gradients(model, X)
             ipt = X
             Y = None
+
+        assert isinstance(grads, OrderedDict)
+        assert isinstance(grad_updates, OrderedDict)
+
+
         if obj is None:
             raise ValueError("BGD is incompatible with "+str(self.cost)+" because "
                     " it is intractable, but BGD uses the cost function value to do "
@@ -156,11 +163,13 @@ class BGD(TrainingAlgorithm):
         else:
             ipts = [X]
 
+        params = model.get_params()
+
         self.optimizer = BatchGradientDescent(
                             objective = obj,
                             gradients = grads,
                             gradient_updates = grad_updates,
-                            params = model.get_params(),
+                            params = params,
                             param_constrainers = [ model.censor_updates ],
                             lr_scalers = model.get_lr_scalers(),
                             inputs = ipts,
@@ -170,7 +179,8 @@ class BGD(TrainingAlgorithm):
                             conjugate = self.conjugate,
                             reset_conjugate = self.reset_conjugate,
                             min_init_alpha = self.min_init_alpha,
-                            line_search_mode = self.line_search_mode)
+                            line_search_mode = self.line_search_mode,
+                            theano_function_mode=self.theano_function_mode)
 
 
         self.first = True
@@ -203,7 +213,9 @@ class BGD(TrainingAlgorithm):
             else:
                 args = [ data ]
                 X = data
+            self.before_step(model)
             self.optimizer.minimize(*args)
+            self.after_step(model)
             model.monitor.report_batch( X.shape[0] )
 
     def continue_learning(self, model):
@@ -211,3 +223,14 @@ class BGD(TrainingAlgorithm):
             return True
         else:
             return self.termination_criterion(self.model)
+
+    def before_step(self, model):
+        if self.scale_step != 1.:
+            self.params = list(model.get_params())
+            self.value = [ param.get_value() for param in self.params ]
+
+    def after_step(self, model):
+        if self.scale_step != 1:
+            for param, value in safe_zip(self.params, self.value):
+                value = (1.-self.scale_step) * value + self.scale_step * param.get_value()
+                param.set_value(value)

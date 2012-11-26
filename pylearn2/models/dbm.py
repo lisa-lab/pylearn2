@@ -19,6 +19,8 @@ import sys
 import time
 import warnings
 
+from collections import OrderedDict
+
 from theano import config
 from theano import function
 from theano import gof
@@ -94,8 +96,9 @@ class DBM(Model):
         self._update_layer_input_spaces()
         self.force_batch_size = batch_size
         self.freeze_set = set([])
-        if inference_procedure is not None:
-            inference_procedure.set_dbm(self)
+        if inference_procedure is None:
+            self.setup_inference_procedure()
+        self.inference_procedure.set_dbm(self)
 
     def energy(self, V, hidden):
         """
@@ -141,6 +144,12 @@ class DBM(Model):
 
     def setup_rng(self):
         self.rng = np.random.RandomState([2012, 10, 17])
+
+    def setup_inference_procedure(self):
+        if not hasattr(self, 'inference_procedure') or \
+                self.inference_procedure is None:
+            self.inference_procedure = WeightDoubling()
+            self.inference_procedure.set_dbm(self)
 
     def get_output_space(self):
         return self.hidden_layers[-1].get_output_space()
@@ -205,6 +214,8 @@ class DBM(Model):
 
         rval = [elem for elem in rval if elem not in self.freeze_set]
 
+        assert all([elem.name is not None for elem in rval])
+
         return rval
 
     def set_batch_size(self, batch_size):
@@ -225,7 +236,7 @@ class DBM(Model):
         return self.visible_layer.space
 
     def get_lr_scalers(self):
-        rval = {}
+        rval = OrderedDict()
 
         params = self.get_params()
 
@@ -291,7 +302,7 @@ class DBM(Model):
         for layer, state in zipped:
             recurse_check(layer, state)
 
-        rval = dict(zipped)
+        rval = OrderedDict(zipped)
 
         return rval
 
@@ -335,7 +346,7 @@ class DBM(Model):
 
         # Validate layer_to_clamp / make sure layer_to_clamp is a fully populated dictionary
         if layer_to_clamp is None:
-            layer_to_clamp = {}
+            layer_to_clamp = OrderedDict()
 
         for key in layer_to_clamp:
             assert key is self.visible_layer or key in self.hidden_layers
@@ -345,7 +356,7 @@ class DBM(Model):
                 layer_to_clamp[layer] = False
 
         #Assemble the return value
-        layer_to_updated = {}
+        layer_to_updated = OrderedDict()
 
         for i, this_layer in list(enumerate(self.hidden_layers))[::2]:
             # Iteration i does the Gibbs step for hidden_layers[i]
@@ -487,7 +498,7 @@ class DBM(Model):
 
         updated = self.mcmc_steps(layer_to_state, theano_rng, layer_to_clamp, num_steps)
 
-        rval = {}
+        rval = OrderedDict()
 
         def add_updates(old, new):
             if isinstance(old, (list, tuple)):
@@ -498,7 +509,7 @@ class DBM(Model):
 
         # Validate layer_to_clamp / make sure layer_to_clamp is a fully populated dictionary
         if layer_to_clamp is None:
-            layer_to_clamp = {}
+            layer_to_clamp = OrderedDict()
 
         for key in layer_to_clamp:
             assert key is self.visible_layer or key in self.hidden_layers
@@ -528,7 +539,7 @@ class DBM(Model):
         history = self.mf(X, return_history = True)
         q = history[-1]
 
-        rval = {}
+        rval = OrderedDict()
 
         for state, layer in safe_zip(q, self.hidden_layers):
             ch = layer.get_monitoring_channels()
@@ -620,13 +631,13 @@ class Layer(Model):
         """
         TODO WRITME
         """
-        return {}
+        return OrderedDict()
 
     def get_monitoring_channels_from_state(self, state):
         """
         TODO WRITEME
         """
-        return {}
+        return OrderedDict()
 
     def upward_state(self, total_state):
         """
@@ -933,7 +944,7 @@ class BinaryVectorMaxPool(HiddenLayer):
         if not hasattr(self, 'b_lr_scale'):
             self.b_lr_scale = None
 
-        rval = {}
+        rval = OrderedDict()
 
         if self.W_lr_scale is not None:
             W, = self.transformer.get_params()
@@ -1129,21 +1140,21 @@ class BinaryVectorMaxPool(HiddenLayer):
         row_norms = T.sqrt(sq_W.sum(axis=1))
         col_norms = T.sqrt(sq_W.sum(axis=0))
 
-        return {
-              'row_norms_min'  : row_norms.min(),
-              'row_norms_mean' : row_norms.mean(),
-              'row_norms_max'  : row_norms.max(),
-              'col_norms_min'  : col_norms.min(),
-              'col_norms_mean' : col_norms.mean(),
-              'col_norms_max'  : col_norms.max(),
-            }
+        return OrderedDict([
+              ('row_norms_min'  , row_norms.min()),
+              ('row_norms_mean' , row_norms.mean()),
+              ('row_norms_max'  , row_norms.max()),
+              ('col_norms_min'  , col_norms.min()),
+              ('col_norms_mean' , col_norms.mean()),
+              ('col_norms_max'  , col_norms.max()),
+            ])
 
 
     def get_monitoring_channels_from_state(self, state):
 
         P, H = state
 
-        rval ={}
+        rval = OrderedDict()
 
         if self.pool_size == 1:
             vars_and_prefixes = [ (P,'') ]
@@ -1391,10 +1402,10 @@ class BinaryVectorMaxPool(HiddenLayer):
 
         assert h_sample.dtype == default_z.dtype
 
-        f = function([], updates = {
-            p_state : p_sample,
-            h_state : h_sample
-            })
+        f = function([], updates = [
+            (p_state , p_sample),
+            (h_state , h_sample)
+            ])
 
         f()
 
@@ -1505,8 +1516,9 @@ class Softmax(HiddenLayer):
                  b_lr_scale = None,
                  copies = 1, center = False):
         """
-            copies: we regard the layer as being copied <copies> times
-                   all sample and mean field states are the *average* of
+            copies: We regard the layer as being replicated so that there
+                   are <copies> instances of it.
+                   All sample and mean field states are the *average* of
                    all of these copies, and the weights to each copy are
                    tied.
         """
@@ -1528,7 +1540,7 @@ class Softmax(HiddenLayer):
 
     def get_lr_scalers(self):
 
-        rval = {}
+        rval = OrderedDict()
 
         # Patch old pickle files
         if not hasattr(self, 'W_lr_scale'):
@@ -1554,11 +1566,11 @@ class Softmax(HiddenLayer):
 
         mx = state.max(axis=1)
 
-        return {
-                'mean_max_class' : mx.mean(),
-                'max_max_class' : mx.max(),
-                'min_max_class' : mx.min()
-        }
+        return OrderedDict([
+                ('mean_max_class' , mx.mean()),
+                ('max_max_class' , mx.max()),
+                ('min_max_class' , mx.min())
+        ])
 
     def set_input_space(self, space):
         self.input_space = space
@@ -1774,9 +1786,9 @@ class Softmax(HiddenLayer):
 
         t2 = time.time()
 
-        f = function([], updates = {
-            h_state : h_sample
-            })
+        f = function([], updates = [(
+            h_state , h_sample
+            )])
 
         t3 = time.time()
 

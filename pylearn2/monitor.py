@@ -8,6 +8,7 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
+from collections import OrderedDict
 import warnings
 import time
 from theano import function
@@ -49,7 +50,7 @@ class Monitor(object):
         """
         self.training_succeeded = False
         self.model = model
-        self.channels = {}
+        self.channels = OrderedDict()
         self._num_batches_seen = 0
         self._examples_seen = 0
         self._epochs_seen = 0
@@ -59,7 +60,7 @@ class Monitor(object):
         self._num_batches = []
         self._dirty = True
         self._rng_seed = []
-        self.names_to_del = []
+        self.names_to_del = ['theano_function_mode']
         self.t0 = time.time()
         # Determine whether the model should use topological or vector form of
         # examples. If the model acts on a space with more than the batch index
@@ -72,6 +73,12 @@ class Monitor(object):
             self.topo = len(vector.type.broadcastable) > 2
 
         self.require_label = False
+        self.theano_function_mode = None
+
+    def set_theano_function_mode(self, mode):
+        if self.theano_function_mode != mode:
+            self._dirty = True
+            self.theano_function_mode = mode
 
     def add_dataset(self, dataset, mode='sequential', batch_size=None,
                     num_batches=None, seed = None):
@@ -249,7 +256,7 @@ class Monitor(object):
         self._dirty = False
 
         init_names = dir(self)
-        self.prereqs = {}
+        self.prereqs = OrderedDict()
         for channel in self.channels.values():
             if channel.prereqs is not None:
                 dataset = channel.dataset
@@ -260,13 +267,14 @@ class Monitor(object):
                     if prereq not in prereqs:
                         prereqs.append(prereq)
 
-        updates = {}
+        updates = OrderedDict()
         for channel in self.channels.values():
             updates[channel.val_shared] = np.cast[config.floatX](0.0)
         with log_timing(log, "compiling begin_record_entry"):
-            self.begin_record_entry = function(inputs=[], updates=updates)
-        updates = {}
-        givens = {}
+            self.begin_record_entry = function(inputs=[], updates=updates, mode=self.theano_function_mode,
+                    name = 'Monitor.begin_record_entry')
+        updates = OrderedDict()
+        givens = OrderedDict()
         #Get the appropriate kind of theano variable to represent the data the model
         #acts on
         X = self.model.get_input_space().make_theano_batch(name = "monitoring_X")
@@ -284,8 +292,8 @@ class Monitor(object):
               for d, i, n, b in safe_izip(self._datasets, self._iteration_mode,
                                     self._num_batches, self._batch_size)]
         num_examples = [np.cast[config.floatX](float(i.num_examples)) for i in it]
-        givens = [{} for d in self._datasets]
-        updates = [{} for d in self._datasets]
+        givens = [OrderedDict() for d in self._datasets]
+        updates = [OrderedDict() for d in self._datasets]
         for channel in self.channels.values():
             index = self._datasets.index(channel.dataset)
             d = self._datasets[index]
@@ -313,14 +321,18 @@ class Monitor(object):
                                 up[key].dtype)
 
             self.accum = []
-            for g, u in safe_izip(givens, updates):
+            for idx, packed in enumerate(safe_izip(givens, updates)):
+                g, u = packed
+                function_name = 'Monitor.accum[%d]' % idx
                 if self.require_label:
                     # Some channels may not depend on the data, ie, they might just monitor the model
                     # parameters, or some shared variable updated by the training algorithm, so we
                     # need to ignore the unused input error
-                    self.accum.append(function([X, Y], givens=g, updates=u, on_unused_input = 'ignore'))
+                    self.accum.append(function([X, Y], givens=g, updates=u, on_unused_input = 'ignore', mode=self.theano_function_mode,
+                            name=function_name))
                 else:
-                    self.accum.append(function([X], givens=g, updates=u, on_unused_input = 'ignore'))
+                    self.accum.append(function([X], givens=g, updates=u, on_unused_input = 'ignore', mode=self.theano_function_mode,
+                            name=function_name))
             for a in self.accum:
                 log.info("graph size: %d" % len(a.maker.fgraph.toposort()))
         final_names = dir(self)
@@ -375,6 +387,8 @@ class Monitor(object):
         for name in self.names_to_del:
             if name in d:
                 del d[name]
+
+
         return d
 
     def __setstate__(self, d):

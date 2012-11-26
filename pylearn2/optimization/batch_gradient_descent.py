@@ -4,8 +4,8 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
+from collections import OrderedDict
 import numpy as np
-import warnings
 from pylearn2.utils import sharedX
 from pylearn2.utils import safe_zip
 from theano import config
@@ -31,7 +31,7 @@ class BatchGradientDescent:
             reset_alpha = True, conjugate = False,
             reset_conjugate = True, gradients = None,
             gradient_updates = None, line_search_mode = None,
-            accumulate = False):
+            accumulate = False, theano_function_mode=None):
         """ objective: a theano expression to be minimized
                        should be a function of params and,
                        if provided, inputs
@@ -77,13 +77,13 @@ class BatchGradientDescent:
 
         if line_search_mode is None:
             if init_alpha is None:
-                init_alpha  = ( .001, .005, .01, .05, .1 )
+                init_alpha  = (.001, .005, .01, .05, .1)
         else:
             assert line_search_mode == 'exhaustive'
             if init_alpha is None:
                 init_alpha = (.5, 1.)
 
-        self.init_alpha = tuple([ float(elem) for elem in init_alpha])
+        self.init_alpha = tuple([float(elem) for elem in init_alpha])
 
         if inputs is None:
             inputs = []
@@ -95,9 +95,9 @@ class BatchGradientDescent:
 
         self.verbose = verbose
 
-        param_to_grad_sym = {}
-        param_to_grad_shared = {}
-        updates = {}
+        param_to_grad_sym = OrderedDict()
+        param_to_grad_shared = OrderedDict()
+        updates = OrderedDict()
         if self.gradient_updates is not None:
             updates.update(self.gradient_updates)
 
@@ -109,7 +109,9 @@ class BatchGradientDescent:
             else:
                 grad = T.grad(objective, param, disconnected_inputs='ignore')
             param_to_grad_sym[param] = grad
-            grad_shared = sharedX( param.get_value() * 0. )
+            param_name = param.name
+            grad_name = 'BatchGradientDescent.grad_' + param_name
+            grad_shared = sharedX( param.get_value() * 0., name=grad_name)
             param_to_grad_shared[param] = grad_shared
             updates[grad_shared] = grad
 
@@ -120,7 +122,10 @@ class BatchGradientDescent:
         if self.accumulate:
             self._compute_grad = Accumulator(inputs, updates = updates)
         else:
-            self._compute_grad = function(inputs, updates = updates )
+            self._compute_grad = function(inputs, updates = updates,
+                    mode=self.theano_function_mode,
+                    name='BatchGradientDescent._compute_grad',
+                    on_unused_input='ignore')
         if self.verbose:
             print 'done'
 
@@ -129,16 +134,23 @@ class BatchGradientDescent:
         if self.accumulate:
             self.obj = Accumulator(inputs, obj)
         else:
-            self.obj = function(inputs, obj)
+            self.obj = function(inputs, obj, mode=self.theano_function_mode,
+                    name='BatchGradientDescent.obj',
+                    on_unused_input='ignore')
         if self.verbose:
             print 'done'
 
-        self.param_to_cache = {}
+        self.param_to_cache = OrderedDict()
         alpha = T.scalar(name = 'alpha')
-        cache_updates = {}
-        goto_updates = {}
+        cache_updates = OrderedDict()
+        goto_updates = OrderedDict()
         for param in params:
-            self.param_to_cache[param] = sharedX(param.get_value(borrow=False))
+            if param.name is None:
+                param_name = 'anon_param'
+            else:
+                param_name = param.name
+            cache_name = 'BatchGradientDescent.param_to_cache[%s]' % param_name
+            self.param_to_cache[param] = sharedX(param.get_value(borrow=False), name=cache_name)
             cache_updates[self.param_to_cache[param]] = param
             cached = self.param_to_cache[param]
             grad = self.param_to_grad_shared[param]
@@ -149,13 +161,16 @@ class BatchGradientDescent:
             mul = scaled_alpha * grad
             diff = cached - mul
             goto_updates[param] = diff
-        self._cache_values = function([],updates = cache_updates)
+        self._cache_values = function([],updates = cache_updates, mode=self.theano_function_mode, name='BatchGradientDescent._cache_values')
+        assert isinstance(param_constrainers, (list, tuple))
         for param_constrainer in param_constrainers:
             param_constrainer(goto_updates)
-        self._goto_alpha = function([alpha], updates = goto_updates)
+        self._goto_alpha = function([alpha], updates=goto_updates,
+                mode=self.theano_function_mode, name='BatchGradientDescent._goto_alpha')
 
         norm = T.sqrt(sum([T.sqr(elem).sum() for elem in self.param_to_grad_shared.values()]))
-        normalize_grad_updates = {}
+        norm.name = 'BatchGradientDescent.norm'
+        normalize_grad_updates = OrderedDict()
         for grad_shared in self.param_to_grad_shared.values():
             normalize_grad_updates[grad_shared] = grad_shared / norm
 
@@ -164,18 +179,18 @@ class BatchGradientDescent:
         self.new_weight = sharedX(1.)
         normalize_grad_updates[self.ave_grad_size] = self.new_weight * norm + (1.-self.new_weight) * self.ave_grad_size
 
-
-        self._normalize_grad = function([], norm, updates = normalize_grad_updates)
+        self._normalize_grad = function([], norm, updates = normalize_grad_updates, mode=self.theano_function_mode,
+                name='BatchGradientDescent._normalize_grad')
 
         if self.conjugate:
             grad_shared = self.param_to_grad_shared.values()
 
-            grad_to_old_grad = {}
+            grad_to_old_grad = OrderedDict()
             for elem in grad_shared:
-                grad_to_old_grad[elem] = sharedX(elem.get_value())
+                grad_to_old_grad[elem] = sharedX(elem.get_value(), 'old_'+elem.name)
 
-            self._store_old_grad = function([norm], updates = dict([(grad_to_old_grad[grad], grad * norm)
-                for grad in grad_to_old_grad]))
+            self._store_old_grad = function([norm], updates = OrderedDict([(grad_to_old_grad[grad], grad * norm)
+                for grad in grad_to_old_grad]), mode=self.theano_function_mode, name='BatchGradientDescent._store_old_grad')
 
             grad_ordered = list(grad_to_old_grad.keys())
             old_grad_ordered = [ grad_to_old_grad[grad] for grad in grad_ordered]
@@ -202,8 +217,13 @@ class BatchGradientDescent:
 
             """
 
-            self._make_conjugate = function([], updates = dict([ (grad, grad + beta * grad_to_old_grad[grad]) for
-                grad in grad_to_old_grad]))
+
+            make_conjugate_updates = [(grad, grad + beta * grad_to_old_grad[grad]) for grad in grad_ordered]
+
+
+            self._make_conjugate = function([], updates=make_conjugate_updates,
+                    mode=self.theano_function_mode, name='BatchGradientDescent._make_conjugate')
+
 
         if tol is None:
             if objective.dtype == "float32":
@@ -481,7 +501,7 @@ class Accumulator(object):
         """
         batch_size = T.cast(inputs[0].shape[0], 'float32')
         total_examples = T.scalar()
-        transformed_updates = {}
+        transformed_updates = OrderedDict()
         self.has_updates = updates is not None
         if self.has_updates:
             self._clear = function([], updates = [ (var, 0. * var) for var in updates])

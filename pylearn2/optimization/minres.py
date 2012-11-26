@@ -5,7 +5,6 @@ Note: this code is inspired from the following matlab source :
 
 import theano
 import theano.tensor as TT
-from theano.ifelse import ifelse
 from theano.sandbox.scan import scan
 import numpy
 from pylearn2.utils import constantX
@@ -390,6 +389,7 @@ def minres(compute_Av,
         name='minres',
         profile=profile,
         mode=theano.Mode(linker='cvm'))
+    assert isinstance(loc_updates, dict) and 'Ordered' in str(type(loc_updates))
 
     niters = TT.cast(rvals[0][0], 'int32')
     flag = TT.cast(rvals[21][0], 'int32')
