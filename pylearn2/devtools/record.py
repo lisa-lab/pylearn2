@@ -104,5 +104,8 @@ class RecordMode(Mode):
             line = 'Outputs: ' + outputs_digest + '\n'
             handle_line(line, i, node, fn)
 
-        wrap_linker = theano.gof.WrapLinkerMany([theano.gof.OpWiseCLinker()], [callback])
+        #linker = theano.gof.OpWiseCLinker()
+        linker = theano.gof.vm.VM_Linker(use_cloop=True)
+
+        wrap_linker = theano.gof.WrapLinkerMany([linker], [callback])
         super(RecordMode, self).__init__(wrap_linker, optimizer='fast_run')
