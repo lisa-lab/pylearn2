@@ -117,7 +117,8 @@ class MatchChannel(TerminationCriterion):
         channels = monitor.channels
         channel = channels[self.channel_name]
 
-        rval =  channel.val_record[-1] > self.target
+        current = channel.val_record[-1]
+        rval =  current > self.target
         return rval
 
 class ChannelTarget(TerminationCriterion):
