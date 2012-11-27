@@ -21,13 +21,13 @@ def test_record_good():
         recorder.handle_line(str(i)+'\n')
 
     # Make sure they were recorded correctly
-    output_value = output.get_value()
+    output_value = output.getvalue()
 
     assert output_value == ''.join(str(i)+'\n' for i in xrange(num_lines))
 
     # Make sure that the playback functionality doesn't raise any errors
     # when we repeat them
-    output = cStringIO.StringOI(output_value)
+    output = cStringIO.StringIO(output_value)
 
     playback_checker = Record(file_object=output,  replay=True)
 
