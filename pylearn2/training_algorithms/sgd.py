@@ -25,6 +25,7 @@ from pylearn2.utils import serial
 from pylearn2.utils.timing import log_timing
 from theano.gof.op import get_debug_values
 import logging
+from collections import OrderedDict
 
 
 log = logging.getLogger(__name__)

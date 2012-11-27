@@ -191,6 +191,13 @@ class BGD(TrainingAlgorithm):
                             line_search_mode = self.line_search_mode,
                             theano_function_mode=self.theano_function_mode)
 
+        self.monitor.add_channel(name='ave_step_size',
+                ipt=ipt, val = self.optimizer.ave_step_size, dataset=self.monitoring_dataset.values()[0])
+        self.monitor.add_channel(name='ave_grad_size',
+                ipt=ipt, val = self.optimizer.ave_grad_size, dataset=self.monitoring_dataset.values()[0])
+        self.monitor.add_channel(name='ave_grad_mult',
+                ipt=ipt, val = self.optimizer.ave_grad_mult, dataset=self.monitoring_dataset.values()[0])
+
 
         self.first = True
         self.bSetup = True
