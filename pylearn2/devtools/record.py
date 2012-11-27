@@ -18,6 +18,9 @@ class MismatchError(Exception):
 
 class Record(object):
     def __init__(self, file_object=None, file_path=None, replay=False):
+
+        assert file_object is not None or file_path is not None
+
         if replay and file_object is None:
             self.f = open(file_path, 'r')
         elif (not replay) and file_object is None:
@@ -48,23 +51,19 @@ class Record(object):
         else:
             self.f.write(line)
 
-
-
 class RecordMode(Mode):
     """
     Records all computations done with a function in a file at output_path
     Prints the index of each apply node and md5 digests of the numpy ndarrays
     it receives as inputs and produces as outputs.
     """
-    def __init__(self, path, replay=False):
-
-        self.record = Record(path, replay)
+    def __init__(self, record):
 
         known_fgraphs = set([])
 
         def handle_line(line, i, node, fn):
             try:
-                self.record.handle_line(line)
+                record.handle_line(line)
             except MismatchError, e:
                 print 'Got this MismatchError:'
                 print e
@@ -82,8 +81,14 @@ class RecordMode(Mode):
                 raise AssertionError("Non-determinism detected.")
 
         def callback(i, node, fn):
+
             fgraph = node.fgraph
-            assert fgraph.name is not None
+
+            if fgraph.name is None:
+                raise ValueError("Un-named functions are not allowed with RecordMode, "
+                        "because they make it impossible to tell if the same function is "
+                        "running during the playback.")
+
             if fgraph not in known_fgraphs:
                 assert not any([elem.name == fgraph.name for elem in known_fgraphs])
                 known_fgraphs.add(fgraph)
@@ -91,7 +96,7 @@ class RecordMode(Mode):
                 line = 'Function '+fgraph.name+' has '+str(num_app)+' apply nodes.\n'
                 handle_line(line, i, node, fn)
 
-            line = 'Function name: '+str(fgraph.name) + '\n'
+            line = 'Function name: '+fgraph.name + '\n'
             handle_line(line, i, node, fn)
             line = 'Node '+str(i)+':'+str(node)+'\n'
             handle_line(line, i, node, fn)

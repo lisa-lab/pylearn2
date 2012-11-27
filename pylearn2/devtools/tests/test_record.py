@@ -1,5 +1,8 @@
 from pylearn2.devtools.record import Record
+from pylearn2.devtools.record import RecordMode
 from pylearn2.devtools.record import MismatchError
+from theano import function
+from theano.tensor import iscalar
 import cStringIO
 
 def test_record_good():
@@ -70,3 +73,45 @@ def test_record_bad():
         return
     raise AssertionError("Failed to detect mismatch between recorded sequence "
             " and repetition of it.")
+
+
+def test_record_mode_good():
+
+    """
+    Like test_good, but some events are recorded by the
+    theano RecordMode. We don't attempt to check the
+    exact string value of the record in this case.
+    """
+
+    # Record a sequence of events
+    output = cStringIO.StringIO()
+
+    recorder = Record(file_object=output, replay=False)
+
+    record_mode = RecordMode(recorder)
+
+    i = iscalar()
+    f = function([i], i, mode=record_mode, name='f')
+
+    num_lines = 10
+
+    for i in xrange(num_lines):
+        recorder.handle_line(str(i)+'\n')
+        f(i)
+
+    # Make sure that the playback functionality doesn't raise any errors
+    # when we repeat them
+    output_value = output.getvalue()
+    output = cStringIO.StringIO(output_value)
+
+    playback_checker = Record(file_object=output,  replay=True)
+
+    playback_mode = RecordMode(playback_checker)
+
+    i = iscalar()
+    f = function([i], i, mode=playback_mode, name='f')
+
+    for i in xrange(num_lines):
+        playback_checker.handle_line(str(i)+'\n')
+        f(i)
+
