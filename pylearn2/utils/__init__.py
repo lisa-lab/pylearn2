@@ -162,7 +162,8 @@ def safe_union(a, b):
     Does the logic of a union operation without the non-deterministic
     ordering of python sets
     """
-    assert isinstance(a, list)
+    if not isinstance(a, list):
+        raise TypeError("Expected first argument to be a list, but got "+str(type(a)))
     assert isinstance(b, list)
     c = []
     for x in a + b:
