@@ -104,11 +104,11 @@ class BGD(TrainingAlgorithm):
 
         if self.cost.supervised:
             obj = self.cost(model, X, Y, ** fixed_var_descr.fixed_vars)
-            grads, grad_updates = self.cost.get_gradients(model, X, Y)
+            grads, grad_updates = self.cost.get_gradients(model, X, Y, ** fixed_var_descr.fixed_vars)
             ipt = (X,Y)
         else:
             obj = self.cost(model, X, ** fixed_var_descr.fixed_vars)
-            grads, grad_updates = self.cost.get_gradients(model, X)
+            grads, grad_updates = self.cost.get_gradients(model, X, ** fixed_var_descr.fixed_vars)
             ipt = X
             Y = None
 
@@ -146,7 +146,7 @@ class BGD(TrainingAlgorithm):
                 # runs all prereqs before calling the function. So we only need to register the
                 # on_load_batch prereq once per monitoring dataset.
                 self.monitor.add_channel(prefix + 'objective',ipt=ipt,val=obj,
-                        dataset = monitoring_dataset, prereqs = [fixed_var_descr.on_load_batch])
+                        dataset = monitoring_dataset, prereqs = fixed_var_descr.on_load_batch)
 
                 for name in channels:
                     J = channels[name]
@@ -219,11 +219,13 @@ class BGD(TrainingAlgorithm):
             if self.cost.supervised:
                 args = data
                 X, Y = data
-                self.on_load_batch(X, Y)
+                for on_load_batch in self.on_load_batch:
+                    on_load_batch(X, Y)
             else:
                 args = [ data ]
                 X = data
-                self.on_load_batch(X)
+                for on_load_batch in self.on_load_batch:
+                    on_load_batch(X)
             self.before_step(model)
             self.optimizer.minimize(*args)
             self.after_step(model)

@@ -6,6 +6,7 @@ import theano.tensor as T
 from itertools import izip
 from pylearn2.utils import safe_zip
 from collections import OrderedDict
+from pylearn2.utils import safe_union
 
 class Cost(object):
     """
@@ -252,6 +253,11 @@ class SumOfCosts(Cost):
 
         return rval
 
+    def get_fixed_var_descr(self, model, X, Y=None):
+
+        return reduce(merge, [cost.get_fixed_var_descr(model, X,Y) for
+            cost in self.costs])
+
 
 
 class ScaledCost(Cost):
@@ -348,17 +354,10 @@ class MethodCost(Cost):
             return fn(*args, **kwargs)
 
 
-class _NoOp(object):
+def _no_op(X, y=None):
     """
     An on_load_batch callback that does nothing.
-    Object rather than function so it doesn't become
-    a method of FixedVarDescr
     """
-
-    def __call__(self, X, y=None):
-        pass
-
-_no_op = _NoOp()
 
 class FixedVarDescr(object):
     """
@@ -377,9 +376,24 @@ class FixedVarDescr(object):
     fixed_vars = {}
 
     """
-    A callable object that the learning algorithm should call with X or X and y as appropriate
+    A list of callable objects that the learning algorithm should
+    call with X or X and y as appropriate
     whenever a new batch of data is loaded.
     This will update the shared variables mapped to by fixed_vars.
     """
-    on_load_batch = _no_op
+    on_load_batch = [_no_op]
 
+def merge(left, right):
+    """
+    Combine two FixedVarDescrs
+    """
+
+    rval = FixedVarDescr()
+    assert not any([key in right.fixed_vars for key in left.fixed_vars])
+    assert not any([key in left.fixed_vars for key in right.fixed_vars])
+    rval.fixed_vars.update(left.fixed_vars)
+    rval.fixed_vars.update(right.fixed_vars)
+
+    rval.on_load_batch = safe_union(left.on_load_batch, right.on_load_batch)
+
+    return rval
