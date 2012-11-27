@@ -12,6 +12,8 @@ from pylearn2.utils.iteration import is_stochastic
 import numpy as np
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 from pylearn2.utils import safe_zip
+from pylearn2.train_extensions import TrainExtension
+from pylearn2.termination_criteria import TerminationCriterion
 
 class BGD(TrainingAlgorithm):
     """Batch Gradient Descent training algorithm class"""
@@ -234,3 +236,75 @@ class BGD(TrainingAlgorithm):
             for param, value in safe_zip(self.params, self.value):
                 value = (1.-self.scale_step) * value + self.scale_step * param.get_value()
                 param.set_value(value)
+
+class StepShrinker(TrainExtension, TerminationCriterion):
+
+    def __init__(self, channel, scale, giveup_after):
+        """
+        """
+
+        self.__dict__.update(locals())
+        del self.self
+        self.continue_learning = True
+        self.first = True
+        self.prev = np.inf
+
+    def on_monitor(self, model, dataset, algorithm):
+        monitor = model.monitor
+
+        if self.first:
+            self.first = False
+            self.monitor_channel = sharedX(algorithm.scale_step)
+            # TODO: make monitor accept channels not associated with any dataset,
+            # so this hack won't be necessary
+            hack = monitor.channels.values()[0]
+            monitor.add_channel('scale_step', hack.graph_input, self.monitor_channel, dataset=hack.dataset)
+        channel = monitor.channels[self.channel]
+        v = channel.val_record
+        if len(v) == 1:
+            return
+        latest = v[-1]
+        print "Latest "+self.channel+": "+str(latest)
+        # Only compare to the previous step, not the best step so far
+        # Another extension can be in charge of saving the best parameters ever seen.
+        # We want to keep learning as long as we're making progress.
+        # We don't want to give up on a step size just because it failed to undo the damage
+        # of the bigger one that preceded it in a single epoch
+        print "Previous is "+str(self.prev)
+        if latest >= self.prev:
+            cur = algorithm.scale_step
+            print "Looks like using "+str(cur)+" isn't working out so great for us."
+            cur *= self.scale
+            if cur < self.giveup_after:
+                print "Guess we just have to give up."
+                self.continue_learning = False
+                cur = self.giveup_after
+            print "Let's see how "+str(cur)+" does."
+            algorithm.scale_step = cur
+            self.monitor_channel.set_value(np.cast[config.floatX](cur))
+        self.prev = latest
+
+
+    def __call__(self, model):
+        return self.continue_learning
+
+class ScaleStep(TrainExtension):
+    def __init__(self, scale, min_value):
+        self.scale = scale
+        self.min_value = min_value
+        self.first = True
+
+    def on_monitor(self, model, dataset, algorithm):
+        if self.first:
+            monitor = model.monitor
+            self.first = False
+            self.monitor_channel = sharedX(algorithm.scale_step)
+            # TODO: make monitor accept channels not associated with any dataset,
+            # so this hack won't be necessary
+            hack = monitor.channels.values()[0]
+            monitor.add_channel('scale_step', hack.graph_input, self.monitor_channel, dataset=hack.dataset)
+        cur = algorithm.scale_step
+        cur *= self.scale
+        cur = max(cur, self.min_value)
+        algorithm.scale_step = cur
+        self.monitor_channel.set_value(np.cast[config.floatX](cur))
