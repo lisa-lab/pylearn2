@@ -652,9 +652,9 @@ class _PolyakWorker(object):
     Do not use directly.
     """
     def __init__(self, model):
-        avg_updates = {}
+        avg_updates = OrderedDict()
         t = sharedX(1.)
-        self.param_to_mean = {}
+        self.param_to_mean = OrderedDict()
         for param in model.get_params():
             mean = sharedX(param.get_value())
             assert type(mean) == type(param)
@@ -718,7 +718,7 @@ class PolyakAveraging(TrainExtension):
             #HACK
             model.add_polyak_channels(self._worker.param_to_mean, algorithm.monitoring_dataset)
         elif self._count > self.start and self._count % self.save_freq == 0:
-            saved_params = {}
+            saved_params = OrderedDict()
             for param in model.get_params():
                 saved_params[param] = param.get_value()
                 param.set_value(self._worker.param_to_mean[param].get_value())
