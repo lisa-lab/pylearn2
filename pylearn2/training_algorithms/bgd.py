@@ -15,6 +15,7 @@ from pylearn2.utils import safe_zip
 from pylearn2.train_extensions import TrainExtension
 from pylearn2.termination_criteria import TerminationCriterion
 from pylearn2.utils import sharedX
+from theano import config
 
 class BGD(TrainingAlgorithm):
     """Batch Gradient Descent training algorithm class"""
@@ -326,3 +327,4 @@ class ScaleStep(TrainExtension):
         cur = max(cur, self.min_value)
         algorithm.scale_step = cur
         self.monitor_channel.set_value(np.cast[config.floatX](cur))
+
