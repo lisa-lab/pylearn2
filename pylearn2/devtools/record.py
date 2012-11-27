@@ -17,11 +17,14 @@ class MismatchError(Exception):
     """
 
 class Record(object):
-    def __init__(self, path, replay=False):
-        if replay:
-            self.f = open(path, 'r')
+    def __init__(self, file_object=None, file_path=None, replay=False):
+        if replay and file_object is None:
+            self.f = open(file_path, 'r')
+        elif (not replay) and file_object is None:
+            self.f = open(file_path, 'w')
         else:
-            self.f = open(path, 'w')
+            self.f = file_object
+
         self.__dict__.update(locals())
 
     def handle_line(self, line):
