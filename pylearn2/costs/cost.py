@@ -348,10 +348,17 @@ class MethodCost(Cost):
             return fn(*args, **kwargs)
 
 
-def _no_op(X, y=None):
+class _NoOp(object):
     """
     An on_load_batch callback that does nothing.
+    Object rather than function so it doesn't become
+    a method of FixedVarDescr
     """
+
+    def __call__(self, X, y=None):
+        pass
+
+_no_op = _NoOp()
 
 class FixedVarDescr(object):
     """
