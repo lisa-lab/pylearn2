@@ -78,7 +78,7 @@ class RecordMode(Mode):
                     elem, = elem
                     print str(elem)
                 print 'function name: '+node.fgraph.name
-                raise AssertionError("Non-determinism detected.")
+                raise MismatchError("Non-determinism detected by WrapLinker")
 
         def callback(i, node, fn):
 

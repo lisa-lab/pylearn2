@@ -78,7 +78,7 @@ def test_record_bad():
 def test_record_mode_good():
 
     """
-    Like test_good, but some events are recorded by the
+    Like test_record_good, but some events are recorded by the
     theano RecordMode. We don't attempt to check the
     exact string value of the record in this case.
     """
@@ -115,3 +115,49 @@ def test_record_mode_good():
         playback_checker.handle_line(str(i)+'\n')
         f(i)
 
+def test_record_mode_bad():
+
+    """
+    Like test_record_bad, but some events are recorded by the
+    theano RecordMode, as is the event that triggers the mismatch
+    error.
+    """
+
+    # Record a sequence of events
+    output = cStringIO.StringIO()
+
+    recorder = Record(file_object=output, replay=False)
+
+    record_mode = RecordMode(recorder)
+
+    i = iscalar()
+    f = function([i], i, mode=record_mode, name='f')
+
+    num_lines = 10
+
+    for i in xrange(num_lines):
+        recorder.handle_line(str(i)+'\n')
+        f(i)
+
+    # Make sure that the playback functionality doesn't raise any errors
+    # when we repeat them
+    output_value = output.getvalue()
+    output = cStringIO.StringIO(output_value)
+
+    playback_checker = Record(file_object=output,  replay=True)
+
+    playback_mode = RecordMode(playback_checker)
+
+    i = iscalar()
+    f = function([i], i, mode=playback_mode, name='f')
+
+    for i in xrange(num_lines // 2):
+        playback_checker.handle_line(str(i)+'\n')
+        f(i)
+
+    # Make sure a wrong event causes a MismatchError
+    try:
+        f(0)
+    except MismatchError:
+        return
+    raise AssertionError("Failed to detect a mismatch.")
