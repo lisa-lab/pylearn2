@@ -14,6 +14,7 @@ from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 from pylearn2.utils import safe_zip
 from pylearn2.train_extensions import TrainExtension
 from pylearn2.termination_criteria import TerminationCriterion
+from pylearn2.utils import sharedX
 
 class BGD(TrainingAlgorithm):
     """Batch Gradient Descent training algorithm class"""
@@ -98,12 +99,15 @@ class BGD(TrainingAlgorithm):
         Y = T.matrix()
         Y.name = 'BGD_Y'
 
+        fixed_var_descr = self.cost.get_fixed_var_descr(model, X, Y)
+        self.on_load_batch = fixed_var_descr.on_load_batch
+
         if self.cost.supervised:
-            obj = self.cost(model, X, Y)
+            obj = self.cost(model, X, Y, ** fixed_var_descr.fixed_vars)
             grads, grad_updates = self.cost.get_gradients(model, X, Y)
             ipt = (X,Y)
         else:
-            obj = self.cost(model,X)
+            obj = self.cost(model, X, ** fixed_var_descr.fixed_vars)
             grads, grad_updates = self.cost.get_gradients(model, X)
             ipt = X
             Y = None
@@ -138,8 +142,11 @@ class BGD(TrainingAlgorithm):
                                     batch_size=self.batch_size,
                                     num_batches=self.monitoring_batches)
 
+                # The monitor compiles all channels for the same dataset into one function, and
+                # runs all prereqs before calling the function. So we only need to register the
+                # on_load_batch prereq once per monitoring dataset.
                 self.monitor.add_channel(prefix + 'objective',ipt=ipt,val=obj,
-                        dataset = monitoring_dataset)
+                        dataset = monitoring_dataset, prereqs = [fixed_var_descr.on_load_batch])
 
                 for name in channels:
                     J = channels[name]
@@ -212,9 +219,11 @@ class BGD(TrainingAlgorithm):
             if self.cost.supervised:
                 args = data
                 X, Y = data
+                self.on_load_batch(X, Y)
             else:
                 args = [ data ]
                 X = data
+                self.on_load_batch(X)
             self.before_step(model)
             self.optimizer.minimize(*args)
             self.after_step(model)

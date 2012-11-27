@@ -84,7 +84,6 @@ class Cost(object):
 
         return gradients, updates
 
-
     def get_monitoring_channels(self, model, X, Y=None, **kwargs):
         """
         Returns a dictionary mapping channel names to expressions for
@@ -106,6 +105,17 @@ class Cost(object):
             return model.get_output_space()
         else:
             return None
+
+    def get_fixed_var_descr(self, model, X, Y=None):
+        """
+        Subclasses should override this if they need variables held
+        constant across multiple updates to a minibatch.
+
+        TrainingAlgorithms that do multiple updates to a minibatch should
+        respect this. See FixedVarDescr below for details.
+        """
+
+        return FixedVarDescr()
 
 
 class SumOfCosts(Cost):
@@ -336,4 +346,33 @@ class MethodCost(Cost):
             """ Patches calls through to a user-specified method of the model """
             fn = getattr(model, self.method)
             return fn(*args, **kwargs)
+
+
+def _no_op(X, y=None):
+    """
+    An on_load_batch callback that does nothing.
+    """
+
+class FixedVarDescr(object):
+    """
+    An object used to describe variables that influence the cost but that should
+    be held fixed for each minibatch, even if the learning algorithm makes multiple
+    changes to the parameters on this minibatch, ie, for a line search, etc.
+    """
+
+    """
+    fixed_vars: maps string names to shared variables or some sort of data structure
+                surrounding shared variables.
+                Any learning algorithm that does multiple updates on the same minibatch
+                should pass fixed_vars to the cost's __call__ and get_gradient methods
+                as keyword arguments.
+    """
+    fixed_vars = {}
+
+    """
+    A callable object that the learning algorithm should call with X or X and y as appropriate
+    whenever a new batch of data is loaded.
+    This will update the shared variables mapped to by fixed_vars.
+    """
+    on_load_batch = _no_op
 
