@@ -257,6 +257,8 @@ class SumOfCosts(Cost):
 
     def get_fixed_var_descr(self, model, X, Y=None):
 
+        assert (Y is None) == (not self.supervised)
+
         descrs = [cost.get_fixed_var_descr(model, X, Y) for cost in self.costs]
 
         if self.supervised:
@@ -375,30 +377,38 @@ class FixedVarDescr(object):
     changes to the parameters on this minibatch, ie, for a line search, etc.
     """
 
-    """
-    fixed_vars: maps string names to shared variables or some sort of data structure
-                surrounding shared variables.
-                Any learning algorithm that does multiple updates on the same minibatch
-                should pass fixed_vars to the cost's __call__ and get_gradient methods
-                as keyword arguments.
-    """
-    fixed_vars = {}
+    def __init__(self):
+        """
+        fixed_vars: maps string names to shared variables or some sort of data structure
+                    surrounding shared variables.
+                    Any learning algorithm that does multiple updates on the same minibatch
+                    should pass fixed_vars to the cost's __call__ and get_gradient methods
+                    as keyword arguments.
+        """
+        self.fixed_vars = {}
 
-    """
-    A list of callable objects that the learning algorithm should
-    call with X or X and y as appropriate
-    whenever a new batch of data is loaded.
-    This will update the shared variables mapped to by fixed_vars.
-    """
-    on_load_batch = [_no_op]
+        """
+        A list of callable objects that the learning algorithm should
+        call with X or X and y as appropriate
+        whenever a new batch of data is loaded.
+        This will update the shared variables mapped to by fixed_vars.
+        """
+        self.on_load_batch = [_no_op]
 
 def merge(left, right):
     """
     Combine two FixedVarDescrs
     """
 
+    assert left is not right
+    # We assume aliasing is a bug
+    assert left.fixed_vars is not right.fixed_vars
+    assert left.on_load_batch is not right.on_load_batch
+
     rval = FixedVarDescr()
-    assert not any([key in right.fixed_vars for key in left.fixed_vars])
+    for key in left.fixed_vars:
+        if key in right.fixed_vars:
+            raise ValueError("Can't merge these FixedVarDescrs, both contain "+key)
     assert not any([key in left.fixed_vars for key in right.fixed_vars])
     rval.fixed_vars.update(left.fixed_vars)
     rval.fixed_vars.update(right.fixed_vars)
