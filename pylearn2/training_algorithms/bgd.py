@@ -263,7 +263,7 @@ class BGD(TrainingAlgorithm):
 
 class StepShrinker(TrainExtension, TerminationCriterion):
 
-    def __init__(self, channel, scale, giveup_after):
+    def __init__(self, channel, scale, giveup_after, scale_up=1., max_scale=1.):
         """
         """
 
@@ -295,8 +295,8 @@ class StepShrinker(TrainExtension, TerminationCriterion):
         # We don't want to give up on a step size just because it failed to undo the damage
         # of the bigger one that preceded it in a single epoch
         print "Previous is "+str(self.prev)
+        cur = algorithm.scale_step
         if latest >= self.prev:
-            cur = algorithm.scale_step
             print "Looks like using "+str(cur)+" isn't working out so great for us."
             cur *= self.scale
             if cur < self.giveup_after:
@@ -304,8 +304,14 @@ class StepShrinker(TrainExtension, TerminationCriterion):
                 self.continue_learning = False
                 cur = self.giveup_after
             print "Let's see how "+str(cur)+" does."
-            algorithm.scale_step = cur
-            self.monitor_channel.set_value(np.cast[config.floatX](cur))
+        elif latest <= self.prev:
+            print "Looks like we're making progress on the validation set, let's try speeding up"
+            cur *= self.scale_up
+            if cur > self.max_scale:
+                cur = self.max_scale
+            print "New scale is",cur
+        algorithm.scale_step = cur
+        self.monitor_channel.set_value(np.cast[config.floatX](cur))
         self.prev = latest
 
 
