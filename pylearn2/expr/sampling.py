@@ -10,10 +10,13 @@ from theano.sandbox.rng_mrg import MRG_RandomStreams
 from pylearn2.base import Block
 
 class SampleBernoulli(Block):
-    def __init__(self, theano_rng = None):
+    def __init__(self, theano_rng = None, seed=None):
         super(SampleBernoulli, self).__init__()
+        assert theano_rng is None or seed is None
         if theano_rng is None:
-            theano_rng = MRG_RandomStreams(2012+11+22)
+            if seed is None:
+                seed = 2012 + 11 + 22
+            theano_rng = MRG_RandomStreams(seed)
         self.__dict__.update(locals())
         del self.self
 

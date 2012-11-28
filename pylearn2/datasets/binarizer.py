@@ -14,13 +14,17 @@ class Binarizer(TransformerDataset):
         [0,1], and uses these as Bernoulli parameters to sample examples
         with features in {0,1}.
     """
-    def __init__(self, raw):
+    def __init__(self, raw, seed = None):
         """
             raw: a pylearn2 Dataset that provides examples with features
                 in the interval [0, 1]
+            seed: the seed passed to MRG_RandomStreams to make the Bernoulli
+                  samples. If not specified, all class instances default to
+                  the same seed so two instances can be run synchronized side
+                  by side.
         """
 
-        transformer = SampleBernoulli()
+        transformer = SampleBernoulli(seed=seed)
 
         super(Binarizer, self).__init__(raw, transformer, space_preserving=True)
 
