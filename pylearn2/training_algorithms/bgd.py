@@ -100,6 +100,8 @@ class BGD(TrainingAlgorithm):
         self.topo = X.ndim != 2
         Y = T.matrix()
         Y.name = 'BGD_Y'
+        if not self.cost.supervised:
+            Y = None
 
         fixed_var_descr = self.cost.get_fixed_var_descr(model, X, Y)
         self.on_load_batch = fixed_var_descr.on_load_batch
@@ -131,7 +133,7 @@ class BGD(TrainingAlgorithm):
             if not isinstance(channels, dict):
                 raise TypeError("model.get_monitoring_channels must return a "
                                 "dictionary, but it returned " + str(channels))
-            channels.update(self.cost.get_monitoring_channels(model, X, Y))
+            channels.update(self.cost.get_monitoring_channels(model, X, Y, ** fixed_var_descr.fixed_vars))
 
             for dataset_name in self.monitoring_dataset:
                 if dataset_name == '':
