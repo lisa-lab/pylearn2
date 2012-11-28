@@ -9,7 +9,8 @@ import numpy as np
 from pylearn2.utils import sharedX
 from pylearn2.utils import safe_zip
 from theano import config
-from theano import function
+from pylearn2.utils import function
+from pylearn2.utils import grad
 
 import theano.tensor as T
 
@@ -105,10 +106,10 @@ class BatchGradientDescent:
 
         for param in params:
             if self.gradients is not None and param in self.gradients:
-                grad = self.gradients[param]
+                g = self.gradients[param]
             else:
-                grad = T.grad(objective, param, disconnected_inputs='ignore')
-            param_to_grad_sym[param] = grad
+                g = grad(objective, param)
+            param_to_grad_sym[param] = g
             if param.name is not None:
                 param_name = param.name
             else:
@@ -116,7 +117,7 @@ class BatchGradientDescent:
             grad_name = 'BatchGradientDescent.grad_' + param_name
             grad_shared = sharedX( param.get_value() * 0., name=grad_name)
             param_to_grad_shared[param] = grad_shared
-            updates[grad_shared] = grad
+            updates[grad_shared] = g
 
         self.param_to_grad_shared = param_to_grad_shared
 
@@ -127,8 +128,7 @@ class BatchGradientDescent:
         else:
             self._compute_grad = function(inputs, updates = updates,
                     mode=self.theano_function_mode,
-                    name='BatchGradientDescent._compute_grad',
-                    on_unused_input='ignore')
+                    name='BatchGradientDescent._compute_grad')
         if self.verbose:
             print 'done'
 
@@ -138,8 +138,7 @@ class BatchGradientDescent:
             self.obj = Accumulator(inputs, obj)
         else:
             self.obj = function(inputs, obj, mode=self.theano_function_mode,
-                    name='BatchGradientDescent.obj',
-                    on_unused_input='ignore')
+                    name='BatchGradientDescent.obj')
         if self.verbose:
             print 'done'
 
@@ -164,7 +163,7 @@ class BatchGradientDescent:
             mul = scaled_alpha * grad
             diff = cached - mul
             goto_updates[param] = diff
-        self._cache_values = function([],updates = cache_updates, mode=self.theano_function_mode, name='BatchGradientDescent._cache_values')
+        self._cache_values = function([], updates = cache_updates, mode=self.theano_function_mode, name='BatchGradientDescent._cache_values')
         assert isinstance(param_constrainers, (list, tuple))
         for param_constrainer in param_constrainers:
             param_constrainer(goto_updates)
@@ -182,7 +181,7 @@ class BatchGradientDescent:
         self.new_weight = sharedX(1.)
         normalize_grad_updates[self.ave_grad_size] = self.new_weight * norm + (1.-self.new_weight) * self.ave_grad_size
 
-        self._normalize_grad = function([], norm, updates = normalize_grad_updates, mode=self.theano_function_mode,
+        self._normalize_grad = function([], norm, updates=normalize_grad_updates, mode=self.theano_function_mode,
                 name='BatchGradientDescent._normalize_grad')
 
         if self.conjugate:
@@ -192,11 +191,12 @@ class BatchGradientDescent:
             for elem in grad_shared:
                 grad_to_old_grad[elem] = sharedX(elem.get_value(), 'old_'+elem.name)
 
-            self._store_old_grad = function([norm], updates = OrderedDict([(grad_to_old_grad[grad], grad * norm)
-                for grad in grad_to_old_grad]), mode=self.theano_function_mode, name='BatchGradientDescent._store_old_grad')
+            self._store_old_grad = function([norm], updates = OrderedDict([(grad_to_old_grad[g], g * norm)
+                for g in grad_to_old_grad]), mode=self.theano_function_mode,
+                name='BatchGradientDescent._store_old_grad')
 
             grad_ordered = list(grad_to_old_grad.keys())
-            old_grad_ordered = [ grad_to_old_grad[grad] for grad in grad_ordered]
+            old_grad_ordered = [ grad_to_old_grad[grad] for g in grad_ordered]
 
             def dot_product(x, y):
                 return sum([ (x_elem * y_elem).sum() for x_elem, y_elem in safe_zip(x, y) ])
@@ -221,7 +221,7 @@ class BatchGradientDescent:
             """
 
 
-            make_conjugate_updates = [(grad, grad + beta * grad_to_old_grad[grad]) for grad in grad_ordered]
+            make_conjugate_updates = [(g, g + beta * grad_to_old_grad[grad]) for g in grad_ordered]
 
 
             self._make_conjugate = function([], updates=make_conjugate_updates,

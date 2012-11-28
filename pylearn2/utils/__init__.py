@@ -180,4 +180,20 @@ def hex_digest(x):
     rval = rval + '|shape=[' + ','.join(str(s) for s in x.shape) + ']'
     return rval
 
+def function(*args, **kwargs):
+    """
+    A wrapper around theano.function that disables the on_unused_input
+    error. Almost no part of pylearn2 can assume that an unused input
+    is an error.
+    """
+    return theano.function(*args, on_unused_input='ignore', **kwargs)
+
+def grad(*args, **kwargs):
+    """
+    A wrapper around theano.gradient.grad that disable the disconnected_inputs
+    error. Almost no part of pylearn2 can assume that a disconnected input
+    is an error.
+    """
+    return theano.gradient.grad(*args, disconnected_inputs='ignore', **kwargs)
+
 
