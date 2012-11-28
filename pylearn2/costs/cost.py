@@ -1,7 +1,9 @@
-""" Classes representing loss functions.
+"""
+Classes representing loss functions.
 Currently, these are primarily used to specify
 the objective function for the SGD and BGD
-training algorithms."""
+training algorithms.
+"""
 import theano.tensor as T
 from itertools import izip
 from pylearn2.utils import safe_zip
@@ -255,8 +257,15 @@ class SumOfCosts(Cost):
 
     def get_fixed_var_descr(self, model, X, Y=None):
 
-        return reduce(merge, [cost.get_fixed_var_descr(model, X,Y) for
-            cost in self.costs])
+        descrs = [cost.get_fixed_var_descr(model, X, Y) for cost in self.costs]
+
+        if self.supervised:
+            for i in xrange(len(self.costs)):
+                if not self.costs[i].supervised:
+                    descrs[i].on_load_batch = [_Wrapper(orig) for orig in descrs[i].on_load_batch]
+
+
+        return reduce(merge, descrs)
 
 
 
@@ -397,3 +406,10 @@ def merge(left, right):
     rval.on_load_batch = safe_union(left.on_load_batch, right.on_load_batch)
 
     return rval
+
+class _Wrapper(object):
+    def __init__(self, wrapped):
+        self.wrapped = wrapped
+
+    def __call__(self, X, Y):
+        return self.wrapped(X)

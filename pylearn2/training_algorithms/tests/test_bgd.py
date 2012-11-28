@@ -14,6 +14,10 @@ from pylearn2.devtools.record import RecordMode
 from pylearn2.devtools import disturb_mem
 from pylearn2.utils import safe_union
 from pylearn2.utils import safe_izip
+from theano import shared
+from theano import function
+from pylearn2.costs.cost import FixedVarDescr
+from pylearn2.costs.cost import SumOfCosts
 
 class SoftmaxModel(Model):
     """A dummy model used for testing.
@@ -30,6 +34,7 @@ class SoftmaxModel(Model):
         self.dim = dim
         rng = np.random.RandomState([2012,9,25])
         self.P = sharedX( rng.uniform(-1.,1.,(dim,)))
+        self.force_batch_size = None
 
     def get_params(self):
         return [ self.P ]
@@ -109,7 +114,7 @@ def test_determinism():
     def run_bgd(mode):
         # Must be seeded the same both times run_bgd is called
         disturb_mem.disturb_mem()
-        rng = np.random.RandomState([2012, 11, 27])
+        rng = np.random.RandomState([2012, 11, 27, 8])
 
         batch_size = 5
         train_batches = 3
@@ -223,4 +228,108 @@ def test_determinism():
     playback_mode = RecordMode(playback)
 
     run_bgd(playback_mode)
+
+
+def test_fixed_vars():
+
+    """
+    A very basic test of the the fixed vars interface.
+    Checks that the costs' __call__ and get_gradients methods
+    are called with the right parameters and that the updates
+    functions are called the right number of times.
+    """
+
+    rng = np.random.RandomState([2012, 11, 27, 9])
+
+    batch_size = 5
+    updates_per_batch = 4
+    train_batches = 3
+    num_features = 2
+
+    # Synthesize dataset with a linear decision boundary
+    w = rng.randn(num_features)
+
+    def make_dataset(num_batches):
+        m = num_batches*batch_size
+        X = rng.randn(m, num_features)
+        y = rng.randn(m, num_features)
+
+        rval =  DenseDesignMatrix(X=X, y=y)
+
+        rval.yaml_src = "" # suppress no yaml_src warning
+
+        return rval
+
+    train = make_dataset(train_batches)
+
+    model = SoftmaxModel(num_features)
+
+    unsup_counter = shared(0)
+    grad_counter = shared(0)
+
+    called = [False, False, False, False]
+
+    class UnsupervisedCostWithFixedVars(Cost):
+
+        def __call__(self, model, X, Y=None, unsup_aux_var=None, **kwargs):
+            assert unsup_aux_var is unsup_counter
+            called[0] = True
+            return (model.P * X).sum()
+
+        def get_gradients(self, model, X, Y=None, unsup_aux_var=None, **kwargs):
+            assert unsup_aux_var is unsup_counter
+            called[1] = True
+            gradients, updates = Cost.get_gradients(self, model, X, Y, unsup_aux_var=unsup_aux_var)
+            updates[grad_counter] = grad_counter + 1
+            return gradients, updates
+
+        def get_fixed_var_descr(self, model, X, Y=None, **kwargs):
+            rval = FixedVarDescr()
+            rval.fixed_vars = {'unsup_aux_var': unsup_counter}
+            rval.on_load_batch = [ function([X], updates=[(unsup_counter, unsup_counter+1)],
+                on_unused_input='ignore')]
+            return rval
+
+    sup_counter = shared(0)
+
+    class SupervisedCostWithFixedVars(Cost):
+
+        supervised = True
+
+        def __call__(self, model, X, Y=None, sup_aux_var=None, **kwargs):
+            assert sup_aux_var is sup_counter
+            called[2] = True
+            return (model.P * X* Y ).sum()
+
+        def get_gradients(self, model, X, Y=None, sup_aux_var=None, **kwargs):
+            assert sup_aux_var is sup_counter
+            called[3] = True
+            return super(SupervisedCostWithFixedVars, self).get_gradients(model=model, X=X, Y=Y, sup_aux_var=sup_aux_var)
+
+        def get_fixed_var_descr(self, model, X, Y=None):
+            rval = FixedVarDescr()
+            rval.fixed_vars = {'sup_aux_var': sup_counter}
+            rval.on_load_batch = [ function([X, Y], updates=[(sup_counter, sup_counter+1)],
+                on_unused_input='ignore')]
+            return rval
+
+    cost = SumOfCosts(costs=[UnsupervisedCostWithFixedVars(), SupervisedCostWithFixedVars()])
+
+    algorithm = BGD(cost=cost, batch_size=batch_size, conjugate=1, line_search_mode='exhaustive',
+            updates_per_batch=updates_per_batch)
+
+    algorithm.setup(model=model, dataset=train)
+
+    # Make sure all the right methods were used to compute the updates
+    assert all(called)
+
+    algorithm.train(dataset=train)
+
+    # Make sure the load_batch callbacks were called the right amount of times
+    assert unsup_counter.get_value() == train_batches
+    assert sup_counter.get_value() == train_batches
+
+    # Make sure the gradient updates were run the right amount of times
+    assert grad_counter.get_value() == train_batches * updates_per_batch
+
 
