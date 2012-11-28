@@ -16,7 +16,6 @@ from theano.sandbox.cuda import host_from_gpu
 from theano.tensor.nnet.conv import conv2d
 from theano import function
 import warnings
-from numpy.testing.noseclasses import KnownFailureTest
 
 def test_match_valid_conv():
 
@@ -53,14 +52,13 @@ def test_match_valid_conv():
 
     output_conv2d = output_conv2d.dimshuffle(1,2,3,0)
 
-    try:
-        f = function([], [output, output_conv2d])
-    except:
-        raise KnownFailureTest("cuda-convnet code depends on an unmerged theano feature.")
+    f = function([], [output, output_conv2d])
 
     output, output_conv2d = f()
 
-    warnings.warn("test_match_valid_conv success criterion is not very strict. Can we verify that this is OK?")
+    warnings.warn("""test_match_valid_conv success criterion is not very strict. Can we verify that this is OK?
+                     One possibility is that theano is numerically unstable and Alex's code is better.
+                     Probably theano CPU 64 bit is OK but it's worth checking the others.""")
     if np.abs(output - output_conv2d).max() > 2.4e-6:
         assert type(output) == type(output_conv2d)
         assert output.dtype == output_conv2d.dtype
@@ -106,10 +104,7 @@ def test_reject_rect():
     output_conv2d = conv2d(images_bc01, filters_bc01,
             border_mode='valid')
 
-    try:
-        f = function([], [output, output_conv2d])
-    except:
-        raise KnownFailureTest("cuda-convnet code depends on an unmerged theano feature.")
+    f = function([], [output, output_conv2d])
 
     try:
         output, output_conv2d = f()
@@ -149,10 +144,7 @@ def test_reject_bad_filt_number():
     output_conv2d = conv2d(images_bc01, filters_bc01,
             border_mode='valid')
 
-    try:
-        f = function([], [output, output_conv2d])
-    except:
-        raise KnownFailureTest("cuda-convnet code depends on an unmerged theano feature.")
+    f = function([], [output, output_conv2d])
 
     try:
         output, output_conv2d = f()
@@ -162,3 +154,4 @@ def test_reject_bad_filt_number():
 
 if __name__ == '__main__':
     test_match_valid_conv()
+
