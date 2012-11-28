@@ -216,7 +216,10 @@ class Monitor(object):
         if dataset not in self.prereqs:
             return
         for prereq in self.prereqs[dataset]:
-            prereq(X,y)
+            if y is None:
+                prereq(X)
+            else:
+                prereq(X,y)
 
     def get_batches_seen(self):
         """ Returns the number of batches the model has learned on (assuming
