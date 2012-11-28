@@ -14,6 +14,15 @@ import numpy as np
 from pylearn2.testing.datasets import ArangeDataset
 from pylearn2.testing.cost import CallbackCost
 from pylearn2.utils.iteration import _iteration_schemes
+import cStringIO
+from pylearn2.devtools.record import Record
+from pylearn2.devtools.record import RecordMode
+from pylearn2.devtools import disturb_mem
+from pylearn2.training_algorithms.sgd import PolyakAveraging
+from pylearn2.training_algorithms.sgd import MomentumAdjustor
+from pylearn2.training_algorithms.sgd import ExponentialDecay
+from pylearn2.utils import safe_union
+from pylearn2.utils import safe_izip
 
 class DummyCost(Cost):
     def __call__(self, model, X, Y = None):
@@ -502,5 +511,133 @@ def test_determinism():
         print visited[1]
         assert np.all(np.asarray(visited[0]) == np.asarray(visited[1]))
 
+def test_determinism_2():
+
+    """
+    A more aggressive determinism test. Tests that apply nodes are all passed inputs
+    with the same md5sums, apply nodes are run in same order, etc.
+    Uses disturb_mem to try to cause dictionaries to iterate in different orders, etc.
+    """
+
+    def run_sgd(mode):
+        # Must be seeded the same both times run_sgd is called
+        disturb_mem.disturb_mem()
+        rng = np.random.RandomState([2012, 11, 27])
+
+        batch_size = 5
+        train_batches = 3
+        valid_batches = 4
+        num_features = 2
+
+        # Synthesize dataset with a linear decision boundary
+        w = rng.randn(num_features)
+
+        def make_dataset(num_batches):
+            disturb_mem.disturb_mem()
+            m = num_batches*batch_size
+            X = rng.randn(m, num_features)
+            y = np.zeros((m,1))
+            y[:,0] = np.dot(X, w) > 0.
+
+            rval =  DenseDesignMatrix(X=X, y=y)
+
+            rval.yaml_src = "" # suppress no yaml_src warning
+
+            X = rval.get_batch_design(batch_size)
+            assert X.shape == (batch_size, num_features)
+
+            return rval
+
+        train = make_dataset(train_batches)
+        valid = make_dataset(valid_batches)
+
+        num_chunks = 10
+        chunk_width = 2
+        class ManyParamsModel(Model):
+            """
+            Make a model with lots of parameters, so that there are many
+            opportunities for their updates to get accidentally re-ordered
+            non-deterministically. This makes non-determinism bugs manifest
+            more frequently.
+            """
+
+            def __init__(self):
+                self.W1 = [sharedX(rng.randn(num_features, chunk_width)) for i
+                    in xrange(num_chunks)]
+                disturb_mem.disturb_mem()
+                self.W2 = [sharedX(rng.randn(chunk_width)) for i in xrange(num_chunks)]
+                self._params = safe_union(self.W1, self.W2)
+                self.input_space = VectorSpace(num_features)
+                self.output_space = VectorSpace(1)
+
+        disturb_mem.disturb_mem()
+        model = ManyParamsModel()
+        disturb_mem.disturb_mem()
+
+
+        class LotsOfSummingCost(Cost):
+            """
+            Make a cost whose gradient on the parameters involves summing many terms together,
+            so that T.grad is more likely to sum things in a random order.
+            """
+
+            supervised = True
+
+            def __call__(self, model, X, Y=None, **kwargs):
+                disturb_mem.disturb_mem()
+                def mlp_pred(non_linearity):
+                    Z = [T.dot(X, W) for W in model.W1]
+                    H = map(non_linearity, Z)
+                    Z = [T.dot(h, W) for h, W in safe_izip(H, model.W2)]
+                    pred = sum(Z)
+                    return pred
+
+                nonlinearity_predictions = map(mlp_pred, [T.nnet.sigmoid, T.nnet.softplus, T.sqr, T.sin])
+                pred = sum(nonlinearity_predictions)
+                disturb_mem.disturb_mem()
+
+                return abs(pred-Y[:,0]).sum()
+
+        cost = LotsOfSummingCost()
+
+        disturb_mem.disturb_mem()
+
+        algorithm = SGD(cost=cost,
+                batch_size=batch_size,
+                init_momentum=.5,
+                learning_rate=1e-3,
+                monitoring_dataset={'train': train, 'valid':valid},
+                update_callbacks=[ExponentialDecay(decay_factor=2., min_lr=.0001)],
+                termination_criterion=EpochCounter(max_epochs=5))
+
+        disturb_mem.disturb_mem()
+
+        train_object = Train(
+                dataset=train,
+                model=model,
+                algorithm=algorithm,
+                extensions=[
+                    PolyakAveraging(start=0),
+                    MomentumAdjustor(final_momentum=.9, start=1, saturate=5),
+                    ],
+                save_freq=0)
+
+        disturb_mem.disturb_mem()
+
+        train_object.main_loop()
+
+
+
+    output = cStringIO.StringIO()
+    record = Record(file_object=output, replay=False)
+    record_mode = RecordMode(record)
+
+    run_sgd(record_mode)
+
+    output = cStringIO.StringIO(output.getvalue())
+    playback = Record(file_object=output, replay=True)
+    playback_mode = RecordMode(playback)
+
+    run_sgd(playback_mode)
 
 

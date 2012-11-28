@@ -716,8 +716,11 @@ class PolyakAveraging(TrainExtension):
             self._worker = _PolyakWorker(model)
             algorithm.update_callbacks.append(self._worker)
             #HACK
-            model.add_polyak_channels(self._worker.param_to_mean, algorithm.monitoring_dataset)
-        elif self._count > self.start and self._count % self.save_freq == 0:
+            try:
+                model.add_polyak_channels(self._worker.param_to_mean, algorithm.monitoring_dataset)
+            except AttributeError:
+                pass
+        elif self.save_path is not None and self._count > self.start and self._count % self.save_freq == 0:
             saved_params = OrderedDict()
             for param in model.get_params():
                 saved_params[param] = param.get_value()
