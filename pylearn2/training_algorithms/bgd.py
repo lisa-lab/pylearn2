@@ -304,7 +304,7 @@ class StepShrinker(TrainExtension, TerminationCriterion):
                 self.continue_learning = False
                 cur = self.giveup_after
             print "Let's see how "+str(cur)+" does."
-        elif latest <= self.prev:
+        elif latest <= self.prev and self.scale_up != 1.:
             print "Looks like we're making progress on the validation set, let's try speeding up"
             cur *= self.scale_up
             if cur > self.max_scale:
