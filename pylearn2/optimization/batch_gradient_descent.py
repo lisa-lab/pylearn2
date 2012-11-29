@@ -139,6 +139,7 @@ class BatchGradientDescent:
         else:
             self.obj = function(inputs, obj, mode=self.theano_function_mode,
                     name='BatchGradientDescent.obj')
+
         if self.verbose:
             print 'done'
 

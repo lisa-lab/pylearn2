@@ -20,13 +20,13 @@ def no_debug_mode(fn):
     # fn.func_name. Otherwise nosetests won't recognize the
     # returned function as a test.
     @functools.wraps(fn)
-    def wrapped():
+    def wrapped(*args, **kwargs):
         orig_mode = config.mode
         if orig_mode in ["DebugMode", "DEBUG_MODE"]:
             config.mode = "FAST_RUN"
 
         try:
-            return fn()
+            return fn(*args, **kwargs)
         finally:
             config.mode = orig_mode
 
