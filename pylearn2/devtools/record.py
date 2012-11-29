@@ -66,6 +66,7 @@ class RecordMode(Mode):
             record = Record(**kwargs)
         else:
             assert len(kwargs.keys()) == 0
+        self.record = record
 
         known_fgraphs = set([])
 
