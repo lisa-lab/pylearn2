@@ -100,11 +100,12 @@ class BGD(TrainingAlgorithm):
         self.topo = X.ndim != 2
         Y = T.matrix()
         Y.name = 'BGD_Y'
-        if not self.cost.supervised:
-            Y = None
 
         fixed_var_descr = self.cost.get_fixed_var_descr(model, X, Y)
         self.on_load_batch = fixed_var_descr.on_load_batch
+
+        if not self.cost.supervised:
+            Y = None
 
         if self.cost.supervised:
             obj = self.cost(model, X, Y, ** fixed_var_descr.fixed_vars)
@@ -238,7 +239,7 @@ class BGD(TrainingAlgorithm):
                 args = [ data ]
                 X = data
                 for on_load_batch in self.on_load_batch:
-                    on_load_batch(X)
+                    on_load_batch(X, None)
             self.before_step(model)
             self.optimizer.minimize(*args)
             self.after_step(model)

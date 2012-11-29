@@ -257,9 +257,9 @@ class SumOfCosts(Cost):
 
         return rval
 
-    def get_fixed_var_descr(self, model, X, Y=None):
+    def get_fixed_var_descr(self, model, X, Y):
 
-        assert (Y is None) == (not self.supervised)
+        assert Y is not None
 
         descrs = [cost.get_fixed_var_descr(model, X, Y) for cost in self.costs]
 

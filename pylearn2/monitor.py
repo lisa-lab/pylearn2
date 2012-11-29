@@ -429,6 +429,11 @@ class Monitor(object):
             id, that prereq will only be called once
         """
 
+        if isinstance(val, (float, int)):
+            val = np.cast[theano.config.floatX](val)
+
+        val = T.as_tensor_variable(val)
+
         if not isinstance(ipt, (list, tuple)):
             tmp = [ ipt ]
         else:
