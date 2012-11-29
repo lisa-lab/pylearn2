@@ -8,13 +8,17 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
+
 from collections import OrderedDict
-import warnings
-import time
-from theano import function
-import theano.sparse
 import copy
+import time
+import warnings
+
+from theano.printing import var_descriptor
+import theano.sparse
+
 from pylearn2.config import yaml_parse
+from pylearn2.utils import function
 from pylearn2.utils.string_utils import number_aware_alphabetical_key
 from pylearn2.utils import sharedX
 from theano import config
