@@ -155,12 +155,12 @@ class BatchGradientDescent:
             self.param_to_cache[param] = sharedX(param.get_value(borrow=False), name=cache_name)
             cache_updates[self.param_to_cache[param]] = param
             cached = self.param_to_cache[param]
-            grad = self.param_to_grad_shared[param]
+            g = self.param_to_grad_shared[param]
             if lr_scalers is not None and param in lr_scalers:
                 scaled_alpha = alpha * lr_scalers[param]
             else:
                 scaled_alpha = alpha
-            mul = scaled_alpha * grad
+            mul = scaled_alpha * g
             diff = cached - mul
             goto_updates[param] = diff
         self._cache_values = function([], updates = cache_updates, mode=self.theano_function_mode, name='BatchGradientDescent._cache_values')
@@ -196,7 +196,7 @@ class BatchGradientDescent:
                 name='BatchGradientDescent._store_old_grad')
 
             grad_ordered = list(grad_to_old_grad.keys())
-            old_grad_ordered = [ grad_to_old_grad[grad] for g in grad_ordered]
+            old_grad_ordered = [ grad_to_old_grad[g] for g in grad_ordered]
 
             def dot_product(x, y):
                 return sum([ (x_elem * y_elem).sum() for x_elem, y_elem in safe_zip(x, y) ])
@@ -220,8 +220,10 @@ class BatchGradientDescent:
 
             """
 
+            assert grad not in grad_to_old_grad
 
-            make_conjugate_updates = [(g, g + beta * grad_to_old_grad[grad]) for g in grad_ordered]
+            make_conjugate_updates = [(g, g + beta * grad_to_old_grad[g]) for g in grad_ordered]
+
 
 
             self._make_conjugate = function([], updates=make_conjugate_updates,

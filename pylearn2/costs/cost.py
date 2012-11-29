@@ -219,11 +219,13 @@ class SumOfCosts(Cost):
                 if param not in params:
                     raise ValueError("A shared variable ("+str(param)+") that is not a parameter appeared in a cost gradient dictionary.")
             for param in g:
+                assert param.ndim == g[param].ndim
                 v = coeff * g[param]
                 if param not in grads:
                     grads[param] = v
                 else:
                     grads[param] = grads[param] + v
+                assert grads[param].ndim == param.ndim
             assert not any([state in updates for state in u])
             assert not any([state in params for state in u])
             updates.update(u)
