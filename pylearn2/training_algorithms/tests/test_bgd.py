@@ -15,7 +15,7 @@ from pylearn2.devtools import disturb_mem
 from pylearn2.utils import safe_union
 from pylearn2.utils import safe_izip
 from theano import shared
-from theano import function
+from pylearn2.utils import function
 from pylearn2.costs.cost import FixedVarDescr
 from pylearn2.costs.cost import SumOfCosts
 
@@ -283,11 +283,13 @@ def test_fixed_vars():
             updates[grad_counter] = grad_counter + 1
             return gradients, updates
 
-        def get_fixed_var_descr(self, model, X, Y=None, **kwargs):
+        def get_fixed_var_descr(self, model, X, Y, **kwargs):
             rval = FixedVarDescr()
             rval.fixed_vars = {'unsup_aux_var': unsup_counter}
-            rval.on_load_batch = [ function([X], updates=[(unsup_counter, unsup_counter+1)],
-                on_unused_input='ignore')]
+            Y=T.matrix()
+            theano_func = function([X, Y], updates=[(unsup_counter, unsup_counter + 1)])
+            rval.on_load_batch = [theano_func]
+
             return rval
 
     sup_counter = shared(0)
@@ -309,8 +311,7 @@ def test_fixed_vars():
         def get_fixed_var_descr(self, model, X, Y=None):
             rval = FixedVarDescr()
             rval.fixed_vars = {'sup_aux_var': sup_counter}
-            rval.on_load_batch = [ function([X, Y], updates=[(sup_counter, sup_counter+1)],
-                on_unused_input='ignore')]
+            rval.on_load_batch = [ function([X, Y], updates=[(sup_counter, sup_counter+1)])]
             return rval
 
     cost = SumOfCosts(costs=[UnsupervisedCostWithFixedVars(), SupervisedCostWithFixedVars()])
