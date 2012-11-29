@@ -57,7 +57,15 @@ class RecordMode(Mode):
     Prints the index of each apply node and md5 digests of the numpy ndarrays
     it receives as inputs and produces as outputs.
     """
-    def __init__(self, record):
+    def __init__(self, record = None, **kwargs):
+        """
+        Takes either a Record object or the keyword arguments to make one.
+        """
+
+        if record is None:
+            record = Record(**kwargs)
+        else:
+            assert len(kwargs).keys() == 0
 
         known_fgraphs = set([])
 
