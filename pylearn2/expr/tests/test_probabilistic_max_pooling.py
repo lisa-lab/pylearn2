@@ -7,6 +7,7 @@ from pylearn2.expr.probabilistic_max_pooling import max_pool_b01c
 from pylearn2.expr.probabilistic_max_pooling import max_pool_unstable
 from pylearn2.expr.probabilistic_max_pooling import max_pool_softmax_op
 from pylearn2.expr.probabilistic_max_pooling import max_pool_softmax_with_bias_op
+from pylearn2.testing import no_debug_mode
 from theano import config
 from theano import function
 import theano.tensor as T
@@ -174,6 +175,7 @@ def check_correctness_bc01(f):
         print 'ave diff ',diff.mean()
         assert False
 
+@no_debug_mode
 def check_sample_correctishness(f):
     batch_size = 5
     rows = 32
@@ -288,6 +290,7 @@ def check_sample_correctishness(f):
     """ If you made it to here, it's correctish
      (cant tell if samples are perfectly "correct") """
 
+@no_debug_mode
 def check_sample_correctishness_bc01(f):
 
     # Tests that the sample mean converges to the conditional expectation given by the
@@ -412,6 +415,7 @@ def check_sample_correctishness_bc01(f):
     """ If you made it to here, it's correctish
      (cant tell if samples are perfectly "correct") """
 
+@no_debug_mode
 def check_sample_correctishness_channelwise(f):
 
     # Tests that the sample mean converges to the conditional expectation given by the
