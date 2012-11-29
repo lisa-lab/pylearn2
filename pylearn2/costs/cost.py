@@ -109,7 +109,7 @@ class Cost(object):
         else:
             return None
 
-    def get_fixed_var_descr(self, model, X, Y=None):
+    def get_fixed_var_descr(self, model, X, Y):
         """
         Subclasses should override this if they need variables held
         constant across multiple updates to a minibatch.
@@ -263,12 +263,6 @@ class SumOfCosts(Cost):
 
         descrs = [cost.get_fixed_var_descr(model, X, Y) for cost in self.costs]
 
-        if self.supervised:
-            for i in xrange(len(self.costs)):
-                if not self.costs[i].supervised:
-                    descrs[i].on_load_batch = [_Wrapper(orig) for orig in descrs[i].on_load_batch]
-
-
         return reduce(merge, descrs)
 
 
@@ -419,9 +413,6 @@ def merge(left, right):
 
     return rval
 
-class _Wrapper(object):
-    def __init__(self, wrapped):
-        self.wrapped = wrapped
 
     def __call__(self, X, Y):
         return self.wrapped(X)
