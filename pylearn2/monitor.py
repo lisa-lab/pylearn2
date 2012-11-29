@@ -428,6 +428,20 @@ class Monitor(object):
             if two channels provide a prereq with exactly the same
             id, that prereq will only be called once
         """
+
+        if not isinstance(ipt, (list, tuple)):
+            tmp = [ ipt ]
+        else:
+            tmp = ipt
+        inputs = theano.gof.graph.inputs([val])
+        for elem in inputs:
+            if not hasattr(elem, 'get_value') and not isinstance(elem, theano.gof.graph.Constant):
+                if elem not in tmp:
+                    raise ValueError("Unspecified input: "+str(elem))
+
+
+
+
         if dataset is None:
             if len(self._datasets) == 1:
                 dataset = self._datasets[0]
