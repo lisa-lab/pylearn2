@@ -1,4 +1,10 @@
 import numpy as np
+
+from theano import config
+from theano import function
+import theano.tensor as T
+from theano.sandbox.rng_mrg import MRG_RandomStreams
+
 from pylearn2.expr.probabilistic_max_pooling import max_pool_python
 from pylearn2.expr.probabilistic_max_pooling import max_pool_channels_python
 from pylearn2.expr.probabilistic_max_pooling import max_pool
@@ -7,10 +13,6 @@ from pylearn2.expr.probabilistic_max_pooling import max_pool_b01c
 from pylearn2.expr.probabilistic_max_pooling import max_pool_unstable
 from pylearn2.expr.probabilistic_max_pooling import max_pool_softmax_op
 from pylearn2.expr.probabilistic_max_pooling import max_pool_softmax_with_bias_op
-from theano import config
-from theano import function
-import theano.tensor as T
-from theano.sandbox.rng_mrg import MRG_RandomStreams
 
 
 def check_correctness_channelwise(f):
@@ -547,10 +549,22 @@ def test_max_pool():
     check_correctness_bc01(max_pool)
 
 def test_max_pool_samples():
-    check_sample_correctishness_bc01(max_pool)
+    orig_mode = config.mode
+    if orig_mode in ["DebugMode", "DEBUG_MODE"]:
+        config.mode = "FAST_RUN"
+    try:
+        check_sample_correctishness_bc01(max_pool)
+    finally:
+        config.mode = orig_mode
 
 def test_max_pool_b01c_samples():
-    check_sample_correctishness(max_pool_b01c)
+    orig_mode = config.mode
+    if orig_mode in ["DebugMode", "DEBUG_MODE"]:
+        config.mode = "FAST_RUN"
+    try:
+        check_sample_correctishness(max_pool_b01c)
+    finally:
+        config.mode = orig_mode
 
 def test_max_pool_b01c():
     check_correctness(max_pool_b01c)
