@@ -996,6 +996,7 @@ class BinaryVectorMaxPool(HiddenLayer):
                     return False
                 return self.mask_weights[idx, i] == 0.
             for i in xrange(self.detector_layer_dim):
+                assert self.sparse_init <= self.input_dim
                 for j in xrange(self.sparse_init):
                     idx = rng.randint(0, self.input_dim)
                     while W[idx, i] != 0 or mask_rejects(idx, i):
