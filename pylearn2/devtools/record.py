@@ -57,6 +57,11 @@ class RecordMode(Mode):
     Prints the index of each apply node and md5 digests of the numpy ndarrays
     it receives as inputs and produces as outputs.
     """
+
+    def set_record(self, record):
+        self.record = record
+        self.known_fgraphs = set([])
+
     def __init__(self, record = None, **kwargs):
         """
         Takes either a Record object or the keyword arguments to make one.
@@ -66,13 +71,13 @@ class RecordMode(Mode):
             record = Record(**kwargs)
         else:
             assert len(kwargs.keys()) == 0
-        self.record = record
 
-        known_fgraphs = set([])
+        self.set_record(record)
+
 
         def handle_line(line, i, node, fn):
             try:
-                record.handle_line(line)
+                self.record.handle_line(line)
             except MismatchError, e:
                 print 'Got this MismatchError:'
                 print e
@@ -98,9 +103,9 @@ class RecordMode(Mode):
                         "because they make it impossible to tell if the same function is "
                         "running during the playback.")
 
-            if fgraph not in known_fgraphs:
-                assert not any([elem.name == fgraph.name for elem in known_fgraphs])
-                known_fgraphs.add(fgraph)
+            if fgraph not in self.known_fgraphs:
+                assert not any([elem.name == fgraph.name for elem in self.known_fgraphs])
+                self.known_fgraphs.add(fgraph)
                 num_app = len(fgraph.apply_nodes)
                 line = 'Function '+fgraph.name+' has '+str(num_app)+' apply nodes.\n'
                 handle_line(line, i, node, fn)
