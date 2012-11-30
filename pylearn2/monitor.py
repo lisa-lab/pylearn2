@@ -291,6 +291,9 @@ class Monitor(object):
 
         log.info('Monitored channels: ')
         for key in sorted(self.channels.keys()):
+            mode = self.theano_function_mode
+            if mode is not None and hasattr(mode, 'record'):
+                mode.record.handle_line('compiling monitor including channel '+key+'\n')
             log.info('\t%s' % key)
         it = [d.iterator(mode=i, num_batches=n, batch_size=b) \
               for d, i, n, b in safe_izip(self._datasets, self._iteration_mode,
@@ -327,17 +330,32 @@ class Monitor(object):
             self.accum = []
             for idx, packed in enumerate(safe_izip(givens, updates)):
                 g, u = packed
+                mode = self.theano_function_mode
+                if mode is not None and hasattr(mode, 'record'):
+                    for elem in g:
+                        mode.record.handle_line('g key '+var_descriptor(elem)+'\n')
+                        mode.record.handle_line('g val '+var_descriptor(g[elem])+'\n')
+                    for elem in u:
+                        mode.record.handle_line('u key '+var_descriptor(elem)+'\n')
+                        mode.record.handle_line('u val '+var_descriptor(u[elem])+'\n')
                 function_name = 'Monitor.accum[%d]' % idx
                 if self.require_label:
+                    if mode is not None and hasattr(mode, 'record'):
+                        mode.record.handle_line('compiling supervised accum\n')
                     # Some channels may not depend on the data, ie, they might just monitor the model
                     # parameters, or some shared variable updated by the training algorithm, so we
                     # need to ignore the unused input error
-                    self.accum.append(function([X, Y], givens=g, updates=u, on_unused_input = 'ignore', mode=self.theano_function_mode,
+                    self.accum.append(function([X, Y], givens=g, updates=u, mode=self.theano_function_mode,
                             name=function_name))
                 else:
-                    self.accum.append(function([X], givens=g, updates=u, on_unused_input = 'ignore', mode=self.theano_function_mode,
+                    if mode is not None and hasattr(mode, 'record'):
+                        mode.record.handle_line('compiling unsupervised accum\n')
+                    self.accum.append(function([X], givens=g, updates=u, mode=self.theano_function_mode,
                             name=function_name))
             for a in self.accum:
+                if mode is not None and hasattr(mode, 'record'):
+                    for elem in a.maker.fgraph.outputs:
+                        mode.record.handle_line('accum output '+var_descriptor(elem)+'\n')
                 log.info("graph size: %d" % len(a.maker.fgraph.toposort()))
         final_names = dir(self)
         self.register_names_to_del([name for name in final_names
@@ -446,6 +464,15 @@ class Monitor(object):
 
 
 
+        mode = self.theano_function_mode
+        if mode is not None and hasattr(mode, 'record'):
+            mode.record.handle_line('Adding monitor channel '+name+'\n')
+            if isinstance(ipt, tuple):
+                for elem in ipt:
+                    mode.record.handle_line('Includes input var '+var_descriptor(elem)+'\n')
+            else:
+                mode.record.handle_line(name+' input var is '+var_descriptor(ipt)+'\n')
+            mode.record.handle_line('channel '+name+' is '+var_descriptor(val)+'\n')
 
         if dataset is None:
             if len(self._datasets) == 1:

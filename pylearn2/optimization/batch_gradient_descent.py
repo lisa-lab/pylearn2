@@ -4,15 +4,18 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
+
 from collections import OrderedDict
 import numpy as np
-from pylearn2.utils import sharedX
-from pylearn2.utils import safe_zip
+
 from theano import config
+from theano.printing import var_descriptor
+import theano.tensor as T
+
 from pylearn2.utils import function
 from pylearn2.utils import grad
-
-import theano.tensor as T
+from pylearn2.utils import safe_zip
+from pylearn2.utils import sharedX
 
 def norm_sq(s):
     return np.square(s.get_value()).sum()
@@ -33,7 +36,8 @@ class BatchGradientDescent:
             reset_conjugate = True, gradients = None,
             gradient_updates = None, line_search_mode = None,
             accumulate = False, theano_function_mode=None):
-        """ objective: a theano expression to be minimized
+        """
+        objective: a theano expression to be minimized
                        should be a function of params and,
                        if provided, inputs
             params: A list of theano shared variables.
@@ -225,10 +229,21 @@ class BatchGradientDescent:
 
             make_conjugate_updates = [(g, g + beta * grad_to_old_grad[g]) for g in grad_ordered]
 
-
+            mode = self.theano_function_mode
+            if mode is not None and hasattr(mode, 'record'):
+                for v, u in make_conjugate_updates:
+                    mode.record.handle_line('BatchGradientDescent._make_conjugate var ' \
+                            + var_descriptor(v) + '\n')
+                    mode.record.handle_line('BatchGradientDescent._make_conjugate update ' \
+                            + var_descriptor(u) + '\n')
 
             self._make_conjugate = function([], updates=make_conjugate_updates,
                     mode=self.theano_function_mode, name='BatchGradientDescent._make_conjugate')
+
+            if mode is not None and hasattr(mode, 'record'):
+                for output in self._make_conjugate.maker.fgraph.outputs:
+                    mode.record.handle_line('BatchGradientDescent._make_conjugate output ' \
+                            + var_descriptor(output) + '\n')
 
 
         if tol is None:
@@ -241,7 +256,6 @@ class BatchGradientDescent:
 
         self.ave_step_size = sharedX(0.)
         self.ave_grad_mult = sharedX(0.)
-
 
     def minimize(self, * inputs ):
 
