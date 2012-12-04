@@ -27,7 +27,7 @@ class BGD(TrainingAlgorithm):
                  min_init_alpha = .001,
                  reset_conjugate = True, line_search_mode = None,
                  verbose_optimization=False, scale_step=1., theano_function_mode=None,
-                 init_alpha=None):
+                 init_alpha=None, seed=None):
         """
         cost: a pylearn2 Cost
         batch_size: Like the SGD TrainingAlgorithm, this TrainingAlgorithm
@@ -62,7 +62,9 @@ class BGD(TrainingAlgorithm):
 
         self.bSetup = False
         self.termination_criterion = termination_criterion
-        self.rng = np.random.RandomState([2012,10,16])
+        if seed is None:
+            seed = [2012, 10, 16]
+        self.rng = np.random.RandomState(seed)
 
     def setup(self, model, dataset):
         """
@@ -233,6 +235,10 @@ class BGD(TrainingAlgorithm):
             if self.cost.supervised:
                 args = data
                 X, Y = data
+                mode = self.theano_function_mode
+                if mode is not None and hasattr(mode, 'record'):
+                    stry = str(Y).replace('\n',' ')
+                    mode.record.handle_line('data Y '+stry+'\n')
                 for on_load_batch in self.on_load_batch:
                     on_load_batch(X, Y)
             else:
