@@ -7,6 +7,7 @@ __email__ = "goodfeli@iro"
 
 from collections import OrderedDict
 import numpy as np
+import time
 
 from theano import config
 from theano.printing import var_descriptor
@@ -127,6 +128,7 @@ class BatchGradientDescent:
 
         if self.verbose:
             print 'batch gradient class compiling gradient function'
+        t1 = time.time()
         if self.accumulate:
             self._compute_grad = Accumulator(inputs, updates = updates)
         else:
@@ -134,7 +136,8 @@ class BatchGradientDescent:
                     mode=self.theano_function_mode,
                     name='BatchGradientDescent._compute_grad')
         if self.verbose:
-            print 'done'
+            t2 = time.time()
+            print 'done. Took ',t2-t1
 
         if self.verbose:
             print 'batch gradient class compiling objective function'
@@ -267,7 +270,6 @@ class BatchGradientDescent:
 
         if self.verbose:
             print orig_obj
-
 
         iters = 0
 

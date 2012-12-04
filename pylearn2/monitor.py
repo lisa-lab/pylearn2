@@ -467,7 +467,7 @@ class Monitor(object):
         mode = self.theano_function_mode
         if mode is not None and hasattr(mode, 'record'):
             mode.record.handle_line('Adding monitor channel '+name+'\n')
-            if isinstance(ipt, tuple):
+            if isinstance(ipt, (list, tuple)):
                 for elem in ipt:
                     mode.record.handle_line('Includes input var '+var_descriptor(elem)+'\n')
             else:
