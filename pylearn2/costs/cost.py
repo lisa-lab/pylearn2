@@ -180,7 +180,12 @@ class SumOfCosts(Cost):
                 Y_to_pass = Y
             else:
                 Y_to_pass = None
-            costs.append(cost(model, X, Y_to_pass, **kwargs))
+            try:
+                evaluated = cost(model, X, Y_to_pass, **kwargs)
+            except Exception, e:
+                # Normal python exception is too dumb to tell you the class
+                raise RuntimeError("While evaluating "+str(cost)+" got "+str(e))
+            costs.append(evaluated)
         assert len(costs) > 0
 
         if any([cost is None for cost in costs]):

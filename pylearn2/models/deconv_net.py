@@ -26,10 +26,15 @@ class InferenceCallback(object):
         del self.self
 
     def __call__(self, X, Y):
+        """
+        updates self.code
 
-        # X is a tensor for the input image of shape (batch_size, rows, cols, channels)
-        # the deconv net is available as self.model
-        # we need to update self.code
+        X: a numpy tensor for the input image of shape (batch_size, rows, cols, channels)
+        Y: unused
+
+        the model is available as self.model
+        """
+
 
         raise NotImplementedError()
 
@@ -40,6 +45,15 @@ class DeconvNetMSESparsity(Cost):
     """
 
     def __call__(self, model, X, Y=None, code=None, **kwargs):
+        """
+            Returns a theano expression for the mean squared error.
+
+            model: a DeconvNet instance
+            X: a theano tensor of shape (batch_size, rows, cols, channels)
+            Y: unused
+            deconv_net_code: the theano shared variable representing the deconv net's code
+            kwargs: unused
+        """
 
         # Training algorithm should always supply the code
         assert code is not None
@@ -48,6 +62,15 @@ class DeconvNetMSESparsity(Cost):
         raise NotImplementedError()
 
     def get_fixed_var_descr(self, model, X, Y):
+        """
+            Returns a FixedVarDescr describing how to update the code.
+            We use this mechanism because it is the easiest way to use a python
+            loop to do inference.
+
+            model: a DeconvNet instance
+            X: a theano tensor of shape (batch_size, rows, cols, channels)
+            Y: unused
+        """
 
         rval = FixedVarDescr()
 
