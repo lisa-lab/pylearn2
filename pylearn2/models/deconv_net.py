@@ -1,7 +1,7 @@
 from pylearn2.models.model import Model
 from pylearn2.costs.cost import Cost
 from pylearn2.costs.cost import FixedVarDescr
-from pylearn2.spaces import Conv2DSpace
+from pylearn2.space import Conv2DSpace
 from pylearn2.utils import sharedX
 
 class DeconvNet(Model):
@@ -18,7 +18,6 @@ class DeconvNet(Model):
 
         self.input_space = Conv2DSpace(input_shape, input_channels)
         self.output_space = Conv2DSpace(hid_shape, hid_channels)
-
 
 class InferenceCallback(object):
 

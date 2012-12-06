@@ -1,0 +1,20 @@
+!obj:pylearn2.train.Train {
+    model: !obj:pylearn2.models.deconv_net.DeconvNet {
+        input_shape: [32, 32],
+        input_channels: 3,
+        hid_shape: [25, 25],
+        hid_channels: 32,
+        batch_size: 1000
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        learning_rate: 1e-3,
+        cost: !obj:pylearn2.models.deconv_net.DeconvNetMSESparsity {
+        },
+    },
+    dataset: !obj:pylearn2.datasets.cifar10.CIFAR10 {
+        which_set: 'train',
+        gcn: 55.
+    },
+    save_freq: 1,
+    save_path: '${PYLEARN2_TRAIN_FILE_FULL_STEM}.pkl'
+}
