@@ -4,6 +4,9 @@ from pylearn2.devtools.record import MismatchError
 from theano import function
 from theano.tensor import iscalar
 import cStringIO
+import warnings
+
+warnings.warn("These tests should be moved to theano.")
 
 def test_record_good():
 

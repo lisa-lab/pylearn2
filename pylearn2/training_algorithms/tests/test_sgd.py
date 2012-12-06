@@ -17,7 +17,7 @@ from pylearn2.utils.iteration import _iteration_schemes
 import cStringIO
 from pylearn2.devtools.record import Record
 from pylearn2.devtools.record import RecordMode
-from pylearn2.devtools import disturb_mem
+from theano.tests import disturb_mem
 from pylearn2.training_algorithms.sgd import PolyakAveraging
 from pylearn2.training_algorithms.sgd import MomentumAdjustor
 from pylearn2.training_algorithms.sgd import ExponentialDecay
