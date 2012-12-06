@@ -172,6 +172,8 @@ class SGD(TrainingAlgorithm):
             else:
                 cost_value.name = 'objective(' + X.name + ')'
 
+        self.on_load_batch = self.cost.get_fixed_var_descr(model, X, Y)
+
         # Set up monitor to model the objective value, learning rate,
         # momentum (if applicable), and extra channels defined by
         # the cost
@@ -205,7 +207,7 @@ class SGD(TrainingAlgorithm):
                 # those used by BGD so that the same callbacks can be used with both algorithms.
                 if cost_value is not None:
                     self.monitor.add_channel(name=prefix + 'objective', ipt=ipt,
-                            val=cost_value, dataset=monitoring_dataset)
+                            val=cost_value, dataset=monitoring_dataset, prereqs=self.on_load_batch)
                 for key in custom_channels:
                     self.monitor.add_channel(name=prefix + key, ipt=ipt,
                             val=custom_channels[key], dataset=monitoring_dataset)
@@ -314,8 +316,11 @@ class SGD(TrainingAlgorithm):
         iterator = dataset.iterator(mode=self.train_iteration_mode,
                 batch_size=self.batch_size, targets=self.supervised,
                 topo=self.topo, rng = rng, num_batches = self.batches_per_iter)
+        on_load_batch = self.on_load_batch
         if self.supervised:
             for (batch_in, batch_target) in iterator:
+                for callback in on_load_batch:
+                    callback(batch_in, batch_target)
                 self.sgd_update(batch_in, batch_target)
                 actual_batch_size = batch_in.shape[0]
                 self.monitor.report_batch(actual_batch_size)
@@ -323,6 +328,8 @@ class SGD(TrainingAlgorithm):
                     callback(self)
         else:
             for batch in iterator:
+                for callback in on_load_batch:
+                    callback(batch, None)
                 self.sgd_update(batch)
                 actual_batch_size = batch.shape[0] # iterator might return a smaller batch if dataset size
                                                    # isn't divisible by batch_size
