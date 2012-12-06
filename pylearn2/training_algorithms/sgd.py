@@ -167,7 +167,7 @@ class SGD(TrainingAlgorithm):
 
         else:
             self.supervised = False
-            cost_value = self.cost(model, X)
+            cost_value = self.cost(model, X, ** fixed_var_descr.fixed_vars)
         if cost_value is not None and cost_value.name is None:
             if self.supervised:
                 cost_value.name = 'objective(' + X.name + ', ' + Y.name + ')'
