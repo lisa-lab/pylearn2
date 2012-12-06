@@ -31,14 +31,14 @@ from logging import Handler, Formatter
 
 class CustomFormatter(Formatter):
     """
-    Conditionally displays log level names, only if the log level is
-    WARNING or greater.
+    Conditionally displays log level names and source loggers, only if
+    the log level is WARNING or greater.
     """
-    def __init__(self):
+    def __init__(self, prefix='', only_from=None):
         super(CustomFormatter, self).__init__()
-        self._info_fmt = "%(message)s"
-        self._fmt = "%(levelname)s: %(message)s"
-
+        self._info_fmt = prefix + "%(message)s"
+        self._fmt = prefix + "%(levelname)s (%(name)s): %(message)s"
+        self._only_from = only_from
 
     def format(self, record):
         """
@@ -70,7 +70,9 @@ class CustomFormatter(Formatter):
         if self.usesTime():
             record.asctime = self.formatTime(record, self.datefmt)
 
-        if record.levelno == logging.INFO:
+        emit_special = (self._only_from is None or
+                        record.name.startswith(self._only_from))
+        if record.levelno == logging.INFO and emit_special:
             s = self._info_fmt % record.__dict__
         else:
             s = self._fmt % record.__dict__
