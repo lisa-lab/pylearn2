@@ -155,13 +155,15 @@ class SGD(TrainingAlgorithm):
 
         Y = T.matrix(name="%s[Y]" % self.__class__.__name__)
 
+        fixed_var_descr = self.cost.get_fixed_var_descr(model, X, Y)
+        self.on_load_batch = fixed_var_descr
 
         if self.cost.supervised:
             if config.compute_test_value == 'raise':
                 _, Y.tag.test_value = dataset.get_batch_design(self.batch_size, True)
 
             self.supervised = True
-            cost_value = self.cost(model, X, Y)
+            cost_value = self.cost(model, X, Y, ** fixed_var_descr.fixed_vars)
 
         else:
             self.supervised = False
@@ -172,7 +174,6 @@ class SGD(TrainingAlgorithm):
             else:
                 cost_value.name = 'objective(' + X.name + ')'
 
-        self.on_load_batch = self.cost.get_fixed_var_descr(model, X, Y)
 
         # Set up monitor to model the objective value, learning rate,
         # momentum (if applicable), and extra channels defined by
@@ -183,11 +184,11 @@ class SGD(TrainingAlgorithm):
         # could make a TrainingAlgorithm._setup_monitor that they both call
         if self.monitoring_dataset is not None:
             if self.supervised:
-                custom_channels = self.cost.get_monitoring_channels(model, X, Y)
+                custom_channels = self.cost.get_monitoring_channels(model, X, Y, ** fixed_var_descr.fixed_vars)
                 model_channels = model.get_monitoring_channels(X, Y)
                 ipt = (X, Y)
             else:
-                custom_channels = self.cost.get_monitoring_channels(model, X)
+                custom_channels = self.cost.get_monitoring_channels(model, X, ** fixed_var_descr.fixed_vars)
                 model_channels = model.get_monitoring_channels(X)
                 ipt = X
             custom_channels.update(model_channels)
@@ -227,9 +228,9 @@ class SGD(TrainingAlgorithm):
                 param.name = 'sgd_params[%d]' % i
 
         if self.cost.supervised:
-            grads, updates = self.cost.get_gradients(model, X, Y)
+            grads, updates = self.cost.get_gradients(model, X, Y, ** fixed_var_descr.fixed_var_desc)
         else:
-            grads, updates = self.cost.get_gradients(model, X)
+            grads, updates = self.cost.get_gradients(model, X, ** fixed_var_descr.fixed_var_desc)
 
         for param in grads:
             assert param in params
