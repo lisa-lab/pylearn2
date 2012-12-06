@@ -174,8 +174,11 @@ def safe_union(a, b):
 def hex_digest(x):
 
     assert isinstance(x, np.ndarray)
-    #rval = ''.join(('%2x' % ord(a)).replace(' ', '0') for a in rval)
     rval = hashlib.md5(x.tostring()).hexdigest()
+    # hex digest must be annotated with strides to avoid collisions
+    # because the buffer interface only exposes the raw data, not
+    # any info about the semantics of how that data should be arranged
+    # into a tensor
     rval = rval + '|strides=[' + ','.join(str(stride) for stride in x.strides) + ']'
     rval = rval + '|shape=[' + ','.join(str(s) for s in x.shape) + ']'
     return rval
