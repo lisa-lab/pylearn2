@@ -11,7 +11,7 @@ import numpy as np
 import cStringIO
 from pylearn2.devtools.record import Record
 from pylearn2.devtools.record import RecordMode
-from pylearn2.devtools import disturb_mem
+from theano.tests import disturb_mem
 from pylearn2.utils import safe_union
 from pylearn2.utils import safe_izip
 from theano import shared
