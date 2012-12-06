@@ -13,7 +13,7 @@ For example configuration files that are consumable by this script, see
 """
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
-__credits__ = ["Ian Goodfellow"]
+__credits__ = ["Ian Goodfellow", "David Warde-Farley"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
@@ -28,6 +28,9 @@ import numpy as np
 
 # Local imports
 from pylearn2.utils import serial
+from pylearn2.utils.logger import (
+    CustomStreamHandler, CustomFormatter, restore_defaults
+)
 
 
 class FeatureDump(object):
@@ -66,14 +69,19 @@ def make_argument_parser():
                         action='store_true',
                         help='Display the log level (e.g. DEBUG, INFO) '
                              'for each logged message')
-    parser.add_argument('--source-logger', '-S',
-                        action='store_true',
-                        help='Display the logger name from which each '
-                             'logged message originates')
     parser.add_argument('--timestamp', '-T',
                         action='store_true',
                         help='Display human-readable timestamps for '
                              'each logged message')
+    parser.add_argument('--verbose-logging', '-V',
+                        action='store_true',
+                        help='Display timestamp, log level and source '
+                             'logger for every logged message '
+                             '(implies -T).')
+    parser.add_argument('--debug', '-D',
+                        action='store_true',
+                        help='Display any DEBUG-level log messages, '
+                             'suppressed by default.')
     parser.add_argument('config', action='store',
                         choices=None,
                         help='A YAML configuration file specifying the '
@@ -91,22 +99,29 @@ if __name__ == "__main__":
     except TypeError as e:
         iterable = False
 
-    # Configure the logging module.
-    # Disable the default handler on the pylearn2 root logger.
-    pl2_logger = logging.getLogger('pylearn2')
-    while len(pl2_logger.handlers) > 0:
-        pl2_logger.handlers.pop()
-    # Configure the format string based on command line options.
-    format_strs = ['%(message)s']
-    if args.source_logger:
-        format_strs.insert(0, '%(name)s')
-    if args.level_name:
-        format_strs.insert(0, '%(levelname)s')
-    if args.timestamp:
-        format_strs.insert(0, '%(asctime)s')
-    logging.basicConfig(format=' '.join(format_strs))
+    # Undo our custom logging setup.
+    restore_defaults()
+    # Set up the root logger with a custom handler that logs stdout for INFO
+    # and DEBUG and stderr for WARNING, ERROR, CRITICAL.
     root_logger = logging.getLogger()
-    root_logger.setLevel(logging.DEBUG)
+    if args.verbose_logging:
+        formatter = logging.Formatter(fmt="%(asctime)s %(name)s %(levelname)s "
+                                          "%(message)s")
+        handler = CustomStreamHandler(formatter=formatter)
+    else:
+        if args.timestamp:
+            prefix = '%(asctime)s '
+        else:
+            prefix = ''
+        formatter = CustomFormatter(prefix=prefix, only_from='pylearn2')
+        handler = CustomStreamHandler(formatter=formatter)
+    root_logger.addHandler(handler)
+    # Set the root logger level.
+    if args.debug:
+        root_logger.setLevel(logging.DEBUG)
+    else:
+        root_logger.setLevel(logging.INFO)
+
     if iterable:
         for number, subobj in enumerate(iter(train_obj)):
             # Publish a variable indicating the training phase.
