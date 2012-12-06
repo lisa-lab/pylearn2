@@ -101,10 +101,10 @@ class SGD(TrainingAlgorithm):
                 raise ValueError("Specified an amount of monitoring batches but not a monitoring dataset.")
         self.termination_criterion = termination_criterion
         self.init_momenutm = init_momentum
-        self.nesterov_momentum = nesterov_momentum
         if init_momentum is None:
+            self.nesterov_momentum = nesterov_momentum
             self.momentum = None
-	    if self.nesterov_momentum is True:
+	    if self.nesterov_momentum:
                 raise ValueError("Make sure you provite the initial momentum if you wish to use Nesterov momentum.")
         else:
             assert init_momentum >= 0.
@@ -268,7 +268,7 @@ class SGD(TrainingAlgorithm):
                 inc = sharedX(param.get_value() * 0.)
                 if param.name is not None:
                     inc.name = 'inc_'+param.name
-                if self.nesterov_momentum is True:
+                if self.nesterov_momentum:
                     updates[inc] = self.momentum * inc - learning_rate * grads[param]
                     updates[param] = param + (self.momentum ** 2) * inc \
                                      - (1 - self.momentum) * learning_rate * grads[param]
