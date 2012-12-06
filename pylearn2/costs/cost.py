@@ -253,7 +253,10 @@ class SumOfCosts(Cost):
 
             value = cost(model, X, Y_to_pass, ** kwargs)
             if value is not None:
-                rval['term_'+str(i)] = value
+                name = ''
+                if hasattr(value, 'name') and value.name is not None:
+                    name = '_' + value.name
+                rval['term_'+str(i)+name] = value
 
         return rval
 
