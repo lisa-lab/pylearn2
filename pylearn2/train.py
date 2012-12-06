@@ -124,7 +124,7 @@ class Train(object):
                 if not continue_learning:
                     break
 
-        self.model.monitor.training_succeded = True
+        self.model.monitor.training_succeeded = True
 
         if self.save_freq > 0:
             self.save()
