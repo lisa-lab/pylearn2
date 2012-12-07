@@ -42,7 +42,8 @@ class SGD(TrainingAlgorithm):
     def __init__(self, learning_rate, cost, batch_size=None,
                  monitoring_batches=None, monitoring_dataset=None,
                  termination_criterion=None, update_callbacks=None,
-                 init_momentum = None, set_batch_size = False,
+                 init_momentum = None, nesterov_momentum = False, 
+		 set_batch_size = False,
                  train_iteration_mode = None, batches_per_iter=None,
                  theano_function_mode = None):
         """
@@ -87,7 +88,6 @@ class SGD(TrainingAlgorithm):
         if isinstance(cost, (list, tuple, set)):
             raise TypeError("SGD no longer supports using collections of Costs to represent "
                     " a sum of Costs. Use pylearn2.costs.cost.SumOfCosts instead.")
-
         self.learning_rate = sharedX(learning_rate, 'learning_rate')
         self.cost = cost
         self.batch_size = batch_size
@@ -102,10 +102,13 @@ class SGD(TrainingAlgorithm):
         self.init_momenutm = init_momentum
         if init_momentum is None:
             self.momentum = None
+	    if nesterov_momentum:
+                raise ValueError("Make sure you provite the initial momentum if you wish to use Nesterov momentum.")
         else:
             assert init_momentum >= 0.
             assert init_momentum < 1.
             self.momentum = sharedX(init_momentum, 'momentum')
+            self.nesterov_momentum = nesterov_momentum
         self._register_update_callbacks(update_callbacks)
         if train_iteration_mode is None:
             train_iteration_mode = 'shuffled_sequential'
@@ -264,9 +267,14 @@ class SGD(TrainingAlgorithm):
                 inc = sharedX(param.get_value() * 0.)
                 if param.name is not None:
                     inc.name = 'inc_'+param.name
-                updated_inc = self.momentum * inc - learning_rate * grads[param]
-                updates[inc] = updated_inc
-                updates[param] = param + updated_inc
+                if self.nesterov_momentum:
+                    updates[inc] = self.momentum * inc - learning_rate * grads[param]
+                    updates[param] = param + (self.momentum ** 2) * inc \
+                                     - (1 - self.momentum) * learning_rate * grads[param]
+                else:
+                    updated_inc = self.momentum * inc - learning_rate * grads[param]
+                    updates[inc] = updated_inc
+                    updates[param] = param + updated_inc
 
 
         for param in params:
