@@ -88,7 +88,6 @@ class SGD(TrainingAlgorithm):
         if isinstance(cost, (list, tuple, set)):
             raise TypeError("SGD no longer supports using collections of Costs to represent "
                     " a sum of Costs. Use pylearn2.costs.cost.SumOfCosts instead.")
-
         self.learning_rate = sharedX(learning_rate, 'learning_rate')
         self.cost = cost
         self.batch_size = batch_size
@@ -102,14 +101,14 @@ class SGD(TrainingAlgorithm):
         self.termination_criterion = termination_criterion
         self.init_momenutm = init_momentum
         if init_momentum is None:
-            self.nesterov_momentum = nesterov_momentum
             self.momentum = None
-	    if self.nesterov_momentum:
+	    if nesterov_momentum:
                 raise ValueError("Make sure you provite the initial momentum if you wish to use Nesterov momentum.")
         else:
             assert init_momentum >= 0.
             assert init_momentum < 1.
             self.momentum = sharedX(init_momentum, 'momentum')
+            self.nesterov_momentum = nesterov_momentum
         self._register_update_callbacks(update_callbacks)
         if train_iteration_mode is None:
             train_iteration_mode = 'shuffled_sequential'
