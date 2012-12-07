@@ -125,8 +125,8 @@ def gendata(enable, os, downsample, textid=None, seed=2313, verbose=False):
 
     data  = mnist.MNIST('train')
     test  = mnist.MNIST('test')
-    data.X = numpy.vstack((data.X, test.X))[:10]
-    data.y = numpy.hstack((data.y, test.y))[:10]
+    data.X = numpy.vstack((data.X, test.X))
+    data.y = numpy.hstack((data.y, test.y))
     del test
 
     output = {}
