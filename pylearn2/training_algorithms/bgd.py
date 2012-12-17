@@ -98,6 +98,7 @@ class BGD(TrainingAlgorithm):
         self.monitor = Monitor.get_monitor(model)
         self.monitor.set_theano_function_mode(self.theano_function_mode)
         X = self.model.get_input_space().make_theano_batch()
+        X.tag.test_value = self.model.get_input_space().get_origin_batch(self.batch_size).astype(X.dtype)
         X.name = 'BGD_X'
         self.topo = X.ndim != 2
         Y = T.matrix()
