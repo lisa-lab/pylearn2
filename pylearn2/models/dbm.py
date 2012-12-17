@@ -225,6 +225,8 @@ class DBM(Model):
         for layer in self.hidden_layers:
             layer.set_batch_size(batch_size)
 
+        if not hasattr(self, 'inference_procedure'):
+            self.setup_inference_procedure()
         self.inference_procedure.set_batch_size(batch_size)
 
     def censor_updates(self, updates):
@@ -866,7 +868,8 @@ class BinaryVector(VisibleLayer):
         return rval
 
     def make_state(self, num_examples, numpy_rng):
-
+        if not hasattr(self, 'copies'):
+            self.copies = 1
         if self.copies != 1:
             raise NotImplementedError()
         driver = numpy_rng.uniform(0.,1., (num_examples, self.nvis))
