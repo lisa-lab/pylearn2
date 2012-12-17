@@ -36,8 +36,8 @@ Pylearn2 Vision
 * Support cross-platform serialization of learned models.
 * Remain approachable enough to be used in the classroom (IFT6266 at the University of Montreal).
 
-Download
-========
+Download and installation
+=========================
 
 No PyPI download yet. You must checkout the version in github for bleeding-edge/development
 version, available via:
@@ -45,6 +45,20 @@ version, available via:
 .. code-block:: bash
 
    git clone git://github.com/lisa-lab/pylearn.git
+
+You also need to set your PYLEARN2_DATA_PATH variable. On linux, the best way to do this
+is to add a line to your .bashrc file:
+
+.. code-block:: bash
+
+    export PYLEARN2_DATA_PATH=/data/lisa/data
+
+Note that this is only an example, and if you are not in the LISA lab, you will need to
+choose a directory path that is valid on your filesystem. Simply choose a path where
+it will be convenient for you to store datasets for use with Pylearn2.
+
+
+
 
 Dependencies
 ============
