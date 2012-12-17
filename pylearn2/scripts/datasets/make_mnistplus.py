@@ -2,7 +2,7 @@
 Script to generate the MNIST+ dataset. The purpose of this dataset is to make a
 more challenging MNIST-like dataset, with multiple factors of variation. These
 factors can serve to evaluate a model's performance at learning invariant
-feature, or its ability to disentangle factors of variation in a multi-task
+features, or its ability to disentangle factors of variation in a multi-task
 classification setting. The dataset is stored under $PYLEARN2_DATA_PATH.
 
 The dataset variants are created as follows. For each MNIST image, we:
@@ -85,7 +85,7 @@ def emboss(img, azi=45., ele=18., dep=2):
     # avoid overflow
     a2 = a2.clip(0, 255)
     # you must convert back to uint8 /before/ converting to an image
-    return Image.fromarray(a2.astype('uint8')) 
+    return Image.fromarray(a2.astype('uint8'))
 
 
 def extract_patch(textid, os, downsample):
@@ -99,7 +99,7 @@ def extract_patch(textid, os, downsample):
     fname = string_utils.preprocess(temp)
 
     img_i = Image.open(fname)
-    img_i = img_i.resize((img_i.size[0]/downsample, 
+    img_i = img_i.resize((img_i.size[0]/downsample,
                           img_i.size[1]/downsample), Image.BILINEAR)
 
     x = numpy.random.randint(0, img_i.size[0] - os)
@@ -141,7 +141,7 @@ def gendata(enable, os, downsample, textid=None, seed=2313, verbose=False):
     if enable['texture']:
         output['texture_id']  = numpy.zeros(len(data.y))
         output['texture_pos'] = numpy.zeros((len(data.y), 2))
-    
+
     for i in xrange(len(data.X)):
 
         # get MNIST image
@@ -166,7 +166,7 @@ def gendata(enable, os, downsample, textid=None, seed=2313, verbose=False):
 
             patch_img, (px, py) = extract_patch(textid, os, downsample)
             patch_arr = to_array(patch_img)
-           
+
             # store output details
             output['texture_id'][i] = textid
             output['texture_pos'][i] = (px, py)
@@ -191,9 +191,9 @@ def gendata(enable, os, downsample, textid=None, seed=2313, verbose=False):
             ele = rng.randint(0, 60)
             output['elevation'][i] = ele
 
-        mboss_img = emboss(frgd_img, azi=azi, ele=ele) 
+        mboss_img = emboss(frgd_img, azi=azi, ele=ele)
         mboss_arr = to_array(mboss_img)
-    
+
         output['data'][i] = mboss_arr
         output['label'][i] = data.y[i]
 
