@@ -41,7 +41,11 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
                 assert which_set == 'test'
                 im_path = path + 't10k-images-idx3-ubyte'
                 label_path = path + 't10k-labels-idx1-ubyte'
-
+            # Path substitution done here in order to make the lower-level
+            # mnist_ubyte.py as stand-alone as possible (for reuse in, e.g.,
+            # the Deep Learning Tutorials, or in another package).
+            im_path = serial.preprocess(im_path)
+            label_path = serial.preprocess(label_path)
             topo_view = read_mnist_images(im_path, dtype='float32')
             y = read_mnist_labels(label_path)
 
