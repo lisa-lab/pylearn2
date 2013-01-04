@@ -16,10 +16,12 @@ from theano.gof.op import get_debug_values
 from theano.printing import Print
 import theano.tensor as T
 
+from pylearn2.costs.cost import Cost
 from pylearn2.models.model import Model
 from pylearn2.space import Conv2DSpace
 from pylearn2.space import Space
 from pylearn2.space import VectorSpace
+from pylearn2.utils import safe_izip
 from pylearn2.utils import sharedX
 
 class Layer(Model):
@@ -312,8 +314,8 @@ class Softmax(Layer):
         ])
 
         if target is not None:
-            y_hat = T.argmax(state)
-            y = T.argmax(target)
+            y_hat = T.argmax(state, axis=1)
+            y = T.argmax(target, axis=1)
             misclass = T.neq(y, y_hat).mean()
             misclass = T.cast(misclass, config.floatX)
             rval['misclass'] = misclass
@@ -412,8 +414,9 @@ class Softmax(Layer):
 
     def cost(self, Y, Y_hat):
         """
-        Y must be one-hot binary. Y_hat is a softmax estimate
-        of Y. Returns log probability of Y under the Y_hat distribution.
+        Y must be one-hot binary. Y_hat is a softmax estimate.
+        of Y. Returns negative log probability of Y under the Y_hat
+        distribution.
         """
 
         assert hasattr(Y_hat, 'owner')
@@ -430,7 +433,7 @@ class Softmax(Layer):
         assert z.ndim == 2
 
         z = z - z.max(axis=1).dimshuffle(0, 'x')
-        log_prob = z - T.exp(z).sum(axis=1).dimshuffle(0, 'x')
+        log_prob = z - T.log(T.exp(z).sum(axis=1).dimshuffle(0, 'x'))
         # we use sum and not mean because this is really one variable per row
         log_prob_of = (Y * log_prob).sum(axis=1)
         assert log_prob_of.ndim == 1
@@ -444,3 +447,43 @@ class Softmax(Layer):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         return coeff * T.sqr(self.W).sum()
+
+class WeightDecay(Cost):
+    """
+    coeff * sum(sqr(weights))
+
+    for each set of weights.
+
+    """
+
+    def __init__(self, coeffs):
+        """
+        coeffs: a list, one element per layer, specifying the coefficient
+                to put on the L1 activation cost for each layer.
+                Each element may in turn be a list, ie, for CompositeLayers.
+        """
+        self.__dict__.update(locals())
+        del self.self
+
+    def __call__(self, model, X, Y = None, ** kwargs):
+
+        layer_costs = [ layer.get_weight_decay(coeff)
+            for layer, coeff in safe_izip(model.layers, self.coeffs) ]
+
+        assert T.scalar() != 0. # make sure theano semantics do what I want
+        layer_costs = [ cost for cost in layer_costs if cost != 0.]
+
+        if len(layer_costs) == 0:
+            rval =  T.as_tensor_variable(0.)
+            rval.name = '0_weight_decay'
+            return rval
+        else:
+            total_cost = reduce(lambda x, y: x + y, layer_costs)
+        total_cost.name = 'MLP_WeightDecay'
+
+        assert total_cost.ndim == 0
+
+        total_cost.name = 'weight_decay'
+
+        return total_cost
+
