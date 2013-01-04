@@ -1,4 +1,4 @@
-"""Utilities for reading in raw MNIST files."""
+"""Low-level utilities for reading in raw MNIST files."""
 
 __author__ = "David Warde-Farley"
 __copyright__ = "Copyright 2012, Universite de Montreal"
@@ -10,7 +10,6 @@ __maintainer__ = "David Warde-Farley"
 
 import struct
 import numpy
-from pylearn2.utils.string_utils import preprocess
 
 MNIST_IMAGE_MAGIC = 2051
 MNIST_LABEL_MAGIC = 2049
@@ -25,7 +24,6 @@ class open_if_filename(object):
 
     def __enter__(self):
         if isinstance(self._f, basestring):
-            self._f = preprocess(self._f)
             self._handle = open(self._f, self._mode, self._buffering)
         else:
             self._handle = self._f
