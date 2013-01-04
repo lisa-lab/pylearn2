@@ -587,7 +587,6 @@ class DBM(Model):
         return self.batch_size
 
 
-
 class Layer(Model):
     """
     Abstract class.
@@ -757,10 +756,10 @@ class HiddenLayer(Layer):
     def downward_state(self, total_state):
         return total_state
 
-    def get_stdev_rewards(self, state, coess):
+    def get_stdev_rewards(self, state, coeffs):
         raise NotImplementedError(str(type(self))+" does not implement get_stdev_rewards")
 
-    def get_range_rewards(self, state, coess):
+    def get_range_rewards(self, state, coeffs):
         raise NotImplementedError(str(type(self))+" does not implement get_range_rewards")
 
     def get_l1_act_cost(self, state, target, coeff, eps):
