@@ -1751,7 +1751,7 @@ class Softmax(HiddenLayer):
         assert z.ndim == 2
 
         z = z - z.max(axis=1).dimshuffle(0, 'x')
-        log_prob = z - T.exp(z).sum(axis=1).dimshuffle(0, 'x')
+        log_prob = z - T.log(T.exp(z).sum(axis=1).dimshuffle(0, 'x'))
         # we use sum and not mean because this is really one variable per row
         log_prob_of = (Y * log_prob).sum(axis=1)
         masked = log_prob_of * drop_mask_Y
