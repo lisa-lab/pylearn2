@@ -25,6 +25,7 @@ from pylearn2.models.model import Model
 from pylearn2.space import Conv2DSpace
 from pylearn2.space import Space
 from pylearn2.space import VectorSpace
+from pylearn2.utils import function
 from pylearn2.utils import safe_izip
 from pylearn2.utils import sharedX
 
