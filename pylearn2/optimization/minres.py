@@ -109,7 +109,6 @@ def minres(compute_Av,
     eps = constantX(1e-23)
 
     # Initialise
-    flag = theano.shared(constantX(0.))
     beta1 = sqrt_inner_product(bs)
 
     #------------------------------------------------------------------
