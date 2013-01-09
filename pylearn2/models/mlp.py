@@ -8,12 +8,13 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
 from collections import OrderedDict
-
 import numpy as np
+import warnings
 
 from theano import config
 from theano.gof.op import get_debug_values
 from theano.printing import Print
+from theano.sandbox.rng_mrg import MRG_RandomStreams
 import theano.tensor as T
 
 from pylearn2.costs.cost import Cost
@@ -97,6 +98,8 @@ class MLP(Layer):
             layers,
             batch_size=None,
             input_space=None,
+            dropout_include_probs = None,
+            dropout_input_include_prob = None,
             nvis=None):
         """
             layers: a list of MLP_Layers. The final layer will specify the
@@ -135,6 +138,14 @@ class MLP(Layer):
         self._update_layer_input_spaces()
 
         self.freeze_set = set([])
+
+        self.use_dropout = ((dropout_input_include_prob is not None) \
+                or (dropout_include_probs is not None and \
+                any(elem is not None for elem in dropout_include_probs)))
+        self.dropout_input_include_prob = dropout_input_include_prob
+        if dropout_include_probs is None:
+            dropout_include_probs = [None] * len(layers)
+            self.dropout_include_probs = dropout_include_probs
 
     def setup_rng(self):
         self.rng = np.random.RandomState([2013, 1, 4])
@@ -203,7 +214,6 @@ class MLP(Layer):
             for param in layer.get_params():
                 if param.name is None:
                     print type(layer)
-                    assert False
             layer_params = layer.get_params()
             assert not isinstance(layer_params, set)
             for param in layer_params:
@@ -259,17 +269,38 @@ class MLP(Layer):
     def get_weights_topo(self):
         return self.layers[0].get_weights_topo()
 
-    def fprop(self, state_below):
+    def fprop(self, state_below, apply_dropout = False):
+
+        if apply_dropout:
+            warnings.warn("dropout should be implemented with fixed_var_descr to make sure it works with BGD, this is just a hack to get it working with SGD")
+            theano_rng = MRG_RandomStreams(self.rng.randint(2**15))
+            state_below = self.apply_dropout(state=state_below, include_prob=self.dropout_input_include_prob, theano_rng=theano_rng)
+
         rval = self.layers[0].fprop(state_below)
-        for layer in self.layers[1:]:
+
+        if apply_dropout:
+            dropout = self.dropout_include_probs[0]
+            rval = self.apply_dropout(state=rval, include_prob=dropout, theano_rng=theano_rng)
+
+        for layer, dropout in safe_izip(self.layers[1:], self.dropout_include_probs[1:]):
             rval = layer.fprop(rval)
+            if apply_dropout:
+                rval = self.apply_dropout(state=rval, include_prob=dropout, theano_rng=theano_rng)
+
         return rval
+
+    def apply_dropout(self, state, include_prob, theano_rng):
+        if include_prob in [None, 1.0, 1]:
+            return state
+        if isinstance(state, tuple):
+            return tuple(self.apply_dropout(substate, include_prob, theano_rng) for substate in state)
+        return state * theano_rng.binomial(p=include_prob, size=state.shape, dtype=state.dtype) / include_prob
 
     def cost(self, Y, Y_hat):
         return self.layers[-1].cost(Y, Y_hat)
 
     def cost_from_X(self, X, Y):
-        Y_hat = self.fprop(X)
+        Y_hat = self.fprop(X, apply_dropout = self.use_dropout)
         return self.cost(Y, Y_hat)
 
 class Softmax(Layer):
@@ -277,7 +308,7 @@ class Softmax(Layer):
     def __init__(self, n_classes, layer_name, irange = None,
             istdev = None,
                  sparse_init = None, W_lr_scale = None,
-                 b_lr_scale = None):
+                 b_lr_scale = None, max_row_norm = None):
         """
         """
 
@@ -454,6 +485,15 @@ class Softmax(Layer):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         return coeff * T.sqr(self.W).sum()
+
+    def censor_updates(self, updates):
+        if self.max_row_norm is not None:
+            W = self.W
+            if W in updates:
+                updated_W = updates[W]
+                row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=1))
+                desired_norms = T.clip(row_norms, 0, self.max_row_norm)
+                updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle(0, 'x')
 
 class WeightDecay(Cost):
     """
@@ -788,7 +828,8 @@ class RectifiedLinear(Layer):
                  b_lr_scale = None,
                  mask_weights = None,
                  left_slope = 0.0,
-                 copy_input = 0):
+                 copy_input = 0,
+                 max_row_norm = None):
         """
 
             include_prob: probability of including a weight element in the set
@@ -883,6 +924,15 @@ class RectifiedLinear(Layer):
             W ,= self.transformer.get_params()
             if W in updates:
                 updates[W] = updates[W] * self.mask
+
+        if self.max_row_norm is not None:
+            W ,= self.transformer.get_params()
+            if W in updates:
+                updated_W = updates[W]
+                row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=1))
+                desired_norms = T.clip(row_norms, 0, self.max_row_norm)
+                updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle(0, 'x')
+
 
     def get_params(self):
         assert self.b.name is not None
