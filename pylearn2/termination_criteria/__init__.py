@@ -127,6 +127,7 @@ class ChannelTarget(TerminationCriterion):
     """
 
     def __init__(self, channel_name, target):
+        target = float(target)
         self.__dict__.update(locals())
 
     def __call__(self, model):
