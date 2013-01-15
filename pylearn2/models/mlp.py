@@ -21,6 +21,7 @@ from pylearn2.costs.cost import Cost
 from pylearn2.expr.nnet import inverse_sigmoid_numpy
 from pylearn2.expr.nnet import sigmoid_numpy
 from pylearn2.expr.probabilistic_max_pooling import max_pool_channels
+from pylearn2.linear import conv2d
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.models.model import Model
 from pylearn2.space import Conv2DSpace
@@ -145,7 +146,7 @@ class MLP(Layer):
         self.dropout_input_include_prob = dropout_input_include_prob
         if dropout_include_probs is None:
             dropout_include_probs = [None] * len(layers)
-            self.dropout_include_probs = dropout_include_probs
+        self.dropout_include_probs = dropout_include_probs
 
     def setup_rng(self):
         self.rng = np.random.RandomState([2013, 1, 4])
@@ -308,7 +309,8 @@ class Softmax(Layer):
     def __init__(self, n_classes, layer_name, irange = None,
             istdev = None,
                  sparse_init = None, W_lr_scale = None,
-                 b_lr_scale = None, max_row_norm = None):
+                 b_lr_scale = None, max_row_norm = None,
+                 max_col_norm = None):
         """
         """
 
@@ -494,6 +496,14 @@ class Softmax(Layer):
                 row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=1))
                 desired_norms = T.clip(row_norms, 0, self.max_row_norm)
                 updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle(0, 'x')
+        if self.max_col_norm is not None:
+            assert self.max_row_norm is None
+            W = self.W
+            if W in updates:
+                updated_W = updates[W]
+                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
+                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
+                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
 class WeightDecay(Cost):
     """
@@ -720,7 +730,7 @@ class SoftmaxPool(Layer):
         W = W.T
 
         W = W.reshape((self.detector_layer_dim, self.input_space.shape[0],
-                       self.input_space.shape[1], self.input_space.nchannels))
+                       self.input_space.shape[1], self.input_space.num_channels))
 
         W = Conv2DSpace.convert(W, self.input_space.axes, ('b', 0, 1, 'c'))
 
@@ -829,7 +839,8 @@ class RectifiedLinear(Layer):
                  mask_weights = None,
                  left_slope = 0.0,
                  copy_input = 0,
-                 max_row_norm = None):
+                 max_row_norm = None,
+                 max_col_norm = None):
         """
 
             include_prob: probability of including a weight element in the set
@@ -933,6 +944,14 @@ class RectifiedLinear(Layer):
                 desired_norms = T.clip(row_norms, 0, self.max_row_norm)
                 updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle(0, 'x')
 
+        if self.max_col_norm is not None:
+            assert self.max_row_norm is None
+            W ,= self.transformer.get_params()
+            if W in updates:
+                updated_W = updates[W]
+                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
+                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
+                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
     def get_params(self):
         assert self.b.name is not None
@@ -985,7 +1004,7 @@ class RectifiedLinear(Layer):
         W = W.T
 
         W = W.reshape((self.dim, self.input_space.shape[0],
-                       self.input_space.shape[1], self.input_space.nchannels))
+                       self.input_space.shape[1], self.input_space.num_channels))
 
         W = Conv2DSpace.convert(W, self.input_space.axes, ('b', 0, 1, 'c'))
 
@@ -1052,14 +1071,17 @@ class Linear(Layer):
                  W_lr_scale = None,
                  b_lr_scale = None,
                  mask_weights = None,
+                 max_row_norm = None,
+                 max_col_norm = None,
+                 softmax_columns = False,
                  copy_input = 0):
         """
 
-            include_prob: probability of including a weight element in the set
-            of weights initialized to U(-irange, irange). If not included
-            it is initialized to 0.
+        include_prob: probability of including a weight element in the set
+        of weights initialized to U(-irange, irange). If not included
+        it is initialized to 0.
 
-            """
+        """
         self.__dict__.update(locals())
         del self.self
 
@@ -1148,6 +1170,24 @@ class Linear(Layer):
             if W in updates:
                 updates[W] = updates[W] * self.mask
 
+        if self.max_row_norm is not None:
+            W ,= self.transformer.get_params()
+            if W in updates:
+                updated_W = updates[W]
+                row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=1))
+                desired_norms = T.clip(row_norms, 0, self.max_row_norm)
+                updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle(0, 'x')
+
+        if self.max_col_norm is not None:
+            assert self.max_row_norm is None
+            W ,= self.transformer.get_params()
+            if W in updates:
+                updated_W = updates[W]
+                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
+                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
+                updates[W] = updated_W * desired_norms / (1e-7 + col_norms)
+
+
     def get_params(self):
         assert self.b.name is not None
         W ,= self.transformer.get_params()
@@ -1174,7 +1214,14 @@ class Linear(Layer):
             # and we don't have access to the dataset
             raise NotImplementedError()
         W ,= self.transformer.get_params()
-        return W.get_value()
+
+        W =  W.get_value()
+
+        if self.softmax_columns:
+            P = np.exp(W)
+            Z = np.exp(W).sum(axis=0)
+            rval =  P / Z
+            return rval
 
     def set_weights(self, weights):
         W, = self.transformer.get_params()
@@ -1199,7 +1246,7 @@ class Linear(Layer):
         W = W.T
 
         W = W.reshape((self.dim, self.input_space.shape[0],
-                       self.input_space.shape[1], self.input_space.nchannels))
+                       self.input_space.shape[1], self.input_space.num_channels))
 
         W = Conv2DSpace.convert(W, self.input_space.axes, ('b', 0, 1, 'c'))
 
@@ -1238,7 +1285,14 @@ class Linear(Layer):
 
             state_below = self.input_space.format_as(state_below, self.desired_space)
 
-        z = self.transformer.lmul(state_below) + self.b
+        if self.softmax_columns:
+            W, = self.transformer.get_params()
+            W = W.T
+            W = T.nnet.softmax(W)
+            W = W.T
+            z = T.dot(state_below, W) + self.b
+        else:
+            z = self.transformer.lmul(state_below) + self.b
         if self.layer_name is not None:
             z.name = self.layer_name + '_z'
 
@@ -1271,3 +1325,265 @@ class Linear(Layer):
             rval['misclass'] = misclass
 
         return rval
+
+
+class SpaceConverter(Layer):
+
+    def __init__(self, layer_name, output_space):
+        self.__dict__.update(locals())
+        del self.self
+        self._params = []
+
+    def set_input_space(self, space):
+        self.input_space = space
+
+    def fprop(self, state_below):
+
+        return self.input_space.format_as(state_below, self.output_space)
+
+
+class ConvRectifiedLinear(Layer):
+    """
+        WRITEME
+    """
+
+    def __init__(self,
+                 output_channels,
+                 kernel_shape,
+                 pool_shape,
+                 pool_stride,
+                 layer_name,
+                 irange = None,
+                 sparse_init = None,
+                 include_prob = 1.0,
+                 init_bias = 0.,
+                 W_lr_scale = None,
+                 b_lr_scale = None,
+                 left_slope = 0.0,
+                 max_kernel_norm = None):
+        """
+
+            include_prob: probability of including a weight element in the set
+            of weights initialized to U(-irange, irange). If not included
+            it is initialized to 0.
+
+        """
+        self.__dict__.update(locals())
+        del self.self
+
+    def get_lr_scalers(self):
+
+        if not hasattr(self, 'W_lr_scale'):
+            self.W_lr_scale = None
+
+        if not hasattr(self, 'b_lr_scale'):
+            self.b_lr_scale = None
+
+        rval = OrderedDict()
+
+        if self.W_lr_scale is not None:
+            W, = self.transformer.get_params()
+            rval[W] = self.W_lr_scale
+
+        if self.b_lr_scale is not None:
+            rval[self.b] = self.b_lr_scale
+
+        return rval
+
+    def set_input_space(self, space):
+        """ Note: this resets parameters! """
+
+        self.input_space = space
+        rng = self.mlp.rng
+
+        output_shape = [self.input_space.shape[0] - self.kernel_shape[0] + 1,
+                self.input_space.shape[1] - self.kernel_shape[1] + 1]
+
+        self.detector_space = Conv2DSpace(shape=output_shape,
+                num_channels = self.output_channels,
+                axes = ('b', 'c', 0, 1))
+
+        if self.irange is not None:
+            assert self.sparse_init is None
+            self.transformer = conv2d.make_random_conv2D(
+                    irange = self.irange,
+                    input_space = self.input_space,
+                    output_space = self.detector_space,
+                    kernel_shape = self.kernel_shape,
+                    batch_size = self.mlp.batch_size,
+                    subsample = (1,1),
+                    border_mode = 'valid',
+                    rng = rng)
+        elif self.sparse_init is not None:
+            self.transformer = conv2d.make_sparse_random_conv2D(
+                    num_nonzero = self.sparse_init,
+                    input_space = self.input_space,
+                    output_space = self.detector_space,
+                    kernel_shape = self.kernel_shape,
+                    batch_size = self.mlp.batch_size,
+                    subsample = (1,1),
+                    border_mode = 'valid',
+                    rng = rng)
+        W, = self.transformer.get_params()
+        W.name = 'W'
+
+        self.b = sharedX(self.detector_space.get_origin() + self.init_bias)
+        self.b.name = 'b'
+
+        dummy_detector = sharedX(self.detector_space.get_origin_batch(self.mlp.batch_size))
+        dummy_p = max_pool(bc01=dummy_detector, pool_shape=self.pool_shape,
+                pool_stride=self.pool_stride,
+                image_shape=self.detector_space.shape)
+        dummy_p = dummy_p.eval()
+        self.output_space = Conv2DSpace(shape=[dummy_p.shape[2], dummy_p.shape[3]],
+                num_channels = self.output_channels, axes = ('b', 'c', 0, 1) )
+
+
+
+    def censor_updates(self, updates):
+
+        if self.max_kernel_norm is not None:
+            W ,= self.transformer.get_params()
+            if W in updates:
+                updated_W = updates[W]
+                row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=(1,2,3)))
+                desired_norms = T.clip(row_norms, 0, self.max_kernel_norm)
+                updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle(0, 'x', 'x', 'x')
+
+
+    def get_params(self):
+        assert self.b.name is not None
+        W ,= self.transformer.get_params()
+        assert W.name is not None
+        rval = self.transformer.get_params()
+        assert not isinstance(rval, set)
+        rval = list(rval)
+        assert self.b not in rval
+        rval.append(self.b)
+        return rval
+
+    def get_weight_decay(self, coeff):
+        if isinstance(coeff, str):
+            coeff = float(coeff)
+        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
+        W ,= self.transformer.get_params()
+        return coeff * T.sqr(W).sum()
+
+    def set_weights(self, weights):
+        W, = self.transformer.get_params()
+        W.set_value(weights)
+
+    def set_biases(self, biases):
+        self.b.set_value(biases)
+
+    def get_biases(self):
+        return self.b.get_value()
+
+    def get_weights_format(self):
+        return ('v', 'h')
+
+    def get_weights_topo(self):
+        outp, inp, rows, cols = range(4)
+        raw = self.transformer._filters.get_value()
+
+        return np.transpose(raw, (outp,rows,cols,inp))
+
+    def get_monitoring_channels(self):
+
+        W ,= self.transformer.get_params()
+
+        assert W.ndim == 4
+
+        sq_W = T.sqr(W)
+
+        row_norms = T.sqrt(sq_W.sum(axis=(1,2,3)))
+
+        return OrderedDict([
+                            ('kernel_norms_min'  , row_norms.min()),
+                            ('kernel_norms_mean' , row_norms.mean()),
+                            ('kernel_norms_max'  , row_norms.max()),
+                            ])
+
+    def fprop(self, state_below):
+
+        self.input_space.validate(state_below)
+
+        z = self.transformer.lmul(state_below) + self.b
+        if self.layer_name is not None:
+            z.name = self.layer_name + '_z'
+
+        d = z * (z > 0.) + self.left_slope * z * (z < 0.)
+
+        self.detector_space.validate(d)
+
+        p = max_pool(bc01=d, pool_shape=self.pool_shape,
+                pool_stride=self.pool_stride,
+                image_shape=self.detector_space.shape)
+
+        self.output_space.validate(p)
+
+        return p
+
+def max_pool(bc01, pool_shape, pool_stride, image_shape):
+    """
+    Theano's max pooling op only support pool_stride = pool_shape
+    so here we have a graph that does max pooling with strides
+
+    bc01: minibatch in format (batch size, channels, rows, cols)
+    pool_shape: shape of the pool region (rows, cols)
+    pool_stride: strides between pooling regions (row stride, col stride)
+    image_shape: avoid doing some of the arithmetic in theano
+    """
+    mx = None
+    r, c = image_shape
+    pr, pc = pool_shape
+    rs, cs = pool_stride
+
+    # Compute index in pooled space of last needed pool
+    # (needed = each input pixel must appear in at least one pool)
+    def last_pool(im_shp, p_shp, p_strd):
+        rval = int(np.ceil(float(im_shp - p_shp) / p_strd))
+        assert p_strd * rval + p_shp >= im_shp
+        assert p_strd * (rval - 1) + p_shp < im_shp
+        return rval
+    # Compute starting row of the last pool
+    last_pool_r = last_pool(image_shape[0] ,pool_shape[0], pool_stride[0]) * pool_stride[0]
+    # Compute number of rows needed in image for all indexes to work out
+    required_r = last_pool_r + pr
+
+    last_pool_c = last_pool(image_shape[1] ,pool_shape[1], pool_stride[1]) * pool_stride[1]
+    required_c = last_pool_c + pc
+
+    for bc01v in get_debug_values(bc01):
+        assert not np.any(np.isinf(bc01v))
+        assert bc01v.shape[2] == image_shape[0]
+        assert bc01v.shape[3] == image_shape[1]
+
+    wide_infinity = T.alloc(-np.inf, bc01.shape[0], bc01.shape[1], required_r, required_c)
+
+
+    name = bc01.name
+    if name is None:
+        name = 'anon_bc01'
+    bc01 = T.set_subtensor(wide_infinity[:,:, 0:r, 0:c], bc01)
+    bc01.name = 'infinite_padded_' + name
+
+    for row_within_pool in xrange(pool_shape[0]):
+        row_stop = last_pool_r + row_within_pool + 1
+        for col_within_pool in xrange(pool_shape[1]):
+            col_stop = last_pool_c + col_within_pool + 1
+            cur = bc01[:,:,row_within_pool:row_stop:rs, col_within_pool:col_stop:cs]
+            cur.name = 'max_pool_cur_'+bc01.name+'_'+str(row_within_pool)+'_'+str(col_within_pool)
+            if mx is None:
+                mx = cur
+            else:
+                mx = T.maximum(mx, cur)
+                mx.name = 'max_pool_mx_'+bc01.name+'_'+str(row_within_pool)+'_'+str(col_within_pool)
+
+    mx.name = 'max_pool('+name+')'
+
+    for mxv in get_debug_values(mx):
+        assert not np.any(np.isnan(mxv))
+        assert not np.any(np.isinf(mxv))
+
+    return mx
