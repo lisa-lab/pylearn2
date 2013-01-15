@@ -101,6 +101,8 @@ class BGD(TrainingAlgorithm):
         X.tag.test_value = self.model.get_input_space().get_origin_batch(self.batch_size).astype(X.dtype)
         X.name = 'BGD_X'
         self.topo = X.ndim != 2
+        if self.topo:
+            assert self.model.get_input_space().axes == ('b', 0, 1, 'c')
         Y = T.matrix()
         Y.name = 'BGD_Y'
 
