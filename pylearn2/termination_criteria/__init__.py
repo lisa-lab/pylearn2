@@ -10,6 +10,7 @@ __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
 import numpy as np
+import warnings
 
 class TerminationCriterion(object):
     """
@@ -17,11 +18,17 @@ class TerminationCriterion(object):
     running.
     """
 
-    def __call__(self, model):
+    def continue_learning(self, model):
         """
         Returns True if training should continue, False otherwise
         """
-        raise NotImplementedError(str(type(self))+" does not implement __call__")
+
+        raise NotImplementedError(str(type(self))+" does not implement continue_learning.")
+
+    def __call__(self, model):
+        warnings.warn("TerminationCriterion.__call__ is deprecated, use continue_learning", stacklevel=2)
+        return self.continue_learning(model)
+
 
 class MonitorBased(TerminationCriterion):
     """
@@ -51,7 +58,7 @@ class MonitorBased(TerminationCriterion):
         self.countdown = N
         self.best_value = np.inf
 
-    def __call__(self, model):
+    def continue_learning(self, model):
         """
         The optimization should stop if the model has run for
         N epochs without sufficient improvement.
@@ -106,7 +113,7 @@ class MatchChannel(TerminationCriterion):
         self.__dict__.update(locals())
         self.target = None
 
-    def __call__(self, model):
+    def continue_learning(self, model):
         if self.target is None:
             prev_monitor = getattr(model, self.prev_monitor_name)
             channels = prev_monitor.channels
@@ -130,7 +137,7 @@ class ChannelTarget(TerminationCriterion):
         target = float(target)
         self.__dict__.update(locals())
 
-    def __call__(self, model):
+    def continue_learning(self, model):
         monitor = model.monitor
         channels = monitor.channels
         channel = channels[self.channel_name]
@@ -155,7 +162,7 @@ class EpochCounter(TerminationCriterion):
         self._max_epochs = max_epochs
         self._epochs_done = 0
 
-    def __call__(self, model):
+    def continue_learning(self, model):
         self._epochs_done += 1
         return self._epochs_done < self._max_epochs
 
@@ -170,13 +177,13 @@ class And(TerminationCriterion):
         ----------
         criteria : iterable
             A sequence of callables representing termination criteria,
-            with a return value of True indicating that the gradient
-            descent should continue.
+            with a return value of True indicating that training
+            should continue.
         """
         self._criteria = list(criteria)
 
-    def __call__(self, model):
-        return all(criterion(model) for criterion in self._criteria)
+    def continue_learning(self, model):
+        return all(criterion.continue_learning(model) for criterion in self._criteria)
 
 
 class Or(TerminationCriterion):
@@ -195,5 +202,5 @@ class Or(TerminationCriterion):
         """
         self._criteria = list(criteria)
 
-    def __call__(self, model):
-        return any(criterion(model) for criterion in self._criteria)
+    def continue_learning(self, model):
+        return any(criterion.continue_learning(model) for criterion in self._criteria)

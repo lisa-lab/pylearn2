@@ -14,5 +14,6 @@ for model_path in sys.argv[1:]:
     monitor = model.monitor
     channels = monitor.channels
     print 'epochs seen: ',monitor._epochs_seen
+    print 'time trained: ',max(channels[key].time_record[-1] for key in channels)
     for key in sorted(channels.keys()):
         print key, ':', channels[key].val_record[-1]
