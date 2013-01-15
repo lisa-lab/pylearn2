@@ -5,6 +5,9 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
+
+from collections import OrderedDict
+
 from theano import tensor as T
 from theano import shared
 import numpy as np
@@ -95,7 +98,7 @@ class Model(object):
         probably want to control which channels get added with some config
         option for your model.
         """
-        return {}
+        return OrderedDict()
 
     def set_batch_size(self, batch_size):
         pass
@@ -138,7 +141,7 @@ class Model(object):
         return T.grad(-self.free_energy(V).sum(), V)
 
     def get_lr_scalers(self):
-        return {}
+        return OrderedDict()
 
     def censor_updates(self, updates):
         """
@@ -296,7 +299,7 @@ class Model(object):
         `self.fields_to_del`. In particular, this should include all Theano
         functions, since they do not play nice with pickling.
         """
-        d = {}
+        d = OrderedDict()
         names_to_del = getattr(self, 'names_to_del', set())
         names_to_keep = set(self.__dict__.keys()).difference(names_to_del)
         for name in names_to_keep:
