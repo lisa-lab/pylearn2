@@ -32,7 +32,7 @@ class Conv2D(OrigConv2D):
         self.output_axes = output_axes
 
         super(Conv2D,self).__init__(filters = filters,
-                img_shape = (batch_size, input_space.nchannels,\
+                img_shape = (batch_size, input_space.num_channels,\
                     input_space.shape[0], input_space.shape[1]),
                 subsample = subsample,
                 border_mode = border_mode,
@@ -112,7 +112,7 @@ class Conv2D(OrigConv2D):
         # Since we made this variable, we need to put a tag on it
         if theano.config.compute_test_value == 'raise':
             dummy_v.tag.test_value = np.zeros((x.tag.test_value.shape[0],
-                self.input_space.nchannels,
+                self.input_space.num_channels,
                 self.input_space.shape[0],
                 self.input_space.shape[1]),
                 dtype = dummy_v.dtype)
@@ -192,7 +192,7 @@ def make_random_conv2D(irange, input_space, output_space,
     if rng is None:
         rng = np.random.RandomState([2012,11,6,9])
 
-    W = sharedX( rng.uniform(-irange,irange,( output_space.nchannels, input_space.nchannels, \
+    W = sharedX( rng.uniform(-irange,irange,( output_space.num_channels, input_space.num_channels, \
             kernel_shape[0], kernel_shape[1])))
 
     return Conv2D(filters = W,
@@ -212,7 +212,7 @@ def make_sparse_random_conv2D(num_nonzero, input_space, output_space,
     if rng is None:
         rng = np.random.RandomState([2012, 11, 6])
 
-    W = np.zeros(( output_space.nchannels, input_space.nchannels, \
+    W = np.zeros(( output_space.num_channels, input_space.num_channels, \
             kernel_shape[0], kernel_shape[1]))
 
     def random_coord():

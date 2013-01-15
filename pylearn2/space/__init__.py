@@ -191,7 +191,7 @@ class VectorSpace(Space):
         if isinstance(space, Conv2DSpace):
             if space.axes[0] != 'b':
                 raise NotImplementedError("Will need to reshape to ('b',*) then do a dimshuffle. Be sure to make this the inverse of space._format_as(x, self)")
-            dims = { 'b' : batch.shape[0], 'c' : space.nchannels, 0 : space.shape[0], 1 : space.shape[1] }
+            dims = { 'b' : batch.shape[0], 'c' : space.num_channels, 0 : space.shape[0], 1 : space.shape[1] }
 
             shape = tuple( [ dims[elem] for elem in space.axes ] )
 
@@ -216,7 +216,7 @@ class VectorSpace(Space):
 
 class Conv2DSpace(Space):
     """A space whose points are defined as (multi-channel) images."""
-    def __init__(self, shape, nchannels, axes = None):
+    def __init__(self, shape, num_channels, axes = None):
         """
         Initialize a Conv2DSpace.
 
@@ -224,7 +224,7 @@ class Conv2DSpace(Space):
         ----------
         shape : sequence, length 2
             The shape of a single image, i.e. (rows, cols).
-        nchannels: int
+        num_channels: int
             Number of channels in the image, i.e. 3 if RGB.
         axes: A tuple indicating the semantics of each axis.
                 'b' : this axis is the batch index of a minibatch.
@@ -240,7 +240,7 @@ class Conv2DSpace(Space):
         if not hasattr(shape, '__len__') or len(shape) != 2:
             raise ValueError("shape argument to Conv2DSpace must be length 2")
         self.shape = shape
-        self.nchannels = nchannels
+        self.num_channels = num_channels
         if axes is None:
             # Assume pylearn2's get_topological_view format, since this is how
             # data is currently served up. If we make better iterators change
@@ -252,18 +252,20 @@ class Conv2DSpace(Space):
     def __eq__(self, other):
         return type(self) == type(other) and \
                 self.shape == other.shape and \
-                self.nchannels == other.nchannels \
+                self.num_channels == other.num_channels \
                 and self.axes == other.axes
 
     @functools.wraps(Space.get_origin)
     def get_origin(self):
-        dims = { 0: self.shape[0], 1: self.shape[1], 'c' : self.nchannels }
+        dims = { 0: self.shape[0], 1: self.shape[1], 'c' : self.num_channels }
         shape = [ dims[elem] for elem in self.axes if elem != 'b' ]
         return np.zeros(shape)
 
     @functools.wraps(Space.get_origin_batch)
     def get_origin_batch(self, n):
-        dims = { 'b' : n, 0: self.shape[0], 1: self.shape[1], 'c' : self.nchannels }
+        assert isinstance(n, int)
+        assert n > 0
+        dims = { 'b' : n, 0: self.shape[0], 1: self.shape[1], 'c' : self.num_channels }
         shape = [ dims[elem] for elem in self.axes ]
         return np.zeros(shape)
 
@@ -271,9 +273,14 @@ class Conv2DSpace(Space):
     def make_theano_batch(self, name=None, dtype=None):
         if dtype is None:
             dtype = config.floatX
+
+        # Patch old pickle files
+        if not hasattr(self, 'num_channels'):
+            self.num_channels = self.nchannels
+
         return TensorType(dtype=dtype,
                           broadcastable=(False, False, False,
-                                         self.nchannels == 1)
+                                         self.num_channels == 1)
                          )(name=name)
 
     @staticmethod
@@ -330,20 +337,37 @@ class Conv2DSpace(Space):
 
     @functools.wraps(Space.get_total_dimension)
     def get_total_dimension(self):
-        return self.shape[0] * self.shape[1] * self.nchannels
+
+        # Patch old pickle files
+        if not hasattr(self, 'num_channels'):
+            self.num_channels = self.nchannels
+
+        return self.shape[0] * self.shape[1] * self.num_channels
 
     @functools.wraps(Space.validate)
     def validate(self, batch):
         if not isinstance(batch, theano.gof.Variable):
-            raise TypeError()
+            raise TypeError("Conv2DSpace batches must be theano Variables, got "+str(type(batch)))
         if not isinstance(batch.type, (theano.tensor.TensorType,CudaNdarrayType)):
             raise TypeError()
         if batch.ndim != 4:
             raise ValueError()
         for val in get_debug_values(batch):
-            assert val.shape[self.axes.index('c')] == self.nchannels
+            d = self.axes.index('c')
+            actual_channels = val.shape[d]
+            if actual_channels != self.num_channels:
+                raise ValueError("Expected axis "+str(d)+" to be number of channels ("+str(self.num_channels)+\
+                        ") but it is "+str(actual_channels))
+            assert val.shape[self.axes.index('c')] == self.num_channels
             for coord in [0,1]:
-                assert val.shape[self.axes.index(coord)] == self.shape[coord]
+                d = self.axes.index(coord)
+                actual_shape = val.shape[d]
+                expected_shape = self.shape[coord]
+                if actual_shape != expected_shape:
+                    raise ValueError("Conv2DSpace with shape "+str(self.shape) + \
+                            " and axes " + str(self.axes) + " expected dimension " + \
+                            str(d) + " of a batch (" + str(batch)+") to have length " + str(expected_shape) + \
+                            " but it has "+str(actual_shape))
 
     @functools.wraps(Space._format_as)
     def _format_as(self, batch, space):
