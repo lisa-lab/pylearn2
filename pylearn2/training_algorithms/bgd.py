@@ -256,7 +256,9 @@ class BGD(TrainingAlgorithm):
         if self.termination_criterion is None:
             return True
         else:
-            return self.termination_criterion(self.model)
+            rval = self.termination_criterion.continue_learning(self.model)
+            assert rval in [True, False, 0, 1]
+            return rval
 
     def before_step(self, model):
         if self.scale_step != 1.:

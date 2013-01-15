@@ -98,7 +98,7 @@ class Train(object):
                 if self.save_freq > 0 and self.model.monitor.epochs_seen % self.save_freq == 0:
                     self.save()
                 continue_learning = self.model.continue_learning()
-                assert continue_learning in [True, False]
+                assert continue_learning in [True, False, 0, 1]
                 if not continue_learning:
                     break
         else:
@@ -120,7 +120,7 @@ class Train(object):
                 if self.save_freq > 0 and self.model.monitor._epochs_seen % self.save_freq == 0:
                     self.save()
                 continue_learning =  self.algorithm.continue_learning(self.model)
-                assert continue_learning in [True, False]
+                assert continue_learning in [True, False, 0, 1]
                 if not continue_learning:
                     break
 
