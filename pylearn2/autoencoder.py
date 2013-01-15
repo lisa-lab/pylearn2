@@ -483,7 +483,7 @@ class ContractiveAutoencoder(Autoencoder):
             SquaredError, to penalize it.
         """
         act_grad = self._activation_grad(inputs)
-        frob_norm = tensor.dot(tensor.sqr(act_grad), tensor.sqr(self.weights.sum(axis=0)))
+        frob_norm = tensor.dot(tensor.sqr(act_grad), tensor.sqr(self.weights).sum(axis=0))
         contract_penalty = frob_norm.sum() / inputs.shape[0]
         return contract_penalty
 
