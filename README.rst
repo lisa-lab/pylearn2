@@ -19,7 +19,7 @@ is now developed by the LISA lab.
 
 Quick start and basic design rules
 ------------------
-
+- Installation instructions are available `here <http://deeplearning.net/software/pylearn2/#download-and-installation>`_.
 - Subscribe to the `pylearn-dev Google group
   <http://groups.google.com/group/pylearn-dev>`_ for important updates. Please write
   to this list for troubleshooting help or any feedback you have about the library,
