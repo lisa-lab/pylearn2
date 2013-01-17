@@ -295,7 +295,7 @@ class Monitor(object):
             if mode is not None and hasattr(mode, 'record'):
                 mode.record.handle_line('compiling monitor including channel '+key+'\n')
             log.info('\t%s' % key)
-        it = [d.iterator(mode=i, num_batches=n, batch_size=b) \
+        it = [d.iterator(mode=i, num_batches=n, batch_size=b, topo=self.topo) \
               for d, i, n, b in safe_izip(self._datasets, self._iteration_mode,
                                     self._num_batches, self._batch_size)]
         num_examples = [np.cast[config.floatX](float(i.num_examples)) for i in it]
