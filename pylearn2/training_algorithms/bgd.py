@@ -98,13 +98,19 @@ class BGD(TrainingAlgorithm):
         self.monitor = Monitor.get_monitor(model)
         self.monitor.set_theano_function_mode(self.theano_function_mode)
         X = self.model.get_input_space().make_theano_batch()
-        X.tag.test_value = self.model.get_input_space().get_origin_batch(self.batch_size).astype(X.dtype)
         X.name = 'BGD_X'
         self.topo = X.ndim != 2
         if self.topo:
             assert self.model.get_input_space().axes == ('b', 0, 1, 'c')
         Y = T.matrix()
         Y.name = 'BGD_Y'
+        if config.compute_test_value != 'off':
+            X.tag.test_value = self.model.get_input_space().get_origin_batch(self.batch_size).astype(X.dtype)
+            Y_batch = self.model.get_output_space().get_origin_batch(self.batch_size).astype(Y.dtype)
+            assert Y_batch.ndim == 2
+            for i in xrange(Y_batch.shape[0]):
+                Y_batch[i, i % Y_batch.shape[1]] = 1
+            Y.tag.test_value = Y_batch
 
         fixed_var_descr = self.cost.get_fixed_var_descr(model, X, Y)
         self.on_load_batch = fixed_var_descr.on_load_batch

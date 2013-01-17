@@ -152,6 +152,7 @@ class BatchGradientDescent:
 
         self.param_to_cache = OrderedDict()
         alpha = T.scalar(name = 'alpha')
+        alpha.tag.test_value = np.cast[alpha.dtype](.01)
         cache_updates = OrderedDict()
         goto_updates = OrderedDict()
         for param in params:
