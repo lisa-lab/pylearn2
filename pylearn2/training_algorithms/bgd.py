@@ -357,3 +357,64 @@ class ScaleStep(TrainExtension):
         algorithm.scale_step = cur
         self.monitor_channel.set_value(np.cast[config.floatX](cur))
 
+class BacktrackingStepShrinker(TrainExtension, TerminationCriterion):
+
+    def __init__(self, channel, scale, giveup_after, scale_up=1., max_scale=1.):
+        """
+        """
+
+        self.__dict__.update(locals())
+        del self.self
+        self.continue_learning = True
+        self.first = True
+        self.prev = np.inf
+
+    def on_monitor(self, model, dataset, algorithm):
+        monitor = model.monitor
+
+        if self.first:
+            self.first = False
+            self.monitor_channel = sharedX(algorithm.scale_step)
+            # TODO: make monitor accept channels not associated with any dataset,
+            # so this hack won't be necessary
+            hack = monitor.channels.values()[0]
+            monitor.add_channel('scale_step', hack.graph_input, self.monitor_channel, dataset=hack.dataset)
+        channel = monitor.channels[self.channel]
+        v = channel.val_record
+        if len(v) == 1:
+            return
+        latest = v[-1]
+        print "Latest "+self.channel+": "+str(latest)
+        # Only compare to the previous step, not the best step so far
+        # Another extension can be in charge of saving the best parameters ever seen.
+        # We want to keep learning as long as we're making progress.
+        # We don't want to give up on a step size just because it failed to undo the damage
+        # of the bigger one that preceded it in a single epoch
+        print "Previous is "+str(self.prev)
+        cur = algorithm.scale_step
+        if latest >= self.prev:
+            print "Looks like using "+str(cur)+" isn't working out so great for us."
+            cur *= self.scale
+            if cur < self.giveup_after:
+                print "Guess we just have to give up."
+                self.continue_learning = False
+                cur = self.giveup_after
+            print "Let's see how "+str(cur)+" does."
+            print "Reloading saved params from last call"
+            for p, v in safe_zip(model.get_params(), self.stored_values):
+                p.set_value(v)
+            latest = self.prev
+        elif latest <= self.prev and self.scale_up != 1.:
+            print "Looks like we're making progress on the validation set, let's try speeding up"
+            cur *= self.scale_up
+            if cur > self.max_scale:
+                cur = self.max_scale
+            print "New scale is",cur
+        algorithm.scale_step = cur
+        self.monitor_channel.set_value(np.cast[config.floatX](cur))
+        self.prev = latest
+        self.stored_values = [param.get_value() for param in model.get_params()]
+
+
+    def __call__(self, model):
+        return self.continue_learning
