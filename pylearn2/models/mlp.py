@@ -18,8 +18,6 @@ from theano.sandbox.rng_mrg import MRG_RandomStreams
 import theano.tensor as T
 
 from pylearn2.costs.cost import Cost
-from pylearn2.expr.nnet import inverse_sigmoid_numpy
-from pylearn2.expr.nnet import sigmoid_numpy
 from pylearn2.expr.probabilistic_max_pooling import max_pool_channels
 from pylearn2.linear import conv2d
 from pylearn2.linear.matrixmul import MatrixMul

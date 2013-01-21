@@ -1,7 +1,9 @@
-"""Base class for the components in other modules."""
+"""
+A mostly outdated module that isn't used much anymore.
+See tutorials/*ipynb or scripts/train_example to get
+a quick introduction to the library.
+"""
 # Standard library imports
-import cPickle
-import os.path
 import warnings
 
 # Third-party imports
