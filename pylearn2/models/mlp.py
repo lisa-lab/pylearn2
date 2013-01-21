@@ -98,7 +98,9 @@ class MLP(Layer):
             batch_size=None,
             input_space=None,
             dropout_include_probs = None,
+            dropout_scales = None,
             dropout_input_include_prob = None,
+            dropout_input_scale = None,
             nvis=None):
         """
             layers: a list of MLP_Layers. The final layer will specify the
@@ -109,6 +111,18 @@ class MLP(Layer):
                         a hard-coded batch size.
             input_space: a Space specifying the kind of input the MLP acts
                         on. If None, input space is specified by nvis.
+
+            A note on dropout:
+                Hinton's paper suggests including each unit with probability p
+                during training, then multiplying the outgoing weights by p at
+                the end of training.
+                We instead include each unit with probability p and divide its
+                state by p during training. Note that this means the initial
+                weights should be multiplied by p relative to Hinton's.
+                The SGD learning rate on the weights should also be scaled by p^2
+                (use W_lr_scale rather than adjusting the global learning rate,
+                because the learning rate on the biases should
+                not be adjusted).
         """
 
         self.setup_rng()
@@ -145,6 +159,20 @@ class MLP(Layer):
         if dropout_include_probs is None:
             dropout_include_probs = [None] * len(layers)
         self.dropout_include_probs = dropout_include_probs
+
+        def f(x):
+            if x is None:
+                return None
+            return 1. / x
+
+        if dropout_input_scale is None:
+            droput_input_scale = f(dropout_input_include_prob)
+
+        if dropout_scales is None:
+            dropout_scales = map(f, dropout_include_probs)
+
+        self.dropout_input_scale = dropout_input_scale
+        self.dropout_scales = dropout_scales
 
     def setup_rng(self):
         self.rng = np.random.RandomState([2013, 1, 4])
@@ -273,27 +301,35 @@ class MLP(Layer):
         if apply_dropout:
             warnings.warn("dropout should be implemented with fixed_var_descr to make sure it works with BGD, this is just a hack to get it working with SGD")
             theano_rng = MRG_RandomStreams(self.rng.randint(2**15))
-            state_below = self.apply_dropout(state=state_below, include_prob=self.dropout_input_include_prob, theano_rng=theano_rng)
+            scale = self.dropout_input_scale
+            state_below = self.apply_dropout(state=state_below,
+                    include_prob=self.dropout_input_include_prob,
+                    theano_rng=theano_rng,
+                    scale=scale)
 
         rval = self.layers[0].fprop(state_below)
 
         if apply_dropout:
             dropout = self.dropout_include_probs[0]
-            rval = self.apply_dropout(state=rval, include_prob=dropout, theano_rng=theano_rng)
+            scale = self.dropout_scales[0]
+            rval = self.apply_dropout(state=rval, include_prob=dropout, theano_rng=theano_rng,
+                    scale=scale)
 
-        for layer, dropout in safe_izip(self.layers[1:], self.dropout_include_probs[1:]):
+        for layer, dropout, scale in safe_izip(self.layers[1:], self.dropout_include_probs[1:],
+            self.dropout_scales[1:]):
             rval = layer.fprop(rval)
             if apply_dropout:
-                rval = self.apply_dropout(state=rval, include_prob=dropout, theano_rng=theano_rng)
+                rval = self.apply_dropout(state=rval, include_prob=dropout, theano_rng=theano_rng,
+                        scale=scale)
 
         return rval
 
-    def apply_dropout(self, state, include_prob, theano_rng):
+    def apply_dropout(self, state, include_prob, scale, theano_rng):
         if include_prob in [None, 1.0, 1]:
             return state
         if isinstance(state, tuple):
-            return tuple(self.apply_dropout(substate, include_prob, theano_rng) for substate in state)
-        return state * theano_rng.binomial(p=include_prob, size=state.shape, dtype=state.dtype) / include_prob
+            return tuple(self.apply_dropout(substate, include_prob, scale, theano_rng) for substate in state)
+        return state * theano_rng.binomial(p=include_prob, size=state.shape, dtype=state.dtype) * scale
 
     def cost(self, Y, Y_hat):
         return self.layers[-1].cost(Y, Y_hat)
@@ -831,14 +867,15 @@ class RectifiedLinear(Layer):
                  sparse_init = None,
                  sparse_stdev = 1.,
                  include_prob = 1.0,
-                 init_bias = 0.,
+                 init_bias = None,
                  W_lr_scale = None,
                  b_lr_scale = None,
                  mask_weights = None,
                  left_slope = 0.0,
                  copy_input = 0,
                  max_row_norm = None,
-                 max_col_norm = None):
+                 max_col_norm = None,
+                 use_bias = True):
         """
 
             include_prob: probability of including a weight element in the set
@@ -846,18 +883,20 @@ class RectifiedLinear(Layer):
             it is initialized to 0.
 
             """
+
+        if use_bias and init_bias is None:
+            init_bias = 0.
+
         self.__dict__.update(locals())
         del self.self
 
-        self.b = sharedX( np.zeros((self.dim,)) + init_bias, name = layer_name + '_b')
+        if use_bias:
+            self.b = sharedX( np.zeros((self.dim,)) + init_bias, name = layer_name + '_b')
+        else:
+            assert b_lr_scale is None
+            init_bias is None
 
     def get_lr_scalers(self):
-
-        if not hasattr(self, 'W_lr_scale'):
-            self.W_lr_scale = None
-
-        if not hasattr(self, 'b_lr_scale'):
-            self.b_lr_scale = None
 
         rval = OrderedDict()
 
@@ -865,7 +904,7 @@ class RectifiedLinear(Layer):
             W, = self.transformer.get_params()
             rval[W] = self.W_lr_scale
 
-        if self.b_lr_scale is not None:
+        if self.use_bias and self.b_lr_scale is not None:
             rval[self.b] = self.b_lr_scale
 
         return rval
@@ -952,14 +991,15 @@ class RectifiedLinear(Layer):
                 updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
     def get_params(self):
-        assert self.b.name is not None
         W ,= self.transformer.get_params()
         assert W.name is not None
         rval = self.transformer.get_params()
         assert not isinstance(rval, set)
         rval = list(rval)
-        assert self.b not in rval
-        rval.append(self.b)
+        if self.use_bias:
+            assert self.b.name is not None
+            assert self.b not in rval
+            rval.append(self.b)
         return rval
 
     def get_weight_decay(self, coeff):
@@ -984,9 +1024,11 @@ class RectifiedLinear(Layer):
         W.set_value(weights)
 
     def set_biases(self, biases):
+        assert self.use_bias
         self.b.set_value(biases)
 
     def get_biases(self):
+        assert self.use_bias
         return self.b.get_value()
 
     def get_weights_format(self):
@@ -1041,7 +1083,9 @@ class RectifiedLinear(Layer):
 
             state_below = self.input_space.format_as(state_below, self.desired_space)
 
-        z = self.transformer.lmul(state_below) + self.b
+        z = self.transformer.lmul(state_below)
+        if self.use_bias:
+            z = z + self.b
         if self.layer_name is not None:
             z.name = self.layer_name + '_z'
 
