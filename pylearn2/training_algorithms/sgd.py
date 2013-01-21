@@ -340,7 +340,7 @@ class SGD(TrainingAlgorithm):
         if self.termination_criterion is None:
             return True
         else:
-            return self.termination_criterion(self.model)
+            return self.termination_criterion.continue_learning(self.model)
 
 """
 TODO: implement Nesterov momentum. Easiest way to do it is via equivalence
