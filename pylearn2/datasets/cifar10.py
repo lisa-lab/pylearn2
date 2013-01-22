@@ -7,7 +7,7 @@ from pylearn2.datasets import dense_design_matrix
 
 class CIFAR10(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, which_set, center = False, rescale = False, gcn = None,
-            one_hot = False):
+            one_hot = False, start = None, stop = None):
 
         # note: there is no such thing as the cifar10 validation set;
         # quit pretending that there is.
@@ -62,6 +62,14 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
 
         if which_set == 'test':
             assert y.shape[0] == 10000
+
+        if start is not None:
+            assert start >= 0
+            assert stop > start
+            assert stop <= X.shape[0]
+            X = X[start:stop, :]
+            y = y[start:stop]
+            assert X.shape[0] == y.shape[0]
 
         self.one_hot = one_hot
         if one_hot:
