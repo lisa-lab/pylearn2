@@ -60,6 +60,9 @@ class Dataset(object):
             through the dataset and may potentially be shared by
             multiple iterator objects simultaneously (see "Notes"
             below).
+        targets: TODO WRITEME: DWF or LD should fill this in, but
+            IG thinks it is just a bool saying whether to include
+            the targets or not
 
         Returns
         -------
