@@ -138,7 +138,7 @@ class SGDOptimizer(Optimizer):
                         'at least two parameters have the same name. '
                         'Both will be affected by the keyword argument '
                         '%s.' % lr_name)
-            lr_names_seen.add(parameter.name)
+            lr_names_seen.add(lr_name)
 
             thislr = kwargs.get(lr_name, 1.)
             self.learning_rates[parameter] = sharedX(thislr, lr_name)
