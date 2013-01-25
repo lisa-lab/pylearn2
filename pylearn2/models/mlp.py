@@ -166,7 +166,7 @@ class MLP(Layer):
             return 1. / x
 
         if dropout_input_scale is None:
-            droput_input_scale = f(dropout_input_include_prob)
+            dropout_input_scale = f(dropout_input_include_prob)
 
         if dropout_scales is None:
             dropout_scales = map(f, dropout_include_probs)
@@ -327,6 +327,7 @@ class MLP(Layer):
     def apply_dropout(self, state, include_prob, scale, theano_rng):
         if include_prob in [None, 1.0, 1]:
             return state
+        assert scale is not None
         if isinstance(state, tuple):
             return tuple(self.apply_dropout(substate, include_prob, scale, theano_rng) for substate in state)
         return state * theano_rng.binomial(p=include_prob, size=state.shape, dtype=state.dtype) * scale
@@ -467,7 +468,7 @@ class Softmax(Layer):
             state_below = self.input_space.format_as(state_below, self.desired_space)
 
         for value in get_debug_values(state_below):
-            if value.shape[0] != self.mlp.batch_size:
+            if self.mlp.batch_size is not None and value.shape[0] != self.mlp.batch_size:
                 raise ValueError("state_below should have batch size "+str(self.dbm.batch_size)+" but has "+str(value.shape[0]))
 
         self.desired_space.validate(state_below)
@@ -482,7 +483,8 @@ class Softmax(Layer):
         rval = T.nnet.softmax(Z)
 
         for value in get_debug_values(rval):
-            assert value.shape[0] == self.mlp.batch_size
+            if self.mlp.batch_size is not None:
+                assert value.shape[0] == self.mlp.batch_size
 
         return rval
 
