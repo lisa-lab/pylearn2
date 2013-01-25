@@ -1,12 +1,18 @@
 import numpy as np
 from PIL import Image
-import matplotlib.pyplot as plt
-import matplotlib.axes
+plt = None
+axes = None
+import warnings
+try:
+    import matplotlib.pyplot as plt
+    import matplotlib.axes
+except RuntimeError, e:
+    warnings.warn("Unable to import matplotlib. Some features unavailable. "
+            "Original exception: " + str(e))
 import os
 from pylearn2.utils import string_utils as string
 from tempfile import NamedTemporaryFile
 from multiprocessing import Process
-import warnings
 
 
 def imview(*args, **kwargs):
