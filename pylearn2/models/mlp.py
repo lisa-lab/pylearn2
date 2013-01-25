@@ -1479,6 +1479,15 @@ class ConvRectifiedLinear(Layer):
         self.b = sharedX(self.detector_space.get_origin() + self.init_bias)
         self.b.name = 'b'
 
+        print 'Input shape: ', self.input_space.shape
+        print 'Detector space: ', self.detector_space.shape
+
+        if self.mlp.batch_size is None:
+            raise ValueError("Tried to use a convolutional layer with an MLP that has "
+                    "no batch size specified. You must specify the batch size of the "
+                    "model because theano requires the batch size to be known at "
+                    "graph construction time for convolution.")
+
         dummy_detector = sharedX(self.detector_space.get_origin_batch(self.mlp.batch_size))
         dummy_p = max_pool(bc01=dummy_detector, pool_shape=self.pool_shape,
                 pool_stride=self.pool_stride,
@@ -1486,6 +1495,8 @@ class ConvRectifiedLinear(Layer):
         dummy_p = dummy_p.eval()
         self.output_space = Conv2DSpace(shape=[dummy_p.shape[2], dummy_p.shape[3]],
                 num_channels = self.output_channels, axes = ('b', 'c', 0, 1) )
+
+        print 'Output space: ', self.output_space.shape
 
 
 
