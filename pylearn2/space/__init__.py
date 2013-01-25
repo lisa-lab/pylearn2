@@ -216,7 +216,7 @@ class VectorSpace(Space):
 
 class Conv2DSpace(Space):
     """A space whose points are defined as (multi-channel) images."""
-    def __init__(self, shape, num_channels, axes = None):
+    def __init__(self, shape, channels = None, num_channels = None, axes = None):
         """
         Initialize a Conv2DSpace.
 
@@ -224,7 +224,7 @@ class Conv2DSpace(Space):
         ----------
         shape : sequence, length 2
             The shape of a single image, i.e. (rows, cols).
-        num_channels: int
+        num_channels: int     (synonym: channels)
             Number of channels in the image, i.e. 3 if RGB.
         axes: A tuple indicating the semantics of each axis.
                 'b' : this axis is the batch index of a minibatch.
@@ -237,8 +237,15 @@ class Conv2DSpace(Space):
                     ('b', 0, 1, 'c') for batches and (0, 1, 'c') for images.
                 theano's conv2d operator uses ('b', 'c', 0, 1) images.
         """
+
+        assert (channels is None) + (num_channels is None) == 1
+        if num_channels is None:
+            num_channels = channels
+
         if not hasattr(shape, '__len__') or len(shape) != 2:
             raise ValueError("shape argument to Conv2DSpace must be length 2")
+        assert all(isinstance(elem, int) for elem in shape)
+        assert isinstance(num_channels, int)
         self.shape = shape
         self.num_channels = num_channels
         if axes is None:
@@ -263,7 +270,9 @@ class Conv2DSpace(Space):
 
     @functools.wraps(Space.get_origin_batch)
     def get_origin_batch(self, n):
-        assert isinstance(n, int)
+        if not isinstance(n, int):
+            raise TypeError("Conv2DSpace.get_origin_batch expects an int, got " +
+                    str(n) + " of type " + str(type(n)))
         assert n > 0
         dims = { 'b' : n, 0: self.shape[0], 1: self.shape[1], 'c' : self.num_channels }
         shape = [ dims[elem] for elem in self.axes ]
