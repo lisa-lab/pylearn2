@@ -1398,6 +1398,7 @@ class ConvRectifiedLinear(Layer):
                  pool_stride,
                  layer_name,
                  irange = None,
+                 border_mode = 'valid',
                  sparse_init = None,
                  include_prob = 1.0,
                  init_bias = 0.,
@@ -1440,8 +1441,12 @@ class ConvRectifiedLinear(Layer):
         self.input_space = space
         rng = self.mlp.rng
 
-        output_shape = [self.input_space.shape[0] - self.kernel_shape[0] + 1,
+        if self.border_mode == 'valid':
+            output_shape = [self.input_space.shape[0] - self.kernel_shape[0] + 1,
                 self.input_space.shape[1] - self.kernel_shape[1] + 1]
+        elif self.border_mode == 'full':
+            output_shape = [self.input_space.shape[0] + self.kernel_shape[0] - 1,
+                    self.input_space.shape[1] + self.kernel_shape[1] - 1]
 
         self.detector_space = Conv2DSpace(shape=output_shape,
                 num_channels = self.output_channels,
@@ -1456,7 +1461,7 @@ class ConvRectifiedLinear(Layer):
                     kernel_shape = self.kernel_shape,
                     batch_size = self.mlp.batch_size,
                     subsample = (1,1),
-                    border_mode = 'valid',
+                    border_mode = self.border_mode,
                     rng = rng)
         elif self.sparse_init is not None:
             self.transformer = conv2d.make_sparse_random_conv2D(
@@ -1466,7 +1471,7 @@ class ConvRectifiedLinear(Layer):
                     kernel_shape = self.kernel_shape,
                     batch_size = self.mlp.batch_size,
                     subsample = (1,1),
-                    border_mode = 'valid',
+                    border_mode = self.border_mode,
                     rng = rng)
         W, = self.transformer.get_params()
         W.name = 'W'
