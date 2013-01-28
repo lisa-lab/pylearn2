@@ -94,7 +94,8 @@ Original exception: """+str(e))
         elif hasattr(model, 'weights_format'):
             weights_format = model.weights_format
         else:
-            assert False
+            # assume default
+            weights_format = ('v', 'h')
 
 
         assert hasattr(weights_format,'__iter__')
