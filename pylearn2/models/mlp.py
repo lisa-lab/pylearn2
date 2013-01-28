@@ -1647,3 +1647,64 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape):
         assert not np.any(np.isinf(mxv))
 
     return mx
+
+
+def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape):
+    """
+    Like max_pool but with input using axes ('c', 0, 1, 'b')
+      (Alex Krizhevsky format)
+    """
+    mx = None
+    r, c = image_shape
+    pr, pc = pool_shape
+    rs, cs = pool_stride
+
+    # Compute index in pooled space of last needed pool
+    # (needed = each input pixel must appear in at least one pool)
+    def last_pool(im_shp, p_shp, p_strd):
+        rval = int(np.ceil(float(im_shp - p_shp) / p_strd))
+        assert p_strd * rval + p_shp >= im_shp
+        assert p_strd * (rval - 1) + p_shp < im_shp
+        return rval
+    # Compute starting row of the last pool
+    last_pool_r = last_pool(image_shape[0] ,pool_shape[0], pool_stride[0]) * pool_stride[0]
+    # Compute number of rows needed in image for all indexes to work out
+    required_r = last_pool_r + pr
+
+    last_pool_c = last_pool(image_shape[1] ,pool_shape[1], pool_stride[1]) * pool_stride[1]
+    required_c = last_pool_c + pc
+
+    for c01bv in get_debug_values(c01b):
+        assert not np.any(np.isinf(c01bv))
+        assert c01bv.shape[1] == r
+        assert c01bv.shape[2] == c
+
+    wide_infinity = T.alloc(-np.inf, c01b.shape[0], required_r, required_c, c01b.shape[3])
+
+
+    name = c01b.name
+    if name is None:
+        name = 'anon_bc01'
+    c01b = T.set_subtensor(wide_infinity[:, 0:r, 0:c, :], c01b)
+    c01b.name = 'infinite_padded_' + name
+
+    for row_within_pool in xrange(pool_shape[0]):
+        row_stop = last_pool_r + row_within_pool + 1
+        for col_within_pool in xrange(pool_shape[1]):
+            col_stop = last_pool_c + col_within_pool + 1
+            cur = c01b[:,row_within_pool:row_stop:rs, col_within_pool:col_stop:cs, :]
+            cur.name = 'max_pool_cur_'+c01b.name+'_'+str(row_within_pool)+'_'+str(col_within_pool)
+            if mx is None:
+                mx = cur
+            else:
+                mx = T.maximum(mx, cur)
+                mx.name = 'max_pool_mx_'+c01b.name+'_'+str(row_within_pool)+'_'+str(col_within_pool)
+
+    mx.name = 'max_pool('+name+')'
+
+    for mxv in get_debug_values(mx):
+        assert not np.any(np.isnan(mxv))
+        assert not np.any(np.isinf(mxv))
+
+    return mx
+
