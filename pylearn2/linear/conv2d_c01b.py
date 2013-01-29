@@ -1,9 +1,21 @@
+"""
+The functionality in this module is very similar to that in
+pylearn2.linear.conv2d. The difference is that this module is
+based on Alex Krizhevsky's cuda-convnet convolution, while
+pylearn2.linear.conv2d is based on theano's 2D convolution.
+This module therefore uses the axis format ('c', 0, 1, 'b')
+as its native format, while the other uses ('b', 'c', 0, 1).
+This module also requires the use of GPU, while the other
+supports CPU.
+"""
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
+
+
 from pylearn2.packaged_dependencies.theano_linear.conv2d import Conv2d as OrigConv2D
 import theano.tensor as T
 from pylearn2.utils import sharedX
@@ -14,6 +26,8 @@ import functools
 import theano
 
 class Conv2D(OrigConv2D):
+    raise NotImplementedError("Not yet modified after copy-paste from "
+            "pylearn2.linear.conv2d")
     """ Extend the TheanoLinear Conv2d class to support everything
     needed for a pylearn2 linear operator.
 
@@ -183,10 +197,11 @@ class Conv2D(OrigConv2D):
         self._img_shape = tuple([ batch_size ] + list(self._img_shape[1:]))
 
 
-
 def make_random_conv2D(irange, input_space, output_space,
         kernel_shape, batch_size, \
         subsample = (1,1), border_mode = 'valid', message = "", rng = None):
+    raise NotImplementedError("Not yet modified after copy-paste from "
+            "pylearn2.linear.conv2d")
     """ Creates a Conv2D with random kernels """
 
     if rng is None:
@@ -206,6 +221,8 @@ def make_random_conv2D(irange, input_space, output_space,
 def make_sparse_random_conv2D(num_nonzero, input_space, output_space,
         kernel_shape, batch_size, \
         subsample = (1,1), border_mode = 'valid', message = "", rng=None):
+    raise NotImplementedError("Not yet modified after copy-paste from "
+            "pylearn2.linear.conv2d")
     """ Creates a Conv2D with random kernels, where the randomly initialized
     values are sparse"""
 
