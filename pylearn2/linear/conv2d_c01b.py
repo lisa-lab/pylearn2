@@ -20,10 +20,14 @@ import theano.tensor as T
 from pylearn2.utils import sharedX
 import numpy as np
 from theano.tensor.nnet.conv import conv2d
+from pylearn2.linear.conv2d import default_rng
+from pylearn2.linear.conv2d import default_sparse_rng
 from pylearn2.linear.linear_transform import LinearTransform
 import functools
 import theano
 from pylearn2.sandbox.cuda_convnet.filter_acts import FilterActs
+from theano.sandbox.cuda import gpu_from_host
+from theano.sandbox.cuda import host_from_gpu
 
 class Conv2D(LinearTransform):
     """
@@ -38,16 +42,14 @@ class Conv2D(LinearTransform):
             batch_size=None,
             output_axes = ('c', 0, 1, 'b'),
         subsample = (1, 1), border_mode = 'valid',
-        filters_shape = None, message = ''):
+         message = ''):
 
         if subsample != (1, 1):
             raise NotImplementedError()
 
         if border_mode != 'valid':
-            raise NotImplementedError()
-
-        if filters_shape != None:
-            raise NotImplementedError()
+            raise NotImplementedError('C01B convolution currently only '
+                    'supports border_mode=valid')
 
         if message != '':
             raise NotImplementedError()
@@ -55,10 +57,17 @@ class Conv2D(LinearTransform):
         if batch_size != None:
             raise NotImplementedError()
 
-        self.input_space = input_axes
+        self.input_axes = input_axes
         self.output_axes = output_axes
 
-        self._filters = sharedX(filters)
+        # filters should be a GPU shared variable.
+        # I guess you could GpuFromHost them every time,
+        # but if you're using this class you probably care
+        # about performance and want to be at least warned
+        # that this is happening
+        assert hasattr(filters, 'get_value')
+        assert 'Cuda' in str(type(filters))
+        self._filters = filters
 
     @functools.wraps(LinearTransform.get_params)
     def get_params(self):
@@ -76,6 +85,11 @@ class Conv2D(LinearTransform):
         aka, do convolution with input image x
 
         """
+
+        cpu = 'Cuda' not in str(type(x))
+
+        if cpu:
+            x = gpu_from_host(x)
 
         # x must be formatted as channel, topo dim 0, topo dim 1, batch_index
         # for use with FilterActs
@@ -96,6 +110,9 @@ class Conv2D(LinearTransform):
 
         if tuple(rval_axes) != op_axes:
             rval = rval.dimshuffle(*[op_axes.index(axis) for axis in rval_axes])
+
+        if cpu:
+            rval = host_from_gpu(rval)
 
         return rval
 
@@ -193,25 +210,26 @@ class Conv2D(LinearTransform):
         pass
 
 
-def make_random_conv2D(irange, input_space, output_space,
-        kernel_shape, batch_size, \
+def make_random_conv2D(irange, input_channels, input_axes, output_axes,
+        output_channels,
+        kernel_shape,
         subsample = (1,1), border_mode = 'valid', message = "", rng = None):
-    raise NotImplementedError("Not yet modified after copy-paste from "
-            "pylearn2.linear.conv2d")
-    """ Creates a Conv2D with random kernels """
+    """ Creates a Conv2D with random kernels.
+        Should be functionally equivalent to
+        pylearn2.linear.conv2d.make_random_conv2D
+    """
 
     if rng is None:
-        rng = np.random.RandomState([2012,11,6,9])
+        rng = default_rng()
 
-    W = sharedX( rng.uniform(-irange,irange,( output_space.num_channels, input_space.num_channels, \
-            kernel_shape[0], kernel_shape[1])))
+    W = sharedX( rng.uniform(-irange,irange,(input_channels, \
+            kernel_shape[0], kernel_shape[1], output_channels)))
 
     return Conv2D(filters = W,
-        batch_size = batch_size,
-        input_space = input_space,
-        output_axes = output_space.axes,
+        input_axes = input_axes,
+        output_axes = output_axes,
         subsample = subsample, border_mode = border_mode,
-        filters_shape = W.get_value(borrow=True).shape, message = message)
+        message = message)
 
 
 def make_sparse_random_conv2D(num_nonzero, input_space, output_space,
@@ -223,7 +241,7 @@ def make_sparse_random_conv2D(num_nonzero, input_space, output_space,
     values are sparse"""
 
     if rng is None:
-        rng = np.random.RandomState([2012, 11, 6])
+        rng = default_sparse_rng()
 
     W = np.zeros(( output_space.num_channels, input_space.num_channels, \
             kernel_shape[0], kernel_shape[1]))
