@@ -383,7 +383,9 @@ class Conv2DSpace(Space):
         self.validate(batch)
         if isinstance(space, VectorSpace):
             if self.axes[0] != 'b':
-                raise NotImplementedError("Need to dimshuffle so b is first axis before reshape")
+                # We need to ensure that the batch index goes on the first axis before the reshape
+                new_axes = ['b'] + [axis for axis in self.axes if axis != 'b']
+                batch = batch.dimshuffle(*[self.axes.index(axis) for axis in new_axes])
             return batch.reshape((batch.shape[0], self.get_total_dimension()))
         if isinstance(space, Conv2DSpace):
             return Conv2DSpace.convert(batch, self.axes, space.axes)
