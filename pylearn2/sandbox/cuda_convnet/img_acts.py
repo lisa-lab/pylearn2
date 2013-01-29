@@ -3,7 +3,7 @@ A theano / pylearn2 wrapper for cuda-convnet's convFilterActs function.
 """
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
-__credits__ = ["Ian Goodfellow", "David Warde-Farley"]
+__credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
@@ -45,7 +45,7 @@ from theano.sandbox.cuda import CudaNdarrayType
 from theano.gof import Apply
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
 
-class FilterActs(BaseActs):
+class ImageActs(BaseActs):
     """
     2D convolution implemented on GPU.
     Technically not a true convolution, as it does not flip the kernel.
@@ -70,21 +70,20 @@ class FilterActs(BaseActs):
     Other batch sizes will work, but Alex made no attempt whatsoever
     to make them work fast.
     """
-    cpp_source_file = "filter_acts.cu"
+    cpp_source_file = "img_acts.cu"
 
-    def make_node(self, images, filters):
-
-        if not isinstance(images.type, CudaNdarrayType):
-            raise TypeError("FilterActs: expected images.type to be CudaNdarrayType, "
-                    "got "+str(images.type))
+    def make_node(self, hid_acts, filters):
+        if not isinstance(hid_acts.type, CudaNdarrayType):
+            raise TypeError("ImageActs: expected hid_acts.type to be CudaNdarrayType, "
+                    "got " + str(hid_acts.type))
 
         if not isinstance(filters.type, CudaNdarrayType):
-            raise TypeError("FilterActs: expected filters.type to be CudaNdarrayType, "
-                    "got "+str(filters.type))
+            raise TypeError("ImageActs: expected filters.type to be CudaNdarrayType, "
+                    "got " + str(filters.type))
 
 
         channels_broadcastable = filters.type.broadcastable[3]
-        batch_broadcastable = images.type.broadcastable[3]
+        batch_broadcastable = hid_acts.type.broadcastable[3]
         # Computing whether the rows and columns are broadcastable requires doing
         # arithmetic on quantities that are known only at runtime, like the specific
         # shape of the image and kernel
@@ -96,10 +95,10 @@ class FilterActs(BaseActs):
         targets_type = CudaNdarrayType(broadcastable=targets_broadcastable)
         targets = targets_type()
 
-        return Apply(self, [images, filters], [targets])
+        return Apply(self, [hid_acts, filters], [targets])
 
     def c_code(self, node, name, inputs, outputs, sub):
-        images, filters = inputs
+        hid_acts, filters = inputs
         targets, = outputs
         fail = sub['fail']
 
@@ -140,24 +139,26 @@ class FilterActs(BaseActs):
         # The amount of braces that must be closed at the end
         num_braces = 0
 
-        # Convert images int nv_images, an NVMatrix, for compatibility
+        # Convert images int nv_hid_acts, an NVMatrix, for compatibility
         # with the cuda-convnet functions
-        setup_nv_images = """
-        if (%(images)s->nd != 4)
+        setup_nv_hid_acts = """
+        if (%(hid_acts)s->nd != 4)
         {
             PyErr_Format(PyExc_ValueError,
-                "images must have nd=4, got nd=%%i", %(images)s->nd);
+                "hid_acts must have nd=4, got nd=%%i", %(hid_acts)s->nd);
             %(fail)s;
         }
 
-        { //setup_nv_images brace 1
-        const int * images_dims = CudaNdarray_HOST_DIMS(%(images)s);
-        const int img_channels = images_dims[0];
-        const int imgSizeY = images_dims[1];
-        const int imgSizeX = images_dims[2];
-        const int batch_size = images_dims[3];
-        const int check_channels = 1;
-        NVMatrix nv_images(%(images)s, img_channels * imgSizeY * imgSizeX, batch_size);
+        { //setup_nv_hid_acts brace 1
+        const int *hid_act_dims = CudaNdarray_HOST_DIMS(%(hid_acts)s);
+        const int numFilters = hid_act_dims[0];
+        const int hidActsSizeY = hid_act_dims[1];
+        const int hidActsSizeX = hid_act_dims[2];
+        const int batch_size = hid_act_dims[3];
+        NVMatrix nv_hid_acts(%(hid_acts)s, numFilters * hidActsSizeY *
+                                           hidActsSizeX, batch_size);
+        int img_channels = -1;
+        const int check_channels = 0;
         """
         num_braces += 1
 
@@ -170,14 +171,14 @@ class FilterActs(BaseActs):
         if self.pad != 0:
             raise NotImplementedError()
         else:
-            target_rows = "imgSizeY - filter_rows + 1"
-            target_cols = "imgSizeX - filter_cols + 1"
+            target_rows = "hidActsSizeY + filter_rows - 1"
+            target_cols = "hidActsSizeX + filter_cols - 1"
 
         setup_nv_targets = """
 
 
         int target_dims [] = {
-            num_filters,
+            filter_channels,
             %(target_rows)s,
             %(target_cols)s,
             batch_size };
@@ -191,6 +192,8 @@ class FilterActs(BaseActs):
         }
 
         { // setup_nv_filters brace # 1
+        const int imgSizeY = %(target_rows)s;
+        const int imgSizeX = %(target_cols)s;
 
         NVMatrix nv_targets(%(targets)s, target_dims[0] * target_dims[1]
          * target_dims[2], target_dims[3]);
@@ -211,16 +214,16 @@ class FilterActs(BaseActs):
         # nv_filters.getNumRows() by numFilterColors
         #
         do_convolution = """
-        convFilterActs(nv_images, nv_filters, nv_targets,
-                       imgSizeY, numModulesY, numModulesX,
-                       paddingStart, moduleStride, img_channels,
-                       numGroups, scaleTargets, scaleOutput);
+        convImgActs(nv_hid_acts, nv_filters, nv_targets,
+                    imgSizeY, imgSizeX, numModulesY,
+                    paddingStart, moduleStride, filter_channels,
+                    numGroups);
         """
 
         braces = '}' * num_braces
 
         rval = basic_setup + \
-                setup_nv_images + \
+                setup_nv_hid_acts + \
                 setup_nv_filters + \
                 setup_nv_targets + \
                 do_convolution + \
