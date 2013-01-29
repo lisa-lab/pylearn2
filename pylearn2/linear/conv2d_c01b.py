@@ -16,96 +16,91 @@ __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
 
-from pylearn2.packaged_dependencies.theano_linear.conv2d import Conv2d as OrigConv2D
 import theano.tensor as T
 from pylearn2.utils import sharedX
 import numpy as np
 from theano.tensor.nnet.conv import conv2d
-from pylearn2.linear.linear_transform import LinearTransform as P2LT
+from pylearn2.linear.linear_transform import LinearTransform
 import functools
 import theano
+from pylearn2.sandbox.cuda_convnet.filter_acts import FilterActs
 
-class Conv2D(OrigConv2D):
-    raise NotImplementedError("Not yet modified after copy-paste from "
-            "pylearn2.linear.conv2d")
-    """ Extend the TheanoLinear Conv2d class to support everything
-    needed for a pylearn2 linear operator.
+class Conv2D(LinearTransform):
+    """
+    A pylearn2 linear operator based on 2D convolution,
+    implemented using Alex Krizvhevsky's cuda-convnet library.
 
-    Also extend it to handle different axis semantics."""
+    """
 
     def __init__(self,
             filters,
-            batch_size,
-            input_space,
-            output_axes = ('b',0,1,'c'),
+            input_axes = ('c', 0, 1, 'b'),
+            batch_size=None,
+            output_axes = ('c', 0, 1, 'b'),
         subsample = (1, 1), border_mode = 'valid',
         filters_shape = None, message = ''):
 
+        if subsample != (1, 1):
+            raise NotImplementedError()
 
-        self.input_space = input_space
+        if border_mode != 'valid':
+            raise NotImplementedError()
+
+        if filters_shape != None:
+            raise NotImplementedError()
+
+        if message != '':
+            raise NotImplementedError()
+
+        if batch_size != None:
+            raise NotImplementedError()
+
+        self.input_space = input_axes
         self.output_axes = output_axes
 
-        super(Conv2D,self).__init__(filters = filters,
-                img_shape = (batch_size, input_space.num_channels,\
-                    input_space.shape[0], input_space.shape[1]),
-                subsample = subsample,
-                border_mode = border_mode,
-                filters_shape = filters.get_value(borrow=True).shape,
-                message = message)
+        self._filters = sharedX(filters)
 
-    @functools.wraps(P2LT.get_params)
+    @functools.wraps(LinearTransform.get_params)
     def get_params(self):
-        return [ self._filters ]
+        return [self._filters]
 
-    @functools.wraps(P2LT.get_weights_topo)
-    def get_weights_topo(self,borrow):
-        return np.transpose(self._filters.get_value(borrow = borrow),(0,2,3,1))
+    @functools.wraps(LinearTransform.get_weights_topo)
+    def get_weights_topo(self, borrow=False):
+        inp, rows, cols, outp = range(4)
+        raw = self._filters.get_value(borrow=borrow)
+        return np.transpose(raw, (outp, rows, cols, inp))
 
     def lmul(self, x):
         """
         dot(x, A)
+        aka, do convolution with input image x
 
-        This method overrides the original Conv2D lmul to make it work
-        with arbitrary axis orders """
+        """
 
-        # x must be formatted as batch index, channel, topo dim 0, topo dim 1
-        # for use with conv2d
+        # x must be formatted as channel, topo dim 0, topo dim 1, batch_index
+        # for use with FilterActs
         assert x.ndim == 4
-        axes = self.input_space.axes
-        assert len(axes) == 4
+        x_axes = self.input_axes
+        assert len(x_axes) == 4
 
-        op_axes = ('b', 'c', 0, 1)
+        op_axes = ('c', 0, 1, 'b')
 
-        if tuple(axes) != op_axes:
-            x = x.dimshuffle(
-                axes.index('b'),
-                axes.index('c'),
-                axes.index(0),
-                axes.index(1))
+        if tuple(x_axes) != op_axes:
+            x = x.dimshuffle(*[x_axes.index(axis) for axis in op_axes])
 
-
-        rval =  conv2d(
-                x, self._filters,
-                image_shape=self._img_shape,
-                filter_shape=self._filters_shape,
-                subsample=self._subsample,
-                border_mode=self._border_mode,
-                )
+        rval = FilterActs()(x, self._filters)
 
         # Format the output based on the output space
-        axes = self.output_axes
-        assert len(axes) == 4
+        rval_axes = self.output_axes
+        assert len(rval_axes) == 4
 
-        if tuple(axes) != op_axes:
-            rval = rval.dimshuffle(
-                    op_axes.index(axes[0]),
-                    op_axes.index(axes[1]),
-                    op_axes.index(axes[2]),
-                    op_axes.index(axes[3]))
+        if tuple(rval_axes) != op_axes:
+            rval = rval.dimshuffle(*[op_axes.index(axis) for axis in rval_axes])
 
         return rval
 
     def lmul_T(self, x):
+        raise NotImplementedError("This method is not yet modified since copy-pasting from pylearn2.linear.conv2d")
         """ override the original Conv2D lmul_T to make it work
         with pylearn format of topological data using dimshuffles """
         assert x.dtype == self._filters.dtype
@@ -155,6 +150,7 @@ class Conv2D(OrigConv2D):
         return rval
 
     def lmul_sq_T(self, x):
+        raise NotImplementedError("This method is not yet modified since copy-pasting from pylearn2.linear.conv2d")
         """ Kind of a stupid hacky method used to support convolutional score matching.
         Ought to find a way to make _filters symbolic rather than shared.
         """
@@ -194,7 +190,7 @@ class Conv2D(OrigConv2D):
         return rval
 
     def set_batch_size(self, batch_size):
-        self._img_shape = tuple([ batch_size ] + list(self._img_shape[1:]))
+        pass
 
 
 def make_random_conv2D(irange, input_space, output_space,
