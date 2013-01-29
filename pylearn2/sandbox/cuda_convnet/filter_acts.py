@@ -3,7 +3,7 @@ A theano / pylearn2 wrapper for cuda-convnet's convFilterActs function.
 """
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
-__credits__ = ["Ian Goodfellow"]
+__credits__ = ["Ian Goodfellow", "David Warde-Farley"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
@@ -41,15 +41,11 @@ The copyright and licensing notice for this code is reproduced below:
 
 """
 
-from theano.sandbox.cuda import GpuOp
 from theano.sandbox.cuda import CudaNdarrayType
 from theano.gof import Apply
-from pylearn2.sandbox.cuda_convnet.shared_code import get_NVMatrix_code
-from pylearn2.sandbox.cuda_convnet.shared_code import load_code
-from pylearn2.sandbox.cuda_convnet.shared_code import this_dir
-import warnings
+from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
 
-class FilterActs(GpuOp):
+class FilterActs(BaseActs):
     """
     2D convolution implemented on GPU.
     Technically not a true convolution, as it does not flip the kernel.
@@ -74,11 +70,7 @@ class FilterActs(GpuOp):
     Other batch sizes will work, but Alex made no attempt whatsoever
     to make them work fast.
     """
-
-    def __init__(self):
-        self.pad = 0 # TODO: support other amounts of padding
-        self.dense_connectivity = True #TODO: support sparse connectivity pattern
-        self.stride = 1 # TODO: support other strides. TODO: figure out Alex's code. There's only one stride var, does it assume stride is same in both directions?
+    cpp_source_file = "filter_acts.cu"
 
     def make_node(self, images, filters):
 
@@ -106,19 +98,7 @@ class FilterActs(GpuOp):
 
         return Apply(self, [images, filters], [targets])
 
-    def c_compile_args(self):
-        flags = ["-I"+this_dir]
-        return flags
-
-    def c_support_code(self):
-
-        rval = get_NVMatrix_code()
-        rval += '#include "cudaconv2.cuh"'
-        rval += load_code("filter_acts.cu")
-        return rval
-
     def c_code(self, node, name, inputs, outputs, sub):
-
         images, filters = inputs
         targets, = outputs
         fail = sub['fail']
@@ -176,58 +156,14 @@ class FilterActs(GpuOp):
         const int imgSizeY = images_dims[1];
         const int imgSizeX = images_dims[2];
         const int batch_size = images_dims[3];
+        const int check_channels = 1;
         NVMatrix nv_images(%(images)s, img_channels * imgSizeY * imgSizeX, batch_size);
         """
         num_braces += 1
 
         # Convert filters into nv_filters, an NVMatrix, for compatibility
         # with the cuda-convnet functions
-        setup_nv_filters = """
-        if (%(filters)s->nd != 4)
-        {
-            PyErr_Format(PyExc_ValueError,
-            "filters must have nd=4, got nd=%%i", %(filters)s->nd);
-            %(fail)s;
-        }
-
-        { // setup_nv_filters brace 1
-        const int * filters_dims = CudaNdarray_HOST_DIMS(%(filters)s);
-        const int filter_channels = filters_dims[0];
-        const int filter_rows = filters_dims[1];
-        const int filter_cols = filters_dims[2];
-        const int num_filters = filters_dims[3];
-
-        if (numGroups * filter_channels != img_channels)
-        {
-            PyErr_Format(PyExc_ValueError,
-            "# input channels mismatch. images have %%d but filters have %%d groups of %%d for a total of %%d.",
-            img_channels, numGroups, filter_channels, numGroups * filter_channels);
-            %(fail)s;
-        }
-
-        if ((num_filters %% (numGroups * 16)) != 0)
-        {
-            PyErr_Format(PyExc_ValueError,
-            "Each group must have a multiple of 16 channels, but num_filters %% (numGroups * 16) = %%d %% ( %%d * 16) = %%d.",
-            num_filters, numGroups, num_filters %% (numGroups * 16));
-            %(fail)s;
-        }
-
-        if (filter_rows != filter_cols)
-        {
-            PyErr_Format(PyExc_ValueError,
-            "filter must be square, but have shape (%%d, %%d).",
-            filter_rows, filter_cols);
-            %(fail)s;
-        }
-
-        { // setup_nv_filters brace 2
-
-
-        NVMatrix nv_filters(%(filters)s, filter_channels * filter_rows *
-        filter_cols, num_filters);
-
-        """
+        setup_nv_filters = self.filter_setup()
 
         num_braces += 2
 
@@ -294,6 +230,3 @@ class FilterActs(GpuOp):
 
         return rval
 
-    def c_code_cache_version(self):
-        warnings.warn("FilterActs does not use c_code_cache_version")
-        return ()
