@@ -377,6 +377,26 @@ class Softmax(Layer):
 
         return rval
 
+    def get_monitoring_channels(self):
+
+        W = self.W
+
+        assert W.ndim == 2
+
+        sq_W = T.sqr(W)
+
+        row_norms = T.sqrt(sq_W.sum(axis=1))
+        col_norms = T.sqrt(sq_W.sum(axis=0))
+
+        return OrderedDict([
+                            ('row_norms_min'  , row_norms.min()),
+                            ('row_norms_mean' , row_norms.mean()),
+                            ('row_norms_max'  , row_norms.max()),
+                            ('col_norms_min'  , col_norms.min()),
+                            ('col_norms_mean' , col_norms.mean()),
+                            ('col_norms_max'  , col_norms.max()),
+                            ])
+
     def get_monitoring_channels_from_state(self, state, target=None):
 
         mx = state.max(axis=1)
