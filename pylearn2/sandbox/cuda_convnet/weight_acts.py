@@ -199,7 +199,8 @@ class WeightActs(BaseActs):
         assert(filters_dims[1] == filters_dims[2]); // only square kernels are supported
         filters_dims[3] = numFilters;
 
-        const int filterSize = filters_dims[1] * filters_dims[2];
+        const int filterSize = filters_dims[1];
+
 
         if (CudaNdarray_prep_output(& %(weights_grads)s, 4, filters_dims))
         {
@@ -208,7 +209,7 @@ class WeightActs(BaseActs):
 
         { // setup_nv_weights_grad brace # 1
 
-        NVMatrix nv_weights_grads(%(weights_grads)s, filters_dims[0] * filterSize, numFilters);
+        NVMatrix nv_weights_grads(%(weights_grads)s, filters_dims[0] * filterSize * filterSize, numFilters);
 
         """
 
