@@ -1,9 +1,9 @@
 """
 A theano / pylearn2 wrapper for cuda-convnet's convFilterActs function.
 """
-__authors__ = "Ian Goodfellow"
-__copyright__ = "Copyright 2010-2012, Universite de Montreal"
-__credits__ = ["Ian Goodfellow"]
+__authors__ = "David Warde-Farley and Ian Goodfellow"
+__copyright__ = "Copyright 2010-2013, Universite de Montreal"
+__credits__ = ["David Warde-Farley and Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
