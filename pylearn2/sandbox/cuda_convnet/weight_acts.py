@@ -45,7 +45,7 @@ from theano.sandbox.cuda import CudaNdarrayType
 from theano.gof import Apply
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
 
-class WeightsActs(BaseActs):
+class WeightActs(BaseActs):
     """
     Transforms the gradient on the output of FilterActs into the gradient
     on FilterActs' weights.
