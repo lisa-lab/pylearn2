@@ -20,15 +20,18 @@ import warnings
 def test_match_full_conv():
 
     # Tests that running ImageActs with no padding is the same as running
-    # theano's conv2D in full mode
+    # theano's conv2D in full mode after flipping the kernel and tranposing
+    # the output and input channels
+    # In other words, if convolution computes H=XK, we now compute
+    # R=HK^T
 
     rng = np.random.RandomState([2013, 1, 29])
 
-    batch_size = 5
-    rows = 10
-    cols = 9
+    batch_size = 2
+    rows = 6
+    cols = 7
     channels = 3
-    filter_rows = 4
+    filter_rows = 5
     filter_cols = filter_rows
     num_filters = 16
 
@@ -51,10 +54,11 @@ def test_match_full_conv():
     filters_bc01 = filters.dimshuffle(3,0,1,2)
     # need to tranpose the kernel stack to do imgActs rather than filterActs
     filters_bc01 = filters_bc01.dimshuffle(1, 0, 2, 3)
-    filters_bc01 = filters_bc01[:,:,::-1,::-1]
+    # In order to do the transpose operation, we must flip the kernels
+    # But in theano's conv2d, the kernels get flipped anyway
+    # so in this case, we do not flip the kernel
 
-    output_conv2d = conv2d(images_bc01, filters_bc01,
-            border_mode='full')
+    output_conv2d = conv2d(images_bc01, filters_bc01, border_mode='full')
 
     output_conv2d = output_conv2d.dimshuffle(1,2,3,0)
 

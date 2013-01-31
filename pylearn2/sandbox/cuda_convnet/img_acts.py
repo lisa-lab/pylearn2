@@ -67,8 +67,8 @@ class ImageActs(BaseActs):
 
     Note: all of these convolution routines are optimized for the case when
     the number of images (i.e. the minibatch size) is a multiple of 128.
-    Other batch sizes will work, but Alex made no attempt whatsoever
-    to make them work fast.
+    Other batch sizes will work, but Alex "made no attempt whatsoever
+    to make them work fast."
     """
     cpp_source_file = "img_acts.cu"
 
