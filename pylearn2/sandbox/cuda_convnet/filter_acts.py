@@ -59,6 +59,7 @@ class FilterActs(BaseActs):
 
 
     images:          (channels, rows, cols, batch_size)
+                     channels must be <=3, or be even
     filters:         (input channels, filter rows, filter cols, output channels)
                      rows must be the same as cols
                      output channels must be a multiple of 16

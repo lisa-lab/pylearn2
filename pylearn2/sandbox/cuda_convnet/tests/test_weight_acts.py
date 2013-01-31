@@ -30,7 +30,7 @@ def test_match_grad_valid_conv():
     batch_size = 3
     rows = 10
     cols = 9
-    channels = 5
+    channels = 6
     filter_rows = 4
     filter_cols = filter_rows
     num_filters = 16
