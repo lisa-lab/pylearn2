@@ -49,6 +49,8 @@ def test_match_full_conv():
 
     images_bc01 = hid_acts.dimshuffle(3,0,1,2)
     filters_bc01 = filters.dimshuffle(3,0,1,2)
+    # need to tranpose the kernel stack to do imgActs rather than filterActs
+    filters_bc01 = filters_bc01.dimshuffle(1, 0, 2, 3)
     filters_bc01 = filters_bc01[:,:,::-1,::-1]
 
     output_conv2d = conv2d(images_bc01, filters_bc01,
