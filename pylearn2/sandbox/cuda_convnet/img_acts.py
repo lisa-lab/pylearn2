@@ -47,8 +47,7 @@ from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
 
 class ImageActs(BaseActs):
     """
-    2D convolution implemented on GPU.
-    Technically not a true convolution, as it does not flip the kernel.
+    Transpose of FilterActs.
 
     This is intended to be a very low-level, performance-oriented op.
 
@@ -57,13 +56,15 @@ class ImageActs(BaseActs):
 
     Currently, this op must be inserted manually, not by optimizations.
 
+    Note that below the term "input" refers to the input to FilterActs.
+    This op does the tranpose of that, so its output is sized like FilterActs' input.
 
-    images:          (channels, rows, cols, batch_size)
+    images:          (output channels, rows, cols, batch_size)
     filters:         (input channels, filter rows, filter cols, output channels)
                      rows must be the same as cols
                      output channels must be a multiple of 16
 
-    output:         (output channels, output rows, output cols, batch size)
+    output:         (input channels, input rows, input cols, batch size)
 
     Note: all of these convolution routines are optimized for the case when
     the number of images (i.e. the minibatch size) is a multiple of 128.
