@@ -66,16 +66,13 @@ def test_match_grad_valid_conv():
     cost = (coeffs * output).sum()
     hid_acts_grad = T.grad(cost, output)
 
-    weights_grad = WeightActs()(gpu_images, gpu_from_host(hid_acts_grad))
+    weights_grad = host_from_gpu(WeightActs()(gpu_images, gpu_from_host(hid_acts_grad)))
 
     f = function([], [output, output_conv2d, weights_grad, weights_grad_conv2d])
 
-    output, output_conv2d = f()
+    output, output_conv2d, weights_grad, weights_grad_conv2d = f()
 
-    warnings.warn("""test_match_valid_conv success criterion is not very strict. Can we verify that this is OK?
-                     One possibility is that theano is numerically unstable and Alex's code is better.
-                     Probably theano CPU 64 bit is OK but it's worth checking the others.""")
-    if np.abs(output - output_conv2d).max() > 2.4e-6:
+    if np.abs(output - output_conv2d).max() > 3.9e-6:
         assert type(output) == type(output_conv2d)
         assert output.dtype == output_conv2d.dtype
         if output.shape != output_conv2d.shape:
@@ -87,6 +84,25 @@ def test_match_grad_valid_conv():
         print 'mean absolute error: ', err.mean()
         print 'cuda-convnet value range: ', (output.min(), output.max())
         print 'theano value range: ', (output_conv2d.min(), output_conv2d.max())
+        assert False
+
+    warnings.warn("""test_match_grad_valid_conv success criterion is not very strict. Can we verify that this is OK?
+                     One possibility is that theano is numerically unstable and Alex's code is better.
+                     Probably theano CPU 64 bit is OK but it's worth checking the others.""")
+
+    if np.abs(weights_grad - weights_grad_conv2d).max() > 8.6e-6:
+        if type(weights_grad) != type(weights_grad_conv2d):
+            raise AssertionError("weights_grad is of type " + str(weights_grad))
+        assert weights_grad.dtype == weights_grad_conv2d.dtype
+        if weights_grad.shape != weights_grad_conv2d.shape:
+            print 'cuda-convnet shape: ',weights_grad.shape
+            print 'theano shape: ',weights_grad_conv2d.shape
+            assert False
+        err = np.abs(weights_grad - weights_grad_conv2d)
+        print 'absolute error range: ', (err.min(), err.max())
+        print 'mean absolute error: ', err.mean()
+        print 'cuda-convnet value range: ', (weights_grad.min(), weights_grad.max())
+        print 'theano value range: ', (weights_grad_conv2d.min(), weights_grad_conv2d.max())
         assert False
 
 if __name__ == '__main__':
