@@ -152,6 +152,7 @@ class WeightActs(BaseActs):
         }
 
         { //setup_nv_images brace 1
+        const int * hid_grads_dims = CudaNdarray_HOST_DIMS(%(hid_grads)s);
         const int * images_dims = CudaNdarray_HOST_DIMS(%(images)s);
         const int img_channels = images_dims[0];
         const int imgSizeY = images_dims[1];
@@ -174,10 +175,10 @@ class WeightActs(BaseActs):
 
         { //setup_nv_hid_grads brace 1
         const int *hid_grads_dims = CudaNdarray_HOST_DIMS(%(hid_grads)s);
-        const int numFilters = hid_act_dims[0];
-        const int hidGradsSizeY = hid_act_dims[1];
-        const int hidGradsSizeX = hid_act_dims[2];
-        const int batch_size = hid_act_dims[3];
+        const int numFilters = hid_grads_dims[0];
+        const int hidGradsSizeY = hid_grads_dims[1];
+        const int hidGradsSizeX = hid_grads_dims[2];
+        const int batch_size = hid_grads_dims[3];
         NVMatrix nv_hid_grads(%(hid_grads)s, numFilters * hidGradsSizeY *
                                            hidGradsSizeX, batch_size);
         int img_channels = -1;
@@ -188,17 +189,24 @@ class WeightActs(BaseActs):
 
         setup_nv_weights_grads = """
 
+        int filters_dims[4];
+        // filters:  (input channels, filter rows, filter cols, output channels)
+        filters_dims[0] = img_channels;
+        filters_dims[1] = imgSizeY - hidGradsSizeY + 1;
+        filters_dims[2] = imgSizeX - hidGradsSizeX + 1;
+        assert(filters_dims[1] == filters_dims[2]); // only square kernels are supported
+        filters_dims[3] = numFilters;
+
+        const int filterSize = filters_dims[1] * filters_dims[2];
+
         if (CudaNdarray_prep_output(& %(weights_grads)s, 4, filters_dims))
         {
             %(fail)s;
         }
 
         { // setup_nv_weights_grad brace # 1
-        const int imgSizeY = %(target_rows)s;
-        const int imgSizeX = %(target_cols)s;
 
-        NVMatrix nv_weights_grads(%(weights_grads)s, filter_channels * filter_rows *
-             filter_cols, num_filters);
+        NVMatrix nv_weights_grads(%(weights_grads)s, filters_dims[0] * filterSize, numFilters);
 
         """
 
@@ -216,9 +224,9 @@ class WeightActs(BaseActs):
         # nv_filters.getNumRows() by numFilterColors
         #
         run_kernel = """
-        _weightActs(images, hid_grads, weights_grads,
-                    imgSizeY, numModulesY, numModulesX, filterSize,
-                    paddingStart, moduleStride, numImgColors, numGroups,
+        _weightActs(nv_images, nv_hid_grads, nv_weights_grads,
+                    imgSizeY, hidGradsSizeY, hidGradsSizeX, filterSize,
+                    paddingStart, moduleStride, img_channels, numGroups,
                     partialSum, 0, 1);
         """
 
