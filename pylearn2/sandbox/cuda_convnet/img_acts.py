@@ -74,6 +74,8 @@ class ImageActs(BaseActs):
     cpp_source_file = "img_acts.cu"
 
     def make_node(self, hid_acts, filters):
+
+
         if not isinstance(hid_acts.type, CudaNdarrayType):
             raise TypeError("ImageActs: expected hid_acts.type to be CudaNdarrayType, "
                     "got " + str(hid_acts.type))

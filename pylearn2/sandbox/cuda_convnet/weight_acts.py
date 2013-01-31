@@ -44,6 +44,7 @@ The copyright and licensing notice for this code is reproduced below:
 from theano.sandbox.cuda import CudaNdarrayType
 from theano.gof import Apply
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
+import warnings
 
 class WeightActs(BaseActs):
     """
@@ -178,6 +179,7 @@ class WeightActs(BaseActs):
         const int numFilters = hid_grads_dims[0];
         const int hidGradsSizeY = hid_grads_dims[1];
         const int hidGradsSizeX = hid_grads_dims[2];
+        const int numModules = hidGradsSizeX * hidGradsSizeY;
         const int batch_size = hid_grads_dims[3];
         NVMatrix nv_hid_grads(%(hid_grads)s, numFilters * hidGradsSizeY *
                                            hidGradsSizeX, batch_size);
@@ -224,11 +226,19 @@ class WeightActs(BaseActs):
         # nv_filters.getNumRows() by numFilterColors
         #
         run_kernel = """
+
+        // I think if we set this to any other value, we end up with a 5-tensor that
+        // we need to sum out in a second pass
+        const int partialSum = numModules;
+
         _weightActs(nv_images, nv_hid_grads, nv_weights_grads,
                     imgSizeY, hidGradsSizeY, hidGradsSizeX, filterSize,
                     paddingStart, moduleStride, img_channels, numGroups,
                     partialSum, 0, 1);
         """
+
+        warnings.warn("WeightActs does not attempt to use Alex's partialSum flag intelligently. "
+                "This probably means our performance is suboptimal.")
 
         braces = '}' * num_braces
 
