@@ -108,7 +108,7 @@ class BaseActs(GpuOp):
         if ((num_filters %% (numGroups * 16)) != 0)
         {
             PyErr_Format(PyExc_ValueError,
-            "Each group must have a multiple of 16 channels, but num_filters %% (numGroups * 16) = %%d %% ( %%d * 16) = %%d.",
+            "Each group must have a multiple of 16 channels, but num_filters %%%% (numGroups * 16) = %%d %%%% ( %%d * 16) = %%d.",
             num_filters, numGroups, num_filters %% (numGroups * 16));
             %(fail)s;
         }
