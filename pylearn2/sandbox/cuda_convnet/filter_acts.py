@@ -60,6 +60,8 @@ class FilterActs(BaseActs):
 
     images:          (channels, rows, cols, batch_size)
                      channels must be <=3, or be even
+                     note: if you want to take the gradient with respect to the weights,
+                           channels must be divisible by 4
     filters:         (input channels, filter rows, filter cols, output channels)
                      rows must be the same as cols
                      output channels must be a multiple of 16

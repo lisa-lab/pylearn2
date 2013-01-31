@@ -61,6 +61,7 @@ class WeightActs(BaseActs):
     Note that the word "input" below refers to the input to FilterActs.
 
     images:          (input channels, rows, cols, batch_size)
+                        input channels must be divisible by 4.
     hid_grads:       (output channels, rows, cols, batch_size)
                      output channels must be a multiple of 16
 
