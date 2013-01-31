@@ -89,7 +89,11 @@ class WeightActs(BaseActs):
         filter_cols_broadcastable = False
         output_channels_broadcastable = hid_grads.type.broadcastable[0]
 
-        weights_grads_type = CudaNdarrayType(output_channels_broadcastable)
+        weights_grads_type = CudaNdarrayType(
+                (input_channels_broadcastable,
+                 filter_rows_broadcastable,
+                 filter_cols_broadcastable,
+                 output_channels_broadcastable))
 
         weights_grads = weights_grads_type()
 
