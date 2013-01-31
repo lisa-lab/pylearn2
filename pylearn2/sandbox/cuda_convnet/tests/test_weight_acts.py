@@ -63,7 +63,6 @@ def test_match_grad_valid_conv():
 
     weights_grad_conv2d = T.grad(cost_conv2d, filters)
 
-    coeffs = coeffs.dimshuffle(1, 2, 3, 0)
     cost = (coeffs * output).sum()
     hid_acts_grad = T.grad(cost, output)
 
