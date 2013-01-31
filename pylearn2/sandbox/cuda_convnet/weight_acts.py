@@ -184,7 +184,6 @@ class WeightActs(BaseActs):
         const int batch_size = hid_grads_dims[3];
         NVMatrix nv_hid_grads(%(hid_grads)s, numFilters * hidGradsSizeY *
                                            hidGradsSizeX, batch_size);
-        int img_channels = -1;
         const int check_channels = 0;
         """
         num_braces += 1
