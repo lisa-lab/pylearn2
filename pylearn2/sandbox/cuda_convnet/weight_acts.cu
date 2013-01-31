@@ -640,12 +640,22 @@ void _weightActs(NVMatrix& images, NVMatrix& hidActs, NVMatrix& targets,
     threads = dim3(bx, by);
     bool checkCaseBounds = numImages % 32 != 0;
     
+    /* Modified by Ian Goodfellow. I removed the branch here, because our wrapper doesn't
+       support resizing when the data isn't owned by the NVMatrix. Also, the resize should
+       always be a no-op, because in the context we're likely to use this, we should always
+       have allocated the right size of NVMatrix to receive the gradient.
     if (scaleTargets == 0) {
         targets.resize((numModules/partialSum) * numFilterColors*filterPixels, numFilters);
     } else {
         assert(targets.getNumRows() == (numModules/partialSum) * numFilterColors*filterPixels);
         assert(targets.getNumCols() == numFilters);
     }
+    */
+
+
+    assert(targets.getNumRows() == (numModules/partialSum) * numFilterColors*filterPixels);
+    assert(targets.getNumCols() == numFilters);
+
     if (numFilterColors > 3) {
         if (scaleTargets == 0) { // do not scale
             if (numFiltersPerGroup % 64 == 0) {
