@@ -183,8 +183,8 @@ class ImageActs(BaseActs):
             %(target_cols)s,
             batch_size };
 
-        #define numModulesY target_dims[1]
-        #define numModulesX target_dims[2]
+        #define numModulesY hid_act_dims[1]
+        #define numModulesX hid_act_dims[2]
 
         if (CudaNdarray_prep_output(& %(targets)s, 4, target_dims))
         {
