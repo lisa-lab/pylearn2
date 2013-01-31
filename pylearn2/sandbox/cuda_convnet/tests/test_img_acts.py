@@ -20,7 +20,7 @@ import warnings
 def test_match_full_conv():
 
     # Tests that running ImageActs with no padding is the same as running
-    # theano's conv2D in valid mode
+    # theano's conv2D in full mode
 
     rng = np.random.RandomState([2013, 1, 29])
 
