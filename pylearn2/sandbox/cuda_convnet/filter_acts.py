@@ -41,14 +41,12 @@ The copyright and licensing notice for this code is reproduced below:
 
 """
 
-from theano.tensor import zeros_like
-from theano.sandbox.cuda import gpu_from_host
-
 from theano.sandbox.cuda import CudaNdarrayType
 from theano.gof import Apply
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
 #from pylearn2.sandbox.cuda_convnet.weight_acts import WeightActs
 from pylearn2.sandbox.cuda_convnet.img_acts import ImageActs
+from pylearn2.sandbox.cuda_convnet.weight_acts import WeightActs
 
 class FilterActs(BaseActs):
     """
@@ -252,7 +250,8 @@ class FilterActs(BaseActs):
             raise TypeError("output gradients must be cuda")
 
         d_images = ImageActs()(dout, filters)
+        d_filters = WeightActs()(images, dout)
 
-        return d_images, zeros_like(filters)
+        return d_images, d_filters
 
 
