@@ -26,7 +26,7 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
         assert (fold >=0) and (fold <5)
 
         # load data
-        path = '${PYLEARN2_DATA_PATH}/faces/TFD/'
+        path = '/data/lisatmp2/desjagui/data/faces/TFD/'
         if image_size == 48:
             data = load(path + 'TFD_48x48.mat')
         elif image_size == 96:
@@ -61,6 +61,7 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
             data_y = data_y[ex_range]
             if shuffle:
                 data_y = data_y[rand_idx]
+            data_y = data_y.flatten()
         else:
             data_y = None
 
