@@ -251,12 +251,7 @@ class FilterActs(BaseActs):
         if 'Cuda' not in str(type(dout)):
             raise TypeError("output gradients must be cuda")
 
-        transposed_filters = filters.dimshuffle(3, 1, 2, 0)[:, ::-1, ::-1, :]
-
-        if 'Cuda' not in str(type(transposed_filters)):
-            transposed_filters = gpu_from_host(transposed_filters)
-
-        d_images = ImageActs()(dout, transposed_filters)
+        d_images = ImageActs()(dout, filters)
 
         return d_images, zeros_like(filters)
 
