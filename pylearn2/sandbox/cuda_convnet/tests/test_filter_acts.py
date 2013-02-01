@@ -133,5 +133,5 @@ def test_grad():
                                        output_conv2d_grad.max())
         assert False
 if __name__ == '__main__':
-    test_match_valid_conv()
+    test_grad()
 

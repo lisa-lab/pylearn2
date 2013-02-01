@@ -240,7 +240,24 @@ class FilterActs(BaseActs):
 
     def grad(self, inputs, dout):
         images, filters = inputs
+
+        if 'Cuda' not in str(type(images)):
+            raise TypeError("inputs must be cuda")
+        if 'Cuda' not in str(type(filters)):
+            raise TypeError("filters must be cuda")
+
         dout, = dout
-        other_filters = filters.dimshuffle(3, 1, 2, 0)[:, ::-1, ::-1, :]
-        other_filters = gpu_from_host(other_filters)
-        return ImageActs()(gpu_from_host(dout), other_filters), zeros_like(filters)
+
+        if 'Cuda' not in str(type(dout)):
+            raise TypeError("output gradients must be cuda")
+
+        transposed_filters = filters.dimshuffle(3, 1, 2, 0)[:, ::-1, ::-1, :]
+
+        if 'Cuda' not in str(type(transposed_filters)):
+            transposed_filters = gpu_from_host(transposed_filters)
+
+        d_images = ImageActs()(dout, transposed_filters)
+
+        return d_images, zeros_like(filters)
+
+
