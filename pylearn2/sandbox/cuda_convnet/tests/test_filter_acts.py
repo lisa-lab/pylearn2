@@ -117,7 +117,7 @@ def test_grad():
     warnings.warn("""test_match_valid_conv success criterion is not very strict. Can we verify that this is OK?
                      One possibility is that theano is numerically unstable and Alex's code is better.
                      Probably theano CPU 64 bit is OK but it's worth checking the others.""")
-    if np.abs(output_grad - output_conv2d_grad).max() > 2.4e-6:
+    if np.abs(output_grad - output_conv2d_grad).max() > 7.7e-6:
         assert type(output_grad) == type(output_conv2d_grad)
         assert output_grad.dtype == output_conv2d_grad.dtype
         if output_grad.shape != output_conv2d_grad.shape:
@@ -132,6 +132,7 @@ def test_grad():
         print 'theano value range: ', (output_conv2d_grad.min(),
                                        output_conv2d_grad.max())
         assert False
+
 if __name__ == '__main__':
     test_grad()
 
