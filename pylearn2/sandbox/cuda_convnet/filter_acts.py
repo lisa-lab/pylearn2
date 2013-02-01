@@ -41,9 +41,14 @@ The copyright and licensing notice for this code is reproduced below:
 
 """
 
+from theano.tensor import zeros_like
+from theano.sandbox.cuda import gpu_from_host
+
 from theano.sandbox.cuda import CudaNdarrayType
 from theano.gof import Apply
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
+#from pylearn2.sandbox.cuda_convnet.weight_acts import WeightActs
+from pylearn2.sandbox.cuda_convnet.img_acts import ImageActs
 
 class FilterActs(BaseActs):
     """
@@ -233,3 +238,9 @@ class FilterActs(BaseActs):
 
         return rval
 
+    def grad(self, inputs, dout):
+        images, filters = inputs
+        dout, = dout
+        other_filters = filters.dimshuffle(3, 1, 2, 0)[:, ::-1, ::-1, :]
+        other_filters = gpu_from_host(other_filters)
+        return ImageActs()(gpu_from_host(dout), other_filters), zeros_like(filters)
