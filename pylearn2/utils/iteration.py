@@ -247,10 +247,7 @@ class FiniteDatasetIterator(object):
         self._subset_iterator = subset_iterator
         # TODO: More thought about how to handle things where this
         # fails (gigantic HDF5 files, etc.)
-        if self._topo:
-            self._raw_data = self._dataset.get_topological_view()
-        else:
-            self._raw_data = self._dataset.get_design_matrix()
+        self._raw_data = self._dataset.get_design_matrix()
         if self._targets:
             self._raw_targets = self._dataset.get_targets()
             if self._raw_targets is None:
@@ -274,6 +271,8 @@ class FiniteDatasetIterator(object):
             features = numpy.cast[config.floatX](self._raw_data[next_index])
         else:
             features = self._raw_data[next_index]
+        if self._topo:
+            features = self._dataset.get_topological_view(features)
         if self._targets:
             targets = self._raw_targets[next_index]
             if self._targets_need_cast:
