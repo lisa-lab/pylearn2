@@ -111,7 +111,7 @@ public:
     NVMatrix(const NVMatrix& like, bool copy);
 
     //Constructor added by Ian Goodfellow. Make a view of a CudaNdarray.
-    NVMatrix(const CudaNdarray * view, int numRows, int numCols);
+    NVMatrix(const CudaNdarray * view, int numRows, int numCols, const char * msg);
 
     NVMatrix(const NVMatrix& like);
     // Commented by IG. Depends on Matrix

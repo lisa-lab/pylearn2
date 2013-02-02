@@ -158,7 +158,7 @@ class ImageActs(BaseActs):
         const int hidActsSizeX = hid_act_dims[2];
         const int batch_size = hid_act_dims[3];
         NVMatrix nv_hid_acts(%(hid_acts)s, numFilters * hidActsSizeY *
-                                           hidActsSizeX, batch_size);
+                                           hidActsSizeX, batch_size, "image_acts:nv_hid_acts");
         int img_channels = -1;
         const int check_channels = 0;
         """
@@ -198,7 +198,7 @@ class ImageActs(BaseActs):
         const int imgSizeX = %(target_cols)s;
 
         NVMatrix nv_targets(%(targets)s, target_dims[0] * target_dims[1]
-         * target_dims[2], target_dims[3]);
+         * target_dims[2], target_dims[3], "image_acts: nv_targets");
 
         """
 

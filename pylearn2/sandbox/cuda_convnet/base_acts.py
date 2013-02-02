@@ -125,5 +125,5 @@ class BaseActs(GpuOp):
 
 
         NVMatrix nv_filters(%(filters)s, filter_channels * filter_rows *
-        filter_cols, num_filters);
+        filter_cols, num_filters, "base_acts:nv_filters");
         """

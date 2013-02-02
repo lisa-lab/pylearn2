@@ -55,9 +55,17 @@ pthread_mutex_t* NVMatrix::makeMutex() {
 }
 
 NVMatrix::NVMatrix(const CudaNdarray * view,
-		int numRows, int numCols)
+		int numRows, int numCols, const char * msg)
 {
-    assert(CudaNdarray_is_c_contiguous(view));
+    if (!CudaNdarray_is_c_contiguous(view))
+    {
+        printf("Non contiguous input: %s\n", msg);
+        printf("Dims: ");
+        for (int i=0; i < view->nd; i++)
+            printf("%d ",CudaNdarray_HOST_STRIDES(view)[i]);
+        printf("\n");
+        assert(false);
+    }
 
     //Check that view actually contains numRows * numCols elements
     const int * dims = CudaNdarray_HOST_DIMS(view);

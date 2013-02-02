@@ -163,7 +163,8 @@ class FilterActs(BaseActs):
         const int imgSizeX = images_dims[2];
         const int batch_size = images_dims[3];
         const int check_channels = 1;
-        NVMatrix nv_images(%(images)s, img_channels * imgSizeY * imgSizeX, batch_size);
+        NVMatrix nv_images(%(images)s, img_channels * imgSizeY * imgSizeX, batch_size,
+        "filter_acts:nv_images");
         """
         num_braces += 1
 
@@ -199,7 +200,7 @@ class FilterActs(BaseActs):
         { // setup_nv_filters brace # 1
 
         NVMatrix nv_targets(%(targets)s, target_dims[0] * target_dims[1]
-         * target_dims[2], target_dims[3]);
+         * target_dims[2], target_dims[3], "filter_acts:nv_targets");
 
         """
 
