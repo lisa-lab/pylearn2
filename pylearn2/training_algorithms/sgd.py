@@ -264,7 +264,7 @@ class SGD(TrainingAlgorithm):
                 inc = sharedX(param.get_value() * 0.)
                 if param.name is not None:
                     inc.name = 'inc_'+param.name
-                updated_inc = self.momentum * inc - learning_rate * grads[param]
+                updated_inc = self.momentum * inc - learning_rate * lr_scalers.get(param, 1.) * grads[param]
                 updates[inc] = updated_inc
                 updates[param] = param + updated_inc
 
