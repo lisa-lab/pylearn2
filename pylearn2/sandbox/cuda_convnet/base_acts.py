@@ -63,6 +63,7 @@ class BaseActs(GpuOp):
         # TODO: figure out Alex's code. There's only one stride var, does it
         # assume stride is same in both directions?
         self.stride = 1
+        self.copy_non_contiguous = 0
 
     def c_compile_args(self):
         flags = ["-I" + this_dir]
@@ -84,7 +85,7 @@ class BaseActs(GpuOp):
         return """
         if (!CudaNdarray_is_c_contiguous(%%(%(arg_name)s)s))
         {
-            if (!(%(arg_name_caps)s_COPY_NON_CONTIGUOUS)) {
+            if (!(%(class_name_caps)s_COPY_NON_CONTIGUOUS)) {
                 PyErr_SetString(PyExc_ValueError,
                     "%(class)s: %(arg_name)s must be C contiguous");
                 %%(fail)s;
@@ -93,5 +94,5 @@ class BaseActs(GpuOp):
         """ % {
             'class': self.__class__.__name__,
             'arg_name': arg_name,
-            'arg_name_caps': arg_name.upper(),
+            'class_name_caps': self.__class__.__name__.upper(),
         }

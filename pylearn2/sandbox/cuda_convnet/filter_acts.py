@@ -174,7 +174,7 @@ class FilterActs(BaseActs):
 
         # Convert filters into nv_filters, an NVMatrix, for compatibility
         # with the cuda-convnet functions
-        setup_nv_filters = self._argument_contiguity_check("filters") """
+        setup_nv_filters = self._argument_contiguity_check("filters") + """
         if (%(filters)s->nd != 4)
         {
             PyErr_Format(PyExc_ValueError,
@@ -227,7 +227,7 @@ class FilterActs(BaseActs):
             target_rows = "imgSizeY - filter_rows + 1"
             target_cols = "imgSizeX - filter_cols + 1"
 
-        setup_nv_targets = self._argument_contiguity_check("targets") + """
+        setup_nv_targets = """
 
 
         int target_dims [] = {

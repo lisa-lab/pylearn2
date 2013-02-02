@@ -195,8 +195,7 @@ class WeightActs(BaseActs):
         num_braces += 1
 
 
-        setup_nv_weights_grads = (
-            self._argument_contiguity_check("weights_grads") + """
+        setup_nv_weights_grads = """
         int filters_dims[4];
         // filters:  (input channels, filter rows, filter cols, output channels)
         filters_dims[0] = img_channels;
@@ -218,7 +217,7 @@ class WeightActs(BaseActs):
         NVMatrix nv_weights_grads(%(weights_grads)s, filters_dims[0] * filterSize * filterSize, numFilters,
         "weight_acts:nv_weights_grads");
 
-        """)
+        """
 
         num_braces += 1
 

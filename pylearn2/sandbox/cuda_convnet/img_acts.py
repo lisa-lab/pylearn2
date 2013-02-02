@@ -215,7 +215,7 @@ class ImageActs(BaseActs):
             target_rows = "hidActsSizeY + filter_rows - 1"
             target_cols = "hidActsSizeX + filter_cols - 1"
 
-        setup_nv_targets = self._argument_contiguity_check("targets") + """
+        setup_nv_targets = """
 
         int target_dims [] = {
             filter_channels,
