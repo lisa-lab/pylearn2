@@ -21,7 +21,6 @@ from pylearn2.datasets import control
 from theano import config
 
 
-
 class DenseDesignMatrix(Dataset):
     """
     A class for representing datasets that can be stored as a dense design
@@ -429,11 +428,12 @@ class DenseDesignMatrix(Dataset):
 
 
 class DefaultViewConverter(object):
-    def __init__(self, shape):
+    def __init__(self, shape, axes = ('b', 0, 1, 'c')):
         self.shape = shape
         self.pixels_per_channel = 1
         for dim in self.shape[:-1]:
             self.pixels_per_channel *= dim
+        self.axes = axes
 
     def view_shape(self):
         return self.shape
@@ -444,10 +444,12 @@ class DefaultViewConverter(object):
     def design_mat_to_topo_view(self, X):
         assert len(X.shape) == 2
         batch_size = X.shape[0]
-        channel_shape = [batch_size]
-        for dim in self.shape[:-1]:
-            channel_shape.append(dim)
-        channel_shape.append(1)
+
+        dims = {'b': batch_size,
+                'c': 1}
+        for i, dim in enumerate(self.shape[:-1]):
+            dims[i] = dim
+        channel_shape = [dims[key] for key in self.axes]
         if self.shape[-1] * self.pixels_per_channel != X.shape[1]:
             raise ValueError('View converter with ' + str(self.shape[-1]) +
                              ' channels and ' + str(self.pixels_per_channel) +
@@ -458,8 +460,8 @@ class DefaultViewConverter(object):
         channels = [X[:, start(i):stop(i)].reshape(*channel_shape)
                     for i in xrange(self.shape[-1])]
 
-        rval = N.concatenate(channels, axis=len(self.shape))
-        assert rval.shape[0] == X.shape[0]
+        channel_idx = self.axes.index('c')
+        rval = np.concatenate(channels, axis=channel_idx)
         assert len(rval.shape) == len(self.shape) + 1
         return rval
 

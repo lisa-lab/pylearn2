@@ -7,7 +7,7 @@ from pylearn2.datasets import dense_design_matrix
 
 class CIFAR10(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, which_set, center = False, rescale = False, gcn = None,
-            one_hot = False, start = None, stop = None):
+            one_hot = False, start = None, stop = None, axes=('b', 0, 1, 'c')):
 
         # note: there is no such thing as the cifar10 validation set;
         # quit pretending that there is.
@@ -96,11 +96,11 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         if which_set == 'test':
             assert X.shape[0] == 10000
 
-        view_converter = dense_design_matrix.DefaultViewConverter((32,32,3))
+        view_converter = dense_design_matrix.DefaultViewConverter((32,32,3), axes)
 
         super(CIFAR10,self).__init__(X = X, y = y, view_converter = view_converter)
 
-        assert not N.any(N.isnan(self.X))
+        assert not np.any(np.isnan(self.X))
 
     def adjust_for_viewer(self, X):
         #assumes no preprocessing. need to make preprocessors mark the new ranges
