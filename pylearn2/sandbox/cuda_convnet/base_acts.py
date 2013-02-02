@@ -63,6 +63,7 @@ class BaseActs(GpuOp):
         # TODO: figure out Alex's code. There's only one stride var, does it
         # assume stride is same in both directions?
         self.stride = 1
+        self.copy_non_contiguous = 0
 
     def c_compile_args(self):
         flags = ["-I" + this_dir]
@@ -80,50 +81,18 @@ class BaseActs(GpuOp):
                       self.__class__.__name__)
         return ()
 
-    def filter_setup(self):
-        """Introduces two opening braces."""
+    def _argument_contiguity_check(self, arg_name):
         return """
-        if (%(filters)s->nd != 4)
+        if (!CudaNdarray_is_c_contiguous(%%(%(arg_name)s)s))
         {
-            PyErr_Format(PyExc_ValueError,
-            "filters must have nd=4, got nd=%%i", %(filters)s->nd);
-            %(fail)s;
+            if (!(%(class_name_caps)s_COPY_NON_CONTIGUOUS)) {
+                PyErr_SetString(PyExc_ValueError,
+                    "%(class)s: %(arg_name)s must be C contiguous");
+                %%(fail)s;
+            }
         }
-
-        { // setup_nv_filters brace 1
-        const int * filters_dims = CudaNdarray_HOST_DIMS(%(filters)s);
-        const int filter_channels = filters_dims[0];
-        const int filter_rows = filters_dims[1];
-        const int filter_cols = filters_dims[2];
-        const int num_filters = filters_dims[3];
-
-        if (check_channels && numGroups * filter_channels != img_channels)
-        {
-            PyErr_Format(PyExc_ValueError,
-            "# input channels mismatch. images have %%d but filters have %%d groups of %%d for a total of %%d.",
-            img_channels, numGroups, filter_channels, numGroups * filter_channels);
-            %(fail)s;
+        """ % {
+            'class': self.__class__.__name__,
+            'arg_name': arg_name,
+            'class_name_caps': self.__class__.__name__.upper(),
         }
-
-        if ((num_filters %% (numGroups * 16)) != 0)
-        {
-            PyErr_Format(PyExc_ValueError,
-            "Each group must have a multiple of 16 channels, but num_filters %%%% (numGroups * 16) = %%d %%%% ( %%d * 16) = %%d.",
-            num_filters, numGroups, num_filters %% (numGroups * 16));
-            %(fail)s;
-        }
-
-        if (filter_rows != filter_cols)
-        {
-            PyErr_Format(PyExc_ValueError,
-            "filter must be square, but have shape (%%d, %%d).",
-            filter_rows, filter_cols);
-            %(fail)s;
-        }
-
-        { // setup_nv_filters brace 2
-
-
-        NVMatrix nv_filters(%(filters)s, filter_channels * filter_rows *
-        filter_cols, num_filters, "base_acts:nv_filters");
-        """

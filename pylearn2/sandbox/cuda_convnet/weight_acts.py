@@ -77,16 +77,18 @@ class WeightActs(BaseActs):
 
     def make_node(self, images, hid_grads):
         if not isinstance(images.type, CudaNdarrayType):
-            raise TypeError("WeightActs: expected images.type to be CudaNdarrayType, "
-                    "got " + str(images.type))
+            raise TypeError("WeightActs: expected images.type "
+                            "to be CudaNdarrayType, "
+                            "got " + str(images.type))
 
         if not isinstance(hid_grads.type, CudaNdarrayType):
-            raise TypeError("WeightActs: expected hid_acts.type to be CudaNdarrayType, "
-                    "got " + str(hid_grads.type))
+            raise TypeError("WeightActs: expected hid_acts.type "
+                            "to be CudaNdarrayType, "
+                            "got " + str(hid_grads.type))
 
         input_channels_broadcastable = images.type.broadcastable[0]
-        # We don't know anything about filter_rows or filter_cols at compile time, so
-        # we assume they're not broadcastable.
+        # We don't know anything about filter_rows or filter_cols at compile
+        # time, so we assume they're not broadcastable.
         filter_rows_broadcastable = False
         filter_cols_broadcastable = False
         output_channels_broadcastable = hid_grads.type.broadcastable[0]
@@ -139,13 +141,17 @@ class WeightActs(BaseActs):
             basic_setup += """
             #define moduleStride 1
         """
+        if self.copy_non_contiguous:
+            raise NotImplementedError()
+        else:
+            basic_setup += "#define WEIGHTACTS_COPY_NON_CONTIGUOUS 0\n"
 
         # The amount of braces that must be closed at the end
         num_braces = 0
 
         # Convert images int nv_images, an NVMatrix, for compatibility
         # with the cuda-convnet functions
-        setup_nv_images = """
+        setup_nv_images = self._argument_contiguity_check("images") + """
         if (%(images)s->nd != 4)
         {
             PyErr_Format(PyExc_ValueError,
@@ -167,7 +173,7 @@ class WeightActs(BaseActs):
 
         # Convert hid_grads int nv_hid_grads, an NVMatrix, for compatibility
         # with the cuda-convnet functions
-        setup_nv_hid_grads = """
+        setup_nv_hid_grads = self._argument_contiguity_check("hid_grads") + """
         if (%(hid_grads)s->nd != 4)
         {
             PyErr_Format(PyExc_ValueError,
@@ -190,7 +196,6 @@ class WeightActs(BaseActs):
 
 
         setup_nv_weights_grads = """
-
         int filters_dims[4];
         // filters:  (input channels, filter rows, filter cols, output channels)
         filters_dims[0] = img_channels;
@@ -239,17 +244,18 @@ class WeightActs(BaseActs):
                     partialSum, 0, 1);
         """
 
-        warnings.warn("WeightActs does not attempt to use Alex's partialSum flag intelligently. "
-                "This probably means our performance is suboptimal.")
+        warnings.warn("WeightActs does not attempt to use Alex's "
+                      "partialSum flag intelligently. This probably "
+                      "means our performance is suboptimal.")
 
         braces = '}' * num_braces
 
-        rval = basic_setup + \
-                setup_nv_images + \
-                setup_nv_hid_grads + \
-                setup_nv_weights_grads + \
-                run_kernel + \
-                braces
+        rval = (basic_setup +
+                setup_nv_images +
+                setup_nv_hid_grads +
+                setup_nv_weights_grads +
+                run_kernel +
+                braces)
 
         rval = rval % locals()
 

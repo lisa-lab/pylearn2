@@ -137,13 +137,17 @@ class ImageActs(BaseActs):
             #define moduleStride 1
         """
 
+        if self.copy_non_contiguous:
+            raise NotImplementedError()
+        else:
+            basic_setup += "#define IMAGEACTS_COPY_NON_CONTIGUOUS 0\n"
 
         # The amount of braces that must be closed at the end
         num_braces = 0
 
         # Convert images int nv_hid_acts, an NVMatrix, for compatibility
         # with the cuda-convnet functions
-        setup_nv_hid_acts = """
+        setup_nv_hid_acts = self._argument_contiguity_check("hid_acts") + """
         if (%(hid_acts)s->nd != 4)
         {
             PyErr_Format(PyExc_ValueError,
@@ -160,14 +164,49 @@ class ImageActs(BaseActs):
         NVMatrix nv_hid_acts(%(hid_acts)s, numFilters * hidActsSizeY *
                                            hidActsSizeX, batch_size, "image_acts:nv_hid_acts");
         int img_channels = -1;
-        const int check_channels = 0;
         """
         num_braces += 1
 
         # Convert filters into nv_filters, an NVMatrix, for compatibility
         # with the cuda-convnet functions
-        setup_nv_filters = self.filter_setup()
 
+        setup_nv_filters = self._argument_contiguity_check("filters") + """
+        if (%(filters)s->nd != 4)
+        {
+            PyErr_Format(PyExc_ValueError,
+            "filters must have nd=4, got nd=%%i", %(filters)s->nd);
+            %(fail)s;
+        }
+
+        { // setup_nv_filters brace 1
+        const int * filters_dims = CudaNdarray_HOST_DIMS(%(filters)s);
+        const int filter_channels = filters_dims[0];
+        const int filter_rows = filters_dims[1];
+        const int filter_cols = filters_dims[2];
+        const int num_filters = filters_dims[3];
+
+        if ((num_filters %% (numGroups * 16)) != 0)
+        {
+            PyErr_Format(PyExc_ValueError,
+            "Each group must have a multiple of 16 channels, but num_filters %%%% (numGroups * 16) = %%d %%%% ( %%d * 16) = %%d.",
+            num_filters, numGroups, num_filters %% (numGroups * 16));
+            %(fail)s;
+        }
+
+        if (filter_rows != filter_cols)
+        {
+            PyErr_Format(PyExc_ValueError,
+            "filter must be square, but have shape (%%d, %%d).",
+            filter_rows, filter_cols);
+            %(fail)s;
+        }
+
+        { // setup_nv_filters brace 2
+
+
+        NVMatrix nv_filters(%(filters)s, filter_channels * filter_rows *
+        filter_cols, num_filters, "img_acts:nv_filters");
+        """
         num_braces += 2
 
         if self.pad != 0:
@@ -177,7 +216,6 @@ class ImageActs(BaseActs):
             target_cols = "hidActsSizeX + filter_cols - 1"
 
         setup_nv_targets = """
-
 
         int target_dims [] = {
             filter_channels,
