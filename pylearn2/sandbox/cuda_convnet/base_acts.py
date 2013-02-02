@@ -80,3 +80,18 @@ class BaseActs(GpuOp):
                       self.__class__.__name__)
         return ()
 
+    def _argument_contiguity_check(self, arg_name):
+        return """
+        if (!CudaNdarray_is_c_contiguous(%%(%(arg_name)s)s))
+        {
+            if (!(%(arg_name_caps)s_COPY_NON_CONTIGUOUS)) {
+                PyErr_SetString(PyExc_ValueError,
+                    "%(class)s: %(arg_name)s must be C contiguous");
+                %%(fail)s;
+            }
+        }
+        """ % {
+            'class': self.__class__.__name__,
+            'arg_name': arg_name,
+            'arg_name_caps': arg_name.upper(),
+        }

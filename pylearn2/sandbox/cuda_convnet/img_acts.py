@@ -137,13 +137,17 @@ class ImageActs(BaseActs):
             #define moduleStride 1
         """
 
+        if self.copy_non_contiguous:
+            raise NotImplementedError()
+        else:
+            basic_setup += "#define IMAGEACTS_COPY_NON_CONTIGUOUS 0\n"
 
         # The amount of braces that must be closed at the end
         num_braces = 0
 
         # Convert images int nv_hid_acts, an NVMatrix, for compatibility
         # with the cuda-convnet functions
-        setup_nv_hid_acts = """
+        setup_nv_hid_acts = self._argument_contiguity_check("hid_acts") + """
         if (%(hid_acts)s->nd != 4)
         {
             PyErr_Format(PyExc_ValueError,
@@ -166,7 +170,7 @@ class ImageActs(BaseActs):
         # Convert filters into nv_filters, an NVMatrix, for compatibility
         # with the cuda-convnet functions
 
-        setup_nv_filters = """
+        setup_nv_filters = self._argument_contiguity_check("filters") + """
         if (%(filters)s->nd != 4)
         {
             PyErr_Format(PyExc_ValueError,
@@ -211,8 +215,7 @@ class ImageActs(BaseActs):
             target_rows = "hidActsSizeY + filter_rows - 1"
             target_cols = "hidActsSizeX + filter_cols - 1"
 
-        setup_nv_targets = """
-
+        setup_nv_targets = self._argument_contiguity_check("targets") + """
 
         int target_dims [] = {
             filter_channels,

@@ -139,13 +139,17 @@ class WeightActs(BaseActs):
             basic_setup += """
             #define moduleStride 1
         """
+        if self.copy_non_contiguous:
+            raise NotImplementedError()
+        else:
+            basic_setup += "#define WEIGHTACTS_COPY_NON_CONTIGUOUS 0\n"
 
         # The amount of braces that must be closed at the end
         num_braces = 0
 
         # Convert images int nv_images, an NVMatrix, for compatibility
         # with the cuda-convnet functions
-        setup_nv_images = """
+        setup_nv_images = self._argument_contiguity_check("images") + """
         if (%(images)s->nd != 4)
         {
             PyErr_Format(PyExc_ValueError,
@@ -167,7 +171,7 @@ class WeightActs(BaseActs):
 
         # Convert hid_grads int nv_hid_grads, an NVMatrix, for compatibility
         # with the cuda-convnet functions
-        setup_nv_hid_grads = """
+        setup_nv_hid_grads = self._argument_contiguity_check("hid_grads") + """
         if (%(hid_grads)s->nd != 4)
         {
             PyErr_Format(PyExc_ValueError,
@@ -189,8 +193,8 @@ class WeightActs(BaseActs):
         num_braces += 1
 
 
-        setup_nv_weights_grads = """
-
+        setup_nv_weights_grads = (
+            self._argument_contiguity_check("weights_grads") + """
         int filters_dims[4];
         // filters:  (input channels, filter rows, filter cols, output channels)
         filters_dims[0] = img_channels;
@@ -212,7 +216,7 @@ class WeightActs(BaseActs):
         NVMatrix nv_weights_grads(%(weights_grads)s, filters_dims[0] * filterSize * filterSize, numFilters,
         "weight_acts:nv_weights_grads");
 
-        """
+        """)
 
         num_braces += 1
 
