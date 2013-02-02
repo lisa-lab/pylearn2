@@ -314,7 +314,8 @@ class Monitor(object):
                 g[channel.graph_input] = X
             if n == 0:
                 raise ValueError("Iterating over 0 examples results in divide by 0")
-            val = channel.val * T.cast(X.shape[0], config.floatX) / n
+            batch_index = d.view_converter.axes.index('b')
+            val = channel.val * T.cast(X.shape[batch_index], config.floatX) / n
             u[channel.val_shared] = channel.val_shared + val
 
         with log_timing(log, "Compiling accum"):
