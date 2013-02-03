@@ -1,6 +1,6 @@
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
-__credits__ = ["Ian Goodfellow"]
+__credits__ = ["Ian Goodfellow", "David Warde-Farley"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
@@ -141,9 +141,7 @@ def test_match_valid_conv_padded():
         assert False
 
 def test_grad():
-
-    rng = np.random.RandomState([2012,10,9])
-
+    rng = np.random.RandomState([2012, 10, 9])
     batch_size = 5
     rows = 10
     cols = 9
@@ -163,7 +161,7 @@ def test_grad():
     output = FilterActs()(gpu_images, gpu_filters)
     output = host_from_gpu(output)
     # XXX: use verify_grad
-    output_grad = grad(output.sum(), images)
+    images_grad, filters_grad = grad(output.sum(), [images, filters])
 
     images_bc01 = images.dimshuffle(3,0,1,2)
     filters_bc01 = filters.dimshuffle(3,0,1,2)
@@ -174,28 +172,49 @@ def test_grad():
 
     output_conv2d = output_conv2d.dimshuffle(1,2,3,0)
     # XXX: use verify_grad
-    output_conv2d_grad = grad(output_conv2d.sum(), images)
-    f = function([], [output_grad, output_conv2d_grad])
+    images_conv2d_grad, filters_conv2d_grad = grad(output_conv2d.sum(),
+                                                  [images, filters])
+    f = function([], [images_grad, filters_grad,
+                      images_conv2d_grad,
+                      filters_conv2d_grad])
 
-    output_grad, output_conv2d_grad = f()
+    images_grad, filters_grad, images_conv2d_grad, filters_conv2d_grad = f()
 
     warnings.warn("""test_match_valid_conv success criterion is not very strict. Can we verify that this is OK?
                      One possibility is that theano is numerically unstable and Alex's code is better.
                      Probably theano CPU 64 bit is OK but it's worth checking the others.""")
-    if np.abs(output_grad - output_conv2d_grad).max() > 7.7e-6:
-        assert type(output_grad) == type(output_conv2d_grad)
-        assert output_grad.dtype == output_conv2d_grad.dtype
-        if output_grad.shape != output_conv2d_grad.shape:
-            print 'cuda-convnet shape: ',output_grad.shape
-            print 'theano shape: ',output_conv2d_grad.shape
+    # XXX: Refactor
+    if np.abs(images_grad - images_conv2d_grad).max() > 7.7e-6:
+        print "=== IMAGES GRADIENT ==="
+        assert type(images_grad) == type(images_conv2d_grad)
+        assert images_grad.dtype == images_conv2d_grad.dtype
+        if images_grad.shape != images_conv2d_grad.shape:
+            print 'cuda-convnet shape: ',images_grad.shape
+            print 'theano shape: ',images_conv2d_grad.shape
             assert False
-        err = np.abs(output_grad - output_conv2d_grad)
+        err = np.abs(images_grad - images_conv2d_grad)
         print 'absolute error range: ', (err.min(), err.max())
         print 'mean absolute error: ', err.mean()
-        print 'cuda-convnet value range: ', (output_grad.min(),
-                                             output_grad.max())
-        print 'theano value range: ', (output_conv2d_grad.min(),
-                                       output_conv2d_grad.max())
+        print 'cuda-convnet value range: ', (images_grad.min(),
+                                             images_grad.max())
+        print 'theano value range: ', (images_conv2d_grad.min(),
+                                       images_conv2d_grad.max())
+        assert False
+    if np.abs(filters_grad - filters_conv2d_grad).max() > 7.7e-6:
+        print "=== FILTERS GRADIENT ==="
+        assert type(filters_grad) == type(filters_conv2d_grad)
+        assert filters_grad.dtype == filters_conv2d_grad.dtype
+        if filters_grad.shape != filters_conv2d_grad.shape:
+            print 'cuda-convnet shape: ',filters_grad.shape
+            print 'theano shape: ',filters_conv2d_grad.shape
+            assert False
+        err = np.abs(filters_grad - filters_conv2d_grad)
+        print 'absolute error range: ', (err.min(), err.max())
+        print 'mean absolute error: ', err.mean()
+        print 'cuda-convnet value range: ', (filters_grad.min(),
+                                             filters_grad.max())
+        print 'theano value range: ', (filters_conv2d_grad.min(),
+                                       filters_conv2d_grad.max())
         assert False
 
 if __name__ == '__main__':
