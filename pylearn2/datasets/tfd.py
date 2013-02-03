@@ -29,7 +29,7 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
 
     def __init__(self, which_set, fold = 0, image_size = 48, 
                  example_range = None, center = False, 
-                 shuffle=False, rng=None, seed=132987):
+                 shuffle=False, rng=None, one_hot=False, seed=132987):
         """
         Creates a DenseDesignMatrix object for the Toronto Face Dataset.
         :param which_set: dataset to load. One of ['train','valid','test','unlabeled'].
@@ -64,17 +64,6 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
             data_x = data_x[ex_range]
         data_x = np.cast['float32'](data_x)
 
-        # get labels
-        if which_set != 'unlabeled':
-            data_y = data['labs_ex'][set_indices]
-            data_y = data_y[ex_range]
-            if shuffle:
-                data_y = data_y[rand_idx]
-            data_y = data_y.flatten()
-        else:
-            data_y = None
-
-
         # create dense design matrix from topological view
         data_x = data_x.reshape(data_x.shape[0], image_size ** 2)
         if center:
@@ -85,6 +74,23 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
             rand_idx = rng.permutation(len(data_x))
             data_x = data_x[rand_idx]
  
+        # get labels
+        if which_set != 'unlabeled':
+            data_y = data['labs_ex'][set_indices]
+            if example_range:
+                data_y = data_y[ex_range]
+            if shuffle:
+                data_y = data_y[rand_idx]
+            data_y = data_y.flatten()
+            
+            if one_hot:
+                one_hot = np.zeros((len(data_y), 7),dtype='float32')
+                for i in xrange(data_y.shape[0]):
+                    one_hot[i, data_y[i] - 1.] = 1.
+                data_y = one_hot
+        else:
+            data_y = None
+
         # create view converting for retrieving topological view
         view_converter = dense_design_matrix.DefaultViewConverter((image_size, image_size, 1))
 
