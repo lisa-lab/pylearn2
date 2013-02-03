@@ -10,7 +10,7 @@ skip_if_no_gpu()
 
 import numpy as np
 from theano import shared
-from theano.tensor import grad
+from theano.tensor import grad, constant
 from pylearn2.sandbox.cuda_convnet.filter_acts import FilterActs
 from theano.sandbox.cuda import gpu_from_host
 from theano.sandbox.cuda import host_from_gpu
@@ -18,6 +18,7 @@ from theano.tensor.nnet.conv import conv2d
 from theano import function
 from theano import tensor as T
 import warnings
+
 
 def test_match_valid_conv():
 
@@ -160,8 +161,12 @@ def test_grad():
 
     output = FilterActs()(gpu_images, gpu_filters)
     output = host_from_gpu(output)
-    # XXX: use verify_grad
-    images_grad, filters_grad = grad(output.sum(), [images, filters])
+
+    # Proper random projection, like verify_grad does.
+    cost_weights = rng.normal(size=(num_filters, rows - filter_rows + 1,
+                                    cols - filter_cols + 1, batch_size))
+    cost = (constant(cost_weights) * output).sum()
+
 
     images_bc01 = images.dimshuffle(3,0,1,2)
     filters_bc01 = filters.dimshuffle(3,0,1,2)
@@ -172,7 +177,9 @@ def test_grad():
 
     output_conv2d = output_conv2d.dimshuffle(1,2,3,0)
     # XXX: use verify_grad
-    images_conv2d_grad, filters_conv2d_grad = grad(output_conv2d.sum(),
+    images_grad, filters_grad = grad(cost.sum(), [images, filters])
+    reference_cost = (constant(cost_weights) * output_conv2d).sum()
+    images_conv2d_grad, filters_conv2d_grad = grad(reference_cost,
                                                   [images, filters])
     f = function([], [images_grad, filters_grad,
                       images_conv2d_grad,
