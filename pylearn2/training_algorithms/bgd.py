@@ -137,6 +137,9 @@ class BGD(TrainingAlgorithm):
                     " it is intractable, but BGD uses the cost function value to do "
                     " line searches.")
 
+        # TODO: replace the following if block with a call to monitor.setup (it does the same thing;
+        # this will reduce code duplication)
+        # may need to still manually add some BGD-specific channels like ave_step_size here
         if self.monitoring_dataset is not None:
             if not any([dataset.has_targets() for dataset in self.monitoring_dataset.values()]):
                 Y = None

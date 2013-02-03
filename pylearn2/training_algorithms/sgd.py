@@ -11,7 +11,6 @@ __maintainer__ = "Ian Goodfellow, David Warde-Farley"
 __email__ = "goodfeli@iro"
 import warnings
 from theano import function
-import theano.sparse
 from theano import config
 import numpy as np
 from theano import tensor as T
@@ -134,6 +133,7 @@ class SGD(TrainingAlgorithm):
                             raise ValueError("batch_size argument to SGD conflicts with model's force_batch_size attribute")
                 else:
                     self.batch_size = model.force_batch_size
+        model._test_batch_size = self.batch_size
         self.monitor = Monitor.get_monitor(model)
         # TODO: come up with some standard scheme for associating training runs
         # with monitors / pushing the monitor automatically, instead of just
@@ -177,8 +177,8 @@ class SGD(TrainingAlgorithm):
         # the cost
         # TODO: also monitor things defined by the model
         learning_rate = self.learning_rate
-        # TODO: refactor this if statement to share code between here and BGD
-        # could make a TrainingAlgorithm._setup_monitor that they both call
+        # TODO: replace the following if block with a call to monitor.setup
+        #       will need only to add learning_rate and momentum manually
         if self.monitoring_dataset is not None:
             if self.supervised:
                 custom_channels = self.cost.get_monitoring_channels(model, X, Y)
