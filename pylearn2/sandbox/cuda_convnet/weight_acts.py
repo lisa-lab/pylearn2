@@ -128,21 +128,18 @@ class WeightActs(BaseActs):
             #define numGroups 1
             """
 
-        if self.pad != 0:
-            raise NotImplementedError()
-        else:
-            basic_setup += """
-            #define paddingStart 0
-            """
+        basic_setup += """
+        #define paddingStart -%d
+        """ % self.pad
 
         if self.stride != 1:
-            raise NotImplementedError()
+            raise UnimplementedError()
         else:
             basic_setup += """
             #define moduleStride 1
         """
         if self.copy_non_contiguous:
-            raise NotImplementedError()
+            raise UnimplementedError()
         else:
             basic_setup += "#define WEIGHTACTS_COPY_NON_CONTIGUOUS 0\n"
 
@@ -199,14 +196,21 @@ class WeightActs(BaseActs):
         int filters_dims[4];
         // filters:  (input channels, filter rows, filter cols, output channels)
         filters_dims[0] = img_channels;
-        filters_dims[1] = imgSizeY - hidGradsSizeY + 1;
-        filters_dims[2] = imgSizeX - hidGradsSizeX + 1;
+        filters_dims[1] = imgSizeY - hidGradsSizeY + 1 - 2 * paddingStart;
+        filters_dims[2] = imgSizeX - hidGradsSizeX + 1 - 2 * paddingStart;
         assert(filters_dims[1] == filters_dims[2]); // only square kernels are supported
         filters_dims[3] = numFilters;
 
         const int filterSize = filters_dims[1];
 
-
+        for (int i = 0; i < 4; i++)
+        {
+            if (filters_dims[i] <= 0)
+            {
+                printf("filters_dims[%%d] = %%d\\n", i, filters_dims[i]);
+                assert(false);
+            }
+        }
         if (CudaNdarray_prep_output(& %(weights_grads)s, 4, filters_dims))
         {
             %(fail)s;

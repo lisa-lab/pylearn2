@@ -603,7 +603,13 @@ void _weightActs(NVMatrix& images, NVMatrix& hidActs, NVMatrix& targets,
 
     // These routines don't handle the case when only part of the image is visited in the convolution
     assert(paddingStart <= 0);
-    assert(paddingStart + (numModulesX-1)*moduleStride + filterSize >= imgSizeX);
+    // assert changed to if statement by Ian Goodfellow
+    if (paddingStart + (numModulesX-1)*moduleStride + filterSize < imgSizeX)
+    {
+        printf("imgSizeX: %d\n", imgSizeX);
+        printf("numModulesX: %d\n", numModulesX);
+        assert(false);
+    }
     assert(paddingStart + (numModulesY-1)*moduleStride + filterSize >= imgSizeY);
     assert(moduleStride <= filterSize);
     

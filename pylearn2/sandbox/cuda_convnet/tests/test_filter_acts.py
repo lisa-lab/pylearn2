@@ -98,7 +98,7 @@ def test_match_valid_conv_padded():
     gpu_images = gpu_from_host(images)
     gpu_filters = gpu_from_host(filters)
 
-    PAD = 1
+    PAD = 3
 
     output = FilterActs(PAD)(gpu_images, gpu_filters)
     output = host_from_gpu(output)
@@ -123,6 +123,9 @@ def test_match_valid_conv_padded():
     warnings.warn("""test_match_valid_conv success criterion is not very strict. Can we verify that this is OK?
                      One possibility is that theano is numerically unstable and Alex's code is better.
                      Probably theano CPU 64 bit is OK but it's worth checking the others.""")
+
+    assert output.shape == output_conv2d.shape
+
     if np.abs(output - output_conv2d).max() > 2.4e-6:
         assert type(output) == type(output_conv2d)
         assert output.dtype == output_conv2d.dtype

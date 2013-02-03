@@ -123,22 +123,19 @@ class ImageActs(BaseActs):
             #define numGroups 1
             """
 
-        if self.pad != 0:
-            raise NotImplementedError()
-        else:
-            basic_setup += """
-            #define paddingStart 0
-            """
+        basic_setup += """
+        #define paddingStart -%d
+        """ % self.pad
 
         if self.stride != 1:
-            raise NotImplementedError()
+            raise UnimplementedError()
         else:
             basic_setup += """
             #define moduleStride 1
         """
 
         if self.copy_non_contiguous:
-            raise NotImplementedError()
+            raise UnimplementedError()
         else:
             basic_setup += "#define IMAGEACTS_COPY_NON_CONTIGUOUS 0\n"
 
@@ -160,6 +157,7 @@ class ImageActs(BaseActs):
         const int numFilters = hid_act_dims[0];
         const int hidActsSizeY = hid_act_dims[1];
         const int hidActsSizeX = hid_act_dims[2];
+        //printf("hidActs shape: %%d %%d\\n", hidActsSizeY, hidActsSizeX);
         const int batch_size = hid_act_dims[3];
         NVMatrix nv_hid_acts(%(hid_acts)s, numFilters * hidActsSizeY *
                                            hidActsSizeX, batch_size, "image_acts:nv_hid_acts");
@@ -209,11 +207,8 @@ class ImageActs(BaseActs):
         """
         num_braces += 2
 
-        if self.pad != 0:
-            raise NotImplementedError()
-        else:
-            target_rows = "hidActsSizeY + filter_rows - 1"
-            target_cols = "hidActsSizeX + filter_cols - 1"
+        target_rows = "hidActsSizeY + filter_rows - 1 + 2 * paddingStart"
+        target_cols = "hidActsSizeX + filter_cols - 1 + 2 * paddingStart"
 
         setup_nv_targets = """
 
@@ -242,11 +237,6 @@ class ImageActs(BaseActs):
 
         num_braces += 1
 
-        # note: imgSizeX is not specified here, it is computed internally
-        # (in _filterActsSparse) by the lines:
-        # int imgPixels = images.getNumRows() / numImgColors;
-        # int imgSizeX = imgPixels / imgSizeY;
-        #
         # note: numFilters is not specified here. it is determined by
         # nv_filters.getNumCols()
         #

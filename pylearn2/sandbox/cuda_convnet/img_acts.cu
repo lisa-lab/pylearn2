@@ -928,7 +928,17 @@ void _imgActs(NVMatrix& hidActs, NVMatrix& filters, NVMatrix& targets,
     assert(!targets.isTrans());
     // These routines don't handle the case when only part of the image is visited in the convolution
     assert(paddingStart <= 0);
-    assert(paddingStart + (numModulesX-1)*moduleStride + filterSize >= imgSizeX);
+    // assert changed into if statement by Ian Goodfellow
+    if (paddingStart + (numModulesX-1)*moduleStride + filterSize < imgSizeX)
+    {
+        printf("imgSizeX: %d\n", imgSizeX);
+        printf("Bound on image size: %d\n", paddingStart + (numModulesX-1)*moduleStride+filterSize);
+        printf("paddingStart: %d\n", paddingStart);
+        printf("numModulesX: %d\n", numModulesX);
+        printf("moduleStride: %d\n", moduleStride);
+        printf("filterSize: %d\n", filterSize);
+        assert(false);
+    }
     assert(paddingStart + (numModulesY-1)*moduleStride + filterSize >= imgSizeY);
     assert(moduleStride <= filterSize);
     
