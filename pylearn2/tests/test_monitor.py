@@ -1,3 +1,5 @@
+import warnings
+
 from pylearn2.monitor import Monitor
 from pylearn2.space import VectorSpace
 from pylearn2.models.model import Model
@@ -6,7 +8,6 @@ from pylearn2.training_algorithms.default import DefaultTrainingAlgorithm
 import numpy as np
 from theano import tensor as T
 from pylearn2.models.s3c import S3C, E_Step, Grad_M_Step
-from nose.plugins.skip import SkipTest
 from pylearn2.utils import sharedX
 from pylearn2.utils.serial import to_string
 from pylearn2.utils.serial import from_string
@@ -41,16 +42,8 @@ def test_channel_scaling_sequential():
         num_features = 2
         monitor = Monitor(DummyModel(num_features))
         dataset = DummyDataset(num_examples, num_features)
-        try:
-            monitor.add_dataset(dataset=dataset, mode=mode,
+        monitor.add_dataset(dataset=dataset, mode=mode,
                                 num_batches=num_batches, batch_size=batch_size)
-        except NotImplementedError:
-            # make sure this was due to the unimplemented batch_size case
-            if num_batches is None:
-                assert num_examples % batch_size != 0
-            else:
-                assert num_examples % num_batches != 0
-            raise SkipTest()
         vis_batch = T.matrix()
         mean = vis_batch.mean()
         monitor.add_channel(name='mean', ipt=vis_batch, val=mean, dataset=dataset)
@@ -208,26 +201,15 @@ def test_revisit():
                 monitor = Monitor.get_monitor(model)
 
                 try:
-                    try:
-                        monitor.add_dataset(monitoring_dataset, mode,
-                            batch_size=mon_batch_size, num_batches=num_mon_batches)
-                    except TypeError:
-                        monitor.add_dataset(monitoring_dataset, mode,
-                            batch_size=mon_batch_size, num_batches=num_mon_batches,
-                            seed = 0)
-                except NotImplementedError:
-                    # Monitor does not currently support uneven iterators, so skip
-                    # uneven iteration modes
-                    # Check that this is what caused the error
-                    if num_mon_batches is not None and mon_batch_size * num_mon_batches > num_examples:
-                        continue
-                    if num_mon_batches is None and num_examples % mon_batch_size != 0:
-                        continue
-                    print num_mon_batches, mon_batch_size, num_examples, mode
-                    raise
+                    monitor.add_dataset(monitoring_dataset, mode,
+                        batch_size=mon_batch_size, num_batches=num_mon_batches)
+                except TypeError:
+                    monitor.add_dataset(monitoring_dataset, mode,
+                        batch_size=mon_batch_size, num_batches=num_mon_batches,
+                        seed = 0)
 
                 if num_mon_batches is None:
-                    num_mon_batches = num_examples / mon_batch_size
+                    num_mon_batches = int(np.ceil(float(num_examples) / float(mon_batch_size)))
 
                 batches = [ None ] * num_mon_batches
                 visited = [ False ] * num_mon_batches
@@ -251,7 +233,8 @@ def test_revisit():
                         # Note: if the monitor starts supporting variable batch sizes,
                         # take this out. Maybe move it to a new test that the iterator's
                         # uneven property is set accurately
-                        assert X.shape[0] == mon_batch_size
+                        warnings.warn("TODO: add unit test that iterators uneven property is set correctly.")
+                        # assert X.shape[0] == mon_batch_size
 
                         if self.validate:
                             previous_batch = batches[idx]

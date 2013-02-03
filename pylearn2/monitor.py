@@ -141,8 +141,6 @@ class Monitor(object):
                     raise TypeError("Monitor requires a seed (not a random number generator) when using stochastic iteration modes.")
             else:
                 assert sd is None # the iterator should catch this, but let's double-check
-            if it.uneven:
-                raise NotImplementedError("The monitor's averaging is wrong if the batch size changes")
 
             if not d in self._datasets:
                 self._datasets.append(d)
@@ -204,7 +202,7 @@ class Monitor(object):
             channel.batch_record.append(self._num_batches_seen)
             channel.example_record.append(self._examples_seen)
             channel.epoch_record.append(self._epochs_seen)
-            val = channel.val_shared.get_value(borrow=True)
+            val = channel.val_shared.get_value()
             channel.val_record.append(val)
             # TODO: use logging infrastructure so that user can configure
             # formatting

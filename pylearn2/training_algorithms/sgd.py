@@ -314,10 +314,14 @@ class SGD(TrainingAlgorithm):
         iterator = dataset.iterator(mode=self.train_iteration_mode,
                 batch_size=self.batch_size, targets=self.supervised,
                 topo=self.topo, rng = rng, num_batches = self.batches_per_iter)
+        if self.topo:
+            batch_idx = dataset.view_converter.axes.index('b')
+        else:
+            batch_idx = 0
         if self.supervised:
             for (batch_in, batch_target) in iterator:
                 self.sgd_update(batch_in, batch_target)
-                actual_batch_size = batch_in.shape[0]
+                actual_batch_size = batch_in.shape[batch_idx]
                 self.monitor.report_batch(actual_batch_size)
                 for callback in self.update_callbacks:
                     callback(self)

@@ -43,6 +43,8 @@ The copyright and licensing notice for this code is reproduced below:
 
 from theano.sandbox.cuda import CudaNdarrayType
 from theano.gof import Apply
+from theano.gof.op import get_debug_values
+from theano.printing import Print
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
 from pylearn2.sandbox.cuda_convnet.base_acts import UnimplementedError
 #from pylearn2.sandbox.cuda_convnet.weight_acts import WeightActs
