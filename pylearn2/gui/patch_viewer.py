@@ -16,14 +16,20 @@ def make_viewer(mat, grid_shape=None, patch_shape=None, activation=None, pad=Non
 
     if grid_shape is None:
         grid_shape = PatchViewer.pick_shape(mat.shape[0] )
-    if patch_shape is None:
-        assert mat.shape[1] % num_channels == 0
-        patch_shape = PatchViewer.pick_shape(mat.shape[1] / num_channels, exact = True)
-        assert patch_shape[0] * patch_shape[1] * num_channels == mat.shape[1]
+    if mat.ndim > 2:
+        patch_shape = mat.shape[1:3]
+        topo_view = mat
+        num_channels = mat.shape[3]
+        is_color = num_channels > 1
+    else:
+        if patch_shape is None:
+            assert mat.shape[1] % num_channels == 0
+            patch_shape = PatchViewer.pick_shape(mat.shape[1] / num_channels, exact = True)
+            assert patch_shape[0] * patch_shape[1] * num_channels == mat.shape[1]
+        topo_shape = (patch_shape[0], patch_shape[1], num_channels)
+        view_converter = DefaultViewConverter(topo_shape)
+        topo_view = view_converter.design_mat_to_topo_view(mat)
     rval = PatchViewer(grid_shape, patch_shape, pad=pad, is_color = is_color)
-    topo_shape = (patch_shape[0], patch_shape[1], num_channels)
-    view_converter = DefaultViewConverter(topo_shape)
-    topo_view = view_converter.design_mat_to_topo_view(mat)
     for i in xrange(mat.shape[0]):
         if activation is not None:
             if hasattr(activation[0], '__iter__'):
