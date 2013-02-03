@@ -18,6 +18,7 @@ from theano.printing import var_descriptor
 import theano.sparse
 
 from pylearn2.config import yaml_parse
+from pylearn2.datasets.dataset import Dataset
 from pylearn2.utils import function
 from pylearn2.utils.string_utils import number_aware_alphabetical_key
 from pylearn2.utils import sharedX
@@ -48,9 +49,7 @@ class Monitor(object):
 
         Parameters
         ----------
-        model : object
-            An object that implements the `Model` interface specified in
-            `pylearn2.models`.
+        model : pylearn2.models.model.Model instance
         """
         self.training_succeeded = False
         self.model = model
@@ -547,6 +546,71 @@ class Monitor(object):
     @property
     def num_batches(self):
         return self._num_batches
+
+    def setup(self, dataset, cost, batch_size, num_batches = None):
+        """
+        Sets up the monitor for a cost minimization problem.
+        Adds channels defined by both the model and the cost for
+        the specified dataset(s), as well as a channel called 'objective'
+        defined by the costs' __call__ method.
+
+        dataset: a Dataset or dictionary mapping string names to Datasets
+                    If string names are used, then for every dataset,
+                    each channel defined by the model or cost will be
+                    replicated with that dataset's name followed by an
+                    underscore as the prefix.
+                    For example, if your cost defines a channel called
+                    'misclass', and datasets is {'train' : train_dataset,
+                    'valid' : valid_dataset} you will get channels called
+                    'train_misclass' and 'valid_misclass'.
+
+        cost: a Cost
+
+        """
+        if dataset is None:
+            return
+        if isinstance(dataset, Dataset):
+            dataset = {'': dataset}
+        else:
+            assert isinstance(dataset, dict)
+            assert all(isinstance(key, str) for key in dataset)
+            assert all(isinstance(dataset[key], Dataset) for key in dataset)
+
+        supervised = cost.supervised
+        model = self.model
+
+        X = model.get_input_space().make_theano_batch()
+        X.name = 'monitor_X'
+
+        if supervised:
+            Y = model.get_output_space().make_theano_batch()
+            Y.name = 'monitor_Y'
+            ipt = (X, Y)
+        else:
+            Y = None
+            ipt = X
+        cost_value = cost(model, X, Y)
+        custom_channels = cost.get_monitoring_channels(model, X, Y)
+        model_channels = model.get_monitoring_channels(X, Y)
+        custom_channels.update(model_channels)
+        for dataset_name in dataset:
+            cur_dataset = dataset[dataset_name]
+            self.add_dataset(dataset=cur_dataset,
+                                 mode='sequential',
+                                 batch_size=batch_size,
+                                 num_batches=num_batches)
+            if dataset_name == '':
+                prefix = ''
+            else:
+                prefix = dataset_name + '_'
+            # These channel name 'objective' must not vary, since callbacks that respond to the
+            # values in the monitor use the name to find it.
+            if cost_value is not None:
+                self.add_channel(name=prefix + 'objective', ipt=ipt,
+                        val=cost_value, dataset=cur_dataset)
+            for key in custom_channels:
+                self.add_channel(name=prefix + key, ipt=ipt,
+                        val=custom_channels[key], dataset=cur_dataset)
 
 
 class MonitorChannel(object):
