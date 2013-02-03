@@ -114,7 +114,14 @@ class Space(object):
         space.format_as(self.format_as(batch, space), self)
         """
 
-        assert self.get_total_dimension() == space.get_total_dimension()
+        my_dimension =  self.get_total_dimension()
+        other_dimension = space.get_total_dimension()
+
+        if my_dimension != other_dimension:
+            raise ValueError(str(self)+" with total dimension " +
+                    str(my_dimension) + " can't format a batch into " +
+                    str(space) + "because its total dimension is " +
+                    str(other_dimension))
 
         if self == space:
             rval = batch
@@ -242,6 +249,8 @@ class Conv2DSpace(Space):
         if num_channels is None:
             num_channels = channels
 
+        assert isinstance(num_channels, int)
+
         if not hasattr(shape, '__len__') or len(shape) != 2:
             raise ValueError("shape argument to Conv2DSpace must be length 2")
         assert all(isinstance(elem, int) for elem in shape)
@@ -255,6 +264,9 @@ class Conv2DSpace(Space):
             axes = ('b', 0, 1, 'c')
         assert len(axes) == 4
         self.axes = axes
+
+    def __str__(self):
+        return "Conv2DSpace{shape=%s,num_channels=%d}" % (str(self.shape), self.num_channels)
 
     def __eq__(self, other):
         return type(self) == type(other) and \
@@ -283,12 +295,8 @@ class Conv2DSpace(Space):
         if dtype is None:
             dtype = config.floatX
 
-        # Patch old pickle files
-        if not hasattr(self, 'num_channels'):
-            self.num_channels = self.nchannels
-
         broadcastable = [False] * 4
-        broadcastable[self.axes.index('c')] = self.num_channels = 1
+        broadcastable[self.axes.index('c')] = self.num_channels == 1
         broadcastable = tuple(broadcastable)
 
         return TensorType(dtype=dtype,
@@ -393,6 +401,7 @@ class Conv2DSpace(Space):
         if isinstance(space, Conv2DSpace):
             return Conv2DSpace.convert(batch, self.axes, space.axes)
         raise NotImplementedError("Conv2DSPace doesn't know how to format as "+str(type(space)))
+
 
 class CompositeSpace(Space):
     """A Space whose points are tuples of points in other spaces """
