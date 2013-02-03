@@ -54,9 +54,8 @@ class BaseActs(GpuOp):
     """
     cpp_source_file = None
 
-    def __init__(self):
-        # TODO: support other amounts of padding
-        self.pad = 0
+    def __init__(self, pad):
+        self.pad = pad
         # TODO: support sparse connectivity pattern
         self.dense_connectivity = True
         # TODO: support other strides.
@@ -96,3 +95,9 @@ class BaseActs(GpuOp):
             'arg_name': arg_name,
             'class_name_caps': self.__class__.__name__.upper(),
         }
+
+class UnimplementedError(Exception):
+    """
+    Like NotImplementedError, but designed not to be caught and suppressed
+    by theano.
+    """

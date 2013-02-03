@@ -44,9 +44,11 @@ The copyright and licensing notice for this code is reproduced below:
 from theano.sandbox.cuda import CudaNdarrayType
 from theano.gof import Apply
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
+from pylearn2.sandbox.cuda_convnet.base_acts import UnimplementedError
 #from pylearn2.sandbox.cuda_convnet.weight_acts import WeightActs
 from pylearn2.sandbox.cuda_convnet.img_acts import ImageActs
 from pylearn2.sandbox.cuda_convnet.weight_acts import WeightActs
+
 
 class FilterActs(BaseActs):
     """
@@ -128,21 +130,19 @@ class FilterActs(BaseActs):
             #define numGroups 1
             """
 
-        if self.pad != 0:
-            raise NotImplementedError()
-        else:
-            basic_setup += """
-            #define paddingStart 0
-            """
+        assert isinstance(self.pad, int)
+        basic_setup += """
+        #define paddingStart -%d
+        """ % self.pad
 
         if self.stride != 1:
-            raise NotImplementedError()
+            raise UnimplementedError()
         else:
             basic_setup += """
             #define moduleStride 1
         """
         if self.copy_non_contiguous:
-            raise NotImplementedError()
+            raise UnimplementedError()
         else:
             basic_setup += "#define FILTERACTS_COPY_NON_CONTIGUOUS 0\n"
 
@@ -221,11 +221,8 @@ class FilterActs(BaseActs):
         """
         num_braces += 2
 
-        if self.pad != 0:
-            raise NotImplementedError()
-        else:
-            target_rows = "imgSizeY - filter_rows + 1"
-            target_cols = "imgSizeX - filter_cols + 1"
+        target_rows = "imgSizeY - filter_rows + 1 - paddingStart * 2"
+        target_cols = "imgSizeX - filter_cols + 1 - paddingStart * 2"
 
         setup_nv_targets = """
 
