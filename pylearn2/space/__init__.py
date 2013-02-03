@@ -287,9 +287,12 @@ class Conv2DSpace(Space):
         if not hasattr(self, 'num_channels'):
             self.num_channels = self.nchannels
 
+        broadcastable = [False] * 4
+        broadcastable[self.axes.index('c')] = self.num_channels = 1
+        broadcastable = tuple(broadcastable)
+
         return TensorType(dtype=dtype,
-                          broadcastable=(False, False, False,
-                                         self.num_channels == 1)
+                          broadcastable=broadcastable
                          )(name=name)
 
     @staticmethod
