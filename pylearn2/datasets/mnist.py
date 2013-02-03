@@ -16,7 +16,7 @@ from pylearn2.utils.mnist_ubyte import read_mnist_labels
 class MNIST(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, which_set, center = False, shuffle = False,
             one_hot = False, binarize = False, start = None,
-            stop = None):
+            stop = None, axes=['b', 0, 1, 'c']):
 
         self.args = locals()
 
@@ -31,6 +31,9 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
             raise ValueError('Unrecognized which_set value "%s".' %
                     (which_set,)+'". Valid values are ["train","test"].')
 
+        def dimshuffle(b01c):
+            default = ('b', 0, 1, 'c')
+            return b01c.transpose(*[default.index(axis) for axis in axes])
 
         if control.get_load_data():
             path = "${PYLEARN2_DATA_PATH}/mnist/"
@@ -88,9 +91,8 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
                     y[i] = y[j]
                     y[j] = tmp
 
-            view_converter = dense_design_matrix.DefaultViewConverter((28,28,1))
 
-            super(MNIST,self).__init__(topo_view = topo_view , y = y)
+            super(MNIST,self).__init__(topo_view = dimshuffle(topo_view), y = y, axes=axes)
 
             assert not N.any(N.isnan(self.X))
 
@@ -109,8 +111,8 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
                 assert self.y.shape[0] == stop - start
         else:
             #data loading is disabled, just make something that defines the right topology
-            topo = np.zeros((1,28,28,1))
-            super(MNIST,self).__init__(topo_view = topo)
+            topo = dimshuffle(np.zeros((1,28,28,1)))
+            super(MNIST,self).__init__(topo_view = topo, axes=axes)
             self.X = None
 
     def adjust_for_viewer(self, X):

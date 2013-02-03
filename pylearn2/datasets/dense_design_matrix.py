@@ -29,7 +29,8 @@ class DenseDesignMatrix(Dataset):
     _default_seed = (17, 2, 946)
 
     def __init__(self, X=None, topo_view=None, y=None,
-                 view_converter=None, rng=_default_seed):
+                 view_converter=None, axes = ('b', 0, 1, 'c'),
+                 rng=_default_seed):
         """
         Parameters
         ----------
@@ -63,7 +64,7 @@ class DenseDesignMatrix(Dataset):
             self.view_converter = view_converter
         else:
             if topo_view is not None:
-                self.set_topological_view(topo_view)
+                self.set_topological_view(topo_view, axes)
         self.y = y
         self.compress = False
         self.design_loc = None
@@ -338,7 +339,7 @@ class DenseDesignMatrix(Dataset):
 
         return self.view_converter.design_mat_to_weights_view(mat)
 
-    def set_topological_view(self, V):
+    def set_topological_view(self, V, axes = ('b', 0, 1, 'c')):
         """
         Sets the dataset to represent V, where V is a batch
         of topological views of examples.
@@ -352,7 +353,10 @@ class DenseDesignMatrix(Dataset):
         TODO: why is this parameter named 'V'?
         """
         assert not N.any(N.isnan(V))
-        self.view_converter = DefaultViewConverter(V.shape[1:])
+        rows = V.shape[axes.index(0)]
+        cols = V.shape[axes.index(1)]
+        channels = V.shape[axes.index('c')]
+        self.view_converter = DefaultViewConverter([rows, cols, channels], axes=axes)
         self.X = self.view_converter.topo_view_to_design_mat(V)
         assert not N.any(N.isnan(self.X))
 
@@ -448,11 +452,8 @@ class DefaultViewConverter(object):
         assert len(X.shape) == 2
         batch_size = X.shape[0]
 
-        dims = {'b': batch_size,
-                'c': 1}
-        for i, dim in enumerate(self.shape[:-1]):
-            dims[i] = dim
-        channel_shape = [dims[key] for key in self.axes]
+        channel_shape = [batch_size, self.shape[0], self.shape[1], 1]
+        dimshuffle_args = [('b', 0, 1, 'c').index(axis) for axis in self.axes]
         if self.shape[-1] * self.pixels_per_channel != X.shape[1]:
             raise ValueError('View converter with ' + str(self.shape[-1]) +
                              ' channels and ' + str(self.pixels_per_channel) +
@@ -460,7 +461,7 @@ class DefaultViewConverter(object):
                              ' matrix with ' + str(X.shape[1]) + ' columns.')
         start = lambda i: self.pixels_per_channel * i
         stop = lambda i: self.pixels_per_channel * (i + 1)
-        channels = [X[:, start(i):stop(i)].reshape(*channel_shape)
+        channels = [X[:, start(i):stop(i)].reshape(*channel_shape).transpose(*dimshuffle_args)
                     for i in xrange(self.shape[-1])]
 
         channel_idx = self.axes.index('c')
@@ -472,6 +473,10 @@ class DefaultViewConverter(object):
         return self.design_mat_to_topo_view(X)
 
     def topo_view_to_design_mat(self, V):
+
+        V = V.transpose(self.axes.index('b'), self.axes.index(0),
+                self.axes.index(1), self.axes.index('c'))
+
         num_channels = self.shape[-1]
         if N.any(N.asarray(self.shape) != N.asarray(V.shape[1:])):
             raise ValueError('View converter for views of shape batch size '
