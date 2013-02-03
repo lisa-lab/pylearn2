@@ -314,7 +314,10 @@ class Monitor(object):
                 g[channel.graph_input] = X
             if n == 0:
                 raise ValueError("Iterating over 0 examples results in divide by 0")
-            batch_index = d.view_converter.axes.index('b')
+            if self.topo:
+                batch_index = d.get_topo_batch_axis()
+            else:
+                batch_index = 0
             val = channel.val * T.cast(X.shape[batch_index], config.floatX) / n
             u[channel.val_shared] = channel.val_shared + val
 

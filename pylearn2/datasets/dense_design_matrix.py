@@ -116,6 +116,9 @@ class DenseDesignMatrix(Dataset):
         """
         self.design_loc = path
 
+    def get_topo_batch_axis(self):
+        return self.view_converter.axes.index('b')
+
     def enable_compression(self):
         """
         If called, when pickled the dataset will be saved using only

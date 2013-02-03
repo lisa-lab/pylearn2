@@ -107,3 +107,10 @@ class Dataset(object):
         """ Returns true if the dataset includes targets """
 
         raise NotImplementedError()
+
+    def get_topo_batch_axis(self):
+        """
+        Returns the index of the axis that corresponds to different examples
+        in a batch when using topological_view.
+        """
+        return 0
