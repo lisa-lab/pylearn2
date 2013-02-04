@@ -25,6 +25,7 @@ from pylearn2.linear.linear_transform import LinearTransform
 import functools
 import theano
 from pylearn2.sandbox.cuda_convnet.filter_acts import FilterActs
+from theano.sandbox.cuda.basic_ops import gpu_contiguous
 from theano.sandbox.cuda import gpu_from_host
 from theano.sandbox.cuda import host_from_gpu
 
@@ -97,6 +98,8 @@ class Conv2D(LinearTransform):
 
         if tuple(x_axes) != op_axes:
             x = x.dimshuffle(*[x_axes.index(axis) for axis in op_axes])
+
+        x = gpu_contiguous(x)
 
         rval = FilterActs(self.pad)(x, self._filters)
 

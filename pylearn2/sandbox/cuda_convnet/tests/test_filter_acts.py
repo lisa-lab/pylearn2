@@ -191,7 +191,7 @@ def test_grad():
                      One possibility is that theano is numerically unstable and Alex's code is better.
                      Probably theano CPU 64 bit is OK but it's worth checking the others.""")
     # XXX: Refactor
-    if np.abs(images_grad - images_conv2d_grad).max() > 7.7e-6:
+    if np.abs(images_grad - images_conv2d_grad).max() > 1.15e-5:
         print "=== IMAGES GRADIENT ==="
         assert type(images_grad) == type(images_conv2d_grad)
         assert images_grad.dtype == images_conv2d_grad.dtype
@@ -207,7 +207,7 @@ def test_grad():
         print 'theano value range: ', (images_conv2d_grad.min(),
                                        images_conv2d_grad.max())
         assert False
-    if np.abs(filters_grad - filters_conv2d_grad).max() > 7.7e-6:
+    if np.abs(filters_grad - filters_conv2d_grad).max() > 1e-5:
         print "=== FILTERS GRADIENT ==="
         assert type(filters_grad) == type(filters_conv2d_grad)
         assert filters_grad.dtype == filters_conv2d_grad.dtype

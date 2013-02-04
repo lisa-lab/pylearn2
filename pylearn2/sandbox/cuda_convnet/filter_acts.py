@@ -50,6 +50,7 @@ from pylearn2.sandbox.cuda_convnet.base_acts import UnimplementedError
 #from pylearn2.sandbox.cuda_convnet.weight_acts import WeightActs
 from pylearn2.sandbox.cuda_convnet.img_acts import ImageActs
 from pylearn2.sandbox.cuda_convnet.weight_acts import WeightActs
+from theano.sandbox.cuda.basic_ops import gpu_contiguous
 
 
 class FilterActs(BaseActs):
@@ -69,9 +70,13 @@ class FilterActs(BaseActs):
                      channels must be <=3, or be even
                      note: if you want to take the gradient with respect to the weights,
                            channels must be divisible by 4
+                     Must be C contiguous. You can enforce this by calling
+                     theano.sandbox.cuda.basic_ops.gpu_contiguous on it.
     filters:         (input channels, filter rows, filter cols, output channels)
                      rows must be the same as cols
                      output channels must be a multiple of 16
+                     Must be C contiguous. You can enforce this by calling
+                     theano.sandbox.cuda.basic_ops.gpu_contiguous on it.
 
     output:         (output channels, output rows, output cols, batch size)
 
@@ -284,6 +289,7 @@ class FilterActs(BaseActs):
         return rval
 
     def grad(self, inputs, dout):
+
         images, filters = inputs
 
         if 'Cuda' not in str(type(images)):
@@ -292,6 +298,7 @@ class FilterActs(BaseActs):
             raise TypeError("filters must be cuda")
 
         dout, = dout
+        dout = gpu_contiguous(dout)
 
         if 'Cuda' not in str(type(dout)):
             raise TypeError("output gradients must be cuda")
