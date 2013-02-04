@@ -413,6 +413,7 @@ class Softmax(Layer):
             misclass = T.neq(y, y_hat).mean()
             misclass = T.cast(misclass, config.floatX)
             rval['misclass'] = misclass
+            rval['nll'] = self.cost(Y_hat=state, Y=target)
 
         return rval
 
@@ -1619,6 +1620,9 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape):
     pr, pc = pool_shape
     rs, cs = pool_stride
 
+    assert pr <= r
+    assert pc <= c
+
     # Compute index in pooled space of last needed pool
     # (needed = each input pixel must appear in at least one pool)
     def last_pool(im_shp, p_shp, p_strd):
@@ -1678,6 +1682,8 @@ def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape):
     r, c = image_shape
     pr, pc = pool_shape
     rs, cs = pool_stride
+    assert pr <= r
+    assert pc <= c
 
     # Compute index in pooled space of last needed pool
     # (needed = each input pixel must appear in at least one pool)
