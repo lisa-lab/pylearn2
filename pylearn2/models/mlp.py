@@ -413,6 +413,7 @@ class Softmax(Layer):
             misclass = T.neq(y, y_hat).mean()
             misclass = T.cast(misclass, config.floatX)
             rval['misclass'] = misclass
+            rval['nll'] = self.cost(Y_hat=state, Y=target)
 
         return rval
 
