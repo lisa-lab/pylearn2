@@ -254,7 +254,9 @@ class Conv2DSpace(Space):
         if not hasattr(shape, '__len__') or len(shape) != 2:
             raise ValueError("shape argument to Conv2DSpace must be length 2")
         assert all(isinstance(elem, int) for elem in shape)
+        assert all(elem > 0 for elem in shape)
         assert isinstance(num_channels, int)
+        assert num_channels > 0
         self.shape = shape
         self.num_channels = num_channels
         if axes is None:
