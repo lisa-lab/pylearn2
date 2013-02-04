@@ -61,3 +61,13 @@ class CallbackCost(Cost):
 
         return cost
 
+class SumOfParams(Cost):
+    """
+    A cost that is just the sum of all parameters, so the gradient
+    on every parameter is 1.
+    """
+
+    def __call__(self, model, X, Y = None):
+        assert Y is None
+
+        return sum(param.sum() for param in model.get_params())

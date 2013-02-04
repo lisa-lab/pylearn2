@@ -735,12 +735,15 @@ class PolyakAveraging(TrainExtension):
         self._count += 1
 
 
-
 class ExhaustiveSGD(SGD): # deprecated!
 
     def __init__(self, * args, ** kwargs):
 
-        warnings.warn("ExhaustiveSGD is deprecated. It has been renamed to SGD.")
+        warnings.warn("""
+        ExhaustiveSGD is deprecated. It has been renamed to SGD.
+        Modify your code to use SGD. ExhaustiveSGD may be removed
+        after August 1, 2013.
+        """)
 
         super(ExhaustiveSGD,self).__init__(*args, ** kwargs)
 
