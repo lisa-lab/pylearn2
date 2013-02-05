@@ -275,14 +275,6 @@ class WeightActs(BaseActs):
                         paddingStart, moduleStride, img_channels, numGroups,
                         partialSum, 0, 1);
 
-            // commented by IG. Not sure what DWF was trying to do with it.
-            // Does the shape of the ndarray matter? I don't think we ever use
-            // it as an ndarray; I think we are just using the ndarray machinery
-            // to make it easier to allocate and deallocate buffer of float * to
-            // feed to nv_partialsum.
-            // partialsum_storage.reshape(numModules / partialSum, filters_dims[0] *
-            //          filterSize * filterSize * numFilters);
-
             // sum out axis 0 of nv_partialsum
             #define AXIS 0
             // scale the contents of nv_weights_grads by 0
@@ -292,6 +284,7 @@ class WeightActs(BaseActs):
             #define SCALE_SUM 1
             nv_weights_grads.addSum(nv_partialsum, AXIS, SCALE_THIS, SCALE_SUM);
 
+            Py_DECREF(partialsum_storage);
         }
         """
 
