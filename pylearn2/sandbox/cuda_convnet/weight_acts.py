@@ -133,8 +133,12 @@ class WeightActs(BaseActs):
 
         basic_setup += """
         #define paddingStart -%(pad)d
-        int partialSum = %(partial_sum)d > 0 ? %(partial_sum)d : num_Modules;
-        if (numModule %% partialSum > 0) {
+        const int *hid_grads_dims = CudaNdarray_HOST_DIMS(%(hid_grads)s);
+        const int hidGradsSizeY = hid_grads_dims[1];
+        const int hidGradsSizeX = hid_grads_dims[2];
+        const int numModules = hidGradsSizeX * hidGradsSizeY;
+        int partialSum = %(partial_sum)d > 0 ? %(partial_sum)d : numModules;
+        if (numModules %% partialSum > 0) {
             PyErr_Format(PyExc_ValueError,
                 "partialSum must divide numModules, but partialSum=%%d and "
                 "numModules=%%d", partialSum, numModules);
@@ -189,11 +193,7 @@ class WeightActs(BaseActs):
         }
 
         { //setup_nv_hid_grads brace 1
-        const int *hid_grads_dims = CudaNdarray_HOST_DIMS(%(hid_grads)s);
         const int numFilters = hid_grads_dims[0];
-        const int hidGradsSizeY = hid_grads_dims[1];
-        const int hidGradsSizeX = hid_grads_dims[2];
-        const int numModules = hidGradsSizeX * hidGradsSizeY;
         const int batch_size = hid_grads_dims[3];
         NVMatrix nv_hid_grads(%(hid_grads)s, numFilters * hidGradsSizeY *
                                            hidGradsSizeX, batch_size, "weight_acts:nv_hid_grads");
@@ -220,7 +220,7 @@ class WeightActs(BaseActs):
         CudaNdarray *partialsum_storage = NULL;
         if (partialSum != numModules &&
             CudaNdarray_prep_output(&partialsum_storage, 5,
-                                    partialsum_storage_dims)
+                                    partialsum_storage_dims))
         {
             %(fail)s;
         }
