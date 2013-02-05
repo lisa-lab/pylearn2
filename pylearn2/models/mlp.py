@@ -9,6 +9,7 @@ __maintainer__ = "Ian Goodfellow"
 
 from collections import OrderedDict
 import numpy as np
+import sys
 import warnings
 
 from theano import config
@@ -28,6 +29,22 @@ from pylearn2.space import VectorSpace
 from pylearn2.utils import function
 from pylearn2.utils import safe_izip
 from pylearn2.utils import sharedX
+
+warnings.warn("MLP changing the recursion limit.")
+# We need this to be high enough that the big theano graphs we make
+# when doing max pooling via subtensors don't cause python to complain.
+# python intentionally declares stack overflow well before the stack
+# segment is actually exceeded. But we can't make this value too big
+# either, or we'll get seg faults when the python interpreter really
+# does go over the stack segment.
+# IG encountered seg faults on eos3 (a machine at LISA labo) when using
+# 50000 so for now it is set to 40000.
+# I think the actual safe recursion limit can't be predicted in advance
+# because you don't know how big of a stack frame each function will
+# make, so there is not really a "correct" way to do this. Really the
+# python interpreter should provide an option to raise the error
+# precisely when you're going to exceed the stack segment.
+sys.setrecursionlimit(40000)
 
 class Layer(Model):
     """
