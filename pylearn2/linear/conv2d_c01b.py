@@ -142,12 +142,12 @@ class Conv2D(LinearTransform):
                 self.input_space.shape[1]),
                 dtype = dummy_v.dtype)
 
-        z_hs = conv2d(dummy_v, self._filters,
-                image_shape=self._img_shape,
-                filter_shape=self._filters_shape,
-                subsample=self._subsample,
-                pad = self.pad
-                )
+        z_hs = 0. #conv2d(dummy_v, self._filters,
+                #image_shape=self._img_shape,
+                #filter_shape=self._filters_shape,
+                #subsample=self._subsample,
+                #pad = self.pad
+                #)
 
         rval, xdummy = z_hs.owner.op.grad((dummy_v, self._filters), (x,))
 
@@ -184,12 +184,12 @@ class Conv2D(LinearTransform):
         # dot(x, sq(A).T)
         dummy_v = T.tensor4()
         sqfilt = T.square(self._filters)
-        z_hs = conv2d(dummy_v, sqfilt,
-                image_shape=self._img_shape,
-                filter_shape=self._filters_shape,
-                subsample=self._subsample,
-                pad = self.pad
-                )
+        z_hs = 0. #conv2d(dummy_v, sqfilt,
+                #image_shape=self._img_shape,
+                #filter_shape=self._filters_shape,
+                #subsample=self._subsample,
+                #pad = self.pad
+                #)
         rval, xdummy = z_hs.owner.op.grad((dummy_v, sqfilt), (x,))
 
         # Format the output based on the input space
