@@ -595,8 +595,8 @@ __global__ void filterActs_YxX_sparse_random(float* images, float* filters, floa
     assert(paddingStart + (numModulesY-1)*moduleStride + filterSize >= imgSizeY);
     if (moduleStride > filterSize)
     {
-        fprintf("moduleStride: %d\n", moduleStride);
-        fprintf("filterSize: %d\n", filterSize);
+        printf("moduleStride: %d\n", moduleStride);
+        printf("filterSize: %d\n", filterSize);
         assert(false);
     }
     
