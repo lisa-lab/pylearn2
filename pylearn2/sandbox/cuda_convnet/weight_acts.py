@@ -41,6 +41,7 @@ The copyright and licensing notice for this code is reproduced below:
 
 """
 
+from theano.misc.strutil import renderString
 from theano.sandbox.cuda import CudaNdarrayType
 from theano.gof import Apply
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
@@ -109,6 +110,7 @@ class WeightActs(BaseActs):
         images, hid_grads = inputs
         weights_grads, = outputs
         fail = sub['fail']
+        pad = self.pad
 
         # convFilterActs will multiply targets by scaleTargets
         # then add scaleOutput * (the convolution value)
@@ -130,15 +132,15 @@ class WeightActs(BaseActs):
             """
 
         basic_setup += """
-        #define paddingStart -%d
+        #define paddingStart -%(pad)d
         int partialSum = %(partial_sum)d > 0 ? %(partial_sum)d : num_Modules;
-        if (numModule % partialSum > 0) {
+        if (numModule %% partialSum > 0) {
             PyErr_Format(PyExc_ValueError,
                 "partialSum must divide numModules, but partialSum=%%d and "
                 "numModules=%%d", partialSum, numModules);
             %(fail)s;
         }
-        """ % self.pad
+        """
 
         if self.stride != 1:
             raise UnimplementedError()
@@ -300,7 +302,7 @@ class WeightActs(BaseActs):
                 run_kernel +
                 braces)
 
-        rval = rval % locals()
+        rval = renderString(rval, locals())
 
         return rval
 
