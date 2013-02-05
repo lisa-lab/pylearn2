@@ -1699,6 +1699,8 @@ def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape):
     r, c = image_shape
     pr, pc = pool_shape
     rs, cs = pool_stride
+    assert pr > 0
+    assert pc > 0
     assert pr <= r
     assert pc <= c
 
