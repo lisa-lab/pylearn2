@@ -293,7 +293,6 @@ class WeightActs(BaseActs):
             nv_weights_grads.addSum(nv_partialsum, AXIS, SCALE_THIS, SCALE_SUM);
 
         }
-        }
         """
 
         warnings.warn("WeightActs does not attempt to use Alex's "
