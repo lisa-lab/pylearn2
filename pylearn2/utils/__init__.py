@@ -1,4 +1,4 @@
-import warnings
+import os
 
 from .general import is_iterable
 import theano
@@ -9,7 +9,6 @@ cuda = None
 
 import numpy
 np = numpy
-import hashlib
 
 def make_name(variable, anon = "anonymous_variable"):
     """
@@ -177,10 +176,13 @@ from theano.printing import hex_digest
 
 def function(*args, **kwargs):
     """
-    A wrapper around theano.function that disables the on_unused_input
-    error. Almost no part of pylearn2 can assume that an unused input
-    is an error.
+    A wrapper around theano.function that:
+
+        -Disables the on_unused_input error. Almost no part of
+         pylearn2 can assume that an unused input is an error, so
+         the default from theano is inappropriate for this project.
     """
+
     return theano.function(*args, on_unused_input='ignore', **kwargs)
 
 def grad(*args, **kwargs):

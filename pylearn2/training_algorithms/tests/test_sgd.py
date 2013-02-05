@@ -1,28 +1,32 @@
-from pylearn2.train import Train
-from pylearn2.monitor import Monitor
-from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
-from pylearn2.models.model import Model
-from pylearn2.space import VectorSpace
-from pylearn2.space import Conv2DSpace
-from pylearn2.utils import sharedX
-from pylearn2.training_algorithms.sgd import SGD
-from pylearn2.training_algorithms.sgd import EpochCounter
-from pylearn2.costs.cost import CrossEntropy
-from pylearn2.costs.cost import Cost
-import theano.tensor as T
-import numpy as np
-from pylearn2.testing.datasets import ArangeDataset
-from pylearn2.testing.cost import CallbackCost
-from pylearn2.utils.iteration import _iteration_schemes
 import cStringIO
+import numpy as np
+
+import theano.tensor as T
+from theano.tests import disturb_mem
+
+
+from pylearn2.costs.cost import Cost
+from pylearn2.costs.cost import CrossEntropy
 from pylearn2.devtools.record import Record
 from pylearn2.devtools.record import RecordMode
-from theano.tests import disturb_mem
-from pylearn2.training_algorithms.sgd import PolyakAveraging
-from pylearn2.training_algorithms.sgd import MomentumAdjustor
+from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
+from pylearn2.models.model import Model
+from pylearn2.monitor import Monitor
+from pylearn2.space import Conv2DSpace
+from pylearn2.space import VectorSpace
+from pylearn2.testing.cost import CallbackCost
+from pylearn2.testing.cost import SumOfParams
+from pylearn2.testing.datasets import ArangeDataset
+from pylearn2.train import Train
+from pylearn2.training_algorithms.sgd import EpochCounter
 from pylearn2.training_algorithms.sgd import ExponentialDecay
-from pylearn2.utils import safe_union
+from pylearn2.training_algorithms.sgd import MomentumAdjustor
+from pylearn2.training_algorithms.sgd import PolyakAveraging
+from pylearn2.training_algorithms.sgd import SGD
+from pylearn2.utils.iteration import _iteration_schemes
 from pylearn2.utils import safe_izip
+from pylearn2.utils import safe_union
+from pylearn2.utils import sharedX
 
 class DummyCost(Cost):
     def __call__(self, model, X, Y = None):
@@ -640,4 +644,102 @@ def test_determinism_2():
 
     run_sgd(playback_mode)
 
+def test_lr_scalers():
+    """
+    Tests that SGD respects Model.get_lr_scalers
+    """
 
+    cost = SumOfParams()
+
+    scales = [ .01, .02, .05, 1., 5. ]
+    shapes = [(1,), (9,), (8, 7), (6, 5, 4), (3, 2, 2, 2)]
+
+    learning_rate = .001
+
+    class ModelWithScalers(Model):
+        def __init__(self):
+            self._params = [sharedX(np.zeros(shape)) for shape in shapes]
+            self.input_space = VectorSpace(1)
+
+        def get_lr_scalers(self):
+            return dict(zip(self._params, scales))
+
+    model = ModelWithScalers()
+
+    dataset = ArangeDataset(1)
+
+    sgd = SGD(cost=cost, learning_rate=learning_rate, init_momentum=0.,
+            batch_size=1)
+
+    sgd.setup(model=model, dataset=dataset)
+
+    manual = [param.get_value() for param in model.get_params()]
+    manual = [param - learning_rate * scale for param, scale in
+            zip(manual, scales)]
+
+    sgd.train(dataset=dataset)
+
+    assert all(np.allclose(manual_param, sgd_param.get_value()) for manual_param,
+            sgd_param in zip(manual, model.get_params()))
+
+    manual = [param - learning_rate * scale for param, scale in
+            zip(manual, scales)]
+
+    sgd.train(dataset=dataset)
+
+    assert all(np.allclose(manual_param, sgd_param.get_value()) for manual_param,
+            sgd_param in zip(manual, model.get_params()))
+
+def test_lr_scalers_momentum():
+    """
+    Tests that SGD respects Model.get_lr_scalers when using
+    momentum.
+    """
+
+    cost = SumOfParams()
+
+    scales = [ .01, .02, .05, 1., 5. ]
+    shapes = [(1,), (9,), (8, 7), (6, 5, 4), (3, 2, 2, 2)]
+
+    learning_rate = .001
+
+    class ModelWithScalers(Model):
+        def __init__(self):
+            self._params = [sharedX(np.zeros(shape)) for shape in shapes]
+            self.input_space = VectorSpace(1)
+
+        def get_lr_scalers(self):
+            return dict(zip(self._params, scales))
+
+    model = ModelWithScalers()
+
+    dataset = ArangeDataset(1)
+
+    momentum = 0.5
+
+    sgd = SGD(cost=cost, learning_rate=learning_rate, init_momentum=momentum,
+            batch_size=1)
+
+    sgd.setup(model=model, dataset=dataset)
+
+    manual = [param.get_value() for param in model.get_params()]
+    inc = [ - learning_rate * scale for param, scale in
+            zip(manual, scales)]
+    manual = [param + i for param, i in zip(manual, inc)]
+
+    sgd.train(dataset=dataset)
+
+    assert all(np.allclose(manual_param, sgd_param.get_value()) for manual_param,
+            sgd_param in zip(manual, model.get_params()))
+
+    manual = [param - learning_rate * scale + i * momentum for param, scale, i in
+            zip(manual, scales, inc)]
+
+    sgd.train(dataset=dataset)
+
+    assert all(np.allclose(manual_param, sgd_param.get_value()) for manual_param,
+            sgd_param in zip(manual, model.get_params()))
+
+if __name__ == '__main__':
+    test_lr_scalers()
+    test_lr_scalers_momentum()
