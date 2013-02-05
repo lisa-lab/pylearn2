@@ -593,7 +593,11 @@ __global__ void filterActs_YxX_sparse_random(float* images, float* filters, floa
     assert(paddingStart <= 0);
     assert(paddingStart + (numModulesX-1)*moduleStride + filterSize >= imgSizeX);
     assert(paddingStart + (numModulesY-1)*moduleStride + filterSize >= imgSizeY);
-    assert(moduleStride <= filterSize);
+    if (moduleStride > filterSize)
+    {
+        fprintf("moduleStride: %d\n", moduleStride);
+        fprintf("filterSize: %d\n", filterSize);
+    }
     
     assert(!images.isTrans());
     assert(!filters.isTrans());
