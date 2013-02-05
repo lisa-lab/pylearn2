@@ -85,8 +85,6 @@ class MNIST_variations(dense_design_matrix.DenseDesignMatrix):
             for i in xrange(labels.shape[0]):
                 one_hot[i,labels[i]] = 1.
             labels = one_hot
-        
-        print inputs.std(axis=0).mean()
                 
         # If required, shuffle the data
         if shuffle:
