@@ -54,7 +54,8 @@ class BaseActs(GpuOp):
     """
     cpp_source_file = None
 
-    def __init__(self, pad = 0):
+    def __init__(self, pad=0, partial_sum=None):
+        self.partial_sum = partial_sum
         self.pad = pad
         # TODO: support sparse connectivity pattern
         self.dense_connectivity = True

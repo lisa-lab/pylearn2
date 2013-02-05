@@ -43,7 +43,8 @@ The copyright and licensing notice for this code is reproduced below:
 
 from theano.sandbox.cuda import CudaNdarrayType
 from theano.gof import Apply
-from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
+from pylearn2.sandbox.cuda_convnet.base_acts import (BaseActs,
+                                                     UnimplementedError)
 import warnings
 
 class WeightActs(BaseActs):
@@ -104,7 +105,7 @@ class WeightActs(BaseActs):
         return Apply(self, [images, hid_grads], [weights_grads])
 
     def c_code(self, node, name, inputs, outputs, sub):
-
+        partial_sum = self.partial_sum if self.partial_sum is not None else 0
         images, hid_grads = inputs
         weights_grads, = outputs
         fail = sub['fail']
@@ -130,6 +131,13 @@ class WeightActs(BaseActs):
 
         basic_setup += """
         #define paddingStart -%d
+        int partialSum = %(partial_sum)d > 0 ? %(partial_sum)d : num_Modules;
+        if (numModule % partialSum > 0) {
+            PyErr_Format(PyExc_ValueError,
+                "partialSum must divide numModules, but partialSum=%%d and "
+                "numModules=%%d", partialSum, numModules);
+            %(fail)s;
+        }
         """ % self.pad
 
         if self.stride != 1:
@@ -200,8 +208,20 @@ class WeightActs(BaseActs):
         filters_dims[2] = imgSizeX - hidGradsSizeX + 1 - 2 * paddingStart;
         assert(filters_dims[1] == filters_dims[2]); // only square kernels are supported
         filters_dims[3] = numFilters;
-
         const int filterSize = filters_dims[1];
+        int partialsum_storage_dims[5];
+        for (int i = 1; i < 5; i++)
+        {
+            partialsum_storage_dims[i] = filters_dims[i - 1];
+        }
+        partialsum_storage_dims[0] = numModules / partialSum;
+        CudaNdarray *partialsum_storage = NULL;
+        if (partialSum != numModules &&
+            CudaNdarray_prep_output(&partialsum_storage, 5,
+                                    partialsum_storage_dims)
+        {
+            %(fail)s;
+        }
 
         for (int i = 0; i < 4; i++)
         {
@@ -213,6 +233,7 @@ class WeightActs(BaseActs):
         }
         if (CudaNdarray_prep_output(& %(weights_grads)s, 4, filters_dims))
         {
+            Py_DECREF(partialsum_storage);
             %(fail)s;
         }
 
@@ -238,14 +259,24 @@ class WeightActs(BaseActs):
         #
         run_kernel = """
 
-        // I think if we set this to any other value, we end up with a 5-tensor that
-        // we need to sum out in a second pass
-        const int partialSum = numModules;
-
-        _weightActs(nv_images, nv_hid_grads, nv_weights_grads,
-                    imgSizeY, hidGradsSizeY, hidGradsSizeX, filterSize,
-                    paddingStart, moduleStride, img_channels, numGroups,
-                    partialSum, 0, 1);
+        if (partialSum == numModules)
+            _weightActs(nv_images, nv_hid_grads, nv_weights_grads,
+                        imgSizeY, hidGradsSizeY, hidGradsSizeX, filterSize,
+                        paddingStart, moduleStride, img_channels, numGroups,
+                        partialSum, 0, 1);
+        else {
+            NVMatrix nv_partialsum(partialsum_storage, numModules / partialSum
+            * filters_dims[0] * filterSize * filterSize, numFilters,
+            "weight_acts: nv_partialsum");
+            _weightActs(nv_images, nv_hid_grads, nv_partialsum,
+                        imgSizeY, hidGradsSizeY, hidGradsSizeX, filterSize,
+                        paddingStart, moduleStride, img_channels, numGroups,
+                        partialSum, 0, 1);
+            partialsum_storage.reshape(numModules / partialSum, filters_dims[0] *
+                      filterSize * filterSize * numFilters);
+            nv_weights_grads.addSum(nv_partialsum, 0, 0, 1);
+        }
+        }
         """
 
         warnings.warn("WeightActs does not attempt to use Alex's "
