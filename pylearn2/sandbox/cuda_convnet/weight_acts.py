@@ -274,7 +274,15 @@ class WeightActs(BaseActs):
                         partialSum, 0, 1);
             partialsum_storage.reshape(numModules / partialSum, filters_dims[0] *
                       filterSize * filterSize * numFilters);
-            nv_weights_grads.addSum(nv_partialsum, 0, 0, 1);
+
+            // sum out axis 0 of nv_partialsum
+            #define AXIS 0
+            // scale the contents of nv_weights_grads by 0
+            // i.e., clear out its pre-existing content
+            #define SCALE_THIS 0
+            // scale the new sum by 1, i.e., don't do any scaling
+            #define SCALE_SUM 1
+            nv_weights_grads.addSum(nv_partialsum, AXIS, SCALE_THIS, SCALE_SUM);
         }
         }
         """
