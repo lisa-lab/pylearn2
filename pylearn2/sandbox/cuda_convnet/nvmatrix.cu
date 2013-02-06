@@ -519,10 +519,12 @@ void NVMatrix::sliceCols(int startCol, int endCol, NVMatrix& target) const {
 bool NVMatrix::resize(int numRows, int numCols) {
     bool reallocated = false;
     if (numRows != _numRows || numCols != _numCols) {
-        assert(_ownsData);
+        // this assertion was removed by Ian Goodfellow because it seems to come too early
+        // assert(_ownsData);
         if (_numElements != numRows * numCols) {
+            assert(_ownsData); // assert moved here by Ian Goodfellow
             if (_numElements > 0) { // free old memory
-		// This line was modified by Ian Goodfellow to use device_free so theano may track device memory usage accurately
+		        // This line was modified by Ian Goodfellow to use device_free so theano may track device memory usage accurately
                 int status = device_free(_devData);
                 if (status != 0) {
                     fprintf(stderr, "!!!! memory free error: %X\n", status);
@@ -755,6 +757,7 @@ void NVMatrix::eltwiseDivideByVector(NVMatrix& vec, NVMatrix& target) {
  *
  * TODO: this is a mess, fix it. it works pretty fast but it's too ugly.
  * TODO: this function is _really_ bad for very long aggregations of few columns.
+ */
 template<class Agg, class BinaryOp>
 void NVMatrix::_aggregate(int axis, NVMatrix& target, Agg agg, BinaryOp op) {
     assert(axis == 0 || axis == 1);
@@ -862,7 +865,6 @@ void NVMatrix::_aggregate(int axis, NVMatrix& target, Agg agg, BinaryOp op) {
         }
     }
 }
- */
 
 void NVMatrix::inRangeInc(float lower, float upper) {
     inRangeInc(lower, upper, *this);
@@ -941,14 +943,12 @@ void NVMatrix::scale(float _scale, NVMatrix& target) {
     }
 }
 
-/*
 template<class Agg, class BinaryOp>
 NVMatrix& NVMatrix::_aggregate(int axis, Agg agg, BinaryOp op) {
     NVMatrix *sumVec = new NVMatrix();
     _aggregate<Agg, BinaryOp>(axis, *sumVec, agg, op);
     return *sumVec;
 }
-
 
 void NVMatrix::max(int axis, NVMatrix& target) {
     _aggregate(axis, target, NVMatrixAggs::Max(), NVMatrixBinaryOps::Second());
@@ -961,11 +961,10 @@ void NVMatrix::addSum(NVMatrix& a, int axis, float scaleThis, float scaleSum) {
         a._aggregate(axis, *this, NVMatrixAggs::Sum(), NVMatrixBinaryOps::SecondScaled(scaleSum));
     }
 }
-
 void NVMatrix::sum(int axis, NVMatrix& target) {
     _aggregate(axis, target, NVMatrixAggs::Sum(), NVMatrixBinaryOps::Second());
 }
-
+/*
 void NVMatrix::min(int axis, NVMatrix& target) {
     _aggregate(axis, target, NVMatrixAggs::Min(), NVMatrixBinaryOps::Second());
 }
