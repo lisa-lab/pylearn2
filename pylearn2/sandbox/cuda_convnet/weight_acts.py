@@ -41,6 +41,7 @@ The copyright and licensing notice for this code is reproduced below:
 
 """
 
+from theano.misc.strutil import renderString
 from theano.sandbox.cuda import CudaNdarrayType
 from theano.gof import Apply
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
@@ -105,10 +106,11 @@ class WeightActs(BaseActs):
         return Apply(self, [images, hid_grads], [weights_grads])
 
     def c_code(self, node, name, inputs, outputs, sub):
-
+        partial_sum = self.partial_sum if self.partial_sum is not None else 0
         images, hid_grads = inputs
         weights_grads, = outputs
         fail = sub['fail']
+        pad = self.pad
 
         # convFilterActs will multiply targets by scaleTargets
         # then add scaleOutput * (the convolution value)
@@ -130,8 +132,19 @@ class WeightActs(BaseActs):
             """
 
         basic_setup += """
-        #define paddingStart -%d
-        """ % self.pad
+        #define paddingStart -%(pad)d
+        const int *hid_grads_dims = CudaNdarray_HOST_DIMS(%(hid_grads)s);
+        const int hidGradsSizeY = hid_grads_dims[1];
+        const int hidGradsSizeX = hid_grads_dims[2];
+        const int numModules = hidGradsSizeX * hidGradsSizeY;
+        int partialSum = %(partial_sum)d > 0 ? %(partial_sum)d : numModules;
+        if (numModules %% partialSum > 0) {
+            PyErr_Format(PyExc_ValueError,
+                "partialSum must divide numModules, but partialSum=%%d and "
+                "numModules=%%d", partialSum, numModules);
+            %(fail)s;
+        }
+        """
 
         if self.stride != 1:
             raise UnimplementedError()
@@ -180,11 +193,7 @@ class WeightActs(BaseActs):
         }
 
         { //setup_nv_hid_grads brace 1
-        const int *hid_grads_dims = CudaNdarray_HOST_DIMS(%(hid_grads)s);
         const int numFilters = hid_grads_dims[0];
-        const int hidGradsSizeY = hid_grads_dims[1];
-        const int hidGradsSizeX = hid_grads_dims[2];
-        const int numModules = hidGradsSizeX * hidGradsSizeY;
         const int batch_size = hid_grads_dims[3];
         NVMatrix nv_hid_grads(%(hid_grads)s, numFilters * hidGradsSizeY *
                                            hidGradsSizeX, batch_size, "weight_acts:nv_hid_grads");
@@ -201,8 +210,20 @@ class WeightActs(BaseActs):
         filters_dims[2] = imgSizeX - hidGradsSizeX + 1 - 2 * paddingStart;
         assert(filters_dims[1] == filters_dims[2]); // only square kernels are supported
         filters_dims[3] = numFilters;
-
         const int filterSize = filters_dims[1];
+        int partialsum_storage_dims[5];
+        for (int i = 1; i < 5; i++)
+        {
+            partialsum_storage_dims[i] = filters_dims[i - 1];
+        }
+        partialsum_storage_dims[0] = numModules / partialSum;
+        CudaNdarray *partialsum_storage = NULL;
+        if (partialSum != numModules &&
+            CudaNdarray_prep_output(&partialsum_storage, 5,
+                                    partialsum_storage_dims))
+        {
+            %(fail)s;
+        }
 
         for (int i = 0; i < 4; i++)
         {
@@ -214,6 +235,7 @@ class WeightActs(BaseActs):
         }
         if (CudaNdarray_prep_output(& %(weights_grads)s, 4, filters_dims))
         {
+            Py_DECREF(partialsum_storage);
             %(fail)s;
         }
 
@@ -239,19 +261,33 @@ class WeightActs(BaseActs):
         #
         run_kernel = """
 
-        // I think if we set this to any other value, we end up with a 5-tensor that
-        // we need to sum out in a second pass
-        const int partialSum = numModules;
+        if (partialSum == numModules)
+            _weightActs(nv_images, nv_hid_grads, nv_weights_grads,
+                        imgSizeY, hidGradsSizeY, hidGradsSizeX, filterSize,
+                        paddingStart, moduleStride, img_channels, numGroups,
+                        partialSum, 0, 1);
+        else {
+            NVMatrix nv_partialsum(partialsum_storage, (numModules / partialSum) *
+                     filters_dims[0] * filterSize * filterSize, numFilters,
+                     "weight_acts: nv_partialsum");
+            _weightActs(nv_images, nv_hid_grads, nv_partialsum,
+                        imgSizeY, hidGradsSizeY, hidGradsSizeX, filterSize,
+                        paddingStart, moduleStride, img_channels, numGroups,
+                        partialSum, 0, 1);
+            nv_partialsum.reshape((numModules / partialSum), filters_dims[0] * filterSize * filterSize * numFilters);
 
-        _weightActs(nv_images, nv_hid_grads, nv_weights_grads,
-                    imgSizeY, hidGradsSizeY, hidGradsSizeX, filterSize,
-                    paddingStart, moduleStride, img_channels, numGroups,
-                    partialSum, 0, 1);
+            // sum out axis 0 of nv_partialsum
+            #define AXIS 0
+            // scale the contents of nv_weights_grads by 0
+            // i.e., clear out its pre-existing content
+            #define SCALE_THIS 0
+            // scale the new sum by 1, i.e., don't do any scaling
+            #define SCALE_SUM 1
+            nv_weights_grads.addSum(nv_partialsum, AXIS, SCALE_THIS, SCALE_SUM);
+
+            Py_DECREF(partialsum_storage);
+        }
         """
-
-        warnings.warn("WeightActs does not attempt to use Alex's "
-                      "partialSum flag intelligently. This probably "
-                      "means our performance is suboptimal.")
 
         braces = '}' * num_braces
 
@@ -262,7 +298,7 @@ class WeightActs(BaseActs):
                 run_kernel +
                 braces)
 
-        rval = rval % locals()
+        rval = renderString(rval, locals())
 
         return rval
 

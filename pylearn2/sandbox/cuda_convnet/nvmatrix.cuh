@@ -95,11 +95,9 @@ private:
     void _init(int numRows, int numCols);
     void _init(int numRows, int numCols, int stride, bool isTrans);
     void _sum_setParams(int n, dim3* blocks, dim3* threads, int* numCols);
-    // Commented by Ian Goodfellow because it depends on Matrix
-    // template<class Agg> float _totalAgg(Agg agg);
-    // Commented by Ian Goodfellow. Not sure if necessary
-    // template<class Agg, class BinaryOp> void _aggregate(int axis, NVMatrix& target, Agg agg, BinaryOp op);
-    // template<class Agg, class BinaryOp> NVMatrix& _aggregate(int axis, Agg agg, BinaryOp op);
+    template<class Agg> float _totalAgg(Agg agg);
+    template<class Agg, class BinaryOp> void _aggregate(int axis, NVMatrix& target, Agg agg, BinaryOp op);
+    template<class Agg, class BinaryOp> NVMatrix& _aggregate(int axis, Agg agg, BinaryOp op);
     template <class Randomizer> void _unaryRandomize(NVMatrix& target, Randomizer rnd);
     template <class Randomizer> void _binaryRandomize(NVMatrix& data2, NVMatrix& target, Randomizer rnd);   
 public:
@@ -385,20 +383,20 @@ public:
     void eltwiseDivideByVector(NVMatrix& vec);
     void tile(int timesY, int timesX, NVMatrix& target);
 
-    /* Commented by IG. Depends on _aggregate
-    void addSum(NVMatrix& a, int axis, float scaleThis, float scaleSum);
     void sum(int axis, NVMatrix& target);
-    NVMatrix& sum(int axis);
+    void addSum(NVMatrix& a, int axis, float scaleThis, float scaleSum);
+    // Commented by IG NVMatrix& max(int axis);
     void max(int axis, NVMatrix& target);
-    NVMatrix& max(int axis);
+    /* Commented by IG. Depends on _aggregate
+    NVMatrix& sum(int axis);
     void min(int axis, NVMatrix& target);
     NVMatrix& min(int axis);
     */
     // Commented by IG. Depends on sum
     // float mean();
+    // Commented by IG float max();
     /* Commented by IG. Depends on _totalAgg
     float sum();
-    float max();
     float min();
     Depend on dotProduct:
     float norm2();
