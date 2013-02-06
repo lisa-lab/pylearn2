@@ -11,9 +11,13 @@ from pylearn2.sandbox.cuda_convnet.shared_code import load_code
 from pylearn2.sandbox.cuda_convnet.shared_code import this_dir
 
 
-def max_pool_c01b(input, ds, stride, start=0):
-    op = MaxPool(ds, stride, start)
-    return op(input)
+def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape = None,  start=0):
+    assert pool_shape[0] == pool_shape[1]
+    assert pool_stride[0] == pool_stride[1]
+    if image_shape is not None:
+        warnings.warn("image_shape argument isn't needed anymore, quit passing it.")
+    op = MaxPool(pool_shape[0], pool_stride[0], start)
+    return op(c01b)
 
 
 class MaxPool(GpuOp):
