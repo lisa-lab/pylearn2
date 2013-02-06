@@ -29,7 +29,7 @@ def test_match_grad_valid_conv():
         rng = np.random.RandomState([2012,10,9])
 
         batch_size = 3
-        rows = 10
+        rows = 7
         cols = 9
         channels = 8
         filter_rows = 4
@@ -73,7 +73,7 @@ def test_match_grad_valid_conv():
 
         output, output_conv2d, weights_grad, weights_grad_conv2d = f()
 
-        if np.abs(output - output_conv2d).max() > 3.9e-6:
+        if np.abs(output - output_conv2d).max() > 8e-6:
             assert type(output) == type(output_conv2d)
             assert output.dtype == output_conv2d.dtype
             if output.shape != output_conv2d.shape:

@@ -46,8 +46,6 @@ from theano.sandbox.cuda import CudaNdarrayType
 from theano.gof import Apply
 from pylearn2.sandbox.cuda_convnet.base_acts import (BaseActs,
                                                      UnimplementedError)
-import warnings
-
 class WeightActs(BaseActs):
     """
     Transforms the gradient on the output of FilterActs into the gradient
@@ -274,6 +272,7 @@ class WeightActs(BaseActs):
                         imgSizeY, hidGradsSizeY, hidGradsSizeX, filterSize,
                         paddingStart, moduleStride, img_channels, numGroups,
                         partialSum, 0, 1);
+            nv_partialsum.reshape((numModules / partialSum), filters_dims[0] * filterSize * filterSize * numFilters);
 
             // sum out axis 0 of nv_partialsum
             #define AXIS 0
