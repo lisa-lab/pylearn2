@@ -274,6 +274,7 @@ class WeightActs(BaseActs):
                         imgSizeY, hidGradsSizeY, hidGradsSizeX, filterSize,
                         paddingStart, moduleStride, img_channels, numGroups,
                         partialSum, 0, 1);
+            nv_partialsum.reshape((numModules / partialSum), filters_dims[0] * filterSize * filterSize * numFilters);
 
             // sum out axis 0 of nv_partialsum
             #define AXIS 0
