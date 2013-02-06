@@ -519,10 +519,12 @@ void NVMatrix::sliceCols(int startCol, int endCol, NVMatrix& target) const {
 bool NVMatrix::resize(int numRows, int numCols) {
     bool reallocated = false;
     if (numRows != _numRows || numCols != _numCols) {
-        assert(_ownsData);
+        // this assertion was removed by Ian Goodfellow because it seems to come too early
+        // assert(_ownsData);
         if (_numElements != numRows * numCols) {
+            assert(_ownsData); // assert moved here by Ian Goodfellow
             if (_numElements > 0) { // free old memory
-		// This line was modified by Ian Goodfellow to use device_free so theano may track device memory usage accurately
+		        // This line was modified by Ian Goodfellow to use device_free so theano may track device memory usage accurately
                 int status = device_free(_devData);
                 if (status != 0) {
                     fprintf(stderr, "!!!! memory free error: %X\n", status);
