@@ -405,7 +405,7 @@ class MaxPoolGrad(GpuOp):
         if (CudaNdarray_HOST_DIMS(%(gz)s)[0] %% 16 != 0)
         {
             PyErr_Format(PyExc_ValueError,
-                "gz must have a number of channe that is a multiple of 16. Got %%d",
+                "gz must have a number of channels that is a multiple of 16. Got %%d",
                 CudaNdarray_HOST_DIMS(%(gz)s)[0]);
             %(fail)s;
         }
