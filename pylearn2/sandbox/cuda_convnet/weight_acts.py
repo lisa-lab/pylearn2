@@ -267,8 +267,8 @@ class WeightActs(BaseActs):
                         paddingStart, moduleStride, img_channels, numGroups,
                         partialSum, 0, 1);
         else {
-            NVMatrix nv_partialsum(partialsum_storage, numModules / partialSum,
-                     filters_dims[0] * filterSize * filterSize * numFilters,
+            NVMatrix nv_partialsum(partialsum_storage, (numModules / partialSum) *
+                     filters_dims[0] * filterSize * filterSize, numFilters,
                      "weight_acts: nv_partialsum");
             _weightActs(nv_images, nv_hid_grads, nv_partialsum,
                         imgSizeY, hidGradsSizeY, hidGradsSizeX, filterSize,
