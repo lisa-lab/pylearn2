@@ -132,7 +132,7 @@ class WeightActs(BaseActs):
             """
 
         basic_setup += """
-        #define paddingStart -%(pad)d
+        #define paddingStart (-%(pad)d)
         const int *hid_grads_dims = CudaNdarray_HOST_DIMS(%(hid_grads)s);
         const int hidGradsSizeY = hid_grads_dims[1];
         const int hidGradsSizeX = hid_grads_dims[2];
