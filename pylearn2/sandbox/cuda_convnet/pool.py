@@ -3,6 +3,7 @@ import warnings
 from theano.gof import Apply
 from theano.sandbox.cuda import CudaNdarrayType
 from theano.sandbox.cuda.basic_ops import as_cuda_ndarray_variable
+from theano.sandbox.cuda.basic_ops import gpu_contiguous
 from theano.sandbox.cuda import GpuOp
 from theano.tensor import get_scalar_constant_value, NotScalarConstantError
 
@@ -17,6 +18,7 @@ def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape = None,  start=0):
     if image_shape is not None:
         warnings.warn("image_shape argument isn't needed anymore, quit passing it.")
     op = MaxPool(pool_shape[0], pool_stride[0], start)
+    c01b = gpu_contiguous(c01b)
     return op(c01b)
 
 
@@ -227,6 +229,7 @@ class MaxPool(GpuOp):
     def grad(self, inp, grads):
         x, = inp
         gz, = grads
+        gz = gpu_contiguous(gz)
         maxout = self(x)
         return [MaxPoolGrad(self.ds, self.stride, self.start)(x, maxout, gz)]
 
