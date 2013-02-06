@@ -588,6 +588,10 @@ class MomentumAdjustor(TrainExtension):
             start: the epoch on which to start growing the momentum coefficient.
             saturate: the epoch on which the moment should reach its final value
         """
+
+        if saturate < start:
+            raise TypeError("Momentum can't saturate at its maximum value before it starts increasing.")
+
         self.__dict__.update(locals())
         del self.self
         self._initialized = False
@@ -602,6 +606,13 @@ class MomentumAdjustor(TrainExtension):
 
     def current_momentum(self):
         w = self.saturate - self.start
+
+        if w == 0:
+            # saturate=start, so just jump straight to final momentum
+            if self._count >= self.start:
+                return self.final_momentum
+            return self._init_momentum
+
         alpha = float(self._count - self.start) / float(w)
         if alpha < 0.:
             alpha = 0.
