@@ -288,10 +288,6 @@ class WeightActs(BaseActs):
         }
         """
 
-        warnings.warn("WeightActs does not attempt to use Alex's "
-                      "partialSum flag intelligently. This probably "
-                      "means our performance is suboptimal.")
-
         braces = '}' * num_braces
 
         rval = (basic_setup +
