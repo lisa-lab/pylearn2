@@ -7,6 +7,7 @@ from theano.sandbox.cuda.basic_ops import gpu_contiguous
 from theano.sandbox.cuda import GpuOp
 from theano.tensor import get_scalar_constant_value, NotScalarConstantError
 
+from pylearn2.sandbox.cuda_convnet.base_acts import UnimplementedError
 from pylearn2.sandbox.cuda_convnet.shared_code import get_NVMatrix_code
 from pylearn2.sandbox.cuda_convnet.shared_code import load_code
 from pylearn2.sandbox.cuda_convnet.shared_code import this_dir
