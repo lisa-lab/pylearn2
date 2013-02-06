@@ -42,7 +42,7 @@ class Conv2D(LinearTransform):
             batch_size=None,
             output_axes = ('c', 0, 1, 'b'),
         subsample = (1, 1), pad=0,
-         message = ''):
+         message = '', partial_sum=None):
 
         if subsample != (1, 1):
             raise NotImplementedError()
@@ -65,6 +65,7 @@ class Conv2D(LinearTransform):
         assert 'Cuda' in str(type(filters))
         self._filters = filters
         self.pad = pad
+        self.partial_sum = partial_sum
 
     @functools.wraps(LinearTransform.get_params)
     def get_params(self):
@@ -101,7 +102,7 @@ class Conv2D(LinearTransform):
 
         x = gpu_contiguous(x)
 
-        rval = FilterActs(self.pad)(x, self._filters)
+        rval = FilterActs(self.pad, self.partial_sum)(x, self._filters)
 
         # Format the output based on the output space
         rval_axes = self.output_axes
@@ -212,7 +213,8 @@ class Conv2D(LinearTransform):
 def make_random_conv2D(irange, input_channels, input_axes, output_axes,
         output_channels,
         kernel_shape,
-        subsample = (1,1), pad=0, message = "", rng = None):
+        subsample = (1,1), pad=0, message = "", rng = None,
+        partial_sum = None):
     """ Creates a Conv2D with random kernels.
         Should be functionally equivalent to
         pylearn2.linear.conv2d.make_random_conv2D
@@ -228,7 +230,7 @@ def make_random_conv2D(irange, input_channels, input_axes, output_axes,
         input_axes = input_axes,
         output_axes = output_axes,
         subsample = subsample, pad=pad,
-        message = message)
+        message = message, partial_sum=partial_sum)
 
 
 def make_sparse_random_conv2D(num_nonzero, input_space, output_space,
