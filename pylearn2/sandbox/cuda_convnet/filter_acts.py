@@ -87,6 +87,11 @@ class FilterActs(BaseActs):
     """
     cpp_source_file = "filter_acts.cu"
 
+    # __eq__ and __hash__ are defined in BaseActs.
+    # If you add an __init__ method that adds new members to FilterActs,
+    # you may need to implement a new version of __eq__ and __hash__
+    # in FilterActs, that considers these parameters.
+
     def make_node(self, images, filters):
 
         if not isinstance(images.type, CudaNdarrayType):
@@ -287,6 +292,9 @@ class FilterActs(BaseActs):
         rval = rval % locals()
 
         return rval
+
+    def c_code_cache_version(self):
+        return (1,)
 
     def grad(self, inputs, dout):
 

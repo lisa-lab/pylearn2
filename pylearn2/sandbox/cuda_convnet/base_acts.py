@@ -103,6 +103,24 @@ class BaseActs(GpuOp):
             'class_name_caps': self.__class__.__name__.upper(),
         }
 
+    def __eq__(self, other):
+        return (type(self) == type(other) and
+                self.partial_sum == other.partial_sum and
+                self.pad == other.pad and
+                self.dense_connectivity == other.dense_connectivity and
+                self.stride == other.stride and
+                self.copy_non_contiguous == other.copy_non_contiguous)
+
+    def __hash__(self):
+        msg = []
+        msg.append(self.__class__.__name__)
+        for val in (self.partial_sum, self.pad, self.dense_connectivity,
+                self.stride, self.copy_non_contiguous):
+            msg.append(str(val))
+
+        return hash(tuple(msg))
+
+
 class UnimplementedError(Exception):
     """
     Like NotImplementedError, but designed not to be caught and suppressed

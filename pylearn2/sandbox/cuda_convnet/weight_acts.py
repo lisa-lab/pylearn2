@@ -77,6 +77,11 @@ class WeightActs(BaseActs):
     """
     cpp_source_file = "weight_acts.cu"
 
+    # __eq__ and __hash__ are defined in BaseActs.
+    # If you add an __init__ method that adds new members to WeightActs,
+    # you may need to implement a new version of __eq__ and __hash__
+    # in WeightActs, that considers these parameters.
+
     def make_node(self, images, hid_grads):
         if not isinstance(images.type, CudaNdarrayType):
             raise TypeError("WeightActs: expected images.type "
@@ -302,3 +307,5 @@ class WeightActs(BaseActs):
 
         return rval
 
+    def c_code_cache_version(self):
+        return (1,)

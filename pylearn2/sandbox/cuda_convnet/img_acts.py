@@ -74,6 +74,11 @@ class ImageActs(BaseActs):
     """
     cpp_source_file = "img_acts.cu"
 
+    # __eq__ and __hash__ are defined in BaseActs.
+    # If you add an __init__ method that adds new members to ImageActs,
+    # you may need to implement a new version of __eq__ and __hash__
+    # in ImageActs, that considers these parameters.
+
     def make_node(self, hid_acts, filters):
 
         if not isinstance(hid_acts.type, CudaNdarrayType):
@@ -264,3 +269,5 @@ class ImageActs(BaseActs):
 
         return rval
 
+    def c_code_cache_version(self):
+        return (1,)
