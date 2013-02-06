@@ -44,7 +44,7 @@ version, available via:
 
 .. code-block:: bash
 
-   git clone git://github.com/lisa-lab/pylearn.git
+   git clone git://github.com/lisa-lab/pylearn2.git
 
 You also need to set your PYLEARN2_DATA_PATH variable. On linux, the best way to do this
 is to add a line to your .bashrc file:
