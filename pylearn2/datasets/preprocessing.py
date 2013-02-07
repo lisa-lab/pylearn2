@@ -809,6 +809,19 @@ class LeCunLCN_ICPR(ExamplewisePreprocessor):
 
         dataset.set_topological_view(x)
 
+class LeCunLCNChannels(ExamplewisePreprocessor):
+    def __init__(self, img_shape, eps=1e-12):
+        self.img_shape = img_shape
+        self.eps = eps
+
+    def apply(self, dataset, can_fit = True):
+        x = dataset.get_topological_view()
+
+        for i in xrange(3):
+            x[:,:,:,i] = lecun_lcn(x[:,:,:,i], self.img_shape, 7)
+
+        dataset.set_topological_view(x)
+
 def lecun_lcn(input, img_shape, kernel_shape):
         input = input.reshape(input.shape[0], input.shape[1], input.shape[2], 1)
         X = T.matrix(dtype=input.dtype)
