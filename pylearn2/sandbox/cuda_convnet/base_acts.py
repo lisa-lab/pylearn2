@@ -46,14 +46,13 @@ from theano.sandbox.cuda import GpuOp
 from pylearn2.sandbox.cuda_convnet.shared_code import get_NVMatrix_code
 from pylearn2.sandbox.cuda_convnet.shared_code import load_code
 from pylearn2.sandbox.cuda_convnet.shared_code import this_dir
+from pylearn2.sandbox.cuda_convnet import cuda_convnet_loc
 
 
 class BaseActs(GpuOp):
     """
     Shared code for wrapping various convnet operations.
     """
-    cpp_source_file = None
-
     def __init__(self, pad=0, partial_sum=None):
 
         if not isinstance(pad, int):
@@ -71,21 +70,22 @@ class BaseActs(GpuOp):
         self.stride = 1
         self.copy_non_contiguous = 0
 
-    def c_compile_args(self):
-        flags = ["-I" + this_dir]
-        return flags
+    def c_header_dirs(self):
+        return [this_dir]
 
-    def c_support_code(self):
-        rval = get_NVMatrix_code()
-        rval += '#include "cudaconv2.cuh"\n'
-        if self.cpp_source_file is not None:
-            rval += load_code(self.cpp_source_file)
-        return rval
+    def c_headers(self):
+        return ['nvmatrix.cuh', 'cudaconv2.cuh']
 
     def c_code_cache_version(self):
         warnings.warn("No C-code cache version for %s" %
                       self.__class__.__name__)
         return ()
+
+    def c_lib_dirs(self):
+        return [cuda_convnet_loc]
+
+    def c_libraries(self):
+        return ['cuda_convnet']
 
     def _argument_contiguity_check(self, arg_name):
         return """
@@ -102,6 +102,24 @@ class BaseActs(GpuOp):
             'arg_name': arg_name,
             'class_name_caps': self.__class__.__name__.upper(),
         }
+
+    def __eq__(self, other):
+        return (type(self) == type(other) and
+                self.partial_sum == other.partial_sum and
+                self.pad == other.pad and
+                self.dense_connectivity == other.dense_connectivity and
+                self.stride == other.stride and
+                self.copy_non_contiguous == other.copy_non_contiguous)
+
+    def __hash__(self):
+        msg = []
+        msg.append(self.__class__.__name__)
+        for val in (self.partial_sum, self.pad, self.dense_connectivity,
+                self.stride, self.copy_non_contiguous):
+            msg.append(str(val))
+
+        return hash(tuple(msg))
+
 
 class UnimplementedError(Exception):
     """

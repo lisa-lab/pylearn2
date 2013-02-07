@@ -85,7 +85,11 @@ class FilterActs(BaseActs):
     Other batch sizes will work, but Alex made no attempt whatsoever
     to make them work fast.
     """
-    cpp_source_file = "filter_acts.cu"
+
+    # __eq__ and __hash__ are defined in BaseActs.
+    # If you add an __init__ method that adds new members to FilterActs,
+    # you may need to implement a new version of __eq__ and __hash__
+    # in FilterActs, that considers these parameters.
 
     def make_node(self, images, filters):
 
@@ -288,6 +292,9 @@ class FilterActs(BaseActs):
 
         return rval
 
+    def c_code_cache_version(self):
+        return (2,)
+
     def grad(self, inputs, dout):
 
         images, filters = inputs
@@ -307,5 +314,3 @@ class FilterActs(BaseActs):
         d_filters = WeightActs(self.pad, self.partial_sum)(images, dout)
 
         return d_images, d_filters
-
-
