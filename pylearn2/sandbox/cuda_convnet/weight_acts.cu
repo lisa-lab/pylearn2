@@ -590,7 +590,12 @@ void _weightActs(NVMatrix& images, NVMatrix& hidActs, NVMatrix& targets,
     
     assert(numImgColors % numGroups == 0);
     assert(numFilters % (16*numGroups) == 0);
-    assert(numGroups > 1 || (numImgColors > 0 && (numImgColors <= 3 || numImgColors % 4 == 0)));
+    if (!(numGroups > 1 || (numImgColors > 0 && (numImgColors <= 3 || numImgColors % 4 == 0))))
+    {
+        printf("numGroups: %d\n", numGroups);
+        printf("numImgColors: %d\n", numImgColors);
+        assert(false);
+    }
     assert(numGroups == 1 || numFilterColors % 4 == 0);
     assert(imgSizeY * imgSizeX == imgPixels);
     assert(images.getNumRows() == imgPixels * numImgColors);
