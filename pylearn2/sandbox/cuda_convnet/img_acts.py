@@ -72,7 +72,11 @@ class ImageActs(BaseActs):
     Other batch sizes will work, but Alex "made no attempt whatsoever
     to make them work fast."
     """
-    cpp_source_file = "img_acts.cu"
+
+    # __eq__ and __hash__ are defined in BaseActs.
+    # If you add an __init__ method that adds new members to ImageActs,
+    # you may need to implement a new version of __eq__ and __hash__
+    # in ImageActs, that considers these parameters.
 
     def make_node(self, hid_acts, filters):
 
@@ -264,3 +268,5 @@ class ImageActs(BaseActs):
 
         return rval
 
+    def c_code_cache_version(self):
+        return (2,)
