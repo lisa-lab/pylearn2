@@ -313,7 +313,7 @@ class MLP(Layer):
     def get_weights_topo(self):
         return self.layers[0].get_weights_topo()
 
-    def fprop(self, state_below, apply_dropout = False):
+    def fprop(self, state_below, apply_dropout = False, return_all = False):
 
         if apply_dropout:
             warnings.warn("dropout should be implemented with fixed_var_descr to make sure it works with BGD, this is just a hack to get it working with SGD")
@@ -331,6 +331,7 @@ class MLP(Layer):
             scale = self.dropout_scales[0]
             rval = self.apply_dropout(state=rval, include_prob=dropout, theano_rng=theano_rng,
                     scale=scale)
+        rlist = [rval]
 
         for layer, dropout, scale in safe_izip(self.layers[1:], self.dropout_include_probs[1:],
             self.dropout_scales[1:]):
@@ -338,7 +339,10 @@ class MLP(Layer):
             if apply_dropout:
                 rval = self.apply_dropout(state=rval, include_prob=dropout, theano_rng=theano_rng,
                         scale=scale)
+            rlist.append(rval)
 
+        if return_all:
+            return rlist
         return rval
 
     def apply_dropout(self, state, include_prob, scale, theano_rng):
