@@ -55,6 +55,12 @@ class BaseActs(GpuOp):
     cpp_source_file = None
 
     def __init__(self, pad=0, partial_sum=None):
+
+        if not isinstance(pad, int):
+            raise TypeError("pad must be an int")
+        if not (pad >= 0):
+            raise ValueError("bad value of pad (must be non-negative): " + str(pad))
+
         self.partial_sum = partial_sum
         self.pad = pad
         # TODO: support sparse connectivity pattern

@@ -139,7 +139,7 @@ class FilterActs(BaseActs):
 
         assert isinstance(self.pad, int)
         basic_setup += """
-        #define paddingStart -%d
+        #define paddingStart (-%d)
         """ % self.pad
 
         if self.stride != 1:

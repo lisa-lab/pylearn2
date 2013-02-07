@@ -132,7 +132,7 @@ class WeightActs(BaseActs):
             """
 
         basic_setup += """
-        #define paddingStart -%(pad)d
+        #define paddingStart (-%(pad)d)
         const int *hid_grads_dims = CudaNdarray_HOST_DIMS(%(hid_grads)s);
         const int hidGradsSizeY = hid_grads_dims[1];
         const int hidGradsSizeX = hid_grads_dims[2];
@@ -169,18 +169,26 @@ class WeightActs(BaseActs):
                 "images must have nd=4, got nd=%%i", %(images)s->nd);
             %(fail)s;
         }
-
         { //setup_nv_images brace 1
-        const int * hid_grads_dims = CudaNdarray_HOST_DIMS(%(hid_grads)s);
         const int * images_dims = CudaNdarray_HOST_DIMS(%(images)s);
         const int img_channels = images_dims[0];
+        if (img_channels > 3 && img_channels %% 4 != 0)
+        {
+            PyErr_Format(PyExc_ValueError,
+                "images must have 3 or fewer channels, or have a multiple of 4 channels, got %%i",
+                img_channels);
+            %(fail)s;
+        }
+
+        { //setup_nv_images brace 2
+        const int * hid_grads_dims = CudaNdarray_HOST_DIMS(%(hid_grads)s);
         const int imgSizeY = images_dims[1];
         const int imgSizeX = images_dims[2];
         const int batch_size = images_dims[3];
         const int check_channels = 1;
         NVMatrix nv_images(%(images)s, img_channels * imgSizeY * imgSizeX, batch_size, "weight_acts: nv_images");
         """
-        num_braces += 1
+        num_braces += 2
 
         # Convert hid_grads int nv_hid_grads, an NVMatrix, for compatibility
         # with the cuda-convnet functions
