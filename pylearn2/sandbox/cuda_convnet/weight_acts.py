@@ -75,7 +75,6 @@ class WeightActs(BaseActs):
     Other batch sizes will work, but Alex "made no attempt whatsoever
     to make them work fast."
     """
-    cpp_source_file = "weight_acts.cu"
 
     # __eq__ and __hash__ are defined in BaseActs.
     # If you add an __init__ method that adds new members to WeightActs,
@@ -109,6 +108,13 @@ class WeightActs(BaseActs):
         weights_grads = weights_grads_type()
 
         return Apply(self, [images, hid_grads], [weights_grads])
+
+    def c_headers(self):
+        # For some reason, the function called in the C code (_weightActs)
+        # is not defined in cudaconv2.cuh, so I defined it in weight_acts.cuh
+        headers = super(WeightActs, self).c_headers()
+        headers.append('weight_acts.cuh')
+        return headers
 
     def c_code(self, node, name, inputs, outputs, sub):
         partial_sum = self.partial_sum if self.partial_sum is not None else 0
@@ -308,4 +314,4 @@ class WeightActs(BaseActs):
         return rval
 
     def c_code_cache_version(self):
-        return (1,)
+        return (2,)
