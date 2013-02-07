@@ -137,7 +137,7 @@ class WeightActs(BaseActs):
         const int hidGradsSizeY = hid_grads_dims[1];
         const int hidGradsSizeX = hid_grads_dims[2];
         const int numModules = hidGradsSizeX * hidGradsSizeY;
-        int partialSum = %(partial_sum)d > 0 ? %(partial_sum)d : numModules;
+        int partialSum = %(partial_sum)d == 0 ? numModules : %(partial_sum)d;
         if (numModules %% partialSum > 0) {
             PyErr_Format(PyExc_ValueError,
                 "partialSum must divide numModules, but partialSum=%%d and "
@@ -216,15 +216,33 @@ class WeightActs(BaseActs):
         {
             partialsum_storage_dims[i] = filters_dims[i - 1];
         }
-        partialsum_storage_dims[0] = numModules / partialSum;
-        CudaNdarray *partialsum_storage = NULL;
-        if (partialSum != numModules &&
-            CudaNdarray_prep_output(&partialsum_storage, 5,
-                                    partialsum_storage_dims))
-        {
-            %(fail)s;
-        }
 
+        float *partialsum_storage = NULL;
+        if (partialSum < numModules && partialSum > 0) {
+            partialsum_storage_dims[0] = numModules / partialSum;
+            float *partialsum_storage = device_malloc(4 *
+                partialsum_storage_dims[0] * partialsum_storage_dims[1] *
+                partialsum_storage_dims[2] * partialsum_storage_dims[3] *
+                partialsum_storage_dims[4]);
+            if (partialSum != numModules && partialsum_storage == NULL)
+            {
+                %(fail)s;
+            }
+        }
+        else if (partialSum < 0) {
+            int i = 1;
+            npy_intp base_dims = partialsum_storage_dims[1] *
+            partialsum_storage_dims[2] * partialsum_storage_dims[3] *
+            partialsum_storage_dims[4];
+            while (i < numModules) {
+                if (numModules % i == 0 && (partialsum_storage =
+                device_malloc(numModules / i * base_dims, NO_VERBOSE_DEVICE_MALLOC))) {
+                    break;
+                }
+                i++;
+            }
+            partialSum = i;
+        }
         for (int i = 0; i < 4; i++)
         {
             if (filters_dims[i] <= 0)
@@ -235,7 +253,8 @@ class WeightActs(BaseActs):
         }
         if (CudaNdarray_prep_output(& %(weights_grads)s, 4, filters_dims))
         {
-            Py_DECREF(partialsum_storage);
+            if (partialSum < numModules)
+                device_free(partialsum_storage);
             %(fail)s;
         }
 
@@ -284,8 +303,8 @@ class WeightActs(BaseActs):
             // scale the new sum by 1, i.e., don't do any scaling
             #define SCALE_SUM 1
             nv_weights_grads.addSum(nv_partialsum, AXIS, SCALE_THIS, SCALE_SUM);
-
-            Py_DECREF(partialsum_storage);
+            if (partialSum < numModules)
+                device_free(partialsum_storage);
         }
         """
 
