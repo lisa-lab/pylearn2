@@ -7,7 +7,8 @@ from pylearn2.datasets import dense_design_matrix
 
 class CIFAR10(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, which_set, center = False, rescale = False, gcn = None,
-            one_hot = False, start = None, stop = None, axes=('b', 0, 1, 'c')):
+            one_hot = False, start = None, stop = None, axes=('b', 0, 1, 'c'),
+            toronto_prepro = False):
 
         # note: there is no such thing as the cifar10 validation set;
         # quit pretending that there is.
@@ -63,13 +64,6 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         if which_set == 'test':
             assert y.shape[0] == 10000
 
-        if start is not None:
-            assert start >= 0
-            assert stop > start
-            assert stop <= X.shape[0]
-            X = X[start:stop, :]
-            y = y[start:stop]
-            assert X.shape[0] == y.shape[0]
 
         self.one_hot = one_hot
         if one_hot:
@@ -86,12 +80,33 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
             X /= 127.5
         self.rescale = rescale
 
+        if toronto_prepro:
+            assert not center
+            assert not gcn
+            if which_set == 'test':
+                raise NotImplementedError("Need to subtract the mean of the *training* set.")
+            X = X / 255.
+            X = (X.T - X.mean(axis=1)).T
+        self.toronto_prepro = toronto_prepro
+
         self.gcn = gcn
         if gcn is not None:
             assert isinstance(gcn,float)
             X = (X.T - X.mean(axis=1)).T
+            if which_set == 'test':
+                raise NotImplementedError("Need to subtract the mean of the *training* set.")
             X = (X.T / np.sqrt(np.square(X).sum(axis=1))).T
             X *= gcn
+
+        if start is not None:
+            # This needs to come after the prepro so that it doesn't change the pixel
+            # means computed above
+            assert start >= 0
+            assert stop > start
+            assert stop <= X.shape[0]
+            X = X[start:stop, :]
+            y = y[start:stop]
+            assert X.shape[0] == y.shape[0]
 
         if which_set == 'test':
             assert X.shape[0] == 10000
