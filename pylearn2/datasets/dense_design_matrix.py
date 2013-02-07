@@ -469,12 +469,12 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         Read all the data into memory, apply the preprocessor,
         then reassign table array.
         """
-
-        x_ = self.X[:]
-        self.X.remove()
-        self.X = x_
+        X_ = self.X
+        self.X = self.X[:]
         preprocessor.apply(self, can_fit)
-        self.X = self.h5file.createArray(self.h5file.getNode("/", "Data"), 'X', self.X, "Data values")
+        X_[:] = self.X
+        self.X = X_
+        self.h5file.flush()
 
     @staticmethod
     def init_hdf5(path, shapes):

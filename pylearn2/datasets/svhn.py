@@ -23,8 +23,10 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
         if path is None:
             path = '${PYLEARN2_DATA_PATH}/SVHN/format2/'
             mode = 'r'
+            make_new = True
         else:
             mode = 'r+'
+            make_new = False
 
         if mode == 'r' and (scale or center or (start != None) or (stop != None)):
             raise ValueError("Only for speed there is a copy of hdf5 "+\
@@ -35,7 +37,7 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
         path = preprocess(path)
         file_n = "{}{}_32x32.h5".format(path + "h5/", which_set)
         # if hdf5 file does not exist make them
-        if not os.path.isfile(file_n):
+        if make_new:
             self.make_data(which_set, path)
 
         self.h5file = tables.openFile(file_n, mode = mode)
