@@ -112,7 +112,7 @@ _logger.debug('nvcc_compiler.rpath_defaults: %s',
 import time
 t1 = time.time()
 if should_recompile():
-    _logger.debug('recompiling')
+    _logger.debug('should recompile')
 
     # Concatenate all .cu files into one big mod.cu
     code = []
@@ -123,23 +123,28 @@ if should_recompile():
 
     get_lock()
     try:
-        if not os.path.exists(cuda_convnet_loc):
-            os.makedirs(cuda_convnet_loc)
+        # Check if the compilation has already been done by another process
+        # while we were waiting for the lock
+        if should_recompile():
+            _logger.debug('recompiling')
+            if not os.path.exists(cuda_convnet_loc):
+                os.makedirs(cuda_convnet_loc)
 
-        try:
-            compiler = nvcc_compiler.NVCC_compiler()
-            compiler.compile_str('cuda_convnet',
-                    code,
-                    location=cuda_convnet_loc,
-                    include_dirs=[this_dir],
-                    lib_dirs=nvcc_compiler.rpath_defaults,  # ???
-                    libs=['cublas'],
-                    preargs=['-O3'] + compiler.compile_args(),
-                    py_module=False)
-        except Exception, e:
-            _logger.error("Failed to compile %s.cu: %s",
-                          file_root, str(e))
-            import pdb; pdb.set_trace()
+            try:
+                compiler = nvcc_compiler.NVCC_compiler()
+                compiler.compile_str('cuda_convnet',
+                        code,
+                        location=cuda_convnet_loc,
+                        include_dirs=[this_dir],
+                        lib_dirs=nvcc_compiler.rpath_defaults,  # ???
+                        libs=['cublas'],
+                        preargs=['-O3'] + compiler.compile_args(),
+                        py_module=False)
+            except Exception, e:
+                _logger.error("Failed to compile %s.cu: %s",
+                              file_root, str(e))
+        else:
+            _logger.debug('already compiled by another process')
 
     finally:
         release_lock()
@@ -173,6 +178,10 @@ if not ok():
             # indeed working.
             if getattr(e, 'errno', None) != errno.EEXIST or not ok():
                 raise
+
+# Raise an error if libcuda_convnet_so is still not available
+open(libcuda_convnet_so).close()
+
 
 # Add cuda_convnet to the list of places that are hard-coded into
 # compiled modules' runtime library search list.
