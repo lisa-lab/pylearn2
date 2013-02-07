@@ -10,7 +10,8 @@ import gc
 class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
 
     mapper = {'train': 0, 'test': 1, 'extra': 2, 'train_all' : 3}
-    def __init__(self, which_set, path = None, center = False, scale = False, start = None, stop = None):
+    def __init__(self, which_set, path = None, center = False, scale = False,
+            start = None, stop = None, axes=('b', 0, 1, 'c')):
         """
         Only for faster access there is a copy of hdf5 file in PYLEARN2_DATA_PATH
         but it mean to be only readable. If you wish to modify the data, you should pass
@@ -36,6 +37,8 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
 
         path = preprocess(path)
         file_n = "{}{}_32x32.h5".format(path + "h5/", which_set)
+        if os.path.isfile(file_n):
+            make_new = False
         # if hdf5 file does not exist make them
         if make_new:
             self.make_data(which_set, path)
@@ -55,7 +58,7 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
         elif scale:
             data.X[:] /= 255.
 
-        view_converter = dense_design_matrix.DefaultViewConverter((32, 32, 3))
+        view_converter = dense_design_matrix.DefaultViewConverter((32, 32, 3), axes)
 
         super(SVHN, self).__init__(X = data.X, y = data.y, view_converter = view_converter)
 
@@ -107,7 +110,8 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
         data = load(path)
         if not target:
             data = numpy.cast[config.floatX](data)
-            return data.reshape((data.shape[3], 32 * 32 * 3))
+            data =  numpy.transpose(data, axes = [3, 2, 0 , 1])
+            return data.reshape((data.shape[0], 32 * 32 * 3))
         else:
             # TODO assuming one_hot as default for now
             one_hot = numpy.zeros((data.shape[0], 10), dtype = config.floatX)
