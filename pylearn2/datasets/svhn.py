@@ -5,16 +5,16 @@ from theano import config
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load
 from pylearn2.utils.string_utils import preprocess
+import gc
 
-
-class SVHN(dense_design_matrix.DenseDesignMatrix):
+class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
 
     mapper = {'train': 0, 'test': 1, 'extra': 2, 'train_all' : 3}
     def __init__(self, which_set, path = None, center = False, scale = False, start = None, stop = None):
         """
-        For faster access there is a copy of hdf5 file in PYLEARN2_DATA_PATH
-        but it is not wriatable. If you wish to modify the data, you should pass
-        a local copy to the path argument
+        Only for faster access there is a copy of hdf5 file in PYLEARN2_DATA_PATH
+        but it mean to be only readable. If you wish to modify the data, you should pass
+        a local copy to the path argument.
         """
 
         assert which_set in self.mapper.keys()
@@ -27,40 +27,22 @@ class SVHN(dense_design_matrix.DenseDesignMatrix):
             mode = 'r+'
 
         if mode == 'r' and (scale or center or (start != None) or (stop != None)):
-            raise ValueError("Can not edit original data. Set scale and center \
-                    to zero or pass the path argument to your copy of data")
+            raise ValueError("Only for speed there is a copy of hdf5 "+\
+                    "file in PYLEARN2_DATA_PATH but it meant to be only "+\
+                    "readable. If you wish to modify the data, you should "+\
+                    "pass a local copy to the path argument.")
 
-        file_n = "{}{}_32x32.h5".format(path, which_set)
-        # TODO add suppoert of .h5 files in utils.serial
-        file_n = preprocess(file_n)
+        path = preprocess(path)
+        file_n = "{}{}_32x32.h5".format(path + "h5/", which_set)
         # if hdf5 file does not exist make them
         if not os.path.isfile(file_n):
-            self.make_hdf5(which_set)
+            self.make_data(which_set, path)
+
         self.h5file = tables.openFile(file_n, mode = mode)
         data = self.h5file.getNode('/', "Data")
 
         if start != None or stop != None:
-            # TODO is there any smarter and more efficient way to this?
-            start = 0 if start is None else start
-            stop = data.X.nrows if stop is None else stop
-
-            try:
-                gcolumns = self.h5file.createGroup('/', "Data_", "Data")
-            except tables.exceptions.NodeError:
-                self.h5file.removeNode('/', "Data_", 1)
-                gcolumns = self.h5file.createGroup('/', "Data_", "Data")
-
-            atom = tables.Float64Atom() if config.floatX == 'flaot32' else tables.Float32Atom()
-            x = self.h5file.createCArray(gcolumns, 'X', atom = atom, shape = ((stop - start, data.X.shape[1])),
-                                title = "Data values")
-            y = self.h5file.createCArray(gcolumns, 'y', atom = atom, shape = ((stop - start, 10)),
-                                title = "Data targets")
-            x[:] = data.X[start:stop]
-            y[:] = data.y[start:stop]
-
-            self.h5file.removeNode('/', "Data", 1)
-            self.h5file.renameNode('/', "Data", "Data_")
-            data = gcolumns
+            self.h5file, data = self.resize(self.h5file, start, stop)
 
         # rescale or center if permitted
         if center and scale:
@@ -75,74 +57,73 @@ class SVHN(dense_design_matrix.DenseDesignMatrix):
 
         super(SVHN, self).__init__(X = data.X, y = data.y, view_converter = view_converter)
 
-
-    # TODO this should be probably handled by __getstate__, __setstate__
-    # in a a new DenseDesignMatrix class
-    def apply_preprocessor(self, preprocessor, can_fit = False):
-        """
-        Read all the data into memory, apply the preprocessor,
-        then reassign table array.
-        """
-
-        x_ = self.X[:]
-        self.X.remove()
-        self.X = x_
-        preprocessor.apply(self, can_fit)
-        self.X = self.h5file.createArray(self.h5file.getNode("/", "Data"), 'X', self.X, "Data values")
-
-    # TODO should be moved somewhere more generic
     @staticmethod
-    def make_hdf5(which_set):
-        """
-        Read data from mat files and save it in hdf5 format
-        """
+    def make_data(which_set, path):
 
-        def load_data(which_set, path):
-            if which_set in ['train', 'test', 'extra']:
-                data = load("{}{}_32x32.mat".format(path, which_set))
-                data_x = numpy.cast[config.floatX](data['X'])
-                data_x = data_x.reshape((data_x.shape[3], 32 * 32 * 3))
-                data_y = data['y']
-                # TODO assuming one_hot as default for now
-                data_y = numpy.zeros((data['y'].shape[0], 10), dtype = config.floatX)
-                for i in xrange(data['y'].shape[0]):
-                    data_y[i, data['y'][i] -1] = 1.
-                return data_x, data_y
+        sizes = {'train': 73257, 'test': 26032, 'extra': 531131, 'train_all': 604388}
+        image_size = 32*32*3
+        h_file_n = "{}{}_32x32.h5".format(path + "h5/", which_set)
+        h5file, node = SVHN.init_hdf5(h_file_n, ([sizes[which_set], image_size], [sizes[which_set], 10]))
 
-            elif which_set in ['train_all']:
-                train_x, train_y = load_data('train', path)
-                extra_x, extra_y = load_data('extra', path)
-                data_x = numpy.concatenate(train_x, extra_x)
-                data_y = numpy.concatenate(train_y, extra_y)
-                return data_x, data_y
+        path = path + "npy/"
+        if which_set in ['train', 'test']:
+            data_x = SVHN.load_data("{}{}_32x32_x.npy".format(path, which_set))
+            data_y = SVHN.load_data("{}{}_32x32_y.npy".format(path, which_set), True)
 
-        assert which_set in SVHN.mapper.keys()
-        path = '${PYLEARN2_DATA_PATH}/SVHN/format2/'
-        data_x, data_y = load_data(which_set, path)
+            index = slice(0, sizes[which_set])
+            SVHN.fill_hdf5(h5file, node, (data_x, data_y), index)
+            assert numpy.array_equal(data_x, node.X[:])
+            assert numpy.array_equal(data_y, node.y[:])
+        else:
+            for i in xrange(6):
+                print 'loading {}/6'.format(i)
+                # if the file is not closed/reopend the process goes into I/O zombie state
+                if i > 0:
+                    h5file = tables.openFile(h_file_n, mode = 'a')
+                    node = h5file.getNode('/', "Data")
+                data_x = SVHN.load_data("{}{}_32x32_x_{}.npy".format(path, 'extra', i))
+                data_y = SVHN.load_data("{}{}_32x32_y_{}.npy".format(path, 'extra', i), True)
+                index = slice(100000*i, 100000*i + data_x.shape[0])
+                SVHN.fill_hdf5(h5file, node, (data_x, data_y), index)
+                h5file.close()
+                del data_x, data_y
+                gc.collect()
 
-        # make pytables
-        path = preprocess("{}{}_32x32.h5".format(path, which_set))
-        h5file = tables.openFile(path, mode = "w", title = "SVHN Dataset")
-        gcolumns = h5file.createGroup(h5file.root, "Data", "Data")
-        atom = tables.Float64Atom() if config.floatX == 'flaot32' else tables.Float32Atom()
-        x = h5file.createCArray(gcolumns, 'X', atom = atom, shape = data_x.shape,
-                                title = "Data values")
-        x[:] = data_x
-        y = h5file.createCArray(gcolumns, 'y', atom = atom, shape = data_y.shape,
-                                title = "Data targets")
-        y[:] = data_y
+        if which_set == 'train_all':
+            h5file = tables.openFile(h_file_n, mode = 'a')
+            node = h5file.getNode('/', "Data")
+            # add train data on top
+            data_x = SVHN.load_data("{}{}_32x32_x.npy".format(path, 'train'))
+            data_y = SVHN.load_data("{}{}_32x32_y.npy".format(path, 'train'), True)
+            index = slice(sizes['extra'], sizes['extra'] + sizes['train'])
+            SVHN.fill_hdf5(h5file, node, (data_x, data_y), index)
+
         h5file.close()
 
+    @staticmethod
+    def load_data(path, target = False):
+        data = load(path)
+        if not target:
+            data = numpy.cast[config.floatX](data)
+            return data.reshape((data.shape[3], 32 * 32 * 3))
+        else:
+            # TODO assuming one_hot as default for now
+            one_hot = numpy.zeros((data.shape[0], 10), dtype = config.floatX)
+            for i in xrange(data.shape[0]):
+                one_hot[i, data[i] -1] = 1.
+            return one_hot
+
+
 #@profile
-#def main2():
-    #ds = SVHN('train', path = './', start = 1)
-    #i = 0
-    #for item in ds.iterator('sequential', batch_size = 100):
-        #print item.shape
-        #i+=1
-        #if i == 3:
-            #return
+def main2():
+    ds = SVHN('train_all')
+    i = 0
+    for item in ds.iterator('sequential', batch_size = 100):
+        print item.shape
+        i+=1
+        if i == 3:
+            return
 
 
-#if __name__ == "__main__":
-    #main2()
+if __name__ == "__main__":
+    main2()

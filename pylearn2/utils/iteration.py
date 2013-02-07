@@ -301,3 +301,28 @@ class FiniteDatasetIterator(object):
     def stochastic(self):
         return self._subset_iterator.stochastic
 
+class FiniteDatasetIteratorPyTables(FiniteDatasetIterator):
+
+    def next(self):
+        next_index = self._subset_iterator.next()
+        if isinstance(next_index, np.ndarray) and len(next_index) == 1:
+            next_index = next_index[0]
+        if self._needs_cast:
+            features = numpy.cast[config.floatX](self._raw_data[next_index])
+        else:
+            features = self._raw_data[next_index]
+        if self._topo:
+            if len(features.shape) != 2:
+                features = features.reshape((1, features.shape[0]))
+            features = self._dataset.get_topological_view(features)
+        if self._targets:
+            targets = self._raw_targets[next_index]
+            if len(targets.shape) != 2:
+                targets = targets.reshape((1, targets.shape[0]))
+            if self._targets_need_cast:
+                targets = np.cast[config.floatX](targets)
+            return features, targets
+        else:
+            return features
+
+#
