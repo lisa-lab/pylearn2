@@ -72,7 +72,11 @@ class ImageActs(BaseActs):
     Other batch sizes will work, but Alex "made no attempt whatsoever
     to make them work fast."
     """
-    cpp_source_file = "img_acts.cu"
+
+    # __eq__ and __hash__ are defined in BaseActs.
+    # If you add an __init__ method that adds new members to ImageActs,
+    # you may need to implement a new version of __eq__ and __hash__
+    # in ImageActs, that considers these parameters.
 
     def make_node(self, hid_acts, filters):
 
@@ -84,6 +88,9 @@ class ImageActs(BaseActs):
             raise TypeError("ImageActs: expected filters.type to be CudaNdarrayType, "
                     "got " + str(filters.type))
 
+
+        assert hid_acts.ndim == 4
+        assert filters.ndim == 4
 
         channels_broadcastable = filters.type.broadcastable[3]
         batch_broadcastable = hid_acts.type.broadcastable[3]
@@ -264,3 +271,5 @@ class ImageActs(BaseActs):
 
         return rval
 
+    def c_code_cache_version(self):
+        return (2,)

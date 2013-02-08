@@ -75,7 +75,11 @@ class WeightActs(BaseActs):
     Other batch sizes will work, but Alex "made no attempt whatsoever
     to make them work fast."
     """
-    cpp_source_file = "weight_acts.cu"
+
+    # __eq__ and __hash__ are defined in BaseActs.
+    # If you add an __init__ method that adds new members to WeightActs,
+    # you may need to implement a new version of __eq__ and __hash__
+    # in WeightActs, that considers these parameters.
 
     def make_node(self, images, hid_grads):
         if not isinstance(images.type, CudaNdarrayType):
@@ -87,6 +91,9 @@ class WeightActs(BaseActs):
             raise TypeError("WeightActs: expected hid_acts.type "
                             "to be CudaNdarrayType, "
                             "got " + str(hid_grads.type))
+
+        assert images.ndim == 4
+        assert hid_grads.ndim == 4
 
         input_channels_broadcastable = images.type.broadcastable[0]
         # We don't know anything about filter_rows or filter_cols at compile
@@ -104,6 +111,13 @@ class WeightActs(BaseActs):
         weights_grads = weights_grads_type()
 
         return Apply(self, [images, hid_grads], [weights_grads])
+
+    def c_headers(self):
+        # For some reason, the function called in the C code (_weightActs)
+        # is not defined in cudaconv2.cuh, so I defined it in weight_acts.cuh
+        headers = super(WeightActs, self).c_headers()
+        headers.append('weight_acts.cuh')
+        return headers
 
     def c_code(self, node, name, inputs, outputs, sub):
         partial_sum = self.partial_sum if self.partial_sum is not None else 0
@@ -185,7 +199,6 @@ class WeightActs(BaseActs):
         const int imgSizeY = images_dims[1];
         const int imgSizeX = images_dims[2];
         const int batch_size = images_dims[3];
-        const int check_channels = 1;
         NVMatrix nv_images(%(images)s, img_channels * imgSizeY * imgSizeX, batch_size, "weight_acts: nv_images");
         """
         num_braces += 2
@@ -205,7 +218,6 @@ class WeightActs(BaseActs):
         const int batch_size = hid_grads_dims[3];
         NVMatrix nv_hid_grads(%(hid_grads)s, numFilters * hidGradsSizeY *
                                            hidGradsSizeX, batch_size, "weight_acts:nv_hid_grads");
-        const int check_channels = 0;
         """
         num_braces += 1
 
@@ -310,3 +322,5 @@ class WeightActs(BaseActs):
 
         return rval
 
+    def c_code_cache_version(self):
+        return (3,)

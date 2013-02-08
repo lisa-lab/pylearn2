@@ -44,6 +44,9 @@
 #include <time.h>
 #include <curand_kernel.h>
 
+#include <Python.h>
+#include <cuda_ndarray.cuh>
+
 //Commented by Ian Goodfellow-- we don't actually need this dependency, it just increase theano compile times
 //#include <matrix.h>
 #include "nvmatrix_kernels.cuh"

@@ -6,6 +6,10 @@ from theano.tensor import grad
 from theano.tests import unittest_tools
 import theano.sandbox.cuda as tcn
 
+if not tcn.cuda_available:
+    from nose.plugins.skip import SkipTest
+    raise SkipTest('Optional package cuda disabled.')
+
 from pylearn2.sandbox.cuda_convnet.pool import MaxPool, MaxPoolGrad
 from pylearn2.models.mlp import max_pool_c01b as gold_max_pool_c01b
 
