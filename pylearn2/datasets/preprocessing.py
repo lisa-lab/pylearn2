@@ -814,13 +814,22 @@ class LeCunLCNChannels(ExamplewisePreprocessor):
         self.img_shape = img_shape
         self.eps = eps
 
-    def apply(self, dataset, can_fit = True):
-        x = dataset.get_topological_view()
-
+    def transform(self, x):
         for i in xrange(3):
             x[:,:,:,i] = lecun_lcn(x[:,:,:,i], self.img_shape, 7)
+        return x
 
-        dataset.set_topological_view(x)
+    def apply(self, dataset, can_fit, batch_size = 5000):
+        data_size = dataset.X.shape[0]
+        last = np.floor(data_size / float(batch_size)) * batch_size
+        for i in xrange(0, data_size, batch_size):
+            print i
+            stop = -1 if i >= last else i + batch_size
+            transformed = self.transform(dataset.get_topological_view(dataset.X[i:stop, :]))
+            dataset.X[i:stop,:] = dataset.view_converter.topo_view_to_design_mat(transformed)
+            dataset.h5file.flush()
+            del transformed
+
 
 def lecun_lcn(input, img_shape, kernel_shape):
         input = input.reshape(input.shape[0], input.shape[1], input.shape[2], 1)

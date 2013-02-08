@@ -135,19 +135,3 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
                 one_hot[i, data[i] -1] = 1.
             return one_hot
 
-
-
-
-def main2():
-    ds = SVHN('splited_train')
-    i = 0
-    print ds.y.shape
-    for item in ds.iterator('sequential', batch_size = 100):
-        print item.shape
-        i+=1
-        if i == 3:
-            return
-
-
-if __name__ == "__main__":
-    main2()
