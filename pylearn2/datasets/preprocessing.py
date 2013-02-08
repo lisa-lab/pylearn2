@@ -830,7 +830,6 @@ class LeCunLCNChannels(ExamplewisePreprocessor):
             dataset.h5file.flush()
             del transformed
 
-
 def lecun_lcn(input, img_shape, kernel_shape):
         input = input.reshape(input.shape[0], input.shape[1], input.shape[2], 1)
         X = T.matrix(dtype=input.dtype)

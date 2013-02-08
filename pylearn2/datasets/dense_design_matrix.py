@@ -464,18 +464,6 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
                                      num_batches, rng),
                                      topo, targets)
 
-    #def apply_preprocessor(self, preprocessor, can_fit = False):
-        #"""
-        #Read all the data into memory, apply the preprocessor,
-        #then reassign table array.
-        #"""
-        #X_ = self.X
-        #self.X = self.X[:]
-        #preprocessor.apply(self, can_fit)
-        #X_[:] = self.X
-        #self.X = X_
-        #self.h5file.flush()
-
     @staticmethod
     def init_hdf5(path, shapes):
         """
