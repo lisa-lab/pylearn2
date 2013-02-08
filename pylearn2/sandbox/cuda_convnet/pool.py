@@ -7,9 +7,8 @@ from theano.sandbox.cuda.basic_ops import gpu_contiguous
 from theano.sandbox.cuda import GpuOp
 from theano.tensor import get_scalar_constant_value, NotScalarConstantError
 
+from pylearn2.sandbox.cuda_convnet import cuda_convnet_loc
 from pylearn2.sandbox.cuda_convnet.base_acts import UnimplementedError
-from pylearn2.sandbox.cuda_convnet.shared_code import get_NVMatrix_code
-from pylearn2.sandbox.cuda_convnet.shared_code import load_code
 from pylearn2.sandbox.cuda_convnet.shared_code import this_dir
 
 
@@ -83,14 +82,17 @@ class MaxPool(GpuOp):
         return (hash(type(self)) ^ hash(self.ds) ^
                 hash(self.stride) ^ hash(self.start))
 
-    def c_compile_args(self):
-        flags = ["-I" + this_dir]
-        return flags
+    def c_header_dirs(self):
+        return [this_dir]
 
-    def c_support_code(self):
-        rval = get_NVMatrix_code()
-        rval += '#include "conv_util.cuh"'
-        return rval
+    def c_headers(self):
+        return ['nvmatrix.cuh', 'conv_util.cuh']
+
+    def c_lib_dirs(self):
+        return [cuda_convnet_loc]
+
+    def c_libraries(self):
+        return ['cuda_convnet']
 
     def c_code_cache_version(self):
         return (1,)
@@ -236,8 +238,6 @@ class MaxPool(GpuOp):
 
 
 class MaxPoolGrad(GpuOp):
-    cpp_source_file = "conv_util.cu"
-
     def __init__(self, ds, stride, start):
         self.ds = ds
         self.stride = stride
@@ -258,16 +258,17 @@ class MaxPoolGrad(GpuOp):
         return (hash(type(self)) ^ hash(self.ds) ^
                 hash(self.stride) ^ hash(self.start))
 
-    def c_compile_args(self):
-        flags = ["-I" + this_dir]
-        return flags
+    def c_header_dirs(self):
+        return [this_dir]
 
-    def c_support_code(self):
-        rval = get_NVMatrix_code()
-        rval += '#include "conv_util.cuh"'
-        if self.cpp_source_file is not None:
-            rval += load_code(self.cpp_source_file)
-        return rval
+    def c_headers(self):
+        return ['nvmatrix.cuh', 'conv_util.cuh']
+
+    def c_lib_dirs(self):
+        return [cuda_convnet_loc]
+
+    def c_libraries(self):
+        return ['cuda_convnet']
 
     def c_code_cache_version(self):
         return (1,)
