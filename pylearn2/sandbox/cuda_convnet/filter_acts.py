@@ -101,6 +101,8 @@ class FilterActs(BaseActs):
             raise TypeError("FilterActs: expected filters.type to be CudaNdarrayType, "
                     "got "+str(filters.type))
 
+        assert images.ndim == 4
+        assert filters.ndim == 4
 
         channels_broadcastable = filters.type.broadcastable[3]
         batch_broadcastable = images.type.broadcastable[3]

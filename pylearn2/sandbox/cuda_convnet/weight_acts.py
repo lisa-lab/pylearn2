@@ -92,6 +92,9 @@ class WeightActs(BaseActs):
                             "to be CudaNdarrayType, "
                             "got " + str(hid_grads.type))
 
+        assert images.ndim == 4
+        assert hid_grads.ndim == 4
+
         input_channels_broadcastable = images.type.broadcastable[0]
         # We don't know anything about filter_rows or filter_cols at compile
         # time, so we assume they're not broadcastable.
