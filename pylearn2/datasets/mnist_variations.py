@@ -1,5 +1,5 @@
 import numpy
-
+from pylearn2.utils import serial
 from pylearn2.datasets import dense_design_matrix
 
 class MNIST_variations(dense_design_matrix.DenseDesignMatrix):
@@ -30,9 +30,8 @@ class MNIST_variations(dense_design_matrix.DenseDesignMatrix):
                     
 
         # Based on the value of 'variation', figure out which npy file to
-        # load. 
+        # load. pylearn2.utils.serial
         path = "${PYLEARN2_DATA_PATH}/icml07data/npy/"
-        path = "/data/lisa/data/icml07data/npy/"
         if variation == "background_random":
             filename_root = path + "mnist_background_random"
         elif variation == "background_images":
@@ -126,8 +125,8 @@ class MNIST_variations(dense_design_matrix.DenseDesignMatrix):
     """
     def load_from_numpy(self, filename_root, mmap_mode='r'):
         # Load the data
-        inputs = numpy.load(filename_root+'_inputs.npy', mmap_mode=mmap_mode)
-        labels = numpy.load(filename_root+'_labels.npy', mmap_mode=mmap_mode)
+        inputs = serial.load(filename_root+'_inputs.npy')
+        labels = serial.load(filename_root+'_labels.npy')
         
         # Quick checks to ensure a proper dataset has been loaded
         assert inputs.shape == (62000, 784)
