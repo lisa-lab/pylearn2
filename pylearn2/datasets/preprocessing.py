@@ -871,11 +871,11 @@ def rgb_yuv(x):
 
     y = 0.299 * r + 0.587 * g + 0.114 * b
     u = -0.14713 * r - 0.28886 * g + 0.436 * b
-    v = 0.615 * r - 0.51499 * g  - 0.10001 * b
+    v = 0.615 * r -0.51499 * g  -0.10001 * b
 
     x[:,:,:,0] = y
     x[:,:,:,1] = u
-    x[:,:,:,2] = b
+    x[:,:,:,2] = v
 
     return x
 
@@ -907,6 +907,3 @@ def gaussian_filter(kernel_shape):
             x[i,j] = gauss(i-mid, j-mid)
 
     return x / np.sum(x)
-
-
-

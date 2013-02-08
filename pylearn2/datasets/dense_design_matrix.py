@@ -475,9 +475,9 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         h5file = tables.openFile(path, mode = "w", title = "SVHN Dataset")
         gcolumns = h5file.createGroup(h5file.root, "Data", "Data")
         atom = tables.Float64Atom() if config.floatX == 'flaot32' else tables.Float32Atom()
-        x = h5file.createCArray(gcolumns, 'X', atom = atom, shape = x_shape,
+        h5file.createCArray(gcolumns, 'X', atom = atom, shape = x_shape,
                                 title = "Data values")
-        y = h5file.createCArray(gcolumns, 'y', atom = atom, shape = y_shape,
+        h5file.createCArray(gcolumns, 'y', atom = atom, shape = y_shape,
                                 title = "Data targets")
         return h5file, gcolumns
 
@@ -491,8 +491,6 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
     @staticmethod
     def resize(h5file, start, stop):
         # TODO is there any smarter and more efficient way to this?
-        start = 0 if start is None else start
-        stop = data.X.nrows if stop is None else stop
 
         data = h5file.getNode('/', "Data")
         try:
@@ -500,6 +498,9 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         except tables.exceptions.NodeError:
             h5file.removeNode('/', "Data_", 1)
             gcolumns = h5file.createGroup('/', "Data_", "Data")
+
+        start = 0 if start is None else start
+        stop = gcolumns.X.nrows if stop is None else stop
 
         atom = tables.Float64Atom() if config.floatX == 'flaot32' else tables.Float32Atom()
         x = h5file.createCArray(gcolumns, 'X', atom = atom, shape = ((stop - start, data.X.shape[1])),
