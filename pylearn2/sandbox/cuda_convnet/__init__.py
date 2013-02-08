@@ -126,18 +126,24 @@ if cuda.cuda_available:
             # while we were waiting for the lock
             if should_recompile():
                 _logger.debug('recompiling')
-                if not os.path.exists(cuda_convnet_loc):
-                    os.makedirs(cuda_convnet_loc)
 
                 try:
                     compiler = nvcc_compiler.NVCC_compiler()
+                    args = compiler.compile_args()
+
+                    # compiler.compile_args() can execute a
+                    # compilation This currently will remove empty
+                    # directory in the compile dir.  So we must make
+                    # destination directory after calling it.
+                    if not os.path.exists(cuda_convnet_loc):
+                        os.makedirs(cuda_convnet_loc)
                     compiler.compile_str('cuda_convnet',
                             code,
                             location=cuda_convnet_loc,
                             include_dirs=[this_dir],
                             lib_dirs=nvcc_compiler.rpath_defaults,  # ???
                             libs=['cublas'],
-                            preargs=['-O3'] + compiler.compile_args(),
+                            preargs=['-O3'] + args,
                             py_module=False)
                 except Exception, e:
                     _logger.error("Failed to compile %s.cu: %s",
