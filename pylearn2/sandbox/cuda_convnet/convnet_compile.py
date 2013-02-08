@@ -171,7 +171,8 @@ def convnet_compile():
                 # symlink simultaneously.
                 # If that happens, we verify that the existing symlink is
                 # indeed working.
-                if getattr(e, 'errno', None) != errno.EEXIST or not ok():
+                if (getattr(e, 'errno', None) != errno.EEXIST
+                        or not symlink_ok()):
                     raise
 
     # Raise an error if libcuda_convnet_so is still not available
