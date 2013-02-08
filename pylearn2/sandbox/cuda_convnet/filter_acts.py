@@ -179,7 +179,6 @@ class FilterActs(BaseActs):
         const int imgSizeY = images_dims[1];
         const int imgSizeX = images_dims[2];
         const int batch_size = images_dims[3];
-        const int check_channels = 1;
         NVMatrix nv_images(%(images)s, img_channels * imgSizeY * imgSizeX, batch_size,
         "filter_acts:nv_images");
         """
@@ -295,7 +294,7 @@ class FilterActs(BaseActs):
         return rval
 
     def c_code_cache_version(self):
-        return (2,)
+        return (3,)
 
     def grad(self, inputs, dout):
 
