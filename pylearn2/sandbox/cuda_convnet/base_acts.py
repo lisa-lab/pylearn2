@@ -46,7 +46,8 @@ from theano.sandbox.cuda import GpuOp
 from pylearn2.sandbox.cuda_convnet.shared_code import get_NVMatrix_code
 from pylearn2.sandbox.cuda_convnet.shared_code import load_code
 from pylearn2.sandbox.cuda_convnet.shared_code import this_dir
-from pylearn2.sandbox.cuda_convnet import cuda_convnet_loc
+from pylearn2.sandbox.cuda_convnet.convnet_compile import convnet_available
+from pylearn2.sandbox.cuda_convnet.convnet_compile import cuda_convnet_loc
 
 
 class BaseActs(GpuOp):
@@ -119,6 +120,14 @@ class BaseActs(GpuOp):
             msg.append(str(val))
 
         return hash(tuple(msg))
+
+    # Make sure the cuda_convnet library is compiled and up-to-date
+    def make_thunk(self, node, storage_map, compute_map, no_recycling):
+        if not convnet_available():
+            raise RuntimeError('Could not compile cuda_convnet')
+
+        return super(BaseActs, self).make_thunk(
+                node, storage_map, storage_map, no_recycling)
 
 
 class UnimplementedError(Exception):
