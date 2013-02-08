@@ -55,6 +55,11 @@ class MNIST_variations(dense_design_matrix.DenseDesignMatrix):
         else: # which_set == test
             inputs = inputs[12000:52000]
             labels = labels[12000:52000]
+
+        # By default, images are transposed. Bring back to "normal" orientation.
+        inputs = inputs.reshape(len(inputs), 28, 28)
+        inputs = inputs.swapaxes(1,2)
+        inputs = inputs.reshape(len(inputs), -1)
                 
         # Keep only the examples between start and stop
         if start != None or stop != None:
