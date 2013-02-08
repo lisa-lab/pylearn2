@@ -92,6 +92,9 @@ class WeightActs(BaseActs):
                             "to be CudaNdarrayType, "
                             "got " + str(hid_grads.type))
 
+        assert images.ndim == 4
+        assert hid_grads.ndim == 4
+
         input_channels_broadcastable = images.type.broadcastable[0]
         # We don't know anything about filter_rows or filter_cols at compile
         # time, so we assume they're not broadcastable.
@@ -196,7 +199,6 @@ class WeightActs(BaseActs):
         const int imgSizeY = images_dims[1];
         const int imgSizeX = images_dims[2];
         const int batch_size = images_dims[3];
-        const int check_channels = 1;
         NVMatrix nv_images(%(images)s, img_channels * imgSizeY * imgSizeX, batch_size, "weight_acts: nv_images");
         """
         num_braces += 2
@@ -216,7 +218,6 @@ class WeightActs(BaseActs):
         const int batch_size = hid_grads_dims[3];
         NVMatrix nv_hid_grads(%(hid_grads)s, numFilters * hidGradsSizeY *
                                            hidGradsSizeX, batch_size, "weight_acts:nv_hid_grads");
-        const int check_channels = 0;
         """
         num_braces += 1
 
@@ -322,4 +323,4 @@ class WeightActs(BaseActs):
         return rval
 
     def c_code_cache_version(self):
-        return (2,)
+        return (3,)

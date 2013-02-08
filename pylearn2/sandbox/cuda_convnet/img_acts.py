@@ -89,6 +89,9 @@ class ImageActs(BaseActs):
                     "got " + str(filters.type))
 
 
+        assert hid_acts.ndim == 4
+        assert filters.ndim == 4
+
         channels_broadcastable = filters.type.broadcastable[3]
         batch_broadcastable = hid_acts.type.broadcastable[3]
         # Computing whether the rows and columns are broadcastable requires doing
