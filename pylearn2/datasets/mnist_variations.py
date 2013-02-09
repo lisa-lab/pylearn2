@@ -4,8 +4,24 @@ from pylearn2.datasets import dense_design_matrix
 
 class MNIST_variations(dense_design_matrix.DenseDesignMatrix):
     
-    def __init__(self, which_set, variation, center = False, shuffle = False,
+    def __init__(self, which_set, variation, center = False, gcn=False,
+            standardize_pixels=False, shuffle = False,
             one_hot = False, start = None, stop = None):
+        """
+        :param which_set: string, one of ['train','valid','test']
+        :param variation: string, one of ['background_random', 'background_images',
+        'rotation_background_images'.
+        :param center: boolean, remove per-pixel mean across examples.
+        :param gcn: boolean, enable global contrast normalization (per image, we start by
+        removing mean and dividing by the per-image standard deviation).
+        :param standardize_pixels: boolean, after optional GCN, standardize each pixel across
+        training examples, i.e. remove its mean and divide by the per-pixel standard deviation
+        measured across examples.
+        :param shuffle: boolean, return the shuffled dataset.
+        :param one_hot: boolean, return labels as a one-hot encoded matrix.
+        :param start: integer, return only examples in range [start:end].
+        :param end: integer, return only examples in range [start:end].
+        """
                 
         # Save the parameters as attributes
         self.which_set = which_set
@@ -59,6 +75,18 @@ class MNIST_variations(dense_design_matrix.DenseDesignMatrix):
         inputs = inputs.reshape(len(inputs), 28, 28)
         inputs = inputs.swapaxes(1,2)
         inputs = inputs.reshape(len(inputs), -1)
+
+        # (optional) Perform global contrast normalization
+        if gcn:
+            inputs = inputs - inputs.mean(axis=1)[:, None]
+            inputs /= inputs.std(axis=1)[:, None]
+
+        # (optional) Center or standardize each pixel across examples.
+        if standardize_pixels or center:
+            inputs = inputs - inputs.mean(axis=0)
+            if standardize_pixels:
+                assert center
+                inputs /= inputs.std(axis=0)
                 
         # Keep only the examples between start and stop
         if start != None or stop != None:
@@ -77,12 +105,7 @@ class MNIST_variations(dense_design_matrix.DenseDesignMatrix):
             # Prune the dataset according to the values of start and stop
             inputs = inputs[start:stop]
             labels = labels[start:stop]
-                
-        # If required, center the inputs
-        if center:
-            mean_by_pixel_position = inputs.mean(axis=0)
-            inputs = inputs - mean_by_pixel_position
-                    
+                   
         # If required, encode the labels as onehot vectors
         if one_hot:
             one_hot = numpy.zeros((labels.shape[0],10),dtype='float32')
