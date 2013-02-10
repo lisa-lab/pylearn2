@@ -13,7 +13,7 @@ from pylearn2.utils.string_utils import preprocess
 
 class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
 
-    mapper = {'train': 0, 'test': 1, 'extra': 2, 'train_all' : 3, 'splited_train' : 598388, 'valid' : 6000}
+    mapper = {'train': 0, 'test': 1, 'extra': 2, 'train_all' : 3, 'splited_train' : 4, 'valid' : 4}
     def __init__(self, which_set, path = None, center = False, scale = False,
             start = None, stop = None, axes=('b', 0, 1, 'c')):
         """
@@ -139,4 +139,82 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
             for i in xrange(data.shape[0]):
                 one_hot[i, data[i] -1] = 1.
             return one_hot
+
+class SVHN_Light(dense_design_matrix.DenseDesignMatrix):
+
+    mapper = {'train': 0, 'test': 1, 'valid' : 2}
+    def __init__(self, which_set, center = False, scale = False, start = None,
+            stop = None, one_hot = False, axes=('b', 0, 1, 'c')):
+        """
+        This class load data as numpy array on memory
+        """
+
+        assert which_set in self.mapper.keys()
+        self.args = locals()
+
+        path = preprocess('${PYLEARN2_DATA_PATH}/SVHN/format2/')
+        data_x, data_y = self.load_data(which_set, path, one_hot)
+        data_x = numpy.cast[config.floatX](data_x)
+        data_x =  numpy.transpose(data_x, axes = [3, 2, 0 , 1])
+        data_x = data_x.reshape((data_x.shape[0], 32 * 32 * 3))
+
+        if one_hot:
+            one_hot = numpy.zeros((data_y.shape[0], 10), dtype = config.floatX)
+            for i in xrange(data_y.shape[0]):
+                one_hot[i, data_y[i] -1] = 1.
+            data_y = one_hot
+        else:
+            data_y = data_y.reshape(data_y.shape[0])
+
+
+        if start is not None:
+            assert start >= 0
+            if stop is None:
+                stop = -1
+            else:
+                assert stop > start
+            data_x = data_x[start:stop,:]
+            data_y = data_y[start:stop,:]
+
+
+        # rescale or center if permitted
+        if center and scale:
+            data_x -= 127.5
+            data_x /= 127.5
+        elif center:
+            data_x -= 127.5
+        elif scale:
+            data_x /= 255.
+
+
+        view_converter = dense_design_matrix.DefaultViewConverter((32, 32, 3), axes)
+        super(SVHN_Light, self).__init__(X = data_x, y = data_y, view_converter = view_converter)
+
+
+    @staticmethod
+    def load_data(which_set, path, one_hot = False):
+
+        path = preprocess('${PYLEARN2_DATA_PATH}/SVHN/format2/')
+        if which_set == 'valid':
+            # Load balanced number of samples of each class from the extra
+            data = load(path + 'extra_32x32.mat')
+            valid_index = []
+            for i in xrange(1, 11):
+                index = numpy.nonzero(data['y'] == i)[0]
+                index.flags.writeable = 1
+                numpy.random.shuffle(index)
+                valid_index.append(index[:600])
+
+            valid_index = numpy.concatenate(valid_index)
+            numpy.random.shuffle(valid_index)
+            data_x = data['X'][:,:,:,valid_index]
+            data_y = data['y'][valid_index,:]
+            del data
+            gc.collect()
+
+            return data_x, data_y
+        else:
+            data = load("{}{}_32x32.mat".format(path, which_set))
+            return data['X'], data['y']
+
 
