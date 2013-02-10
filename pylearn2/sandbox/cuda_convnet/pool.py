@@ -7,8 +7,9 @@ from theano.sandbox.cuda.basic_ops import gpu_contiguous
 from theano.sandbox.cuda import GpuOp
 from theano.tensor import get_scalar_constant_value, NotScalarConstantError
 
-from pylearn2.sandbox.cuda_convnet import cuda_convnet_loc
 from pylearn2.sandbox.cuda_convnet.base_acts import UnimplementedError
+from pylearn2.sandbox.cuda_convnet.convnet_compile import convnet_available
+from pylearn2.sandbox.cuda_convnet.convnet_compile import cuda_convnet_loc
 from pylearn2.sandbox.cuda_convnet.shared_code import this_dir
 
 
@@ -235,6 +236,14 @@ class MaxPool(GpuOp):
         gz = gpu_contiguous(gz)
         maxout = self(x)
         return [MaxPoolGrad(self.ds, self.stride, self.start)(x, maxout, gz)]
+
+    # Make sure the cuda_convnet library is compiled and up-to-date
+    def make_thunk(self, node, storage_map, compute_map, no_recycling):
+        if not convnet_available():
+            raise RuntimeError('Could not compile cuda_convnet')
+
+        return super(MaxPool, self).make_thunk(
+                node, storage_map, storage_map, no_recycling)
 
 
 class MaxPoolGrad(GpuOp):
@@ -481,3 +490,11 @@ class MaxPoolGrad(GpuOp):
         rval = rval % locals()
 
         return rval
+
+    # Make sure the cuda_convnet library is compiled and up-to-date
+    def make_thunk(self, node, storage_map, compute_map, no_recycling):
+        if not convnet_available():
+            raise RuntimeError('Could not compile cuda_convnet')
+
+        return super(MaxPoolGrad, self).make_thunk(
+                node, storage_map, storage_map, no_recycling)

@@ -48,6 +48,7 @@ from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
 from pylearn2.sandbox.cuda_convnet.base_acts import UnimplementedError
 import warnings
 
+
 class WeightActs(BaseActs):
     """
     Transforms the gradient on the output of FilterActs into the gradient

@@ -46,6 +46,7 @@ from theano.gof import Apply
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
 from pylearn2.sandbox.cuda_convnet.base_acts import UnimplementedError
 
+
 class ImageActs(BaseActs):
     """
     Transpose of FilterActs.
