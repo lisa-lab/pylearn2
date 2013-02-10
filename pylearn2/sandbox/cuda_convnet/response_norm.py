@@ -72,7 +72,7 @@ class CrossMapNorm(BaseActs):
         self._size_f = int(size_f)
         self._add_scale = float(add_scale)
         self._pow_scale = float(pow_scale)
-        self._blocked = "true" if bool(blocked) else "false"
+        self._blocked = bool(blocked)
 
     def __hash__(self):
         return hash((self._size_f, self._add_scale, self._pow_scale,
