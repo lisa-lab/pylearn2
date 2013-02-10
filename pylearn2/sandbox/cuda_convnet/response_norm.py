@@ -57,10 +57,10 @@ class CrossMapNorm(BaseActs):
         of filters (I think).
 
     add_scale : float
-        Constant added to the denominator when normalizing (I think).
+        Constant that scales the sum in the denominator (alpha).
 
     pow_scale : float
-        Exponent for each term in the denominator sum (I think).
+        Exponent to which the denominator is raised (beta).
 
     blocked : bool
         Controls the "block-wise" behaviour in a way I don't quite
