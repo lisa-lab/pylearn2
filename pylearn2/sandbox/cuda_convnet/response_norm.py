@@ -42,8 +42,9 @@ The copyright and licensing notice for this code is reproduced below:
 
 """
 
+import theano
 from theano.sandbox.cuda import CudaNdarrayType
-from theano.gof import Apply
+from theano.gof import Apply, local_optimizer, TopoOptimizer
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
 
 
@@ -461,3 +462,28 @@ class CrossMapNormUndo(CrossMapNorm):
     def grad(self, inputs, dout):
         raise NotImplementedError()
 
+    @property
+    def inplace(self):
+        return self._inplace
+
+    def as_inplace(self):
+        if self._inplace:
+            raise ValueError("%s instance is already inplace, can't convert" %
+                             self.__class__.__name__)
+        return self.__class__(self._size_f, self._add_scale, self._pow_scale,
+                              self._blocked, inplace=True)
+
+
+@local_optimizer([None])
+def local_crossmapnormundo_inplace(node):
+    if isinstance(node.op, CrossMapNormUndo) and not node.op.inplace:
+        new_op = node.op.as_inplace()
+        new_node = new_op(*node.inputs)
+        return new_node
+    return False
+
+
+theano.compile.optdb.register('local_crossmapnormundo_inplace',
+                              TopoOptimizer(local_crossmapnormundo_inplace,
+                                            failure_callback=TopoOptimizer.warn_inplace),
+                              80, 'fast_run', 'inplace')
