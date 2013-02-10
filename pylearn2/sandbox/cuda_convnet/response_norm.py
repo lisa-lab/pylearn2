@@ -467,7 +467,7 @@ class CrossMapNormUndo(CrossMapNorm):
 
     def __str__(self):
         return (self.__class__.__name__ +
-                "[size_f=%d,add_scale=%f,pow_scale=%f,blocked=%s, inplace=%s]"
+                "[size_f=%d,add_scale=%.2f,pow_scale=%.2f,blocked=%s,inplace=%s]"
                 % (self._size_f, self._add_scale, self._pow_scale,
                    self._blocked, self._inplace))
 
