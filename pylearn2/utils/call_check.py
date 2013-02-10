@@ -55,7 +55,6 @@ def check_call_arguments(to_call, kwargs):
             else:
                 matched = [ match(keyword, args) for keyword in bad_keywords ]
                 matched_str = 'Did you mean %s?' % (', '.join(matched))
-            matched = match(bad, args)
             raise TypeError('%s does not support the following '
                             'keywords: %s. %s' %
                             (orig_to_call, bad, matched_str))
