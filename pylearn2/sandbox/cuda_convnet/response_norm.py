@@ -204,9 +204,6 @@ class CrossMapNorm(BaseActs):
 
         return rval
 
-    # def c_code_cache_version(self):
-    #     return (1,)
-
     def grad(self, inputs, dout):
         images, = inputs
         acts, denoms = self(images)
@@ -223,7 +220,8 @@ class CrossMapNorm(BaseActs):
                    self._blocked))
 
     def c_code_cache_version(self):
-        return (1,)
+        return (2,)
+
 
 class CrossMapNormUndo(CrossMapNorm):
     def __init__(self, size_f, add_scale, pow_scale, blocked, inplace=False):
@@ -474,7 +472,8 @@ class CrossMapNormUndo(CrossMapNorm):
                    self._blocked, self._inplace))
 
     def c_code_cache_version(self):
-        return (1,)
+        return (2,)
+
 
 @local_optimizer([None])
 def local_crossmapnormundo_inplace(node):
