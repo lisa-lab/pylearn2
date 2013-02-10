@@ -32,6 +32,7 @@ def test_optimization():
     op = CrossMapNorm(16, 15./16., 1, True)
     x_ = theano.tensor.TensorVariable(CudaNdarrayType([False] * 4))
     f = theano.function([x_], theano.grad(op(x_)[0].sum(), x_))
-    nodes = [x for x in f.maker.fgraph.nodes if type(x.op) == CrossMapNormUndo]
+    nodes = [x for x in f.maker.fgraph.apply_nodes
+             if type(x.op) == CrossMapNormUndo]
     assert len(nodes) == 1
     assert nodes[0].op.inplace
