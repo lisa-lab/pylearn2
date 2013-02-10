@@ -16,8 +16,11 @@ from pylearn2.utils.iteration import (
 )
 N = np
 import copy
-import tables
-
+try:
+    import tables
+except ImportError:
+    warnings.warn("Couldn't import tables, so far SVHN is "
+            "only supported with PyTables")
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.datasets import control
 from theano import config

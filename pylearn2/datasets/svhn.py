@@ -1,6 +1,11 @@
 import os, gc
+import warnings
+try:
+    import tables
+except ImportError:
+    warnings.warn("Couldn't import tables, so far SVHN is "
+            "only supported with PyTables")
 import numpy
-import tables
 from theano import config
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load
