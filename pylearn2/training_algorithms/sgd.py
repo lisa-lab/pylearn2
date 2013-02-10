@@ -579,6 +579,45 @@ class ExponentialDecay(object):
         new_lr = np.cast[config.floatX](new_lr)
         algorithm.learning_rate.set_value(new_lr)
 
+class LinearDecay(object):
+    """
+    This is a callback for the SGD algorithm rather than the Train object.
+    This anneals the learning rate to decay_factor times of the initial value
+    during time start till saturate.
+    """
+    def __init__(self, start, saturate, decay_factor):
+        if isinstance(decay_factor, str):
+            decay_factor = float(decay_factor)
+        if isinstance(start, str):
+            start = float(start)
+        if isinstance(saturate, str):
+            saturate = float(saturate)
+        assert isinstance(decay_factor, float)
+        assert isinstance(start, int) or isinstance(start, float)
+        assert isinstance(saturate, int) or isinstance(saturate, float)
+        assert saturate > start
+        assert start > 0
+        self.__dict__.update(locals())
+        del self.self
+        self._count = 0
+
+    def __call__(self, algorithm):
+        if self._count == 0:
+            self._base_lr = algorithm.learning_rate.get_value()
+            self.step = (self._base_lr - self._base_lr * self.decay_factor) /\
+                    (self.saturate - self.start)
+        self._count += 1
+        if self._count >= self.start:
+            if self._count < self.saturate:
+                new_lr = self._base_lr - self.step * self._count
+            else:
+                print 'hi'
+                new_lr = self._base_lr * self.decay_factor
+        else:
+            new_lr = self._base_lr
+        assert new_lr > 0
+        new_lr = np.cast[config.floatX](new_lr)
+        algorithm.learning_rate.set_value(new_lr)
 
 class MomentumAdjustor(TrainExtension):
     def __init__(self, final_momentum, start, saturate):
@@ -660,6 +699,48 @@ class OneOverEpoch(TrainExtension):
         lr = self._init_lr * scale
         clipped = max(self.min_lr, lr)
         return clipped
+
+class LinearDecayOverEpoch(TrainExtension):
+    """
+    Scales the learning rate linearly on each epochs
+    """
+    def __init__(self, start, saturate, decay_factor):
+        """
+            start: the epoch on which to start shrinking the learning rate
+            saturate: the epoch to saturate the shrinkage
+            decay_factor: the final value would be initial learning rate times
+                decay_factor
+        """
+        self.__dict__.update(locals())
+        del self.self
+        self._initialized = False
+        self._count = 0
+        assert isinstance(decay_factor, float)
+        assert isinstance(start, int) or isinstance(start, float)
+        assert isinstance(saturate, int) or isinstance(saturate, float)
+        assert saturate > start
+        assert start >= 0
+        assert saturate >= start
+
+    def on_monitor(self, model, dataset, algorithm):
+        if not self._initialized:
+            self._init_lr = algorithm.learning_rate.get_value()
+            self._step = (self._init_lr - self._init_lr * self.decay_factor) /\
+                    (self.saturate - self.start)
+            self._initialized = True
+        self._count += 1
+        algorithm.learning_rate.set_value( np.cast[config.floatX](self.current_lr()))
+
+    def current_lr(self):
+        if self._count >= self.start:
+            if self._count < self.saturate:
+                new_lr = self._init_lr - self._step * self._count
+            else:
+                new_lr = self._init_lr * self.decay_factor
+        else:
+            new_lr = self._init_lr
+        assert new_lr > 0
+        return new_lr
 
 class _PolyakWorker(object):
     """
