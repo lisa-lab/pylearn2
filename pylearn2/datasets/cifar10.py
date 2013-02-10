@@ -11,7 +11,10 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
             toronto_prepro = False):
 
         # note: there is no such thing as the cifar10 validation set;
-        # quit pretending that there is.
+        # pylearn1 defined one but really it should be user-configurable
+        # (as it is here)
+
+        self.axes = axes
 
         # we define here:
         dtype  = 'uint8'
@@ -181,7 +184,7 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
 
     def get_test_set(self):
         return CIFAR10(which_set='test', center=self.center, rescale=self.rescale, gcn=self.gcn,
-                one_hot=self.one_hot)
+                one_hot=self.one_hot, toronto_prepro=self.toronto_prepro, axes=self.axes)
 
 
     @classmethod
