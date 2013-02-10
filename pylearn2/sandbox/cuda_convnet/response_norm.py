@@ -229,7 +229,7 @@ class CrossMapNorm(BaseActs):
         grad_op = CrossMapNormUndo(self._size_f, self._add_scale,
                                    self._pow_scale, self._blocked,
                                    inplace=False)
-        return [grad_op(images, acts, denoms, dout)]
+        return [grad_op(images, acts, denoms, dout)[0]]
 
 
 class CrossMapNormUndo(CrossMapNorm):
@@ -281,7 +281,7 @@ class CrossMapNormUndo(CrossMapNorm):
         blocked = "true" if self._blocked else "false"
         inplace = "true" if self._inplace else "false"
         scale_targets = int(self._scale_targets)
-        scale_output = int(self._scale_output)
+        scale_outputs = int(self._scale_outputs)
 
         basic_setup = """
         #define CROSSMAPNORMUNDO_COPY_NON_CONTIGUOUS 0
@@ -290,7 +290,7 @@ class CrossMapNormUndo(CrossMapNorm):
         float powScale = %(pow_scale)f;
         bool blocked = %(blocked)s;
         int scaleTargets = %(scale_targets)s;
-        int scaleOutput = %(scale_output)s;
+        int scaleOutput = %(scale_outputs)s;
         """
         # Convert images int nv_images, an NVMatrix, for compatibility
         # with the cuda-convnet functions
@@ -456,7 +456,8 @@ class CrossMapNormUndo(CrossMapNorm):
                           setup_nv_dout,
                           setup_nv_targets,
                           setup_nv_out_acts,
-                          undo_normalize))
+                          undo_normalize,
+                          "}" * num_braces))
         return rval % locals()
 
     def grad(self, inputs, dout):
