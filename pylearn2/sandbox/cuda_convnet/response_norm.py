@@ -231,6 +231,14 @@ class CrossMapNorm(BaseActs):
                                    inplace=False)
         return [grad_op(images, acts, denoms, dout)[0]]
 
+    def __str__(self):
+        return (self.__class__.__name__ +
+                "[size_f=%d,add_scale=%f,pow_scale=%f,blocked=%s]"
+                % (self._size_f, self._add_scale, self._pow_scale,
+                   self._blocked))
+
+    def c_code_cache_version(self):
+        return (1,)
 
 class CrossMapNormUndo(CrossMapNorm):
     def __init__(self, size_f, add_scale, pow_scale, blocked, inplace=False):
@@ -474,6 +482,14 @@ class CrossMapNormUndo(CrossMapNorm):
         return self.__class__(self._size_f, self._add_scale, self._pow_scale,
                               self._blocked, inplace=True)
 
+    def __str__(self):
+        return (self.__class__.__name__ +
+                "[size_f=%d,add_scale=%f,pow_scale=%f,blocked=%s, inplace=%s]"
+                % (self._size_f, self._add_scale, self._pow_scale,
+                   self._blocked, self._inplace))
+
+    def c_code_cache_version(self):
+        return (1,)
 
 @local_optimizer([None])
 def local_crossmapnormundo_inplace(node):
