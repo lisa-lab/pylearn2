@@ -54,13 +54,13 @@ class CrossMapNorm(BaseActs):
     ----------
     size_f ; int
         Filter neighbourhood size. Must be >= 1 and <= the number
-        of filters.
+        of filters (I think).
 
     add_scale : float
-        Constant added to the denominator when normalizing.
+        Constant added to the denominator when normalizing (I think).
 
     pow_scale : float
-        Exponent for each term in the denominator sum.
+        Exponent for each term in the denominator sum (I think).
 
     blocked : bool
         Controls the "block-wise" behaviour in a way I don't quite
