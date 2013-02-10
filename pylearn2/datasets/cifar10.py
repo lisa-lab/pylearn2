@@ -89,7 +89,7 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
             if which_set == 'test':
                 raise NotImplementedError("Need to subtract the mean of the *training* set.")
             X = X / 255.
-            X = (X.T - X.mean(axis=1)).T
+            X = X - X.mean(axis=0)
         self.toronto_prepro = toronto_prepro
 
         self.gcn = gcn

@@ -180,7 +180,7 @@ class CrossMapNorm(BaseActs):
 
         { // setup_nv_denoms brace #1
 
-        NVMatrix nv_denoms(%(targets)s, denoms_dims[0] * denoms_dims[1]
+        NVMatrix nv_denoms(%(denoms)s, denoms_dims[0] * denoms_dims[1]
          * denoms_dims[2], denoms_dims[3], "response_norm:nv_denoms");
         """
 
@@ -220,7 +220,7 @@ class CrossMapNorm(BaseActs):
                    self._blocked))
 
     def c_code_cache_version(self):
-        return (2,)
+        return (3,)
 
 
 class CrossMapNormUndo(CrossMapNorm):
@@ -467,7 +467,7 @@ class CrossMapNormUndo(CrossMapNorm):
 
     def __str__(self):
         return (self.__class__.__name__ +
-                "[size_f=%d,add_scale=%f,pow_scale=%f,blocked=%s, inplace=%s]"
+                "[size_f=%d,add_scale=%.2f,pow_scale=%.2f,blocked=%s,inplace=%s]"
                 % (self._size_f, self._add_scale, self._pow_scale,
                    self._blocked, self._inplace))
 
