@@ -25,7 +25,31 @@ from pylearn2.utils.string_utils import number_aware_alphabetical_key
 
 channels = {}
 
-for i, arg in enumerate(sys.argv[1:]):
+model_paths = sys.argv[1:]
+
+def unique_substring(s, other, min_size=1):
+    size = min(len(s), min_size)
+    while size <= len(s):
+        for pos in xrange(0,len(s)-size+1):
+            rval = s[pos:pos+size]
+            fail = False
+            for o in other:
+                if o.find(rval) != -1:
+                    fail = True
+                    break
+            if not fail:
+                return rval
+        size += 1
+    assert False
+
+def unique_substrings(l, min_size=1):
+    return [unique_substring(s, [x for x in l if x is not s], min_size) for s in l]
+
+model_names = [model_path.replace('.pkl', '!') for model_path in model_paths]
+model_names = unique_substrings(model_names, min_size=3)
+model_names = [model_name.replace('!','') for model_name in model_names]
+
+for i, arg in enumerate(model_paths):
     try:
         model = serial.load(arg)
     except:
@@ -36,7 +60,7 @@ for i, arg in enumerate(sys.argv[1:]):
     this_model_channels = model.monitor.channels
 
     if len(sys.argv) > 2:
-        postfix = ":model%d" % i
+        postfix = ":" + model_names[i]
     else:
         postfix = ""
 
@@ -158,8 +182,13 @@ while True:
     plt.xlabel('# '+x_axis+'s')
 
 
+    colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
+    styles = list(colors)
+    styles += [color+'--' for color in colors]
+    styles += [color+':' for color in colors]
+
     #plot the requested channels
-    for code in sorted(final_codes):
+    for idx, code in enumerate(sorted(final_codes)):
 
         channel_name= codebook[code]
 
@@ -191,6 +220,7 @@ while True:
 
         plt.plot( x,
                   y,
+                  styles[idx % len(styles)],
                   label = channel_name)
 
 
