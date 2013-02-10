@@ -82,28 +82,13 @@ class CrossMapNorm(BaseActs):
         return type(self) == type(other) and hash(self) == hash(other)
 
     def make_node(self, images):
-        """
-        Parameters
-        ----------
-        images : TensorVariable with type CudaNdarrayType
-            The shape should be (nfilters, rows, cols, batch_size).
-        """
         if not isinstance(images.type, CudaNdarrayType):
             raise TypeError("CrossMapNorm: expected images.type to be CudaNdarrayType, "
                     "got " + str(images.type))
 
         assert images.ndim == 4
 
-        channels_broadcastable = images.type.broadcastable[0]
-        batch_broadcastable = images.type.broadcastable[3]
-        # Computing whether the rows and columns are broadcastable requires doing
-        # arithmetic on quantities that are known only at runtime, like the specific
-        # shape of the image and kernel
-        rows_broadcastable = False
-        cols_broadcastable = False
-
-        targets_broadcastable = (channels_broadcastable, rows_broadcastable,
-                cols_broadcastable, batch_broadcastable)
+        targets_broadcastable = images.type.broadcastable
         targets_type = CudaNdarrayType(broadcastable=targets_broadcastable)
         denoms = targets_type()
         targets = targets_type()
