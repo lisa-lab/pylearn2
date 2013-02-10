@@ -57,6 +57,20 @@ class MNIST_variations(dense_design_matrix.DenseDesignMatrix):
             
         # Load the dataset
         inputs, labels = self.load_from_numpy(filename_root)
+ 
+        # (optional) Perform global contrast normalization
+        # This is done across all (train,valid,test) images.
+        if gcn:
+            inputs = inputs - inputs.mean(axis=1)[:, None]
+            inputs /= inputs.std(axis=1)[:, None]
+
+        # (optional) Center or standardize each pixel across examples.
+        # We should only use statistics from the training set for this.
+        if standardize_pixels or center:
+            inputs = inputs - inputs[:10000].mean(axis=0)
+            if standardize_pixels:
+                assert center
+                inputs /= inputs[:10000].std(axis=0)
                     
         # Keep only the data related to the set specified by which_set
         # (the train set is the first 10000, the valid set if the next
@@ -68,26 +82,14 @@ class MNIST_variations(dense_design_matrix.DenseDesignMatrix):
             inputs = inputs[10000:12000]
             labels = labels[10000:12000]            
         else: # which_set == test
-            inputs = inputs[12000:52000]
-            labels = labels[12000:52000]
+            inputs = inputs[12000:]
+            labels = labels[12000:]
 
         # By default, images are transposed. Bring back to "normal" orientation.
         inputs = inputs.reshape(len(inputs), 28, 28)
         inputs = inputs.swapaxes(1,2)
         inputs = inputs.reshape(len(inputs), -1)
 
-        # (optional) Perform global contrast normalization
-        if gcn:
-            inputs = inputs - inputs.mean(axis=1)[:, None]
-            inputs /= inputs.std(axis=1)[:, None]
-
-        # (optional) Center or standardize each pixel across examples.
-        if standardize_pixels or center:
-            inputs = inputs - inputs.mean(axis=0)
-            if standardize_pixels:
-                assert center
-                inputs /= inputs.std(axis=0)
-                
         # Keep only the examples between start and stop
         if start != None or stop != None:
                 
