@@ -49,8 +49,10 @@ import theano
 from theano.sandbox.cuda import CudaNdarrayType
 from theano.gof import Apply, local_optimizer, TopoOptimizer
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
-
-
+from .code_templates import (
+    contiguity_check, dimension_check, output_same_shape,
+    ensure_same_shape, nv_matrix_create
+)
 
 
 class CrossMapNorm(BaseActs):
@@ -161,10 +163,10 @@ class CrossMapNorm(BaseActs):
         )
         num_braces += 2
 
-        setup_nv_targets = self._setup_output_same_shape('targets', 'images')
+        setup_nv_targets = output_same_shape('targets', 'images')
         num_braces += 1
 
-        setup_nv_denoms = self._setup_output_same_shape('denoms', 'images')
+        setup_nv_denoms = output_same_shape('denoms', 'images')
         num_braces += 1
 
         do_normalize = """
@@ -201,12 +203,10 @@ class CrossMapNorm(BaseActs):
                    self._blocked))
 
     def c_code_cache_version(self):
-        return (5,)
+        return (6,)
 
 
 class CrossMapNormUndo(CrossMapNorm):
-
-
     def __init__(self, size_f, add_scale, pow_scale, blocked, inplace=False):
         self._scale_targets = 0
         self._scale_outputs = 1
@@ -324,7 +324,7 @@ class CrossMapNormUndo(CrossMapNorm):
             %(fail)s;
         }
         #endif
-        """ + self._nv_matrix_create("out_acts"))
+        """ + nv_matrix_create("out_acts"))
         num_braces += 1
 
         undo_normalize = """
@@ -366,7 +366,7 @@ class CrossMapNormUndo(CrossMapNorm):
                    self._blocked, self._inplace))
 
     def c_code_cache_version(self):
-        return (6,)
+        return (7,)
 
 
 @local_optimizer([None])
