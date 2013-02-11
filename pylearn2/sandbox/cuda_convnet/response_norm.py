@@ -9,6 +9,9 @@ __license__ = "3-clause BSD"
 __maintainer__ = "David Warde-Farley"
 __email__ = "wardefar@iro"
 
+
+__all__ = ["CrossMapNorm", "CrossMapNormUndo"]
+
 """
 This module may contain code copied directly or modified from cuda-convnet.
 The copyright and licensing notice for this code is reproduced below:
@@ -46,6 +49,8 @@ import theano
 from theano.sandbox.cuda import CudaNdarrayType
 from theano.gof import Apply, local_optimizer, TopoOptimizer
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
+
+
 
 
 class CrossMapNorm(BaseActs):
@@ -104,23 +109,6 @@ class CrossMapNorm(BaseActs):
                            batch_size, "%(class_name)s:nv_images");
     """
 
-    def _setup_output_same_shape(self, out_arg_name, in_arg_name):
-        return """
-        const int *%(out_arg_name)s_dims = %(in_arg_name)s_dims;
-
-        if (CudaNdarray_prep_output(& %%(%(out_arg_name)s)s, 4,
-                                    %(out_arg_name)s_dims))
-        {
-            %%(fail)s;
-        }
-
-        { // setup_nv_%(out_arg_name)s brace #1
-        NVMatrix nv_%(out_arg_name)s(%%(%(out_arg_name)s)s,
-         %(out_arg_name)s_dims[0] * %(out_arg_name)s_dims[1] *
-         %(out_arg_name)s_dims[2],
-         %(out_arg_name)s_dims[3], "%%(class_name)s:nv_%(out_arg_name)s");
-        """ % locals()
-
     def __init__(self, size_f, add_scale, pow_scale, blocked):
         if size_f < 0:
             raise ValueError("size_f must be positive (got %d)" % size_f)
@@ -167,8 +155,8 @@ class CrossMapNorm(BaseActs):
         basic_setup = self._basic_setup
 
         setup_nv_images = (
-            self._argument_contiguity_check("images") +
-            self._argument_dimension_check("images", 4) +
+            contiguity_check("images") +
+            dimension_check("images", 4) +
             self._images_setup
         )
         num_braces += 2
@@ -217,27 +205,7 @@ class CrossMapNorm(BaseActs):
 
 
 class CrossMapNormUndo(CrossMapNorm):
-    def _nv_matrix_create(self, arg_name):
-        return """
-        {
-        NVMatrix nv_%(arg_name)s(%%(%(arg_name)s)s,
-                      %(arg_name)s_dims[0] * %(arg_name)s_dims[1] *
-                      %(arg_name)s_dims[2], %(arg_name)s_dims[3],
-                      "%%(class_name)s:nv_%(arg_name)s");
-        """ % locals()
 
-    def _ensure_same_shape(self, new_arg, old_arg):
-        return """
-        if (%(new_arg)s_dims[0] != %(old_arg)s_dims[0] ||
-            %(new_arg)s_dims[1] != %(old_arg)s_dims[1] ||
-            %(new_arg)s_dims[2] != %(old_arg)s_dims[2] ||
-            %(new_arg)s_dims[3] != %(old_arg)s_dims[3]) {
-            PyErr_SetString(PyExc_ValueError, "%%(class_name)s: %(new_arg)s "
-                                              "must have same shape as "
-                                              "%(old_arg)s");
-            %%(fail)s;
-        }
-        """ % locals()
 
     def __init__(self, size_f, add_scale, pow_scale, blocked, inplace=False):
         self._scale_targets = 0
@@ -299,42 +267,42 @@ class CrossMapNormUndo(CrossMapNorm):
         """
 
         setup_nv_images = (
-            self._argument_contiguity_check("images") +
-            self._argument_dimension_check("images", 4) +
+            contiguity_check("images") +
+            dimension_check("images", 4) +
             self._images_setup
         )
         num_braces += 2
-        setup_acts = (self._argument_contiguity_check("acts") +
-                      self._argument_dimension_check("acts", 4) +
+        setup_acts = (contiguity_check("acts") +
+                      dimension_check("acts", 4) +
         """
         { //setup_nv_images brace 1
         const int * acts_dims = CudaNdarray_HOST_DIMS(%(acts)s);
         """ +
-                      self._ensure_same_shape('acts', 'images') +
+                      ensure_same_shape('acts', 'images') +
         """
         { // setup_nv_acts brace 2
         """)
         num_braces += 2
-        setup_nv_denoms = (self._argument_contiguity_check("denoms") +
-                           self._argument_dimension_check("denoms", 4) +
+        setup_nv_denoms = (contiguity_check("denoms") +
+                           dimension_check("denoms", 4) +
         """
         {
         const int *denoms_dims = images_dims;
         """ +
-                           self._ensure_same_shape("denoms", "images") +
-                           self._nv_matrix_create("denoms"))
+                           ensure_same_shape("denoms", "images") +
+                           nv_matrix_create("denoms"))
         num_braces += 2
 
-        setup_nv_dout = (self._argument_contiguity_check("dout") +
-                         self._argument_dimension_check("dout", 4) +
+        setup_nv_dout = (contiguity_check("dout") +
+                         dimension_check("dout", 4) +
         """
         { // setup_nv_dout brace
         const int *dout_dims = CudaNdarray_HOST_DIMS(%(dout)s);
         """ +
-                         self._ensure_same_shape("dout", "images") +
-                         self._nv_matrix_create("dout"))
+                         ensure_same_shape("dout", "images") +
+                         nv_matrix_create("dout"))
         num_braces += 2
-        setup_nv_targets = self._setup_output_same_shape('targets', 'images')
+        setup_nv_targets = output_same_shape('targets', 'images')
         num_braces += 1
 
         setup_nv_out_acts = ("""
