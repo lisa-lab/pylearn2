@@ -1,7 +1,6 @@
 import numpy
 import theano
 from nose.plugins.skip import SkipTest
-from theano.sandbox.cuda import gpu_from_host
 from theano.tests.unittest_tools import verify_grad
 
 try:
@@ -10,6 +9,7 @@ try:
         CrossMapNormUndo
     )
     from theano.sandbox.cuda import CudaNdarrayType, CudaNdarray
+    from theano.sandbox.cuda import gpu_from_host
 except ImportError:
     raise SkipTest('cuda not available')
 
