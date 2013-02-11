@@ -390,7 +390,7 @@ class CrossMapNormUndo(CrossMapNorm):
             %(fail)s;
         }
         { // setup_nv_denoms brace 2
-        NVMatrix nv_dout(%(denoms)s, numFilters * imgSizeY * imgSizeX, batch_size,
+        NVMatrix nv_dout(%(dout)s, numFilters * imgSizeY * imgSizeX, batch_size,
         "response_norm:nv_dout");
         """
         num_braces += 2
