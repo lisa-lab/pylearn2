@@ -104,6 +104,17 @@ class BaseActs(GpuOp):
             'class_name_caps': self.__class__.__name__.upper(),
         }
 
+    def _argument_dimension_check(self, arg_name, ndim):
+        return """
+        if (%%(%(arg_name)s)s->nd != %(ndim)d)
+        {
+            PyErr_Format(PyExc_ValueError,
+                "%(arg_name)s must have ndim=%(ndim)d, got nd=%%%%i",
+                %%(%(arg_name)s)s->nd);
+            %%(fail)s;
+        }
+        """ % locals()
+
     def __eq__(self, other):
         return (type(self) == type(other) and
                 self.partial_sum == other.partial_sum and
