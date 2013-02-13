@@ -16,7 +16,7 @@ language: c
 before_install:
   - sudo apt-get install -qq libatlas3gf-base libatlas-dev
     python-numpy python-scipy python-pip python-nose python-yaml
-    pyflakes python-imaging
+    pyflakes python-imaging python-tables
 
 # The "|| cat ..." part prints the error log if the pip command fails
 install:

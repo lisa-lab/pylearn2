@@ -9,6 +9,9 @@ __license__ = "3-clause BSD"
 __maintainer__ = "David Warde-Farley"
 __email__ = "wardefar@iro"
 
+
+__all__ = ["CrossMapNorm", "CrossMapNormUndo"]
+
 """
 This module may contain code copied directly or modified from cuda-convnet.
 The copyright and licensing notice for this code is reproduced below:
@@ -46,6 +49,10 @@ import theano
 from theano.sandbox.cuda import CudaNdarrayType
 from theano.gof import Apply, local_optimizer, TopoOptimizer
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
+from .code_templates import (
+    contiguity_check, dimension_check, output_same_shape,
+    ensure_same_shape, nv_matrix_create
+)
 
 
 class CrossMapNorm(BaseActs):
@@ -66,6 +73,44 @@ class CrossMapNorm(BaseActs):
         Controls the "block-wise" behaviour in a way I don't quite
         understand.
     """
+    _basic_setup = """
+        #define %(class_name_upper)s_COPY_NON_CONTIGUOUS 0
+        int sizeF = %(size_f)d;
+        float addScale = %(add_scale)f;
+        float powScale = %(pow_scale)f;
+        bool blocked = %(blocked)s;
+    """
+
+    _images_setup = """
+        { // images_setup brace #1
+        const int * images_dims = CudaNdarray_HOST_DIMS(%(images)s);
+        const int numFilters = images_dims[0];
+        const int imgSizeY = images_dims[1];
+        const int imgSizeX = images_dims[2];
+        const int batch_size = images_dims[3];
+        if (numFilters %% 16 != 0)
+        {
+            PyErr_Format(PyExc_ValueError, "%(class_name)s: images.shape[0] "
+                         "must be a multiple of 16, but got %%d",
+                         images_dims[0]);
+            %(fail)s;
+        }
+        if (sizeF > images_dims[0]) {
+            PyErr_Format(PyExc_ValueError, "%(class_name)s: size_f "
+                         "is %%d but images.shape[0] is %%d", sizeF,
+                         images_dims[0]);
+            %(fail)s;
+        }
+        if (imgSizeY != imgSizeX) {
+            PyErr_Format(PyExc_ValueError, "%(class_name)s: images "
+                         "must be square; got (%%d, %%d)", imgSizeY, imgSizeX);
+            %(fail)s;
+        }
+        { // images_setup brace #2
+        NVMatrix nv_images(%(images)s, numFilters * imgSizeY * imgSizeX,
+                           batch_size, "%(class_name)s:nv_images");
+    """
+
     def __init__(self, size_f, add_scale, pow_scale, blocked):
         if size_f < 0:
             raise ValueError("size_f must be positive (got %d)" % size_f)
@@ -106,84 +151,22 @@ class CrossMapNorm(BaseActs):
         pow_scale = self._pow_scale
         blocked = "true" if self._blocked else "false"
 
-        basic_setup = """
-        #define CROSSMAPNORM_COPY_NON_CONTIGUOUS 0
-        int sizeF = %(size_f)d;
-        float addScale = %(add_scale)f;
-        float powScale = %(pow_scale)f;
-        bool blocked = %(blocked)s;
-        """
+        class_name = self.__class__.__name__
+        class_name_upper = class_name.upper()
 
-        # Convert images int nv_images, an NVMatrix, for compatibility
-        # with the cuda-convnet functions
-        setup_nv_images = self._argument_contiguity_check("images") + """
-        if (%(images)s->nd != 4)
-        {
-            PyErr_Format(PyExc_ValueError,
-                "images must have nd=4, got nd=%%i", %(images)s->nd);
-            %(fail)s;
-        }
+        basic_setup = self._basic_setup
 
-        { //setup_nv_images brace 1
-        const int * images_dims = CudaNdarray_HOST_DIMS(%(images)s);
-        const int numFilters = images_dims[0];
-        const int imgSizeY = images_dims[1];
-        const int imgSizeX = images_dims[2];
-        const int batch_size = images_dims[3];
-        if (numFilters %% 16 != 0)
-        {
-            PyErr_Format(PyExc_ValueError, "CrossMapNorm: images.shape[0] "
-                         "must be a multiple of 16, but got %%d",
-                         images_dims[0]);
-            %(fail)s;
-        }
-        if (sizeF > images_dims[0]) {
-            PyErr_Format(PyExc_ValueError, "CrossMapNorm: size_f "
-                         "is %%d but images.shape[0] is %%d", sizeF,
-                         images_dims[0]);
-            %(fail)s;
-        }
-        if (imgSizeY != imgSizeX) {
-            PyErr_Format(PyExc_ValueError, "CrossMapNorm: images "
-                         "must be square; got (%%d, %%d)", imgSizeY, imgSizeX);
-            %(fail)s;
-        }
-        { // setup_nv_images brace 2
-        NVMatrix nv_images(%(images)s, numFilters * imgSizeY * imgSizeX, batch_size,
-        "response_norm:nv_images");
-        """
-
+        setup_nv_images = (
+            contiguity_check("images") +
+            dimension_check("images", 4) +
+            self._images_setup
+        )
         num_braces += 2
 
-        setup_nv_targets = """
-        const int *target_dims = images_dims;
-
-        if (CudaNdarray_prep_output(& %(targets)s, 4, target_dims))
-        {
-            %(fail)s;
-        }
-
-        { // setup_nv_targets brace #1
-
-        NVMatrix nv_targets(%(targets)s, target_dims[0] * target_dims[1]
-         * target_dims[2], target_dims[3], "response_norm:nv_targets");
-        """
+        setup_nv_targets = output_same_shape('targets', 'images')
         num_braces += 1
 
-        setup_nv_denoms = """
-        const int *denoms_dims = images_dims;
-
-        if (CudaNdarray_prep_output(& %(denoms)s, 4, denoms_dims))
-        {
-            %(fail)s;
-        }
-
-        { // setup_nv_denoms brace #1
-
-        NVMatrix nv_denoms(%(denoms)s, denoms_dims[0] * denoms_dims[1]
-         * denoms_dims[2], denoms_dims[3], "response_norm:nv_denoms");
-        """
-
+        setup_nv_denoms = output_same_shape('denoms', 'images')
         num_braces += 1
 
         do_normalize = """
@@ -191,7 +174,7 @@ class CrossMapNorm(BaseActs):
                                  addScale, powScale, blocked);
         """
 
-        braces = '}' * num_braces
+        braces = '}' * num_braces + "\n"
 
         rval = (basic_setup +
                 setup_nv_images +
@@ -220,7 +203,7 @@ class CrossMapNorm(BaseActs):
                    self._blocked))
 
     def c_code_cache_version(self):
-        return (3,)
+        return (6,)
 
 
 class CrossMapNormUndo(CrossMapNorm):
@@ -274,142 +257,55 @@ class CrossMapNormUndo(CrossMapNorm):
         scale_targets = int(self._scale_targets)
         scale_outputs = int(self._scale_outputs)
 
-        basic_setup = """
-        #define CROSSMAPNORMUNDO_COPY_NON_CONTIGUOUS 0
-        int sizeF = %(size_f)d;
-        float addScale = %(add_scale)f;
-        float powScale = %(pow_scale)f;
-        bool blocked = %(blocked)s;
-        int scaleTargets = %(scale_targets)s;
-        int scaleOutput = %(scale_outputs)s;
-        """
-        # Convert images int nv_images, an NVMatrix, for compatibility
-        # with the cuda-convnet functions
-        setup_nv_images = self._argument_contiguity_check("images") + """
-        if (%(images)s->nd != 4)
-        {
-            PyErr_Format(PyExc_ValueError,
-                "images must have nd=4, got nd=%%i", %(images)s->nd);
-            %(fail)s;
-        }
+        class_name = self.__class__.__name__
+        class_name_upper = class_name.upper()
 
-        { //setup_nv_images brace 1
-        const int * images_dims = CudaNdarray_HOST_DIMS(%(images)s);
-        const int numFilters = images_dims[0];
-        const int imgSizeY = images_dims[1];
-        const int imgSizeX = images_dims[2];
-        const int batch_size = images_dims[3];
-        if (sizeF > images_dims[0]) {
-            PyErr_Format(PyExc_ValueError, "CrossMapNormUndo: size_f "
-                         "is %%d but images.shape[0] is %%d", sizeF,
-                         images_dims[0]);
-            %(fail)s;
-        }
-        if (numFilters %% 16 != 0)
-        {
-            PyErr_Format(PyExc_ValueError, "CrossMapNorm: images.shape[0] "
-                         "must be a multiple of 16, but got %%d",
-                         images_dims[0]);
-            %(fail)s;
-        }
-        if (imgSizeY != imgSizeX) {
-            PyErr_Format(PyExc_ValueError, "CrossMapNormUndo: images "
-                         "must be square; got (%%d, %%d)", imgSizeY, imgSizeX);
-            %(fail)s;
-        }
-        { // setup_nv_images brace 2
-        NVMatrix nv_images(%(images)s, numFilters * imgSizeY * imgSizeX, batch_size,
-        "response_norm:nv_images");
+        basic_setup = self._basic_setup
+        scaling_setup = """
+        float scaleTargets = %(scale_targets)s;
+        float scaleOutput = %(scale_outputs)s;
         """
+
+        setup_nv_images = (
+            contiguity_check("images") +
+            dimension_check("images", 4) +
+            self._images_setup
+        )
         num_braces += 2
-        setup_nv_acts = self._argument_contiguity_check("acts") + """
-        if (%(acts)s->nd != 4)
-        {
-            PyErr_Format(PyExc_ValueError,
-                "acts must have nd=4, got nd=%%i", %(acts)s->nd);
-            %(fail)s;
-        }
-
+        setup_acts = (contiguity_check("acts") +
+                      dimension_check("acts", 4) +
+        """
         { //setup_nv_images brace 1
         const int * acts_dims = CudaNdarray_HOST_DIMS(%(acts)s);
-        if (acts_dims[0] != images_dims[0] ||
-            acts_dims[1] != images_dims[1] ||
-            acts_dims[2] != images_dims[2] ||
-            acts_dims[3] != images_dims[3]) {
-            PyErr_SetString(PyExc_ValueError, "CrossMapNormUndo: acts must "
-                                              " have same shape as images");
-            %(fail)s;
-        }
+        """ +
+                      ensure_same_shape('acts', 'images') +
+        """
         { // setup_nv_acts brace 2
-
-        // XXX: Don't create this, we pass nv_out_acts instead.
-        // NVMatrix nv_acts(%(acts)s, numFilters * imgSizeY * imgSizeX, batch_size,
-        // "response_norm:nv_acts");
-        """
+        """)
         num_braces += 2
-        setup_nv_denoms = self._argument_contiguity_check("denoms") + """
-        if (%(denoms)s->nd != 4)
-        {
-            PyErr_Format(PyExc_ValueError,
-                "denoms must have nd=4, got nd=%%i", %(denoms)s->nd);
-            %(fail)s;
-        }
-
-        { //setup_nv_acts brace 1
-        const int * denoms_dims = CudaNdarray_HOST_DIMS(%(denoms)s);
-        if (denoms_dims[0] != images_dims[0] ||
-            denoms_dims[1] != images_dims[1] ||
-            denoms_dims[2] != images_dims[2] ||
-            denoms_dims[3] != images_dims[3]) {
-            PyErr_SetString(PyExc_ValueError, "CrossMapNormUndo: denoms must "
-                                              " have same shape as images");
-            %(fail)s;
-        }
-        { // setup_nv_denoms brace 2
-        NVMatrix nv_denoms(%(denoms)s, numFilters * imgSizeY * imgSizeX, batch_size,
-        "response_norm:nv_denoms");
+        setup_nv_denoms = (contiguity_check("denoms") +
+                           dimension_check("denoms", 4) +
         """
+        {
+        const int *denoms_dims = images_dims;
+        """ +
+                           ensure_same_shape("denoms", "images") +
+                           nv_matrix_create("denoms"))
         num_braces += 2
 
-        setup_nv_dout = self._argument_contiguity_check("dout") + """
-        if (%(dout)s->nd != 4)
-        {
-            PyErr_Format(PyExc_ValueError,
-                "dout must have nd=4, got nd=%%i", %(dout)s->nd);
-            %(fail)s;
-        }
-
-        { //setup_nv_dout brace 1
-        const int * dout_dims = CudaNdarray_HOST_DIMS(%(dout)s);
-        if (dout_dims[0] != images_dims[0] ||
-            dout_dims[1] != images_dims[1] ||
-            dout_dims[2] != images_dims[2] ||
-            dout_dims[3] != images_dims[3]) {
-            PyErr_SetString(PyExc_ValueError, "CrossMapNormUndo: dout must "
-                                              " have same shape as images");
-            %(fail)s;
-        }
-        { // setup_nv_denoms brace 2
-        NVMatrix nv_dout(%(denoms)s, numFilters * imgSizeY * imgSizeX, batch_size,
-        "response_norm:nv_dout");
+        setup_nv_dout = (contiguity_check("dout") +
+                         dimension_check("dout", 4) +
         """
+        { // setup_nv_dout brace
+        const int *dout_dims = CudaNdarray_HOST_DIMS(%(dout)s);
+        """ +
+                         ensure_same_shape("dout", "images") +
+                         nv_matrix_create("dout"))
         num_braces += 2
-        setup_nv_targets = """
-        const int *target_dims = images_dims;
-
-        if (CudaNdarray_prep_output(& %(targets)s, 4, target_dims))
-        {
-            %(fail)s;
-        }
-
-        { // setup_nv_targets brace #1
-
-        NVMatrix nv_targets(%(targets)s, target_dims[0] * target_dims[1]
-         * target_dims[2], target_dims[3], "response_norm:nv_targets");
-        """
+        setup_nv_targets = output_same_shape('targets', 'images')
         num_braces += 1
 
-        setup_nv_out_acts = """
+        setup_nv_out_acts = ("""
         const int *out_acts_dims = images_dims;
 
         #if %(inplace)s
@@ -428,12 +324,9 @@ class CrossMapNormUndo(CrossMapNorm):
             %(fail)s;
         }
         #endif
-        { // setup_nv_out_acts brace #1
-
-        NVMatrix nv_out_acts(%(out_acts)s, target_dims[0] * target_dims[1]
-         * target_dims[2], target_dims[3], "response_norm:nv_out_acts");
-        """
+        """ + nv_matrix_create("out_acts"))
         num_braces += 1
+
         undo_normalize = """
         convResponseNormCrossMapUndo(nv_dout, nv_denoms, nv_images,
                                      nv_out_acts, nv_targets, numFilters,
@@ -441,8 +334,9 @@ class CrossMapNormUndo(CrossMapNorm):
                                      scaleTargets, scaleOutput);
         """
         rval = "\n".join((basic_setup,
+                          scaling_setup,
                           setup_nv_images,
-                          setup_nv_acts,
+                          setup_acts,
                           setup_nv_denoms,
                           setup_nv_dout,
                           setup_nv_targets,
@@ -472,7 +366,7 @@ class CrossMapNormUndo(CrossMapNorm):
                    self._blocked, self._inplace))
 
     def c_code_cache_version(self):
-        return (2,)
+        return (7,)
 
 
 @local_optimizer([None])

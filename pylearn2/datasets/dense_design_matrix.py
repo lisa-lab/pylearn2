@@ -11,11 +11,16 @@ import warnings
 import numpy as np
 from pylearn2.utils.iteration import (
     FiniteDatasetIterator,
+    FiniteDatasetIteratorPyTables,
     resolve_iterator_class
 )
 N = np
 import copy
-
+try:
+    import tables
+except ImportError:
+    warnings.warn("Couldn't import tables, so far SVHN is "
+            "only supported with PyTables")
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.datasets import control
 from theano import config
@@ -431,7 +436,87 @@ class DenseDesignMatrix(Dataset):
         return self.view_converter.weights_view_shape()
 
     def has_targets(self):
-        return self.y is not None
+         return self.y is not None
+
+class DenseDesignMatrixPyTables(DenseDesignMatrix):
+    @functools.wraps(Dataset.iterator)
+    def iterator(self, mode=None, batch_size=None, num_batches=None,
+                 topo=None, targets=None, rng=None):
+
+        # TODO: Refactor, deduplicate with set_iteration_scheme
+        if mode is None:
+            if hasattr(self, '_iter_subset_class'):
+                mode = self._iter_subset_class
+            else:
+                raise ValueError('iteration mode not provided and no default '
+                                 'mode set for %s' % str(self))
+        else:
+            mode = resolve_iterator_class(mode)
+        if batch_size is None:
+            batch_size = getattr(self, '_iter_batch_size', None)
+        if num_batches is None:
+            num_batches = getattr(self, '_iter_num_batches', None)
+        if topo is None:
+            topo = getattr(self, '_iter_topo', False)
+        if targets is None:
+            targets = getattr(self, '_iter_targets', False)
+        if rng is None and mode.stochastic:
+            rng = self.rng
+        return FiniteDatasetIteratorPyTables(self,
+                                     mode(self.X.shape[0], batch_size,
+                                     num_batches, rng),
+                                     topo, targets)
+
+    @staticmethod
+    def init_hdf5(path, shapes):
+        """
+        Initialize hdf5 file to be used ba dataset
+        """
+
+        x_shape, y_shape = shapes
+        # make pytables
+        h5file = tables.openFile(path, mode = "w", title = "SVHN Dataset")
+        gcolumns = h5file.createGroup(h5file.root, "Data", "Data")
+        atom = tables.Float64Atom() if config.floatX == 'flaot32' else tables.Float32Atom()
+        h5file.createCArray(gcolumns, 'X', atom = atom, shape = x_shape,
+                                title = "Data values")
+        h5file.createCArray(gcolumns, 'y', atom = atom, shape = y_shape,
+                                title = "Data targets")
+        return h5file, gcolumns
+
+    @staticmethod
+    def fill_hdf5(file, node, data, index):
+        data_x, data_y = data
+        node.X[index] = data_x
+        node.y[index] = data_y
+        file.flush()
+
+    @staticmethod
+    def resize(h5file, start, stop):
+        # TODO is there any smarter and more efficient way to this?
+
+        data = h5file.getNode('/', "Data")
+        try:
+            gcolumns = h5file.createGroup('/', "Data_", "Data")
+        except tables.exceptions.NodeError:
+            h5file.removeNode('/', "Data_", 1)
+            gcolumns = h5file.createGroup('/', "Data_", "Data")
+
+        start = 0 if start is None else start
+        stop = gcolumns.X.nrows if stop is None else stop
+
+        atom = tables.Float64Atom() if config.floatX == 'flaot32' else tables.Float32Atom()
+        x = h5file.createCArray(gcolumns, 'X', atom = atom, shape = ((stop - start, data.X.shape[1])),
+                            title = "Data values")
+        y = h5file.createCArray(gcolumns, 'y', atom = atom, shape = ((stop - start, 10)),
+                            title = "Data targets")
+        x[:] = data.X[start:stop]
+        y[:] = data.y[start:stop]
+
+        h5file.removeNode('/', "Data", 1)
+        h5file.renameNode('/', "Data", "Data_")
+        h5file.flush()
+        return h5file, gcolumns
 
 
 class DefaultViewConverter(object):
