@@ -366,6 +366,7 @@ class Softmax(Layer):
             istdev = None,
                  sparse_init = None, W_lr_scale = None,
                  b_lr_scale = None, max_row_norm = None,
+                 no_affine = False,
                  max_col_norm = None):
         """
         """
@@ -379,7 +380,8 @@ class Softmax(Layer):
         assert isinstance(n_classes, int)
 
         self.output_space = VectorSpace(n_classes)
-        self.b = sharedX( np.zeros((n_classes,)), name = 'softmax_b')
+        if not no_affine:
+            self.b = sharedX( np.zeros((n_classes,)), name = 'softmax_b')
 
     def get_lr_scalers(self):
 
@@ -399,6 +401,9 @@ class Softmax(Layer):
         return rval
 
     def get_monitoring_channels(self):
+
+        if self.no_affine:
+            return OrderedDict()
 
         W = self.W
 
@@ -448,33 +453,41 @@ class Softmax(Layer):
         self.input_dim = space.get_total_dimension()
         self.needs_reformat = not isinstance(space, VectorSpace)
 
-        self.desired_space = VectorSpace(self.input_dim)
+        if self.no_affine:
+            desired_dim = self.n_classes
+            assert self.input_dim == desired_dim
+        else:
+            desired_dim = self.input_dim
+        self.desired_space = VectorSpace(desired_dim)
 
         if not self.needs_reformat:
             assert self.desired_space == self.input_space
 
         rng = self.mlp.rng
 
-        if self.irange is not None:
-            assert self.istdev is None
-            assert self.sparse_init is None
-            W = rng.uniform(-self.irange,self.irange, (self.input_dim,self.n_classes))
-        elif self.istdev is not None:
-            assert self.sparse_init is None
-            W = rng.randn(self.input_dim, self.n_classes) * self.istdev
+        if self.no_affine:
+            self._params = []
         else:
-            assert self.sparse_init is not None
-            W = np.zeros((self.input_dim, self.n_classes))
-            for i in xrange(self.n_classes):
-                for j in xrange(self.sparse_init):
-                    idx = rng.randint(0, self.input_dim)
-                    while W[idx, i] != 0.:
+            if self.irange is not None:
+                assert self.istdev is None
+                assert self.sparse_init is None
+                W = rng.uniform(-self.irange,self.irange, (self.input_dim,self.n_classes))
+            elif self.istdev is not None:
+                assert self.sparse_init is None
+                W = rng.randn(self.input_dim, self.n_classes) * self.istdev
+            else:
+                assert self.sparse_init is not None
+                W = np.zeros((self.input_dim, self.n_classes))
+                for i in xrange(self.n_classes):
+                    for j in xrange(self.sparse_init):
                         idx = rng.randint(0, self.input_dim)
-                    W[idx, i] = rng.randn()
+                        while W[idx, i] != 0.:
+                            idx = rng.randint(0, self.input_dim)
+                        W[idx, i] = rng.randn()
 
-        self.W = sharedX(W,  'softmax_W' )
+            self.W = sharedX(W,  'softmax_W' )
 
-        self._params = [ self.b, self.W ]
+            self._params = [ self.b, self.W ]
 
     def get_weights_topo(self):
         if not isinstance(self.input_space, Conv2DSpace):
@@ -514,13 +527,15 @@ class Softmax(Layer):
                 raise ValueError("state_below should have batch size "+str(self.dbm.batch_size)+" but has "+str(value.shape[0]))
 
         self.desired_space.validate(state_below)
-
-        assert self.W.ndim == 2
         assert state_below.ndim == 2
 
-        b = self.b
+        if self.no_affine:
+            Z = state_below
+        else:
+            assert self.W.ndim == 2
+            b = self.b
 
-        Z = T.dot(state_below, self.W) + b
+            Z = T.dot(state_below, self.W) + b
 
         rval = T.nnet.softmax(Z)
 
@@ -567,6 +582,8 @@ class Softmax(Layer):
         return coeff * T.sqr(self.W).sum()
 
     def censor_updates(self, updates):
+        if self.no_affine:
+            return
         if self.max_row_norm is not None:
             W = self.W
             if W in updates:
