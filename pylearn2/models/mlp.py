@@ -529,6 +529,9 @@ class Softmax(Layer):
         self.desired_space.validate(state_below)
         assert state_below.ndim == 2
 
+        if not hasattr(self, 'no_affine'):
+            self.no_affine = False
+
         if self.no_affine:
             Z = state_below
         else:
