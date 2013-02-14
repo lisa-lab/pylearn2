@@ -78,7 +78,9 @@ Don't forget that changes from your .bashrc file won't apply until you run
 
 source ~/.bashrc
 
-or open a new terminal window.
+or open a new terminal window. If you're seeing this from an ipython notebook
+you'll need to restart the ipython notebook, or maybe modify os.environ from
+an ipython cell.
 """)
 
             raise
