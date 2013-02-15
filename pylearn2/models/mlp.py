@@ -1378,8 +1378,9 @@ class Linear(Layer):
                             ('col_norms_max'  , col_norms.max()),
                             ])
 
-    def fprop(self, state_below):
 
+    def _linear_part(self, state_below):
+        # TODO: Refactor More Better(tm)
         self.input_space.validate(state_below)
 
         if self.requires_reformat:
@@ -1401,12 +1402,14 @@ class Linear(Layer):
             z = self.transformer.lmul(state_below) + self.b
         if self.layer_name is not None:
             z.name = self.layer_name + '_z'
-
-        p = z
-
         if self.copy_input:
-            p = T.concatenate((p, state_below), axis=1)
+            z = T.concatenate((z, state_below), axis=1)
+        return z
 
+
+    def fprop(self, state_below):
+        # TODO: Refactor More Better(tm)
+        p = self._linear_part(state_below)
         return p
 
     def cost(self, Y, Y_hat):
@@ -1431,6 +1434,13 @@ class Linear(Layer):
             rval['misclass'] = misclass
 
         return rval
+
+
+class Tanh(Linear):
+    def fprop(self, state_below):
+        p = self._linear_part(state_below)
+        p = T.tanh(p)
+        return p
 
 
 class SpaceConverter(Layer):
