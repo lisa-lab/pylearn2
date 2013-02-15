@@ -39,10 +39,11 @@ class MNIST_variations(dense_design_matrix.DenseDesignMatrix):
             
         # Ensure the specified mnist variation to use in valid
         if variation not in ["background_random", "background_images",
-                             "rotation_background_images",]:
+                             "rotation_background_images", "rotation"]:
             raise ValueError('Unrecognized variation value "%s".' %
                     (variation,)+'". Valid values are ["background_random",' + 
-                    '"background_images","rotation_background_images"].')
+                    '"background_images","rotation_background_images",' +
+                    '"rotation"].')
                     
 
         # Based on the value of 'variation', figure out which npy file to
@@ -52,8 +53,13 @@ class MNIST_variations(dense_design_matrix.DenseDesignMatrix):
             filename_root = path + "mnist_background_random"
         elif variation == "background_images":
             filename_root = path + "mnist_background_images"              
-        else: # variation == rotation_background_image
+        elif variation == "rotation_background_images":
             filename_root = path + "mnist_rotated_background_images"
+        elif variation == "rotation":
+            filename_root = path + "mnist_rotated"
+        else:
+            raise ValueError('Invalid variation value')
+        
             
         # Load the dataset
         inputs, labels = self.load_from_numpy(filename_root)
