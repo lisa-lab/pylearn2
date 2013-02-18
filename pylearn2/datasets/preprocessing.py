@@ -724,8 +724,19 @@ class GlobalContrastNormalization(object):
 
 
 class ZCA(Preprocessor):
+    """
+    Performs ZCA whitening.
+    TODO: add reference
+    """
     def __init__(self, n_components=None, n_drop_components=None,
                  filter_bias=0.1):
+        """
+        n_components: TODO: WRITEME
+        n_drop_components: TODO: WRITEME
+        filter_bias: Filters are scaled by 1/sqrt(filter_bias + variance)
+                    TODO: verify that default of 0.1 is what was used in the
+                          Coates and Ng paper, add reference
+        """
         warnings.warn("This ZCA preprocessor class is known to yield very "
                       "different results on different platforms. If you plan "
                       "to conduct experiments with this preprocessing on "
@@ -865,6 +876,14 @@ def lecun_lcn(input, img_shape, kernel_shape):
         return f(input)
 
 def rgb_yuv(x):
+    """
+    x: A batch of images in numpy tensor format, with
+       the last axis corresponding to the channels.
+       The channels should be r, g, and b.
+    Returns the same format, with channels y, u, v.
+
+    TODO: add reference
+    """
     r = x[:,:,:,0]
     g = x[:,:,:,1]
     b = x[:,:,:,2]
@@ -880,6 +899,9 @@ def rgb_yuv(x):
     return x
 
 def yuv_rgb(x):
+    """
+    Inverse of rbg_yuv.
+    """
     y = x[:,:,:,0]
     u = x[:,:,:,1]
     v = x[:,:,:,2]

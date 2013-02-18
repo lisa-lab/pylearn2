@@ -16,7 +16,8 @@ from pylearn2.utils.mnist_ubyte import read_mnist_labels
 class MNIST(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, which_set, center = False, shuffle = False,
             one_hot = False, binarize = False, start = None,
-            stop = None, axes=['b', 0, 1, 'c']):
+            stop = None, axes=['b', 0, 1, 'c'],
+            preprocessor = None):
 
         self.args = locals()
 
@@ -114,6 +115,9 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
             topo = dimshuffle(np.zeros((1,28,28,1)))
             super(MNIST,self).__init__(topo_view = topo, axes=axes)
             self.X = None
+
+        if preprocessor:
+            preprocessor.apply(self)
 
     def adjust_for_viewer(self, X):
         return N.clip(X*2.-1.,-1.,1.)

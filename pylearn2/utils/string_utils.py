@@ -42,13 +42,46 @@ def preprocess(string):
             if varname == 'PYLEARN2_DATA_PATH':
                 raise EnvironmentVariableError("You need to define your PYLEARN2_DATA_PATH environment variable. If you are using a computer at LISA, this should be set to /data/lisa/data")
             if varname == 'PYLEARN2_VIEWER_COMMAND':
-                raise EnvironmentVariableError("""You need to define your PYLEARN2_VIEWER_COMMAND environment variable.
-                        ${PYLEARN2_VIEWER_COMMAND} image.png
-                        should open an image viewer in a new process and not return until you have closed the image.
-                        Acceptable commands include:
-                        gwenview
-                        eog --new-instance
-                        """)
+                raise EnvironmentVariableError(
+"""
+PYLEARN2_VIEWER_COMMAND not defined.
+
+pylearn2 uses an external program to display images. Because different systems have different
+image programs available, pylearn2 requires the user to specify what image viewer program to
+use.
+
+You need to choose an image viewer program that pylearn2 should use. Then tell pylearn2 to use
+that image viewer program by defining your PYLEARN2_VIEWER_COMMAND environment variable.
+
+You need to choose PYLEARN_VIEWER_COMMAND such that running
+
+${PYLEARN2_VIEWER_COMMAND} image.png
+
+in a command prompt on your machine will do the following:
+    -open an image viewer in a new process.
+    -not return until you have closed the image.
+
+Acceptable commands include:
+    gwenview
+    eog --new-instance
+
+This is assuming that you have gwenview or a version of eog that supports --new-instance
+installed on your machine. If you don't, install one of those, or figure out a command
+that has the above properties that is available from your setup.
+
+On most linux setups, you can define your environment variable by adding this line to your
+~/.bashrc file:
+
+export PYLEARN2_VIEWER_COMMAND="eog --new-instance"
+
+Don't forget that changes from your .bashrc file won't apply until you run
+
+source ~/.bashrc
+
+or open a new terminal window. If you're seeing this from an ipython notebook
+you'll need to restart the ipython notebook, or maybe modify os.environ from
+an ipython cell.
+""")
 
             raise
 

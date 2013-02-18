@@ -8,11 +8,13 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
     http://aclab.ca/users/josh/TFD.html
     """
 
-    mapper = {'unlabeled': 0, 'train': 1, 'valid': 2, 'test': 3}
+    mapper = {'unlabeled': 0, 'train': 1, 'valid': 2, 'test': 3,
+            'full_train': 4}
 
     def __init__(self, which_set, fold = 0, image_size = 48,
-                 example_range = None, center = False,
-                 shuffle=False, one_hot = False, rng=None, seed=132987):
+                 example_range = None, center = False, scale = False,
+                 shuffle=False, one_hot = False, rng=None, seed=132987,
+                 preprocessor = None, axes = ('b', 0, 1, 'c')):
         """
         Creates a DenseDesignMatrix object for the Toronto Face Dataset.
         :param which_set: dataset to load. One of ['train','valid','test','unlabeled'].
@@ -22,7 +24,8 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
         :param fold: TFD contains 5 official folds for train, valid and test.
         :param image_size: one of [48,96]. Load smaller or larger dataset variant.
         """
-        assert which_set in self.mapper.keys()
+        if which_set not in self.mapper.keys():
+            raise ValueError("Unrecognized which_set value: %s. Valid values are %s." % (str(which_set), str(self.mapper.keys())))
         assert (fold >=0) and (fold <5)
 
         # load data
@@ -35,7 +38,11 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
             raise ValueError("image_size should be either 48 or 96.")
 
         # retrieve indices corresponding to `which_set` and fold number
-        set_indices = data['folds'][:, fold] == self.mapper[which_set]
+        if self.mapper[which_set] == 4:
+            set_indices = (data['folds'][:, fold] == 1) + (data['folds'][:,fold] == 2)
+        else:
+            set_indices = data['folds'][:, fold] == self.mapper[which_set]
+        assert set_indices.sum() > 0
 
         # limit examples returned to `example_range`
         ex_range = slice(example_range[0], example_range[1]) \
@@ -49,6 +56,9 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
         data_x = data_x.reshape(data_x.shape[0], image_size ** 2)
         if center:
             data_x -= 127.5
+        if scale:
+            assert not center
+            data_x /= 255.
 
         if shuffle:
             rng = rng if rng else np.random.RandomState(seed)
@@ -78,7 +88,8 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
             data_y_identity = None
 
         # create view converting for retrieving topological view
-        view_converter = dense_design_matrix.DefaultViewConverter((image_size, image_size, 1))
+        view_converter = dense_design_matrix.DefaultViewConverter((image_size, image_size, 1),
+                axes)
 
         # init the super class
         super(TFD, self).__init__(X = data_x, y = data_y, view_converter = view_converter)
@@ -86,3 +97,6 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
         assert not np.any(np.isnan(self.X))
 
         self.y_identity = data_y_identity
+
+        if preprocessor is not None:
+            preprocessor.apply(self)

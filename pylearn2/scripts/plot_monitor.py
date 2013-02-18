@@ -40,14 +40,17 @@ def unique_substring(s, other, min_size=1):
             if not fail:
                 return rval
         size += 1
-    assert False
+    # no unique substring
+    return s
 
 def unique_substrings(l, min_size=1):
     return [unique_substring(s, [x for x in l if x is not s], min_size) for s in l]
 
+print 'generating names...'
 model_names = [model_path.replace('.pkl', '!') for model_path in model_paths]
-model_names = unique_substrings(model_names, min_size=3)
+model_names = unique_substrings(model_names, min_size=10)
 model_names = [model_name.replace('!','') for model_name in model_names]
+print '...done'
 
 for i, arg in enumerate(model_paths):
     try:
