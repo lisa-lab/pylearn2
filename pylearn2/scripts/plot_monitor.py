@@ -40,7 +40,8 @@ def unique_substring(s, other, min_size=1):
             if not fail:
                 return rval
         size += 1
-    assert False
+    # no unique substring
+    return s
 
 def unique_substrings(l, min_size=1):
     return [unique_substring(s, [x for x in l if x is not s], min_size) for s in l]
