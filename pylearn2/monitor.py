@@ -733,6 +733,8 @@ def push_monitor(model, name):
 
     return model
 
+def read_channel(model, channel_name, monitor_name = 'monitor'):
+    return getattr(model, monitor_name).channels[channel_name].val_record[-1]
 
 _err_no_data = "You tried to add a channel to a Monitor that has no dataset."
 _err_ambig_data = ("You added a channel to a Monitor that has multiple datasets, "

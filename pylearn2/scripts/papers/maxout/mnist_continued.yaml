@@ -1,0 +1,55 @@
+!obj:pylearn2.train.Train {
+    dataset: &train !obj:pylearn2.datasets.mnist.MNIST {
+        which_set: 'train',
+        one_hot: 1,
+        axes: ['c', 0, 1, 'b'],
+    },
+    model: &model !obj:pylearn2.monitor.push_monitor {
+        model: !pkl: "${PYLEARN2_TRAIN_DIR}mnist_best.pkl",
+        name: "monitor_validation"
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        learning_rate: !obj:pylearn2.monitor.read_channel {
+            model: *model,
+            monitor_name: "monitor_validation",
+            channel_name: "learning_rate"
+        },
+        init_momentum: !obj:pylearn2.monitor.read_channel {
+            model: *model,
+            monitor_name: "monitor_validation",
+            channel_name: "momentum"
+        },
+        monitoring_dataset:
+            {
+                'valid' : !obj:pylearn2.datasets.mnist.MNIST {
+                              axes: ['c', 0, 1, 'b'],
+                              which_set: 'train',
+                              one_hot: 1,
+                              start: 50000,
+                              stop:  60000
+                          },
+            },
+        cost: &cost !obj:pylearn2.costs.cost.MethodCost {
+                method: 'cost_from_X',
+                supervised: 1
+        },
+        termination_criterion: !obj:pylearn2.termination_criteria.ChannelTarget {
+            target: !obj:galatea.mlp.get_channel {
+                batch_size: 100,
+                cost: *cost,
+                dataset : !obj:pylearn2.datasets.mnist.MNIST {
+                    which_set: "train",
+                    axes: ['c', 0, 1, 'b'],
+                    start: 0,
+                    stop: 50000,
+                    one_hot: 1
+                },
+                model: *model,
+                channel: 'y_nll'
+            },
+            channel_name: "valid_y_nll",
+        }
+    },
+    save_path: "${PYLEARN2_TRAIN_DIR}mnist_continued.pkl",
+    save_freq: 1
+}

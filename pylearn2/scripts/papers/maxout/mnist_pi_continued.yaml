@@ -1,0 +1,45 @@
+!obj:pylearn2.train.Train {
+    dataset: &train !obj:pylearn2.datasets.mnist.MNIST {
+        which_set: 'train',
+        one_hot: 1,
+    },
+    model: !obj:pylearn2.monitor.push_monitor {
+        model: !pkl: "mnist_pi_best.pkl",
+        name: "monitor_stage_0"
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        batch_size: 100,
+        learning_rate: 0.0615082606673,
+        init_momentum: 0.694376766682,
+        monitoring_dataset:
+            {
+                'train' : *train,
+                'valid' : !obj:pylearn2.datasets.mnist.MNIST {
+                              which_set: 'train',
+                              one_hot: 1,
+                              start: 50000,
+                              stop:  60000
+                          },
+                'test'  : !obj:pylearn2.datasets.mnist.MNIST {
+                              which_set: 'test',
+                              one_hot: 1,
+                          }
+            },
+        cost: !obj:pylearn2.costs.cost.MethodCost {
+                method: 'cost_from_X',
+                supervised: 1
+        },
+        termination_criterion: !obj:pylearn2.termination_criteria.MatchChannel {
+            channel_name: "valid_objective",
+            prev_channel_name: "train_objective",
+            prev_monitor_name: "monitor_stage_0"
+        },
+        update_callbacks: !obj:pylearn2.training_algorithms.sgd.ExponentialDecay {
+            decay_factor: 1.000004,
+            min_lr: .000001
+        }
+    },
+    save_path: "${PYLEARN2_TRAIN_FILE_FULL_STEM}.pkl",
+    save_freq: 1
+}
+

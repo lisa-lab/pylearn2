@@ -416,7 +416,11 @@ def load_train_file(config_file_path):
             "PYLEARN2_TRAIN_FILE_FULL_STEM"]: #this is the new, accepted name
         environ.putenv(varname, config_file_full_stem)
 
-    environ.putenv("PYLEARN2_TRAIN_DIR", '/'.join(config_file_path.split('/')[:-1]) )
+    directory = config_file_path.split('/')[:-1]
+    directory = '/'.join(directory)
+    if directory != '':
+        directory += '/'
+    environ.putenv("PYLEARN2_TRAIN_DIR", directory)
     environ.putenv("PYLEARN2_TRAIN_BASE_NAME", config_file_path.split('/')[-1] )
     environ.putenv("PYLEARN2_TRAIN_FILE_STEM", config_file_full_stem.split('/')[-1] )
 

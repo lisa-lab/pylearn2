@@ -1,0 +1,48 @@
+The files in this directory recreate some of the experiments reported in the
+paper
+
+Maxout Networks. Ian J. Goodfellow, David Warde-Farley, Mehdi Mirza, Aaron
+Courville, and Yoshua Bengio. arXiv 2013
+
+If you use the code provided here, please cite that paper.
+
+The experiments reproduced here are as follows:
+
+1) MNIST permutation invariant result
+
+The paper reports obtaining a test set error rate of 0.94%, the best ever
+reported (as of this writing) for a multilayer perceptron with no unsupervised
+pretraining. To reproduce this result, run
+
+train.py mnist_pi.yaml
+
+TODO--something is wrong with pylearn2 and/or theano. This should get a validation
+set error of 0.0104 but it gets 0.0108. Will debug this.
+
+2) MNIST result
+
+The paper reports obtaining a test set error rate of 0.45%, the state of the
+art for the MNIST dataset without data augmentation. To reproduce this result,
+run:
+
+THEANO_FLAGS="device=gpu,floatX=float32" train.py mnist.yaml
+THEANO_FLAGS="device=gpu,floatX=float32" train.py mnist_continued.yaml
+THEANO_FLAGS="device=gpu,floatX=float32" python compute_test_err.py mnist_continued.pkl
+
+The final command should print out some progress messages followed by "0.0045"
+
+3) CIFAR-10 result
+
+In the days ahead, we will provide our yaml config files for getting the state of
+the art on CIFAR-10.
+
+4) CIFAR-100 result
+
+In the days ahead, we will provide our yaml config files for getting the state of
+the art on CIFAR-100.
+
+5) SVHN
+
+In the days ahead, we will provide our yaml config files for getting the state of
+the art on SVHN.
+
