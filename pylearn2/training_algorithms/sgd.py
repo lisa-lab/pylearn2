@@ -5,7 +5,7 @@ learning rate adaptation, momentum, and Polyak averaging.
 """
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
-__credits__ = ["Ian Goodfellow, David Warde-Farley"]
+__credits__ = ["Ian Goodfellow", "David Warde-Farley", "Nicholas Leonard"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow, David Warde-Farley"
 __email__ = "goodfeli@iro"
