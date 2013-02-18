@@ -3,7 +3,7 @@ Multilayer Perceptron
 """
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"
-__credits__ = ["Ian Goodfellow"]
+__credits__ = ["Ian Goodfellow", "Nicholas Leonard"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
@@ -46,6 +46,181 @@ warnings.warn("MLP changing the recursion limit.")
 # precisely when you're going to exceed the stack segment.
 sys.setrecursionlimit(40000)
 
+"""
+TODO:
+    Modify the copy_input interface. Possibly by allowing each layer to be
+    initialized with the layer(s) that preceed it.
+    Transfer dropout probs and scales from MLP to layers.
+"""
+
+class WeightInit:
+    """An abstract class to initialize weight matrices"""
+    def __call__(self, rng, input_dim, output_dim):
+        """Should return an initialized weight matrix of shape 
+        (input_dim, output_dim) using random number generator rng"""
+        raise NotImplementedError(str(type(self))+" does not implement __call__.")
+    
+class Uniform(WeightInit):
+    """Initializes weights using a uniform distribution."""
+    def __init__(self, init_range, include_prob=1.):
+        """
+        Parameters
+        ----------
+            init_range: float
+                weights are initialized from a uniform distribution
+                between -init_range and +init_range.
+            include_prob: float
+                probability of including a weight in the matrix. If a weight
+                isn't included, it is initialized to zero.
+        """
+        self.init_range = init_range
+        self.include_prob = include_prob
+    def __call__(self, rng, input_dim, output_dim):
+        # a matrix of 0 and 1s to determine which weights to zero:
+        inclusion_matrix = \
+            self.rng.uniform(0., 1., (input_dim, output_dim)) \
+            < \
+            self.include_prob
+        return rng.uniform(-self.init_range,
+                            self.init_range,
+                            (input_dim, output_dim)
+                          ) * inclusion_matrix 
+                               
+class Normal(WeightInit):
+    """Initializes weights using a normal distribution. """
+    def __init__(self, stdev):
+        """
+        Parameters
+        ----------
+            stdev: float
+                weights are initialized from a normal distribution 
+                having standard deviation and mean 0.
+        """
+        self.stdev = stdev
+    def __call__(self, rng, input_dim, output_dim):
+        return rng.randn(input_dim, output_dim) * self.stdev
+
+class Sparse(WeightInit):
+    """
+    Initialize weights using a normal distribution while enforcing the
+    intra-column sparseness of the weight matrix.
+    
+    Definition
+    ----------
+    Sparseness of a representation means that a given [array] is represented 
+    by only a small number of active (clearly non-zero) [elements]. 
+    (Hyvarinen, Hurri, Hoyer. p.142, Springer 2009) 
+    """
+    def __init__(self, stdev, sparseness, mask_weights = None):
+        """
+        Parameters
+        ----------
+            stdev: float
+                weights are initialized from a normal distribution 
+                having standard deviation stdev and mean 0.
+            sparseness: float
+                a number between 0 and 1 that determines the sparseness of
+                each weight matrix column. For example, a sparsity of 0.9 
+                means that each column will have 90% of zeros, while the 
+                remainder are initialized from a normal distribution with
+                standard deviation stdev.
+            mask_weights: matrix
+                a matrix where the position of non-zero values indicate to
+                the initializer that the commesurate position in the weight 
+                matrix cannot be initialized with a non-zero value.
+        """
+        self.stdev = stdev
+        assert (sparseness < 1.0) and (sparseness >= 0.0)
+        self.sparseness = sparseness
+        self.mask_weights = mask_weights
+    def __call__(self, rng, input_dim, output_dim):
+        W = np.zeros((self.input_dim, self.dim))
+        def mask_rejects(idx, i):
+            if self.mask_weights is None:
+                return False
+            return self.mask_weights[idx, i] == 0.
+        rows_to_fill = max(1, int(input_dim * (1.0 - self.sparseness)))
+        # for each weight matrix column i
+        for i in xrange(output_dim):
+            # until you have randn initialized enough weights
+            for j in xrange(rows_to_fill):
+                # choose a random input index (weight matrix row)
+                idx = rng.randint(0, input_dim)
+                # find a row of the weight matrix that still has zeros
+                # at random indexes:
+                while W[idx, i] != 0 or mask_rejects(idx, i):
+                    idx = rng.randint(0, input_dim)
+                # and initialize it from a gaussion distribution
+                W[idx, i] = rng.randn()
+        # multiply weights by a standard deviation
+        W *= self.stdev
+        return W
+        
+class InitConv2D:
+    """An base class to initialize convolutional 2D weight matrices"""
+    def __call__(self, rng, input_channels, output_channels, kernel_shape):
+        """Should return a randomly initialized convolutional2D weight 
+        matrix of shape: 
+        (input_channels, output_channels, kernel_shape[0], kernel_shape[1])
+        """
+        raise NotImplementedError(str(type(self)) \
+                +" does not implement __call__.")
+        
+class UniformConv2D(InitConv2D):
+    """ Creates a Conv2D with random kernels using a uniform distribution"""
+    def __init__(self, init_range):
+        """
+        Parameters
+        ----------
+            init_range: float
+                weights are initialized from a uniform distribution
+                between -init_range and +init_range.
+        """
+        self.init_range = init_range
+    def __call__(self, rng, input_channels, output_channels, kernel_shape):
+        return rng.uniform(-self.init_range,
+                            self.init_range, (
+                                output_channels, input_channels, 
+                                kernel_shape[0], kernel_shape[1]
+                          ))
+
+class SparseConv2D(InitConv2D):
+    """ Creates a sparse Conv2D with random kernels """
+    def __init__(self, stdev, sparseness):
+        """
+        Parameters
+        ----------
+            stdev: float
+                weights are initialized from a normal distribution 
+                having standard deviation stdev and mean 0.
+            sparseness: float
+                a number between 0 and 1 that determines the sparseness of
+                each weight matrix. For example, a sparsity of 0.9 
+                means that the matrix will have 90% of zeros, while the 
+                remainder are initialized from a normal distribution with
+                standard deviation stdev.
+        """
+        self.stdev = stdev
+        assert (sparseness < 1.0) and (sparseness >= 0.0)
+        self.sparseness = sparseness
+    def __call__(self, rng, input_channels, output_channels, kernel_shape):
+        W = np.zeros(( output_channels, input_channels,
+                       kernel_shape[0], kernel_shape[1]))
+                       
+        def random_coord():
+            return [ rng.randint(dim) for dim in W.shape ]
+    
+        for i in xrange(num_nonzero):
+            o, ch, r, c = random_coord()
+            while W[o, ch, r, c] != 0:
+                o, ch, r, c = random_coord()
+            W[o, ch, r, c] = rng.randn()
+            
+        W *= self.stdev
+        return W
+        
+        
+
 class Layer(Model):
     """
     Abstract class.
@@ -59,7 +234,15 @@ class Layer(Model):
         If the Block interface were upgraded to be that flexible, then
         we could make this a block.
     """
-
+    def __init__(self, layer_name):
+        self.layer_name = layer_name
+        
+    def set_input_space(self, space):
+        """ While the output space is first set in __init__(), this method
+        sets the input space of the Layer afterwards. And thus this is where
+        the weight matrix is initialized"""
+        raise NotImplementedError(str(type(self))+" does not implement set_input_space.")
+        
     def get_mlp(self):
         """
         Returns the MLP that this layer belongs to, or None
@@ -97,7 +280,14 @@ class Layer(Model):
         """
 
         raise NotImplementedError(str(type(self))+" does not implement fprop.")
-
+    def cost(self, Y, Y_hat, train=True):
+        """
+        The cost of outputting Y_hat when the true output is Y.
+        When train is True, assumes cost is used for training. Else, assumes
+        cost is used for validation or testing.
+        """
+        raise NotImplementedError(str(type(self))+" does not implement cost.")
+        
 class MLP(Layer):
     """
     A multilayer perceptron.
@@ -106,20 +296,25 @@ class MLP(Layer):
     """
 
     def __init__(self,
-            layers,
-            batch_size=None,
-            input_space=None,
-            dropout_probs = None,
-            dropout_scales = None,
-            nvis=None):
+                layers,
+                layer_name='MLP',
+                batch_size=None,
+                input_space=None,
+                dropout_probs = None,
+                dropout_scales = None,
+                nvis=None,
+                random_seed=[2013, 1, 4]):
         """
-            layers: a list of MLP_Layers. The final layer will specify the
+            layers: list of Layers
+                a list of MLP_Layers. The final layer will specify the
                 MLP's output space.
-            batch_size: optional. if not None, then should be a positive
+            batch_size: 
+                optional. if not None, then should be a positive
                 integer. Mostly useful if one of your layers
                 involves a theano op like convolution that requires
                 a hard-coded batch size.
-            input_space: a Space specifying the kind of input the MLP acts
+            input_space: 
+                a Space specifying the kind of input the MLP acts
                 on. If None, input space is specified by nvis.
             dropout_probs: list of probabilities of dropping-out input units
                 of layers during propagation. Since dropout is never applied
@@ -132,6 +327,9 @@ class MLP(Layer):
                 We instead dropout each unit with probability p and divide its
                 state by 1-p during training. Note that this means the initial
                 weights should be multiplied by 1-p relative to Hinton's.
+            nvis:
+                number of input units of the network. Either nvis or 
+                input_space must be specified.
                 
         Notes:
             The SGD learning rate on the weights should also be scaled by (1-p)^2
@@ -145,7 +343,10 @@ class MLP(Layer):
             of hidden units. It should not be used during prediction.
         """
 
-        self.setup_rng()
+        Layer.__init__(self, layer_name = layer_name)
+        
+        self.setup_rng(random_seed)
+        self.random_seed = random_seed
 
         assert isinstance(layers, list)
         assert all(isinstance(layer, Layer) for layer in layers)
@@ -174,8 +375,10 @@ class MLP(Layer):
 
         self.use_dropout = (dropout_probs is not None and \
                 any(elem is not None for elem in dropout_probs))
+        print "DROPOUT", self.use_dropout
         if dropout_probs is None:
             dropout_probs = [None] * len(layers)
+        self.dropout_probs = dropout_probs
 
         def f(dropout_p):
             if dropout_p is None:
@@ -187,8 +390,8 @@ class MLP(Layer):
 
         self.dropout_scales = dropout_scales
 
-    def setup_rng(self):
-        self.rng = np.random.RandomState([2013, 1, 4])
+    def setup_rng(self, random_seed):
+        self.rng = np.random.RandomState(random_seed)
 
     def get_output_space(self):
         return self.layers[-1].get_output_space()
@@ -307,22 +510,31 @@ class MLP(Layer):
     def get_weights_topo(self):
         return self.layers[0].get_weights_topo()
 
-    def fprop(self, state_below, apply_dropout = False):
+    def fprop(self, state_below, apply_dropout = False, return_all = False):
         
         # initialize random stream:
         if apply_dropout:
             warnings.warn("dropout should be implemented with fixed_var_descr to make sure it works with BGD, this is just a hack to get it working with SGD")
-            theano_rng = MRG_RandomStreams(self.rng.randint(2**15))
-        
+            theano_rng = T.shared_randomstreams.RandomStreams(self.rng.randint(999999))
+        rlist = []
         # for each Layer:
-        for layer, dropout_prob, scale in safe_izip(self.layers[1:], self.dropout_probs[1:], self.dropout_scales[1:]):
+        for layer, dropout_prob, scale in safe_izip(self.layers, self.dropout_probs, self.dropout_scales):
             # 1. apply dropout on its input units:
             if apply_dropout:
-                state_below = \
-                    self.apply_dropout(state=state_below, dropout_prob=dropout_prob, theano_rng=theano_rng, scale=scale)   
+                state_below = self.apply_dropout(state=state_below, \
+                dropout_prob=dropout_prob, theano_rng=theano_rng, \
+                scale=scale)   
+                rlist.append(state_below)
             # 2. fprop input to output:  
-            state_below = layer.fprop(state_below)       
-        
+            state_below = layer.fprop(state_below)
+            
+        if return_all:
+            # remove input activations
+            rlist = rlist[1:]
+            # add output activations
+            rlist.append(state_below)
+            return rlist
+            
         return state_below
 
     def apply_dropout(self, state, dropout_prob, scale, theano_rng):
@@ -331,8 +543,18 @@ class MLP(Layer):
         assert scale is not None
         if isinstance(state, tuple):
             return tuple(self.apply_dropout(substate, dropout_prob, scale, theano_rng) for substate in state)
-        return state * theano_rng.binomial(p=1-dropout_prob, size=state.shape, dtype=state.dtype) * scale
+        return state * theano_rng.binomial(n=1, p=1-dropout_prob, size=state.shape, dtype=state.dtype) * scale
 
+    def cost(self, Y, Y_hat, train = True):
+        return self.layers[-1].cost(Y, Y_hat, train)
+
+    def cost_from_X(self, X, Y):
+        Y_hat = self.fprop(X, apply_dropout = self.use_dropout)
+        return self.cost(Y, Y_hat, train = True)
+        
+    def valid_cost_from_X(self, X, Y):
+        Y_hat = self.fprop(X, apply_dropout = False)
+        return self.cost(Y, Y_hat, train = False)
 
 class Linear(Layer):
     """
@@ -349,14 +571,10 @@ class Linear(Layer):
     def __init__(self,
                  dim,
                  layer_name,
-                 irange = None,
-                 istdev = None,
-                 sparse_init = None,
-                 sparse_stdev = 1.,
-                 include_prob = 1.0,
+                 init_weights,
                  init_bias = 0.,
                  W_lr_scale = None,
-                 b_lr_scale = None,
+                 b_lr_scale = None,                 
                  mask_weights = None,
                  max_row_norm = None,
                  max_col_norm = None,
@@ -372,22 +590,11 @@ class Linear(Layer):
             layer_name : string
                 name that will be used as prefix of Theano variables
                 used in this class.
-            irange: tuple
-                parameters in self.transformer will be initialized from a 
-                uniform distribution ranging between irange[0] and irange[1] 
-            istdev: float
-                parameters in self.transformer will be initialized from a
-                normal distribution with standard deviation istdev
-            sparse_init:
-                TODO WRITEME
-            sparse_stdev:
-                TODO WRITEME
-            include_prob: float
-                probability of including a weight element in the set
-                of weights initialized to U(-irange, irange). If not included
-                it is initialized to 0.
+            init_weights: instance of InitWeights
+                used to initialize weight matrix
             init_bias:
                 bias parameters self.b will be initialized to this value.
+                If bias is None, no bias is used.
             W_lr_scale: float
                 use in conjonction with TrainingAlgorithm to scale the 
                 MLP's global learning rate for local layers. In this case, 
@@ -395,31 +602,32 @@ class Linear(Layer):
                 matrix
             b_lr_scale: float
                 scales the self.b bias parameters.
-            mask_weights:
-                TODO WRITEME
+            mask_weights : matrix
+                a matrix of ones and zeros, or a boolean matrix. Values of
+                zero or False are masked in the weight matrix.
             max_row_norm: float
                 the norm of a row of the self.transformer matrix 
-                is T.clip ed by this value.
-            max_col_nrom: float.
+                is T.clip'd by this value.
+            max_col_norm: float.
                 cannot be used in conjunction with max_row_norm. Same 
                 principle, but on weight matrix (i.e. self.transformer) 
                 columns.
             copy_inputs: bool
-                TODO WRITEME
-
+                When True, the fprop() method returns the concatenation of
+                the output and the input of the layer.
         """
+
         self.__dict__.update(locals())
         del self.self
 
-        self.b = sharedX( np.zeros((self.dim,)) + init_bias, name = layer_name + '_b')
-
+        if init_bias is not None:
+            self.b = sharedX( np.zeros((self.dim,)) + init_bias, 
+                              name = layer_name + '_b')
+        else:
+            assert b_lr_scale is None
+            
+            
     def get_lr_scalers(self):
-
-        if not hasattr(self, 'W_lr_scale'):
-            self.W_lr_scale = None
-
-        if not hasattr(self, 'b_lr_scale'):
-            self.b_lr_scale = None
 
         rval = OrderedDict()
 
@@ -427,7 +635,7 @@ class Linear(Layer):
             W, = self.transformer.get_params()
             rval[W] = self.W_lr_scale
 
-        if self.b_lr_scale is not None:
+        if (self.b_lr_scale is not None) and (self.init_bias is not None):
             rval[self.b] = self.b_lr_scale
 
         return rval
@@ -448,34 +656,7 @@ class Linear(Layer):
         self.output_space = VectorSpace(self.dim + self.copy_input * self.input_dim)
 
         rng = self.mlp.rng
-        if self.irange is not None:
-            assert self.istdev is None
-            assert self.sparse_init is None
-            W = rng.uniform(-self.irange,
-                            self.irange,
-                            (self.input_dim, self.dim)) * \
-                (rng.uniform(0.,1., (self.input_dim, self.dim))
-                 < self.include_prob)
-        elif self.istdev is not None:
-            assert self.sparse_init is None
-            W = rng.randn(self.input_dim, self.dim) * self.istdev
-        else:
-            assert self.sparse_init is not None
-            W = np.zeros((self.input_dim, self.dim))
-            def mask_rejects(idx, i):
-                if self.mask_weights is None:
-                    return False
-                return self.mask_weights[idx, i] == 0.
-            for i in xrange(self.dim):
-                assert self.sparse_init <= self.input_dim
-                for j in xrange(self.sparse_init):
-                    idx = rng.randint(0, self.input_dim)
-                    while W[idx, i] != 0 or mask_rejects(idx, i):
-                        idx = rng.randint(0, self.input_dim)
-                    W[idx, i] = rng.randn()
-            W *= self.sparse_stdev
-
-        W = sharedX(W)
+        W = sharedX(self.init_weights(rng, self.input_dim, self.dim))
         W.name = self.layer_name + '_W'
 
         self.transformer = MatrixMul(W)
@@ -513,16 +694,16 @@ class Linear(Layer):
                 desired_norms = T.clip(col_norms, 0, self.max_col_norm)
                 updates[W] = updated_W * desired_norms / (1e-7 + col_norms)
 
-
     def get_params(self):
-        assert self.b.name is not None
         W ,= self.transformer.get_params()
         assert W.name is not None
         rval = self.transformer.get_params()
         assert not isinstance(rval, set)
         rval = list(rval)
-        assert self.b not in rval
-        rval.append(self.b)
+        if self.use_bias:
+            assert self.b.name is not None
+            assert self.b not in rval
+            rval.append(self.b)
         return rval
 
     def get_weight_decay(self, coeff):
@@ -540,23 +721,18 @@ class Linear(Layer):
             # and we don't have access to the dataset
             raise NotImplementedError()
         W ,= self.transformer.get_params()
-
-        W =  W.get_value()
-
-        if self.softmax_columns:
-            P = np.exp(W)
-            Z = np.exp(W).sum(axis=0)
-            rval =  P / Z
-            return rval
+        return W.get_value()
 
     def set_weights(self, weights):
         W, = self.transformer.get_params()
         W.set_value(weights)
 
     def set_biases(self, biases):
+        assert (self.init_bias is not None)
         self.b.set_value(biases)
 
     def get_biases(self):
+        assert self.use_bias
         return self.b.get_value()
 
     def get_weights_format(self):
@@ -572,7 +748,8 @@ class Linear(Layer):
         W = W.T
 
         W = W.reshape((self.dim, self.input_space.shape[0],
-                       self.input_space.shape[1], self.input_space.num_channels))
+                       self.input_space.shape[1], 
+                       self.input_space.num_channels))
 
         W = Conv2DSpace.convert(W, self.input_space.axes, ('b', 0, 1, 'c'))
 
@@ -598,8 +775,7 @@ class Linear(Layer):
                             ('col_norms_max'  , col_norms.max()),
                             ])
 
-    def fprop(self, state_below):
-
+    def _fprop(self, state_below):
         self.input_space.validate(state_below)
 
         if self.requires_reformat:
@@ -611,107 +787,40 @@ class Linear(Layer):
 
             state_below = self.input_space.format_as(state_below, self.desired_space)
 
-        if self.softmax_columns:
-            W, = self.transformer.get_params()
-            W = W.T
-            W = T.nnet.softmax(W)
-            W = W.T
-            z = T.dot(state_below, W) + self.b
-        else:
-            z = self.transformer.lmul(state_below) + self.b
+        z = self.transformer.lmul(state_below)
+        if self.use_bias:
+            z = z + self.b
+        
         if self.layer_name is not None:
             z.name = self.layer_name + '_z'
+        
+        return z
+        
+    def fprop(self, state_below):
 
-        p = z
+        p = self._fprop(state_below)
 
         if self.copy_input:
             p = T.concatenate((p, state_below), axis=1)
 
         return p
-
-    def get_monitoring_channels_from_state(self, state, target=None):
-
-        mx = state.max(axis=1)
-
-        rval =  OrderedDict([
-                ('mean_max_class' , mx.mean()),
-                ('max_max_class' , mx.max()),
-                ('min_max_class' , mx.min())
-        ])
-
-        if target is not None:
-            y_hat = T.argmax(state, axis=1)
-            y = T.argmax(target, axis=1)
-            misclass = T.neq(y, y_hat).mean()
-            misclass = T.cast(misclass, config.floatX)
-            rval['misclass'] = misclass
-
-        return rval
-
-class NonLinear(Linear):
-    """
-    A NonLinear class must specify an activation function. It can also
-    specify a cost function.
-    """
-    def __init__(self,
-                 dim,
-                 layer_name,
-                 activation_function,
-                 cost_function = None,
-                 irange = None,
-                 istdev = None,
-                 sparse_init = None,
-                 sparse_stdev = 1.,
-                 include_prob = 1.0,
-                 init_bias = 0.,
-                 W_lr_scale = None,
-                 b_lr_scale = None,
-                 mask_weights = None,
-                 max_row_norm = None,
-                 max_col_norm = None,
-                 copy_input = 0):
+    def cost(self, Y, Y_hat, train = True):
         """
-        Parameters
-        ----------
-            dim : number of output units of this layer.
-            
-            layer_name : name that will be used as prefix of Theano variables
-                used in this class.
-            activation_function: a function that will be used to 
-                activate output units, e.g. logistic sigmoid, hyperbolic 
-                tangeant, softplus, etc. It takes a one dimensional array
-                and outputs a one dimensional array.
-            cost_function: a function that takes as input a matrix of targets 
-                and a matrix of outputs. The output is a scalar cost.
-            
+        Default cost: the Mean Square Error.
         """
-                     
-        Linear.__init__(self, dim, layer_name, irange, istdev, sparse_init, sparse_stdev,
-                        include_prob, init_bias, W_lr_scale, b_lr_scale, mask_weights, 
-                        max_row_norm, max_col_norm, copy_input)
-                        
-        self.activation_function = activation_function
-        self.cost_function = cost_function
-        
-    def fprop(self, state_below):
-        
-        return self.activation_function(Linear.fprop(self, state_below))
-
-    def cost(self, Y, Y_hat):
-        if self.cost_function is None:
-            return Linear.cost(self, Y, Y_hat)
-        return self.cost_function(Y, Y_hat)
-
-    def get_monitoring_channels_from_state(self, state, target=None):
-
-        raise NotImplementedError(str(type(self))+" does not implement get_monitoring_channels_from_state")
+        return T.sqr(Y - Y_hat).sum(axis=1).mean()
 
 
 class Softmax(Layer):
 
-    def __init__(self, n_classes, layer_name, irange = None, istdev = None,
-                 sparse_init = None, W_lr_scale = None,
-                 b_lr_scale = None, max_row_norm = None,
+    def __init__(self,
+                 dim,
+                 layer_name, 
+                 init_weights,
+                 init_bias = 0.,
+                 W_lr_scale = None,
+                 b_lr_scale = None, 
+                 max_row_norm = None,
                  max_col_norm = None):
         """
         """
@@ -722,11 +831,12 @@ class Softmax(Layer):
         self.__dict__.update(locals())
         del self.self
 
-        assert isinstance(n_classes, int)
+        assert isinstance(dim, int)
 
-        self.output_space = VectorSpace(n_classes)
-        self.b = sharedX( np.zeros((n_classes,)), name = 'softmax_b')
-
+        self.output_space = VectorSpace(dim)
+        if (init_bias is not None):
+            self.b = sharedX( np.zeros((dim,)), name = 'softmax_b')
+            
     def get_lr_scalers(self):
 
         rval = OrderedDict()
@@ -735,10 +845,7 @@ class Softmax(Layer):
             assert isinstance(self.W_lr_scale, float)
             rval[self.W] = self.W_lr_scale
 
-        if not hasattr(self, 'b_lr_scale'):
-            self.b_lr_scale = None
-
-        if self.b_lr_scale is not None:
+        if (self.b_lr_scale is not None) and (self.init_bias is not None):
             assert isinstance(self.b_lr_scale, float)
             rval[self.b] = self.b_lr_scale
 
@@ -798,27 +905,10 @@ class Softmax(Layer):
 
         if not self.needs_reformat:
             assert self.desired_space == self.input_space
-
+        
         rng = self.mlp.rng
-
-        if self.irange is not None:
-            assert self.istdev is None
-            assert self.sparse_init is None
-            W = rng.uniform(-self.irange,self.irange, (self.input_dim,self.n_classes))
-        elif self.istdev is not None:
-            assert self.sparse_init is None
-            W = rng.randn(self.input_dim, self.n_classes) * self.istdev
-        else:
-            assert self.sparse_init is not None
-            W = np.zeros((self.input_dim, self.n_classes))
-            for i in xrange(self.n_classes):
-                for j in xrange(self.sparse_init):
-                    idx = rng.randint(0, self.input_dim)
-                    while W[idx, i] != 0.:
-                        idx = rng.randint(0, self.input_dim)
-                    W[idx, i] = rng.randn()
-
-        self.W = sharedX(W,  'softmax_W' )
+        self.W = sharedX(self.init_weights(rng, self.input_dim, self.dim),  
+                         'softmax_W')
 
         self._params = [ self.b, self.W ]
 
@@ -853,11 +943,15 @@ class Softmax(Layer):
         self.input_space.validate(state_below)
 
         if self.needs_reformat:
-            state_below = self.input_space.format_as(state_below, self.desired_space)
+            state_below = \
+                self.input_space.format_as(state_below, self.desired_space)
 
         for value in get_debug_values(state_below):
-            if self.mlp.batch_size is not None and value.shape[0] != self.mlp.batch_size:
-                raise ValueError("state_below should have batch size "+str(self.dbm.batch_size)+" but has "+str(value.shape[0]))
+            if (self.mlp.batch_size is not None) \
+                    and value.shape[0] != self.mlp.batch_size:
+                raise ValueError("state_below should have batch size " \
+                    +str(self.mlp.batch_size) \
+                    +" but has "+str(value.shape[0]))
 
         self.desired_space.validate(state_below)
 
@@ -876,14 +970,11 @@ class Softmax(Layer):
 
         return rval
 
-    def cost(self, Y, Y_hat):
+    def cost(self, Y, Y_hat, train=True):
         """
         Y must be one-hot binary. Y_hat is a softmax estimate.
         of Y. Returns negative log probability of Y under the Y_hat
         distribution.
-        
-        Can be called through the cost interface using 
-        pylearn2.costs.cost.MethodCost to encapsulate it.
         """
 
         assert hasattr(Y_hat, 'owner')
@@ -910,6 +1001,7 @@ class Softmax(Layer):
         return - rval
 
     def get_weight_decay(self, coeff):
+
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
@@ -922,7 +1014,8 @@ class Softmax(Layer):
                 updated_W = updates[W]
                 row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=1))
                 desired_norms = T.clip(row_norms, 0, self.max_row_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle(0, 'x')
+                updates[W] = updated_W * \
+                    (desired_norms / (1e-7 + row_norms)).dimshuffle(0, 'x')
         if self.max_col_norm is not None:
             assert self.max_row_norm is None
             W = self.W
@@ -932,46 +1025,67 @@ class Softmax(Layer):
                 desired_norms = T.clip(col_norms, 0, self.max_col_norm)
                 updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
-class WeightDecay(Cost):
-    """
-    coeff * sum(sqr(weights))
+                
+class Tanh(Linear):
+    def __init__(self,
+                 dim,
+                 layer_name,
+                 init_weights,
+                 init_bias = 0.,
+                 W_lr_scale = None,
+                 b_lr_scale = None,
+                 mask_weights = None,
+                 max_row_norm = None,
+                 max_col_norm = None,
+                 copy_input = 0):
+                     
+        Linear.__init__(self, dim=dim, layer_name=layer_name, 
+                        init_weights=init_weights,  
+                        init_bias=init_bias, W_lr_scale=W_lr_scale, 
+                        b_lr_scale=b_lr_scale, mask_weights=mask_weights, 
+                        max_row_norm=max_row_norm, max_col_norm=max_col_norm, 
+                        copy_input=copy_input)
+                                   
+    def fprop(self, state_below):
 
-    for each set of weights.
+        p = T.tanh(self._fprop(state_below))
+        
+        if self.copy_input:
+            p = T.concatenate((p, state_below), axis=1)
 
-    """
+        return p
+        
+class Sigmoid(Linear):
+    def __init__(self,
+                 dim,
+                 layer_name,
+                 init_weights,
+                 init_bias = 0.,
+                 W_lr_scale = None,
+                 b_lr_scale = None,
+                 mask_weights = None,
+                 max_row_norm = None,
+                 max_col_norm = None,
+                 copy_input = 0):
+                     
+        Linear.__init__(self, dim=dim, layer_name=layer_name, 
+                        init_weights=init_weights,  
+                        init_bias=init_bias, W_lr_scale=W_lr_scale, 
+                        b_lr_scale=b_lr_scale, mask_weights=mask_weights, 
+                        max_row_norm=max_row_norm, max_col_norm=max_col_norm, 
+                        copy_input=copy_input)
+                        
+    def fprop(self, state_below):
 
-    def __init__(self, coeffs):
-        """
-        coeffs: a list, one element per layer, specifying the coefficient
-                to put on the L1 activation cost for each layer.
-                Each element may in turn be a list, ie, for CompositeLayers.
-        """
-        self.__dict__.update(locals())
-        del self.self
+        p = T.nnet.sigmoid(self._fprop(state_below))
+        
+        if self.copy_input:
+            p = T.concatenate((p, state_below), axis=1)
 
-    def __call__(self, model, X, Y = None, ** kwargs):
+        return p
+                
 
-        layer_costs = [ layer.get_weight_decay(coeff)
-            for layer, coeff in safe_izip(model.layers, self.coeffs) ]
-
-        assert T.scalar() != 0. # make sure theano semantics do what I want
-        layer_costs = [ cost for cost in layer_costs if cost != 0.]
-
-        if len(layer_costs) == 0:
-            rval =  T.as_tensor_variable(0.)
-            rval.name = '0_weight_decay'
-            return rval
-        else:
-            total_cost = reduce(lambda x, y: x + y, layer_costs)
-        total_cost.name = 'MLP_WeightDecay'
-
-        assert total_cost.ndim == 0
-
-        total_cost.name = 'weight_decay'
-
-        return total_cost
-
-class SoftmaxPool(Layer):
+class SoftmaxPool(Linear):
     """
         A hidden layer that uses the softmax function to do
         max pooling over groups of units.
@@ -983,45 +1097,39 @@ class SoftmaxPool(Layer):
                  detector_layer_dim,
                  pool_size,
                  layer_name,
-                 irange = None,
-                 sparse_init = None,
-                 sparse_stdev = 1.,
-                 include_prob = 1.0,
+                 init_weights,
                  init_bias = 0.,
                  W_lr_scale = None,
                  b_lr_scale = None,
-                 mask_weights = None,
-        ):
+                 mask_weights = None):
         """
+        Parameters
+        ----------
+            detector_layer_dim : int
+                TODO WRITEME
+            pool_size : int
+                TODO WRITEME
+            other :
+                see base class Linear.
 
-            include_prob: probability of including a weight element in the set
-            of weights initialized to U(-irange, irange). If not included
-            it is initialized to 0.
-
-            """
-        self.__dict__.update(locals())
-        del self.self
-
-        self.b = sharedX( np.zeros((self.detector_layer_dim,)) + init_bias, name = layer_name + '_b')
-
-    def get_lr_scalers(self):
-
-        if not hasattr(self, 'W_lr_scale'):
-            self.W_lr_scale = None
-
-        if not hasattr(self, 'b_lr_scale'):
-            self.b_lr_scale = None
-
-        rval = OrderedDict()
-
-        if self.W_lr_scale is not None:
-            W, = self.transformer.get_params()
-            rval[W] = self.W_lr_scale
-
-        if self.b_lr_scale is not None:
-            rval[self.b] = self.b_lr_scale
-
-        return rval
+        """
+        # much of the Linear functionality is not made available:
+        Linear.__init__(self, dim=None, layer_name=layer_name, 
+                        init_weights=init_weights, init_bias=None, 
+                        W_lr_scale=W_lr_scale, b_lr_scale=None,
+                        mask_weights=mask_weights, max_row_norm=None, 
+                        max_col_norm=None)
+        
+        self.detector_layer_dim = detector_layer_dim
+        self.pool_size = pool_size
+        self.init_bias = init_bias
+        self.b_lr_scale = b_lr_scale
+     
+        if init_bias is not None:
+            self.b = sharedX( np.zeros((detector_layer_dim,)) + init_bias, 
+                              name = layer_name + '_b')
+        else:
+            assert b_lr_scale is None
 
     def set_input_space(self, space):
         """ Note: this resets parameters! """
@@ -1046,30 +1154,8 @@ class SoftmaxPool(Layer):
         self.output_space = VectorSpace(self.pool_layer_dim)
 
         rng = self.mlp.rng
-        if self.irange is not None:
-            assert self.sparse_init is None
-            W = rng.uniform(-self.irange,
-                            self.irange,
-                            (self.input_dim, self.detector_layer_dim)) * \
-                (rng.uniform(0.,1., (self.input_dim, self.detector_layer_dim))
-                 < self.include_prob)
-        else:
-            assert self.sparse_init is not None
-            W = np.zeros((self.input_dim, self.detector_layer_dim))
-            def mask_rejects(idx, i):
-                if self.mask_weights is None:
-                    return False
-                return self.mask_weights[idx, i] == 0.
-            for i in xrange(self.detector_layer_dim):
-                assert self.sparse_init <= self.input_dim
-                for j in xrange(self.sparse_init):
-                    idx = rng.randint(0, self.input_dim)
-                    while W[idx, i] != 0 or mask_rejects(idx, i):
-                        idx = rng.randint(0, self.input_dim)
-                    W[idx, i] = rng.randn()
-            W *= self.sparse_stdev
-
-        W = sharedX(W)
+        W = sharedX(self.init_weights(rng, self.input_dim, 
+                                      self.detector_layer_dim))
         W.name = self.layer_name + '_W'
 
         self.transformer = MatrixMul(W)
@@ -1080,60 +1166,10 @@ class SoftmaxPool(Layer):
         if self.mask_weights is not None:
             expected_shape =  (self.input_dim, self.detector_layer_dim)
             if expected_shape != self.mask_weights.shape:
-                raise ValueError("Expected mask with shape "+str(expected_shape)+" but got "+str(self.mask_weights.shape))
+                raise ValueError("Expected mask with shape " \
+                    +str(expected_shape)+" but got " \
+                    +str(self.mask_weights.shape))
             self.mask = sharedX(self.mask_weights)
-
-    def censor_updates(self, updates):
-
-        # Patch old pickle files
-        if not hasattr(self, 'mask_weights'):
-            self.mask_weights = None
-
-        if self.mask_weights is not None:
-            W ,= self.transformer.get_params()
-            if W in updates:
-                updates[W] = updates[W] * self.mask
-
-    def get_params(self):
-        assert self.b.name is not None
-        W ,= self.transformer.get_params()
-        assert W.name is not None
-        rval = self.transformer.get_params()
-        assert not isinstance(rval, set)
-        rval = list(rval)
-        assert self.b not in rval
-        rval.append(self.b)
-        return rval
-
-    def get_weight_decay(self, coeff):
-        if isinstance(coeff, str):
-            coeff = float(coeff)
-        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
-        W ,= self.transformer.get_params()
-        return coeff * T.sqr(W).sum()
-
-    def get_weights(self):
-        if self.requires_reformat:
-            # This is not really an unimplemented case.
-            # We actually don't know how to format the weights
-            # in design space. We got the data in topo space
-            # and we don't have access to the dataset
-            raise NotImplementedError()
-        W ,= self.transformer.get_params()
-        return W.get_value()
-
-    def set_weights(self, weights):
-        W, = self.transformer.get_params()
-        W.set_value(weights)
-
-    def set_biases(self, biases):
-        self.b.set_value(biases)
-
-    def get_biases(self):
-        return self.b.get_value()
-
-    def get_weights_format(self):
-        return ('v', 'h')
 
     def get_weights_view_shape(self):
         total = self.detector_layer_dim
@@ -1145,44 +1181,6 @@ class SoftmaxPool(Layer):
         # When they are pooled, make each pooling unit have one row
         rows = total / cols
         return rows, cols
-
-
-    def get_weights_topo(self):
-
-        if not isinstance(self.input_space, Conv2DSpace):
-            raise NotImplementedError()
-
-        W ,= self.transformer.get_params()
-
-        W = W.T
-
-        W = W.reshape((self.detector_layer_dim, self.input_space.shape[0],
-                       self.input_space.shape[1], self.input_space.num_channels))
-
-        W = Conv2DSpace.convert(W, self.input_space.axes, ('b', 0, 1, 'c'))
-
-        return function([], W)()
-
-    def get_monitoring_channels(self):
-
-        W ,= self.transformer.get_params()
-
-        assert W.ndim == 2
-
-        sq_W = T.sqr(W)
-
-        row_norms = T.sqrt(sq_W.sum(axis=1))
-        col_norms = T.sqrt(sq_W.sum(axis=0))
-
-        return OrderedDict([
-                            ('row_norms_min'  , row_norms.min()),
-                            ('row_norms_mean' , row_norms.mean()),
-                            ('row_norms_max'  , row_norms.max()),
-                            ('col_norms_min'  , col_norms.min()),
-                            ('col_norms_mean' , col_norms.mean()),
-                            ('col_norms_max'  , col_norms.max()),
-                            ])
-
 
     def get_monitoring_channels_from_state(self, state):
 
@@ -1226,28 +1224,18 @@ class SoftmaxPool(Layer):
         return rval
 
     def fprop(self, state_below):
-
-        self.input_space.validate(state_below)
-
-        if self.requires_reformat:
-            if not isinstance(state_below, tuple):
-                for sb in get_debug_values(state_below):
-                    if sb.shape[0] != self.dbm.batch_size:
-                        raise ValueError("self.dbm.batch_size is %d but got shape of %d" % (self.dbm.batch_size, sb.shape[0]))
-                    assert reduce(lambda x,y: x * y, sb.shape[1:]) == self.input_dim
-
-            state_below = self.input_space.format_as(state_below, self.desired_space)
-
-        z = self.transformer.lmul(state_below) + self.b
-        if self.layer_name is not None:
-            z.name = self.layer_name + '_z'
+        z = Linear._fprop(self, state_below)
+            
         p,h = max_pool_channels(z, self.pool_size)
 
         p.name = self.layer_name + '_p_'
+        
+        if self.copy_input:
+            p = T.concatenate((p, state_below), axis=1)
 
         return p
 
-class RectifiedLinear(Layer):
+class RectifiedLinear(Linear):
     """
         WRITEME
     """
@@ -1255,233 +1243,47 @@ class RectifiedLinear(Layer):
     def __init__(self,
                  dim,
                  layer_name,
-                 irange = None,
-                 istdev = None,
-                 sparse_init = None,
-                 sparse_stdev = 1.,
-                 include_prob = 1.0,
+                 init_weights,
+                 left_slope = 0.0,
                  init_bias = None,
                  W_lr_scale = None,
                  b_lr_scale = None,
                  mask_weights = None,
-                 left_slope = 0.0,
-                 copy_input = 0,
                  max_row_norm = None,
                  max_col_norm = None,
-                 use_bias = True):
+                 copy_input = 0):
+        """
+        Parameters
+        ----------
+            left_slope: float
+                the activation function of an output unit is :
+                     p = z * (z > 0.) + left_slope * z * (z < 0.)
+                A slope of zero will give you the standard rectified linear
+                activation function.
+            other :
+                see base class Linear.
+            
+        References:
+            Deep Sparse Rectifier Neural Networks (Glorot & al. 2011)
+                http://jmlr.csail.mit.edu/proceedings/papers/v15/glorot11a/glorot11a.pdf
+            TODO: insert link to Ian's paper. 
+
         """
 
-            include_prob: probability of including a weight element in the set
-            of weights initialized to U(-irange, irange). If not included
-            it is initialized to 0.
+        Linear.__init__(self, dim=dim, layer_name=layer_name,
+                        init_weights=init_weights,
+                        init_bias=init_bias, W_lr_scale=W_lr_scale, 
+                        b_lr_scale=b_lr_scale, mask_weights=mask_weights,
+                        max_row_norm=max_row_norm, max_col_norm=max_col_norm, 
+                        copy_input=copy_input)
+                        
+        self.left_slope = left_slope
 
-            """
-
-        if use_bias and init_bias is None:
-            init_bias = 0.
-
-        self.__dict__.update(locals())
-        del self.self
-
-        if use_bias:
-            self.b = sharedX( np.zeros((self.dim,)) + init_bias, name = layer_name + '_b')
-        else:
-            assert b_lr_scale is None
-            init_bias is None
-
-    def get_lr_scalers(self):
-
-        rval = OrderedDict()
-
-        if self.W_lr_scale is not None:
-            W, = self.transformer.get_params()
-            rval[W] = self.W_lr_scale
-
-        if self.use_bias and self.b_lr_scale is not None:
-            rval[self.b] = self.b_lr_scale
-
-        return rval
-
-    def set_input_space(self, space):
-        """ Note: this resets parameters! """
-
-        self.input_space = space
-
-        if isinstance(space, VectorSpace):
-            self.requires_reformat = False
-            self.input_dim = space.dim
-        else:
-            self.requires_reformat = True
-            self.input_dim = space.get_total_dimension()
-            self.desired_space = VectorSpace(self.input_dim)
-
-        self.output_space = VectorSpace(self.dim + self.copy_input * self.input_dim)
-
-        rng = self.mlp.rng
-        if self.irange is not None:
-            assert self.istdev is None
-            assert self.sparse_init is None
-            W = rng.uniform(-self.irange,
-                            self.irange,
-                            (self.input_dim, self.dim)) * \
-                (rng.uniform(0.,1., (self.input_dim, self.dim))
-                 < self.include_prob)
-        elif self.istdev is not None:
-            assert self.sparse_init is None
-            W = rng.randn(self.input_dim, self.dim) * self.istdev
-        else:
-            assert self.sparse_init is not None
-            W = np.zeros((self.input_dim, self.dim))
-            def mask_rejects(idx, i):
-                if self.mask_weights is None:
-                    return False
-                return self.mask_weights[idx, i] == 0.
-            for i in xrange(self.dim):
-                assert self.sparse_init <= self.input_dim
-                for j in xrange(self.sparse_init):
-                    idx = rng.randint(0, self.input_dim)
-                    while W[idx, i] != 0 or mask_rejects(idx, i):
-                        idx = rng.randint(0, self.input_dim)
-                    W[idx, i] = rng.randn()
-            W *= self.sparse_stdev
-
-        W = sharedX(W)
-        W.name = self.layer_name + '_W'
-
-        self.transformer = MatrixMul(W)
-
-        W ,= self.transformer.get_params()
-        assert W.name is not None
-
-        if self.mask_weights is not None:
-            expected_shape =  (self.input_dim, self.dim)
-            if expected_shape != self.mask_weights.shape:
-                raise ValueError("Expected mask with shape "+str(expected_shape)+" but got "+str(self.mask_weights.shape))
-            self.mask = sharedX(self.mask_weights)
-
-    def censor_updates(self, updates):
-
-        if self.mask_weights is not None:
-            W ,= self.transformer.get_params()
-            if W in updates:
-                updates[W] = updates[W] * self.mask
-
-        if self.max_row_norm is not None:
-            W ,= self.transformer.get_params()
-            if W in updates:
-                updated_W = updates[W]
-                row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=1))
-                desired_norms = T.clip(row_norms, 0, self.max_row_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle(0, 'x')
-
-        if self.max_col_norm is not None:
-            assert self.max_row_norm is None
-            W ,= self.transformer.get_params()
-            if W in updates:
-                updated_W = updates[W]
-                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
-
-    def get_params(self):
-        W ,= self.transformer.get_params()
-        assert W.name is not None
-        rval = self.transformer.get_params()
-        assert not isinstance(rval, set)
-        rval = list(rval)
-        if self.use_bias:
-            assert self.b.name is not None
-            assert self.b not in rval
-            rval.append(self.b)
-        return rval
-
-    def get_weight_decay(self, coeff):
-        if isinstance(coeff, str):
-            coeff = float(coeff)
-        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
-        W ,= self.transformer.get_params()
-        return coeff * T.sqr(W).sum()
-
-    def get_weights(self):
-        if self.requires_reformat:
-            # This is not really an unimplemented case.
-            # We actually don't know how to format the weights
-            # in design space. We got the data in topo space
-            # and we don't have access to the dataset
-            raise NotImplementedError()
-        W ,= self.transformer.get_params()
-        return W.get_value()
-
-    def set_weights(self, weights):
-        W, = self.transformer.get_params()
-        W.set_value(weights)
-
-    def set_biases(self, biases):
-        assert self.use_bias
-        self.b.set_value(biases)
-
-    def get_biases(self):
-        assert self.use_bias
-        return self.b.get_value()
-
-    def get_weights_format(self):
-        return ('v', 'h')
-
-    def get_weights_topo(self):
-
-        if not isinstance(self.input_space, Conv2DSpace):
-            raise NotImplementedError()
-
-        W ,= self.transformer.get_params()
-
-        W = W.T
-
-        W = W.reshape((self.dim, self.input_space.shape[0],
-                       self.input_space.shape[1], self.input_space.num_channels))
-
-        W = Conv2DSpace.convert(W, self.input_space.axes, ('b', 0, 1, 'c'))
-
-        return function([], W)()
-
-    def get_monitoring_channels(self):
-
-        W ,= self.transformer.get_params()
-
-        assert W.ndim == 2
-
-        sq_W = T.sqr(W)
-
-        row_norms = T.sqrt(sq_W.sum(axis=1))
-        col_norms = T.sqrt(sq_W.sum(axis=0))
-
-        return OrderedDict([
-                            ('row_norms_min'  , row_norms.min()),
-                            ('row_norms_mean' , row_norms.mean()),
-                            ('row_norms_max'  , row_norms.max()),
-                            ('col_norms_min'  , col_norms.min()),
-                            ('col_norms_mean' , col_norms.mean()),
-                            ('col_norms_max'  , col_norms.max()),
-                            ])
-
+        
     def fprop(self, state_below):
 
-        self.input_space.validate(state_below)
-
-        if self.requires_reformat:
-            if not isinstance(state_below, tuple):
-                for sb in get_debug_values(state_below):
-                    if sb.shape[0] != self.dbm.batch_size:
-                        raise ValueError("self.dbm.batch_size is %d but got shape of %d" % (self.dbm.batch_size, sb.shape[0]))
-                    assert reduce(lambda x,y: x * y, sb.shape[1:]) == self.input_dim
-
-            state_below = self.input_space.format_as(state_below, self.desired_space)
-
-        z = self.transformer.lmul(state_below)
-        if self.use_bias:
-            z = z + self.b
-        if self.layer_name is not None:
-            z.name = self.layer_name + '_z'
-
+        z = self._fprop(state_below)
+        
         p = z * (z > 0.) + self.left_slope * z * (z < 0.)
 
         if self.copy_input:
@@ -1489,7 +1291,44 @@ class RectifiedLinear(Layer):
 
         return p
 
+class WeightDecay(Cost):
+    """
+    coeff * sum(sqr(weights))
 
+    for each set of weights.
+
+    """
+
+    def __init__(self, coeffs):
+        """
+        coeffs: a list, one element per layer, specifying the coefficient
+                to put on the L1 activation cost for each layer.
+                Each element may in turn be a list, ie, for CompositeLayers.
+        """
+        self.__dict__.update(locals())
+        del self.self
+
+    def __call__(self, model, X, Y = None, ** kwargs):
+
+        layer_costs = [ layer.get_weight_decay(coeff)
+            for layer, coeff in safe_izip(model.layers, self.coeffs) ]
+
+        assert T.scalar() != 0. # make sure theano semantics do what I want
+        layer_costs = [ cost for cost in layer_costs if cost != 0.]
+
+        if len(layer_costs) == 0:
+            rval =  T.as_tensor_variable(0.)
+            rval.name = '0_weight_decay'
+            return rval
+        else:
+            total_cost = reduce(lambda x, y: x + y, layer_costs)
+        total_cost.name = 'MLP_WeightDecay'
+
+        assert total_cost.ndim == 0
+
+        total_cost.name = 'weight_decay'
+
+        return total_cost
 
 class SpaceConverter(Layer):
 
@@ -1506,9 +1345,9 @@ class SpaceConverter(Layer):
         return self.input_space.format_as(state_below, self.output_space)
 
 
-class ConvRectifiedLinear(Layer):
+class ConvRectifiedLinear(Linear):
     """
-        WRITEME
+        TODO WRITEME
     """
 
     def __init__(self,
@@ -1517,44 +1356,46 @@ class ConvRectifiedLinear(Layer):
                  pool_shape,
                  pool_stride,
                  layer_name,
-                 irange = None,
-                 border_mode = 'valid',
-                 sparse_init = None,
-                 include_prob = 1.0,
+                 init_weights,
                  init_bias = 0.,
+                 border_mode = 'valid',
                  W_lr_scale = None,
                  b_lr_scale = None,
                  left_slope = 0.0,
                  max_kernel_norm = None):
         """
-
-            include_prob: probability of including a weight element in the set
-            of weights initialized to U(-irange, irange). If not included
-            it is initialized to 0.
+        Parameters
+        ---------
+            output_channels: int
+                TODO WRITEME
+            kernel_shape:
+                TODO WRITEME
+            pool_shape:
+                TODO WRITEME
+            pool_stride:
+                TODO WRITEME
+            border_mode: string
+                TODO WRITEME
+            max_kernel_norm:
+                TODO WRITEME
+            other :
+                see base class Linear.
 
         """
-        self.__dict__.update(locals())
-        del self.self
-
-    def get_lr_scalers(self):
-
-        if not hasattr(self, 'W_lr_scale'):
-            self.W_lr_scale = None
-
-        if not hasattr(self, 'b_lr_scale'):
-            self.b_lr_scale = None
-
-        rval = OrderedDict()
-
-        if self.W_lr_scale is not None:
-            W, = self.transformer.get_params()
-            rval[W] = self.W_lr_scale
-
-        if self.b_lr_scale is not None:
-            rval[self.b] = self.b_lr_scale
-
-        return rval
-
+        # much of the Linear functionality is not made available:
+        Linear.__init__(self, dim=None, layer_name=layer_name, 
+                        init_bias=init_bias, init_weights=init_weights,
+                        W_lr_scale=W_lr_scale, b_lr_scale=b_lr_scale, 
+                        max_row_norm=None, max_col_norm=None, 
+                        copy_input=False)
+         
+        self.output_channels = output_channels
+        self.kernel_shape = kernel_shape
+        self.pool_shape = pool_shape
+        self.pool_stride = pool_stride
+        self.border_mode = border_mode
+        self.max_kernel_norm = max_kernel_norm
+                        
     def set_input_space(self, space):
         """ Note: this resets parameters! """
 
@@ -1572,27 +1413,22 @@ class ConvRectifiedLinear(Layer):
                 num_channels = self.output_channels,
                 axes = ('b', 'c', 0, 1))
 
-        if self.irange is not None:
-            assert self.sparse_init is None
-            self.transformer = conv2d.make_random_conv2D(
-                    irange = self.irange,
-                    input_space = self.input_space,
-                    output_space = self.detector_space,
-                    kernel_shape = self.kernel_shape,
-                    batch_size = self.mlp.batch_size,
-                    subsample = (1,1),
-                    border_mode = self.border_mode,
-                    rng = rng)
-        elif self.sparse_init is not None:
-            self.transformer = conv2d.make_sparse_random_conv2D(
-                    num_nonzero = self.sparse_init,
-                    input_space = self.input_space,
-                    output_space = self.detector_space,
-                    kernel_shape = self.kernel_shape,
-                    batch_size = self.mlp.batch_size,
-                    subsample = (1,1),
-                    border_mode = self.border_mode,
-                    rng = rng)
+        assert isinstance(self.init_weights, InitConv2D)
+        rng = self.mlp.rng
+        W = self.init_weights(rng, self.input_space.num_channels,
+                              self.detector_space.num_channels,
+                              self.kernel_shape)
+        W = sharedX(W)
+        
+        self.transformer = Conv2D(filters = W,
+                              batch_size = self.mlp.batch_size,
+                              input_space = self.input_space,
+                              output_axes = self.detector_space.axes,
+                              subsample = self.subsample, 
+                              border_mode = self.border_mode,
+                              filters_shape = W.get_value(borrow=True).shape, 
+                              message = self.message)
+        
         W, = self.transformer.get_params()
         W.name = 'W'
 
@@ -1619,7 +1455,6 @@ class ConvRectifiedLinear(Layer):
         print 'Output space: ', self.output_space.shape
 
 
-
     def censor_updates(self, updates):
 
         if self.max_kernel_norm is not None:
@@ -1630,39 +1465,8 @@ class ConvRectifiedLinear(Layer):
                 desired_norms = T.clip(row_norms, 0, self.max_kernel_norm)
                 updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle(0, 'x', 'x', 'x')
 
-
-    def get_params(self):
-        assert self.b.name is not None
-        W ,= self.transformer.get_params()
-        assert W.name is not None
-        rval = self.transformer.get_params()
-        assert not isinstance(rval, set)
-        rval = list(rval)
-        assert self.b not in rval
-        rval.append(self.b)
-        return rval
-
-    def get_weight_decay(self, coeff):
-        if isinstance(coeff, str):
-            coeff = float(coeff)
-        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
-        W ,= self.transformer.get_params()
-        return coeff * T.sqr(W).sum()
-
-    def set_weights(self, weights):
-        W, = self.transformer.get_params()
-        W.set_value(weights)
-
-    def set_biases(self, biases):
-        self.b.set_value(biases)
-
-    def get_biases(self):
-        return self.b.get_value()
-
-    def get_weights_format(self):
-        return ('v', 'h')
-
     def get_weights_topo(self):
+
         outp, inp, rows, cols = range(4)
         raw = self.transformer._filters.get_value()
 
@@ -1686,11 +1490,7 @@ class ConvRectifiedLinear(Layer):
 
     def fprop(self, state_below):
 
-        self.input_space.validate(state_below)
-
-        z = self.transformer.lmul(state_below) + self.b
-        if self.layer_name is not None:
-            z.name = self.layer_name + '_z'
+        z = self._fprop(state_below)
 
         d = z * (z > 0.) + self.left_slope * z * (z < 0.)
 

@@ -53,6 +53,9 @@ class SGD(TrainingAlgorithm):
                             can change it after each minibatch.
             cost: a pylearn2.costs.cost.Cost object specifying the objective
                   function to be minimized.
+            monitoring_dataset: None for no monitoring, or
+                            Dataset, to monitor on one dataset, or
+                            dict mapping string names to Datasets
             init_momentum: if None, does not use momentum
                             otherwise, use momentum and initialize the
                             momentum coefficient to init_momentum.
@@ -741,6 +744,38 @@ class LinearDecayOverEpoch(TrainExtension):
             new_lr = self._init_lr
         assert new_lr > 0
         return new_lr
+        
+class ExponentialDecayOverEpoch(TrainExtension):
+    """
+    This is a callback for the SGD algorithm rather than the Train object.
+    This anneals the learning rate by dividing by decay_factor after each
+    epoch. It will not shrink the learning rate beyond min_lr.
+    """
+    def __init__(self, decay_factor, min_lr):
+        if isinstance(decay_factor, str):
+            decay_factor = float(decay_factor)
+        if isinstance(min_lr, str):
+            min_lr = float(min_lr)
+        assert isinstance(decay_factor, float)
+        assert isinstance(min_lr, float)
+        self.__dict__.update(locals())
+        del self.self
+        self._count = 0
+    def on_monitor(self, model, dataset, algorithm):
+        if self._count == 0:
+            self._cur_lr = algorithm.learning_rate.get_value()
+        self._count += 1
+        self._cur_lr = max(self._cur_lr * self.decay_factor, self.min_lr)
+        algorithm.learning_rate.set_value(np.cast[config.floatX](self._cur_lr))
+
+def __call__(self, algorithm):
+        if self._count == 0:
+            self._base_lr = algorithm.learning_rate.get_value()
+        self._count += 1
+        cur_lr = self._base_lr / (self.decay_factor ** self._count)
+        new_lr = max(cur_lr, self.min_lr)
+        new_lr = np.cast[config.floatX](new_lr)
+        algorithm.learning_rate.set_value(new_lr)      
 
 class _PolyakWorker(object):
     """
