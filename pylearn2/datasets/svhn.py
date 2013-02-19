@@ -13,7 +13,7 @@ from pylearn2.utils.string_utils import preprocess
 
 class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
 
-    mapper = {'train': 0, 'test': 1, 'extra': 2, 'train_all' : 3, 'splited_train' : 4, 'valid' : 4}
+    mapper = {'train': 0, 'test': 1, 'extra': 2, 'train_all' : 3, 'splitted_train' : 4, 'valid' : 5}
     def __init__(self, which_set, path = None, center = False, scale = False,
             start = None, stop = None, axes=('b', 0, 1, 'c')):
         """
@@ -70,7 +70,7 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
     @staticmethod
     def make_data(which_set, path):
 
-        sizes = {'train': 73257, 'test': 26032, 'extra': 531131, 'train_all': 604388, 'splited_train' : 598388, 'valid' : 6000}
+        sizes = {'train': 73257, 'test': 26032, 'extra': 531131, 'train_all': 604388, 'splitted_train' : 598388, 'valid' : 6000}
         image_size = 32*32*3
         h_file_n = "{}{}_32x32.h5".format(path + "h5/", which_set)
         h5file, node = SVHN.init_hdf5(h_file_n, ([sizes[which_set], image_size], [sizes[which_set], 10]))
@@ -86,7 +86,7 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
             SVHN.fill_hdf5(h5file, node, (data_x, data_y), index)
             assert numpy.array_equal(data_x, node.X[:])
             assert numpy.array_equal(data_y, node.y[:])
-        elif which_set in ['splited_train', 'valid']:
+        elif which_set in ['splitted_train', 'valid']:
             for i in xrange(6):
                 print 'loading {}/6'.format(i)
                 # if the file is not closed/reopend the process goes into I/O zombie state
@@ -192,7 +192,10 @@ class SVHN_Light(dense_design_matrix.DenseDesignMatrix):
 
 
     @staticmethod
-    def load_data(which_set, path, one_hot = False):
+    def load_data(which_set, path, one_hot = False, rng = None):
+
+        if rng is None:
+            rng = numpy.random.RandomState(322)
 
         path = preprocess('${PYLEARN2_DATA_PATH}/SVHN/format2/')
         if which_set == 'valid':
@@ -202,11 +205,11 @@ class SVHN_Light(dense_design_matrix.DenseDesignMatrix):
             for i in xrange(1, 11):
                 index = numpy.nonzero(data['y'] == i)[0]
                 index.flags.writeable = 1
-                numpy.random.shuffle(index)
+                rng.random.shuffle(index)
                 valid_index.append(index[:600])
 
             valid_index = numpy.concatenate(valid_index)
-            numpy.random.shuffle(valid_index)
+            rng.random.shuffle(valid_index)
             data_x = data['X'][:,:,:,valid_index]
             data_y = data['y'][valid_index,:]
             del data

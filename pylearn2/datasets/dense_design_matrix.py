@@ -487,10 +487,11 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         h5file = tables.openFile(path, mode = "w", title = "SVHN Dataset")
         gcolumns = h5file.createGroup(h5file.root, "Data", "Data")
         atom = tables.Float64Atom() if config.floatX == 'flaot32' else tables.Float32Atom()
+        filters = tables.Filters(complib='blosc', complevel=5)
         h5file.createCArray(gcolumns, 'X', atom = atom, shape = x_shape,
-                                title = "Data values")
+                                title = "Data values", filters = filters)
         h5file.createCArray(gcolumns, 'y', atom = atom, shape = y_shape,
-                                title = "Data targets")
+                                title = "Data targets", filters = filters)
         return h5file, gcolumns
 
     @staticmethod
@@ -516,10 +517,11 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         stop = gcolumns.X.nrows if stop is None else stop
 
         atom = tables.Float64Atom() if config.floatX == 'flaot32' else tables.Float32Atom()
+        filters = tables.Filters(complib='blosc', complevel=5)
         x = h5file.createCArray(gcolumns, 'X', atom = atom, shape = ((stop - start, data.X.shape[1])),
-                            title = "Data values")
+                            title = "Data values", filters = filters)
         y = h5file.createCArray(gcolumns, 'y', atom = atom, shape = ((stop - start, 10)),
-                            title = "Data targets")
+                            title = "Data targets", filters = filters)
         x[:] = data.X[start:stop]
         y[:] = data.y[start:stop]
 
@@ -527,7 +529,6 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         h5file.renameNode('/', "Data", "Data_")
         h5file.flush()
         return h5file, gcolumns
-
 
 class DefaultViewConverter(object):
     def __init__(self, shape, axes = ('b', 0, 1, 'c')):
