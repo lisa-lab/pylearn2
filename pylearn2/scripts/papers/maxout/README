@@ -40,8 +40,26 @@ The final command should print out some progress messages followed by "0.0045"
 
 3) CIFAR-10 result
 
-In the days ahead, we will provide our yaml config files for getting the state of
-the art on CIFAR-10.
+The paper reports a test set error of 12.93% on the CIFAR-10 dataset,
+which is the state of the art without data augmentation. To reproduce
+this result, you must first have prepared a version of the CIFAR-10
+dataset with global contrast normalization and whitening. To do so,
+run pylearn2/scripts/datasets/make_cifar10_gcn_whitened.py. (If you
+are in the LISA lab, don't do this. It has already been made for you)
+
+After running make_cifar10_gcn_whitened, you can train the maxout model
+by running
+
+THEANO_FLAGS="device=gpu,floatX=float32" train.py cifar10.yaml
+
+At this point, the model has only been trained on the first 40k examples.
+Run
+THEANO_FLAGS="device=gpu,floatX=float32" python compute_test_err.py cifar10_best.pkl
+
+It should report a test error of 0.1405 at this point.
+
+In the days ahead, we will provide our yaml config files for training on the
+remaining 10k training examples, which reduces the test error to 0.1293.
 
 4) CIFAR-100 result
 
