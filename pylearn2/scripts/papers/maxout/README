@@ -15,9 +15,16 @@ reported (as of this writing) for a multilayer perceptron with no unsupervised
 pretraining. To reproduce this result, run
 
 train.py mnist_pi.yaml
+train.py mnist_pi_continued.yaml
+print_monitor.py mnist_pi_continued.pkl | grep test_y_misclass
 
-TODO--something is wrong with pylearn2 and/or theano. This should get a validation
-set error of 0.0104 but it gets 0.0108. Will debug this.
+You should get 0.009399999999, i.e., 94 mistakes on the test set.
+
+Note: you probably will want to run the above scripts with
+THEANO_FLAGS="device=gpu,floatX=float32" for optimal speed, but if you don't
+have a GPU it should work without one. I have, however, not tested this case.
+The remaining results all require GPU as they are implemented using Alex Krizvhevsky's
+CUDA convolution library.
 
 2) MNIST result
 
