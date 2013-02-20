@@ -822,22 +822,24 @@ class LeCunLCN_ICPR(ExamplewisePreprocessor):
 
         dataset.set_topological_view(x)
 
-class LeCunLCNChannels(ExamplewisePreprocessor):
-    def __init__(self, img_shape, eps=1e-12):
+class LeCunLCNChannelsPyTables(ExamplewisePreprocessor):
+    def __init__(self, img_shape, kernel_size = 7, eps=1e-12):
         self.img_shape = img_shape
+        self.kernel_size = kernel_size
         self.eps = eps
 
     def transform(self, x):
         for i in xrange(3):
-            x[:,:,:,i] = lecun_lcn(x[:,:,:,i], self.img_shape, 7)
+            x[:, :, :, i] = lecun_lcn(x[:, :, :, i], self.img_shape,
+                                                    self.kernel_size)
         return x
 
     def apply(self, dataset, can_fit=False, batch_size = 5000):
         data_size = dataset.X.shape[0]
         last = np.floor(data_size / float(batch_size)) * batch_size
         for i in xrange(0, data_size, batch_size):
-            print i
             stop = -1 if i >= last else i + batch_size
+            print "LCN processong samples from {} to {}".format(i, stop)
             transformed = self.transform(dataset.get_topological_view(dataset.X[i:stop, :]))
             dataset.X[i:stop,:] = dataset.view_converter.topo_view_to_design_mat(transformed)
             dataset.h5file.flush()

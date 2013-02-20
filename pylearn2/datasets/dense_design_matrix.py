@@ -495,10 +495,16 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         return h5file, gcolumns
 
     @staticmethod
-    def fill_hdf5(file, node, data, index):
+    def fill_hdf5(file, node, data, batch_size = 5000):
+
         data_x, data_y = data
-        node.X[index] = data_x
-        node.y[index] = data_y
+        data_size = data_x.shape[0]
+        last = np.floor(data_size / float(batch_size)) * batch_size
+        for i in xrange(0, data_size, batch_size):
+            stop = -1 if i >= last else i + batch_size
+            node.X[i:stop, :] = data_x[i:stop, :]
+            node.y[i:stop, :] = data_y[i:stop, :]
+
         file.flush()
 
     @staticmethod
