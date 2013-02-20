@@ -34,7 +34,7 @@
                 supervised: 1
         },
         termination_criterion: !obj:pylearn2.termination_criteria.ChannelTarget {
-            target: !obj:galatea.mlp.get_channel {
+            target: !obj:pylearn2.monitor.get_channel {
                 batch_size: 100,
                 cost: *cost,
                 dataset : !obj:pylearn2.datasets.mnist.MNIST {

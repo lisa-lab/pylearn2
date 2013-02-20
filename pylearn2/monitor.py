@@ -736,6 +736,31 @@ def push_monitor(model, name):
 def read_channel(model, channel_name, monitor_name = 'monitor'):
     return getattr(model, monitor_name).channels[channel_name].val_record[-1]
 
+def get_channel(model, dataset, channel, cost, batch_size):
+    """
+    Make a temporary monitor and return the value of a channel in it.
+
+    model: A pylearn2.models.model.Model instance. Will evaluate the
+           channel for this Model.
+    dataset: The Dataset to run on
+    channel: A string identifying the channel name to evaluate
+    cost: The Cost to setup for monitoring
+    batch_size: The size of the batch to use when running the monitor
+
+    returns the value of the requested channel.
+
+    Note: this doesn't modify the model (unless some of the channel prereqs do).
+          In particular, it does not change model.monitor.
+    """
+    monitor = Monitor(model)
+    monitor.setup(dataset=dataset, cost=cost, batch_size=batch_size)
+    monitor()
+    channels = monitor.channels
+    channel = channels[channel]
+    val_record = channel.val_record
+    value ,= val_record
+    return value
+
 _err_no_data = "You tried to add a channel to a Monitor that has no dataset."
 _err_ambig_data = ("You added a channel to a Monitor that has multiple datasets, "
         "and did not specify which dataset to use it with.")
