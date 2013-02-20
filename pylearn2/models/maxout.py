@@ -26,7 +26,9 @@ __maintainer__ = "Ian Goodfellow"
 
 from collections import OrderedDict
 import numpy as np
+import warnings
 
+from theano import function
 from theano.gof.op import get_debug_values
 from theano import tensor as T
 
