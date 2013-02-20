@@ -5,7 +5,8 @@ from pylearn2.utils.iteration import (
     SequentialSubsetIterator,
     ShuffledSequentialSubsetIterator,
     RandomSliceSubsetIterator,
-    RandomUniformSubsetIterator
+    RandomUniformSubsetIterator,
+    RandomMiniBatchesIterator
 )
 
 
@@ -118,17 +119,25 @@ def test_random_slice():
         assert iter_slice.step is None or iter_slice.step == 1
         assert iter_slice.stop <= 50
         assert iter_slice.stop - iter_slice.start == 5
-        num += 1
-    assert num == 10
+        num +=  1
+    assert num  == 10
 
 
 def test_random_uniform():
     iterator = RandomUniformSubsetIterator(50, num_batches=10, batch_size=5)
     num = 0
     for iter_slice in iterator:
-        assert len(iter_slice) == 5
+        assert len(iter_slice ) == 5
         arr = np.array(iter_slice)
         assert np.all(arr < 50)
         assert np.all(arr >= 0)
         num += 1
     assert num == 10
+
+def test_random_minibatches():
+
+    iterator = RandomMiniBatchesIterator(30, batch_size = 7)
+    for iter_slice in iterator:
+        assert iter_slice.start >= 0
+        assert iter_slice.step is None or iter_slice.step == 1
+
