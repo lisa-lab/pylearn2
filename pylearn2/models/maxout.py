@@ -13,6 +13,10 @@ an MLP with maxout hidden layers, see pylearn2/scripts/papers/maxout.
 
 Note that maxout is designed for use with dropout, so you really should
 use dropout in your MLP when using these layers.
+
+Note to developers / maintainers: when making changes to this module,
+ensure that the changes do not break the examples in
+pylearn2/scripts/papers/maxout.
 """
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"

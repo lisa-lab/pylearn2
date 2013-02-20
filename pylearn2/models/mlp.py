@@ -1,5 +1,8 @@
 """
 Multilayer Perceptron
+
+Note to developers and code reviewers: when making any changes to this
+module, ensure that the changes do not break pylearn2/scripts/papers/maxout.
 """
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"
