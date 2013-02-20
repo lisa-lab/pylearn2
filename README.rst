@@ -36,9 +36,9 @@ Quick start and basic design rules
 
 Highlights
 ------------------
-- pylearn2 was used to set the state of the art on MNIST, CIFAR-10, CIFAR-100, and SVHN.
+- Pylearn2 was used to set the state of the art on MNIST, CIFAR-10, CIFAR-100, and SVHN.
   See pylearn2.models.maxout or pylearn2/scripts/papers/maxout
-- pylearn2 provides a wrapper around Alex Krizhevsky's extremely efficient GPU convolutional
+- Pylearn2 provides a wrapper around Alex Krizhevsky's extremely efficient GPU convolutional
   network library. This wrapper lets you use Theano's symbolic differentiation and other
   capabilities with minimal overhead. See pylearn2.sandbox.cuda_convnet.
 
