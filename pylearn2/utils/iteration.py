@@ -215,7 +215,7 @@ class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
     fancy = False
     stochastic = True
 
-class RandomMiniBatchesIterator(SubsetIterator):
+class BatchwiseShuffledSequentialIterator(SubsetIterator):
     """ Returns minibatches randomly, but sequential inside each minibatch"""
 
     def __init__(self, dataset_size, batch_size, num_batches = None, rng=None):
@@ -258,7 +258,7 @@ _iteration_schemes = {
     'shuffled_sequential': ShuffledSequentialSubsetIterator,
     'random_slice': RandomSliceSubsetIterator,
     'random_uniform': RandomUniformSubsetIterator,
-    'random_minibatches': RandomMiniBatchesIterator,
+    'batchwise_shuffled_equential': BatchwiseShuffledSequentialIterator,
 }
 
 
