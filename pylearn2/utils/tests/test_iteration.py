@@ -6,7 +6,7 @@ from pylearn2.utils.iteration import (
     ShuffledSequentialSubsetIterator,
     RandomSliceSubsetIterator,
     RandomUniformSubsetIterator,
-    RandomMiniBatchesIterator
+    BatchwiseShuffledSequentialIterator
 )
 
 
@@ -134,9 +134,9 @@ def test_random_uniform():
         num += 1
     assert num == 10
 
-def test_random_minibatches():
+def test_batchwise_shuffled_sequential():
 
-    iterator = RandomMiniBatchesIterator(30, batch_size = 7)
+    iterator = BatchwiseShuffledSequentialIterator(30, batch_size = 7)
     for iter_slice in iterator:
         assert iter_slice.start >= 0
         assert iter_slice.step is None or iter_slice.step == 1
