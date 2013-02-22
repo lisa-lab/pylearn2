@@ -83,7 +83,7 @@ class Train(object):
             warnings.warn("dataset has no yaml src, model won't know what data it was trained on")
 
         self.extensions = extensions if extensions is not None else []
-        for ext in extensions:
+        for ext in self.extensions:
             ext.setup(self.model, self.dataset, self.algorithm)
 
     def main_loop(self):
