@@ -5,7 +5,7 @@ import numpy as np
 import theano
 import theano.tensor as tensor
 from theano import config
-from pylearn2.autoencoder import Autoencoder, HigherOrderContractiveAutoencoder
+from pylearn2.models.autoencoder import Autoencoder, HigherOrderContractiveAutoencoder
 from pylearn2.corruption import BinomialCorruptor
 from theano.tensor.basic import _allclose
 
