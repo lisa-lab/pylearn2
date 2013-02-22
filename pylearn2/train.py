@@ -170,3 +170,7 @@ class SerializationGuard(object):
     def __getstate__(self):
         raise IOError("You tried to serialize something that should not"
                 " be serialized.")
+
+if __name__ == "__main__":
+    print >>sys.stderr, "ERROR: You probably meant to run scripts/train.py"
+    sys.exit(1)
