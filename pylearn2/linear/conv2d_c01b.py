@@ -32,7 +32,7 @@ from theano.sandbox.cuda import host_from_gpu
 class Conv2D(LinearTransform):
     """
     A pylearn2 linear operator based on 2D convolution,
-    implemented using Alex Krizvhevsky's cuda-convnet library.
+    implemented using Alex Krizhevsky's cuda-convnet library.
 
     """
 
