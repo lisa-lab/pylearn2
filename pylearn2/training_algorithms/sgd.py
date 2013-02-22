@@ -43,7 +43,7 @@ class SGD(TrainingAlgorithm):
                  termination_criterion=None, update_callbacks=None,
                  init_momentum = None, set_batch_size = False,
                  train_iteration_mode = None, batches_per_iter=None,
-                 theano_function_mode = None):
+                 theano_function_mode = None, monitoring_costs=None):
         """
             WRITEME
 
@@ -112,6 +112,7 @@ class SGD(TrainingAlgorithm):
         self.first = True
         self.rng = np.random.RandomState([2012, 10, 5])
         self.theano_function_mode = theano_function_mode
+        self.monitoring_costs = monitoring_costs
 
     def setup(self, model, dataset):
         inf_params = [ param for param in model.get_params() if np.any(np.isinf(param.get_value())) ]
@@ -175,48 +176,24 @@ class SGD(TrainingAlgorithm):
         # Set up monitor to model the objective value, learning rate,
         # momentum (if applicable), and extra channels defined by
         # the cost
-        # TODO: also monitor things defined by the model
         learning_rate = self.learning_rate
-        # TODO: replace the following if block with a call to monitor.setup
-        #       will need only to add learning_rate and momentum manually
         if self.monitoring_dataset is not None:
+            self.monitor.setup(dataset=self.monitoring_dataset,
+                    cost=self.cost, batch_size=self.batch_size, num_batches=self.monitoring_batches,
+                    extra_costs=self.monitoring_costs
+                    )
             if self.supervised:
-                custom_channels = self.cost.get_monitoring_channels(model, X, Y)
-                model_channels = model.get_monitoring_channels(X, Y)
                 ipt = (X, Y)
             else:
-                custom_channels = self.cost.get_monitoring_channels(model, X)
-                model_channels = model.get_monitoring_channels(X)
                 ipt = X
-            custom_channels.update(model_channels)
-            first_dataset = True
-            for dataset_name in self.monitoring_dataset:
-                monitoring_dataset = self.monitoring_dataset[dataset_name]
-                self.monitor.add_dataset(dataset=monitoring_dataset,
-                                     mode='sequential',
-                                     batch_size=self.batch_size,
-                                     num_batches=self.monitoring_batches)
-                if dataset_name == '':
-                    prefix = ''
-                else:
-                    prefix = dataset_name + '_'
-                # These channel names must not vary, since callbacks that respond to the
-                # values in the monitor use the name to find them. They should also match
-                # those used by BGD so that the same callbacks can be used with both algorithms.
-                if cost_value is not None:
-                    self.monitor.add_channel(name=prefix + 'objective', ipt=ipt,
-                            val=cost_value, dataset=monitoring_dataset)
-                for key in custom_channels:
-                    self.monitor.add_channel(name=prefix + key, ipt=ipt,
-                            val=custom_channels[key], dataset=monitoring_dataset)
-                if first_dataset:
-                    #TODO: have Monitor support non-data-dependent channels
-                    first_dataset = False
-                    self.monitor.add_channel(name='learning_rate', ipt=ipt,
-                            val=learning_rate, dataset=monitoring_dataset)
-                    if self.momentum:
-                        self.monitor.add_channel(name='momentum', ipt=ipt,
-                                val=self.momentum, dataset=monitoring_dataset)
+            dataset_name = self.monitoring_dataset.keys()[0]
+            monitoring_dataset = self.monitoring_dataset[dataset_name]
+            #TODO: have Monitor support non-data-dependent channels
+            self.monitor.add_channel(name='learning_rate', ipt=ipt,
+                    val=learning_rate, dataset=monitoring_dataset)
+            if self.momentum:
+                self.monitor.add_channel(name='momentum', ipt=ipt,
+                        val=self.momentum, dataset=monitoring_dataset)
 
         params = list(model.get_params())
         assert len(params) > 0
