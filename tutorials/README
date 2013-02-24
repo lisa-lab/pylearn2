@@ -1,3 +1,7 @@
-Run these tutorials using ipython, e.g.
+Run these tutorials using ipython version >= 0.13, e.g.
 
 ipython notebook softmax_regression.ipnb
+
+On ubuntu 12.04, to upgrade ipython to version 0.13:
+    sudo apt-get install python-pip
+    sudo pip install --upgrade ipython

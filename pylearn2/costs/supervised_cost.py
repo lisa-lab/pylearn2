@@ -11,13 +11,25 @@ from pylearn2.costs.cost import Cost
 from pylearn2.costs.cost import CrossEntropy
 import theano.tensor as T
 
+class MeanSquareError(Cost):
+    supervised = True
+    
+    def __call__(self, model, X, Y, **kwargs):
+        return T.sqr(Y - model.fprop(X, **kwargs)).sum(axis=1).mean()
+        
+class SumSquareError(Cost):
+    supervised = True
+    
+    def __call__(self, model, X, Y, **kwargs):
+        return T.sqr(Y - model.fprop(X, **kwargs)).sum(axis=1)
 
 class CrossEntropy(Cost):
     supervised = True
 
-    def __call__(self, model, X, Y):
-        return (-Y * T.log(model(X)) - \
-                (1 - Y) * T.log(1 - model(X))).sum(axis=1).mean()
+    def __call__(self, model, X, Y, **kwargs):
+        model_output = model.fprop(X, **kwargs)
+        return (-Y * T.log(model_output) - \
+                (1 - Y) * T.log(1 - model_output)).sum(axis=1).mean()
 
 
 class NegativeLogLikelihood(Cost):
