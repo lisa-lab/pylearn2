@@ -87,18 +87,24 @@ class MonitorBasedSaveBest(TrainExtension):
     A callback that saves a copy of the model every time it achieves
     a new minimal value of a monitoring channel.
     """
-    def __init__(self, channel_name, save_path):
+    def __init__(self, channel_name, save_path, cost=True):
         """
         Parameters
         ----------
         channel_name: the name of the channel we want to minimize
         save_path: the path to save the best model to
+        cost: if True, saves the model with the lowest value of 
+        variable channel_name. If False, saves the model with the highest 
+        value of the variable channel_name. I.e. true is cost based save, 
+        while false is gain (e.g. classification accuracy) based save.
         """
 
         self.__dict__.update(locals())
         del self.self
-        self.best_cost = np.inf
-
+        if cost:
+            self.best = np.inf
+        else:
+            self.best = -np.inf
 
     def on_monitor(self, model, dataset, algorithm):
         """
@@ -119,9 +125,9 @@ class MonitorBasedSaveBest(TrainExtension):
         channels = monitor.channels
         channel = channels[self.channel_name]
         val_record = channel.val_record
-        new_cost = val_record[-1]
-
-        if new_cost < self.best_cost:
-            self.best_cost = new_cost
+        new_value = val_record[-1]
+        if ((new_value < self.best) and self.cost) \
+                or ((new_value > self.best) and not self.cost):
+            self.best = new_value
             serial.save(self.save_path, model, on_overwrite = 'backup')
 

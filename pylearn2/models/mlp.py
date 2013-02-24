@@ -378,7 +378,7 @@ class MLP(Layer):
 
         self.use_dropout = (dropout_probs is not None and \
                 any(elem is not None for elem in dropout_probs))
-                
+ 
         if dropout_probs is None:
             dropout_probs = [None] * len(layers)
         self.dropout_probs = dropout_probs
@@ -516,7 +516,6 @@ class MLP(Layer):
         return self.layers[0].get_weights_topo()
 
     def fprop(self, state_below, apply_dropout = False, return_all = False):
-        
         # initialize random stream:
         if apply_dropout:
             warnings.warn("dropout should be implemented with fixed_var_descr to make sure it works with BGD, this is just a hack to get it working with SGD")
@@ -1392,17 +1391,21 @@ class ConvRectifiedLinear(Linear):
         """
         # much of the Linear functionality is not made available:
         Linear.__init__(self, dim=None, layer_name=layer_name, 
-                        init_bias=init_bias, init_weights=init_weights,
+                        init_bias=None, init_weights=init_weights,
                         W_lr_scale=W_lr_scale, b_lr_scale=b_lr_scale, 
                         max_row_norm=None, max_col_norm=None, 
                         copy_input=False)
-         
+        
+        self.init_bias = init_bias
         self.output_channels = output_channels
         self.kernel_shape = kernel_shape
         self.pool_shape = pool_shape
         self.pool_stride = pool_stride
         self.border_mode = border_mode
         self.max_kernel_norm = max_kernel_norm
+        self.left_slope = left_slope
+        
+        self.requires_reformat = False
                         
     def set_input_space(self, space):
         """ Note: this resets parameters! """
@@ -1432,10 +1435,9 @@ class ConvRectifiedLinear(Linear):
                               batch_size = self.mlp.batch_size,
                               input_space = self.input_space,
                               output_axes = self.detector_space.axes,
-                              subsample = self.subsample, 
+                              subsample = (1,1), 
                               border_mode = self.border_mode,
-                              filters_shape = W.get_value(borrow=True).shape, 
-                              message = self.message)
+                              filters_shape = W.get_value(borrow=True).shape)
         
         W, = self.transformer.get_params()
         W.name = 'W'
