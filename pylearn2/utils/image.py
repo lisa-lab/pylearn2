@@ -276,7 +276,13 @@ def load(filepath, rescale=True, dtype='float64'):
         print rval.size
         rval.show()
         raise AssertionError("Tried to load an image, got an array with " +
-                str(numpy_rval.ndim)+" dimensions. Expected 2 or 3.")
+                str(numpy_rval.ndim)+" dimensions. Expected 2 or 3."
+                "This may indicate a mildly corrupted image file. Try "
+                "converting it to a different image format with a different "
+                "editor like gimp or imagemagic. Sometimes these programs are "
+                "more robust to minor corruption than PIL and will emit a "
+                "correctly formatted image in the new format."
+                )
     rval = numpy_rval
 
     rval = np.cast[dtype](rval) / s
