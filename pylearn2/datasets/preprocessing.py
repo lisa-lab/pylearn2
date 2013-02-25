@@ -807,18 +807,33 @@ class LeCunLCN_ICPR(ExamplewisePreprocessor):
     def __init__(self, img_shape, eps=1e-12):
         self.img_shape = img_shape
         self.eps = eps
+        self._mean = None
+        self._std = None
 
     def apply(self, dataset, can_fit=False):
         x = dataset.get_topological_view()
 
-        # lcn on y channel of yuv
+        # convert to YUV
         x = rgb_yuv(x)
-        x[:,:,:,0] = lecun_lcn(x[:,:,:,0], self.img_shape, 7)
 
-        # lcn on each rgb channel
-        x = yuv_rgb(x)
+        # glopbal contrast normalize on each channel
+        if can_fit:
+            self._mean = []
+            self._std = []
+            for i in xrange(3):
+                self._mean.append(x[:,:,:,i].mean())
+                self._std.append(x[:,:,:,i].std())
+        else:
+            if self._mean is None or self._std is None:
+                raise ValueError("can_fit is False, but LeCunLCN_ICPR object "
+                                 "has no stored mean or standard deviation")
+
         for i in xrange(3):
-            x[:,:,:,i] = lecun_lcn(x[:,:,:,i], self.img_shape, 7)
+            x[:,:,:,i] -= self._mean[i]
+            x[:,:,:,i] /= self._std[i]
+
+        # local contrast normalize Y channel
+        x[:,:,:,0] = lecun_lcn(x[:,:,:,0], self.img_shape, 7)
 
         dataset.set_topological_view(x)
 
@@ -839,11 +854,9 @@ class LeCunLCNChannelsPyTables(ExamplewisePreprocessor):
         last = np.floor(data_size / float(batch_size)) * batch_size
         for i in xrange(0, data_size, batch_size):
             stop = -1 if i >= last else i + batch_size
-            print "LCN processong samples from {} to {}".format(i, stop)
+            print "LCN processing samples from {} to {}".format(i, stop)
             transformed = self.transform(dataset.get_topological_view(dataset.X[i:stop, :]))
-            dataset.X[i:stop,:] = dataset.view_converter.topo_view_to_design_mat(transformed)
-            dataset.h5file.flush()
-            del transformed
+            dataset.set_topological_view(transformed, start = i)
 
 def lecun_lcn(input, img_shape, kernel_shape):
         input = input.reshape(input.shape[0], input.shape[1], input.shape[2], 1)

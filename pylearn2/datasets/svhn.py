@@ -212,5 +212,5 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
         assert data_x.shape[0] == sizes[which_set]
         assert data_y.shape[0] == sizes[which_set]
 
-        SVHN.fill_hdf5(h5file, node, (data_x, data_y))
+        SVHN.fill_hdf5(h5file, data_x, data_y, node)
         h5file.close()

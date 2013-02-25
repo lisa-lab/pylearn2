@@ -42,7 +42,7 @@ class DenseDesignMatrix(Dataset):
     _default_seed = (17, 2, 946)
 
     def __init__(self, X=None, topo_view=None, y=None,
-                 view_converter=None, axes = ('b', 0, 1, 'c'),
+                  view_converter=None, axes = ('b', 0, 1, 'c'),
                  rng=_default_seed):
         """
         Parameters
@@ -77,7 +77,7 @@ class DenseDesignMatrix(Dataset):
             self.view_converter = view_converter
         else:
             if topo_view is not None:
-                self.set_topological_view(topo_view, axes)
+                 self.set_topological_view(topo_view, axes)
         self.y = y
         self.compress = False
         self.design_loc = None
@@ -447,6 +447,41 @@ class DenseDesignMatrix(Dataset):
          return self.y is not None
 
 class DenseDesignMatrixPyTables(DenseDesignMatrix):
+    """
+    DenseDesingMatrix with PyTables
+    """
+
+    def set_design_matrix(self, X, start = 0):
+        assert len(X.shape) == 2
+        assert not N.any(N.isnan(X))
+        DenseDesignMatrixPyTables.fill_hdf5(file = self.h5file,
+                                            data_x = X,
+                                            start = start)
+
+    def set_topological_view(self, V, axes = ('b', 0, 1, 'c'), start = 0):
+        """
+        Sets the dataset to represent V, where V is a batch
+        of topological views of examples.
+
+        Parameters
+        ----------
+        V : ndarray
+            An array containing a design matrix representation of training
+            examples. If unspecified, the entire dataset (`self.X`) is used
+            instead.
+        TODO: why is this parameter named 'V'?
+        """
+        assert not N.any(N.isnan(V))
+        rows = V.shape[axes.index(0)]
+        cols = V.shape[axes.index(1)]
+        channels = V.shape[axes.index('c')]
+        self.view_converter = DefaultViewConverter([rows, cols, channels], axes=axes)
+        X = self.view_converter.topo_view_to_design_mat(V)
+        assert not N.any(N.isnan(X))
+        DenseDesignMatrixPyTables.fill_hdf5(file = self.h5file,
+                                            data_x = X,
+                                            start = start)
+
     @functools.wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
                  topo=None, targets=None, rng=None):
@@ -495,15 +530,24 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         return h5file, gcolumns
 
     @staticmethod
-    def fill_hdf5(file, node, data, batch_size = 5000):
+    def fill_hdf5(file, data_x, data_y = None, node = None, start = 0, batch_size = 5000):
+        """
+        PyTables tempt to crash if you write large data on them at once.
+        This function write data on file in batches
 
-        data_x, data_y = data
+        start: the start index to write data
+        """
+
+        if node is None:
+            node = file.getNode('/', 'Data')
+
         data_size = data_x.shape[0]
         last = np.floor(data_size / float(batch_size)) * batch_size
         for i in xrange(0, data_size, batch_size):
-            stop = -1 if i >= last else i + batch_size
-            node.X[i:stop, :] = data_x[i:stop, :]
-            node.y[i:stop, :] = data_y[i:stop, :]
+            stop = i + np.mod(data_size, batch_size) if i >= last else i + batch_size
+            node.X[start + i: start + stop, :] = data_x[i:stop, :]
+            if data_y is not None:
+                 node.y[start + i: start + stop, :] = data_y[i:stop, :]
 
         file.flush()
 
