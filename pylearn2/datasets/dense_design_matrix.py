@@ -579,6 +579,11 @@ class DefaultViewConverter(object):
 
         return rval
 
+    def __setstate__(self, d):
+        # Patch old pickle files that don't have the axes attribute.
+        if 'axes' not in d:
+            d['axes'] = ['b', 0, 1, 'c']
+        self.__dict__.update(d)
 
 def from_dataset(dataset, num_examples):
     try:
