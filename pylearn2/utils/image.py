@@ -268,12 +268,29 @@ def load(filepath, rescale=True, dtype='float64'):
     except:
         raise Exception("Could not open "+filepath)
 
-    rval = np.cast[dtype](np.asarray(rval)) / s
+    numpy_rval = np.array(rval)
 
-    if len(rval.shape) == 2:
+    if numpy_rval.ndim not in [2,3]:
+        print dir(rval)
+        print rval
+        print rval.size
+        rval.show()
+        raise AssertionError("Tried to load an image, got an array with " +
+                str(numpy_rval.ndim)+" dimensions. Expected 2 or 3."
+                "This may indicate a mildly corrupted image file. Try "
+                "converting it to a different image format with a different "
+                "editor like gimp or imagemagic. Sometimes these programs are "
+                "more robust to minor corruption than PIL and will emit a "
+                "correctly formatted image in the new format."
+                )
+    rval = numpy_rval
+
+    rval = np.cast[dtype](rval) / s
+
+    if rval.ndim == 2:
         rval = rval.reshape(rval.shape[0], rval.shape[1], 1)
 
-    if len(rval.shape) != 3:
+    if rval.ndim != 3:
         raise AssertionError("Something went wrong opening " +
                 filepath + '. Resulting shape is ' + str(rval.shape) +
                 " (it's meant to have 3 dimensions by now)")
