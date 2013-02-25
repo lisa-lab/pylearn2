@@ -520,7 +520,9 @@ class MaxoutConvC01B(Layer):
 
         self.input_space = space
 
-        assert isinstance(self.input_space, Conv2DSpace)
+        if not isinstance(self.input_space, Conv2DSpace):
+            raise TypeError("The input to a convolutional layer should be a Conv2DSpace, "
+                    " but layer " + self.layer_name + " got "+str(type(self.input_space)))
         # note: I think the desired space thing is actually redundant,
         # since LinearTransform will also dimshuffle the axes if needed
         # It's not hurting anything to have it here but we could reduce
