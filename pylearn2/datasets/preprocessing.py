@@ -804,19 +804,35 @@ class ZCA(Preprocessor):
         return np.dot(X, self.inv_P_) + self.mean_
 
 class LeCunLCN_ICPR(ExamplewisePreprocessor):
-    def __init__(self, img_shape, eps=1e-12):
-        self.img_shape = img_shape
-        self.eps = eps
+    """
+    Pre-processing as done in: Pierre Sermanet, Soumith Chintala and
+    Yann LeCun: Convolutional Neural Networks Applied to House Numbers
+    Digit Classification, International Conference on
+    Pattern Recognition (ICPR 2012), 2012
+
+    First converts from RGB to YUV
+    global contast each channel
+    local cotrast Y channel
+    """
+
+    def __init__(self, img_shape, kernel_size = 7, threshold = 1e-4):
+        self._img_shape = img_shape
+        self._threshold = threshold
+        self._kernel_size = kernel_size
         self._mean = None
         self._std = None
 
     def apply(self, dataset, can_fit=False):
         x = dataset.get_topological_view()
 
+        # convert axes
+        axes = ['b', 0, 1, 'c']
+        x = convert_axes(x, dataset.axes, axes)
+
         # convert to YUV
         x = rgb_yuv(x)
 
-        # glopbal contrast normalize on each channel
+        # glopbal contrast normalize each channel
         if can_fit:
             self._mean = []
             self._std = []
@@ -833,64 +849,105 @@ class LeCunLCN_ICPR(ExamplewisePreprocessor):
             x[:,:,:,i] /= self._std[i]
 
         # local contrast normalize Y channel
-        x[:,:,:,0] = lecun_lcn(x[:,:,:,0], self.img_shape, 7)
+        x[:,:,:,0] = lecun_lcn(x[:,:,:,0], self._img_shape,
+                                self._kernel_size, self._threshold)
 
-        dataset.set_topological_view(x)
+        x = convert_axes(x, axes, dataset.axes)
+        dataset.set_topological_view(x, dataset.axes)
 
-class LeCunLCNChannelsPyTables(ExamplewisePreprocessor):
-    def __init__(self, img_shape, kernel_size = 7, eps=1e-12):
-        self.img_shape = img_shape
-        self.kernel_size = kernel_size
-        self.eps = eps
+class LeCunLCNChannels(ExamplewisePreprocessor):
+    """ Yann LeCun local contrast normalization on each of the 3 channels
+    """
+
+    def __init__(self, img_shape, kernel_size = 7, batch_size = 5000,
+                    threshold = 1e-4):
+        """
+        img_shape: image shape
+        kernel_size: local contrast kernel size
+        batch_size: batch size. If dataset is based on PyTables use a
+                    batch size smaller than 10000. Otherwise any
+                    batch size diffrent than datasize is not supported yet.
+        threshold: threshold for denominator
+        """
+        self._img_shape = img_shape
+        self._kernel_size = kernel_size
+        self._batch_size = batch_size
+        self._threshold = threshold
 
     def transform(self, x):
+        """
+        X: data with axis [b, 0, 1, c]
+        """
         for i in xrange(3):
-            x[:, :, :, i] = lecun_lcn(x[:, :, :, i], self.img_shape,
-                                                    self.kernel_size)
+            x[:, :, :, i] = lecun_lcn(x[:, :, :, i], self._img_shape,
+                                                    self._kernel_size,
+                                                    self._threshold)
         return x
 
-    def apply(self, dataset, can_fit=False, batch_size = 5000):
+    def apply(self, dataset, can_fit=False):
+        axes = ['b', 0, 1, 'c']
         data_size = dataset.X.shape[0]
-        last = np.floor(data_size / float(batch_size)) * batch_size
-        for i in xrange(0, data_size, batch_size):
-            stop = -1 if i >= last else i + batch_size
+        if isinstance(dataset.X, np.ndarray):
+            if data_size != self._batch_size:
+                warnings.warn("Batch size diffrent "
+                        "than data size is not implemented yet. "
+                        "Changing it to datasize...")
+                self._batch_size = data_size
+
+        last = np.floor(data_size / float(self._batch_size)) * self._batch_size
+        for i in xrange(0, data_size, self._batch_size):
+            stop = -1 if i >= last else i + self._batch_size
             print "LCN processing samples from {} to {}".format(i, stop)
-            transformed = self.transform(dataset.get_topological_view(dataset.X[i:stop, :]))
-            dataset.set_topological_view(transformed, start = i)
+            transformed = self.transform(convert_axes(
+                                dataset.get_topological_view(
+                                dataset.X[i:stop, :]),
+                                dataset.axes, axes))
+            transformed = convert_axes(transformed, axes, dataset.axes)
+            if self._batch_size != data_size:
+                dataset.set_topological_view(transformed, dataset.axes,
+                                            start = i)
 
-def lecun_lcn(input, img_shape, kernel_shape):
-        input = input.reshape(input.shape[0], input.shape[1], input.shape[2], 1)
-        X = T.matrix(dtype=input.dtype)
-        X = X.reshape((len(input), img_shape[0], img_shape[1], 1))
+        if self._batch_size == data_size:
+            dataset.set_topological_view(transformed, dataset.axes)
 
-        filter_shape = (1, 1, kernel_shape, kernel_shape)
-        filters = sharedX(gaussian_filter(kernel_shape).reshape(filter_shape))
+def lecun_lcn(input, img_shape, kernel_shape, threshold = 1e-4):
+    """
+    Yann LeCun's local contrast normalization
+    Orginal code in Theano by: Guillaume Desjardins
+    """
+    input = input.reshape(input.shape[0], input.shape[1], input.shape[2], 1)
+    X = T.matrix(dtype=input.dtype)
+    X = X.reshape((len(input), img_shape[0], img_shape[1], 1))
 
-        input_space = Conv2DSpace(shape = img_shape, num_channels = 1)
-        transformer = Conv2D(filters = filters, batch_size = len(input),
-                            input_space = input_space,
-                            border_mode = 'full')
-        convout = transformer.lmul(X)
+    filter_shape = (1, 1, kernel_shape, kernel_shape)
+    filters = sharedX(gaussian_filter(kernel_shape).reshape(filter_shape))
 
-        # For each pixel, remove mean of 9x9 neighborhood
-        mid = int(np.floor(kernel_shape/ 2.))
-        centered_X = X - convout[:,mid:-mid,mid:-mid,:]
+    input_space = Conv2DSpace(shape = img_shape, num_channels = 1)
+    transformer = Conv2D(filters = filters, batch_size = len(input),
+                        input_space = input_space,
+                        border_mode = 'full')
+    convout = transformer.lmul(X)
 
-        # Scale down norm of 9x9 patch if norm is bigger than 1
-        transformer = Conv2D(filters = filters, batch_size = len(input),
-                            input_space = input_space,
-                            border_mode = 'full')
-        sum_sqr_XX = transformer.lmul(X**2)
+    # For each pixel, remove mean of 9x9 neighborhood
+    mid = int(np.floor(kernel_shape/ 2.))
+    centered_X = X - convout[:,mid:-mid,mid:-mid,:]
 
-        denom = T.sqrt(sum_sqr_XX[:,mid:-mid,mid:-mid,:])
-        per_img_mean = denom.mean(axis = [1,2])
-        divisor = T.largest(per_img_mean.dimshuffle(0,'x', 'x', 1), denom)
+    # Scale down norm of 9x9 patch if norm is bigger than 1
+    transformer = Conv2D(filters = filters, batch_size = len(input),
+                        input_space = input_space,
+                        border_mode = 'full')
+    sum_sqr_XX = transformer.lmul(X**2)
 
-        new_X = centered_X / divisor
-        new_X = T.flatten(new_X, outdim=3)
+    denom = T.sqrt(sum_sqr_XX[:,mid:-mid,mid:-mid,:])
+    per_img_mean = denom.mean(axis = [1,2])
+    divisor = T.largest(per_img_mean.dimshuffle(0,'x', 'x', 1), denom)
+    divisor = T.maximum(divisor, threshold)
 
-        f = function([X], new_X)
-        return f(input)
+    new_X = centered_X / divisor
+    new_X = T.flatten(new_X, outdim=3)
+
+    f = function([X], new_X)
+    return f(input)
 
 def rgb_yuv(x):
     """
@@ -919,6 +976,7 @@ def yuv_rgb(x):
     """
     Inverse of rbg_yuv.
     """
+
     y = x[:,:,:,0]
     u = x[:,:,:,1]
     v = x[:,:,:,2]
@@ -934,6 +992,7 @@ def yuv_rgb(x):
     return x
 
 def gaussian_filter(kernel_shape):
+
     x = np.zeros((kernel_shape, kernel_shape), dtype='float32')
 
     def gauss(x, y, sigma=2.0):
@@ -981,4 +1040,13 @@ class CentralWindow(Preprocessor):
             new_arr = np.transpose(new_arr, tuple(('c', 0, 1, 'b').index(axis) for axis in axes))
 
         dataset.set_topological_view(new_arr, axes=axes)
+
+def convert_axes(data, orig, new):
+    """ Convert axes of daata from orig to new
+    """
+
+    return data.transpose(orig.index(new[0]),
+                        orig.index(new[1]),
+                        orig.index(new[2]),
+                        orig.index(new[3]))
 

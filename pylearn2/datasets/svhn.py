@@ -19,7 +19,8 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
                 'splitted_train': 4, 'valid': 5}
 
     def __init__(self, which_set, path = None, center = False, scale = False,
-            start = None, stop = None, axes = ('b', 0, 1, 'c')):
+            start = None, stop = None, axes = ('b', 0, 1, 'c'),
+            preprocessor = None):
         """
         Only for faster access there is a copy of hdf5 file in
         PYLEARN2_DATA_PATH but it mean to be only readable.
@@ -28,7 +29,9 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
         """
 
         assert which_set in self.mapper.keys()
-        self.args = locals()
+
+        self.__dict__.update(locals())
+        del self.self
 
         if path is None:
             path = '${PYLEARN2_DATA_PATH}/SVHN/format2/'
@@ -73,7 +76,20 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
                                                                         axes)
         super(SVHN, self).__init__(X = data.X, y = data.y,
                                     view_converter = view_converter)
+
+        if preprocessor:
+            if which_set in ['train', 'train_all', 'splitted_train']:
+                can_fit = True
+            preprocessor.apply(self, can_fit)
+
         self.h5file.flush()
+
+
+    def get_test_set(self):
+        return SVHN(which_set = 'test', path = self.path,
+                    center = self.center, scale = self.scale,
+                    start = self.start, stop = self.stop,
+                    axes = self.axes, preprocessor = self.preprocessor)
 
     @staticmethod
     def make_data(which_set, path, shuffle = True):
