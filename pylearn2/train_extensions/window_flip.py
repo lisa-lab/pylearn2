@@ -29,6 +29,8 @@ class WindowAndFlipC01B(TrainExtension):
                                 if other_datasets is not None else [])
         if not hasattr(rng, 'random_integers'):
             self._rng = numpy.random.RandomState(rng)
+        else:
+            self._rng = rng
 
     def setup(self, model, dataset, algorithm):
         # Central windowing of auxillary datasets (e.g. validation sets)
