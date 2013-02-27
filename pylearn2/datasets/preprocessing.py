@@ -815,22 +815,25 @@ class LeCunLCN_ICPR(ExamplewisePreprocessor):
     local cotrast Y channel
     """
 
-    def __init__(self, img_shape, kernel_size = 7, threshold = 1e-4):
+    def __init__(self, img_shape, kernel_size = 7, batch_size = 5000,
+                    threshold = 1e-4):
         self._img_shape = img_shape
-        self._threshold = threshold
+        self._batch_size = batch_size
         self._kernel_size = kernel_size
+        self._threshold = threshold
         self._mean = None
         self._std = None
 
     def apply(self, dataset, can_fit=False):
-        x = dataset.get_topological_view()
 
+        x = dataset.get_topological_view()
         # convert axes
         axes = ['b', 0, 1, 'c']
         x = convert_axes(x, dataset.axes, axes)
 
         # convert to YUV
         x = rgb_yuv(x)
+
 
         # glopbal contrast normalize each channel
         if can_fit:
@@ -849,8 +852,15 @@ class LeCunLCN_ICPR(ExamplewisePreprocessor):
             x[:,:,:,i] /= self._std[i]
 
         # local contrast normalize Y channel
-        x[:,:,:,0] = lecun_lcn(x[:,:,:,0], self._img_shape,
-                                self._kernel_size, self._threshold)
+        data_size = dataset.X.shape[0]
+        last = np.floor(data_size / float(self._batch_size)) * self._batch_size
+        for i in xrange(0, data_size, self._batch_size):
+            stop = -1 if i >= last else i + self._batch_size
+            print "LCN processing samples from {} to {}".format(i, stop)
+            x[i:stop, :, :, 0] = lecun_lcn(x[i:stop, :, :, 0],
+                                            self._img_shape,
+                                            self._kernel_size,
+                                            self._threshold)
 
         x = convert_axes(x, axes, dataset.axes)
         dataset.set_topological_view(x, dataset.axes)
