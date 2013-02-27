@@ -113,8 +113,8 @@ class Pipeline(Preprocessor):
         A Preprocessor that sequentially applies a list
         of other Preprocessors.
     """
-    def __init__(self):
-        self.items = []
+    def __init__(self, items=None):
+        self.items = items if items is not None else []
 
     def apply(self, dataset, can_fit=False):
         for item in self.items:
