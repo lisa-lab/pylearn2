@@ -121,7 +121,8 @@ class MLP(Layer):
             dropout_scales = None,
             dropout_input_include_prob = None,
             dropout_input_scale = None,
-            nvis=None):
+            nvis=None,
+            seed=None):
         """
             layers: a list of MLP_Layers. The final layer will specify the
                     MLP's output space.
@@ -144,7 +145,10 @@ class MLP(Layer):
                 because the learning rate on the biases should
                 not be adjusted).
         """
+        if seed is None:
+            seed = [2013, 1, 4]
 
+        self.seed = seed
         self.setup_rng()
 
         assert isinstance(layers, list)
@@ -195,7 +199,7 @@ class MLP(Layer):
         self.dropout_scales = dropout_scales
 
     def setup_rng(self):
-        self.rng = np.random.RandomState([2013, 1, 4])
+        self.rng = np.random.RandomState(self.seed)
 
 
     def get_output_space(self):
