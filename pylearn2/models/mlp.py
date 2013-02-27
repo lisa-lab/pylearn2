@@ -1405,14 +1405,13 @@ class Linear(Layer):
             z = self.transformer.lmul(state_below) + self.b
         if self.layer_name is not None:
             z.name = self.layer_name + '_z'
-        if self.copy_input:
-            z = T.concatenate((z, state_below), axis=1)
-        return z
 
 
     def fprop(self, state_below):
         # TODO: Refactor More Better(tm)
         p = self._linear_part(state_below)
+        if self.copy_input:
+            return T.concatenate((p, state_below), axis=1)
         return p
 
     def cost(self, Y, Y_hat):
@@ -1443,7 +1442,19 @@ class Tanh(Linear):
     def fprop(self, state_below):
         p = self._linear_part(state_below)
         p = T.tanh(p)
+        if self.copy_input:
+            return T.concatenate((p, state_below), axis=1)
         return p
+        
+        
+class Sigmoid(Linear):
+    def fprop(self, state_below):
+        p = self._linear_part(state_below)
+        p = T.nnet.sigmoid(p)
+        if self.copy_input:
+            return T.concatenate((p, state_below), axis=1)
+        return p
+        
 
 
 class SpaceConverter(Layer):
