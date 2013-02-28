@@ -621,7 +621,9 @@ class WeightDecay(Cost):
     def __init__(self, coeffs):
         """
         coeffs: a list, one element per layer, specifying the coefficient
-                to put on the L1 activation cost for each layer.
+                to multiply with the cost defined by the squared L2 norm of the weights
+                for each layer.
+
                 Each element may in turn be a list, ie, for CompositeLayers.
         """
         self.__dict__.update(locals())
