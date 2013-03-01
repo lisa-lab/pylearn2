@@ -1,0 +1,5 @@
+global-include *.txt
+global-include *.cu
+global-include *.cuh
+recursive-include docs
+
