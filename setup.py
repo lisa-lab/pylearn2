@@ -9,6 +9,6 @@ setup(
     long_description=open('README.rst').read(),
     install_requires=['numpy>=1.5', 'theano'],
     package_data={
-        '': ['*.txt', '*.rst', '*.cu', '*.cuh',],
+        '': ['*.txt', '*.rst', '*.cu', '*.cuh', '*.h',],
     },
 )
