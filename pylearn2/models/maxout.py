@@ -218,6 +218,13 @@ class Maxout(Layer):
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
+    def get_l1_norm(self, coeff):
+        if isinstance(coeff, str):
+            coeff = float(coeff)
+        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
+        W ,= self.transformer.get_params()
+        return coeff * T.abs(W).sum()
+
     def get_weights(self):
         if self.requires_reformat:
             # This is not really an unimplemented case.

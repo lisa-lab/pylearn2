@@ -510,6 +510,13 @@ class Softmax(Layer):
 
         return self.W.get_value()
 
+    def get_l1_norm(self, coeff):
+        if isinstance(coeff, str):
+            coeff = float(coeff)
+        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
+        W = self.W
+        return coeff * abs(W).sum()
+
     def set_weights(self, weights):
         self.W.set_value(weights)
 
@@ -591,6 +598,7 @@ class Softmax(Layer):
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         return coeff * T.sqr(self.W).sum()
 
+
     def censor_updates(self, updates):
         if self.no_affine:
             return
@@ -650,6 +658,48 @@ class WeightDecay(Cost):
         total_cost.name = 'weight_decay'
 
         return total_cost
+
+class L1Penalty(Cost):
+    """
+    coeff * sum(abs(weights))
+
+    for each set of weights.
+
+    """
+
+    def __init__(self, coeffs):
+        """
+        coeffs: a list, one element per layer, specifying the coefficient
+                to multiply with the cost defined by the L1 norm of the
+                weights(lasso) for each layer.
+
+                Each element may in turn be a list, ie, for CompositeLayers.
+        """
+        self.__dict__.update(locals())
+        del self.self
+
+    def __call__(self, model, X, Y = None, ** kwargs):
+
+        layer_costs = [ layer.get_l1_norm(coeff)
+            for layer, coeff in safe_izip(model.layers, self.coeffs) ]
+
+        assert T.scalar() != 0. # make sure theano semantics do what I want
+        layer_costs = [ cost for cost in layer_costs if cost != 0.]
+
+        if len(layer_costs) == 0:
+            rval =  T.as_tensor_variable(0.)
+            rval.name = '0_l1_penalty'
+            return rval
+        else:
+            total_cost = reduce(lambda x, y: x + y, layer_costs)
+        total_cost.name = 'MLP_L1Penalty'
+
+        assert total_cost.ndim == 0
+
+        total_cost.name = 'l1_penalty'
+
+        return total_cost
+
 
 class SoftmaxPool(Layer):
     """
@@ -791,6 +841,13 @@ class SoftmaxPool(Layer):
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
+
+    def get_l1_norm(self, coeff):
+        if isinstance(coeff, str):
+            coeff = float(coeff)
+        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
+        W ,= self.transformer.get_params()
+        return coeff * abs(W).sum()
 
     def get_weights(self):
         if self.requires_reformat:
@@ -1082,6 +1139,13 @@ class RectifiedLinear(Layer):
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
+    def get_l1_norm(self, coeff):
+        if isinstance(coeff, str):
+            coeff = float(coeff)
+        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
+        W ,= self.transformer.get_params()
+        return coeff * abs(W).sum()
+
     def get_weights(self):
         if self.requires_reformat:
             # This is not really an unimplemented case.
@@ -1320,6 +1384,13 @@ class Linear(Layer):
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
+
+    def get_l1_norm(self, coeff):
+        if isinstance(coeff, str):
+            coeff = float(coeff)
+        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
+        W ,= self.transformer.get_params()
+        return coeff * abs(W).sum()
 
     def get_weights(self):
         if self.requires_reformat:
@@ -1609,6 +1680,13 @@ class ConvRectifiedLinear(Layer):
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
+
+    def get_l1_norm(self, coeff):
+        if isinstance(coeff, str):
+            coeff = float(coeff)
+        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
+        W ,= self.transformer.get_params()
+        return coeff * abs(W).sum()
 
     def set_weights(self, weights):
         W, = self.transformer.get_params()
