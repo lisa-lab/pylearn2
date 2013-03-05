@@ -510,13 +510,6 @@ class Softmax(Layer):
 
         return self.W.get_value()
 
-    def get_l1_norm(self, coeff):
-        if isinstance(coeff, str):
-            coeff = float(coeff)
-        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
-        W = self.W
-        return coeff * abs(W).sum()
-
     def set_weights(self, weights):
         self.W.set_value(weights)
 
@@ -598,6 +591,12 @@ class Softmax(Layer):
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         return coeff * T.sqr(self.W).sum()
 
+    def get_l1_norm(self, coeff):
+        if isinstance(coeff, str):
+            coeff = float(coeff)
+        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
+        W = self.W
+        return coeff * abs(W).sum()
 
     def censor_updates(self, updates):
         if self.no_affine:
