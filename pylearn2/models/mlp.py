@@ -1493,7 +1493,7 @@ class ConvRectifiedLinear(Layer):
                  b_lr_scale = None,
                  left_slope = 0.0,
                  max_kernel_norm = None,
-                 output_normalization = None):
+                 detector_normalization = None):
         """
 
             include_prob: probability of including a weight element in the set
@@ -1501,6 +1501,9 @@ class ConvRectifiedLinear(Layer):
             it is initialized to 0.
 
         """
+        if (irange is None) and (sparse_init is None):
+            raise AssertionError("You should specify either irange or sparse_init when calling the constructor of ConvRectifiedLinear.")
+
         self.__dict__.update(locals())
         del self.self
 
@@ -1561,8 +1564,6 @@ class ConvRectifiedLinear(Layer):
                     subsample = (1,1),
                     border_mode = self.border_mode,
                     rng = rng)
-        else:
-            raise AssertionError("You should specify either irange or sparse_init when calling the constructor of ConvRectifiedLinear.")
         W, = self.transformer.get_params()
         W.name = 'W'
 
@@ -1666,11 +1667,11 @@ class ConvRectifiedLinear(Layer):
 
         self.detector_space.validate(d)
 
-        if not hasattr(self, 'output_normalization'):
-            self.output_normalization = None
+        if not hasattr(self, 'detector_normalization'):
+            self.detector_normalization = None
 
-        if self.output_normalization:
-            d = self.output_normalization(d)
+        if self.detector_normalization:
+            d = self.detector_normalization(d)
 
 
         p = max_pool(bc01=d, pool_shape=self.pool_shape,
