@@ -132,6 +132,7 @@ class MLP(Layer):
                         a hard-coded batch size.
             input_space: a Space specifying the kind of input the MLP acts
                         on. If None, input space is specified by nvis.
+            dropout_include_probs: a list specifying the dropout include probability at each layer of MLP
 
             A note on dropout:
                 Hinton's paper suggests including each unit with probability p
@@ -175,6 +176,10 @@ class MLP(Layer):
         self._update_layer_input_spaces()
 
         self.freeze_set = set([])
+        
+        if dropout_include_probs is not None:
+            if not (isinstance(dropout_include_probs, (list, tuple))):
+                raise AssertionError("dropout_include_probs should be a list specifying the dropout include probability at each layer of MLP")
 
         self.use_dropout = ((dropout_input_include_prob is not None) \
                 or (dropout_include_probs is not None and \
@@ -1000,7 +1005,9 @@ class RectifiedLinear(Layer):
         rng = self.mlp.rng
         if self.irange is not None:
             assert self.istdev is None
-            assert self.sparse_init is None
+            if self.sparse_init is not None:
+                raise ValueError("Both irange and sparse_init cannot have values. If you use sparse_init the weights are drawn from N(0, sparse_stdev^2). Otherwise, they are drawn from U(-irange, irange). ")
+#            assert self.sparse_init is None
             W = rng.uniform(-self.irange,
                             self.irange,
                             (self.input_dim, self.dim)) * \
@@ -1486,7 +1493,8 @@ class ConvRectifiedLinear(Layer):
                  W_lr_scale = None,
                  b_lr_scale = None,
                  left_slope = 0.0,
-                 max_kernel_norm = None):
+                 max_kernel_norm = None,
+                 output_normalization = None):
         """
 
             include_prob: probability of including a weight element in the set
@@ -1554,6 +1562,8 @@ class ConvRectifiedLinear(Layer):
                     subsample = (1,1),
                     border_mode = self.border_mode,
                     rng = rng)
+        else:
+            raise AssertionError("You should specify either irange or sparse_init when calling the constructor of ConvRectifiedLinear.")
         W, = self.transformer.get_params()
         W.name = 'W'
 
@@ -1656,6 +1666,13 @@ class ConvRectifiedLinear(Layer):
         d = z * (z > 0.) + self.left_slope * z * (z < 0.)
 
         self.detector_space.validate(d)
+
+        if not hasattr(self, 'output_normalization'):
+            self.output_normalization = None
+
+        if self.output_normalization:
+            d = self.output_normalization(d)
+
 
         p = max_pool(bc01=d, pool_shape=self.pool_shape,
                 pool_stride=self.pool_stride,
