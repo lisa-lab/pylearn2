@@ -394,13 +394,17 @@ class MonitorBasedLRAdjuster(TrainExtension):
                                            str(model))
         monitor = model.monitor
 
-        if self.dataset_name is None:
-            raise ValueError("""You're trying to use a monitor-based learning
-                adjustor but the monitor has no entries because you didn't
-                specify a monitoring dataset. Set the dataset_name in the constructor""")
-
-        objective  = self.dataset_name + '_objective'	
-        v = monitor.channels[objective].val_record
+        if self.dataset_name is not None:
+            objective  = self.dataset_name + '_objective'
+            try:
+                v = monitor.channels[objective].val_record
+            except KeyError:
+                raise KeyError('There is no monitoring channel named ' + objective + '. You probably need to change ' + self.dataset_name + 'in the input')
+        else:
+            try:
+                v = monitor.channels['objective'].val_record
+            except KeyError:
+                raise KeyError('There is no monitoring channel named \'objective\'')
 
         if len(v) < 1:
 
@@ -427,7 +431,7 @@ class MonitorBasedLRAdjuster(TrainExtension):
         if v[-1] > self.high_trigger * v[-2]:
             rval *= self.shrink_amt
             log.info("shrinking learning rate to %f" % rval)
-        elif v[-1] < self.low_trigger * v[-2]:
+        elif v[-1] > self.low_trigger * v[-2]:
             rval *= self.grow_amt
             log.info("growing learning rate to %f" % rval)
 
