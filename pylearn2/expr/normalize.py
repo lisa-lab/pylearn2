@@ -14,6 +14,8 @@ from pylearn2.sandbox.cuda_convnet.response_norm import CrossMapNorm
 
 class CrossChannelNormalizationBC01(object):
     """
+    BC01 version of CrossChannelNormalization
+    
     See "ImageNet Classification with Deep Convolutional Neural Networks"
     Alex Krizhevsky, Ilya Sutskever, and Geoffrey E. Hinton
     NIPS 2012
@@ -23,7 +25,8 @@ class CrossChannelNormalizationBC01(object):
 
     def __init__(self, alpha = 1e-4, k=2, beta=0.75, n=5):
         """
-
+        This object implement the following normalization : 
+        
         f(c01b)_[i,j,k,l] = c01b[i,j,k,l] / scale[i,j,k,l]
 
         scale[i,j,k,l] = (k + sqr(c01b)[clip(i-n/2):clip(i+n/2),j,k,l])^beta

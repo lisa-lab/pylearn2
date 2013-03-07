@@ -1488,6 +1488,7 @@ class ConvRectifiedLinear(Layer):
                  left_slope = 0.0,
                  max_kernel_norm = None,
                  pool_type = 'max',
+                 detector_normalization = None,
                  output_normalization = None):
         """
 
@@ -1571,7 +1572,7 @@ class ConvRectifiedLinear(Layer):
                     "model because theano requires the batch size to be known at "
                     "graph construction time for convolution.")
 
-        assert self.pool_type == 'max' or self.pool_type == 'mean'
+        assert self.pool_type in ['max', 'mean']
 
         dummy_detector = sharedX(self.detector_space.get_origin_batch(self.mlp.batch_size))
         if self.pool_type == 'max':
@@ -1665,8 +1666,14 @@ class ConvRectifiedLinear(Layer):
         d = z * (z > 0.) + self.left_slope * z * (z < 0.)
 
         self.detector_space.validate(d)
+        
+        if not hasattr(self, 'detector_normalization'):
+            self.detector_normalization = None
 
-        assert self.pool_type == 'max' or self.pool_type == 'mean'
+        if self.detector_normalization:
+            d = self.detector_normalization(d)
+
+        assert self.pool_type in ['max', 'mean']
         if self.pool_type == 'max':
             p = max_pool(bc01=d, pool_shape=self.pool_shape,
                     pool_stride=self.pool_stride,
@@ -1677,6 +1684,12 @@ class ConvRectifiedLinear(Layer):
                     image_shape=self.detector_space.shape)
 
         self.output_space.validate(p)
+        
+        if not hasattr(self, 'output_normalization'):
+            self.output_normalization = None
+
+        if self.output_normalization:
+            p = self.output_normalization(p)
 
         return p
 
