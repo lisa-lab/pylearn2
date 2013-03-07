@@ -591,7 +591,7 @@ class Softmax(Layer):
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         return coeff * T.sqr(self.W).sum()
 
-    def get_l1_norm(self, coeff):
+    def get_l1_weight_decay(self, coeff):
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
@@ -658,7 +658,7 @@ class WeightDecay(Cost):
 
         return total_cost
 
-class L1Penalty(Cost):
+class L1WeightDecay(Cost):
     """
     coeff * sum(abs(weights))
 
@@ -679,7 +679,7 @@ class L1Penalty(Cost):
 
     def __call__(self, model, X, Y = None, ** kwargs):
 
-        layer_costs = [ layer.get_l1_norm(coeff)
+        layer_costs = [ layer.get_l1_weight_decay(coeff)
             for layer, coeff in safe_izip(model.layers, self.coeffs) ]
 
         assert T.scalar() != 0. # make sure theano semantics do what I want
@@ -841,7 +841,7 @@ class SoftmaxPool(Layer):
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
-    def get_l1_norm(self, coeff):
+    def get_l1_weight_decay(self, coeff):
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
@@ -1138,7 +1138,7 @@ class RectifiedLinear(Layer):
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
-    def get_l1_norm(self, coeff):
+    def get_l1_weight_decay(self, coeff):
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
@@ -1384,7 +1384,7 @@ class Linear(Layer):
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
-    def get_l1_norm(self, coeff):
+    def get_l1_weight_decay(self, coeff):
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
@@ -1680,7 +1680,7 @@ class ConvRectifiedLinear(Layer):
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
-    def get_l1_norm(self, coeff):
+    def get_l1_weight_decay(self, coeff):
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')

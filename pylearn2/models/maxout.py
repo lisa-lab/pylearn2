@@ -218,7 +218,7 @@ class Maxout(Layer):
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
-    def get_l1_norm(self, coeff):
+    def get_l1_weight_decay(self, coeff):
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
