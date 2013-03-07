@@ -1007,7 +1007,6 @@ class RectifiedLinear(Layer):
             assert self.istdev is None
             if self.sparse_init is not None:
                 raise ValueError("Both irange and sparse_init cannot have values. If you use sparse_init the weights are drawn from N(0, sparse_stdev^2). Otherwise, they are drawn from U(-irange, irange). ")
-#            assert self.sparse_init is None
             W = rng.uniform(-self.irange,
                             self.irange,
                             (self.input_dim, self.dim)) * \
