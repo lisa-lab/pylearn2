@@ -1486,7 +1486,9 @@ class ConvRectifiedLinear(Layer):
                  W_lr_scale = None,
                  b_lr_scale = None,
                  left_slope = 0.0,
-                 max_kernel_norm = None):
+                 max_kernel_norm = None,
+                 pool_type = 'max',
+                 output_normalization = None):
         """
 
             include_prob: probability of including a weight element in the set
@@ -1569,10 +1571,17 @@ class ConvRectifiedLinear(Layer):
                     "model because theano requires the batch size to be known at "
                     "graph construction time for convolution.")
 
+        assert self.pool_type == 'max' or self.pool_type == 'mean'
+
         dummy_detector = sharedX(self.detector_space.get_origin_batch(self.mlp.batch_size))
-        dummy_p = max_pool(bc01=dummy_detector, pool_shape=self.pool_shape,
-                pool_stride=self.pool_stride,
-                image_shape=self.detector_space.shape)
+        if self.pool_type == 'max':
+            dummy_p = max_pool(bc01=dummy_detector, pool_shape=self.pool_shape,
+                    pool_stride=self.pool_stride,
+                    image_shape=self.detector_space.shape)
+        elif self.pool_type == 'mean':
+            dummy_p = mean_pool(bc01=dummy_detector, pool_shape=self.pool_shape,
+                    pool_stride=self.pool_stride,
+                    image_shape=self.detector_space.shape)
         dummy_p = dummy_p.eval()
         self.output_space = Conv2DSpace(shape=[dummy_p.shape[2], dummy_p.shape[3]],
                 num_channels = self.output_channels, axes = ('b', 'c', 0, 1) )
@@ -1657,9 +1666,15 @@ class ConvRectifiedLinear(Layer):
 
         self.detector_space.validate(d)
 
-        p = max_pool(bc01=d, pool_shape=self.pool_shape,
-                pool_stride=self.pool_stride,
-                image_shape=self.detector_space.shape)
+        assert self.pool_type == 'max' or self.pool_type == 'mean'
+        if self.pool_type == 'max':
+            p = max_pool(bc01=d, pool_shape=self.pool_shape,
+                    pool_stride=self.pool_stride,
+                    image_shape=self.detector_space.shape)
+        elif self.pool_type == 'mean':
+            p = mean_pool(bc01=d, pool_shape=self.pool_shape,
+                    pool_stride=self.pool_stride,
+                    image_shape=self.detector_space.shape)
 
         self.output_space.validate(p)
 
@@ -1796,3 +1811,71 @@ def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape):
 
     return mx
 
+def mean_pool(bc01, pool_shape, pool_stride, image_shape):
+    """
+    bc01: minibatch in format (batch size, channels, rows, cols)
+    pool_shape: shape of the pool region (rows, cols)
+    pool_stride: strides between pooling regions (row stride, col stride)
+    image_shape: avoid doing some of the arithmetic in theano
+    """
+    mx = None
+    r, c = image_shape
+    pr, pc = pool_shape
+    rs, cs = pool_stride
+
+    # Compute index in pooled space of last needed pool
+    # (needed = each input pixel must appear in at least one pool)
+    def last_pool(im_shp, p_shp, p_strd):
+        rval = int(np.ceil(float(im_shp - p_shp) / p_strd))
+        assert p_strd * rval + p_shp >= im_shp
+        assert p_strd * (rval - 1) + p_shp < im_shp
+        return rval
+    # Compute starting row of the last pool
+    last_pool_r = last_pool(image_shape[0] ,pool_shape[0], pool_stride[0]) * pool_stride[0]
+    # Compute number of rows needed in image for all indexes to work out
+    required_r = last_pool_r + pr
+
+    last_pool_c = last_pool(image_shape[1] ,pool_shape[1], pool_stride[1]) * pool_stride[1]
+    required_c = last_pool_c + pc
+
+    for bc01v in get_debug_values(bc01):
+        assert not np.any(np.isinf(bc01v))
+        assert bc01v.shape[2] == image_shape[0]
+        assert bc01v.shape[3] == image_shape[1]
+
+    wide_infinity = T.alloc(-np.inf, bc01.shape[0], bc01.shape[1], required_r, required_c)
+
+
+    name = bc01.name
+    if name is None:
+        name = 'anon_bc01'
+    bc01 = T.set_subtensor(wide_infinity[:,:, 0:r, 0:c], bc01)
+    bc01.name = 'infinite_padded_' + name
+    
+    # Create a 'mask' used to keep count of the number of elements summed for each position
+    wide_infinity_count = T.alloc(0, bc01.shape[0], bc01.shape[1], required_r, required_c)
+    bc01_count = T.set_subtensor(wide_infinity_count[:,:, 0:r, 0:c], 1)
+
+    for row_within_pool in xrange(pool_shape[0]):
+        row_stop = last_pool_r + row_within_pool + 1
+        for col_within_pool in xrange(pool_shape[1]):
+            col_stop = last_pool_c + col_within_pool + 1
+            cur = bc01[:,:,row_within_pool:row_stop:rs, col_within_pool:col_stop:cs]
+            cur.name = 'mean_pool_cur_'+bc01.name+'_'+str(row_within_pool)+'_'+str(col_within_pool)
+            cur_count = bc01_count[:,:,row_within_pool:row_stop:rs, col_within_pool:col_stop:cs]
+            if mx is None:
+                mx = cur
+                count = cur_count
+            else:
+                mx = mx + cur
+                count = count + cur_count
+                mx.name = 'mean_pool_mx_'+bc01.name+'_'+str(row_within_pool)+'_'+str(col_within_pool)
+                
+    mx /= count
+    mx.name = 'mean_pool('+name+')'
+
+    for mxv in get_debug_values(mx):
+        assert not np.any(np.isnan(mxv))
+        assert not np.any(np.isinf(mxv))
+
+    return mx
