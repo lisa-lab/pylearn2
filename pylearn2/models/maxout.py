@@ -471,6 +471,7 @@ class MaxoutConvC01B(Layer):
                  tied_b = False,
                  max_kernel_norm = None,
                  input_normalization = None,
+                 detector_normalization = None,
                  output_normalization = None):
         """
             fix_pool_shape: If True, will modify self.pool_shape to avoid having
@@ -735,10 +736,18 @@ class MaxoutConvC01B(Layer):
                         s = T.maximum(s, t)
                 z = s
 
+            if self.detector_normalization:
+                z = self.detector_normalization(z)
+
             p = max_pool_c01b(c01b=z, pool_shape=self.pool_shape,
                               pool_stride=self.pool_stride,
                               image_shape=self.detector_space.shape)
         else:
+
+            if self.detector_normalization is not None:
+                raise NotImplementedError("We can't normalize the detector "
+                        "layer because the detector layer never exists as a "
+                        "stage of processing in this implementation.")
             z = max_pool_c01b(c01b=z, pool_shape=self.pool_shape,
                               pool_stride=self.pool_stride,
                               image_shape=self.detector_space.shape)
