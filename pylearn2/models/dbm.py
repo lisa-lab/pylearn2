@@ -923,6 +923,7 @@ class BinaryVectorMaxPool(HiddenLayer):
             b_lr_scale = None,
             center = False,
             mask_weights = None,
+            max_col_norm = None,
             copies = 1):
         """
 
@@ -1030,6 +1031,15 @@ class BinaryVectorMaxPool(HiddenLayer):
             W ,= self.transformer.get_params()
             if W in updates:
                 updates[W] = updates[W] * self.mask
+
+        if self.max_col_norm is not None:
+            W, = self.transformer.get_params()
+            if W in updates:
+                updated_W = updates[W]
+                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
+                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
+                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
+
 
     def get_total_state_space(self):
         return CompositeSpace((self.output_space, self.h_space))
