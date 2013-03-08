@@ -20,9 +20,9 @@ from theano import function
 import theano.tensor as T
 
 from pylearn2.base import Block
-from pylearn2.utils.insert_along_axis import insert_columns
 from pylearn2.linear.conv2d import Conv2D
 from pylearn2.space import Conv2DSpace
+from pylearn2.utils.insert_along_axis import insert_columns
 from pylearn2.utils import sharedX
 
 class Preprocessor(object):
