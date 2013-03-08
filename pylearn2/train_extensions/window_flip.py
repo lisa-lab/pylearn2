@@ -40,7 +40,8 @@ class WindowAndFlipC01B(TrainExtension):
         # Central windowing of auxiliary datasets (e.g. validation sets)
         preprocessor = CentralWindow(self._window_shape)
         for data in self._other_datasets:
-            assert data.view_converter.axes == self.axes
+            if not (tuple(data.view_converter.axes) == self.axes):
+                raise ValueError("Expected axes: %s Actual axes: %s" % (str(data.view_converter.axes), str(self.axes)))
             preprocessor.apply(data)
 
         # Do the initial random windowing of the training set.
@@ -48,7 +49,7 @@ class WindowAndFlipC01B(TrainExtension):
         self.on_monitor(model, dataset, algorithm)
 
     def on_monitor(self, model, dataset, algorithm):
-        assert dataset.view_converter.axes == self.axes
+        assert tuple(dataset.view_converter.axes) == self.axes
         arr = random_window_and_flip_c01b(self._original,
                                           self._window_shape,
                                           rng=self._rng)
