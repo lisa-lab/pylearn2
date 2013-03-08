@@ -375,13 +375,15 @@ class MonitorBasedLRAdjuster(TrainExtension):
 
     def __init__(self, high_trigger=1., shrink_amt=.99,
                  low_trigger=.99, grow_amt=1.01,
-                 min_lr = 1e-7, max_lr = 1.):
+                 min_lr = 1e-7, max_lr = 1.,
+		         dataset_name=None):
         self.high_trigger = high_trigger
         self.shrink_amt = shrink_amt
         self.low_trigger = low_trigger
         self.grow_amt = grow_amt
         self.min_lr = min_lr
         self.max_lr = max_lr
+        self.dataset_name = dataset_name
 
     def on_monitor(self, model, dataset, algorithm):
         # TODO: more sophisticated error checking here.
@@ -391,7 +393,18 @@ class MonitorBasedLRAdjuster(TrainExtension):
         assert hasattr(model, 'monitor'), ("no monitor associated with " +
                                            str(model))
         monitor = model.monitor
-        v = monitor.channels['objective'].val_record
+
+        if self.dataset_name is not None:
+            objective  = self.dataset_name + '_objective'
+            try:
+                v = monitor.channels[objective].val_record
+            except KeyError:
+                raise KeyError('There is no monitoring channel named ' + objective + '. You probably need to change ' + self.dataset_name + 'in the input')
+        else:
+            try:
+                v = monitor.channels['objective'].val_record
+            except KeyError:
+                raise KeyError('There is no monitoring channel named \'objective\'')
 
         if len(v) < 1:
 
@@ -418,7 +431,7 @@ class MonitorBasedLRAdjuster(TrainExtension):
         if v[-1] > self.high_trigger * v[-2]:
             rval *= self.shrink_amt
             log.info("shrinking learning rate to %f" % rval)
-        elif v[-2] > self.low_trigger * v[-2]:
+        elif v[-1] > self.low_trigger * v[-2]:
             rval *= self.grow_amt
             log.info("growing learning rate to %f" % rval)
 
@@ -586,7 +599,7 @@ class LinearDecay(object):
         self._count += 1
         if self._count >= self.start:
             if self._count < self.saturate:
-                new_lr = self._base_lr - self.step * self._count
+                new_lr = self._init_lr - self._step * (self._count - self.start)
             else:
                 print 'hi'
                 new_lr = self._base_lr * self.decay_factor
@@ -711,7 +724,7 @@ class LinearDecayOverEpoch(TrainExtension):
     def current_lr(self):
         if self._count >= self.start:
             if self._count < self.saturate:
-                new_lr = self._init_lr - self._step * self._count
+                new_lr = self._init_lr - self._step * (self._count - self.start)
             else:
                 new_lr = self._init_lr * self.decay_factor
         else:
