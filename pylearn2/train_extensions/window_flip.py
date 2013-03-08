@@ -4,6 +4,7 @@ image dataset on every epoch.
 """
 import numpy
 from . import TrainExtension
+from pylearn2.datasets.preprocessing import CentralWindow
 
 try:
     from ..utils._window_flip import random_window_and_flip_c01b
@@ -35,12 +36,9 @@ class WindowAndFlipC01B(TrainExtension):
     def setup(self, model, dataset, algorithm):
         # Central windowing of auxiliary datasets (e.g. validation sets)
         w_rows, w_cols = self._window_shape
+        preprocessor = CentralWindow(self._window_shape)
         for data in self._other_datasets:
-            arr = data.get_topological_view()
-            r_off = (arr.shape[1] - w_rows) // 2
-            c_off = (arr.shape[2] - w_cols) // 2
-            new_arr = arr[:, r_off:r_off + w_rows, c_off:c_off + w_cols, :]
-            data.set_topological_view(new_arr, axes=self.axes)
+            preprocessor.apply(data)
 
         # Do the initial random windowing of the training set.
         self._original = dataset.get_topological_view()
