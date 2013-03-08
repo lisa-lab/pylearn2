@@ -602,7 +602,7 @@ class MomentumAdjustor(TrainExtension):
             final_momentum: the momentum coefficient to use at the end
                             of learning.
             start: the epoch on which to start growing the momentum coefficient.
-            saturate: the epoch on which the moment should reach its final value
+            saturate: the epoch on which the momentum should reach its final value
         """
 
         if saturate < start:
