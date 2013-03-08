@@ -636,6 +636,55 @@ class MomentumAdjustor(TrainExtension):
             alpha = 1.
         return self._init_momentum * (1.-alpha)+alpha*self.final_momentum
 
+class BatchSizeAdjustor(TrainExtension):
+    """
+    This class adjust the minibatch size at each epoch. Based on the
+    final batch size, batch size can grow or decay the batch size.
+    """
+    def __init__(self, final_batch_size, start, saturate):
+        """
+            final_batch_size: the momentum coefficient to use at the en
+            start: the epoch on which to start adjusting the minibatch size.
+            saturate: the epoch on which the batch_size should reach its final value
+        """
+        if saturate < start:
+            raise TypeError("Momentum can't saturate at its maximum value before it starts increasing.")
+
+        self.__dict__.update(locals())
+        del self.self
+        self._initialized = False
+        self._count = 0
+
+    def on_monitor(self, model, dataset, algorithm):
+        if not self._initialized:
+            self._init_batch_size = algorithm.batch_size
+            if self.final_batch_size < self._init_batch_size:
+                print "Decaying minibatch size."
+            else:
+                print "Growing minibatch size."
+
+            self._initialized = True
+        self._count += 1
+        algorithm.batch_size = self.current_batch_size()
+
+    def current_batch_size(self):
+        w = self.saturate - self.start
+
+        if w == 0:
+            # saturate=start, so just jump straight to final momentum
+            if self._count >= self.start:
+                return self.final_batch_size
+            return self._init_batch_size
+
+        alpha = float(self._count - self.start) / float(w)
+        if alpha < 0.:
+            alpha = 0.
+        if alpha > 1.:
+            alpha = 1.
+        batch_size = np.floor(self._init_batch_size * (1. - alpha) + alpha * self.final_batch_size)
+        print "Current minibatch size: ", batch_size
+        return batch_size
+
 class OneOverEpoch(TrainExtension):
     """
     Scales the learning rate like one over # epochs
