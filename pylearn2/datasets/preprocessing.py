@@ -931,3 +931,39 @@ def gaussian_filter(kernel_shape):
             x[i,j] = gauss(i-mid, j-mid)
 
     return x / np.sum(x)
+
+class CentralWindow(Preprocessor):
+    """
+    Preprocesses an image dataset to contain only the central window.
+    """
+
+    def __init__(self, window_shape):
+
+        self.__dict__.update(locals())
+        del self.self
+
+    def apply(self, dataset, can_fit=False):
+
+        w_rows, w_cols = self.window_shape
+
+        arr = dataset.get_topological_view()
+
+        try:
+            axes = dataset.view_converter.axes
+        except AttributeError:
+            raise NotImplementedError("I don't know how to tell what the axes of this kind of dataset are.")
+
+        needs_transpose = not axes[1:3] == (0, 1)
+
+        if needs_transpose:
+            arr = np.transpose(arr, (axes.index('c'), axes.index(0), axes.index(1), axes.index('b')))
+
+        r_off = (arr.shape[1] - w_rows) // 2
+        c_off = (arr.shape[2] - w_cols) // 2
+        new_arr = arr[:, r_off:r_off + w_rows, c_off:c_off + w_cols, :]
+
+        if needs_transpose:
+            new_arr = np.transpose(new_arr, tuple(('c', 0, 1, 'b').index(axis) for axis in axes))
+
+        dataset.set_topological_view(new_arr, axes=axes)
+
