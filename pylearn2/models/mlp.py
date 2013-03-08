@@ -659,8 +659,8 @@ class SoftmaxPool(Layer):
 
     def __init__(self,
                  detector_layer_dim,
-                 pool_size,
                  layer_name,
+                 pool_size = 1,
                  irange = None,
                  sparse_init = None,
                  sparse_stdev = 1.,
@@ -669,6 +669,7 @@ class SoftmaxPool(Layer):
                  W_lr_scale = None,
                  b_lr_scale = None,
                  mask_weights = None,
+                 max_col_norm = None
         ):
         """
 
@@ -771,6 +772,14 @@ class SoftmaxPool(Layer):
             W ,= self.transformer.get_params()
             if W in updates:
                 updates[W] = updates[W] * self.mask
+
+        if self.max_col_norm is not None:
+            W ,= self.transformer.get_params()
+            if W in updates:
+                updated_W = updates[W]
+                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
+                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
+                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
     def get_params(self):
         assert self.b.name is not None
