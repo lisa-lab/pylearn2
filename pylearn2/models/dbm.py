@@ -1302,8 +1302,8 @@ class BinaryVectorMaxPool(HiddenLayer):
             assert all([len(elem) == 2 for elem in [state, target, coeff]])
             if eps is None:
                 eps = [0., 0.]
-            if target[1] < target[0]:
-                warnings.warn("Do you really want to regularize the detector units to be sparser than the pooling units?")
+            if target[1] > target[0]:
+                warnings.warn("Do you really want to regularize the detector units to be more active than the pooling units?")
 
         for s, t, c, e in safe_zip(state, target, coeff, eps):
             assert all([isinstance(elem, float) or hasattr(elem, 'dtype') for elem in [t, c, e]])
@@ -1337,8 +1337,8 @@ class BinaryVectorMaxPool(HiddenLayer):
             coeff = [coeff]
         else:
             assert all([len(elem) == 2 for elem in [state, target, coeff]])
-            if target[1] < target[0]:
-                warnings.warn("Do you really want to regularize the detector units to be sparser than the pooling units?")
+            if target[1] > target[0]:
+                warnings.warn("Do you really want to regularize the detector units to be more active than the pooling units?")
 
         for s, t, c in safe_zip(state, target, coeff):
             assert all([isinstance(elem, float) or hasattr(elem, 'dtype') for elem in [t, c]])
@@ -1530,6 +1530,7 @@ class Softmax(HiddenLayer):
     def __init__(self, n_classes, layer_name, irange = None,
                  sparse_init = None, W_lr_scale = None,
                  b_lr_scale = None,
+                 max_col_norm = None,
                  copies = 1, center = False):
         """
             copies: We regard the layer as being replicated so that there
@@ -1553,6 +1554,15 @@ class Softmax(HiddenLayer):
         if self.center:
             b = self.b.get_value()
             self.offset = sharedX(np.exp(b) / np.exp(b).sum())
+
+    def censor_updates(self, updates):
+        if self.max_col_norm is not None:
+            W = self.W
+            if W in updates:
+                updated_W = updates[W]
+                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
+                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
+                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
     def get_lr_scalers(self):
 
