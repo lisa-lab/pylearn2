@@ -33,7 +33,7 @@ class WindowAndFlipC01B(TrainExtension):
             self._rng = rng
 
     def setup(self, model, dataset, algorithm):
-        # Central windowing of auxillary datasets (e.g. validation sets)
+        # Central windowing of auxiliary datasets (e.g. validation sets)
         w_rows, w_cols = self._window_shape
         for data in self._other_datasets:
             arr = data.get_topological_view()
