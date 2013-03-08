@@ -597,6 +597,10 @@ class LinearDecay(object):
         algorithm.learning_rate.set_value(new_lr)
 
 class MomentumAdjustor(TrainExtension):
+    """
+    The class that scales the momentum linearly, starting from epoch start and
+    saturating  to final_momentum at epoch saturate.
+    """
     def __init__(self, final_momentum, start, saturate):
         """
             final_momentum: the momentum coefficient to use at the end
@@ -643,12 +647,12 @@ class BatchSizeAdjustor(TrainExtension):
     """
     def __init__(self, final_batch_size, start, saturate):
         """
-            final_batch_size: the momentum coefficient to use at the en
+            final_batch_size: the bathc size to use at the end of the learning.
             start: the epoch on which to start adjusting the minibatch size.
             saturate: the epoch on which the batch_size should reach its final value
         """
         if saturate < start:
-            raise TypeError("Momentum can't saturate at its maximum value before it starts increasing.")
+            raise TypeError("Batch size can't saturate at its maximum value before it starts increasing.")
 
         self.__dict__.update(locals())
         del self.self
