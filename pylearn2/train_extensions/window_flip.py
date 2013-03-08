@@ -21,7 +21,10 @@ __email__ = "wardefar@iro"
 
 
 class WindowAndFlipC01B(TrainExtension):
-    axes = ['c', 0, 1, 'b']
+    # This variable is shared among all instances of this class.
+    # Don't modify it, unless you really want it to get changed
+    # for all other instances.
+    axes = ('c', 0, 1, 'b')
 
     def __init__(self, window_shape, other_datasets=None, rng=(2013, 02, 20)):
         self._window_shape = tuple(window_shape)
@@ -35,9 +38,9 @@ class WindowAndFlipC01B(TrainExtension):
 
     def setup(self, model, dataset, algorithm):
         # Central windowing of auxiliary datasets (e.g. validation sets)
-        w_rows, w_cols = self._window_shape
         preprocessor = CentralWindow(self._window_shape)
         for data in self._other_datasets:
+            assert data.view_converter.axes == self.axes
             preprocessor.apply(data)
 
         # Do the initial random windowing of the training set.
@@ -45,6 +48,7 @@ class WindowAndFlipC01B(TrainExtension):
         self.on_monitor(model, dataset, algorithm)
 
     def on_monitor(self, model, dataset, algorithm):
+        assert dataset.view_converter.axes == self.axes
         arr = random_window_and_flip_c01b(self._original,
                                           self._window_shape,
                                           rng=self._rng)
