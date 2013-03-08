@@ -1,1 +1,20 @@
-The scripts in this directory are aimed at reproducing results from published papers.
+The scripts in this directory are aimed at reproducing results from published
+papers.
+
+Each subdirectory corresponds to a different paper. Some of these papers were
+originally written using pylearn2, while others were written using different
+libraries and languages but the pylearn2 developers have made an attempt to
+reproduce them here.
+
+The papers partially reproduced so far are:
+
+dbm: Salakhutdinov, R. and Hinton, G. (2009). Deep Boltzmann machines. In
+    AISTATS 2009.
+
+jia_huang_wkshp_11: Jia, Yangqing and Huang, Chang. Beyon spatial pyramids:
+    Receptive field learning for pooled image features, 2011. NIPS 2011
+    Workshop on Deep Learning and Unsupervised Feature Learning.
+
+maxout: Goodfellow, I.J., Warde-Farley, D., Mirza, M., Courville, A. and
+    Bengio, Y. Maxout Networks. 2013. arXiv:1302.4389v3
+

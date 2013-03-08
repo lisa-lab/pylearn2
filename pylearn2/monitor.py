@@ -545,7 +545,7 @@ class Monitor(object):
     def num_batches(self):
         return self._num_batches
 
-    def setup(self, dataset, cost, batch_size, num_batches = None):
+    def setup(self, dataset, cost, batch_size, num_batches = None, extra_costs=None):
         """
         Sets up the monitor for a cost minimization problem.
         Adds channels defined by both the model and the cost for
@@ -574,7 +574,14 @@ class Monitor(object):
             assert all(isinstance(key, str) for key in dataset)
             assert all(isinstance(dataset[key], Dataset) for key in dataset)
 
-        supervised = cost.supervised
+        if extra_costs is None:
+            costs = {}
+        else:
+            costs = extra_costs
+        assert '' not in costs
+        costs[''] = cost
+
+        supervised = any(cost.supervised for cost in costs.values())
         model = self.model
 
         X = model.get_input_space().make_theano_batch()
@@ -587,8 +594,18 @@ class Monitor(object):
         else:
             Y = None
             ipt = X
-        cost_value = cost(model, X, Y)
-        custom_channels = cost.get_monitoring_channels(model, X, Y)
+        custom_channels = {}
+        for cost_name in costs:
+            if cost_name == '':
+                prefix = ''
+            else:
+                prefix = cost_name + '_'
+            cost = costs[cost_name]
+            raw_channels = cost.get_monitoring_channels(model, X, Y)
+            channels = {}
+            for name in raw_channels:
+                channels[prefix+name] = raw_channels[name]
+            custom_channels.update(channels)
         model_channels = model.get_monitoring_channels(X, Y)
         custom_channels.update(model_channels)
         for dataset_name in dataset:
@@ -598,16 +615,23 @@ class Monitor(object):
                                  batch_size=batch_size,
                                  num_batches=num_batches)
             if dataset_name == '':
-                prefix = ''
+                dprefix = ''
             else:
-                prefix = dataset_name + '_'
+                dprefix = dataset_name + '_'
             # These channel name 'objective' must not vary, since callbacks that respond to the
             # values in the monitor use the name to find it.
-            if cost_value is not None:
-                self.add_channel(name=prefix + 'objective', ipt=ipt,
+            for cost_name in costs:
+                cost = costs[cost_name]
+                cost_value = cost(model, X, Y)
+                if cost_value is not None:
+                    if cost_name == '':
+                        name = dprefix + 'objective'
+                    else:
+                        name = dprefix + cost_name
+                    self.add_channel(name=name, ipt=ipt,
                         val=cost_value, dataset=cur_dataset)
             for key in custom_channels:
-                self.add_channel(name=prefix + key, ipt=ipt,
+                self.add_channel(name=dprefix + key, ipt=ipt,
                         val=custom_channels[key], dataset=cur_dataset)
 
 
@@ -733,6 +757,33 @@ def push_monitor(model, name):
 
     return model
 
+def read_channel(model, channel_name, monitor_name = 'monitor'):
+    return getattr(model, monitor_name).channels[channel_name].val_record[-1]
+
+def get_channel(model, dataset, channel, cost, batch_size):
+    """
+    Make a temporary monitor and return the value of a channel in it.
+
+    model: A pylearn2.models.model.Model instance. Will evaluate the
+           channel for this Model.
+    dataset: The Dataset to run on
+    channel: A string identifying the channel name to evaluate
+    cost: The Cost to setup for monitoring
+    batch_size: The size of the batch to use when running the monitor
+
+    returns the value of the requested channel.
+
+    Note: this doesn't modify the model (unless some of the channel prereqs do).
+          In particular, it does not change model.monitor.
+    """
+    monitor = Monitor(model)
+    monitor.setup(dataset=dataset, cost=cost, batch_size=batch_size)
+    monitor()
+    channels = monitor.channels
+    channel = channels[channel]
+    val_record = channel.val_record
+    value ,= val_record
+    return value
 
 _err_no_data = "You tried to add a channel to a Monitor that has no dataset."
 _err_ambig_data = ("You added a channel to a Monitor that has multiple datasets, "

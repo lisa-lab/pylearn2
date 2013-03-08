@@ -3,7 +3,7 @@ Plugins for the Train object.
 """
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
-__credits__ = ["Ian Goodfellow"]
+__credits__ = ["Ian Goodfellow", "David Warde-Farley"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
@@ -23,25 +23,64 @@ class TrainExtension(object):
 
     def on_save(self, model, dataset, algorithm):
         """
-        Train calls this immediately before each time it saves the model.
+        Train calls this immediately before it saves the model.
 
-        Parameters:
-            model: the pylearn2.models.model.Model object being trained
-            dataset: the pylearn2.datasets.dataset.Dataset used for training data
-            algorithm: the pylearn2.training_algorithms.training_algorithm.TrainingAlgorithm
-                algorithm object used to conduct the training
+        Parameters
+        ----------
+        model : object
+            The model object being trained (implementing some
+            subset of the `pylearn2.models` interface).
+
+        dataset : object
+            The dataset object being trained (implementing the
+            `pylearn2.datasets` interface).
+
+        algorithm : object
+            The object representing the training algorithm being
+            used to train the model (and thus implementing the
+            `pylearn2.training_algorithms` interface).
         """
 
     def on_monitor(self, model, dataset, algorithm):
         """
         Train calls this immediately after each call to the Monitor
-        (i.e., when training begins, and at the end of each epoch)
+        (i.e., when training begins, and at the end of each epoch).
 
-        Parameters:
-            model: the pylearn2.models.model.Model object being trained
-            dataset: the pylearn2.datasets.dataset.Dataset used for training data
-            algorithm: the pylearn2.training_algorithms.training_algorithm.TrainingAlgorithm
-                algorithm object used to conduct the training
+        Parameters
+        ----------
+        model : object
+            The model object being trained (implementing some
+            subset of the `pylearn2.models` interface).
+
+        dataset : object
+            The dataset object being trained (implementing the
+            `pylearn2.datasets` interface).
+
+        algorithm : object
+            The object representing the training algorithm being
+            used to train the model (and thus implementing the
+            `pylearn2.training_algorithms` interface).
+        """
+
+    def setup(self, model, dataset, algorithm):
+        """
+        Train calls this immediately upon instantiation,
+        before any monitoring is done.
+
+        Parameters
+        ----------
+        model : object
+            The model object being trained (implementing some
+            subset of the `pylearn2.models` interface).
+
+        dataset : object
+            The dataset object being trained (implementing the
+            `pylearn2.datasets` interface).
+
+        algorithm : object
+            The object representing the training algorithm being
+            used to train the model (and thus implementing the
+            `pylearn2.training_algorithms` interface).
         """
 
 class SharedSetter(TrainExtension):

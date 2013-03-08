@@ -105,7 +105,7 @@ repository.
 * Ask/view questions/answers about machine learning in general at
   `metaoptimize/qa/tags/theano`_ (it's like stack overflow for machine learning)
 
-* We use the `github issues <https://github.com/lisa-lab/pylearn/issues>`_ to stay organized.
+* We use the `github issues <https://github.com/lisa-lab/pylearn2/issues>`_ to stay organized.
 
 * Come visit us in Montreal!  Most of the developers are students in the LISA_ group at the `University of Montreal`_.
 

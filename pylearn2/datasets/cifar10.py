@@ -8,7 +8,7 @@ from pylearn2.datasets import dense_design_matrix
 class CIFAR10(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, which_set, center = False, rescale = False, gcn = None,
             one_hot = False, start = None, stop = None, axes=('b', 0, 1, 'c'),
-            toronto_prepro = False):
+            toronto_prepro = False, preprocessor = None):
 
         # note: there is no such thing as the cifar10 validation set;
         # pylearn1 defined one but really it should be user-configurable
@@ -86,10 +86,14 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         if toronto_prepro:
             assert not center
             assert not gcn
-            if which_set == 'test':
-                raise NotImplementedError("Need to subtract the mean of the *training* set.")
             X = X / 255.
-            X = X - X.mean(axis=0)
+            if which_set == 'test':
+                other = CIFAR10(which_set='train')
+                oX = other.X
+                oX /= 255.
+                X = X - oX.mean(axis=0)
+            else:
+                X = X - X.mean(axis=0)
         self.toronto_prepro = toronto_prepro
 
         self.gcn = gcn
@@ -119,6 +123,9 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         super(CIFAR10,self).__init__(X = X, y = y, view_converter = view_converter)
 
         assert not np.any(np.isnan(self.X))
+
+        if preprocessor:
+            preprocessor.apply(self)
 
     def adjust_for_viewer(self, X):
         #assumes no preprocessing. need to make preprocessors mark the new ranges

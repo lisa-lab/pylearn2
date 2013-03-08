@@ -52,6 +52,8 @@ class Preprocessor(object):
             can_fit: If True, the Preprocessor can adapt internal parameters
                      based on the contents of dataset. Otherwise it must not
                      fit any parameters, or must re-use old ones.
+                     Subclasses should still have this default to False, so
+                     that the behavior of the preprocessors is uniform.
 
             Typical usage:
                 # Learn PCA preprocessing and apply it to the training set
@@ -111,8 +113,8 @@ class Pipeline(Preprocessor):
         A Preprocessor that sequentially applies a list
         of other Preprocessors.
     """
-    def __init__(self):
-        self.items = []
+    def __init__(self, items=None):
+        self.items = items if items is not None else []
 
     def apply(self, dataset, can_fit=False):
         for item in self.items:
@@ -341,7 +343,7 @@ class ExamplewiseUnitNormBlock(Block):
 
 
 class MakeUnitNorm(ExamplewisePreprocessor):
-    def apply(self, dataset, can_fit):
+    def apply(self, dataset, can_fit=False):
         X = dataset.get_design_matrix()
         X_norm = np.sqrt(np.sum(X ** 2, axis=1))
         X /= X_norm[:, None]
@@ -477,7 +479,7 @@ class Standardize(ExamplewisePreprocessor):
         self._mean = None
         self._std = None
 
-    def apply(self, dataset, can_fit=True):
+    def apply(self, dataset, can_fit=False):
         X = dataset.get_design_matrix()
         if can_fit:
             self._mean = X.mean() if self._global_mean else X.mean(axis=0)
@@ -531,7 +533,7 @@ class RemoveZeroColumns(ExamplewisePreprocessor):
     def __init__(self):
         self._block = None
 
-    def apply(self, dataset, can_fit=True):
+    def apply(self, dataset, can_fit=False):
         design_matrix = dataset.get_design_matrix()
         mean = design_matrix.mean(axis=0)
         var = design_matrix.var(axis=0)
@@ -553,7 +555,7 @@ class RemapInterval(ExamplewisePreprocessor):
         self.map_from = [np.float(x) for x in map_from]
         self.map_to = [np.float(x) for x in map_to]
 
-    def apply(self, dataset, can_fit):
+    def apply(self, dataset, can_fit=False):
         X = dataset.get_design_matrix()
         X = (X - self.map_from[0]) / np.diff(self.map_from)
         X = X * np.diff(self.map_to) + self.map_to[0]
@@ -724,8 +726,19 @@ class GlobalContrastNormalization(object):
 
 
 class ZCA(Preprocessor):
+    """
+    Performs ZCA whitening.
+    TODO: add reference
+    """
     def __init__(self, n_components=None, n_drop_components=None,
                  filter_bias=0.1):
+        """
+        n_components: TODO: WRITEME
+        n_drop_components: TODO: WRITEME
+        filter_bias: Filters are scaled by 1/sqrt(filter_bias + variance)
+                    TODO: verify that default of 0.1 is what was used in the
+                          Coates and Ng paper, add reference
+        """
         warnings.warn("This ZCA preprocessor class is known to yield very "
                       "different results on different platforms. If you plan "
                       "to conduct experiments with this preprocessing on "
@@ -795,7 +808,7 @@ class LeCunLCN_ICPR(ExamplewisePreprocessor):
         self.img_shape = img_shape
         self.eps = eps
 
-    def apply(self, dataset, can_fit = True):
+    def apply(self, dataset, can_fit=False):
         x = dataset.get_topological_view()
 
         # lcn on y channel of yuv
@@ -819,7 +832,7 @@ class LeCunLCNChannels(ExamplewisePreprocessor):
             x[:,:,:,i] = lecun_lcn(x[:,:,:,i], self.img_shape, 7)
         return x
 
-    def apply(self, dataset, can_fit, batch_size = 5000):
+    def apply(self, dataset, can_fit=False, batch_size = 5000):
         data_size = dataset.X.shape[0]
         last = np.floor(data_size / float(batch_size)) * batch_size
         for i in xrange(0, data_size, batch_size):
@@ -865,6 +878,14 @@ def lecun_lcn(input, img_shape, kernel_shape):
         return f(input)
 
 def rgb_yuv(x):
+    """
+    x: A batch of images in numpy tensor format, with
+       the last axis corresponding to the channels.
+       The channels should be r, g, and b.
+    Returns the same format, with channels y, u, v.
+
+    TODO: add reference
+    """
     r = x[:,:,:,0]
     g = x[:,:,:,1]
     b = x[:,:,:,2]
@@ -880,6 +901,9 @@ def rgb_yuv(x):
     return x
 
 def yuv_rgb(x):
+    """
+    Inverse of rbg_yuv.
+    """
     y = x[:,:,:,0]
     u = x[:,:,:,1]
     v = x[:,:,:,2]

@@ -8,6 +8,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 import os
+import sys
 from pylearn2.utils import serial
 import logging
 import warnings
@@ -75,12 +76,15 @@ class Train(object):
                     tokens = os.environ['PYLEARN2_TRAIN_FILE_NAME'], 'pkl'
                 self.save_path = '.'.join(tokens)
         self.save_freq = save_freq
-        self.extensions = extensions if extensions is not None else []
 
         if hasattr(self.dataset,'yaml_src'):
             self.model.dataset_yaml_src = self.dataset.yaml_src
         else:
             warnings.warn("dataset has no yaml src, model won't know what data it was trained on")
+
+        self.extensions = extensions if extensions is not None else []
+        for ext in self.extensions:
+            ext.setup(self.model, self.dataset, self.algorithm)
 
     def main_loop(self):
         """
@@ -167,3 +171,7 @@ class SerializationGuard(object):
     def __getstate__(self):
         raise IOError("You tried to serialize something that should not"
                 " be serialized.")
+
+if __name__ == "__main__":
+    print >>sys.stderr, "ERROR: You probably meant to run scripts/train.py"
+    sys.exit(1)

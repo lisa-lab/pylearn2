@@ -59,7 +59,8 @@ class PatchViewer(object):
         assert len(patch_shape) == 2
         for shape in [grid_shape, patch_shape]:
             for elem in shape:
-                assert isinstance(elem,int)
+                if not isinstance(elem, (int, long)):
+                    raise ValueError("Expected grid_shape and patch_shape to be pairs of ints, but they are %s and %s respectively." % (str(grid_shape), str(patch_shape)))
         self.is_color = is_color
         if pad is None:
             self.pad = (5, 5)

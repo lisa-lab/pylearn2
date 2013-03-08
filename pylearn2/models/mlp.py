@@ -1,5 +1,8 @@
 """
 Multilayer Perceptron
+
+Note to developers and code reviewers: when making any changes to this
+module, ensure that the changes do not break pylearn2/scripts/papers/maxout.
 """
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"
@@ -118,7 +121,8 @@ class MLP(Layer):
             dropout_scales = None,
             dropout_input_include_prob = None,
             dropout_input_scale = None,
-            nvis=None):
+            nvis=None,
+            seed=None):
         """
             layers: a list of MLP_Layers. The final layer will specify the
                     MLP's output space.
@@ -141,7 +145,10 @@ class MLP(Layer):
                 because the learning rate on the biases should
                 not be adjusted).
         """
+        if seed is None:
+            seed = [2013, 1, 4]
 
+        self.seed = seed
         self.setup_rng()
 
         assert isinstance(layers, list)
@@ -192,7 +199,7 @@ class MLP(Layer):
         self.dropout_scales = dropout_scales
 
     def setup_rng(self):
-        self.rng = np.random.RandomState([2013, 1, 4])
+        self.rng = np.random.RandomState(self.seed)
 
 
     def get_output_space(self):
@@ -366,6 +373,7 @@ class Softmax(Layer):
             istdev = None,
                  sparse_init = None, W_lr_scale = None,
                  b_lr_scale = None, max_row_norm = None,
+                 no_affine = False,
                  max_col_norm = None):
         """
         """
@@ -379,7 +387,8 @@ class Softmax(Layer):
         assert isinstance(n_classes, int)
 
         self.output_space = VectorSpace(n_classes)
-        self.b = sharedX( np.zeros((n_classes,)), name = 'softmax_b')
+        if not no_affine:
+            self.b = sharedX( np.zeros((n_classes,)), name = 'softmax_b')
 
     def get_lr_scalers(self):
 
@@ -399,6 +408,9 @@ class Softmax(Layer):
         return rval
 
     def get_monitoring_channels(self):
+
+        if self.no_affine:
+            return OrderedDict()
 
         W = self.W
 
@@ -448,33 +460,41 @@ class Softmax(Layer):
         self.input_dim = space.get_total_dimension()
         self.needs_reformat = not isinstance(space, VectorSpace)
 
-        self.desired_space = VectorSpace(self.input_dim)
+        if self.no_affine:
+            desired_dim = self.n_classes
+            assert self.input_dim == desired_dim
+        else:
+            desired_dim = self.input_dim
+        self.desired_space = VectorSpace(desired_dim)
 
         if not self.needs_reformat:
             assert self.desired_space == self.input_space
 
         rng = self.mlp.rng
 
-        if self.irange is not None:
-            assert self.istdev is None
-            assert self.sparse_init is None
-            W = rng.uniform(-self.irange,self.irange, (self.input_dim,self.n_classes))
-        elif self.istdev is not None:
-            assert self.sparse_init is None
-            W = rng.randn(self.input_dim, self.n_classes) * self.istdev
+        if self.no_affine:
+            self._params = []
         else:
-            assert self.sparse_init is not None
-            W = np.zeros((self.input_dim, self.n_classes))
-            for i in xrange(self.n_classes):
-                for j in xrange(self.sparse_init):
-                    idx = rng.randint(0, self.input_dim)
-                    while W[idx, i] != 0.:
+            if self.irange is not None:
+                assert self.istdev is None
+                assert self.sparse_init is None
+                W = rng.uniform(-self.irange,self.irange, (self.input_dim,self.n_classes))
+            elif self.istdev is not None:
+                assert self.sparse_init is None
+                W = rng.randn(self.input_dim, self.n_classes) * self.istdev
+            else:
+                assert self.sparse_init is not None
+                W = np.zeros((self.input_dim, self.n_classes))
+                for i in xrange(self.n_classes):
+                    for j in xrange(self.sparse_init):
                         idx = rng.randint(0, self.input_dim)
-                    W[idx, i] = rng.randn()
+                        while W[idx, i] != 0.:
+                            idx = rng.randint(0, self.input_dim)
+                        W[idx, i] = rng.randn()
 
-        self.W = sharedX(W,  'softmax_W' )
+            self.W = sharedX(W,  'softmax_W' )
 
-        self._params = [ self.b, self.W ]
+            self._params = [ self.b, self.W ]
 
     def get_weights_topo(self):
         if not isinstance(self.input_space, Conv2DSpace):
@@ -514,13 +534,18 @@ class Softmax(Layer):
                 raise ValueError("state_below should have batch size "+str(self.dbm.batch_size)+" but has "+str(value.shape[0]))
 
         self.desired_space.validate(state_below)
-
-        assert self.W.ndim == 2
         assert state_below.ndim == 2
 
-        b = self.b
+        if not hasattr(self, 'no_affine'):
+            self.no_affine = False
 
-        Z = T.dot(state_below, self.W) + b
+        if self.no_affine:
+            Z = state_below
+        else:
+            assert self.W.ndim == 2
+            b = self.b
+
+            Z = T.dot(state_below, self.W) + b
 
         rval = T.nnet.softmax(Z)
 
@@ -566,7 +591,16 @@ class Softmax(Layer):
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         return coeff * T.sqr(self.W).sum()
 
+    def get_l1_weight_decay(self, coeff):
+        if isinstance(coeff, str):
+            coeff = float(coeff)
+        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
+        W = self.W
+        return coeff * abs(W).sum()
+
     def censor_updates(self, updates):
+        if self.no_affine:
+            return
         if self.max_row_norm is not None:
             W = self.W
             if W in updates:
@@ -594,7 +628,9 @@ class WeightDecay(Cost):
     def __init__(self, coeffs):
         """
         coeffs: a list, one element per layer, specifying the coefficient
-                to put on the L1 activation cost for each layer.
+                to multiply with the cost defined by the squared L2 norm of the weights
+                for each layer.
+
                 Each element may in turn be a list, ie, for CompositeLayers.
         """
         self.__dict__.update(locals())
@@ -622,6 +658,48 @@ class WeightDecay(Cost):
 
         return total_cost
 
+class L1WeightDecay(Cost):
+    """
+    coeff * sum(abs(weights))
+
+    for each set of weights.
+
+    """
+
+    def __init__(self, coeffs):
+        """
+        coeffs: a list, one element per layer, specifying the coefficient
+                to multiply with the cost defined by the L1 norm of the
+                weights(lasso) for each layer.
+
+                Each element may in turn be a list, ie, for CompositeLayers.
+        """
+        self.__dict__.update(locals())
+        del self.self
+
+    def __call__(self, model, X, Y = None, ** kwargs):
+
+        layer_costs = [ layer.get_l1_weight_decay(coeff)
+            for layer, coeff in safe_izip(model.layers, self.coeffs) ]
+
+        assert T.scalar() != 0. # make sure theano semantics do what I want
+        layer_costs = [ cost for cost in layer_costs if cost != 0.]
+
+        if len(layer_costs) == 0:
+            rval =  T.as_tensor_variable(0.)
+            rval.name = '0_l1_penalty'
+            return rval
+        else:
+            total_cost = reduce(lambda x, y: x + y, layer_costs)
+        total_cost.name = 'MLP_L1Penalty'
+
+        assert total_cost.ndim == 0
+
+        total_cost.name = 'l1_penalty'
+
+        return total_cost
+
+
 class SoftmaxPool(Layer):
     """
         A hidden layer that uses the softmax function to do
@@ -632,8 +710,8 @@ class SoftmaxPool(Layer):
 
     def __init__(self,
                  detector_layer_dim,
-                 pool_size,
                  layer_name,
+                 pool_size = 1,
                  irange = None,
                  sparse_init = None,
                  sparse_stdev = 1.,
@@ -642,6 +720,7 @@ class SoftmaxPool(Layer):
                  W_lr_scale = None,
                  b_lr_scale = None,
                  mask_weights = None,
+                 max_col_norm = None
         ):
         """
 
@@ -745,6 +824,14 @@ class SoftmaxPool(Layer):
             if W in updates:
                 updates[W] = updates[W] * self.mask
 
+        if self.max_col_norm is not None:
+            W ,= self.transformer.get_params()
+            if W in updates:
+                updated_W = updates[W]
+                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
+                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
+                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
+
     def get_params(self):
         assert self.b.name is not None
         W ,= self.transformer.get_params()
@@ -762,6 +849,13 @@ class SoftmaxPool(Layer):
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
+
+    def get_l1_weight_decay(self, coeff):
+        if isinstance(coeff, str):
+            coeff = float(coeff)
+        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
+        W ,= self.transformer.get_params()
+        return coeff * abs(W).sum()
 
     def get_weights(self):
         if self.requires_reformat:
@@ -1053,6 +1147,13 @@ class RectifiedLinear(Layer):
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
+    def get_l1_weight_decay(self, coeff):
+        if isinstance(coeff, str):
+            coeff = float(coeff)
+        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
+        W ,= self.transformer.get_params()
+        return coeff * abs(W).sum()
+
     def get_weights(self):
         if self.requires_reformat:
             # This is not really an unimplemented case.
@@ -1292,6 +1393,13 @@ class Linear(Layer):
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
+    def get_l1_weight_decay(self, coeff):
+        if isinstance(coeff, str):
+            coeff = float(coeff)
+        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
+        W ,= self.transformer.get_params()
+        return coeff * abs(W).sum()
+
     def get_weights(self):
         if self.requires_reformat:
             # This is not really an unimplemented case.
@@ -1358,8 +1466,9 @@ class Linear(Layer):
                             ('col_norms_max'  , col_norms.max()),
                             ])
 
-    def fprop(self, state_below):
 
+    def _linear_part(self, state_below):
+        # TODO: Refactor More Better(tm)
         self.input_space.validate(state_below)
 
         if self.requires_reformat:
@@ -1381,12 +1490,14 @@ class Linear(Layer):
             z = self.transformer.lmul(state_below) + self.b
         if self.layer_name is not None:
             z.name = self.layer_name + '_z'
-
-        p = z
-
         if self.copy_input:
-            p = T.concatenate((p, state_below), axis=1)
+            z = T.concatenate((z, state_below), axis=1)
+        return z
 
+
+    def fprop(self, state_below):
+        # TODO: Refactor More Better(tm)
+        p = self._linear_part(state_below)
         return p
 
     def cost(self, Y, Y_hat):
@@ -1411,6 +1522,13 @@ class Linear(Layer):
             rval['misclass'] = misclass
 
         return rval
+
+
+class Tanh(Linear):
+    def fprop(self, state_below):
+        p = self._linear_part(state_below)
+        p = T.tanh(p)
+        return p
 
 
 class SpaceConverter(Layer):
@@ -1570,6 +1688,13 @@ class ConvRectifiedLinear(Layer):
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
+
+    def get_l1_weight_decay(self, coeff):
+        if isinstance(coeff, str):
+            coeff = float(coeff)
+        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
+        W ,= self.transformer.get_params()
+        return coeff * abs(W).sum()
 
     def set_weights(self, weights):
         W, = self.transformer.get_params()

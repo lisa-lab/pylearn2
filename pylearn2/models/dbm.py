@@ -799,7 +799,9 @@ class BinaryVector(VisibleLayer):
             init_bias = np.zeros((nvis,))
         else:
             X = bias_from_marginals.get_design_matrix()
-            assert X.max() == 1.
+            if not (X.max() == 1):
+                raise ValueError("Expected design matrix to consist entirely "
+                        "of 0s and 1s, but maximum value is "+str(X.max()))
             assert X.min() == 0.
             # removed this check so we can initialize the marginals
             # with a dataset of bernoulli params
