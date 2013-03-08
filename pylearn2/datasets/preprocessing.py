@@ -2,7 +2,7 @@
 Functionality for preprocessing Datasets.
 """
 
-__authors__ = "Ian Goodfellow"
+__authors__ = "Ian Goodfellow, David Warde-Farley, Guillaume Desjardins, and Mehdi Mirza"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
