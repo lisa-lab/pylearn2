@@ -21,11 +21,11 @@ class CrossChannelNormalizationBC01(object):
         """
         This object implement the following normalization : 
         
-        f(c01b)_[i,j,k,l] = c01b[i,j,k,l] / scale[i,j,k,l]
+        f(bc01)_[i,j,k,l] = bc01[i,j,k,l] / scale[i,j,k,l]
 
-        scale[i,j,k,l] = (k + sqr(c01b)[clip(i-n/2):clip(i+n/2),j,k,l])^beta
+        scale[i,j,k,l] = (k + sqr(bc01)[clip(i-n/2):clip(i+n/2),j,k,l])^beta
 
-        clip(i) = T.clip(i, 0, c01b.shape[0]-1)
+        clip(i) = T.clip(i, 0, bc01.shape[0]-1)
         """
 
         self.__dict__.update(locals())
