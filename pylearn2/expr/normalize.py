@@ -18,16 +18,6 @@ class CrossChannelNormalizationBC01(object):
     """
 
     def __init__(self, alpha = 1e-4, k=2, beta=0.75, n=5):
-        """
-        This object implement the following normalization : 
-        
-        f(bc01)_[i,j,k,l] = bc01[i,j,k,l] / scale[i,j,k,l]
-
-        scale[i,j,k,l] = (k + sqr(bc01)[clip(i-n/2):clip(i+n/2),j,k,l])^beta
-
-        clip(i) = T.clip(i, 0, bc01.shape[0]-1)
-        """
-
         self.__dict__.update(locals())
         del self.self
 
