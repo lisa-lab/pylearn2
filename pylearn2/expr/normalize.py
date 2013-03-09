@@ -58,7 +58,7 @@ class CrossChannelNormalization(object):
 
         f(c01b)_[i,j,k,l] = c01b[i,j,k,l] / scale[i,j,k,l]
 
-        scale[i,j,k,l] = (k + sqr(c01b)[clip(i-n/2):clip(i+n/2),j,k,l])^beta
+        scale[i,j,k,l] = (k + sqr(c01b)[clip(i-n/2):clip(i+n/2),j,k,l].sum())^beta
 
         clip(i) = T.clip(i, 0, c01b.shape[0]-1)
         """
