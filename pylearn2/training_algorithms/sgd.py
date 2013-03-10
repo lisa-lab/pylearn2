@@ -323,6 +323,93 @@ class SGD(TrainingAlgorithm):
         else:
             return self.termination_criterion.continue_learning(self.model)
 
+class EpochBasedLRScaler(TrainExtension):
+    """
+    TODO: write the documentation here.
+    """
+    def __init__(self, epoch_number, lr_scale, scale_every=False, min_lr=1e-6):
+        self.__dict__.update(locals())
+        del self.self
+        self._scaled = False
+        self._count = 0
+
+    def on_monitor(self, model, dataset, algorithm):
+        if not self._initialzed:
+            self._init_lr = algorithm.learning_rate.get_value()
+            if self._init_lr <= self.min_lr:
+                raise ValueError("The initial learning rate is smaller than the minimum allowed learning rate.")
+            self._initialized = True
+        self._pre_lr = algorithm.learning_rate.get_value()
+        algorithm.learning_rate.set_value(np.cast[config.floatX](self.current_lr()))
+        self._count += 1
+
+    def current_lr(self):
+        scaled_lr = self._pre_lr
+        if not self._scaled:
+            if self._count == self.epoch_number:
+                scaled_lr *= self.lr_scale
+                self._scaled = True
+        elif self.scale_every:
+            if self._count >= self.epoch_number:
+                scaled_lr *=  self.lr_scale
+        return scaled_lr
+
+class MonitorBasedLRScaler(TrainExtension):
+    """
+    TODO: write the documentation here.
+    """
+    def __init__(self, valid_obj_bound, lr_scale, channel_name=None,
+        min_lr=1e-6, exceeds=False, scale_every=False):
+        if channel_name is None:
+            raise ValueError("You should give a valid name to the channel to monitor.")
+        self.__dict__.update(locals())
+        del self.self
+        self._scaled = False
+        self._count = 0
+
+    def on_monitor(self, model, dataset, algorithm):
+        monitor = model.monitor
+        # In the case the monitor has only one channel, the channel_name can
+        # be omitted and the criterion will examine the only channel
+        # available. However, if the monitor has multiple channels, leaving
+        # the channel_name unspecified will raise an error.
+        if self._channel_name is None:
+            if len(monitor.channels) != 1:
+                raise ValueError("Only single-channel monitors are supported "
+                                 "for channel_name == None")
+            self._v = monitor.channels.values()[0].val_record
+        else:
+            self._v = monitor.channels[self._channel_name].val_record
+
+        if not self._initialized:
+            self._init_lr = algorithm.learning_rate.get_value()
+            if self._init_lr < self.min_lr:
+                raise ValueError("The initial learning rate is smaller than the minimum allowed learning rate.")
+            self._initialized = True
+        self._count += 1
+        self._pre_lr = algorithm.learning_rate.get_value()
+        algorithm.learning_rate.set_value( np.cast[config.floatX](self.current_lr()))
+
+    def _scale_lr(self, scaled_lr):
+        if not self.exceeds:
+            if (self.v[-1] <= self.valid_obj_bound):
+                scaled_lr *= self.lr_scale
+                self._scaled = True
+        else:
+            if (self._v[-1] >= self._v[-2]) and (self.v[-1] >=
+                self.valid_obj_bound):
+                scaled_lr *= self.lr_scale
+                self._scaled = True
+        return scaled_lr
+
+    def current_lr(self):
+        scaled_lr = self._pre_lr
+        if not self._scaled:
+            scaled_lr = self._scale_lr(scaled_lr)
+        elif self.scale_every:
+            scaled_lr = self._scale_lr(scaled_lr)
+        return scaled_lr
+
 """
 TODO: implement Nesterov momentum. Easiest way to do it is via equivalence
 between regular momentum and Nesterov momentum described in this note from
@@ -346,10 +433,6 @@ Nesterov momentum:
 
 alternate formulation for Nesterov momentum:
 (6) v_t = mu * v_t-1 - lr * gradient_f(params_t-1)
-(7) params_t = params_t-1 + mu * v_t - lr * gradient_f(params_t-1)
-(8) params_t = params_t-1 + mu**2 * v_t-1 - (1+mu) * lr * gradient_f(params_t-1)
-
-So with Theano you can use (1) then either (2) or (7)/(8) to have both options.
 
 """
 
