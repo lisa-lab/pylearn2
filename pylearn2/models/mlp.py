@@ -1531,6 +1531,13 @@ class Tanh(Linear):
         return p
 
 
+class Sigmoid(Linear):
+    def fprop(self, state_below):
+        p = self._linear_part(state_below)
+        p = T.nnet.sigmoid(p)
+        return p
+
+
 class SpaceConverter(Layer):
 
     def __init__(self, layer_name, output_space):
