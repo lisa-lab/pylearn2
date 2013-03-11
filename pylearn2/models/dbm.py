@@ -196,18 +196,6 @@ class DBM(Model):
         assert rval.ndim == 1
         return rval
 
-    def setup_inference_procedure(self):
-        if not hasattr(self, 'inference_procedure') or \
-                self.inference_procedure is None:
-            self.inference_procedure = SuperWeightDoubling()
-            self.inference_procedure.set_dbm(self)
-
-
-    def mf(self, *args, **kwargs):
-        self.setup_inference_procedure()
-        return self.inference_procedure.mf(*args, **kwargs)
-
-
     def setup_rng(self):
         self.rng = np.random.RandomState([2012, 10, 17])
 
