@@ -142,6 +142,60 @@ class DBM(Model):
         assert rval.ndim == 1
         return rval
 
+    def mf(self, *args, **kwargs):
+        self.setup_inference_procedure()
+        return self.inference_procedure.mf(*args, **kwargs)
+
+    def expected_energy(self, V, mf_hidden):
+        """
+            V: a theano batch of visible unit observations
+                (must be SAMPLES, not mean field parameters:
+                    the random variables in the expectation are
+                    the hiddens only)
+
+            mf_hidden: a list, one element per hidden layer, of
+                      batches of variational parameters
+                (must be VARIATIONAL PARAMETERS, not samples.
+                Layers with analytically determined variance parameters
+                for their mean field parameters will use those to integrate
+                over the variational distribution, so it's not generally
+                the same thing as measuring the energy at a point.)
+
+            returns: a vector containing the expected energy of
+                    each example under the corresponding variational
+                    distribution.
+        """
+
+        self.visible_layer.space.validate(V)
+        assert isinstance(mf_hidden, (list, tuple))
+        assert len(mf_hidden) == len(self.hidden_layers)
+
+        terms = []
+
+        terms.append(self.visible_layer.expected_energy_term(state = V, average=False))
+
+        assert len(self.hidden_layers) > 0 # this could be relaxed, but current code assumes it
+
+        terms.append(self.hidden_layers[0].expected_energy_term(
+            state_below=self.visible_layer.upward_state(V), average_below=False,
+            state=mf_hidden[0], average=True))
+
+        for i in xrange(1, len(self.hidden_layers)):
+            layer = self.hidden_layers[i]
+            layer_below = self.hidden_layers[i-1]
+            mf_below = mf_hidden[i-1]
+            mf_below = layer_below.upward_state(mf_below)
+            mf = mf_hidden[i]
+            terms.append(layer.expected_energy_term(state_below=mf_below, state=mf,
+                average_below=True, average=True))
+
+        assert len(terms) > 0
+
+        rval = reduce(lambda x, y: x + y, terms)
+
+        assert rval.ndim == 1
+        return rval
+
     def setup_rng(self):
         self.rng = np.random.RandomState([2012, 10, 17])
 
