@@ -1,0 +1,26 @@
+This directory contains examples of how to use pylearn2 DBMs
+
+1. How to train a single layer DBM, aka an RBM
+
+    There is a module called pylearn2.models.rbm, but it is
+    somewhat redundant with pylearn2.models.dbm since an RBM
+    is just a single layer DBM. In the future, maybe the RBM
+    class should be rewritten as a single layer subclass of
+    the DBM.
+
+    For now, you can train an RBM model using either the RBM
+    class or the DBM class. This directory contains an example
+    of how to do the latter. Just run
+
+    train.py rbm.yaml
+
+    See rbm.yaml for further comments.
+
+    After you have trained this, you should be able to run some of
+    the scripts in pylearn2/scripts/dbm on it. For example, the
+    show_negative_chains.py script will let you see the last state
+    of the fantasy particles used for the PCD training.
+
+    Some of the more generic scripts in pylearn2/scripts also apply.
+    For example, show_weights.py will let you see the learned filters.
+
