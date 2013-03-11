@@ -19,6 +19,7 @@ from theano import tensor as T
 from pylearn2.costs.cost import Cost
 from pylearn2.models import dbm
 from pylearn2.models.dbm import flatten
+from pylearn2.utils import safe_izip
 from pylearn2.utils import safe_zip
 
 class PCD(Cost):
@@ -514,9 +515,43 @@ class TorontoSparsity(Cost):
 
         return grads, OrderedDict()
 
+class WeightDecay(Cost):
+    """
+    coeff * sum(sqr(weights))
 
+    for each set of weights.
 
+    """
 
+    def __init__(self, coeffs):
+        """
+        coeffs: a list, one element per layer, specifying the coefficient
+                to put on the L1 activation cost for each layer.
+                Each element may in turn be a list, ie, for CompositeLayers.
+        """
+        self.__dict__.update(locals())
+        del self.self
 
+    def __call__(self, model, X, Y = None, ** kwargs):
+
+        layer_costs = [ layer.get_weight_decay(coeff)
+            for layer, coeff in safe_izip(model.hidden_layers, self.coeffs) ]
+
+        assert T.scalar() != 0. # make sure theano semantics do what I want
+        layer_costs = [ cost for cost in layer_costs if cost != 0.]
+
+        if len(layer_costs) == 0:
+            rval =  T.as_tensor_variable(0.)
+            rval.name = '0_weight_decay'
+            return rval
+        else:
+            total_cost = reduce(lambda x, y: x + y, layer_costs)
+        total_cost.name = 'DBM_WeightDecay'
+
+        assert total_cost.ndim == 0
+
+        total_cost.name = 'weight_decay'
+
+        return total_cost
 
 
