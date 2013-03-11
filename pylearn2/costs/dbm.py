@@ -406,7 +406,7 @@ class MF_L2_ActCost(Cost):
         deviate from desired target values.
     """
 
-    def __init__(self, targets, coeffs, supervised):
+    def __init__(self, targets, coeffs, supervised=False):
         self.__dict__.update(locals())
         del self.self
 
@@ -449,7 +449,7 @@ class TorontoSparsity(Cost):
     TODO: add link to Ruslan Salakhutdinov's paper that this is based on
     """
 
-    def __init__(self, targets, coeffs, supervised):
+    def __init__(self, targets, coeffs, supervised=False):
         self.__dict__.update(locals())
         del self.self
 
