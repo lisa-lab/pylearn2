@@ -888,7 +888,7 @@ class LeCunLCNChannels(ExamplewisePreprocessor):
         """
         X: data with axis [b, 0, 1, c]
         """
-        for i in xrange(3):
+        for i in xrange(x.shape[3]):
             x[:, :, :, i] = lecun_lcn(x[:, :, :, i], self._img_shape,
                                                     self._kernel_size,
                                                     self._threshold)
