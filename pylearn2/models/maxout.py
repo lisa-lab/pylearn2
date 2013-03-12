@@ -28,7 +28,6 @@ from collections import OrderedDict
 import numpy as np
 import warnings
 
-from theano import function
 from theano.gof.op import get_debug_values
 from theano import tensor as T
 
@@ -42,11 +41,13 @@ from pylearn2.utils import sharedX
 
 class Maxout(Layer):
     """
-        A hidden layer that uses the softmax function to do
-        max pooling over groups of units.
-        When the pooling size is 1, this reduces to a standard
-        sigmoidal MLP layer.
-        """
+    A hidden layer that does max pooling over groups of linear
+    units. If you use this code in a research project, please
+    cite
+
+    "Maxout Networks" Ian J. Goodfellow, David Warde-Farley,
+    Mehdi Mirza, Aaron Courville, and Yoshua Bengio. arXiv 2013
+    """
 
     def __init__(self,
                  layer_name,
@@ -67,12 +68,43 @@ class Maxout(Layer):
                  min_zero = False
         ):
         """
-
+            layer_name: A name for this layer that will be prepended to
+                        monitoring channels related to this layer.
+            num_units: The number of maxout units to use in this layer.
+            num_pieces: The number of linear pieces to use in each maxout
+                        unit.
+            pool_stride: The distance between the start of each max pooling
+                        region. Defaults to num_pieces, which makes the
+                        pooling regions disjoint. If set to a smaller number,
+                        can do overlapping pools.
+            randomize_pools: Does max pooling over randomized subsets of
+                        the linear responses, rather than over sequential
+                        subsets.
+            irange: if specified, initializes each weight randomly in
+                U(-irange, irange)
+            sparse_init: if specified, irange must not be specified.
+                        This is an integer specifying how many weights to make
+                        non-zero. All non-zero weights will be initialized
+                        randomly in N(0, sparse_stdev^2)
             include_prob: probability of including a weight element in the set
-            of weights initialized to U(-irange, irange). If not included
-            it is initialized to 0.
-
-            """
+               of weights initialized to U(-irange, irange). If not included
+               a weight is initialized to 0. This defaults to 1.
+            init_bias: All biases are initialized to this number
+            W_lr_scale: The learning rate on the weights for this layer is
+                multiplied by this scaling factor
+            b_lr_scale: The learning rate on the biases for this layer is
+                multiplied by this scaling factor
+            max_col_norm: The norm of each column of the weight matrix is
+                constrained to have at most this norm. If unspecified, no
+                constraint. Constraint is enforced by re-projection (if
+                necessary) at the end of each update.
+            max_row_norm: Like max_col_norm, but applied to the rows.
+            mask_weights: A binary matrix multiplied by the weights after each
+                         update, allowing you to restrict their connectivity.
+            min_zero: If true, includes a zero in the set we take a max over
+                    for each maxout unit. This is equivalent to pooling over
+                    rectified linear units.
+        """
 
         detector_layer_dim = num_units * num_pieces
         pool_size = num_pieces
@@ -441,7 +473,12 @@ class Maxout(Layer):
 class MaxoutConvC01B(Layer):
     """
     Maxout units arranged in a convolutional layer, with
-    spatial max pooling on top of the maxout.
+    spatial max pooling on top of the maxout. If you use this
+    code in a research project, please cite
+
+    "Maxout Networks" Ian J. Goodfellow, David Warde-Farley,
+    Mehdi Mirza, Aaron Courville, and Yoshua Bengio. arXiv 2013
+
 
     This uses the C01B ("channels", topological axis 0,
     topological axis 1, "batch") format of tensors for input
@@ -473,12 +510,37 @@ class MaxoutConvC01B(Layer):
                  detector_normalization = None,
                  output_normalization = None):
         """
+            num_channels: The number of output channels the layer should have.
+                          Note that it must internally compute num_channels * num_pieces
+                          convolution channels.
+            num_pieces:   The number of linear pieces used to make each maxout unit.
+            kernel_shape: The shape of the convolution kernel.
+            pool_shape:   The shape of the spatial max pooling. A two-tuple of ints.
+                          This is redundant as cuda-convnet requires the pool shape to
+                          be square.
+            pool_stride:  The stride of the spatial max pooling. Also must be square.
+            layer_name: A name for this layer that will be prepended to
+                        monitoring channels related to this layer.
+            irange: if specified, initializes each weight randomly in
+                U(-irange, irange)
+            init_bias: All biases are initialized to this number
+            W_lr_scale: The learning rate on the weights for this layer is
+                multiplied by this scaling factor
+            b_lr_scale: The learning rate on the biases for this layer is
+                multiplied by this scaling factor
+            pad: The amount of zero-padding to implicitly add to the boundary of the
+                image when computing the convolution. Useful for making sure pixels
+                at the edge still get to influence multiple hidden units.
             fix_pool_shape: If True, will modify self.pool_shape to avoid having
-            pool shape bigger than the entire detector layer.
-            If you have this on, you should probably also have
-            fix_pool_stride on, since the pool shape might shrink
-            smaller than the stride, even if the stride was initially
-            valid.
+                pool shape bigger than the entire detector layer.
+                If you have this on, you should probably also have
+                fix_pool_stride on, since the pool shape might shrink
+                smaller than the stride, even if the stride was initially
+                valid.
+                The "fix" parameters are useful for working with a hyperparameter
+                optimization package, which might often propose sets of hyperparameters
+                that are not feasible, but can easily be projected back into the feasible
+                set.
             fix_kernel_shape: if True, will modify self.kernel_shape to avoid
             having the kernel shape bigger than the implicitly
             zero padded input layer
@@ -489,6 +551,15 @@ class MaxoutConvC01B(Layer):
                         for details. The default is to prefer high speed.
                         Note that changing this setting may change the value of computed
                         results slightly due to different rounding error.
+            tied_b: If true, all biases in the same channel are constrained to be the same
+                    as each other. Otherwise, each bias at each location is learned independently.
+            max_kernel_norm: If specifed, each kernel is constrained to have at most this norm.
+            input_normalization, detector_normalization, output_normalization:
+                if specified, should be a callable object. the state of the network is optionally
+                replaced with normalization(state) at each of the 3 points in processing:
+                    input: the input the layer receives can be normalized right away
+                    detector: the maxout units can be normalized prior to the spatial pooling
+                    output: the output of the layer, after sptial pooling, can be normalized as well
         """
 
         detector_channels = num_channels * num_pieces
