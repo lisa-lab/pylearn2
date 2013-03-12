@@ -12,7 +12,8 @@ from theano import config
 from theano import function
 import theano.tensor as T
 
-from pylearn2.expr.normalize import CrossChannelNormalization
+from pylearn2.expr.normalize import (CrossChannelNormalization,
+                                     CrossChannelNormalizationBC01)
 
 def ground_truth_normalizer(c01b, k, n, alpha, beta):
     out = np.zeros(c01b.shape)
@@ -58,11 +59,13 @@ def basic_test():
     # use a big value of alpha so mistakes involving alpha show up strong
     alpha = 1.5
     beta = 0.75
+    
+    # Perform test for C01B
 
     rng = np.random.RandomState([2013,2])
 
     c01b = rng.randn(*shape).astype(config.floatX)
-
+    
     normalizer = CrossChannelNormalization(k=k, n=n, alpha=alpha, beta=beta)
     warnings.warn("TODO: add test for the CudaConvnet version.")
 
@@ -81,10 +84,39 @@ def basic_test():
     max_err = err.max()
 
     if not np.allclose(out, ground_out):
+        print 'C01B test failed'
         print 'error range: ',(err.min(), err.max())
         print 'output: '
         print out
         print 'expected output: '
         print ground_out
         assert False
+        
+    # Perform test for BC01
+    
+    bc01 = np.transpose(c01b, [3,0,1,2])
+    
+    normalizerBC01 = CrossChannelNormalizationBC01(k=k, n=n, alpha=alpha, beta=beta)
+    
+    X = T.TensorType(dtype=config.floatX, broadcastable=tuple([False]*4))()
 
+    out = normalizerBC01(X)
+
+    out = function([X], out)(bc01)
+
+    ground_out_BC01 = np.transpose(ground_out, [3,0,1,2])
+
+    assert out.shape == ground_out_BC01.shape
+
+    diff = out - ground_out_BC01
+    err = np.abs(diff)
+    max_err = err.max()
+
+    if not np.allclose(out, ground_out_BC01):
+        print 'BC01 test failed'
+        print 'error range: ',(err.min(), err.max())
+        print 'output: '
+        print out
+        print 'expected output: '
+        print ground_out
+        assert False
