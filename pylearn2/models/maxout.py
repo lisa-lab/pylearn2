@@ -279,16 +279,8 @@ class Maxout(Layer):
         if not isinstance(self.input_space, Conv2DSpace):
             raise NotImplementedError()
 
-        W ,= self.transformer.get_params()
-
-        W = W.T
-
-        W = W.reshape((self.detector_layer_dim, self.input_space.shape[0],
-                       self.input_space.shape[1], self.input_space.num_channels))
-
-        W = Conv2DSpace.convert(W, self.input_space.axes, ('b', 0, 1, 'c'))
-
-        return function([], W)()
+        # There was an implementation of this, but it was broken
+        raise NotImplementedError()
 
     def get_monitoring_channels(self):
 
