@@ -1466,6 +1466,26 @@ class Linear(Layer):
                             ('col_norms_max'  , col_norms.max()),
                             ])
 
+    def get_monitoring_channels_from_state(self, state, target=None):
+        rval =  OrderedDict()
+
+        mx = state.max(axis=0)
+        mean = state.mean(axis=0)
+        mn = state.min(axis=0)
+
+        rval['max_x_max_u'] = mx.max()
+        rval['max_x_mean_u'] = mx.mean()
+        rval['max_x_min_u'] = mx.min()
+
+        rval['mean_x_max_u'] = mean.max()
+        rval['mean_x_mean_u'] = mean.mean()
+        rval['mean_x_min_u'] = mean.min()
+
+        rval['min_x_max_u'] = mn.max()
+        rval['min_x_mean_u'] = mn.mean()
+        rval['min_x_min_u'] = mn.min()
+
+        return rval
 
     def _linear_part(self, state_below):
         # TODO: Refactor More Better(tm)
@@ -1503,26 +1523,6 @@ class Linear(Layer):
     def cost(self, Y, Y_hat):
 
         return T.sqr(Y - Y_hat).sum(axis=1).mean()
-
-    def get_monitoring_channels_from_state(self, state, target=None):
-
-        mx = state.max(axis=1)
-
-        rval =  OrderedDict([
-                ('mean_max_class' , mx.mean()),
-                ('max_max_class' , mx.max()),
-                ('min_max_class' , mx.min())
-        ])
-
-        if target is not None:
-            y_hat = T.argmax(state, axis=1)
-            y = T.argmax(target, axis=1)
-            misclass = T.neq(y, y_hat).mean()
-            misclass = T.cast(misclass, config.floatX)
-            rval['misclass'] = misclass
-
-        return rval
-
 
 class Tanh(Linear):
     """
