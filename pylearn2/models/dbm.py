@@ -822,6 +822,27 @@ class HiddenLayer(Layer):
     def get_l2_act_cost(self, state, target, coeff):
         raise NotImplementedError(str(type(self))+" does not implement get_l2_act_cost")
 
+def init_sigmoid_bias_from_marginals(dataset, use_y = False):
+    if use_y:
+        X = dataset.y
+    else:
+        X = dataset.get_design_matrix()
+    if not (X.max() == 1):
+        raise ValueError("Expected design matrix to consist entirely "
+                "of 0s and 1s, but maximum value is "+str(X.max()))
+    assert X.min() == 0.
+    # removed this check so we can initialize the marginals
+    # with a dataset of bernoulli params
+    # assert not np.any( (X > 0.) * (X < 1.) )
+
+    mean = X.mean(axis=0)
+
+    mean = np.clip(mean, 1e-7, 1-1e-7)
+
+    init_bias = inverse_sigmoid_numpy(mean)
+
+    return init_bias
+
 class BinaryVector(VisibleLayer):
     """
     A DBM visible layer consisting of binary random variables living
@@ -852,20 +873,7 @@ class BinaryVector(VisibleLayer):
         if bias_from_marginals is None:
             init_bias = np.zeros((nvis,))
         else:
-            X = bias_from_marginals.get_design_matrix()
-            if not (X.max() == 1):
-                raise ValueError("Expected design matrix to consist entirely "
-                        "of 0s and 1s, but maximum value is "+str(X.max()))
-            assert X.min() == 0.
-            # removed this check so we can initialize the marginals
-            # with a dataset of bernoulli params
-            # assert not np.any( (X > 0.) * (X < 1.) )
-
-            mean = X.mean(axis=0)
-
-            mean = np.clip(mean, 1e-7, 1-1e-7)
-
-            init_bias = inverse_sigmoid_numpy(mean)
+            init_bias = init_sigmoid_bias_from_marginals(bias_from_marginals)
 
         self.bias = sharedX(init_bias, 'visible_bias')
 
