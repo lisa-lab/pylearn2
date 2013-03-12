@@ -1832,7 +1832,7 @@ class ConvRectifiedLinear(Layer):
         d = z * (z > 0.) + self.left_slope * z * (z < 0.)
 
         self.detector_space.validate(d)
-        
+
         if not hasattr(self, 'detector_normalization'):
             self.detector_normalization = None
 
@@ -1850,7 +1850,7 @@ class ConvRectifiedLinear(Layer):
                     image_shape=self.detector_space.shape)
 
         self.output_space.validate(p)
-        
+
         if not hasattr(self, 'output_normalization'):
             self.output_normalization = None
 
@@ -2030,7 +2030,7 @@ def mean_pool(bc01, pool_shape, pool_stride, image_shape):
         name = 'anon_bc01'
     bc01 = T.set_subtensor(wide_infinity[:,:, 0:r, 0:c], bc01)
     bc01.name = 'infinite_padded_' + name
-    
+
     # Create a 'mask' used to keep count of the number of elements summed for each position
     wide_infinity_count = T.alloc(0, bc01.shape[0], bc01.shape[1], required_r, required_c)
     bc01_count = T.set_subtensor(wide_infinity_count[:,:, 0:r, 0:c], 1)
@@ -2049,7 +2049,7 @@ def mean_pool(bc01, pool_shape, pool_stride, image_shape):
                 mx = mx + cur
                 count = count + cur_count
                 mx.name = 'mean_pool_mx_'+bc01.name+'_'+str(row_within_pool)+'_'+str(col_within_pool)
-                
+
     mx /= count
     mx.name = 'mean_pool('+name+')'
 
