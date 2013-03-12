@@ -1526,25 +1526,25 @@ class Linear(Layer):
 
 class Tanh(Linear):
     """
-        Implementation of the tanh nonlinearity for MLP. Class methods are inherited
-        from Linear Layer class.
+    Implementation of the tanh nonlinearity for MLP.
     """
+
     def fprop(self, state_below):
         p = self._linear_part(state_below)
         p = T.tanh(p)
         return p
 
+    def cost(self, *args, **kwargs):
+        raise NotImplementedError()
+
 
 class Sigmoid(Linear):
     """
-        Implementation of the sigmoid nonlinearity for MLP. Class methods are inherited
-        from Linear Layer class.
+    Implementation of the sigmoid nonlinearity for MLP.
     """
 
     def fprop(self, state_below):
         p = self._linear_part(state_below)
-        #Might be more efficient to use 2*tanh(p)-1
-        #instead of T.nnet.sigmoid here
         p = T.nnet.sigmoid(p)
         return p
 
