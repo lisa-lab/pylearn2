@@ -168,7 +168,7 @@ def test_sgd_sup():
     for i in xrange(m):
         Y[i,idx[i]] = 1
 
-    # including a monitoring datasets lets us test that
+    # Including a monitoring dataset lets us test that
     # the monitor works with supervised data
     monitoring_dataset = DenseDesignMatrix(X=X, y=Y)
 
@@ -212,8 +212,8 @@ def test_sgd_unsup():
     X = rng.randn(m, dim)
 
 
-    # including a monitoring datasets lets us test that
-    # the monitor works with supervised data
+    # Including a monitoring dataset lets us test that
+    # the monitor works with unsupervised data
     monitoring_dataset = DenseDesignMatrix(X=X)
 
     model = SoftmaxModel(dim)
@@ -237,6 +237,18 @@ def test_sgd_unsup():
 
     train.main_loop()
 
+def get_topological_dataset(rng, rows, cols, channels, m):
+    X = rng.randn(m, rows, cols, channels)
+
+    dim = rows * cols * channels
+
+    idx = rng.randint(0, dim, (m,))
+    Y = np.zeros((m,dim))
+    for i in xrange(m):
+        Y[i,idx[i]] = 1
+
+    return DenseDesignMatrix(topo_view=X, y=Y)
+
 def test_sgd_topo():
 
     # tests that we can run the sgd algorithm
@@ -252,26 +264,12 @@ def test_sgd_topo():
 
     rng = np.random.RandomState([25,9,2012])
 
-    X = rng.randn(m, rows, cols, channels)
-
-    idx = rng.randint(0, dim, (m,))
-    Y = np.zeros((m,dim))
-    for i in xrange(m):
-        Y[i,idx[i]] = 1
-
-    dataset = DenseDesignMatrix(topo_view=X, y=Y)
-
-    m = 15
-    X = rng.randn(m, rows, cols, channels)
-
-    idx = rng.randint(0, dim, (m,))
-    Y = np.zeros((m,dim))
-    for i in xrange(m):
-        Y[i,idx[i]] = 1
+    dataset = get_topological_dataset(rng, rows, cols, channels, m)
 
     # including a monitoring datasets lets us test that
     # the monitor works with supervised data
-    monitoring_dataset = DenseDesignMatrix(topo_view=X, y=Y)
+    m = 15
+    monitoring_dataset = get_topological_dataset(rng, rows, cols, channels, m)
 
     model = TopoSoftmaxModel(rows, cols, channels)
 
