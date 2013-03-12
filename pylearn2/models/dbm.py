@@ -873,7 +873,7 @@ class BinaryVector(VisibleLayer):
         if bias_from_marginals is None:
             init_bias = np.zeros((nvis,))
         else:
-            init_bias = init_bias_from_marginals(bias_from_marginals)
+            init_bias = init_sigmoid_bias_from_marginals(bias_from_marginals)
 
         self.bias = sharedX(init_bias, 'visible_bias')
 
