@@ -1,5 +1,17 @@
+"""
+Very simple and basic mathematical expressions used often throughout the library.
+"""
+__authors__ = "Ian Goodfellow and Razvan Pascanu"
+__copyright__ = "Copyright 2013, Universite de Montreal"
+__credits__ = ["Ian Goodfellow and Razvan Pascanu"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
+__email__ = "goodfeli@iro"
+
 import numpy as np
 import theano.tensor as T
+
+from pylearn2.base import Block
 from pylearn2.utils import as_floatX, constantX
 
 def numpy_norms(W):
@@ -160,4 +172,12 @@ def inner_product(xs, ys=None):
 def is_binary(x):
     return np.all( (x == 0) + (x == 1))
 
+class Identity(Block):
+    """
+    A Block that computes the identity transformation. Mostly useful as a
+    placeholder.
+    """
+
+    def __call__(self, inputs):
+        return inputs
 
