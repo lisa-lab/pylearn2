@@ -136,6 +136,6 @@ class CIFAR100(dense_design_matrix.DenseDesignMatrix):
         return rval
 
     def get_test_set(self):
-        return CIFAR10(which_set='test', center=self.center, rescale=self.rescale, gcn=self.gcn,
+        return CIFAR100(which_set='test', center=self.center, rescale=self.rescale, gcn=self.gcn,
                 one_hot=self.one_hot, toronto_prepro=self.toronto_prepro, axes=self.axes)
 
