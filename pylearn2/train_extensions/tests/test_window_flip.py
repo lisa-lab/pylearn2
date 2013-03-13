@@ -6,7 +6,7 @@ from pylearn2.datasets.dense_design_matrix import (
     DenseDesignMatrix,
     DefaultViewConverter
 )
-from pylearn2.utils.testing import assert_equal
+from pylearn2.utils.testing import assert_equal, assert_contains, assert_
 
 class DummyDataset(DenseDesignMatrix):
     def __init__(self):
@@ -30,23 +30,23 @@ def test_window_flip_coverage():
         for i in xrange(3):
             for j in xrange(3):
                 window = topo[:, i:i + 3, j:j + 3, b]
-                assert_equal(window.shape[1:], (3, 3))
+                assert_equal((3, 3), window.shape[1:])
                 ref_win[b].add(_hash_array(window))
                 ref_win[b].add(_hash_array(window[:, :, ::-1]))
     actual_win = [set() for _ in xrange(4)]
     wf = WindowAndFlipC01B(window_shape=(3, 3))
     wf.setup(None, ddata, None)
     curr_topo = ddata.get_topological_view()
-    assert_equal(curr_topo.shape, (2, 3, 3, 4))
+    assert_equal((2, 3, 3, 4), curr_topo.shape)
     for b in xrange(topo.shape[-1]):
         hashed = _hash_array(curr_topo[..., b])
-        assert hashed in ref_win[b]
+        assert_contains(ref_win[b], hashed)
         actual_win[b].add(hashed)
     while not all(len(a) == len(b) for a, b in zip(ref_win, actual_win)):
         prev_topo = curr_topo.copy()
         wf.on_monitor(None, ddata, None)
         curr_topo = ddata.get_topological_view()
-        assert not (prev_topo == curr_topo).all()
+        assert_(not (prev_topo == curr_topo).all())
         for b in xrange(topo.shape[-1]):
             hashed = _hash_array(curr_topo[..., b])
             assert hashed in ref_win[b]
