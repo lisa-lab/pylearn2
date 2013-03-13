@@ -26,31 +26,65 @@ class WindowAndFlipC01B(TrainExtension):
     # for all other instances.
     axes = ('c', 0, 1, 'b')
 
-    def __init__(self, window_shape, other_datasets=None, rng=(2013, 02, 20)):
+    def __init__(self, window_shape, randomize = None, randomize_once = None,
+            center = None, rng=(2013, 02, 20)):
+        """
+        randomize: if specified, a list of Datasets to randomly window and flip
+                at each epoch
+        randomize_once: if specified, a list of Dataasets to randomly window and
+            flip once at the start of training
+        center: if specified, a list of Datasets to centrally window once at the
+            start of training
+        """
         self._window_shape = tuple(window_shape)
         self._original = None
-        self._other_datasets = (other_datasets
-                                if other_datasets is not None else [])
+
+        self._randomize = (randomize if randomize else [])
+        self._randomize_once = (randomize_once if randomize_once else [])
+        self._center = (center if center else [])
+
         if not hasattr(rng, 'random_integers'):
             self._rng = numpy.random.RandomState(rng)
         else:
             self._rng = rng
 
     def setup(self, model, dataset, algorithm):
+        """
+        Note: dataset argument is ignored.
+        """
+        dataset = None
+
         # Central windowing of auxiliary datasets (e.g. validation sets)
         preprocessor = CentralWindow(self._window_shape)
-        for data in self._other_datasets:
+        for data in self._center:
             if not (tuple(data.view_converter.axes) == self.axes):
                 raise ValueError("Expected axes: %s Actual axes: %s" % (str(data.view_converter.axes), str(self.axes)))
             preprocessor.apply(data)
 
-        # Do the initial random windowing of the training set.
-        self._original = dataset.get_topological_view()
-        self.on_monitor(model, dataset, algorithm)
+        # Do the initial random windowing
+        randomize_now = self._randomize + self._randomize_once
+        self._original = dict((dataset, dataset.get_topological_view())
+                for dataset in randomize_now)
+        self.randomize_datasets(randomize_now)
+
+    def randomize_datasets(self, datasets):
+        """
+        Applies random translations and flips to the selected datasets.
+        """
+        for dataset in datasets:
+            assert tuple(dataset.view_converter.axes) == self.axes
+            arr = random_window_and_flip_c01b(self._original[dataset],
+                                              self._window_shape,
+                                              rng=self._rng)
+            dataset.set_topological_view(arr, axes=self.axes)
+
 
     def on_monitor(self, model, dataset, algorithm):
-        assert tuple(dataset.view_converter.axes) == self.axes
-        arr = random_window_and_flip_c01b(self._original,
-                                          self._window_shape,
-                                          rng=self._rng)
-        dataset.set_topological_view(arr, axes=self.axes)
+        """
+        Note: all arguments are ignored.
+        """
+        model = None
+        dataset = None
+        algorithm = None
+
+        self.randomize_datasets(self._randomize)
