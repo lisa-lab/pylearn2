@@ -15,7 +15,11 @@ from pylearn2.sandbox.cuda_convnet.shared_code import this_dir
 
 def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape = None,  start=0):
     assert pool_shape[0] == pool_shape[1]
-    assert pool_stride[0] == pool_stride[1]
+    assert pool_shape[0] > 0
+    assert pool_stride[0] > 0
+    assert pool_stride[0] <= pool_shape[0]
+    if pool_stride[0] != pool_stride[1]:
+        raise ValueError("pool strides must match, but got "+str(pool_stride))
     if image_shape is not None:
         warnings.warn("image_shape argument isn't needed anymore, quit passing it.")
     op = MaxPool(pool_shape[0], pool_stride[0], start)

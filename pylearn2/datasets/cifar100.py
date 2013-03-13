@@ -5,7 +5,9 @@ from pylearn2.utils import serial
 
 class CIFAR100(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, which_set, center = False,
-            gcn = None):
+            gcn = None, toronto_prepro = False,
+            axes = ('b', 0, 1, 'c'),
+            start = None, stop = None, one_hot = False):
 
         assert which_set in ['train','test']
 
@@ -17,13 +19,29 @@ class CIFAR100(dense_design_matrix.DenseDesignMatrix):
         assert X.max() == 255.
         assert X.min() == 0.
 
-        X = N.cast['float32'](X)
-        y = None #not implemented yet
+        X = np.cast['float32'](X)
+        y = np.asarray(obj['fine_labels'])
 
         self.center = center
 
+        self.one_hot = one_hot
+        if one_hot:
+            one_hot = np.zeros((y.shape[0],100),dtype='float32')
+            for i in xrange(y.shape[0]):
+                one_hot[i,y[i]] = 1.
+            y = one_hot
+
         if center:
             X -= 127.5
+
+        if toronto_prepro:
+            assert not center
+            assert not gcn
+            if which_set == 'test':
+                raise NotImplementedError("Need to subtract the mean of the *training* set.")
+            X = X / 255.
+            X = X - X.mean(axis=0)
+        self.toronto_prepro = toronto_prepro
 
         self.gcn = gcn
         if gcn is not None:
@@ -32,16 +50,27 @@ class CIFAR100(dense_design_matrix.DenseDesignMatrix):
             X = (X.T / np.sqrt(np.square(X).sum(axis=1))).T
             X *= gcn
 
-        view_converter = dense_design_matrix.DefaultViewConverter((32,32,3))
+        if start is not None:
+            # This needs to come after the prepro so that it doesn't change the pixel
+            # means computed above
+            assert start >= 0
+            assert stop > start
+            assert stop <= X.shape[0]
+            X = X[start:stop, :]
+            y = y[start:stop]
+            assert X.shape[0] == y.shape[0]
+
+        self.axes = axes
+        view_converter = dense_design_matrix.DefaultViewConverter((32,32,3), axes)
 
         super(CIFAR100,self).__init__(X = X, y =y, view_converter = view_converter)
 
         assert not N.any(N.isnan(self.X))
 
-        self.y_fine = N.asarray(obj['fine_labels'])
-        self.y_coarse = N.asarray(obj['coarse_labels'])
+        # need to support start, stop
+        # self.y_fine = N.asarray(obj['fine_labels'])
+        # self.y_coarse = N.asarray(obj['coarse_labels'])
 
-        self.y = self.y_fine
 
 
     def adjust_for_viewer(self, X):
@@ -105,3 +134,8 @@ class CIFAR100(dense_design_matrix.DenseDesignMatrix):
         rval = np.clip(rval,-1.,1.)
 
         return rval
+
+    def get_test_set(self):
+        return CIFAR100(which_set='test', center=self.center, rescale=self.rescale, gcn=self.gcn,
+                one_hot=self.one_hot, toronto_prepro=self.toronto_prepro, axes=self.axes)
+

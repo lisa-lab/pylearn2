@@ -2,7 +2,7 @@
 Functionality for preprocessing Datasets.
 """
 
-__authors__ = "Ian Goodfellow"
+__authors__ = "Ian Goodfellow, David Warde-Farley, Guillaume Desjardins, and Mehdi Mirza"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
@@ -20,9 +20,9 @@ from theano import function
 import theano.tensor as T
 
 from pylearn2.base import Block
-from pylearn2.utils.insert_along_axis import insert_columns
 from pylearn2.linear.conv2d import Conv2D
 from pylearn2.space import Conv2DSpace
+from pylearn2.utils.insert_along_axis import insert_columns
 from pylearn2.utils import sharedX
 
 class Preprocessor(object):
@@ -113,8 +113,8 @@ class Pipeline(Preprocessor):
         A Preprocessor that sequentially applies a list
         of other Preprocessors.
     """
-    def __init__(self):
-        self.items = []
+    def __init__(self, items=None):
+        self.items = items if items is not None else []
 
     def apply(self, dataset, can_fit=False):
         for item in self.items:
@@ -931,3 +931,39 @@ def gaussian_filter(kernel_shape):
             x[i,j] = gauss(i-mid, j-mid)
 
     return x / np.sum(x)
+
+class CentralWindow(Preprocessor):
+    """
+    Preprocesses an image dataset to contain only the central window.
+    """
+
+    def __init__(self, window_shape):
+
+        self.__dict__.update(locals())
+        del self.self
+
+    def apply(self, dataset, can_fit=False):
+
+        w_rows, w_cols = self.window_shape
+
+        arr = dataset.get_topological_view()
+
+        try:
+            axes = dataset.view_converter.axes
+        except AttributeError:
+            raise NotImplementedError("I don't know how to tell what the axes of this kind of dataset are.")
+
+        needs_transpose = not axes[1:3] == (0, 1)
+
+        if needs_transpose:
+            arr = np.transpose(arr, (axes.index('c'), axes.index(0), axes.index(1), axes.index('b')))
+
+        r_off = (arr.shape[1] - w_rows) // 2
+        c_off = (arr.shape[2] - w_cols) // 2
+        new_arr = arr[:, r_off:r_off + w_rows, c_off:c_off + w_cols, :]
+
+        if needs_transpose:
+            new_arr = np.transpose(new_arr, tuple(('c', 0, 1, 'b').index(axis) for axis in axes))
+
+        dataset.set_topological_view(new_arr, axes=axes)
+

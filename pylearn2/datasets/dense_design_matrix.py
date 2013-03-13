@@ -86,7 +86,7 @@ class DenseDesignMatrix(Dataset):
     def iterator(self, mode=None, batch_size=None, num_batches=None,
                  topo=None, targets=None, rng=None):
 
-        # TODO: Refactor, deduplicate with set_iteration_scheme
+        # TODO: Refactor
         if mode is None:
             if hasattr(self, '_iter_subset_class'):
                 mode = self._iter_subset_class
@@ -443,7 +443,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
     def iterator(self, mode=None, batch_size=None, num_batches=None,
                  topo=None, targets=None, rng=None):
 
-        # TODO: Refactor, deduplicate with set_iteration_scheme
+        # TODO: Refactor, deduplicate with DenseDesignMatrix.iterator
         if mode is None:
             if hasattr(self, '_iter_subset_class'):
                 mode = self._iter_subset_class
@@ -579,6 +579,11 @@ class DefaultViewConverter(object):
 
         return rval
 
+    def __setstate__(self, d):
+        # Patch old pickle files that don't have the axes attribute.
+        if 'axes' not in d:
+            d['axes'] = ['b', 0, 1, 'c']
+        self.__dict__.update(d)
 
 def from_dataset(dataset, num_examples):
     try:

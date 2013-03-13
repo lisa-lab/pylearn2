@@ -1,3 +1,15 @@
+"""
+This file contains a partial implementation of a DBM that only
+works with densely connected, binary units. It is still needed
+to support some other code but is basically deprecated and will
+hopefully get removed once someone has time to refactor the code
+that depends on it. You are almost certainly looking for
+pylearn2.models.dbm
+where you can get densely connected binary units by using
+BinaryVectorMaxPool and setting pool_size=1.
+"""
+
+
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2011, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]

@@ -142,6 +142,60 @@ class DBM(Model):
         assert rval.ndim == 1
         return rval
 
+    def mf(self, *args, **kwargs):
+        self.setup_inference_procedure()
+        return self.inference_procedure.mf(*args, **kwargs)
+
+    def expected_energy(self, V, mf_hidden):
+        """
+            V: a theano batch of visible unit observations
+                (must be SAMPLES, not mean field parameters:
+                    the random variables in the expectation are
+                    the hiddens only)
+
+            mf_hidden: a list, one element per hidden layer, of
+                      batches of variational parameters
+                (must be VARIATIONAL PARAMETERS, not samples.
+                Layers with analytically determined variance parameters
+                for their mean field parameters will use those to integrate
+                over the variational distribution, so it's not generally
+                the same thing as measuring the energy at a point.)
+
+            returns: a vector containing the expected energy of
+                    each example under the corresponding variational
+                    distribution.
+        """
+
+        self.visible_layer.space.validate(V)
+        assert isinstance(mf_hidden, (list, tuple))
+        assert len(mf_hidden) == len(self.hidden_layers)
+
+        terms = []
+
+        terms.append(self.visible_layer.expected_energy_term(state = V, average=False))
+
+        assert len(self.hidden_layers) > 0 # this could be relaxed, but current code assumes it
+
+        terms.append(self.hidden_layers[0].expected_energy_term(
+            state_below=self.visible_layer.upward_state(V), average_below=False,
+            state=mf_hidden[0], average=True))
+
+        for i in xrange(1, len(self.hidden_layers)):
+            layer = self.hidden_layers[i]
+            layer_below = self.hidden_layers[i-1]
+            mf_below = mf_hidden[i-1]
+            mf_below = layer_below.upward_state(mf_below)
+            mf = mf_hidden[i]
+            terms.append(layer.expected_energy_term(state_below=mf_below, state=mf,
+                average_below=True, average=True))
+
+        assert len(terms) > 0
+
+        rval = reduce(lambda x, y: x + y, terms)
+
+        assert rval.ndim == 1
+        return rval
+
     def setup_rng(self):
         self.rng = np.random.RandomState([2012, 10, 17])
 
@@ -768,6 +822,27 @@ class HiddenLayer(Layer):
     def get_l2_act_cost(self, state, target, coeff):
         raise NotImplementedError(str(type(self))+" does not implement get_l2_act_cost")
 
+def init_sigmoid_bias_from_marginals(dataset, use_y = False):
+    if use_y:
+        X = dataset.y
+    else:
+        X = dataset.get_design_matrix()
+    if not (X.max() == 1):
+        raise ValueError("Expected design matrix to consist entirely "
+                "of 0s and 1s, but maximum value is "+str(X.max()))
+    assert X.min() == 0.
+    # removed this check so we can initialize the marginals
+    # with a dataset of bernoulli params
+    # assert not np.any( (X > 0.) * (X < 1.) )
+
+    mean = X.mean(axis=0)
+
+    mean = np.clip(mean, 1e-7, 1-1e-7)
+
+    init_bias = inverse_sigmoid_numpy(mean)
+
+    return init_bias
+
 class BinaryVector(VisibleLayer):
     """
     A DBM visible layer consisting of binary random variables living
@@ -798,18 +873,7 @@ class BinaryVector(VisibleLayer):
         if bias_from_marginals is None:
             init_bias = np.zeros((nvis,))
         else:
-            X = bias_from_marginals.get_design_matrix()
-            assert X.max() == 1.
-            assert X.min() == 0.
-            # removed this check so we can initialize the marginals
-            # with a dataset of bernoulli params
-            # assert not np.any( (X > 0.) * (X < 1.) )
-
-            mean = X.mean(axis=0)
-
-            mean = np.clip(mean, 1e-7, 1-1e-7)
-
-            init_bias = inverse_sigmoid_numpy(mean)
+            init_bias = init_sigmoid_bias_from_marginals(bias_from_marginals)
 
         self.bias = sharedX(init_bias, 'visible_bias')
 
@@ -923,6 +987,7 @@ class BinaryVectorMaxPool(HiddenLayer):
             b_lr_scale = None,
             center = False,
             mask_weights = None,
+            max_col_norm = None,
             copies = 1):
         """
 
@@ -1030,6 +1095,15 @@ class BinaryVectorMaxPool(HiddenLayer):
             W ,= self.transformer.get_params()
             if W in updates:
                 updates[W] = updates[W] * self.mask
+
+        if self.max_col_norm is not None:
+            W, = self.transformer.get_params()
+            if W in updates:
+                updated_W = updates[W]
+                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
+                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
+                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
+
 
     def get_total_state_space(self):
         return CompositeSpace((self.output_space, self.h_space))
@@ -1292,8 +1366,8 @@ class BinaryVectorMaxPool(HiddenLayer):
             assert all([len(elem) == 2 for elem in [state, target, coeff]])
             if eps is None:
                 eps = [0., 0.]
-            if target[1] < target[0]:
-                warnings.warn("Do you really want to regularize the detector units to be sparser than the pooling units?")
+            if target[1] > target[0]:
+                warnings.warn("Do you really want to regularize the detector units to be more active than the pooling units?")
 
         for s, t, c, e in safe_zip(state, target, coeff, eps):
             assert all([isinstance(elem, float) or hasattr(elem, 'dtype') for elem in [t, c, e]])
@@ -1327,8 +1401,8 @@ class BinaryVectorMaxPool(HiddenLayer):
             coeff = [coeff]
         else:
             assert all([len(elem) == 2 for elem in [state, target, coeff]])
-            if target[1] < target[0]:
-                warnings.warn("Do you really want to regularize the detector units to be sparser than the pooling units?")
+            if target[1] > target[0]:
+                warnings.warn("Do you really want to regularize the detector units to be more active than the pooling units?")
 
         for s, t, c in safe_zip(state, target, coeff):
             assert all([isinstance(elem, float) or hasattr(elem, 'dtype') for elem in [t, c]])
@@ -1520,6 +1594,7 @@ class Softmax(HiddenLayer):
     def __init__(self, n_classes, layer_name, irange = None,
                  sparse_init = None, W_lr_scale = None,
                  b_lr_scale = None,
+                 max_col_norm = None,
                  copies = 1, center = False):
         """
             copies: We regard the layer as being replicated so that there
@@ -1543,6 +1618,15 @@ class Softmax(HiddenLayer):
         if self.center:
             b = self.b.get_value()
             self.offset = sharedX(np.exp(b) / np.exp(b).sum())
+
+    def censor_updates(self, updates):
+        if self.max_col_norm is not None:
+            W = self.W
+            if W in updates:
+                updated_W = updates[W]
+                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
+                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
+                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
     def get_lr_scalers(self):
 

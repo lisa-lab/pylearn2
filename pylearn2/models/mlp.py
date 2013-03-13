@@ -121,7 +121,8 @@ class MLP(Layer):
             dropout_scales = None,
             dropout_input_include_prob = None,
             dropout_input_scale = None,
-            nvis=None):
+            nvis=None,
+            seed=None):
         """
             layers: a list of MLP_Layers. The final layer will specify the
                     MLP's output space.
@@ -144,7 +145,10 @@ class MLP(Layer):
                 because the learning rate on the biases should
                 not be adjusted).
         """
+        if seed is None:
+            seed = [2013, 1, 4]
 
+        self.seed = seed
         self.setup_rng()
 
         assert isinstance(layers, list)
@@ -195,7 +199,7 @@ class MLP(Layer):
         self.dropout_scales = dropout_scales
 
     def setup_rng(self):
-        self.rng = np.random.RandomState([2013, 1, 4])
+        self.rng = np.random.RandomState(self.seed)
 
 
     def get_output_space(self):
@@ -587,6 +591,13 @@ class Softmax(Layer):
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         return coeff * T.sqr(self.W).sum()
 
+    def get_l1_weight_decay(self, coeff):
+        if isinstance(coeff, str):
+            coeff = float(coeff)
+        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
+        W = self.W
+        return coeff * abs(W).sum()
+
     def censor_updates(self, updates):
         if self.no_affine:
             return
@@ -617,7 +628,9 @@ class WeightDecay(Cost):
     def __init__(self, coeffs):
         """
         coeffs: a list, one element per layer, specifying the coefficient
-                to put on the L1 activation cost for each layer.
+                to multiply with the cost defined by the squared L2 norm of the weights
+                for each layer.
+
                 Each element may in turn be a list, ie, for CompositeLayers.
         """
         self.__dict__.update(locals())
@@ -645,6 +658,48 @@ class WeightDecay(Cost):
 
         return total_cost
 
+class L1WeightDecay(Cost):
+    """
+    coeff * sum(abs(weights))
+
+    for each set of weights.
+
+    """
+
+    def __init__(self, coeffs):
+        """
+        coeffs: a list, one element per layer, specifying the coefficient
+                to multiply with the cost defined by the L1 norm of the
+                weights(lasso) for each layer.
+
+                Each element may in turn be a list, ie, for CompositeLayers.
+        """
+        self.__dict__.update(locals())
+        del self.self
+
+    def __call__(self, model, X, Y = None, ** kwargs):
+
+        layer_costs = [ layer.get_l1_weight_decay(coeff)
+            for layer, coeff in safe_izip(model.layers, self.coeffs) ]
+
+        assert T.scalar() != 0. # make sure theano semantics do what I want
+        layer_costs = [ cost for cost in layer_costs if cost != 0.]
+
+        if len(layer_costs) == 0:
+            rval =  T.as_tensor_variable(0.)
+            rval.name = '0_l1_penalty'
+            return rval
+        else:
+            total_cost = reduce(lambda x, y: x + y, layer_costs)
+        total_cost.name = 'MLP_L1Penalty'
+
+        assert total_cost.ndim == 0
+
+        total_cost.name = 'l1_penalty'
+
+        return total_cost
+
+
 class SoftmaxPool(Layer):
     """
         A hidden layer that uses the softmax function to do
@@ -655,8 +710,8 @@ class SoftmaxPool(Layer):
 
     def __init__(self,
                  detector_layer_dim,
-                 pool_size,
                  layer_name,
+                 pool_size = 1,
                  irange = None,
                  sparse_init = None,
                  sparse_stdev = 1.,
@@ -665,6 +720,7 @@ class SoftmaxPool(Layer):
                  W_lr_scale = None,
                  b_lr_scale = None,
                  mask_weights = None,
+                 max_col_norm = None
         ):
         """
 
@@ -768,6 +824,14 @@ class SoftmaxPool(Layer):
             if W in updates:
                 updates[W] = updates[W] * self.mask
 
+        if self.max_col_norm is not None:
+            W ,= self.transformer.get_params()
+            if W in updates:
+                updated_W = updates[W]
+                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
+                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
+                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
+
     def get_params(self):
         assert self.b.name is not None
         W ,= self.transformer.get_params()
@@ -785,6 +849,13 @@ class SoftmaxPool(Layer):
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
+
+    def get_l1_weight_decay(self, coeff):
+        if isinstance(coeff, str):
+            coeff = float(coeff)
+        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
+        W ,= self.transformer.get_params()
+        return coeff * abs(W).sum()
 
     def get_weights(self):
         if self.requires_reformat:
@@ -1076,6 +1147,13 @@ class RectifiedLinear(Layer):
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
+    def get_l1_weight_decay(self, coeff):
+        if isinstance(coeff, str):
+            coeff = float(coeff)
+        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
+        W ,= self.transformer.get_params()
+        return coeff * abs(W).sum()
+
     def get_weights(self):
         if self.requires_reformat:
             # This is not really an unimplemented case.
@@ -1315,6 +1393,13 @@ class Linear(Layer):
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
+    def get_l1_weight_decay(self, coeff):
+        if isinstance(coeff, str):
+            coeff = float(coeff)
+        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
+        W ,= self.transformer.get_params()
+        return coeff * abs(W).sum()
+
     def get_weights(self):
         if self.requires_reformat:
             # This is not really an unimplemented case.
@@ -1381,6 +1466,26 @@ class Linear(Layer):
                             ('col_norms_max'  , col_norms.max()),
                             ])
 
+    def get_monitoring_channels_from_state(self, state, target=None):
+        rval =  OrderedDict()
+
+        mx = state.max(axis=0)
+        mean = state.mean(axis=0)
+        mn = state.min(axis=0)
+
+        rval['max_x_max_u'] = mx.max()
+        rval['max_x_mean_u'] = mx.mean()
+        rval['max_x_min_u'] = mx.min()
+
+        rval['mean_x_max_u'] = mean.max()
+        rval['mean_x_mean_u'] = mean.mean()
+        rval['mean_x_min_u'] = mean.min()
+
+        rval['min_x_max_u'] = mn.max()
+        rval['min_x_mean_u'] = mn.mean()
+        rval['min_x_min_u'] = mn.min()
+
+        return rval
 
     def _linear_part(self, state_below):
         # TODO: Refactor More Better(tm)
@@ -1405,56 +1510,105 @@ class Linear(Layer):
             z = self.transformer.lmul(state_below) + self.b
         if self.layer_name is not None:
             z.name = self.layer_name + '_z'
+        if self.copy_input:
+            z = T.concatenate((z, state_below), axis=1)
+        return z
 
 
     def fprop(self, state_below):
         # TODO: Refactor More Better(tm)
         p = self._linear_part(state_below)
-        if self.copy_input:
-            return T.concatenate((p, state_below), axis=1)
         return p
 
     def cost(self, Y, Y_hat):
 
         return T.sqr(Y - Y_hat).sum(axis=1).mean()
 
+class Tanh(Linear):
+    """
+    Implementation of the tanh nonlinearity for MLP.
+    """
+
+    def fprop(self, state_below):
+        p = self._linear_part(state_below)
+        p = T.tanh(p)
+        return p
+
+    def cost(self, *args, **kwargs):
+        raise NotImplementedError()
+
+
+class Sigmoid(Linear):
+    """
+    Implementation of the sigmoid nonlinearity for MLP.
+    """
+
+    def fprop(self, state_below):
+        p = self._linear_part(state_below)
+        p = T.nnet.sigmoid(p)
+        return p
+
+    def cost(self, Y, Y_hat):
+        """
+        mean across units, mean across batch of KL divergence
+        KL(P || Q) where P is defined by Y and Q is defined by Y_hat
+        Currently Y must be purely binary. If it's not, you'll still
+        get the right gradient, but the value in the monitoring channel
+        will be wrong.
+        Y_hat must be generated by fprop, i.e., it must be a symbolic
+        sigmoid.
+
+        p log p - p log q + (1-p) log (1-p) - (1-p) log (1-q)
+        For binary p, some terms drop out:
+        - p log q - (1-p) log (1-q)
+        - p log sigmoid(z) - (1-p) log sigmoid(-z)
+        p softplus(-z) + (1-p) softplus(z)
+        """
+
+        # Pull out the argument to the sigmoid
+        assert hasattr(Y_hat, 'owner')
+        owner = Y_hat.owner
+        assert owner is not None
+        op = owner.op
+
+        if not hasattr(op, 'scalar_op'):
+            raise ValueError("Expected Y_hat to be generated by an Elemwise op, got "+str(op)+" of type "+str(type(op)))
+        assert isinstance(op.scalar_op, T.nnet.sigm.ScalarSigmoid)
+        z ,= owner.inputs
+
+        term_1 = Y * T.nnet.softplus(-z)
+        term_2 = (1 - Y) * T.nnet.softplus(z)
+
+        total = term_1 + term_2
+
+        ave = total.mean()
+
+        return ave
+
     def get_monitoring_channels_from_state(self, state, target=None):
 
-        mx = state.max(axis=1)
-
-        rval =  OrderedDict([
-                ('mean_max_class' , mx.mean()),
-                ('max_max_class' , mx.max()),
-                ('min_max_class' , mx.min())
-        ])
+        rval = super(Sigmoid, self).get_monitoring_channels_from_state(state, target)
 
         if target is not None:
-            y_hat = T.argmax(state, axis=1)
-            y = T.argmax(target, axis=1)
-            misclass = T.neq(y, y_hat).mean()
-            misclass = T.cast(misclass, config.floatX)
-            rval['misclass'] = misclass
+            y_hat = state > 0.5
+            y = target > 0.5
+            wrong_bit = T.cast(T.neq(y, y_hat), state.dtype)
+            rval['01_loss'] = wrong_bit.mean()
+            rval['kl'] = self.cost(Y_hat=state, Y=target)
+
+            y = T.cast(y, state.dtype)
+            y_hat = T.cast(y_hat, state.dtype)
+            tp = (y * y_hat).sum()
+            fp = ((1-y) * y_hat).sum()
+            precision = tp / T.maximum(1., tp + fp)
+            recall = tp / T.maximum(1., y.sum())
+            rval['precision'] = precision
+            rval['recall'] = recall
+            rval['f1'] = 2. * precision * recall / T.maximum(1, precision + recall)
 
         return rval
 
 
-class Tanh(Linear):
-    def fprop(self, state_below):
-        p = self._linear_part(state_below)
-        p = T.tanh(p)
-        if self.copy_input:
-            return T.concatenate((p, state_below), axis=1)
-        return p
-        
-        
-class Sigmoid(Linear):
-    def fprop(self, state_below):
-        p = self._linear_part(state_below)
-        p = T.nnet.sigmoid(p)
-        if self.copy_input:
-            return T.concatenate((p, state_below), axis=1)
-        return p
-        
 
 
 class SpaceConverter(Layer):
@@ -1491,7 +1645,10 @@ class ConvRectifiedLinear(Layer):
                  W_lr_scale = None,
                  b_lr_scale = None,
                  left_slope = 0.0,
-                 max_kernel_norm = None):
+                 max_kernel_norm = None,
+                 pool_type = 'max',
+                 detector_normalization = None,
+                 output_normalization = None):
         """
 
             include_prob: probability of including a weight element in the set
@@ -1574,10 +1731,17 @@ class ConvRectifiedLinear(Layer):
                     "model because theano requires the batch size to be known at "
                     "graph construction time for convolution.")
 
+        assert self.pool_type in ['max', 'mean']
+
         dummy_detector = sharedX(self.detector_space.get_origin_batch(self.mlp.batch_size))
-        dummy_p = max_pool(bc01=dummy_detector, pool_shape=self.pool_shape,
-                pool_stride=self.pool_stride,
-                image_shape=self.detector_space.shape)
+        if self.pool_type == 'max':
+            dummy_p = max_pool(bc01=dummy_detector, pool_shape=self.pool_shape,
+                    pool_stride=self.pool_stride,
+                    image_shape=self.detector_space.shape)
+        elif self.pool_type == 'mean':
+            dummy_p = mean_pool(bc01=dummy_detector, pool_shape=self.pool_shape,
+                    pool_stride=self.pool_stride,
+                    image_shape=self.detector_space.shape)
         dummy_p = dummy_p.eval()
         self.output_space = Conv2DSpace(shape=[dummy_p.shape[2], dummy_p.shape[3]],
                 num_channels = self.output_channels, axes = ('b', 'c', 0, 1) )
@@ -1614,6 +1778,13 @@ class ConvRectifiedLinear(Layer):
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
+
+    def get_l1_weight_decay(self, coeff):
+        if isinstance(coeff, str):
+            coeff = float(coeff)
+        assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
+        W ,= self.transformer.get_params()
+        return coeff * abs(W).sum()
 
     def set_weights(self, weights):
         W, = self.transformer.get_params()
@@ -1662,11 +1833,29 @@ class ConvRectifiedLinear(Layer):
 
         self.detector_space.validate(d)
 
-        p = max_pool(bc01=d, pool_shape=self.pool_shape,
-                pool_stride=self.pool_stride,
-                image_shape=self.detector_space.shape)
+        if not hasattr(self, 'detector_normalization'):
+            self.detector_normalization = None
+
+        if self.detector_normalization:
+            d = self.detector_normalization(d)
+
+        assert self.pool_type in ['max', 'mean']
+        if self.pool_type == 'max':
+            p = max_pool(bc01=d, pool_shape=self.pool_shape,
+                    pool_stride=self.pool_stride,
+                    image_shape=self.detector_space.shape)
+        elif self.pool_type == 'mean':
+            p = mean_pool(bc01=d, pool_shape=self.pool_shape,
+                    pool_stride=self.pool_stride,
+                    image_shape=self.detector_space.shape)
 
         self.output_space.validate(p)
+
+        if not hasattr(self, 'output_normalization'):
+            self.output_normalization = None
+
+        if self.output_normalization:
+            p = self.output_normalization(p)
 
         return p
 
@@ -1801,3 +1990,71 @@ def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape):
 
     return mx
 
+def mean_pool(bc01, pool_shape, pool_stride, image_shape):
+    """
+    bc01: minibatch in format (batch size, channels, rows, cols)
+    pool_shape: shape of the pool region (rows, cols)
+    pool_stride: strides between pooling regions (row stride, col stride)
+    image_shape: avoid doing some of the arithmetic in theano
+    """
+    mx = None
+    r, c = image_shape
+    pr, pc = pool_shape
+    rs, cs = pool_stride
+
+    # Compute index in pooled space of last needed pool
+    # (needed = each input pixel must appear in at least one pool)
+    def last_pool(im_shp, p_shp, p_strd):
+        rval = int(np.ceil(float(im_shp - p_shp) / p_strd))
+        assert p_strd * rval + p_shp >= im_shp
+        assert p_strd * (rval - 1) + p_shp < im_shp
+        return rval
+    # Compute starting row of the last pool
+    last_pool_r = last_pool(image_shape[0] ,pool_shape[0], pool_stride[0]) * pool_stride[0]
+    # Compute number of rows needed in image for all indexes to work out
+    required_r = last_pool_r + pr
+
+    last_pool_c = last_pool(image_shape[1] ,pool_shape[1], pool_stride[1]) * pool_stride[1]
+    required_c = last_pool_c + pc
+
+    for bc01v in get_debug_values(bc01):
+        assert not np.any(np.isinf(bc01v))
+        assert bc01v.shape[2] == image_shape[0]
+        assert bc01v.shape[3] == image_shape[1]
+
+    wide_infinity = T.alloc(-np.inf, bc01.shape[0], bc01.shape[1], required_r, required_c)
+
+
+    name = bc01.name
+    if name is None:
+        name = 'anon_bc01'
+    bc01 = T.set_subtensor(wide_infinity[:,:, 0:r, 0:c], bc01)
+    bc01.name = 'infinite_padded_' + name
+
+    # Create a 'mask' used to keep count of the number of elements summed for each position
+    wide_infinity_count = T.alloc(0, bc01.shape[0], bc01.shape[1], required_r, required_c)
+    bc01_count = T.set_subtensor(wide_infinity_count[:,:, 0:r, 0:c], 1)
+
+    for row_within_pool in xrange(pool_shape[0]):
+        row_stop = last_pool_r + row_within_pool + 1
+        for col_within_pool in xrange(pool_shape[1]):
+            col_stop = last_pool_c + col_within_pool + 1
+            cur = bc01[:,:,row_within_pool:row_stop:rs, col_within_pool:col_stop:cs]
+            cur.name = 'mean_pool_cur_'+bc01.name+'_'+str(row_within_pool)+'_'+str(col_within_pool)
+            cur_count = bc01_count[:,:,row_within_pool:row_stop:rs, col_within_pool:col_stop:cs]
+            if mx is None:
+                mx = cur
+                count = cur_count
+            else:
+                mx = mx + cur
+                count = count + cur_count
+                mx.name = 'mean_pool_mx_'+bc01.name+'_'+str(row_within_pool)+'_'+str(col_within_pool)
+
+    mx /= count
+    mx.name = 'mean_pool('+name+')'
+
+    for mxv in get_debug_values(mx):
+        assert not np.any(np.isnan(mxv))
+        assert not np.any(np.isinf(mxv))
+
+    return mx
