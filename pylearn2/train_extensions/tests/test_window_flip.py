@@ -6,7 +6,7 @@ from pylearn2.datasets.dense_design_matrix import (
     DenseDesignMatrix,
     DefaultViewConverter
 )
-
+from pylearn2.utils.testing import assert_equal
 
 class DummyDataset(DenseDesignMatrix):
     def __init__(self):
@@ -30,14 +30,14 @@ def test_window_flip_coverage():
         for i in xrange(3):
             for j in xrange(3):
                 window = topo[:, i:i + 3, j:j + 3, b]
-                assert window.shape[1:] == (3, 3)
+                assert_equal(window.shape[1:], (3, 3))
                 ref_win[b].add(_hash_array(window))
                 ref_win[b].add(_hash_array(window[:, :, ::-1]))
     actual_win = [set() for _ in xrange(4)]
     wf = WindowAndFlipC01B(window_shape=(3, 3))
     wf.setup(None, ddata, None)
     curr_topo = ddata.get_topological_view()
-    assert curr_topo.shape == (2, 3, 3, 4)
+    assert_equal(curr_topo.shape, (2, 3, 3, 4))
     for b in xrange(topo.shape[-1]):
         hashed = _hash_array(curr_topo[..., b])
         assert hashed in ref_win[b]
