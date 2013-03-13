@@ -1606,9 +1606,27 @@ class Sigmoid(Linear):
             rval['recall'] = recall
             rval['f1'] = 2. * precision * recall / T.maximum(1, precision + recall)
 
+            tp = (y * y_hat).sum(axis=0)
+            fp = ((1-y) * y_hat).sum(axis=0)
+            precision = tp / T.maximum(1., tp + fp)
+
+            rval['per_output_precision.max'] = precision.max()
+            rval['per_output_precision.mean'] = precision.mean()
+            rval['per_output_precision.min'] = precision.min()
+
+            recall = tp / T.maximum(1., y.sum(axis=0))
+
+            rval['per_output_recall.max'] = recall.max()
+            rval['per_output_recall.mean'] = recall.mean()
+            rval['per_output_recall.min'] = recall.min()
+
+            f1 = 2. * precision * recall / T.maximum(1, precision + recall)
+
+            rval['per_output_f1.max'] = f1.max()
+            rval['per_output_f1.mean'] = f1.mean()
+            rval['per_output_f1.min'] = f1.min()
+
         return rval
-
-
 
 
 class SpaceConverter(Layer):
