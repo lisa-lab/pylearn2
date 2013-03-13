@@ -6,29 +6,28 @@ A small example of how to glue shining features of pylearn2 together
 to train models layer by layer.
 """
 
-MAX_EPOCHS = 1
-SAVE_MODEL = False
+MAX_EPOCHS_UNSUPERVISED = 1
+MAX_EPOCHS_SUPERVISED = 2
 
-from pylearn2.autoencoder import Autoencoder, DenoisingAutoencoder
+from pylearn2.models.autoencoder import Autoencoder, DenoisingAutoencoder
 from pylearn2.models.rbm import GaussianBinaryRBM
 from pylearn2.corruption import BinomialCorruptor
 from pylearn2.corruption import GaussianCorruptor
-from pylearn2.training_algorithms.sgd import ExhaustiveSGD
+from pylearn2.training_algorithms.sgd import SGD
 from pylearn2.costs.autoencoder import MeanSquaredReconstructionError
 from pylearn2.training_algorithms.sgd import EpochCounter
 from pylearn2.classifier import LogisticRegressionLayer
 from pylearn2.datasets import cifar10
+from pylearn2.datasets import mnist
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.datasets import preprocessing
 from pylearn2.energy_functions.rbm_energy import GRBM_Type_1
 from pylearn2.base import StackedBlocks
 from pylearn2.datasets.transformer_dataset import TransformerDataset
 from pylearn2.costs.ebm_estimation import SMD
-from pylearn2.training_algorithms.sgd import MonitorBasedTermCrit
 from pylearn2.training_algorithms.sgd import MonitorBasedLRAdjuster
-from pylearn2.training_callbacks.training_callback import TrainingCallback
-from pylearn2.costs.supervised_cost import CrossEntropy
-from pylearn2.scripts.train import Train
+from pylearn2.costs.cost import NegativeLogLikelihood
+from pylearn2.train import Train
 import pylearn2.utils.serial as serial
 import sys
 import os
@@ -52,27 +51,6 @@ class ToyDataset(DenseDesignMatrix):
         self.y[:,1]=1-positive
         super(ToyDataset, self).__init__(X=data, y=self.y)
 
-
-class ModelSaver(TrainingCallback):
-    """
-    Save model after the last epoch.
-    The saved models then may be visualized.
-    """
-
-    def __init__(self):
-        self.current_epoch = 0
-
-    def __call__(self, model, dataset, algorithm):
-        if SAVE_MODEL is True:
-            save_path = 'cifar10_grbm' + str(self.current_epoch) + '_epoch.pkl'
-            save_start = datetime.datetime.now()
-            serial.save(save_path, model)
-            save_end = datetime.datetime.now()
-            delta = (save_end - save_start)
-            print 'saving model...done. saving took', str(delta)
-
-        self.current_epoch += 1
-
 def get_dataset_toy():
     """
     The toy dataset is only meant to used for testing pipelines.
@@ -81,51 +59,57 @@ def get_dataset_toy():
     """
     trainset = ToyDataset()
     testset = ToyDataset()
+
     return trainset, testset
 
 def get_dataset_cifar10():
-    """
-    The orginal pipeline on cifar10 from pylearn2. Please refer to
-    pylearn2/scripts/train_example/make_dataset.py for details.
-    """
-
-    train_path = 'cifar10_preprocessed_train.pkl'
-    test_path = 'cifar10_preprocessed_test.pkl'
+    
+    train_path = 'cifar10_train.pkl'
+    test_path = 'cifar10_test.pkl'
 
     if os.path.exists(train_path) and \
             os.path.exists(test_path):
         print 'loading preprocessed data'
         trainset = serial.load(train_path)
         testset = serial.load(test_path)
+        
     else:
         print 'loading raw data...'
-        trainset = cifar10.CIFAR10(which_set="train")
-        testset =  cifar10.CIFAR10(which_set="test")
+        trainset = cifar10.CIFAR10(which_set="train", one_hot=True)
+        testset =  cifar10.CIFAR10(which_set="test", one_hot=True)
 
-        print 'preprocessing data...'
-        pipeline = preprocessing.Pipeline()
+        serial.save('cifar10_train.pkl', trainset)
+        serial.save('cifar10_test.pkl', testset)
 
-        pipeline.items.append(
-            preprocessing.ExtractPatches(patch_shape=(8, 8), num_patches=150000))
-
-        pipeline.items.append(preprocessing.GlobalContrastNormalization())
-
-        pipeline.items.append(preprocessing.ZCA())
-
-        trainset.apply_preprocessor(preprocessor=pipeline, can_fit=True)
-        trainset.use_design_loc('train_design.npy')
-
-        testset.apply_preprocessor(preprocessor=pipeline, can_fit=True)
-        testset.use_design_loc('test_design.npy')
-
-        print 'saving preprocessed data...'
-        serial.save('cifar10_preprocessed_train.pkl', trainset)
-        serial.save('cifar10_preprocessed_test.pkl', testset)
-
+        # this path will be used for visualizing weights after training is done
         trainset.yaml_src = '!pkl: "%s"' % train_path
         testset.yaml_src = '!pkl: "%s"' % test_path
+    
+    return trainset, testset
 
-    # this path will be used for visualizing weights after training is done
+def get_dataset_mnist():
+    
+    train_path = 'mnist_train.pkl'
+    test_path = 'mnist_test.pkl'
+
+    if os.path.exists(train_path) and \
+            os.path.exists(test_path):
+        print 'loading preprocessed data'
+        trainset = serial.load(train_path)
+        testset = serial.load(test_path)
+        
+    else:
+        print 'loading raw data...'
+        trainset = mnist.MNIST(which_set="train", one_hot=True)
+        testset =  mnist.MNIST(which_set="test", one_hot=True)
+
+        serial.save('mnist_train.pkl', trainset)
+        serial.save('mnist_test.pkl', testset)
+
+        # this path will be used for visualizing weights after training is done
+        trainset.yaml_src = '!pkl: "%s"' % train_path
+        testset.yaml_src = '!pkl: "%s"' % test_path
+    
     return trainset, testset
 
 def get_autoencoder(structure):
@@ -134,7 +118,7 @@ def get_autoencoder(structure):
         'nhid': n_output,
         'nvis': n_input,
         'tied_weights': True,
-        'act_enc': 'tanh',
+        'act_enc': 'sigmoid',
         'act_dec': 'sigmoid',
         'irange': 0.001,
     }
@@ -148,7 +132,7 @@ def get_denoising_autoencoder(structure):
         'nhid': n_output,
         'nvis': n_input,
         'tied_weights': True,
-        'act_enc': 'tanh',
+        'act_enc': 'sigmoid',
         'act_dec': 'sigmoid',
         'irange': 0.001,
     }
@@ -177,81 +161,84 @@ def get_logistic_regressor(structure):
 
 def get_layer_trainer_logistic(layer, trainset):
     # configs on sgd
+    
     config = {'learning_rate': 0.1,
-              'cost' : CrossEntropy(),
+              'cost' : NegativeLogLikelihood(),
               'batch_size': 10,
               'monitoring_batches': 10,
-              'monitoring_dataset': None,
-              'termination_criterion': EpochCounter(max_epochs=10),
+              'monitoring_dataset': trainset,
+              'termination_criterion': EpochCounter(max_epochs=MAX_EPOCHS_SUPERVISED),
               'update_callbacks': None
               }
-
-    train_algo = ExhaustiveSGD(**config)
+    
+    train_algo = SGD(**config)
     model = layer
-    callbacks = None
     return Train(model = model,
             dataset = trainset,
             algorithm = train_algo,
-            callbacks = callbacks)
+            extensions = None)
 
 def get_layer_trainer_sgd_autoencoder(layer, trainset):
     # configs on sgd
-    train_algo = ExhaustiveSGD(
+    train_algo = SGD(
             learning_rate = 0.1,
               cost =  MeanSquaredReconstructionError(),
               batch_size =  10,
               monitoring_batches = 10,
-              monitoring_dataset =  None,
-              termination_criterion = EpochCounter(max_epochs=MAX_EPOCHS),
+              monitoring_dataset =  trainset,
+              termination_criterion = EpochCounter(max_epochs=MAX_EPOCHS_UNSUPERVISED),
               update_callbacks =  None
               )
 
     model = layer
-    callbacks = None
+    extensions = None
     return Train(model = model,
             algorithm = train_algo,
-            callbacks = callbacks,
+            extensions = extensions,
             dataset = trainset)
 
 def get_layer_trainer_sgd_rbm(layer, trainset):
-    train_algo = ExhaustiveSGD(
+    train_algo = SGD(
         learning_rate = 1e-1,
         batch_size =  5,
         #"batches_per_iter" : 2000,
         monitoring_batches =  20,
         monitoring_dataset =  trainset,
         cost = SMD(corruptor=GaussianCorruptor(stdev=0.4)),
-        termination_criterion =  EpochCounter(max_epochs=MAX_EPOCHS),
-        # another option:
-        # MonitorBasedTermCrit(prop_decrease=0.01, N=10),
+        termination_criterion =  EpochCounter(max_epochs=MAX_EPOCHS_UNSUPERVISED),
         )
     model = layer
-    callbacks = [MonitorBasedLRAdjuster(), ModelSaver()]
+    extensions = [MonitorBasedLRAdjuster()]
     return Train(model = model, algorithm = train_algo,
-            callbacks = callbacks, dataset = trainset)
+                 save_path='grbm.pkl',save_freq=1,
+                 extensions = extensions, dataset = trainset)
 
 def main():
     parser = OptionParser()
     parser.add_option("-d", "--data", dest="dataset", default="toy",
-                      help="specify the dataset, either cifar10 or toy")
+                      help="specify the dataset, either cifar10, mnist or toy")
     (options,args) = parser.parse_args()
-
-    global SAVE_MODEL
 
     if options.dataset == 'toy':
         trainset, testset = get_dataset_toy()
-        SAVE_MODEL = False
+        n_output = 2
     elif options.dataset == 'cifar10':
         trainset, testset, = get_dataset_cifar10()
-        SAVE_MODEL = True
+        n_output = 10
 
+    elif options.dataset == 'mnist':
+        trainset, testset, = get_dataset_mnist()
+        n_output = 10
+
+    else:
+        NotImplementedError()
 
     design_matrix = trainset.get_design_matrix()
     n_input = design_matrix.shape[1]
 
     # build layers
     layers = []
-    structure = [[n_input, 400], [400, 50], [50, 100], [100, 2]]
+    structure = [[n_input, 500], [500, 500], [500, 200], [200, n_output]]
     # layer 0: gaussianRBM
     layers.append(get_grbm(structure[0]))
     # layer 1: denoising AE
@@ -261,7 +248,7 @@ def main():
     # layer 3: logistic regression used in supervised training
     layers.append(get_logistic_regressor(structure[3]))
 
-
+    
     #construct training sets for different layers
     trainset = [ trainset ,
                 TransformerDataset( raw = trainset, transformer = layers[0] ),
@@ -276,9 +263,19 @@ def main():
     layer_trainers.append(get_layer_trainer_logistic(layers[3], trainset[3]))
 
     #unsupervised pretraining
-    for layer_trainer in layer_trainers[0:3]:
+    for i, layer_trainer in enumerate(layer_trainers[0:3]):
+        print '-----------------------------------'
+        print ' Unsupervised training layer %d, %s'%(i, layers[i].__class__)
+        print '-----------------------------------'
         layer_trainer.main_loop()
 
+        
+    print '\n'
+    print '------------------------------------------------------'
+    print ' Unsupervised training done! Start supervised training...'
+    print '------------------------------------------------------'
+    print '\n'
+    
     #supervised training
     layer_trainers[-1].main_loop()
 
