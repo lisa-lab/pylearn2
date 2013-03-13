@@ -336,8 +336,17 @@ class LxReg(Cost):
         for var in self.variables:
             Lx = Lx + abs(var ** self.x).sum()
         return Lx
-
-
+        
+class NegativeLogLikelihood(Cost):
+    # works with logistic regression with softmax output
+    def __init__(self):
+        self.supervised = True
+    def __call__(self, model, X, Y):
+        # assume Y has one-hot representation
+        Y = T.argmax(Y, axis=1)
+        rval = -T.mean(T.log(X)[T.arange(Y.shape[0]), T.cast(Y, 'int32')])
+        return rval
+        
 class CrossEntropy(Cost):
     """WRITEME"""
     def __init__(self):

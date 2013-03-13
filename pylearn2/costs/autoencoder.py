@@ -6,11 +6,11 @@ import numpy.random
 from theano.tensor.shared_randomstreams import RandomStreams
 
 class MeanSquaredReconstructionError(Cost):
-    def __call__(self, model, X):
+    def __call__(self, model, X, Y=None):
         return ((model.reconstruct(X) - X) ** 2).sum(axis=1).mean()
 
 class MeanBinaryCrossEntropy(Cost):
-    def __call__(self, model, X):
+    def __call__(self, model, X, Y=None):
         return (
             - X * tensor.log(model.reconstruct(X)) -
             (1 - X) * tensor.log(1 - model.reconstruct(X))
@@ -29,7 +29,7 @@ class SampledMeanBinaryCrossEntropy(Cost):
         self.L1 = L1
         self.one_ratio = ratio
 
-    def __call__(self, model, X):
+    def __call__(self, model, X, Y=None):
         # X is theano sparse
         X_dense=theano.sparse.dense_from_sparse(X)
         noise = self.random_stream.binomial(size=X_dense.shape, n=1, prob= self.one_ratio, ndim=None)
@@ -76,7 +76,7 @@ class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
         self.L1 = L1
         self.ratio = ratio
 
-    def __call__(self, model, X):
+    def __call__(self, model, X, Y=None):
         # X is theano sparse
         X_dense=theano.sparse.dense_from_sparse(X)
         noise = self.random_stream.binomial(size=X_dense.shape, n=1, prob=self.ratio, ndim=None)
@@ -110,6 +110,8 @@ class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
 #            tensor.xlogx.xlogx(1 - model.reconstruct(X))
 #        ).sum(axis=1).mean()
 
+'''
+The following has been moved to /costs/cost.py
 
 class ModelMethodPenalty(Cost):
     def __init__(self, method_name, coefficient=1.):
@@ -130,3 +132,4 @@ class ScaleBy(Cost):
 
     def __call__(self, model, X):
         return self._coefficient * self._cost(model, X)
+'''
