@@ -1,9 +1,0 @@
-#!/usr/bin/env bash
-
-# wrapper to make it more like a system
-# command (does not require +x on dataset-get.py
-# nor invoking python explicitly)
-#
-
-python dataset-get.py ${@}
-exit $? 
