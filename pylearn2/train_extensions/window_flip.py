@@ -2,6 +2,7 @@
 TrainExtensions for doing random spatial windowing and flipping of an
 image dataset on every epoch.
 """
+import warnings
 import numpy
 from . import TrainExtension
 from pylearn2.datasets.preprocessing import CentralWindow
@@ -20,28 +21,44 @@ __maintainer__ = "David Warde-Farley"
 __email__ = "wardefar@iro"
 
 
+
 class WindowAndFlipC01B(TrainExtension):
-    # This variable is shared among all instances of this class.
-    # Don't modify it, unless you really want it to get changed
-    # for all other instances.
+    # Immutable class-level attribute. This should not be a list, as then
+    # mutating self.axes will cause the class-level attribute to change.
+    # self.axes can be safely assigned to, however.
     axes = ('c', 0, 1, 'b')
 
-    def __init__(self, window_shape, randomize = None, randomize_once = None,
-            center = None, rng=(2013, 02, 20)):
+    def __init__(self, window_shape, randomize=None, randomize_once=None,
+            center=None, rng=(2013, 02, 20)):
         """
-        randomize: if specified, a list of Datasets to randomly window and flip
-                at each epoch
-        randomize_once: if specified, a list of Dataasets to randomly window and
-            flip once at the start of training
-        center: if specified, a list of Datasets to centrally window once at the
-            start of training
+        An extension that allows an image dataset to be flipped
+        and windowed after each epoch of training.
+
+        Parameters
+        ----------
+        randomize : list, optional
+            If specified, a list of Datasets to randomly window and
+            flip at each epoch.
+
+        randomize_once : list, optional
+            If specified, a list of Dataasets to randomly window and
+            flip once at the start of training.
+
+        center : list, optional
+            If specified, a list of Datasets to centrally window
+            once at the start of training.
         """
         self._window_shape = tuple(window_shape)
         self._original = None
 
-        self._randomize = (randomize if randomize else [])
-        self._randomize_once = (randomize_once if randomize_once else [])
-        self._center = (center if center else [])
+        self._randomize = randomize if randomize else []
+        self._randomize_once = randomize_once if randomize_once else []
+        self._center = center if center else []
+
+        if randomize is None and randomize_once is None and center is None:
+            warnings.warn(self.__class__.__name__ + " instantiated without "
+                          "any dataset arguments, and therefore does nothing",
+                          stacklevel=2)
 
         if not hasattr(rng, 'random_integers'):
             self._rng = numpy.random.RandomState(rng)

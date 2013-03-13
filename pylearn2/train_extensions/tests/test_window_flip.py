@@ -34,7 +34,7 @@ def test_window_flip_coverage():
                 ref_win[b].add(_hash_array(window))
                 ref_win[b].add(_hash_array(window[:, :, ::-1]))
     actual_win = [set() for _ in xrange(4)]
-    wf = WindowAndFlipC01B(window_shape=(3, 3))
+    wf = WindowAndFlipC01B(window_shape=(3, 3), randomize=[ddata])
     wf.setup(None, ddata, None)
     curr_topo = ddata.get_topological_view()
     assert_equal((2, 3, 3, 4), curr_topo.shape)
