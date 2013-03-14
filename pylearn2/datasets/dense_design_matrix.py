@@ -451,6 +451,8 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
     DenseDesignMatrix based on PyTables
     """
 
+    filters = tables.Filters(complib='blosc', complevel=5)
+
     def set_design_matrix(self, X, start = 0):
         assert len(X.shape) == 2
         assert not N.any(N.isnan(X))
@@ -522,7 +524,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         h5file = tables.openFile(path, mode = "w", title = "SVHN Dataset")
         gcolumns = h5file.createGroup(h5file.root, "Data", "Data")
         atom = tables.Float64Atom() if config.floatX == 'flaot32' else tables.Float32Atom()
-        filters = tables.Filters(complib='blosc', complevel=5)
+        filters = DenseDesignMatrixPyTables.filters
         h5file.createCArray(gcolumns, 'X', atom = atom, shape = x_shape,
                                 title = "Data values", filters = filters)
         h5file.createCArray(gcolumns, 'y', atom = atom, shape = y_shape,
@@ -567,7 +569,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         stop = gcolumns.X.nrows if stop is None else stop
 
         atom = tables.Float64Atom() if config.floatX == 'flaot32' else tables.Float32Atom()
-        filters = tables.Filters(complib='blosc', complevel=5)
+        filters = DenseDesignMatrixPyTables.filters
         x = h5file.createCArray(gcolumns, 'X', atom = atom, shape = ((stop - start, data.X.shape[1])),
                             title = "Data values", filters = filters)
         y = h5file.createCArray(gcolumns, 'y', atom = atom, shape = ((stop - start, 10)),
