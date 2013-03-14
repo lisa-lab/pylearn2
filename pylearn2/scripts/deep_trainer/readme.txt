@@ -1,5 +1,5 @@
 This directory contains a simple example to give you a feeling of how you can
-use pylearn2 by writing your own python scripts to train a deep model.
+play with pylearn2 by writing your own python scripts to train a deep model.
 
 Note that the best-supported method is to write yaml configuration files (see
 scripts/train_example and tutorials/*.ipynb for examples of this method).

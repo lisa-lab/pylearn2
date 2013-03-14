@@ -341,10 +341,10 @@ class NegativeLogLikelihood(Cost):
     # works with logistic regression with softmax output
     def __init__(self):
         self.supervised = True
-    def __call__(self, model, X, Y):
+    def __call__(self, model, X, Y, ** kwargs):
         # assume Y has one-hot representation
         Y = T.argmax(Y, axis=1)
-        rval = -T.mean(T.log(X)[T.arange(Y.shape[0]), T.cast(Y, 'int32')])
+        rval = -T.mean(T.log(model(X))[T.arange(Y.shape[0]), T.cast(Y, 'int32')])
         return rval
         
 class CrossEntropy(Cost):
@@ -352,7 +352,7 @@ class CrossEntropy(Cost):
     def __init__(self):
         self.supervised = True
 
-    def __call__(self, model, X, Y):
+    def __call__(self, model, X, Y, ** kwargs):
         """WRITEME"""
         return (-Y * T.log(model(X)) - \
                 (1 - Y) * T.log(1 - model(X))).sum(axis=1).mean()
