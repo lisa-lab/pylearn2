@@ -369,12 +369,10 @@ class MLP(Layer):
 
 class Softmax(Layer):
 
-    def __init__(self, n_classes, layer_name, irange = None,
-            istdev = None,
-                 sparse_init = None, W_lr_scale = None,
-                 b_lr_scale = None, max_row_norm = None,
-                 no_affine = False,
-                 max_col_norm = None):
+    def __init__(self, n_classes, layer_name, irange=None,
+                 istdev=None, sparse_init=None, W_lr_scale=None,
+                 b_lr_scale=None, max_row_norm=None,
+                 no_affine=False, max_col_norm=None, label_entropy=False):
         """
         """
 
@@ -579,6 +577,9 @@ class Softmax(Layer):
         log_prob = z - T.log(T.exp(z).sum(axis=1).dimshuffle(0, 'x'))
         # we use sum and not mean because this is really one variable per row
         log_prob_of = (Y * log_prob).sum(axis=1)
+        # Check for attribute in order to not break pickles.
+        if hasattr(self, 'label_entropy') and self.label_entropy:
+            log_prob += T.xlogx.xlogx(Y).sum(axis=1)
         assert log_prob_of.ndim == 1
 
         rval = log_prob_of.mean()
