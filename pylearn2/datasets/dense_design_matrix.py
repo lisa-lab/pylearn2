@@ -42,7 +42,7 @@ class DenseDesignMatrix(Dataset):
     _default_seed = (17, 2, 946)
 
     def __init__(self, X=None, topo_view=None, y=None,
-                  view_converter=None, axes = ('b', 0, 1, 'c'),
+                 view_converter=None, axes = ('b', 0, 1, 'c'),
                  rng=_default_seed):
         """
         Parameters
@@ -77,7 +77,7 @@ class DenseDesignMatrix(Dataset):
             self.view_converter = view_converter
         else:
             if topo_view is not None:
-                 self.set_topological_view(topo_view, axes)
+                self.set_topological_view(topo_view, axes)
         self.y = y
         self.compress = False
         self.design_loc = None
@@ -448,7 +448,7 @@ class DenseDesignMatrix(Dataset):
 
 class DenseDesignMatrixPyTables(DenseDesignMatrix):
     """
-    DenseDesingMatrix with PyTables
+    DenseDesignMatrix based on PyTables
     """
 
     def set_design_matrix(self, X, start = 0):
@@ -532,7 +532,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
     @staticmethod
     def fill_hdf5(file, data_x, data_y = None, node = None, start = 0, batch_size = 5000):
         """
-        PyTables tempt to crash if you write large data on them at once.
+        PyTables tends to crash if you write large data on them at once.
         This function write data on file in batches
 
         start: the start index to write data

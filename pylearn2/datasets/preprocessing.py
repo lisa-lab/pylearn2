@@ -835,7 +835,7 @@ class LeCunLCN_ICPR(ExamplewisePreprocessor):
         x = rgb_yuv(x)
 
 
-        # glopbal contrast normalize each channel
+        # global contrast normalize each channel
         if can_fit:
             self._mean = []
             self._std = []
@@ -899,7 +899,7 @@ class LeCunLCNChannels(ExamplewisePreprocessor):
         data_size = dataset.X.shape[0]
         if isinstance(dataset.X, np.ndarray):
             if data_size != self._batch_size:
-                warnings.warn("Batch size diffrent "
+                warnings.warn("Batch size different "
                         "than data size is not implemented yet. "
                         "Changing it to datasize...")
                 self._batch_size = data_size
