@@ -372,8 +372,49 @@ class Softmax(Layer):
     def __init__(self, n_classes, layer_name, irange=None,
                  istdev=None, sparse_init=None, W_lr_scale=None,
                  b_lr_scale=None, max_row_norm=None,
-                 no_affine=False, max_col_norm=None, label_entropy=False):
+                 no_affine=False, max_col_norm=None, full_kl=False):
         """
+        Implements a layer with an affine transformation followed by
+        a softmax activation.
+
+        Parameters
+        ----------
+        n_classes : int
+            The number of classes/output units.
+
+        layer_name : str
+            XXX WRITEME - explain how this is used precisely
+
+        irange : float, optional
+            XXX WRITEME
+
+        istdev : float, optional
+            XXX WRITEME
+
+        sparse_init ; XXX, optional
+            XXX WRITEME
+
+        W_lr_scale : float, optional
+            Factor by which to scale the weights learning rate.
+
+        b_lr_scale : float, optional
+            Factor by which to scale the bias learning rate.
+
+        max_row_norm : float, optional
+            XXX WRITEME, do rows correspond to outputs or inputs
+
+        no_affine : bool, optional
+            XXX WRITEME, presumably implements only the nonlinear
+            part
+
+        max_col_norm : float, optional
+            XXX WRITEME, do cols correspond to outputs or inputs
+
+        full_kl : bool, optional
+            Use the full KL divergence (entropy of the targets
+            plus the cross-entropy) instead of just the usual
+            cross-entropy (log probability of the labels under
+            the model).
         """
 
         if isinstance(W_lr_scale, str):
@@ -576,15 +617,14 @@ class Softmax(Layer):
         z = z - z.max(axis=1).dimshuffle(0, 'x')
         log_prob = z - T.log(T.exp(z).sum(axis=1).dimshuffle(0, 'x'))
         # we use sum and not mean because this is really one variable per row
-        log_prob_of = (Y * log_prob).sum(axis=1)
+        per_example_cost = (Y * log_prob).sum(axis=1)
         # Check for attribute in order to not break pickles.
-        if hasattr(self, 'label_entropy') and self.label_entropy:
-            log_prob_of += T.xlogx.xlogx(Y).sum(axis=1)
-        assert log_prob_of.ndim == 1
+        if hasattr(self, 'full_kl') and self.full_kl:
+            per_example_cost += T.xlogx.xlogx(Y).sum(axis=1)
+        assert per_example_cost.ndim == 1
+        rval = per_example_cost.mean()
 
-        rval = log_prob_of.mean()
-
-        return - rval
+        return -rval
 
     def get_weight_decay(self, coeff):
         if isinstance(coeff, str):
