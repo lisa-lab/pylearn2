@@ -579,7 +579,7 @@ class Softmax(Layer):
         log_prob_of = (Y * log_prob).sum(axis=1)
         # Check for attribute in order to not break pickles.
         if hasattr(self, 'label_entropy') and self.label_entropy:
-            log_prob += T.xlogx.xlogx(Y).sum(axis=1)
+            log_prob_of += T.xlogx.xlogx(Y).sum(axis=1)
         assert log_prob_of.ndim == 1
 
         rval = log_prob_of.mean()
