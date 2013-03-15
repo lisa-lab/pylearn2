@@ -4,22 +4,34 @@
 ## Use language: c to avoid being trapped in a virtualenv,
 # so we can use "apt-get" (instead of "pip" )to install scipy,
 # as pip takes much too long.
-language: c
+#language: c
 
-#language: python
-#python:
+language: python
+python:
 #Currently we use functools.cmp_to_key that is available only in python 2.7
-#  - "2.7"
+  - "2.6"
 
 
 # command to install dependencies
 before_install:
-  - sudo apt-get install -qq libatlas3gf-base libatlas-dev
-    python-numpy python-scipy python-pip python-nose python-yaml
-    pyflakes python-imaging python-tables cython
+#zlib1g-dev is needed to allow PIL to uncompress the dataset.
+  - sudo apt-get install -qq libatlas3gf-base libatlas-dev liblapack-dev gfortran zlib1g-dev
+    python-yaml pyflakes libhdf5-serial-dev python-pip  #python-imaging python-tables
 
 # The "|| cat ..." part prints the error log if the pip command fails
 install:
+# If we don't install numpy before SciPy 0.10.1, the SciPy installations fails.
+  - "pip install -q numpy==1.5 --use-mirrors"
+# We support scipy 0.7.2, but it is not available on pypi anymore.
+# So we test with 0.8. Our internal buildbot have 0.7.2.
+# We install it later only for the PART that need it.
+  - "pip install -q nose==1.0.0 --use-mirrors"
+  - "pip install -q PIL --use-mirrors"
+  - "pip install -q numexpr --use-mirrors"
+  - "pip install -q cython --use-mirrors"
+  - "pip install -q tables --use-mirrors"
+#  - "pip install -q scipy==0.8 --use-mirrors"
+
   - "sudo pip install -q git+git://git.assembla.com/jobman.git || cat /home/travis/.pip/pip.log"
   - "sudo pip install -q --no-deps git+git://github.com/Theano/Theano.git || cat /home/travis/.pip/pip.log"
   - cd pylearn2/utils/
@@ -42,3 +54,6 @@ script:
   - export THEANO_FLAGS=warn.ignore_bug_before=all,on_opt_error=raise,on_shape_error=raise
   - export TRAVIS=1
   - theano-nose
+
+after_failure:
+  - cat /home/travis/.pip/pip.log
