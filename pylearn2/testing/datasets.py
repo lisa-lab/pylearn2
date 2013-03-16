@@ -17,3 +17,36 @@ class ArangeDataset(DenseDesignMatrix):
         X = np.zeros((num_examples,1))
         X[:,0] = np.arange(num_examples)
         super(ArangeDataset, self).__init__(X)
+
+
+def random_one_hot_dense_design_matrix(rng, num_examples, dim, num_classes):
+    X = rng.randn(num_examples, dim)
+
+
+    idx = rng.randint(0, dim, (num_examples,))
+    Y = np.zeros((num_examples,num_classes))
+    for i in xrange(num_examples):
+        Y[i,idx[i]] = 1
+
+    return DenseDesignMatrix(X=X, y=Y)
+
+def random_one_hot_topological_dense_design_matrix(rng, num_examples, shape, channels, axes, num_classes):
+
+    dims = {
+            'b': num_examples,
+            'c': channels
+            }
+
+    for i, dim in enumerate(shape):
+        dims[i] = dim
+
+    shape = [dims[axis] for axis in axes]
+
+    X = rng.randn(*shape)
+
+    idx = rng.randint(0, dim, (num_examples,))
+    Y = np.zeros((num_examples,num_classes))
+    for i in xrange(num_examples):
+        Y[i,idx[i]] = 1
+
+    return DenseDesignMatrix(topo_view=X, axes=axes, y=Y)
