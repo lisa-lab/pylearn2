@@ -1543,6 +1543,32 @@ class Sigmoid(Linear):
     Implementation of the sigmoid nonlinearity for MLP.
     """
 
+    def __init__(self, monitor_style = 'detection', ** kwargs):
+        """
+            monitor_style: a string, either 'detection' or 'classification'
+                           'detection' by default
+
+                           if 'detection':
+                               get_monitor_from_state makes no assumptions about
+                               target, reports info about how good model is at
+                               detecting positive bits.
+                               This will monitor precision, recall, and F1 score
+                               based on a detection threshold of 0.5. Note that
+                               these quantities are computed *per-minibatch* and
+                               averaged together. Unless your entire monitoring
+                               dataset fits in one minibatch, this is not the same
+                               as the true F1 score, etc., and will usually
+                               seriously overestimate your performance.
+                            if 'classification':
+                                get_monitor_from_state assumes target is one-hot
+                                class indicator, even though you're training the model
+                                as k independent sigmoids. gives info on how good
+                                the argmax is as a classifier
+        """
+        super(Sigmoid, self).__init__(**kwargs)
+        assert monitor_style in ['classification', 'detection']
+        self.monitor_style = monitor_style
+
     def fprop(self, state_below):
         p = self._linear_part(state_below)
         p = T.nnet.sigmoid(p)
@@ -1585,46 +1611,60 @@ class Sigmoid(Linear):
 
         return ave
 
+    def get_detection_channels_from_state(self, state, target):
+
+        rval = OrderedDict()
+        y_hat = state > 0.5
+        y = target > 0.5
+        wrong_bit = T.cast(T.neq(y, y_hat), state.dtype)
+        rval['01_loss'] = wrong_bit.mean()
+        rval['kl'] = self.cost(Y_hat=state, Y=target)
+
+        y = T.cast(y, state.dtype)
+        y_hat = T.cast(y_hat, state.dtype)
+        tp = (y * y_hat).sum()
+        fp = ((1-y) * y_hat).sum()
+        precision = tp / T.maximum(1., tp + fp)
+        recall = tp / T.maximum(1., y.sum())
+        rval['precision'] = precision
+        rval['recall'] = recall
+        rval['f1'] = 2. * precision * recall / T.maximum(1, precision + recall)
+
+        tp = (y * y_hat).sum(axis=0)
+        fp = ((1-y) * y_hat).sum(axis=0)
+        precision = tp / T.maximum(1., tp + fp)
+
+        rval['per_output_precision.max'] = precision.max()
+        rval['per_output_precision.mean'] = precision.mean()
+        rval['per_output_precision.min'] = precision.min()
+
+        recall = tp / T.maximum(1., y.sum(axis=0))
+
+        rval['per_output_recall.max'] = recall.max()
+        rval['per_output_recall.mean'] = recall.mean()
+        rval['per_output_recall.min'] = recall.min()
+
+        f1 = 2. * precision * recall / T.maximum(1, precision + recall)
+
+        rval['per_output_f1.max'] = f1.max()
+        rval['per_output_f1.mean'] = f1.mean()
+        rval['per_output_f1.min'] = f1.min()
+
+        return rval
+
     def get_monitoring_channels_from_state(self, state, target=None):
 
         rval = super(Sigmoid, self).get_monitoring_channels_from_state(state, target)
 
         if target is not None:
-            y_hat = state > 0.5
-            y = target > 0.5
-            wrong_bit = T.cast(T.neq(y, y_hat), state.dtype)
-            rval['01_loss'] = wrong_bit.mean()
-            rval['kl'] = self.cost(Y_hat=state, Y=target)
+            if self.monitor_style == 'detection':
+                rval.update(self.get_detection_channels_from_state(state, target))
+            else:
+                assert self.monitor_style == 'classification'
 
-            y = T.cast(y, state.dtype)
-            y_hat = T.cast(y_hat, state.dtype)
-            tp = (y * y_hat).sum()
-            fp = ((1-y) * y_hat).sum()
-            precision = tp / T.maximum(1., tp + fp)
-            recall = tp / T.maximum(1., y.sum())
-            rval['precision'] = precision
-            rval['recall'] = recall
-            rval['f1'] = 2. * precision * recall / T.maximum(1, precision + recall)
-
-            tp = (y * y_hat).sum(axis=0)
-            fp = ((1-y) * y_hat).sum(axis=0)
-            precision = tp / T.maximum(1., tp + fp)
-
-            rval['per_output_precision.max'] = precision.max()
-            rval['per_output_precision.mean'] = precision.mean()
-            rval['per_output_precision.min'] = precision.min()
-
-            recall = tp / T.maximum(1., y.sum(axis=0))
-
-            rval['per_output_recall.max'] = recall.max()
-            rval['per_output_recall.mean'] = recall.mean()
-            rval['per_output_recall.min'] = recall.min()
-
-            f1 = 2. * precision * recall / T.maximum(1, precision + recall)
-
-            rval['per_output_f1.max'] = f1.max()
-            rval['per_output_f1.mean'] = f1.mean()
-            rval['per_output_f1.min'] = f1.min()
+                Y = T.argmax(target, axis=1)
+                Y_hat = T.argmax(state, axis=1)
+                rval['misclass'] = T.cast(T.neq(Y, Y_hat), state.dtype).mean()
 
         return rval
 
