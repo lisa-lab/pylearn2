@@ -617,14 +617,12 @@ class Softmax(Layer):
         z = z - z.max(axis=1).dimshuffle(0, 'x')
         log_prob = z - T.log(T.exp(z).sum(axis=1).dimshuffle(0, 'x'))
         # we use sum and not mean because this is really one variable per row
-        per_example_cost = (Y * log_prob).sum(axis=1)
+        per_example_cost = -(Y * log_prob).sum(axis=1)
         # Check for attribute in order to not break pickles.
         if hasattr(self, 'full_kl') and self.full_kl:
             per_example_cost += T.xlogx.xlogx(Y).sum(axis=1)
         assert per_example_cost.ndim == 1
-        rval = per_example_cost.mean()
-
-        return -rval
+        return per_example_cost.mean()
 
     def get_weight_decay(self, coeff):
         if isinstance(coeff, str):
