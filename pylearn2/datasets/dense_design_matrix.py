@@ -16,14 +16,22 @@ from pylearn2.utils.iteration import (
 )
 N = np
 import copy
-try:
-    import tables
-except ImportError:
-    warnings.warn("Couldn't import tables, so far SVHN is "
-            "only supported with PyTables")
+# Don't import tables initially, since it might not be available
+# everywhere.
+tables = None
+
+
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.datasets import control
 from theano import config
+
+def ensure_tables():
+    """
+    Makes sure tables module has been imported
+    """
+
+    if tables is None:
+        import tables
 
 
 class DenseDesignMatrix(Dataset):
@@ -475,6 +483,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
 
         x_shape, y_shape = shapes
         # make pytables
+        ensure_tables()
         h5file = tables.openFile(path, mode = "w", title = "SVHN Dataset")
         gcolumns = h5file.createGroup(h5file.root, "Data", "Data")
         atom = tables.Float64Atom() if config.floatX == 'flaot32' else tables.Float32Atom()
@@ -493,6 +502,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
 
     @staticmethod
     def resize(h5file, start, stop):
+        ensure_tables()
         # TODO is there any smarter and more efficient way to this?
 
         data = h5file.getNode('/', "Data")
