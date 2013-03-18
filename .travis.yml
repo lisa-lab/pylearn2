@@ -16,12 +16,16 @@ language: c
 before_install:
   - sudo apt-get install -qq libatlas3gf-base libatlas-dev
     python-numpy python-scipy python-pip python-nose python-yaml
-    pyflakes python-imaging python-tables
+    pyflakes python-imaging python-tables cython
 
 # The "|| cat ..." part prints the error log if the pip command fails
 install:
   - "sudo pip install -q git+git://git.assembla.com/jobman.git || cat /home/travis/.pip/pip.log"
   - "sudo pip install -q --no-deps git+git://github.com/Theano/Theano.git || cat /home/travis/.pip/pip.log"
+  - cd pylearn2/utils/
+  # Change this once we have a unified setup file.
+  - python setup.py build_ext --inplace
+  - cd ../../
 
 # command to run tests
 #env:
