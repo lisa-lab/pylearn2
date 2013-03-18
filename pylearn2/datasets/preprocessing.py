@@ -724,6 +724,60 @@ class GlobalContrastNormalization(object):
         X /= scale[:, None]
         dataset.set_design_matrix(X)
 
+class GlobalContrastNormalizationPyTables(object):
+    def __init__(self, subtract_mean=True, std_bias=10.0, use_norm=False, batch_size = 5000):
+        """
+
+        Optionally subtracts the mean of each example
+        Then divides each example either by the standard deviation of the
+        pixels contained in that example or by the norm of that example
+
+        Parameters:
+
+            subtract_mean: boolean, if True subtract the mean of each example
+            std_bias: Add this amount inside the square root when computing
+                      the standard deviation or the norm
+            use_norm: If True uses the norm instead of the standard deviation
+
+
+            The default parameters of subtract_mean = True, std_bias = 10.0,
+            use_norm = False are used in replicating one step of the
+            preprocessing used by Coates, Lee and Ng on CIFAR10 in their paper
+            "An Analysis of Single Layer Networks in Unsupervised Feature
+            Learning"
+        """
+
+        self.subtract_mean = subtract_mean
+        self.std_bias = std_bias
+        self.use_norm = use_norm
+        self._batch_size = batch_size
+
+    def transform(self, X):
+        assert X.dtype == 'float32' or X.dtype == 'float64'
+
+        if self.subtract_mean:
+            X -= X[:].mean(axis=1)[:, None]
+
+        if self.use_norm:
+            scale = np.sqrt(np.square(X).sum(axis=1) + self.std_bias)
+        else:
+            # use standard deviation
+            scale = np.sqrt(np.square(X).mean(axis=1) + self.std_bias)
+        eps = 1e-8
+        scale[scale < eps] = 1.
+        X /= scale[:, None]
+        return X
+
+    def apply(self, dataset, can_fit=False):
+        X = dataset.get_design_matrix()
+        data_size = X.shape[0]
+        last = np.floor(data_size / float(self._batch_size)) * self._batch_size
+        for i in xrange(0, data_size, self._batch_size):
+            stop = i + np.mod(data_size, self._batch_size) if i>= last else i + self._batch_size
+            print "GCN processing data from {} to {}".format(i, stop)
+            data = self.transform(X[i:stop])
+            dataset.set_design_matrix(data, start = i)
+
 
 class ZCA(Preprocessor):
     """
@@ -803,74 +857,14 @@ class ZCA(Preprocessor):
         assert X.ndim == 2
         return np.dot(X, self.inv_P_) + self.mean_
 
-class LeCunLCN_ICPR(ExamplewisePreprocessor):
-    """
-    Pre-processing as done in: Pierre Sermanet, Soumith Chintala and
-    Yann LeCun: Convolutional Neural Networks Applied to House Numbers
-    Digit Classification, International Conference on
-    Pattern Recognition (ICPR 2012), 2012
-
-    First converts from RGB to YUV
-    global contast each channel
-    local cotrast Y channel
-    """
-
-    def __init__(self, img_shape, kernel_size = 7, batch_size = 5000,
-                    threshold = 1e-4):
-        self._img_shape = img_shape
-        self._batch_size = batch_size
-        self._kernel_size = kernel_size
-        self._threshold = threshold
-        self._mean = None
-        self._std = None
-
-    def apply(self, dataset, can_fit=False):
-
-        x = dataset.get_topological_view()
-        # convert axes
-        axes = ['b', 0, 1, 'c']
-        x = convert_axes(x, dataset.axes, axes)
-
-        # convert to YUV
-        x = rgb_yuv(x)
 
 
-        # global contrast normalize each channel
-        if can_fit:
-            self._mean = []
-            self._std = []
-            for i in xrange(3):
-                self._mean.append(x[:,:,:,i].mean())
-                self._std.append(x[:,:,:,i].std())
-        else:
-            if self._mean is None or self._std is None:
-                raise ValueError("can_fit is False, but LeCunLCN_ICPR object "
-                                 "has no stored mean or standard deviation")
-
-        for i in xrange(3):
-            x[:,:,:,i] -= self._mean[i]
-            x[:,:,:,i] /= self._std[i]
-
-        # local contrast normalize Y channel
-        data_size = dataset.X.shape[0]
-        last = np.floor(data_size / float(self._batch_size)) * self._batch_size
-        for i in xrange(0, data_size, self._batch_size):
-            stop = -1 if i >= last else i + self._batch_size
-            print "LCN processing samples from {} to {}".format(i, stop)
-            x[i:stop, :, :, 0] = lecun_lcn(x[i:stop, :, :, 0],
-                                            self._img_shape,
-                                            self._kernel_size,
-                                            self._threshold)
-
-        x = convert_axes(x, axes, dataset.axes)
-        dataset.set_topological_view(x, dataset.axes)
-
-class LeCunLCNChannels(ExamplewisePreprocessor):
+class LeCunLCN(ExamplewisePreprocessor):
     """ Yann LeCun local contrast normalization on each of the 3 channels
     """
 
     def __init__(self, img_shape, kernel_size = 7, batch_size = 5000,
-                    threshold = 1e-4):
+                threshold = 1e-4, channels = None):
         """
         img_shape: image shape
         kernel_size: local contrast kernel size
@@ -883,12 +877,24 @@ class LeCunLCNChannels(ExamplewisePreprocessor):
         self._kernel_size = kernel_size
         self._batch_size = batch_size
         self._threshold = threshold
+        if channels is None:
+            self._channels = range(3)
+        else:
+            if isinstance(channels, list) or isinstance(channels, tuple):
+                self._channels = channels
+            elif isinstance(channels, int):
+                self._channels = [channels]
+            else:
+                raise ValueError("channesl should be either a list or int")
 
     def transform(self, x):
         """
         X: data with axis [b, 0, 1, c]
         """
-        for i in xrange(x.shape[3]):
+        for i in self._channels:
+            assert isinstance(i, int)
+            assert i >= 0 and i <= x.shape[3]
+
             x[:, :, :, i] = lecun_lcn(x[:, :, :, i], self._img_shape,
                                                     self._kernel_size,
                                                     self._threshold)
@@ -897,28 +903,93 @@ class LeCunLCNChannels(ExamplewisePreprocessor):
     def apply(self, dataset, can_fit=False):
         axes = ['b', 0, 1, 'c']
         data_size = dataset.X.shape[0]
-        if isinstance(dataset.X, np.ndarray):
-            if data_size != self._batch_size:
-                warnings.warn("Batch size different "
-                        "than data size is not implemented yet. "
-                        "Changing it to datasize...")
-                self._batch_size = data_size
+
+        if self._channels is None:
+            self._channels
 
         last = np.floor(data_size / float(self._batch_size)) * self._batch_size
         for i in xrange(0, data_size, self._batch_size):
-            stop = -1 if i >= last else i + self._batch_size
-            print "LCN processing samples from {} to {}".format(i, stop)
+            stop = i + np.mod(data_size, self._batch_size) if i>= last else i + self._batch_size
+            print "LCN processing data from {} to {}".format(i, stop)
             transformed = self.transform(convert_axes(
                                 dataset.get_topological_view(
                                 dataset.X[i:stop, :]),
                                 dataset.axes, axes))
             transformed = convert_axes(transformed, axes, dataset.axes)
             if self._batch_size != data_size:
-                dataset.set_topological_view(transformed, dataset.axes,
+                if isinstance(dataset.X, np.ndarray):
+                    # TODO have a separate class for non pytables datasets
+                    transformed = convert_axes(transformed, dataset.axes, ['b', 0, 1, 'c'])
+                    transformed = transformed.reshape(transformed.shape[0],
+                                        transformed.shape[1] * transformed.shape[2] * transformed.shape[3])
+                    dataset.X[i:stop] = transformed
+                else:
+                    dataset.set_topological_view(transformed, dataset.axes,
                                             start = i)
 
         if self._batch_size == data_size:
             dataset.set_topological_view(transformed, dataset.axes)
+
+
+class RGB_YUV(ExamplewisePreprocessor):
+
+    def __init__(self, rgb_yuv = True, batch_size = 5000):
+        self._batch_size = batch_size
+        self._rgb_yuv = rgb_yuv
+
+    def yuv_rgb(self, x):
+        y = x[:,:,:,0]
+        u = x[:,:,:,1]
+        v = x[:,:,:,2]
+
+        r = y + 1.13983 * v
+        g = y - 0.39465 * u - 0.58060 * v
+        b = y + 2.03211 * u
+
+        x[:,:,:,0] = r
+        x[:,:,:,1] = g
+        x[:,:,:,2] = b
+
+        return x
+
+    def rgb_yuv(self, x):
+        r = x[:,:,:,0]
+        g = x[:,:,:,1]
+        b = x[:,:,:,2]
+
+        y = 0.299 * r + 0.587 * g + 0.114 * b
+        u = -0.14713 * r - 0.28886 * g + 0.436 * b
+        v = 0.615 * r -0.51499 * g  -0.10001 * b
+
+        x[:,:,:,0] = y
+        x[:,:,:,1] = u
+        x[:,:,:,2] = v
+
+        return x
+
+    def transform(self, x, dataset_axes):
+
+        axes = ['b', 0, 1, 'c']
+        x = convert_axes(x, dataset_axes, axes)
+        if self._rgb_yuv:
+            x = self.rgb_yuv(x)
+        else:
+            x = self.yuv_rgb(x)
+        x = convert_axes(x, axes, dataset_axes)
+        return x
+
+    def apply(self, dataset, can_fit=False):
+
+        X = dataset.X
+        data_size = X.shape[0]
+        last = np.floor(data_size / float(self._batch_size)) * self._batch_size
+        for i in xrange(0, data_size, self._batch_size):
+            stop = i + np.mod(data_size, self._batch_size) if i>= last else i + self._batch_size
+            print "RGB_YUV processing data from {} to {}".format(i, stop)
+            data = dataset.get_topological_view(X[i:stop])
+            data = self.transform(data, dataset.axes)
+            dataset.set_topological_view(data, dataset.axes, start = i)
+
 
 def lecun_lcn(input, img_shape, kernel_shape, threshold = 1e-4):
     """
@@ -958,48 +1029,6 @@ def lecun_lcn(input, img_shape, kernel_shape, threshold = 1e-4):
 
     f = function([X], new_X)
     return f(input)
-
-def rgb_yuv(x):
-    """
-    x: A batch of images in numpy tensor format, with
-       the last axis corresponding to the channels.
-       The channels should be r, g, and b.
-    Returns the same format, with channels y, u, v.
-
-    TODO: add reference
-    """
-    r = x[:,:,:,0]
-    g = x[:,:,:,1]
-    b = x[:,:,:,2]
-
-    y = 0.299 * r + 0.587 * g + 0.114 * b
-    u = -0.14713 * r - 0.28886 * g + 0.436 * b
-    v = 0.615 * r -0.51499 * g  -0.10001 * b
-
-    x[:,:,:,0] = y
-    x[:,:,:,1] = u
-    x[:,:,:,2] = v
-
-    return x
-
-def yuv_rgb(x):
-    """
-    Inverse of rbg_yuv.
-    """
-
-    y = x[:,:,:,0]
-    u = x[:,:,:,1]
-    v = x[:,:,:,2]
-
-    r = y + 1.13983 * v
-    g = y - 0.39465 * u - 0.58060 * v
-    b = y + 2.03211 * u
-
-    x[:,:,:,0] = r
-    x[:,:,:,1] = g
-    x[:,:,:,2] = b
-
-    return x
 
 def gaussian_filter(kernel_shape):
 

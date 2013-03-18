@@ -547,11 +547,13 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         last = np.floor(data_size / float(batch_size)) * batch_size
         for i in xrange(0, data_size, batch_size):
             stop = i + np.mod(data_size, batch_size) if i >= last else i + batch_size
+            assert len(range(start + i, start + stop)) == len(range(i, stop))
+            assert (start + stop) <= (node.X.shape[0])
             node.X[start + i: start + stop, :] = data_x[i:stop, :]
             if data_y is not None:
                  node.y[start + i: start + stop, :] = data_y[i:stop, :]
 
-        file.flush()
+            file.flush()
 
     @staticmethod
     def resize(h5file, start, stop):
