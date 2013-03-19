@@ -2,6 +2,11 @@
 dataset-get experimental framework
 ==================================
 
+WARNING: This is a prototype that don't have real datasets
+available. We don't know if we will use it in the future and we don't
+use it. So you are probably better to skip this.
+
+
 This directory contains a prototype of the unified dataset repository
 infrastructure for Theano/PyLearn
 
