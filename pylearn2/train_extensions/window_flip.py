@@ -21,6 +21,24 @@ __maintainer__ = "David Warde-Farley"
 __email__ = "wardefar@iro"
 
 
+def _zero_pad(array, amount, axes=(1, 2)):
+    if amount == 0:
+        return array
+    new_shape = []
+    slices = []
+    for i, s in enumerate(array.shape):
+        if i in axes:
+            new_shape.append(s + 2 * amount)
+            slices.append(slice(amount, -amount))
+        else:
+            new_shape.append(s)
+            slices.append(slice(None))
+    new_shape = tuple(new_shape)
+    slices = tuple(slices)
+    new_array = numpy.zeros(new_shape, dtype=array.dtype)
+    new_array[slices] = array
+    return new_array
+
 
 class WindowAndFlipC01B(TrainExtension):
     # Immutable class-level attribute. This should not be a list, as then
@@ -29,7 +47,7 @@ class WindowAndFlipC01B(TrainExtension):
     axes = ('c', 0, 1, 'b')
 
     def __init__(self, window_shape, randomize=None, randomize_once=None,
-            center=None, rng=(2013, 02, 20)):
+            center=None, rng=(2013, 02, 20), pad_randomized=0):
         """
         An extension that allows an image dataset to be flipped
         and windowed after each epoch of training.
@@ -47,6 +65,18 @@ class WindowAndFlipC01B(TrainExtension):
         center : list, optional
             If specified, a list of Datasets to centrally window
             once at the start of training.
+
+        rng : numpy.random.RandomState object or seed, optional
+            A random number generator or seed used to create one.
+            Seeded deterministically by default.
+
+        pad_randomized : int, optional
+            Amount of padding to add to each side of the images
+            in `randomize` and `randomize_once`. Useful if you
+            want to do zero-padded windowing with `window_shape`
+            the actual size of the dataset, and validate/test on
+            full-size images instead of central patches. Default
+            is 0.
         """
         self._window_shape = tuple(window_shape)
         self._original = None
@@ -54,6 +84,7 @@ class WindowAndFlipC01B(TrainExtension):
         self._randomize = randomize if randomize else []
         self._randomize_once = randomize_once if randomize_once else []
         self._center = center if center else []
+        self._pad_randomized = pad_randomized
 
         if randomize is None and randomize_once is None and center is None:
             warnings.warn(self.__class__.__name__ + " instantiated without "
@@ -80,8 +111,9 @@ class WindowAndFlipC01B(TrainExtension):
 
         # Do the initial random windowing
         randomize_now = self._randomize + self._randomize_once
-        self._original = dict((dataset, dataset.get_topological_view())
-                for dataset in randomize_now)
+        self._original = dict((data, _zero_pad(data.get_topological_view(),
+                                               self._pad_randomized))
+                for data in randomize_now)
         self.randomize_datasets(randomize_now)
 
     def randomize_datasets(self, datasets):
@@ -94,7 +126,6 @@ class WindowAndFlipC01B(TrainExtension):
                                               self._window_shape,
                                               rng=self._rng)
             dataset.set_topological_view(arr, axes=self.axes)
-
 
     def on_monitor(self, model, dataset, algorithm):
         """
