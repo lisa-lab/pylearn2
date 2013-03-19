@@ -1,4 +1,5 @@
 import hashlib
+import itertools
 import numpy
 from pylearn2.train_extensions.window_flip import WindowAndFlipC01B
 
@@ -7,6 +8,7 @@ from pylearn2.datasets.dense_design_matrix import (
     DefaultViewConverter
 )
 from pylearn2.utils.testing import assert_equal, assert_contains, assert_
+
 
 class DummyDataset(DenseDesignMatrix):
     def __init__(self):
@@ -51,3 +53,32 @@ def test_window_flip_coverage():
             hashed = _hash_array(curr_topo[..., b])
             assert hashed in ref_win[b]
             actual_win[b].add(hashed)
+
+
+def test_padding():
+    padding = 3
+    ddata = DummyDataset()
+    topo = ddata.get_topological_view()
+    wf = WindowAndFlipC01B(window_shape=(5, 5), randomize=[ddata],
+                           pad_randomized=padding)
+    wf.setup(None, None, None)
+    new_topo = ddata.get_topological_view()
+    assert_equal(topo.shape, new_topo.shape)
+    saw_padding = dict([((direction, amount), False) for direction, amount
+                        in itertools.product(['l', 'b', 'r', 't'],
+                                             xrange(padding))])
+    iters = 0
+    while not all(saw_padding.values()) and iters < 50:
+        for image in new_topo.swapaxes(0, 3):
+            for i in xrange(padding):
+                if (image[:i] == 0).all():
+                    saw_padding['t', i] = True
+                if (image[-i:] == 0).all():
+                    saw_padding['b', i] = True
+                if (image[:, -i:] == 0).all():
+                    saw_padding['r', i] = True
+                if (image[:, :i] == 0).all():
+                    saw_padding['l', i] = True
+        wf.on_monitor(None, None, None)
+        new_topo = ddata.get_topological_view()
+        iters += 1
