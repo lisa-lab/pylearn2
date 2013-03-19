@@ -44,7 +44,8 @@ def preprocess(string):
             if varname == 'PYLEARN2_VIEWER_COMMAND':
                 raise EnvironmentVariableError(
 """
-PYLEARN2_VIEWER_COMMAND not defined.
+PYLEARN2_VIEWER_COMMAND not defined. PLEASE READ THE FOLLOWING MESSAGE CAREFULLy
+TO SET UP THIS ENVIRONMENT VARIABLE:
 
 pylearn2 uses an external program to display images. Because different systems have different
 image programs available, pylearn2 requires the user to specify what image viewer program to
@@ -73,6 +74,11 @@ On most linux setups, you can define your environment variable by adding this li
 ~/.bashrc file:
 
 export PYLEARN2_VIEWER_COMMAND="eog --new-instance"
+
+*** YOU MUST INCLUDE THE WORD "export". DO NOT JUST ASSIGN TO THE ENVIRONMENT VARIABLE ***
+If you do not include the word "export", the environment variable will be set in your
+bash shell, but will not be visible to processes that you launch from it, like the python
+interpreter.
 
 Don't forget that changes from your .bashrc file won't apply until you run
 
