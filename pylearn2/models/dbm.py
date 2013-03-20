@@ -385,7 +385,7 @@ class DBM(Model):
         """
 
         # Validate num_steps
-        assert isinstance(num_steps, int)
+        assert isinstance(num_steps, (int, long, np.integer))
         assert num_steps > 0
 
         # Implement the num_steps > 1 case by repeatedly calling the num_steps == 1 case
@@ -1610,7 +1610,7 @@ class Softmax(HiddenLayer):
         self.__dict__.update(locals())
         del self.self
 
-        assert isinstance(n_classes, int)
+        assert isinstance(n_classes, (int, long, np.integer))
 
         self.output_space = VectorSpace(n_classes)
         self.b = sharedX( np.zeros((n_classes,)), name = 'softmax_b')

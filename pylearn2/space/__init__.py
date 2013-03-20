@@ -249,13 +249,13 @@ class Conv2DSpace(Space):
         if num_channels is None:
             num_channels = channels
 
-        assert isinstance(num_channels, int)
+        assert isinstance(num_channels, (int, long, np.integer))
 
         if not hasattr(shape, '__len__') or len(shape) != 2:
             raise ValueError("shape argument to Conv2DSpace must be length 2")
-        assert all(isinstance(elem, int) for elem in shape)
+        assert all(isinstance(elem, (int, long, np.integer)) for elem in shape)
         assert all(elem > 0 for elem in shape)
-        assert isinstance(num_channels, int)
+        assert isinstance(num_channels, (int, long. np.integer))
         assert num_channels > 0
         self.shape = shape
         self.num_channels = num_channels
@@ -284,7 +284,7 @@ class Conv2DSpace(Space):
 
     @functools.wraps(Space.get_origin_batch)
     def get_origin_batch(self, n):
-        if not isinstance(n, int):
+        if not isinstance(n, (int, long, np.integer)):
             raise TypeError("Conv2DSpace.get_origin_batch expects an int, got " +
                     str(n) + " of type " + str(type(n)))
         assert n > 0

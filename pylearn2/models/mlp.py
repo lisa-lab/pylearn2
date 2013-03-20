@@ -384,7 +384,7 @@ class Softmax(Layer):
         self.__dict__.update(locals())
         del self.self
 
-        assert isinstance(n_classes, int)
+        assert isinstance(n_classes, (int, long, np.integer))
 
         self.output_space = VectorSpace(n_classes)
         if not no_affine:

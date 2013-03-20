@@ -570,8 +570,8 @@ class LinearDecay(object):
         if isinstance(saturate, str):
             saturate = float(saturate)
         assert isinstance(decay_factor, float)
-        assert isinstance(start, int) or isinstance(start, float)
-        assert isinstance(saturate, int) or isinstance(saturate, float)
+        assert isinstance(start, (int, long, float, np.number))
+        assert isinstance(saturate, (int, long, float, np.number))
         assert saturate > start
         assert start > 0
         self.__dict__.update(locals())
@@ -693,8 +693,8 @@ class LinearDecayOverEpoch(TrainExtension):
         self._initialized = False
         self._count = 0
         assert isinstance(decay_factor, float)
-        assert isinstance(start, int) or isinstance(start, float)
-        assert isinstance(saturate, int) or isinstance(saturate, float)
+        assert isinstance(start, (int, long, float, np.number))
+        assert isinstance(saturate, (int, long, float, np.number))
         assert saturate > start
         assert start >= 0
         assert saturate >= start
@@ -781,7 +781,7 @@ class PolyakAveraging(TrainExtension):
         self.__dict__.update(locals())
         del self.self
         self._count = 0
-        assert isinstance(start, int)
+        assert isinstance(start, (int, long, np.integer))
         assert start >= 0
 
     def on_monitor(self, model, dataset, algorithm):

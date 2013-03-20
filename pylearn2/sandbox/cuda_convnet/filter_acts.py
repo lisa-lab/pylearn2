@@ -40,7 +40,7 @@ The copyright and licensing notice for this code is reproduced below:
  */
 
 """
-
+import numpy as np
 from theano.sandbox.cuda import CudaNdarrayType
 from theano.gof import Apply
 from theano.gof.op import get_debug_values
@@ -143,7 +143,7 @@ class FilterActs(BaseActs):
             #define numGroups 1
             """
 
-        assert isinstance(self.pad, int)
+        assert isinstance(self.pad, (int, long, np.integer))
         basic_setup += """
         #define paddingStart (-%d)
         """ % self.pad

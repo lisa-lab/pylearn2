@@ -654,16 +654,16 @@ class MaxoutConvC01B(Layer):
 
         assert self.pool_shape[0] == self.pool_shape[1]
         assert self.pool_stride[0] == self.pool_stride[1]
-        assert all(isinstance(elem, int) for elem in self.pool_stride)
+        assert all(isinstance(elem, (int, long, np.integer)) for elem in self.pool_stride)
         if self.pool_stride[0] > self.pool_shape[0]:
             if self.fix_pool_stride:
                 warnings.warn("Fixing the pool stride")
                 ps = self.pool_shape[0]
-                assert isinstance(ps, int)
+                assert isinstance(ps, (int, long, np.integer))
                 self.pool_stride = [ps, ps]
             else:
                 raise ValueError("Stride too big.")
-        assert all(isinstance(elem, int) for elem in self.pool_stride)
+        assert all(isinstance(elem, (int, long, np.integer)) for elem in self.pool_stride)
 
 
         check_cuda()

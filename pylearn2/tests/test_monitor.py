@@ -109,8 +109,8 @@ def test_counting():
                 ' batches but saw '+str(model.monitor.get_batches_seen()))
 
     assert model.monitor.get_examples_seen() == num_examples
-    assert isinstance(model.monitor.get_examples_seen(),int)
-    assert isinstance(model.monitor.get_batches_seen(),int)
+    assert isinstance(model.monitor.get_examples_seen(), (int, long))
+    assert isinstance(model.monitor.get_batches_seen(), (int, long))
 
 def test_reject_empty():
 
