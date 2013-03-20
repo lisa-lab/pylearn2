@@ -346,12 +346,12 @@ if 0: # needs to be brought up to date with LinearTransform method names
         def __init__(self, Wlist, col_shape=None):
             super(Concat, self).__init__([])
             self._Wlist = list(Wlist)
-            if not isinstance(col_shape, (int, long, np.integer, tuple, type(None))):
+            if not isinstance(col_shape, (int, long, numpy.integer, tuple, type(None))):
                 raise TypeError('col_shape must be int or int tuple')
             self._col_sizes = [prod(w.col_shape()) for w in Wlist]
             if col_shape is None:
                 self.__col_shape = sum(self._col_sizes),
-            elif isinstance(col_shape, (int, long, np.integer)):
+            elif isinstance(col_shape, (int, long, numpy.integer)):
                 self.__col_shape = col_shape,
             else:
                 self.__col_shape = tuple(col_shape)
