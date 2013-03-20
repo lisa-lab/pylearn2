@@ -8,6 +8,7 @@ from pylearn2.training_algorithms.default import DefaultTrainingAlgorithm
 import numpy as np
 from theano import tensor as T
 from pylearn2.models.s3c import S3C, E_Step, Grad_M_Step
+from pylearn2.utils import py_integer_types
 from pylearn2.utils import sharedX
 from pylearn2.utils.serial import to_string
 from pylearn2.utils.serial import from_string
@@ -109,8 +110,8 @@ def test_counting():
                 ' batches but saw '+str(model.monitor.get_batches_seen()))
 
     assert model.monitor.get_examples_seen() == num_examples
-    assert isinstance(model.monitor.get_examples_seen(), (int, long))
-    assert isinstance(model.monitor.get_batches_seen(), (int, long))
+    assert isinstance(model.monitor.get_examples_seen(), py_integer_types)
+    assert isinstance(model.monitor.get_batches_seen(), py_integer_types)
 
 def test_reject_empty():
 

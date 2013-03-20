@@ -40,7 +40,6 @@ The copyright and licensing notice for this code is reproduced below:
  */
 
 """
-import numpy as np
 from theano.sandbox.cuda import CudaNdarrayType
 from theano.gof import Apply
 from theano.gof.op import get_debug_values
@@ -50,6 +49,7 @@ from pylearn2.sandbox.cuda_convnet.base_acts import UnimplementedError
 #from pylearn2.sandbox.cuda_convnet.weight_acts import WeightActs
 from pylearn2.sandbox.cuda_convnet.img_acts import ImageActs
 from pylearn2.sandbox.cuda_convnet.weight_acts import WeightActs
+from pylearn2.utils import py_integer_types
 from theano.sandbox.cuda.basic_ops import gpu_contiguous
 
 
@@ -143,7 +143,7 @@ class FilterActs(BaseActs):
             #define numGroups 1
             """
 
-        assert isinstance(self.pad, (int, long, np.integer))
+        assert isinstance(self.pad, py_integer_types)
         basic_setup += """
         #define paddingStart (-%d)
         """ % self.pad

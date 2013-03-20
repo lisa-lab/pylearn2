@@ -1,8 +1,8 @@
 """ Training costs for unsupervised learning of energy-based models """
-import numpy as np
 import theano.tensor as T
 from theano import scan
 from pylearn2.costs.cost import Cost
+from pylern2.utils import py_integer_types
 
 
 class NCE(Cost):
@@ -67,7 +67,7 @@ class NCE(Cost):
 
         self.noise = noise
 
-        assert isinstance(noise_per_clean, (int, long, np.integer))
+        assert isinstance(noise_per_clean, py_integer_types)
         self.noise_per_clean = noise_per_clean
 
 class SM(Cost):

@@ -39,6 +39,7 @@ from pylearn2.space import Conv2DSpace
 from pylearn2.space import Space
 from pylearn2.space import VectorSpace
 from pylearn2.utils import block_gradient
+from pylearn2.utils import py_integer_types
 from pylearn2.utils import safe_zip
 from pylearn2.utils import safe_izip
 from pylearn2.utils import sharedX
@@ -385,7 +386,7 @@ class DBM(Model):
         """
 
         # Validate num_steps
-        assert isinstance(num_steps, (int, long, np.integer))
+        assert isinstance(num_steps, py_integer_types)
         assert num_steps > 0
 
         # Implement the num_steps > 1 case by repeatedly calling the num_steps == 1 case
@@ -1610,7 +1611,7 @@ class Softmax(HiddenLayer):
         self.__dict__.update(locals())
         del self.self
 
-        assert isinstance(n_classes, (int, long, np.integer))
+        assert isinstance(n_classes, py_integer_types)
 
         self.output_space = VectorSpace(n_classes)
         self.b = sharedX( np.zeros((n_classes,)), name = 'softmax_b')

@@ -42,6 +42,7 @@ from theano import config
 import functools
 from theano.gof.op import get_debug_values
 from theano.sandbox.cuda.type import CudaNdarrayType
+from pylearn2.utils import py_integer_types
 
 
 class Space(object):
@@ -249,13 +250,13 @@ class Conv2DSpace(Space):
         if num_channels is None:
             num_channels = channels
 
-        assert isinstance(num_channels, (int, long, np.integer))
+        assert isinstance(num_channels, py_integer_types)
 
         if not hasattr(shape, '__len__') or len(shape) != 2:
             raise ValueError("shape argument to Conv2DSpace must be length 2")
-        assert all(isinstance(elem, (int, long, np.integer)) for elem in shape)
+        assert all(isinstance(elem, py_integer_types) for elem in shape)
         assert all(elem > 0 for elem in shape)
-        assert isinstance(num_channels, (int, long. np.integer))
+        assert isinstance(num_channels, py_integer_types)
         assert num_channels > 0
         self.shape = shape
         self.num_channels = num_channels
@@ -284,7 +285,7 @@ class Conv2DSpace(Space):
 
     @functools.wraps(Space.get_origin_batch)
     def get_origin_batch(self, n):
-        if not isinstance(n, (int, long, np.integer)):
+        if not isinstance(n, py_integer_types):
             raise TypeError("Conv2DSpace.get_origin_batch expects an int, got " +
                     str(n) + " of type " + str(type(n)))
         assert n > 0

@@ -3,6 +3,7 @@ from PIL import Image
 from pylearn2.datasets.dense_design_matrix import DefaultViewConverter
 from pylearn2.utils.image import show
 from pylearn2.utils import image
+from pylearn2.utils import py_integer_types
 import warnings
 
 def make_viewer(mat, grid_shape=None, patch_shape=None, activation=None, pad=None, is_color = False, rescale = True):
@@ -59,7 +60,7 @@ class PatchViewer(object):
         assert len(patch_shape) == 2
         for shape in [grid_shape, patch_shape]:
             for elem in shape:
-                if not isinstance(elem, (int, long, np.integer)):
+                if not isinstance(elem, py_integer_types):
                     raise ValueError("Expected grid_shape and patch_shape to be pairs of ints, but they are %s and %s respectively." % (str(grid_shape), str(patch_shape)))
         self.is_color = is_color
         if pad is None:
@@ -238,7 +239,7 @@ class PatchViewer(object):
         If exact, fits exactly n elements
         """
 
-        if not isinstance(n, (int, long, np.integer)):
+        if not isinstance(n, py_integer_types):
             raise TypeError("n must be an integer, but is "+str(type(n)))
 
         if exact:

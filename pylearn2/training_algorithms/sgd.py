@@ -19,6 +19,7 @@ from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 from pylearn2.utils import sharedX
 from pylearn2.train_extensions import TrainExtension
 from pylearn2.utils.iteration import is_stochastic
+from pylearn2.utils import py_integer_types, py_float_types
 from pylearn2.utils import safe_zip
 from pylearn2.utils import serial
 from pylearn2.utils.timing import log_timing
@@ -570,8 +571,8 @@ class LinearDecay(object):
         if isinstance(saturate, str):
             saturate = float(saturate)
         assert isinstance(decay_factor, float)
-        assert isinstance(start, (int, long, float, np.number))
-        assert isinstance(saturate, (int, long, float, np.number))
+        assert isinstance(start, (py_integer_types, py_float_types))
+        assert isinstance(saturate, (py_integer_types, py_float_types))
         assert saturate > start
         assert start > 0
         self.__dict__.update(locals())
@@ -693,8 +694,8 @@ class LinearDecayOverEpoch(TrainExtension):
         self._initialized = False
         self._count = 0
         assert isinstance(decay_factor, float)
-        assert isinstance(start, (int, long, float, np.number))
-        assert isinstance(saturate, (int, long, float, np.number))
+        assert isinstance(start, (py_integer_types, py_float_types))
+        assert isinstance(saturate, (py_integer_types, py_float_types))
         assert saturate > start
         assert start >= 0
         assert saturate >= start
@@ -781,7 +782,7 @@ class PolyakAveraging(TrainExtension):
         self.__dict__.update(locals())
         del self.self
         self._count = 0
-        assert isinstance(start, (int, long, np.integer))
+        assert isinstance(start, py_integer_types)
         assert start >= 0
 
     def on_monitor(self, model, dataset, algorithm):

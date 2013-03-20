@@ -30,6 +30,7 @@ from pylearn2.space import Conv2DSpace
 from pylearn2.space import Space
 from pylearn2.space import VectorSpace
 from pylearn2.utils import function
+from pylearn2.utils import py_integer_types
 from pylearn2.utils import safe_izip
 from pylearn2.utils import sharedX
 
@@ -384,7 +385,7 @@ class Softmax(Layer):
         self.__dict__.update(locals())
         del self.self
 
-        assert isinstance(n_classes, (int, long, np.integer))
+        assert isinstance(n_classes, py_integer_types)
 
         self.output_space = VectorSpace(n_classes)
         if not no_affine:
