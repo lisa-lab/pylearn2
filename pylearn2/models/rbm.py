@@ -19,7 +19,6 @@ from pylearn2.costs.cost import Cost
 from pylearn2.base import Block, StackedBlocks
 from pylearn2.utils import as_floatX, safe_update, sharedX
 from pylearn2.models import Model
-from pylearn2.optimizer import SGDOptimizer
 from pylearn2.expr.basic import theano_norms
 from pylearn2.expr.nnet import inverse_sigmoid_numpy
 from pylearn2.linear.matrixmul import MatrixMul
@@ -54,6 +53,9 @@ def training_updates(visible_batch, model, sampler, optimizer):
     optimizer : object
         An instance of `Optimizer` or a derived class, or one implementing
         the optimizer interface (typically an `SGDOptimizer`).
+        TODO: the Optimizer object got deprecated. Does this code still work?
+              if we do need to revive the Optimizer object, note that it
+              has the wrong implementation of momentum.
     """
     # Compute negative phase updates.
     sampler_updates = sampler.updates()
