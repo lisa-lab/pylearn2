@@ -44,7 +44,7 @@ def preprocess(string):
             if varname == 'PYLEARN2_VIEWER_COMMAND':
                 raise EnvironmentVariableError(
 """
-PYLEARN2_VIEWER_COMMAND not defined. PLEASE READ THE FOLLOWING MESSAGE CAREFULLy
+PYLEARN2_VIEWER_COMMAND not defined. PLEASE READ THE FOLLOWING MESSAGE CAREFULLY
 TO SET UP THIS ENVIRONMENT VARIABLE:
 
 pylearn2 uses an external program to display images. Because different systems have different
