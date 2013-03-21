@@ -19,8 +19,6 @@ from pylearn2.costs.cost import Cost
 from pylearn2.base import Block, StackedBlocks
 from pylearn2.utils import as_floatX, safe_update, sharedX
 from pylearn2.models import Model
-from pylearn2.optimizer import SGDOptimizer
-from pylearn2.expr.basic import theano_norms
 from pylearn2.expr.nnet import inverse_sigmoid_numpy
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.space import VectorSpace
@@ -52,8 +50,14 @@ def training_updates(visible_batch, model, sampler, optimizer):
         An instance of `Sampler` or a derived class, or one implementing
         the sampler interface.
     optimizer : object
-        An instance of `Optimizer` or a derived class, or one implementing
-        the optimizer interface (typically an `SGDOptimizer`).
+        An instance of `_Optimizer` or a derived class, or one implementing
+        the optimizer interface (typically an `_SGDOptimizer`).
+        TODO: the Optimizer object got deprecated, and this is the only
+                functionality that requires it. We moved the Optimizer
+                here with an _ before its name.
+                We should figure out how best to refactor the code.
+                Optimizer was problematic because people kept using SGDOptimizer
+                instead of training_algorithms.sgd.
     """
     # Compute negative phase updates.
     sampler_updates = sampler.updates()
@@ -467,7 +471,7 @@ class RBM(Block, Model):
 
         minibatch = tensor.matrix()
 
-        optimizer = SGDOptimizer(self, self.base_lr, self.anneal_start)
+        optimizer = _SGDOptimizer(self, self.base_lr, self.anneal_start)
 
         sampler = sampler = BlockGibbsSampler(self, 0.5 + np.zeros((self.nchains, self.get_input_dim())), self.rng,
                                                   steps= self.sml_gibbs_steps)
@@ -734,6 +738,9 @@ class RBM(Block, Model):
         """
         sample, _locals = self.gibbs_step_for_v(v, rng)
         return ((_locals['v_mean'] - v) ** 2).sum(axis=1).mean()
+
+
+
 
 
 class GaussianBinaryRBM(RBM):
@@ -1131,3 +1138,65 @@ class L1_ActivationCost(Cost):
         rval = self.coeff * dead.mean()
         return rval
 
+# The following functionality was deprecated, but is evidently
+# still needed to make the RBM work
+
+class _Optimizer(object):
+    """
+    Basic abstract class for computing parameter updates of a model.
+    """
+    def updates(self):
+        """Return symbolic updates to apply."""
+        raise NotImplementedError()
+
+
+class _SGDOptimizer(_Optimizer):
+    """
+    Compute updates by stochastic gradient descent on mini-batches.
+
+    Supports constant learning rates, or decreasing like 1/t after an initial
+    period.
+    """
+    def __init__(self, params, base_lr, anneal_start=None, **kwargs):
+        """
+        Construct an SGDOptimizer.
+
+        Parameters
+        ----------
+        params : object or list
+            Either a Model object with a .get_params() method, or a list of
+            parameters to be optimized.
+        base_lr : float
+            The base learning rate before annealing or parameter-specific
+            scaling.
+        anneal_start : int
+            Number of steps after which to start annealing the learning
+            rate at a 1/t schedule, where t is the number of stochastic
+            gradient updates.
+
+        Notes
+        -----
+        The formula to compute the effective learning rate on a parameter is:
+        <paramname>_lr * max(0.0, min(base_lr, lr_anneal_start/(iteration+1)))
+
+        Parameter-specific learning rates can be set by passing keyword
+        arguments <name>_lr, where name is the .name attribute of a given
+        parameter.
+
+        Parameter-specific bounding values can be specified by passing
+        keyword arguments <param>_clip, which should be a (min, max) pair.
+        """
+        if hasattr(params, '__iter__'):
+            self.params = params
+        elif hasattr(params, 'get_params') and hasattr(params.get_params, '__call__'):
+            self.params = params.get_params()
+        else:
+            raise ValueError("SGDOptimizer couldn't figure out what to do "
+                             "with first argument: '%s'" % str(params))
+        if anneal_start == None:
+            self.anneal_start = None
+        else:
+            self.anneal_start = as_floatX(anneal_start)
+
+        # Set up the clipping values
+        self.clipping_values = {}

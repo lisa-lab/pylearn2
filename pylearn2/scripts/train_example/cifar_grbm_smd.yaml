@@ -93,6 +93,10 @@
         # Here we specify the objective function that stochastic gradient
         # descent should minimize.  In this case we use denoising score
         # matching, which makes this RBM behave as a denoising autoencoder.
+        # See
+        # Pascal Vincent. "A Connection Between Score Matching and Denoising
+        # Auutoencoders." Neural Computation, 2011
+        # for details.
 
         cost : !obj:pylearn2.costs.ebm_estimation.SMD {
 

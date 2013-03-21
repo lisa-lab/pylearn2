@@ -167,10 +167,3 @@ class StackedBlocks(Block):
         self._params.update(layer._params)
 
 
-class Optimizer(object):
-    """
-    Basic abstract class for computing parameter updates of a model.
-    """
-    def updates(self):
-        """Return symbolic updates to apply."""
-        raise NotImplementedError()

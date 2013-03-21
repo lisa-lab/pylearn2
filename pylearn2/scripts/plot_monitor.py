@@ -100,8 +100,8 @@ while True:
 
         print
 
-        print "Put e, b, or s in the list somewhere to plot epochs, batches, or seconds, respectively."
-        response = raw_input('Enter a list of channels to plot (example: A, C,F-G, t, <test_err>) or q to quit: ')
+        print "Put e, b, s or h in the list somewhere to plot epochs, batches, seconds, or hours, respectively."
+        response = raw_input('Enter a list of channels to plot (example: A, C,F-G, h, <test_err>) or q to quit: ')
 
         if response == 'q':
             break
@@ -122,6 +122,8 @@ while True:
                 x_axis = 'batche'
             elif code == 's':
                 x_axis = 'second'
+            elif code == 'h':
+                x_axis = 'hour'
             elif code.startswith('<'):
                 assert code.endswith('>')
                 final_codes.add(code)
@@ -217,6 +219,8 @@ while True:
                 x = np.arange(len(channel.batch_record))
         elif x_axis == 'second':
             x = np.asarray(channel.time_record)
+        elif x_axis == 'hour':
+            x = np.asarray(channel.time_record) / 3600.
         else:
             assert False
 
