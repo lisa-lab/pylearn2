@@ -2,7 +2,7 @@ from pylearn2.datasets import dense_design_matrix
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.datasets.preprocessing import GlobalContrastNormalization
 from pylearn2.datasets.preprocessing import ExtractGridPatches, ReassembleGridPatches
-from pylearn2.datasets.preprocessing import LeCunLCN_ICPR, LeCunLCNChannels
+from pylearn2.datasets.preprocessing import LeCunLCN
 from pylearn2.utils import as_floatX
 import numpy as np
 
@@ -88,8 +88,8 @@ def test_extract_reassemble():
     if not np.all(new_topo == topo):
         assert False
 
-def test_lecun_icpr():
-        """ Test LeCunLCN_ICPR
+def test_lecun_lcn():
+        """ Test LeCunLCNC
         """
 
         rng = np.random.RandomState([1,2,3])
@@ -100,26 +100,7 @@ def test_lecun_icpr():
                                                                     axes)
         dataset = DenseDesignMatrix(X = X, view_converter = view_converter)
         dataset.axes = axes
-        preprocessor = LeCunLCN_ICPR(img_shape=[32,32])
-        dataset.apply_preprocessor(preprocessor, can_fit = True)
-        result = dataset.get_design_matrix()
-
-        assert not np.any(np.isnan(result))
-        assert not np.any(np.isinf(result))
-
-def test_lecun_lcn_channels():
-        """ Test LeCunLCNChannels
-        """
-
-        rng = np.random.RandomState([1,2,3])
-        X = as_floatX(rng.randn(5,32*32*3))
-
-        axes = ['b', 0, 1, 'c']
-        view_converter = dense_design_matrix.DefaultViewConverter((32, 32, 3),
-                                                                    axes)
-        dataset = DenseDesignMatrix(X = X, view_converter = view_converter)
-        dataset.axes = axes
-        preprocessor = LeCunLCNChannels(img_shape=[32,32])
+        preprocessor = LeCunLCN(img_shape=[32,32])
         dataset.apply_preprocessor(preprocessor)
         result = dataset.get_design_matrix()
 

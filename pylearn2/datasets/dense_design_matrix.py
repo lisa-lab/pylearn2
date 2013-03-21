@@ -30,6 +30,7 @@ def ensure_tables():
     Makes sure tables module has been imported
     """
 
+    global tables
     if tables is None:
         import tables
 
