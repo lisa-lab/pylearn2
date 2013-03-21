@@ -10,6 +10,7 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
             one_hot = False, start = None, stop = None, axes=('b', 0, 1, 'c'),
             toronto_prepro = False, preprocessor = None):
 
+
         # note: there is no such thing as the cifar10 validation set;
         # pylearn1 defined one but really it should be user-configurable
         # (as it is here)
@@ -99,15 +100,18 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         self.gcn = gcn
         if gcn is not None:
             assert isinstance(gcn,float)
-            X = (X.T - X.mean(axis=1)).T
-            if which_set == 'test':
-                raise NotImplementedError("Need to subtract the mean of the *training* set.")
+            # Note: this is per-example mean across pixels, not the
+            # per-pixel mean across examples. So it is perfectly fine
+            # to subtract this without worrying about whether the current
+            # object is the train, valid, or test set.
+            mn = X.mean(axis=1)
+            X = (X.T - mn).T
             X = (X.T / np.sqrt(np.square(X).sum(axis=1))).T
             X *= gcn
 
         if start is not None:
             # This needs to come after the prepro so that it doesn't change the pixel
-            # means computed above
+            # means computed above for toronto_prepro
             assert start >= 0
             assert stop > start
             assert stop <= X.shape[0]
