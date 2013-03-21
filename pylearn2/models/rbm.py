@@ -471,7 +471,7 @@ class RBM(Block, Model):
 
         minibatch = tensor.matrix()
 
-        optimizer = SGDOptimizer(self, self.base_lr, self.anneal_start)
+        optimizer = _SGDOptimizer(self, self.base_lr, self.anneal_start)
 
         sampler = sampler = BlockGibbsSampler(self, 0.5 + np.zeros((self.nchains, self.get_input_dim())), self.rng,
                                                   steps= self.sml_gibbs_steps)
