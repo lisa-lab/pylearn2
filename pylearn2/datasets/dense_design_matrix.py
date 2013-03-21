@@ -30,6 +30,7 @@ def ensure_tables():
     Makes sure tables module has been imported
     """
 
+    global tables
     if tables is None:
         import tables
 
@@ -447,6 +448,44 @@ class DenseDesignMatrix(Dataset):
          return self.y is not None
 
 class DenseDesignMatrixPyTables(DenseDesignMatrix):
+    """
+    DenseDesignMatrix based on PyTables
+    """
+
+    ensure_tables()
+    filters = tables.Filters(complib='blosc', complevel=5)
+
+    def set_design_matrix(self, X, start = 0):
+        assert len(X.shape) == 2
+        assert not N.any(N.isnan(X))
+        DenseDesignMatrixPyTables.fill_hdf5(file = self.h5file,
+                                            data_x = X,
+                                            start = start)
+
+    def set_topological_view(self, V, axes = ('b', 0, 1, 'c'), start = 0):
+        """
+        Sets the dataset to represent V, where V is a batch
+        of topological views of examples.
+
+        Parameters
+        ----------
+        V : ndarray
+            An array containing a design matrix representation of training
+            examples. If unspecified, the entire dataset (`self.X`) is used
+            instead.
+        TODO: why is this parameter named 'V'?
+        """
+        assert not N.any(N.isnan(V))
+        rows = V.shape[axes.index(0)]
+        cols = V.shape[axes.index(1)]
+        channels = V.shape[axes.index('c')]
+        self.view_converter = DefaultViewConverter([rows, cols, channels], axes=axes)
+        X = self.view_converter.topo_view_to_design_mat(V)
+        assert not N.any(N.isnan(X))
+        DenseDesignMatrixPyTables.fill_hdf5(file = self.h5file,
+                                            data_x = X,
+                                            start = start)
+
     @functools.wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
                  topo=None, targets=None, rng=None):
@@ -487,18 +526,36 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         h5file = tables.openFile(path, mode = "w", title = "SVHN Dataset")
         gcolumns = h5file.createGroup(h5file.root, "Data", "Data")
         atom = tables.Float64Atom() if config.floatX == 'flaot32' else tables.Float32Atom()
+        filters = DenseDesignMatrixPyTables.filters
         h5file.createCArray(gcolumns, 'X', atom = atom, shape = x_shape,
-                                title = "Data values")
+                                title = "Data values", filters = filters)
         h5file.createCArray(gcolumns, 'y', atom = atom, shape = y_shape,
-                                title = "Data targets")
+                                title = "Data targets", filters = filters)
         return h5file, gcolumns
 
     @staticmethod
-    def fill_hdf5(file, node, data, index):
-        data_x, data_y = data
-        node.X[index] = data_x
-        node.y[index] = data_y
-        file.flush()
+    def fill_hdf5(file, data_x, data_y = None, node = None, start = 0, batch_size = 5000):
+        """
+        PyTables tends to crash if you write large data on them at once.
+        This function write data on file in batches
+
+        start: the start index to write data
+        """
+
+        if node is None:
+            node = file.getNode('/', 'Data')
+
+        data_size = data_x.shape[0]
+        last = np.floor(data_size / float(batch_size)) * batch_size
+        for i in xrange(0, data_size, batch_size):
+            stop = i + np.mod(data_size, batch_size) if i >= last else i + batch_size
+            assert len(range(start + i, start + stop)) == len(range(i, stop))
+            assert (start + stop) <= (node.X.shape[0])
+            node.X[start + i: start + stop, :] = data_x[i:stop, :]
+            if data_y is not None:
+                 node.y[start + i: start + stop, :] = data_y[i:stop, :]
+
+            file.flush()
 
     @staticmethod
     def resize(h5file, start, stop):
@@ -516,10 +573,11 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         stop = gcolumns.X.nrows if stop is None else stop
 
         atom = tables.Float64Atom() if config.floatX == 'flaot32' else tables.Float32Atom()
+        filters = DenseDesignMatrixPyTables.filters
         x = h5file.createCArray(gcolumns, 'X', atom = atom, shape = ((stop - start, data.X.shape[1])),
-                            title = "Data values")
+                            title = "Data values", filters = filters)
         y = h5file.createCArray(gcolumns, 'y', atom = atom, shape = ((stop - start, 10)),
-                            title = "Data targets")
+                            title = "Data targets", filters = filters)
         x[:] = data.X[start:stop]
         y[:] = data.y[start:stop]
 
@@ -527,7 +585,6 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         h5file.renameNode('/', "Data", "Data_")
         h5file.flush()
         return h5file, gcolumns
-
 
 class DefaultViewConverter(object):
     def __init__(self, shape, axes = ('b', 0, 1, 'c')):
