@@ -689,7 +689,7 @@ class GlobalContrastNormalization(object):
 
         Parameters:
 
-             subtract_mean: boolean, if True subtract the mean of each example
+            subtract_mean: boolean, if True subtract the mean of each example
             std_bias: Add this amount inside the square root when computing
                       the standard deviation or the norm
             use_norm: If True uses the norm instead of the standard deviation
