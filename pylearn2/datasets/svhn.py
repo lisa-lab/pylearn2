@@ -248,10 +248,8 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
             start = None, stop = None, axes = ('b', 0, 1, 'c'),
             preprocessor = None):
         """
-        Only for faster access there is a copy of hdf5 file in
-        PYLEARN2_DATA_PATH but it mean to be only readable.
-        If you wish to modify the data, you should pass a local copy
-        to the path argument.
+        A version of SVHN dataset that loads everything into the memory
+        instead of using pytables.
         """
 
         assert which_set in self.mapper.keys()

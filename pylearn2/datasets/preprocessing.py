@@ -689,7 +689,7 @@ class GlobalContrastNormalization(object):
 
         Parameters:
 
-            subtract_mean: boolean, if True subtract the mean of each example
+             subtract_mean: boolean, if True subtract the mean of each example
             std_bias: Add this amount inside the square root when computing
                       the standard deviation or the norm
             use_norm: If True uses the norm instead of the standard deviation
@@ -778,7 +778,6 @@ class GlobalContrastNormalizationPyTables(object):
             data = self.transform(X[i:stop])
             dataset.set_design_matrix(data, start = i)
 
-
 class ZCA(Preprocessor):
     """
     Performs ZCA whitening.
@@ -857,10 +856,8 @@ class ZCA(Preprocessor):
         assert X.ndim == 2
         return np.dot(X, self.inv_P_) + self.mean_
 
-
-
 class LeCunLCN(ExamplewisePreprocessor):
-    """ Yann LeCun local contrast normalization on each of the 3 channels
+    """ Yann LeCun local contrast normalization
     """
 
     def __init__(self, img_shape, kernel_size = 7, batch_size = 5000,
@@ -872,6 +869,8 @@ class LeCunLCN(ExamplewisePreprocessor):
                     batch size smaller than 10000. Otherwise any
                     batch size diffrent than datasize is not supported yet.
         threshold: threshold for denominator
+        channels: List of channels to normalize.
+                    If none will apply it on all channels
         """
         self._img_shape = img_shape
         self._kernel_size = kernel_size
@@ -930,10 +929,19 @@ class LeCunLCN(ExamplewisePreprocessor):
         if self._batch_size == data_size:
             dataset.set_topological_view(transformed, dataset.axes)
 
-
 class RGB_YUV(ExamplewisePreprocessor):
 
     def __init__(self, rgb_yuv = True, batch_size = 5000):
+        """
+        Converts image color channels from rgb to yuv and vice versa
+
+        Parameters:
+
+            rgb_yuv: If true converts from rgb to yuv, if false
+            converts from yuv to rgb
+            batch_size: batch_size to make conversions in batches
+        """
+
         self._batch_size = batch_size
         self._rgb_yuv = rgb_yuv
 
@@ -990,6 +998,40 @@ class RGB_YUV(ExamplewisePreprocessor):
             data = self.transform(data, dataset.axes)
             dataset.set_topological_view(data, dataset.axes, start = i)
 
+class CentralWindow(Preprocessor):
+    """
+    Preprocesses an image dataset to contain only the central window.
+    """
+
+    def __init__(self, window_shape):
+
+        self.__dict__.update(locals())
+        del self.self
+
+    def apply(self, dataset, can_fit=False):
+
+        w_rows, w_cols = self.window_shape
+
+        arr = dataset.get_topological_view()
+
+        try:
+            axes = dataset.view_converter.axes
+        except AttributeError:
+            raise NotImplementedError("I don't know how to tell what the axes of this kind of dataset are.")
+
+        needs_transpose = not axes[1:3] == (0, 1)
+
+        if needs_transpose:
+            arr = np.transpose(arr, (axes.index('c'), axes.index(0), axes.index(1), axes.index('b')))
+
+        r_off = (arr.shape[1] - w_rows) // 2
+        c_off = (arr.shape[2] - w_cols) // 2
+        new_arr = arr[:, r_off:r_off + w_rows, c_off:c_off + w_cols, :]
+
+        if needs_transpose:
+            new_arr = np.transpose(new_arr, tuple(('c', 0, 1, 'b').index(axis) for axis in axes))
+
+        dataset.set_topological_view(new_arr, axes=axes)
 
 def lecun_lcn(input, img_shape, kernel_shape, threshold = 1e-4):
     """
@@ -1045,6 +1087,15 @@ def gaussian_filter(kernel_shape):
 
     return x / np.sum(x)
 
+def convert_axes(data, orig, new):
+    """ Convert axes of daata from orig to new
+    """
+
+    return data.transpose(orig.index(new[0]),
+                        orig.index(new[1]),
+                        orig.index(new[2]),
+                        orig.index(new[3]))
+
 class CentralWindow(Preprocessor):
     """
     Preprocesses an image dataset to contain only the central window.
@@ -1080,12 +1131,4 @@ class CentralWindow(Preprocessor):
 
         dataset.set_topological_view(new_arr, axes=axes)
 
-def convert_axes(data, orig, new):
-    """ Convert axes of daata from orig to new
-    """
-
-    return data.transpose(orig.index(new[0]),
-                        orig.index(new[1]),
-                        orig.index(new[2]),
-                        orig.index(new[3]))
 
