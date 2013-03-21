@@ -451,6 +451,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
     DenseDesignMatrix based on PyTables
     """
 
+    ensure_tables()
     filters = tables.Filters(complib='blosc', complevel=5)
 
     def set_design_matrix(self, X, start = 0):
