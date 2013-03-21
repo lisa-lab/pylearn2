@@ -745,15 +745,31 @@ class MonitorChannel(object):
             self.time_record = [ None ] * len(self.val_record)
 
 
-def push_monitor(model, name):
+def push_monitor(model, name, transfer_experience = False):
     """
-        When you load a model in a yaml file and you want to store its
-        old monitor under a different name and start a new monitor, wrap
-        the model in this function call """
+    When you load a model in a yaml file and you want to store its
+    old monitor under a different name and start a new monitor, wrap
+    the model in this function call.
+
+    model: The model you loaded
+    name: Will save the old monitor to model.name
+    transfer_experience: If True, the new monitor will start with its
+        epochs seen, batches seen, and examples seen set to where the
+        old monitor left off. This is nice for stitching together learning
+        curves across multiple stages of learning.
+    """
 
     assert hasattr(model, 'monitor')
-    setattr(model, name, model.monitor)
+    old_monitor = model.monitor
+    setattr(model, name, old_monitor)
     del model.monitor
+
+    if transfer_experience:
+        monitor = Monitor.get_monitor(model)
+        assert monitor is not old_monitor
+        monitor._num_batches_seen = old_monitor._num_batches_seen
+        monitor._examples_seen = old_monitor._examples_seen
+        monitor._epochs_seen = old_monitor._epochs_seen
 
     return model
 
