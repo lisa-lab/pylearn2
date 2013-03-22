@@ -2,7 +2,7 @@ from pylearn2.datasets import dense_design_matrix
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.datasets.preprocessing import GlobalContrastNormalization
 from pylearn2.datasets.preprocessing import ExtractGridPatches, ReassembleGridPatches
-from pylearn2.datasets.preprocessing import LeCunLCN
+from pylearn2.datasets.preprocessing import LeCunLCN, RGB_YUV
 from pylearn2.utils import as_floatX
 import numpy as np
 
@@ -88,8 +88,17 @@ def test_extract_reassemble():
     if not np.all(new_topo == topo):
         assert False
 
-def test_lecun_lcn():
-        """ Test LeCunLCNC
+
+class testLeCunLCN:
+    """
+    Test LeCunLCN
+    """
+
+    def test_random_image(self):
+        """
+        Test on a random image if the per-processor loads and works without
+        anyerror and doesn't result in any nan or inf values
+
         """
 
         rng = np.random.RandomState([1,2,3])
@@ -107,4 +116,65 @@ def test_lecun_lcn():
         assert not np.any(np.isnan(result))
         assert not np.any(np.isinf(result))
 
+    def test_zero_image(self):
+        """
+        Test on zero-value image if cause any division by zero
+        """
+
+        X = as_floatX(np.zeros((5,32*32*3)))
+
+        axes = ['b', 0, 1, 'c']
+        view_converter = dense_design_matrix.DefaultViewConverter((32, 32, 3),
+                                                                    axes)
+        dataset = DenseDesignMatrix(X = X, view_converter = view_converter)
+        dataset.axes = axes
+        preprocessor = LeCunLCN(img_shape=[32,32])
+        dataset.apply_preprocessor(preprocessor)
+        result = dataset.get_design_matrix()
+
+        assert not np.any(np.isnan(result))
+        assert not np.any(np.isinf(result))
+
+    def test_channel(self):
+        """
+        Test if works fine withe different number of channel as argument
+        """
+
+        rng = np.random.RandomState([1,2,3])
+        X = as_floatX(rng.randn(5,32*32*3))
+
+        axes = ['b', 0, 1, 'c']
+        view_converter = dense_design_matrix.DefaultViewConverter((32, 32, 3),
+                                                                    axes)
+        dataset = DenseDesignMatrix(X = X, view_converter = view_converter)
+        dataset.axes = axes
+        preprocessor = LeCunLCN(img_shape=[32,32], channels = [1, 2])
+        dataset.apply_preprocessor(preprocessor)
+        result = dataset.get_design_matrix()
+
+        assert not np.any(np.isnan(result))
+        assert not np.any(np.isinf(result))
+
+
+def test_rgb_yuv():
+    """
+    Test on a random image if the per-processor loads and works without
+    anyerror and doesn't result in any nan or inf values
+
+    """
+
+    rng = np.random.RandomState([1,2,3])
+    X = as_floatX(rng.randn(5,32*32*3))
+
+    axes = ['b', 0, 1, 'c']
+    view_converter = dense_design_matrix.DefaultViewConverter((32, 32, 3),
+                                                                axes)
+    dataset = DenseDesignMatrix(X = X, view_converter = view_converter)
+    dataset.axes = axes
+    preprocessor = RGB_YUV()
+    dataset.apply_preprocessor(preprocessor)
+    result = dataset.get_design_matrix()
+
+    assert not np.any(np.isnan(result))
+    assert not np.any(np.isinf(result))
 

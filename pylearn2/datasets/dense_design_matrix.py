@@ -1,5 +1,5 @@
 """TODO: module-level docstring."""
-__authors__ = "Ian Goodfellow"
+__authors__ = "Ian Goodfellow and Mehdi Mirza"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
@@ -33,7 +33,6 @@ def ensure_tables():
     global tables
     if tables is None:
         import tables
-
 
 class DenseDesignMatrix(Dataset):
     """
@@ -452,8 +451,47 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
     DenseDesignMatrix based on PyTables
     """
 
-    ensure_tables()
-    filters = tables.Filters(complib='blosc', complevel=5)
+    _default_seed = (17, 2, 946)
+
+    def __init__(self, X=None, topo_view=None, y=None,
+                 view_converter=None, axes = ('b', 0, 1, 'c'),
+                 rng=_default_seed):
+        """
+        Parameters
+        ----------
+
+        X : ndarray, 2-dimensional, optional
+            Should be supplied if `topo_view` is not. A design
+            matrix of shape (number examples, number features)
+            that defines the dataset.
+        topo_view : ndarray, optional
+            Should be supplied if X is not.  An array whose first
+            dimension is of length number examples. The remaining
+            dimensions are xamples with topological significance,
+            e.g. for images the remaining axes are rows, columns,
+            and channels.
+        y : ndarray, 1-dimensional(?), optional
+            Labels or targets for each example. The semantics here
+            are not quite nailed down for this yet.
+        view_converter : object, optional
+            An object for converting between design matrices and
+            topological views. Currently DefaultViewConverter is
+            the only type available but later we may want to add
+            one that uses the retina encoding that the U of T group
+            uses.
+        rng : object, optional
+            A random number generator used for picking random
+            indices into the design matrix when choosing minibatches.
+        """
+
+        super(DenseDesignMatrixPyTables, self).__init__(X = X,
+                                            topo_view = topo_view,
+                                            y = y,
+                                            view_converter = view_converter,
+                                            axes = axes,
+                                            rng = rng)
+        ensure_tables()
+        filters = tables.Filters(complib='blosc', complevel=5)
 
     def set_design_matrix(self, X, start = 0):
         assert len(X.shape) == 2

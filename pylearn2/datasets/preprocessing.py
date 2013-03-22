@@ -25,6 +25,8 @@ from pylearn2.space import Conv2DSpace
 from pylearn2.utils.insert_along_axis import insert_columns
 from pylearn2.utils import sharedX
 
+convert_axes = Conv2DSpace.convert_numpy
+
 class Preprocessor(object):
     """
         Abstract class.
@@ -995,8 +997,17 @@ class RGB_YUV(ExamplewisePreprocessor):
             stop = i + np.mod(data_size, self._batch_size) if i>= last else i + self._batch_size
             print "RGB_YUV processing data from {} to {}".format(i, stop)
             data = dataset.get_topological_view(X[i:stop])
-            data = self.transform(data, dataset.axes)
-            dataset.set_topological_view(data, dataset.axes, start = i)
+            transformed = self.transform(data, dataset.axes)
+
+            # TODO have a separate class for non pytables datasets
+            # or add start option to dense_design_matrix
+            if isinstance(dataset.X, np.ndarray):
+                transformed = convert_axes(transformed, dataset.axes, ['b', 0, 1, 'c'])
+                transformed = transformed.reshape(transformed.shape[0],
+                                    transformed.shape[1] * transformed.shape[2] * transformed.shape[3])
+                dataset.X[i:stop] = transformed
+            else:
+                dataset.set_topological_view(transformed, dataset.axes, start = i)
 
 class CentralWindow(Preprocessor):
     """
@@ -1086,15 +1097,6 @@ def gaussian_filter(kernel_shape):
             x[i,j] = gauss(i-mid, j-mid)
 
     return x / np.sum(x)
-
-def convert_axes(data, orig, new):
-    """ Convert axes of daata from orig to new
-    """
-
-    return data.transpose(orig.index(new[0]),
-                        orig.index(new[1]),
-                        orig.index(new[2]),
-                        orig.index(new[3]))
 
 class CentralWindow(Preprocessor):
     """
