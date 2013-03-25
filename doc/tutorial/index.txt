@@ -16,7 +16,7 @@ how the learning experiment went.
 
 Step 1: Create the dataset
 ----------------------------
-From this directory, run
+From the train_example directory, run
 
 python make_dataset.py
 
@@ -37,7 +37,7 @@ Step 2: Train the model
 You should have pylearn2/scripts in your PATH enviroment variable.
 pylearn2/scripts/train.py should have executable permissions.
 
-From this directory, run
+From the train_example directory, run
 
 train.py cifar_grbm_smd.yaml
 
@@ -60,7 +60,7 @@ pylearn2/scripts/show_weights.py and pylearn2/scripts/plot_monitor.py
 should have executable permissions.
 
 
-From this directory, run
+From the train_example directory, run
 
 show_weights.py cifar_grbm_smd.pkl
 

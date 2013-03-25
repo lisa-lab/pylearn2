@@ -66,6 +66,7 @@ Dependencies
 * `Theano <http://deeplearning.net/software/theano/>`_ and its dependencies are required to use
   Pylearn2.
 * PyYAML is required for most functionality.
+* PIL is required for some image-related functionality.
 * Some dependencies are optional:
     * Pylearn2 includes code for accessing several standard datasets, such as MNIST and CIFAR-10.
       However, if you wish to use one of these datasets, you must download the dataset itself
