@@ -23,7 +23,7 @@ show_weights.py grbm.pkl
 You should be able to see number like filters if you train the first layer GaussianRBM for just a few epochs, provided the layer is of a reasonable size(say, hundreds of hidden units)
 
 
-To get good classification error you need to player with number of hidden units and MAX_EPOCHS_UNSUPERVISED and MAX_EPOCHS_SUPERVISED
+To get good classification error you need to play with number of hidden units and MAX_EPOCHS_UNSUPERVISED and MAX_EPOCHS_SUPERVISED
 
 
 (Visualization of deeper layer weights is not conceptually straightforward)

@@ -11,6 +11,7 @@ MAX_EPOCHS_SUPERVISED = 2
 
 from pylearn2.models.autoencoder import Autoencoder, DenoisingAutoencoder
 from pylearn2.models.rbm import GaussianBinaryRBM
+from pylearn2.models.mlp import Softmax, MLP
 from pylearn2.corruption import BinomialCorruptor
 from pylearn2.corruption import GaussianCorruptor
 from pylearn2.training_algorithms.sgd import SGD
@@ -26,8 +27,9 @@ from pylearn2.base import StackedBlocks
 from pylearn2.datasets.transformer_dataset import TransformerDataset
 from pylearn2.costs.ebm_estimation import SMD
 from pylearn2.training_algorithms.sgd import MonitorBasedLRAdjuster
-from pylearn2.costs.cost import NegativeLogLikelihood
+from pylearn2.costs.cost import MethodCost
 from pylearn2.train import Train
+from pylearn2.space import VectorSpace
 import pylearn2.utils.serial as serial
 import sys
 import os
@@ -157,13 +159,18 @@ def get_grbm(structure):
 def get_logistic_regressor(structure):
     n_input, n_output = structure
 
-    return LogisticRegressionLayer(nvis=n_input, nclasses=n_output)
+    last_layer = Softmax(n_classes=n_output, irange=0.02, layer_name='softmax')
+    #space = VectorSpace(dim=n_input)
+    #last_layer.set_input_space(space)
+    layer = MLP([last_layer], nvis=n_input)
+    
+    return layer
 
 def get_layer_trainer_logistic(layer, trainset):
     # configs on sgd
     
     config = {'learning_rate': 0.1,
-              'cost' : NegativeLogLikelihood(),
+              'cost' : MethodCost('cost_from_X', supervised=True),
               'batch_size': 10,
               'monitoring_batches': 10,
               'monitoring_dataset': trainset,
@@ -238,7 +245,7 @@ def main():
 
     # build layers
     layers = []
-    structure = [[n_input, 500], [500, 500], [500, 200], [200, n_output]]
+    structure = [[n_input, 10], [10, 10], [10, 10], [10, n_output]]
     # layer 0: gaussianRBM
     layers.append(get_grbm(structure[0]))
     # layer 1: denoising AE
@@ -277,7 +284,7 @@ def main():
     print '\n'
     
     #supervised training
-    layer_trainers[-1].main_loop()
+    layer_trainers[-1].main_loop() 
 
 
 if __name__ == '__main__':
