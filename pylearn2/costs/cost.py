@@ -351,10 +351,14 @@ class CrossEntropy(Cost):
 
 class MethodCost(Cost):
     """
-        A cost specified via the string name of a method of the model.
+    A cost specified via the string name of a method of the model.
     """
 
     def __init__(self, method, supervised = False):
+        """
+            method: a string specifying the name of the method of the model
+                    that should be called to generate the objective function.
+        """
         self.__dict__.update(locals())
         del self.self
 
