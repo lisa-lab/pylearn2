@@ -160,8 +160,7 @@ def get_logistic_regressor(structure):
     n_input, n_output = structure
 
     last_layer = Softmax(n_classes=n_output, irange=0.02, layer_name='softmax')
-    #space = VectorSpace(dim=n_input)
-    #last_layer.set_input_space(space)
+
     layer = MLP([last_layer], nvis=n_input)
     
     return layer
@@ -245,7 +244,7 @@ def main():
 
     # build layers
     layers = []
-    structure = [[n_input, 10], [10, 10], [10, 10], [10, n_output]]
+    structure = [[n_input, 10], [10, 50], [50, 100], [100, n_output]]
     # layer 0: gaussianRBM
     layers.append(get_grbm(structure[0]))
     # layer 1: denoising AE
