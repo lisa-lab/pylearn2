@@ -43,7 +43,8 @@ class SGD(TrainingAlgorithm):
                  termination_criterion=None, update_callbacks=None,
                  init_momentum = None, set_batch_size = False,
                  train_iteration_mode = None, batches_per_iter=None,
-                 theano_function_mode = None, monitoring_costs=None):
+                 theano_function_mode = None, monitoring_costs=None,
+                 seed = None):
         """
             WRITEME
 
@@ -87,6 +88,9 @@ class SGD(TrainingAlgorithm):
             raise TypeError("SGD no longer supports using collections of Costs to represent "
                     " a sum of Costs. Use pylearn2.costs.cost.SumOfCosts instead.")
 
+        if seed is None:
+            seed = [2012, 10, 5]
+
         self.learning_rate = sharedX(learning_rate, 'learning_rate')
         self.cost = cost
         self.batch_size = batch_size
@@ -110,7 +114,7 @@ class SGD(TrainingAlgorithm):
             train_iteration_mode = 'shuffled_sequential'
         self.train_iteration_mode = train_iteration_mode
         self.first = True
-        self.rng = np.random.RandomState([2012, 10, 5])
+        self.rng = np.random.RandomState(seed)
         self.theano_function_mode = theano_function_mode
         self.monitoring_costs = monitoring_costs
 
