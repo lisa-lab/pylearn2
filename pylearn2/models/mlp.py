@@ -21,7 +21,7 @@ from theano.printing import Print
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 import theano.tensor as T
 
-from pylearn2.costs.cost import Cost
+from pylearn2.costs.mlp import Default
 from pylearn2.expr.probabilistic_max_pooling import max_pool_channels
 from pylearn2.linear import conv2d
 from pylearn2.linear.matrixmul import MatrixMul
@@ -216,6 +216,8 @@ class MLP(Layer):
     def setup_rng(self):
         self.rng = np.random.RandomState(self.seed)
 
+    def get_default_cost(self):
+        return Default()
 
     def get_output_space(self):
         return self.layers[-1].get_output_space()
@@ -1480,7 +1482,6 @@ class Tanh(Linear):
     def cost(self, *args, **kwargs):
         raise NotImplementedError()
 
-
 class Sigmoid(Linear):
     """
     Implementation of the sigmoid nonlinearity for MLP.
@@ -1649,7 +1650,6 @@ class SpaceConverter(Layer):
     def fprop(self, state_below):
 
         return self.input_space.format_as(state_below, self.output_space)
-
 
 class ConvRectifiedLinear(Layer):
     """
@@ -1950,7 +1950,6 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape):
         assert not np.any(np.isinf(mxv))
 
     return mx
-
 
 def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape):
     """
