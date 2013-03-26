@@ -38,7 +38,7 @@ class SGD(TrainingAlgorithm):
     A TrainingAlgorithm that does gradient descent on minibatches.
 
     """
-    def __init__(self, learning_rate, cost, batch_size=None,
+    def __init__(self, learning_rate, cost=None, batch_size=None,
                  monitoring_batches=None, monitoring_dataset=None,
                  termination_criterion=None, update_callbacks=None,
                  init_momentum = None, set_batch_size = False,
@@ -53,6 +53,8 @@ class SGD(TrainingAlgorithm):
                             can change it after each minibatch.
             cost: a pylearn2.costs.cost.Cost object specifying the objective
                   function to be minimized.
+                  Optionally, may be None. In this case, SGD will call the model's
+                  get_default_cost method to obtain the objective function.
             init_momentum: if None, does not use momentum
                             otherwise, use momentum and initialize the
                             momentum coefficient to init_momentum.
@@ -115,6 +117,10 @@ class SGD(TrainingAlgorithm):
         self.monitoring_costs = monitoring_costs
 
     def setup(self, model, dataset):
+
+        if self.cost is None:
+            self.cost = model.get_default_cost()
+
         inf_params = [ param for param in model.get_params() if np.any(np.isinf(param.get_value())) ]
         if len(inf_params) > 0:
             raise ValueError("These params are Inf: "+str(inf_params))
