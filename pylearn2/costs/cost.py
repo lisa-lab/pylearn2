@@ -336,14 +336,13 @@ class LxReg(Cost):
         for var in self.variables:
             Lx = Lx + abs(var ** self.x).sum()
         return Lx
-
-
+        
 class CrossEntropy(Cost):
     """WRITEME"""
     def __init__(self):
         self.supervised = True
 
-    def __call__(self, model, X, Y):
+    def __call__(self, model, X, Y, ** kwargs):
         """WRITEME"""
         return (-Y * T.log(model(X)) - \
                 (1 - Y) * T.log(1 - model(X))).sum(axis=1).mean()
