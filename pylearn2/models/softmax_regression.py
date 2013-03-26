@@ -51,7 +51,7 @@ class SoftmaxRegression(mlp.MLP):
             See pylearn2.models.MLP for notes on dropout.
         """
 
-        super(SoftmaxRegression, self).__init(
+        super(SoftmaxRegression, self).__init__(
                 layers=[mlp.Softmax(n_classes=n_classes, layer_name='y',
                     irange=irange, istdev=istdev, sparse_init=sparse_init,
                     W_lr_scale=W_lr_scale, b_lr_scale=b_lr_scale,
