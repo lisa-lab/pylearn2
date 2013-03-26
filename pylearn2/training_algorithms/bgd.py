@@ -19,7 +19,7 @@ from theano import config
 
 class BGD(TrainingAlgorithm):
     """Batch Gradient Descent training algorithm class"""
-    def __init__(self, cost, batch_size=None, batches_per_iter=None,
+    def __init__(self, cost=None, batch_size=None, batches_per_iter=None,
                  updates_per_batch = 10,
                  monitoring_batches=None, monitoring_dataset=None,
                  termination_criterion = None, set_batch_size = False,
@@ -29,7 +29,8 @@ class BGD(TrainingAlgorithm):
                  verbose_optimization=False, scale_step=1., theano_function_mode=None,
                  init_alpha=None, seed=None):
         """
-        cost: a pylearn2 Cost
+        cost: a pylearn2 Cost, or None, in which case model.get_default_cost()
+                will be used
         batch_size: Like the SGD TrainingAlgorithm, this TrainingAlgorithm
                     still iterates over minibatches of data. The difference
                     is that this class uses partial line searches to choose
@@ -82,6 +83,9 @@ class BGD(TrainingAlgorithm):
         training data
         """
         self.model = model
+
+        if self.cost is None:
+            self.cost = model.get_default_cost()
 
         if self.batch_size is None:
             self.batch_size = model.force_batch_size
