@@ -121,7 +121,7 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
         if which_set == 'test':
             assert fit_test_preprocessor is None or (fit_preprocessor == fit_test_preprocessor)
 
-        if preprocessor:
+        if self.X is not None and preprocessor:
             preprocessor.apply(self, fit_preprocessor)
 
     def adjust_for_viewer(self, X):

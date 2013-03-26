@@ -21,7 +21,7 @@ from theano.printing import Print
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 import theano.tensor as T
 
-from pylearn2.costs.cost import Cost
+from pylearn2.costs.mlp import Default
 from pylearn2.expr.probabilistic_max_pooling import max_pool_channels
 from pylearn2.linear import conv2d
 from pylearn2.linear.matrixmul import MatrixMul
@@ -216,6 +216,8 @@ class MLP(Layer):
     def setup_rng(self):
         self.rng = np.random.RandomState(self.seed)
 
+    def get_default_cost(self):
+        return Default()
 
     def get_output_space(self):
         return self.layers[-1].get_output_space()
@@ -637,89 +639,6 @@ class Softmax(Layer):
                 col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
                 desired_norms = T.clip(col_norms, 0, self.max_col_norm)
                 updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
-
-class WeightDecay(Cost):
-    """
-    coeff * sum(sqr(weights))
-
-    for each set of weights.
-
-    """
-
-    def __init__(self, coeffs):
-        """
-        coeffs: a list, one element per layer, specifying the coefficient
-                to multiply with the cost defined by the squared L2 norm of the weights
-                for each layer.
-
-                Each element may in turn be a list, ie, for CompositeLayers.
-        """
-        self.__dict__.update(locals())
-        del self.self
-
-    def __call__(self, model, X, Y = None, ** kwargs):
-
-        layer_costs = [ layer.get_weight_decay(coeff)
-            for layer, coeff in safe_izip(model.layers, self.coeffs) ]
-
-        assert T.scalar() != 0. # make sure theano semantics do what I want
-        layer_costs = [ cost for cost in layer_costs if cost != 0.]
-
-        if len(layer_costs) == 0:
-            rval =  T.as_tensor_variable(0.)
-            rval.name = '0_weight_decay'
-            return rval
-        else:
-            total_cost = reduce(lambda x, y: x + y, layer_costs)
-        total_cost.name = 'MLP_WeightDecay'
-
-        assert total_cost.ndim == 0
-
-        total_cost.name = 'weight_decay'
-
-        return total_cost
-
-class L1WeightDecay(Cost):
-    """
-    coeff * sum(abs(weights))
-
-    for each set of weights.
-
-    """
-
-    def __init__(self, coeffs):
-        """
-        coeffs: a list, one element per layer, specifying the coefficient
-                to multiply with the cost defined by the L1 norm of the
-                weights(lasso) for each layer.
-
-                Each element may in turn be a list, ie, for CompositeLayers.
-        """
-        self.__dict__.update(locals())
-        del self.self
-
-    def __call__(self, model, X, Y = None, ** kwargs):
-
-        layer_costs = [ layer.get_l1_weight_decay(coeff)
-            for layer, coeff in safe_izip(model.layers, self.coeffs) ]
-
-        assert T.scalar() != 0. # make sure theano semantics do what I want
-        layer_costs = [ cost for cost in layer_costs if cost != 0.]
-
-        if len(layer_costs) == 0:
-            rval =  T.as_tensor_variable(0.)
-            rval.name = '0_l1_penalty'
-            return rval
-        else:
-            total_cost = reduce(lambda x, y: x + y, layer_costs)
-        total_cost.name = 'MLP_L1Penalty'
-
-        assert total_cost.ndim == 0
-
-        total_cost.name = 'l1_penalty'
-
-        return total_cost
-
 
 class SoftmaxPool(Layer):
     """
@@ -1563,7 +1482,6 @@ class Tanh(Linear):
     def cost(self, *args, **kwargs):
         raise NotImplementedError()
 
-
 class Sigmoid(Linear):
     """
     Implementation of the sigmoid nonlinearity for MLP.
@@ -1732,7 +1650,6 @@ class SpaceConverter(Layer):
     def fprop(self, state_below):
 
         return self.input_space.format_as(state_below, self.output_space)
-
 
 class ConvRectifiedLinear(Layer):
     """
@@ -2034,7 +1951,6 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape):
 
     return mx
 
-
 def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape):
     """
     Like max_pool but with input using axes ('c', 0, 1, 'b')
@@ -2166,3 +2082,13 @@ def mean_pool(bc01, pool_shape, pool_stride, image_shape):
         assert not np.any(np.isinf(mxv))
 
     return mx
+
+def WeightDecay(*args, **kwargs):
+    warnings.warn("pylearn2.models.mlp.WeightDecay has moved to pylearn2.costs.mlp.WeightDecay")
+    from pylearn2.costs.mlp import WeightDecay as WD
+    return WD(*args, **kwargs)
+
+def L1WeightDecay(*args, **kwargs):
+    warnings.warn("pylearn2.models.mlp.L1WeightDecay has moved to pylearn2.costs.mlp.WeightDecay")
+    from pylearn2.costs.mlp import L1WeightDecay as L1WD
+    return L1WD(*args, **kwargs)
