@@ -116,7 +116,7 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
             super(MNIST,self).__init__(topo_view = topo, axes=axes)
             self.X = None
 
-        if preprocessor:
+        if self.X is not None and preprocessor:
             preprocessor.apply(self)
 
     def adjust_for_viewer(self, X):
