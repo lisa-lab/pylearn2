@@ -106,6 +106,21 @@ class Layer(Model):
         The cost of outputting Y_hat when the true output is Y.
         """
 
+    def cost_from_cost_matrix(self, cost_matrix):
+        """
+        The cost final scalar cost computed from the cost matrix
+
+        A possible usage of this function is :
+            C = model.cost_matrix(Y, Y_hat)
+            # Do something with C like setting some values to 0
+            cost = model.cost_from_cost_matrix(C)
+        """
+
+    def cost_matrix(self, Y, Y_hat):
+        """
+        The element wise cost of outputting Y_hat when the true output is Y.
+        """
+
 class MLP(Layer):
     """
     A multilayer perceptron.
@@ -362,6 +377,12 @@ class MLP(Layer):
 
     def cost(self, Y, Y_hat):
         return self.layers[-1].cost(Y, Y_hat)
+
+    def cost_matrix(self, Y, Y_hat):
+        return self.layers[-1].cost_matrix(Y, Y_hat)
+
+    def cost_from_cost_matrix(self, cost_matrix):
+        return self.layers[-1].cost_from_cost_matrix(cost_matrix)
 
     def cost_from_X(self, X, Y):
         Y_hat = self.fprop(X, apply_dropout = self.use_dropout)
@@ -1521,8 +1542,13 @@ class Linear(Layer):
         return p
 
     def cost(self, Y, Y_hat):
+        return self.cost_from_cost_matrix(self.cost_matrix(Y, Y_hat))
 
-        return T.sqr(Y - Y_hat).sum(axis=1).mean()
+    def cost_from_cost_matrix(self, cost_matrix):
+        return cost_matrix.sum(axis=1).mean()
+
+    def cost_matrix(self, Y, Y_hat):
+        return T.sqr(Y - Y_hat)
 
 class Tanh(Linear):
     """
