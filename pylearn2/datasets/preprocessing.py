@@ -438,7 +438,7 @@ class RemoveMean(ExamplewisePreprocessor):
             self._mean = X.mean(axis=self._axis)
         else:
             if self._mean is None:
-                raise ValueError("can_fit is False, but Standardize object "
+                raise ValueError("can_fit is False, but RemoveMean object "
                                  "has no stored mean or standard deviation")
         X -= self._mean
         dataset.set_design_matrix(X)
