@@ -9,33 +9,27 @@ to train models layer by layer.
 MAX_EPOCHS_UNSUPERVISED = 1
 MAX_EPOCHS_SUPERVISED = 2
 
+from pylearn2.corruption import BinomialCorruptor
+from pylearn2.corruption import GaussianCorruptor
+from pylearn2.costs.mlp import Default
 from pylearn2.models.autoencoder import Autoencoder, DenoisingAutoencoder
 from pylearn2.models.rbm import GaussianBinaryRBM
 from pylearn2.models.mlp import Softmax, MLP
-from pylearn2.corruption import BinomialCorruptor
-from pylearn2.corruption import GaussianCorruptor
 from pylearn2.training_algorithms.sgd import SGD
 from pylearn2.costs.autoencoder import MeanSquaredReconstructionError
 from pylearn2.training_algorithms.sgd import EpochCounter
-from pylearn2.classifier import LogisticRegressionLayer
 from pylearn2.datasets import cifar10
 from pylearn2.datasets import mnist
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
-from pylearn2.datasets import preprocessing
 from pylearn2.energy_functions.rbm_energy import GRBM_Type_1
 from pylearn2.base import StackedBlocks
 from pylearn2.datasets.transformer_dataset import TransformerDataset
 from pylearn2.costs.ebm_estimation import SMD
 from pylearn2.training_algorithms.sgd import MonitorBasedLRAdjuster
-from pylearn2.costs.cost import MethodCost
 from pylearn2.train import Train
-from pylearn2.space import VectorSpace
 import pylearn2.utils.serial as serial
-import sys
 import os
-import datetime
 from optparse import OptionParser
-
 
 import numpy
 import numpy.random
@@ -65,7 +59,7 @@ def get_dataset_toy():
     return trainset, testset
 
 def get_dataset_cifar10():
-    
+
     train_path = 'cifar10_train.pkl'
     test_path = 'cifar10_test.pkl'
 
@@ -74,7 +68,7 @@ def get_dataset_cifar10():
         print 'loading preprocessed data'
         trainset = serial.load(train_path)
         testset = serial.load(test_path)
-        
+
     else:
         print 'loading raw data...'
         trainset = cifar10.CIFAR10(which_set="train", one_hot=True)
@@ -86,11 +80,11 @@ def get_dataset_cifar10():
         # this path will be used for visualizing weights after training is done
         trainset.yaml_src = '!pkl: "%s"' % train_path
         testset.yaml_src = '!pkl: "%s"' % test_path
-    
+
     return trainset, testset
 
 def get_dataset_mnist():
-    
+
     train_path = 'mnist_train.pkl'
     test_path = 'mnist_test.pkl'
 
@@ -99,7 +93,7 @@ def get_dataset_mnist():
         print 'loading preprocessed data'
         trainset = serial.load(train_path)
         testset = serial.load(test_path)
-        
+
     else:
         print 'loading raw data...'
         trainset = mnist.MNIST(which_set="train", one_hot=True)
@@ -111,7 +105,7 @@ def get_dataset_mnist():
         # this path will be used for visualizing weights after training is done
         trainset.yaml_src = '!pkl: "%s"' % train_path
         testset.yaml_src = '!pkl: "%s"' % test_path
-    
+
     return trainset, testset
 
 def get_autoencoder(structure):
@@ -162,21 +156,21 @@ def get_logistic_regressor(structure):
     last_layer = Softmax(n_classes=n_output, irange=0.02, layer_name='softmax')
 
     layer = MLP([last_layer], nvis=n_input)
-    
+
     return layer
 
 def get_layer_trainer_logistic(layer, trainset):
     # configs on sgd
-    
+
     config = {'learning_rate': 0.1,
-              'cost' : MethodCost('cost_from_X', supervised=True),
+              'cost' : Default(),
               'batch_size': 10,
               'monitoring_batches': 10,
               'monitoring_dataset': trainset,
               'termination_criterion': EpochCounter(max_epochs=MAX_EPOCHS_SUPERVISED),
               'update_callbacks': None
               }
-    
+
     train_algo = SGD(**config)
     model = layer
     return Train(model = model,
@@ -254,7 +248,7 @@ def main():
     # layer 3: logistic regression used in supervised training
     layers.append(get_logistic_regressor(structure[3]))
 
-    
+
     #construct training sets for different layers
     trainset = [ trainset ,
                 TransformerDataset( raw = trainset, transformer = layers[0] ),
@@ -275,15 +269,15 @@ def main():
         print '-----------------------------------'
         layer_trainer.main_loop()
 
-        
+
     print '\n'
     print '------------------------------------------------------'
     print ' Unsupervised training done! Start supervised training...'
     print '------------------------------------------------------'
     print '\n'
-    
+
     #supervised training
-    layer_trainers[-1].main_loop() 
+    layer_trainers[-1].main_loop()
 
 
 if __name__ == '__main__':
