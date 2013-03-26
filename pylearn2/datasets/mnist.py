@@ -17,7 +17,9 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, which_set, center = False, shuffle = False,
             one_hot = False, binarize = False, start = None,
             stop = None, axes=['b', 0, 1, 'c'],
-            preprocessor = None):
+            preprocessor = None,
+            fit_preprocessor = False,
+            fit_test_preprocessor = False):
 
         self.args = locals()
 
@@ -116,8 +118,11 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
             super(MNIST,self).__init__(topo_view = topo, axes=axes)
             self.X = None
 
+        if which_set == 'test':
+            assert fit_test_preprocessor is None or (fit_preprocessor == fit_test_preprocessor)
+
         if preprocessor:
-            preprocessor.apply(self)
+            preprocessor.apply(self, fit_preprocessor)
 
     def adjust_for_viewer(self, X):
         return N.clip(X*2.-1.,-1.,1.)
@@ -132,6 +137,8 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
         args['which_set'] = 'test'
         args['start'] = None
         args['stop'] = None
+        args['fit_preprocessor'] = args['fit_test_preprocessor']
+        args['fit_test_preprocessor'] = None
         return MNIST(**args)
 
 
