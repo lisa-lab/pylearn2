@@ -22,6 +22,8 @@ from pylearn2.training_algorithms.sgd import EpochCounter
 from pylearn2.training_algorithms.sgd import ExponentialDecay
 from pylearn2.training_algorithms.sgd import MomentumAdjustor
 from pylearn2.training_algorithms.sgd import PolyakAveraging
+from pylearn2.training_algorithms.sgd import LinearDecayOverEpoch
+from pylearn2.training_algorithms.sgd import MonitorBasedLRAdjuster
 from pylearn2.training_algorithms.sgd import SGD
 from pylearn2.utils.iteration import _iteration_schemes
 from pylearn2.utils import safe_izip
@@ -237,8 +239,144 @@ def test_sgd_unsup():
 
     train.main_loop()
 
-def test_sgd_topo():
 
+def test_linear_decay():
+
+    # tests that the class LinearDecayOverEpoch in sgd.py
+    # gets the learning rate properly over the training epochs
+    # it runs a small softmax and at the end checks the learning values.
+    # the learning rates are expected to start changing at epoch 'start' by an amount of 'step' specified below.
+    # the decrease of the learning rate should continue linearly untill we reach epoch 'saturate' at which the learning rate equals 'learning_rate * decay_factor' 
+
+    dim = 3
+    m = 10
+
+    rng = np.random.RandomState([25,9,2012])
+
+    X = rng.randn(m, dim)
+
+    dataset = DenseDesignMatrix(X=X)
+
+    m = 15
+    X = rng.randn(m, dim)
+
+
+    # including a monitoring datasets lets us test that
+    # the monitor works with supervised data
+    monitoring_dataset = DenseDesignMatrix(X=X)
+
+    model = SoftmaxModel(dim)
+
+    learning_rate = 1e-1
+    batch_size = 5
+
+    # We need to include this so the test actually stops running at some point
+    epoch_num = 15
+    termination_criterion = EpochCounter(epoch_num)
+
+    cost = DummyCost()
+
+    algorithm = SGD(learning_rate, cost, batch_size=5,
+                 monitoring_batches=3, monitoring_dataset= monitoring_dataset,
+                 termination_criterion=termination_criterion, update_callbacks=None,
+                 init_momentum = None, set_batch_size = False)
+
+    start = 5
+    saturate = 10
+    decay_factor = 0.1
+    linear_decay = LinearDecayOverEpoch(start=start, saturate=saturate, decay_factor=decay_factor)
+
+    train = Train(dataset, model, algorithm, save_path=None,
+                 save_freq=0, extensions=[linear_decay])
+
+    train.main_loop()
+
+    lr = model.monitor.channels['learning_rate']
+    step = (learning_rate - learning_rate * decay_factor)/(saturate - start  + 1)
+
+    for i in xrange(epoch_num + 1):
+        if i < start:
+            assert lr.val_record[i] == learning_rate
+        elif i >=saturate:
+            assert lr.val_record[i] == learning_rate*decay_factor
+        elif (start <= i) and (i<saturate) : 
+            # either of the following two lines can be used for evaluation
+            # round(lr.val_record[i],15) == round (decay_factor * learning_rate + (saturate - i) * step , 15)
+            # round(lr.val_record[i],15) == round (learning_rate - (i - start + 1) * step , 15)
+            assert round(lr.val_record[i],15) == round(decay_factor * learning_rate + (saturate - i) * step , 15) 
+
+def test_monitor_based_lr():
+    # tests that the class MonitorBasedLRAdjuster in sgd.py
+    # gets the learning rate properly over the training epochs
+    # it runs a small softmax and at the end checks the learning values. It runs 2 loops. Each loop evaluates one of the if clauses when checking
+    # the observation channels. Otherwise, longer training epochs are needed to observe both if and elif cases.
+
+    high_trigger = 1.0
+    shrink_amt = 0.99
+    low_trigger = 0.99
+    grow_amt = 1.01
+    min_lr = 1e-7
+    max_lr = 1.
+
+    dim = 3
+    m = 10
+
+    rng = np.random.RandomState([25,9,2012])
+
+    X = rng.randn(m, dim)
+
+    dataset = DenseDesignMatrix(X=X)
+
+    m = 15
+    X = rng.randn(m, dim)
+    learning_rate = 1e-2
+    batch_size = 5
+
+    # We need to include this so the test actually stops running at some point
+    epoch_num = 5
+
+    # including a monitoring datasets lets us test that
+    # the monitor works with supervised data
+    monitoring_dataset = DenseDesignMatrix(X=X)
+
+    cost = DummyCost()
+    
+    for i in xrange(2):
+
+        if i == 1:
+            high_trigger = 0.99
+
+        model = SoftmaxModel(dim)
+
+        termination_criterion = EpochCounter(epoch_num)
+
+        algorithm = SGD(learning_rate, cost, batch_size=5,
+                 monitoring_batches=3, monitoring_dataset= monitoring_dataset,
+                 termination_criterion=termination_criterion, update_callbacks=None,
+                 init_momentum = None, set_batch_size = False)
+
+
+        monitor_lr = MonitorBasedLRAdjuster(high_trigger=high_trigger, shrink_amt=shrink_amt, low_trigger=low_trigger, grow_amt=grow_amt, min_lr=min_lr, max_lr=max_lr)
+
+        train = Train(dataset, model, algorithm, save_path=None,
+                 save_freq=0, extensions=[monitor_lr])
+
+        train.main_loop()
+
+        v = model.monitor.channels['objective'].val_record
+        lr = model.monitor.channels['learning_rate'].val_record
+        lr_monitor = learning_rate
+
+        for i in xrange(2 , epoch_num + 1):
+            if v[i-1] > high_trigger * v[i-2] :
+                lr_monitor *= shrink_amt
+            elif v[i-1] > low_trigger * v[i-2]:
+                lr_monitor *= grow_amt
+            lr_monitor = max(min_lr, lr_monitor)
+            lr_monitor = min(max_lr, lr_monitor)
+            assert round(lr_monitor,15) == round(lr[i] , 15) 
+
+def test_sgd_topo():
     # tests that we can run the sgd algorithm
     # on data with topology
     # does not test for correctness at all, just
@@ -741,5 +879,4 @@ def test_lr_scalers_momentum():
             sgd_param in zip(manual, model.get_params()))
 
 if __name__ == '__main__':
-    test_lr_scalers()
-    test_lr_scalers_momentum()
+    test_monitor_based_lr()

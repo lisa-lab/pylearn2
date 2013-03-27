@@ -397,9 +397,10 @@ class MonitorBasedLRAdjuster(TrainExtension):
         if self.dataset_name is not None:
             objective  = self.dataset_name + '_objective'
             try:
+                #import pdb; pdb.set_trace()
                 v = monitor.channels[objective].val_record
             except KeyError:
-                raise KeyError('There is no monitoring channel named ' + objective + '. You probably need to change ' + self.dataset_name + 'in the input')
+                raise KeyError('There is no monitoring channel named ' + objective + '. You probably need to change ' + self.dataset_name + ' in the input')
         else:
             try:
                 v = monitor.channels['objective'].val_record
@@ -595,11 +596,11 @@ class LinearDecay(object):
         if self._count == 0:
             self._base_lr = algorithm.learning_rate.get_value()
             self.step = (self._base_lr - self._base_lr * self.decay_factor) /\
-                    (self.saturate - self.start)
+                    (self.saturate - self.start + 1)
         self._count += 1
         if self._count >= self.start:
             if self._count < self.saturate:
-                new_lr = self._init_lr - self._step * (self._count - self.start)
+                new_lr = self._init_lr - self._step * (self._count - self.start + 1)
             else:
                 print 'hi'
                 new_lr = self._base_lr * self.decay_factor
@@ -716,7 +717,7 @@ class LinearDecayOverEpoch(TrainExtension):
         if not self._initialized:
             self._init_lr = algorithm.learning_rate.get_value()
             self._step = (self._init_lr - self._init_lr * self.decay_factor) /\
-                    (self.saturate - self.start)
+                    (self.saturate - self.start + 1)
             self._initialized = True
         self._count += 1
         algorithm.learning_rate.set_value( np.cast[config.floatX](self.current_lr()))
@@ -724,7 +725,7 @@ class LinearDecayOverEpoch(TrainExtension):
     def current_lr(self):
         if self._count >= self.start:
             if self._count < self.saturate:
-                new_lr = self._init_lr - self._step * (self._count - self.start)
+                new_lr = self._init_lr - self._step * (self._count - self.start + 1)
             else:
                 new_lr = self._init_lr * self.decay_factor
         else:
