@@ -397,7 +397,6 @@ class MonitorBasedLRAdjuster(TrainExtension):
         if self.dataset_name is not None:
             objective  = self.dataset_name + '_objective'
             try:
-                #import pdb; pdb.set_trace()
                 v = monitor.channels[objective].val_record
             except KeyError:
                 raise KeyError('There is no monitoring channel named ' + objective + '. You probably need to change ' + self.dataset_name + ' in the input')
