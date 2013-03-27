@@ -1,4 +1,5 @@
-__author__ = 'Vincent Archambault-Bouffard, Ian Goodfellow'
+__authors__ = 'Vincent Archambault-Bouffard, Ian Goodfellow'
+__copyright__ = "Copyright 2013, Universite de Montreal"
 
 from theano import tensor as T
 
