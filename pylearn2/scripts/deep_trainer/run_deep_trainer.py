@@ -14,7 +14,7 @@ from pylearn2.corruption import GaussianCorruptor
 from pylearn2.costs.mlp import Default
 from pylearn2.models.autoencoder import Autoencoder, DenoisingAutoencoder
 from pylearn2.models.rbm import GaussianBinaryRBM
-from pylearn2.models.mlp import Softmax, MLP
+from pylearn2.models.softmax_regression import SoftmaxRegression
 from pylearn2.training_algorithms.sgd import SGD
 from pylearn2.costs.autoencoder import MeanSquaredReconstructionError
 from pylearn2.training_algorithms.sgd import EpochCounter
@@ -153,9 +153,7 @@ def get_grbm(structure):
 def get_logistic_regressor(structure):
     n_input, n_output = structure
 
-    last_layer = Softmax(n_classes=n_output, irange=0.02, layer_name='softmax')
-
-    layer = MLP([last_layer], nvis=n_input)
+    layer = SoftmaxRegression(n_classes=n_output, irange=0.02, nvis=n_input)
 
     return layer
 
