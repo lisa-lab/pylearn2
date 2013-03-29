@@ -13,6 +13,26 @@ import theano
 from theano.printing import Print
 from theano import tensor as T
 
+
+def softmax_numpy(x):
+    """
+    x: a matrix
+    returns a vector, with rval[i] being the softmax of row i of x
+    """
+    stable_x = (x.T - x.max(axis=1)).T
+    numer = np.exp(stable_x)
+    return (numer.T / numer.sum(axis=1)).T
+
+def pseudoinverse_softmax_numpy(x):
+    """
+    x: a vector
+    returns y, such that softmax(y) = x
+    This problem is underdetermined, so we also impose y.mean() = 0
+    """
+    rval = np.log(x)
+    rval -= rval.mean()
+    return rval
+
 def sigmoid_numpy(x):
     assert not isinstance(x, theano.gof.Variable)
     return 1. / (1. + np.exp(-x))

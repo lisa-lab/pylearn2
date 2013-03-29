@@ -26,6 +26,7 @@ from pylearn2.expr.probabilistic_max_pooling import max_pool_channels
 from pylearn2.linear import conv2d
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.models.model import Model
+from pylearn2.expr.nnet import pseudoinverse_softmax_numpy
 from pylearn2.space import Conv2DSpace
 from pylearn2.space import Space
 from pylearn2.space import VectorSpace
@@ -397,7 +398,7 @@ class Softmax(Layer):
                  sparse_init = None, W_lr_scale = None,
                  b_lr_scale = None, max_row_norm = None,
                  no_affine = False,
-                 max_col_norm = None):
+                 max_col_norm = None, init_bias_target_marginals= None):
         """
         """
 
@@ -412,6 +413,10 @@ class Softmax(Layer):
         self.output_space = VectorSpace(n_classes)
         if not no_affine:
             self.b = sharedX( np.zeros((n_classes,)), name = 'softmax_b')
+            if init_bias_target_marginals:
+                self.b.set_value(pseudoinverse_softmax_numpy(init_bias_target_marginals.y.mean(axis=0)).astype(self.b.dtype))
+        else:
+            assert init_bias_target_marginals is None
 
     def get_lr_scalers(self):
 
