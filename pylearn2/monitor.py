@@ -166,8 +166,8 @@ class Monitor(object):
         # Set all channels' val_shared to 0
         self.begin_record_entry()
 
-        for d, i, b, n, a, sd in safe_izip(datasets, self._iteration_mode, self._batch_size,
-                                 self._num_batches, self.accum, self._rng_seed):
+        for d, i, b, n, a, sd, ne in safe_izip(datasets, self._iteration_mode, self._batch_size,
+                                 self._num_batches, self.accum, self._rng_seed, self.num_examples):
             if isinstance(d, basestring):
                 d = yaml_parse.load(d)
                 raise NotImplementedError()
@@ -179,6 +179,7 @@ class Monitor(object):
                                     targets=self.require_label,
                                     rng=sd)
 
+            actual_ne = 0
             for X in myiterator:
                 if self.require_label:
                     X, y = X
@@ -187,7 +188,15 @@ class Monitor(object):
                 else:
                     self.run_prereqs(X, None, d)
                     a(X)
+                if X.ndim == 2:
+                    actual_ne += X.shape[0]
+                else:
+                    actual_ne += X.shape[d.get_topo_batch_axis()]
             # end for X
+            if actual_ne != ne:
+                raise RuntimeError("At compile time, your iterator said it had "
+                        + str(ne) + " examples total, but at runtime it gave us "
+                        + str(actual_ne) + ".")
         # end for d
 
 
