@@ -166,8 +166,8 @@ class Monitor(object):
         # Set all channels' val_shared to 0
         self.begin_record_entry()
 
-        for d, i, b, n, a, sd in safe_izip(datasets, self._iteration_mode, self._batch_size,
-                                 self._num_batches, self.accum, self._rng_seed):
+        for d, i, b, n, a, sd, ne in safe_izip(datasets, self._iteration_mode, self._batch_size,
+                                 self._num_batches, self.accum, self._rng_seed, self.num_examples):
             if isinstance(d, basestring):
                 d = yaml_parse.load(d)
                 raise NotImplementedError()
@@ -179,6 +179,7 @@ class Monitor(object):
                                     targets=self.require_label,
                                     rng=sd)
 
+            actual_ne = 0
             for X in myiterator:
                 if self.require_label:
                     X, y = X
@@ -187,7 +188,15 @@ class Monitor(object):
                 else:
                     self.run_prereqs(X, None, d)
                     a(X)
+                if X.ndim == 2:
+                    actual_ne += X.shape[0]
+                else:
+                    actual_ne += X.shape[d.get_topo_batch_axis()]
             # end for X
+            if actual_ne != ne:
+                raise RuntimeError("At compile time, your iterator said it had "
+                        + str(ne) + " examples total, but at runtime it gave us "
+                        + str(actual_ne) + ".")
         # end for d
 
 
@@ -276,8 +285,8 @@ class Monitor(object):
                     name = 'Monitor.begin_record_entry')
         updates = OrderedDict()
         givens = OrderedDict()
-        #Get the appropriate kind of theano variable to represent the data the model
-        #acts on
+        # Get the appropriate kind of theano variable to represent the data the model
+        # acts on
         X = self.model.get_input_space().make_theano_batch(name = "monitoring_X")
         if config.compute_test_value != 'off':
             m = self.model.get_test_batch_size()
@@ -295,27 +304,33 @@ class Monitor(object):
         it = [d.iterator(mode=i, num_batches=n, batch_size=b, topo=self.topo) \
               for d, i, n, b in safe_izip(self._datasets, self._iteration_mode,
                                     self._num_batches, self._batch_size)]
-        num_examples = [np.cast[config.floatX](float(i.num_examples)) for i in it]
+        self.num_examples = [np.cast[config.floatX](float(i.num_examples)) for i in it]
+        print "num_examples: ", self.num_examples
         givens = [OrderedDict() for d in self._datasets]
         updates = [OrderedDict() for d in self._datasets]
         for channel in self.channels.values():
             index = self._datasets.index(channel.dataset)
             d = self._datasets[index]
             g = givens[index]
-            n = num_examples[index]
+            cur_num_examples = self.num_examples[index]
             u = updates[index]
             if isinstance(channel.graph_input, (list, tuple)):
-                g[channel.graph_input[0]] = X
-                g[channel.graph_input[1]] = Y
+                channel_X, channel_Y = channel.graph_input
+                assert channel_X not in g or g[channel_X] is X
+                assert channel_Y not in g or g[channel_Y] is Y
+                g[channel_X] = X
+                g[channel_Y] = Y
             else:
-                g[channel.graph_input] = X
+                channel_X = channel.graph_input
+                assert channel_X not in g or g[channel_X] is X
+                g[channel_X] = X
             if n == 0:
                 raise ValueError("Iterating over 0 examples results in divide by 0")
             if self.topo:
                 batch_index = d.get_topo_batch_axis()
             else:
                 batch_index = 0
-            val = channel.val * T.cast(X.shape[batch_index], config.floatX) / n
+            val = channel.val * T.cast(X.shape[batch_index], config.floatX) / cur_num_examples
             u[channel.val_shared] = channel.val_shared + val
 
         with log_timing(log, "Compiling accum"):

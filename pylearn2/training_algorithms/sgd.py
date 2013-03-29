@@ -298,7 +298,7 @@ class SGD(TrainingAlgorithm):
                 batch_size=self.batch_size, targets=self.supervised,
                 topo=self.topo, rng = rng, num_batches = self.batches_per_iter)
         if self.topo:
-            batch_idx = dataset.view_converter.axes.index('b')
+            batch_idx = dataset.get_topo_batch_axis()
         else:
             batch_idx = 0
         if self.supervised:
