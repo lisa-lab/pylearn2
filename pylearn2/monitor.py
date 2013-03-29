@@ -285,8 +285,8 @@ class Monitor(object):
                     name = 'Monitor.begin_record_entry')
         updates = OrderedDict()
         givens = OrderedDict()
-        #Get the appropriate kind of theano variable to represent the data the model
-        #acts on
+        # Get the appropriate kind of theano variable to represent the data the model
+        # acts on
         X = self.model.get_input_space().make_theano_batch(name = "monitoring_X")
         if config.compute_test_value != 'off':
             m = self.model.get_test_batch_size()
