@@ -11,6 +11,8 @@ __email__ = "goodfeli@iro"
 import numpy as np
 from theano import tensor as T
 
+from pylearn2.expr.nnet import pseudoinverse_softmax_numpy
+from pylearn2.expr.nnet import softmax_numpy
 from pylearn2.expr.nnet import softmax_ratio
 from pylearn2.utils import sharedX
 
@@ -37,3 +39,15 @@ def test_softmax_ratio():
 
     assert np.allclose(naive, stable)
 
+def test_pseudoinverse_softmax_numpy():
+    rng = np.random.RandomState([2013, 3, 28])
+
+    p = np.abs(rng.randn(5))
+    p /= p.sum()
+
+    z = pseudoinverse_softmax_numpy(p)
+    zbroad = z.reshape(1,z.size)
+    p2 = softmax_numpy(zbroad)
+    p2 = p2[0,:]
+
+    assert np.allclose(p, p2)
