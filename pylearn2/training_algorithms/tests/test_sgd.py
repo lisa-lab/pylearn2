@@ -3,7 +3,7 @@ import numpy as np
 
 import theano.tensor as T
 from theano.tests import disturb_mem
-
+import warnings
 
 from pylearn2.costs.cost import Cost
 from pylearn2.costs.cost import CrossEntropy
@@ -252,7 +252,9 @@ def get_topological_dataset(rng, rows, cols, channels, m):
     return DenseDesignMatrix(topo_view=X, y=Y)
 
 
-def test_linear_decay():
+warnings.warn("TODO: LinearDecay is not tested, only LinearDecayOverEpoch is.")
+
+def test_linear_decay_over_epoch():
 
     # tests that the class LinearDecayOverEpoch in sgd.py
     # gets the learning rate properly over the training epochs
