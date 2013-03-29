@@ -512,6 +512,7 @@ class MaxoutConvC01B(Layer):
                  max_kernel_norm = None,
                  input_normalization = None,
                  detector_normalization = None,
+                 min_zero = False,
                  output_normalization = None):
         """
             num_channels: The number of output channels the layer should have.
@@ -844,6 +845,9 @@ class MaxoutConvC01B(Layer):
 
 
         self.output_space.validate(p)
+
+        if hasattr(self, 'min_zero') and self.min_zero:
+            p = p * (p > 0.)
 
         if not hasattr(self, 'output_normalization'):
             self.output_normalization = None
