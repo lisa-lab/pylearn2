@@ -113,4 +113,7 @@ class Dataset(object):
         Returns the index of the axis that corresponds to different examples
         in a batch when using topological_view.
         """
-        return 0
+
+        # Subclasses that support topological view must implement this to
+        # specify how their data is formatted.
+        raise NotImplementedError()

@@ -407,6 +407,7 @@ class Softmax(Layer):
 
         self.__dict__.update(locals())
         del self.self
+        del self.init_bias_target_marginals
 
         assert isinstance(n_classes, int)
 

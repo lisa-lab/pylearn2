@@ -43,8 +43,6 @@ The copyright and licensing notice for this code is reproduced below:
 
 import warnings
 from theano.sandbox.cuda import GpuOp
-from pylearn2.sandbox.cuda_convnet.shared_code import get_NVMatrix_code
-from pylearn2.sandbox.cuda_convnet.shared_code import load_code
 from pylearn2.sandbox.cuda_convnet.shared_code import this_dir
 from pylearn2.sandbox.cuda_convnet.convnet_compile import convnet_available
 from pylearn2.sandbox.cuda_convnet.convnet_compile import cuda_convnet_loc
