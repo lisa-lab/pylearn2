@@ -605,7 +605,7 @@ class LinearDecay(object):
         self._count += 1
         if self._count >= self.start:
             if self._count < self.saturate:
-                new_lr = self._init_lr - self._step * (self._count - self.start + 1)
+                new_lr = self._base_lr - self._step * (self._count - self.start + 1)
             else:
                 new_lr = self._base_lr * self.decay_factor
         else:
