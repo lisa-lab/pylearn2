@@ -1,6 +1,8 @@
-pylearn2 tutorial example: "train_example" by Ian Goodfellow
+pylearn2 tutorial example: "grbm_smd" by Ian Goodfellow
 
 This directory contains an example of how to train a model using pylearn2.
+Specifically, we'll train an RBM with Gaussian units ("grbm") with an
+objective function called denoising score matching ("smd").
 
 If you are not working from the LISA lab, you'll need to setup
 the dataset yourself.
