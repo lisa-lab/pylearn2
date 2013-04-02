@@ -99,3 +99,4 @@ class L1WeightDecay(Cost):
         total_cost.name = 'l1_penalty'
 
         return total_cost
+
