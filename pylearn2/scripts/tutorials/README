@@ -1,4 +1,11 @@
-Run these tutorials using ipython, e.g.
+There are two kinds of tutorials in this directory.
+
+Some tutorials are just subdirectories containing python scripts and yaml
+files. To work through these tutorials, just cd into the subdirectory,
+and open the README.
+
+Some tutorials are ipython notebooks. These tutorials are single files with
+extension .ipynb. Run these tutorials using ipython, e.g.
 
 ipython notebook softmax_regression.ipnb
 

@@ -274,7 +274,7 @@ def max_pool_channels(z, pool_size, top_down = None, theano_rng = None):
             p_samples = theano_rng.binomial(p=p, size=p.shape, dtype=p.dtype, n=1)
             t2 = time.time()
             if t2 - t1 > 0.5:
-                warnings.warn("TODO: speed up random number seeding. max pooling spent "+str(t2-t1)+" in a call to theano_rng.binomial.")
+                warnings.warn("TODO: speed up theano's random number seeding. max pooling spent "+str(t2-t1)+" in a call to theano_rng.binomial.")
             h_samples = p_samples
             return p_samples, h_samples, p_samples, h_samples
     else:
@@ -371,7 +371,7 @@ def max_pool_channels(z, pool_size, top_down = None, theano_rng = None):
         multinomial = theano_rng.multinomial(pvals = reshaped_events, dtype = p.dtype)
         t2 = time.time()
         if t2 - t1 > 0.5:
-            warnings.warn("TODO: speed up random number seeding. max pooling spent "+str(t2-t1)+" in a call to theano_rng.multinomial.")
+            warnings.warn("TODO: speed up theano's random number seeding. max pooling spent "+str(t2-t1)+" in a call to theano_rng.multinomial.")
 
         reshaped_multinomial = multinomial.reshape((batch_size, n // pool_size, outcomes))
 

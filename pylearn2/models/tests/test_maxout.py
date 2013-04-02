@@ -51,9 +51,6 @@ def test_maxout_basic():
                          irange: .005
                      }
                     ],
-            dropout_include_probs: [ .5, .5, 1 ],
-            dropout_input_include_prob: .8,
-            dropout_input_scale: 1.,
             nvis: 2,
         },
         algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
@@ -64,9 +61,9 @@ def test_maxout_basic():
                 {
                     'train' : *train
                 },
-            cost: !obj:pylearn2.costs.cost.MethodCost {
-                    method: 'cost_from_X',
-                    supervised: 1
+            cost: !obj:pylearn2.costs.mlp.dropout.Dropout {
+                input_include_probs: { 'h0' : .8 },
+                input_scales: { 'h0': 1. }
             },
             termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
                 max_epochs: 3,
@@ -154,9 +151,6 @@ def test_maxout_conv_c01b_basic():
                 num_channels: 1,
                 axes: ['c', 0, 1, 'b'],
             },
-            dropout_include_probs: [ .5, .5, .5, 1 ],
-            dropout_input_include_prob: .8,
-            dropout_input_scale: 1.,
         },
         algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
             learning_rate: .05,
@@ -165,9 +159,9 @@ def test_maxout_conv_c01b_basic():
                 {
                     'train': *train
                 },
-            cost: !obj:pylearn2.costs.cost.MethodCost {
-                    method: 'cost_from_X',
-                    supervised: 1
+            cost: !obj:pylearn2.costs.mlp.dropout.Dropout {
+                input_include_probs: { 'h0' : .8 },
+                input_scales: { 'h0': 1. }
             },
             termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
                 max_epochs: 3

@@ -305,7 +305,6 @@ class Monitor(object):
               for d, i, n, b in safe_izip(self._datasets, self._iteration_mode,
                                     self._num_batches, self._batch_size)]
         self.num_examples = [np.cast[config.floatX](float(i.num_examples)) for i in it]
-        print "num_examples: ", self.num_examples
         givens = [OrderedDict() for d in self._datasets]
         updates = [OrderedDict() for d in self._datasets]
         for channel in self.channels.values():

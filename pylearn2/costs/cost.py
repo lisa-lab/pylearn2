@@ -268,11 +268,13 @@ class SumOfCosts(Cost):
 
         return reduce(merge, descrs)
 
-
-
 class ScaledCost(Cost):
     """
     Represents a given cost scaled by a constant factor.
+    TODO: why would you want to use this? SumOfCosts allows you to scale individual
+        terms, and if this is the only cost, why not just change the learning rate?
+        If there's an obvious use case or rationale we should document it, if not,
+        we should remove it.
     """
     def __init__(self, cost, scaling):
         """
@@ -307,7 +309,6 @@ class ScaledCost(Cost):
         else:
             return self.scaling * self.cost(model, X)
 
-
 class LxReg(Cost):
     """
     L-x regularization term for the list of tensor variables provided.
@@ -336,7 +337,7 @@ class LxReg(Cost):
         for var in self.variables:
             Lx = Lx + abs(var ** self.x).sum()
         return Lx
-        
+
 class CrossEntropy(Cost):
     """WRITEME"""
     def __init__(self):
@@ -346,7 +347,6 @@ class CrossEntropy(Cost):
         """WRITEME"""
         return (-Y * T.log(model(X)) - \
                 (1 - Y) * T.log(1 - model(X))).sum(axis=1).mean()
-
 
 class MethodCost(Cost):
     """
@@ -365,7 +365,6 @@ class MethodCost(Cost):
             """ Patches calls through to a user-specified method of the model """
             fn = getattr(model, self.method)
             return fn(*args, **kwargs)
-
 
 def _no_op(X, y=None):
     """

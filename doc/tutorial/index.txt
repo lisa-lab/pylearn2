@@ -4,7 +4,7 @@
 Quick-start example
 ========
 
-The directory pylearn2/scripts/train_example/ contains an example of
+The directory pylearn2/scripts/tutorials/grbm_smd/ contains an example of
 how to train a model using pylearn2.
 
 There are three steps.
@@ -16,7 +16,7 @@ how the learning experiment went.
 
 Step 1: Create the dataset
 ----------------------------
-From the train_example directory, run
+From the grbm_smd directory, run
 
 python make_dataset.py
 
@@ -37,7 +37,7 @@ Step 2: Train the model
 You should have pylearn2/scripts in your PATH enviroment variable.
 pylearn2/scripts/train.py should have executable permissions.
 
-From the train_example directory, run
+From the grbm_smd directory, run
 
 train.py cifar_grbm_smd.yaml
 
@@ -60,7 +60,7 @@ pylearn2/scripts/show_weights.py and pylearn2/scripts/plot_monitor.py
 should have executable permissions.
 
 
-From the train_example directory, run
+From the grbm_smd directory, run
 
 show_weights.py cifar_grbm_smd.pkl
 
