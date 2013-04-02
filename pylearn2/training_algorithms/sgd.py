@@ -834,8 +834,28 @@ class ExhaustiveSGD(SGD): # deprecated!
 
         super(ExhaustiveSGD,self).__init__(*args, ** kwargs)
 
-# This classes were moved to the new submodule, but I import
+# These classes were moved to the new submodule, but I import
 # a reference to them here to avoid breaking the old interface.
-from pylearn2.termination_criteria import EpochCounter
-from pylearn2.termination_criteria import And as DisjunctionCriterion
-from pylearn2.termination_criteria import Or as ConjunctionCriterion
+from pylearn2.termination_criteria import EpochCounter as _EpochCounter
+
+def EpochCounter(**kwargs):
+    warnings.warn("training_algorithms.sgd.EpochCounter has been moved to "
+            "termination_criteria.EpochCounter. This link may be removed on "
+            "or after October 3, 2013.")
+    return _EpochCounter(**kwargs)
+
+from pylearn2.termination_criteria import And as _DisjunctionCriterion
+
+def DisjunctionCriterion(**kwargs):
+    warnings.warn("training_algorithms.sgd.DisjunctionCriterion has been moved to "
+            "termination_criteria.And. This link may be removed on "
+            "or after October 3, 2013.")
+    return _DisjunctionCriterion(**kwargs)
+
+from pylearn2.termination_criteria import Or as _ConjunctionCriterion
+
+def ConjuctionCriterion(**kwargs):
+    warnings.warn("training_algorithms.sgd.ConjunctionCriterion has been moved to "
+            "termination_criteria.Or. This link may be removed on "
+            "or after October 3, 2013.")
+    return _ConjunctionCriterion(**kwargs)
