@@ -1,3 +1,4 @@
+from pylearn2.utils import py_integer_types
 from pylearn2.utils import serial
 from pylearn2.config import yaml_parse
 import sys
@@ -41,8 +42,8 @@ assert test.X.shape[0] % batch_size == 0
 
 def accs():
     mf1_accs = []
-    assert isinstance(test.X.shape[0], int)
-    assert isinstance(batch_size, int)
+    assert isinstance(test.X.shape[0], (int, long))
+    assert isinstance(batch_size, py_integer_types)
     for i in xrange(test.X.shape[0]/batch_size):
         print i
         x_arg = test.X[i*batch_size:(i+1)*batch_size,:]
