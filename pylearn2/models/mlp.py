@@ -408,7 +408,12 @@ class MLP(Layer):
         return self.layers[-1].cost_from_cost_matrix(cost_matrix)
 
     def cost_from_X(self, X, Y):
-        Y_hat = self.fprop(X, apply_dropout = self.use_dropout)
+        """
+        Computes self.cost, but takes X rather than Y_hat as an argument.
+        This is just a wrapper around self.cost that computes Y_hat by
+        calling Y_hat = self.fprop(X)
+        """
+        Y_hat = self.fprop(X)
         return self.cost(Y, Y_hat)
 
 class Softmax(Layer):
