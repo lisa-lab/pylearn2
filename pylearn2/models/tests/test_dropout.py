@@ -7,4 +7,11 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
+import warnings
 
+warnings.warn("""
+TODO: add test that dropout_fprop with all include probabilities and scales set
+    to 1 is equivalent to fprop.
+TODO: add a test file to the corresponding cost module and make sure that the
+    dropout cost with everything set to 1 is equivalent to the Default cost
+""")
