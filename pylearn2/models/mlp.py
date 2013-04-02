@@ -150,7 +150,7 @@ class MLP(Layer):
             input_space: a Space specifying the kind of input the MLP acts
                         on. If None, input space is specified by nvis.
             dropout*: None of these arguments are supported anymore. Use
-                      pylearn2.costs.dropout.Dropout instead.
+                      pylearn2.costs.mlp.dropout.Dropout instead.
         """
 
         for arg in locals():
