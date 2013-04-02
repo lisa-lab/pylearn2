@@ -343,6 +343,60 @@ class MLP(Layer):
     def get_weights_topo(self):
         return self.layers[0].get_weights_topo()
 
+    def dropout_fprop(self, state_below, default_input_include_prob=0.5, input_include_probs=None,
+        default_input_scale=2., input_scales=None):
+        """
+        state_below: The input to the MLP
+
+        Returns the output of the MLP, when applying dropout to the input and intermediate layers.
+        Each input to each layer is randomly included or excluded
+        for each example. The probability of inclusion is independent for each input
+        and each example. Each layer uses "default_input_include_prob" unless that
+        layer's name appears as a key in input_include_probs, in which case the input
+        inclusion probability is given by the corresponding value.
+
+        Each feature is also multiplied by a scale factor. The scale factor for each
+        layer's input scale is determined by the same scheme as the input probabilities.
+
+        """
+
+        warnings.warn("dropout should be implemented with fixed_var_descr to"
+                " make sure it works with BGD, this is just a hack to get it"
+                "working with SGD")
+
+        if input_include_probs is None:
+            input_include_probs = {}
+
+        if input_scales is None:
+            input_scales = {}
+
+        assert all(layer_name in self.layer_names for layer_name in input_include_probs)
+        assert all(layer_name in self.layer_names for layer_name in input_scales)
+
+        theano_rng = MRG_RandomStreams(self.rng.randint(2**15))
+
+        for layer in self.layers:
+            layer_name = layer.layer_name
+
+            if layer_name in input_include_probs:
+                include_prob = input_include_probs[layer_name]
+            else:
+                include_prob = default_input_include_prob
+
+            if layer_name in input_scales:
+                scale = input_scales[layer_name]
+            else:
+                scale = default_input_scale
+
+            state_below = self.apply_dropout(state=state_below,
+                    include_prob=include_prob,
+                    theano_rng=theano_rng,
+                    scale=scale)
+
+            state_below = layer.fprop(state_below)
+
+        return state_below
+
     def fprop(self, state_below, apply_dropout = False, return_all = False):
 
         if apply_dropout:
