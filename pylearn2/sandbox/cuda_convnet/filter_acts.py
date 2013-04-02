@@ -296,6 +296,25 @@ class FilterActs(BaseActs):
     def c_code_cache_version(self):
         return (3,)
 
+    def R_op(self, inputs, evals):
+        images, filters = inputs
+        images_ev, filters_ev = evals
+        if 'Cuda' not in str(type(images)):
+            raise TypeError("inputs must be cuda")
+        if 'Cuda' not in str(type(filters)):
+            raise TypeError("filters must be cuda")
+
+        if filters_ev is not None:
+            sol = self(images, filters_ev)
+        else:
+            sol = None
+        if images_ev is not None:
+            if sol is not None:
+                sol += self(images_ev, filters)
+            else:
+                sol = self(images_ev, filters)
+        return [sol]
+
     def grad(self, inputs, dout):
 
         images, filters = inputs
