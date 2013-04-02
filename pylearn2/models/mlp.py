@@ -133,12 +133,13 @@ class MLP(Layer):
             layers,
             batch_size=None,
             input_space=None,
+            nvis=None,
+            seed=None,
             dropout_include_probs = None,
             dropout_scales = None,
             dropout_input_include_prob = None,
             dropout_input_scale = None,
-            nvis=None,
-            seed=None):
+            ):
         """
             layers: a list of MLP_Layers. The final layer will specify the
                     MLP's output space.
@@ -148,20 +149,19 @@ class MLP(Layer):
                         a hard-coded batch size.
             input_space: a Space specifying the kind of input the MLP acts
                         on. If None, input space is specified by nvis.
-            dropout_include_probs: a list specifying the dropout include probability at each layer of MLP
-
-            A note on dropout:
-                Hinton's paper suggests including each unit with probability p
-                during training, then multiplying the outgoing weights by p at
-                the end of training.
-                We instead include each unit with probability p and divide its
-                state by p during training. Note that this means the initial
-                weights should be multiplied by p relative to Hinton's.
-                The SGD learning rate on the weights should also be scaled by p^2
-                (use W_lr_scale rather than adjusting the global learning rate,
-                because the learning rate on the biases should
-                not be adjusted).
+            dropout*: None of these arguments are supported anymore. Use
+                      pylearn2.costs.dropout.Dropout instead.
         """
+
+        for arg in locals():
+            if arg.find('dropout') != -1:
+                raise TypeError(arg+ "is no longer supported. Train using"
+                        "an instance of pylearn2.costs.mlp.dropout.Dropout "
+                        "instead of hardcoding the dropout into the model"
+                        " itself. All dropout related arguments and this"
+                        " support message may be removed on or after "
+                        "October 2, 2013.")
+
         if seed is None:
             seed = [2013, 1, 4]
 
@@ -193,31 +193,10 @@ class MLP(Layer):
 
         self.freeze_set = set([])
 
-        if dropout_include_probs is not None:
-            if not (isinstance(dropout_include_probs, (list, tuple))):
-                raise AssertionError("dropout_include_probs should be a list specifying the dropout include probability at each layer of MLP")
-
-        self.use_dropout = ((dropout_input_include_prob is not None) \
-                or (dropout_include_probs is not None and \
-                any(elem is not None for elem in dropout_include_probs)))
-        self.dropout_input_include_prob = dropout_input_include_prob
-        if dropout_include_probs is None:
-            dropout_include_probs = [None] * len(layers)
-        self.dropout_include_probs = dropout_include_probs
-
         def f(x):
             if x is None:
                 return None
             return 1. / x
-
-        if dropout_input_scale is None:
-            dropout_input_scale = f(dropout_input_include_prob)
-
-        if dropout_scales is None:
-            dropout_scales = map(f, dropout_include_probs)
-
-        self.dropout_input_scale = dropout_input_scale
-        self.dropout_scales = dropout_scales
 
     def setup_rng(self):
         self.rng = np.random.RandomState(self.seed)
@@ -397,32 +376,14 @@ class MLP(Layer):
 
         return state_below
 
-    def fprop(self, state_below, apply_dropout = False, return_all = False):
-
-        if apply_dropout:
-            warnings.warn("dropout should be implemented with fixed_var_descr to make sure it works with BGD, this is just a hack to get it working with SGD")
-            theano_rng = MRG_RandomStreams(self.rng.randint(2**15))
-            scale = self.dropout_input_scale
-            state_below = self.apply_dropout(state=state_below,
-                    include_prob=self.dropout_input_include_prob,
-                    theano_rng=theano_rng,
-                    scale=scale)
+    def fprop(self, state_below, return_all = False):
 
         rval = self.layers[0].fprop(state_below)
 
-        if apply_dropout:
-            dropout = self.dropout_include_probs[0]
-            scale = self.dropout_scales[0]
-            rval = self.apply_dropout(state=rval, include_prob=dropout, theano_rng=theano_rng,
-                    scale=scale)
         rlist = [rval]
 
-        for layer, dropout, scale in safe_izip(self.layers[1:], self.dropout_include_probs[1:],
-            self.dropout_scales[1:]):
+        for layer in self.layers[1:]:
             rval = layer.fprop(rval)
-            if apply_dropout:
-                rval = self.apply_dropout(state=rval, include_prob=dropout, theano_rng=theano_rng,
-                        scale=scale)
             rlist.append(rval)
 
         if return_all:

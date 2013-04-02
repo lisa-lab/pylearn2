@@ -6,9 +6,20 @@ from pylearn2.costs.cost import Cost
 class Dropout(Cost):
     """
     Implements the dropout training technique described in
-    "Improving neural networks by preventing co-adaptation of feature detectors"
-    Geoffrey E. Hinton, Nitish Srivastava, Alex Krizhevsky, Ilya Sutskever, Ruslan R. Salakhutdinov
+    "Improving neural networks by preventing co-adaptation of feature
+    detectors"
+    Geoffrey E. Hinton, Nitish Srivastava, Alex Krizhevsky, Ilya Sutskever,
+    Ruslan R. Salakhutdinov
     arXiv 2012
+
+    This paper suggests including each unit with probability p during training,
+    then multiplying the outgoing weights by p at the end of training.
+    We instead include each unit with probability p and divide its
+    state by p during training. Note that this means the initial weights should
+    be multiplied by p relative to Hinton's.
+    The SGD learning rate on the weights should also be scaled by p^2 (use
+    W_lr_scale rather than adjusting the global learning rate, because the
+    learning rate on the biases should not be adjusted).
     """
 
     supervised = True
