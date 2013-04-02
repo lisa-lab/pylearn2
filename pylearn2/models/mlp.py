@@ -160,7 +160,8 @@ class MLP(Layer):
                         "instead of hardcoding the dropout into the model"
                         " itself. All dropout related arguments and this"
                         " support message may be removed on or after "
-                        "October 2, 2013.")
+                        "October 2, 2013. They should be removed from the "
+                        "SoftmaxRegression subclass at the same time.")
 
         if seed is None:
             seed = [2013, 1, 4]
