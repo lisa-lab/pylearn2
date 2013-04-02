@@ -37,7 +37,7 @@ def _check_args(np.ndarray[np.float32_t, ndim=4] images,
 def random_window_and_flip_c01b(np.ndarray[np.float32_t, ndim=4] images,
                                 tuple window_shape,
                                 np.ndarray[np.float32_t, ndim=4] out=None,
-                                object rng=(2013, 2, 20)):
+                                object rng=(2013, 2, 20), int flip=True):
     """
     Transform a stack of images by taking random windows on each
     image and randomly flipping on the horizontal axis.
@@ -59,6 +59,10 @@ def random_window_and_flip_c01b(np.ndarray[np.float32_t, ndim=4] images,
         A random number generator, or a seed used to create one.
         A default seed is used to ensure deterministic behaviour.
 
+    flip : bool, optional
+        Horizontally reflect each image with probability 0.5. Default
+        is `True`.
+
     Returns
     -------
     out : ndarray, 4-dimensional, dtype=float32
@@ -72,7 +76,7 @@ def random_window_and_flip_c01b(np.ndarray[np.float32_t, ndim=4] images,
     cdef np.npy_intp batch = images.shape[3]
     cdef np.npy_intp window_r = window_shape[0]
     cdef np.npy_intp window_c = window_shape[1]
-    cdef np.npy_intp offset_r, offset_c, o_j, o_k, example, i, j, k, flip
+    cdef np.npy_intp offset_r, offset_c, o_j, o_k, example, i, j, k, flip_this
     cdef unsigned int seed
     cdef np.npy_intp row_offset_max = rows - window_r
     cdef np.npy_intp col_offset_max = cols - window_c
@@ -86,12 +90,12 @@ def random_window_and_flip_c01b(np.ndarray[np.float32_t, ndim=4] images,
     for example in range(batch):
         offset_r = rand_r(&seed) % (row_offset_max + 1)
         offset_c = rand_r(&seed) % (col_offset_max + 1)
-        flip = rand_r(&seed) % 2
+        flip_this = (rand_r(&seed) % 2) & flip
         for i in range(channels):
             for j in range(offset_r, offset_r + window_r):
                 for k in range(offset_c, offset_c + window_c):
                     o_j = j - offset_r
-                    if flip:
+                    if flip_this:
                         o_k = window_c - (k - offset_c) - 1
                     else:
                         o_k = k - offset_c
@@ -104,7 +108,7 @@ def random_window_and_flip_c01b(np.ndarray[np.float32_t, ndim=4] images,
 def random_window_and_flip_b01c(np.ndarray[np.float32_t, ndim=4] images,
                                 tuple window_shape,
                                 np.ndarray[np.float32_t, ndim=4] out=None,
-                                object rng=(2013, 2, 20)):
+                                object rng=(2013, 2, 20), int flip=True):
     """
     Transform a stack of images by taking random windows on each
     image and randomly flipping on the horizontal axis.
@@ -126,6 +130,10 @@ def random_window_and_flip_b01c(np.ndarray[np.float32_t, ndim=4] images,
         A random number generator, or a seed used to create one.
         A default seed is used to ensure deterministic behaviour.
 
+    flip : bool, optional
+        Horizontally reflect each image with probability 0.5. Default
+        is `True`.
+
     Returns
     -------
     out : ndarray, 4-dimensional, dtype=float32
@@ -139,7 +147,7 @@ def random_window_and_flip_b01c(np.ndarray[np.float32_t, ndim=4] images,
     cdef np.npy_intp channels = images.shape[3]
     cdef np.npy_intp window_r = window_shape[0]
     cdef np.npy_intp window_c = window_shape[1]
-    cdef np.npy_intp offset_r, offset_c, o_j, o_k, example, i, j, k, flip
+    cdef np.npy_intp offset_r, offset_c, o_j, o_k, example, i, j, k, flip_this
     cdef unsigned int seed
     cdef np.npy_intp row_offset_max = rows - window_r
     cdef np.npy_intp col_offset_max = cols - window_c
@@ -153,12 +161,12 @@ def random_window_and_flip_b01c(np.ndarray[np.float32_t, ndim=4] images,
     for example in range(batch):
         offset_r = rand_r(&seed) % (row_offset_max + 1)
         offset_c = rand_r(&seed) % (col_offset_max + 1)
-        flip = rand_r(&seed) % 2
+        flip_this = (rand_r(&seed) % 2) & flip
         for j in range(offset_r, offset_r + window_r):
             for k in range(offset_c, offset_c + window_c):
                 for i in range(channels):
                     o_j = j - offset_r
-                    if flip:
+                    if flip_this:
                         o_k = window_c - (k - offset_c) - 1
                     else:
                         o_k = k - offset_c
