@@ -82,7 +82,7 @@ Documentation
 Roughly in order of what you'll want to check out:
 
 * :ref:`tutorial` -- Learn the basics via an example.
-* At this point, you might want to work through the ipython notebooks in the "tutorials"
+* At this point, you might want to work through the ipython notebooks in the "scripts/tutorials"
   directory.
 * :ref:`features` -- A list of features available in the library.
 * :ref:`overview` -- A detailed but high-level overview of how Pylearn2 works. This is the
