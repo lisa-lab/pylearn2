@@ -47,7 +47,7 @@ class WindowAndFlipC01B(TrainExtension):
     axes = ('c', 0, 1, 'b')
 
     def __init__(self, window_shape, randomize=None, randomize_once=None,
-            center=None, rng=(2013, 02, 20), pad_randomized=0):
+            center=None, rng=(2013, 02, 20), pad_randomized=0, flip=True):
         """
         An extension that allows an image dataset to be flipped
         and windowed after each epoch of training.
@@ -77,6 +77,10 @@ class WindowAndFlipC01B(TrainExtension):
             the actual size of the dataset, and validate/test on
             full-size images instead of central patches. Default
             is 0.
+
+        flip : bool, optional
+            Reflect images on the horizontal axis with probability
+            0.5. `True` by default.
         """
         self._window_shape = tuple(window_shape)
         self._original = None
@@ -85,6 +89,7 @@ class WindowAndFlipC01B(TrainExtension):
         self._randomize_once = randomize_once if randomize_once else []
         self._center = center if center else []
         self._pad_randomized = pad_randomized
+        self._flip = flip
 
         if randomize is None and randomize_once is None and center is None:
             warnings.warn(self.__class__.__name__ + " instantiated without "
@@ -124,7 +129,7 @@ class WindowAndFlipC01B(TrainExtension):
             assert tuple(dataset.view_converter.axes) == self.axes
             arr = random_window_and_flip_c01b(self._original[dataset],
                                               self._window_shape,
-                                              rng=self._rng)
+                                              rng=self._rng, flip=self._flip)
             dataset.set_topological_view(arr, axes=self.axes)
 
     def on_monitor(self, model, dataset, algorithm):
