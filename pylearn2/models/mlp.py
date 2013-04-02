@@ -153,9 +153,11 @@ class MLP(Layer):
                       pylearn2.costs.mlp.dropout.Dropout instead.
         """
 
-        for arg in locals():
-            if arg.find('dropout') != -1:
-                raise TypeError(arg+ "is no longer supported. Train using"
+        locals_snapshot = locals()
+
+        for arg in locals_snapshot:
+            if arg.find('dropout') != -1 and locals_snapshot[arg] is not None:
+                raise TypeError(arg+ " is no longer supported. Train using "
                         "an instance of pylearn2.costs.mlp.dropout.Dropout "
                         "instead of hardcoding the dropout into the model"
                         " itself. All dropout related arguments and this"
