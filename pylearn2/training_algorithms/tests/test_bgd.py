@@ -4,7 +4,7 @@ from pylearn2.models.model import Model
 from pylearn2.space import VectorSpace
 from pylearn2.utils import sharedX
 from pylearn2.training_algorithms.bgd import BGD
-from pylearn2.training_algorithms.sgd import EpochCounter
+from pylearn2.termination_criteria import EpochCounter
 from pylearn2.costs.cost import Cost
 import theano.tensor as T
 import numpy as np
