@@ -2,7 +2,7 @@
 import theano.tensor as T
 from theano import scan
 from pylearn2.costs.cost import Cost
-from pylern2.utils import py_integer_types
+from pylearn2.utils import py_integer_types
 
 
 class NCE(Cost):

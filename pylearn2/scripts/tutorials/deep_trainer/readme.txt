@@ -2,7 +2,7 @@ This directory contains a simple example to give you a feeling of how you can
 play with pylearn2 by writing your own python scripts to train a deep model.
 
 Note that the best-supported method is to write yaml configuration files (see
-scripts/train_example and tutorials/*.ipynb for examples of this method).
+scripts/tutorials/grbm_smd and scripts/tutorials/*.ipynb for examples of this method).
  
 It is by no means a full-blown demo. 
 

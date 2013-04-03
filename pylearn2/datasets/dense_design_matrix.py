@@ -565,7 +565,13 @@ class DefaultViewConverter(object):
         return rval
 
     def design_mat_to_weights_view(self, X):
-        return self.design_mat_to_topo_view(X)
+        rval =  self.design_mat_to_topo_view(X)
+
+        # weights view is always for display
+        rval = np.transpose(rval, tuple(self.axes.index(axis)
+            for axis in ('b', 0, 1, 'c')))
+
+        return rval
 
     def topo_view_to_design_mat(self, V):
 
