@@ -257,6 +257,8 @@ class MLP(Layer):
             if layer is self.layers[-1]:
                 args.append(Y)
             ch = layer.get_monitoring_channels_from_state(*args)
+            if not isinstance(ch, OrderedDict):
+                raise TypeError(str((type(ch), layer.layer_name)))
             for key in ch:
                 rval[layer.layer_name+'_'+key]  = ch[key]
 
@@ -2130,3 +2132,52 @@ def L1WeightDecay(*args, **kwargs):
     warnings.warn("pylearn2.models.mlp.L1WeightDecay has moved to pylearn2.costs.mlp.WeightDecay")
     from pylearn2.costs.mlp import L1WeightDecay as L1WD
     return L1WD(*args, **kwargs)
+
+
+class LinearGaussian(Linear):
+    """
+    A Linear layer augmented with a precision vector, for modeling conditionally Gaussian data
+    """
+
+    def __init__(self, init_beta, min_beta, max_beta, beta_lr_scale, ** kwargs):
+        super(LinearGaussian, self).__init__(**kwargs)
+        self.__dict__.update(locals())
+        del self.self
+        del self.kwargs
+
+    def set_input_space(self, space):
+        super(LinearGaussian, self).set_input_space(space)
+        assert isinstance(self.output_space, VectorSpace)
+        self.beta = sharedX(self.output_space.get_origin() + self.init_beta, 'beta')
+
+    def get_monitoring_channels(self):
+        rval = super(LinearGaussian, self).get_monitoring_channels()
+        assert isinstance(rval, OrderedDict)
+        rval['beta_min'] = self.beta.min()
+        rval['beta_mean'] = self.beta.mean()
+        rval['beta_max'] = self.beta.max()
+        return rval
+
+    def get_monitoring_channels_from_state(self, state, target=None):
+        rval = super(LinearGaussian, self).get_monitoring_channels()
+        if target:
+            rval['mse'] = T.sqr(state - target).mean()
+        return rval
+
+    def cost(self, Y, Y_hat):
+        return T.dot(T.sqr(Y-Y_hat), self.beta).mean() - 0.5 * T.log(self.beta).sum()
+
+    def censor_updates(self, updates):
+        super(LinearGaussian, self).censor_updates(updates)
+
+        if self.beta in updates:
+            updates[self.beta] = T.clip(updates[self.beta], self.min_beta, self.max_beta)
+
+    def get_lr_scalers(self):
+        rval = super(LinearGaussian, self).get_lr_scalers()
+        if self.beta_lr_scale is not None:
+            rval[self.beta] = self.beta_lr_scale
+        return rval
+
+    def get_params(self):
+        return super(LinearGaussian, self).get_params() + [self.beta]

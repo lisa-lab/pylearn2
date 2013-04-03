@@ -38,6 +38,8 @@ def raise_cannot_open(path):
                 # Don't attempt to guess the right name if the directory is huge
                 raise IOError("Cannot open "+path+" but can open "+parent+".")
 
+            if os.path.islink(path):
+                raise IOError(path + " appears to be a symlink to a non-existent file")
             raise IOError("Cannot open "+path+" but can open "+parent+". Did you mean "+match(bad,candidates)+" instead of "+bad+"?")
         # end if
     # end for
