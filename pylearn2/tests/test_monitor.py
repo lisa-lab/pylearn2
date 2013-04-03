@@ -217,7 +217,7 @@ def test_revisit():
 
                 batch_idx = shared(0)
 
-                class RecorderAndValidator:
+                class RecorderAndValidator(object):
 
                     def __init__(self):
                         self.validate = False
@@ -260,7 +260,12 @@ def test_revisit():
                     val = 0.,
                     prereqs = [ prereq ])
 
-                monitor()
+                try:
+                    monitor()
+                except RuntimeError:
+                    print 'monitor raised RuntimeError for iteration mode', mode
+                    raise
+
 
                 assert None not in batches
 
@@ -496,3 +501,5 @@ def test_ambig_data():
     assert False
 
 
+if __name__ == '__main__':
+    test_revisit()
