@@ -31,6 +31,7 @@ from pylearn2.space import Conv2DSpace
 from pylearn2.space import Space
 from pylearn2.space import VectorSpace
 from pylearn2.utils import function
+from pylearn2.utils import py_integer_types
 from pylearn2.utils import sharedX
 
 warnings.warn("MLP changing the recursion limit.")
@@ -436,7 +437,7 @@ class Softmax(Layer):
         del self.self
         del self.init_bias_target_marginals
 
-        assert isinstance(n_classes, int)
+        assert isinstance(n_classes, py_integer_types)
 
         self.output_space = VectorSpace(n_classes)
         if not no_affine:

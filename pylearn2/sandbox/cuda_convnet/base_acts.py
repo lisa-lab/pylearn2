@@ -46,6 +46,7 @@ from theano.sandbox.cuda import GpuOp
 from pylearn2.sandbox.cuda_convnet.shared_code import this_dir
 from pylearn2.sandbox.cuda_convnet.convnet_compile import convnet_available
 from pylearn2.sandbox.cuda_convnet.convnet_compile import cuda_convnet_loc
+from pylearn2.utils import py_integer_types
 
 
 class BaseActs(GpuOp):
@@ -54,7 +55,7 @@ class BaseActs(GpuOp):
     """
     def __init__(self, pad=0, partial_sum=None):
 
-        if not isinstance(pad, int):
+        if not isinstance(pad, py_integer_types):
             raise TypeError("pad must be an int")
         if not (pad >= 0):
             raise ValueError("bad value of pad (must be non-negative): " + str(pad))

@@ -25,6 +25,11 @@ def _hash_array(arr):
 
 
 def test_window_flip_coverage():
+    yield check_window_flip_coverage, True
+    yield check_window_flip_coverage, False
+
+
+def check_window_flip_coverage(flip):
     ddata = DummyDataset()
     topo = ddata.get_topological_view()
     ref_win = [set() for _ in xrange(4)]
@@ -34,9 +39,10 @@ def test_window_flip_coverage():
                 window = topo[:, i:i + 3, j:j + 3, b]
                 assert_equal((3, 3), window.shape[1:])
                 ref_win[b].add(_hash_array(window))
-                ref_win[b].add(_hash_array(window[:, :, ::-1]))
+                if flip:
+                    ref_win[b].add(_hash_array(window[:, :, ::-1]))
     actual_win = [set() for _ in xrange(4)]
-    wf = WindowAndFlipC01B(window_shape=(3, 3), randomize=[ddata])
+    wf = WindowAndFlipC01B(window_shape=(3, 3), randomize=[ddata], flip=flip)
     wf.setup(None, ddata, None)
     curr_topo = ddata.get_topological_view()
     assert_equal((2, 3, 3, 4), curr_topo.shape)
