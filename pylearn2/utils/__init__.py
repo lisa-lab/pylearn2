@@ -193,4 +193,8 @@ def grad(*args, **kwargs):
     """
     return theano.gradient.grad(*args, disconnected_inputs='ignore', **kwargs)
 
-
+# Groups of Python types that are often used together in `isinstance`
+py_integer_types = (int, long, np.integer)
+py_float_types = (float, np.floating)
+py_complex_types = (complex, np.complex)
+py_number_types = (int, long, float, complex, np.number)

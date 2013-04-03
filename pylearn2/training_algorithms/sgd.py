@@ -19,6 +19,7 @@ from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 from pylearn2.utils import sharedX
 from pylearn2.train_extensions import TrainExtension
 from pylearn2.utils.iteration import is_stochastic
+from pylearn2.utils import py_integer_types, py_float_types
 from pylearn2.utils import safe_zip
 from pylearn2.utils import serial
 from pylearn2.utils.timing import log_timing
@@ -38,7 +39,7 @@ class SGD(TrainingAlgorithm):
     A TrainingAlgorithm that does gradient descent on minibatches.
 
     """
-    def __init__(self, learning_rate, cost, batch_size=None,
+    def __init__(self, learning_rate, cost=None, batch_size=None,
                  monitoring_batches=None, monitoring_dataset=None,
                  termination_criterion=None, update_callbacks=None,
                  init_momentum = None, set_batch_size = False,
@@ -53,6 +54,8 @@ class SGD(TrainingAlgorithm):
                             can change it after each minibatch.
             cost: a pylearn2.costs.cost.Cost object specifying the objective
                   function to be minimized.
+                  Optionally, may be None. In this case, SGD will call the model's
+                  get_default_cost method to obtain the objective function.
             init_momentum: if None, does not use momentum
                             otherwise, use momentum and initialize the
                             momentum coefficient to init_momentum.
@@ -115,6 +118,10 @@ class SGD(TrainingAlgorithm):
         self.monitoring_costs = monitoring_costs
 
     def setup(self, model, dataset):
+
+        if self.cost is None:
+            self.cost = model.get_default_cost()
+
         inf_params = [ param for param in model.get_params() if np.any(np.isinf(param.get_value())) ]
         if len(inf_params) > 0:
             raise ValueError("These params are Inf: "+str(inf_params))
@@ -292,7 +299,7 @@ class SGD(TrainingAlgorithm):
                 batch_size=self.batch_size, targets=self.supervised,
                 topo=self.topo, rng = rng, num_batches = self.batches_per_iter)
         if self.topo:
-            batch_idx = dataset.view_converter.axes.index('b')
+            batch_idx = dataset.get_topo_batch_axis()
         else:
             batch_idx = 0
         if self.supervised:
@@ -375,13 +382,15 @@ class MonitorBasedLRAdjuster(TrainExtension):
 
     def __init__(self, high_trigger=1., shrink_amt=.99,
                  low_trigger=.99, grow_amt=1.01,
-                 min_lr = 1e-7, max_lr = 1.):
+                 min_lr = 1e-7, max_lr = 1.,
+		         dataset_name=None):
         self.high_trigger = high_trigger
         self.shrink_amt = shrink_amt
         self.low_trigger = low_trigger
         self.grow_amt = grow_amt
         self.min_lr = min_lr
         self.max_lr = max_lr
+        self.dataset_name = dataset_name
 
     def on_monitor(self, model, dataset, algorithm):
         # TODO: more sophisticated error checking here.
@@ -391,7 +400,18 @@ class MonitorBasedLRAdjuster(TrainExtension):
         assert hasattr(model, 'monitor'), ("no monitor associated with " +
                                            str(model))
         monitor = model.monitor
-        v = monitor.channels['objective'].val_record
+
+        if self.dataset_name is not None:
+            objective  = self.dataset_name + '_objective'
+            try:
+                v = monitor.channels[objective].val_record
+            except KeyError:
+                raise KeyError('There is no monitoring channel named ' + objective + '. You probably need to change ' + self.dataset_name + ' in the input')
+        else:
+            try:
+                v = monitor.channels['objective'].val_record
+            except KeyError:
+                raise KeyError('There is no monitoring channel named \'objective\'')
 
         if len(v) < 1:
 
@@ -418,7 +438,7 @@ class MonitorBasedLRAdjuster(TrainExtension):
         if v[-1] > self.high_trigger * v[-2]:
             rval *= self.shrink_amt
             log.info("shrinking learning rate to %f" % rval)
-        elif v[-2] > self.low_trigger * v[-2]:
+        elif v[-1] > self.low_trigger * v[-2]:
             rval *= self.grow_amt
             log.info("growing learning rate to %f" % rval)
 
@@ -570,8 +590,8 @@ class LinearDecay(object):
         if isinstance(saturate, str):
             saturate = float(saturate)
         assert isinstance(decay_factor, float)
-        assert isinstance(start, int) or isinstance(start, float)
-        assert isinstance(saturate, int) or isinstance(saturate, float)
+        assert isinstance(start, (py_integer_types, py_float_types))
+        assert isinstance(saturate, (py_integer_types, py_float_types))
         assert saturate > start
         assert start > 0
         self.__dict__.update(locals())
@@ -582,13 +602,12 @@ class LinearDecay(object):
         if self._count == 0:
             self._base_lr = algorithm.learning_rate.get_value()
             self.step = (self._base_lr - self._base_lr * self.decay_factor) /\
-                    (self.saturate - self.start)
+                    (self.saturate - self.start + 1)
         self._count += 1
         if self._count >= self.start:
             if self._count < self.saturate:
-                new_lr = self._base_lr - self.step * self._count
+                new_lr = self._base_lr - self._step * (self._count - self.start + 1)
             else:
-                print 'hi'
                 new_lr = self._base_lr * self.decay_factor
         else:
             new_lr = self._base_lr
@@ -693,8 +712,8 @@ class LinearDecayOverEpoch(TrainExtension):
         self._initialized = False
         self._count = 0
         assert isinstance(decay_factor, float)
-        assert isinstance(start, int) or isinstance(start, float)
-        assert isinstance(saturate, int) or isinstance(saturate, float)
+        assert isinstance(start, (py_integer_types, py_float_types))
+        assert isinstance(saturate, (py_integer_types, py_float_types))
         assert saturate > start
         assert start >= 0
         assert saturate >= start
@@ -703,7 +722,7 @@ class LinearDecayOverEpoch(TrainExtension):
         if not self._initialized:
             self._init_lr = algorithm.learning_rate.get_value()
             self._step = (self._init_lr - self._init_lr * self.decay_factor) /\
-                    (self.saturate - self.start)
+                    (self.saturate - self.start + 1)
             self._initialized = True
         self._count += 1
         algorithm.learning_rate.set_value( np.cast[config.floatX](self.current_lr()))
@@ -711,7 +730,7 @@ class LinearDecayOverEpoch(TrainExtension):
     def current_lr(self):
         if self._count >= self.start:
             if self._count < self.saturate:
-                new_lr = self._init_lr - self._step * self._count
+                new_lr = self._init_lr - self._step * (self._count - self.start + 1)
             else:
                 new_lr = self._init_lr * self.decay_factor
         else:
@@ -781,7 +800,7 @@ class PolyakAveraging(TrainExtension):
         self.__dict__.update(locals())
         del self.self
         self._count = 0
-        assert isinstance(start, int)
+        assert isinstance(start, py_integer_types)
         assert start >= 0
 
     def on_monitor(self, model, dataset, algorithm):
@@ -816,8 +835,28 @@ class ExhaustiveSGD(SGD): # deprecated!
 
         super(ExhaustiveSGD,self).__init__(*args, ** kwargs)
 
-# This classes were moved to the new submodule, but I import
+# These classes were moved to the new submodule, but I import
 # a reference to them here to avoid breaking the old interface.
-from pylearn2.termination_criteria import EpochCounter
-from pylearn2.termination_criteria import And as DisjunctionCriterion
-from pylearn2.termination_criteria import Or as ConjunctionCriterion
+from pylearn2.termination_criteria import EpochCounter as _EpochCounter
+
+def EpochCounter(**kwargs):
+    warnings.warn("training_algorithms.sgd.EpochCounter has been moved to "
+            "termination_criteria.EpochCounter. This link may be removed on "
+            "or after October 3, 2013.")
+    return _EpochCounter(**kwargs)
+
+from pylearn2.termination_criteria import And as _DisjunctionCriterion
+
+def DisjunctionCriterion(**kwargs):
+    warnings.warn("training_algorithms.sgd.DisjunctionCriterion has been moved to "
+            "termination_criteria.And. This link may be removed on "
+            "or after October 3, 2013.")
+    return _DisjunctionCriterion(**kwargs)
+
+from pylearn2.termination_criteria import Or as _ConjunctionCriterion
+
+def ConjuctionCriterion(**kwargs):
+    warnings.warn("training_algorithms.sgd.ConjunctionCriterion has been moved to "
+            "termination_criteria.Or. This link may be removed on "
+            "or after October 3, 2013.")
+    return _ConjunctionCriterion(**kwargs)

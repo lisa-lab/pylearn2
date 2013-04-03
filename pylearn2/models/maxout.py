@@ -28,16 +28,21 @@ from collections import OrderedDict
 import numpy as np
 import warnings
 
+from theano import config
 from theano.gof.op import get_debug_values
+from theano.sandbox import cuda
 from theano import tensor as T
 
-from pylearn2.linear import conv2d_c01b
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.models.mlp import Layer
-from pylearn2.sandbox.cuda_convnet.pool import max_pool_c01b
 from pylearn2.space import Conv2DSpace
 from pylearn2.space import VectorSpace
+from pylearn2.utils import py_integer_types
 from pylearn2.utils import sharedX
+
+if cuda.cuda_available:
+    from pylearn2.linear import conv2d_c01b
+    from pylearn2.sandbox.cuda_convnet.pool import max_pool_c01b
 
 class Maxout(Layer):
     """
@@ -508,6 +513,7 @@ class MaxoutConvC01B(Layer):
                  max_kernel_norm = None,
                  input_normalization = None,
                  detector_normalization = None,
+                 min_zero = False,
                  output_normalization = None):
         """
             num_channels: The number of output channels the layer should have.
@@ -561,6 +567,7 @@ class MaxoutConvC01B(Layer):
                     detector: the maxout units can be normalized prior to the spatial pooling
                     output: the output of the layer, after sptial pooling, can be normalized as well
         """
+        check_cuda()
 
         detector_channels = num_channels * num_pieces
 
@@ -649,16 +656,19 @@ class MaxoutConvC01B(Layer):
 
         assert self.pool_shape[0] == self.pool_shape[1]
         assert self.pool_stride[0] == self.pool_stride[1]
-        assert all(isinstance(elem, int) for elem in self.pool_stride)
+        assert all(isinstance(elem, py_integer_types) for elem in self.pool_stride)
         if self.pool_stride[0] > self.pool_shape[0]:
             if self.fix_pool_stride:
                 warnings.warn("Fixing the pool stride")
                 ps = self.pool_shape[0]
-                assert isinstance(ps, int)
+                assert isinstance(ps, py_integer_types)
                 self.pool_stride = [ps, ps]
             else:
                 raise ValueError("Stride too big.")
-        assert all(isinstance(elem, int) for elem in self.pool_stride)
+        assert all(isinstance(elem, py_integer_types) for elem in self.pool_stride)
+
+
+        check_cuda()
 
         if self.irange is not None:
             self.transformer = conv2d_c01b.make_random_conv2D(
@@ -674,6 +684,7 @@ class MaxoutConvC01B(Layer):
                                                               rng = rng)
         W, = self.transformer.get_params()
         W.name = 'W'
+
 
         if self.tied_b:
             self.b = sharedX(np.zeros((self.detector_space.num_channels)) + self.init_bias)
@@ -755,6 +766,7 @@ class MaxoutConvC01B(Layer):
                             ])
 
     def fprop(self, state_below):
+        check_cuda()
 
         self.input_space.validate(state_below)
 
@@ -835,6 +847,9 @@ class MaxoutConvC01B(Layer):
 
         self.output_space.validate(p)
 
+        if hasattr(self, 'min_zero') and self.min_zero:
+            p = p * (p > 0.)
+
         if not hasattr(self, 'output_normalization'):
             self.output_normalization = None
 
@@ -895,4 +910,12 @@ class MaxoutConvC01B(Layer):
 
         return rval
 
+def check_cuda():
+    if not cuda.cuda_available:
+        raise RuntimeError("MaxoutConvC01B only runs on GPUs, but there doesn't "
+                "seem to be a GPU available. If you would like assistance making "
+                "a CPU version of convolutional maxout, contact "
+                "pylearn-dev@googlegroups.com.")
 
+    if 'gpu' not in config.device:
+        raise RuntimeError("MaxoutConvC01B must run be with theano configured to use the GPU")

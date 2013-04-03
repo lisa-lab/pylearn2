@@ -4,19 +4,43 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
-from pylearn2.packaged_dependencies.theano_linear.matrixmul import MatrixMul as OrigMatrixMul
-from pylearn2.linear.linear_transform import LinearTransform as PL2LT
+
+from theano import tensor as T
+
+from pylearn2.linear.linear_transform import LinearTransform
 import functools
 import numpy as np
 from pylearn2.utils import sharedX
 
-class MatrixMul(OrigMatrixMul, PL2LT):
-    """ The most basic LinearTransform: matrix multiplication. See TheanoLinear
-    for more documentation. """
+class MatrixMul(LinearTransform):
+    """
+    The most basic LinearTransform: matrix multiplication. See TheanoLinear
+    for more documentation.
 
-    @functools.wraps(PL2LT.get_params)
+    Note: this does not inherit from the TheanoLinear's MatrixMul.
+
+    The TheanoLinear version does a bunch of extra undocumented reshaping,
+    concatenating, etc. that looks like it's probably meant to allow converting
+    between Spaces without warning. Since the reshape and concatenate operations
+    are always inserted whether they're needed or not, this can cause annoying
+    things like the reshape breaking if you change the shape of W, bugs in
+    Theano's optimization system being harder to avoid, etc.
+    """
+
+    def __init__(self, W):
+        self._W = W
+
+    @functools.wraps(LinearTransform.get_params)
     def get_params(self):
         return [self._W]
+
+    def lmul(self, x):
+
+        return T.dot(x, self._W)
+
+    def lmul_T(self, x):
+        return T.dot(x, self._W.T)
+
 
 def make_local_rfs(dataset, nhid, rf_shape, stride, irange = .05, draw_patches = False, rng = None):
     """
