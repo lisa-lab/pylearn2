@@ -3,7 +3,6 @@ from pylearn2.gui import patch_viewer
 from pylearn2.config import yaml_parse
 from pylearn2.datasets import control
 import numpy as np
-import warnings
 
 def get_weights_report(model_path = None, model = None, rescale = 'individual', border = False, norm_sort = False,
         dataset = None):

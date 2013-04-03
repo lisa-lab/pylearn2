@@ -14,11 +14,11 @@ from pylearn2.models.model import Model
 from pylearn2.monitor import Monitor
 from pylearn2.space import Conv2DSpace
 from pylearn2.space import VectorSpace
+from pylearn2.termination_criteria import EpochCounter
 from pylearn2.testing.cost import CallbackCost
 from pylearn2.testing.cost import SumOfParams
 from pylearn2.testing.datasets import ArangeDataset
 from pylearn2.train import Train
-from pylearn2.training_algorithms.sgd import EpochCounter
 from pylearn2.training_algorithms.sgd import ExponentialDecay
 from pylearn2.training_algorithms.sgd import MomentumAdjustor
 from pylearn2.training_algorithms.sgd import PolyakAveraging
