@@ -43,7 +43,7 @@ class DenseDesignMatrix(Dataset):
 
     def __init__(self, X=None, topo_view=None, y=None,
                  view_converter=None, axes = ('b', 0, 1, 'c'),
-                 rng=_default_seed):
+                 rng=_default_seed, preprocessor = None, fit_preprocessor=False):
         """
         Parameters
         ----------
