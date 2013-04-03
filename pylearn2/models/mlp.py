@@ -2165,7 +2165,7 @@ class LinearGaussian(Linear):
         return rval
 
     def cost(self, Y, Y_hat):
-        return T.dot(T.sqr(Y-Y_hat), self.beta).mean() - 0.5 * T.log(self.beta).sum()
+        return 0.5 * T.dot(T.sqr(Y-Y_hat), self.beta).mean() - 0.5 * T.log(self.beta).sum()
 
     def censor_updates(self, updates):
         super(LinearGaussian, self).censor_updates(updates)
@@ -2181,3 +2181,9 @@ class LinearGaussian(Linear):
 
     def get_params(self):
         return super(LinearGaussian, self).get_params() + [self.beta]
+
+def beta_from_targets(dataset):
+    return 1. / dataset.y.var(axis=0)
+
+def mean_of_targets(dataset):
+    return dataset.y.mean(axis=0)
