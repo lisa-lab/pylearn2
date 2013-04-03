@@ -90,6 +90,10 @@ class DenseDesignMatrix(Dataset):
         self._iter_topo = False
         self._iter_targets = False
 
+        if preprocessor:
+            preprocessor.apply(self, can_fit=fit_preprocessor)
+        self.preprocessor = preprocessor
+
     @functools.wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
                  topo=None, targets=None, rng=None):
