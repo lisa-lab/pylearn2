@@ -28,6 +28,13 @@ from pylearn2.space import VectorSpace
 from pylearn2.utils import sharedX
 
 
+"""
+Note: if h can be -1 or 1, and p(h) = exp(z*h), then
+the expected value of h is given by tanh(z), and the
+probability that h is 1 is given by sigmoid(2z)
+
+"""
+
 def init_tanh_bias_from_marginals(dataset, use_y = False):
     if use_y:
         X = dataset.y
@@ -98,8 +105,6 @@ class IsingVisible(VisibleLayer):
     def sample(self, state_below = None, state_above = None,
             layer_above = None,
             theano_rng = None):
-        raise NotImplementedError("This is just a copy-paste of BVMP")
-
 
         assert state_below is None
 
@@ -109,18 +114,17 @@ class IsingVisible(VisibleLayer):
 
         z = msg + bias
 
-        phi = T.nnet.sigmoid(z)
+        phi = T.nnet.sigmoid(2. * z)
 
         rval = theano_rng.binomial(size = phi.shape, p = phi, dtype = phi.dtype,
                        n = 1 )
 
-        return rval
+        return rval * 2. - 1.
 
     def make_state(self, num_examples, numpy_rng):
-        raise NotImplementedError("This is just a copy-paste of BVMP")
         driver = numpy_rng.uniform(0.,1., (num_examples, self.nvis))
-        mean = sigmoid_numpy(self.bias.get_value())
-        sample = driver < mean
+        on_prob = sigmoid_numpy(2. * self.bias.get_value())
+        sample = 2. * (driver < on_prob) - 1.
 
         rval = sharedX(sample, name = 'v_sample_shared')
 
@@ -231,12 +235,6 @@ class IsingHidden(HiddenLayer):
         W ,= self.transformer.get_params()
         assert W.name is not None
 
-        if self.mask_weights is not None:
-            expected_shape =  (self.input_dim, self.dim)
-            if expected_shape != self.mask_weights.shape:
-                raise ValueError("Expected mask with shape "+str(expected_shape)+" but got "+str(self.mask_weights.shape))
-            self.mask = sharedX(self.mask_weights)
-
     def censor_updates(self, updates):
 
         if self.max_col_norm is not None:
@@ -247,9 +245,8 @@ class IsingHidden(HiddenLayer):
                 desired_norms = T.clip(col_norms, 0, self.max_col_norm)
                 updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
-
     def get_total_state_space(self):
-        return CompositeSpace((self.output_space, self.h_space))
+        return VectorSpace(self.dim)
 
     def get_params(self):
         assert self.b.name is not None
@@ -381,8 +378,6 @@ class IsingHidden(HiddenLayer):
             layer_above = None,
             theano_rng = None):
 
-        raise NotImplementedError("This is just a copy-paste of BVMP")
-
         if theano_rng is None:
             raise ValueError("theano_rng is required; it just defaults to None so that it may appear after layer_above / state_above in the list.")
 
@@ -395,10 +390,15 @@ class IsingHidden(HiddenLayer):
             state_below = self.input_space.format_as(state_below, self.desired_space)
 
         z = self.transformer.lmul(state_below) + self.b
-        p, h, p_sample, h_sample = max_pool_channels(z,
-                self.pool_size, msg, theano_rng)
 
-        return p_sample, h_sample
+        if msg != None:
+            z = z + msg
+
+        on_prob = T.nnet.sigmoid(2. * z)
+
+        samples = theano_rng.binomial(p = on_prob, n=1, size=on_prob.shape, dtype=on_prob.dtype) * 2. - 1.
+
+        return samples
 
     def downward_message(self, downward_state):
         rval = self.transformer.lmul_T(downward_state)
@@ -418,45 +418,20 @@ class IsingHidden(HiddenLayer):
         return rval
 
     def make_state(self, num_examples, numpy_rng):
-        raise NotImplementedError("This is just a copy-paste of BVMP")
         """ Returns a shared variable containing an actual state
            (not a mean field state) for this variable.
         """
+        driver = numpy_rng.uniform(0.,1., (num_examples, self.dim))
+        on_prob = sigmoid_numpy(2. * self.b.get_value())
+        sample = 2. * (driver < on_prob) - 1.
 
-        empty_input = self.h_space.get_origin_batch(num_examples)
-        empty_output = self.output_space.get_origin_batch(num_examples)
+        rval = sharedX(sample, name = 'v_sample_shared')
 
-        h_state = sharedX(empty_input)
-        p_state = sharedX(empty_output)
-
-        theano_rng = MRG_RandomStreams(numpy_rng.randint(2 ** 16))
-
-        default_z = T.zeros_like(h_state) + self.b
-
-        p_exp, h_exp, p_sample, h_sample = max_pool_channels(
-                z = default_z,
-                pool_size = self.pool_size,
-                theano_rng = theano_rng)
-
-        assert h_sample.dtype == default_z.dtype
-
-        f = function([], updates = [
-            (p_state , p_sample),
-            (h_state , h_sample)
-            ])
-
-        f()
-
-        p_state.name = 'p_sample_shared'
-        h_state.name = 'h_sample_shared'
-
-        return p_state, h_state
+        return rval
 
     def expected_energy_term(self, state, average, state_below, average_below):
-        raise NotImplementedError("This is just a copy-paste of BVMP")
 
-        # Don't need to do anything special for centering, upward_state / downward state
-        # make it all just work
+        # state = Print('h_state', attrs=['min', 'max'])(state)
 
         self.input_space.validate(state_below)
 
@@ -469,15 +444,12 @@ class IsingHidden(HiddenLayer):
 
             state_below = self.input_space.format_as(state_below, self.desired_space)
 
-        downward_state = self.downward_state(state)
-        self.h_space.validate(downward_state)
-
         # Energy function is linear so it doesn't matter if we're averaging or not
         # Specifically, our terms are -u^T W d - b^T d where u is the upward state of layer below
         # and d is the downward state of this layer
 
-        bias_term = T.dot(downward_state, self.b)
-        weights_term = (self.transformer.lmul(state_below) * downward_state).sum(axis=1)
+        bias_term = T.dot(state, self.b)
+        weights_term = (self.transformer.lmul(state_below) * state).sum(axis=1)
 
         rval = -bias_term - weights_term
 
@@ -514,7 +486,6 @@ class IsingHidden(HiddenLayer):
 
     def mf_update(self, state_below, state_above, layer_above = None, double_weights = False, iter_name = None):
 
-        raise NotImplementedError("This is just a copy-paste of BVMP")
         self.input_space.validate(state_below)
 
         if self.requires_reformat:
@@ -542,12 +513,9 @@ class IsingHidden(HiddenLayer):
         z = self.transformer.lmul(state_below) + self.b
         if self.layer_name is not None and iter_name is not None:
             z.name = self.layer_name + '_' + iter_name + '_z'
-        p,h = max_pool_channels(z, self.pool_size, msg)
+        if msg is not None:
+            z = z + msg
+        h = T.tanh(z)
 
-        p.name = self.layer_name + '_p_' + iter_name
-        h.name = self.layer_name + '_h_' + iter_name
-
-        return p, h
-
-
+        return h
 
