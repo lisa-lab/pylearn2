@@ -5,6 +5,7 @@ import theano
 from theano.tensor import grad
 from theano.tests import unittest_tools
 import theano.sandbox.cuda as tcn
+import warnings
 
 if not tcn.cuda_available:
     from nose.plugins.skip import SkipTest
@@ -40,23 +41,22 @@ def test_pool():
     shps = [(channel, x, y, batch) for (batch, channel, x, y) in shps]
 
     #numpy.random.RandomState(unittest_tools.fetch_seed()).shuffle(shps)
-
+    warnings.warn("TODO: Razvan needs to finish this")
     for shp in shps:
         for ds in range(1, min(4, shp[2] + 1)):
-#            for start in range(shp[2] + 1):
             for start in [0]:
                 for stride in range(1, min(shp[2], ds, 4) + 1):
-                    print 'test_pool shape=%s, ds=%d, stride=%d start=%d' % (
-                        str(shp), ds, stride, start)
+                    #print 'test_pool shape=%s, ds=%d, stride=%d start=%d' % (
+                    #    str(shp), ds, stride, start)
 
                     va = my_rand(*shp)
                     tva = va.flatten()
-                    print 'va', tva, tva.max(), tva.argmax()
+                    #print 'va', tva, tva.max(), tva.argmax()
 
                     vb = my_rand(*shp)
                     tvb = vb.flatten()
-                    print 'vb', tvb, tvb.max(), tvb.argmax(),\
-                                    tvb[tva.argmax()]
+                    #print 'vb', tvb, tvb.max(), tvb.argmax(),\
+                    #                tvb[tva.argmax()]
                     a = tcn.shared_constructor(va, 'a')
                     b = tcn.shared_constructor(vb, 'b')
                     op = MaxPool(ds=ds, stride=stride)
@@ -68,7 +68,7 @@ def test_pool():
                     #ssert any([isinstance(node.op, MaxPool)
                     #   for node in f.maker.fgraph.toposort()])
                     out = numpy.asarray(f())
-                    print out
-                    print
-                    print
+                    #print out
+                    #print
+                    #print
 
