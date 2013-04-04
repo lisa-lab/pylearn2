@@ -2182,8 +2182,14 @@ class LinearGaussian(Linear):
     def get_params(self):
         return super(LinearGaussian, self).get_params() + [self.beta]
 
-def beta_from_targets(dataset):
-    return 1. / dataset.y.var(axis=0)
+def beta_from_design(design, min_var = 1e-6, max_var = 1e6):
+    return 1. / np.clip(design.var(axis=0), min_var, max_var)
+
+def beta_from_targets(dataset, **kwargs):
+    return beta_from_design(dataset.y, **kwargs)
+
+def beta_from_features(dataset, **kwargs):
+    return beta_from_design(dataset.X, **kwargs)
 
 def mean_of_targets(dataset):
     return dataset.y.mean(axis=0)
