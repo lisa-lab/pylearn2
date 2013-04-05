@@ -67,7 +67,11 @@ def test_match_grad_valid_conv():
         cost = (coeffs * output).sum()
         hid_acts_grad = T.grad(cost, output)
 
-        weights_grad = host_from_gpu(WeightActs(partial_sum=partial_sum)(gpu_images, gpu_from_host(hid_acts_grad)))
+        weights_grad = WeightActs(partial_sum=partial_sum)(
+            gpu_images,
+            gpu_from_host(hid_acts_grad)
+        )[0]
+        weights_grad = host_from_gpu(weights_grad)
 
         f = function([], [output, output_conv2d, weights_grad, weights_grad_conv2d])
 
