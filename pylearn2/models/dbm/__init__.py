@@ -828,14 +828,26 @@ class HiddenLayer(Layer):
         raise NotImplementedError(str(type(self))+" does not implement get_l2_act_cost")
 
 def init_sigmoid_bias_from_marginals(dataset, use_y = False):
+    """
+    Returns b such that sigmoid(b) has the same marginals as the
+    data. Assumes dataset contains a design matrix. If use_y is
+    true, sigmoid(b) will have the same marginals as the targets,
+    rather than the features.
+    """
     if use_y:
         X = dataset.y
     else:
         X = dataset.get_design_matrix()
+    return init_sigmoid_bias_from_array(X)
+
+def init_sigmoid_bias_from_array(arr):
+    X = arr
     if not (X.max() == 1):
         raise ValueError("Expected design matrix to consist entirely "
                 "of 0s and 1s, but maximum value is "+str(X.max()))
-    assert X.min() == 0.
+    if X.min() != 0.:
+        raise ValueError("Expected design matrix to consist entirely of "
+                "0s and 1s, but minimum value is "+str(X.min()))
     # removed this check so we can initialize the marginals
     # with a dataset of bernoulli params
     # assert not np.any( (X > 0.) * (X < 1.) )
@@ -847,6 +859,7 @@ def init_sigmoid_bias_from_marginals(dataset, use_y = False):
     init_bias = inverse_sigmoid_numpy(mean)
 
     return init_bias
+
 
 class BinaryVector(VisibleLayer):
     """
