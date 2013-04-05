@@ -9,7 +9,7 @@ private repository. Some of his code contains private research ideas
 that he can't move to this repository until he has a paper on them.
 """
 __authors__ = "Ian Goodfellow"
-__copyright__ = "Copyright 2012, Universite de Montreal"
+__copyright__ = "Copyright 2012-2013, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
@@ -597,6 +597,10 @@ class DBM(Model):
         q = history[-1]
 
         rval = OrderedDict()
+
+        ch = self.visible_layer.get_monitoring_channels()
+        for key in ch:
+            rval['vis_'+key] = ch[key]
 
         for state, layer in safe_zip(q, self.hidden_layers):
             ch = layer.get_monitoring_channels()
