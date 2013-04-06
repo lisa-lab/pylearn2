@@ -448,6 +448,12 @@ class MF_L2_ActCost(Cost):
         if return_locals:
             return objective, locals()
         return objective
+def fix(l):
+    if isinstance(l, list):
+        return [fix(elem) for elem in l]
+    if isinstance(l, str):
+        return float(l)
+    return l
 
 class TorontoSparsity(Cost):
     """
