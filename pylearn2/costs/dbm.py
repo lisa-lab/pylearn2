@@ -12,7 +12,6 @@ import warnings
 
 from collections import OrderedDict
 
-import theano
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 from theano import tensor as T
 
@@ -407,6 +406,10 @@ class MF_L2_ActCost(Cost):
     """
 
     def __init__(self, targets, coeffs, supervised=False):
+
+        targets = fix(targets)
+        coeffs = fix(coeffs)
+
         self.__dict__.update(locals())
         del self.self
 
