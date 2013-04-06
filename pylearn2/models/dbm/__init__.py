@@ -1427,7 +1427,7 @@ class BinaryVectorMaxPool(HiddenLayer):
                 continue
             m = s.mean(axis=0)
             assert m.ndim == 1
-            rval += T.maximum(T.square(m-t),0.).mean()*c
+            rval += T.square(m-t).mean()*c
 
         return rval
 
