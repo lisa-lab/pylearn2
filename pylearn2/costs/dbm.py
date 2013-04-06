@@ -436,8 +436,10 @@ class MF_L2_ActCost(Cost):
             try:
                 cost = layer.get_l2_act_cost(mf_state, targets, coeffs)
             except NotImplementedError:
-                assert isinstance(coeffs, float) and coeffs == 0.
-                cost = 0.
+                if isinstance(coeffs, float) and coeffs == 0.:
+                    cost = 0.
+                else:
+                    raise
             terms.append(cost)
 
 
