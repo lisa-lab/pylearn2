@@ -36,6 +36,7 @@ class SoftmaxRegression(mlp.MLP):
             dropout_scales = None,
             dropout_input_include_prob = None,
             dropout_input_scale = None,
+            init_bias_target_marginals = None,
             nvis=None,
             seed=None):
         """
@@ -55,7 +56,8 @@ class SoftmaxRegression(mlp.MLP):
                 layers=[mlp.Softmax(n_classes=n_classes, layer_name='y',
                     irange=irange, istdev=istdev, sparse_init=sparse_init,
                     W_lr_scale=W_lr_scale, b_lr_scale=b_lr_scale,
-                    max_row_norm=max_row_norm, max_col_norm=max_col_norm)],
+                    max_row_norm=max_row_norm, max_col_norm=max_col_norm,
+                    init_bias_target_marginals=init_bias_target_marginals)],
                 batch_size=batch_size,
                 input_space=input_space,
                 dropout_input_include_prob=dropout_input_include_prob,

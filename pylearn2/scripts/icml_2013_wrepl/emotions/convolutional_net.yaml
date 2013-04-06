@@ -1,0 +1,78 @@
+!obj:pylearn2.train.Train {
+    # Here we specify the dataset to train on. We train on only the first 25k of the examples, so
+    # that the rest may be used as a validation set.
+    # The "&train" syntax lets us refer back to this object as "*train" elsewhere in the yaml file
+    dataset: &train !obj:pylearn2.scripts.icml_2013_wrepl.emotions.emotions_dataset.EmotionsDataset {
+        which_set: 'train',
+        start: 0,
+        stop: 25000,
+        # We preprocess the data with global contrast normalization
+        preprocessor: !obj:pylearn2.datasets.preprocessing.GlobalContrastNormalization {}
+    },
+    # Here we specify the model to train as being an MLP
+    model: !obj:pylearn2.models.mlp.MLP {
+        batch_size: 100,
+        layers : [
+            # To make this baseline simple to run, we use a very small and cheap convolutional
+            # network. It only has one hidden layer, consisting of rectifier units with spatial
+            # max pooling.
+            !obj:pylearn2.models.mlp.ConvRectifiedLinear {
+                layer_name: 'h0',
+                kernel_shape: [8, 8],
+                pool_shape: [4, 4],
+                pool_stride: [2, 2],
+                output_channels: 32,
+                irange: .05,
+                # Rather than using weight decay, we constrain the norms of the convolution kernels
+                # to be at most this value
+                max_kernel_norm: .9
+            },
+
+            !obj:pylearn2.models.mlp.Softmax {
+                layer_name: 'y',
+                # The clases are unbalanced. Set the bias parameters of the softmax regression
+                # to make the model start with the right marginals. This should speed convergence
+                # of the training algorithm.
+                init_bias_target_marginals: *train,
+                # Initialize the weights to all 0s
+                # The optimization problem is concave so no tie breaking is necessary.
+                irange: .0,
+                # There are seven different emotions to learn to recognize, i.e., 7 class labels
+                n_classes: 7
+            }
+        ],
+        # The inputs are 48x48 pixel images
+        input_space: !obj:pylearn2.space.Conv2DSpace {
+            shape: [48, 48],
+            num_channels: 1
+        }
+    },
+    # We train using SGD and momentum
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        learning_rate: .001,
+        init_momentum: .5,
+        # We monitor how well we're doing during training on a validation set
+        monitoring_dataset:
+            {
+                'valid' : !obj:pylearn2.scripts.icml_2013_wrepl.emotions.emotions_dataset.EmotionsDataset {
+                    which_set: 'train',
+                    start: 25000,
+                    stop: 28709,
+                    preprocessor: !obj:pylearn2.datasets.preprocessing.GlobalContrastNormalization {}
+                }
+            },
+        # We stop when validation set classification error hasn't decreased for 10 epochs
+        termination_criterion: !obj:pylearn2.termination_criteria.MonitorBased {
+            channel_name: "valid_y_misclass",
+            prop_decrease: 0.,
+            N: 10
+        },
+    },
+    # We save the model whenever we improve on the validation set classification error
+    extensions: [
+        !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
+             channel_name: 'valid_y_misclass',
+             save_path: "${PYLEARN2_TRAIN_FILE_FULL_STEM}_best.pkl"
+        },
+    ],
+}

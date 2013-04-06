@@ -12,7 +12,6 @@ import warnings
 
 from collections import OrderedDict
 
-import theano
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 from theano import tensor as T
 
@@ -407,6 +406,10 @@ class MF_L2_ActCost(Cost):
     """
 
     def __init__(self, targets, coeffs, supervised=False):
+
+        targets = fix(targets)
+        coeffs = fix(coeffs)
+
         self.__dict__.update(locals())
         del self.self
 
@@ -433,8 +436,10 @@ class MF_L2_ActCost(Cost):
             try:
                 cost = layer.get_l2_act_cost(mf_state, targets, coeffs)
             except NotImplementedError:
-                assert isinstance(coeffs, float) and coeffs == 0.
-                cost = 0.
+                if isinstance(coeffs, float) and coeffs == 0.:
+                    cost = 0.
+                else:
+                    raise
             terms.append(cost)
 
 
@@ -443,6 +448,12 @@ class MF_L2_ActCost(Cost):
         if return_locals:
             return objective, locals()
         return objective
+def fix(l):
+    if isinstance(l, list):
+        return [fix(elem) for elem in l]
+    if isinstance(l, str):
+        return float(l)
+    return l
 
 class TorontoSparsity(Cost):
     """
