@@ -255,8 +255,7 @@ class DBM(Model):
         for layer in self.hidden_layers:
             for param in layer.get_params():
                 if param.name is None:
-                    print type(layer)
-                    assert False
+                    raise ValueError("All of your parameters should have names, but one of "+layer.layer_name+"'s doesn't")
             layer_params = layer.get_params()
             assert not isinstance(layer_params, set)
             for param in layer_params:
