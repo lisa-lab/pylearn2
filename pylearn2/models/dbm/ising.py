@@ -15,6 +15,7 @@ from collections import OrderedDict
 from theano import function
 from theano.gof.op import get_debug_values
 from theano.printing import Print
+from theano.sandbox.rng_mrg import MRG_RandomStreams
 import theano.tensor as T
 import warnings
 
@@ -559,7 +560,9 @@ class BoltzmannIsingVisible(VisibleLayer):
     def set_biases(self, biases, recenter=False):
         assert False # not really sure what this should do for this layer
 
-    def ising_bias(self):
+    def ising_bias(self, for_sampling=False):
+        if for_sampling and self.layer_above.sampling_b_stdev is not None:
+            return self.noisy_sampling_b
         return 0.5 * self.boltzmann_bias + 0.25 * self.layer_above.W.sum(axis=1)
 
     def ising_bias_numpy(self):
@@ -569,7 +572,8 @@ class BoltzmannIsingVisible(VisibleLayer):
         return total_state
 
     def get_params(self):
-        return [self.boltzmann_bias]
+        rval =  [self.boltzmann_bias]
+        return rval
 
     def sample(self, state_below = None, state_above = None,
             layer_above = None,
@@ -577,9 +581,9 @@ class BoltzmannIsingVisible(VisibleLayer):
 
         assert state_below is None
 
-        msg = layer_above.downward_message(state_above)
+        msg = layer_above.downward_message(state_above, for_sampling=True)
 
-        bias = self.ising_bias()
+        bias = self.ising_bias(for_sampling=True)
 
         z = msg + bias
 
@@ -623,6 +627,10 @@ class BoltzmannIsingVisible(VisibleLayer):
         rval['ising_b_min'] = ising_b.min()
         rval['ising_b_max'] = ising_b.max()
 
+        if hasattr(self, 'noisy_sampling_b'):
+            rval['noisy_sampling_b_min'] = self.noisy_sampling_b.min()
+            rval['noisy_sampling_b_max'] = self.noisy_sampling_b.max()
+
         return rval
 
 class BoltzmannIsingHidden(HiddenLayer):
@@ -653,7 +661,9 @@ class BoltzmannIsingHidden(HiddenLayer):
             min_ising_b = None,
             max_ising_b = None,
             min_ising_W = None,
-            max_ising_W = None):
+            max_ising_W = None,
+            sampling_W_stdev = None,
+            sampling_b_stdev = None):
         """
 
             include_prob: probability of including a weight element in the set
@@ -719,6 +729,20 @@ class BoltzmannIsingHidden(HiddenLayer):
 
         self.W = W
 
+        if self.sampling_b_stdev is not None:
+            self.noisy_sampling_b = sharedX(np.zeros((self.dbm.batch_size, self.dim)))
+            self.layer_below.noisy_sampling_b = sharedX(np.zeros((self.dbm.batch_size, self.layer_below.nvis)))
+        if self.sampling_W_stdev is not None:
+            self.noisy_sampling_W = sharedX(np.zeros((self.input_dim, self.dim)), 'noisy_sampling_W')
+
+        updates = OrderedDict()
+        updates[self.boltzmann_b] = self.boltzmann_b
+        updates[self.W] = self.W
+        updates[self.layer_below.boltzmann_bias] = self.layer_below.boltzmann_bias
+        self.censor_updates(updates)
+        f = function([], updates=updates)
+        f()
+
     def censor_updates(self, updates):
 
         if self.max_col_norm is not None:
@@ -766,6 +790,35 @@ class BoltzmannIsingHidden(HiddenLayer):
             updates[self.layer_below.boltzmann_bias] = bvn
             updates[self.boltzmann_b] = bhn
 
+        if self.noisy_sampling_W is not None:
+            theano_rng = MRG_RandomStreams(self.dbm.rng.randint(2**16))
+            bmn = self.min_ising_b
+            if bmn is None:
+                bmn = - 1e6
+            bmx = self.max_ising_b
+            if bmx is None:
+                bmx = 1e6
+            wmn = self.min_ising_W
+            if wmn is None:
+                wmn = - 1e6
+            wmx = self.max_ising_W
+            if wmx is None:
+                wmx = 1e6
+            W = updates[self.W]
+            ising_W = 0.25 * W
+            noisy_sampling_W = theano_rng.normal(avg=ising_W, std=self.sampling_W_stdev, size=ising_W.shape, dtype=ising_W.dtype)
+            updates[self.noisy_sampling_W] = noisy_sampling_W
+
+            bv = updates[self.layer_below.boltzmann_bias]
+            ising_bv = 0.5 * bv + 0.25 * W.sum(axis=1)
+            noisy_sampling_bv = theano_rng.normal(avg=ising_bv.dimshuffle('x', 0), std=self.sampling_b_stdev,
+                    size=self.layer_below.noisy_sampling_b.shape, dtype=ising_bv.dtype)
+            updates[self.layer_below.noisy_sampling_b] = noisy_sampling_bv
+
+            bh = updates[self.boltzmann_b]
+            ising_bh = 0.5 * bh + 0.25 * W.sum(axis=0)
+            noisy_sampling_bh = theano_rng.normal(avg=ising_bh.dimshuffle('x', 0), std=self.sampling_b_stdev, size = self.noisy_sampling_b.shape, dtype=ising_bh.dtype)
+            updates[self.noisy_sampling_b] = noisy_sampling_bh
 
 
     def get_total_state_space(self):
@@ -782,12 +835,20 @@ class BoltzmannIsingHidden(HiddenLayer):
         rval.append(self.boltzmann_b)
         return rval
 
-    def ising_weights(self):
+    def ising_weights(self, for_sampling=False):
+        if not hasattr(self, 'sampling_W_stdev'):
+            self.sampling_W_stdev = None
+        if for_sampling and self.sampling_W_stdev is not None:
+            return self.noisy_sampling_W
         return 0.25 * self.W
 
-    def ising_b(self):
+    def ising_b(self, for_sampling=False):
         if hasattr(self, 'layer_above'):
             raise NotImplementedError()
+        if not hasattr(self, 'sampling_b_stdev'):
+            self.sampling_b_stdev = None
+        if for_sampling and self.sampling_b_stdev is not None:
+            return self.noisy_sampling_b
         return 0.5 * self.boltzmann_b + 0.25 * self.W.sum(axis=0)
 
     def ising_b_numpy(self):
@@ -874,6 +935,12 @@ class BoltzmannIsingHidden(HiddenLayer):
         rval['ising_b_min'] = ising_b.min()
         rval['ising_b_max'] = ising_b.max()
 
+        if hasattr(self, 'noisy_sampling_W'):
+            rval['noisy_sampling_W_min'] = self.noisy_sampling_W.min()
+            rval['noisy_sampling_W_max'] = self.noisy_sampling_W.max()
+            rval['noisy_sampling_b_min'] = self.noisy_sampling_b.min()
+            rval['noisy_sampling_b_max'] = self.noisy_sampling_b.max()
+
         return rval
 
     def get_monitoring_channels_from_state(self, state):
@@ -922,14 +989,14 @@ class BoltzmannIsingHidden(HiddenLayer):
             raise ValueError("theano_rng is required; it just defaults to None so that it may appear after layer_above / state_above in the list.")
 
         if state_above is not None:
-            msg = layer_above.downward_message(state_above)
+            msg = layer_above.downward_message(state_above, for_sampling=True)
         else:
             msg = None
 
         if self.requires_reformat:
             state_below = self.input_space.format_as(state_below, self.desired_space)
 
-        z = T.dot(state_below, self.ising_weights()) + self.ising_b()
+        z = T.dot(state_below, self.ising_weights(for_sampling=True)) + self.ising_b(for_sampling=True)
 
         if msg != None:
             z = z + msg
@@ -940,8 +1007,8 @@ class BoltzmannIsingHidden(HiddenLayer):
 
         return samples
 
-    def downward_message(self, downward_state):
-        rval = T.dot(downward_state, self.ising_weights().T)
+    def downward_message(self, downward_state, for_sampling=False):
+        rval = T.dot(downward_state, self.ising_weights(for_sampling=False).T)
 
         if self.requires_reformat:
             rval = self.desired_space.format_as(rval, self.input_space)
@@ -1015,9 +1082,9 @@ class BoltzmannIsingHidden(HiddenLayer):
             Should disregard top-down feedback
         """
 
-        z = T(state_below, self.ising_weights()) + self.ising_b()
+        z = T.dot(state_below, self.ising_weights()) + self.ising_b()
 
-        return z, z
+        return z
 
     def mf_update(self, state_below, state_above, layer_above = None, double_weights = False, iter_name = None):
 
@@ -1053,3 +1120,9 @@ class BoltzmannIsingHidden(HiddenLayer):
         h = T.tanh(z)
 
         return h
+
+    def get_l2_act_cost(self, state, target, coeff):
+        avg = state.mean(axis=0)
+        diff = avg - target
+        return coeff * T.sqr(diff).mean()
+
