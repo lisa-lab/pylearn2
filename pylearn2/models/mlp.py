@@ -1503,6 +1503,8 @@ class ConvRectifiedLinear(Layer):
         """
         if (irange is None) and (sparse_init is None):
             raise AssertionError("You should specify either irange or sparse_init when calling the constructor of ConvRectifiedLinear.")
+        elif (irange is not None) and (sparse_init is not None):
+            raise AssertionError("You should specify either irange or sparse_init when calling the constructor of ConvRectifiedLinear and not both.")
 
         self.__dict__.update(locals())
         del self.self
