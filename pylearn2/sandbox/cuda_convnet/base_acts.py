@@ -68,7 +68,7 @@ class BaseActs(GpuOp):
         self.dense_connectivity = True
 
     def c_header_dirs(self):
-        return [this_dir]
+        return [this_dir, 'd:\\kit\\pthreads-win32-VC-x64']
 
     def c_headers(self):
         return ['nvmatrix.cuh', 'cudaconv2.cuh']
@@ -79,10 +79,10 @@ class BaseActs(GpuOp):
         return ()
 
     def c_lib_dirs(self):
-        return [cuda_convnet_loc]
+        return [cuda_convnet_loc, 'd:\\kit\\pthreads-win32-VC-x64']
 
     def c_libraries(self):
-        return ['cuda_convnet']
+        return ['cuda_convnet', 'pthreadVC2']
 
     def _argument_contiguity_check(self, arg_name):
         return """

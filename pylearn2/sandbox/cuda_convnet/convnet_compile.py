@@ -140,14 +140,14 @@ def convnet_compile():
                     compiler.compile_str('cuda_convnet',
                             code,
                             location=cuda_convnet_loc,
-                            include_dirs=[this_dir],
-                            lib_dirs=nvcc_compiler.rpath_defaults,  # ???
-                            libs=['cublas'],
+                            include_dirs=[this_dir, 'd:\\kit\\pthreads-win32-VC-x64'],
+                            lib_dirs=nvcc_compiler.rpath_defaults + ['d:\\kit\\pthreads-win32-VC-x64'],  # ???
+                            libs=['cublas', 'pthreadVC2'],
                             preargs=['-O3'] + args,
                             py_module=False)
                 except Exception, e:
-                    _logger.error("Failed to compile %s: %s",
-                                  cuda_convnet_file_sources, str(e))
+                    _logger.error("Failed to compile %s %s: %s",
+                                  os.path.join(cuda_convnet_loc, 'mod.cu'), cuda_convnet_file_sources, str(e))
                     return False
             else:
                 _logger.debug('already compiled by another process')

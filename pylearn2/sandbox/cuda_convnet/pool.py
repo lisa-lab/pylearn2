@@ -88,7 +88,7 @@ class MaxPool(GpuOp):
                 hash(self.stride) ^ hash(self.start))
 
     def c_header_dirs(self):
-        return [this_dir]
+        return [this_dir, 'd:\\kit\\pthreads-win32-VC-x64']
 
     def c_headers(self):
         return ['nvmatrix.cuh', 'conv_util.cuh']
@@ -272,7 +272,7 @@ class MaxPoolGrad(GpuOp):
                 hash(self.stride) ^ hash(self.start))
 
     def c_header_dirs(self):
-        return [this_dir]
+        return [this_dir, 'd:\\kit\\pthreads-win32-VC-x64']
 
     def c_headers(self):
         return ['nvmatrix.cuh', 'conv_util.cuh']

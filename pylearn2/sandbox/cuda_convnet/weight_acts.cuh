@@ -28,6 +28,18 @@
 
 #include <cudaconv2.cuh>
 
+#ifdef _WIN32
+#ifdef _WEIGHT_ACTS_EXPORT
+#define DllExport   __declspec( dllexport )
+#else
+#define DllExport   __declspec( dllimport )
+#endif
+#define ALWAYS_INLINE
+#else //else _WIN32
+#define DllExport
+#define ALWAYS_INLINE __attribute__((always_inline))
+#endif
+
 /*
  * images:      (numImgColors, imgSizeY, imgSizeX, numImages), with stride given
  * hidActs:     (numFilters, numModules, numImages)
@@ -42,7 +54,7 @@
  * Other batch sizes will work, but but I made no attempt whatsoever
  * to make them work fast. 
  */
-void _weightActs(NVMatrix& images, NVMatrix& hidActs, NVMatrix& targets,
+DllExport void _weightActs(NVMatrix& images, NVMatrix& hidActs, NVMatrix& targets,
         int imgSizeY, int numModulesY, int numModulesX, int filterSize, int paddingStart, int moduleStride, int numImgColors,
         int numGroups, int partialSum, float scaleTargets, float scaleOutput);
 
