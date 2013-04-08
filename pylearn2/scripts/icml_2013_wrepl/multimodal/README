@@ -14,7 +14,6 @@ contest website.
    http://www.cs.cmu.edu/~biglou/resources/
 8. Expand the .tgz file. If you are using NFS or AFS this might take a long
    time.
-9. TODO: repair damaged files
 
 Take a look at the training data. For every image in the ESPGame100k/originals
 directory, there is a corresponding plain text file with suffix .desc in
