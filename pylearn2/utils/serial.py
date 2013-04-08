@@ -338,11 +338,17 @@ def from_string(s):
 
 
 def mkdir(filepath):
+    """
+    Make a directory. Should succeed even if it needs to make more than one
+    directory and nest subdirectories to do so. Raises an error if the
+    directory can't be made. Does not raise an error if the directory
+    already exists.
+    """
     try:
         os.makedirs(filepath)
     except:
-        print ("couldn't make directory '" + str(filepath) +
-               "', maybe it already exists")
+        if not os.path.isdir(filepath):
+            raise
 
 def read_int( fin, n = 1):
     if n == 1:
