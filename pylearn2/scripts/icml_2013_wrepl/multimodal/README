@@ -1,0 +1,89 @@
+Basic setup instructions:
+
+1. Make sure your PYLEARN2_DATA_PATH environment variable is defined
+   to be the subdirectory where you will put datasets related to pylearn2.
+2. Create the subdirectory ${PYLEARN2_DATA_PATH}/icml_2013_multimodal 
+3. Download public_test_images.tgz and public_test_options.tgz from the Kaggle
+contest website.
+4. Expand the .tgz files. You should now have directories called:
+   ${PYLEARN2_DATA_PATH}/icml_2013_multimodal/public_test_images 
+   ${PYLEARN2_DATA_PATH}/icml_2013_multimodal/public_test_options
+5. Make sure pylearn2/scripts is in your PATH variable
+6. Create the subdirectory ${PYLEARN2_DATA_PATH}/esp_game 
+7. Download the Small ESP Game dataset from Luis von Ahn's website:
+   http://www.cs.cmu.edu/~biglou/resources/
+8. Expand the .tgz file. If you are using NFS or AFS this might take a long
+   time.
+9. TODO: repair damaged files
+
+Take a look at the training data. For every image in the ESPGame100k/originals
+directory, there is a corresponding plain text file with suffix .desc in
+ESPGame100k/labels.
+
+Take a look at the test data. For example, open up public_test_images/0.png
+in a in a standard image viewing program such as eog. Next, open
+public_test_options/0.option_0.desc and public_test_options/0.option_1.desc
+in a standard text editor such as vim. Both of these files contain lists of
+words. One of these lists describes this image and one of them describes a
+different image in the test set. Your program's job is to return a 0 if
+0.option_0.desc describes this image, or a 1 if 0.option_1.desc does.
+
+To run the example baselines for the Kaggle contest, do the following:
+
+1. Preprocess the public test images using local contrast normalization
+   (Pinto et al, 2008), by running this script:
+
+python lcn.py public_test
+
+   It is recommended that you run this on GPU.
+
+2. Download a k-means dictionary that was trained on patches of the ESP Game
+   Dataset after the same local contrast normalization preprocessing. The
+   dictionary is available at this link:
+
+   http://www-etud.iro.umontreal.ca/~goodfeli/lcn_means.npy
+
+   Save the downloaded file in 'multimodal', the same directory as this
+   README.
+
+3. Extract soft threshold features (Coates and Ng, 2011) from all image patches, then
+   downsample using local max pooling using this script:
+
+   python extract_kmeans_features.py public_test
+    
+   It is recommended that you run this on GPU.
+
+4. Download a k-means dictionary that was trained on patches of these k-means feature
+   maps. The dictionary is available at this link:
+
+   http://www-etud.iro.umontreal.ca/~goodfeli/l1_means.npy
+
+   Save the downloaded file in 'multimodal', the same directory as this
+   README.
+ 
+5. Extract a second layer of soft threshold features, using global max pooling to
+   make a "bag of visual words" (BOVW) feature vector for each image:
+
+   python extract_layer_2_kmeans_features.py public_test
+
+   It is recommended that you run this on GPU.
+
+6. Run the following script to make a list of the top 4,000 words in the ESP game
+   dataset:
+
+   python make_wordlist.py
+
+   This will generate "wordlist.txt".
+
+7. Download a trained MLP that estimates the probability of each of these 4,000
+   words appearing given the BOVW for each image. The last layer of this MLP was
+   pretrained by training an RBM on the tags in the ESP Game dataset.
+
+   http://www-etud.iro.umontreal.ca/~goodfeli/mlp.pkl
+
+8. Run the MLP on the extracted features to make your submission:
+
+   python make_submission.py mlp.pkl public_test
+
+   This creates a file called "submission.csv" which may be uploaded to kaggle.com
+   to be evaluated.
