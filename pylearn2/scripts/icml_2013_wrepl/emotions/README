@@ -3,7 +3,8 @@ Basic setup instructions:
 1. Make sure your PYLEARN2_DATA_PATH environment variable is defined
    to be the subdirectory where you will put datasets related to pylearn2.
 2. Create the subdirectory ${PYLEARN2_DATA_PATH}/icml_2013_emotions 
-3. Download train.csv and test.csv from the Kaggle contest website
+3. Download train.csv and test.csv from the Kaggle contest website and put
+   them in the icml_2013_emotions directory.
 4. Make sure pylearn2/scripts is in your PATH variable
 
 To view some examples from the training set, run
