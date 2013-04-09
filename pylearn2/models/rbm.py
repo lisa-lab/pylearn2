@@ -835,6 +835,9 @@ class GaussianBinaryRBM(RBM):
     def P_H_given_V(self, V):
         return self.energy_function.mean_H_given_V(V)
 
+    def mean_h_given_v(self, v):
+        return self.P_H_given_V(v)
+
     def mean_v_given_h(self, h):
         """
         Compute the mean activation of the visibles given hidden unit

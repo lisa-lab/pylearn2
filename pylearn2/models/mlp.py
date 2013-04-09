@@ -1449,6 +1449,11 @@ class Linear(Layer):
         mx = state.max(axis=0)
         mean = state.mean(axis=0)
         mn = state.min(axis=0)
+        rg = mx - mn
+
+        rval['range_x_max_u'] = rg.max()
+        rval['range_x_mean_u'] = rg.mean()
+        rval['range_x_min_u'] = rg.min()
 
         rval['max_x_max_u'] = mx.max()
         rval['max_x_mean_u'] = mx.mean()
@@ -2193,3 +2198,32 @@ def beta_from_features(dataset, **kwargs):
 
 def mean_of_targets(dataset):
     return dataset.y.mean(axis=0)
+
+class RBM_Layer(Layer):
+    """
+    An MLP layer whose forward prop is an upward mean field pass through an RBM
+    """
+
+    def __init__(self, layer_name, rbm, freeze_params=False):
+        self.__dict__.update(locals())
+        del self.self
+
+    def set_input_space(self, space):
+        assert self.get_input_space() == space
+
+    def get_params(self):
+        if self.freeze_params:
+            return []
+        return self.rbm.get_params()
+
+    def get_input_space(self):
+        return self.rbm.get_input_space()
+
+    def get_output_space(self):
+        return self.rbm.get_output_space()
+
+    def fprop(self, state_below):
+
+        return self.rbm.mean_h_given_v(state_below)
+
+
