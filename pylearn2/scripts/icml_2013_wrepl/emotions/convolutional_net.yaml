@@ -30,12 +30,10 @@
 
             !obj:pylearn2.models.mlp.Softmax {
                 layer_name: 'y',
-                # The clases are unbalanced. Set the bias parameters of the softmax regression
+                # The classes are unbalanced. Set the bias parameters of the softmax regression
                 # to make the model start with the right marginals. This should speed convergence
                 # of the training algorithm.
                 init_bias_target_marginals: *train,
-                # Initialize the weights to all 0s
-                # The optimization problem is concave so no tie breaking is necessary.
                 irange: .0,
                 # There are seven different emotions to learn to recognize, i.e., 7 class labels
                 n_classes: 7
