@@ -9,7 +9,7 @@
     },
     # Here we specify the model to train as being softmax regression
     model: !obj:pylearn2.models.softmax_regression.SoftmaxRegression {
-        # The clases are unbalanced. Set the bias parameters of the softmax regression
+        # The classes are unbalanced. Set the bias parameters of the softmax regression
         # to make the model start with the right marginals. This should speed convergence
         # of the training algorithm.
         init_bias_target_marginals: *train,

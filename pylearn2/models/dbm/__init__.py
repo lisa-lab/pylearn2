@@ -1455,6 +1455,7 @@ class BinaryVectorMaxPool(HiddenLayer):
         return p_sample, h_sample
 
     def downward_message(self, downward_state):
+        self.h_space.validate(downward_state)
         rval = self.transformer.lmul_T(downward_state)
 
         if self.requires_reformat:
