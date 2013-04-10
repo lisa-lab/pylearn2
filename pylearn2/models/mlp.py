@@ -445,7 +445,12 @@ class Softmax(Layer):
         if not no_affine:
             self.b = sharedX( np.zeros((n_classes,)), name = 'softmax_b')
             if init_bias_target_marginals:
-                self.b.set_value(pseudoinverse_softmax_numpy(init_bias_target_marginals.y.mean(axis=0)).astype(self.b.dtype))
+                marginals = init_bias_target_marginals.y.mean(axis=0)
+                assert marginals.ndim == 1
+                b = pseudoinverse_softmax_numpy(marginals).astype(self.b.dtype)
+                assert b.ndim == 1
+                assert b.dtype == self.b.dtype
+                self.b.set_value(b)
         else:
             assert init_bias_target_marginals is None
 
