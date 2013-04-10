@@ -1,0 +1,73 @@
+Basic setup instructions:
+
+1. Make sure your PYLEARN2_DATA_PATH environment variable is defined
+   to be the subdirectory where you will put datasets related to pylearn2.
+2. Create the subdirectory ${PYLEARN2_DATA_PATH}/icml_2013_black_box
+3. Download train.csv and test.csv from the Kaggle contest website and put
+   them in the icml_2013_black_box directory.
+4. Download extra_unsupervised_data.npy and put it in the same directory.
+   For these examples, you don't need extra_unsupervised_data.tgz. That
+   file is the same thing in compressed csv format, for competitors who
+   aren't using python / numpy.
+5. Make sure pylearn2/scripts is in your PATH variable.
+
+
+To run the example baselines for the Kaggle contest, do the following:
+
+You have the choice of running an MLP with no preprocessing, or you can
+run an MLP with ZCA preprocessing.
+
+MULTILAYER PERCEPTRON BASELINE
+===========================
+
+1. Run the following command:
+
+train.py mlp.yaml
+
+This will train the multilayer perceptron (MLP) model, and emit a file called
+mlp_best.pkl, which is the MLP model after the
+training iteration that gave the best performance on the validation
+set.
+
+Read the comments in mlp.yaml itself for more detail on the training
+procedure.
+
+2. Run the following command:
+
+print_monitor.py mlp_best.pkl
+
+This should print some information about the saved model. The saved model
+is the parameters that did the best on the validation set during training,
+i.e. it was trained using early stopping. You should get "valid_y_misclass"
+of about 47%. This is the misclassification rate on the validation set.
+
+3. Run the following command:
+
+python make_submission.py mlp_best.pkl mlp_best.csv
+
+This will create a file called mlp_best.csv with the model's predictions
+on the test set.
+
+4. If you want to enter this result in the Kaggle contest, upload the test.csv
+file to the Kaggle contest website. This can be a good way of making sure your
+setup is working, but it will use up one of your two allowed submissions for the
+day. If you do enter the result, it should get around 36.6% accuracy.
+
+
+ZCA Preprocessing Baseline
+==========================
+
+1. Run
+
+python learn_zca.py
+
+2. Run
+
+train.py zca_mlp.py
+
+3. Run
+
+python make_submission.py zca_mlp_best.py zca_mlp_best.csv
+
+4. If you want, enter it in the Kaggle competition.
+
