@@ -10,3 +10,9 @@
 #Don't track the image files:
 *.png
 *.jpg
+
+#Don't track mac file
+.DS_Store
+
+#Don't track Pycharm .idea folder
+.idea
