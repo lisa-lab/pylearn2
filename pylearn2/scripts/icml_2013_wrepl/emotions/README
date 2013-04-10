@@ -1,0 +1,97 @@
+Basic setup instructions:
+
+1. Make sure your PYLEARN2_DATA_PATH environment variable is defined
+   to be the subdirectory where you will put datasets related to pylearn2.
+2. Create the subdirectory ${PYLEARN2_DATA_PATH}/icml_2013_emotions 
+3. Download train.csv and test.csv from the Kaggle contest website and put
+   them in the icml_2013_emotions directory.
+4. Make sure pylearn2/scripts is in your PATH variable
+
+To view some examples from the training set, run
+
+show_examples.py emotions_train.yaml
+
+or to view examples from the test set, run
+
+show_examples.py emotions_public_test.yaml
+
+
+To run the example baselines for the Kaggle contest, do the following:
+
+You have the choice of running the cheap and fast softmax regression
+example baseline, or you can run the more computationally
+expensive convolutional network baseline.
+
+SOFTMAX REGRESSION BASELINE
+===========================
+
+1. Run the following command:
+
+train.py softmax.yaml
+
+This will train the softmax regression model, and emit a file called
+softmax_best.pkl, which is the softmax regression model after the
+training iteration that gave the best performance on the validation
+set.
+
+Read the comments in softmax.yaml itself for more detail on the training
+procedure.
+
+2. Run the following command:
+
+print_monitor.py softmax_best.pkl
+
+This should print some information about the saved model. The saved model
+is the parameters that did the best on the validation set during training,
+i.e. it was trained using early stopping. You should get "valid_y_misclass"
+of about 63%. This is the misclassification rate on the validation set.
+
+3. Run the following command:
+
+python make_submission.py softmax_best.pkl softmax_best.csv
+
+This will create a file called softmax_best.csv with the model's predictions
+on the test set.
+
+4. If you want to enter this result in the Kaggle contest, upload the test.csv
+file to the Kaggle contest website. This can be a good way of making sure your
+setup is working, but it will use up one of your two allowed submissions for the
+day. If you do enter the result, it should get around 36.6% accuracy.
+
+CONVOLUTIONAL NETWORK BASELINE
+==============================
+
+
+1. Run the following command:
+
+train.py convolutional_net.yaml
+
+This will train a small convolutional network model, and emit a file called
+convolutional_net_best.pkl, which is the convolutional network after the
+training iteration that gave the best performance on the validation
+set.
+
+Read the comments in convolutional_net.yaml itself for more detail on the training
+procedure.
+
+2. Run the following command:
+
+print_monitor.py convolutional_net_best.pkl
+
+This should print some information about the saved model. The saved model
+is the parameters that did the best on the validation set during training,
+i.e. it was trained using early stopping. You should get "valid_y_misclass"
+of about 49%. This is the misclassification rate on the validation set.
+
+3. Run the following command:
+
+python make_submission.py convolutional_net_best.pkl convolutional_net_best.csv
+
+This will create a file called convolutional_net_best.csv with the model's predictions
+on the test set.
+
+4. If you want to enter this result in the Kaggle contest, upload the test.csv
+file to the Kaggle contest website. This can be a good way of making sure your
+setup is working, but it will use up one of your two allowed submissions for the
+day. If you do enter the result, it should get around 49.6% accuracy.
+

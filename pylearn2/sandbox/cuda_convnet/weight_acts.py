@@ -109,9 +109,13 @@ class WeightActs(BaseActs):
                  filter_cols_broadcastable,
                  output_channels_broadcastable))
 
+        partial_sums_type = CudaNdarrayType(
+            (False,) * 5
+        )
         weights_grads = weights_grads_type()
+        partial_sums = partial_sums_type()
 
-        return Apply(self, [images, hid_grads], [weights_grads])
+        return Apply(self, [images, hid_grads], [weights_grads, partial_sums])
 
     def c_headers(self):
         # For some reason, the function called in the C code (_weightActs)
@@ -123,7 +127,7 @@ class WeightActs(BaseActs):
     def c_code(self, node, name, inputs, outputs, sub):
         partial_sum = self.partial_sum if self.partial_sum is not None else 0
         images, hid_grads = inputs
-        weights_grads, = outputs
+        weights_grads, partialsum_storage = outputs
         fail = sub['fail']
         pad = self.pad
 
@@ -238,9 +242,8 @@ class WeightActs(BaseActs):
             partialsum_storage_dims[i] = filters_dims[i - 1];
         }
         partialsum_storage_dims[0] = numModules / partialSum;
-        CudaNdarray *partialsum_storage = NULL;
         if (partialSum != numModules &&
-            CudaNdarray_prep_output(&partialsum_storage, 5,
+            CudaNdarray_prep_output(&%(partialsum_storage)s, 5,
                                     partialsum_storage_dims))
         {
             %(fail)s;
@@ -256,7 +259,6 @@ class WeightActs(BaseActs):
         }
         if (CudaNdarray_prep_output(& %(weights_grads)s, 4, filters_dims))
         {
-            Py_DECREF(partialsum_storage);
             %(fail)s;
         }
 
@@ -288,7 +290,7 @@ class WeightActs(BaseActs):
                         paddingStart, moduleStride, img_channels, numGroups,
                         partialSum, 0, 1);
         else {
-            NVMatrix nv_partialsum(partialsum_storage, (numModules / partialSum) *
+            NVMatrix nv_partialsum(%(partialsum_storage)s, (numModules / partialSum) *
                      filters_dims[0] * filterSize * filterSize, numFilters,
                      "weight_acts: nv_partialsum");
             _weightActs(nv_images, nv_hid_grads, nv_partialsum,
@@ -305,8 +307,6 @@ class WeightActs(BaseActs):
             // scale the new sum by 1, i.e., don't do any scaling
             #define SCALE_SUM 1
             nv_weights_grads.addSum(nv_partialsum, AXIS, SCALE_THIS, SCALE_SUM);
-
-            Py_DECREF(partialsum_storage);
         }
         """
 
@@ -324,4 +324,4 @@ class WeightActs(BaseActs):
         return rval
 
     def c_code_cache_version(self):
-        return (3,)
+        return (4,)

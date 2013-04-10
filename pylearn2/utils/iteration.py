@@ -215,12 +215,64 @@ class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
     fancy = False
     stochastic = True
 
+class BatchwiseShuffledSequentialIterator(SequentialSubsetIterator):
+    """ Returns minibatches randomly, but sequential inside each minibatch"""
+
+    def __init__(self, dataset_size, batch_size, num_batches = None, rng=None):
+        if rng is not None and hasattr(rng, 'random_integers'):
+            self._rng = rng
+        else:
+            self._rng = numpy.random.RandomState(rng)
+
+        assert num_batches is None or num_batches >= 0
+        self._dataset_size = dataset_size
+        if batch_size is None:
+            if num_batches is not None:
+                batch_size = int(numpy.ceil(self._dataset_size / num_batches))
+            else:
+                raise ValueError("need one of batch_size, num_batches "
+                                 "for sequential batch iteration")
+        elif batch_size is not None:
+            if num_batches is not None:
+                max_num_batches = numpy.ceil(self._dataset_size / batch_size)
+                if num_batches > max_num_batches:
+                    raise ValueError("dataset of %d examples can only provide "
+                                     "%d batches with batch_size %d, but %d "
+                                     "batches were requested" %
+                                     (self._dataset_size, max_num_batches,
+                                      batch_size, num_batches))
+            else:
+                num_batches = numpy.ceil(self._dataset_size / batch_size)
+
+        self._batch_size = batch_size
+        self._num_batches = int(num_batches)
+        self._next_batch_no = 0
+        self._idx = 0
+        self._batch_order = range(self._num_batches)
+        self._rng.shuffle(self._batch_order)
+
+    def next(self):
+        if self._next_batch_no >= self._num_batches:
+            raise StopIteration()
+        else:
+            start = self._batch_order[self._next_batch_no] * self._batch_size
+            if start + self._batch_size > self._dataset_size:
+                self._last = slice(start, self._dataset_size)
+            else:
+                self._last = slice(start, start + self._batch_size)
+            self._next_batch_no += 1
+            return self._last
+
+    fancy = False
+    stochastic = True
+
 
 _iteration_schemes = {
     'sequential': SequentialSubsetIterator,
     'shuffled_sequential': ShuffledSequentialSubsetIterator,
     'random_slice': RandomSliceSubsetIterator,
     'random_uniform': RandomUniformSubsetIterator,
+    'batchwise_shuffled_equential': BatchwiseShuffledSequentialIterator,
 }
 
 

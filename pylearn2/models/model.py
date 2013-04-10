@@ -19,6 +19,13 @@ class Model(object):
     A class representing a model with learnable parameters.
     """
 
+    def get_default_cost(self):
+        """
+        Returns the default cost to use with this model.
+        """
+
+        raise NotImplementedError(str(type(self))+ " does not implement get_default_cost.")
+
     def train_all(self, dataset):
         """
         If implemented, performs one epoch of training.

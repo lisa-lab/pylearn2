@@ -21,16 +21,17 @@ from theano.printing import Print
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 import theano.tensor as T
 
-from pylearn2.costs.cost import Cost
+from pylearn2.costs.mlp import Default
 from pylearn2.expr.probabilistic_max_pooling import max_pool_channels
 from pylearn2.linear import conv2d
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.models.model import Model
+from pylearn2.expr.nnet import pseudoinverse_softmax_numpy
 from pylearn2.space import Conv2DSpace
 from pylearn2.space import Space
 from pylearn2.space import VectorSpace
 from pylearn2.utils import function
-from pylearn2.utils import safe_izip
+from pylearn2.utils import py_integer_types
 from pylearn2.utils import sharedX
 
 warnings.warn("MLP changing the recursion limit.")
@@ -132,12 +133,13 @@ class MLP(Layer):
             layers,
             batch_size=None,
             input_space=None,
+            nvis=None,
+            seed=None,
             dropout_include_probs = None,
             dropout_scales = None,
             dropout_input_include_prob = None,
             dropout_input_scale = None,
-            nvis=None,
-            seed=None):
+            ):
         """
             layers: a list of MLP_Layers. The final layer will specify the
                     MLP's output space.
@@ -147,19 +149,22 @@ class MLP(Layer):
                         a hard-coded batch size.
             input_space: a Space specifying the kind of input the MLP acts
                         on. If None, input space is specified by nvis.
-
-            A note on dropout:
-                Hinton's paper suggests including each unit with probability p
-                during training, then multiplying the outgoing weights by p at
-                the end of training.
-                We instead include each unit with probability p and divide its
-                state by p during training. Note that this means the initial
-                weights should be multiplied by p relative to Hinton's.
-                The SGD learning rate on the weights should also be scaled by p^2
-                (use W_lr_scale rather than adjusting the global learning rate,
-                because the learning rate on the biases should
-                not be adjusted).
+            dropout*: None of these arguments are supported anymore. Use
+                      pylearn2.costs.mlp.dropout.Dropout instead.
         """
+
+        locals_snapshot = locals()
+
+        for arg in locals_snapshot:
+            if arg.find('dropout') != -1 and locals_snapshot[arg] is not None:
+                raise TypeError(arg+ " is no longer supported. Train using "
+                        "an instance of pylearn2.costs.mlp.dropout.Dropout "
+                        "instead of hardcoding the dropout into the model"
+                        " itself. All dropout related arguments and this"
+                        " support message may be removed on or after "
+                        "October 2, 2013. They should be removed from the "
+                        "SoftmaxRegression subclass at the same time.")
+
         if seed is None:
             seed = [2013, 1, 4]
 
@@ -191,31 +196,16 @@ class MLP(Layer):
 
         self.freeze_set = set([])
 
-        self.use_dropout = ((dropout_input_include_prob is not None) \
-                or (dropout_include_probs is not None and \
-                any(elem is not None for elem in dropout_include_probs)))
-        self.dropout_input_include_prob = dropout_input_include_prob
-        if dropout_include_probs is None:
-            dropout_include_probs = [None] * len(layers)
-        self.dropout_include_probs = dropout_include_probs
-
         def f(x):
             if x is None:
                 return None
             return 1. / x
 
-        if dropout_input_scale is None:
-            dropout_input_scale = f(dropout_input_include_prob)
-
-        if dropout_scales is None:
-            dropout_scales = map(f, dropout_include_probs)
-
-        self.dropout_input_scale = dropout_input_scale
-        self.dropout_scales = dropout_scales
-
     def setup_rng(self):
         self.rng = np.random.RandomState(self.seed)
 
+    def get_default_cost(self):
+        return Default()
 
     def get_output_space(self):
         return self.layers[-1].get_output_space()
@@ -267,6 +257,8 @@ class MLP(Layer):
             if layer is self.layers[-1]:
                 args.append(Y)
             ch = layer.get_monitoring_channels_from_state(*args)
+            if not isinstance(ch, OrderedDict):
+                raise TypeError(str((type(ch), layer.layer_name)))
             for key in ch:
                 rval[layer.layer_name+'_'+key]  = ch[key]
 
@@ -335,32 +327,68 @@ class MLP(Layer):
     def get_weights_topo(self):
         return self.layers[0].get_weights_topo()
 
-    def fprop(self, state_below, apply_dropout = False, return_all = False):
+    def dropout_fprop(self, state_below, default_input_include_prob=0.5, input_include_probs=None,
+        default_input_scale=2., input_scales=None):
+        """
+        state_below: The input to the MLP
 
-        if apply_dropout:
-            warnings.warn("dropout should be implemented with fixed_var_descr to make sure it works with BGD, this is just a hack to get it working with SGD")
-            theano_rng = MRG_RandomStreams(self.rng.randint(2**15))
-            scale = self.dropout_input_scale
+        Returns the output of the MLP, when applying dropout to the input and intermediate layers.
+        Each input to each layer is randomly included or excluded
+        for each example. The probability of inclusion is independent for each input
+        and each example. Each layer uses "default_input_include_prob" unless that
+        layer's name appears as a key in input_include_probs, in which case the input
+        inclusion probability is given by the corresponding value.
+
+        Each feature is also multiplied by a scale factor. The scale factor for each
+        layer's input scale is determined by the same scheme as the input probabilities.
+
+        """
+
+        warnings.warn("dropout should be implemented with fixed_var_descr to"
+                " make sure it works with BGD, this is just a hack to get it"
+                "working with SGD")
+
+        if input_include_probs is None:
+            input_include_probs = {}
+
+        if input_scales is None:
+            input_scales = {}
+
+        assert all(layer_name in self.layer_names for layer_name in input_include_probs)
+        assert all(layer_name in self.layer_names for layer_name in input_scales)
+
+        theano_rng = MRG_RandomStreams(self.rng.randint(2**15))
+
+        for layer in self.layers:
+            layer_name = layer.layer_name
+
+            if layer_name in input_include_probs:
+                include_prob = input_include_probs[layer_name]
+            else:
+                include_prob = default_input_include_prob
+
+            if layer_name in input_scales:
+                scale = input_scales[layer_name]
+            else:
+                scale = default_input_scale
+
             state_below = self.apply_dropout(state=state_below,
-                    include_prob=self.dropout_input_include_prob,
+                    include_prob=include_prob,
                     theano_rng=theano_rng,
                     scale=scale)
 
+            state_below = layer.fprop(state_below)
+
+        return state_below
+
+    def fprop(self, state_below, return_all = False):
+
         rval = self.layers[0].fprop(state_below)
 
-        if apply_dropout:
-            dropout = self.dropout_include_probs[0]
-            scale = self.dropout_scales[0]
-            rval = self.apply_dropout(state=rval, include_prob=dropout, theano_rng=theano_rng,
-                    scale=scale)
         rlist = [rval]
 
-        for layer, dropout, scale in safe_izip(self.layers[1:], self.dropout_include_probs[1:],
-            self.dropout_scales[1:]):
+        for layer in self.layers[1:]:
             rval = layer.fprop(rval)
-            if apply_dropout:
-                rval = self.apply_dropout(state=rval, include_prob=dropout, theano_rng=theano_rng,
-                        scale=scale)
             rlist.append(rval)
 
         if return_all:
@@ -385,7 +413,12 @@ class MLP(Layer):
         return self.layers[-1].cost_from_cost_matrix(cost_matrix)
 
     def cost_from_X(self, X, Y):
-        Y_hat = self.fprop(X, apply_dropout = self.use_dropout)
+        """
+        Computes self.cost, but takes X rather than Y_hat as an argument.
+        This is just a wrapper around self.cost that computes Y_hat by
+        calling Y_hat = self.fprop(X)
+        """
+        Y_hat = self.fprop(X)
         return self.cost(Y, Y_hat)
 
 class Softmax(Layer):
@@ -395,7 +428,7 @@ class Softmax(Layer):
                  sparse_init = None, W_lr_scale = None,
                  b_lr_scale = None, max_row_norm = None,
                  no_affine = False,
-                 max_col_norm = None):
+                 max_col_norm = None, init_bias_target_marginals= None):
         """
         """
 
@@ -404,12 +437,17 @@ class Softmax(Layer):
 
         self.__dict__.update(locals())
         del self.self
+        del self.init_bias_target_marginals
 
-        assert isinstance(n_classes, int)
+        assert isinstance(n_classes, py_integer_types)
 
         self.output_space = VectorSpace(n_classes)
         if not no_affine:
             self.b = sharedX( np.zeros((n_classes,)), name = 'softmax_b')
+            if init_bias_target_marginals:
+                self.b.set_value(pseudoinverse_softmax_numpy(init_bias_target_marginals.y.mean(axis=0)).astype(self.b.dtype))
+        else:
+            assert init_bias_target_marginals is None
 
     def get_lr_scalers(self):
 
@@ -637,89 +675,6 @@ class Softmax(Layer):
                 col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
                 desired_norms = T.clip(col_norms, 0, self.max_col_norm)
                 updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
-
-class WeightDecay(Cost):
-    """
-    coeff * sum(sqr(weights))
-
-    for each set of weights.
-
-    """
-
-    def __init__(self, coeffs):
-        """
-        coeffs: a list, one element per layer, specifying the coefficient
-                to multiply with the cost defined by the squared L2 norm of the weights
-                for each layer.
-
-                Each element may in turn be a list, ie, for CompositeLayers.
-        """
-        self.__dict__.update(locals())
-        del self.self
-
-    def __call__(self, model, X, Y = None, ** kwargs):
-
-        layer_costs = [ layer.get_weight_decay(coeff)
-            for layer, coeff in safe_izip(model.layers, self.coeffs) ]
-
-        assert T.scalar() != 0. # make sure theano semantics do what I want
-        layer_costs = [ cost for cost in layer_costs if cost != 0.]
-
-        if len(layer_costs) == 0:
-            rval =  T.as_tensor_variable(0.)
-            rval.name = '0_weight_decay'
-            return rval
-        else:
-            total_cost = reduce(lambda x, y: x + y, layer_costs)
-        total_cost.name = 'MLP_WeightDecay'
-
-        assert total_cost.ndim == 0
-
-        total_cost.name = 'weight_decay'
-
-        return total_cost
-
-class L1WeightDecay(Cost):
-    """
-    coeff * sum(abs(weights))
-
-    for each set of weights.
-
-    """
-
-    def __init__(self, coeffs):
-        """
-        coeffs: a list, one element per layer, specifying the coefficient
-                to multiply with the cost defined by the L1 norm of the
-                weights(lasso) for each layer.
-
-                Each element may in turn be a list, ie, for CompositeLayers.
-        """
-        self.__dict__.update(locals())
-        del self.self
-
-    def __call__(self, model, X, Y = None, ** kwargs):
-
-        layer_costs = [ layer.get_l1_weight_decay(coeff)
-            for layer, coeff in safe_izip(model.layers, self.coeffs) ]
-
-        assert T.scalar() != 0. # make sure theano semantics do what I want
-        layer_costs = [ cost for cost in layer_costs if cost != 0.]
-
-        if len(layer_costs) == 0:
-            rval =  T.as_tensor_variable(0.)
-            rval.name = '0_l1_penalty'
-            return rval
-        else:
-            total_cost = reduce(lambda x, y: x + y, layer_costs)
-        total_cost.name = 'MLP_L1Penalty'
-
-        assert total_cost.ndim == 0
-
-        total_cost.name = 'l1_penalty'
-
-        return total_cost
-
 
 class SoftmaxPool(Layer):
     """
@@ -1086,7 +1041,8 @@ class RectifiedLinear(Layer):
         rng = self.mlp.rng
         if self.irange is not None:
             assert self.istdev is None
-            assert self.sparse_init is None
+            if self.sparse_init is not None:
+                raise ValueError("Both irange and sparse_init cannot have values. If you use sparse_init the weights are drawn from N(0, sparse_stdev^2). Otherwise, they are drawn from U(-irange, irange). ")
             W = rng.uniform(-self.irange,
                             self.irange,
                             (self.input_dim, self.dim)) * \
@@ -1563,7 +1519,6 @@ class Tanh(Linear):
     def cost(self, *args, **kwargs):
         raise NotImplementedError()
 
-
 class Sigmoid(Linear):
     """
     Implementation of the sigmoid nonlinearity for MLP.
@@ -1733,7 +1688,6 @@ class SpaceConverter(Layer):
 
         return self.input_space.format_as(state_below, self.output_space)
 
-
 class ConvRectifiedLinear(Layer):
     """
         WRITEME
@@ -1764,6 +1718,11 @@ class ConvRectifiedLinear(Layer):
             it is initialized to 0.
 
         """
+        if (irange is None) and (sparse_init is None):
+            raise AssertionError("You should specify either irange or sparse_init when calling the constructor of ConvRectifiedLinear.")
+        elif (irange is not None) and (sparse_init is not None):
+            raise AssertionError("You should specify either irange or sparse_init when calling the constructor of ConvRectifiedLinear and not both.")
+
         self.__dict__.update(locals())
         del self.self
 
@@ -2034,7 +1993,6 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape):
 
     return mx
 
-
 def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape):
     """
     Like max_pool but with input using axes ('c', 0, 1, 'b')
@@ -2166,3 +2124,74 @@ def mean_pool(bc01, pool_shape, pool_stride, image_shape):
         assert not np.any(np.isinf(mxv))
 
     return mx
+
+def WeightDecay(*args, **kwargs):
+    warnings.warn("pylearn2.models.mlp.WeightDecay has moved to pylearn2.costs.mlp.WeightDecay")
+    from pylearn2.costs.mlp import WeightDecay as WD
+    return WD(*args, **kwargs)
+
+def L1WeightDecay(*args, **kwargs):
+    warnings.warn("pylearn2.models.mlp.L1WeightDecay has moved to pylearn2.costs.mlp.WeightDecay")
+    from pylearn2.costs.mlp import L1WeightDecay as L1WD
+    return L1WD(*args, **kwargs)
+
+
+class LinearGaussian(Linear):
+    """
+    A Linear layer augmented with a precision vector, for modeling conditionally Gaussian data
+    """
+
+    def __init__(self, init_beta, min_beta, max_beta, beta_lr_scale, ** kwargs):
+        super(LinearGaussian, self).__init__(**kwargs)
+        self.__dict__.update(locals())
+        del self.self
+        del self.kwargs
+
+    def set_input_space(self, space):
+        super(LinearGaussian, self).set_input_space(space)
+        assert isinstance(self.output_space, VectorSpace)
+        self.beta = sharedX(self.output_space.get_origin() + self.init_beta, 'beta')
+
+    def get_monitoring_channels(self):
+        rval = super(LinearGaussian, self).get_monitoring_channels()
+        assert isinstance(rval, OrderedDict)
+        rval['beta_min'] = self.beta.min()
+        rval['beta_mean'] = self.beta.mean()
+        rval['beta_max'] = self.beta.max()
+        return rval
+
+    def get_monitoring_channels_from_state(self, state, target=None):
+        rval = super(LinearGaussian, self).get_monitoring_channels()
+        if target:
+            rval['mse'] = T.sqr(state - target).mean()
+        return rval
+
+    def cost(self, Y, Y_hat):
+        return 0.5 * T.dot(T.sqr(Y-Y_hat), self.beta).mean() - 0.5 * T.log(self.beta).sum()
+
+    def censor_updates(self, updates):
+        super(LinearGaussian, self).censor_updates(updates)
+
+        if self.beta in updates:
+            updates[self.beta] = T.clip(updates[self.beta], self.min_beta, self.max_beta)
+
+    def get_lr_scalers(self):
+        rval = super(LinearGaussian, self).get_lr_scalers()
+        if self.beta_lr_scale is not None:
+            rval[self.beta] = self.beta_lr_scale
+        return rval
+
+    def get_params(self):
+        return super(LinearGaussian, self).get_params() + [self.beta]
+
+def beta_from_design(design, min_var = 1e-6, max_var = 1e6):
+    return 1. / np.clip(design.var(axis=0), min_var, max_var)
+
+def beta_from_targets(dataset, **kwargs):
+    return beta_from_design(dataset.y, **kwargs)
+
+def beta_from_features(dataset, **kwargs):
+    return beta_from_design(dataset.X, **kwargs)
+
+def mean_of_targets(dataset):
+    return dataset.y.mean(axis=0)

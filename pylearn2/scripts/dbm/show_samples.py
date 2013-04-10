@@ -116,6 +116,9 @@ def validate_all_samples():
             assert is_binary(y)
             s = y.sum(axis=1)
             assert np.all(s == 1 )
+        if 'Ising' in str(type(layer)):
+            s = state.get_value()
+            assert is_binary((s + 1.) / 2.)
 
 
 

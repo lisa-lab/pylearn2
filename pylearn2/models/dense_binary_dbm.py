@@ -105,10 +105,12 @@ class DBM(Model):
         else:
             assert negative_chains > 0
 
-        warnings.warn("""The DBM class is still under development, and currently mostly
-                only supports use as a component of a larger model that remains
-                private. Contact Ian Goodfellow if you have questions about the current
-                status of this class.""")
+        warnings.warn("dense_binary_dbm is deprecated and no longer under "
+                "development. It is mostly needed as a component of a "
+                "larger model that remains private, and will be removed "
+                "after the larger model has been refactored to use the new "
+                "pylearn2.models.dbm. Contact Ian Goodfellow if you have "
+                "questions about this class.")
 
         super(DBM,self).__init__()
 

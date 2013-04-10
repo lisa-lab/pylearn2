@@ -6,11 +6,11 @@ import numpy.random
 from theano.tensor.shared_randomstreams import RandomStreams
 
 class MeanSquaredReconstructionError(Cost):
-    def __call__(self, model, X):
+    def __call__(self, model, X, Y=None, ** kwargs):
         return ((model.reconstruct(X) - X) ** 2).sum(axis=1).mean()
 
 class MeanBinaryCrossEntropy(Cost):
-    def __call__(self, model, X):
+    def __call__(self, model, X, Y=None, ** kwargs):
         return (
             - X * tensor.log(model.reconstruct(X)) -
             (1 - X) * tensor.log(1 - model.reconstruct(X))
@@ -29,7 +29,7 @@ class SampledMeanBinaryCrossEntropy(Cost):
         self.L1 = L1
         self.one_ratio = ratio
 
-    def __call__(self, model, X):
+    def __call__(self, model, X, Y=None, ** kwargs):
         # X is theano sparse
         X_dense=theano.sparse.dense_from_sparse(X)
         noise = self.random_stream.binomial(size=X_dense.shape, n=1, prob= self.one_ratio, ndim=None)
@@ -76,7 +76,7 @@ class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
         self.L1 = L1
         self.ratio = ratio
 
-    def __call__(self, model, X):
+    def __call__(self, model, X, Y=None, ** kwargs):
         # X is theano sparse
         X_dense=theano.sparse.dense_from_sparse(X)
         noise = self.random_stream.binomial(size=X_dense.shape, n=1, prob=self.ratio, ndim=None)
@@ -110,23 +110,3 @@ class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
 #            tensor.xlogx.xlogx(1 - model.reconstruct(X))
 #        ).sum(axis=1).mean()
 
-
-class ModelMethodPenalty(Cost):
-    def __init__(self, method_name, coefficient=1.):
-        self._method_name = method_name
-
-    def __call__(self, model, X):
-        if hasattr(model, self._method_name):
-            return getattr(model, self._method_name)(X)
-        else:
-            raise ValueError("no such method '%s' for model %s" %
-                             (str(self._method_name), str(model)))
-
-class ScaleBy(Cost):
-    def __init__(self, cost, coefficient):
-    	warnings.warn('This object is now deprecated.')
-        self._cost = cost
-        self._coefficient = coefficient
-
-    def __call__(self, model, X):
-        return self._coefficient * self._cost(model, X)

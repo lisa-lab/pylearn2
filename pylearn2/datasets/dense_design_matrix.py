@@ -1,5 +1,5 @@
 """TODO: module-level docstring."""
-__authors__ = "Ian Goodfellow"
+__authors__ = "Ian Goodfellow and Mehdi Mirza"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
@@ -30,9 +30,9 @@ def ensure_tables():
     Makes sure tables module has been imported
     """
 
+    global tables
     if tables is None:
         import tables
-
 
 class DenseDesignMatrix(Dataset):
     """
@@ -43,7 +43,7 @@ class DenseDesignMatrix(Dataset):
 
     def __init__(self, X=None, topo_view=None, y=None,
                  view_converter=None, axes = ('b', 0, 1, 'c'),
-                 rng=_default_seed):
+                 rng=_default_seed, preprocessor = None, fit_preprocessor=False):
         """
         Parameters
         ----------
@@ -89,6 +89,10 @@ class DenseDesignMatrix(Dataset):
         self._iter_mode = resolve_iterator_class('sequential')
         self._iter_topo = False
         self._iter_targets = False
+
+        if preprocessor:
+            preprocessor.apply(self, can_fit=fit_preprocessor)
+        self.preprocessor = preprocessor
 
     @functools.wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
@@ -447,6 +451,83 @@ class DenseDesignMatrix(Dataset):
          return self.y is not None
 
 class DenseDesignMatrixPyTables(DenseDesignMatrix):
+    """
+    DenseDesignMatrix based on PyTables
+    """
+
+    _default_seed = (17, 2, 946)
+
+    def __init__(self, X=None, topo_view=None, y=None,
+                 view_converter=None, axes = ('b', 0, 1, 'c'),
+                 rng=_default_seed):
+        """
+        Parameters
+        ----------
+
+        X : ndarray, 2-dimensional, optional
+            Should be supplied if `topo_view` is not. A design
+            matrix of shape (number examples, number features)
+            that defines the dataset.
+        topo_view : ndarray, optional
+            Should be supplied if X is not.  An array whose first
+            dimension is of length number examples. The remaining
+            dimensions are xamples with topological significance,
+            e.g. for images the remaining axes are rows, columns,
+            and channels.
+        y : ndarray, 1-dimensional(?), optional
+            Labels or targets for each example. The semantics here
+            are not quite nailed down for this yet.
+        view_converter : object, optional
+            An object for converting between design matrices and
+            topological views. Currently DefaultViewConverter is
+            the only type available but later we may want to add
+            one that uses the retina encoding that the U of T group
+            uses.
+        rng : object, optional
+            A random number generator used for picking random
+            indices into the design matrix when choosing minibatches.
+        """
+
+        super(DenseDesignMatrixPyTables, self).__init__(X = X,
+                                            topo_view = topo_view,
+                                            y = y,
+                                            view_converter = view_converter,
+                                            axes = axes,
+                                            rng = rng)
+        ensure_tables()
+        filters = tables.Filters(complib='blosc', complevel=5)
+
+    def set_design_matrix(self, X, start = 0):
+        assert len(X.shape) == 2
+        assert not N.any(N.isnan(X))
+        DenseDesignMatrixPyTables.fill_hdf5(file = self.h5file,
+                                            data_x = X,
+                                            start = start)
+
+    def set_topological_view(self, V, axes = ('b', 0, 1, 'c'), start = 0):
+        """
+        Sets the dataset to represent V, where V is a batch
+        of topological views of examples.
+
+        Parameters
+        ----------
+        V : ndarray
+            An array containing a design matrix representation of training
+            examples. If unspecified, the entire dataset (`self.X`) is used
+            instead.
+        TODO: why is this parameter named 'V'?
+        """
+        assert not N.any(N.isnan(V))
+        rows = V.shape[axes.index(0)]
+        cols = V.shape[axes.index(1)]
+        channels = V.shape[axes.index('c')]
+        self.view_converter = DefaultViewConverter([rows, cols, channels], axes=axes)
+        X = self.view_converter.topo_view_to_design_mat(V)
+        assert not N.any(N.isnan(X))
+        DenseDesignMatrixPyTables.fill_hdf5(file = self.h5file,
+                                            data_x = X,
+                                            start = start)
+
     @functools.wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
                  topo=None, targets=None, rng=None):
@@ -487,18 +568,36 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         h5file = tables.openFile(path, mode = "w", title = "SVHN Dataset")
         gcolumns = h5file.createGroup(h5file.root, "Data", "Data")
         atom = tables.Float64Atom() if config.floatX == 'flaot32' else tables.Float32Atom()
+        filters = DenseDesignMatrixPyTables.filters
         h5file.createCArray(gcolumns, 'X', atom = atom, shape = x_shape,
-                                title = "Data values")
+                                title = "Data values", filters = filters)
         h5file.createCArray(gcolumns, 'y', atom = atom, shape = y_shape,
-                                title = "Data targets")
+                                title = "Data targets", filters = filters)
         return h5file, gcolumns
 
     @staticmethod
-    def fill_hdf5(file, node, data, index):
-        data_x, data_y = data
-        node.X[index] = data_x
-        node.y[index] = data_y
-        file.flush()
+    def fill_hdf5(file, data_x, data_y = None, node = None, start = 0, batch_size = 5000):
+        """
+        PyTables tends to crash if you write large data on them at once.
+        This function write data on file in batches
+
+        start: the start index to write data
+        """
+
+        if node is None:
+            node = file.getNode('/', 'Data')
+
+        data_size = data_x.shape[0]
+        last = np.floor(data_size / float(batch_size)) * batch_size
+        for i in xrange(0, data_size, batch_size):
+            stop = i + np.mod(data_size, batch_size) if i >= last else i + batch_size
+            assert len(range(start + i, start + stop)) == len(range(i, stop))
+            assert (start + stop) <= (node.X.shape[0])
+            node.X[start + i: start + stop, :] = data_x[i:stop, :]
+            if data_y is not None:
+                 node.y[start + i: start + stop, :] = data_y[i:stop, :]
+
+            file.flush()
 
     @staticmethod
     def resize(h5file, start, stop):
@@ -516,10 +615,11 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         stop = gcolumns.X.nrows if stop is None else stop
 
         atom = tables.Float64Atom() if config.floatX == 'flaot32' else tables.Float32Atom()
+        filters = DenseDesignMatrixPyTables.filters
         x = h5file.createCArray(gcolumns, 'X', atom = atom, shape = ((stop - start, data.X.shape[1])),
-                            title = "Data values")
+                            title = "Data values", filters = filters)
         y = h5file.createCArray(gcolumns, 'y', atom = atom, shape = ((stop - start, 10)),
-                            title = "Data targets")
+                            title = "Data targets", filters = filters)
         x[:] = data.X[start:stop]
         y[:] = data.y[start:stop]
 
@@ -527,7 +627,6 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         h5file.renameNode('/', "Data", "Data_")
         h5file.flush()
         return h5file, gcolumns
-
 
 class DefaultViewConverter(object):
     def __init__(self, shape, axes = ('b', 0, 1, 'c')):
@@ -565,7 +664,13 @@ class DefaultViewConverter(object):
         return rval
 
     def design_mat_to_weights_view(self, X):
-        return self.design_mat_to_topo_view(X)
+        rval =  self.design_mat_to_topo_view(X)
+
+        # weights view is always for display
+        rval = np.transpose(rval, tuple(self.axes.index(axis)
+            for axis in ('b', 0, 1, 'c')))
+
+        return rval
 
     def topo_view_to_design_mat(self, V):
 

@@ -9,7 +9,7 @@ private repository. Some of his code contains private research ideas
 that he can't move to this repository until he has a paper on them.
 """
 __authors__ = "Ian Goodfellow"
-__copyright__ = "Copyright 2012, Universite de Montreal"
+__copyright__ = "Copyright 2012-2013, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
@@ -39,6 +39,7 @@ from pylearn2.space import Conv2DSpace
 from pylearn2.space import Space
 from pylearn2.space import VectorSpace
 from pylearn2.utils import block_gradient
+from pylearn2.utils import py_integer_types
 from pylearn2.utils import safe_zip
 from pylearn2.utils import safe_izip
 from pylearn2.utils import sharedX
@@ -254,8 +255,7 @@ class DBM(Model):
         for layer in self.hidden_layers:
             for param in layer.get_params():
                 if param.name is None:
-                    print type(layer)
-                    assert False
+                    raise ValueError("All of your parameters should have names, but one of "+layer.layer_name+"'s doesn't")
             layer_params = layer.get_params()
             assert not isinstance(layer_params, set)
             for param in layer_params:
@@ -385,7 +385,7 @@ class DBM(Model):
         """
 
         # Validate num_steps
-        assert isinstance(num_steps, int)
+        assert isinstance(num_steps, py_integer_types)
         assert num_steps > 0
 
         # Implement the num_steps > 1 case by repeatedly calling the num_steps == 1 case
@@ -596,6 +596,10 @@ class DBM(Model):
         q = history[-1]
 
         rval = OrderedDict()
+
+        ch = self.visible_layer.get_monitoring_channels()
+        for key in ch:
+            rval['vis_'+key] = ch[key]
 
         for state, layer in safe_zip(q, self.hidden_layers):
             ch = layer.get_monitoring_channels()
@@ -823,14 +827,26 @@ class HiddenLayer(Layer):
         raise NotImplementedError(str(type(self))+" does not implement get_l2_act_cost")
 
 def init_sigmoid_bias_from_marginals(dataset, use_y = False):
+    """
+    Returns b such that sigmoid(b) has the same marginals as the
+    data. Assumes dataset contains a design matrix. If use_y is
+    true, sigmoid(b) will have the same marginals as the targets,
+    rather than the features.
+    """
     if use_y:
         X = dataset.y
     else:
         X = dataset.get_design_matrix()
+    return init_sigmoid_bias_from_array(X)
+
+def init_sigmoid_bias_from_array(arr):
+    X = arr
     if not (X.max() == 1):
         raise ValueError("Expected design matrix to consist entirely "
                 "of 0s and 1s, but maximum value is "+str(X.max()))
-    assert X.min() == 0.
+    if X.min() != 0.:
+        raise ValueError("Expected design matrix to consist entirely of "
+                "0s and 1s, but minimum value is "+str(X.min()))
     # removed this check so we can initialize the marginals
     # with a dataset of bernoulli params
     # assert not np.any( (X > 0.) * (X < 1.) )
@@ -842,6 +858,7 @@ def init_sigmoid_bias_from_marginals(dataset, use_y = False):
     init_bias = inverse_sigmoid_numpy(mean)
 
     return init_bias
+
 
 class BinaryVector(VisibleLayer):
     """
@@ -1410,7 +1427,7 @@ class BinaryVectorMaxPool(HiddenLayer):
                 continue
             m = s.mean(axis=0)
             assert m.ndim == 1
-            rval += T.maximum(T.square(m-t),0.).mean()*c
+            rval += T.square(m-t).mean()*c
 
         return rval
 
@@ -1610,7 +1627,7 @@ class Softmax(HiddenLayer):
         self.__dict__.update(locals())
         del self.self
 
-        assert isinstance(n_classes, int)
+        assert isinstance(n_classes, py_integer_types)
 
         self.output_space = VectorSpace(n_classes)
         self.b = sharedX( np.zeros((n_classes,)), name = 'softmax_b')
