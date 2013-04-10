@@ -86,3 +86,16 @@ python lcn.py public_test
 
    This creates a file called "submission.csv" which may be uploaded to kaggle.com
    to be evaluated.
+
+9. Download a collection of 4,000 logistic regression models that do the same task.
+   
+   http://www-etud.iro.umontreal.ca/~goodfeli/logreg_best.pkl
+
+10. Run the logistic regression models on the extracted features to make your submission:
+
+   python make_submission.py logreg_best.pkl public_test
+
+   This overwrites "submission.csv" with the logistic regression output. This updated
+   file may also be scored on kaggle.com.
+
+
