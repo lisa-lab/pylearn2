@@ -1398,6 +1398,7 @@ class Linear(Layer):
             Z = np.exp(W).sum(axis=0)
             rval =  P / Z
             return rval
+        return W
 
     def set_weights(self, weights):
         W, = self.transformer.get_params()
