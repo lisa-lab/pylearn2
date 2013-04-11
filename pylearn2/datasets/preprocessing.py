@@ -1133,4 +1133,50 @@ class CentralWindow(Preprocessor):
 
         dataset.set_topological_view(new_arr, axes=axes)
 
+class ShuffleAndSplit(Preprocessor):
+
+    def __init__(self, seed, start, stop):
+        """
+        Allocates a numpy rng with the specified seed.
+        Note: this must be a seed, not a RandomState. A new RandomState is
+        re-created with the same seed every time the preprocessor is called.
+        This way if you save the preprocessor and re-use it later it will give
+        the same dataset regardless of whether you save the preprocessor before
+        or after applying it.
+        Shuffles the data, then takes examples in range (start, stop)
+        """
+
+        self.__dict__.update(locals())
+        del self.self
+
+    def apply(self, dataset, can_fit=False):
+        start = self.start
+        stop = self.stop
+        rng = np.random.RandomState(self.seed)
+        X = dataset.X
+        y = dataset.y
+
+        if y is not None:
+            assert X.shape[0] == y.shape[0]
+
+        for i in xrange(X.shape[0]):
+            j = rng.randint(X.shape[0])
+            tmp = X[i, :].copy()
+            X[i,:] = X[j, :].copy()
+            X[j,:] = tmp
+
+            if y is not None:
+                tmp = y[i, :].copy()
+                y[i, :] = y[j,:].copy()
+                y[j, :] = tmp
+        assert start >= 0
+        assert stop > start
+        assert stop <= X.shape[0]
+
+        dataset.X = X[start:stop, :]
+        if y is not None:
+            dataset.y = y[start:stop, :]
+
+
+
 
