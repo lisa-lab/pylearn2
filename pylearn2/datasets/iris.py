@@ -2,6 +2,8 @@ __author__ = "Ian Goodfellow"
 
 # TODO: add citation
 
+import numpy as np
+
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 
 class Iris(DenseDesignMatrix):
@@ -11,19 +13,30 @@ class Iris(DenseDesignMatrix):
         self.class_names = ['Iris-setosa', 'Iris-versicolor', 'Iris-virginica']
         lines = iris_data.split('\n')
         X = []
+        y = []
         for line in lines:
-            row = line.split()
+            row = line.split(',')
             X.append([float(elem) for elem in row[:-1]])
             y.append(self.class_names.index(row[-1]))
         X = np.array(X)
-        y = np.array(y)
 
-        super(Iris, self).__init__(X=X, y=y, preprocessor)
+        assert X.shape == (150, 4)
+        assert len(y) == 150
+
+        assert min(y) == 0
+        assert max(y) == 2
+
+        one_hot = np.zeros((150,3))
+        for i in xrange(len(y)):
+            one_hot[i, y[i]] = 1
+
+
+        super(Iris, self).__init__(X=X, y=one_hot, preprocessor=preprocessor)
 
 
 
 
-iris_data =
+iris_data = \
 """5.1,3.5,1.4,0.2,Iris-setosa
 4.9,3.0,1.4,0.2,Iris-setosa
 4.7,3.2,1.3,0.2,Iris-setosa
