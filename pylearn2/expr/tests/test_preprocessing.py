@@ -1,5 +1,5 @@
 import numpy
-from pylearn2.utils.preprocessing import global_contrast_normalize
+from pylearn2.expr.preprocessing import global_contrast_normalize
 
 
 def test_basic():
