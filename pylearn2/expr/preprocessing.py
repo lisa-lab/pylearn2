@@ -12,12 +12,13 @@ __maintainer__ = "David Warde-Farley"
 
 import numpy
 
-def global_contrast_normalize(X, scale=1., subtract_mean=True, std_norm=False,
-                              add_const=0., clip_below=1e-8):
+
+def global_contrast_normalize(X, scale=1., subtract_mean=True, use_std=False,
+                              sqrt_bias=0., min_divisor=1e-8):
     """
-    Global contrast normalizes by subtracting the mean across
-    features and then projects onto the unit sphere, optionally
-    scaling by a const.
+    Global contrast normalizes by (optionally) subtracting the mean
+    across features and then normalizes by either the vector norm
+    or the standard deviation (across features, for each example).
 
     Parameters
     ----------
@@ -28,17 +29,36 @@ def global_contrast_normalize(X, scale=1., subtract_mean=True, std_norm=False,
     scale : float, optional
         Multiply features by this const.
 
-    std_norm : float, optional
-        Normalize by the (adjusted, see `eps` below) per-example standard
-        deviation across features instead of vector norm. Corresponds to
-        a sum in place of a mean.
+    subtract_mean : bool, optional
+        Remove the mean across features/pixels before normalizing.
+        Defaults to `True`.
 
-    add_const : float, optional
+    use_std : bool, optional
+        Normalize by the per-example standard deviation across features
+        instead of the vector norm. Defaults to `False`.
+
+    sqrt_bias : float, optional
         Fudge factor added inside the square root. Defaults to 0.
 
-    clip_below : float, optional
-        Clip the divisors to this minimum value.
+    min_divisor : float, optional
+        If the divisor for an example is less than this value,
+        do not apply it. Defaults to `1e-8`.
+
+    Returns
+    -------
+    Xp : ndarray, 2-dimensional
+        The contrast-normalized features.
+
+    Notes
+    -----
+    `sqrt_bias` = 10 and `use_std = True` (and defaults for all other
+    parameters) corresponds to the preprocessing used in [1].
+
+    .. [1] A. Coates, H. Lee and A. Ng. "An Analysis of Single-Layer
+       Networks in Unsupervised Feature Learning". AISTATS 14, 2011.
+       http://www.stanford.edu/~acoates/papers/coatesleeng_aistats_2011.pdf
     """
+    assert X.ndim == 2, "X.ndim must be 2"
     scale = float(scale)
     # Note: this is per-example mean across pixels, not the
     # per-pixel mean across examples. So it is perfectly fine
@@ -49,13 +69,13 @@ def global_contrast_normalize(X, scale=1., subtract_mean=True, std_norm=False,
         X = X - mean[:, numpy.newaxis]  # Makes a copy.
     else:
         X = X.copy()
-    if std_norm:
+    if use_std:
         # ddof=1 simulates MATLAB's var() behaviour, which is what Adam
         # Coates' code does.
-        normalizers = numpy.sqrt(add_const + X.var(axis=1, ddof=1)) / scale
+        normalizers = numpy.sqrt(sqrt_bias + X.var(axis=1, ddof=1)) / scale
     else:
-        normalizers = numpy.sqrt(add_const + (X ** 2).sum(axis=1)) / scale
+        normalizers = numpy.sqrt(sqrt_bias + (X ** 2).sum(axis=1)) / scale
     # Don't normalize by anything too small.
-    normalizers[normalizers < add_const] = add_const
+    normalizers[normalizers < min_divisor] = 1.
     X /= normalizers[:, numpy.newaxis]  # Does not make a copy.
     return X
