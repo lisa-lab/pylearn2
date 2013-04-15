@@ -1,6 +1,120 @@
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_zip
 
+
+class DataSpecsMapping(object):
+    """
+    Converts between nested tuples and non-redundant flattened ones.
+
+    The mapping is built from data specifications, provided as a
+    (space, sources) pair, where space can be a composite space (possibly
+    of other composite spaces), and sources is a tuple of string identifiers
+    or other sources. Both space and sources must have the same structure.
+    """
+    def __init__(self, data_specs):
+        """Builds the internal mapping"""
+        # Maps one elementary (not composite) data_spec pair to its index in
+        # the flattened space
+        # Not sure if this one should be a member, or passed as a parameter to
+        # _fill_mapping. It might be useful to get the index of one data_spec
+        # later, but if it is not, then we should remove it.
+        self.specs_to_index = {}
+
+        # Size of the flattened space
+        self.n_unique_specs = 0
+
+        # Builds the mapping
+        space, source = data_specs
+        self.spec_mapping = self._fill_mapping(space, source)
+
+    def _fill_mapping(self, space, source):
+        """Builds a nested tuple of integers representing the mapping"""
+        if not isinstance(space, CompositeSpace):
+            # Space is a simple Space, source should be a simple source
+            if isinstance(source, tuple):
+                source, = source
+
+            # If (space, source) has not already been seen, insert it.
+            # We need both the space and the source to match.
+            if (space, source) in self.specs_to_index:
+                spec_index = self.specs_to_index[(space, source)]
+            else:
+                self.specs_to_index[(space, source)] = self.n_unique_specs
+                self.n_unique_specs += 1
+
+            return spec_index
+
+        else:
+            # Recursively fill the mapping, and return it
+            spec_mapping = tuple(
+                    self._fill_mapping(sub_space, sub_source)
+                    for sub_space, sub_source in safe_zip(
+                        space.components, source))
+
+            return spec_mapping
+
+    def _fill_flat(self, nested, mapping, rval):
+        """Auxiliary recursive function used by self.flatten"""
+        if isinstance(mapping, int):
+            # "nested" should actually be a single element
+            idx = mapping
+            if isinstance(nested, tuple):
+                nested, = nested
+
+            if rval[idx] is None:
+                rval[idx] = nested
+            else:
+                assert rval[idx] == nested, ("This mapping was built "
+                        "with the same element occurring more than once "
+                        "in the nested representation, but current nested "
+                        "sequence has different values (%s and %s) at "
+                        "these positions." % (rval[idx], nested))
+        else:
+            for sub_nested, sub_mapping in safe_zip(nested, mapping):
+                self._fill_flat(sub_nested, sub_mapping, rval)
+
+    def flatten(self, nested):
+        """
+        Iterate jointly through nested and spec_mapping, returns a flat tuple.
+
+        The integer in spec_mapping corresponding to each element in nested
+        represents the index of that element in the returned sequence.
+        If the original data_specs had duplicate elements at different places,
+        then "nested" also have to have equal elements at these positions.
+        """
+        # Initialize the flatten returned value with Nones
+        rval = [None] * self.n_unique_specs
+
+        # Fill rval with the auxiliary function
+        self._fill_flat(nested, self.spec_mapping, rval)
+
+        assert None not in rval, ("This mapping is invalid, as it did not "
+                "contain all numbers from 0 to %i (or None was in nested)"
+                % (self.n_unique_specs - 1, nested))
+        return tuple(rval)
+
+    def _make_nested(self, flat, mapping):
+        """Auxiliary recursive function used by self.nest"""
+        if isinstance(mapping, int):
+            # We are at a leaf of the tree
+            idx = mapping
+            assert 0 <= idx < len(flat)
+            return flat[idx]
+        else:
+            return tuple(
+                    self._make_nested(flat, sub_mapping)
+                    for sub_mapping in mapping)
+
+    def nest(self, flat):
+        """
+        Iterate through spec_mapping, building a nested tuple from "flat".
+
+        The length of "flat" should be equal to self.n_unique_specs.
+        """
+        assert len(flat) == self.n_unique_specs
+        return self._make_nested(flat, self.spec_mapping)
+
+
 def resolve_nested_structure_from_flat(data, nested, flat):
     """
     :param data: flat list of theano_like variables
