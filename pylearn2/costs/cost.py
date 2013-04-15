@@ -93,7 +93,7 @@ class Cost(object):
 
         return gradients, updates
 
-    def get_monitoring_channels(self, model, X, Y=None, **kwargs):
+    def get_monitoring_channels(self, model, data, **kwargs):
         """
         Returns a dictionary mapping channel names to expressions for
         channel values.
@@ -242,26 +242,23 @@ class SumOfCosts(Cost):
 
         return grads, updates
 
-    def get_monitoring_channels(self, model, X, Y=None, ** kwargs):
-        if Y is  None and self.supervised:
-            raise ValueError("no targets provided while some of the " +
-                             "costs in the sum are supervised costs")
+    def get_monitoring_channels(self, model, data, ** kwargs):
 
         rval = OrderedDict()
 
         for i, cost in enumerate(self.costs):
+            cost_data = resolve_nested_structure_from_flat(
+                    data,
+                    nested = cost.get_data_specs(),
+                    flat = self.get_data_specs())
             try:
-                rval.update(cost.get_monitoring_channels(model, X, Y, **kwargs))
+                rval.update(cost.get_monitoring_channels(model, cost_data, **kwargs))
             except TypeError:
                 print 'SumOfCosts.get_monitoring_channels encountered TypeError while calling ' \
                         + str(type(cost))+'.get_monitoring_channels'
                 raise
 
-            Y_to_pass = Y
-            if not cost.supervised:
-                Y_to_pass = None
-
-            value = cost(model, X, Y_to_pass, ** kwargs)
+            value = cost(model, cost_data, ** kwargs)
             if value is not None:
                 name = ''
                 if hasattr(value, 'name') and value.name is not None:
