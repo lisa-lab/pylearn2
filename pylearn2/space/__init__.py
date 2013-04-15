@@ -181,6 +181,10 @@ class VectorSpace(Space):
     def get_origin_batch(self, n):
         return np.zeros((n, self.dim))
 
+    @functools.wraps(Space.get_batch_size)
+    def get_batch_size(self, data):
+        return data.shape[0]
+
     @functools.wraps(Space.make_theano_batch)
     def make_theano_batch(self, name=None, dtype=None):
         if dtype is None:
@@ -318,6 +322,11 @@ class Conv2DSpace(Space):
         return TensorType(dtype=dtype,
                           broadcastable=broadcastable
                          )(name=name)
+
+    @functools.wraps(Space.get_batch_size)
+    def get_batch_size(self, data):
+        return data.shape[self.axes.index('b')]
+
 
     @staticmethod
     def convert(tensor, src_axes, dst_axes):
@@ -496,3 +505,10 @@ class CompositeSpace(Space):
     def get_origin_batch(self, n):
         return tuple([component.get_origin_batch(n) for component in self.components])
 
+
+    @functools.wraps(Space.get_batch_size)
+    def get_batch_size(self, data):
+        # Assumption: we have the same batch size for all components in the
+        # data.
+        assert isinstance(data, (list, tuple))
+        return self.components[0].get_batch_size(data[0])
