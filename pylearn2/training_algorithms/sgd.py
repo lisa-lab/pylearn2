@@ -143,10 +143,6 @@ class SGD(TrainingAlgorithm):
                     self.batch_size = model.force_batch_size
         model._test_batch_size = self.batch_size
         self.monitor = Monitor.get_monitor(model)
-        # TODO: come up with some standard scheme for associating training runs
-        # with monitors / pushing the monitor automatically, instead of just
-        # enforcing that people have called push_monitor
-        assert self.monitor.get_examples_seen() == 0
         self.monitor._sanity_check()
 
 
