@@ -40,13 +40,10 @@ class PCD(Cost):
         self.theano_rng = MRG_RandomStreams(2012 + 10 + 14)
         assert supervised in [True, False]
 
-    def __call__(self, model, X, Y=None):
+    def expr(self, model, data):
         """
         The partition function makes this intractable.
         """
-
-        if self.supervised:
-            assert Y is not None
 
         return None
 
@@ -230,13 +227,10 @@ class VariationalPCD(Cost):
         self.theano_rng = MRG_RandomStreams(2012 + 10 + 14)
         assert supervised in [True, False]
 
-    def __call__(self, model, X, Y=None):
+    def expr(self, model, data):
         """
         The partition function makes this intractable.
         """
-
-        if self.supervised:
-            assert Y is not None
 
         return None
 
@@ -413,15 +407,19 @@ class MF_L2_ActCost(Cost):
         self.__dict__.update(locals())
         del self.self
 
-    def __call__(self, model, X, Y=None, return_locals=False, **kwargs):
+    def expr(self, model, data, return_locals=False, **kwargs):
         """
         If returns locals is True, returns (objective, locals())
         Note that this means adding / removing / changing the value of
         local variables is an interface change.
         In particular, TorontoSparsity depends on "terms" and "H_hat"
         """
-
-        assert (Y is None) == (not self.supervised)
+        if self.supervised:
+            assert type(data) in (list, tuple)
+            assert len(data) == 2
+            (X, Y) = data
+        else:
+            X = data
 
         H_hat = model.mf(X, Y=Y)
 
@@ -467,9 +465,9 @@ class TorontoSparsity(Cost):
         self.base_cost = MF_L2_ActCost(targets=targets,
                 coeffs=coeffs, supervised=supervised)
 
-    def __call__(self, model, X, Y=None, return_locals=False, **kwargs):
+    def expr(self, model, data, return_locals=False, **kwargs):
 
-        return self.base_cost(model, X, Y, return_locals=return_locals,
+        return self.base_cost.expr(model, data, return_locals=return_locals,
                 **kwargs)
 
     def get_gradients(self, model, X, Y=None, **kwargs):
@@ -543,7 +541,7 @@ class WeightDecay(Cost):
         self.__dict__.update(locals())
         del self.self
 
-    def __call__(self, model, X, Y = None, ** kwargs):
+    def expr(self, model, data, ** kwargs):
 
         layer_costs = [ layer.get_weight_decay(coeff)
             for layer, coeff in safe_izip(model.hidden_layers, self.coeffs) ]

@@ -15,7 +15,10 @@ class MissingTargetCost(Cost):
         self.__dict__.update(locals())
         del self.self
 
-    def __call__(self, model, X, Y):
+    def expr(self, model, data):
+        assert type(data) in (list, tuple)
+        assert len(data) == 2
+        (X, Y) = data
         if self.dropout_args:
             Y_hat = model.dropout_fprop(X, **self.dropout_args)
         else:
