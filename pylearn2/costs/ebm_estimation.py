@@ -75,6 +75,11 @@ class NCE(Cost):
         assert isinstance(noise_per_clean, py_integer_types)
         self.noise_per_clean = noise_per_clean
 
+    def get_data_specs(self, model):
+        data = CompositeSpace([model.get_input_space(), model.get_output_space()])
+        sources = (model.get_input_source(), model.get_target_source())
+        return [data, sources]
+
 class SM(Cost):
     """ Score Matching
         See eqn. 4 of "On Autoencoders and Score Matching for Energy Based Models",
@@ -108,6 +113,9 @@ class SM(Cost):
         rval.name = 'sm('+X_name+')'
 
         return rval
+
+    def get_data_specs(self, model):
+        return [model.get_input_space(), model.get_input_source()]
 
 class SMD(Cost):
     """ Denoising Score Matching
@@ -152,3 +160,6 @@ class SMD(Cost):
         smd.name = 'SMD('+X_name+')'
 
         return smd
+
+    def get_data_specs(self, model):
+        return [model.get_input_space(), model.get_input_source()]

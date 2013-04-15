@@ -128,6 +128,13 @@ class Cost(object):
 
         return FixedVarDescr()
 
+    def get_data_specs(self, model):
+        """
+        Returns a composite space, describing the format of the data
+        which the cost (and the model) expects.
+        """
+        raise NotImplementedError(str(type(self))+" does not implement " +
+                                  "get_data_specs.")
 
 class SumOfCosts(Cost):
     """
@@ -149,6 +156,7 @@ class SumOfCosts(Cost):
         self.costs = []
         self.coeffs = []
 
+        data_specs = None
         for cost in costs:
             if isinstance(cost, (list, tuple)):
                 coeff, cost = cost
@@ -156,10 +164,16 @@ class SumOfCosts(Cost):
                 coeff = 1.
             self.coeffs.append(coeff)
             self.costs.append(cost)
+            _flat_specs = flatten_specs(cost.get_data_specs())
+            if data_specs is None:
+                data_specs = _flat_specs
+            else:
+                data_specs = flat_specs_union(data_specs, _flat_specs)
+
             if not isinstance(cost, Cost):
                 raise ValueError("one of the costs is not " + \
                                  "Cost instance")
-
+        self.data_specs = data_specs
         self.supervised = any([cost.supervised for cost in self.costs])
 
     def expr(self, model, data, ** kwargs):
@@ -191,25 +205,22 @@ class SumOfCosts(Cost):
 
         return sum_of_costs
 
-    def get_gradients(self, model, X, Y=None, ** kwargs):
+    def get_data_specs(self, model):
+        return self.data_specs
 
-        if Y is None and self.supervised:
-            raise ValueError("no targets provided while some of the " +
-                             "costs in the sum are supervised costs")
+    def get_gradients(self, model, data, ** kwargs):
 
         indiv_results = []
         for cost in self.costs:
-            if cost.supervised:
-                Y_to_pass = Y
-            else:
-                Y_to_pass = None
-            result = cost.get_gradients(model, X, Y_to_pass, ** kwargs)
+            cost_data = resolve_nested_structure_from_flat(
+                data,
+                nested = cost.get_data_specs(),
+                flat = self.get_data_specs())
+            result = cost.get_gradients(model, data, ** kwargs)
             indiv_results.append(result)
-
 
         grads = OrderedDict()
         updates = OrderedDict()
-
         params = model.get_params()
 
         for coeff, packed in zip(self.coeffs, indiv_results):
@@ -303,6 +314,9 @@ class ScaledCost(Cost):
         """
         return self.scaling * self.cost(model, data)
 
+    def get_data_specs(self, model):
+        return [None, None]
+
 class LxReg(Cost):
     """
     L-x regularization term for the list of tensor variables provided.
@@ -332,35 +346,56 @@ class LxReg(Cost):
             Lx = Lx + abs(var ** self.x).sum()
         return Lx
 
+    def get_data_specs(self, model):
+        return [None, None]
+
 class CrossEntropy(Cost):
     """WRITEME"""
-    def __init__(self):
-        self.supervised = True
 
-    def __call__(self, model, X, Y, ** kwargs):
+    def expr(self, model, data, ** kwargs):
         """WRITEME"""
+        assert type(data) in (tuple, list)
+        assert len(data) == 2
+        # unpack data
+        (X, Y) = data
         return (-Y * T.log(model(X)) - \
                 (1 - Y) * T.log(1 - model(X))).sum(axis=1).mean()
+
+    def get_data_specs(self, model):
+        data = CompositeSpace([model.get_input_space(),
+                               model.get_output_space()])
+        sources = (model.get_input_source(), model.get_target_source())
+        return [data, sources]
 
 class MethodCost(Cost):
     """
     A cost specified via the string name of a method of the model.
     """
 
-    def __init__(self, method, supervised = False):
+    def __init__(self, method, data_spec):
         """
             method: a string specifying the name of the method of the model
                     that should be called to generate the objective function.
+            data_spec: a string specifying the name of a method/property of
+                    the model that describe the data specs required by
+                    method
         """
         self.__dict__.update(locals())
         del self.self
 
-    def __call__(self, model, *args, **kwargs):
+    def expr(self, model, *args, **kwargs):
             """ Patches calls through to a user-specified method of the model """
             fn = getattr(model, self.method)
             return fn(*args, **kwargs)
 
-def _no_op(X, y=None):
+    def get_data_specs(self, model):
+        fn = getattr(model, self.data_spec)
+        if callable(fn):
+            return fn()
+        else:
+            return fn
+
+def _no_op(data):
     """
     An on_load_batch callback that does nothing.
     """

@@ -59,3 +59,8 @@ class Dropout(Cost):
             per_example=self.per_example
         )
         return model.cost(Y, Y_hat)
+
+    def get_data_specs(self, model):
+        data = CompositeSpace([model.get_input_space(), model.get_output_space()])
+        sources = (model.get_input_source(), model.get_target_source())
+        return [data, sources]
