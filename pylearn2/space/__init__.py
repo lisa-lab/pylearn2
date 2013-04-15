@@ -469,7 +469,7 @@ class CompositeSpace(Space):
             len(self.components) == len(other.components) and \
             all([my_component == other_component for
                 my_component, other_component in \
-                zip(self.my_components, other.components)])
+                zip(self.components, other.components)])
 
     def restrict(self, subset):
         """Returns a new Space containing only the components whose indices
