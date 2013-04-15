@@ -10,8 +10,7 @@ contest website.
    ${PYLEARN2_DATA_PATH}/icml_2013_multimodal/public_test_options
 5. Make sure pylearn2/scripts is in your PATH variable
 6. Create the subdirectory ${PYLEARN2_DATA_PATH}/esp_game 
-7. Download the Small ESP Game dataset from Luis von Ahn's website:
-   http://www.cs.cmu.edu/~biglou/resources/
+7. Download the Small ESP Game dataset from the Kaggle contest site.
 8. Expand the .tgz file. If you are using NFS or AFS this might take a long
    time.
 
