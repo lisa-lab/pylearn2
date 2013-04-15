@@ -207,6 +207,9 @@ class PCD(Cost):
 
         return gradients, updates
 
+    def get_data_specs(self, model):
+        return [None, None]
+
 class VariationalPCD(Cost):
     """
     An intractable cost representing the variational upper bound
@@ -393,6 +396,9 @@ class VariationalPCD(Cost):
 
         return gradients, updates
 
+    def get_data_specs(self, model):
+        return [None, None]
+
 class MF_L2_ActCost(Cost):
     """
         An L2 penalty on the amount that the hidden unit mean field parameters
@@ -446,6 +452,15 @@ class MF_L2_ActCost(Cost):
         if return_locals:
             return objective, locals()
         return objective
+
+    def get_data_specs(self, model):
+        if self.supervised:
+            data = CompositeSpace([model.get_input_space(), model.get_output_space()])
+            sources = (model.get_input_source(), model.get_target_source())
+            return [data, sources]
+        else:
+            return [model.get_input_space(), model.get_input_source()]
+
 def fix(l):
     if isinstance(l, list):
         return [fix(elem) for elem in l]
@@ -524,6 +539,9 @@ class TorontoSparsity(Cost):
 
         return grads, OrderedDict()
 
+    def get_data_specs(self, model):
+        return self.base_cost.get_data_specs(model)
+
 class WeightDecay(Cost):
     """
     coeff * sum(sqr(weights))
@@ -563,4 +581,5 @@ class WeightDecay(Cost):
 
         return total_cost
 
-
+    def get_data_specs(self, model):
+        return [None, None]
