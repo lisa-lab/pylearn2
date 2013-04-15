@@ -1107,6 +1107,8 @@ class BinaryVectorMaxPool(HiddenLayer):
         # Patch old pickle files
         if not hasattr(self, 'mask_weights'):
             self.mask_weights = None
+        if not hasattr(self, 'max_col_norm'):
+            self.max_col_norm = None
 
         if self.mask_weights is not None:
             W ,= self.transformer.get_params()
@@ -1638,6 +1640,10 @@ class Softmax(HiddenLayer):
             self.offset = sharedX(np.exp(b) / np.exp(b).sum())
 
     def censor_updates(self, updates):
+
+        if not hasattr(self, 'max_col_norm'):
+            self.max_col_norm = None
+
         if self.max_col_norm is not None:
             W = self.W
             if W in updates:
