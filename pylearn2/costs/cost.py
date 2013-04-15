@@ -104,7 +104,7 @@ class Cost(object):
         Parameters
         ----------
         model: the model to use to compute the monitoring channels
-        X, Y: symbolic expressions for the monitoring data
+        data: symbolic expressions for the monitoring data
         kwargs: used so that custom algorithms can use extra variables
                 for monitoring.
 
