@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 import sys
 from pylearn2.utils import serial
 import cPickle
