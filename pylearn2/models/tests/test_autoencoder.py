@@ -7,6 +7,7 @@ import theano.tensor as tensor
 from theano import config
 from pylearn2.models.autoencoder import Autoencoder, HigherOrderContractiveAutoencoder
 from pylearn2.corruption import BinomialCorruptor
+from pylearn2.config import yaml_parse
 from theano.tensor.basic import _allclose
 
 def test_autoencoder_logistic_linear_tied():
@@ -58,3 +59,108 @@ def test_high_order_autoencoder_init():
     data = np.random.randn(50, 20).astype(config.floatX)
     ff = theano.function([X], model.higher_order_penalty(X))
     assert type(ff(data)) == np.ndarray
+
+
+def test_cae_basic():
+    """
+    Tests that we can load a contractive autoencoder
+    and train it for a few epochs (without saving) on a dummy
+    dataset-- tiny model and dataset
+    """
+
+    yaml_string = """
+    !obj:pylearn2.train.Train {
+        dataset: &train !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix {
+            rng: !obj:numpy.random.RandomState { seed: [2013, 3, 16] },
+            num_examples: 12,
+            dim: 5,
+            num_classes: 10
+        },
+        model: !obj:pylearn2.models.autoencoder.ContractiveAutoencoder {
+            nvis: 5,
+            nhid: 5,
+            irange: 0.05,
+            act_enc: "sigmoid",
+            act_dec: "sigmoid"
+        },
+        algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+            batch_size: 6,
+            learning_rate: .1,
+            init_momentum: .5,
+            monitoring_dataset:
+                {
+                    'train' : *train
+                },
+            cost: !obj:pylearn2.costs.cost.SumOfCosts {
+            costs: [
+                !obj:pylearn2.costs.autoencoder.MeanBinaryCrossEntropy {},
+                [0.1, !obj:pylearn2.costs.cost.MethodCost { method: contraction_penalty }]
+            ]
+        },
+           termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
+                max_epochs: 3,
+            },
+            update_callbacks: !obj:pylearn2.training_algorithms.sgd.ExponentialDecay {
+                decay_factor: 1.000004,
+                min_lr: .000001
+            }
+        },
+    }
+    """
+
+    train = yaml_parse.load(yaml_string)
+    train.main_loop()
+
+def test_hcae_basic():
+    """
+    Tests that we can load a higher order contractive autoencoder
+    and train it for a few epochs (without saving) on a dummy
+    dataset-- tiny model and dataset
+    """
+
+    yaml_string = """
+    !obj:pylearn2.train.Train {
+        dataset: &train !obj:pylearn2.testing.datasets.random_one_hot_dense_design_matrix {
+            rng: !obj:numpy.random.RandomState { seed: [2013, 3, 16] },
+            num_examples: 12,
+            dim: 5,
+            num_classes: 10
+        },
+        model: !obj:pylearn2.models.autoencoder.HigherOrderContractiveAutoencoder {
+            nvis: 5,
+            nhid: 5,
+            irange: 0.05,
+            act_enc: "sigmoid",
+            act_dec: "sigmoid",
+            num_corruptions: 2,
+            corruptor: !obj:pylearn2.corruption.BinomialCorruptor {
+                corruption_level: 0.5
+            }
+        },
+        algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+            batch_size: 6,
+            learning_rate: .1,
+            init_momentum: .5,
+            monitoring_dataset:
+                {
+                    'train' : *train
+                },
+            cost: !obj:pylearn2.costs.cost.SumOfCosts {
+            costs: [
+                !obj:pylearn2.costs.autoencoder.MeanBinaryCrossEntropy {},
+                [0.1, !obj:pylearn2.costs.cost.MethodCost { method: higher_order_penalty }]
+            ]
+        },
+            termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
+                max_epochs: 3,
+            },
+            update_callbacks: !obj:pylearn2.training_algorithms.sgd.ExponentialDecay {
+                decay_factor: 1.000004,
+                min_lr: .000001
+            }
+        },
+    }
+    """
+
+    train = yaml_parse.load(yaml_string)
+    train.main_loop()
