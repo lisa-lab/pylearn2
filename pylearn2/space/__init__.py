@@ -191,9 +191,13 @@ class VectorSpace(Space):
             dtype = config.floatX
 
         if self.sparse:
-            return theano.sparse.csr_matrix(name=name)
+            rval = theano.sparse.csr_matrix(name=name)
         else:
-            return T.matrix(name=name, dtype=dtype)
+            rval = T.matrix(name=name, dtype=dtype)
+        if config.compute_test_value in ('raise', 'warn'):
+            rval.tag.test_value = self.get_origin_batch(n=4)
+        return rval
+
 
     @functools.wraps(Space.get_total_dimension)
     def get_total_dimension(self):
@@ -319,9 +323,12 @@ class Conv2DSpace(Space):
         broadcastable[self.axes.index('c')] = self.num_channels == 1
         broadcastable = tuple(broadcastable)
 
-        return TensorType(dtype=dtype,
+        rval = TensorType(dtype=dtype,
                           broadcastable=broadcastable
                          )(name=name)
+        if config.compute_test_value in ('raise', 'warn'):
+            rval.tag.test_value = self.get_origin_batch(n=4)
+        return rval
 
     @functools.wraps(Space.get_batch_size)
     def get_batch_size(self, data):
