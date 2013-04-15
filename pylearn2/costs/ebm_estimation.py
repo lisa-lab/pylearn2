@@ -19,7 +19,7 @@ class NCE(Cost):
     def G(self, X, model):
         return model.log_prob(X) - self.noise.log_prob(X)
 
-    def __call__(self, model, X, Y = None):
+    def expr(self, model, data):
         #The Y here is the noise
         #If you don't pass it in, it will be generated internally
         #Passing it in lets you keep it constant while doing
@@ -27,6 +27,11 @@ class NCE(Cost):
         #and stuff like that
         #This interface should probably be changed because it
         #looks too much like the SupervisedCost interface
+        if type(data) in (list, tuple):
+            (X,Y) = data
+        else:
+            X = data
+            Y = None
 
         if X.name is None:
             X_name = 'X'
@@ -78,7 +83,7 @@ class SM(Cost):
         Uses the mean over visible units rather than sum over visible units
         so that hyperparameters won't depend as much on the # of visible units
     """
-    def __call__(self, model, X, Y=None):
+    def expr(self, model, X):
         X_name = 'X' if X.name is None else X.name
 
         score = model.score(X)
@@ -117,7 +122,7 @@ class SMD(Cost):
         super(SMD, self).__init__()
         self.corruptor = corruptor
 
-    def __call__(self, model, X, Y = None):
+    def expr(self, model, X):
         X_name = 'X' if X.name is None else X.name
 
         corrupted_X = self.corruptor(X)

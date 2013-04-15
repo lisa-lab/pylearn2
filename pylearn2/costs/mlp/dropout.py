@@ -46,7 +46,10 @@ class Dropout(Cost):
         self.__dict__.update(locals())
         del self.self
 
-    def __call__(self, model, X, Y, ** kwargs):
+    def expr(self, model, data, ** kwargs):
+        assert type(data) in (list, tuple)
+        assert len(data) == 2
+        (X, Y) = data
         Y_hat = model.dropout_fprop(X, default_input_include_prob=self.default_input_include_prob,
                 input_include_probs=self.input_include_probs, default_input_scale=self.default_input_scale,
                 input_scales=self.input_scales

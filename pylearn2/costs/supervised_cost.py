@@ -15,7 +15,10 @@ import theano.tensor as T
 class CrossEntropy(Cost):
     supervised = True
 
-    def __call__(self, model, X, Y):
+    def expr(self, model, data):
+        assert type(data) in (list, tuple)
+        assert len(data) == 2
+        (X, Y) = data
         return (-Y * T.log(model(X)) - \
                 (1 - Y) * T.log(1 - model(X))).sum(axis=1).mean()
 
@@ -35,7 +38,7 @@ class NegativeLogLikelihood(Cost):
     """
     supervised = True
 
-    def __call__(self, model, X, Y):
+    def expr(self, model, data):
         """
         Returns the mean negative log-likelihood of a model for input X given
         a one-hot encoded target Y.
@@ -45,9 +48,10 @@ class NegativeLogLikelihood(Cost):
         model : pylearn2.models.model.Model
             the model for which we want to calculate the negative
             log-likelihood
-        X : tensor_like
-            input to the model
-        Y : tensor_like
-            one-hot encoded target
+        data : tuple of tensor_like
+            (input to the model, one-hot encoded target)
         """
+        assert type(data) in (list, tuple)
+        assert len(data) == 2
+        (X, Y) = data
         return (-Y * T.log(model(X))).sum(axis=1).mean()
