@@ -29,7 +29,7 @@ class MeanBinaryCrossEntropy(Cost):
 
 class SampledMeanBinaryCrossEntropy(Cost):
     """
-    ce cost that goes with sparse autoencoder with L1 regularization on activations
+    CE cost that goes with sparse autoencoder with L1 regularization on activations
 
     For thoery:
     Y. Dauphin, X. Glorot, Y. Bengio. ICML2011
