@@ -26,3 +26,8 @@ class MissingTargetCost(Cost):
         costMatrix = model.layers[-1].cost_matrix(Y, Y_hat)
         costMatrix *= T.neq(Y, -1)  # This sets to zero all elements where Y == -1
         return model.cost_from_cost_matrix(costMatrix)
+
+    def get_data_specs(self, model):
+        data = CompositeSpace([model.get_input_space(), model.get_output_space()])
+        sources = (model.get_input_source(), model.get_target_source())
+        return [data, sources]

@@ -22,6 +22,10 @@ class CrossEntropy(Cost):
         return (-Y * T.log(model(X)) - \
                 (1 - Y) * T.log(1 - model(X))).sum(axis=1).mean()
 
+    def get_data_specs(self, model):
+        data = CompositeSpace([model.get_input_space(), model.get_output_space()])
+        sources = (model.get_input_source(), model.get_target_source())
+        return [data, sources]
 
 class NegativeLogLikelihood(Cost):
     """
@@ -55,3 +59,8 @@ class NegativeLogLikelihood(Cost):
         assert len(data) == 2
         (X, Y) = data
         return (-Y * T.log(model(X))).sum(axis=1).mean()
+
+    def get_data_specs(self, model):
+        data = CompositeSpace([model.get_input_space(), model.get_output_space()])
+        sources = (model.get_input_source(), model.get_target_source())
+        return [data, sources]
