@@ -14,8 +14,10 @@ class Default(Cost):
 
     supervised = True
 
-    def __call__(self, model, X, Y, **kwargs):
-
+    def expr(self, model, data, **kwargs):
+        assert type(data) in (list, tuple)
+        assert len(data) == 2
+        (X, Y) = data
         return model.cost_from_X(X, Y)
 
 class WeightDecay(Cost):
@@ -37,7 +39,7 @@ class WeightDecay(Cost):
         self.__dict__.update(locals())
         del self.self
 
-    def __call__(self, model, X, Y = None, ** kwargs):
+    def expr(self, model, data, ** kwargs):
 
         layer_costs = [ layer.get_weight_decay(coeff)
             for layer, coeff in safe_izip(model.layers, self.coeffs) ]
@@ -78,7 +80,7 @@ class L1WeightDecay(Cost):
         self.__dict__.update(locals())
         del self.self
 
-    def __call__(self, model, X, Y = None, ** kwargs):
+    def expr(self, model, data, ** kwargs):
 
         layer_costs = [ layer.get_l1_weight_decay(coeff)
             for layer, coeff in safe_izip(model.layers, self.coeffs) ]

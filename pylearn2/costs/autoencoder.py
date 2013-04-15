@@ -6,11 +6,15 @@ import numpy.random
 from theano.tensor.shared_randomstreams import RandomStreams
 
 class MeanSquaredReconstructionError(Cost):
-    def __call__(self, model, X, Y=None, ** kwargs):
+    def expr(self, model, X, ** kwargs):
+        # Note: this cost expects the composite parameter data to be just a
+        # single variable, so there is no unpacking to do
         return ((model.reconstruct(X) - X) ** 2).sum(axis=1).mean()
 
 class MeanBinaryCrossEntropy(Cost):
-    def __call__(self, model, X, Y=None, ** kwargs):
+    def expr(self, model, X, ** kwargs):
+        # Note: this cost expects the composite parameter data to be just a
+        # single variable, so there is no unpacking to do
         return (
             - X * tensor.log(model.reconstruct(X)) -
             (1 - X) * tensor.log(1 - model.reconstruct(X))
@@ -29,7 +33,7 @@ class SampledMeanBinaryCrossEntropy(Cost):
         self.L1 = L1
         self.one_ratio = ratio
 
-    def __call__(self, model, X, Y=None, ** kwargs):
+    def expr(self, model, X, ** kwargs):
         # X is theano sparse
         X_dense=theano.sparse.dense_from_sparse(X)
         noise = self.random_stream.binomial(size=X_dense.shape, n=1, prob= self.one_ratio, ndim=None)
@@ -76,7 +80,7 @@ class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
         self.L1 = L1
         self.ratio = ratio
 
-    def __call__(self, model, X, Y=None, ** kwargs):
+    def expr(self, model, X, ** kwargs):
         # X is theano sparse
         X_dense=theano.sparse.dense_from_sparse(X)
         noise = self.random_stream.binomial(size=X_dense.shape, n=1, prob=self.ratio, ndim=None)
@@ -103,7 +107,7 @@ class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
         return cost
 
 #class MeanBinaryCrossEntropyTanh(object):
-#     def __call__(self, model, X):
+#     def expr(self, model, X):
 #        X = (X + 1) / 2.
 #        return (
 #            tensor.xlogx.xlogx(model.reconstruct(X)) +
