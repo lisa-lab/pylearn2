@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 #usage: python show_dimred_weights <whitener network>
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
