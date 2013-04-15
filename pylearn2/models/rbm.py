@@ -1088,6 +1088,17 @@ class mu_pooled_ssRBM(RBM):
 def build_stacked_RBM(nvis, nhids, batch_size, vis_type='binary',
         input_mean_vis=None, irange=1e-3, rng=None):
     """
+    Note from IG:
+        This method doesn't seem to work correctly with Gaussian RBMs.
+        In general, this is a difficult function to support, because it
+        needs to pass the write arguments to the constructor of many kinds
+        of RBMs. It would probably be better to just construct an instance
+        of pylearn2.models.mlp.MLP with its hidden layers set to instances
+        of pylearn2.models.mlp.RBM_Layer. If anyone is working on this kind
+        of problem, a PR replacing this function with a helper function to
+        make such an MLP would be very welcome.
+
+
     Allocate a StackedBlocks containing RBMs.
 
     The visible units of the input RBM can be either binary or gaussian,
