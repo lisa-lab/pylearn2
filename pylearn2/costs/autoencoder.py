@@ -11,6 +11,9 @@ class MeanSquaredReconstructionError(Cost):
         # single variable, so there is no unpacking to do
         return ((model.reconstruct(X) - X) ** 2).sum(axis=1).mean()
 
+    def get_data_specs(self, model):
+        return [model.get_input_space(), model.get_input_source()]
+
 class MeanBinaryCrossEntropy(Cost):
     def expr(self, model, X, ** kwargs):
         # Note: this cost expects the composite parameter data to be just a
@@ -19,6 +22,10 @@ class MeanBinaryCrossEntropy(Cost):
             - X * tensor.log(model.reconstruct(X)) -
             (1 - X) * tensor.log(1 - model.reconstruct(X))
         ).sum(axis=1).mean()
+
+    def get_data_specs(self, model):
+        return [model.get_input_space(), model.get_input_source()]
+
 
 class SampledMeanBinaryCrossEntropy(Cost):
     """
@@ -67,6 +74,10 @@ class SampledMeanBinaryCrossEntropy(Cost):
 
         return cost
 
+    def get_data_specs(self, model):
+        return [model.get_input_space(), model.get_input_source()]
+
+
 class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
     """
     mse cost that goes with sparse autoencoder with L1 regularization on activations
@@ -105,6 +116,9 @@ class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
         cost = cost + self.L1 * L1_units
 
         return cost
+
+    def get_data_specs(self, model):
+        return [model.get_input_space(), model.get_input_source()]
 
 #class MeanBinaryCrossEntropyTanh(object):
 #     def expr(self, model, X):
