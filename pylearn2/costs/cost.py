@@ -111,12 +111,6 @@ class Cost(object):
         """
         return OrderedDict()
 
-    def get_target_space(self, model, dataset):
-        if self.supervised:
-            return model.get_output_space()
-        else:
-            return None
-
     def get_fixed_var_descr(self, model, X, Y):
         """
         Subclasses should override this if they need variables held
