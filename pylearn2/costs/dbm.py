@@ -77,12 +77,18 @@ class PCD(Cost):
 
         return rval
 
-    def get_gradients(self, model, X, Y=None):
+    def get_gradients(self, model, data):
         """
         PCD approximation to the gradient.
         Keep in mind this is a cost, so we use
         the negative log likelihood.
         """
+        if self.supervised:
+            assert isinstance(data, (list, tuple))
+            assert len(data) == 2
+            (X,Y) = data
+        else:
+            X = data
 
         layer_to_clamp = OrderedDict([(model.visible_layer, True )])
         layer_to_pos_samples = OrderedDict([(model.visible_layer, X)])
@@ -267,7 +273,7 @@ class VariationalPCD(Cost):
 
         return rval
 
-    def get_gradients(self, model, X, Y=None):
+    def get_gradients(self, model, data):
         """
         PCD approximation to the gradient of the bound.
         Keep in mind this is a cost, so we are upper bounding
@@ -275,12 +281,14 @@ class VariationalPCD(Cost):
         """
 
         if self.supervised:
-            assert Y is not None
+            assert isinstance(data, (list, tuple))
+            assert len(data) == 2
+            (X,Y) = data
             # note: if the Y layer changes to something without linear energy,
             # we'll need to make the expected energy clamp Y in the positive phase
             assert isinstance(model.hidden_layers[-1], dbm.Softmax)
-
-
+        else:
+            X = data
 
         q = model.mf(X, Y)
 
@@ -484,9 +492,14 @@ class TorontoSparsity(Cost):
         return self.base_cost.expr(model, data, return_locals=return_locals,
                 **kwargs)
 
-    def get_gradients(self, model, X, Y=None, **kwargs):
-        obj, scratch = self.base_cost(model, X, Y, return_locals=True, **kwargs)
-
+    def get_gradients(self, model, data, **kwargs):
+        obj, scratch = self.base_cost(model, data, return_locals=True, **kwargs)
+        if self.supervised:
+            assert isinstance(data, (list, tuple))
+            assert len(data) == 2
+            (X,Y) = data
+        else:
+            X = data
         interm_grads = OrderedDict()
 
 
