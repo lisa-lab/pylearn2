@@ -144,6 +144,19 @@ class Space(object):
 
         raise NotImplementedError(str(type(self))+" does not implement validate.")
 
+    def get_batch_size(self, data):
+        """ Returns the batch size of the given data """
+
+        raise NotImplementedError(str(type(self))+" does not implement "+\
+                                  "get_batch_size")
+
+    def get_batch(self, data, start, end):
+        """ Returns a batch of data starting from index `start` to index
+        `stop`"""
+        raise NotImplementedError(str(type(self))+" does not implement "+\
+                                  "get_batch")
+
+
 class VectorSpace(Space):
     """A space whose points are defined as fixed-length vectors."""
     def __init__(self, dim, sparse=False):
@@ -168,15 +181,23 @@ class VectorSpace(Space):
     def get_origin_batch(self, n):
         return np.zeros((n, self.dim))
 
+    @functools.wraps(Space.get_batch_size)
+    def get_batch_size(self, data):
+        return data.shape[0]
+
     @functools.wraps(Space.make_theano_batch)
     def make_theano_batch(self, name=None, dtype=None):
         if dtype is None:
             dtype = config.floatX
 
         if self.sparse:
-            return theano.sparse.csr_matrix(name=name)
+            rval = theano.sparse.csr_matrix(name=name)
         else:
-            return T.matrix(name=name, dtype=dtype)
+            rval = T.matrix(name=name, dtype=dtype)
+        if config.compute_test_value in ('raise', 'warn'):
+            rval.tag.test_value = self.get_origin_batch(n=4)
+        return rval
+
 
     @functools.wraps(Space.get_total_dimension)
     def get_total_dimension(self):
@@ -302,9 +323,17 @@ class Conv2DSpace(Space):
         broadcastable[self.axes.index('c')] = self.num_channels == 1
         broadcastable = tuple(broadcastable)
 
-        return TensorType(dtype=dtype,
+        rval = TensorType(dtype=dtype,
                           broadcastable=broadcastable
                          )(name=name)
+        if config.compute_test_value in ('raise', 'warn'):
+            rval.tag.test_value = self.get_origin_batch(n=4)
+        return rval
+
+    @functools.wraps(Space.get_batch_size)
+    def get_batch_size(self, data):
+        return data.shape[self.axes.index('b')]
+
 
     @staticmethod
     def convert(tensor, src_axes, dst_axes):
@@ -419,7 +448,7 @@ class CompositeSpace(Space):
             len(self.components) == len(other.components) and \
             all([my_component == other_component for
                 my_component, other_component in \
-                zip(self.my_components, other.components)])
+                zip(self.components, other.components)])
 
     def restrict(self, subset):
         """Returns a new Space containing only the components whose indices
@@ -483,3 +512,24 @@ class CompositeSpace(Space):
     def get_origin_batch(self, n):
         return tuple([component.get_origin_batch(n) for component in self.components])
 
+    @functools.wraps(Space.make_theano_batch)
+    def make_theano_batch(self, name=None, dtype=None):
+        if name is None:
+            name = [None] * len(self.components)
+        if dtype is None:
+            dtype = [None] * len(self.components)
+        assert isinstance(name, (list, tuple))
+        assert isinstance(dtype, (list, tuple))
+
+        rval = [x.make_theano_batch(name=n, dtype=d)
+                for x,n,d in safe_zip(self.components,
+                                      name,
+                                      dtype)]
+        return rval
+
+    @functools.wraps(Space.get_batch_size)
+    def get_batch_size(self, data):
+        # Assumption: we have the same batch size for all components in the
+        # data.
+        assert isinstance(data, (list, tuple))
+        return self.components[0].get_batch_size(data[0])

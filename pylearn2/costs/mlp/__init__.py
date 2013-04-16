@@ -14,9 +14,17 @@ class Default(Cost):
 
     supervised = True
 
-    def __call__(self, model, X, Y, **kwargs):
-
+    def expr(self, model, data, **kwargs):
+        assert type(data) in (list, tuple)
+        assert len(data) == 2
+        (X, Y) = data
         return model.cost_from_X(X, Y)
+
+    def get_data_specs(self, model):
+        data = CompositeSpace([model.get_input_space(), model.get_output_space()])
+        sources = (model.get_input_source(), model.get_target_source())
+        return [data, sources]
+
 
 class WeightDecay(Cost):
     """
@@ -37,7 +45,7 @@ class WeightDecay(Cost):
         self.__dict__.update(locals())
         del self.self
 
-    def __call__(self, model, X, Y = None, ** kwargs):
+    def expr(self, model, data, ** kwargs):
 
         layer_costs = [ layer.get_weight_decay(coeff)
             for layer, coeff in safe_izip(model.layers, self.coeffs) ]
@@ -59,6 +67,9 @@ class WeightDecay(Cost):
 
         return total_cost
 
+    def get_data_specs(self, model):
+        return [None, None]
+
 class L1WeightDecay(Cost):
     """
     coeff * sum(abs(weights))
@@ -78,7 +89,7 @@ class L1WeightDecay(Cost):
         self.__dict__.update(locals())
         del self.self
 
-    def __call__(self, model, X, Y = None, ** kwargs):
+    def expr(self, model, data, ** kwargs):
 
         layer_costs = [ layer.get_l1_weight_decay(coeff)
             for layer, coeff in safe_izip(model.layers, self.coeffs) ]
@@ -99,4 +110,7 @@ class L1WeightDecay(Cost):
         total_cost.name = 'l1_penalty'
 
         return total_cost
+
+    def get_data_specs(self, model):
+        return [None, None]
 
