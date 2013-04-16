@@ -11,7 +11,6 @@
     },
     # Here we specify the model to train as being an MLP
     model: !obj:pylearn2.models.mlp.MLP {
-        batch_size: 100,
         layers : [
             # To make this baseline simple to run, we use a very small and cheap convolutional
             # network. It only has one hidden layer, consisting of rectifier units with spatial
@@ -47,6 +46,7 @@
     },
     # We train using SGD and momentum
     algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        batch_size: 100,
         learning_rate: .001,
         init_momentum: .5,
         # We monitor how well we're doing during training on a validation set

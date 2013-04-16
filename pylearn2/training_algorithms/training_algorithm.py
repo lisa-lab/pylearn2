@@ -68,7 +68,10 @@ class TrainingAlgorithm(object):
                 assert isinstance(monitoring_dataset, dict)
                 for key in monitoring_dataset:
                     assert isinstance(key, str)
-                    assert isinstance(monitoring_dataset[key], Dataset)
+                    value = monitoring_dataset[key]
+                    if not isinstance(value, Dataset):
+                        raise TypeError("Monitoring dataset with name "+key+" is not a dataset, "
+                                " it is a "+str(type(value)))
             self.monitoring_dataset = monitoring_dataset
 
     def continue_learning(self, model):
