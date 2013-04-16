@@ -2,7 +2,7 @@
 MLP Layer objects related to the paper
 
 Maxout Networks. Ian J. Goodfellow, David Warde-Farley, Mehdi Mirza, Aaron
-Courville, and Yoshua Bengio. arXiv 2013.
+Courville, and Yoshua Bengio. ICML 2013.
 
 If you use this code in your research, please cite this paper.
 
@@ -51,7 +51,7 @@ class Maxout(Layer):
     cite
 
     "Maxout Networks" Ian J. Goodfellow, David Warde-Farley,
-    Mehdi Mirza, Aaron Courville, and Yoshua Bengio. arXiv 2013
+    Mehdi Mirza, Aaron Courville, and Yoshua Bengio. ICML 2013
     """
 
     def __init__(self,
@@ -482,7 +482,7 @@ class MaxoutConvC01B(Layer):
     code in a research project, please cite
 
     "Maxout Networks" Ian J. Goodfellow, David Warde-Farley,
-    Mehdi Mirza, Aaron Courville, and Yoshua Bengio. arXiv 2013
+    Mehdi Mirza, Aaron Courville, and Yoshua Bengio. ICML 2013
 
 
     This uses the C01B ("channels", topological axis 0,
