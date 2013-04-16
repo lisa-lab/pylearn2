@@ -43,10 +43,14 @@ class LocalDot(LinearTransform):
 
     def __init__(self, filters, irows, icols=None,
             subsample=(1, 1),
-            border_mode='valid',
             padding_start=None,
             filters_shape=None,
             message=""):
+        """
+
+        irows: image rows
+
+        """
         LinearTransform.__init__(self, [filters])
         self._filters = filters
         if filters_shape is None:
@@ -61,7 +65,6 @@ class LocalDot(LinearTransform):
         if self._icols != self._irows:
             raise NotImplementedError('GPU code at least needs square imgs')
         self._subsample = tuple(subsample)
-        self._border_mode = border_mode
         self._padding_start = padding_start
 
         if len(self._filters_shape) != 7:
