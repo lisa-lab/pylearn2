@@ -838,7 +838,7 @@ from pylearn2.termination_criteria import EpochCounter as _EpochCounter
 def EpochCounter(**kwargs):
     warnings.warn("training_algorithms.sgd.EpochCounter has been moved to "
             "termination_criteria.EpochCounter. This link may be removed on "
-            "or after October 3, 2013.")
+            "or after October 3, 2013.", stacklevel=2)
     return _EpochCounter(**kwargs)
 
 from pylearn2.termination_criteria import And as _DisjunctionCriterion
