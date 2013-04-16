@@ -461,7 +461,7 @@ class ContractiveAutoencoder(Autoencoder):
         jacobian = self.weights * act_grad.dimshuffle(0, 'x', 1)
         return jacobian
 
-    def contraction_penalty(self, inputs):
+    def contraction_penalty(self, X, Y = None):
         """
         Calculate (symbolically) the contracting autoencoder penalty term.
 
@@ -482,10 +482,10 @@ class ContractiveAutoencoder(Autoencoder):
             Add this to the output of a Cost object, such as
             SquaredError, to penalize it.
         """
-        act_grad = self._activation_grad(inputs)
+        act_grad = self._activation_grad(X)
         frob_norm = tensor.dot(tensor.sqr(act_grad), tensor.sqr(self.weights).sum(axis=0))
-        contract_penalty = frob_norm.sum() / inputs.shape[0]
-        return contract_penalty
+        contract_penalty = frob_norm.sum() / X.shape[0]
+        return tensor.cast(contract_penalty, X .dtype)
 
 class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
     """Higher order contractive autoencoder.
@@ -524,15 +524,15 @@ class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
         self.num_corruptions = num_corruptions
 
 
-    def higher_order_penalty(self, inputs):
+    def higher_order_penalty(self, X, Y = None):
         """
         Stochastic approximation of Hessian Frobenius norm
         """
 
-        corrupted_inputs = [self.corruptor(inputs) for times in\
+        corrupted_inputs = [self.corruptor(X) for times in\
                             range(self.num_corruptions)]
 
-        hessian = tensor.concatenate([self.jacobian_h_x(inputs) - \
+        hessian = tensor.concatenate([self.jacobian_h_x(X) - \
                                 self.jacobian_h_x(corrupted) for\
                                 corrupted in corrupted_inputs])
 

@@ -4,13 +4,16 @@ Functionality for preprocessing Datasets.
 
 __authors__ = "Ian Goodfellow, David Warde-Farley, Guillaume Desjardins, and Mehdi Mirza"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
-__credits__ = ["Ian Goodfellow"]
+__credits__ = ["Ian Goodfellow", "David Warde-Farley", "Guillaume Desjardins",
+               "Mehdi Mirza"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
-import warnings
+
 import copy
+import logging
+import warnings
 import numpy as np
 try:
     from scipy import linalg
@@ -22,8 +25,12 @@ import theano.tensor as T
 from pylearn2.base import Block
 from pylearn2.linear.conv2d import Conv2D
 from pylearn2.space import Conv2DSpace
+from pylearn2.expr.preprocessing import global_contrast_normalize
 from pylearn2.utils.insert_along_axis import insert_columns
 from pylearn2.utils import sharedX
+
+
+log = logging.getLogger(__name__)
 
 convert_axes = Conv2DSpace.convert_numpy
 
@@ -682,49 +689,75 @@ class Downsample(object):
 
 
 class GlobalContrastNormalization(object):
-    def __init__(self, subtract_mean=True, std_bias=10.0, use_norm=False):
+    def __init__(self, subtract_mean=True, std_bias=None, use_norm=None,
+                 scale=1., sqrt_bias=10., use_std=False, min_divisor=1e-8,
+                 batch_size=None):
         """
+        See the docstring for `global_contrast_normalize` in
+        `pylearn2.expr.preprocessing`. Note that this preserves
+        the old API and defaults for backwards compatibility, but
+        this will change circa October 12, 2013.
 
-        Optionally subtracts the mean of each example
-        Then divides each example either by the standard deviation of the
-        pixels contained in that example or by the norm of that example
+        Parameters
+        ----------
+        batch_size : int or None, optional
+            If specified, read, apply and write the transformed
+            data in batches no larger than `batch_size`.
 
-        Parameters:
-
-            subtract_mean: boolean, if True subtract the mean of each example
-            std_bias: Add this amount inside the square root when computing
-                      the standard deviation or the norm
-            use_norm: If True uses the norm instead of the standard deviation
-
-
-            The default parameters of subtract_mean = True, std_bias = 10.0,
-            use_norm = False are used in replicating one step of the
-            preprocessing used by Coates, Lee and Ng on CIFAR10 in their paper
-            "An Analysis of Single Layer Networks in Unsupervised Feature
-            Learning"
         """
-
-        self.subtract_mean = subtract_mean
-        self.std_bias = std_bias
-        self.use_norm = use_norm
+        warnings.warn("Order and names of arguments to the "
+                      "GlobalContrastNormalization preprocessor object "
+                      "will change after October 12, 2013: the signature "
+                      "of the constructor will change to that of "
+                      "global_contrast_normalize in "
+                      "pylearn2.expr.preprocessing, and defaults will "
+                      "match defaults of that function. See the docstring of "
+                      "that function for details. New arguments are currently "
+                      "supported as keywords, so that you can transition to "
+                      "the new API.")
+        self._subtract_mean = subtract_mean
+        # Default to sqrt_bias = 10., the previous behaviour of the
+        # preprocessor.
+        if std_bias is None:
+            self._sqrt_bias = sqrt_bias
+        else:
+            self._sqrt_bias = std_bias
+        # Default to use_norm = False. This will change.
+        if use_norm is None:
+            self._use_std = use_std
+        else:
+            self._use_std = not bool(use_norm)
+        # These were not parameters of the old preprocessor.
+        self._scale = scale
+        self._min_divisor = min_divisor
+        if batch_size is not None:
+            batch_size = int(batch_size)
+            assert batch_size > 0, "batch_size must be positive"
+        self._batch_size = batch_size
 
     def apply(self, dataset, can_fit=False):
-        X = dataset.get_design_matrix()
-
-        assert X.dtype == 'float32' or X.dtype == 'float64'
-
-        if self.subtract_mean:
-            X -= X.mean(axis=1)[:, None]
-
-        if self.use_norm:
-            scale = np.sqrt(np.square(X).sum(axis=1) + self.std_bias)
+        if self._batch_size is None:
+            X = global_contrast_normalize(dataset.get_design_matrix(),
+                                          scale=self._scale,
+                                          subtract_mean=self._subtract_mean,
+                                          use_std=self._use_std,
+                                          sqrt_bias=self._sqrt_bias,
+                                          min_divisor=self._min_divisor)
+            dataset.set_design_matrix(X)
         else:
-            # use standard deviation
-            scale = np.sqrt(np.square(X).mean(axis=1) + self.std_bias)
-        eps = 1e-8
-        scale[scale < eps] = 1.
-        X /= scale[:, None]
-        dataset.set_design_matrix(X)
+            X = dataset.get_design_matrix()
+            data_size = X.shape[0]
+            last = (np.floor(data_size / float(self._batch_size)) *
+                    self._batch_size)
+            for i in xrange(0, data_size, self._batch_size):
+                if i >= last:
+                    stop = i + np.mod(data_size, self._batch_size)
+                else:
+                    stop = i + self._batch_size
+                log.info("GCN processing data from {} to {}".format(i, stop))
+                data = self.transform(X[i:stop])
+                dataset.set_design_matrix(data, start = i)
+
 
 class GlobalContrastNormalizationPyTables(object):
     def __init__(self, subtract_mean=True, std_bias=10.0, use_norm=False, batch_size = 5000):
@@ -753,6 +786,9 @@ class GlobalContrastNormalizationPyTables(object):
         self.std_bias = std_bias
         self.use_norm = use_norm
         self._batch_size = batch_size
+        warnings.warn("GlobalContrastNormalizationPyTables has been rolled "
+                      "into GlobalContrastNormalization. This class will "
+                      "disappear after October 12, 2013.")
 
     def transform(self, X):
         assert X.dtype == 'float32' or X.dtype == 'float64'
@@ -775,7 +811,10 @@ class GlobalContrastNormalizationPyTables(object):
         data_size = X.shape[0]
         last = np.floor(data_size / float(self._batch_size)) * self._batch_size
         for i in xrange(0, data_size, self._batch_size):
-            stop = i + np.mod(data_size, self._batch_size) if i>= last else i + self._batch_size
+            if i >= last:
+                stop = i + np.mod(data_size, self._batch_size)
+            else:
+                stop = i + self._batch_size
             print "GCN processing data from {} to {}".format(i, stop)
             data = self.transform(X[i:stop])
             dataset.set_design_matrix(data, start = i)
