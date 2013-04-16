@@ -9,24 +9,26 @@ __credits__ = ["Ian Goodfellow, David Warde-Farley"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow, David Warde-Farley"
 __email__ = "goodfeli@iro"
+
+from collections import OrderedDict
+import logging
 import warnings
-from theano import function
-from theano import config
 import numpy as np
+
+from theano import config
+from theano import function
+from theano.gof.op import get_debug_values
 from theano import tensor as T
+
 from pylearn2.monitor import Monitor
-from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
-from pylearn2.utils import sharedX
 from pylearn2.train_extensions import TrainExtension
+from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 from pylearn2.utils.iteration import is_stochastic
 from pylearn2.utils import py_integer_types, py_float_types
 from pylearn2.utils import safe_zip
 from pylearn2.utils import serial
+from pylearn2.utils import sharedX
 from pylearn2.utils.timing import log_timing
-from theano.gof.op import get_debug_values
-import logging
-from collections import OrderedDict
-
 
 log = logging.getLogger(__name__)
 
@@ -209,6 +211,7 @@ class SGD(TrainingAlgorithm):
         else:
             grads, updates = self.cost.get_gradients(model, X)
 
+
         for param in grads:
             assert param in params
         for param in params:
@@ -269,6 +272,8 @@ class SGD(TrainingAlgorithm):
                 fn_inputs = [X, Y]
             else:
                 fn_inputs = [X]
+
+
             self.sgd_update = function(fn_inputs, updates=updates,
                                        name='sgd_update',
                                        on_unused_input='ignore',
@@ -838,7 +843,7 @@ from pylearn2.termination_criteria import EpochCounter as _EpochCounter
 def EpochCounter(**kwargs):
     warnings.warn("training_algorithms.sgd.EpochCounter has been moved to "
             "termination_criteria.EpochCounter. This link may be removed on "
-            "or after October 3, 2013.")
+            "or after October 3, 2013.", stacklevel=2)
     return _EpochCounter(**kwargs)
 
 from pylearn2.termination_criteria import And as _DisjunctionCriterion
