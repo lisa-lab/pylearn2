@@ -189,9 +189,10 @@ class Monitor(object):
                     self.run_prereqs(X, None, d)
                     a(X)
                 if X.ndim == 2:
-                    actual_ne += X.shape[0]
+                    actual_batch_size = X.shape[0]
                 else:
-                    actual_ne += X.shape[d.get_topo_batch_axis()]
+                    actual_batch_size = X.shape[d.get_topo_batch_axis()]
+                actual_ne += actual_batch_size
             # end for X
             if actual_ne != ne:
                 raise RuntimeError("At compile time, your iterator said it had "
