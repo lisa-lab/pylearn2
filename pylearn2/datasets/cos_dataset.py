@@ -24,7 +24,10 @@ class CosDataset(object):
         return rval
 
     def pdf_func(self, mat):
-        # TODO: why does a dataset have a pdf?
+        """
+        This dataset can generate an infinite amount of examples.
+        This function gives the pdf from which the examples are drawn.
+        """
         x = mat[:, 0]
         y = mat[:, 1]
         rval = N.exp(-(y - N.cos(x)) ** 2. / (2. * (self.std ** 2.)))
@@ -35,7 +38,10 @@ class CosDataset(object):
         return rval
 
     def free_energy(self, X):
-        # TODO: why does a dataset have this?
+        """
+        This dataset can generate an infinite amount of examples.
+        This function gives the energy function for the distribution from which the examples are drawn.
+        """
         x = X[:, 0]
         y = X[:, 1]
         rval = T.sqr(y - T.cos(x)) / (2. * (self.std ** 2.))
@@ -45,7 +51,10 @@ class CosDataset(object):
         return rval
 
     def pdf(self, X):
-        # TODO: why does a dataset have this?
+        """
+        This dataset can generate an infinite amount of examples.
+        This function gives the pdf from which the examples are drawn.
+        """
         x = X[:, 0]
         y = X[:, 1]
         rval = T.exp(-T.sqr(y - T.cos(x)) / (2. * (self.std ** 2.)))

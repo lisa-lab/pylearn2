@@ -6,7 +6,7 @@ from pylearn2.datasets import preprocessing
 train = cifar10.CIFAR10(which_set="train",center=True)
 
 pipeline = preprocessing.Pipeline()
-pipeline.items.append(preprocessing.GlobalContrastNormalization(subtract_mean=False,std_bias=0.0))
+pipeline.items.append(preprocessing.GlobalContrastNormalization(subtract_mean=False,sqrt_bias=0.0, use_std=True))
 pipeline.items.append(preprocessing.PCA(num_components=512))
 
 test = cifar10.CIFAR10(which_set="test")

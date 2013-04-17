@@ -10,7 +10,6 @@ from pylearn2.utils import serial
 from pylearn2.datasets import preprocessing
 from pylearn2.datasets.cifar100 import CIFAR100
 from pylearn2.utils import string_utils
-import numpy as np
 
 data_dir = string_utils.preprocess('${PYLEARN2_DATA_PATH}')
 
@@ -49,7 +48,7 @@ README.close()
 print "Preprocessing the data..."
 pipeline = preprocessing.Pipeline()
 pipeline.items.append(preprocessing.ExtractPatches(patch_shape=(6,6),num_patches=2*1000*1000))
-pipeline.items.append(preprocessing.GlobalContrastNormalization())
+pipeline.items.append(preprocessing.GlobalContrastNormalization(sqrt_bias=10., use_std=True))
 pipeline.items.append(preprocessing.ZCA())
 data.apply_preprocessor(preprocessor = pipeline, can_fit = True)
 

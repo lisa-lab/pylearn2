@@ -107,6 +107,8 @@ class Layer(Model):
         The cost of outputting Y_hat when the true output is Y.
         """
 
+        raise NotImplementedError(str(type(self))+" does not implement mlp.Layer.cost.")
+
     def cost_from_cost_matrix(self, cost_matrix):
         """
         The cost final scalar cost computed from the cost matrix
@@ -117,10 +119,13 @@ class Layer(Model):
             cost = model.cost_from_cost_matrix(C)
         """
 
+        raise NotImplementedError(str(type(self))+" does not implement mlp.Layer.cost_from_cost_matrix.")
+
     def cost_matrix(self, Y, Y_hat):
         """
         The element wise cost of outputting Y_hat when the true output is Y.
         """
+        raise NotImplementedError(str(type(self))+" does not implement mlp.Layer.cost_matrix")
 
 class MLP(Layer):
     """

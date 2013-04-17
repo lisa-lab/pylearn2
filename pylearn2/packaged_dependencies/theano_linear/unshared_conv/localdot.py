@@ -3,7 +3,7 @@ XXX
 """
 
 from ..linear import LinearTransform
-from unshared_conv import FilterActs, ImgActs, WeightActs
+from unshared_conv import FilterActs, ImgActs
 
 class LocalDot(LinearTransform):
     """
@@ -81,6 +81,7 @@ class LocalDot(LinearTransform):
             self._message = filters.name
 
     def rmul(self, x):
+        assert x.ndim == 5
         return self._filter_acts(x, self._filters)
 
     def rmul_T(self, x):
