@@ -115,8 +115,38 @@ class TestGpuWeightActs(unittest.TestCase):
         outval = f()
         assert outval.shape == self.fshape
 
+class TestGpuImgActs(unittest.TestCase):
+    """
+    """
+    ishape = (1, 1, 4, 4, 2) # 2 4x4 greyscale images
+    hshape = (1, 16, 2, 2, 2)
+    fshape = (2, 2, 1, 3, 3, 1, 16) # 5 3x3 filters at each location in a 2x2 grid
+    irows = 4
+    icols = 4
+    module_stride = 1
+    partial_sum = 1
+    dtype = 'float32'
 
-if 0:
+    def setUp(self):
+        self.gia = GpuImgActs(
+                module_stride=self.module_stride,
+                partial_sum=self.partial_sum)
+        self.gpu_images = float32_shared_constructor(
+                numpy.random.rand(*self.ishape).astype(self.dtype))
+        self.gpu_hidact = float32_shared_constructor(
+                numpy.random.rand(*self.hshape).astype(self.dtype))
+        self.gpu_filters = float32_shared_constructor(
+                numpy.random.rand(*self.fshape).astype(self.dtype))
+
+    def test_shape(self):
+        dimages = self.gia(self.gpu_filters, self.gpu_hidact,
+                self.irows, self.icols)
+        f = theano.function([], dimages)
+        outval = f()
+        assert outval.shape == self.ishape
+
+
+if 1:
   class TestMatchFilterActs(unittest.TestCase):
     def setUp(self):
         numpy.random.seed(77)

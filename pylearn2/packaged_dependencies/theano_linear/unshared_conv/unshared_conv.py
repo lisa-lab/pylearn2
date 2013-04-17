@@ -3,11 +3,7 @@ XXX
 """
 
 import numpy
-import warnings
-
 import theano
-from theano.sandbox import cuda
-
 
 # Use grad_not_implemented for versions of theano that support it
 try:
