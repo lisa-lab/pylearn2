@@ -9,8 +9,6 @@ from theano.sandbox.cuda.opt import register_opt
 from theano.sandbox.cuda import gpu_from_host, host_from_gpu
 
 from .unshared_conv import FilterActs
-from .unshared_conv import WeightActs
-from .unshared_conv import ImgActs
 
 _this_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
 

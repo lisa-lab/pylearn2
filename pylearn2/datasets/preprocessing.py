@@ -688,15 +688,14 @@ class Downsample(object):
         dataset.set_topological_view(X)
 
 
-class GlobalContrastNormalization(object):
-    def __init__(self, subtract_mean=True, std_bias=None, use_norm=None,
-                 scale=1., sqrt_bias=10., use_std=False, min_divisor=1e-8,
+class GlobalContrastNormalization(Preprocessor):
+    def __init__(self, subtract_mean=True,
+                 scale=1., sqrt_bias=None, use_std=None, min_divisor=1e-8,
+                 std_bias=None, use_norm=None,
                  batch_size=None):
         """
         See the docstring for `global_contrast_normalize` in
-        `pylearn2.expr.preprocessing`. Note that this preserves
-        the old API and defaults for backwards compatibility, but
-        this will change circa October 12, 2013.
+        `pylearn2.expr.preprocessing`.
 
         Parameters
         ----------
@@ -704,29 +703,47 @@ class GlobalContrastNormalization(object):
             If specified, read, apply and write the transformed
             data in batches no larger than `batch_size`.
 
+        std_bias is a deprecated alias for sqrt_bias.
+        use_norm is a deprecated argument that controls the same thing as use_std,
+            except that use_norm=True means use_std=False.
+
+        use_std defaults to True and sqrt_bias defaults to 10 if nothing is specified.
+        Both of these defaults will change for consistency with pylearn2.expr.preprocessing
+        sometime after October 12, 2013.
+        The defaults aren't specified as part of the method signature so that we can tell
+        whether the client is using each name for each option.
         """
-        warnings.warn("Order and names of arguments to the "
-                      "GlobalContrastNormalization preprocessor object "
-                      "will change after October 12, 2013: the signature "
-                      "of the constructor will change to that of "
-                      "global_contrast_normalize in "
-                      "pylearn2.expr.preprocessing, and defaults will "
-                      "match defaults of that function. See the docstring of "
-                      "that function for details. New arguments are currently "
-                      "supported as keywords, so that you can transition to "
-                      "the new API.")
+
+        if std_bias is not None:
+            warnings.warn("std_bias is deprecated, and may be removed after October 12, 2013. Switch to sqrt_bias.", stacklevel=2)
+            if sqrt_bias is not None:
+                if std_bias == sqrt_bias:
+                    warnings.warn("You're specifying both std_bias and sqrt_bias, which are actually aliases for the same parameter. You're setting them both to the same thing so it's OK, but you probably want to change your script to just specify sqrt_bias.",stacklevel=2)
+                else:
+                    raise ValueError("You specified sqrt_bias and std_bias to different values, but they are aliases of each other. Specify only sqrt_bias. std_bias is a deprecated alias.", stacklevel=2)
+            sqrt_bias = std_bias
+
+        if sqrt_bias is None:
+            warnings.warn("You are not specifying a value for sqrt_bias. Note that the default value will change on or after October 12, 2013, to be consistent with pylearn2.expr.preprocessing.")
+            sqrt_bias = 10.
+
+        if use_norm is not None:
+            warnings.warn("use_norm is deprecated, and may be removed after October 12, 2013. Pass the opposite value to use_std.", stacklevel=2)
+            if use_std is not None:
+                if use_std == (not use_norm):
+                    warnings.warn("You're specifying both use_std and use_norm. You have them set to the opposite of each other, i.e. both are requesting the same behavior, so you're OK, but you probably want to change your script to only specify one.", stacklevel=2)
+                else:
+                    raise ValueError("use_std conflicts with use_norm.")
+            use_std = not use_norm
+
+        if use_std is None:
+            warnings.warn("You are not specifying a value for use_std. The default of use_std will change on or after October 12, 2013 to be consistent with pylearn2.expr.preprocessing.")
+
+            use_std = True
+
         self._subtract_mean = subtract_mean
-        # Default to sqrt_bias = 10., the previous behaviour of the
-        # preprocessor.
-        if std_bias is None:
-            self._sqrt_bias = sqrt_bias
-        else:
-            self._sqrt_bias = std_bias
-        # Default to use_norm = False. This will change.
-        if use_norm is None:
-            self._use_std = use_std
-        else:
-            self._use_std = not bool(use_norm)
+        self._use_std = use_std
+        self._sqrt_bias = sqrt_bias
         # These were not parameters of the old preprocessor.
         self._scale = scale
         self._min_divisor = min_divisor

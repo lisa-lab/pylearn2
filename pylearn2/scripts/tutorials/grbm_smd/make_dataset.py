@@ -37,7 +37,7 @@ if __name__ == "__main__":
     # same "regularization" parameters as those used in Adam Coates, Honglak
     # Lee, and Andrew Ng's paper "An Analysis of Single-Layer Networks in
     # Unsupervised Feature Learning"
-    pipeline.items.append(preprocessing.GlobalContrastNormalization())
+    pipeline.items.append(preprocessing.GlobalContrastNormalization(sqrt_bias=10., use_std=True))
 
     # Finally we whiten the data using ZCA. Again, the default parameters to
     # ZCA are set to the same values as those used in the previously mentioned

@@ -7,7 +7,10 @@
         start: 0,
         stop: 25000,
         # We preprocess the data with global contrast normalization
-        preprocessor: !obj:pylearn2.datasets.preprocessing.GlobalContrastNormalization {}
+        preprocessor: &prepro !obj:pylearn2.datasets.preprocessing.GlobalContrastNormalization {
+            sqrt_bias: 10,
+            use_std: 1
+            }
     },
     # Here we specify the model to train as being an MLP
     model: !obj:pylearn2.models.mlp.MLP {
@@ -56,7 +59,7 @@
                     which_set: 'train',
                     start: 25000,
                     stop: 28709,
-                    preprocessor: !obj:pylearn2.datasets.preprocessing.GlobalContrastNormalization {}
+                    preprocessor: *prepro
                 }
             },
         # We stop when validation set classification error hasn't decreased for 10 epochs
