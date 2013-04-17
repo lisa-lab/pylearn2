@@ -20,8 +20,8 @@ class testGlobalContrastNormalization:
         #std_bias = 0.0 is the only value for which there should be a risk
         #of failure occurring
         preprocessor = GlobalContrastNormalization( subtract_mean = True,
-                                                    std_bias = 0.0,
-                                                    use_norm = False)
+                                                    sqrt_bias = 0.0,
+                                                    use_std = True)
 
         dataset.apply_preprocessor(preprocessor)
 
@@ -46,10 +46,10 @@ class testGlobalContrastNormalization:
         dataset = DenseDesignMatrix( X = X )
 
         #the setting of subtract_mean is not relevant to the test
-        #the test only applies when std_bias = 0.0 and use_norm = True
+        #the test only applies when std_bias = 0.0 and use_std = False
         preprocessor = GlobalContrastNormalization( subtract_mean = False,
-                                                    std_bias = 0.0,
-                                                    use_norm = True)
+                                                    sqrt_bias = 0.0,
+                                                    use_std = False)
 
         dataset.apply_preprocessor(preprocessor)
 
