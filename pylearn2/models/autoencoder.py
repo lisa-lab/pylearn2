@@ -1,4 +1,6 @@
-"""Autoencoders, denoising autoencoders, and stacked DAEs."""
+"""
+Autoencoders, denoising autoencoders, and stacked DAEs.
+"""
 # Standard library imports
 import functools
 from itertools import izip
