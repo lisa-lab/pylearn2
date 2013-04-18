@@ -1,0 +1,67 @@
+.. _vision:
+
+============
+Pylearn2 Refactoring Best Pratices Guide
+============
+
+Refactoring refers to changing the name of any class, function, method, parameter name,
+or default argument value. Refactoring changes the way that a piece of code interacts
+with the outside world, so it should be done as little as possible, and with great care.
+As of this writing, 145 people are watching pylearn2 on github. Pylearn2 is used to store
+reproducible scientific results, and has been used to host five different contests on
+kaggle.com. Breaking interfaces in pylearn2 will upset people all over the internet.
+Unfortunately, given pylearn2's mission of being a cutting-edge research library, new
+research directions will often require changes to pylearn2's interface. This guide explains
+how to refactor while doing the least damage possible.
+
+* E-mail pylearn-dev@googlegroups.com about proposed changes before you start working on them.
+  This will give the other users of pylearn2 the opportunity to see possible problems your
+  changes might cause, and help you figure out the safest possible way to accomplish what you
+  want to with the refactor.
+
+* Whenever possible, make the change
+  TODO: finish copying from https://github.com/lisa-lab/pylearn2/issues/241
+
+* We build the parts of the library when we need them or shortly before.
+   * There is NOT a big programming effort for stuff that we are not sure we will use.
+   * Don't over-engineer. This killed Pylearn1. Start with simple interfaces and introduce
+     generality as it is needed. Don't try to make everything fully general from the start.
+   * That being said, keep the overall Vision in mind while coding. Try to design interfaces
+     that will be easy to modify in the future to support predictable desired features.
+
+* Pylearn2 is a machine learning toolbox for scientific experimentation.
+   * This means it is OK to expect a high level of machine learning sophistication
+     from our users.
+   * It also means the framework should not restrict very much what is possible.
+   * These are very different design goals / a very different target user from
+     say scikit-learn where everything should have a "fit" method that just works
+     out of the box.
+* One goal we used to have but no one seems to actually work is supporting the
+  scikit.learn interface. It could make sense to add support for the the scikit-learn
+  interface to one of our models such as S3C, RBMs, or autoencoders and add it to
+      * https://github.com/scikit-learn/scikit-learn/wiki/Related-Projects
+
+* Dataset interface
+    * Pylearn2 datasets need to be able to understand topology. Many kinds of data
+      have different kinds of topology: 1-D topology like a measurement collected over
+      time, 2-D topology like images, 3-D topology like videos, etc.
+    * Pylearn2 models may use topology in different ways:  convolution, tiled convolution,
+      local receptive fields with no tied weights, Toronto's fovea-approximating techniques,
+      etc.
+
+* Support many views for each object. Make it easy for different
+  component play different roles. 
+   * For example, generative models and datasets both define probability
+     distributions that we should be able to sample from.
+
+* Contain a concise human-readable experiment description language
+  that makes it easy for other people to replicate our exact experiments
+  with others implementations. This should include hyperparameter and other
+  related configuration.  (currently we use yaml for this). 
+
+* Include algorithms and utilities that are factored as being separate
+  from the model as much as possible. This includes training algorithms,
+  visualization algorithms, model selection algorithms, model composition
+  or averaging techniques, etc.
+
+

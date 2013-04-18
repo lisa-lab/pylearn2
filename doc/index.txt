@@ -116,6 +116,7 @@ Developer
 * Register to everything listed in the Community section above
 * Follow the LISA lab coding style guidelines:
 http://deeplearning.net/software/pylearn/v2_planning/API_coding_style.html
+* :ref:`refactor` -- the best practices guide you should follow when refactoring anything in the library.
 
 
 
