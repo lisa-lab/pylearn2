@@ -19,49 +19,76 @@ how to refactor while doing the least damage possible.
   changes might cause, and help you figure out the safest possible way to accomplish what you
   want to with the refactor.
 
-* Whenever possible, make the change
-  TODO: finish copying from https://github.com/lisa-lab/pylearn2/issues/241
+* Whenever possible, make the old version of the interface still work for 6 months before it
+  is phased out.
 
-* We build the parts of the library when we need them or shortly before.
-   * There is NOT a big programming effort for stuff that we are not sure we will use.
-   * Don't over-engineer. This killed Pylearn1. Start with simple interfaces and introduce
-     generality as it is needed. Don't try to make everything fully general from the start.
-   * That being said, keep the overall Vision in mind while coding. Try to design interfaces
-     that will be easy to modify in the future to support predictable desired features.
+     * You should detect when someone uses the old interface, and use
 
-* Pylearn2 is a machine learning toolbox for scientific experimentation.
-   * This means it is OK to expect a high level of machine learning sophistication
-     from our users.
-   * It also means the framework should not restrict very much what is possible.
-   * These are very different design goals / a very different target user from
-     say scikit-learn where everything should have a "fit" method that just works
-     out of the box.
-* One goal we used to have but no one seems to actually work is supporting the
-  scikit.learn interface. It could make sense to add support for the the scikit-learn
-  interface to one of our models such as S3C, RBMs, or autoencoders and add it to
-      * https://github.com/scikit-learn/scikit-learn/wiki/Related-Projects
+     warnings.warn("<Old interface element> is deprecated. Use "
+      "<new interface element> instead. <Old interface element> will be removed"
+      "on or after <date 6 months from now>", stacklevel=2)
 
-* Dataset interface
-    * Pylearn2 datasets need to be able to understand topology. Many kinds of data
-      have different kinds of topology: 1-D topology like a measurement collected over
-      time, 2-D topology like images, 3-D topology like videos, etc.
-    * Pylearn2 models may use topology in different ways:  convolution, tiled convolution,
-      local receptive fields with no tied weights, Toronto's fovea-approximating techniques,
-      etc.
+     to warn that the interface is going to change.
 
-* Support many views for each object. Make it easy for different
-  component play different roles. 
-   * For example, generative models and datasets both define probability
-     distributions that we should be able to sample from.
+     * If the interface change doesn't cause any serious behavior changes (i.e., you're just
+       not asking for some metadata that is no longer required to accomplish the task) then
+       it's OK to just issue the warning. But if the change that takes place after the six
+       month warning will alter numerical results, or cause a crash if someone uses the old
+       interface, you should take the following steps to update everything in the library
+       to the new interface:
 
-* Contain a concise human-readable experiment description language
-  that makes it easy for other people to replicate our exact experiments
-  with others implementations. This should include hyperparameter and other
-  related configuration.  (currently we use yaml for this). 
+          * Put a "raise AssertionError()" before all of your new warnings, and run the unit
+          tests. Fix all tests that fail because they would trigger your deprecation warning.
+ 
+          * Use "grep -r" to find all instances of the name of the thing you're changing, and
+          make sure that they all use the right interface. Sadly, not everything in pylearn2
+          is unit tested, so just running the tests might miss some cases.
 
-* Include algorithms and utilities that are factored as being separate
-  from the model as much as possible. This includes training algorithms,
-  visualization algorithms, model selection algorithms, model composition
-  or averaging techniques, etc.
+          * Remove the "raise AssertionError()" statements before sending your pull request.
+          However, you must leave the warnings in, because clients of the library might (and
+          probably are) still be using the old interface.
 
+     * If you're changing the name of a parameter of a function / method, keep the new name,
+       add the old name, and have both default to None. Inside the function, raise a warning
+       if the old name is specified. If both the old name and the new name are specified, raise
+       a warning if both are set to the same value. Raise an error if both are set, and they're
+       set to different values. If both are set to None, fill in the default value. If you are
+       also planning to change the default after the end of the deprecation warning period, add
+       a warning whenever the default is filled in.
 
+       Example:
+
+       Suppose you have a function
+
+       def my_func(my_arg = 1):
+
+       and you want to refactor it to
+
+       def my_func(arg = 2):
+
+       You should start your function off like this:
+
+        def my_func(my_arg = None, arg = None):
+
+            if my_arg is not None:
+                warnings.warn("my_arg is deprecated. Use arg instead. my_arg will be removed "
+                    "on or after October 18, 2013")
+                if arg is not None:
+                    if arg == my_arg:
+                        warnings.warn("You are specifying both arg and my_arg. They are aliases. "
+                         "You are setting them both to the same thing, so it's OK, but you should "
+                         "probably switch to specifying only arg")
+                    else:
+                        raise ValueError("my_arg and arg are aliases, but you set them to conflicting "
+                         "values")
+                arg = my_arg
+
+            if arg is None:
+                warnings.warn("You are using the default value of arg. This default will change on or "
+                 "after October 18, 2013.")
+                arg = 2
+
+    * Make sure there are unit tests for the functionality you're changing. If you have to write a lot of
+      logic to handle warnings, changes to default values, etc. write unit tests to make sure the old
+      interface still works. This includes making sure that the behavior when you pass no arguments is
+      the same (i.e., make sure you didn't change the default behavior by accident).
