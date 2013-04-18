@@ -4,7 +4,9 @@ XXX
 
 from ..linear import LinearTransform
 from unshared_conv import FilterActs, ImgActs
-import gpu_unshared_conv # register optimizations
+from theano.sandbox import cuda
+if cuda.cuda_available:
+    import gpu_unshared_conv # register optimizations
 
 import numpy as np
 
