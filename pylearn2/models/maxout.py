@@ -946,7 +946,7 @@ class MaxoutLocalC01B(Layer):
                  fix_kernel_shape = False,
                  partial_sum = 1,
                  tied_b = False,
-                 max_kernel_norm = None,
+                 max_filter_norm = None,
                  input_normalization = None,
                  detector_normalization = None,
                  min_zero = False,
@@ -1004,7 +1004,6 @@ class MaxoutLocalC01B(Layer):
                     detector: the maxout units can be normalized prior to the spatial pooling
                     output: the output of the layer, after sptial pooling, can be normalized as well
         """
-        check_cuda()
 
         detector_channels = num_channels * num_pieces
 
@@ -1104,9 +1103,6 @@ class MaxoutLocalC01B(Layer):
                 raise ValueError("Stride too big.")
         assert all(isinstance(elem, py_integer_types) for elem in self.pool_stride)
 
-
-        check_cuda()
-
         if self.irange is not None:
             self.transformer = local_c01b.make_random_local(
                     input_groups = 1,
@@ -1123,7 +1119,6 @@ class MaxoutLocalC01B(Layer):
                     rng = rng)
         W, = self.transformer.get_params()
         W.name = 'W'
-
 
         if self.tied_b:
             self.b = sharedX(np.zeros((self.detector_space.num_channels)) + self.init_bias)
@@ -1149,14 +1144,15 @@ class MaxoutLocalC01B(Layer):
 
     def censor_updates(self, updates):
 
-        if self.max_kernel_norm is not None:
-            raise NotImplementedError()
+        if self.max_filter_norm is not None:
             W ,= self.transformer.get_params()
             if W in updates:
+                # TODO:    push some of this into the transformer itself
                 updated_W = updates[W]
-                row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=(0,1,2)))
-                desired_norms = T.clip(row_norms, 0, self.max_kernel_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle('x', 'x', 'x', 0)
+                updated_norms = self.get_filter_norms(updated_W)
+                desired_norms = T.clip(updated_norms, 0, self.max_filter_norm)
+                updates[W] = updated_W * (desired_norms / (1e-7 + updated_norms)
+                        ).dimshuffle(0, 1, 'x', 'x', 'x', 2, 3)
 
     def get_params(self):
         assert self.b.name is not None
@@ -1189,26 +1185,32 @@ class MaxoutLocalC01B(Layer):
     def get_weights_topo(self):
         return self.transformer.get_weights_topo()
 
-    """
-    def get_monitoring_channels(self):
+    def get_filter_norms(self, W = None):
 
-        W ,= self.transformer.get_params()
+        # TODO: push this into the transformer class itself
 
-        assert W.ndim == 4
+        if W is None:
+            W ,= self.transformer.get_params()
+
+        assert W.ndim == 7
 
         sq_W = T.sqr(W)
 
-        row_norms = T.sqrt(sq_W.sum(axis=(0,1,2)))
+        norms = T.sqrt(sq_W.sum(axis=(2, 3, 4)))
+
+        return norms
+
+    def get_monitoring_channels(self):
+
+        filter_norms = self.get_filter_norms()
 
         return OrderedDict([
-                            ('kernel_norms_min'  , row_norms.min()),
-                            ('kernel_norms_mean' , row_norms.mean()),
-                            ('kernel_norms_max'  , row_norms.max()),
+                            ('filter_norms_min'  , filter_norms.min()),
+                            ('filter_norms_mean' , filter_norms.mean()),
+                            ('filter_norms_max'  , filter_norms.max()),
                             ])
-    """
 
     def fprop(self, state_below):
-        check_cuda()
 
         self.input_space.validate(state_below)
 
