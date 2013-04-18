@@ -8,8 +8,8 @@ Pylearn2 has online `documentation <http://deeplearning.net/software/pylearn2/>`
 If you want to build a local copy of the documentation, run
     python ./doc/scripts/docgen.py
 
-More documentation is available in the form of ipython notebooks in the "tutorials"
-directory, and some example scripts in "scripts/train_example."
+More documentation is available in the form of commented examples scripts
+and ipython notebooks in the "pylearn2/scripts/tutorials" directory.
 
 Pylearn2 was initially developed by David
 Warde-Farley, Pascal Lamblin, Ian Goodfellow and others during the winter

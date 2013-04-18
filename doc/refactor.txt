@@ -1,7 +1,7 @@
-.. _vision:
+.. _refactor:
 
 ============
-Pylearn2 Refactoring Best Pratices Guide
+Pylearn2 Refactoring Best Practices Guide
 ============
 
 Refactoring refers to changing the name of any class, function, method, parameter name,
