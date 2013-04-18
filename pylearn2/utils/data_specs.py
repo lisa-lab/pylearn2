@@ -1,4 +1,4 @@
-from pylearn2.space import CompositeSpace
+from pylearn2.space import CompositeSpace, Space
 from pylearn2.utils import safe_zip
 
 
@@ -55,6 +55,8 @@ class DataSpecsMapping(object):
 
     def _fill_flat(self, nested, mapping, rval):
         """Auxiliary recursive function used by self.flatten"""
+        if isinstance(nested, CompositeSpace):
+            nested = tuple(nested.components)
         if isinstance(mapping, int):
             # "nested" should actually be a single element
             idx = mapping
@@ -81,6 +83,8 @@ class DataSpecsMapping(object):
         represents the index of that element in the returned sequence.
         If the original data_specs had duplicate elements at different places,
         then "nested" also have to have equal elements at these positions.
+        "nested" can be a nested tuple, or composite space. If it is a
+        composite space, a flattened composite space will be returned.
         """
         # Initialize the flatten returned value with Nones
         rval = [None] * self.n_unique_specs
@@ -91,9 +95,13 @@ class DataSpecsMapping(object):
         assert None not in rval, ("This mapping is invalid, as it did not "
                 "contain all numbers from 0 to %i (or None was in nested)"
                 % (self.n_unique_specs - 1, nested))
-        return tuple(rval)
 
-    def _make_nested(self, flat, mapping):
+        if isinstance(nested, tuple):
+            return tuple(rval)
+        elif isinstance(nested, Space):
+            return CompositeSpace(rval)
+
+    def _make_nested_tuple(self, flat, mapping):
         """Auxiliary recursive function used by self.nest"""
         if isinstance(mapping, int):
             # We are at a leaf of the tree
@@ -102,8 +110,20 @@ class DataSpecsMapping(object):
             return flat[idx]
         else:
             return tuple(
-                    self._make_nested(flat, sub_mapping)
+                    self._make_nested_tuple(flat, sub_mapping)
                     for sub_mapping in mapping)
+
+    def _make_nested_space(self, flat, mapping):
+        """Auxiliary recursive function used by self.nest"""
+        if not isinstance(mapping, int):
+            # We are at a leaf of the tree
+            idx = mapping
+            assert 0 <= idx < len(flat.components)
+            return flat.components[idx]
+        else:
+            return CompositeSpace((
+                    self._make_nested_space(flat, sub_mapping)
+                    for sub_mapping in mapping))
 
     def nest(self, flat):
         """
@@ -112,7 +132,13 @@ class DataSpecsMapping(object):
         The length of "flat" should be equal to self.n_unique_specs.
         """
         assert len(flat) == self.n_unique_specs
-        return self._make_nested(flat, self.spec_mapping)
+        if isinstance(flat, tuple):
+            return self._make_nested_tuple(flat, self.spec_mapping)
+        elif isinstance(flat, Space):
+            return self._make_nested_space(flat, self.spec_mapping)
+        else:
+            raise TypeError("'flat' should be a Space, or tuple. "
+                    "It is %s of type %s" % (flat, type(flat)))
 
 
 def resolve_nested_structure_from_flat(data, nested, flat):
@@ -143,6 +169,35 @@ def resolve_nested_structure_from_flat(data, nested, flat):
         assert nested in zipped_flat
         idx = zipped_flat.index(nested)
         return data[idx]
+
+
+def is_flat_space(space):
+    """Returns True for elementary Spaces and non-nested CompositeSpaces"""
+    if isinstance(space, CompositeSpace):
+        for sub_space in space.components:
+            if isinstance(sub_space, CompositeSpace):
+                return False
+    elif not isinstance(space, Space):
+        raise TypeError("space is not a Space: %s (%s)"
+                % (space, type(space)))
+    return True
+
+
+def is_flat_source(source):
+    """Returns True for a string or a non-nested tuple of strings"""
+    if isinstance(source, tuple):
+        for sub_source in source:
+            if isinstance(sub_source, tuple):
+                return False
+    elif not isinstance(source, str):
+        raise TypeError("source should be a string or a non-nested tuple "
+                "of strings: %s" % source)
+    return True
+
+
+def is_flat_specs(data_specs):
+    return is_flat_space(data_specs[0]) and is_flat_source(data_specs[1])
+
 
 def flatten_list(nested_list):
     """ Given a nested list return a flat version of said list
