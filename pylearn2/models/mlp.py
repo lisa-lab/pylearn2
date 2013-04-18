@@ -1978,8 +1978,8 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape):
         assert bc01v.shape[2] == image_shape[0]
         assert bc01v.shape[3] == image_shape[1]
 
-    wide_infinity = T.alloc(-np.inf, bc01.shape[0], bc01.shape[1], required_r, required_c)
-
+    wide_infinity = T.alloc(T.constant(-np.inf, dtype=config.floatX),
+            bc01.shape[0], bc01.shape[1], required_r, required_c)
 
     name = bc01.name
     if name is None:
