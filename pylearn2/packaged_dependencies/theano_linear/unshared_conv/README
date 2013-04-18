@@ -1,0 +1,9 @@
+Note from IG: James (and/or his collaborator?) have modified the .cu files
+here from Alex's original code, it's not just a wrapper. James doesn't remember
+what they changed, and his commit messages just say things like "mega-commit".
+
+I've made some bug fixes here and haven't bothered to push them back to
+TheanoLinear, so when handling updates from TheanoLinear, merge them carefully.
+This includes:
+1) Removed "border_mode" argument which had no effect
+2) Fixed some unit tests that weren't passing enough arguments

@@ -9,6 +9,8 @@ from theano.sandbox.cuda.opt import register_opt
 from theano.sandbox.cuda import gpu_from_host, host_from_gpu
 
 from .unshared_conv import FilterActs
+from .unshared_conv import WeightActs
+from .unshared_conv import ImgActs
 
 _this_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
 
@@ -227,7 +229,7 @@ class GpuFilterActs(Base):
 def insert_gpu_filter_acts(node):
     if isinstance(node.op, FilterActs):
         images, filters = node.inputs
-        if any_from_gpu(images, filters) or any_gpu_client(node.outputs):
+        if any_from_gpu(images, filters) or any_gpu_client(*node.outputs):
             gpu_filter_acts = GpuFilterActs(
                     module_stride=node.op.module_stride,
                     partial_sum=1)
@@ -385,6 +387,7 @@ class GpuWeightActs(Base):
                 %(fail)s;
             }
 
+            // XXX: CHECK SHAPE IS CORRECT
             if (!%(dweights)s)
             {
                 Py_XDECREF(%(dweights)s);
@@ -436,7 +439,229 @@ class GpuWeightActs(Base):
         return sio.getvalue() % locals()
 
 
+@register_opt()
+@local_optimizer([])
+def insert_gpu_weight_acts(node):
+    if isinstance(node.op, WeightActs):
+        images, hidacts, frows, fcols = node.inputs
+        if any_from_gpu(images, hidacts) or any_gpu_client(*node.outputs):
+            gpu_weight_acts = GpuWeightActs(
+                    module_stride=node.op.module_stride,
+                    partial_sum=1)
+            return [host_from_gpu(gpu_weight_acts(
+                gpu_from_host(images),
+                gpu_from_host(hidacts),
+                frows,
+                fcols,
+                ))]
+
+
 class GpuImgActs(Base):
     """
     XXX
     """
+    def make_node(self, filters, hidacts, irows, icols):
+        irows = theano.tensor.as_tensor_variable(irows)
+        icols = theano.tensor.as_tensor_variable(icols)
+        if irows.dtype[:3] not in ('int', 'uin'):
+            raise TypeError(irows)
+        if icols.dtype[:3] not in ('int', 'uin'):
+            raise TypeError(irows)
+        if irows.ndim:
+            raise TypeError('irows should be scalar', irows)
+        if icols.ndim:
+            raise TypeError('icols should be scalar', icols)
+        return theano.gof.Apply(self,
+                [filters, hidacts, irows, icols],
+                [hidacts.type()])
+
+
+    def c_support_code(self):
+        cufile = open(os.path.join(_this_dir, 'raw_img_acts.cu'))
+        return cufile.read()
+
+    def c_code_cache_version(self):
+        return ()
+
+    def c_code(self, node, nodename, inames, onames, sub):
+        filters, hidacts, irows, icols = inames
+        dimages, = onames
+        fail = sub['fail']
+        moduleStride = str(self.module_stride)
+
+        sio = StringIO.StringIO()
+
+        print >> sio, """
+
+        if (!CudaNdarray_is_c_contiguous(%(filters)s))
+        {
+            //XXX: Alex's code actually supports the rightmost images
+            //     dimension strided
+            PyErr_Format(PyExc_NotImplementedError,
+                "images not c contiguous");
+            %(fail)s;
+        }
+
+        if (!CudaNdarray_is_c_contiguous(%(hidacts)s))
+        {
+            PyErr_Format(PyExc_NotImplementedError,
+                "hidacts not c contiguous");
+            %(fail)s;
+        }
+
+        if (%(filters)s->nd != 7)
+        {
+            PyErr_Format(PyExc_TypeError,
+                "images ndim (%%i) must be 7",
+                %(filters)s->nd);
+            %(fail)s;
+        }
+
+        if (%(hidacts)s->nd != 5)
+        {
+            PyErr_Format(PyExc_TypeError,
+                "hidacts ndim (%%i) must be 5",
+                %(hidacts)s->nd);
+            %(fail)s;
+        }
+
+        if (%(irows)s->nd != 0)
+        {
+            PyErr_Format(PyExc_TypeError,
+                "frows ndim (%%i) must be 0",
+                %(irows)s->nd);
+            %(fail)s;
+        }
+
+        if (%(icols)s->nd != 0)
+        {
+            PyErr_Format(PyExc_TypeError,
+                "fcols ndim (%%i) must be 0",
+                %(icols)s->nd);
+            %(fail)s;
+        }
+
+        { // new scope, new vars
+
+            int fmodulesR         = CudaNdarray_HOST_DIMS(%(filters)s)[0];
+            int fmodulesC         = CudaNdarray_HOST_DIMS(%(filters)s)[1];
+            int fcolors           = CudaNdarray_HOST_DIMS(%(filters)s)[2];
+            int frows             = CudaNdarray_HOST_DIMS(%(filters)s)[3];
+            int fcols             = CudaNdarray_HOST_DIMS(%(filters)s)[4];
+            int fgroups           = CudaNdarray_HOST_DIMS(%(filters)s)[5];
+            int filters_per_group = CudaNdarray_HOST_DIMS(%(filters)s)[6];
+
+            int hgroups           = CudaNdarray_HOST_DIMS(%(hidacts)s)[0];
+            int hcolors_per_group = CudaNdarray_HOST_DIMS(%(hidacts)s)[1];
+            int hrows             = CudaNdarray_HOST_DIMS(%(hidacts)s)[2];
+            int hcols             = CudaNdarray_HOST_DIMS(%(hidacts)s)[3];
+            int hcount            = CudaNdarray_HOST_DIMS(%(hidacts)s)[4];
+
+            int igroups           = fgroups;
+            int icolors_per_group = fcolors;
+            int irows             = ((dtype_%(irows)s *) (%(irows)s->data))[0];
+            int icols             = ((dtype_%(icols)s *) (%(icols)s->data))[0];
+            int icount            = hcount;
+
+
+            // TODO: use this parameter properly
+            int paddingStart = 0;
+            float scaleTargets = 0.0;
+            float scaleOutput = 1.0;
+            int moduleStride = %(moduleStride)s;
+            bool conv = 0;
+
+            if (hgroups != fgroups)
+            {
+                PyErr_Format(PyExc_ValueError,
+                    "hgroups != fgroups (%%i != %%i)",
+                    hgroups, fgroups);
+                %(fail)s;
+            }
+
+            if (hcolors_per_group != filters_per_group)
+            {
+                PyErr_Format(PyExc_ValueError,
+                    "hcolors_per_group != filters_per_group (%%i != %%i)",
+                    hcolors_per_group,
+                    filters_per_group);
+                %(fail)s;
+            }
+
+            // XXX: CHECK SHAPE IS CORRECT
+            if (!%(dimages)s)
+            {
+                Py_XDECREF(%(dimages)s);
+                int dims[5];
+                dims[0] = igroups;
+                dims[1] = icolors_per_group;
+                dims[2] = irows;
+                dims[3] = icols;
+                dims[4] = icount;
+
+                %(dimages)s = (CudaNdarray*)CudaNdarray_NewDims(5, dims);
+                if (!%(dimages)s)
+                {
+                    %(fail)s;
+                }
+            }
+
+            assert(CudaNdarray_is_c_contiguous(%(dimages)s));
+
+            if (paddingStart + (fmodulesR - 1) * moduleStride + frows < irows)
+            {
+                PyErr_Format(PyExc_ValueError,
+                    "uhoh123: %%i %%i %%i %%i %%i",
+                    paddingStart,
+                    fmodulesR,
+                    moduleStride,
+                    frows,
+                    irows);
+                %(fail)s;
+            }
+
+            if (_imgActs(
+                    fgroups,
+                    filters_per_group,
+                    fcolors,
+                    hcount,
+                    fmodulesR,
+                    fmodulesC,
+                    frows,
+                    fcols,
+                    irows,
+                    icols,
+                    CudaNdarray_DEV_DATA(%(filters)s),
+                    CudaNdarray_DEV_DATA(%(hidacts)s),
+                    CudaNdarray_DEV_DATA(%(dimages)s),
+                    paddingStart,
+                    moduleStride,
+                    scaleTargets,
+                    scaleOutput,
+                    conv))
+            {
+                %(fail)s;
+            }
+        } // end bogus scope used for vars
+
+        """
+
+        return sio.getvalue() % locals()
+
+
+
+@register_opt()
+@local_optimizer([])
+def insert_gpu_img_acts(node):
+    if isinstance(node.op, ImgActs):
+        filters, hidacts, irows, icols = node.inputs
+        if any_from_gpu(filters, hidacts) or any_gpu_client(*node.outputs):
+            gpu_img_acts = GpuImgActs(
+                    module_stride=node.op.module_stride,
+                    partial_sum=1)
+            return [host_from_gpu(gpu_img_acts(
+                gpu_from_host(filters),
+                gpu_from_host(hidacts),
+                irows,
+                icols,
+                ))]

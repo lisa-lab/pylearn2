@@ -27,10 +27,14 @@ else:
 
 class Block(object):
     """
-    Basic building block for deep architectures.
-    WRITEME: what kind of deep architectures? just feed-forward MLPs?
-    WRITEME: how is this different from a theano Op? just the autogen
-            of the perform method, and the inverse function?
+    Basic building block that represents a simple transformation.
+    By chaining Blocks together we can represent complex
+    feed-forward transformations.
+
+    TODO: give this input and output spaces to make it different from
+          a theano Op
+          supporting CompositeSpace would allow more complicated structures
+          than just chains
     """
     def __init__(self):
         self.fn = None
@@ -42,10 +46,12 @@ class Block(object):
         WRITEME: how should inputs be formatted? is it a single tensor, a list
             of tensors, a tuple of tensors?
         """
-        raise NotImplementedError('__call__')
+        raise NotImplementedError(str(type(self)) + 'does not implement Block.__call__')
 
     def function(self, name=None):
-        """ Returns a compiled theano function to compute a representation """
+        """
+        Returns a compiled theano function to compute a representation
+        """
         inputs = tensor.matrix()
         if self.cpu_only:
             return theano.function([inputs], self(inputs), name=name,

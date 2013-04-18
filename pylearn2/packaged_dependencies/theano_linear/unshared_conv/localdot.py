@@ -4,6 +4,14 @@ XXX
 
 from ..linear import LinearTransform
 from unshared_conv import FilterActs, ImgActs
+import gpu_unshared_conv # register optimizations
+
+import numpy as np
+
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    pass
 
 class LocalDot(LinearTransform):
     """
@@ -110,3 +118,21 @@ class LocalDot(LinearTransform):
                 msg='%s{%s}'% (self.__class__.__name__,
                     self._message))
         """
+
+    def imshow_gray(self):
+        filters = self._filters.get_value()
+        modR, modC, colors, rows, cols, grps, fs_per_grp = filters.shape
+        print filters.shape
+
+        rval = np.zeros((
+            modR * (rows + 1) - 1,
+            modC * (cols + 1) - 1,
+        ))
+
+        for rr, modr in enumerate(xrange(0, rval.shape[0], rows + 1)):
+            for cc, modc in enumerate(xrange(0, rval.shape[1], cols + 1)):
+                rval[modr:modr + rows, modc:modc + cols] = filters[rr, cc, 0, :, :, 0, 0]
+
+        plt.imshow(rval, cmap='gray')
+        return rval
+

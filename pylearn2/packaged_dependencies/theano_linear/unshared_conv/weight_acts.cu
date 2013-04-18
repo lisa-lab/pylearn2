@@ -614,8 +614,11 @@ int _weightActs(
     assert(numModules % partialSum == 0);
 
     // These routines don't handle the case when only part of the image is visited in the convolution
-    fprintf(stderr, "%i %i %i %i %i\n", 
+    if (0)
+    {
+        fprintf(stderr, "%i %i %i %i %i\n", 
             paddingStart, numModules, moduleStride, filterSize, imgSize);
+    }
     assert(paddingStart <= 0 && paddingStart + (numModules-1)*moduleStride + filterSize >= imgSize);
     assert(moduleStride <= filterSize);
 
