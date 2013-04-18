@@ -1,0 +1,94 @@
+.. _refactor:
+
+============
+Pylearn2 Refactoring Best Practices Guide
+============
+
+Refactoring refers to changing the name of any class, function, method, parameter name,
+or default argument value. Refactoring changes the way that a piece of code interacts
+with the outside world, so it should be done as little as possible, and with great care.
+As of this writing, 145 people are watching pylearn2 on github. Pylearn2 is used to store
+reproducible scientific results, and has been used to host five different contests on
+kaggle.com. Breaking interfaces in pylearn2 will upset people all over the internet.
+Unfortunately, given pylearn2's mission of being a cutting-edge research library, new
+research directions will often require changes to pylearn2's interface. This guide explains
+how to refactor while doing the least damage possible.
+
+* E-mail pylearn-dev@googlegroups.com about proposed changes before you start working on them.
+  This will give the other users of pylearn2 the opportunity to see possible problems your
+  changes might cause, and help you figure out the safest possible way to accomplish what you
+  want to with the refactor.
+
+* Whenever possible, make the old version of the interface still work for 6 months before it
+  is phased out.
+
+     * You should detect when someone uses the old interface, and use
+
+     warnings.warn("<Old interface element> is deprecated. Use "
+      "<new interface element> instead. <Old interface element> will be removed"
+      "on or after <date 6 months from now>", stacklevel=2)
+
+     to warn that the interface is going to change.
+
+     * If the interface change doesn't cause any serious behavior changes (i.e., you're just
+       not asking for some metadata that is no longer required to accomplish the task) then
+       it's OK to just issue the warning. But if the change that takes place after the six
+       month warning will alter numerical results, or cause a crash if someone uses the old
+       interface, you should take the following steps to update everything in the library
+       to the new interface:
+
+          * Put a "raise AssertionError()" before all of your new warnings, and run the unit
+          tests. Fix all tests that fail because they would trigger your deprecation warning.
+ 
+          * Use "grep -r" to find all instances of the name of the thing you're changing, and
+          make sure that they all use the right interface. Sadly, not everything in pylearn2
+          is unit tested, so just running the tests might miss some cases.
+
+          * Remove the "raise AssertionError()" statements before sending your pull request.
+          However, you must leave the warnings in, because clients of the library might (and
+          probably are) still be using the old interface.
+
+     * If you're changing the name of a parameter of a function / method, keep the new name,
+       add the old name, and have both default to None. Inside the function, raise a warning
+       if the old name is specified. If both the old name and the new name are specified, raise
+       a warning if both are set to the same value. Raise an error if both are set, and they're
+       set to different values. If both are set to None, fill in the default value. If you are
+       also planning to change the default after the end of the deprecation warning period, add
+       a warning whenever the default is filled in.
+
+       Example:
+
+       Suppose you have a function
+
+       def my_func(my_arg = 1):
+
+       and you want to refactor it to
+
+       def my_func(arg = 2):
+
+       You should start your function off like this:
+
+        def my_func(my_arg = None, arg = None):
+
+            if my_arg is not None:
+                warnings.warn("my_arg is deprecated. Use arg instead. my_arg will be removed "
+                    "on or after October 18, 2013")
+                if arg is not None:
+                    if arg == my_arg:
+                        warnings.warn("You are specifying both arg and my_arg. They are aliases. "
+                         "You are setting them both to the same thing, so it's OK, but you should "
+                         "probably switch to specifying only arg")
+                    else:
+                        raise ValueError("my_arg and arg are aliases, but you set them to conflicting "
+                         "values")
+                arg = my_arg
+
+            if arg is None:
+                warnings.warn("You are using the default value of arg. This default will change on or "
+                 "after October 18, 2013.")
+                arg = 2
+
+    * Make sure there are unit tests for the functionality you're changing. If you have to write a lot of
+      logic to handle warnings, changes to default values, etc. write unit tests to make sure the old
+      interface still works. This includes making sure that the behavior when you pass no arguments is
+      the same (i.e., make sure you didn't change the default behavior by accident).
