@@ -130,9 +130,9 @@ def make_sparse_random_local(num_nonzero, input_space, output_space,
 
     W = sharedX( W)
 
-    return Conv2D(filters = W,
-        batch_size = batch_size,
-        input_space = input_space,
-        output_axes = output_space.axes,
-        subsample = subsample, border_mode = border_mode,
-        filters_shape = W.get_value(borrow=True).shape, message = message)
+    #return Conv2D(filters = W,
+    #    batch_size = batch_size,
+    #    input_space = input_space,
+    #    output_axes = output_space.axes,
+    #    subsample = subsample, border_mode = border_mode,
+    #    filters_shape = W.get_value(borrow=True).shape, message = message)
