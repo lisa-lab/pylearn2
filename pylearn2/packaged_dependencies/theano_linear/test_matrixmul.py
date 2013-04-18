@@ -1,21 +1,13 @@
-import warnings
-
-warnings.warn("TODO: port these disabled tests to the new pylearn2 setup")
-
-"""
-import unittest
-
 import numpy
+import unittest
+import warnings
 
 import theano
 from theano import tensor
 
-from .linear import LinearTransform
-from .linear import dot
 from .linear import dot_shape
 from .linear import dot_shape_from_shape
-from .matrixmul import MatrixMul
-
+from .linear import dot
 
 def assert_compute_equal(outputs, inputs=[]):
     outputs = map(tensor.as_tensor_variable, outputs)
@@ -32,13 +24,12 @@ def assert_compute_allclose(outputs, inputs=[]):
     assert all(numpy.allclose(outvals[i], outvals[0])
             for i in range(1, len(outvals))), (outvals)
 
-
 class SymbolicSelfTestMixin(object):
-    ""
+    """
     Generic tests that assert the self-consistency of LinearTransform
     implementations that operate on Theano variables.
 
-    ""
+    """
 
     def test_shape_xl_A(self):
         xl_A = dot(self.xl, self.A)
@@ -67,6 +58,11 @@ class SymbolicSelfTestMixin(object):
         assert_compute_equal([
                 AT_xlT.shape,
                 AT_xlt_shape])
+
+warnings.warn("TODO: port these disabled tests to the new pylearn2 setup")
+"""
+from .linear import LinearTransform
+from .matrixmul import MatrixMul
 
 
 class TestMatrixMul(unittest.TestCase, SymbolicSelfTestMixin):
