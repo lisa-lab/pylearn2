@@ -151,9 +151,9 @@ if 1:
     def setUp(self):
         numpy.random.seed(77)
 
-    def run_match(self, images, filters, module_stride, retvals=False):
+    def run_match(self, images, filters, module_stride, retvals=False, partial_sum=1):
 
-        gfa = GpuFilterActs(module_stride)
+        gfa = GpuFilterActs(module_stride, partial_sum)
         fa = FilterActs(module_stride)
 
         gpu_images = float32_shared_constructor(images)
