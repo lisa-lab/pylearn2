@@ -190,7 +190,7 @@ class Model(object):
         """
         return 'features'
 
-    def get_target_sorce(self):
+    def get_target_source(self):
         """ Returns a string, stating the source for the output. By default
         the output source (when is the only one) is called 'targets'
         """

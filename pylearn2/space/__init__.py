@@ -194,7 +194,7 @@ class VectorSpace(Space):
             rval = theano.sparse.csr_matrix(name=name)
         else:
             rval = T.matrix(name=name, dtype=dtype)
-        if config.compute_test_value in ('raise', 'warn'):
+        if config.compute_test_value != 'off':
             rval.tag.test_value = self.get_origin_batch(n=4)
         return rval
 
@@ -326,7 +326,7 @@ class Conv2DSpace(Space):
         rval = TensorType(dtype=dtype,
                           broadcastable=broadcastable
                          )(name=name)
-        if config.compute_test_value in ('raise', 'warn'):
+        if config.compute_test_value != 'off':
             rval.tag.test_value = self.get_origin_batch(n=4)
         return rval
 
