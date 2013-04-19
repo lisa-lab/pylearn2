@@ -933,9 +933,9 @@ class MaxoutLocalC01B(Layer):
                  num_channels,
                  num_pieces,
                  kernel_shape,
-                 pool_shape,
-                 pool_stride,
                  layer_name,
+                 pool_shape=None,
+                 pool_stride=None,
                  irange = None,
                  init_bias = 0.,
                  W_lr_scale = None,
@@ -961,7 +961,9 @@ class MaxoutLocalC01B(Layer):
             pool_shape:   The shape of the spatial max pooling. A two-tuple of ints.
                           This is redundant as cuda-convnet requires the pool shape to
                           be square.
+                          Defaults to None, which means no spatial pooling
             pool_stride:  The stride of the spatial max pooling. Also must be square.
+                          Defaults to None, which means no spatial pooling.
             layer_name: A name for this layer that will be prepended to
                         monitoring channels related to this layer.
             irange: if specified, initializes each weight randomly in
@@ -1004,6 +1006,8 @@ class MaxoutLocalC01B(Layer):
                     detector: the maxout units can be normalized prior to the spatial pooling
                     output: the output of the layer, after sptial pooling, can be normalized as well
         """
+
+        assert (pool_shape is None) == (pool_stride is None)
 
         detector_channels = num_channels * num_pieces
 
@@ -1078,30 +1082,31 @@ class MaxoutLocalC01B(Layer):
                                           num_channels = self.detector_channels,
                                           axes = ('c', 0, 1, 'b'))
 
-        def handle_pool_shape(idx):
-            if self.pool_shape[idx] < 1:
-                raise ValueError("bad pool shape: " + str(self.pool_shape))
-            if self.pool_shape[idx] > output_shape[idx]:
-                if self.fix_pool_shape:
-                    assert output_shape[idx] > 0
-                    self.pool_shape[idx] = output_shape[idx]
+        if self.pool_shape is not None:
+            def handle_pool_shape(idx):
+                if self.pool_shape[idx] < 1:
+                    raise ValueError("bad pool shape: " + str(self.pool_shape))
+                if self.pool_shape[idx] > output_shape[idx]:
+                    if self.fix_pool_shape:
+                        assert output_shape[idx] > 0
+                        self.pool_shape[idx] = output_shape[idx]
+                    else:
+                        raise ValueError("Pool shape exceeds detector layer shape on axis %d" % idx)
+
+            map(handle_pool_shape, [0, 1])
+
+            assert self.pool_shape[0] == self.pool_shape[1]
+            assert self.pool_stride[0] == self.pool_stride[1]
+            assert all(isinstance(elem, py_integer_types) for elem in self.pool_stride)
+            if self.pool_stride[0] > self.pool_shape[0]:
+                if self.fix_pool_stride:
+                    warnings.warn("Fixing the pool stride")
+                    ps = self.pool_shape[0]
+                    assert isinstance(ps, py_integer_types)
+                    self.pool_stride = [ps, ps]
                 else:
-                    raise ValueError("Pool shape exceeds detector layer shape on axis %d" % idx)
-
-        map(handle_pool_shape, [0, 1])
-
-        assert self.pool_shape[0] == self.pool_shape[1]
-        assert self.pool_stride[0] == self.pool_stride[1]
-        assert all(isinstance(elem, py_integer_types) for elem in self.pool_stride)
-        if self.pool_stride[0] > self.pool_shape[0]:
-            if self.fix_pool_stride:
-                warnings.warn("Fixing the pool stride")
-                ps = self.pool_shape[0]
-                assert isinstance(ps, py_integer_types)
-                self.pool_stride = [ps, ps]
-            else:
-                raise ValueError("Stride too big.")
-        assert all(isinstance(elem, py_integer_types) for elem in self.pool_stride)
+                    raise ValueError("Stride too big.")
+            assert all(isinstance(elem, py_integer_types) for elem in self.pool_stride)
 
         if self.irange is not None:
             self.transformer = local_c01b.make_random_local(
@@ -1131,14 +1136,19 @@ class MaxoutLocalC01B(Layer):
 
         assert self.detector_space.num_channels >= 16
 
-        dummy_detector = sharedX(self.detector_space.get_origin_batch(2)[0:16,:,:,:])
+        if self.pool_shape is None:
+            self.output_space = Conv2DSpace(shape=self.detector_space.shape,
+                    num_channels = self.num_channels,
+                    axes = ('c', 0, 1, 'b'))
+        else:
+            dummy_detector = sharedX(self.detector_space.get_origin_batch(2)[0:16,:,:,:])
 
-        dummy_p = max_pool_c01b(c01b=dummy_detector, pool_shape=self.pool_shape,
-                                pool_stride=self.pool_stride,
-                                image_shape=self.detector_space.shape)
-        dummy_p = dummy_p.eval()
-        self.output_space = Conv2DSpace(shape=[dummy_p.shape[1], dummy_p.shape[2]],
-                                        num_channels = self.num_channels, axes = ('c', 0, 1, 'b') )
+            dummy_p = max_pool_c01b(c01b=dummy_detector, pool_shape=self.pool_shape,
+                                    pool_stride=self.pool_stride,
+                                    image_shape=self.detector_space.shape)
+            dummy_p = dummy_p.eval()
+            self.output_space = Conv2DSpace(shape=[dummy_p.shape[1], dummy_p.shape[2]],
+                                            num_channels = self.num_channels, axes = ('c', 0, 1, 'b') )
 
         print 'Output space: ', self.output_space.shape
 
@@ -1265,7 +1275,10 @@ class MaxoutLocalC01B(Layer):
             if self.detector_normalization:
                 z = self.detector_normalization(z)
 
-            p = max_pool_c01b(c01b=z, pool_shape=self.pool_shape,
+            if self.pool_shape is None:
+                p = z
+            else:
+                p = max_pool_c01b(c01b=z, pool_shape=self.pool_shape,
                               pool_stride=self.pool_stride,
                               image_shape=self.detector_space.shape)
         else:
@@ -1274,7 +1287,8 @@ class MaxoutLocalC01B(Layer):
                 raise NotImplementedError("We can't normalize the detector "
                         "layer because the detector layer never exists as a "
                         "stage of processing in this implementation.")
-            z = max_pool_c01b(c01b=z, pool_shape=self.pool_shape,
+            if self.pool_shape is not None:
+                z = max_pool_c01b(c01b=z, pool_shape=self.pool_shape,
                               pool_stride=self.pool_stride,
                               image_shape=self.detector_space.shape)
             if self.num_pieces != 1:
