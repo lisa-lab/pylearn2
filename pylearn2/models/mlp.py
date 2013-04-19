@@ -2210,12 +2210,12 @@ def beta_from_features(dataset, **kwargs):
 def mean_of_targets(dataset):
     return dataset.y.mean(axis=0)
 
-class RBM_Layer(Layer):
+class PretrainedLayer(Layer):
     """
-    An MLP layer whose forward prop is an upward mean field pass through an RBM
+    A layer whose weights are fixed based on prior training. 
     """
 
-    def __init__(self, layer_name, rbm, freeze_params=False):
+    def __init__(self, layer_name, layer_content, freeze_params=False):
         self.__dict__.update(locals())
         del self.self
 
@@ -2225,16 +2225,23 @@ class RBM_Layer(Layer):
     def get_params(self):
         if self.freeze_params:
             return []
-        return self.rbm.get_params()
+        return self.layer_content.get_params()
 
     def get_input_space(self):
-        return self.rbm.get_input_space()
+        return self.layer_content.get_input_space()
 
     def get_output_space(self):
-        return self.rbm.get_output_space()
+        return self.layer_content.get_output_space()
 
     def fprop(self, state_below):
+        return self.layer_content.upward_pass(state_below)
 
-        return self.rbm.mean_h_given_v(state_below)
+class RBM_Layer(PretrainedLayer):
+    """An MLP layer whose forward prop is an upward mean field pass through an RBM.
+    Deprecated in favor of direct call to PretrainedLayer.
+    """
 
-
+    def __init__(self, layer_name, autoencoder, freeze_params=False):
+        warnings.warn("RBM_Layer is deprecated. Use PretrainedLayer instead. RBM_Layer will be removed on or after October 19, 2013", stacklevel=2)
+        PretrainedLayer.__init__(layer_name=layer_name, layer_content=autoencoder, 
+                                    freeze_params=freeze_params)
