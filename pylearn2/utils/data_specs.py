@@ -39,7 +39,8 @@ class DataSpecsMapping(object):
             if (space, source) in self.specs_to_index:
                 spec_index = self.specs_to_index[(space, source)]
             else:
-                self.specs_to_index[(space, source)] = self.n_unique_specs
+                spec_index = self.n_unique_specs
+                self.specs_to_index[(space, source)] = spec_index
                 self.n_unique_specs += 1
 
             return spec_index
@@ -93,9 +94,11 @@ class DataSpecsMapping(object):
         self._fill_flat(nested, self.spec_mapping, rval)
 
         assert None not in rval, ("This mapping is invalid, as it did not "
-                "contain all numbers from 0 to %i (or None was in nested)"
-                % (self.n_unique_specs - 1, nested))
+                "contain all numbers from 0 to %i (or None was in nested), "
+                "nested: %s" % (self.n_unique_specs - 1, nested))
 
+        if len(rval) == 1:
+            return rval[0]
         if isinstance(nested, tuple):
             return tuple(rval)
         elif isinstance(nested, Space):
@@ -115,15 +118,19 @@ class DataSpecsMapping(object):
 
     def _make_nested_space(self, flat, mapping):
         """Auxiliary recursive function used by self.nest"""
-        if not isinstance(mapping, int):
+        if isinstance(mapping, int):
             # We are at a leaf of the tree
             idx = mapping
-            assert 0 <= idx < len(flat.components)
-            return flat.components[idx]
+            if isinstance(flat, CompositeSpace):
+                assert 0 <= idx < len(flat.components)
+                return flat.components[idx]
+            else:
+                assert idx == 0
+                return flat
         else:
-            return CompositeSpace((
+            return CompositeSpace([
                     self._make_nested_space(flat, sub_mapping)
-                    for sub_mapping in mapping))
+                    for sub_mapping in mapping])
 
     def nest(self, flat):
         """
@@ -131,12 +138,21 @@ class DataSpecsMapping(object):
 
         The length of "flat" should be equal to self.n_unique_specs.
         """
-        assert len(flat) == self.n_unique_specs
         if isinstance(flat, tuple):
+            assert len(flat) == self.n_unique_specs
             return self._make_nested_tuple(flat, self.spec_mapping)
         elif isinstance(flat, Space):
+            if isinstance(flat, CompositeSpace):
+                assert len(flat.components) == self.n_unique_specs
+            else:
+                assert 1 == self.n_unique_specs
             return self._make_nested_space(flat, self.spec_mapping)
         else:
+            # flat is not iterable, this is valid only if spec_mapping
+            # is the integer 0.
+            if self.spec_mapping == 0:
+                return flat
+
             raise TypeError("'flat' should be a Space, or tuple. "
                     "It is %s of type %s" % (flat, type(flat)))
 
@@ -206,7 +222,7 @@ def flatten_list(nested_list):
         return [nested_list]
     rval = []
     for _elem in nested_list:
-        elem = flatten_list(elem)
+        elem = flatten_list(_elem)
         rval += [x for x in elem if x not in rval]
     return elem
 
@@ -260,7 +276,7 @@ def flat_specs_union(A,B):
     else:
         zipped_A = (a_space, a_source)
 
-    if isinstance(b_space, CompositeSapce):
+    if isinstance(b_space, CompositeSpace):
         zipped_B = safe_zip(b_space.components, b_source)
     else:
         zipped_B = (b_space, b_source)

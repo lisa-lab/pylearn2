@@ -164,8 +164,8 @@ class SumOfCosts(Cost):
         sources = tuple(sources)
 
         self.mapping = DataSpecsMapping(composite_space, sources)
-        flat_composite_space = mapping.flatten(composite_space)
-        flat_sources = mapping.flatten(sources)
+        flat_composite_space = self.mapping.flatten(composite_space)
+        flat_sources = self.mapping.flatten(sources)
         self.data_specs = (flat_composite_space, flat_sources)
 
         # TODO: remove this when it is no longer necessary
@@ -318,7 +318,7 @@ class LxReg(Cost):
         self.variables = variables
         self.x = x
 
-    def expr(self, model=None, data):
+    def expr(self, model=None, data=None):
         """
         Return the scaled L-x regularization term. The optional parameters are
         never used, they're there only to provide an interface consistent with

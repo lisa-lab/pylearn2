@@ -18,28 +18,42 @@ def assert_equal(a, b):
 
 
 def test_flatten_specs():
-    for specs in [
-            (None, None),
-            (VectorSpace(dim=5), 'features')
+    for space, source, flat_space, flat_source in [
+            #(None, None),
+            (VectorSpace(dim=5), 'features', VectorSpace(dim=5), 'features'),
             (CompositeSpace([VectorSpace(dim=5), VectorSpace(dim=2)]),
+                ('features', 'features'),
+                CompositeSpace([VectorSpace(dim=5), VectorSpace(dim=2)]),
                 ('features', 'features')),
             (CompositeSpace([VectorSpace(dim=5), VectorSpace(dim=5)]),
+                ('features', 'targets'),
+                CompositeSpace([VectorSpace(dim=5), VectorSpace(dim=5)]),
                 ('features', 'targets')),
             (CompositeSpace([VectorSpace(dim=5), VectorSpace(dim=5)]),
-                ('features', 'features')),
+                ('features', 'features'),
+                VectorSpace(dim=5),
+                'features'),
             (CompositeSpace([VectorSpace(dim=5),
                              CompositeSpace([VectorSpace(dim=9),
                                              VectorSpace(dim=12)])]),
-                ('features', ('features', 'targets'))),
+                ('features', ('features', 'targets')),
+                CompositeSpace([VectorSpace(dim=5),
+                                VectorSpace(dim=9),
+                                VectorSpace(dim=12)]),
+                ('features', 'features', 'targets')),
             (CompositeSpace([VectorSpace(dim=5),
                              VectorSpace(dim=9),
                              VectorSpace(dim=12)]),
+                ('features', 'features', 'targets'),
+                CompositeSpace([VectorSpace(dim=5),
+                                VectorSpace(dim=9),
+                                VectorSpace(dim=12)]),
                 ('features', 'features', 'targets'))
             ]:
 
-        mapping = DataSpecsMapping(specs)
-        rval = (mapping.flatten(specs[0]), mapping.flatten(specs[1]))
-        assert_equal(specs, rval)
+        mapping = DataSpecsMapping((space, source))
+        rval = (mapping.flatten(space), mapping.flatten(source))
+        assert_equal((flat_space, flat_source), rval)
 
 
 def test_nest_specs():

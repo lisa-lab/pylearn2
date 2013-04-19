@@ -2,7 +2,7 @@ __author__ = 'Vincent Archambault-Bouffard'
 
 import theano.tensor as T
 from pylearn2.costs.cost import Cost
-from pylearn2.spaces import CompositeSpace
+from pylearn2.space import CompositeSpace
 
 
 class MissingTargetCost(Cost):

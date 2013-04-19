@@ -19,6 +19,7 @@ import theano.sparse
 
 from pylearn2.config import yaml_parse
 from pylearn2.datasets.dataset import Dataset
+from pylearn2.space import CompositeSpace
 from pylearn2.utils import function
 from pylearn2.utils.string_utils import number_aware_alphabetical_key
 from pylearn2.utils import sharedX
@@ -192,7 +193,7 @@ class Monitor(object):
             myiterator = d.iterator(mode=i,
                                     batch_size=b,
                                     num_batches=n,
-                                    data_specs=self._flat_data_specs
+                                    data_specs=self._flat_data_specs,
                                     rng=sd)
 
             actual_ne = 0

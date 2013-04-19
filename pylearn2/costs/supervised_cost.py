@@ -9,7 +9,7 @@ from pylearn2.costs.cost import Cost
 # import the only class that was defined here, so old code can still
 # import it
 from pylearn2.costs.cost import CrossEntropy
-from pylearn2.spaces import CompositeSpace
+from pylearn2.space import CompositeSpace
 import theano.tensor as T
 
 
