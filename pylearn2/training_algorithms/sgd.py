@@ -210,9 +210,9 @@ class SGD(TrainingAlgorithm):
                 param.name = 'sgd_params[%d]' % i
 
         if self.cost.supervised:
-            grads, updates = self.cost.get_gradients(model, X, Y, ** fixed_var_descr.fixed_var_desc)
+            grads, updates = self.cost.get_gradients(model, X, Y, ** fixed_var_descr.fixed_vars)
         else:
-            grads, updates = self.cost.get_gradients(model, X, ** fixed_var_descr.fixed_var_desc)
+            grads, updates = self.cost.get_gradients(model, X, ** fixed_var_descr.fixed_vars)
 
 
         for param in grads:
