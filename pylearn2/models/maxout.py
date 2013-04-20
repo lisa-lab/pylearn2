@@ -952,6 +952,7 @@ class MaxoutLocalC01B(Layer):
                  detector_normalization = None,
                  min_zero = False,
                  output_normalization = None,
+                 input_groups = 1,
                  stride = 1):
         """
             num_channels: The number of output channels the layer should have.
@@ -1111,7 +1112,7 @@ class MaxoutLocalC01B(Layer):
 
         if self.irange is not None:
             self.transformer = local_c01b.make_random_local(
-                    input_groups = 1,
+                    input_groups = self.input_groups,
                     irange = self.irange,
                     input_axes = self.desired_space.axes,
                     image_shape = self.desired_space.shape,
