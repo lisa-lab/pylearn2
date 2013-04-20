@@ -23,7 +23,8 @@ from pylearn2.utils import py_integer_types, py_float_types
 from pylearn2.utils import safe_zip
 from pylearn2.utils import serial
 from pylearn2.utils.timing import log_timing
-from pylearn2.utils.data_specs import flatten_list
+#from pylearn2.utils.data_specs import flatten_list
+from pylearn2.utils.data_specs import is_flat_specs
 from theano.gof.op import get_debug_values
 import logging
 from collections import OrderedDict
@@ -150,11 +151,14 @@ class SGD(TrainingAlgorithm):
         assert self.monitor.get_examples_seen() == 0
         self.monitor._sanity_check()
 
+        data_specs = self.cost.get_data_specs(self.model)
+        # TODO: Maybe see if we should allow nested specs at that point and,
+        # in that case, flatten them.
+        assert is_flat_specs(data_specs), (
+                "data_specs should be flat, but is nested: %s" % data_specs)
 
-
-        data = self.cost.get_data_specs()
         # Name variables based on the sources
-        theano_args = data[0].make_theano_batch(name=data[1])
+        theano_args = data_specs[0].make_theano_batch(name=data_specs[1])
 
         cost_value = self.cost.expr(model, theano_args)
 
@@ -244,7 +248,7 @@ class SGD(TrainingAlgorithm):
 
 
         with log_timing(log, 'Compiling sgd_update'):
-            self.sgd_update = function(flatten_list(theano_args),
+            self.sgd_update = function(theano_args,
                                        updates=updates,
                                        name='sgd_update',
                                        on_unused_input='ignore',
@@ -267,17 +271,21 @@ class SGD(TrainingAlgorithm):
         rng = self.rng
         if not is_stochastic(self.train_iteration_mode):
             rng = None
-        data_spec = self.cost.get_data_specs()
+
+        data_specs = self.cost.get_data_specs(self.model)
+        assert is_flat_specs(data_specs), ("data_specs should be flat, "
+                "but is nested: %s" % data_specs)
+
         iterator = dataset.iterator(mode=self.train_iteration_mode,
                 batch_size=self.batch_size,
-                data_spec=data_spec,
+                data_specs=data_specs,
                 rng = rng, num_batches = self.batches_per_iter)
 
         for batch in iterator:
-            self.sgd_update(*flatten_list(batch))
+            self.sgd_update(batch)
             # iterator might return a smaller batch if dataset size
             # isn't divisible by batch_size
-            actual_batch_size = data_spec[0].get_batch_size(batch)
+            actual_batch_size = data_specs[0].get_batch_size(batch)
             self.monitor.report_batch(actual_batch_size)
             for callback in self.update_callbacks:
                 callback(self)

@@ -42,7 +42,7 @@ from theano import config
 import functools
 from theano.gof.op import get_debug_values
 from theano.sandbox.cuda.type import CudaNdarrayType
-from pylearn2.utils import py_integer_types
+from pylearn2.utils import py_integer_types, safe_zip
 
 
 class Space(object):
@@ -194,7 +194,7 @@ class VectorSpace(Space):
             rval = theano.sparse.csr_matrix(name=name)
         else:
             rval = T.matrix(name=name, dtype=dtype)
-        if config.compute_test_value in ('raise', 'warn'):
+        if config.compute_test_value != 'off':
             rval.tag.test_value = self.get_origin_batch(n=4)
         return rval
 
@@ -232,6 +232,9 @@ class VectorSpace(Space):
 
     def __eq__(self, other):
         return type(self) == type(other) and self.dim == other.dim
+
+    def __hash__(self):
+        return hash((type(self), self.dim))
 
     def validate(self, batch):
         if not isinstance(batch, theano.gof.Variable):
@@ -298,6 +301,9 @@ class Conv2DSpace(Space):
                 self.num_channels == other.num_channels \
                 and self.axes == other.axes
 
+    def __hash__(self):
+        return hash((type(self), self.shape, self.num_channels, self.axes))
+
     @functools.wraps(Space.get_origin)
     def get_origin(self):
         dims = { 0: self.shape[0], 1: self.shape[1], 'c' : self.num_channels }
@@ -326,7 +332,7 @@ class Conv2DSpace(Space):
         rval = TensorType(dtype=dtype,
                           broadcastable=broadcastable
                          )(name=name)
-        if config.compute_test_value in ('raise', 'warn'):
+        if config.compute_test_value != 'off':
             rval.tag.test_value = self.get_origin_batch(n=4)
         return rval
 
@@ -449,6 +455,9 @@ class CompositeSpace(Space):
             all([my_component == other_component for
                 my_component, other_component in \
                 zip(self.components, other.components)])
+
+    def __hash__(self):
+        return hash((type(self), tuple(self.components)))
 
     def restrict(self, subset):
         """Returns a new Space containing only the components whose indices

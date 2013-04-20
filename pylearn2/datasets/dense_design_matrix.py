@@ -34,14 +34,14 @@ def ensure_tables():
     if tables is None:
         import tables
 
-class ImageDatasets(Dataset):
-    """ A class for representing datastes that contain images of fixed
+class ClassificationDataset(Dataset):
+    """ A class for representing supervised datasets that contain inputs of a fixed
     sized and can be stored as a dense design matrix, such as MNIST or
     CIFAR10. The class is meant for classification into one of N classes.
 
     Class assumes that the dataset can be kept in memory
     """
-    _defaul_seed = (17,2 946)
+    _default_seed = (17, 2, 946)
 
     def __init__(self, X, y=None, view_converter=None,
                  axes = ('v', 0,1, 'c'),
@@ -130,7 +130,7 @@ class DenseDesignMatrix(Dataset):
         return FiniteDatasetIterator(self,
                                      mode(self.data_specs[0].get_batch_size(X),
                                           batch_size, num_batches, rng),
-                                     self.data_specs)
+                                     data_specs)
 
     def use_design_loc(self, path):
         """
@@ -161,11 +161,11 @@ class DenseDesignMatrix(Dataset):
         # does. Perhaps as a mixin that specific datasets (i.e. CIFAR10)
         # inherit from.
         if self.compress:
-            rval['compress_min'] = np.min([x.min() for x in rvals['data']])
+            rval['compress_min'] = np.min([x.min() for x in rval['data']])
             # important not to do -= on this line, as that will modify the
             # original object
             rval['data'] = [x - rval['compress_min'] for x in rval['data']]
-            rval['compress_max'] = np.max([x.max() for x in rvals['data']])
+            rval['compress_max'] = np.max([x.max() for x in rval['data']])
             if rval['compress_max'] == 0:
                 rval['compress_max'] = 1
             rval['data'] = [ 255.*x/rval['compress_max'] for x in
@@ -331,22 +331,24 @@ class DenseDesignMatrix(Dataset):
     def apply_preprocessor(self, preprocessor, can_fit=False):
         preprocessor.apply(self, can_fit)
 
-    def set_design_matrices(self, data):
-        # is list?
-        # follows the data specs?
-        self.data = data
-        assert len(X.shape) == 2
-        assert not N.any(N.isnan(X))
-        self.X = X
+    def set_data(self, data, data_specs):
+        # data is organized as data_specs
+        # TODO: change self.data_specs and use data as is,
+        # or keep self.data_specs, and convert data?
+        # The latter allows to use set_data for X or Y only.
+        data_specs[0].validate(data)
+        assert not [N.any(N.isnan(X)) for X in data]
+        raise NotImplementedError()
 
-    def get_source(self, name=?):
-        return self.y
+    def get_source(self, name):
+        raise NotImplementedError()
 
     @property
     def num_examples(self):
         return self.data_specs[0].get_batch_size(self.data)
 
-    def get_batch_design(self, batch_size, data_specs=None):
+    def get_batch(self, batch_size, data_specs=None):
+        raise NotImplementedError()
         try:
             idx = self.rng.randint(self.X.shape[0] - batch_size + 1)
         except ValueError:

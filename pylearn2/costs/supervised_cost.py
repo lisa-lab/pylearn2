@@ -9,6 +9,7 @@ from pylearn2.costs.cost import Cost
 # import the only class that was defined here, so old code can still
 # import it
 from pylearn2.costs.cost import CrossEntropy
+from pylearn2.space import CompositeSpace
 import theano.tensor as T
 
 
@@ -16,16 +17,16 @@ class CrossEntropy(Cost):
     supervised = True
 
     def expr(self, model, data):
-        assert type(data) in (list, tuple)
-        assert len(data) == 2
+        space, source = self.get_data_specs(model)
+        space.validate(data)
         (X, Y) = data
         return (-Y * T.log(model(X)) - \
                 (1 - Y) * T.log(1 - model(X))).sum(axis=1).mean()
 
     def get_data_specs(self, model):
-        data = CompositeSpace([model.get_input_space(), model.get_output_space()])
+        space = CompositeSpace([model.get_input_space(), model.get_output_space()])
         sources = (model.get_input_source(), model.get_target_source())
-        return [data, sources]
+        return (space, sources)
 
 class NegativeLogLikelihood(Cost):
     """
@@ -55,12 +56,12 @@ class NegativeLogLikelihood(Cost):
         data : tuple of tensor_like
             (input to the model, one-hot encoded target)
         """
-        assert type(data) in (list, tuple)
-        assert len(data) == 2
+        space, sources = self.get_data_specs(model)
+        space.validate(data)
         (X, Y) = data
         return (-Y * T.log(model(X))).sum(axis=1).mean()
 
     def get_data_specs(self, model):
-        data = CompositeSpace([model.get_input_space(), model.get_output_space()])
+        space = CompositeSpace([model.get_input_space(), model.get_output_space()])
         sources = (model.get_input_source(), model.get_target_source())
-        return [data, sources]
+        return (space, sources)
