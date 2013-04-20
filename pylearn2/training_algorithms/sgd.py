@@ -161,13 +161,15 @@ class SGD(TrainingAlgorithm):
 
         Y = T.matrix(name="%s[Y]" % self.__class__.__name__)
 
+        fixed_var_descr = self.cost.get_fixed_var_descr(model, X, Y)
+        self.on_load_batch = fixed_var_descr
 
         if self.cost.supervised:
             if config.compute_test_value == 'raise':
                 _, Y.tag.test_value = dataset.get_batch_design(self.batch_size, True)
 
             self.supervised = True
-            cost_value = self.cost(model, X, Y)
+            cost_value = self.cost(model, X, Y, ** fixed_var_descr.fixed_vars)
 
         else:
             self.supervised = False
@@ -178,7 +180,6 @@ class SGD(TrainingAlgorithm):
             else:
                 cost_value.name = 'objective(' + X.name + ')'
 
-        self.on_load_batch = self.cost.get_fixed_var_descr(model, X, Y)
 
         # Set up monitor to model the objective value, learning rate,
         # momentum (if applicable), and extra channels defined by
@@ -209,9 +210,9 @@ class SGD(TrainingAlgorithm):
                 param.name = 'sgd_params[%d]' % i
 
         if self.cost.supervised:
-            grads, updates = self.cost.get_gradients(model, X, Y)
+            grads, updates = self.cost.get_gradients(model, X, Y, ** fixed_var_descr.fixed_var_desc)
         else:
-            grads, updates = self.cost.get_gradients(model, X)
+            grads, updates = self.cost.get_gradients(model, X, ** fixed_var_descr.fixed_var_desc)
 
 
         for param in grads:
