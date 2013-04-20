@@ -161,22 +161,25 @@ class SGD(TrainingAlgorithm):
 
         Y = T.matrix(name="%s[Y]" % self.__class__.__name__)
 
+        fixed_var_descr = self.cost.get_fixed_var_descr(model, X, Y)
+        self.on_load_batch = fixed_var_descr.on_load_batch
 
         if self.cost.supervised:
             if config.compute_test_value == 'raise':
                 _, Y.tag.test_value = dataset.get_batch_design(self.batch_size, True)
 
             self.supervised = True
-            cost_value = self.cost(model, X, Y)
+            cost_value = self.cost(model, X, Y, ** fixed_var_descr.fixed_vars)
 
         else:
             self.supervised = False
-            cost_value = self.cost(model, X)
+            cost_value = self.cost(model, X, ** fixed_var_descr.fixed_vars)
         if cost_value is not None and cost_value.name is None:
             if self.supervised:
                 cost_value.name = 'objective(' + X.name + ', ' + Y.name + ')'
             else:
                 cost_value.name = 'objective(' + X.name + ')'
+
 
         # Set up monitor to model the objective value, learning rate,
         # momentum (if applicable), and extra channels defined by
@@ -207,9 +210,9 @@ class SGD(TrainingAlgorithm):
                 param.name = 'sgd_params[%d]' % i
 
         if self.cost.supervised:
-            grads, updates = self.cost.get_gradients(model, X, Y)
+            grads, updates = self.cost.get_gradients(model, X, Y, ** fixed_var_descr.fixed_vars)
         else:
-            grads, updates = self.cost.get_gradients(model, X)
+            grads, updates = self.cost.get_gradients(model, X, ** fixed_var_descr.fixed_vars)
 
 
         for param in grads:
@@ -299,12 +302,17 @@ class SGD(TrainingAlgorithm):
         iterator = dataset.iterator(mode=self.train_iteration_mode,
                 batch_size=self.batch_size, targets=self.supervised,
                 topo=self.topo, rng = rng, num_batches = self.batches_per_iter)
+
         if self.topo:
             batch_idx = dataset.get_topo_batch_axis()
         else:
             batch_idx = 0
+
+        on_load_batch = self.on_load_batch
         if self.supervised:
             for (batch_in, batch_target) in iterator:
+                for callback in on_load_batch:
+                    callback(batch_in, batch_target)
                 self.sgd_update(batch_in, batch_target)
                 actual_batch_size = batch_in.shape[batch_idx]
                 self.monitor.report_batch(actual_batch_size)
@@ -312,6 +320,8 @@ class SGD(TrainingAlgorithm):
                     callback(self)
         else:
             for batch in iterator:
+                for callback in on_load_batch:
+                    callback(batch, None)
                 self.sgd_update(batch)
                 actual_batch_size = batch.shape[0] # iterator might return a smaller batch if dataset size
                                                    # isn't divisible by batch_size
