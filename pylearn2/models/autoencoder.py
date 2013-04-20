@@ -233,6 +233,13 @@ class Autoencoder(Block, Model):
         """
         return self.hidbias + tensor.dot(x, self.weights)
 
+    def upward_pass(self, inputs):
+        """
+        Wrapper to Autoencoder encode function. Called when autoencoder
+        is accessed by mlp.PretrainedLayer
+        """
+        return self.encode(inputs)
+
     def encode(self, inputs):
         """
         Map inputs through the encoder function.
