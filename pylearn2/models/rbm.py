@@ -601,6 +601,13 @@ class RBM(Block, Model):
         else:
             return [self.input_to_v_from_h(hid) for hid in h]
 
+    def upward_pass(self, v):
+        """
+        wrapper around mean_h_given_v method.  Called when RBM is accessed
+        by mlp.HiddenLayer.
+        """
+        return self.mean_h_given_v(v)
+
     def mean_h_given_v(self, v):
         """
         Compute the mean activation of the hidden units given visible unit

@@ -1,23 +1,23 @@
-.. _refactor:
+.. _api_change:
 
 ============
-Pylearn2 Refactoring Best Practices Guide
+Pylearn2 API Change Best Practices Guide
 ============
 
-Refactoring refers to changing the name of any class, function, method, parameter name,
-or default argument value. Refactoring changes the way that a piece of code interacts
-with the outside world, so it should be done as little as possible, and with great care.
+API changes are any changes that affect the way a piece of code interacts with the outside world. This means changing the name of any class, function, method, parameter name. It can also mean changing a default argument value, or changing the behavior that results from setting an argument to a certain value.
+Because API changes require the outside world to adapt to changes in pylearn2,
+they should be done as rarely as possible, and with great care.
 As of this writing, 145 people are watching pylearn2 on github. Pylearn2 is used to store
 reproducible scientific results, and has been used to host five different contests on
 kaggle.com. Breaking interfaces in pylearn2 will upset people all over the internet.
 Unfortunately, given pylearn2's mission of being a cutting-edge research library, new
 research directions will often require changes to pylearn2's interface. This guide explains
-how to refactor while doing the least damage possible.
+how to change APIs while doing the least damage possible.
 
 * E-mail pylearn-dev@googlegroups.com about proposed changes before you start working on them.
   This will give the other users of pylearn2 the opportunity to see possible problems your
   changes might cause, and help you figure out the safest possible way to accomplish what you
-  want to with the refactor.
+  want to with the API change.
 
 * Whenever possible, make the old version of the interface still work for 6 months before it
   is phased out.
@@ -62,7 +62,7 @@ how to refactor while doing the least damage possible.
 
        def my_func(my_arg = 1):
 
-       and you want to refactor it to
+       and you want to change it to
 
        def my_func(arg = 2):
 

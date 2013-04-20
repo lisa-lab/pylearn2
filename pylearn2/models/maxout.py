@@ -920,13 +920,14 @@ class MaxoutLocalC01B(Layer):
     "Maxout Networks" Ian J. Goodfellow, David Warde-Farley,
     Mehdi Mirza, Aaron Courville, and Yoshua Bengio. ICML 2013
 
-
     This uses the C01B ("channels", topological axis 0,
     topological axis 1, "batch") format of tensors for input
     and output.
 
-    The back-end is Alex Krizhevsky's cuda-convnet library,
-    so it is extremely fast, but requires a GPU.
+    Unlike MaxoutConvC01B, this class supports operation on CPU,
+    thanks to James Bergstra's TheanoLinear library, which
+    pylearn2 has forked. The GPU code is still based on Alex
+    Krizvhevsky's cuda_convnet library.
     """
 
     def __init__(self,
