@@ -162,7 +162,7 @@ class SGD(TrainingAlgorithm):
         Y = T.matrix(name="%s[Y]" % self.__class__.__name__)
 
         fixed_var_descr = self.cost.get_fixed_var_descr(model, X, Y)
-        self.on_load_batch = fixed_var_descr
+        self.on_load_batch = fixed_var_descr.on_load_batch
 
         if self.cost.supervised:
             if config.compute_test_value == 'raise':
