@@ -934,9 +934,9 @@ class MaxoutLocalC01B(Layer):
                  num_channels,
                  num_pieces,
                  kernel_shape,
-                 pool_shape,
-                 pool_stride,
                  layer_name,
+                 pool_shape=None,
+                 pool_stride=None,
                  irange = None,
                  init_bias = 0.,
                  W_lr_scale = None,
@@ -947,7 +947,7 @@ class MaxoutLocalC01B(Layer):
                  fix_kernel_shape = False,
                  partial_sum = 1,
                  tied_b = False,
-                 max_kernel_norm = None,
+                 max_filter_norm = None,
                  input_normalization = None,
                  detector_normalization = None,
                  min_zero = False,
@@ -962,7 +962,9 @@ class MaxoutLocalC01B(Layer):
             pool_shape:   The shape of the spatial max pooling. A two-tuple of ints.
                           This is redundant as cuda-convnet requires the pool shape to
                           be square.
+                          Defaults to None, which means no spatial pooling
             pool_stride:  The stride of the spatial max pooling. Also must be square.
+                          Defaults to None, which means no spatial pooling.
             layer_name: A name for this layer that will be prepended to
                         monitoring channels related to this layer.
             irange: if specified, initializes each weight randomly in
@@ -1005,7 +1007,8 @@ class MaxoutLocalC01B(Layer):
                     detector: the maxout units can be normalized prior to the spatial pooling
                     output: the output of the layer, after sptial pooling, can be normalized as well
         """
-        check_cuda()
+
+        assert (pool_shape is None) == (pool_stride is None)
 
         detector_channels = num_channels * num_pieces
 
@@ -1080,33 +1083,31 @@ class MaxoutLocalC01B(Layer):
                                           num_channels = self.detector_channels,
                                           axes = ('c', 0, 1, 'b'))
 
-        def handle_pool_shape(idx):
-            if self.pool_shape[idx] < 1:
-                raise ValueError("bad pool shape: " + str(self.pool_shape))
-            if self.pool_shape[idx] > output_shape[idx]:
-                if self.fix_pool_shape:
-                    assert output_shape[idx] > 0
-                    self.pool_shape[idx] = output_shape[idx]
+        if self.pool_shape is not None:
+            def handle_pool_shape(idx):
+                if self.pool_shape[idx] < 1:
+                    raise ValueError("bad pool shape: " + str(self.pool_shape))
+                if self.pool_shape[idx] > output_shape[idx]:
+                    if self.fix_pool_shape:
+                        assert output_shape[idx] > 0
+                        self.pool_shape[idx] = output_shape[idx]
+                    else:
+                        raise ValueError("Pool shape exceeds detector layer shape on axis %d" % idx)
+
+            map(handle_pool_shape, [0, 1])
+
+            assert self.pool_shape[0] == self.pool_shape[1]
+            assert self.pool_stride[0] == self.pool_stride[1]
+            assert all(isinstance(elem, py_integer_types) for elem in self.pool_stride)
+            if self.pool_stride[0] > self.pool_shape[0]:
+                if self.fix_pool_stride:
+                    warnings.warn("Fixing the pool stride")
+                    ps = self.pool_shape[0]
+                    assert isinstance(ps, py_integer_types)
+                    self.pool_stride = [ps, ps]
                 else:
-                    raise ValueError("Pool shape exceeds detector layer shape on axis %d" % idx)
-
-        map(handle_pool_shape, [0, 1])
-
-        assert self.pool_shape[0] == self.pool_shape[1]
-        assert self.pool_stride[0] == self.pool_stride[1]
-        assert all(isinstance(elem, py_integer_types) for elem in self.pool_stride)
-        if self.pool_stride[0] > self.pool_shape[0]:
-            if self.fix_pool_stride:
-                warnings.warn("Fixing the pool stride")
-                ps = self.pool_shape[0]
-                assert isinstance(ps, py_integer_types)
-                self.pool_stride = [ps, ps]
-            else:
-                raise ValueError("Stride too big.")
-        assert all(isinstance(elem, py_integer_types) for elem in self.pool_stride)
-
-
-        check_cuda()
+                    raise ValueError("Stride too big.")
+            assert all(isinstance(elem, py_integer_types) for elem in self.pool_stride)
 
         if self.irange is not None:
             self.transformer = local_c01b.make_random_local(
@@ -1125,7 +1126,6 @@ class MaxoutLocalC01B(Layer):
         W, = self.transformer.get_params()
         W.name = 'W'
 
-
         if self.tied_b:
             self.b = sharedX(np.zeros((self.detector_space.num_channels)) + self.init_bias)
         else:
@@ -1137,27 +1137,33 @@ class MaxoutLocalC01B(Layer):
 
         assert self.detector_space.num_channels >= 16
 
-        dummy_detector = sharedX(self.detector_space.get_origin_batch(2)[0:16,:,:,:])
+        if self.pool_shape is None:
+            self.output_space = Conv2DSpace(shape=self.detector_space.shape,
+                    num_channels = self.num_channels,
+                    axes = ('c', 0, 1, 'b'))
+        else:
+            dummy_detector = sharedX(self.detector_space.get_origin_batch(2)[0:16,:,:,:])
 
-        dummy_p = max_pool_c01b(c01b=dummy_detector, pool_shape=self.pool_shape,
-                                pool_stride=self.pool_stride,
-                                image_shape=self.detector_space.shape)
-        dummy_p = dummy_p.eval()
-        self.output_space = Conv2DSpace(shape=[dummy_p.shape[1], dummy_p.shape[2]],
-                                        num_channels = self.num_channels, axes = ('c', 0, 1, 'b') )
+            dummy_p = max_pool_c01b(c01b=dummy_detector, pool_shape=self.pool_shape,
+                                    pool_stride=self.pool_stride,
+                                    image_shape=self.detector_space.shape)
+            dummy_p = dummy_p.eval()
+            self.output_space = Conv2DSpace(shape=[dummy_p.shape[1], dummy_p.shape[2]],
+                                            num_channels = self.num_channels, axes = ('c', 0, 1, 'b') )
 
         print 'Output space: ', self.output_space.shape
 
     def censor_updates(self, updates):
 
-        if self.max_kernel_norm is not None:
-            raise NotImplementedError()
+        if self.max_filter_norm is not None:
             W ,= self.transformer.get_params()
             if W in updates:
+                # TODO:    push some of this into the transformer itself
                 updated_W = updates[W]
-                row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=(0,1,2)))
-                desired_norms = T.clip(row_norms, 0, self.max_kernel_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle('x', 'x', 'x', 0)
+                updated_norms = self.get_filter_norms(updated_W)
+                desired_norms = T.clip(updated_norms, 0, self.max_filter_norm)
+                updates[W] = updated_W * (desired_norms / (1e-7 + updated_norms)
+                        ).dimshuffle(0, 1, 'x', 'x', 'x', 2, 3)
 
     def get_params(self):
         assert self.b.name is not None
@@ -1190,26 +1196,32 @@ class MaxoutLocalC01B(Layer):
     def get_weights_topo(self):
         return self.transformer.get_weights_topo()
 
-    """
-    def get_monitoring_channels(self):
+    def get_filter_norms(self, W = None):
 
-        W ,= self.transformer.get_params()
+        # TODO: push this into the transformer class itself
 
-        assert W.ndim == 4
+        if W is None:
+            W ,= self.transformer.get_params()
+
+        assert W.ndim == 7
 
         sq_W = T.sqr(W)
 
-        row_norms = T.sqrt(sq_W.sum(axis=(0,1,2)))
+        norms = T.sqrt(sq_W.sum(axis=(2, 3, 4)))
+
+        return norms
+
+    def get_monitoring_channels(self):
+
+        filter_norms = self.get_filter_norms()
 
         return OrderedDict([
-                            ('kernel_norms_min'  , row_norms.min()),
-                            ('kernel_norms_mean' , row_norms.mean()),
-                            ('kernel_norms_max'  , row_norms.max()),
+                            ('filter_norms_min'  , filter_norms.min()),
+                            ('filter_norms_mean' , filter_norms.mean()),
+                            ('filter_norms_max'  , filter_norms.max()),
                             ])
-    """
 
     def fprop(self, state_below):
-        check_cuda()
 
         self.input_space.validate(state_below)
 
@@ -1264,7 +1276,10 @@ class MaxoutLocalC01B(Layer):
             if self.detector_normalization:
                 z = self.detector_normalization(z)
 
-            p = max_pool_c01b(c01b=z, pool_shape=self.pool_shape,
+            if self.pool_shape is None:
+                p = z
+            else:
+                p = max_pool_c01b(c01b=z, pool_shape=self.pool_shape,
                               pool_stride=self.pool_stride,
                               image_shape=self.detector_space.shape)
         else:
@@ -1273,7 +1288,8 @@ class MaxoutLocalC01B(Layer):
                 raise NotImplementedError("We can't normalize the detector "
                         "layer because the detector layer never exists as a "
                         "stage of processing in this implementation.")
-            z = max_pool_c01b(c01b=z, pool_shape=self.pool_shape,
+            if self.pool_shape is not None:
+                z = max_pool_c01b(c01b=z, pool_shape=self.pool_shape,
                               pool_stride=self.pool_stride,
                               image_shape=self.detector_space.shape)
             if self.num_pieces != 1:

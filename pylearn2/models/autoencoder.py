@@ -1,4 +1,6 @@
-"""Autoencoders, denoising autoencoders, and stacked DAEs."""
+"""
+Autoencoders, denoising autoencoders, and stacked DAEs.
+"""
 # Standard library imports
 import functools
 from itertools import izip
@@ -230,6 +232,13 @@ class Autoencoder(Block, Model):
             (Symbolic) input flowing into the hidden layer nonlinearity.
         """
         return self.hidbias + tensor.dot(x, self.weights)
+
+    def upward_pass(self, inputs):
+        """
+        Wrapper to Autoencoder encode function. Called when autoencoder
+        is accessed by mlp.PretrainedLayer
+        """
+        return self.encode(inputs)
 
     def encode(self, inputs):
         """
