@@ -17,7 +17,7 @@ except ImportError:
 
 class LocalDot(LinearTransform):
     """
-    LocalDot is an linear operation computationlly similar to
+    LocalDot is an linear operation computationally similar to
     convolution in the spatial domain, except that whereas convolution
     applying a single filter or set of filters across an image, the
     LocalDot has different filterbanks for different points in the image.
@@ -34,13 +34,13 @@ class LocalDot(LinearTransform):
         images
 
     Filterbank shape is 7-tuple (!)
-        row_positions
-        col_positions
-        colors_per_group
-        height
-        width
-        color_groups
-        filters_per_group
+        0 row_positions
+        1 col_positions
+        2 colors_per_group
+        3 height
+        4 width
+        5 color_groups
+        6 filters_per_group
 
     The result of left-multiplication a 5-tuple with shape:
         filter_groups
