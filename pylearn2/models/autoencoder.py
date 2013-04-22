@@ -579,8 +579,10 @@ class DeepComposedAutoencoder(Autoencoder):
         autoencoders : list
             A list of autoencoder objects.
         """
-        # TODO: Check that the dimensions line up.
+        assert all([autoencoders[i].get_output_space().dim == autoencoders[i+1].get_input_space().dim for i in range(len(autoencoders)-1)])
         self.autoencoders = list(autoencoders)
+        self.input_space = autoencoders[0].get_input_space()
+        self.output_space = autoencoders[-1].get_output_space()
 
     @functools.wraps(Autoencoder.encode)
     def encode(self, inputs):
