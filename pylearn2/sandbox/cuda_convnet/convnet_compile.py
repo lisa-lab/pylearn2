@@ -140,9 +140,9 @@ def convnet_compile():
                     compiler.compile_str('cuda_convnet',
                             code,
                             location=cuda_convnet_loc,
-                            include_dirs=[this_dir, 'd:\\kit\\pthreads-win32-VC-x64'],
-                            lib_dirs=nvcc_compiler.rpath_defaults + ['d:\\kit\\pthreads-win32-VC-x64'],  # ???
-                            libs=['cublas', 'pthreadVC2'],
+                            include_dirs=[this_dir, 'd:\\kit\\pthreads-win32-VC-x64'] if os.name == 'nt' else [this_dir],
+                            lib_dirs=nvcc_compiler.rpath_defaults + ['d:\\kit\\pthreads-win32-VC-x64'] if os.name == 'nt' else [],  # ???
+                            libs=['cublas', 'pthreadVC2'] if os.name == 'nt' else ['cublas'],
                             preargs=['-O3'] + args,
                             py_module=False)
                 except Exception, e:

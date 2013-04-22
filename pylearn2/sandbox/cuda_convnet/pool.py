@@ -12,6 +12,8 @@ from pylearn2.sandbox.cuda_convnet.convnet_compile import convnet_available
 from pylearn2.sandbox.cuda_convnet.convnet_compile import cuda_convnet_loc
 from pylearn2.sandbox.cuda_convnet.shared_code import this_dir
 
+from os import name as osname
+
 
 def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape = None,  start=0):
     assert pool_shape[0] == pool_shape[1]
@@ -88,7 +90,7 @@ class MaxPool(GpuOp):
                 hash(self.stride) ^ hash(self.start))
 
     def c_header_dirs(self):
-        return [this_dir, 'd:\\kit\\pthreads-win32-VC-x64']
+        return [this_dir, 'd:\\kit\\pthreads-win32-VC-x64'] if osname == 'nt' else [this_dir]
 
     def c_headers(self):
         return ['nvmatrix.cuh', 'conv_util.cuh']
@@ -272,7 +274,7 @@ class MaxPoolGrad(GpuOp):
                 hash(self.stride) ^ hash(self.start))
 
     def c_header_dirs(self):
-        return [this_dir, 'd:\\kit\\pthreads-win32-VC-x64']
+        return [this_dir, 'd:\\kit\\pthreads-win32-VC-x64'] if osname == 'nt' else [this_dir]
 
     def c_headers(self):
         return ['nvmatrix.cuh', 'conv_util.cuh']
