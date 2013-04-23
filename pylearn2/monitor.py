@@ -307,6 +307,12 @@ class Monitor(object):
         # the model acts on
         theano_args = self._flat_data_specs[0].make_theano_batch(
                 self._flat_data_specs[1])
+        # Also get a nested representation, for joint iteration
+        # with each of channel.graph_inputs
+        nested_theano_args = self._data_specs_mapping.nest(theano_args)
+        if not isinstance(nested_theano_args, tuple):
+            nested_theano_args = (nested_theano_args,)
+        assert len(nested_theano_args) == len(self.channels) + 1
 
         log.info('Monitored channels: ')
         for key in sorted(self.channels.keys()):
@@ -321,18 +327,24 @@ class Monitor(object):
         self.num_examples = [np.cast[config.floatX](float(i.num_examples)) for i in it]
         givens = [OrderedDict() for d in self._datasets]
         updates = [OrderedDict() for d in self._datasets]
-        for channel in self.channels.values():
+        for i, channel in enumerate(self.channels.values()):
             index = self._datasets.index(channel.dataset)
             d = self._datasets[index]
             g = givens[index]
             cur_num_examples = self.num_examples[index]
             u = updates[index]
 
-            if isinstance(channel.graph_input, (list, tuple)):
-                channel.graph_input = [channel.graph_input]
-            for (channel_X, X) in safe_zip(
-                    self._data_specs_mapping.flatten(channel.graph_inputs),
-                    theano_args):
+            if not isinstance(channel.graph_inputs, (list, tuple)):
+                channel_inputs = (channel.graph_inputs,)
+            else:
+                channel_inputs = channel.graph_inputs
+            if isinstance(nested_theano_args[i + 1], theano.Variable):
+                inputs = (nested_theano_args[i + 1],)
+            else:
+                assert isinstance(nested_theano_args[i + 1], (list, tuple))
+                inputs = nested_theano_args[i + 1]
+
+            for (channel_X, X) in safe_izip(channel_inputs, inputs):
                 assert channel_X not in g or g[channel_X] is X
                 g[channel_X] = X
             if n == 0:
@@ -368,6 +380,8 @@ class Monitor(object):
                 # Some channels may not depend on the data, ie, they might just monitor the model
                 # parameters, or some shared variable updated by the training algorithm, so we
                 # need to ignore the unused input error
+                if not isinstance(theano_args, tuple):
+                    theano_args = (theano_args,)
                 self.accum.append(function(theano_args,
                                            givens=g,
                                            updates=u,
