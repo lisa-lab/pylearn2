@@ -43,6 +43,7 @@ class SGD(TrainingAlgorithm):
     """
     def __init__(self, learning_rate, cost=None, batch_size=None,
                  monitoring_batches=None, monitoring_dataset=None,
+                 monitor_iteration_mode='sequential',
                  termination_criterion=None, update_callbacks=None,
                  init_momentum = None, set_batch_size = False,
                  train_iteration_mode = None, batches_per_iter=None,
@@ -99,6 +100,7 @@ class SGD(TrainingAlgorithm):
         self.batches_per_iter = batches_per_iter
         self._set_monitoring_dataset(monitoring_dataset)
         self.monitoring_batches = monitoring_batches
+        self.monitor_iteration_mode = monitor_iteration_mode
         if monitoring_dataset is None:
             if monitoring_batches is not None:
                 raise ValueError("Specified an amount of monitoring batches but not a monitoring dataset.")
