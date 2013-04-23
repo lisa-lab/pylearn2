@@ -34,7 +34,9 @@ def preprocess(string):
         varname = subsplit[0]
 
         if varname == 'PYLEARN2_TRAIN_FILE_NAME':
-            warnings.warn("PYLEARN2_TRAIN_FILE_NAME is deprecated, use PYLEARN2_TRAIN_FILE_FULL_STEM")
+            warnings.warn("PYLEARN2_TRAIN_FILE_NAME is deprecated and may be "
+                    "removed from the library on or after Oct 22, 2013. Switch"
+                    " to PYLEARN2_TRAIN_FILE_FULL_STEM")
 
         try:
             val = os.environ[varname]
