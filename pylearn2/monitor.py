@@ -117,9 +117,11 @@ class Monitor(object):
             seed = [ None ] * len(dataset)
         if not isinstance(seed, list):
             seed = [ seed ]
-        if any([len(l) != len(dataset) for l in [mode, batch_size, seed]]):
+        if len(mode) != len(dataset):
+            raise ValueError("Received "+str(len(dataset))+" dataset but " + str(len(mode)) + " modes.")
+        if any([len(l) != len(dataset) for l in [batch_size, seed]]):
             raise ValueError("make sure each dataset has its iteration " + \
-                        "mode, batch size and number of batches.")
+                        "batch size and number of batches.")
         for (d, m, b, n, sd) in safe_izip(dataset, mode, batch_size, num_batches, seed):
             try:
                 it = d.iterator(mode=m, batch_size=b,
@@ -137,6 +139,8 @@ class Monitor(object):
                 # each time
                 # Also, must not be None, because this makes the iterator pick
                 # a seed based on the clock
+                if sd is None:
+                    raise TypeError("Monitor requires a seed when using stochastic iteration modes.")
                 if not isinstance(sd, (list, tuple, int)):
                     raise TypeError("Monitor requires a seed (not a random number generator) when using stochastic iteration modes.")
             else:
