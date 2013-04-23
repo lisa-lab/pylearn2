@@ -24,7 +24,6 @@ tables = None
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.datasets import control
 from pylearn2.space import VectorSpace, CompositeSpace
-from pylearn2.utils.data_specs import is_flat_specs
 from theano import config
 
 
@@ -37,7 +36,6 @@ def ensure_tables():
     if tables is None:
         import tables
 
-
 class DenseDesignMatrix(Dataset):
     """
     A class for representing datasets that can be stored as a dense design
@@ -46,38 +44,12 @@ class DenseDesignMatrix(Dataset):
     _default_seed = (17, 2, 946)
 
     def __init__(self, X=None, topo_view=None, y=None,
-                 view_converter=None, axes=None,
-                 rng=_default_seed, preprocessor=None, fit_preprocessor=False,
-                 data=None, data_specs=None):
+                 view_converter=None, axes = ('b', 0, 1, 'c'),
+                 rng=_default_seed, preprocessor = None, fit_preprocessor=False):
         """
         Parameters
         ----------
-        data: ndarray, or tuple of ndarrays, containing the data.
-            It is formatted as specified in `data_specs`.
-            For instance, if `data_specs` is (VectorSpace(2), 'features'),
-            then `data` has to be a 2-d ndarray, of shape (nb examples,
-            nb features), that defines an unlabeled dataset. If `data_specs`
-            is (CompositeSpace(Conv2DSpace(...), VectorSpace(1)),
-            ('features', 'target')), then `data` has to be an (X, y) pair,
-            with X being an ndarray containing images stored in the topological
-            view specified by the `Conv2DSpace`, and y being a 1-D ndarray
-            containing the labels or targets for each example.
 
-        data_specs: A (space, source) pair, where space is an instance of
-            `Space` (possibly a `CompositeSpace`), and `source` is a
-            string (or tuple of strings, if `space` is a `CompositeSpace`),
-            defining the format and labels associated to `data`.
-
-        rng : object, optional
-            A random number generator used for picking random
-            indices into the design matrix when choosing minibatches.
-
-        preprocessor: WRITEME
-
-        fit_preprocessor: WRITEME
-
-        Deprecated Parameters
-        ---------------------
         X : ndarray, 2-dimensional, optional
             Should be supplied if `topo_view` is not. A design
             matrix of shape (number examples, number features)
@@ -97,57 +69,34 @@ class DenseDesignMatrix(Dataset):
             the only type available but later we may want to add
             one that uses the retina encoding that the U of T group
             uses.
-        axes : A tuple indicating the semantics of the axes of topo_view.
+        rng : object, optional
+            A random number generator used for picking random
+            indices into the design matrix when choosing minibatches.
         """
-        # Check if a deprecated option was specified
-        if any([arg is not None for arg in
-                (X, topo_view, y, view_converter, axes)]):
-            # Verify that the new corresponding options are not set
-            if data is not None or data_specs is not None:
-                raise ValueError("You are specifying data using both the "
-                        "new interface, with 'data' and 'data_specs', and "
-                        "the deprecated interface (X, topo_view, y, "
-                        "view_converter, axes).")
-
-            # Warn that the interface is changing
-            warnings.warn("INTERFACE CHANGE BLAH BLAH", stacklevel=2)
-
-            if axes is None:
-                axes = ('b', 0, 1, 'c')
-
-            # It is OK for X to be None at the moment, it will be
-            # filled in by self.set_topological_view(topo_view)
-            if X is None:
-                assert topo_view is not None
-
+        self.X = X
+        if view_converter is not None:
+            raise NotImplementedError("We are getting rid of view_converter, "
+                    "only the default one is supported as we know how to deal "
+                    "with it")
+            #TODO: check if isinstance(view_converter, DefaultViewConverter)
+            # and if the attributes are the default ones.
+            assert topo_view is None
+            self.view_converter = view_converter
+        else:
             if y is not None:
-                self.data = (X, y)
                 space = CompositeSpace((VectorSpace(dim=2),
                                         VectorSpace(dim=1)))
                 source = ('features', 'targets')
             else:
-                self.data = X
                 space = VectorSpace(dim=2)
                 source = 'features'
-
             self.data_specs = (space, source)
 
-            if view_converter is not None:
-                assert topo_view is None
-                self.view_converter = view_converter
-            elif topo_view is not None:
-                assert view_converter is None
+            if topo_view is not None:
                 self.set_topological_view(topo_view, axes)
-
-        else:
-            # data_specs should be flat, and there should be no
-            # duplicates in source, as we keep only one version
-            assert is_flat_specs(data_specs)
-            if isinstance(data_specs[1], tuple):
-                assert sorted(set(data_specs[1])) == sorted(data_specs[1])
-            self.data = data
-            self.data_specs = data_specs
-
+            else:
+                self.X_topo_space = None
+        self.y = y
         self.compress = False
         self.design_loc = None
         if hasattr(rng, 'random_integers'):
@@ -156,14 +105,12 @@ class DenseDesignMatrix(Dataset):
             self.rng = np.random.RandomState(rng)
         # Defaults for iterators
         self._iter_mode = resolve_iterator_class('sequential')
+        self._iter_topo = False
+        self._iter_targets = False
 
         if preprocessor:
             preprocessor.apply(self, can_fit=fit_preprocessor)
         self.preprocessor = preprocessor
-
-        # TODO: needed?
-        #self.input_source = 'features'
-        #self.output_source = 'targets'
 
     @functools.wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
@@ -174,7 +121,29 @@ class DenseDesignMatrix(Dataset):
                 raise ValueError("BLAH BOTH NEW AND OLD")
 
             warnings.warn("BLAH DEPRECATED", stacklevel=2)
+            # build data_specs from topo and targets if needed
+            if topo is None:
+                topo = getattr(self, '_iter_topo', False)
+            if topo:
+                assert self.X_topo_space is not None
+                X_space = self.X_topo_space
+            else:
+                X_space = self.data_specs[0][0]
 
+            if targets is None:
+                targets = getattr(self, '_iter_targets', False)
+            if targets:
+                assert self.y is not None
+                y_space = self.data_specs[0][1]
+                space = (X_space, y_space)
+                source = ('features', 'targets')
+            else:
+                space = X_space
+                source = 'features'
+
+            data_specs = (space, source)
+
+        # TODO: Refactor
         if mode is None:
             if hasattr(self, '_iter_subset_class'):
                 mode = self._iter_subset_class
@@ -192,16 +161,16 @@ class DenseDesignMatrix(Dataset):
             rng = self.rng
         if data_specs is None:
             data_specs = self.data_specs
-        return FiniteDatasetIterator(
-                self,
-                mode(self.data_specs[0].get_batch_size(self.data),
-                     batch_size, num_batches, rng),
-                topo=topo, targets=targets,
-                data_specs=data_specs)
+        return FiniteDatasetIterator(self,
+                                     mode(self.X.shape[0], batch_size,
+                                     num_batches, rng),
+                                     data_specs=data_specs)
 
     def get_data(self):
-        return self.data
-
+        if self.y is None:
+            return (self.X,)
+        else:
+            return (self.X, self.y)
 
     def use_design_loc(self, path):
         """
@@ -214,6 +183,9 @@ class DenseDesignMatrix(Dataset):
         custom pylearn2 serialization format).
         """
         self.design_loc = path
+
+    def get_topo_batch_axis(self):
+        return self.view_converter.axes.index('b')
 
     def enable_compression(self):
         """
@@ -232,16 +204,14 @@ class DenseDesignMatrix(Dataset):
         # does. Perhaps as a mixin that specific datasets (i.e. CIFAR10)
         # inherit from.
         if self.compress:
-            rval['compress_min'] = np.min([x.min() for x in rval['data']])
+            rval['compress_min'] = rval['X'].min(axis=0)
             # important not to do -= on this line, as that will modify the
             # original object
-            rval['data'] = [x - rval['compress_min'] for x in rval['data']]
-            rval['compress_max'] = np.max([x.max() for x in rval['data']])
-            if rval['compress_max'] == 0:
-                rval['compress_max'] = 1
-            rval['data'] = [ 255.*x/rval['compress_max'] for x in
-                            rval['data']]
-            rval['data'] = [np.cast['uint8'](x) for x in rval['data']]
+            rval['X'] = rval['X'] - rval['compress_min']
+            rval['compress_max'] = rval['X'].max(axis=0)
+            rval['compress_max'][rval['compress_max'] == 0] = 1
+            rval['X'] *= 255. / rval['compress_max']
+            rval['X'] = N.cast['uint8'](rval['X'])
 
         if self.design_loc is not None:
             # TODO: Get rid of this logic, use custom array-aware picklers
@@ -260,18 +230,17 @@ class DenseDesignMatrix(Dataset):
                 d['X'] = None
 
         if d['compress']:
-            data = d['data']
+            X = d['X']
             mx = d['compress_max']
             mn = d['compress_min']
             del d['compress_max']
             del d['compress_min']
-            d['data'] = None
+            d['X'] = 0
             self.__dict__.update(d)
-            if data is not None:
-                self.data = [N.cast['float32'](X) * mx / 255. + mn
-                             for X in data]
+            if X is not None:
+                self.X = N.cast['float32'](X) * mx / 255. + mn
             else:
-                self.data = None
+                self.X = None
         else:
             self.__dict__.update(d)
 
@@ -454,18 +423,10 @@ class DenseDesignMatrix(Dataset):
         cols = V.shape[axes.index(1)]
         channels = V.shape[axes.index('c')]
         self.view_converter = DefaultViewConverter([rows, cols, channels], axes=axes)
-        X = self.view_converter.topo_view_to_design_mat(V)
-        assert not N.any(N.isnan(X))
-        # TODO: Use more generic code?
-        space, source = self.data_specs
-        if source == 'features':
-            self.data = X
-        else:
-            # Replace the right element of self.data
-            source_idx = source.index('features')
-            data = list(self.data)
-            data[source_idx] = X
-            self.data = tuple(data)
+        self.X = self.view_converter.topo_view_to_design_mat(V)
+        self.X_topo_space = Conv2DSpace(
+                shape=(rows, cols), num_channels=channels, axes=axes)
+        assert not N.any(N.isnan(self.X))
 
     def get_design_matrix(self, topo=None):
         """
@@ -496,24 +457,11 @@ class DenseDesignMatrix(Dataset):
     def get_targets(self):
         return self.y
 
-    def set_data(self, data, data_specs):
-        # data is organized as data_specs
-        # TODO: change self.data_specs and use data as is,
-        # or keep self.data_specs, and convert data?
-        # The latter allows to use set_data for X or Y only.
-        data_specs[0].validate(data)
-        assert not [N.any(N.isnan(X)) for X in data]
-        raise NotImplementedError()
-
-    def get_source(self, name):
-        raise NotImplementedError()
-
     @property
     def num_examples(self):
-        return self.data_specs[0].get_batch_size(self.data)
+        return self.X.shape[0]
 
-    def get_batch(self, batch_size, data_specs=None):
-        raise NotImplementedError()
+    def get_batch_design(self, batch_size, include_labels=False):
         try:
             idx = self.rng.randint(self.X.shape[0] - batch_size + 1)
         except ValueError:
@@ -529,6 +477,29 @@ class DenseDesignMatrix(Dataset):
             return rx, ry
         rx = np.cast[config.floatX](rx)
         return rx
+
+    def get_batch_topo(self, batch_size, include_labels = False):
+
+        if include_labels:
+            batch_design, labels = self.get_batch_design(batch_size, True)
+        else:
+            batch_design = self.get_batch_design(batch_size)
+
+        rval = self.view_converter.design_mat_to_topo_view(batch_design)
+
+        if include_labels:
+            return rval, labels
+
+        return rval
+
+    def view_shape(self):
+        return self.view_converter.view_shape()
+
+    def weights_view_shape(self):
+        return self.view_converter.weights_view_shape()
+
+    def has_targets(self):
+         return self.y is not None
 
 class DenseDesignMatrixPyTables(DenseDesignMatrix):
     """
