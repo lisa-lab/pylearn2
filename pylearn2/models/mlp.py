@@ -27,11 +27,14 @@ from pylearn2.linear import conv2d
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.models.model import Model
 from pylearn2.expr.nnet import pseudoinverse_softmax_numpy
+from pylearn2.space import CompositeSpace
 from pylearn2.space import Conv2DSpace
 from pylearn2.space import Space
 from pylearn2.space import VectorSpace
 from pylearn2.utils import function
 from pylearn2.utils import py_integer_types
+from pylearn2.utils import safe_union
+from pylearn2.utils import safe_zip
 from pylearn2.utils import sharedX
 
 warnings.warn("MLP changing the recursion limit.")
@@ -105,6 +108,10 @@ class Layer(Model):
     def cost(self, Y, Y_hat):
         """
         The cost of outputting Y_hat when the true output is Y.
+        Y_hat is assumed to be the output of the same layer's fprop, and the implementation
+        may do things like look at the ancestors of Y_hat in the theano graph. This is useful
+        for, e.g., computing numerically stable log probabilities as the cost when Y_hat is
+        the probability.
         """
 
         raise NotImplementedError(str(type(self))+" does not implement mlp.Layer.cost.")
@@ -2212,7 +2219,7 @@ def mean_of_targets(dataset):
 
 class PretrainedLayer(Layer):
     """
-    A layer whose weights are fixed based on prior training. 
+    A layer whose weights are fixed based on prior training.
     """
 
     def __init__(self, layer_name, layer_content, freeze_params=False):
