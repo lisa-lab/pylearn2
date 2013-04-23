@@ -190,7 +190,7 @@ class SGD(TrainingAlgorithm):
         if self.monitoring_dataset is not None:
             self.monitor.setup(dataset=self.monitoring_dataset,
                     cost=self.cost, batch_size=self.batch_size, num_batches=self.monitoring_batches,
-                    extra_costs=self.monitoring_costs
+                    extra_costs=self.monitoring_costs, mode=self.monitor_iteration_mode
                     )
             if self.supervised:
                 ipt = (X, Y)
