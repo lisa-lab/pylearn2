@@ -50,7 +50,6 @@ class ZCA_Dataset(DenseDesignMatrix):
         self.rng = self.preprocessed_dataset.rng
 
         self.y = preprocessed_dataset.y
-        assert self.y is not None
         if convert_to_one_hot:
             if not ( self.y.min() == 0):
                 raise AssertionError("Expected y.min == 0 but y.min == "+str(self.y.min()))
@@ -64,15 +63,16 @@ class ZCA_Dataset(DenseDesignMatrix):
         if control.get_load_data():
             if start is not None:
                 self.X = preprocessed_dataset.X[start:stop,:]
-                self.y = self.y[start:stop,:]
+                if self.y is not None:
+                    self.y = self.y[start:stop,:]
                 assert self.X.shape[0] == stop-start
             else:
                 self.X = preprocessed_dataset.X
-            assert self.y is not None
         else:
             self.X = None
         if self.X is not None:
-            assert self.y.shape[0] == self.X.shape[0]
+            if self.y is not None:
+                assert self.y.shape[0] == self.X.shape[0]
         self.view_converter = preprocessed_dataset.view_converter
 
         #self.mn = self.X.min()

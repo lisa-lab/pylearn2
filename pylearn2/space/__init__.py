@@ -42,6 +42,7 @@ from theano import config
 import functools
 from theano.gof.op import get_debug_values
 from theano.sandbox.cuda.type import CudaNdarrayType
+from pylearn2.sandbox.tuple_var import TupleVariable
 from pylearn2.utils import py_integer_types
 
 
@@ -475,7 +476,8 @@ class CompositeSpace(Space):
         if not isinstance(batch, tuple):
             raise TypeError()
         if len(batch) != self.num_components:
-            raise ValueError()
+            raise ValueError("Expected "+str(self.num_components)+" elements in batch, "
+                    "got " + str(len(batch)))
         for batch_elem, component in zip(batch, self.components):
             component.validate(batch_elem)
 
@@ -483,3 +485,13 @@ class CompositeSpace(Space):
     def get_origin_batch(self, n):
         return tuple([component.get_origin_batch(n) for component in self.components])
 
+    @functools.wraps(Space.make_theano_batch)
+    def make_theano_batch(self, name = None, dtype = None):
+
+        def name_generator(i):
+            if name is None:
+                return None
+            return name + '[' + str(i) +']'
+
+        return TupleVariable(tuple(component.make_theano_batch(name = name_generator(i), dtype = dtype)
+                for i, component in enumerate(self.components)), name=name)

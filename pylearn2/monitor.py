@@ -20,8 +20,9 @@ import theano.sparse
 from pylearn2.config import yaml_parse
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.utils import function
-from pylearn2.utils.string_utils import number_aware_alphabetical_key
+from pylearn2.utils.iteration import is_stochastic
 from pylearn2.utils import sharedX
+from pylearn2.utils.string_utils import number_aware_alphabetical_key
 from theano import config
 import numpy as np
 from theano import tensor as T
@@ -117,9 +118,11 @@ class Monitor(object):
             seed = [ None ] * len(dataset)
         if not isinstance(seed, list):
             seed = [ seed ]
-        if any([len(l) != len(dataset) for l in [mode, batch_size, seed]]):
+        if len(mode) != len(dataset):
+            raise ValueError("Received "+str(len(dataset))+" dataset but " + str(len(mode)) + " modes.")
+        if any([len(l) != len(dataset) for l in [batch_size, seed]]):
             raise ValueError("make sure each dataset has its iteration " + \
-                        "mode, batch size and number of batches.")
+                        "batch size and number of batches.")
         for (d, m, b, n, sd) in safe_izip(dataset, mode, batch_size, num_batches, seed):
             try:
                 it = d.iterator(mode=m, batch_size=b,
@@ -137,6 +140,8 @@ class Monitor(object):
                 # each time
                 # Also, must not be None, because this makes the iterator pick
                 # a seed based on the clock
+                if sd is None:
+                    raise TypeError("Monitor requires a seed when using stochastic iteration modes.")
                 if not isinstance(sd, (list, tuple, int)):
                     raise TypeError("Monitor requires a seed (not a random number generator) when using stochastic iteration modes.")
             else:
@@ -560,7 +565,8 @@ class Monitor(object):
     def num_batches(self):
         return self._num_batches
 
-    def setup(self, dataset, cost, batch_size, num_batches = None, extra_costs=None):
+    def setup(self, dataset, cost, batch_size, num_batches = None, extra_costs=None,
+            mode='sequential'):
         """
         Sets up the monitor for a cost minimization problem.
         Adds channels defined by both the model and the cost for
@@ -623,12 +629,19 @@ class Monitor(object):
             custom_channels.update(channels)
         model_channels = model.get_monitoring_channels(X, Y)
         custom_channels.update(model_channels)
+
+        if is_stochastic(mode):
+            seed = [[2013, 02, 22]]
+        else:
+            seed = None
+
         for dataset_name in dataset:
             cur_dataset = dataset[dataset_name]
             self.add_dataset(dataset=cur_dataset,
-                                 mode='sequential',
+                                 mode=mode,
                                  batch_size=batch_size,
-                                 num_batches=num_batches)
+                                 num_batches=num_batches,
+                                 seed=seed)
             if dataset_name == '':
                 dprefix = ''
             else:
