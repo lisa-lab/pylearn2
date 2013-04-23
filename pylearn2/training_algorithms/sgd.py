@@ -179,10 +179,15 @@ class SGD(TrainingAlgorithm):
             monitoring_dataset = self.monitoring_dataset[dataset_name]
             #TODO: have Monitor support non-data-dependent channels
             self.monitor.add_channel(name='learning_rate', ipt=theano_args,
-                    val=learning_rate, dataset=monitoring_dataset)
+                                     val=learning_rate,
+                                     data_specs = data_specs,
+                                     dataset=monitoring_dataset)
             if self.momentum:
-                self.monitor.add_channel(name='momentum', ipt=theano_args,
-                        val=self.momentum, dataset=monitoring_dataset)
+                self.monitor.add_channel(name='momentum',
+                                         ipt=theano_args,
+                                         val=self.momentum,
+                                         data_specs=data_specs,
+                                         dataset=monitoring_dataset)
 
         params = list(model.get_params())
         assert len(params) > 0
