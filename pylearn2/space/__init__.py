@@ -554,10 +554,10 @@ class CompositeSpace(Space):
         assert isinstance(name, (list, tuple))
         assert isinstance(dtype, (list, tuple))
 
-        rval = [x.make_theano_batch(name=n, dtype=d)
+        rval = tuple([x.make_theano_batch(name=n, dtype=d)
                 for x,n,d in safe_zip(self.components,
                                       name,
-                                      dtype)]
+                                      dtype)])
         return rval
 
     @functools.wraps(Space.get_batch_size)

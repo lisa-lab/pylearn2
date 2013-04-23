@@ -623,7 +623,7 @@ class Monitor(object):
             else:
                 prefix = cost_name + '_'
             cost = costs[cost_name]
-            raw_channels = cost.get_monitoring_channels(model, X, Y)
+            raw_channels = cost.get_monitoring_channels(model, (X, Y))
             channels = {}
             for name in raw_channels:
                 channels[prefix+name] = raw_channels[name]
@@ -651,17 +651,23 @@ class Monitor(object):
             # values in the monitor use the name to find it.
             for cost_name in costs:
                 cost = costs[cost_name]
-                cost_value = cost(model, X, Y)
+                cost_value = cost.expr(model, (X, Y))
                 if cost_value is not None:
                     if cost_name == '':
                         name = dprefix + 'objective'
                     else:
                         name = dprefix + cost_name
-                    self.add_channel(name=name, ipt=ipt,
-                        val=cost_value, dataset=cur_dataset)
+                    self.add_channel(name=name,
+                                     ipt=ipt,
+                                     val=cost_value,
+                                     data_specs = cost.get_data_specs(model),
+                                     dataset=cur_dataset)
             for key in custom_channels:
-                self.add_channel(name=dprefix + key, ipt=ipt,
-                        val=custom_channels[key], dataset=cur_dataset)
+                self.add_channel(name=dprefix + key,
+                                 ipt=ipt,
+                                 val=custom_channels[key],
+                                 data_specs = cost.get_data_specs(model),
+                                 dataset=cur_dataset)
 
 
 class MonitorChannel(object):

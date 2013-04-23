@@ -199,6 +199,10 @@ class DenseDesignMatrix(Dataset):
                 topo=topo, targets=targets,
                 data_specs=data_specs)
 
+    def get_data(self):
+        return self.data
+
+
     def use_design_loc(self, path):
         """
         When pickling, save the design matrix to path as a .npy file rather
