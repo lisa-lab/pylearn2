@@ -113,5 +113,5 @@ class L1WeightDecay(Cost):
         return total_cost
 
     def get_data_specs(self, model):
-        return [None, None]
+        return (None, None)
 

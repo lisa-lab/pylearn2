@@ -23,6 +23,7 @@ from theano import config
 
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_zip
+from pylearn2.utils.data_specs import is_flat_specs
 
 
 class SubsetIterator(object):
@@ -363,14 +364,14 @@ class FiniteDatasetIterator(object):
                 sub_spaces = space.components
             assert len(source) == len(sub_spaces)
 
-            for (so, sp) in safe_zip(source, space):
+            for (so, sp) in safe_zip(source, sub_spaces):
                 idx = dataset_source.index(so)
                 dspace = dataset_sub_spaces[idx]
 
                 # Compose the functions
                 fn = None
-
-                needs_cast = not np.dtype(config.floatX) == self._raw_data[idx]
+                needs_cast = not np.dtype(config.floatX) == \
+                                        self._raw_data[idx].dtype
                 if needs_cast:
                     fn = lambda batch: numpy.cast[config.floatX](batch)
 
