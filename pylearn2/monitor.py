@@ -564,7 +564,8 @@ class Monitor(object):
     def num_batches(self):
         return self._num_batches
 
-    def setup(self, dataset, cost, batch_size, num_batches = None, extra_costs=None):
+    def setup(self, dataset, cost, batch_size, num_batches = None, extra_costs=None,
+            mode='sequential'):
         """
         Sets up the monitor for a cost minimization problem.
         Adds channels defined by both the model and the cost for
@@ -630,9 +631,10 @@ class Monitor(object):
         for dataset_name in dataset:
             cur_dataset = dataset[dataset_name]
             self.add_dataset(dataset=cur_dataset,
-                                 mode='sequential',
+                                 mode=mode,
                                  batch_size=batch_size,
-                                 num_batches=num_batches)
+                                 num_batches=num_batches,
+                                 seed=[[2013, 02, 22]])
             if dataset_name == '':
                 dprefix = ''
             else:
