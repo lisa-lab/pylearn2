@@ -2250,5 +2250,119 @@ class RBM_Layer(PretrainedLayer):
 
     def __init__(self, layer_name, autoencoder, freeze_params=False):
         warnings.warn("RBM_Layer is deprecated. Use PretrainedLayer instead. RBM_Layer will be removed on or after October 19, 2013", stacklevel=2)
-        PretrainedLayer.__init__(layer_name=layer_name, layer_content=autoencoder, 
+        PretrainedLayer.__init__(layer_name=layer_name, layer_content=autoencoder,
                                     freeze_params=freeze_params)
+
+class CompositeLayer(Layer):
+    """
+    A Layer that runs several simpler layers in parallel.
+    """
+
+    def __init__(self, layer_name, layers):
+        """
+        layers: a list or tuple of Layers.
+        """
+        self.__dict__.update(locals())
+        del self.self
+
+    def set_input_space(self, space):
+
+        for layer in self.layers:
+            layer.set_input_space(space)
+
+        self.output_space = CompositeSpace(tuple(layer.get_output_space()
+            for layer in self.layers))
+
+    def get_params(self):
+
+        rval = []
+
+        for layer in self.layers:
+            rval = safe_union(layer.get_params(), rval)
+
+        return rval
+
+    def fprop(self, state_below):
+
+        return tuple(layer.fprop(state_below) for layer in self.layers)
+
+    def cost(self, Y, Y_hat):
+
+        return sum(layer.cost(Y_elem, Y_hat_elem) for layer, Y_elem, Y_hat_elem in \
+                safe_zip(self.layers, Y, Y_hat))
+
+    def set_mlp(self, mlp):
+        super(CompositeLayer, self).set_mlp(mlp)
+        for layer in self.layers:
+            layer.set_mlp(mlp)
+
+class FlattenerLayer(Layer):
+    """
+    A wrapper around a different layer that flattens
+    the original layer's output.
+
+    The cost works by unflattening the target and then
+    calling the wrapped Layer's cost.
+
+    This is mostly intended for use with CompositeLayer as the wrapped
+    Layer, and is mostly useful as a workaround for theano not having
+    a TupleVariable with which to represent a composite target.
+
+    There are obvious memory, performance, and readability issues with doing
+    this, so really it would be better for theano to support TupleTypes.
+
+    See pylearn2.sandbox.tuple_var and the theano-dev e-mail thread "TupleType".
+    """
+
+    def __init__(self, raw_layer):
+        self.__dict__.update(locals())
+        del self.self
+        self.layer_name = raw_layer.layer_name
+
+
+    def set_input_space(self, space):
+
+        self.raw_layer.set_input_space(space)
+
+        self.output_space = VectorSpace(self.raw_layer.get_output_space().get_total_dimension())
+
+    def get_params(self):
+
+        return self.raw_layer.get_params()
+
+    def fprop(self, state_below):
+
+        raw = self.raw_layer.fprop(state_below)
+
+        return self.raw_layer.get_output_space().format_as(raw, self.output_space)
+
+    def cost(self, Y, Y_hat):
+
+        raw_space = self.raw_layer.get_output_space()
+        target_space = self.output_space
+        raw_Y = target_space.format_as(Y, raw_space)
+
+        if isinstance(raw_space, CompositeSpace):
+            # Pick apart the Join that our fprop used to make Y_hat
+            assert hasattr(Y_hat, 'owner')
+            owner = Y_hat.owner
+            assert owner is not None
+            assert str(owner.op) == 'Join'
+            # first input to join op is the axis
+            raw_Y_hat = tuple(owner.inputs[1:])
+        else:
+            # To implement this generally, we'll need to give Spaces an
+            # undo_format or something. You can't do it with format_as
+            # in the opposite direction because Layer.cost needs to be
+            # able to assume that Y_hat is the output of fprop
+            raise NotImplementedError()
+        raw_space.validate(raw_Y_hat)
+
+        return self.raw_layer.cost(raw_Y, raw_Y_hat)
+
+    def set_mlp(self, mlp):
+        super(FlattenerLayer, self).set_mlp(mlp)
+        self.raw_layer.set_mlp(mlp)
+
+    def get_weights(self):
+        return self.raw_layer.get_weights()
