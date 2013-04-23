@@ -20,8 +20,9 @@ import theano.sparse
 from pylearn2.config import yaml_parse
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.utils import function
-from pylearn2.utils.string_utils import number_aware_alphabetical_key
+from pylearn2.utils.iteration import is_stochastic
 from pylearn2.utils import sharedX
+from pylearn2.utils.string_utils import number_aware_alphabetical_key
 from theano import config
 import numpy as np
 from theano import tensor as T
@@ -628,13 +629,19 @@ class Monitor(object):
             custom_channels.update(channels)
         model_channels = model.get_monitoring_channels(X, Y)
         custom_channels.update(model_channels)
+
+        if is_stochastic(mode):
+            seed = [[2013, 02, 22]]
+        else:
+            seed = None
+
         for dataset_name in dataset:
             cur_dataset = dataset[dataset_name]
             self.add_dataset(dataset=cur_dataset,
                                  mode=mode,
                                  batch_size=batch_size,
                                  num_batches=num_batches,
-                                 seed=[[2013, 02, 22]])
+                                 seed=seed)
             if dataset_name == '':
                 dprefix = ''
             else:
