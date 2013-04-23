@@ -150,7 +150,7 @@ class DataSpecsMapping(object):
         else:
             # flat is not iterable, this is valid only if spec_mapping
             # is the integer 0.
-            if self.spec_mapping == 0:
+            if self.spec_mapping == (0,):
                 return flat
 
             raise TypeError("'flat' should be a Space, or tuple. "
