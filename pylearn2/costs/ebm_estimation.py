@@ -77,9 +77,9 @@ class NCE(Cost):
         self.noise_per_clean = noise_per_clean
 
     def get_data_specs(self, model):
-        data = CompositeSpace([model.get_input_space(), model.get_output_space()])
+        space = CompositeSpace([model.get_input_space(), model.get_output_space()])
         sources = (model.get_input_source(), model.get_target_source())
-        return [data, sources]
+        return (space, sources)
 
 class SM(Cost):
     """ Score Matching
@@ -116,7 +116,7 @@ class SM(Cost):
         return rval
 
     def get_data_specs(self, model):
-        return [model.get_input_space(), model.get_input_source()]
+        return (model.get_input_space(), model.get_input_source())
 
 class SMD(Cost):
     """ Denoising Score Matching
@@ -131,7 +131,11 @@ class SMD(Cost):
         super(SMD, self).__init__()
         self.corruptor = corruptor
 
-    def expr(self, model, X):
+    def expr(self, model, data):
+        if isinstance(data, tuple):
+            X, = data
+        else:
+            X = data
         X_name = 'X' if X.name is None else X.name
 
         corrupted_X = self.corruptor(X)
@@ -163,4 +167,4 @@ class SMD(Cost):
         return smd
 
     def get_data_specs(self, model):
-        return [model.get_input_space(), model.get_input_source()]
+        return (model.get_input_space(), model.get_input_source())
