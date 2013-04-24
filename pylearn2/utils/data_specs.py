@@ -109,8 +109,12 @@ class DataSpecsMapping(object):
         if isinstance(mapping, int):
             # We are at a leaf of the tree
             idx = mapping
-            assert 0 <= idx < len(flat)
-            return flat[idx]
+            if isinstance(flat, tuple):
+                assert 0 <= idx < len(flat)
+                return flat[idx]
+            else:
+                assert idx == 0
+                return flat
         else:
             return tuple(
                     self._make_nested_tuple(flat, sub_mapping)
@@ -138,23 +142,20 @@ class DataSpecsMapping(object):
 
         The length of "flat" should be equal to self.n_unique_specs.
         """
-        if isinstance(flat, tuple):
-            assert len(flat) == self.n_unique_specs
-            return self._make_nested_tuple(flat, self.spec_mapping)
-        elif isinstance(flat, Space):
+        if isinstance(flat, Space):
             if isinstance(flat, CompositeSpace):
                 assert len(flat.components) == self.n_unique_specs
             else:
-                assert 1 == self.n_unique_specs
+                assert self.n_unique_specs == 1
             return self._make_nested_space(flat, self.spec_mapping)
         else:
-            # flat is not iterable, this is valid only if spec_mapping
-            # is the integer 0.
-            if self.spec_mapping == (0,):
-                return flat
-
-            raise TypeError("'flat' should be a Space, or tuple. "
-                    "It is %s of type %s" % (flat, type(flat)))
+            if isinstance(flat, tuple):
+                assert len(flat) == self.n_unique_specs
+            else:
+                # flat is not iterable, this is valid only if spec_mapping
+                # contains only 0's, that is, when self.n_unique_specs == 1
+                assert self.n_unique_specs == 1
+            return self._make_nested_tuple(flat, self.spec_mapping)
 
 
 def resolve_nested_structure_from_flat(data, nested, flat):
