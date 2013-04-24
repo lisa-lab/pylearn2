@@ -29,11 +29,11 @@ class TupleType(Type):
         return hashtype(self) ^ hash(self.component_types)
 
 
-
 class TupleVariable(Variable):
 
     def __init__(self, component_variables, name = None):
 
+        raise NotImplementedError("This should always be created via a MakeTuple Op (not implemented yet) so that the ancestors are correct.")
         raise NotImplementedError("This is not safe to use yet, since T.grad won't work right with it.")
 
         assert isinstance(component_variables, tuple)
@@ -53,7 +53,25 @@ class TupleVariable(Variable):
                 zip(self.component_variables, other.component_variables))
 
     def __getitem__(self, index):
+        """
+        Deterministic, compile-time tuple indexing.
+        """
+        if isinstance(index, slice):
+            if any(elem is not None or not isinstance(elem, int) for elem in \
+                    [index.start, index.step, index.stop]):
+                raise TypeError("slice elements must be int or None--symbolic indexing not supported yet")
+            return tuple_variable(self.component_variables[index])
+
+        if not isinstance(index, int):
+            raise TypeError("index must be int or slice--symbolic indexing not supported yet")
         return self.component_variables[index]
 
     def __len__(self):
         return len(self.component_variables)
+
+def tuple_variable(t):
+    """
+    Make a TupleVariable from a tuple t of TheanoVariables
+    """
+
+    raise NotImplementedError()
