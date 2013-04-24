@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 __author__ = "Ian Goodfellow"
 """
 Converts a pickle file containing CudaNdarraySharedVariables into
