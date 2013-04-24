@@ -2244,12 +2244,10 @@ class PretrainedLayer(Layer):
         return self.layer_content.upward_pass(state_below)
 
     def get_weight_decay(self, coeff):
-        #A stub to allow decay in MLP's with pretrained layers
-        return 0
+        raise NotImplementedError
     
     def get_l1_weight_decay(self, coeff):
-        #A stub to allow decay in MLP's with pretrained layers
-        return 0
+        raise NotImplementedError
 
 
 class RBM_Layer(PretrainedLayer):
