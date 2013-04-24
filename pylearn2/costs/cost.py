@@ -150,8 +150,6 @@ class SumOfCosts(Cost):
         self.costs = []
         self.coeffs = []
 
-        spaces = []
-        sources = []
         for cost in costs:
             if isinstance(cost, (list, tuple)):
                 coeff, cost = cost
@@ -160,23 +158,9 @@ class SumOfCosts(Cost):
             self.coeffs.append(coeff)
             self.costs.append(cost)
 
-            space, source = cost.get_data_specs()
-            spaces.append(space)
-            sources.append(source)
-
             if not isinstance(cost, Cost):
                 raise ValueError("one of the costs is not " + \
                                  "Cost instance")
-
-        # Build composite space representing all inputs,
-        # and flatten it
-        composite_space = CompositeSpace(spaces)
-        sources = tuple(sources)
-
-        self.mapping = DataSpecsMapping(composite_space, sources)
-        flat_composite_space = self.mapping.flatten(composite_space)
-        flat_sources = self.mapping.flatten(sources)
-        self.data_specs = (flat_composite_space, flat_sources)
 
         # TODO: remove this when it is no longer necessary
         self.supervised = any([cost.supervised for cost in self.costs])
@@ -192,7 +176,8 @@ class SumOfCosts(Cost):
             the model for which we want to calculate the sum of costs
         data : flat tuple of tensor_like variables
         """
-        nested_data = self.mapping.nest(data)
+        composite_specs, mapping = self.get_composite_specs_and_mapping(model)
+        nested_data = mapping.nest(data)
         costs = [cost(model, cost_data, **kwargs)
                  for cost, cost_data in safe_zip(self.costs, nested_data)]
         assert len(costs) > 0
@@ -206,13 +191,36 @@ class SumOfCosts(Cost):
 
         return sum_of_costs
 
+    def get_composite_data_specs(self, model):
+        spaces = []
+        sources = []
+        for cost in self.costs:
+            space, source = cost.get_data_specs(model)
+            spaces.append(space)
+            sources.append(source)
+
+        # Build composite space representing all inputs
+        composite_space = CompositeSpace(spaces)
+        sources = tuple(sources)
+        return (composite_space, sources)
+
+    def get_composite_specs_and_mapping(self, model):
+        composite_space, sources = self.get_composite_data_specs(model)
+        mapping = DataSpecsMapping(composite_space, sources)
+        return (composite_space, sources), mapping
+
     def get_data_specs(self, model):
-        return self.data_specs
+        composite_specs, mapping = self.get_composite_specs_and_mapping(model)
+        composite_space, sources = composite_specs
+        flat_composite_space = mapping.flatten(composite_space)
+        flat_sources = mapping.flatten(sources)
+        data_specs = (flat_composite_space, flat_sources)
+        return data_specs
 
     def get_gradients(self, model, data, ** kwargs):
-
         indiv_results = []
-        nested_data = self.mapping.nest(data)
+        composite_specs, mapping = self.get_composite_specs_and_mapping(model)
+        nested_data = mapping.nest(data)
         for cost, cost_data in safe_zip(self.costs, nested_data):
             result = cost.get_gradients(model, data, ** kwargs)
             indiv_results.append(result)
@@ -243,7 +251,8 @@ class SumOfCosts(Cost):
     def get_monitoring_channels(self, model, data, ** kwargs):
 
         rval = OrderedDict()
-        nested_data = self.mapping.nest(data)
+        composite_specs, mapping = self.get_composite_specs_and_mapping(model)
+        nested_data = mapping.nest(data)
 
         for i, cost in enumerate(self.costs):
             cost_data = nested_data[i]
