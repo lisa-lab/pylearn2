@@ -457,7 +457,8 @@ class Monitor(object):
 
         self.__dict__.update(d)
 
-    def add_channel(self, name, ipt, val, data_specs, dataset=None, prereqs=None):
+    def add_channel(self, name, ipt, val, dataset=None, prereqs=None,
+                    data_specs=None):
         """
         Asks the monitor to start tracking a new value.  Can be called even
         after the monitor is already in use.
@@ -480,6 +481,8 @@ class Monitor(object):
             value is computed
             if two channels provide a prereq with exactly the same
             id, that prereq will only be called once
+        data_specs: (space, source) pair
+            identifies the order, format and semantics of ipt
         """
 
         if isinstance(val, (float, int, long)):
@@ -488,7 +491,7 @@ class Monitor(object):
         val = T.as_tensor_variable(val)
 
         if not isinstance(ipt, (list, tuple)):
-            tmp = [ ipt ]
+            tmp = [ipt]
         else:
             tmp = ipt
         inputs = theano.gof.graph.inputs([val])
@@ -496,8 +499,6 @@ class Monitor(object):
             if not hasattr(elem, 'get_value') and not isinstance(elem, theano.gof.graph.Constant):
                 if elem not in tmp:
                     raise ValueError("Unspecified input: "+str(elem))
-
-
 
         mode = self.theano_function_mode
         if mode is not None and hasattr(mode, 'record'):
@@ -527,7 +528,31 @@ class Monitor(object):
             raise ValueError("Tried to create the same channel twice (%s)" %
                              name)
 
-        self.channels[name] = MonitorChannel(ipt, val, name, data_specs, dataset, prereqs)
+        if data_specs is None:
+            warnings.warn("parameter 'data_specs' should be provided when "
+                    "calling add_channel. We will build a default one.",
+                    stacklevel=2)
+            if isinstance(ipt, list):
+                ipt = tuple(ipt)
+            if not isinstance(ipt, tuple):
+                ipt = (ipt,)
+            if len(ipt) == 1:
+                # Default to (VectorSpace(), 'features')
+                space = VectorSpace(dim=ipt[0].ndim)
+                source = 'features'
+            elif len(ipt) == 2:
+                # Default to (CompositeSpace(...), ('features', 'targets'))
+                space = CompositeSpace((VectorSpace(dim=ipt[0].ndim),
+                                        VectorSpace(dim=ipt[1].ndim)))
+                source = ('features', 'targets')
+            else:
+                raise ValueError("Cannot infer default data_specs for the "
+                        "following input points: ipt = %s" % ipt)
+
+            data_specs = (space, source)
+
+        self.channels[name] = MonitorChannel(ipt, val, name, data_specs,
+                                             dataset, prereqs)
         self._dirty = True
 
     def _sanity_check(self):
@@ -686,6 +711,8 @@ class MonitorChannel(object):
             and recorded.
         name : str
             The display name in the monitor.
+        data_specs: (space, source) pair
+            Identifies the order, format and semantics of graph_input
         prereqs: list of callables that take numpy tensors
             each prereq must be called exactly once per each new
             batch of data before the channel value is computed
