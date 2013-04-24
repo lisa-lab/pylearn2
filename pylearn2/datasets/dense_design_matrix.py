@@ -23,7 +23,7 @@ tables = None
 
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.datasets import control
-from pylearn2.space import VectorSpace, CompositeSpace
+from pylearn2.space import CompositeSpace, Conv2DSpace, VectorSpace
 from theano import config
 
 
