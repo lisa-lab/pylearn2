@@ -19,7 +19,7 @@ import theano.sparse
 
 from pylearn2.config import yaml_parse
 from pylearn2.datasets.dataset import Dataset
-from pylearn2.space import CompositeSpace
+from pylearn2.space import CompositeSpace, VectorSpace
 from pylearn2.utils import function
 from pylearn2.utils.string_utils import number_aware_alphabetical_key
 from pylearn2.utils import sharedX
@@ -178,14 +178,17 @@ class Monitor(object):
         if self._dirty:
             self.redo_theano()
 
-        model = self.model
         datasets = self._datasets
 
         # Set all channels' val_shared to 0
         self.begin_record_entry()
-
-        for d, i, b, n, a, sd, ne in safe_izip(datasets, self._iteration_mode, self._batch_size,
-                                 self._num_batches, self.accum, self._rng_seed, self.num_examples):
+        for d, i, b, n, a, sd, ne in safe_izip(datasets,
+                                               self._iteration_mode,
+                                               self._batch_size,
+                                               self._num_batches,
+                                               self.accum,
+                                               self._rng_seed,
+                                               self.num_examples):
             if isinstance(d, basestring):
                 d = yaml_parse.load(d)
                 raise NotImplementedError()
@@ -198,8 +201,9 @@ class Monitor(object):
 
             actual_ne = 0
             for X in myiterator:
-                # X is in a flat (not nested) tuple
+                # X is a flat (not nested) tuple
                 self.run_prereqs(X, d)
+                a(*X)
                 actual_ne += self._flat_data_specs[0].get_batch_size(X)
             # end for X
             if actual_ne != ne:
@@ -207,7 +211,6 @@ class Monitor(object):
                         + str(ne) + " examples total, but at runtime it gave us "
                         + str(actual_ne) + ".")
         # end for d
-
 
         log.info("Monitoring step:")
         log.info("\tEpochs seen: %d" % self._epochs_seen)
@@ -302,11 +305,11 @@ class Monitor(object):
         theano_args = self._flat_data_specs[0].make_theano_batch(
                 self._flat_data_specs[1])
         # Also get a nested representation, for joint iteration
-        # with each of channel.graph_inputs
+        # with each of channel.graph_input
         nested_theano_args = self._data_specs_mapping.nest(theano_args)
         if not isinstance(nested_theano_args, tuple):
             nested_theano_args = (nested_theano_args,)
-        assert len(nested_theano_args) == len(self.channels) + 1
+        assert len(nested_theano_args) == (len(self.channels) + 1)
 
         log.info('Monitored channels: ')
         for key in sorted(self.channels.keys()):
@@ -328,10 +331,10 @@ class Monitor(object):
             cur_num_examples = self.num_examples[index]
             u = updates[index]
 
-            if not isinstance(channel.graph_inputs, (list, tuple)):
-                channel_inputs = (channel.graph_inputs,)
+            if not isinstance(channel.graph_input, (list, tuple)):
+                channel_inputs = (channel.graph_input,)
             else:
-                channel_inputs = channel.graph_inputs
+                channel_inputs = channel.graph_input
             if isinstance(nested_theano_args[i + 1], theano.Variable):
                 inputs = (nested_theano_args[i + 1],)
             else:
@@ -340,11 +343,14 @@ class Monitor(object):
 
             for (channel_X, X) in safe_izip(channel_inputs, inputs):
                 assert channel_X not in g or g[channel_X] is X
+                assert channel_X.type == X.type
                 g[channel_X] = X
             if n == 0:
                 raise ValueError("Iterating over 0 examples results in divide by 0")
             val = channel.val * T.cast(
-                self._flat_data_specs[0].get_batch_size(X), config.floatX) / cur_num_examples
+                    channel.data_specs[0].get_batch_size(
+                            nested_theano_args[i + 1]),
+                    config.floatX) / cur_num_examples
             u[channel.val_shared] = channel.val_shared + val
 
         with log_timing(log, "Compiling accum"):
