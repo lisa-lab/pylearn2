@@ -147,6 +147,7 @@ class Monitor(object):
                 it = d.iterator(mode=m, batch_size=b,
                                       num_batches=n,
                                       data_specs=self._flat_data_specs,
+                                      return_tuple=True,
                                       rng = sd)
             except ValueError as exc:
                 raise ValueError("invalid iteration parameters in "
@@ -323,7 +324,8 @@ class Monitor(object):
                 mode.record.handle_line('compiling monitor including channel '+key+'\n')
             log.info('\t%s' % key)
         it = [d.iterator(mode=i, num_batches=n, batch_size=b,
-                         data_specs=self._flat_data_specs) \
+                         data_specs=self._flat_data_specs,
+                         return_tuple=True) \
               for d, i, n, b in safe_izip(self._datasets, self._iteration_mode,
                                     self._num_batches, self._batch_size)]
         self.num_examples = [np.cast[config.floatX](float(i.num_examples)) for i in it]

@@ -122,6 +122,7 @@ class DenseDesignMatrix(Dataset):
         self._iter_mode = resolve_iterator_class('sequential')
         self._iter_topo = False
         self._iter_targets = False
+        self._iter_data_specs = (X_space, X_source)
 
         if preprocessor:
             preprocessor.apply(self, can_fit=fit_preprocessor)
@@ -129,7 +130,8 @@ class DenseDesignMatrix(Dataset):
 
     @functools.wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
-                 topo=None, targets=None, rng=None, data_specs=None):
+                 topo=None, targets=None, rng=None, data_specs=None,
+                 return_tuple=False):
 
         if topo is not None or targets is not None:
             if data_specs is not None:
@@ -143,7 +145,7 @@ class DenseDesignMatrix(Dataset):
                 assert self.X_topo_space is not None
                 X_space = self.X_topo_space
             else:
-                X_space = self.data_specs[0][0]
+                X_space = self.X_space
 
             if targets is None:
                 targets = getattr(self, '_iter_targets', False)
@@ -175,11 +177,12 @@ class DenseDesignMatrix(Dataset):
         if rng is None and mode.stochastic:
             rng = self.rng
         if data_specs is None:
-            data_specs = self.data_specs
+            data_specs = self._iter_data_specs
         return FiniteDatasetIterator(self,
                                      mode(self.X.shape[0], batch_size,
                                      num_batches, rng),
-                                     data_specs=data_specs)
+                                     data_specs=data_specs,
+                                     return_tuple=return_tuple)
 
     def get_data(self):
         if self.y is None:
