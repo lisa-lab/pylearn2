@@ -698,7 +698,11 @@ class Monitor(object):
             # values in the monitor use the name to find it.
             for cost_name in costs:
                 cost = costs[cost_name]
-                cost_value = cost.expr(model, (X, Y))
+                if Y is None:
+                    data = (X,)
+                else:
+                    data = (X, Y)
+                cost_value = cost.expr(model, data)
                 if cost_value is not None:
                     if cost_name == '':
                         name = dprefix + 'objective'
