@@ -198,6 +198,7 @@ class Monitor(object):
                                     batch_size=b,
                                     num_batches=n,
                                     data_specs=self._flat_data_specs,
+                                    return_tuple=True,
                                     rng=sd)
 
             actual_ne = 0
