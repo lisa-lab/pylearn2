@@ -1,5 +1,5 @@
 *.pyc
-*.py~
+*~
 *.swp
 
 #Don't track the binary data files:
