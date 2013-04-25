@@ -297,7 +297,7 @@ def resolve_iterator_class(mode):
 class FiniteDatasetIterator(object):
     """A thin wrapper around one of the mode iterators."""
     def __init__(self, dataset, subset_iterator, topo=None, targets=None,
-                 data_specs=None):
+                 data_specs=None, return_tuple=False):
 
         if topo is not None or targets is not None:
             if data_specs is not None:
@@ -315,6 +315,7 @@ class FiniteDatasetIterator(object):
         self._data_specs = data_specs
         self._dataset = dataset
         self._subset_iterator = subset_iterator
+        self._return_tuple = return_tuple
 
         # TODO: More thought about how to handle things where this
         # fails (gigantic HDF5 files, etc.)
@@ -413,6 +414,8 @@ class FiniteDatasetIterator(object):
             rval = tuple(
                     fn(data[next_index]) if fn else data[next_index]
                     for data, fn in safe_zip(self._raw_data, self._convert))
+            if not self._return_tuple and len(rval) == 1:
+                rval, = rval
             return rval
 
     @property
