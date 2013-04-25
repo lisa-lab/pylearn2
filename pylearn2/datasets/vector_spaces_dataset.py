@@ -146,6 +146,7 @@ class VectorSpacesDataset(Dataset):
 
     def get_batch(self, batch_size, data_specs=None):
         raise NotImplementedError()
+        """
         try:
             idx = self.rng.randint(self.X.shape[0] - batch_size + 1)
         except ValueError:
@@ -161,3 +162,4 @@ class VectorSpacesDataset(Dataset):
             return rx, ry
         rx = np.cast[config.floatX](rx)
         return rx
+        """
