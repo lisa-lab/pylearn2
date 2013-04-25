@@ -102,7 +102,7 @@ class Cost(object):
         """
         return OrderedDict()
 
-    def get_fixed_var_descr(self, model, X, Y):
+    def get_fixed_var_descr(self, model, data):
         """
         Subclasses should override this if they need variables held
         constant across multiple updates to a minibatch.
@@ -169,7 +169,7 @@ class SumOfCosts(Cost):
         """
         composite_specs, mapping = self.get_composite_specs_and_mapping(model)
         nested_data = mapping.nest(data)
-        costs = [cost(model, cost_data, **kwargs)
+        costs = [cost.expr(model, cost_data, **kwargs)
                  for cost, cost_data in safe_zip(self.costs, nested_data)]
         assert len(costs) > 0
 
@@ -197,7 +197,7 @@ class SumOfCosts(Cost):
 
     def get_composite_specs_and_mapping(self, model):
         composite_space, sources = self.get_composite_data_specs(model)
-        mapping = DataSpecsMapping(composite_space, sources)
+        mapping = DataSpecsMapping((composite_space, sources))
         return (composite_space, sources), mapping
 
     def get_data_specs(self, model):
@@ -263,11 +263,9 @@ class SumOfCosts(Cost):
 
         return rval
 
-    def get_fixed_var_descr(self, model, X, Y):
+    def get_fixed_var_descr(self, model, data):
 
-        assert Y is not None
-
-        descrs = [cost.get_fixed_var_descr(model, X, Y) for cost in self.costs]
+        descrs = [cost.get_fixed_var_descr(model, data) for cost in self.costs]
 
         return reduce(merge, descrs)
 
@@ -308,7 +306,8 @@ class ScaledCost(Cost):
         return self.scaling * self.cost(model, data)
 
     def get_data_specs(self, model):
-        return (None, None)
+        return self.cost.get_data_specs(model)
+
 
 class LxReg(Cost):
     """
