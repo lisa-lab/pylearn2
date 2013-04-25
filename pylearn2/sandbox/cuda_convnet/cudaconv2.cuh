@@ -37,10 +37,8 @@
 #else
 #define DllExport   __declspec( dllimport )
 #endif
-#define ALWAYS_INLINE
 #else //else _WIN32
 #define DllExport
-#define ALWAYS_INLINE __attribute__((always_inline))
 #endif
 
 enum FILTER_OUTPUT_ORDER {MODULE_FILTER_IMAGE, FILTER_MODULE_IMAGE};
