@@ -74,29 +74,44 @@ class DenseDesignMatrix(Dataset):
             indices into the design matrix when choosing minibatches.
         """
         self.X = X
+        self.y = y
+
+        X_space = VectorSpace(dim=2)
+        X_source = 'features'
+        if y is None:
+            space = X_space
+            source = X_source
+        else:
+            y_space = VectorSpace(dim=1)
+            y_source = 'targets'
+
+            space = CompositeSpace((X_space, y_space))
+            source = (X_source, y_source)
+        self.data_specs = (space, source)
+        self.X_space = X_space
+
         if view_converter is not None:
-            raise NotImplementedError("We are getting rid of view_converter, "
-                    "only the default one is supported as we know how to deal "
-                    "with it")
-            #TODO: check if isinstance(view_converter, DefaultViewConverter)
-            # and if the attributes are the default ones.
             assert topo_view is None
             self.view_converter = view_converter
-        else:
-            if y is not None:
-                space = CompositeSpace((VectorSpace(dim=2),
-                                        VectorSpace(dim=1)))
-                source = ('features', 'targets')
-            else:
-                space = VectorSpace(dim=2)
-                source = 'features'
-            self.data_specs = (space, source)
 
+            # Build a Conv2DSpace from the view_converter
+            if not (isinstance(view_converter, DefaultViewConverter)
+                    and len(view_converter.shape) == 3):
+                raise NotImplementedError("Not able to build a Conv2DSpace "
+                        "corresponding to this converter: %s"
+                        % view_converter)
+
+            axes = view_converter.axes
+            rows, cols, channels = view_converter.shape
+            self.X_topo_space = Conv2DSpace(
+                    shape=(rows, cols), num_channels=channels, axes=axes)
+
+        else:
             if topo_view is not None:
                 self.set_topological_view(topo_view, axes)
             else:
                 self.X_topo_space = None
-        self.y = y
+
         self.compress = False
         self.design_loc = None
         if hasattr(rng, 'random_integers'):
