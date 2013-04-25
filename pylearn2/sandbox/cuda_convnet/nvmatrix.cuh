@@ -48,7 +48,7 @@
 #include <cuda_ndarray.cuh>
 
 //Commented by Ian Goodfellow-- we don't actually need this dependency, it just increase theano compile times
-//#include <matrix.h>
+#include <matrix.h>
 #include "nvmatrix_kernels.cuh"
 #include "nvmatrix_operators.cuh"
 
