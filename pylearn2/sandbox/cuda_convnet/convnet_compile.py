@@ -23,8 +23,9 @@ _logger.debug('importing')
 
 cuda_convnet_loc = os.path.join(config.compiledir, 'cuda_convnet')
 # In partial dependency order: the last ones depend on the first ones
-cuda_convnet_file_roots = ('nvmatrix_kernels', 'nvmatrix', 'conv_util',
-                           'filter_acts', 'img_acts', 'weight_acts')
+cuda_convnet_file_sources = ('nvmatrix_kernels.cu', 'nvmatrix.cu',
+                             'conv_util.cu', 'filter_acts.cu', 'img_acts.cu',
+                             'weight_acts.cu', 'matrix.cpp')
 cuda_convnet_so = os.path.join(cuda_convnet_loc,
         'cuda_convnet.' + get_lib_extension())
 libcuda_convnet_so = os.path.join(cuda_convnet_loc,
@@ -115,8 +116,7 @@ def convnet_compile():
 
         # Concatenate all .cu files into one big mod.cu
         code = []
-        for file_root in cuda_convnet_file_roots:
-            source_file = file_root + '.cu'
+        for source_file in cuda_convnet_file_sources:
             code.append(open(os.path.join(this_dir, source_file)).read())
         code = '\n'.join(code)
 
@@ -146,8 +146,8 @@ def convnet_compile():
                             preargs=['-O3'] + args,
                             py_module=False)
                 except Exception, e:
-                    _logger.error("Failed to compile %s.cu: %s",
-                                  file_root, str(e))
+                    _logger.error("Failed to compile %s: %s",
+                                  cuda_convnet_file_sources, str(e))
                     return False
             else:
                 _logger.debug('already compiled by another process')
