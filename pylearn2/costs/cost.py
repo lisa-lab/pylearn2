@@ -344,6 +344,8 @@ class LxReg(Cost):
 
 class CrossEntropy(Cost):
     """WRITEME"""
+    def __init__(self):
+        self.supervised = True
 
     def expr(self, model, data, ** kwargs):
         """WRITEME"""
