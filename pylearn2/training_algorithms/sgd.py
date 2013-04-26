@@ -23,7 +23,6 @@ from pylearn2.utils import py_integer_types, py_float_types
 from pylearn2.utils import safe_zip
 from pylearn2.utils import serial
 from pylearn2.utils.timing import log_timing
-#from pylearn2.utils.data_specs import flatten_list
 from pylearn2.utils.data_specs import is_flat_specs
 from theano.gof.op import get_debug_values
 import logging
@@ -253,6 +252,8 @@ class SGD(TrainingAlgorithm):
 
 
         with log_timing(log, 'Compiling sgd_update'):
+            if not isinstance(theano_args, tuple):
+                theano_args = (theano_args,)
             self.sgd_update = function(theano_args,
                                        updates=updates,
                                        name='sgd_update',

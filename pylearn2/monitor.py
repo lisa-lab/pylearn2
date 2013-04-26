@@ -19,7 +19,7 @@ import theano.sparse
 
 from pylearn2.config import yaml_parse
 from pylearn2.datasets.dataset import Dataset
-from pylearn2.space import CompositeSpace
+from pylearn2.space import CompositeSpace, VectorSpace
 from pylearn2.utils import function
 from pylearn2.utils.string_utils import number_aware_alphabetical_key
 from pylearn2.utils import sharedX
@@ -144,6 +144,7 @@ class Monitor(object):
                 it = d.iterator(mode=m, batch_size=b,
                                       num_batches=n,
                                       data_specs=self._flat_data_specs,
+                                      return_tuple=True,
                                       rng = sd)
             except ValueError as exc:
                 raise ValueError("invalid iteration parameters in "
@@ -178,14 +179,17 @@ class Monitor(object):
         if self._dirty:
             self.redo_theano()
 
-        model = self.model
         datasets = self._datasets
 
         # Set all channels' val_shared to 0
         self.begin_record_entry()
-
-        for d, i, b, n, a, sd, ne in safe_izip(datasets, self._iteration_mode, self._batch_size,
-                                 self._num_batches, self.accum, self._rng_seed, self.num_examples):
+        for d, i, b, n, a, sd, ne in safe_izip(datasets,
+                                               self._iteration_mode,
+                                               self._batch_size,
+                                               self._num_batches,
+                                               self.accum,
+                                               self._rng_seed,
+                                               self.num_examples):
             if isinstance(d, basestring):
                 d = yaml_parse.load(d)
                 raise NotImplementedError()
@@ -194,12 +198,14 @@ class Monitor(object):
                                     batch_size=b,
                                     num_batches=n,
                                     data_specs=self._flat_data_specs,
+                                    return_tuple=True,
                                     rng=sd)
 
             actual_ne = 0
             for X in myiterator:
-                # X is in a flat (not nested) tuple
+                # X is a flat (not nested) tuple
                 self.run_prereqs(X, d)
+                a(*X)
                 actual_ne += self._flat_data_specs[0].get_batch_size(X)
             # end for X
             if actual_ne != ne:
@@ -207,7 +213,6 @@ class Monitor(object):
                         + str(ne) + " examples total, but at runtime it gave us "
                         + str(actual_ne) + ".")
         # end for d
-
 
         log.info("Monitoring step:")
         log.info("\tEpochs seen: %d" % self._epochs_seen)
@@ -301,6 +306,12 @@ class Monitor(object):
         # the model acts on
         theano_args = self._flat_data_specs[0].make_theano_batch(
                 self._flat_data_specs[1])
+        # Also get a nested representation, for joint iteration
+        # with each of channel.graph_input
+        nested_theano_args = self._data_specs_mapping.nest(theano_args)
+        if not isinstance(nested_theano_args, tuple):
+            nested_theano_args = (nested_theano_args,)
+        assert len(nested_theano_args) == (len(self.channels) + 1)
 
         log.info('Monitored channels: ')
         for key in sorted(self.channels.keys()):
@@ -309,30 +320,40 @@ class Monitor(object):
                 mode.record.handle_line('compiling monitor including channel '+key+'\n')
             log.info('\t%s' % key)
         it = [d.iterator(mode=i, num_batches=n, batch_size=b,
-                         data_specs=self._flat_data_specs) \
+                         data_specs=self._flat_data_specs,
+                         return_tuple=True) \
               for d, i, n, b in safe_izip(self._datasets, self._iteration_mode,
                                     self._num_batches, self._batch_size)]
         self.num_examples = [np.cast[config.floatX](float(i.num_examples)) for i in it]
         givens = [OrderedDict() for d in self._datasets]
         updates = [OrderedDict() for d in self._datasets]
-        for channel in self.channels.values():
+        for i, channel in enumerate(self.channels.values()):
             index = self._datasets.index(channel.dataset)
             d = self._datasets[index]
             g = givens[index]
             cur_num_examples = self.num_examples[index]
             u = updates[index]
 
-            if isinstance(channel.graph_input, (list, tuple)):
-                channel.graph_input = [channel.graph_input]
-            for (channel_X, X) in safe_zip(
-                    self._data_specs_mapping.flatten(channel.graph_inputs),
-                    theano_args):
+            if not isinstance(channel.graph_input, (list, tuple)):
+                channel_inputs = (channel.graph_input,)
+            else:
+                channel_inputs = channel.graph_input
+            if isinstance(nested_theano_args[i + 1], theano.Variable):
+                inputs = (nested_theano_args[i + 1],)
+            else:
+                assert isinstance(nested_theano_args[i + 1], (list, tuple))
+                inputs = nested_theano_args[i + 1]
+
+            for (channel_X, X) in safe_izip(channel_inputs, inputs):
                 assert channel_X not in g or g[channel_X] is X
+                assert channel_X.type == X.type
                 g[channel_X] = X
             if n == 0:
                 raise ValueError("Iterating over 0 examples results in divide by 0")
             val = channel.val * T.cast(
-                self._flat_data_specs[0].get_batch_size(X), config.floatX) / cur_num_examples
+                    channel.data_specs[0].get_batch_size(
+                            nested_theano_args[i + 1]),
+                    config.floatX) / cur_num_examples
             u[channel.val_shared] = channel.val_shared + val
 
         with log_timing(log, "Compiling accum"):
@@ -362,6 +383,8 @@ class Monitor(object):
                 # Some channels may not depend on the data, ie, they might just monitor the model
                 # parameters, or some shared variable updated by the training algorithm, so we
                 # need to ignore the unused input error
+                if not isinstance(theano_args, tuple):
+                    theano_args = (theano_args,)
                 self.accum.append(function(theano_args,
                                            givens=g,
                                            updates=u,
@@ -437,7 +460,8 @@ class Monitor(object):
 
         self.__dict__.update(d)
 
-    def add_channel(self, name, ipt, val, data_specs, dataset=None, prereqs=None):
+    def add_channel(self, name, ipt, val, dataset=None, prereqs=None,
+                    data_specs=None):
         """
         Asks the monitor to start tracking a new value.  Can be called even
         after the monitor is already in use.
@@ -460,6 +484,8 @@ class Monitor(object):
             value is computed
             if two channels provide a prereq with exactly the same
             id, that prereq will only be called once
+        data_specs: (space, source) pair
+            identifies the order, format and semantics of ipt
         """
 
         if isinstance(val, (float, int, long)):
@@ -468,7 +494,7 @@ class Monitor(object):
         val = T.as_tensor_variable(val)
 
         if not isinstance(ipt, (list, tuple)):
-            tmp = [ ipt ]
+            tmp = [ipt]
         else:
             tmp = ipt
         inputs = theano.gof.graph.inputs([val])
@@ -476,8 +502,6 @@ class Monitor(object):
             if not hasattr(elem, 'get_value') and not isinstance(elem, theano.gof.graph.Constant):
                 if elem not in tmp:
                     raise ValueError("Unspecified input: "+str(elem))
-
-
 
         mode = self.theano_function_mode
         if mode is not None and hasattr(mode, 'record'):
@@ -507,7 +531,31 @@ class Monitor(object):
             raise ValueError("Tried to create the same channel twice (%s)" %
                              name)
 
-        self.channels[name] = MonitorChannel(ipt, val, name, data_specs, dataset, prereqs)
+        if data_specs is None:
+            warnings.warn("parameter 'data_specs' should be provided when "
+                    "calling add_channel. We will build a default one.",
+                    stacklevel=2)
+            if isinstance(ipt, list):
+                ipt = tuple(ipt)
+            if not isinstance(ipt, tuple):
+                ipt = (ipt,)
+            if len(ipt) == 1:
+                # Default to (VectorSpace(), 'features')
+                space = VectorSpace(dim=ipt[0].ndim)
+                source = 'features'
+            elif len(ipt) == 2:
+                # Default to (CompositeSpace(...), ('features', 'targets'))
+                space = CompositeSpace((VectorSpace(dim=ipt[0].ndim),
+                                        VectorSpace(dim=ipt[1].ndim)))
+                source = ('features', 'targets')
+            else:
+                raise ValueError("Cannot infer default data_specs for the "
+                        "following input points: ipt = %s" % ipt)
+
+            data_specs = (space, source)
+
+        self.channels[name] = MonitorChannel(ipt, val, name, data_specs,
+                                             dataset, prereqs)
         self._dirty = True
 
     def _sanity_check(self):
@@ -630,7 +678,11 @@ class Monitor(object):
             # values in the monitor use the name to find it.
             for cost_name in costs:
                 cost = costs[cost_name]
-                cost_value = cost.expr(model, (X, Y))
+                if Y is None:
+                    data = (X,)
+                else:
+                    data = (X, Y)
+                cost_value = cost.expr(model, data)
                 if cost_value is not None:
                     if cost_name == '':
                         name = dprefix + 'objective'
@@ -666,6 +718,8 @@ class MonitorChannel(object):
             and recorded.
         name : str
             The display name in the monitor.
+        data_specs: (space, source) pair
+            Identifies the order, format and semantics of graph_input
         prereqs: list of callables that take numpy tensors
             each prereq must be called exactly once per each new
             batch of data before the channel value is computed
