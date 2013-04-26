@@ -589,7 +589,7 @@ __global__ void filterActs_YxX_sparse_random(float* images, float* filters, floa
     int imgStride = images.getStride(); // images does not need to be a contiguous matrix
 
     int filterPixels = filters.getNumRows() / (filterModuleMult * numFilterColors);
-    int filterSize = int(sqrt((double)filterPixels));
+    int filterSize = int(sqrt(filterPixels));
     assert(filterSize * filterSize == filterPixels);
     assert(filters.getNumRows() == filterModuleMult * numFilterColors * filterPixels);
 
@@ -1251,7 +1251,7 @@ void _filterActsSparse(NVMatrix& images, NVMatrix& filters, NVMatrix& targets, i
     int imgStride = images.getStride(); // images does not need to be a contiguous matrix
 
     int filterPixels = filters.getNumRows() / (filterModuleMult * numFilterColors);
-    int filterSize = int(sqrt((double)filterPixels));
+    int filterSize = int(sqrt(filterPixels));
     assert(filterSize * filterSize == filterPixels);
     assert(filters.getNumRows() == filterModuleMult * numFilterColors * filterPixels);
 

@@ -987,7 +987,7 @@ NVMatrix& NVMatrix::min(int axis) {
 */
 
 void NVMatrix::_sum_setParams(int n, dim3* blocks, dim3* threads, int* numCols) {
-    int logn = int(ceil(log(double(n)) / log(2.)));
+    int logn = int(ceil(log(double(n)) / log(2)));
     *numCols = DIVUP(n, logn);
     int numThreads = *numCols;
     *blocks = dim3(DIVUP(numThreads, DP_BLOCKSIZE));
