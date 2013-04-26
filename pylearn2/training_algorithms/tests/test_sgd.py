@@ -12,6 +12,7 @@ from pylearn2.devtools.record import RecordMode
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.models.model import Model
 from pylearn2.monitor import Monitor
+from pylearn2.space import CompositeSpace
 from pylearn2.space import Conv2DSpace
 from pylearn2.space import VectorSpace
 from pylearn2.termination_criteria import EpochCounter
@@ -31,8 +32,16 @@ from pylearn2.utils import safe_union
 from pylearn2.utils import sharedX
 
 class DummyCost(Cost):
-    def __call__(self, model, X, Y = None):
+    def expr(self, model, data):
+        if isinstance(data, tuple):
+            X, = data
+        else:
+            X = data
         return T.square(model(X)-X).mean()
+
+    def get_data_specs(self, model):
+        return (model.get_input_space(), model.get_input_source())
+
 
 class SoftmaxModel(Model):
     """A dummy model used for testing.
@@ -558,8 +567,8 @@ def test_sgd_sequential():
             assert not visited[start+i]
             visited[start+i] = 1
 
-
-    cost = CallbackCost(visit)
+    data_specs = (model.get_input_space(), model.get_input_source())
+    cost = CallbackCost(visit, data_specs)
 
     # We need to include this so the test actually stops running at some point
     termination_criterion = EpochCounter(5)
@@ -606,8 +615,8 @@ def test_determinism():
                 visited[0][i] = counter
                 counter += 1
 
-
-        cost = CallbackCost(visit)
+        data_specs = (model.get_input_space(), model.get_input_source())
+        cost = CallbackCost(visit, data_specs)
 
         # We need to include this so the test actually stops running at some point
         termination_criterion = EpochCounter(5)
@@ -726,7 +735,8 @@ def test_determinism_2():
 
             supervised = True
 
-            def __call__(self, model, X, Y=None, **kwargs):
+            def expr(self, model, data, **kwargs):
+                X, Y = data
                 disturb_mem.disturb_mem()
                 def mlp_pred(non_linearity):
                     Z = [T.dot(X, W) for W in model.W1]
@@ -740,6 +750,12 @@ def test_determinism_2():
                 disturb_mem.disturb_mem()
 
                 return abs(pred-Y[:,0]).sum()
+
+            def get_data_specs(self, model):
+                data = CompositeSpace((model.get_input_space(),
+                                       model.get_output_space()))
+                source = (model.get_input_source(), model.get_target_source())
+                return (data, source)
 
         cost = LotsOfSummingCost()
 
