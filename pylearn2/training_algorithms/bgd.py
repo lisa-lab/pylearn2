@@ -211,42 +211,51 @@ class BGD(TrainingAlgorithm):
     def train(self, dataset):
         assert self.bSetup
         model = self.model
-        batch_size = self.batch_size
-
-        if self.topo:
-            get_data = dataset.get_batch_topo
-        else:
-            get_data = dataset.get_batch_design
 
         rng = self.rng
         train_iteration_mode = 'shuffled_sequential'
         if not is_stochastic(train_iteration_mode):
             rng = None
+
+        data_specs = self.cost.get_data_specs(self.model)
+        space, source = data_specs
+        if space is not None and not isinstance(space, tuple):
+            space = (space,)
+        if source is None:
+            source = ()
+        elif not isinstance(source, tuple):
+            source = (source,)
+
+        assert is_flat_specs(data_specs), ("data_specs should be flat, "
+                "but is nested: %s" % data_specs)
+
         iterator = dataset.iterator(mode=train_iteration_mode,
                 batch_size=self.batch_size,
-                targets=self.cost.supervised,
                 num_batches=self.batches_per_iter,
-                topo=self.topo,
+                data_specs=data_specs, return_tuple=True,
                 rng = rng)
+
+        mode = self.theano_function_mode
         for data in iterator:
-            if self.cost.supervised:
-                args = data
-                X, Y = data
-                mode = self.theano_function_mode
-                if mode is not None and hasattr(mode, 'record'):
-                    stry = str(Y).replace('\n',' ')
-                    mode.record.handle_line('data Y '+stry+'\n')
-                for on_load_batch in self.on_load_batch:
-                    on_load_batch(X, Y)
-            else:
-                args = [ data ]
-                X = data
-                for on_load_batch in self.on_load_batch:
-                    on_load_batch(X, None)
+            if ('targets' in source and mode is not None
+                    and hasattr(mode, 'record')):
+                Y = data[source.index('targets')]
+                stry = str(Y).replace('\n',' ')
+                mode.record.handle_line('data Y '+stry+'\n')
+
+            for on_load_batch in self.on_load_batch:
+                on_load_batch(*data)
+
             self.before_step(model)
-            self.optimizer.minimize(*args)
+            self.optimizer.minimize(*data)
             self.after_step(model)
-            model.monitor.report_batch( X.shape[0] )
+            if space is None:
+                # There is no way to know how many examples would actually
+                # have been in the batch, since it was empty
+                actual_batch_size = 0
+            else:
+                actual_batch_size = space.get_batch_size(data)
+            model.monitor.report_batch(actual_batch_size)
 
     def continue_learning(self, model):
         if self.termination_criterion is None:
@@ -288,7 +297,9 @@ class StepShrinker(TrainExtension, TerminationCriterion):
             # TODO: make monitor accept channels not associated with any dataset,
             # so this hack won't be necessary
             hack = monitor.channels.values()[0]
-            monitor.add_channel('scale_step', hack.graph_input, self.monitor_channel, dataset=hack.dataset)
+            monitor.add_channel('scale_step', hack.graph_input,
+                    self.monitor_channel, dataset=hack.dataset,
+                    data_specs=hack.data_specs)
         channel = monitor.channels[self.channel]
         v = channel.val_record
         if len(v) == 1:

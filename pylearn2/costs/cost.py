@@ -19,7 +19,8 @@ class Cost(object):
     unsupervised cost.
     """
 
-    # If True, the Y argument to expr and get_gradients must not be None
+    # If True, the data argument to expr and get_gradients must be a
+    # (X, Y) pair, and Y cannot be None.
     supervised = False
 
     def expr(self, model, data, ** kwargs):
@@ -213,7 +214,7 @@ class SumOfCosts(Cost):
         composite_specs, mapping = self.get_composite_specs_and_mapping(model)
         nested_data = mapping.nest(data)
         for cost, cost_data in safe_zip(self.costs, nested_data):
-            result = cost.get_gradients(model, data, ** kwargs)
+            result = cost.get_gradients(model, cost_data, ** kwargs)
             indiv_results.append(result)
 
         grads = OrderedDict()
