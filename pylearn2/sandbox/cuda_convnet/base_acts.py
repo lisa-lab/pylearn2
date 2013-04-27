@@ -47,10 +47,12 @@ from pylearn2.sandbox.cuda_convnet.shared_code import this_dir
 from pylearn2.sandbox.cuda_convnet.convnet_compile import convnet_available
 from pylearn2.sandbox.cuda_convnet.convnet_compile import cuda_convnet_loc
 from pylearn2.utils import py_integer_types
-from os import name as osname
 
 from theano.tensor.blas_headers import cblas_header_text
 from theano.tensor.blas import ldflags
+
+import pylearn2.sandbox.cuda_convnet.pthreads
+from theano import config
 
 class BaseActs(GpuOp):
     """
@@ -71,7 +73,7 @@ class BaseActs(GpuOp):
         self.dense_connectivity = True
 
     def c_header_dirs(self):
-        return [this_dir, 'd:\\kit\\pthreads-win32-VC-x64'] if osname == 'nt' else [this_dir]
+        return ldflags(libs=False, include_dir=True) + [this_dir] + [config.pthreads.header_dir] if config.pthreads.header_dir else []
 
     def c_headers(self):
         return ['nvmatrix.cuh', 'cudaconv2.cuh']
@@ -82,13 +84,16 @@ class BaseActs(GpuOp):
         return ()
 
     def c_lib_dirs(self):
-        return ldflags(libs=False, libs_dir=True) + [cuda_convnet_loc] + ['d:\\kit\\pthreads-win32-VC-x64'] if osname == 'nt' else []
+        return ldflags(libs=False, libs_dir=True) + [cuda_convnet_loc] + [config.pthreads.lib_dir] if config.pthreads.lib_dir else []
 
     def c_libraries(self):
-        return ldflags() + ['cuda_convnet'] + ['pthreadVC2'] if osname == 'nt' else []
+        return ldflags() + ['cuda_convnet'] + [config.pthreads.lib] if config.pthreads.lib else []
 		
     def c_support_code(self):
         return cblas_header_text()
+	
+    def compile_args(self):
+        return ldflags(libs = False, flags = True)
 
     def _argument_contiguity_check(self, arg_name):
         return """

@@ -15,6 +15,8 @@ from theano.tensor.blas import ldflags
 
 from shared_code import this_dir
 
+import pylearn2.sandbox.cuda_convnet.pthreads
+
 _logger_name = 'pylearn2.sandbox.cuda_convnet.convnet_compile'
 _logger = logging.getLogger(_logger_name)
 #_logger.addHandler(logging.StreamHandler())
@@ -142,10 +144,10 @@ def convnet_compile():
                     compiler.compile_str('cuda_convnet',
                             code,
                             location = cuda_convnet_loc,
-                            include_dirs = [this_dir, 'd:\\kit\\pthreads-win32-VC-x64'] if os.name == 'nt' else [this_dir],
-                            lib_dirs = ldflags(libs=False, libs_dir=True) + nvcc_compiler.rpath_defaults + ['d:\\kit\\pthreads-win32-VC-x64'] if os.name == 'nt' else [],  # ???
-                            libs = ldflags() + ['cublas', 'pthreadVC2'] if os.name == 'nt' else ['cublas'],
-                            preargs = ['-O3'] + args,
+                            include_dirs = ldflags(libs=False, include_dir=True) + [this_dir] + [config.pthreads.inc_dir] if config.pthreads.inc_dir else [],
+                            lib_dirs = nvcc_compiler.rpath_defaults + ldflags(libs=False, libs_dir=True) + [cuda_convnet_loc] + [config.pthreads.lib_dir] if config.pthreads.lib_dir else [],
+                            libs = ldflags() + ['cublas'] + [config.pthreads.lib] if config.pthreads.lib else [],
+                            preargs = ['-O3'] + args + ldflags(libs=False, flags=True),
                             py_module=False)
                 except Exception, e:
                     _logger.error("Failed to compile %s %s: %s",
