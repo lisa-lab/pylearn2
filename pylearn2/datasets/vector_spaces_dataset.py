@@ -54,14 +54,14 @@ class VectorSpacesDataset(Dataset):
         ----------
         data: ndarray, or tuple of ndarrays, containing the data.
             It is formatted as specified in `data_specs`.
-            For instance, if `data_specs` is (VectorSpace(2), 'features'),
+            For instance, if `data_specs` is (VectorSpace(nfeat), 'features'),
             then `data` has to be a 2-d ndarray, of shape (nb examples,
-            nb features), that defines an unlabeled dataset. If `data_specs`
+            nfeat), that defines an unlabeled dataset. If `data_specs`
             is (CompositeSpace(Conv2DSpace(...), VectorSpace(1)),
             ('features', 'target')), then `data` has to be an (X, y) pair,
             with X being an ndarray containing images stored in the topological
-            view specified by the `Conv2DSpace`, and y being a 1-D ndarray
-            containing the labels or targets for each example.
+            view specified by the `Conv2DSpace`, and y being a 2-D ndarray
+            of width 1, containing the labels or targets for each example.
 
         data_specs: A (space, source) pair, where space is an instance of
             `Space` (possibly a `CompositeSpace`), and `source` is a
