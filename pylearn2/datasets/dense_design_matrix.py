@@ -76,20 +76,6 @@ class DenseDesignMatrix(Dataset):
         self.X = X
         self.y = y
 
-        X_space = VectorSpace(dim=2)
-        X_source = 'features'
-        if y is None:
-            space = X_space
-            source = X_source
-        else:
-            y_space = VectorSpace(dim=1)
-            y_source = 'targets'
-
-            space = CompositeSpace((X_space, y_space))
-            source = (X_source, y_source)
-        self.data_specs = (space, source)
-        self.X_space = X_space
-
         if view_converter is not None:
             assert topo_view is None
             self.view_converter = view_converter
@@ -111,6 +97,20 @@ class DenseDesignMatrix(Dataset):
                 self.set_topological_view(topo_view, axes)
             else:
                 self.X_topo_space = None
+
+        X_space = VectorSpace(dim=self.X.shape[1])
+        X_source = 'features'
+        if y is None:
+            space = X_space
+            source = X_source
+        else:
+            y_space = VectorSpace(dim=self.y.shape[-1])
+            y_source = 'targets'
+
+            space = CompositeSpace((X_space, y_space))
+            source = (X_source, y_source)
+        self.data_specs = (space, source)
+        self.X_space = X_space
 
         self.compress = False
         self.design_loc = None
