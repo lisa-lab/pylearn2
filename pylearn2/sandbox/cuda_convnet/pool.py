@@ -14,6 +14,9 @@ from pylearn2.sandbox.cuda_convnet.shared_code import this_dir
 
 from os import name as osname
 
+from theano.tensor.blas_headers import cblas_header_text
+from theano.tensor.blas import ldflags
+
 
 def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape = None,  start=0):
     assert pool_shape[0] == pool_shape[1]
@@ -96,10 +99,13 @@ class MaxPool(GpuOp):
         return ['nvmatrix.cuh', 'conv_util.cuh']
 
     def c_lib_dirs(self):
-        return [cuda_convnet_loc]
+        return ldflags(libs=False, libs_dir=True) + [cuda_convnet_loc]
 
     def c_libraries(self):
-        return ['cuda_convnet']
+        return ldflags() + ['cuda_convnet']
+		
+    def c_support_code(self):
+        return cblas_header_text()
 
     def c_code_cache_version(self):
         return (1,)

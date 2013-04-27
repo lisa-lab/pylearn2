@@ -49,6 +49,8 @@ from pylearn2.sandbox.cuda_convnet.convnet_compile import cuda_convnet_loc
 from pylearn2.utils import py_integer_types
 from os import name as osname
 
+from theano.tensor.blas_headers import cblas_header_text
+from theano.tensor.blas import ldflags
 
 class BaseActs(GpuOp):
     """
@@ -80,10 +82,13 @@ class BaseActs(GpuOp):
         return ()
 
     def c_lib_dirs(self):
-        return [cuda_convnet_loc, 'd:\\kit\\pthreads-win32-VC-x64'] if osname == 'nt' else [cuda_convnet_loc]
+        return ldflags(libs=False, libs_dir=True) + [cuda_convnet_loc] + ['d:\\kit\\pthreads-win32-VC-x64'] if osname == 'nt' else []
 
     def c_libraries(self):
-        return ['cuda_convnet', 'pthreadVC2'] if osname == 'nt' else ['cuda_convnet']
+        return ldflags() + ['cuda_convnet'] + ['pthreadVC2'] if osname == 'nt' else []
+		
+    def c_support_code(self):
+        return cblas_header_text()
 
     def _argument_contiguity_check(self, arg_name):
         return """
