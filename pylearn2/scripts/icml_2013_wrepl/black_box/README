@@ -51,7 +51,7 @@ on the test set.
 4. If you want to enter this result in the Kaggle contest, upload the test.csv
 file to the Kaggle contest website. This can be a good way of making sure your
 setup is working, but it will use up one of your two allowed submissions for the
-day. If you do enter the result, it should get around 36.6% accuracy.
+day. If you do enter the result, it should get around 51.5% accuracy.
 
 
 ZCA Preprocessing Baseline

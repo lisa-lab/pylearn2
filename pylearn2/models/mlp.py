@@ -2219,10 +2219,18 @@ def mean_of_targets(dataset):
 
 class PretrainedLayer(Layer):
     """
-    A layer whose weights are fixed based on prior training.
+    A layer whose weights are initialized, and optionally fixed,
+    based on prior training.
     """
 
     def __init__(self, layer_name, layer_content, freeze_params=False):
+        """
+        layer_content: A Model that implements "upward_pass", such as an
+            RBM or an Autoencoder
+        freeze_params: If True, regard layer_conent's parameters as fixed
+            If False, they become parameters of this layer and can be
+            fine-tuned to optimize the MLP's cost function.
+        """
         self.__dict__.update(locals())
         del self.self
 
