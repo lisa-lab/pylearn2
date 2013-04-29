@@ -52,6 +52,7 @@ class BlackBoxDataset(DenseDesignMatrix):
         del self.test_args['self']
 
         files = {'train': 'train.csv', 'public_test' : 'test.csv'}
+        sizes = {'train': 1000, 'public_test' : 10000, 'extra': 135735 }
 
         if which_set == 'extra':
             path = base_path + '/' + 'extra_unsupervised_data.npy'
@@ -67,8 +68,12 @@ class BlackBoxDataset(DenseDesignMatrix):
 
             path = preprocess(path)
 
-            X, y = self._load_data(path, which_set == 'train')
+            expect_labels = which_set == 'train'
 
+            X, y = self._load_data(path, expect_labels)
+        size = sizes[which_set]
+        if X.shape[0] != size:
+            raise ValueError("Expected "+str(size)+" examples, got "+str(X.shape[0]))
 
         if start is not None:
             assert which_set != 'test'
@@ -76,7 +81,10 @@ class BlackBoxDataset(DenseDesignMatrix):
             assert isinstance(stop, int)
             assert start >= 0
             assert start < stop
-            assert stop <= X.shape[0]
+            if not (stop <= X.shape[0]):
+                raise ValueError("stop must be less than the # of examples but " +
+                        "stop is " + str(stop) + " and there are " + str(X.shape[0]) +
+                        " examples.")
             X = X[start:stop, :]
             if y is not None:
                 y = y[start:stop, :]
