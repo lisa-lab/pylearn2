@@ -76,41 +76,41 @@ class DenseDesignMatrix(Dataset):
         self.X = X
         self.y = y
 
-        if view_converter is not None:
-            assert topo_view is None
-            self.view_converter = view_converter
-
-            # Build a Conv2DSpace from the view_converter
-            if not (isinstance(view_converter, DefaultViewConverter)
-                    and len(view_converter.shape) == 3):
-                raise NotImplementedError("Not able to build a Conv2DSpace "
-                        "corresponding to this converter: %s"
-                        % view_converter)
-
-            axes = view_converter.axes
-            rows, cols, channels = view_converter.shape
-            self.X_topo_space = Conv2DSpace(
-                    shape=(rows, cols), num_channels=channels, axes=axes)
-
+        if topo_view is not None:
+            assert view_converter is None
+            self.set_topological_view(topo_view, axes)
         else:
-            if topo_view is not None:
-                self.set_topological_view(topo_view, axes)
+            if view_converter is not None:
+                self.view_converter = view_converter
+
+                # Build a Conv2DSpace from the view_converter
+                if not (isinstance(view_converter, DefaultViewConverter)
+                        and len(view_converter.shape) == 3):
+                    raise NotImplementedError("Not able to build a Conv2DSpace "
+                            "corresponding to this converter: %s"
+                            % view_converter)
+
+                axes = view_converter.axes
+                rows, cols, channels = view_converter.shape
+                self.X_topo_space = Conv2DSpace(
+                        shape=(rows, cols), num_channels=channels, axes=axes)
             else:
                 self.X_topo_space = None
 
-        X_space = VectorSpace(dim=self.X.shape[1])
-        X_source = 'features'
-        if y is None:
-            space = X_space
-            source = X_source
-        else:
-            y_space = VectorSpace(dim=self.y.shape[-1])
-            y_source = 'targets'
+            # Update data specs, if not done in set_topological_view
+            X_space = VectorSpace(dim=self.X.shape[1])
+            X_source = 'features'
+            if y is None:
+                space = X_space
+                source = X_source
+            else:
+                y_space = VectorSpace(dim=self.y.shape[-1])
+                y_source = 'targets'
 
-            space = CompositeSpace((X_space, y_space))
-            source = (X_source, y_source)
-        self.data_specs = (space, source)
-        self.X_space = X_space
+                space = CompositeSpace((X_space, y_space))
+                source = (X_source, y_source)
+            self.data_specs = (space, source)
+            self.X_space = X_space
 
         self.compress = False
         self.design_loc = None
@@ -122,7 +122,7 @@ class DenseDesignMatrix(Dataset):
         self._iter_mode = resolve_iterator_class('sequential')
         self._iter_topo = False
         self._iter_targets = False
-        self._iter_data_specs = (X_space, X_source)
+        self._iter_data_specs = (self.X_space, 'features')
 
         if preprocessor:
             preprocessor.apply(self, can_fit=fit_preprocessor)
@@ -261,6 +261,41 @@ class DenseDesignMatrix(Dataset):
                 self.X = None
         else:
             self.__dict__.update(d)
+
+        # To be able to unpickle older data after the addition of
+        # the data_specs mechanism
+        if not all(m in d for m in ('data_specs', 'X_space',
+                                    '_iter_data_specs', 'X_topo_space')):
+            X_space = VectorSpace(dim=self.X.shape[1])
+            X_source = 'features'
+            if self.y is None:
+                space = X_space
+                source = X_source
+            else:
+                y_space = VectorSpace(dim=self.y.shape[-1])
+                y_source = 'targets'
+
+                space = CompositeSpace((X_space, y_space))
+                source = (X_source, y_source)
+
+            self.data_specs = (space, source)
+            self.X_space = X_space
+            self._iter_data_specs = (X_space, X_source)
+
+            view_converter = d.get('view_converter', None)
+            if view_converter is not None:
+                # Build a Conv2DSpace from the view_converter
+                if not (isinstance(view_converter, DefaultViewConverter)
+                        and len(view_converter.shape) == 3):
+                    raise NotImplementedError(
+                            "Not able to build a Conv2DSpace "
+                            "corresponding to this converter: %s"
+                            % view_converter)
+
+                axes = view_converter.axes
+                rows, cols, channels = view_converter.shape
+                self.X_topo_space = Conv2DSpace(
+                        shape=(rows, cols), num_channels=channels, axes=axes)
 
     def _apply_holdout(self, _mode="sequential", train_size=0, train_prop=0):
         """
@@ -446,6 +481,22 @@ class DenseDesignMatrix(Dataset):
                 shape=(rows, cols), num_channels=channels, axes=axes)
         assert not N.any(N.isnan(self.X))
 
+        # Update data specs
+        X_space = VectorSpace(dim=self.X.shape[1])
+        X_source = 'features'
+        if self.y is None:
+            space = X_space
+            source = X_source
+        else:
+            y_space = VectorSpace(dim=self.y.shape[-1])
+            y_source = 'targets'
+            space = CompositeSpace((X_space, y_space))
+            source = (X_source, y_source)
+
+        self.data_specs = (space, source)
+        self.X_space = X_space
+        self._iter_data_specs = (X_space, X_source)
+
     def get_design_matrix(self, topo=None):
         """
         Return topo (a batch of examples in topology preserving format),
@@ -517,7 +568,11 @@ class DenseDesignMatrix(Dataset):
         return self.view_converter.weights_view_shape()
 
     def has_targets(self):
-         return self.y is not None
+        return self.y is not None
+
+    def get_data_specs(self):
+        return self.data_specs
+
 
 class DenseDesignMatrixPyTables(DenseDesignMatrix):
     """
