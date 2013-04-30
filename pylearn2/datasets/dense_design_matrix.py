@@ -80,6 +80,8 @@ class DenseDesignMatrix(Dataset):
             assert view_converter is None
             self.set_topological_view(topo_view, axes)
         else:
+            assert X is not None, ("DenseDesignMatrix needs to be provided "
+                    "with either topo_view, or X")
             if view_converter is not None:
                 self.view_converter = view_converter
 
