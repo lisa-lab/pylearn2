@@ -87,9 +87,10 @@ class PCD(Cost):
         if self.supervised:
             assert isinstance(data, (list, tuple))
             assert len(data) == 2
-            (X,Y) = data
+            (X, Y) = data
         else:
-            X = data
+            X, = data
+            Y = None
 
         layer_to_clamp = OrderedDict([(model.visible_layer, True )])
         layer_to_pos_samples = OrderedDict([(model.visible_layer, X)])
@@ -284,12 +285,13 @@ class VariationalPCD(Cost):
         if self.supervised:
             assert isinstance(data, (list, tuple))
             assert len(data) == 2
-            (X,Y) = data
+            (X, Y) = data
             # note: if the Y layer changes to something without linear energy,
             # we'll need to make the expected energy clamp Y in the positive phase
             assert isinstance(model.hidden_layers[-1], dbm.Softmax)
         else:
-            X = data
+            X, = data
+            Y = None
 
         q = model.mf(X, Y)
 
@@ -498,9 +500,9 @@ class TorontoSparsity(Cost):
         if self.supervised:
             assert isinstance(data, (list, tuple))
             assert len(data) == 2
-            (X,Y) = data
+            (X, Y) = data
         else:
-            X = data
+            X, = data
         interm_grads = OrderedDict()
 
 
