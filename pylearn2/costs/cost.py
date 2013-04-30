@@ -399,7 +399,7 @@ class MethodCost(Cost):
         else:
             return fn
 
-def _no_op(data):
+def _no_op(*data):
     """
     An on_load_batch callback that does nothing.
     """
