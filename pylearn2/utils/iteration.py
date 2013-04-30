@@ -384,10 +384,16 @@ class FiniteDatasetIterator(object):
 
                 needs_format = not sp == dspace
                 if needs_format:
+                    # "dspace" and "sp" have to be passed as parameters
+                    # to lambda, in order to capture their current value,
+                    # otherwise they would change in the next iteration
+                    # of the loop.
                     if fn is None:
-                        fn = lambda batch: dspace.np_format_as(batch, sp)
+                        fn = (lambda batch, dspace=dspace, sp=sp:
+                                dspace.np_format_as(batch, sp))
                     else:
-                        fn = lambda batch: dspace.np_format_as(fn(batch), sp)
+                        fn = (lambda batch, dspace=dspace, sp=sp:
+                                dspace.np_format_as(fn(batch), sp))
 
                 self._convert.append(fn)
 
