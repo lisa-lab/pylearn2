@@ -7,20 +7,18 @@ from theano.tensor.shared_randomstreams import RandomStreams
 
 class MeanSquaredReconstructionError(Cost):
     def expr(self, model, data, ** kwargs):
-        # Note: this cost expects the composite parameter data to be just a
-        # single variable, so there is no unpacking to do
-        return ((model.reconstruct(data) - data) ** 2).sum(axis=1).mean()
+        X, = data
+        return ((model.reconstruct(X) - X) ** 2).sum(axis=1).mean()
 
     def get_data_specs(self, model):
         return (model.get_input_space(), model.get_input_source())
 
 class MeanBinaryCrossEntropy(Cost):
     def expr(self, model, data, ** kwargs):
-        # Note: this cost expects the composite parameter data to be just a
-        # single variable, so there is no unpacking to do
+        X, = data
         return (
-            - data * tensor.log(model.reconstruct(data)) -
-            (1 - data) * tensor.log(1 - model.reconstruct(data))
+            - X * tensor.log(model.reconstruct(data)) -
+            (1 - X) * tensor.log(1 - model.reconstruct(X))
         ).sum(axis=1).mean()
 
     def get_data_specs(self, model):

@@ -161,6 +161,8 @@ class SGD(TrainingAlgorithm):
 
             # Name variables based on the sources
             theano_args = data_specs[0].make_theano_batch(name=data_specs[1])
+            if not isinstance(theano_args, tuple):
+                theano_args = (theano_args,)
 
         cost_value = self.cost.expr(model, theano_args)
 
