@@ -136,8 +136,8 @@ def test_sgd_unspec_num_mon_batch():
 
     X = T.matrix()
 
-    def tracker(X, y):
-        assert y is None
+    def tracker(*data):
+        X, = data
         assert X.shape[1] == 1
         for i in xrange(X.shape[0]):
             visited[int(X[i,0])] = True
