@@ -5,5 +5,5 @@ import unittest
 import run_deep_trainer
 
 def test_deep_trainer():
-    run_deep_trainer.main()
-    
+    # pass args=[] so we can pass options to nosetests on the command line
+    run_deep_trainer.main(args=[])
