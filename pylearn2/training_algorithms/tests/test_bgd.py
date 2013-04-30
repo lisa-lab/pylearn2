@@ -336,10 +336,10 @@ def test_fixed_vars():
             return rval
 
         def get_data_specs(self, model):
-            data = CompositeSpace((model.get_input_space(),
+            space = CompositeSpace((model.get_input_space(),
                                    model.get_output_space()))
             source = (model.get_input_source(), model.get_target_source())
-            return (data, source)
+            return (space, source)
 
     cost = SumOfCosts(costs=[UnsupervisedCostWithFixedVars(), SupervisedCostWithFixedVars()])
 

@@ -441,7 +441,3 @@ def merge(left, right):
     rval.on_load_batch = safe_union(left.on_load_batch, right.on_load_batch)
 
     return rval
-
-
-    def expr(self, data):
-        return self.wrapped(data)
