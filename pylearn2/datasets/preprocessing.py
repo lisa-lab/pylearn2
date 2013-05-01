@@ -24,7 +24,7 @@ import theano.tensor as T
 
 from pylearn2.base import Block
 from pylearn2.linear.conv2d import Conv2D
-from pylearn2.space import Conv2DSpace
+from pylearn2.space import Conv2DSpace, VectorSpace
 from pylearn2.expr.preprocessing import global_contrast_normalize
 from pylearn2.utils.insert_along_axis import insert_columns
 from pylearn2.utils import sharedX
@@ -350,11 +350,30 @@ class ExamplewiseUnitNormBlock(Block):
     the first axis, and normalizes each example to lie on the unit
     sphere.
     """
+
+    def __init__(self, input_space=None):
+        super(ExamplewiseUnitNormBlock, self).__init__()
+        self.input_space = input_space
+
     def __call__(self, batch):
+        if self.input_space:
+            self.input_space.validate(batch)
         squared_batch = batch ** 2
-        for dim in range(batch.ndim - 1, 0, -1):
-            squared_batch = squared_batch.sum(axis=dim)
-        return T.sqrt(squared_batch)
+        squared_norm = squared_batch.sum(axis=1)
+        norm = T.sqrt(squared_norm)
+        return batch / norm
+
+    def set_input_space(self, space):
+        self.input_space = space
+
+    def get_input_space(self):
+        if self.input_space is not None:
+            return self.input_space
+        raise ValueError("No input space was specified for this Block. "
+                "You can call set_input_space to correct that.")
+
+    def get_output_space(self):
+        return self.get_input_space()
 
 
 class MakeUnitNorm(ExamplewisePreprocessor):
@@ -373,7 +392,8 @@ class ExamplewiseAddScaleTransform(Block):
     A block that encodes an per-feature addition/scaling transform.
     The addition/scaling can be done in either order.
     """
-    def __init__(self, add=None, multiply=None, multiply_first=False):
+    def __init__(self, add=None, multiply=None, multiply_first=False,
+                 input_space=None):
         """
         Initialize an ExamplewiseAddScaleTransform instance.
 
@@ -390,6 +410,9 @@ class ExamplewiseAddScaleTransform(Block):
         multiply_first : boolean, optional
             Whether to perform the multiplication before the addition.
             (default is False).
+
+        input_space: Space, optional
+            The input space describing the data
         """
         self._add = np.asarray(add)
         self._multiply = np.asarray(multiply)
@@ -399,6 +422,7 @@ class ExamplewiseAddScaleTransform(Block):
         else:
             self._has_zeros = False
         self._multiply_first = multiply_first
+        self.input_space = input_space
 
     def _multiply(self, batch):
         if self._multiply is not None:
@@ -411,6 +435,8 @@ class ExamplewiseAddScaleTransform(Block):
         return batch
 
     def __call__(self, batch):
+        if self.input_space:
+            self.input_space.validate(batch)
         cur = batch
         if self._multiply_first:
             batch = self._add(self._multiply(batch))
@@ -427,6 +453,18 @@ class ExamplewiseAddScaleTransform(Block):
             mult_inverse = self._multiply ** -1.
             return self.__class__(add=-self._add, multiply=mult_inverse,
                                   multiply_first=not self._multiply_first)
+
+    def set_input_space(self, space):
+        self.input_space = space
+
+    def get_input_space(self):
+        if self.input_space is not None:
+            return self.input_space
+        raise ValueError("No input space was specified for this Block. "
+                "You can call set_input_space to correct that.")
+
+    def get_output_space(self):
+        return self.get_input_space()
 
 
 class RemoveMean(ExamplewisePreprocessor):
@@ -527,6 +565,12 @@ class ColumnSubsetBlock(Block):
     def inverse(self):
         return ZeroColumnInsertBlock(self._columns, self._total)
 
+    def get_input_space(self):
+        return VectorSpace(dim=self._total)
+
+    def get_output_space(self):
+        return VectorSpace(dim=self._columns)
+
 
 class ZeroColumnInsertBlock(Block):
     def __init__(self, columns, total):
@@ -540,6 +584,12 @@ class ZeroColumnInsertBlock(Block):
 
     def inverse(self):
         return ColumnSubsetBlock(self._columns, self._total)
+
+    def get_input_space(self):
+        return VectorSpace(dim=self._columns)
+
+    def get_output_space(self):
+        return VectorSpace(dim=self._total)
 
 
 class RemoveZeroColumns(ExamplewisePreprocessor):
