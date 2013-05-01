@@ -67,6 +67,18 @@ class Block(object):
     def inverse(self):
         raise NotImplementedError()
 
+    def set_input_space(self, space):
+        raise NotImplementedError(
+                "Not all Blocks implement set_input_space yet")
+
+    def get_input_space(self):
+        raise NotImplementedError(
+                "Not all Blocks implement get_input_space yet")
+
+    def get_output_space(self):
+        raise NotImplementedError(
+                "Not all Blocks implement get_output_space yet")
+
 
 class StackedBlocks(Block):
     """
