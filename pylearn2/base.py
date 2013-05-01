@@ -175,7 +175,16 @@ class StackedBlocks(Block):
         """
         Add a new layer on top of the last one
         """
-        self.layers.append(layer)
+        self._layers.append(layer)
         self._params.update(layer._params)
 
+    def get_input_space(self):
+        return self._layers[0].get_input_space()
 
+    def get_output_space(self):
+        return self._layers[-1].get_output_space()
+
+    def set_input_space(self, space):
+        for layer in self._layers:
+            layer.set_input_space(space)
+            space = layer.get_output_space()
