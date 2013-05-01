@@ -319,6 +319,12 @@ class Autoencoder(Block, Model):
 
         return ['v', 'h']
 
+    # Use version defined in Model, rather than Block (which raises
+    # NotImplementedError).
+    get_input_space = Model.get_input_space
+    get_output_space = Model.get_output_space
+
+
 class DenoisingAutoencoder(Autoencoder):
     """
     A denoising autoencoder learns a representation of the input by
