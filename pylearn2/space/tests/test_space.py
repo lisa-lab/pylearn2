@@ -1,9 +1,12 @@
 """Tests for space utilities."""
-import theano.tensor as TT
-import numpy
-from pylearn2.utils.data_specs import DataSpecsMapping
+import numpy as np
+import theano
+from theano import config
+from theano import tensor
+from theano.sandbox.cuda import CudaNdarrayType
 from pylearn2.space import VectorSpace, \
         CompositeSpace, Conv2DSpace, Space
+
 
 class DummySpace(Space):
     def __init__(self, dim, sparse=False):
@@ -28,11 +31,10 @@ class DummySpace(Space):
         if self.sparse:
             rval = theano.sparse.csr_matrix(name=name)
         else:
-            rval = T.matrix(name=name, dtype=dtype)
+            rval = tensor.matrix(name=name, dtype=dtype)
         if config.compute_test_value != 'off':
             rval.tag.test_value = self.get_origin_batch(n=4)
         return rval
-
 
     def get_total_dimension(self):
         return self.dim
@@ -79,38 +81,41 @@ class DummySpace(Space):
         if batch.ndim != 2:
             raise ValueError('VectorSpace batches must be 2D, got %d dimensions' % batch.ndim)
 
+
 def test_np_format_as_vector2conv2D():
     vector_space = VectorSpace(dim=8*8*3, sparse=False)
     conv2d_space = Conv2DSpace(shape=(8,8), num_channels=3,
                                axes=('b','c',0,1))
-    data = numpy.arange(5*8*8*3).reshape(5, 8*8*3)
+    data = np.arange(5*8*8*3).reshape(5, 8*8*3)
     rval = vector_space.np_format_as(data, conv2d_space)
-    assert numpy.all(rval == data.reshape((5,3,8,8)))
+    assert np.all(rval == data.reshape((5,3,8,8)))
     dummy_space = DummySpace(dim=8*8*3, sparse=False)
     rval = dummy_space.format_as(data, conv2d_space)
-    assert numpy.all(rval == data.reshape((5,3,8 ,8)))
+    assert np.all(rval == data.reshape((5,3,8 ,8)))
+
 
 def test_np_format_as_conv2D2vector():
     vector_space = VectorSpace(dim=8*8*3, sparse=False)
     conv2d_space = Conv2DSpace(shape=(8,8), num_channels=3,
                                axes=('b','c',0,1))
-    data = numpy.arange(5*8*8*3).reshape(5, 3, 8,8)
+    data = np.arange(5*8*8*3).reshape(5, 3, 8,8)
     rval = conv2d_space.np_format_as(data, vector_space)
-    assert numpy.all(rval == data.reshape((5,3*8*8)))
+    assert np.all(rval == data.reshape((5,3*8*8)))
 
     vector_space = VectorSpace(dim=8*8*3, sparse=False)
     conv2d_space = Conv2DSpace(shape=(8,8), num_channels=3,
                                axes=('c','b',0,1))
-    data = numpy.arange(5*8*8*3).reshape(3, 5, 8,8)
+    data = np.arange(5*8*8*3).reshape(3, 5, 8,8)
     rval = conv2d_space.np_format_as(data, vector_space)
-    assert numpy.all(rval == data.transpose(1,0,2,3).reshape((5,3*8*8)))
+    assert np.all(rval == data.transpose(1,0,2,3).reshape((5,3*8*8)))
+
 
 def test_np_format_as_conv2D2conv2D():
     conv2d_space1 = Conv2DSpace(shape=(8,8), num_channels=3,
                                axes=('c','b',1,0))
     conv2d_space0 = Conv2DSpace(shape=(8,8), num_channels=3,
                                axes=('b','c',0,1))
-    data = numpy.arange(5*8*8*3).reshape(5, 3, 8,8)
+    data = np.arange(5*8*8*3).reshape(5, 3, 8,8)
     rval = conv2d_space0.np_format_as(data, conv2d_space1)
     nval = data.transpose(1,0,3,2)
-    assert numpy.all(rval ==nval )
+    assert np.all(rval ==nval )

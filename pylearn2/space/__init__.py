@@ -123,7 +123,7 @@ class Space(object):
             #assert specs_utils.is_flat_space(self)
             variables = self.make_theano_batch()
             outputs = self.format_as(variables, space)
-            if not instance(variables, (tuple, list)):
+            if not isinstance(variables, (tuple, list)):
                 variables = (variables,)
             self._np_format_as = theano.function(variables, outputs)
         if isinstance(batch, (list, tuple)):
@@ -541,7 +541,7 @@ class CompositeSpace(Space):
             idx, = subset
             return batch[idx]
 
-        return tuple([batch[idx] for idx in subset])
+        return tuple([batch[i] for i in subset])
 
     @functools.wraps(Space.get_total_dimension)
     def get_total_dimension(self):
@@ -555,7 +555,7 @@ class CompositeSpace(Space):
             for component, input_piece in zip(self.components, batch):
                 width = component.get_total_dimension()
                 pieces.append(component.np_format_as(input_piece, VectorSpace(width)))
-            return numpy.concatenate(pieces, axis=1)
+            return np.concatenate(pieces, axis=1)
 
         raise NotImplementedError("CompositeSpace does not know how to format as "+str(space))
 
