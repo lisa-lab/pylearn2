@@ -51,6 +51,10 @@ from pylearn2.utils.data_specs import is_flat_space
 
 class Space(object):
     """A vector space that can be transformed by a linear operator."""
+
+    def __ne__(self, other):
+        return not (self == other)
+
     def get_origin(self):
         """
         Returns the origin in this space.
