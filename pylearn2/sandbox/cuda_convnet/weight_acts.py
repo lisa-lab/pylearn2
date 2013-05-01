@@ -46,7 +46,6 @@ from theano.sandbox.cuda import CudaNdarrayType
 from theano.gof import Apply
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
 from pylearn2.sandbox.cuda_convnet.base_acts import UnimplementedError
-import warnings
 
 
 class WeightActs(BaseActs):
@@ -264,8 +263,9 @@ class WeightActs(BaseActs):
 
         { // setup_nv_weights_grad brace # 1
 
-        NVMatrix nv_weights_grads(%(weights_grads)s, filters_dims[0] * filterSize * filterSize, numFilters,
-        "weight_acts:nv_weights_grads");
+        NVMatrix nv_weights_grads(%(weights_grads)s, filters_dims[0] * filterSize
+                                  * filterSize, numFilters,
+                                  "weight_acts:nv_weights_grads");
 
         """
 

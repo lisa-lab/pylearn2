@@ -126,7 +126,7 @@ class BaseActs(GpuOp):
         msg = []
         msg.append(self.__class__.__name__)
         for val in (self.partial_sum, self.pad, self.dense_connectivity,
-                self.stride, self.copy_non_contiguous):
+                    self.stride, self.copy_non_contiguous):
             msg.append(str(val))
 
         return hash(tuple(msg))
@@ -136,8 +136,8 @@ class BaseActs(GpuOp):
         if not convnet_available():
             raise RuntimeError('Could not compile cuda_convnet')
 
-        return super(BaseActs, self).make_thunk(
-                node, storage_map, storage_map, no_recycling)
+        return super(BaseActs, self).make_thunk(node, storage_map,
+                                                storage_map, no_recycling)
 
 
 class UnimplementedError(Exception):
