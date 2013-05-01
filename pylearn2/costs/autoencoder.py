@@ -7,20 +7,18 @@ from theano.tensor.shared_randomstreams import RandomStreams
 
 class MeanSquaredReconstructionError(Cost):
     def expr(self, model, data, ** kwargs):
-        # Note: this cost expects the composite parameter data to be just a
-        # single variable, so there is no unpacking to do
-        return ((model.reconstruct(data) - data) ** 2).sum(axis=1).mean()
+        X, = data
+        return ((model.reconstruct(X) - X) ** 2).sum(axis=1).mean()
 
     def get_data_specs(self, model):
         return (model.get_input_space(), model.get_input_source())
 
 class MeanBinaryCrossEntropy(Cost):
     def expr(self, model, data, ** kwargs):
-        # Note: this cost expects the composite parameter data to be just a
-        # single variable, so there is no unpacking to do
+        X, = data
         return (
-            - data * tensor.log(model.reconstruct(data)) -
-            (1 - data) * tensor.log(1 - model.reconstruct(data))
+            - X * tensor.log(model.reconstruct(X)) -
+            (1 - X) * tensor.log(1 - model.reconstruct(X))
         ).sum(axis=1).mean()
 
     def get_data_specs(self, model):
@@ -41,18 +39,19 @@ class SampledMeanBinaryCrossEntropy(Cost):
         self.one_ratio = ratio
 
     def expr(self, model, data, ** kwargs):
+        X, = data
         # X is theano sparse
-        data_dense = theano.sparse.dense_from_sparse(data)
-        noise = self.random_stream.binomial(size=data_dense.shape, n=1,
+        X_dense = theano.sparse.dense_from_sparse(X)
+        noise = self.random_stream.binomial(size=X_dense.shape, n=1,
                                             prob=self.one_ratio, ndim=None)
 
         # a random pattern that indicates to reconstruct all the 1s and some of the 0s in X
-        P = noise + data_dense
+        P = noise + X_dense
         P = theano.tensor.switch(P>0, 1, 0)
         P = tensor.cast(P, theano.config.floatX)
 
         # L1 penalty on activations
-        reg_units = theano.tensor.abs_(model.encode(data)).sum(axis=1).mean()
+        reg_units = theano.tensor.abs_(model.encode(X)).sum(axis=1).mean()
 
         # penalty on weights, optional
         # params = model.get_params()
@@ -61,11 +60,11 @@ class SampledMeanBinaryCrossEntropy(Cost):
         # there is a numerical problem when using
         # tensor.log(1 - model.reconstruct(X, P))
         # Pascal fixed it.
-        before_activation = model.reconstruct_without_dec_acti(data, P)
+        before_activation = model.reconstruct_without_dec_acti(X, P)
 
-        cost = ( 1 * data_dense *
+        cost = ( 1 * X_dense *
                  tensor.log(tensor.log(1 + tensor.exp(-1 * before_activation))) +
-                 (1 - data_dense) *
+                 (1 - X_dense) *
                  tensor.log(1 + tensor.log(1 + tensor.exp(before_activation)))
                )
 
@@ -92,7 +91,8 @@ class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
         self.L1 = L1
         self.ratio = ratio
 
-    def expr(self, model, X, ** kwargs):
+    def expr(self, model, data, ** kwargs):
+        X, = data
         # X is theano sparse
         X_dense=theano.sparse.dense_from_sparse(X)
         noise = self.random_stream.binomial(size=X_dense.shape, n=1, prob=self.ratio, ndim=None)
@@ -122,10 +122,10 @@ class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
         return (model.get_input_space(), model.get_input_source())
 
 #class MeanBinaryCrossEntropyTanh(object):
-#     def expr(self, model, X):
+#     def expr(self, model, data):
+#        X, = data
 #        X = (X + 1) / 2.
 #        return (
 #            tensor.xlogx.xlogx(model.reconstruct(X)) +
 #            tensor.xlogx.xlogx(1 - model.reconstruct(X))
 #        ).sum(axis=1).mean()
-

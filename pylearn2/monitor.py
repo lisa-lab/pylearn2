@@ -539,20 +539,22 @@ class Monitor(object):
                 ipt = tuple(ipt)
             if not isinstance(ipt, tuple):
                 ipt = (ipt,)
-            if len(ipt) == 1:
-                # Default to (VectorSpace(), 'features')
-                space = VectorSpace(dim=ipt[0].ndim)
-                source = 'features'
-            elif len(ipt) == 2:
-                # Default to (CompositeSpace(...), ('features', 'targets'))
-                space = CompositeSpace((VectorSpace(dim=ipt[0].ndim),
-                                        VectorSpace(dim=ipt[1].ndim)))
-                source = ('features', 'targets')
-            else:
-                raise ValueError("Cannot infer default data_specs for the "
-                        "following input points: ipt = %s" % ipt)
 
-            data_specs = (space, source)
+            if hasattr(dataset, 'get_data_specs'):
+                dataset_space, dataset_source = dataset.get_data_specs()
+                if (len(ipt) == 1 and
+                        dataset_source is not None and
+                        (not isinstance(dataset_source, tuple) or
+                            len(dataset_source) == 1) and
+                        'features' in dataset_source):
+                    data_specs = (dataset_space, dataset_source)
+                elif (len(ipt) == 2 and
+                        dataset_source == ('features', 'targets')):
+                    data_specs = (dataset_space, dataset_source)
+                else:
+                    raise ValueError("Cannot infer default data_specs for the "
+                            "following input points and dataset: "
+                            "ipt = %s, dataset = %s" % (ipt, dataset))
 
         self.channels[name] = MonitorChannel(ipt, val, name, data_specs,
                                              dataset, prereqs)

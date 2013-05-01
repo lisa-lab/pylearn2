@@ -211,11 +211,15 @@ def get_layer_trainer_sgd_rbm(layer, trainset):
                  save_path='grbm.pkl',save_freq=1,
                  extensions = extensions, dataset = trainset)
 
-def main():
+def main(args=None):
+    """
+    args is the list of arguments that will be passed to the option parser.
+    The default (None) means use sys.argv[1:].
+    """
     parser = OptionParser()
     parser.add_option("-d", "--data", dest="dataset", default="toy",
                       help="specify the dataset, either cifar10, mnist or toy")
-    (options,args) = parser.parse_args()
+    (options,args) = parser.parse_args(args=args)
 
     if options.dataset == 'toy':
         trainset, testset = get_dataset_toy()
