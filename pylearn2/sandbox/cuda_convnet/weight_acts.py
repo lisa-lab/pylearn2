@@ -164,12 +164,9 @@ class WeightActs(BaseActs):
         }
         """
 
-        if self.stride != 1:
-            raise UnimplementedError()
-        else:
-            basic_setup += """
-            #define moduleStride 1
-        """
+        basic_setup += """
+        #define moduleStride %d
+        """ % self.stride
         if self.copy_non_contiguous:
             raise UnimplementedError()
         else:
@@ -225,14 +222,27 @@ class WeightActs(BaseActs):
         """
         num_braces += 1
 
-
         setup_nv_weights_grads = """
         int filters_dims[4];
         // filters:  (input channels, filter rows, filter cols, output channels)
         filters_dims[0] = img_channels;
-        filters_dims[1] = imgSizeY - hidGradsSizeY + 1 - 2 * paddingStart;
-        filters_dims[2] = imgSizeX - hidGradsSizeX + 1 - 2 * paddingStart;
-        assert(filters_dims[1] == filters_dims[2]); // only square kernels are supported
+        filters_dims[1] = ((imgSizeY + 1) / moduleStride -
+                           hidGradsSizeY - 2 * paddingStart);
+        filters_dims[2] = ((imgSizeX + 1) / moduleStride -
+                           hidGradsSizeX - 2 * paddingStart);
+        if (filters_dims[1] != filters_dims[2])
+        {
+            PyErr_Format(PyExc_ValueError,
+            "filter must be square, but have shape (%%d, %%d).",
+            filter_dims[1], filter_dims[2]);
+            %(fail)s;
+        }
+        else if (moduleStride > filter_dims[1]) {
+            PyErr_Format(PyExc_ValueError,
+            "stride %%d greater than filter size (%%d, %%d)",
+            moduleStride, filter_dims[1], filter_dims[2]);
+            %(fail)s;
+        }
         filters_dims[3] = numFilters;
         const int filterSize = filters_dims[1];
         int partialsum_storage_dims[5];
@@ -324,4 +334,4 @@ class WeightActs(BaseActs):
         return rval
 
     def c_code_cache_version(self):
-        return (4,)
+        return (5,)

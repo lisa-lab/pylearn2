@@ -136,12 +136,9 @@ class ImageActs(BaseActs):
         #define paddingStart (-%d)
         """ % self.pad
 
-        if self.stride != 1:
-            raise UnimplementedError()
-        else:
-            basic_setup += """
-            #define moduleStride 1
-        """
+        basic_setup += """
+        #define moduleStride %d
+        """ % self.stride
 
         if self.copy_non_contiguous:
             raise UnimplementedError()
@@ -207,6 +204,12 @@ class ImageActs(BaseActs):
             filter_rows, filter_cols);
             %(fail)s;
         }
+        else if (moduleStride > filter_rows) {
+            PyErr_Format(PyExc_ValueError,
+            "stride %%d greater than filter size (%%d, %%d)",
+            moduleStride, filter_rows, filter_cols);
+            %(fail)s;
+        }
 
         { // setup_nv_filters brace 2
 
@@ -216,8 +219,8 @@ class ImageActs(BaseActs):
         """
         num_braces += 2
 
-        target_rows = "hidActsSizeY + filter_rows - 1 + 2 * paddingStart"
-        target_cols = "hidActsSizeX + filter_cols - 1 + 2 * paddingStart"
+        target_rows = "(hidActsSizeY + filter_rows + 2 * paddingStart) * moduleStride - 1"
+        target_cols = "(hidActsSizeX + filter_cols + 2 * paddingStart) * moduleStride - 1"
 
         setup_nv_targets = """
 
@@ -273,4 +276,4 @@ class ImageActs(BaseActs):
         return rval
 
     def c_code_cache_version(self):
-        return (2,)
+        return (3,)

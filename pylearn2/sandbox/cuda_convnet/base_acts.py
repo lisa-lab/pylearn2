@@ -53,7 +53,7 @@ class BaseActs(GpuOp):
     """
     Shared code for wrapping various convnet operations.
     """
-    def __init__(self, pad=0, partial_sum=None):
+    def __init__(self, pad=0, partial_sum=None, stride=1):
 
         if not isinstance(pad, py_integer_types):
             raise TypeError("pad must be an int")
@@ -62,13 +62,10 @@ class BaseActs(GpuOp):
 
         self.partial_sum = partial_sum
         self.pad = pad
+        self.stride = stride
+        self.copy_non_contiguous = 0
         # TODO: support sparse connectivity pattern
         self.dense_connectivity = True
-        # TODO: support other strides.
-        # TODO: figure out Alex's code. There's only one stride var, does it
-        # assume stride is same in both directions?
-        self.stride = 1
-        self.copy_non_contiguous = 0
 
     def c_header_dirs(self):
         return [this_dir]

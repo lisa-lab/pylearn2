@@ -144,16 +144,14 @@ class FilterActs(BaseActs):
             """
 
         assert isinstance(self.pad, py_integer_types)
+        assert self.pad >= 0, "pad must be non-negative"
         basic_setup += """
         #define paddingStart (-%d)
         """ % self.pad
 
-        if self.stride != 1:
-            raise UnimplementedError()
-        else:
-            basic_setup += """
-            #define moduleStride 1
-        """
+        basic_setup += """
+        #define moduleStride %d
+        """ % int(self.stride)
         if self.copy_non_contiguous:
             raise UnimplementedError()
         else:
@@ -220,8 +218,14 @@ class FilterActs(BaseActs):
         if (filter_rows != filter_cols)
         {
             PyErr_Format(PyExc_ValueError,
-            "filter must be square, but have shape (%%d, %%d).",
+            "filter must be square, but instead have shape (%%d, %%d)",
             filter_rows, filter_cols);
+            %(fail)s;
+        }
+        else if (moduleStride > filter_rows) {
+            PyErr_Format(PyExc_ValueError,
+            "stride %%d greater than filter size (%%d, %%d)",
+            moduleStride, filter_rows, filter_cols);
             %(fail)s;
         }
 
@@ -233,8 +237,11 @@ class FilterActs(BaseActs):
         """
         num_braces += 2
 
-        target_rows = "imgSizeY - filter_rows + 1 - paddingStart * 2"
-        target_cols = "imgSizeX - filter_cols + 1 - paddingStart * 2"
+        # p + (m_x - 1) * s + f >= i_x
+        # p + (m_x - 1) * s >= i_x - f
+        # m_x = (i_x - f - p) / s + 1
+        target_rows = "(imgSizeY - paddingStart * 2 - filter_rows) / moduleStride + 1"
+        target_cols = "(imgSizeX - paddingStart * 2 - filter_cols) / moduleStride + 1"
 
         setup_nv_targets = """
 
@@ -294,7 +301,7 @@ class FilterActs(BaseActs):
         return rval
 
     def c_code_cache_version(self):
-        return (3,)
+        return (4,)
 
     def grad(self, inputs, dout):
 
