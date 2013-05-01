@@ -48,6 +48,10 @@ from pylearn2.utils import py_integer_types, safe_zip
 
 class Space(object):
     """A vector space that can be transformed by a linear operator."""
+
+    def __ne__(self, other):
+        return not (self == other)
+
     def get_origin(self):
         """
         Returns the origin in this space.
