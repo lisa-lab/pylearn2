@@ -301,7 +301,7 @@ class FilterActs(BaseActs):
         return rval
 
     def c_code_cache_version(self):
-        return (4,)
+        return (5,)
 
     def grad(self, inputs, dout):
 
