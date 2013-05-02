@@ -152,18 +152,21 @@ class SGD(TrainingAlgorithm):
         self.monitor._sanity_check()
 
         data_specs = self.cost.get_data_specs(self.model)
-        # TODO: Maybe see if we should allow nested specs at that point and,
-        # in that case, flatten them.
-        assert is_flat_specs(data_specs), (
-                "data_specs should be flat, but is nested: %s" % data_specs)
-
-        # Name variables based on the sources
-        if isinstance(data_specs[1], basestring):
-            name = '%s[%s]' % (self.__class__.__name__, data_specs[1])
+        if data_specs == (None, None):
+            # The cost does not need the dataset at all
+            theano_args = ()
         else:
-            name = tuple('%s[%s]' % (self.__class__.__name__, source)
-                         for source in data_specs[1])
-        theano_args = data_specs[0].make_theano_batch(name=name)
+            assert is_flat_specs(data_specs), (
+                    "data_specs should be flat, but is nested: %s"
+                    % data_specs)
+
+            # Name variables based on the sources
+            if isinstance(data_specs[1], basestring):
+                name = '%s[%s]' % (self.__class__.__name__, data_specs[1])
+            else:
+                name = tuple('%s[%s]' % (self.__class__.__name__, source)
+                             for source in data_specs[1])
+            theano_args = data_specs[0].make_theano_batch(name=name)
 
         fixed_var_descr = self.cost.get_fixed_var_descr(model, theano_args)
         self.on_load_batch = fixed_var_descr.on_load_batch
@@ -273,8 +276,6 @@ class SGD(TrainingAlgorithm):
     def train(self, dataset):
         if not hasattr(self, 'sgd_update'):
             raise Exception("train called without first calling setup")
-        model = self.model
-        batch_size = self.batch_size
 
         # Make sure none of the parameters have bad values
         for param in self.params:
@@ -288,22 +289,28 @@ class SGD(TrainingAlgorithm):
             rng = None
 
         data_specs = self.cost.get_data_specs(self.model)
-        assert is_flat_specs(data_specs), ("data_specs should be flat, "
-                "but is nested: %s" % data_specs)
+        if data_specs != (None, None):
+            assert is_flat_specs(data_specs), ("data_specs should be flat, "
+                    "but is nested: %s" % data_specs)
 
         iterator = dataset.iterator(mode=self.train_iteration_mode,
                 batch_size=self.batch_size,
-                data_specs=data_specs,
+                data_specs=data_specs, return_tuple=True,
                 rng = rng, num_batches = self.batches_per_iter)
 
         on_load_batch = self.on_load_batch
         for batch in iterator:
             for callback in on_load_batch:
                 callback(*batch)
-            self.sgd_update(batch)
+            self.sgd_update(*batch)
             # iterator might return a smaller batch if dataset size
             # isn't divisible by batch_size
-            actual_batch_size = data_specs[0].get_batch_size(batch)
+            if data_specs[0] is None:
+                # There is no way to know how many examples would actually
+                # have been in the batch, since it was empty
+                actual_batch_size = 0
+            else:
+                actual_batch_size = data_specs[0].get_batch_size(batch)
             self.monitor.report_batch(actual_batch_size)
             for callback in self.update_callbacks:
                 callback(self)
