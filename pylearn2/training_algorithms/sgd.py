@@ -167,6 +167,8 @@ class SGD(TrainingAlgorithm):
                 name = tuple('%s[%s]' % (self.__class__.__name__, source)
                              for source in data_specs[1])
             theano_args = data_specs[0].make_theano_batch(name=name)
+            if not isinstance(theano_args, tuple):
+                theano_args = (theano_args,)
 
         fixed_var_descr = self.cost.get_fixed_var_descr(model, theano_args)
         self.on_load_batch = fixed_var_descr.on_load_batch
