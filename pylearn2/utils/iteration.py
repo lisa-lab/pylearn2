@@ -331,7 +331,12 @@ class FiniteDatasetIterator(object):
         else:
             # Keep only the needed sources in self._raw_data.
             # Remember what source they correspond to in self._source
-            assert is_flat_specs(data_specs)
+            if data_specs == (None, None):
+                # Replace the source by an empty tuple, it is more consistent
+                # TODO: find a generic way
+                data_specs = (None, ())
+            else:
+                assert is_flat_specs(data_specs)
 
             # Put single elements in tuples for consistency
             all_data = self._dataset.get_data()
@@ -350,7 +355,6 @@ class FiniteDatasetIterator(object):
                                    for s in source)
             self._source = source
 
-            # TODO: Cast / convert function for each source
             self._convert = []
             if not isinstance(dataset_space, CompositeSpace):
                 dataset_sub_spaces = (dataset_space,)
@@ -359,7 +363,9 @@ class FiniteDatasetIterator(object):
             assert len(dataset_source) == len(dataset_sub_spaces)
 
             space = data_specs[0]
-            if not isinstance(space, CompositeSpace):
+            if space is None:
+                sub_spaces = ()
+            elif not isinstance(space, CompositeSpace):
                 sub_spaces = (space,)
             else:
                 sub_spaces = space.components
