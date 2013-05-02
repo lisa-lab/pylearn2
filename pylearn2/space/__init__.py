@@ -183,6 +183,8 @@ class VectorSpace(Space):
 
     @functools.wraps(Space.get_batch_size)
     def get_batch_size(self, data):
+        if isinstance(data, tuple):
+            data, = data
         return data.shape[0]
 
     @functools.wraps(Space.make_theano_batch)
@@ -338,6 +340,8 @@ class Conv2DSpace(Space):
 
     @functools.wraps(Space.get_batch_size)
     def get_batch_size(self, data):
+        if isinstance(data, tuple):
+            data, = data
         return data.shape[self.axes.index('b')]
 
 
