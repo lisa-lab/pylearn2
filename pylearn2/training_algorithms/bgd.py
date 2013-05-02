@@ -15,6 +15,7 @@ from pylearn2.utils import safe_zip
 from pylearn2.train_extensions import TrainExtension
 from pylearn2.termination_criteria import TerminationCriterion
 from pylearn2.utils import sharedX
+from pylearn2.utils.data_specs import is_flat_specs
 from theano import config
 
 class BGD(TrainingAlgorithm):
@@ -101,42 +102,31 @@ class BGD(TrainingAlgorithm):
 
         self.monitor = Monitor.get_monitor(model)
         self.monitor.set_theano_function_mode(self.theano_function_mode)
-        X = self.model.get_input_space().make_theano_batch()
-        X.name = 'BGD_X'
-        self.topo = X.ndim != 2
-        if self.topo:
-            assert self.model.get_input_space().axes == ('b', 0, 1, 'c')
-        Y = T.matrix()
-        Y.name = 'BGD_Y'
-        if config.compute_test_value != 'off':
-            X.tag.test_value = self.model.get_input_space().get_origin_batch(self.batch_size).astype(X.dtype)
-            Y_batch = self.model.get_output_space().get_origin_batch(self.batch_size).astype(Y.dtype)
-            assert Y_batch.ndim == 2
-            for i in xrange(Y_batch.shape[0]):
-                Y_batch[i, i % Y_batch.shape[1]] = 1
-            Y.tag.test_value = Y_batch
 
-        fixed_var_descr = self.cost.get_fixed_var_descr(model, X, Y)
+        data_specs = self.cost.get_data_specs(model)
+        assert is_flat_specs(data_specs), (
+                "data_specs should be flat, but is nested: %s" % data_specs)
+
+        # Name variables according to the sources
+        source = data_specs[1]
+        if isinstance(source, str):
+            name = 'BGD_' + source
+        else:
+            name = tuple('BGD_' + s for s in source)
+        theano_args = data_specs[0].make_theano_batch(name=name)
+
+        fixed_var_descr = self.cost.get_fixed_var_descr(model, theano_args)
         self.on_load_batch = fixed_var_descr.on_load_batch
 
-        if not self.cost.supervised:
-            Y = None
-
-        if self.cost.supervised:
-            obj = self.cost(model, X, Y, ** fixed_var_descr.fixed_vars)
-            grads, grad_updates = self.cost.get_gradients(model, X, Y, ** fixed_var_descr.fixed_vars)
-            ipt = (X,Y)
-        else:
-            obj = self.cost(model, X, ** fixed_var_descr.fixed_vars)
-            grads, grad_updates = self.cost.get_gradients(model, X, ** fixed_var_descr.fixed_vars)
-            ipt = X
-            Y = None
+        cost_value = self.cost.expr(model, theano_args, ** fixed_var_descr.fixed_vars)
+        grads, grad_updates = self.cost.get_gradients(model, theano_args, ** fixed_var_descr.fixed_vars)
+        ipt = theano_args
 
         assert isinstance(grads, OrderedDict)
         assert isinstance(grad_updates, OrderedDict)
 
 
-        if obj is None:
+        if cost_value is None:
             raise ValueError("BGD is incompatible with "+str(self.cost)+" because "
                     " it is intractable, but BGD uses the cost function value to do "
                     " line searches.")
@@ -145,14 +135,11 @@ class BGD(TrainingAlgorithm):
         # this will reduce code duplication)
         # may need to still manually add some BGD-specific channels like ave_step_size here
         if self.monitoring_dataset is not None:
-            if not any([dataset.has_targets() for dataset in self.monitoring_dataset.values()]):
-                Y = None
-
-            channels = model.get_monitoring_channels(X,Y)
+            channels = model.get_monitoring_channels(theano_args)
             if not isinstance(channels, dict):
                 raise TypeError("model.get_monitoring_channels must return a "
                                 "dictionary, but it returned " + str(channels))
-            channels.update(self.cost.get_monitoring_channels(model, X, Y, ** fixed_var_descr.fixed_vars))
+            channels.update(self.cost.get_monitoring_channels(model, theano_args, ** fixed_var_descr.fixed_vars))
 
             for dataset_name in self.monitoring_dataset:
                 if dataset_name == '':
@@ -168,7 +155,7 @@ class BGD(TrainingAlgorithm):
                 # The monitor compiles all channels for the same dataset into one function, and
                 # runs all prereqs before calling the function. So we only need to register the
                 # on_load_batch prereq once per monitoring dataset.
-                self.monitor.add_channel(prefix + 'objective',ipt=ipt,val=obj,
+                self.monitor.add_channel(prefix + 'objective',ipt=ipt,val=cost_value,
                         dataset = monitoring_dataset, prereqs = fixed_var_descr.on_load_batch)
 
                 for name in channels:
@@ -179,32 +166,26 @@ class BGD(TrainingAlgorithm):
                     else:
                         prereqs = None
 
-                    if Y is not None:
-                        ipt = (X,Y)
-                    else:
-                        ipt = X
-
                     self.monitor.add_channel(name= prefix + name,
                                              ipt=ipt,
                                              val=J,
+                                             data_specs=data_specs,
                                              dataset = monitoring_dataset,
                                              prereqs=prereqs)
 
-        if self.cost.supervised:
-            ipts = [X, Y]
-        else:
-            ipts = [X]
-
         params = model.get_params()
 
+        if not isinstance(theano_args, tuple):
+            theano_args = (theano_args,)
+
         self.optimizer = BatchGradientDescent(
-                            objective = obj,
+                            objective = cost_value,
                             gradients = grads,
                             gradient_updates = grad_updates,
                             params = params,
                             param_constrainers = [ model.censor_updates ],
                             lr_scalers = model.get_lr_scalers(),
-                            inputs = ipts,
+                            inputs = theano_args,
                             verbose = self.verbose_optimization,
                             max_iter = self.updates_per_batch,
                             reset_alpha = self.reset_alpha,

@@ -28,7 +28,6 @@ from pylearn2.utils import py_integer_types, py_float_types
 from pylearn2.utils import safe_zip
 from pylearn2.utils import serial
 from pylearn2.utils import sharedX
-from pylearn2.utils.data_specs import flatten_list
 from pylearn2.utils.data_specs import is_flat_specs
 from pylearn2.utils.timing import log_timing
 
