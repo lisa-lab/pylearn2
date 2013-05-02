@@ -234,13 +234,13 @@ class WeightActs(BaseActs):
         {
             PyErr_Format(PyExc_ValueError,
             "filter must be square, but have shape (%%d, %%d).",
-            filter_dims[1], filter_dims[2]);
+            filters_dims[1], filters_dims[2]);
             %(fail)s;
         }
-        else if (moduleStride > filter_dims[1]) {
+        else if (moduleStride > filters_dims[1]) {
             PyErr_Format(PyExc_ValueError,
             "stride %%d greater than filter size (%%d, %%d)",
-            moduleStride, filter_dims[1], filter_dims[2]);
+            moduleStride, filters_dims[1], filters_dims[2]);
             %(fail)s;
         }
         filters_dims[3] = numFilters;
