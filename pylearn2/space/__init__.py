@@ -535,15 +535,22 @@ class CompositeSpace(Space):
         return tuple([component.get_origin_batch(n) for component in self.components])
 
     @functools.wraps(Space.make_theano_batch)
-    def make_theano_batch(self, name = None, dtype = None):
+    def make_theano_batch(self, name=None, dtype=None):
+        if name is None:
+            name = [None] * len(self.components)
+        elif not isinstance(name, (list, tuple)):
+            name = ['%s[%i]' % (name, i) for i in xrange(len(self.components))]
 
-        def name_generator(i):
-            if name is None:
-                return None
-            return name + '[' + str(i) +']'
+        if dtype is None:
+            dtype = [None] * len(self.components)
+        assert isinstance(name, (list, tuple))
+        assert isinstance(dtype, (list, tuple))
 
-        return TupleVariable(tuple(component.make_theano_batch(name = name_generator(i), dtype = dtype)
-                for i, component in enumerate(self.components)), name=name)
+        rval = [x.make_theano_batch(name=n, dtype=d)
+                for x,n,d in safe_zip(self.components,
+                                      name,
+                                      dtype)]
+        return rval
 
     @functools.wraps(Space.get_batch_size)
     def get_batch_size(self, data):
