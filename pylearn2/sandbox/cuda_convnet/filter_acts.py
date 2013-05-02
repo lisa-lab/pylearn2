@@ -240,8 +240,8 @@ class FilterActs(BaseActs):
         # p + (m_x - 1) * s + f >= i_x
         # p + (m_x - 1) * s >= i_x - f
         # m_x = (i_x - f - p) / s + 1
-        target_rows = "(imgSizeY - paddingStart * 2 - filter_rows) / moduleStride + 1"
-        target_cols = "(imgSizeX - paddingStart * 2 - filter_cols) / moduleStride + 1"
+        target_rows = "(imgSizeY - paddingStart - filter_rows) / moduleStride + 1"
+        target_cols = "(imgSizeX - paddingStart - filter_cols) / moduleStride + 1"
 
         setup_nv_targets = """
 
