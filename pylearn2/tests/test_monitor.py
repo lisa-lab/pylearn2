@@ -461,6 +461,7 @@ def test_no_data():
     try:
         monitor.add_channel(name = name,
             ipt = model.input_space.make_theano_batch(),
+            data_specs = (model.input_space, 'features'),
             val = 0.)
     except ValueError, e:
         assert e.message == _err_no_data

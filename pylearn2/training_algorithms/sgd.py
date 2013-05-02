@@ -152,7 +152,7 @@ class SGD(TrainingAlgorithm):
         self.monitor = Monitor.get_monitor(model)
         self.monitor._sanity_check()
 
-        data_specs = self.cost.get_data_specs()
+        data_specs = self.cost.get_data_specs(self.model)
         # TODO: Maybe see if we should allow nested specs at that point and,
         # in that case, flatten them.
         assert is_flat_specs(data_specs), (
@@ -281,7 +281,7 @@ class SGD(TrainingAlgorithm):
         if not is_stochastic(self.train_iteration_mode):
             rng = None
 
-        data_specs = self.cost.get_data_specs()
+        data_specs = self.cost.get_data_specs(self.model)
         assert is_flat_specs(data_specs), ("data_specs should be flat, "
                 "but is nested: %s" % data_specs)
 

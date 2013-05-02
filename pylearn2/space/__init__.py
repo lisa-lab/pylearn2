@@ -42,8 +42,7 @@ from theano import config
 import functools
 from theano.gof.op import get_debug_values
 from theano.sandbox.cuda.type import CudaNdarrayType
-from pylearn2.sandbox.tuple_var import TupleVariable
-from pylearn2.utils import py_integer_types
+from pylearn2.utils import py_integer_types, safe_zip
 
 
 class Space(object):
@@ -234,6 +233,9 @@ class VectorSpace(Space):
     def __eq__(self, other):
         return type(self) == type(other) and self.dim == other.dim
 
+    def __hash__(self):
+        return hash((type(self), self.dim))
+
     def validate(self, batch):
         if not isinstance(batch, theano.gof.Variable):
             raise TypeError("VectorSpace batch should be a theano Variable, got "+str(type(batch)))
@@ -298,6 +300,9 @@ class Conv2DSpace(Space):
                 self.shape == other.shape and \
                 self.num_channels == other.num_channels \
                 and self.axes == other.axes
+
+    def __hash__(self):
+        return hash((type(self), self.shape, self.num_channels, self.axes))
 
     @functools.wraps(Space.get_origin)
     def get_origin(self):
@@ -450,6 +455,9 @@ class CompositeSpace(Space):
             all([my_component == other_component for
                 my_component, other_component in \
                 zip(self.components, other.components)])
+
+    def __hash__(self):
+        return hash((type(self), tuple(self.components)))
 
     def restrict(self, subset):
         """Returns a new Space containing only the components whose indices
