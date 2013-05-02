@@ -111,11 +111,11 @@ def test_match_valid_conv_strided():
     output_conv2d = conv2d(images_bc01, filters_bc01,
             border_mode='valid')
 
-    output_conv2d = output_conv2d.dimshuffle(1,2,3,0)
-    output_conv2d = output_conv2d[:, ::stride, ::stride, :]
-    f = function([], [output, output_conv2d])
+    output_conv2d_orig = output_conv2d.dimshuffle(1,2,3,0)
+    output_conv2d = output_conv2d_orig[:, ::stride, ::stride, :]
+    f = function([], [output, output_conv2d, output_conv2d_orig])
 
-    output, output_conv2d = f()
+    output, output_conv2d, output_conv2d_orig = f()
 
     warnings.warn("""test_match_valid_conv success criterion is not very strict. Can we verify that this is OK?
                      One possibility is that theano is numerically unstable and Alex's code is better.

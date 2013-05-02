@@ -240,8 +240,12 @@ class FilterActs(BaseActs):
         # p + (m_x - 1) * s + f >= i_x
         # p + (m_x - 1) * s >= i_x - f
         # m_x = (i_x - f - p) / s + 1
-        target_rows = "(imgSizeY - paddingStart - filter_rows) / moduleStride + 1"
-        target_cols = "(imgSizeX - paddingStart - filter_cols) / moduleStride + 1"
+        div_ms_y = "((imgSizeY - 2*paddingStart - filter_rows) / moduleStride)"
+        div_ms_x = "((imgSizeX - 2*paddingStart - filter_cols) / moduleStride)"
+        mod_ms_y = "((imgSizeY - 2*paddingStart - filter_rows) % moduleStride)"
+        mod_ms_x = "((imgSizeX - 2*paddingStart - filter_cols) % moduleStride)"
+        target_rows = "%s + ((%s > 0) ? 1 : 0) + 1" % (div_ms_y, mod_ms_y)
+        target_cols = "%s + ((%s > 0) ? 1 : 0) + 1" % (div_ms_x, mod_ms_x)
 
         setup_nv_targets = """
 
@@ -301,7 +305,7 @@ class FilterActs(BaseActs):
         return rval
 
     def c_code_cache_version(self):
-        return (5,)
+        return (9,)
 
     def grad(self, inputs, dout):
 
