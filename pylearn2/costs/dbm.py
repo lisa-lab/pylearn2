@@ -48,14 +48,17 @@ class PCD(Cost):
 
         return None
 
-    def get_monitoring_channels(self, model, X, Y = None):
+    def get_monitoring_channels(self, model, data):
+        assert len(data) <= 2
+        X = data[0]
         rval = OrderedDict()
 
         history = model.mf(X, return_history = True)
         q = history[-1]
 
         if self.supervised:
-            assert Y is not None
+            assert len(data) == 2
+            Y = data[1]
             Y_hat = q[-1]
             true = T.argmax(Y,axis=1)
             pred = T.argmax(Y_hat, axis=1)

@@ -234,8 +234,8 @@ class DBM(Model):
     def set_monitoring_channel_prefix(self, prefix):
         self.monitoring_channel_prefix = prefix
 
-    def get_monitoring_channels(self, V, Y =  None):
-
+    def get_monitoring_channels(self, data):
+        V, = data
         try:
             self.compile_mode()
 

@@ -657,7 +657,7 @@ class Monitor(object):
             ipt = (X, Y)
         else:
             Y = None
-            ipt = X
+            ipt = (X,)
         custom_channels = {}
         for cost_name in costs:
             if cost_name == '':
@@ -665,12 +665,12 @@ class Monitor(object):
             else:
                 prefix = cost_name + '_'
             cost = costs[cost_name]
-            raw_channels = cost.get_monitoring_channels(model, (X, Y))
+            raw_channels = cost.get_monitoring_channels(model, ipt)
             channels = {}
             for name in raw_channels:
                 channels[prefix+name] = raw_channels[name]
             custom_channels.update(channels)
-        model_channels = model.get_monitoring_channels(X, Y)
+        model_channels = model.get_monitoring_channels(ipt)
         custom_channels.update(model_channels)
 
         if is_stochastic(mode):

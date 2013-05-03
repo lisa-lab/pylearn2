@@ -251,12 +251,11 @@ class MLP(Layer):
 
         self.freeze_set = self.freeze_set.union(parameter_set)
 
-    def get_monitoring_channels(self, X=None, Y=None):
+    def get_monitoring_channels(self, data):
         """
-        Note: X and Y may both be None, in the case when this is
-              a layer of a bigger MLP.
+        data is a flat tuple, and can contain features, targets, or both
         """
-
+        X, Y = data
         state = X
         rval = OrderedDict()
 
