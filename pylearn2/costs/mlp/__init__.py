@@ -46,7 +46,7 @@ class WeightDecay(Cost):
                 if coef==0.:
                     return 0.
                 else:
-                    raise NotImplementedError("TODO: add uniform weight decay inference to unsupervised models.")
+                    raise NotImplementedError(str(type(layer))+" does not implement get_weight_decay.")
 
 
         layer_costs = [ wrapped_layer_cost(layer, coeff)

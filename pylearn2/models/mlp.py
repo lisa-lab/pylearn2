@@ -134,6 +134,13 @@ class Layer(Model):
         """
         raise NotImplementedError(str(type(self))+" does not implement mlp.Layer.cost_matrix")
 
+    def get_weight_decay(self, coeff):
+        raise NotImplementedError
+    
+    def get_l1_weight_decay(self, coeff):
+        raise NotImplementedError
+
+
 class MLP(Layer):
     """
     A multilayer perceptron.
@@ -2243,11 +2250,6 @@ class PretrainedLayer(Layer):
     def fprop(self, state_below):
         return self.layer_content.upward_pass(state_below)
 
-    def get_weight_decay(self, coeff):
-        raise NotImplementedError
-    
-    def get_l1_weight_decay(self, coeff):
-        raise NotImplementedError
 
 
 class RBM_Layer(PretrainedLayer):
