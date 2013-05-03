@@ -88,7 +88,7 @@ def test_match_valid_conv_strided():
     rows = 9
     cols = 9
     channels = 3
-    filter_rows = 4
+    filter_rows = 3
     filter_cols = filter_rows
     stride = 3
     num_filters = 16
@@ -109,10 +109,10 @@ def test_match_valid_conv_strided():
     filters_bc01 = filters_bc01[:,:,::-1,::-1]
 
     output_conv2d = conv2d(images_bc01, filters_bc01,
-            border_mode='valid')
+            border_mode='valid', subsample=(stride, stride))
 
     output_conv2d_orig = output_conv2d.dimshuffle(1,2,3,0)
-    output_conv2d = output_conv2d_orig[:, ::stride, ::stride, :]
+    output_conv2d = output_conv2d_orig  # [:, ::stride, ::stride, :]
     f = function([], [output, output_conv2d, output_conv2d_orig])
 
     output, output_conv2d, output_conv2d_orig = f()
