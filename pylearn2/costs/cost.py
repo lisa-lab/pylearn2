@@ -383,7 +383,7 @@ class MethodCost(Cost):
     A cost specified via the string name of a method of the model.
     """
 
-    def __init__(self, method, data_specs):
+    def __init__(self, method, data_specs=None):
         """
             method: a string specifying the name of the method of the model
                     that should be called to generate the objective function.
@@ -400,7 +400,13 @@ class MethodCost(Cost):
             return fn(*args, **kwargs)
 
     def get_data_specs(self, model):
-        fn = getattr(model, self.data_specs)
+        if self.data_specs is not None:
+            fn = getattr(model, self.data_specs)
+        else:
+            # To be compatible with earlier scripts,
+            # try (self.method)_data_specs
+            fn = getattr(model, '%s_data_specs' % self.method)
+
         if callable(fn):
             return fn()
         else:

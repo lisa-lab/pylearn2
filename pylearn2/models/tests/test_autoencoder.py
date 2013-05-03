@@ -57,7 +57,7 @@ def test_high_order_autoencoder_init():
 
     X = tensor.matrix()
     data = np.random.randn(50, 20).astype(config.floatX)
-    ff = theano.function([X], model.higher_order_penalty(X))
+    ff = theano.function([X], model.higher_order_penalty((X,)))
     assert type(ff(data)) == np.ndarray
 
 
