@@ -179,8 +179,11 @@ class SumOfCosts(Cost):
         """
         composite_specs, mapping = self.get_composite_specs_and_mapping(model)
         nested_data = mapping.nest(data)
-        costs = [cost.expr(model, cost_data, **kwargs)
-                 for cost, cost_data in safe_zip(self.costs, nested_data)]
+        costs = []
+        for cost, cost_data in safe_zip(self.costs, nested_data):
+            if not isinstance(cost_data, tuple):
+                cost_data = (cost_data,)
+            costs.append(cost.expr(model, cost_data, **kwargs))
         assert len(costs) > 0
 
         if any([cost is None for cost in costs]):
@@ -223,6 +226,8 @@ class SumOfCosts(Cost):
         composite_specs, mapping = self.get_composite_specs_and_mapping(model)
         nested_data = mapping.nest(data)
         for cost, cost_data in safe_zip(self.costs, nested_data):
+            if not isinstance(cost_data, tuple):
+                cost_data = (cost_data,)
             result = cost.get_gradients(model, cost_data, ** kwargs)
             indiv_results.append(result)
 
@@ -257,6 +262,8 @@ class SumOfCosts(Cost):
 
         for i, cost in enumerate(self.costs):
             cost_data = nested_data[i]
+            if not isinstance(cost_data, tuple):
+                cost_data = (cost_data,)
             try:
                 rval.update(cost.get_monitoring_channels(model, cost_data, **kwargs))
             except TypeError:
@@ -264,7 +271,7 @@ class SumOfCosts(Cost):
                         + str(type(cost))+'.get_monitoring_channels'
                 raise
 
-            value = cost(model, cost_data, ** kwargs)
+            value = cost.expr(model, cost_data, ** kwargs)
             if value is not None:
                 name = ''
                 if hasattr(value, 'name') and value.name is not None:
