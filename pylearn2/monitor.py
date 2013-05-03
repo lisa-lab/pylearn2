@@ -700,11 +700,7 @@ class Monitor(object):
             # values in the monitor use the name to find it.
             for cost_name in costs:
                 cost = costs[cost_name]
-                if Y is None:
-                    data = (X,)
-                else:
-                    data = (X, Y)
-                cost_value = cost.expr(model, data)
+                cost_value = cost.expr(model, ipt)
                 if cost_value is not None:
                     if cost_name == '':
                         name = dprefix + 'objective'
@@ -713,13 +709,13 @@ class Monitor(object):
                     self.add_channel(name=name,
                                      ipt=ipt,
                                      val=cost_value,
-                                     data_specs = cost.get_data_specs(model),
+                                     data_specs=cost.get_data_specs(model),
                                      dataset=cur_dataset)
             for key in custom_channels:
                 self.add_channel(name=dprefix + key,
                                  ipt=ipt,
                                  val=custom_channels[key],
-                                 data_specs = cost.get_data_specs(model),
+                                 data_specs=cost.get_data_specs(model),
                                  dataset=cur_dataset)
 
 
