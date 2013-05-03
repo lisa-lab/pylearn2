@@ -476,13 +476,13 @@ class ContractiveAutoencoder(Autoencoder):
         jacobian = self.weights * act_grad.dimshuffle(0, 'x', 1)
         return jacobian
 
-    def contraction_penalty(self, X, Y = None):
+    def contraction_penalty(self, data):
         """
         Calculate (symbolically) the contracting autoencoder penalty term.
 
         Parameters
         ----------
-        inputs : tensor_like or list of tensor_likes
+        data : tuple containing one tensor_like or list of tensor_likes
             Theano symbolic (or list thereof) representing the input
             minibatch(es) on which the penalty is calculated. Assumed to be
             2-tensors, with the first dimension indexing training examples and
@@ -497,10 +497,15 @@ class ContractiveAutoencoder(Autoencoder):
             Add this to the output of a Cost object, such as
             SquaredError, to penalize it.
         """
+        X, = data
         act_grad = self._activation_grad(X)
         frob_norm = tensor.dot(tensor.sqr(act_grad), tensor.sqr(self.weights).sum(axis=0))
         contract_penalty = frob_norm.sum() / X.shape[0]
         return tensor.cast(contract_penalty, X .dtype)
+
+    def contraction_penalty_data_specs(self):
+        return (self.get_input_space(), self.get_input_source())
+
 
 class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
     """Higher order contractive autoencoder.
@@ -539,10 +544,11 @@ class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
         self.num_corruptions = num_corruptions
 
 
-    def higher_order_penalty(self, X, Y = None):
+    def higher_order_penalty(self, data):
         """
         Stochastic approximation of Hessian Frobenius norm
         """
+        X, = data
 
         corrupted_inputs = [self.corruptor(X) for times in\
                             range(self.num_corruptions)]
@@ -552,6 +558,9 @@ class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
                                 corrupted in corrupted_inputs])
 
         return (hessian ** 2).mean()
+
+    def higher_order_penalty_data_specs(self):
+        return (self.get_input_space(), self.get_input_source())
 
 
 class UntiedAutoencoder(Autoencoder):
