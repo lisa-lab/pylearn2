@@ -595,8 +595,8 @@ class DBM(Model):
 
         return rval
 
-    def get_monitoring_channels(self, X, Y = None):
-
+    def get_monitoring_channels(self, data):
+        X, = data
         history = self.mf(X, return_history = True)
         q = history[-1]
 

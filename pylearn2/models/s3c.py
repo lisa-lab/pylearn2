@@ -516,8 +516,8 @@ class S3C(Model, Block):
     def set_monitoring_channel_prefix(self, prefix):
         self.monitoring_channel_prefix = prefix
 
-    def get_monitoring_channels(self, V, Y = None):
-        assert Y is None #just there for method signature compatibility
+    def get_monitoring_channels(self, data):
+        V, = data
         try:
             self.compile_mode()
 

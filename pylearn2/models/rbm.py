@@ -380,8 +380,8 @@ class RBM(Block, Model):
         return ['v', 'h']
 
 
-    def get_monitoring_channels(self, V, Y = None):
-
+    def get_monitoring_channels(self, data):
+        V, = data
         theano_rng = RandomStreams(42)
 
         #TODO: re-enable this in the case where self.transformer
