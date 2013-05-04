@@ -15,6 +15,7 @@ from theano.sandbox.cuda import gpu_from_host
 from theano.sandbox.cuda import host_from_gpu
 from theano.tensor.nnet.conv import conv2d
 from theano import function
+from theano.tensor import as_tensor_variable
 import warnings
 
 def test_match_full_conv():
@@ -47,7 +48,7 @@ def test_match_full_conv():
     gpu_images = gpu_from_host(hid_acts)
     gpu_filters = gpu_from_host(filters)
 
-    output = ImageActs()(gpu_images, gpu_filters)
+    output = ImageActs()(gpu_images, gpu_filters, as_tensor_variable((6, 7)))
     output = host_from_gpu(output)
 
     images_bc01 = hid_acts.dimshuffle(3,0,1,2)
