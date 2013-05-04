@@ -322,8 +322,11 @@ class FilterActs(BaseActs):
         if 'Cuda' not in str(type(dout)):
             raise TypeError("output gradients must be cuda")
 
+        ishape = images.shape[1:3]
+        fshape = filters.shape[1:3]
         d_images = ImageActs(self.pad, self.partial_sum)(dout, filters,
-                                                         images.shape[1:3])
-        d_filters = WeightActs(self.pad, self.partial_sum)(images, dout)[0]
+                                                         ishape)
+        d_filters = WeightActs(self.pad, self.partial_sum)(images, dout,
+                                                           fshape)[0]
 
         return d_images, d_filters
