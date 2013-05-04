@@ -116,6 +116,8 @@ class Space(object):
         space.format_as(self.format_as(batch, space), self)
         """
 
+        self.validate(batch)
+
         my_dimension =  self.get_total_dimension()
         other_dimension = space.get_total_dimension()
 
