@@ -116,6 +116,8 @@ class Space(object):
         space.format_as(self.format_as(batch, space), self)
         """
 
+        self.validate(batch)
+
         my_dimension =  self.get_total_dimension()
         other_dimension = space.get_total_dimension()
 
@@ -198,9 +200,13 @@ class VectorSpace(Space):
             return tuple(pieces)
 
         if isinstance(space, Conv2DSpace):
-            if space.axes[0] != 'b':
-                raise NotImplementedError("Will need to reshape to ('b',*) then do a dimshuffle. Be sure to make this the inverse of space._format_as(x, self)")
             dims = { 'b' : batch.shape[0], 'c' : space.num_channels, 0 : space.shape[0], 1 : space.shape[1] }
+            if space.axes[0] != 'b':
+                tmp_axes = ['b'] + [axis for axis in space.axes if axis != 'b']
+                shape = [dims[ax] for ax in tmp_axes]
+                batch = batch.reshape(shape)
+                batch = batch.dimshuffle(*[tmp_axes.index(ax) for ax in space.axes])
+                return batch
 
             shape = tuple( [ dims[elem] for elem in space.axes ] )
 
@@ -276,7 +282,7 @@ class Conv2DSpace(Space):
         return type(self) == type(other) and \
                 self.shape == other.shape and \
                 self.num_channels == other.num_channels \
-                and self.axes == other.axes
+                and tuple(self.axes) == tuple(other.axes)
 
     @functools.wraps(Space.get_origin)
     def get_origin(self):
@@ -305,7 +311,7 @@ class Conv2DSpace(Space):
 
         return TensorType(dtype=dtype,
                           broadcastable=broadcastable
-                         )(name=name)
+                          )(name=name)
 
     @staticmethod
     def convert(tensor, src_axes, dst_axes):
