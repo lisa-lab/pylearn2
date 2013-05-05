@@ -53,7 +53,7 @@ class BaseActs(GpuOp):
     """
     Shared code for wrapping various convnet operations.
     """
-    def __init__(self, pad=0, partial_sum=None):
+    def __init__(self, pad=0, partial_sum=None, stride=1):
 
         if not isinstance(pad, py_integer_types):
             raise TypeError("pad must be an int")
@@ -62,13 +62,10 @@ class BaseActs(GpuOp):
 
         self.partial_sum = partial_sum
         self.pad = pad
+        self.stride = stride
+        self.copy_non_contiguous = 0
         # TODO: support sparse connectivity pattern
         self.dense_connectivity = True
-        # TODO: support other strides.
-        # TODO: figure out Alex's code. There's only one stride var, does it
-        # assume stride is same in both directions?
-        self.stride = 1
-        self.copy_non_contiguous = 0
 
     def c_header_dirs(self):
         return [this_dir]
@@ -126,7 +123,7 @@ class BaseActs(GpuOp):
         msg = []
         msg.append(self.__class__.__name__)
         for val in (self.partial_sum, self.pad, self.dense_connectivity,
-                self.stride, self.copy_non_contiguous):
+                    self.stride, self.copy_non_contiguous):
             msg.append(str(val))
 
         return hash(tuple(msg))
@@ -136,8 +133,8 @@ class BaseActs(GpuOp):
         if not convnet_available():
             raise RuntimeError('Could not compile cuda_convnet')
 
-        return super(BaseActs, self).make_thunk(
-                node, storage_map, storage_map, no_recycling)
+        return super(BaseActs, self).make_thunk(node, storage_map,
+                                                storage_map, no_recycling)
 
 
 class UnimplementedError(Exception):

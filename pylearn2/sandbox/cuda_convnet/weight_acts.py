@@ -46,7 +46,6 @@ from theano.sandbox.cuda import CudaNdarrayType
 from theano.gof import Apply
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
 from pylearn2.sandbox.cuda_convnet.base_acts import UnimplementedError
-import warnings
 
 
 class WeightActs(BaseActs):
@@ -82,7 +81,7 @@ class WeightActs(BaseActs):
     # you may need to implement a new version of __eq__ and __hash__
     # in WeightActs, that considers these parameters.
 
-    def make_node(self, images, hid_grads):
+    def make_node(self, images, hid_grads, output_shape):
         if not isinstance(images.type, CudaNdarrayType):
             raise TypeError("WeightActs: expected images.type "
                             "to be CudaNdarrayType, "
@@ -115,7 +114,8 @@ class WeightActs(BaseActs):
         weights_grads = weights_grads_type()
         partial_sums = partial_sums_type()
 
-        return Apply(self, [images, hid_grads], [weights_grads, partial_sums])
+        return Apply(self, [images, hid_grads, output_shape],
+                     [weights_grads, partial_sums])
 
     def c_headers(self):
         # For some reason, the function called in the C code (_weightActs)
@@ -126,7 +126,7 @@ class WeightActs(BaseActs):
 
     def c_code(self, node, name, inputs, outputs, sub):
         partial_sum = self.partial_sum if self.partial_sum is not None else 0
-        images, hid_grads = inputs
+        images, hid_grads, output_shape = inputs
         weights_grads, partialsum_storage = outputs
         fail = sub['fail']
         pad = self.pad
@@ -165,12 +165,9 @@ class WeightActs(BaseActs):
         }
         """
 
-        if self.stride != 1:
-            raise UnimplementedError()
-        else:
-            basic_setup += """
-            #define moduleStride 1
-        """
+        basic_setup += """
+        #define moduleStride %d
+        """ % self.stride
         if self.copy_non_contiguous:
             raise UnimplementedError()
         else:
@@ -226,14 +223,55 @@ class WeightActs(BaseActs):
         """
         num_braces += 1
 
-
         setup_nv_weights_grads = """
         int filters_dims[4];
         // filters:  (input channels, filter rows, filter cols, output channels)
+
+        npy_intp *shape_dims = PyArray_DIMS(%(output_shape)s);
+        npy_intp target_rows, target_cols;
+        PyArrayObject *casted_shape;
+        PyArray_Descr *intp_dtype;
+        if (PyArray_NDIM(%(output_shape)s) != 1) {
+            PyErr_Format(PyExc_ValueError,
+                         "output shape must be a vector, got %%d-tensor",
+                         PyArray_NDIM(%(output_shape)s));
+            %(fail)s;
+        }
+        else if (shape_dims[0] != 2)
+        {
+            PyErr_Format(PyExc_ValueError,
+                         "output shape must be length 2, got %%d",
+                         (int)shape_dims[0]);
+            %(fail)s;
+        }
+        else if ((PyArray_DESCR(%(output_shape)s))->kind != 'i' &&
+                 (PyArray_DESCR(%(output_shape)s))->kind != 'u')
+        {
+            PyErr_SetString(PyExc_TypeError,
+                            "output shape must have integer or uint dtype");
+            %(fail)s;
+        }
+        intp_dtype = PyArray_DescrFromType(NPY_INTP);
+        casted_shape = (PyArrayObject *)PyArray_CastToType(%(output_shape)s,
+                                                           intp_dtype, 0);
+        target_rows = *((npy_intp *)PyArray_GETPTR1(casted_shape, 0));
+        target_cols = *((npy_intp *)PyArray_GETPTR1(casted_shape, 1));
         filters_dims[0] = img_channels;
-        filters_dims[1] = imgSizeY - hidGradsSizeY + 1 - 2 * paddingStart;
-        filters_dims[2] = imgSizeX - hidGradsSizeX + 1 - 2 * paddingStart;
-        assert(filters_dims[1] == filters_dims[2]); // only square kernels are supported
+        filters_dims[1] = target_rows;
+        filters_dims[2] = target_cols;
+        if (filters_dims[1] != filters_dims[2])
+        {
+            PyErr_Format(PyExc_ValueError,
+            "filter must be square, but have shape (%%d, %%d).",
+            filters_dims[1], filters_dims[2]);
+            %(fail)s;
+        }
+        else if (moduleStride > filters_dims[1]) {
+            PyErr_Format(PyExc_ValueError,
+            "stride %%d greater than filter size (%%d, %%d)",
+            moduleStride, filters_dims[1], filters_dims[2]);
+            %(fail)s;
+        }
         filters_dims[3] = numFilters;
         const int filterSize = filters_dims[1];
         int partialsum_storage_dims[5];
@@ -264,8 +302,9 @@ class WeightActs(BaseActs):
 
         { // setup_nv_weights_grad brace # 1
 
-        NVMatrix nv_weights_grads(%(weights_grads)s, filters_dims[0] * filterSize * filterSize, numFilters,
-        "weight_acts:nv_weights_grads");
+        NVMatrix nv_weights_grads(%(weights_grads)s, filters_dims[0] * filterSize
+                                  * filterSize, numFilters,
+                                  "weight_acts:nv_weights_grads");
 
         """
 
@@ -324,4 +363,4 @@ class WeightActs(BaseActs):
         return rval
 
     def c_code_cache_version(self):
-        return (4,)
+        return (6,)

@@ -13,6 +13,7 @@ from pylearn2.sandbox.cuda_convnet.filter_acts import FilterActs
 from pylearn2.sandbox.cuda_convnet.img_acts import ImageActs
 from theano.sandbox.cuda import gpu_from_host
 from theano import function
+from theano.tensor import as_tensor_variable
 
 
 def test_reject_rect():
@@ -36,7 +37,12 @@ def test_reject_rect():
         gpu_images = gpu_from_host(images)
         gpu_filters = gpu_from_host(filters)
 
-        output = cls()(gpu_images, gpu_filters)
+        if cls is ImageActs:
+            output = cls()(gpu_images, gpu_filters,
+                        as_tensor_variable((rows, cols)))
+        else:
+            output = cls()(gpu_images, gpu_filters)
+
         f = function([], output)
         try:
             output = f()
@@ -66,7 +72,11 @@ def test_reject_bad_filt_number():
         gpu_images = gpu_from_host(images)
         gpu_filters = gpu_from_host(filters)
 
-        output = cls()(gpu_images, gpu_filters)
+        if cls is ImageActs:
+            output = cls()(gpu_images, gpu_filters,
+                           as_tensor_variable((rows, cols)))
+        else:
+            output = cls()(gpu_images, gpu_filters)
         f = function([], output)
         try:
             output = f()
