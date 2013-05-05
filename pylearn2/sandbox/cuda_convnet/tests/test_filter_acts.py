@@ -292,7 +292,7 @@ def test_grad_strided():
     rows = 9
     cols = 9
     channels = 3
-    filter_rows = 4
+    filter_rows = 3
     filter_cols = filter_rows
     num_filters = 16
     stride = 3
@@ -315,6 +315,12 @@ def test_grad_strided():
             border_mode='valid', subsample=(stride, stride))
     output_conv2d = output_conv2d.dimshuffle(1,2,3,0)
 
+
+    checker = function([], [output, output_conv2d])
+    output_numpy, output_conv2d_numpy = checker()
+    if output_numpy.shape != output_conv2d_numpy.shape:
+        raise AssertionError("theano and cuda convnet follow different conventions for this input size, so we can't test cuda convnet by matching it against theano for these inputs")
+
     # Proper random projection, like verify_grad does.
     theano_rng = MRG_RandomStreams(2013*5*4)
     cost_weights = theano_rng.normal(size=output_conv2d.shape, dtype=output_conv2d.dtype)
@@ -323,7 +329,7 @@ def test_grad_strided():
     filters_bc01 = filters_bc01[:,:,::-1,::-1]
 
     # XXX: use verify_grad
-    images_grad, filters_grad = grad(cost.sum(), [images, filters])
+    images_grad, filters_grad = grad(cost, [images, filters])
     reference_cost = (cost_weights * output_conv2d).sum()
     images_conv2d_grad, filters_conv2d_grad = grad(reference_cost, [images, filters])
 
