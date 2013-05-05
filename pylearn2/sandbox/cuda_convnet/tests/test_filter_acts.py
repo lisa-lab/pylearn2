@@ -315,6 +315,12 @@ def test_grad_strided():
             border_mode='valid', subsample=(stride, stride))
     output_conv2d = output_conv2d.dimshuffle(1,2,3,0)
 
+
+    checker = function([], [output, output_conv2d])
+    output_numpy, output_conv2d_numpy = checker()
+    if output_numpy.shape != output_conv2d_numpy.shape:
+        raise AssertionError("theano and cuda convnet follow different conventions for this input size, so we can't test cuda convnet by matching it against theano for these inputs")
+
     # Proper random projection, like verify_grad does.
     theano_rng = MRG_RandomStreams(2013*5*4)
     cost_weights = theano_rng.normal(size=output_conv2d.shape, dtype=output_conv2d.dtype)
