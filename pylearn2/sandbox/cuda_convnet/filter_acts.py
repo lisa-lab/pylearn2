@@ -324,9 +324,8 @@ class FilterActs(BaseActs):
 
         ishape = images.shape[1:3]
         fshape = filters.shape[1:3]
-        d_images = ImageActs(self.pad, self.partial_sum)(dout, filters,
-                                                         ishape)
-        d_filters = WeightActs(self.pad, self.partial_sum)(images, dout,
-                                                           fshape)[0]
-
+        d_images = ImageActs(self.pad, self.partial_sum, self.stride)(
+            dout, filters, ishape)
+        d_filters = WeightActs(self.pad, self.partial_sum, self.stride)(
+            images, dout, fshape)[0]
         return d_images, d_filters
