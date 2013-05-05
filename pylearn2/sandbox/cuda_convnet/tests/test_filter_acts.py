@@ -329,7 +329,7 @@ def test_grad_strided():
     filters_bc01 = filters_bc01[:,:,::-1,::-1]
 
     # XXX: use verify_grad
-    images_grad, filters_grad = grad(cost.sum(), [images, filters])
+    images_grad, filters_grad = grad(cost, [images, filters])
     reference_cost = (cost_weights * output_conv2d).sum()
     images_conv2d_grad, filters_conv2d_grad = grad(reference_cost, [images, filters])
 
