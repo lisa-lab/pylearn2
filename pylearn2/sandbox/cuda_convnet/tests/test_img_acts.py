@@ -17,6 +17,7 @@ from theano.tensor.nnet.conv import conv2d
 from theano import function
 import warnings
 
+from theano.tensor import as_tensor_variable
 
 def test_match_full_conv():
 
