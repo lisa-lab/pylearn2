@@ -184,6 +184,18 @@ class Model(object):
 
         return self.output_space
 
+    def get_input_source(self):
+        """ Returns a string, stating the source for the input. By default
+        the input source (when is the only one) is called 'features'
+        """
+        return 'features'
+
+    def get_target_source(self):
+        """ Returns a string, stating the source for the output. By default
+        the output source (when is the only one) is called 'targets'
+        """
+        return 'targets'
+
     def free_energy(self, V):
         """
         Compute the free energy of data examples, if this model has

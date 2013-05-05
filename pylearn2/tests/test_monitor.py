@@ -159,7 +159,7 @@ def test_prereqs():
     monitor.add_dataset(monitoring_dataset, 'sequential', batch_size=BATCH_SIZE)
 
     prereq_counter = sharedX(0.)
-    def prereq(X,y):
+    def prereq(*data):
         prereq_counter.set_value(
                 prereq_counter.get_value()+1.)
 
@@ -222,11 +222,11 @@ def test_revisit():
                     def __init__(self):
                         self.validate = False
 
-                    def __call__(self, X, y):
+                    def __call__(self, *data):
                         """ Initially, records the batches the monitor shows it.
                         When set to validate mode, makes sure the batches shown
                         on the second monitor call match those from the first."""
-                        assert y is None
+                        X, = data
 
                         idx = batch_idx.get_value()
                         batch_idx.set_value(idx + 1)
@@ -293,7 +293,7 @@ def test_prereqs_batch():
     monitor.add_dataset(monitoring_dataset, 'sequential', batch_size=BATCH_SIZE)
 
     sign = sharedX(1.)
-    def prereq(X,y):
+    def prereq(*data):
         sign.set_value(
                 -sign.get_value())
 
@@ -461,6 +461,7 @@ def test_no_data():
     try:
         monitor.add_channel(name = name,
             ipt = model.input_space.make_theano_batch(),
+            data_specs = (model.input_space, 'features'),
             val = 0.)
     except ValueError, e:
         assert e.message == _err_no_data

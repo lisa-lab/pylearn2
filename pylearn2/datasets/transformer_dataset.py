@@ -4,7 +4,11 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
+
 from pylearn2.datasets.dataset import Dataset
+from pylearn2.space import CompositeSpace
+from pylearn2.utils.data_specs import is_flat_specs
+
 
 class TransformerDataset(Dataset):
     """
@@ -51,16 +55,44 @@ class TransformerDataset(Dataset):
         return X.reshape(X.shape[0],X.shape[1],1,1)
 
     def iterator(self, mode=None, batch_size=None, num_batches=None,
-                 topo=None, targets=None, rng=None):
+                 topo=None, targets=None, rng=None, data_specs=None,
+                 return_tuple=False):
 
-        raw_iterator = self.raw.iterator(mode, batch_size, num_batches, topo, targets, rng)
+        # Build the right data_specs to query self.raw
+        if data_specs is not None:
+            assert is_flat_specs(data_specs)
+            space, source = data_specs
+            if not isinstance(source, tuple):
+                source = (source,)
+            if isinstance(space, CompositeSpace):
+                space = tuple(space.components)
+            else:
+                space = (space,)
 
-        final_iterator = TransformerIterator(raw_iterator, self)
+            # Put 'features' first, as this is what TransformerIterator
+            # is expecting
+            feature_idx = source.index('features')
+            raw_space = CompositeSpace((self.transformer.get_input_space(),)
+                         + space[:feature_idx]
+                         + space[feature_idx + 1:])
+            raw_source = (('features',)
+                          + source[:feature_idx]
+                          + source[feature_idx + 1:])
+            raw_data_specs = (raw_space, raw_source)
+        else:
+            raw_data_specs = None
+
+        raw_iterator = self.raw.iterator(mode=mode, batch_size=batch_size,
+                num_batches=num_batches, topo=topo, targets=targets, rng=rng,
+                data_specs=raw_data_specs, return_tuple=return_tuple)
+
+        final_iterator = TransformerIterator(raw_iterator, self,
+                                             data_specs=data_specs)
 
         return final_iterator
 
     def has_targets(self):
-        return self.raw.y is not None
+        return self.raw.has_targets()
 
     def adjust_for_viewer(self, X):
         if self.space_preserving:
@@ -83,23 +115,39 @@ class TransformerDataset(Dataset):
 
 class TransformerIterator(object):
 
-    def __init__(self, raw_iterator, transformer_dataset):
+    def __init__(self, raw_iterator, transformer_dataset, data_specs):
         self.raw_iterator = raw_iterator
         self.transformer_dataset = transformer_dataset
         self.stochastic = raw_iterator.stochastic
         self.uneven = raw_iterator.uneven
+        self.data_specs = data_specs
 
     def __iter__(self):
         return self
 
     def next(self):
-
         raw_batch = self.raw_iterator.next()
 
-        if self.raw_iterator._targets:
-            rval = (self.transformer_dataset.transformer.perform(raw_batch[0]), raw_batch[1])
+        # Apply transformation on raw_batch, and format it
+        # in the requested Space
+        transformer = self.transformer_dataset.transformer
+        rval_space = transformer.get_output_space()
+        out_space = self.data_specs[0]
+        if isinstance(out_space, CompositeSpace):
+            out_space = out_space.components[0]
+
+        def transform(X_batch):
+            rval = transformer.perform(X_batch)
+            if rval_space != out_space:
+                rval = rval_space.np_format_as(rval, out_space)
+            return rval
+
+        if not isinstance(raw_batch, tuple):
+            # Only one source, return_tuple is False
+            rval = transform(raw_batch)
         else:
-            rval = self.transformer_dataset.transformer.perform(raw_batch)
+            # Apply the transformer only on the first element
+            rval = (transform(raw_batch[0]),) + raw_batch[1:]
 
         return rval
 

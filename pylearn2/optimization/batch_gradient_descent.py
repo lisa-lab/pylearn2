@@ -454,8 +454,8 @@ class BatchGradientDescent:
                         break
                     prev_improvement = improvement
 
-                alpha_list = [alpha for alpha, obj in results]
-                obj = [ obj for alpha, obj in results]
+                alpha_list = [alpha for alpha, o in results]
+                obj = [o for alpha, o in results]
                 mn = min(obj)
                 idx = obj.index(mn)
                 x = alpha_list[idx]

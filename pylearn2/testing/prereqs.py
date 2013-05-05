@@ -8,9 +8,10 @@ class ReadVerifyPrereq(object):
         self.counter_idx = counter_idx
         self.counter = counter
 
-    def __call__(self, X, y):
+    def __call__(self, *data):
         # We set up each dataset with a different batch size
         # check here that we're getting the right one
+        X, = data
         assert X.shape[0] == self.counter_idx + 1
         # Each dataset has different content, make sure we
         # get the right one

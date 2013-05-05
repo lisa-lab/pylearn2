@@ -42,12 +42,16 @@ from theano import config
 import functools
 from theano.gof.op import get_debug_values
 from theano.sandbox.cuda.type import CudaNdarrayType
-from pylearn2.sandbox.tuple_var import TupleVariable
-from pylearn2.utils import py_integer_types
+from pylearn2.utils import py_integer_types, safe_zip
+#import pylearn2.utils.data_specs as specs_utils
 
 
 class Space(object):
     """A vector space that can be transformed by a linear operator."""
+
+    def __ne__(self, other):
+        return not (self == other)
+
     def get_origin(self):
         """
         Returns the origin in this space.
@@ -104,6 +108,31 @@ class Space(object):
 
         raise NotImplementedError(str(type(self))+" does not implement get_total_dimension.")
 
+    def np_format_as(self, batch, space):
+        """
+        batch: numpy ndarray which lies in the space represented by self
+        space: a Space
+
+        returns batch formatted to lie in space
+
+        Should be invertible, i.e.
+        batch should equal
+        space.format_as(self.format_as(batch, space), self)
+        """
+        if not hasattr('_np_format_as', self):
+            #assert specs_utils.is_flat_space(self)
+            variables = self.make_theano_batch()
+            outputs = self.format_as(variables, space)
+            if not isinstance(variables, (tuple, list)):
+                variables = (variables,)
+            self._np_format_as = theano.function(variables, outputs)
+        if isinstance(batch, (list, tuple)):
+            return self._np_format_as(*batch)
+        else:
+            return self._np_format_as(batch)
+
+
+
     def format_as(self, batch, space):
         """
         batch: a theano batch which lies in the space represented by self
@@ -145,6 +174,19 @@ class Space(object):
 
         raise NotImplementedError(str(type(self))+" does not implement validate.")
 
+    def get_batch_size(self, data):
+        """ Returns the batch size of the given data """
+
+        raise NotImplementedError(str(type(self))+" does not implement "+\
+                                  "get_batch_size")
+
+    def get_batch(self, data, start, end):
+        """ Returns a batch of data starting from index `start` to index
+        `stop`"""
+        raise NotImplementedError(str(type(self))+" does not implement "+\
+                                  "get_batch")
+
+
 class VectorSpace(Space):
     """A space whose points are defined as fixed-length vectors."""
     def __init__(self, dim, sparse=False):
@@ -169,19 +211,33 @@ class VectorSpace(Space):
     def get_origin_batch(self, n):
         return np.zeros((n, self.dim))
 
+    @functools.wraps(Space.get_batch_size)
+    def get_batch_size(self, data):
+        if isinstance(data, tuple):
+            data, = data
+        return data.shape[0]
+
     @functools.wraps(Space.make_theano_batch)
     def make_theano_batch(self, name=None, dtype=None):
         if dtype is None:
             dtype = config.floatX
 
         if self.sparse:
-            return theano.sparse.csr_matrix(name=name)
+            rval = theano.sparse.csr_matrix(name=name)
         else:
-            return T.matrix(name=name, dtype=dtype)
+            rval = T.matrix(name=name, dtype=dtype)
+        if config.compute_test_value != 'off':
+            rval.tag.test_value = self.get_origin_batch(n=4)
+        return rval
+
 
     @functools.wraps(Space.get_total_dimension)
     def get_total_dimension(self):
         return self.dim
+
+    @functools.wraps(Space.np_format_as)
+    def np_format_as(self, batch, space):
+        return self._format_as(batch, space)
 
     @functools.wraps(Space._format_as)
     def _format_as(self, batch, space):
@@ -212,6 +268,9 @@ class VectorSpace(Space):
 
     def __eq__(self, other):
         return type(self) == type(other) and self.dim == other.dim
+
+    def __hash__(self):
+        return hash((type(self), self.dim))
 
     def validate(self, batch):
         if not isinstance(batch, theano.gof.Variable):
@@ -278,6 +337,9 @@ class Conv2DSpace(Space):
                 self.num_channels == other.num_channels \
                 and self.axes == other.axes
 
+    def __hash__(self):
+        return hash((type(self), self.shape, self.num_channels, self.axes))
+
     @functools.wraps(Space.get_origin)
     def get_origin(self):
         dims = { 0: self.shape[0], 1: self.shape[1], 'c' : self.num_channels }
@@ -303,9 +365,19 @@ class Conv2DSpace(Space):
         broadcastable[self.axes.index('c')] = self.num_channels == 1
         broadcastable = tuple(broadcastable)
 
-        return TensorType(dtype=dtype,
+        rval = TensorType(dtype=dtype,
                           broadcastable=broadcastable
                          )(name=name)
+        if config.compute_test_value != 'off':
+            rval.tag.test_value = self.get_origin_batch(n=4)
+        return rval
+
+    @functools.wraps(Space.get_batch_size)
+    def get_batch_size(self, data):
+        if isinstance(data, tuple):
+            data, = data
+        return data.shape[self.axes.index('b')]
+
 
     @staticmethod
     def convert(tensor, src_axes, dst_axes):
@@ -393,6 +465,19 @@ class Conv2DSpace(Space):
                             str(d) + " of a batch (" + str(batch)+") to have length " + str(expected_shape) + \
                             " but it has "+str(actual_shape))
 
+    @functools.wraps(Space.np_format_as)
+    def np_format_as(self, batch, space):
+        if isinstance(space, VectorSpace):
+            if self.axes[0] != 'b':
+                # We need to ensure that the batch index goes on the first axis before the reshape
+                new_axes = ['b'] + [axis for axis in self.axes if axis != 'b']
+                batch = batch.transpose(*[self.axes.index(axis) for axis in new_axes])
+            return batch.reshape((batch.shape[0], self.get_total_dimension()))
+        if isinstance(space, Conv2DSpace):
+            return Conv2DSpace.convert_numpy(batch, self.axes, space.axes)
+        raise NotImplementedError("Conv2DSPace doesn't know how to format as "+str(type(space)))
+
+
     @functools.wraps(Space._format_as)
     def _format_as(self, batch, space):
         self.validate(batch)
@@ -420,7 +505,10 @@ class CompositeSpace(Space):
             len(self.components) == len(other.components) and \
             all([my_component == other_component for
                 my_component, other_component in \
-                zip(self.my_components, other.components)])
+                zip(self.components, other.components)])
+
+    def __hash__(self):
+        return hash((type(self), tuple(self.components)))
 
     def restrict(self, subset):
         """Returns a new Space containing only the components whose indices
@@ -453,12 +541,23 @@ class CompositeSpace(Space):
             idx, = subset
             return batch[idx]
 
-        return tuple([batch[idx] for idx in subset])
+        return tuple([batch[i] for i in subset])
 
     @functools.wraps(Space.get_total_dimension)
     def get_total_dimension(self):
         return sum([component.get_total_dimension() for component in
             self.components])
+
+    @functools.wraps(Space.np_format_as)
+    def np_format_as(self, batch, space):
+        if isinstance(space, VectorSpace):
+            pieces = []
+            for component, input_piece in zip(self.components, batch):
+                width = component.get_total_dimension()
+                pieces.append(component.np_format_as(input_piece, VectorSpace(width)))
+            return np.concatenate(pieces, axis=1)
+
+        raise NotImplementedError("CompositeSpace does not know how to format as "+str(space))
 
     @functools.wraps(Space._format_as)
     def _format_as(self, batch, space):
@@ -486,12 +585,26 @@ class CompositeSpace(Space):
         return tuple([component.get_origin_batch(n) for component in self.components])
 
     @functools.wraps(Space.make_theano_batch)
-    def make_theano_batch(self, name = None, dtype = None):
+    def make_theano_batch(self, name=None, dtype=None):
+        if name is None:
+            name = [None] * len(self.components)
+        elif not isinstance(name, (list, tuple)):
+            name = ['%s[%i]' % (name, i) for i in xrange(len(self.components))]
 
-        def name_generator(i):
-            if name is None:
-                return None
-            return name + '[' + str(i) +']'
+        if dtype is None:
+            dtype = [None] * len(self.components)
+        assert isinstance(name, (list, tuple))
+        assert isinstance(dtype, (list, tuple))
 
-        return TupleVariable(tuple(component.make_theano_batch(name = name_generator(i), dtype = dtype)
-                for i, component in enumerate(self.components)), name=name)
+        rval = tuple([x.make_theano_batch(name=n, dtype=d)
+                for x,n,d in safe_zip(self.components,
+                                      name,
+                                      dtype)])
+        return rval
+
+    @functools.wraps(Space.get_batch_size)
+    def get_batch_size(self, data):
+        # Assumption: we have the same batch size for all components in the
+        # data.
+        assert isinstance(data, (list, tuple))
+        return self.components[0].get_batch_size(data[0])

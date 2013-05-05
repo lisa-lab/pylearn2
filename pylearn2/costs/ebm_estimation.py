@@ -2,6 +2,7 @@
 import theano.tensor as T
 from theano import scan
 from pylearn2.costs.cost import Cost
+from pylearn2.space import CompositeSpace
 from pylearn2.utils import py_integer_types
 
 
@@ -19,7 +20,7 @@ class NCE(Cost):
     def G(self, X, model):
         return model.log_prob(X) - self.noise.log_prob(X)
 
-    def __call__(self, model, X, Y = None):
+    def expr(self, model, data):
         #The Y here is the noise
         #If you don't pass it in, it will be generated internally
         #Passing it in lets you keep it constant while doing
@@ -27,6 +28,11 @@ class NCE(Cost):
         #and stuff like that
         #This interface should probably be changed because it
         #looks too much like the SupervisedCost interface
+        if type(data) in (list, tuple):
+            (X,Y) = data
+        else:
+            X = data
+            Y = None
 
         if X.name is None:
             X_name = 'X'
@@ -70,6 +76,11 @@ class NCE(Cost):
         assert isinstance(noise_per_clean, py_integer_types)
         self.noise_per_clean = noise_per_clean
 
+    def get_data_specs(self, model):
+        space = CompositeSpace([model.get_input_space(), model.get_output_space()])
+        sources = (model.get_input_source(), model.get_target_source())
+        return (space, sources)
+
 class SM(Cost):
     """ Score Matching
         See eqn. 4 of "On Autoencoders and Score Matching for Energy Based Models",
@@ -78,7 +89,7 @@ class SM(Cost):
         Uses the mean over visible units rather than sum over visible units
         so that hyperparameters won't depend as much on the # of visible units
     """
-    def __call__(self, model, X, Y=None):
+    def expr(self, model, X):
         X_name = 'X' if X.name is None else X.name
 
         score = model.score(X)
@@ -104,6 +115,9 @@ class SM(Cost):
 
         return rval
 
+    def get_data_specs(self, model):
+        return (model.get_input_space(), model.get_input_source())
+
 class SMD(Cost):
     """ Denoising Score Matching
         See eqn. 4.3 of "A Connection Between Score Matching and Denoising Autoencoders"
@@ -117,7 +131,11 @@ class SMD(Cost):
         super(SMD, self).__init__()
         self.corruptor = corruptor
 
-    def __call__(self, model, X, Y = None):
+    def expr(self, model, data):
+        if isinstance(data, tuple):
+            X, = data
+        else:
+            X = data
         X_name = 'X' if X.name is None else X.name
 
         corrupted_X = self.corruptor(X)
@@ -147,3 +165,6 @@ class SMD(Cost):
         smd.name = 'SMD('+X_name+')'
 
         return smd
+
+    def get_data_specs(self, model):
+        return (model.get_input_space(), model.get_input_source())

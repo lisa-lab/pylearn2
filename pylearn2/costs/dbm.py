@@ -18,6 +18,7 @@ from theano import tensor as T
 from pylearn2.costs.cost import Cost
 from pylearn2.models import dbm
 from pylearn2.models.dbm import flatten
+from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_izip
 from pylearn2.utils import safe_zip
 
@@ -40,24 +41,24 @@ class PCD(Cost):
         self.theano_rng = MRG_RandomStreams(2012 + 10 + 14)
         assert supervised in [True, False]
 
-    def __call__(self, model, X, Y=None):
+    def expr(self, model, data):
         """
         The partition function makes this intractable.
         """
 
-        if self.supervised:
-            assert Y is not None
-
         return None
 
-    def get_monitoring_channels(self, model, X, Y = None):
+    def get_monitoring_channels(self, model, data):
+        assert len(data) <= 2
+        X = data[0]
         rval = OrderedDict()
 
         history = model.mf(X, return_history = True)
         q = history[-1]
 
         if self.supervised:
-            assert Y is not None
+            assert len(data) == 2
+            Y = data[1]
             Y_hat = q[-1]
             true = T.argmax(Y,axis=1)
             pred = T.argmax(Y_hat, axis=1)
@@ -81,12 +82,19 @@ class PCD(Cost):
 
         return rval
 
-    def get_gradients(self, model, X, Y=None):
+    def get_gradients(self, model, data):
         """
         PCD approximation to the gradient.
         Keep in mind this is a cost, so we use
         the negative log likelihood.
         """
+        if self.supervised:
+            assert isinstance(data, (list, tuple))
+            assert len(data) == 2
+            (X, Y) = data
+        else:
+            X, = data
+            Y = None
 
         layer_to_clamp = OrderedDict([(model.visible_layer, True )])
         layer_to_pos_samples = OrderedDict([(model.visible_layer, X)])
@@ -210,6 +218,9 @@ class PCD(Cost):
 
         return gradients, updates
 
+    def get_data_specs(self, model):
+        return (None, None)
+
 class VariationalPCD(Cost):
     """
     An intractable cost representing the variational upper bound
@@ -230,13 +241,10 @@ class VariationalPCD(Cost):
         self.theano_rng = MRG_RandomStreams(2012 + 10 + 14)
         assert supervised in [True, False]
 
-    def __call__(self, model, X, Y=None):
+    def expr(self, model, data):
         """
         The partition function makes this intractable.
         """
-
-        if self.supervised:
-            assert Y is not None
 
         return None
 
@@ -271,7 +279,7 @@ class VariationalPCD(Cost):
 
         return rval
 
-    def get_gradients(self, model, X, Y=None):
+    def get_gradients(self, model, data):
         """
         PCD approximation to the gradient of the bound.
         Keep in mind this is a cost, so we are upper bounding
@@ -279,12 +287,15 @@ class VariationalPCD(Cost):
         """
 
         if self.supervised:
-            assert Y is not None
+            assert isinstance(data, (list, tuple))
+            assert len(data) == 2
+            (X, Y) = data
             # note: if the Y layer changes to something without linear energy,
             # we'll need to make the expected energy clamp Y in the positive phase
             assert isinstance(model.hidden_layers[-1], dbm.Softmax)
-
-
+        else:
+            X, = data
+            Y = None
 
         q = model.mf(X, Y)
 
@@ -399,6 +410,9 @@ class VariationalPCD(Cost):
 
         return gradients, updates
 
+    def get_data_specs(self, model):
+        return (None, None)
+
 class MF_L2_ActCost(Cost):
     """
         An L2 penalty on the amount that the hidden unit mean field parameters
@@ -413,15 +427,19 @@ class MF_L2_ActCost(Cost):
         self.__dict__.update(locals())
         del self.self
 
-    def __call__(self, model, X, Y=None, return_locals=False, **kwargs):
+    def expr(self, model, data, return_locals=False, **kwargs):
         """
         If returns locals is True, returns (objective, locals())
         Note that this means adding / removing / changing the value of
         local variables is an interface change.
         In particular, TorontoSparsity depends on "terms" and "H_hat"
         """
-
-        assert (Y is None) == (not self.supervised)
+        if self.supervised:
+            assert type(data) in (list, tuple)
+            assert len(data) == 2
+            (X, Y) = data
+        else:
+            X = data
 
         H_hat = model.mf(X, Y=Y)
 
@@ -448,6 +466,15 @@ class MF_L2_ActCost(Cost):
         if return_locals:
             return objective, locals()
         return objective
+
+    def get_data_specs(self, model):
+        if self.supervised:
+            space = CompositeSpace([model.get_input_space(), model.get_output_space()])
+            sources = (model.get_input_source(), model.get_target_source())
+            return (space, sources)
+        else:
+            return (model.get_input_space(), model.get_input_source())
+
 def fix(l):
     if isinstance(l, list):
         return [fix(elem) for elem in l]
@@ -467,14 +494,19 @@ class TorontoSparsity(Cost):
         self.base_cost = MF_L2_ActCost(targets=targets,
                 coeffs=coeffs, supervised=supervised)
 
-    def __call__(self, model, X, Y=None, return_locals=False, **kwargs):
+    def expr(self, model, data, return_locals=False, **kwargs):
 
-        return self.base_cost(model, X, Y, return_locals=return_locals,
+        return self.base_cost.expr(model, data, return_locals=return_locals,
                 **kwargs)
 
-    def get_gradients(self, model, X, Y=None, **kwargs):
-        obj, scratch = self.base_cost(model, X, Y, return_locals=True, **kwargs)
-
+    def get_gradients(self, model, data, **kwargs):
+        obj, scratch = self.base_cost(model, data, return_locals=True, **kwargs)
+        if self.supervised:
+            assert isinstance(data, (list, tuple))
+            assert len(data) == 2
+            (X, Y) = data
+        else:
+            X, = data
         interm_grads = OrderedDict()
 
 
@@ -526,6 +558,9 @@ class TorontoSparsity(Cost):
 
         return grads, OrderedDict()
 
+    def get_data_specs(self, model):
+        return self.base_cost.get_data_specs(model)
+
 class WeightDecay(Cost):
     """
     coeff * sum(sqr(weights))
@@ -543,7 +578,7 @@ class WeightDecay(Cost):
         self.__dict__.update(locals())
         del self.self
 
-    def __call__(self, model, X, Y = None, ** kwargs):
+    def expr(self, model, data, ** kwargs):
 
         layer_costs = [ layer.get_weight_decay(coeff)
             for layer, coeff in safe_izip(model.hidden_layers, self.coeffs) ]
@@ -565,4 +600,5 @@ class WeightDecay(Cost):
 
         return total_cost
 
-
+    def get_data_specs(self, model):
+        return (None, None)

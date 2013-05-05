@@ -9,6 +9,9 @@ from itertools import izip
 from pylearn2.utils import safe_zip
 from collections import OrderedDict
 from pylearn2.utils import safe_union
+from pylearn2.space import CompositeSpace
+from pylearn2.utils.data_specs import DataSpecsMapping
+
 
 class Cost(object):
     """
@@ -16,14 +19,14 @@ class Cost(object):
     unsupervised cost.
     """
 
-    # If True, the Y argument to __call__ and get_gradients must not be None
+    # If True, the data argument to expr and get_gradients must be a
+    # (X, Y) pair, and Y cannot be None.
     supervised = False
 
-    def __call__(self, model, X, Y=None, ** kwargs):
+    def expr(self, model, data, ** kwargs):
         """
         model: a pylearn2 Model instance
-        X: a batch in model.get_input_space()
-        Y: a batch in model.get_output_space()
+        data : a batch in cost.get_data_specs() form
 
         Returns a symbolic expression for a cost function applied to the
         minibatch of data.
@@ -32,20 +35,19 @@ class Cost(object):
 
         """
 
-        raise NotImplementedError(str(type(self))+" does not implement __call__")
+        raise NotImplementedError(str(type(self))+" does not implement expr.")
 
-    def get_gradients(self, model, X, Y=None, ** kwargs):
+    def get_gradients(self, model, data, ** kwargs):
         """
         model: a pylearn2 Model instance
-        X: a batch in model.get_input_space()
-        Y: a batch in model.get_output_space()
+        data : a batch in cost.get_data_specs() form
 
         returns: gradients, updates
             gradients:
                 a dictionary mapping from the model's parameters
                          to their gradients
                 The default implementation is to compute the gradients
-                using T.grad applied to the value returned by __call__.
+                using T.grad applied to the value returned by expr.
                 However, subclasses may return other values for the gradient.
                 For example, an intractable cost may return a sampling-based
                 approximation to its gradient.
@@ -60,15 +62,12 @@ class Cost(object):
         """
 
         try:
-            if Y is None:
-                cost = self(model=model, X=X, **kwargs)
-            else:
-                cost = self(model=model, X=X, Y=Y, **kwargs)
+            cost = self.expr(model=model, data=data, **kwargs)
         except TypeError,e:
             # If anybody knows how to add type(seslf) to the exception message
             # but still preserve the stack trace, please do so
             # The current code does neither
-            e.message += " while calling "+str(type(self))+".__call__"
+            e.message += " while calling "+str(type(self))+".expr"
             print str(type(self))
             print e.message
             raise e
@@ -87,7 +86,7 @@ class Cost(object):
 
         return gradients, updates
 
-    def get_monitoring_channels(self, model, X, Y=None, **kwargs):
+    def get_monitoring_channels(self, model, data, **kwargs):
         """
         Returns a dictionary mapping channel names to expressions for
         channel values.
@@ -96,20 +95,15 @@ class Cost(object):
             but I forget how right now)
 
         model: the model to use to compute the monitoring channels
-        X, Y: symbolic expressions for the monitoring data
-        kwargs: used so that custom algorithms can use extra variables
+        data: symbolic expressions for the monitoring data
+
+        cost,get_ds(),kwargs: used so that custom algorithms can use extra variables
                 for monitoring.
 
         """
         return OrderedDict()
 
-    def get_target_space(self, model, dataset):
-        if self.supervised:
-            return model.get_output_space()
-        else:
-            return None
-
-    def get_fixed_var_descr(self, model, X, Y):
+    def get_fixed_var_descr(self, model, data):
         """
         Subclasses should override this if they need variables held
         constant across multiple updates to a minibatch.
@@ -120,6 +114,13 @@ class Cost(object):
 
         return FixedVarDescr()
 
+    def get_data_specs(self, model):
+        """
+        Returns a composite space, describing the format of the data
+        which the cost (and the model) expects.
+        """
+        raise NotImplementedError(str(type(self))+" does not implement " +
+                                  "get_data_specs.")
 
 class SumOfCosts(Cost):
     """
@@ -148,13 +149,15 @@ class SumOfCosts(Cost):
                 coeff = 1.
             self.coeffs.append(coeff)
             self.costs.append(cost)
+
             if not isinstance(cost, Cost):
                 raise ValueError("one of the costs is not " + \
                                  "Cost instance")
 
+        # TODO: remove this when it is no longer necessary
         self.supervised = any([cost.supervised for cost in self.costs])
 
-    def __call__(self, model, X, Y=None, ** kwargs):
+    def expr(self, model, data, ** kwargs):
         """
         Returns the sum of the costs the SumOfCosts instance was given at
         initialization.
@@ -163,24 +166,15 @@ class SumOfCosts(Cost):
         ----------
         model : pylearn2.models.model.Model
             the model for which we want to calculate the sum of costs
-        X : tensor_like
-            input to the model
-        Y : tensor_like
-            the target, if necessary
+        data : flat tuple of tensor_like variables
         """
-        # If the sum is a supervised cost, check whether the target was
-        # provided
-        if Y is None and self.supervised is True:
-            raise ValueError("no targets provided while some of the " +
-                             "costs in the sum are supervised costs")
-
+        composite_specs, mapping = self.get_composite_specs_and_mapping(model)
+        nested_data = mapping.nest(data)
         costs = []
-        for cost in self.costs:
-            if cost.supervised:
-                Y_to_pass = Y
-            else:
-                Y_to_pass = None
-            costs.append(cost(model, X, Y_to_pass, **kwargs))
+        for cost, cost_data in safe_zip(self.costs, nested_data):
+            if not isinstance(cost_data, tuple):
+                cost_data = (cost_data,)
+            costs.append(cost.expr(model, cost_data, **kwargs))
         assert len(costs) > 0
 
         if any([cost is None for cost in costs]):
@@ -192,25 +186,44 @@ class SumOfCosts(Cost):
 
         return sum_of_costs
 
-    def get_gradients(self, model, X, Y=None, ** kwargs):
-
-        if Y is None and self.supervised:
-            raise ValueError("no targets provided while some of the " +
-                             "costs in the sum are supervised costs")
-
-        indiv_results = []
+    def get_composite_data_specs(self, model):
+        spaces = []
+        sources = []
         for cost in self.costs:
-            if cost.supervised:
-                Y_to_pass = Y
-            else:
-                Y_to_pass = None
-            result = cost.get_gradients(model, X, Y_to_pass, ** kwargs)
-            indiv_results.append(result)
+            space, source = cost.get_data_specs(model)
+            spaces.append(space)
+            sources.append(source)
 
+        # Build composite space representing all inputs
+        composite_space = CompositeSpace(spaces)
+        sources = tuple(sources)
+        return (composite_space, sources)
+
+    def get_composite_specs_and_mapping(self, model):
+        composite_space, sources = self.get_composite_data_specs(model)
+        mapping = DataSpecsMapping((composite_space, sources))
+        return (composite_space, sources), mapping
+
+    def get_data_specs(self, model):
+        composite_specs, mapping = self.get_composite_specs_and_mapping(model)
+        composite_space, sources = composite_specs
+        flat_composite_space = mapping.flatten(composite_space)
+        flat_sources = mapping.flatten(sources)
+        data_specs = (flat_composite_space, flat_sources)
+        return data_specs
+
+    def get_gradients(self, model, data, ** kwargs):
+        indiv_results = []
+        composite_specs, mapping = self.get_composite_specs_and_mapping(model)
+        nested_data = mapping.nest(data)
+        for cost, cost_data in safe_zip(self.costs, nested_data):
+            if not isinstance(cost_data, tuple):
+                cost_data = (cost_data,)
+            result = cost.get_gradients(model, cost_data, ** kwargs)
+            indiv_results.append(result)
 
         grads = OrderedDict()
         updates = OrderedDict()
-
         params = model.get_params()
 
         for coeff, packed in zip(self.coeffs, indiv_results):
@@ -232,26 +245,24 @@ class SumOfCosts(Cost):
 
         return grads, updates
 
-    def get_monitoring_channels(self, model, X, Y=None, ** kwargs):
-        if Y is  None and self.supervised:
-            raise ValueError("no targets provided while some of the " +
-                             "costs in the sum are supervised costs")
+    def get_monitoring_channels(self, model, data, ** kwargs):
 
         rval = OrderedDict()
+        composite_specs, mapping = self.get_composite_specs_and_mapping(model)
+        nested_data = mapping.nest(data)
 
         for i, cost in enumerate(self.costs):
+            cost_data = nested_data[i]
+            if not isinstance(cost_data, tuple):
+                cost_data = (cost_data,)
             try:
-                rval.update(cost.get_monitoring_channels(model, X, Y, **kwargs))
+                rval.update(cost.get_monitoring_channels(model, cost_data, **kwargs))
             except TypeError:
                 print 'SumOfCosts.get_monitoring_channels encountered TypeError while calling ' \
                         + str(type(cost))+'.get_monitoring_channels'
                 raise
 
-            Y_to_pass = Y
-            if not cost.supervised:
-                Y_to_pass = None
-
-            value = cost(model, X, Y_to_pass, ** kwargs)
+            value = cost.expr(model, cost_data, ** kwargs)
             if value is not None:
                 name = ''
                 if hasattr(value, 'name') and value.name is not None:
@@ -260,11 +271,9 @@ class SumOfCosts(Cost):
 
         return rval
 
-    def get_fixed_var_descr(self, model, X, Y):
+    def get_fixed_var_descr(self, model, data):
 
-        assert Y is not None
-
-        descrs = [cost.get_fixed_var_descr(model, X, Y) for cost in self.costs]
+        descrs = [cost.get_fixed_var_descr(model, data) for cost in self.costs]
 
         return reduce(merge, descrs)
 
@@ -289,7 +298,7 @@ class ScaledCost(Cost):
         self.supervised = cost.supervised
         self.scaling = scaling
 
-    def __call__(self, model, X, Y=None):
+    def expr(self, model, data):
         """
         Returns cost scaled by its scaling factor.
 
@@ -302,12 +311,11 @@ class ScaledCost(Cost):
         Y : tensor_like
             the target, if necessary
         """
-        if Y is None and self.supervised is True:
-            raise ValueError("no targets provided for a supervised cost")
-        if self.supervised:
-            return self.scaling * self.cost(model, X, Y)
-        else:
-            return self.scaling * self.cost(model, X)
+        return self.scaling * self.cost(model, data)
+
+    def get_data_specs(self, model):
+        return self.cost.get_data_specs(model)
+
 
 class LxReg(Cost):
     """
@@ -327,7 +335,7 @@ class LxReg(Cost):
         self.variables = variables
         self.x = x
 
-    def __call__(self, model=None, X=None, Y=None):
+    def expr(self, model=None, data=None):
         """
         Return the scaled L-x regularization term. The optional parameters are
         never used, they're there only to provide an interface consistent with
@@ -338,35 +346,64 @@ class LxReg(Cost):
             Lx = Lx + abs(var ** self.x).sum()
         return Lx
 
+    def get_data_specs(self, model):
+        return (None, None)
+
 class CrossEntropy(Cost):
     """WRITEME"""
     def __init__(self):
         self.supervised = True
 
-    def __call__(self, model, X, Y, ** kwargs):
+    def expr(self, model, data, ** kwargs):
         """WRITEME"""
+        assert type(data) in (tuple, list)
+        assert len(data) == 2
+        # unpack data
+        (X, Y) = data
         return (-Y * T.log(model(X)) - \
                 (1 - Y) * T.log(1 - model(X))).sum(axis=1).mean()
+
+    def get_data_specs(self, model):
+        data = CompositeSpace([model.get_input_space(),
+                               model.get_output_space()])
+        sources = (model.get_input_source(), model.get_target_source())
+        return (data, sources)
 
 class MethodCost(Cost):
     """
     A cost specified via the string name of a method of the model.
     """
 
-    def __init__(self, method, supervised = False):
+    def __init__(self, method, data_specs=None):
         """
             method: a string specifying the name of the method of the model
                     that should be called to generate the objective function.
+            data_specs: a string specifying the name of a method/property of
+                    the model that describe the data specs required by
+                    method
         """
         self.__dict__.update(locals())
         del self.self
 
-    def __call__(self, model, *args, **kwargs):
+    def expr(self, model, *args, **kwargs):
             """ Patches calls through to a user-specified method of the model """
             fn = getattr(model, self.method)
             return fn(*args, **kwargs)
 
-def _no_op(X, y=None):
+    def get_data_specs(self, model):
+        if self.data_specs is not None:
+            fn = getattr(model, self.data_specs)
+        else:
+            # To be compatible with earlier scripts,
+            # try (self.method)_data_specs
+            fn = getattr(model, '%s_data_specs' % self.method)
+
+        if callable(fn):
+            return fn()
+        else:
+            return fn
+
+def _no_op(*data):
     """
     An on_load_batch callback that does nothing.
     """
@@ -383,7 +420,7 @@ class FixedVarDescr(object):
         fixed_vars: maps string names to shared variables or some sort of data structure
                     surrounding shared variables.
                     Any learning algorithm that does multiple updates on the same minibatch
-                    should pass fixed_vars to the cost's __call__ and get_gradient methods
+                    should pass fixed_vars to the cost's expr and get_gradient methods
                     as keyword arguments.
         """
         self.fixed_vars = {}
@@ -417,7 +454,3 @@ def merge(left, right):
     rval.on_load_batch = safe_union(left.on_load_batch, right.on_load_batch)
 
     return rval
-
-
-    def __call__(self, X, Y):
-        return self.wrapped(X)

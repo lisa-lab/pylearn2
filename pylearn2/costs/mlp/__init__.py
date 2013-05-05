@@ -4,6 +4,7 @@ __copyright__ = "Copyright 2013, Universite de Montreal"
 from theano import tensor as T
 
 from pylearn2.costs.cost import Cost
+from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_izip
 
 class Default(Cost):
@@ -14,9 +15,17 @@ class Default(Cost):
 
     supervised = True
 
-    def __call__(self, model, X, Y, **kwargs):
-
+    def expr(self, model, data, **kwargs):
+        space, sources = self.get_data_specs(model)
+        space.validate(data)
+        (X, Y) = data
         return model.cost_from_X(X, Y)
+
+    def get_data_specs(self, model):
+        space = CompositeSpace([model.get_input_space(), model.get_output_space()])
+        sources = (model.get_input_source(), model.get_target_source())
+        return (space, sources)
+
 
 class WeightDecay(Cost):
     """
@@ -37,7 +46,7 @@ class WeightDecay(Cost):
         self.__dict__.update(locals())
         del self.self
 
-    def __call__(self, model, X, Y = None, ** kwargs):
+    def expr(self, model, data, ** kwargs):
 
         def wrapped_layer_cost(layer, coef):
             try:
@@ -69,6 +78,9 @@ class WeightDecay(Cost):
 
         return total_cost
 
+    def get_data_specs(self, model):
+        return (None, None)
+
 class L1WeightDecay(Cost):
     """
     coeff * sum(abs(weights))
@@ -88,7 +100,7 @@ class L1WeightDecay(Cost):
         self.__dict__.update(locals())
         del self.self
 
-    def __call__(self, model, X, Y = None, ** kwargs):
+    def expr(self, model, data, ** kwargs):
 
         layer_costs = [ layer.get_l1_weight_decay(coeff)
             for layer, coeff in safe_izip(model.layers, self.coeffs) ]
@@ -109,4 +121,7 @@ class L1WeightDecay(Cost):
         total_cost.name = 'l1_penalty'
 
         return total_cost
+
+    def get_data_specs(self, model):
+        return (None, None)
 

@@ -1,7 +1,7 @@
 from pylearn2.train import Train
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.models.model import Model
-from pylearn2.space import VectorSpace
+from pylearn2.space import CompositeSpace, VectorSpace
 from pylearn2.utils import sharedX
 from pylearn2.training_algorithms.bgd import BGD
 from pylearn2.termination_criteria import EpochCounter
@@ -86,8 +86,15 @@ def test_bgd_unsup():
 
     class DummyCost(Cost):
 
-        def __call__(self, model, X):
+        def expr(self, model, data):
+            if isinstance(data, tuple):
+                X, = data
+            else:
+                X = data
             return T.square(model(X)-X).mean()
+
+        def get_data_specs(self, model):
+            return (model.get_input_space(), model.get_input_source())
 
     cost = DummyCost()
 
@@ -175,7 +182,8 @@ def test_determinism():
 
             supervised = True
 
-            def __call__(self, model, X, Y=None, **kwargs):
+            def expr(self, model, data, **kwargs):
+                X, Y = data
                 disturb_mem.disturb_mem()
                 def mlp_pred(non_linearity):
                     Z = [T.dot(X, W) for W in model.W1]
@@ -189,6 +197,12 @@ def test_determinism():
                 disturb_mem.disturb_mem()
 
                 return abs(pred-Y[:,0]).sum()
+
+            def get_data_specs(self, model):
+                data = CompositeSpace((model.get_input_space(),
+                                       model.get_output_space()))
+                source = (model.get_input_source(), model.get_target_source())
+                return (data, source)
 
         cost = LotsOfSummingCost()
 
@@ -271,26 +285,32 @@ def test_fixed_vars():
 
     class UnsupervisedCostWithFixedVars(Cost):
 
-        def __call__(self, model, X, Y=None, unsup_aux_var=None, **kwargs):
+        def expr(self, model, data, unsup_aux_var=None, **kwargs):
+            if isinstance(data, tuple):
+                X, = data
+            else:
+                X = data
             assert unsup_aux_var is unsup_counter
             called[0] = True
             return (model.P * X).sum()
 
-        def get_gradients(self, model, X, Y=None, unsup_aux_var=None, **kwargs):
+        def get_gradients(self, model, data, unsup_aux_var=None, **kwargs):
             assert unsup_aux_var is unsup_counter
             called[1] = True
-            gradients, updates = Cost.get_gradients(self, model, X, Y, unsup_aux_var=unsup_aux_var)
+            gradients, updates = Cost.get_gradients(self, model, data, unsup_aux_var=unsup_aux_var)
             updates[grad_counter] = grad_counter + 1
             return gradients, updates
 
-        def get_fixed_var_descr(self, model, X, Y, **kwargs):
+        def get_fixed_var_descr(self, model, data, **kwargs):
             rval = FixedVarDescr()
             rval.fixed_vars = {'unsup_aux_var': unsup_counter}
-            Y=T.matrix()
-            theano_func = function([X, Y], updates=[(unsup_counter, unsup_counter + 1)])
+            theano_func = function(data, updates=[(unsup_counter, unsup_counter + 1)])
             rval.on_load_batch = [theano_func]
 
             return rval
+
+        def get_data_specs(self, model):
+            return (model.get_input_space(), model.get_input_source())
 
     sup_counter = shared(0)
 
@@ -298,21 +318,28 @@ def test_fixed_vars():
 
         supervised = True
 
-        def __call__(self, model, X, Y=None, sup_aux_var=None, **kwargs):
+        def expr(self, model, data, sup_aux_var=None, **kwargs):
+            X, Y = data
             assert sup_aux_var is sup_counter
             called[2] = True
             return (model.P * X* Y ).sum()
 
-        def get_gradients(self, model, X, Y=None, sup_aux_var=None, **kwargs):
+        def get_gradients(self, model, data, sup_aux_var=None, **kwargs):
             assert sup_aux_var is sup_counter
             called[3] = True
-            return super(SupervisedCostWithFixedVars, self).get_gradients(model=model, X=X, Y=Y, sup_aux_var=sup_aux_var)
+            return super(SupervisedCostWithFixedVars, self).get_gradients(model=model, data=data, sup_aux_var=sup_aux_var)
 
-        def get_fixed_var_descr(self, model, X, Y=None):
+        def get_fixed_var_descr(self, model, data):
             rval = FixedVarDescr()
             rval.fixed_vars = {'sup_aux_var': sup_counter}
-            rval.on_load_batch = [ function([X, Y], updates=[(sup_counter, sup_counter+1)])]
+            rval.on_load_batch = [ function(data, updates=[(sup_counter, sup_counter+1)])]
             return rval
+
+        def get_data_specs(self, model):
+            space = CompositeSpace((model.get_input_space(),
+                                   model.get_output_space()))
+            source = (model.get_input_source(), model.get_target_source())
+            return (space, source)
 
     cost = SumOfCosts(costs=[UnsupervisedCostWithFixedVars(), SupervisedCostWithFixedVars()])
 
