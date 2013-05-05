@@ -262,12 +262,13 @@ class ImageActs(BaseActs):
             target_cols,
             batch_size };
         #define filterSize filter_rows
-        if ((paddingStart + (numModulesY-1) * moduleStride + filterSize < target_rows)
+        #define MAX_ROWS (paddingStart + (numModulesY-1) * moduleStride + filterSize)
+        if ((target_rows > MAX_ROWS)
             || (paddingStart + (numModulesX-1) * moduleStride + filterSize < target_cols))
         {
-            PyErr_Format(PyExc_ValueError, "incompatible target image size (%%d, %%d), maximum (%%d, %%d)",
+            PyErr_Format(PyExc_ValueError, "pylearn2.sandbox.cuda_convnet.image_acts.ImageActs: incompatible target image size (%%d, %%d), maximum (%%d, %%d)",
                          (int)target_rows, (int)target_cols,
-                         (int)(paddingStart + (numModulesY-1) * moduleStride + filterSize),
+                         (int)MAX_ROWS,
                          (int)(paddingStart + (numModulesX-1) * moduleStride + filterSize));
             %(fail)s;
         }

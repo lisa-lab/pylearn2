@@ -308,27 +308,26 @@ def test_grad_strided():
     output = FilterActs(stride=stride)(gpu_images, gpu_filters)
     output = host_from_gpu(output)
 
-    # Proper random projection, like verify_grad does.
-    theano_rng = MRG_RandomStreams(2013*5*4)
-    cost_weights = theano_rng.normal(size=output.shape, dtype=output.dtype)
-    cost = (cost_weights * output).sum()
-
-
     images_bc01 = images.dimshuffle(3,0,1,2)
     filters_bc01 = filters.dimshuffle(3,0,1,2)
-    filters_bc01 = filters_bc01[:,:,::-1,::-1]
 
     output_conv2d = conv2d(images_bc01, filters_bc01,
             border_mode='valid', subsample=(stride, stride))
-
     output_conv2d = output_conv2d.dimshuffle(1,2,3,0)
+
+    # Proper random projection, like verify_grad does.
+    theano_rng = MRG_RandomStreams(2013*5*4)
+    cost_weights = theano_rng.normal(size=output_conv2d.shape, dtype=output_conv2d.dtype)
+    cost = (cost_weights * output).sum()
+
+    filters_bc01 = filters_bc01[:,:,::-1,::-1]
+
     # XXX: use verify_grad
     images_grad, filters_grad = grad(cost.sum(), [images, filters])
     reference_cost = (cost_weights * output_conv2d).sum()
-    images_conv2d_grad, filters_conv2d_grad = grad(reference_cost,
-                                                  [images, filters])
-    f = function([], [images_grad, filters_grad,
-                      images_conv2d_grad,
+    images_conv2d_grad, filters_conv2d_grad = grad(reference_cost, [images, filters])
+
+    f = function([], [images_grad, filters_grad, images_conv2d_grad,
                       filters_conv2d_grad])
 
     images_grad, filters_grad, images_conv2d_grad, filters_conv2d_grad = f()
