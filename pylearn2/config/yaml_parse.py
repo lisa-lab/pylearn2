@@ -287,7 +287,6 @@ def multi_constructor_pkl(loader, tag_suffix, node):
     details on the call signature.
     """
 
-    #print dir(loader)
     mapping = loader.construct_yaml_str(node)
     if tag_suffix != "" and tag_suffix != u"":
         raise AssertionError('Expected tag_suffix to be "" but it is "'+tag_suffix+'"')
