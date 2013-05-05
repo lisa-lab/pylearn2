@@ -79,7 +79,7 @@ class ImageActs(BaseActs):
     # you may need to implement a new version of __eq__ and __hash__
     # in ImageActs, that considers these parameters.
 
-    def make_node(self, hid_acts, filters):
+    def make_node(self, hid_acts, filters, output_shape):
 
         if not isinstance(hid_acts.type, CudaNdarrayType):
             raise TypeError("ImageActs: expected hid_acts.type to be CudaNdarrayType, "
@@ -106,10 +106,10 @@ class ImageActs(BaseActs):
         targets_type = CudaNdarrayType(broadcastable=targets_broadcastable)
         targets = targets_type()
 
-        return Apply(self, [hid_acts, filters], [targets])
+        return Apply(self, [hid_acts, filters, output_shape], [targets])
 
     def c_code(self, node, name, inputs, outputs, sub):
-        hid_acts, filters = inputs
+        hid_acts, filters, output_shape = inputs
         targets, = outputs
         fail = sub['fail']
 
@@ -136,12 +136,9 @@ class ImageActs(BaseActs):
         #define paddingStart (-%d)
         """ % self.pad
 
-        if self.stride != 1:
-            raise UnimplementedError()
-        else:
-            basic_setup += """
-            #define moduleStride 1
-        """
+        basic_setup += """
+        #define moduleStride %d
+        """ % self.stride
 
         if self.copy_non_contiguous:
             raise UnimplementedError()
@@ -207,6 +204,12 @@ class ImageActs(BaseActs):
             filter_rows, filter_cols);
             %(fail)s;
         }
+        else if (moduleStride > filter_rows) {
+            PyErr_Format(PyExc_ValueError,
+            "stride %%d greater than filter size (%%d, %%d)",
+            moduleStride, filter_rows, filter_cols);
+            %(fail)s;
+        }
 
         { // setup_nv_filters brace 2
 
@@ -216,35 +219,74 @@ class ImageActs(BaseActs):
         """
         num_braces += 2
 
-        target_rows = "hidActsSizeY + filter_rows - 1 + 2 * paddingStart"
-        target_cols = "hidActsSizeX + filter_cols - 1 + 2 * paddingStart"
+        #target_rows = "(hidActsSizeY + filter_rows + 2 * paddingStart) * moduleStride - 1"
+        #target_cols = "(hidActsSizeX + filter_cols + 2 * paddingStart) * moduleStride - 1"
 
         setup_nv_targets = """
 
-        int target_dims [] = {
-            filter_channels,
-            %(target_rows)s,
-            %(target_cols)s,
-            batch_size };
-
         #define numModulesY hid_act_dims[1]
         #define numModulesX hid_act_dims[2]
-
+        npy_intp *shape_dims = PyArray_DIMS(%(output_shape)s);
+        npy_intp target_rows, target_cols;
+        PyArrayObject *casted_shape;
+        PyArray_Descr *intp_dtype;
+        if (PyArray_NDIM(%(output_shape)s) != 1) {
+            PyErr_Format(PyExc_ValueError,
+                         "output shape must be a vector, got %%d-tensor",
+                         PyArray_NDIM(%(output_shape)s));
+            %(fail)s;
+        }
+        else if (shape_dims[0] != 2)
+        {
+            PyErr_Format(PyExc_ValueError,
+                         "output shape must be length 2, got %%d",
+                         (int)shape_dims[0]);
+            %(fail)s;
+        }
+        else if ((PyArray_DESCR(%(output_shape)s))->kind != 'i' &&
+                 (PyArray_DESCR(%(output_shape)s))->kind != 'u')
+        {
+            PyErr_SetString(PyExc_TypeError,
+                            "output shape must have integer or uint dtype");
+            %(fail)s;
+        }
+        intp_dtype = PyArray_DescrFromType(NPY_INTP);
+        casted_shape = (PyArrayObject *)PyArray_CastToType(%(output_shape)s,
+                                                           intp_dtype, 0);
+        target_rows = *((npy_intp *)PyArray_GETPTR1(casted_shape, 0));
+        target_cols = *((npy_intp *)PyArray_GETPTR1(casted_shape, 1));
+        {
+        int target_dims [] = {
+            filter_channels,
+            target_rows,
+            target_cols,
+            batch_size };
+        #define filterSize filter_rows
+        #define MAX_ROWS (paddingStart + (numModulesY-1) * moduleStride + filterSize)
+        if ((target_rows > MAX_ROWS)
+            || (paddingStart + (numModulesX-1) * moduleStride + filterSize < target_cols))
+        {
+            PyErr_Format(PyExc_ValueError, "pylearn2.sandbox.cuda_convnet.image_acts.ImageActs: incompatible target image size (%%d, %%d), maximum (%%d, %%d)",
+                         (int)target_rows, (int)target_cols,
+                         (int)MAX_ROWS,
+                         (int)(paddingStart + (numModulesX-1) * moduleStride + filterSize));
+            %(fail)s;
+        }
         if (CudaNdarray_prep_output(& %(targets)s, 4, target_dims))
         {
             %(fail)s;
         }
 
         { // setup_nv_filters brace # 1
-        const int imgSizeY = %(target_rows)s;
-        const int imgSizeX = %(target_cols)s;
+        const int imgSizeY = (int)target_rows;
+        const int imgSizeX = (int)target_cols;
 
         NVMatrix nv_targets(%(targets)s, target_dims[0] * target_dims[1]
          * target_dims[2], target_dims[3], "image_acts: nv_targets");
 
         """
 
-        num_braces += 1
+        num_braces += 2
 
         # note: numFilters is not specified here. it is determined by
         # nv_filters.getNumCols()
@@ -273,4 +315,4 @@ class ImageActs(BaseActs):
         return rval
 
     def c_code_cache_version(self):
-        return (2,)
+        return (9,)

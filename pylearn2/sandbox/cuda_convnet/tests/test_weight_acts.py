@@ -17,6 +17,7 @@ from theano.sandbox.cuda import host_from_gpu
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 import theano.tensor as T
 from theano.tensor.nnet.conv import conv2d
+from theano.tensor import as_tensor_variable
 from theano import function
 import warnings
 
@@ -69,7 +70,8 @@ def test_match_grad_valid_conv():
 
         weights_grad = WeightActs(partial_sum=partial_sum)(
             gpu_images,
-            gpu_from_host(hid_acts_grad)
+            gpu_from_host(hid_acts_grad),
+            as_tensor_variable((4, 4))
         )[0]
         weights_grad = host_from_gpu(weights_grad)
 
