@@ -1,17 +1,21 @@
 import numpy as np
+import warnings
+
+from theano import config
+from theano import function
+import theano.tensor as T
+from theano.sandbox.rng_mrg import MRG_RandomStreams
+
 from pylearn2.expr.probabilistic_max_pooling import max_pool_python
 from pylearn2.expr.probabilistic_max_pooling import max_pool_channels_python
 from pylearn2.expr.probabilistic_max_pooling import max_pool
 from pylearn2.expr.probabilistic_max_pooling import max_pool_channels
 from pylearn2.expr.probabilistic_max_pooling import max_pool_b01c
+from pylearn2.expr.probabilistic_max_pooling import max_pool_c01b
 from pylearn2.expr.probabilistic_max_pooling import max_pool_unstable
 from pylearn2.expr.probabilistic_max_pooling import max_pool_softmax_op
 from pylearn2.expr.probabilistic_max_pooling import max_pool_softmax_with_bias_op
 from pylearn2.testing import no_debug_mode
-from theano import config
-from theano import function
-import theano.tensor as T
-from theano.sandbox.rng_mrg import MRG_RandomStreams
 
 
 def check_correctness_channelwise(f):
@@ -125,8 +129,6 @@ def check_correctness(f):
         assert False
     assert np.allclose(p_np,pv)
 
-
-
 def check_correctness_bc01(f):
 
     # Tests that the theano expression emitted by f computes the same values
@@ -174,6 +176,61 @@ def check_correctness_bc01(f):
         print 'min diff ',diff.min()
         print 'ave diff ',diff.mean()
         assert False
+
+def check_correctness_c01b(f):
+
+    # Tests that the theano expression emitted by f computes the same values
+    # as the ground truth python function
+    # Note: to keep the python version as dead simple as possible (i.e., to make
+    # sure there are not bugs in the ground truth) it uses the numerically
+    # unstable version of softmax. So this test does not work with too big of
+    # numbers.
+
+    rng = np.random.RandomState([2013, 5, 6])
+    batch_size = 5
+    rows = 32
+    cols = 30
+    channels = 3
+    pool_rows = 2
+    pool_cols = 3
+
+    # Do the python ground truth in b01c format
+    zv = rng.randn(batch_size,  rows, cols, channels).astype(config.floatX) * 1. - 1.5
+    top_down_v = rng.randn(batch_size,  rows / pool_rows, cols / pool_cols, channels).astype(config.floatX)
+
+    p_np, h_np = max_pool_python(zv, (pool_rows, pool_cols), top_down_v)
+
+    # Dimshuffle the inputs into c01b for the theano implementation
+    z_th = T.TensorType( broadcastable=(False,False,False,False), dtype = config.floatX)()
+    z_th.tag.test_value = zv
+    z_th.name = 'z_th'
+    zr = z_th.dimshuffle(3,1,2,0)
+
+    top_down_th = T.TensorType( broadcastable=(False,False,False,False), dtype = config.floatX)()
+    top_down_th.name = 'top_down_th'
+    top_down_th.tag.test_value = top_down_v
+    top_down_r = top_down_th.dimshuffle(3,1,2,0)
+
+    p_th, h_th = f(zr, (pool_rows, pool_cols), top_down_r)
+
+    func = function([z_th, top_down_th], [p_th.dimshuffle(3,1,2,0), h_th.dimshuffle(3,1,2,0)])
+
+    pv, hv = func(zv, top_down_v)
+
+    if not p_np.shape == pv.shape:
+        raise AssertionError(str((p_np.shape, pv.shape)))
+    assert h_np.shape == hv.shape
+    if not np.allclose(h_np,hv):
+        print (h_np.min(),h_np.max())
+        print (hv.min(),hv.max())
+        assert False
+    if not np.allclose(p_np,pv):
+        diff = abs(p_np - pv)
+        print 'max diff ',diff.max()
+        print 'min diff ',diff.min()
+        print 'ave diff ',diff.mean()
+        assert False
+    warnings.warn("TODO: make sampling tests run on c01b format of pooling.")
 
 @no_debug_mode
 def check_sample_correctishness(f):
@@ -549,6 +606,9 @@ def test_max_pool_channels_samples():
 
 def test_max_pool():
     check_correctness_bc01(max_pool)
+
+def test_max_pool_c01b():
+    check_correctness_c01b(max_pool_c01b)
 
 def test_max_pool_samples():
     check_sample_correctishness_bc01(max_pool)
