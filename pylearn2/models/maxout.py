@@ -515,7 +515,8 @@ class MaxoutConvC01B(Layer):
                  input_normalization = None,
                  detector_normalization = None,
                  min_zero = False,
-                 output_normalization = None):
+                 output_normalization = None,
+                 kernel_stride=(1, 1)):
         """
             num_channels: The number of output channels the layer should have.
                           Note that it must internally compute num_channels * num_pieces
@@ -567,6 +568,8 @@ class MaxoutConvC01B(Layer):
                     input: the input the layer receives can be normalized right away
                     detector: the maxout units can be normalized prior to the spatial pooling
                     output: the output of the layer, after sptial pooling, can be normalized as well
+            kernel_stride: vertical and horizontal pixel stride between
+                           each detector.
         """
         check_cuda()
 
@@ -622,8 +625,10 @@ class MaxoutConvC01B(Layer):
 
         rng = self.mlp.rng
 
-        output_shape = [self.input_space.shape[0] + 2 * self.pad - self.kernel_shape[0] + 1,
-                        self.input_space.shape[1] + 2 * self.pad - self.kernel_shape[1] + 1]
+        output_shape = [int(np.ceil((i_sh + 2. * self.pad - k_sh) / float(k_st))) + 1
+                        for i_sh, k_sh, k_st in zip(self.input_space.shape,
+                                                    self.kernel_shape,
+                                                    self.kernel_stride)]
 
         def handle_kernel_shape(idx):
             if self.kernel_shape[idx] < 1:
@@ -679,7 +684,7 @@ class MaxoutConvC01B(Layer):
                                                               input_channels = self.dummy_space.num_channels,
                                                               output_channels = self.detector_space.num_channels,
                                                               kernel_shape = self.kernel_shape,
-                                                              subsample = (1,1),
+                                                              kernel_stride=self.kernel_stride,
                                                               pad = self.pad,
                                                               partial_sum = self.partial_sum,
                                                               rng = rng)
@@ -953,7 +958,7 @@ class MaxoutLocalC01B(Layer):
                  min_zero = False,
                  output_normalization = None,
                  input_groups = 1,
-                 stride = 1):
+                 kernel_stride=(1, 1)):
         """
             num_channels: The number of output channels the layer should have.
                           Note that it must internally compute num_channels * num_pieces
@@ -1120,7 +1125,7 @@ class MaxoutLocalC01B(Layer):
                     input_channels = self.dummy_space.num_channels,
                     output_channels = self.detector_space.num_channels,
                     kernel_shape = self.kernel_shape,
-                    subsample = (1,1),
+                    kernel_stride=self.kernel_stride,
                     pad = self.pad,
                     partial_sum = self.partial_sum,
                     rng = rng)
