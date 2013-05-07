@@ -131,7 +131,7 @@ class Conv2D(LinearTransform):
 
         x = gpu_contiguous(x)
 
-        rval = ImageActs(self.pad, self.partial_sum)(x, self._filters)
+        rval = ImageActs(pad=self.pad, partial_sum=self.partial_sum)(x, self._filters)
 
         # Format the output based on the input space
         axes = self.input_axes

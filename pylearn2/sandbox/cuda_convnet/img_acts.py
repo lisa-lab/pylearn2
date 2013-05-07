@@ -82,6 +82,9 @@ class ImageActs(BaseActs):
     # in ImageActs, that considers these parameters.
 
     def make_node(self, hid_acts, filters, output_shape):
+        """
+        output_shape: 2-element TensorVariable giving the spatial shape of the image
+        """
 
         if not isinstance(hid_acts.type, CudaNdarrayType):
             raise TypeError("ImageActs: expected hid_acts.type to be CudaNdarrayType, "
