@@ -13,6 +13,7 @@ import os
 from pylearn2.utils import string_utils as string
 from tempfile import NamedTemporaryFile
 from multiprocessing import Process
+import subprocess
 
 
 def imview(*args, **kwargs):
@@ -129,8 +130,10 @@ def show(image):
     f.close()
     image.save(name)
     viewer_command = string.preprocess('${PYLEARN2_VIEWER_COMMAND}')
-    os.popen('(' + viewer_command + ' ' + name + '; rm ' + name + ') &')
-
+    if os.name == 'nt':
+        subprocess.Popen(viewer_command + ' ' + name +' && del ' + name, shell = True)
+    else:
+        subprocess.Popen(viewer_command + ' ' + name +' ; rm ' + name, shell = True)
 
 def pil_from_ndarray(ndarray):
     try:
