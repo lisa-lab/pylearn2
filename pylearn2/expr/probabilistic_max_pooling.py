@@ -232,6 +232,145 @@ def max_pool(z, pool_shape, top_down = None, theano_rng = None):
 
         return p, h, p_sample, h_sample
 
+def max_pool_c01b(z, pool_shape, top_down = None, theano_rng = None):
+    """
+        Like max_pool but with all 4-tensors formatted with axes ('c', 0, 1, 'b').
+        This is for maximum speed when using-cuda convnet.
+
+    Performance notes:
+        Stabilizing the softmax is one source slowness. Here it is stabilized
+        with several calls to maximum and sub. It might also be possible to stabilize it
+        with T.maximum(-top_down,<cuda convnet max pooling>). Don't know if that would
+        be faster or slower.
+
+        Benchmarks show that most of the time is spent in GpuIncSubtensor when running on
+        gpu. So it is mostly that which needs a faster implementation.
+        One other way to implement this would be with cuda convnet convolution, where the
+        convolution stride is equal to the pool width, and the thing to multiply with is
+        the hparts stacked along the channel axis. This isn't a feasible solution for
+        max_pool because of theano convolution's poor support for strides, but for cuda
+        convnet it could give a speedup.
+    """
+
+    z_name = z.name
+    if z_name is None:
+        z_name = 'anon_z'
+
+
+    ch, zr, zc, batch_size = z.shape
+
+    r, c = pool_shape
+
+    zpart = []
+
+    mx = None
+
+    if top_down is None:
+        t = 0.
+    else:
+        t = - top_down
+        t.name = 'neg_top_down'
+
+    for i in xrange(r):
+        zpart.append([])
+        for j in xrange(c):
+            cur_part = z[:,i:zr:r,j:zc:c,:]
+            if z_name is not None:
+                cur_part.name = z_name + '[%d,%d]' % (i,j)
+            zpart[i].append( cur_part )
+            if mx is None:
+                mx = T.maximum(t, cur_part)
+                if cur_part.name is not None:
+                    mx.name = 'max(-top_down,'+cur_part.name+')'
+            else:
+                max_name = None
+                if cur_part.name is not None:
+                    mx_name = 'max('+cur_part.name+','+mx.name+')'
+                mx = T.maximum(mx,cur_part)
+                mx.name = mx_name
+    mx.name = 'local_max('+z_name+')'
+
+    pt = []
+
+    for i in xrange(r):
+        pt.append([])
+        for j in xrange(c):
+            z_ij = zpart[i][j]
+            safe = z_ij - mx
+            safe.name = 'safe_z(%s)' % z_ij.name
+            cur_pt = T.exp(safe)
+            cur_pt.name = 'pt(%s)' % z_ij.name
+            pt[-1].append( cur_pt )
+
+    off_pt = T.exp(t - mx)
+    off_pt.name = 'p_tilde_off(%s)' % z_name
+    denom = off_pt
+
+    for i in xrange(r):
+        for j in xrange(c):
+            denom = denom + pt[i][j]
+    denom.name = 'denom(%s)' % z_name
+
+    off_prob = off_pt / denom
+    p = 1. - off_prob
+    p.name = 'p(%s)' % z_name
+
+    hpart = []
+    for i in xrange(r):
+        hpart.append( [ pt_ij / denom for pt_ij in pt[i] ] )
+
+    h = T.alloc(0., ch, zr, zc, batch_size)
+
+    for i in xrange(r):
+        for j in xrange(c):
+            h.name = 'h_interm'
+            h = T.set_subtensor(h[:,i:zr:r,j:zc:c,:],hpart[i][j])
+
+    h.name = 'h(%s)' % z_name
+
+    if theano_rng is None:
+        return p, h
+    else:
+        events = []
+        for i in xrange(r):
+            for j in xrange(c):
+                events.append(hpart[i][j])
+        events.append(off_prob)
+
+        events = [ event.dimshuffle(0,1,2,3,'x') for event in events ]
+
+        events = tuple(events)
+
+        stacked_events = T.concatenate( events, axis = 4)
+
+        rows = zr // pool_shape[0]
+        cols = zc // pool_shape[1]
+        outcomes = pool_shape[0] * pool_shape[1] + 1
+        assert stacked_events.ndim == 5
+        for se, bs, r, c, chv in get_debug_values(stacked_events, batch_size, rows, cols, ch):
+            assert se.shape[0] == chv
+            assert se.shape[1] == r
+            assert se.shape[2] == c
+            assert se.shape[3] == bs
+            assert se.shape[4] == outcomes
+        reshaped_events = stacked_events.reshape((rows * cols * ch * batch_size, outcomes))
+
+        multinomial = theano_rng.multinomial(pvals = reshaped_events, dtype = p.dtype)
+
+        reshaped_multinomial = multinomial.reshape((ch, rows, cols, batch_size, outcomes))
+
+        h_sample = T.alloc(0., ch, zr, zc, rows, cols, batch_size, outcomes)
+
+        idx = 0
+        for i in xrange(r):
+            for j in xrange(c):
+                h_sample = T.set_subtensor(h_sample[:,i:zr:r,j:zc:c,:],
+                        reshaped_multinomial[:,:,:,:,idx])
+                idx += 1
+
+        p_sample = 1 - reshaped_multinomial[:,:,:,:,-1]
+
+        return p, h, p_sample, h_sample
 
 def max_pool_channels(z, pool_size, top_down = None, theano_rng = None):
     """
