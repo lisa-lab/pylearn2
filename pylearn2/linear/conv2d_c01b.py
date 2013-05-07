@@ -31,6 +31,7 @@ from pylearn2.linear.conv2d import default_sparse_rng
 from pylearn2.linear.linear_transform import LinearTransform
 from pylearn2.sandbox.cuda_convnet import check_cuda
 from pylearn2.sandbox.cuda_convnet.filter_acts import FilterActs
+from pylearn2.sandbox.cuda_convnet.filter_acts import ImageActs
 from pylearn2.space import Conv2DSpace
 
 class Conv2D(LinearTransform):
@@ -102,7 +103,7 @@ class Conv2D(LinearTransform):
         op_axes = ('c', 0, 1, 'b')
 
         if tuple(x_axes) != op_axes:
-            x = x.dimshuffle(*[x_axes.index(axis) for axis in op_axes])
+            x = x.dimshuffle(*[x_axes.index(axis) for axis in x_axes])
 
         x = gpu_contiguous(x)
 
@@ -121,44 +122,19 @@ class Conv2D(LinearTransform):
         return rval
 
     def lmul_T(self, x):
-        raise NotImplementedError("This method is not yet modified since copy-pasting from pylearn2.linear.conv2d")
-        """ override the original Conv2D lmul_T to make it work
-        with pylearn format of topological data using dimshuffles """
         assert x.dtype == self._filters.dtype
 
-        op_axes = ('b', 'c', 0, 1)
+        op_axes = ('c', 0, 1, 'b')
         axes = self.output_axes
         if tuple(axes) != op_axes:
-            x = x.dimshuffle(
-                    axes.index('b'),
-                    axes.index('c'),
-                    axes.index(0),
-                    axes.index(1))
+            x = x.dimshuffle(*[axes.index(ax) for ax in op_axes])
 
-        # dot(x, A.T)
-        dummy_v = T.tensor4()
-        dummy_v.name = 'dummy_v'
+        x = gpu_contiguous(x)
 
-        # Since we made this variable, we need to put a tag on it
-        if theano.config.compute_test_value == 'raise':
-            dummy_v.tag.test_value = np.zeros((x.tag.test_value.shape[0],
-                self.input_space.num_channels,
-                self.input_space.shape[0],
-                self.input_space.shape[1]),
-                dtype = dummy_v.dtype)
-
-        z_hs = 0. #conv2d(dummy_v, self._filters,
-                #image_shape=self._img_shape,
-                #filter_shape=self._filters_shape,
-                #subsample=self._subsample,
-                #pad = self.pad
-                #)
-
-        rval, xdummy = z_hs.owner.op.grad((dummy_v, self._filters), (x,))
-
+        rval = ImageActs(self.pad, self.partial_sum)(x, self._filters)
 
         # Format the output based on the input space
-        axes = self.input_space.axes
+        axes = self.input_axes
         assert len(axes) == 4
 
         if tuple(axes) != op_axes:
