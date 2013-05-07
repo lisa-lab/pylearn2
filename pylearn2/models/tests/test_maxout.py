@@ -14,6 +14,7 @@ from theano.sandbox import cuda
 
 from pylearn2.config import yaml_parse
 
+
 def test_maxout_basic():
 
     # Tests that we can load a densely connected maxout model
