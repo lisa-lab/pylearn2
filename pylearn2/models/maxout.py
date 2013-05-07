@@ -44,6 +44,7 @@ if cuda.cuda_available:
     from pylearn2.linear import conv2d_c01b
     from pylearn2.sandbox.cuda_convnet.pool import max_pool_c01b
 from pylearn2.linear import local_c01b
+from pylearn2.sandbox.cuda_convnet import check_cuda
 
 class Maxout(Layer):
     """
@@ -568,7 +569,7 @@ class MaxoutConvC01B(Layer):
                     detector: the maxout units can be normalized prior to the spatial pooling
                     output: the output of the layer, after sptial pooling, can be normalized as well
         """
-        check_cuda()
+        check_cuda(str(type(self)))
 
         detector_channels = num_channels * num_pieces
 
@@ -767,7 +768,7 @@ class MaxoutConvC01B(Layer):
                             ])
 
     def fprop(self, state_below):
-        check_cuda()
+        check_cuda(str(type(self)))
 
         self.input_space.validate(state_below)
 
@@ -1370,12 +1371,3 @@ class MaxoutLocalC01B(Layer):
 
         return rval
 
-def check_cuda():
-    if not cuda.cuda_available:
-        raise RuntimeError("MaxoutConvC01B only runs on GPUs, but there doesn't "
-                "seem to be a GPU available. If you would like assistance making "
-                "a CPU version of convolutional maxout, contact "
-                "pylearn-dev@googlegroups.com.")
-
-    if 'gpu' not in config.device:
-        raise RuntimeError("MaxoutConvC01B must run be with theano configured to use the GPU")

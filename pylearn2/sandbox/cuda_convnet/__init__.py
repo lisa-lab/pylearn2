@@ -41,3 +41,22 @@ The copyright and licensing notice for this code is reproduced below:
  */
 
 """
+
+from theano import config
+from theano.sandbox import cuda
+
+def check_cuda(feature_name="You are using code that relies on cuda-convnet. Cuda-convnet"):
+    """
+    Call this function before sections of code that depend on the cuda_convnet module.
+    It will raise a RuntimeError if the GPU is not available.
+
+    feature_name: The name of the feature the user should be told is unavailable.
+    """
+    if not cuda.cuda_available:
+        raise RuntimeError("%s only runs on GPUs, but there doesn't "
+                "seem to be a GPU available. If you would like assistance making "
+                "a CPU version of convolutional maxout, contact "
+                "pylearn-dev@googlegroups.com." % feature_name)
+
+    if 'gpu' not in config.device:
+        raise RuntimeError("%s must run be with theano configured to use the GPU" % feature_name)
