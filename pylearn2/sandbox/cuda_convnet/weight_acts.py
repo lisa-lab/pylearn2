@@ -46,7 +46,6 @@ from theano.sandbox.cuda import CudaNdarrayType
 from theano.gof import Apply
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
 from pylearn2.sandbox.cuda_convnet.base_acts import UnimplementedError
-import warnings
 
 
 class WeightActs(BaseActs):

@@ -45,6 +45,8 @@ from theano.sandbox.cuda import CudaNdarrayType
 from theano.gof import Apply
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
 from pylearn2.sandbox.cuda_convnet.base_acts import UnimplementedError
+FilterActs = None
+WeightActs = None
 
 
 class ImageActs(BaseActs):
@@ -107,6 +109,22 @@ class ImageActs(BaseActs):
         targets = targets_type()
 
         return Apply(self, [hid_acts, filters], [targets])
+
+    def grad(self, inputs, g_outputs):
+        hid_acts, filters = inputs
+        g_images = g_outputs
+
+        global FilterActs
+        global WeightActs
+        if FilterActs is None:
+            from pylearn2.sandbox.cuda_convnet.filter_acts import FilterActs
+            from pylearn2.sandbox.cuda_convnet.weight_acts import WeightActs
+
+        g_filters = WeightActs(stride=self.stride, partial_sum=self.partial_sum)(
+                g_images, hid_acts)
+        g_hid_acts = FilterActs(stride=self.stride)(g_images, g_filters)
+
+        return [g_hid_acts, g_filters]
 
     def c_code(self, node, name, inputs, outputs, sub):
         hid_acts, filters = inputs
