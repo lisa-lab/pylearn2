@@ -15,19 +15,23 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
-
-import theano.tensor as T
-from pylearn2.utils import sharedX
-import numpy as np
-from pylearn2.linear.conv2d import default_rng
-from pylearn2.linear.conv2d import default_sparse_rng
-from pylearn2.linear.linear_transform import LinearTransform
 import functools
+import numpy as np
+import warnings
+
 import theano
-from pylearn2.sandbox.cuda_convnet.filter_acts import FilterActs
 from theano.sandbox.cuda.basic_ops import gpu_contiguous
 from theano.sandbox.cuda import gpu_from_host
 from theano.sandbox.cuda import host_from_gpu
+import theano.tensor as T
+
+from pylearn2.utils import sharedX
+from pylearn2.linear.conv2d import default_rng
+from pylearn2.linear.conv2d import default_sparse_rng
+from pylearn2.linear.linear_transform import LinearTransform
+from pylearn2.sandbox.cuda_convnet import check_cuda
+from pylearn2.sandbox.cuda_convnet.filter_acts import FilterActs
+from pylearn2.space import Conv2DSpace
 
 class Conv2D(LinearTransform):
     """
