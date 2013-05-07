@@ -40,8 +40,8 @@ from pylearn2.space import VectorSpace
 from pylearn2.utils import py_integer_types
 from pylearn2.utils import sharedX
 
+from pylearn2.linear.conv2d_c01b import setup_detector_layer_c01b
 if cuda.cuda_available:
-    from pylearn2.linear import conv2d_c01b
     from pylearn2.sandbox.cuda_convnet.pool import max_pool_c01b
 from pylearn2.linear import local_c01b
 from pylearn2.sandbox.cuda_convnet import check_cuda
@@ -599,18 +599,21 @@ class MaxoutConvC01B(Layer):
         """ Note: this resets parameters! """
 
         setup_detector_layer_c01b(layer=self,
-                input_space=space)
+                input_space=space,
+                rng=self.mlp.rng,
+                irange=self.irange)
 
         rng = self.mlp.rng
 
+        detector_shape = self.detector_space.shape
 
         def handle_pool_shape(idx):
             if self.pool_shape[idx] < 1:
                 raise ValueError("bad pool shape: " + str(self.pool_shape))
-            if self.pool_shape[idx] > output_shape[idx]:
+            if self.pool_shape[idx] > detector_shape[idx]:
                 if self.fix_pool_shape:
-                    assert output_shape[idx] > 0
-                    self.pool_shape[idx] = output_shape[idx]
+                    assert detector_shape[idx] > 0
+                    self.pool_shape[idx] = detector_shape[idx]
                 else:
                     raise ValueError("Pool shape exceeds detector layer shape on axis %d" % idx)
 
@@ -628,9 +631,6 @@ class MaxoutConvC01B(Layer):
             else:
                 raise ValueError("Stride too big.")
         assert all(isinstance(elem, py_integer_types) for elem in self.pool_stride)
-
-
-        assert self.detector_space.num_channels >= 16
 
         dummy_detector = sharedX(self.detector_space.get_origin_batch(2)[0:16,:,:,:])
 
@@ -704,8 +704,6 @@ class MaxoutConvC01B(Layer):
         check_cuda(str(type(self)))
 
         self.input_space.validate(state_below)
-
-        state_below = self.input_space.format_as(state_below, self.desired_space)
 
         if not hasattr(self, 'input_normalization'):
             self.input_normalization = None

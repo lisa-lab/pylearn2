@@ -313,9 +313,12 @@ def setup_detector_layer_c01b(layer, input_space, rng, irange):
     check_cuda(str(type(self)))
 
     # Validate input
-    if not isinstance(self.input_space, Conv2DSpace):
+    if not isinstance(input_space, Conv2DSpace):
         raise TypeError("The input to a convolutional layer should be a Conv2DSpace, "
                 " but layer " + self.layer_name + " got "+str(type(self.input_space)))
+
+    if not hasattr(self, 'detector_channels'):
+        raise ValueError('layer argument must have a "detector_channels" attribute specifying how many channels to put in the convolution kernel stack.')
 
     # Store the input space
     self.input_space = input_space
@@ -323,7 +326,7 @@ def setup_detector_layer_c01b(layer, input_space, rng, irange):
     # Make sure number of channels is supported by cuda-convnet
     # (multiple of 4 or <= 3)
     # If not supported, pad the input with dummy channels
-    ch = self.desired_space.num_channels
+    ch = self.input_space.num_channels
     rem = ch % 4
     if ch > 3 and rem != 0:
         self.dummy_channels = 4 - rem
@@ -358,20 +361,25 @@ def setup_detector_layer_c01b(layer, input_space, rng, irange):
                                       num_channels = self.detector_channels,
                                       axes = ('c', 0, 1, 'b'))
 
+    if hasattr(self, 'partial_sum'):
+        partial_sum = self.partial_sum
+    else:
+        partial_sum = 1
+
     self.transformer = make_random_conv2D(
           irange = self.irange,
-          input_axes = self.desired_space.axes,
+          input_axes = self.input_space.axes,
           output_axes = self.detector_space.axes,
           input_channels = self.dummy_space.num_channels,
           output_channels = self.detector_space.num_channels,
           kernel_shape = self.kernel_shape,
           subsample = (1,1),
           pad = self.pad,
-          partial_sum = self.partial_sum,
+          partial_sum = partial_sum,
           rng = rng)
 
     W, = self.transformer.get_params()
-    W.name = W
+    W.name = 'W'
 
     if self.tied_b:
         self.b = sharedX(np.zeros((self.detector_space.num_channels)) + self.init_bias)
@@ -381,3 +389,4 @@ def setup_detector_layer_c01b(layer, input_space, rng, irange):
 
     print 'Input shape: ', self.input_space.shape
     print 'Detector space: ', self.detector_space.shape
+
