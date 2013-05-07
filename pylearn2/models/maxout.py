@@ -598,51 +598,11 @@ class MaxoutConvC01B(Layer):
     def set_input_space(self, space):
         """ Note: this resets parameters! """
 
-        self.input_space = space
-
-        if not isinstance(self.input_space, Conv2DSpace):
-            raise TypeError("The input to a convolutional layer should be a Conv2DSpace, "
-                    " but layer " + self.layer_name + " got "+str(type(self.input_space)))
-        # note: I think the desired space thing is actually redundant,
-        # since LinearTransform will also dimshuffle the axes if needed
-        # It's not hurting anything to have it here but we could reduce
-        # code complexity by removing it
-        self.desired_space = Conv2DSpace(shape=space.shape,
-                                         channels=space.num_channels,
-                                         axes=('c', 0, 1, 'b'))
-
-        ch = self.desired_space.num_channels
-        rem = ch % 4
-        if ch > 3 and rem != 0:
-            self.dummy_channels = 4 - rem
-        else:
-            self.dummy_channels = 0
-        self.dummy_space = Conv2DSpace(shape=space.shape,
-                                       channels=space.num_channels + self.dummy_channels,
-                                       axes=('c', 0, 1, 'b'))
+        setup_detector_layer_c01b(layer=self,
+                input_space=space)
 
         rng = self.mlp.rng
 
-        output_shape = [self.input_space.shape[0] + 2 * self.pad - self.kernel_shape[0] + 1,
-                        self.input_space.shape[1] + 2 * self.pad - self.kernel_shape[1] + 1]
-
-        def handle_kernel_shape(idx):
-            if self.kernel_shape[idx] < 1:
-                raise ValueError("kernel must have strictly positive size on all axes but has shape: "+str(self.kernel_shape))
-            if output_shape[idx] <= 0:
-                if self.fix_kernel_shape:
-                    self.kernel_shape[idx] = self.input_space.shape[idx] + 2 * self.pad
-                    assert self.kernel_shape[idx] != 0
-                    output_shape[idx] = 1
-                    warnings.warn("Had to change the kernel shape to make network feasible")
-                else:
-                    raise ValueError("kernel too big for input (even with zero padding)")
-
-        map(handle_kernel_shape, [0, 1])
-
-        self.detector_space = Conv2DSpace(shape=output_shape,
-                                          num_channels = self.detector_channels,
-                                          axes = ('c', 0, 1, 'b'))
 
         def handle_pool_shape(idx):
             if self.pool_shape[idx] < 1:
@@ -669,33 +629,6 @@ class MaxoutConvC01B(Layer):
                 raise ValueError("Stride too big.")
         assert all(isinstance(elem, py_integer_types) for elem in self.pool_stride)
 
-
-        check_cuda()
-
-        if self.irange is not None:
-            self.transformer = conv2d_c01b.make_random_conv2D(
-                                                              irange = self.irange,
-                                                              input_axes = self.desired_space.axes,
-                                                              output_axes = self.detector_space.axes,
-                                                              input_channels = self.dummy_space.num_channels,
-                                                              output_channels = self.detector_space.num_channels,
-                                                              kernel_shape = self.kernel_shape,
-                                                              subsample = (1,1),
-                                                              pad = self.pad,
-                                                              partial_sum = self.partial_sum,
-                                                              rng = rng)
-        W, = self.transformer.get_params()
-        W.name = 'W'
-
-
-        if self.tied_b:
-            self.b = sharedX(np.zeros((self.detector_space.num_channels)) + self.init_bias)
-        else:
-            self.b = sharedX(self.detector_space.get_origin() + self.init_bias)
-        self.b.name = 'b'
-
-        print 'Input shape: ', self.input_space.shape
-        print 'Detector space: ', self.detector_space.shape
 
         assert self.detector_space.num_channels >= 16
 
