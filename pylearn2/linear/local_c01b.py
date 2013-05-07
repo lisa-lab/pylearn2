@@ -38,7 +38,7 @@ class Local(LinearTransform, LocalDot):
             input_axes = ('c', 0, 1, 'b'),
             batch_size=None,
             output_axes = ('c', 0, 1, 'b'),
-        subsample = (1, 1), pad=0,
+         kernel_stride=(1, 1), pad=0,
          message = '', partial_sum=None):
 
         self.input_groups = input_groups
@@ -49,7 +49,7 @@ class Local(LinearTransform, LocalDot):
             filters=filters,
             irows=image_shape[0],
             icols=image_shape[1],
-            subsample=subsample,
+            kernel_stride=kernel_stride,
             padding_start=pad,
             message='')
 
@@ -71,7 +71,7 @@ def make_random_local(irange, input_channels, input_axes, input_groups,
         output_channels,
         output_axes,
         kernel_shape,
-        subsample = (1,1), pad=0, message = "", rng = None,
+        kernel_stride = (1,1), pad=0, message = "", rng = None,
         partial_sum = None):
     """ Creates a Local with random weights.
     """
@@ -83,8 +83,8 @@ def make_random_local(irange, input_channels, input_axes, input_groups,
         img = img + 2 * pad
         return (img - kwidth) // stride + 1
 
-    num_row_pos = num_pos(image_shape[0], subsample[0], kernel_shape[0])
-    num_col_pos = num_pos(image_shape[1], subsample[1], kernel_shape[1])
+    num_row_pos = num_pos(image_shape[0], kernel_stride[0], kernel_shape[0])
+    num_col_pos = num_pos(image_shape[1], kernel_stride[1], kernel_shape[1])
 
     assert input_channels % input_groups == 0
     colors_per_group = input_channels // input_groups
@@ -100,13 +100,13 @@ def make_random_local(irange, input_channels, input_axes, input_groups,
         input_groups = input_groups,
         input_axes = input_axes,
         output_axes = output_axes,
-        subsample = subsample, pad=pad,
+        kernel_stride = kernel_stride, pad=pad,
         message = message, partial_sum=partial_sum)
 
 
 def make_sparse_random_local(num_nonzero, input_space, output_space,
         kernel_shape, batch_size, \
-        subsample = (1,1), border_mode = 'valid', message = "", rng=None):
+        kernel_stride = (1,1), border_mode = 'valid', message = "", rng=None):
     raise NotImplementedError("Not yet modified after copy-paste from "
             "pylearn2.linear.conv2d_c01b")
     """ Creates a Conv2D with random kernels, where the randomly initialized
@@ -134,5 +134,5 @@ def make_sparse_random_local(num_nonzero, input_space, output_space,
     #    batch_size = batch_size,
     #    input_space = input_space,
     #    output_axes = output_space.axes,
-    #    subsample = subsample, border_mode = border_mode,
+    #    kernel_stride = kernel_stride, border_mode = border_mode,
     #    filters_shape = W.get_value(borrow=True).shape, message = message)

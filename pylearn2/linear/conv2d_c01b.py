@@ -41,12 +41,14 @@ class Conv2D(LinearTransform):
             input_axes = ('c', 0, 1, 'b'),
             batch_size=None,
             output_axes = ('c', 0, 1, 'b'),
-        subsample = (1, 1), pad=0,
+        kernel_stride = (1, 1), pad=0,
          message = '', partial_sum=None):
 
-        if subsample != (1, 1):
-            raise NotImplementedError()
-
+        if len(kernel_stride) != 2:
+            raise ValueError("kernel_stride must have length 2")
+        elif kernel_stride[0] != kernel_stride[1]:
+            raise ValueError("only values of kernel_stride with both "
+                             "elements equal are supported currently")
         if message != '':
             raise NotImplementedError()
 
@@ -66,6 +68,7 @@ class Conv2D(LinearTransform):
         self._filters = filters
         self.pad = pad
         self.partial_sum = partial_sum
+        self.kernel_stride = kernel_stride
 
     @functools.wraps(LinearTransform.get_params)
     def get_params(self):
@@ -102,7 +105,10 @@ class Conv2D(LinearTransform):
 
         x = gpu_contiguous(x)
 
-        rval = FilterActs(self.pad, self.partial_sum)(x, self._filters)
+        rval = FilterActs(self.pad, self.partial_sum, self.kernel_stride[0])(
+            x,
+            self._filters
+        )
 
         # Format the output based on the output space
         rval_axes = self.output_axes
@@ -146,7 +152,7 @@ class Conv2D(LinearTransform):
         z_hs = 0. #conv2d(dummy_v, self._filters,
                 #image_shape=self._img_shape,
                 #filter_shape=self._filters_shape,
-                #subsample=self._subsample,
+                #kernel_stride=self._kernel_stride,
                 #pad = self.pad
                 #)
 
@@ -188,7 +194,7 @@ class Conv2D(LinearTransform):
         z_hs = 0. #conv2d(dummy_v, sqfilt,
                 #image_shape=self._img_shape,
                 #filter_shape=self._filters_shape,
-                #subsample=self._subsample,
+                #kernel_stride=self._kernel_stride,
                 #pad = self.pad
                 #)
         rval, xdummy = z_hs.owner.op.grad((dummy_v, sqfilt), (x,))
@@ -213,7 +219,7 @@ class Conv2D(LinearTransform):
 def make_random_conv2D(irange, input_channels, input_axes, output_axes,
         output_channels,
         kernel_shape,
-        subsample = (1,1), pad=0, message = "", rng = None,
+        kernel_stride = (1,1), pad=0, message = "", rng = None,
         partial_sum = None):
     """ Creates a Conv2D with random kernels.
         Should be functionally equivalent to
@@ -229,13 +235,13 @@ def make_random_conv2D(irange, input_channels, input_axes, output_axes,
     return Conv2D(filters = W,
         input_axes = input_axes,
         output_axes = output_axes,
-        subsample = subsample, pad=pad,
+        kernel_stride = kernel_stride, pad=pad,
         message = message, partial_sum=partial_sum)
 
 
 def make_sparse_random_conv2D(num_nonzero, input_space, output_space,
         kernel_shape, batch_size, \
-        subsample = (1,1), border_mode = 'valid', message = "", rng=None):
+        kernel_stride = (1,1), border_mode = 'valid', message = "", rng=None):
     raise NotImplementedError("Not yet modified after copy-paste from "
             "pylearn2.linear.conv2d")
     """ Creates a Conv2D with random kernels, where the randomly initialized
@@ -263,5 +269,5 @@ def make_sparse_random_conv2D(num_nonzero, input_space, output_space,
         batch_size = batch_size,
         input_space = input_space,
         output_axes = output_space.axes,
-        subsample = subsample, border_mode = border_mode,
+        kernel_stride = kernel_stride, border_mode = border_mode,
         filters_shape = W.get_value(borrow=True).shape, message = message)
