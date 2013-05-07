@@ -121,6 +121,12 @@ class LogisticRegressionLayer(Block, Model):
         """
         return self.p_y_given_x(inp)
 
+    # Use version defined in Model, rather than Block (which raises
+    # NotImplementedError).
+    get_input_space = Model.get_input_space
+    get_output_space = Model.get_output_space
+
+
 class CumulativeProbabilitiesLayer(LogisticRegressionLayer):
     """
     A layer whose output is seen as a discrete cumulative distribution
@@ -294,8 +300,3 @@ class CumulativeProbabilitiesLayer(LogisticRegressionLayer):
 
         # Compute p_y_given_x
         return tensor.dot(self.p_y_ie_n(inp), p_y_given_x_mat)
-
-    # Use version defined in Model, rather than Block (which raises
-    # NotImplementedError).
-    get_input_space = Model.get_input_space
-    get_output_space = Model.get_output_space
