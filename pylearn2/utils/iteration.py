@@ -301,9 +301,15 @@ class FiniteDatasetIterator(object):
 
         if topo is not None or targets is not None:
             if data_specs is not None:
-                raise ValueError("BLAH BOTH NEW AND OLD")
+                raise ValueError("In FiniteDatasetIterator, both "
+                        "the `data_specs` argument and deprecated arguments "
+                        "`topo` or `targets` were provided.",
+                        (data_specs, topo, targets))
 
-            warnings.warn("BLAH DEPRECATED", stacklevel=2)
+            warnings.warn("Usage of `topo` and `target` arguments are being "
+                    "deprecated, and will be removed around November 7th, "
+                    "2013. `data_specs` should be used instead.",
+                    stacklevel=2)
             topo = False
             targets = False
             self._deprecated_interface = True

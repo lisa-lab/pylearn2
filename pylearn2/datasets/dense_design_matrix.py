@@ -94,6 +94,10 @@ class DenseDesignMatrix(Dataset):
 
                 axes = view_converter.axes
                 rows, cols, channels = view_converter.shape
+
+                # self.X_topo_space stores a "default" topological space that
+                # will be used only when self.iterator is called without a
+                # data_specs, and with "topo=True", which is deprecated.
                 self.X_topo_space = Conv2DSpace(
                         shape=(rows, cols), num_channels=channels, axes=axes)
             else:
@@ -137,13 +141,22 @@ class DenseDesignMatrix(Dataset):
 
         if topo is not None or targets is not None:
             if data_specs is not None:
-                raise ValueError("BLAH BOTH NEW AND OLD")
+                raise ValueError("In DenseDesignMatrix.iterator, both "
+                        "the `data_specs` argument and deprecated arguments "
+                        "`topo` or `targets` were provided.",
+                        (data_specs, topo, targets))
 
-            warnings.warn("BLAH DEPRECATED", stacklevel=2)
+            warnings.warn("Usage of `topo` and `target` arguments are being "
+                    "deprecated, and will be removed around November 7th, "
+                    "2013. `data_specs` should be used instead.",
+                    stacklevel=2)
             # build data_specs from topo and targets if needed
             if topo is None:
                 topo = getattr(self, '_iter_topo', False)
             if topo:
+                # self.iterator is called without a data_specs, and with
+                # "topo=True", so we use the default topological space
+                # stored in self.X_topo_space
                 assert self.X_topo_space is not None
                 X_space = self.X_topo_space
             else:
@@ -187,6 +200,12 @@ class DenseDesignMatrix(Dataset):
                                      return_tuple=return_tuple)
 
     def get_data(self):
+        """
+        Returns all the data, as it is internally stored.
+
+        The definition and format of these data are described in
+        `self.get_data_specs()`.
+        """
         if self.y is None:
             return (self.X,)
         else:
@@ -296,6 +315,10 @@ class DenseDesignMatrix(Dataset):
 
                 axes = view_converter.axes
                 rows, cols, channels = view_converter.shape
+
+                # self.X_topo_space stores a "default" topological space that
+                # will be used only when self.iterator is called without a
+                # data_specs, and with "topo=True", which is deprecated.
                 self.X_topo_space = Conv2DSpace(
                         shape=(rows, cols), num_channels=channels, axes=axes)
 
@@ -479,6 +502,9 @@ class DenseDesignMatrix(Dataset):
         channels = V.shape[axes.index('c')]
         self.view_converter = DefaultViewConverter([rows, cols, channels], axes=axes)
         self.X = self.view_converter.topo_view_to_design_mat(V)
+        # self.X_topo_space stores a "default" topological space that
+        # will be used only when self.iterator is called without a
+        # data_specs, and with "topo=True", which is deprecated.
         self.X_topo_space = Conv2DSpace(
                 shape=(rows, cols), num_channels=channels, axes=axes)
         assert not N.any(N.isnan(self.X))
@@ -573,6 +599,11 @@ class DenseDesignMatrix(Dataset):
         return self.y is not None
 
     def get_data_specs(self):
+        """
+        Returns the data_specs specifying how the data is internally stored.
+
+        This is the format the data returned by `self.get_data()` will be.
+        """
         return self.data_specs
 
 
