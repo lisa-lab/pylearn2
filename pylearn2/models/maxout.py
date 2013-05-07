@@ -516,7 +516,8 @@ class MaxoutConvC01B(Layer):
                  input_normalization = None,
                  detector_normalization = None,
                  min_zero = False,
-                 output_normalization = None):
+                 output_normalization = None,
+                 kernel_stride=(1, 1)):
         """
             num_channels: The number of output channels the layer should have.
                           Note that it must internally compute num_channels * num_pieces
@@ -568,6 +569,8 @@ class MaxoutConvC01B(Layer):
                     input: the input the layer receives can be normalized right away
                     detector: the maxout units can be normalized prior to the spatial pooling
                     output: the output of the layer, after sptial pooling, can be normalized as well
+            kernel_stride: vertical and horizontal pixel stride between
+                           each detector.
         """
         check_cuda(str(type(self)))
 
@@ -632,6 +635,39 @@ class MaxoutConvC01B(Layer):
                 raise ValueError("Stride too big.")
         assert all(isinstance(elem, py_integer_types) for elem in self.pool_stride)
 
+<<<<<<< HEAD
+=======
+
+        check_cuda()
+
+        if self.irange is not None:
+            self.transformer = conv2d_c01b.make_random_conv2D(
+                                                              irange = self.irange,
+                                                              input_axes = self.desired_space.axes,
+                                                              output_axes = self.detector_space.axes,
+                                                              input_channels = self.dummy_space.num_channels,
+                                                              output_channels = self.detector_space.num_channels,
+                                                              kernel_shape = self.kernel_shape,
+                                                              kernel_stride=self.kernel_stride,
+                                                              pad = self.pad,
+                                                              partial_sum = self.partial_sum,
+                                                              rng = rng)
+        W, = self.transformer.get_params()
+        W.name = 'W'
+
+
+        if self.tied_b:
+            self.b = sharedX(np.zeros((self.detector_space.num_channels)) + self.init_bias)
+        else:
+            self.b = sharedX(self.detector_space.get_origin() + self.init_bias)
+        self.b.name = 'b'
+
+        print 'Input shape: ', self.input_space.shape
+        print 'Detector space: ', self.detector_space.shape
+
+        assert self.detector_space.num_channels >= 16
+
+>>>>>>> 344b5c16014a2fb509178588172fefed2ddc77a3
         dummy_detector = sharedX(self.detector_space.get_origin_batch(2)[0:16,:,:,:])
 
         dummy_p = max_pool_c01b(c01b=dummy_detector, pool_shape=self.pool_shape,
@@ -885,7 +921,7 @@ class MaxoutLocalC01B(Layer):
                  min_zero = False,
                  output_normalization = None,
                  input_groups = 1,
-                 stride = 1):
+                 kernel_stride=(1, 1)):
         """
             num_channels: The number of output channels the layer should have.
                           Note that it must internally compute num_channels * num_pieces
@@ -1052,7 +1088,7 @@ class MaxoutLocalC01B(Layer):
                     input_channels = self.dummy_space.num_channels,
                     output_channels = self.detector_space.num_channels,
                     kernel_shape = self.kernel_shape,
-                    subsample = (1,1),
+                    kernel_stride=self.kernel_stride,
                     pad = self.pad,
                     partial_sum = self.partial_sum,
                     rng = rng)

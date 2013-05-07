@@ -459,7 +459,7 @@ class CompositeSpace(Space):
             idx, = subset
             return batch[idx]
 
-        return tuple([batch[idx] for idx in subset])
+        return tuple([batch[idx_] for idx_ in subset])
 
     @functools.wraps(Space.get_total_dimension)
     def get_total_dimension(self):
