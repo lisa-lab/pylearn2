@@ -106,7 +106,7 @@ class Cost(object):
         model: the model to use to compute the monitoring channels
         data: symbolic expressions for the monitoring data
 
-        cost,get_ds(),kwargs: used so that custom algorithms can use extra variables
+        kwargs: used so that custom algorithms can use extra variables
                 for monitoring.
 
         """
@@ -175,7 +175,9 @@ class SumOfCosts(Cost):
         ----------
         model : pylearn2.models.model.Model
             the model for which we want to calculate the sum of costs
-        data : flat tuple of tensor_like variables
+        data : flat tuple of tensor_like variables.
+            data has to follow the format defined by self.get_data_specs(),
+            but this format will always be a flat tuple.
         """
         composite_specs, mapping = self.get_composite_specs_and_mapping(model)
         nested_data = mapping.nest(data)
@@ -196,6 +198,13 @@ class SumOfCosts(Cost):
         return sum_of_costs
 
     def get_composite_data_specs(self, model):
+        """
+        Build and return a composite data_specs of all costs.
+
+        The returned space is a CompositeSpace, where the components are
+        the spaces of each of self.costs, in the same order. The returned
+        source is a tuple of the corresponding sources.
+        """
         spaces = []
         sources = []
         for cost in self.costs:
@@ -209,11 +218,33 @@ class SumOfCosts(Cost):
         return (composite_space, sources)
 
     def get_composite_specs_and_mapping(self, model):
+        """
+        Build the composite data_specs and a mapping to flatten it, return both
+
+        Build the composite data_specs described in `get_composite_specs`,
+        and build a DataSpecsMapping that can convert between it and a flat
+        equivalent version. In particular, it helps building a flat data_specs
+        to request data, and nesting this data back to the composite data_specs,
+        so it can be dispatched among the different sub-costs.
+
+        This is a helper function used by `get_data_specs` and `get_gradients`,
+        and possibly other methods.
+        """
         composite_space, sources = self.get_composite_data_specs(model)
         mapping = DataSpecsMapping((composite_space, sources))
         return (composite_space, sources), mapping
 
     def get_data_specs(self, model):
+        """
+        Get a flat data_specs containing all information for all sub-costs.
+
+        This data_specs should be non-redundant. It is built by flattening
+        the composite data_specs returned by `get_composite_specs`.
+
+        This is the format that SumOfCosts will request its data in. Then,
+        this flat data tuple will be nested into the composite data_specs,
+        in order to dispatch it among the different sub-costs.
+        """
         composite_specs, mapping = self.get_composite_specs_and_mapping(model)
         composite_space, sources = composite_specs
         flat_composite_space = mapping.flatten(composite_space)
@@ -350,6 +381,10 @@ class LxReg(Cost):
         never used, they're there only to provide an interface consistent with
         both SupervisedCost and UnsupervisedCost.
         """
+        # This Cost does not depend on any data, and get_data_specs does not
+        # ask for any data, so we should not be provided with some.
+        assert data in (None, ())
+
         Lx = 0
         for var in self.variables:
             Lx = Lx + abs(var ** self.x).sum()
@@ -357,6 +392,7 @@ class LxReg(Cost):
 
     def get_data_specs(self, model):
         return (None, None)
+
 
 class CrossEntropy(Cost):
     """WRITEME"""
