@@ -105,6 +105,9 @@ class Conv2D(LinearTransform):
 
         x = gpu_contiguous(x)
 
+        # Patch old pickle files.
+        if not hasattr(self, 'kernel_stride'):
+            self.kernel_stride = (1, 1)
         rval = FilterActs(self.pad, self.partial_sum, self.kernel_stride[0])(
             x,
             self._filters
