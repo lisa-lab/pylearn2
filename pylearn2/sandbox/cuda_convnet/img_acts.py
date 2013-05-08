@@ -41,10 +41,14 @@ The copyright and licensing notice for this code is reproduced below:
 
 """
 
-from theano.sandbox.cuda import CudaNdarrayType
+from theano.gradient import DisconnectedType
 from theano.gof import Apply
+from theano.sandbox.cuda import CudaNdarrayType
+
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
 from pylearn2.sandbox.cuda_convnet.base_acts import UnimplementedError
+
+# Must delay import to avoid circular import problem
 FilterActs = None
 WeightActs = None
 
@@ -81,7 +85,7 @@ class ImageActs(BaseActs):
     # you may need to implement a new version of __eq__ and __hash__
     # in ImageActs, that considers these parameters.
 
-    def make_node(self, hid_acts, filters, output_shape):
+    def make_node(self, hid_acts, filters, output_shape=None):
         """
         output_shape: 2-element TensorVariable giving the spatial shape of the image
         """
@@ -94,6 +98,13 @@ class ImageActs(BaseActs):
             raise TypeError("ImageActs: expected filters.type to be CudaNdarrayType, "
                     "got " + str(filters.type))
 
+
+        if output_shape is None:
+            if self.stride != 1:
+                raise ValueError("You must specify an output_shape for ImageActs if the stride is not 1.")
+            hid_shape = hid_acts.shape[1:3]
+            kernel_shape = filters.shape[1:3]
+            output_shape = hid_shape + kernel_shape - 2 * self.pad - 1
 
         assert hid_acts.ndim == 4
         assert filters.ndim == 4
