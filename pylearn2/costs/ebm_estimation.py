@@ -89,7 +89,9 @@ class SM(Cost):
         Uses the mean over visible units rather than sum over visible units
         so that hyperparameters won't depend as much on the # of visible units
     """
-    def expr(self, model, X):
+    def expr(self, model, data):
+        self.get_data_specs(model)[0].validate(data)
+        X = data
         X_name = 'X' if X.name is None else X.name
 
         score = model.score(X)
@@ -118,6 +120,7 @@ class SM(Cost):
     def get_data_specs(self, model):
         return (model.get_input_space(), model.get_input_source())
 
+
 class SMD(Cost):
     """ Denoising Score Matching
         See eqn. 4.3 of "A Connection Between Score Matching and Denoising Autoencoders"
@@ -132,10 +135,8 @@ class SMD(Cost):
         self.corruptor = corruptor
 
     def expr(self, model, data):
-        if isinstance(data, tuple):
-            X, = data
-        else:
-            X = data
+        self.get_data_specs(model)[0].validate(data)
+        X = data
         X_name = 'X' if X.name is None else X.name
 
         corrupted_X = self.corruptor(X)

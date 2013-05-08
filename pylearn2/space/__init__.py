@@ -608,3 +608,42 @@ class CompositeSpace(Space):
         # data.
         assert isinstance(data, (list, tuple))
         return self.components[0].get_batch_size(data[0])
+
+
+class NullSpace(Space):
+    """
+    A space that contains no data.
+
+    When symbolic or numerical data for that space actually has to be
+    represented, None is used as a placeholder.
+
+    The source associated to that Space is the empty string ('').
+    """
+
+    def __str__(self):
+        return "NullSpace"
+
+    def __eq__(self, other):
+        return type(self) == type(other)
+
+    def __hash__(self):
+        return hash(type(self))
+
+    @functools.wraps(Space.validate)
+    def validate(self, batch):
+        if batch is not None:
+            raise TypeError("NullSpace only accepts 'None' as a "
+                    "place-holder for data, not %s of type %s"
+                    % (batch, type(batch)))
+
+    @functools.wraps(Space.np_format_as)
+    def np_format_as(self, batch, space):
+        assert isinstance(space, NullSpace)
+        assert batch is None
+        return None
+
+    @functools.wraps(Space._format_as)
+    def _format_as(self, batch, space):
+        self.validate(batch)
+        assert isinstance(space, NullSpace)
+        return None

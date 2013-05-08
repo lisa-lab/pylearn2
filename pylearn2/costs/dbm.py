@@ -18,7 +18,7 @@ from theano import tensor as T
 from pylearn2.costs.cost import Cost
 from pylearn2.models import dbm
 from pylearn2.models.dbm import flatten
-from pylearn2.space import CompositeSpace
+from pylearn2.space import CompositeSpace, NullSpace
 from pylearn2.utils import safe_izip
 from pylearn2.utils import safe_zip
 
@@ -45,20 +45,24 @@ class PCD(Cost):
         """
         The partition function makes this intractable.
         """
+        self.get_data_specs(model)[0].validate(data)
 
         return None
 
     def get_monitoring_channels(self, model, data):
-        assert len(data) <= 2
-        X = data[0]
+        self.get_data_specs(model)[0].validate(data)
         rval = OrderedDict()
+
+        if self.supervised:
+            X, Y = data
+        else:
+            X = data
 
         history = model.mf(X, return_history = True)
         q = history[-1]
 
         if self.supervised:
             assert len(data) == 2
-            Y = data[1]
             Y_hat = q[-1]
             true = T.argmax(Y,axis=1)
             pred = T.argmax(Y_hat, axis=1)
@@ -88,18 +92,16 @@ class PCD(Cost):
         Keep in mind this is a cost, so we use
         the negative log likelihood.
         """
+        self.get_data_specs(model)[0].validate(data)
         if self.supervised:
-            assert isinstance(data, (list, tuple))
-            assert len(data) == 2
-            (X, Y) = data
+            X, Y = data
+            assert Y is not None
         else:
-            X, = data
-            Y = None
+            X = data
 
         layer_to_clamp = OrderedDict([(model.visible_layer, True )])
         layer_to_pos_samples = OrderedDict([(model.visible_layer, X)])
         if self.supervised:
-            assert Y is not None
             # note: if the Y layer changes to something without linear energy,
             # we'll need to make the expected energy clamp Y in the positive phase
             assert isinstance(model.hidden_layers[-1], dbm.Softmax)
@@ -107,7 +109,6 @@ class PCD(Cost):
             layer_to_pos_samples[model.hidden_layers[-1]] = Y
             hid = model.hidden_layers[:-1]
         else:
-            assert Y is None
             hid = model.hidden_layers
 
         for layer in hid:
@@ -219,7 +220,14 @@ class PCD(Cost):
         return gradients, updates
 
     def get_data_specs(self, model):
-        return (None, None)
+        if self.supervised:
+            space = CompositeSpace([model.get_input_space(),
+                                    model.get_output_space()])
+            sources = (model.get_input_source(), model.get_target_source())
+            return (space, sources)
+        else:
+            return (model.get_input_space(), model.get_input_source())
+
 
 class VariationalPCD(Cost):
     """
@@ -248,14 +256,20 @@ class VariationalPCD(Cost):
 
         return None
 
-    def get_monitoring_channels(self, model, X, Y = None):
+    def get_monitoring_channels(self, model, data):
+        self.get_data_specs(model)[0].validate(data)
         rval = OrderedDict()
+
+        if self.supervised:
+            X, Y = data
+            assert Y is not None
+        else:
+            X = data
 
         history = model.mf(X, return_history = True)
         q = history[-1]
 
         if self.supervised:
-            assert Y is not None
             Y_hat = q[-1]
             true = T.argmax(Y,axis=1)
             pred = T.argmax(Y_hat, axis=1)
@@ -285,16 +299,15 @@ class VariationalPCD(Cost):
         Keep in mind this is a cost, so we are upper bounding
         the negative log likelihood.
         """
+        self.get_data_specs(model)[0].validate(data)
 
         if self.supervised:
-            assert isinstance(data, (list, tuple))
-            assert len(data) == 2
             (X, Y) = data
             # note: if the Y layer changes to something without linear energy,
             # we'll need to make the expected energy clamp Y in the positive phase
             assert isinstance(model.hidden_layers[-1], dbm.Softmax)
         else:
-            X, = data
+            X = data
             Y = None
 
         q = model.mf(X, Y)
@@ -411,7 +424,14 @@ class VariationalPCD(Cost):
         return gradients, updates
 
     def get_data_specs(self, model):
-        return (None, None)
+        if self.supervised:
+            space = CompositeSpace([model.get_input_space(),
+                                    model.get_output_space()])
+            sources = (model.get_input_source(), model.get_target_source())
+            return (space, sources)
+        else:
+            return (model.get_input_space(), model.get_input_source())
+
 
 class MF_L2_ActCost(Cost):
     """
@@ -434,12 +454,12 @@ class MF_L2_ActCost(Cost):
         local variables is an interface change.
         In particular, TorontoSparsity depends on "terms" and "H_hat"
         """
+        self.get_data_specs(model)[0].validate(data)
         if self.supervised:
-            assert type(data) in (list, tuple)
-            assert len(data) == 2
             (X, Y) = data
         else:
             X = data
+            Y = None
 
         H_hat = model.mf(X, Y=Y)
 
@@ -500,6 +520,7 @@ class TorontoSparsity(Cost):
                 **kwargs)
 
     def get_gradients(self, model, data, **kwargs):
+        self.get_data_specs(model)[0].validate(data)
         obj, scratch = self.base_cost(model, data, return_locals=True, **kwargs)
         if self.supervised:
             assert isinstance(data, (list, tuple))
@@ -561,6 +582,7 @@ class TorontoSparsity(Cost):
     def get_data_specs(self, model):
         return self.base_cost.get_data_specs(model)
 
+
 class WeightDecay(Cost):
     """
     coeff * sum(sqr(weights))
@@ -579,7 +601,7 @@ class WeightDecay(Cost):
         del self.self
 
     def expr(self, model, data, ** kwargs):
-
+        self.get_data_specs(model)[0].validate(data)
         layer_costs = [ layer.get_weight_decay(coeff)
             for layer, coeff in safe_izip(model.hidden_layers, self.coeffs) ]
 
@@ -601,4 +623,5 @@ class WeightDecay(Cost):
         return total_cost
 
     def get_data_specs(self, model):
-        return (None, None)
+        # This cost does not use or require data
+        return (NullSpace(), '')

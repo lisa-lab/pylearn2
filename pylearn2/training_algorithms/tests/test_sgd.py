@@ -31,13 +31,12 @@ from pylearn2.utils import safe_izip
 from pylearn2.utils import safe_union
 from pylearn2.utils import sharedX
 
+
 class DummyCost(Cost):
     def expr(self, model, data):
-        if isinstance(data, tuple):
-            X, = data
-        else:
-            X = data
-        return T.square(model(X)-X).mean()
+        self.get_data_specs(model)[0].validate(data)
+        X = data
+        return T.square(model(X) - X).mean()
 
     def get_data_specs(self, model):
         return (model.get_input_space(), model.get_input_source())
@@ -736,6 +735,7 @@ def test_determinism_2():
             supervised = True
 
             def expr(self, model, data, **kwargs):
+                self.get_data_specs(model)[0].validate(data)
                 X, Y = data
                 disturb_mem.disturb_mem()
                 def mlp_pred(non_linearity):
