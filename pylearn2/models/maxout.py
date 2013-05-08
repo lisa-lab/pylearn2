@@ -1375,6 +1375,7 @@ class MaxoutLocalC01B(Layer):
 
         return rval
 
+
 def check_cuda():
     if not cuda.cuda_available:
         raise RuntimeError("MaxoutConvC01B only runs on GPUs, but there doesn't "
@@ -1382,5 +1383,5 @@ def check_cuda():
                 "a CPU version of convolutional maxout, contact "
                 "pylearn-dev@googlegroups.com.")
 
-    if 'gpu' not in config.device:
+    if not cuda.cuda_enabled:
         raise RuntimeError("MaxoutConvC01B must run be with theano configured to use the GPU")
