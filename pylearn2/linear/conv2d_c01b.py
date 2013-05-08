@@ -317,8 +317,16 @@ def setup_detector_layer_c01b(layer, input_space, rng, irange):
                                    channels=input_space.num_channels + self.dummy_channels,
                                    axes=('c', 0, 1, 'b'))
 
-    output_shape = [self.input_space.shape[0] + 2 * self.pad - self.kernel_shape[0] + 1,
-                    self.input_space.shape[1] + 2 * self.pad - self.kernel_shape[1] + 1]
+
+    if hasattr(self, 'kernel_stride'):
+        kernel_stride = self.kernel_stride
+    else:
+        kernel_stride = [1, 1]
+
+    output_shape = [int(np.ceil((i_sh + 2. * self.pad - k_sh) / float(k_st))) + 1
+                        for i_sh, k_sh, k_st in zip(self.input_space.shape,
+                                                    self.kernel_shape,
+                                                    kernel_stride)]
 
 
     def handle_kernel_shape(idx):
@@ -347,6 +355,7 @@ def setup_detector_layer_c01b(layer, input_space, rng, irange):
     else:
         partial_sum = 1
 
+
     self.transformer = make_random_conv2D(
           irange = self.irange,
           input_axes = self.input_space.axes,
@@ -354,9 +363,9 @@ def setup_detector_layer_c01b(layer, input_space, rng, irange):
           input_channels = self.dummy_space.num_channels,
           output_channels = self.detector_space.num_channels,
           kernel_shape = self.kernel_shape,
-          subsample = (1,1),
           pad = self.pad,
           partial_sum = partial_sum,
+          kernel_stride = kernel_stride,
           rng = rng)
 
     W, = self.transformer.get_params()
