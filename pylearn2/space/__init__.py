@@ -147,6 +147,13 @@ class Space(object):
 
         raise NotImplementedError(str(type(self))+" does not implement validate.")
 
+    def batch_size(self, batch):
+        """
+        Read the batch size out of a batch.
+        """
+
+        raise NotImplementedError(str(type(self))+" does not implement batch_size.")
+
 class VectorSpace(Space):
     """A space whose points are defined as fixed-length vectors."""
     def __init__(self, dim, sparse=False):
@@ -228,6 +235,10 @@ class VectorSpace(Space):
             raise TypeError()
         if batch.ndim != 2:
             raise ValueError('VectorSpace batches must be 2D, got %d dimensions' % batch.ndim)
+
+    def batch_size(self, batch):
+        self.validate(batch)
+        return batch.shape[0]
 
 class Conv2DSpace(Space):
     """A space whose points are defined as (multi-channel) images."""
@@ -411,6 +422,10 @@ class Conv2DSpace(Space):
         if isinstance(space, Conv2DSpace):
             return Conv2DSpace.convert(batch, self.axes, space.axes)
         raise NotImplementedError("Conv2DSPace doesn't know how to format as "+str(type(space)))
+
+    def batch_size(self, batch):
+        self.validate(batch)
+        return batch.shape[self.axes.index('b')]
 
 
 class CompositeSpace(Space):
