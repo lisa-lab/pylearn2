@@ -9,10 +9,16 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
+import unittest
+
+
+# Skip test if cuda_ndarray is not available.
+from nose.plugins.skip import SkipTest
 from theano import config
 from theano.sandbox import cuda
 
 from pylearn2.config import yaml_parse
+
 
 def test_maxout_basic():
 
@@ -87,13 +93,7 @@ def test_maxout_basic():
 
     train.main_loop()
 
-
-def test_maxout_conv_c01b_basic():
-
-    # Tests that we can run a small convolutional model on GPU,
-    # or that if there is no GPU we get a runtime error
-
-    yaml_string = """
+yaml_string_maxout_conv_c01b_basic = """
     !obj:pylearn2.train.Train {
         dataset: &train !obj:pylearn2.testing.datasets.random_one_hot_topological_dense_design_matrix {
             rng: !obj:numpy.random.RandomState { seed: [2013, 3, 16] },
@@ -181,12 +181,40 @@ def test_maxout_conv_c01b_basic():
     }
     """
 
-    try:
-        train = yaml_parse.load(yaml_string)
-        train.main_loop()
-        assert cuda.cuda_available
-    except RuntimeError:
-        assert (not cuda.cuda_available) or ('gpu' not in config.device)
+
+class TestMaxout(unittest.TestCase):
+    def test_maxout_conv_c01b_basic_err(self):
+        assert cuda.cuda_enabled is False
+        self.assertRaises(RuntimeError,
+                          yaml_parse.load,
+                          yaml_string_maxout_conv_c01b_basic)
+
+    def test_maxout_conv_c01b_basic(self):
+        if cuda.cuda_available is False:
+            raise SkipTest('Optional package cuda disabled')
+        if not hasattr(cuda, 'unuse'):
+            raise Exception("Theano version too old to run this test!")
+        # Tests that we can run a small convolutional model on GPU,
+        assert cuda.cuda_enabled is False
+        # Even if there is a GPU, but the user didn't specify device=gpu
+        # we want to run this test.
+        try:
+            old_floatX = config.floatX
+            cuda.use('gpu')
+            config.floatX = 'float32'
+            train = yaml_parse.load(yaml_string_maxout_conv_c01b_basic)
+            train.main_loop()
+        finally:
+            config.floatX = old_floatX
+            cuda.unuse()
+        assert cuda.cuda_enabled is False
+
 
 if __name__ == '__main__':
-    test_maxout_conv_c01b_basic()
+
+    t = TestMaxout('setUp')
+    t.setUp()
+    t.test_maxout_conv_c01b_basic()
+
+    if 0:
+        unittest.main()

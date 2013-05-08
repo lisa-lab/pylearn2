@@ -42,7 +42,6 @@ The copyright and licensing notice for this code is reproduced below:
 
 """
 
-from theano import config
 from theano.sandbox import cuda
 
 def check_cuda(feature_name="You are using code that relies on cuda-convnet. Cuda-convnet"):
@@ -58,5 +57,5 @@ def check_cuda(feature_name="You are using code that relies on cuda-convnet. Cud
                 "a CPU version of convolutional maxout, contact "
                 "pylearn-dev@googlegroups.com." % feature_name)
 
-    if 'gpu' not in config.device:
+    if not cuda.cuda_enabled:
         raise RuntimeError("%s must run be with theano configured to use the GPU" % feature_name)

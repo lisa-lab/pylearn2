@@ -19,10 +19,13 @@ import functools
 import numpy as np
 import warnings
 
-from theano.sandbox.cuda.basic_ops import gpu_contiguous
-from theano.sandbox.cuda import gpu_from_host
-from theano.sandbox.cuda import host_from_gpu
+from theano.sandbox import cuda
 import theano.tensor as T
+
+if cuda.cuda_enabled:
+    from theano.sandbox.cuda.basic_ops import gpu_contiguous
+    from theano.sandbox.cuda import gpu_from_host
+    from theano.sandbox.cuda import host_from_gpu
 
 from pylearn2.utils import sharedX
 from pylearn2.linear.conv2d import default_rng
@@ -91,6 +94,8 @@ class Conv2D(LinearTransform):
 
         """
 
+        check_cuda(str(type(self)) + ".lmul")
+
         cpu = 'Cuda' not in str(type(x))
 
         if cpu:
@@ -109,6 +114,9 @@ class Conv2D(LinearTransform):
 
         x = gpu_contiguous(x)
 
+        # Patch old pickle files.
+        if not hasattr(self, 'kernel_stride'):
+            self.kernel_stride = (1, 1)
         rval = FilterActs(self.pad, self.partial_sum, self.kernel_stride[0])(
             x,
             self._filters
@@ -127,6 +135,9 @@ class Conv2D(LinearTransform):
         return rval
 
     def lmul_T(self, x):
+
+        check_cuda(str(type(self)) + ".lmul_T")
+
         assert x.dtype == self._filters.dtype
 
         op_axes = ('c', 0, 1, 'b')
