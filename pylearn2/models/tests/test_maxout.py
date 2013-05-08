@@ -211,4 +211,10 @@ class TestMaxout(unittest.TestCase):
 
 
 if __name__ == '__main__':
-    test_maxout_conv_c01b_basic()
+
+    t = TestMaxout('setUp')
+    t.setUp()
+    t.test_maxout_conv_c01b_basic()
+
+    if 0:
+        unittest.main()
