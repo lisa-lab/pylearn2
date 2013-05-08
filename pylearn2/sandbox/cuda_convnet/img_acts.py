@@ -124,9 +124,13 @@ class ImageActs(BaseActs):
 
         return Apply(self, [hid_acts, filters, output_shape], [targets])
 
+    def connection_pattern(self, node):
+        return [[1], [1], [0]]
+
     def grad(self, inputs, g_outputs):
-        hid_acts, filters = inputs
-        g_images = g_outputs
+        hid_acts, filters, output_shape = inputs
+        g_images, = g_outputs
+        assert not isinstance(g_images, list)
 
         global FilterActs
         global WeightActs
@@ -135,10 +139,11 @@ class ImageActs(BaseActs):
             from pylearn2.sandbox.cuda_convnet.weight_acts import WeightActs
 
         g_filters = WeightActs(stride=self.stride, partial_sum=self.partial_sum)(
-                g_images, hid_acts)
+                g_images, hid_acts, output_shape)[0]
+        assert not isinstance(g_filters, list)
         g_hid_acts = FilterActs(stride=self.stride)(g_images, g_filters)
 
-        return [g_hid_acts, g_filters]
+        return [g_hid_acts, g_filters, DisconnectedType()()]
 
     def c_code(self, node, name, inputs, outputs, sub):
         hid_acts, filters, output_shape = inputs
