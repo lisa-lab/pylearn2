@@ -102,9 +102,11 @@ print examples.shape[1:3]
 pv = patch_viewer.PatchViewer( (rows, cols * 2), examples.shape[1:3], is_color = is_color)
 
 for i in xrange(rows*cols):
-    pv.add_patch(examples[i,:,:,0], activation = 0.0, rescale = patch_rescale)
+    # Load patches in backwards order for easier cross-eyed viewing
+    # (Ian can't do the magic eye thing where you focus your eyes past the screen, must
+    # focus eyes in front of screen)
     pv.add_patch(examples[i,:,:,1], activation = 0.0, rescale = patch_rescale)
-#
+    pv.add_patch(examples[i,:,:,0], activation = 0.0, rescale = patch_rescale)
 
 if out is None:
     pv.show()
