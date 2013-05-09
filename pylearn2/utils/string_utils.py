@@ -6,6 +6,7 @@ import re
 import functools
 
 from pylearn2.datasets.exc import NoDataPathError
+from pylearn2.utils.exc import EnvironmentVariableError
 
 def preprocess(string):
     """
@@ -60,11 +61,6 @@ def preprocess(string):
 
     return rval
 
-class EnvironmentVariableError(Exception):
-    """ An exception raised when a required environment variable is not defined """
-
-    def __init__(self, *args):
-        super(EnvironmentVariableError,self).__init__(*args)
 
 
 
