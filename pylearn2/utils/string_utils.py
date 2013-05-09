@@ -5,6 +5,9 @@ import warnings
 import re
 import functools
 
+from pylearn2.datasets.exc import NoDataPathError
+from pylearn2.utils.exc import EnvironmentVariableError
+
 def preprocess(string):
     """
     Preprocesses a string, by replacing ${VARNAME} with
@@ -42,7 +45,7 @@ def preprocess(string):
             val = os.environ[varname]
         except KeyError:
             if varname == 'PYLEARN2_DATA_PATH':
-                raise EnvironmentVariableError("You need to define your PYLEARN2_DATA_PATH environment variable. If you are using a computer at LISA, this should be set to /data/lisa/data")
+                raise NoDataPathError()
             if varname == 'PYLEARN2_VIEWER_COMMAND':
                 raise EnvironmentVariableError(environment_variable_essay)
 
@@ -58,11 +61,6 @@ def preprocess(string):
 
     return rval
 
-class EnvironmentVariableError(Exception):
-    """ An exception raised when a required environment variable is not defined """
-
-    def __init__(self, *args):
-        super(EnvironmentVariableError,self).__init__(*args)
 
 
 
@@ -207,6 +205,18 @@ def match(wrong, candidates):
     scored_candidates.sort()
 
     return scored_candidates[0][1]
+
+def censor_non_alphanum(s):
+    """
+    Returns s with all non-alphanumeric characters replaced with *
+    """
+
+    def censor(ch):
+        if (ch >= 'A' and ch <= 'z') or (ch >= '0' and ch <= '9'):
+            return ch
+        return '*'
+
+    return ''.join([censor(ch) for ch in s])
 
 environment_variable_essay = """
 PYLEARN2_VIEWER_COMMAND not defined. PLEASE READ THE FOLLOWING MESSAGE CAREFULLY

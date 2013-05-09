@@ -138,10 +138,12 @@ class ImageActs(BaseActs):
             from pylearn2.sandbox.cuda_convnet.filter_acts import FilterActs
             from pylearn2.sandbox.cuda_convnet.weight_acts import WeightActs
 
-        g_filters = WeightActs(stride=self.stride, partial_sum=self.partial_sum)(
-                g_images, hid_acts, output_shape)[0]
+        g_filters = WeightActs(stride=self.stride,
+                partial_sum=self.partial_sum, pad=self.pad)(
+                        g_images, hid_acts, filters.shape[1:3])[0]
         assert not isinstance(g_filters, list)
-        g_hid_acts = FilterActs(stride=self.stride)(g_images, g_filters)
+        g_hid_acts = FilterActs(stride=self.stride, pad=self.pad,
+                partial_sum=self.partial_sum)(g_images, filters)
 
         return [g_hid_acts, g_filters, DisconnectedType()()]
 

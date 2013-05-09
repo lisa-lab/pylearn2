@@ -317,12 +317,11 @@ class Conv2DSpace(Space):
             dtype = config.floatX
 
         broadcastable = [False] * 4
-        broadcastable[self.axes.index('c')] = self.num_channels == 1
+        broadcastable[self.axes.index('c')] = (self.num_channels == 1)
         broadcastable = tuple(broadcastable)
 
         return TensorType(dtype=dtype,
-                          broadcastable=broadcastable
-                          )(name=name)
+                          broadcastable=broadcastable)(name=name)
 
     @staticmethod
     def convert(tensor, src_axes, dst_axes):
