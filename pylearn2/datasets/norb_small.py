@@ -2,7 +2,6 @@ import numpy
 import os
 
 from pylearn2.datasets import dense_design_matrix
-from pylearn.io import filetensor
 from pylearn2.datasets import retina
 
 class NORBSmall(dense_design_matrix.DenseDesignMatrix):
@@ -15,14 +14,14 @@ class NORBSmall(dense_design_matrix.DenseDesignMatrix):
 
         assert desc in ['dat','cat','info']
 
-        base = '%s/norb_small/original/smallnorb-' % os.getenv('PYLEARN2_DATA_PATH')
+        base = '%s/norb_small/original_npy/smallnorb-' % os.getenv('PYLEARN2_DATA_PATH')
         if which_set == 'train':
             base += '5x46789x9x18x6x2x96x96-training'
         else:
             base += '5x01235x9x18x6x2x96x96-testing'
 
-        fp = open(base + '-%s.mat' % desc, 'r')
-        data = filetensor.read(fp)
+        fp = open(base + '-%s.npy' % desc, 'r')
+        data = numpy.load(fp)
         fp.close()
 
         return data
