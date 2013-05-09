@@ -319,6 +319,82 @@ __global__ void kLocalPool2(float* imgs, float* target, const int imgSize, const
     }
 }
 
+
+/*
+Probabilistic pooling
+*/
+
+template<int B_Y, int B_X, int imgsPerThread, int filtersPerThread, bool checkCaseBounds>
+__global__ void kLocalPool(float* imgs, float* target, const int imgSize, const int numFilters,
+                           const int numImages, const int subsX, const int startX, const int strideX,
+                           const int outputsX, Agg agg) {
+    const int numImgBlocks = DIVUP(numImages,B_X*imgsPerThread);
+    const int numFilterBlocks = DIVUP(numFilters, B_Y*filtersPerThread);
+    const int outputIdxX = blockIdx.x / numImgBlocks;
+    const int outputIdxY = blockIdx.y / numFilterBlocks;
+    const int blockImgIdx = (blockIdx.x % numImgBlocks) * B_X * imgsPerThread;
+    const int blockFilterIdx = (blockIdx.y % numFilterBlocks) * B_Y * filtersPerThread;
+    const int myFilterIdx = (blockFilterIdx + threadIdx.y*filtersPerThread);
+    if (myFilterIdx >= numFilters) {
+        return;
+    }
+    
+    const int outputIdx = outputIdxY * outputsX + outputIdxX;
+    const int numOutputs = outputsX * outputsX;
+    const int imgPixels = imgSize * imgSize;
+    
+    const int startImgPxX = startX + outputIdxX * strideX;
+    const int startImgPxY = startX + outputIdxY * strideX;
+    const int imgIdx = blockImgIdx + threadIdx.x;
+    
+    imgs += myFilterIdx * imgPixels * numImages + imgIdx;
+    target += (myFilterIdx * numOutputs + outputIdx) * numImages + imgIdx;
+    
+    float prod[filtersPerThread][imgsPerThread];
+    #pragma unroll
+    for (int f = 0; f < filtersPerThread; f++) {
+        #pragma unroll
+        for (int i = 0; i < imgsPerThread; i++) {
+            prod[f][i] = agg.getBaseValue(); 
+        }
+    }
+    
+    const int loopStartY = MAX(0, startImgPxY);
+    const int loopStartX = MAX(0, startImgPxX);
+    const int loopEndY = MIN(imgSize, startImgPxY + subsX);
+    const int loopEndX = MIN(imgSize, startImgPxX + subsX);
+    const int regionSize = (loopEndY - loopStartY) * (loopEndX - loopStartX);
+    for (int y = loopStartY; y < loopEndY; y++) {
+        for (int x = loopStartX; x < loopEndX; x++) {
+            const int imgPx = y * imgSize + x;
+            #pragma unroll
+            for (int i = 0; i < imgsPerThread; i++) {
+                if (!checkCaseBounds || imgIdx + i * B_X < numImages) {
+                    #pragma unroll
+                    for (int f = 0; f < filtersPerThread; f++) {
+                        prod[f][i] = agg(prod[f][i], imgs[(f * imgPixels + imgPx) * numImages + i * B_X]);
+                    }
+                }
+            }
+        }
+    }
+    
+    #pragma unroll
+    for (int i = 0; i < imgsPerThread; i++) {
+        if (!checkCaseBounds || imgIdx + i * B_X < numImages) {
+            #pragma unroll
+            for (int f = 0; f < filtersPerThread; f++) {
+                target[f * numOutputs * numImages + i * B_X] = agg.output(prod[f][i], regionSize); 
+            }
+        }
+    }
+}
+
+
+
+
+
+
 /*
  * imgs:        (numFilters, imgPixels, numImages)
  * target:      (numFilters, outputs, numImages)
@@ -514,6 +590,43 @@ void convLocalPool(NVMatrix& images, NVMatrix& target, int numFilters,
 
     cutilCheckMsg("convLocalPool: kernel execution failed");
 }
+
+
+void probabilisticPool(NVMatrix& images, NVMatrix& target, int numFilters,
+                   int subsX, int startX, int strideX, int outputsX) {
+    int numImages = images.getNumCols();
+    int imgPixels = images.getNumRows() / numFilters;
+    assert(images.getNumRows() == numFilters * imgPixels);
+    int imgSize = int(sqrt(imgPixels));
+    assert(imgSize * imgSize == imgPixels);
+    
+    assert(!images.isTrans());
+    assert(!target.isTrans());
+    assert(images.isContiguous());
+//    assert(numFilters % 4 == 0);
+//    assert(numImages % 128 == 0);
+    
+    int outputs = outputsX * outputsX;
+    target.resize(numFilters*outputs, numImages);
+
+    int imgsPerThread = numImages % 128 == 0 ? 8 : 4;
+    int filtersPerThread = numFilters % 4 == 0 ? 4 : numFilters % 3 == 0 ? 3 : numFilters % 2 == 0 ? 2 : 1;
+    int bx = 8;
+    bool checkCaseBounds = numImages % (bx*imgsPerThread) != 0;
+    assert((imgsPerThread * bx) % 32 == 0);
+    assert(numFilters % filtersPerThread == 0);
+    dim3 threads(bx, 16);
+    dim3 blocks(DIVUP(outputsX, 4) * DIVUP(numImages, bx*imgsPerThread), DIVUP(outputsX, 4) * numFilters / filtersPerThread);
+
+
+    cudaFuncSetCacheConfig(kProbPool<8, 8, 2, true>, cudaFuncCachePreferShared);
+    kProbPool<8, 8, 2, true><<<blocks, threads>>>(images.getDevData(), target.getDevData(),
+                                                            imgSize, numFilters, numImages, subsX, startX, outputsX, pooler);
+
+    cutilCheckMsg("convLocalPool: kernel execution failed");
+}
+
+
 
 #endif	/* CONV_UTIL_CUH */
 
