@@ -68,13 +68,15 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
         data = numpy.load(base + '.npy', 'r')
         return data
 
-    def __init__(self, which_set, center=False, multi_target = False, scale = False):
+    def __init__(self, which_set, center=False, multi_target = False, scale = False,
+            start = None, stop = None, one_hot = False):
         """
         :param which_set: one of ['train','test']
         :param center: data is in range [0,256], center=True subtracts 127.5.
         :param multi_target: load extra information as additional labels.
         """
-        assert which_set in ['train','test']
+        if which_set not in ['train','test']:
+            raise ValueError("Unrecognized which_set value: " + which_set)
 
         X = FoveatedNORB.load(which_set)
 
@@ -97,5 +99,12 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
 
         view_converter = retina.RetinaCodingViewConverter((96,96,2), (8,4,2,2))
 
-        super(FoveatedNORB,self).__init__(X = X, y = y, view_converter = view_converter)
+        super(FoveatedNORB, self).__init__(X=X, y=y, view_converter=view_converter)
+
+        if one_hot:
+            self.convert_to_one_hot()
+
+        self.restrict(start, stop)
+
+        self.y = self.y.astype('float32')
 
