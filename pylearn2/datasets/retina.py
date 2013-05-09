@@ -220,8 +220,11 @@ class RetinaDecodingBlock(object):
 
     def apply(self, dataset, can_fit=False):
         X = dataset.get_design_matrix()
-        topo_X = decode(X, self.img_shp, self.rings)
+        topo_X = self.perform(X)
         dataset.set_topological_view(topo_X)
+
+    def perform(self, X):
+        return decode(X, self.img_shp, self.rings)
 
 
 class RetinaCodingViewConverter(DefaultViewConverter):
@@ -233,7 +236,7 @@ class RetinaCodingViewConverter(DefaultViewConverter):
         self.encoder = RetinaEncodingBlock(rings)
 
     def design_mat_to_topo_view(self, X):
-        return self.decoder.apply(X)
+        return self.decoder.perform(X)
 
     def topo_view_to_design_mat(self, V):
         return self.encoder.apply(V)
