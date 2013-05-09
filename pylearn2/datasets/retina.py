@@ -238,5 +238,8 @@ class RetinaCodingViewConverter(DefaultViewConverter):
     def design_mat_to_topo_view(self, X):
         return self.decoder.perform(X)
 
+    def design_mat_to_weights_view(self, X):
+        return self.design_mat_to_topo_view(X)
+
     def topo_view_to_design_mat(self, V):
         return self.encoder.apply(V)
