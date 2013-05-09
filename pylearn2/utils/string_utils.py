@@ -5,6 +5,8 @@ import warnings
 import re
 import functools
 
+from pylearn2.datasets.exc import NoDataPathError
+
 def preprocess(string):
     """
     Preprocesses a string, by replacing ${VARNAME} with
@@ -42,7 +44,7 @@ def preprocess(string):
             val = os.environ[varname]
         except KeyError:
             if varname == 'PYLEARN2_DATA_PATH':
-                raise EnvironmentVariableError("You need to define your PYLEARN2_DATA_PATH environment variable. If you are using a computer at LISA, this should be set to /data/lisa/data")
+                raise NoDataPathError()
             if varname == 'PYLEARN2_VIEWER_COMMAND':
                 raise EnvironmentVariableError(environment_variable_essay)
 
