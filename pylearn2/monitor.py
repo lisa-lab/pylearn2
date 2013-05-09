@@ -70,7 +70,7 @@ class Monitor(object):
         # examples. If the model acts on a space with more than the batch index
         # and channel dimension, the model has topological dimensions, so the
         # topological view of the data should be used.
-        vector = model.get_input_space().make_theano_batch()
+        vector = model.get_input_space().make_theano_batch(name='monitoring_input')
         if isinstance(vector.type, theano.sparse.SparseType):
             self.topo = False
         else:
@@ -605,12 +605,19 @@ class Monitor(object):
         supervised = any(cost.supervised for cost in costs.values())
         model = self.model
 
-        X = model.get_input_space().make_theano_batch()
-        X.name = 'monitor_X'
+        X_space = model.get_input_space()
+        X = X_space.make_theano_batch(name='monitor_X')
+
+        if config.compute_test_value != 'off':
+            X.tag.test_value = X_space.get_origin_batch(batch_size).astype(X.dtype)
 
         if supervised:
-            Y = model.get_output_space().make_theano_batch()
-            Y.name = 'monitor_Y'
+            Y_space = model.get_output_space()
+            Y = Y_space.make_theano_batch(name='monitor_Y')
+
+            if config.compute_test_value != 'off':
+                Y.tag.test_value = Y_space.get_origin_batch(batch_size).astype(Y.dtype)
+
             ipt = (X, Y)
         else:
             Y = None
