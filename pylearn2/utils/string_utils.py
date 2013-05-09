@@ -208,6 +208,18 @@ def match(wrong, candidates):
 
     return scored_candidates[0][1]
 
+def censor_non_alphanum(s):
+    """
+    Returns s with all non-alphanumeric characters replaced with *
+    """
+
+    def censor(ch):
+        if (ch >= 'A' and ch <= 'z') or (ch >= '0' and ch <= '9'):
+            return ch
+        return '*'
+
+    return ''.join([censor(ch) for ch in s])
+
 environment_variable_essay = """
 PYLEARN2_VIEWER_COMMAND not defined. PLEASE READ THE FOLLOWING MESSAGE CAREFULLY
 TO SET UP THIS ENVIRONMENT VARIABLE:
