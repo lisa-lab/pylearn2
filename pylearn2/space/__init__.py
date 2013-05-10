@@ -52,6 +52,9 @@ class Space(object):
     def __ne__(self, other):
         return not (self == other)
 
+    def __repr__(self):
+        return str(self)
+
     def get_origin(self):
         """
         Returns the origin in this space.
@@ -211,6 +214,12 @@ class VectorSpace(Space):
         self.dim = dim
         self.sparse = sparse
 
+    def __str__(self):
+        return '%(classname)s(dim=%(dim)s%(sparse)s)' % dict(
+                classname=self.__class__.__name__,
+                dim=self.dim,
+                sparse=(', sparse' if self.sparse else ''))
+
     @functools.wraps(Space.get_origin)
     def get_origin(self):
         return np.zeros((self.dim,))
@@ -276,7 +285,7 @@ class VectorSpace(Space):
 
             return rval
 
-        raise NotImplementedError("VectorSpace doesn't know how to format as "+str(type(space)))
+        raise NotImplementedError(str(self)+" doesn't know how to format as "+str(space))
 
     def __eq__(self, other):
         return type(self) == type(other) and self.dim == other.dim
@@ -530,6 +539,11 @@ class CompositeSpace(Space):
     def __hash__(self):
         return hash((type(self), tuple(self.components)))
 
+    def __str__(self):
+        return '%(classname)s(%(components)s)' % dict(
+                classname=self.__class__.__name__,
+                components=', '.join([str(c) for c in self.components]))
+
     def restrict(self, subset):
         """Returns a new Space containing only the components whose indices
         are given in subset.
@@ -577,7 +591,7 @@ class CompositeSpace(Space):
                 pieces.append(component.np_format_as(input_piece, VectorSpace(width)))
             return np.concatenate(pieces, axis=1)
 
-        raise NotImplementedError("CompositeSpace does not know how to format as "+str(space))
+        raise NotImplementedError(str(self)+" does not know how to format as "+str(space))
 
     @functools.wraps(Space._format_as)
     def _format_as(self, batch, space):
@@ -588,7 +602,7 @@ class CompositeSpace(Space):
                 pieces.append(component.format_as(input_piece, VectorSpace(width)))
             return T.concatenate(pieces, axis=1)
 
-        raise NotImplementedError("CompositeSpace does not know how to format as "+str(space))
+        raise NotImplementedError(str(self)+" does not know how to format as "+str(space))
 
     @functools.wraps(Space.validate)
     def validate(self, batch):
