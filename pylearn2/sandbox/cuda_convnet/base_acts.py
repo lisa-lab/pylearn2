@@ -134,7 +134,7 @@ class BaseActs(GpuOp):
             raise RuntimeError('Could not compile cuda_convnet')
 
         return super(BaseActs, self).make_thunk(node, storage_map,
-                                                storage_map, no_recycling)
+                                                compute_map, no_recycling)
 
 
 class UnimplementedError(Exception):
