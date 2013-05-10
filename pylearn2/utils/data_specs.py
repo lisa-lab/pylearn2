@@ -1,4 +1,4 @@
-from pylearn2.space import CompositeSpace, Space
+from pylearn2.space import CompositeSpace, NullSpace, Space
 from pylearn2.utils import safe_zip
 
 
@@ -29,7 +29,13 @@ class DataSpecsMapping(object):
 
     def _fill_mapping(self, space, source):
         """Builds a nested tuple of integers representing the mapping"""
-        if not isinstance(space, CompositeSpace):
+        if isinstance(space, NullSpace):
+            # This Space does not contain any data, and should not
+            # be mapped to anything
+            assert source == ''
+            return None
+
+        elif not isinstance(space, CompositeSpace):
             # Space is a simple Space, source should be a simple source
             if isinstance(source, tuple):
                 source, = source
@@ -58,6 +64,18 @@ class DataSpecsMapping(object):
         """Auxiliary recursive function used by self.flatten"""
         if isinstance(nested, CompositeSpace):
             nested = tuple(nested.components)
+
+        if mapping is None:
+            # The corresponding Space was a NullSpace, which does
+            # not correspond to actual data, so nested should evaluate
+            # to False, and should not be included in the flattened version
+            if not isinstance(nested, NullSpace):
+                assert not nested, ("The following element is mapped to "
+                    "NullSpace, so it should evaluate to False (for instance, "
+                    "None, an empty string or an empty tuple), but is %s"
+                    % nested)
+            return
+
         if isinstance(mapping, int):
             # "nested" should actually be a single element
             idx = mapping
@@ -76,7 +94,7 @@ class DataSpecsMapping(object):
             for sub_nested, sub_mapping in safe_zip(nested, mapping):
                 self._fill_flat(sub_nested, sub_mapping, rval)
 
-    def flatten(self, nested):
+    def flatten(self, nested, return_tuple=False):
         """
         Iterate jointly through nested and spec_mapping, returns a flat tuple.
 
@@ -86,6 +104,11 @@ class DataSpecsMapping(object):
         then "nested" also have to have equal elements at these positions.
         "nested" can be a nested tuple, or composite space. If it is a
         composite space, a flattened composite space will be returned.
+
+        If `return_tuple` is True, a tuple is always returned (tuple of
+        non-composite Spaces if nested is a Space, empty tuple if all
+        Spaces are NullSpaces, length-1 tuple if there is only one
+        non-composite Space, etc.).
         """
         # Initialize the flatten returned value with Nones
         rval = [None] * self.n_unique_specs
@@ -97,6 +120,10 @@ class DataSpecsMapping(object):
                 "contain all numbers from 0 to %i (or None was in nested), "
                 "nested: %s" % (self.n_unique_specs - 1, nested))
 
+        if return_tuple:
+            return tuple(rval)
+
+        # else, return something close to the type of nested
         if len(rval) == 1:
             return rval[0]
         if isinstance(nested, tuple):
@@ -106,6 +133,11 @@ class DataSpecsMapping(object):
 
     def _make_nested_tuple(self, flat, mapping):
         """Auxiliary recursive function used by self.nest"""
+        if mapping is None:
+            # The corresponding space was a NullSpace,
+            # and there is no corresponding value in flat,
+            # we use None as a placeholder
+            return None
         if isinstance(mapping, int):
             # We are at a leaf of the tree
             idx = mapping
