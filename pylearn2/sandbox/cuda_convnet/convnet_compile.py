@@ -10,8 +10,6 @@ from theano.gof.cmodule import get_lib_extension
 from theano.gof.compilelock import get_lock, release_lock
 from theano.sandbox import cuda
 from theano.sandbox.cuda import nvcc_compiler
-from theano.tensor.blas_headers import cblas_header_text
-from theano.tensor.blas import ldflags
 
 from shared_code import this_dir
 
@@ -119,7 +117,7 @@ def convnet_compile():
         _logger.debug('should recompile')
 
         # Concatenate all .cu files into one big mod.cu
-        code = [cblas_header_text()]
+        code = []
         for source_file in cuda_convnet_file_sources:
             code.append(open(os.path.join(this_dir, source_file)).read())
         code = '\n'.join(code)
@@ -144,10 +142,10 @@ def convnet_compile():
                     compiler.compile_str('cuda_convnet',
                             code,
                             location = cuda_convnet_loc,
-                            include_dirs = ldflags(libs=False, include_dir=True) + [this_dir] + [config.pthreads.inc_dir] if config.pthreads.inc_dir else [],
-                            lib_dirs = nvcc_compiler.rpath_defaults + ldflags(libs=False, libs_dir=True) + [cuda_convnet_loc] + [config.pthreads.lib_dir] if config.pthreads.lib_dir else [],
-                            libs = ldflags() + ['cublas'] + [config.pthreads.lib] if config.pthreads.lib else [],
-                            preargs = ['-O3'] + args + ldflags(libs=False, flags=True),
+                            include_dirs = [this_dir] + [config.pthreads.inc_dir] if config.pthreads.inc_dir else [],
+                            lib_dirs = nvcc_compiler.rpath_defaults + [cuda_convnet_loc] + [config.pthreads.lib_dir] if config.pthreads.lib_dir else [],
+                            libs = ['cublas'] + [config.pthreads.lib] if config.pthreads.lib else [],
+                            preargs = ['-O3'] + args,
                             py_module=False)
                 except Exception, e:
                     _logger.error("Failed to compile %s %s: %s",
