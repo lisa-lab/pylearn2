@@ -111,6 +111,7 @@ class ZCA_Dataset(DenseDesignMatrix):
         #rval *= 2.
         #rval -= 1.
 
+        assert X.shape == other.shape, (X.shape, other.shape)
 
         rval = X.copy()
 
