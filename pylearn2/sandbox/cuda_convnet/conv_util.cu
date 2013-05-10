@@ -688,7 +688,7 @@ void convGaussianBlur(NVMatrix& images, NVMatrix& filter, NVMatrix& target, bool
     int numImages = images.getNumCols();
     int radius = filter.getNumCols() / 2;
     int imgPixels = images.getNumRows() / numChannels;
-    int imgSize = int(sqrt(imgPixels));
+    int imgSize = int(sqrt((double)imgPixels));
     
     assert(imgPixels == imgSize * imgSize);
     assert(radius >= 1 && radius <= 4);
@@ -1981,7 +1981,7 @@ void convLocalMaxUndo(NVMatrix& images, NVMatrix& maxGrads, NVMatrix& maxActs, N
     int numFilters = maxGrads.getNumRows() / outputs;
     int imgPixels = images.getNumRows() / numFilters;
     assert(images.getNumRows() == numFilters * imgPixels);
-    int imgSize = int(sqrt(imgPixels));
+    int imgSize = int(sqrt((double)imgPixels));
     
     assert(imgSize * imgSize == imgPixels);
     assert(maxGrads.getNumRows() == numFilters * outputs);
@@ -2314,7 +2314,7 @@ void convContrastNorm(NVMatrix& images, NVMatrix& meanDiffs, NVMatrix& denoms, N
     int numImages = images.getNumCols();
     int imgPixels = images.getNumRows() / numFilters;
     assert(images.getNumRows() == numFilters * imgPixels);
-    int imgSize = int(sqrt(imgPixels));
+    int imgSize = int(sqrt((double)imgPixels));
     assert(imgSize * imgSize == imgPixels);
     assert(meanDiffs.isSameDims(images));
     
@@ -2469,7 +2469,7 @@ void convResponseNormUndo(NVMatrix& outGrads, NVMatrix& denoms, NVMatrix& inputs
     int numImages = outGrads.getNumCols();
     int imgPixels = outGrads.getNumRows() / numFilters;
 
-    int imgSize = int(sqrt(imgPixels));
+    int imgSize = int(sqrt((double)imgPixels));
     assert(imgSize * imgSize == imgPixels);
 
     assert(outGrads.getNumRows() == numFilters * imgPixels);
@@ -2883,7 +2883,7 @@ void convTICAGrad(NVMatrix& images, NVMatrix& ticas, NVMatrix& target, int numFi
     int numImages = images.getNumCols();
     int imgPixels = images.getNumRows() / numFilters;
     assert(images.getNumRows() == numFilters * imgPixels);
-    int imgSize = int(sqrt(imgPixels));
+    int imgSize = int(sqrt((double)imgPixels));
     assert(imgSize * imgSize == imgPixels);
     
     assert(!images.isTrans());
@@ -2934,7 +2934,7 @@ void convTICA(NVMatrix& images, NVMatrix& target, int numFilters, int sizeX, flo
     int numImages = images.getNumCols();
     int imgPixels = images.getNumRows() / numFilters;
     assert(images.getNumRows() == numFilters * imgPixels);
-    int imgSize = int(sqrt(imgPixels));
+    int imgSize = int(sqrt((double)imgPixels));
     assert(imgSize * imgSize == imgPixels);
     
     assert(!images.isTrans());
@@ -2984,7 +2984,7 @@ void convContrastNormCrossMap(NVMatrix& images, NVMatrix& meanDiffs, NVMatrix& d
     int numImages = images.getNumCols();
     int imgPixels = images.getNumRows() / numFilters;
     assert(images.getNumRows() == numFilters * imgPixels);
-    int imgSize = int(sqrt(imgPixels));
+    int imgSize = int(sqrt((double)imgPixels));
     assert(imgSize * imgSize == imgPixels);
     assert(meanDiffs.isSameDims(images));
     assert(sizeF > 0 && sizeF <= numFilters);
@@ -3042,7 +3042,7 @@ void convResponseNormCrossMapUndo(NVMatrix& outGrads, NVMatrix& denoms, NVMatrix
     int numImages = outGrads.getNumCols();
     int imgPixels = outGrads.getNumRows() / numFilters;
 
-    int imgSize = int(sqrt(imgPixels));
+    int imgSize = int(sqrt((double)imgPixels));
     assert(imgSize * imgSize == imgPixels);
     assert(sizeF > 0 && sizeF <= numFilters);
     assert(outGrads.getNumRows() == numFilters * imgPixels);

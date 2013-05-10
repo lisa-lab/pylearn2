@@ -910,7 +910,7 @@ void _imgActs(NVMatrix& hidActs, NVMatrix& filters, NVMatrix& targets,
     int numModules = hidActs.getNumRows() / numFilters;
     int filterModuleMult = conv ? 1 : numModules;
     int filterPixels = filters.getNumRows() / (filterModuleMult * numFilterColors);
-    int filterSize = sqrt(filterPixels);
+    int filterSize = sqrt((double)filterPixels);
     int imgPixels = imgSizeY * imgSizeX;
     int numModulesX = numModules / numModulesY;
     
@@ -1950,7 +1950,7 @@ void _imgActsSparse(NVMatrix& hidActs, NVMatrix& filters, NVMatrix& targets, int
     int numModules = hidActs.getNumRows() / numFilters;
     int filterModuleMult = conv ? 1 : numModules;
     int filterPixels = filters.getNumRows() / (filterModuleMult * numFilterColors);
-    int filterSize = sqrt(filterPixels);
+    int filterSize = sqrt((double)filterPixels);
     int imgPixels = imgSizeY * imgSizeX;
     int numModulesX = numModules / numModulesY;
     int overSample = (numFilterColors * numGroups) / numImgColors;
