@@ -70,7 +70,7 @@ class BaseActs(GpuOp):
         self.dense_connectivity = True
 
     def c_header_dirs(self):
-        return [this_dir] + [config.pthreads.header_dir] if config.pthreads.header_dir else []
+        return [this_dir] + [config.pthreads.inc_dir] if config.pthreads.inc_dir else []
 
     def c_headers(self):
         return ['nvmatrix.cuh', 'cudaconv2.cuh']
