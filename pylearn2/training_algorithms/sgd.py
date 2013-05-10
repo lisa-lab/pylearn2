@@ -267,8 +267,6 @@ class SGD(TrainingAlgorithm):
 
 
         with log_timing(log, 'Compiling sgd_update'):
-            if not isinstance(theano_args, tuple):
-                theano_args = (theano_args,)
             self.sgd_update = function(theano_args,
                                        updates=updates,
                                        name='sgd_update',

@@ -123,6 +123,7 @@ class Cost(object):
         raise NotImplementedError(str(type(self))+" does not implement " +
                                   "get_data_specs.")
 
+
 class SumOfCosts(Cost):
     """
     Combines multiple costs by summing them.
@@ -176,8 +177,6 @@ class SumOfCosts(Cost):
         nested_data = mapping.nest(data)
         costs = []
         for cost, cost_data in safe_zip(self.costs, nested_data):
-            if not isinstance(cost_data, tuple):
-                cost_data = (cost_data,)
             costs.append(cost.expr(model, cost_data, **kwargs))
         assert len(costs) > 0
 
@@ -250,8 +249,6 @@ class SumOfCosts(Cost):
         composite_specs, mapping = self.get_composite_specs_and_mapping(model)
         nested_data = mapping.nest(data)
         for cost, cost_data in safe_zip(self.costs, nested_data):
-            if not isinstance(cost_data, tuple):
-                cost_data = (cost_data,)
             result = cost.get_gradients(model, cost_data, ** kwargs)
             indiv_results.append(result)
 
@@ -286,9 +283,6 @@ class SumOfCosts(Cost):
 
         for i, cost in enumerate(self.costs):
             cost_data = nested_data[i]
-            # TODO: not put cost_data in tuple
-            if not isinstance(cost_data, tuple):
-                cost_data = (cost_data,)
             try:
                 rval.update(cost.get_monitoring_channels(model, cost_data, **kwargs))
             except TypeError:
@@ -387,7 +381,7 @@ class LxReg(Cost):
 
     def get_data_specs(self, model):
         # This cost does not use any data
-        return (NullSpace, '')
+        return (NullSpace(), '')
 
 
 class CrossEntropy(Cost):
