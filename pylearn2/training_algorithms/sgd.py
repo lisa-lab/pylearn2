@@ -21,6 +21,7 @@ from theano.gof.op import get_debug_values
 from theano import tensor as T
 
 from pylearn2.monitor import Monitor
+from pylearn2.space import CompositeSpace
 from pylearn2.train_extensions import TrainExtension
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 from pylearn2.utils.iteration import is_stochastic
@@ -28,7 +29,7 @@ from pylearn2.utils import py_integer_types, py_float_types
 from pylearn2.utils import safe_zip
 from pylearn2.utils import serial
 from pylearn2.utils import sharedX
-from pylearn2.utils.data_specs import is_flat_specs
+from pylearn2.utils.data_specs import DataSpecsMapping
 from pylearn2.utils.timing import log_timing
 
 
@@ -152,28 +153,30 @@ class SGD(TrainingAlgorithm):
         self.monitor._sanity_check()
 
         data_specs = self.cost.get_data_specs(self.model)
-        if data_specs == (None, None):
-            # The cost does not need the dataset at all
-            theano_args = ()
-        else:
-            assert is_flat_specs(data_specs), (
-                    "data_specs should be flat, but is nested: %s"
-                    % data_specs)
+        mapping = DataSpecsMapping(data_specs)
+        space_tuple = mapping.flatten(data_specs[0], return_tuple=True)
+        source_tuple = mapping.flatten(data_specs[1], return_tuple=True)
 
-            # Name variables based on the sources
-            if isinstance(data_specs[1], basestring):
-                name = '%s[%s]' % (self.__class__.__name__, data_specs[1])
-            else:
-                name = tuple('%s[%s]' % (self.__class__.__name__, source)
-                             for source in data_specs[1])
-            theano_args = data_specs[0].make_theano_batch(name=name)
-            if not isinstance(theano_args, tuple):
-                theano_args = (theano_args,)
+        # Build a flat tuple of Theano Variables, one for each space.
+        # We want that so that if the same space/source is specified
+        # more than once in data_specs, only one Theano Variable
+        # is generated for it, and the corresponding value is passed
+        # only once to the compiled Theano function.
+        theano_args = []
+        for space, source in safe_zip(space_tuple, source_tuple):
+            name = '%s[%s]' % (self.__class__.__name__, source)
+            arg = space.make_theano_batch(name=name)
+            theano_args.append(arg)
+        theano_args = tuple(theano_args)
 
-        fixed_var_descr = self.cost.get_fixed_var_descr(model, theano_args)
+        # Methods of `self.cost` need args to be passed in a format compatible
+        # with data_specs
+        nested_args = mapping.nest(theano_args)
+        fixed_var_descr = self.cost.get_fixed_var_descr(model, nested_args)
         self.on_load_batch = fixed_var_descr.on_load_batch
 
-        cost_value = self.cost.expr(model, theano_args, ** fixed_var_descr.fixed_vars)
+        cost_value = self.cost.expr(model, nested_args,
+                                    ** fixed_var_descr.fixed_vars)
 
         if cost_value is not None and cost_value.name is None:
             # Concatenate the name of all tensors in theano_args !?
@@ -191,13 +194,14 @@ class SGD(TrainingAlgorithm):
             dataset_name = self.monitoring_dataset.keys()[0]
             monitoring_dataset = self.monitoring_dataset[dataset_name]
             #TODO: have Monitor support non-data-dependent channels
-            self.monitor.add_channel(name='learning_rate', ipt=theano_args,
+            self.monitor.add_channel(name='learning_rate',
+                                     ipt=nested_args,
                                      val=learning_rate,
-                                     data_specs = data_specs,
+                                     data_specs=data_specs,
                                      dataset=monitoring_dataset)
             if self.momentum:
                 self.monitor.add_channel(name='momentum',
-                                         ipt=theano_args,
+                                         ipt=nested_args,
                                          val=self.momentum,
                                          data_specs=data_specs,
                                          dataset=monitoring_dataset)
@@ -208,7 +212,8 @@ class SGD(TrainingAlgorithm):
             if param.name is None:
                 param.name = 'sgd_params[%d]' % i
 
-        grads, updates = self.cost.get_gradients(model, theano_args, ** fixed_var_descr.fixed_vars)
+        grads, updates = self.cost.get_gradients(model, nested_args,
+                                                 ** fixed_var_descr.fixed_vars)
 
         for param in grads:
             assert param in params
@@ -289,13 +294,17 @@ class SGD(TrainingAlgorithm):
             rng = None
 
         data_specs = self.cost.get_data_specs(self.model)
-        if data_specs != (None, None):
-            assert is_flat_specs(data_specs), ("data_specs should be flat, "
-                    "but is nested: %s" % data_specs)
+
+        # The iterator should be built from flat data specs, so it returns
+        # flat, non-redundent tuples of data.
+        mapping = DataSpecsMapping(data_specs)
+        space_tuple = mapping.flatten(data_specs[0], return_tuple=True)
+        source_tuple = mapping.flatten(data_specs[1], return_tuple=True)
+        flat_data_specs = (CompositeSpace(space_tuple), source_tuple)
 
         iterator = dataset.iterator(mode=self.train_iteration_mode,
                 batch_size=self.batch_size,
-                data_specs=data_specs, return_tuple=True,
+                data_specs=flat_data_specs, return_tuple=True,
                 rng = rng, num_batches = self.batches_per_iter)
 
         on_load_batch = self.on_load_batch
@@ -305,12 +314,10 @@ class SGD(TrainingAlgorithm):
             self.sgd_update(*batch)
             # iterator might return a smaller batch if dataset size
             # isn't divisible by batch_size
-            if data_specs[0] is None:
-                # There is no way to know how many examples would actually
-                # have been in the batch, since it was empty
-                actual_batch_size = 0
-            else:
-                actual_batch_size = data_specs[0].get_batch_size(batch)
+            # Note: if data_specs[0] is a NullSpace, there is no way to know
+            # how many examples would actually have been in the batch,
+            # since it was empty, so actual_batch_size would be reported as 0.
+            actual_batch_size = flat_data_specs[0].get_batch_size(batch)
             self.monitor.report_batch(actual_batch_size)
             for callback in self.update_callbacks:
                 callback(self)
