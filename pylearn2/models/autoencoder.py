@@ -497,7 +497,7 @@ class ContractiveAutoencoder(Autoencoder):
             Add this to the output of a Cost object, such as
             SquaredError, to penalize it.
         """
-        X, = data
+        X = data
         act_grad = self._activation_grad(X)
         frob_norm = tensor.dot(tensor.sqr(act_grad), tensor.sqr(self.weights).sum(axis=0))
         contract_penalty = frob_norm.sum() / X.shape[0]
@@ -548,7 +548,7 @@ class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
         """
         Stochastic approximation of Hessian Frobenius norm
         """
-        X, = data
+        X = data
 
         corrupted_inputs = [self.corruptor(X) for times in\
                             range(self.num_corruptions)]
