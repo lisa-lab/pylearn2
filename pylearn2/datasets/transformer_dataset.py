@@ -71,14 +71,20 @@ class TransformerDataset(Dataset):
 
             # Put 'features' first, as this is what TransformerIterator
             # is expecting
-            feature_idx = source.index('features')
-            raw_space = CompositeSpace((self.transformer.get_input_space(),)
-                         + space[:feature_idx]
-                         + space[feature_idx + 1:])
-            raw_source = (('features',)
-                          + source[:feature_idx]
-                          + source[feature_idx + 1:])
-            raw_data_specs = (raw_space, raw_source)
+            if 'features' not in source:
+                # 'features is not needed, get things directly from
+                # the original data
+                raw_data_specs = data_specs
+            else:
+                feature_idx = source.index('features')
+                raw_space = CompositeSpace(
+                                (self.transformer.get_input_space(),)
+                                + space[:feature_idx]
+                                + space[feature_idx + 1:])
+                raw_source = (('features',)
+                              + source[:feature_idx]
+                              + source[feature_idx + 1:])
+                raw_data_specs = (raw_space, raw_source)
         else:
             raw_data_specs = None
 
