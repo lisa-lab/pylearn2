@@ -142,9 +142,9 @@ def convnet_compile():
                     compiler.compile_str('cuda_convnet',
                             code,
                             location = cuda_convnet_loc,
-                            include_dirs = [this_dir] + [config.pthreads.inc_dir] if config.pthreads.inc_dir else [],
-                            lib_dirs = nvcc_compiler.rpath_defaults + [cuda_convnet_loc] + [config.pthreads.lib_dir] if config.pthreads.lib_dir else [],
-                            libs = ['cublas'] + [config.pthreads.lib] if config.pthreads.lib else [],
+                            include_dirs = [this_dir, config.pthreads.inc_dir] if config.pthreads.inc_dir else [this_dir],
+                            lib_dirs = nvcc_compiler.rpath_defaults + [cuda_convnet_loc] + ([config.pthreads.lib_dir] if config.pthreads.lib_dir else []),
+                            libs = ['cublas', config.pthreads.lib] if config.pthreads.lib else ['cublas'],
                             preargs = ['-O3'] + args,
                             py_module=False)
                 except Exception, e:

@@ -70,7 +70,7 @@ class BaseActs(GpuOp):
         self.dense_connectivity = True
 
     def c_header_dirs(self):
-        return [this_dir] + [config.pthreads.inc_dir] if config.pthreads.inc_dir else []
+        return [this_dir, config.pthreads.inc_dir] if config.pthreads.inc_dir else [this_dir]
 
     def c_headers(self):
         return ['nvmatrix.cuh', 'cudaconv2.cuh']
@@ -81,10 +81,10 @@ class BaseActs(GpuOp):
         return ()
 
     def c_lib_dirs(self):
-        return [cuda_convnet_loc] + [config.pthreads.lib_dir] if config.pthreads.lib_dir else []
+        return [cuda_convnet_loc, config.pthreads.lib_dir] if config.pthreads.lib_dir else [cuda_convnet_loc]
 
     def c_libraries(self):
-        return ['cuda_convnet'] + [config.pthreads.lib] if config.pthreads.lib else []
+        return ['cuda_convnet', config.pthreads.lib] if config.pthreads.lib else ['cuda_convnet']
 
     def _argument_contiguity_check(self, arg_name):
         return """
