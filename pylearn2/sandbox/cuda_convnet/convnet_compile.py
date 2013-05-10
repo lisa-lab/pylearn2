@@ -29,7 +29,7 @@ cuda_convnet_loc = os.path.join(config.compiledir, 'cuda_convnet')
 # In partial dependency order: the last ones depend on the first ones
 cuda_convnet_file_sources = ('nvmatrix_kernels.cu', 'nvmatrix.cu',
                              'conv_util.cu', 'filter_acts.cu', 'img_acts.cu',
-                             'weight_acts.cu', 'matrix.cpp')
+                             'weight_acts.cu')
 cuda_convnet_so = os.path.join(cuda_convnet_loc,
         'cuda_convnet.' + get_lib_extension())
 libcuda_convnet_so = os.path.join(cuda_convnet_loc,
