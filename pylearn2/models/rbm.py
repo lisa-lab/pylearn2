@@ -381,7 +381,7 @@ class RBM(Block, Model):
 
 
     def get_monitoring_channels(self, data):
-        V, = data
+        V = data
         theano_rng = RandomStreams(42)
 
         #TODO: re-enable this in the case where self.transformer
@@ -407,6 +407,15 @@ class RBM(Block, Model):
                  #'W_norms_max' : T.max(norms),
                  #'W_norms_mean' : T.mean(norms),
                 'reconstruction_error' : self.reconstruction_error(V, theano_rng) }
+
+    def get_monitoring_data_specs(self):
+        """
+        Get the data_specs describing the data for get_monitoring_channel.
+
+        This implementation returns specification corresponding to unlabeled
+        inputs.
+        """
+        return (self.get_input_space(), self.get_input_source())
 
     def ml_gradients(self, pos_v, neg_v):
         """

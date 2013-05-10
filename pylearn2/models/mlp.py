@@ -282,6 +282,16 @@ class MLP(Layer):
 
         return rval
 
+    def get_monitoring_data_specs(self):
+        """
+        Return the (space, source) data_specs for self.get_monitoring_channels.
+
+        In this case, we want the inputs and targets.
+        """
+        space = CompositeSpace((self.get_input_space(),
+                                self.get_output_space()))
+        source = (self.get_input_source(), self.get_target_source())
+        return (space, source)
 
     def get_params(self):
 
