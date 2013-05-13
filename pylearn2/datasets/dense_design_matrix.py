@@ -497,6 +497,14 @@ class DenseDesignMatrix(Dataset):
 
         self.y = y
 
+    def adjust_for_viewer(self, X):
+        return X / np.abs(X).max()
+
+    def adjust_to_be_viewed_with(self, X, ref, per_example=None):
+        if per_example is not None:
+            warnings.warn("ignoring per_example")
+        return np.clip(X / np.abs(ref).max(), -1., 1.)
+
 
 
 class DenseDesignMatrixPyTables(DenseDesignMatrix):
