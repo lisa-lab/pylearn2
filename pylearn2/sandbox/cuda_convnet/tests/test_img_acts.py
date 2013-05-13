@@ -1,4 +1,4 @@
-__authors__ = "David Warde-Farley"
+__authors__ = "David Warde-Farley, Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["David Warde-Farley", "Ian Goodfellow"]
 __license__ = "3-clause BSD"
@@ -9,13 +9,18 @@ from pylearn2.testing.skip import skip_if_no_gpu
 skip_if_no_gpu()
 
 import numpy as np
-from theano import shared
-from pylearn2.sandbox.cuda_convnet.img_acts import ImageActs
+import warnings
+
+from theano import function
 from theano.sandbox.cuda import gpu_from_host
 from theano.sandbox.cuda import host_from_gpu
+from theano.sandbox.rng_mrg import MRG_RandomStreams
+from theano import shared
+from theano import tensor as T
+from theano.tensor import as_tensor_variable
 from theano.tensor.nnet.conv import conv2d
-from theano import function
-import warnings
+
+from pylearn2.sandbox.cuda_convnet.img_acts import ImageActs
 
 def test_match_full_conv():
 
@@ -47,7 +52,7 @@ def test_match_full_conv():
     gpu_images = gpu_from_host(hid_acts)
     gpu_filters = gpu_from_host(filters)
 
-    output = ImageActs()(gpu_images, gpu_filters)
+    output = ImageActs()(gpu_images, gpu_filters, as_tensor_variable((6, 7)))
     output = host_from_gpu(output)
 
     images_bc01 = hid_acts.dimshuffle(3,0,1,2)
@@ -82,6 +87,75 @@ def test_match_full_conv():
         print 'cuda-convnet value range: ', (output.min(), output.max())
         print 'theano value range: ', (output_conv2d.min(), output_conv2d.max())
         assert False
+
+def test_match_full_conv_grad():
+
+    # Tests that the gradient of ImageActs with no padding is the same as the
+    # gradient of
+    # theano's conv2D in full mode after flipping the kernel and tranposing
+    # the output and input channels
+
+    rng = np.random.RandomState([2013, 1, 29])
+
+    batch_size = 2
+    rows = 6
+    cols = 7
+    channels = 3
+    filter_rows = 5
+    filter_cols = filter_rows
+    num_filters = 16
+
+    hid_acts = shared(rng.uniform(-1., 1., (num_filters,
+                                            rows - filter_rows + 1,
+                                            cols - filter_cols + 1,
+                                            batch_size)
+    ).astype('float32'), name='hidacts')
+
+    filters = shared(rng.uniform(-1., 1., (channels, filter_rows,
+        filter_cols, num_filters)).astype('float32'), name='filters')
+
+    gpu_images = gpu_from_host(hid_acts)
+    gpu_filters = gpu_from_host(filters)
+
+    output = ImageActs()(gpu_images, gpu_filters, as_tensor_variable((6, 7)))
+    output = host_from_gpu(output)
+
+    images_bc01 = hid_acts.dimshuffle(3,0,1,2)
+    filters_bc01 = filters.dimshuffle(3,0,1,2)
+    # need to tranpose the kernel stack to do imgActs rather than filterActs
+    filters_bc01 = filters_bc01.dimshuffle(1, 0, 2, 3)
+    # In order to do the transpose operation, we must flip the kernels
+    # But in theano's conv2d, the kernels get flipped anyway
+    # so in this case, we do not flip the kernel
+
+    output_conv2d = conv2d(images_bc01, filters_bc01, border_mode='full')
+
+    output_conv2d = output_conv2d.dimshuffle(1,2,3,0)
+
+    theano_rng = MRG_RandomStreams(5 * 10 * 2013)
+
+    random = theano_rng.normal(size=output_conv2d.shape, dtype=output_conv2d.dtype)
+
+    projected = (output * random).sum()
+    projected_conv_2d = (output_conv2d * random).sum()
+
+    grads = T.grad(projected, [hid_acts, filters]) + T.grad(projected_conv_2d, [hid_acts, filters])
+
+    f = function([], grads)
+
+    gi, gf, gi_th, gf_th = f()
+
+    assert gi.shape == gi_th.shape
+    diff = np.abs(gi - gi_th).max()
+    if diff > 2.9e-6:
+        assert False
+
+    diff = np.abs(gf - gf_th).max()
+    if diff > 1e-6:
+        raise AssertionError(diff)
+
+
+
 
 if __name__ == '__main__':
     test_match_full_conv()

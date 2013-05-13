@@ -43,6 +43,7 @@ class SGD(TrainingAlgorithm):
     """
     def __init__(self, learning_rate, cost=None, batch_size=None,
                  monitoring_batches=None, monitoring_dataset=None,
+                 monitor_iteration_mode='sequential',
                  termination_criterion=None, update_callbacks=None,
                  init_momentum = None, set_batch_size = False,
                  train_iteration_mode = None, batches_per_iter=None,
@@ -100,6 +101,7 @@ class SGD(TrainingAlgorithm):
         self.batches_per_iter = batches_per_iter
         self._set_monitoring_dataset(monitoring_dataset)
         self.monitoring_batches = monitoring_batches
+        self.monitor_iteration_mode = monitor_iteration_mode
         if monitoring_dataset is None:
             if monitoring_batches is not None:
                 raise ValueError("Specified an amount of monitoring batches but not a monitoring dataset.")
@@ -162,22 +164,25 @@ class SGD(TrainingAlgorithm):
 
         Y = T.matrix(name="%s[Y]" % self.__class__.__name__)
 
+        fixed_var_descr = self.cost.get_fixed_var_descr(model, X, Y)
+        self.on_load_batch = fixed_var_descr.on_load_batch
 
         if self.cost.supervised:
             if config.compute_test_value == 'raise':
                 _, Y.tag.test_value = dataset.get_batch_design(self.batch_size, True)
 
             self.supervised = True
-            cost_value = self.cost(model, X, Y)
+            cost_value = self.cost(model, X, Y, ** fixed_var_descr.fixed_vars)
 
         else:
             self.supervised = False
-            cost_value = self.cost(model, X)
+            cost_value = self.cost(model, X, ** fixed_var_descr.fixed_vars)
         if cost_value is not None and cost_value.name is None:
             if self.supervised:
                 cost_value.name = 'objective(' + X.name + ', ' + Y.name + ')'
             else:
                 cost_value.name = 'objective(' + X.name + ')'
+
 
         # Set up monitor to model the objective value, learning rate,
         # momentum (if applicable), and extra channels defined by
@@ -186,7 +191,7 @@ class SGD(TrainingAlgorithm):
         if self.monitoring_dataset is not None:
             self.monitor.setup(dataset=self.monitoring_dataset,
                     cost=self.cost, batch_size=self.batch_size, num_batches=self.monitoring_batches,
-                    extra_costs=self.monitoring_costs
+                    extra_costs=self.monitoring_costs, mode=self.monitor_iteration_mode
                     )
             if self.supervised:
                 ipt = (X, Y)
@@ -208,9 +213,9 @@ class SGD(TrainingAlgorithm):
                 param.name = 'sgd_params[%d]' % i
 
         if self.cost.supervised:
-            grads, updates = self.cost.get_gradients(model, X, Y)
+            grads, updates = self.cost.get_gradients(model, X, Y, ** fixed_var_descr.fixed_vars)
         else:
-            grads, updates = self.cost.get_gradients(model, X)
+            grads, updates = self.cost.get_gradients(model, X, ** fixed_var_descr.fixed_vars)
 
 
         for param in grads:
@@ -300,12 +305,17 @@ class SGD(TrainingAlgorithm):
         iterator = dataset.iterator(mode=self.train_iteration_mode,
                 batch_size=self.batch_size, targets=self.supervised,
                 topo=self.topo, rng = rng, num_batches = self.batches_per_iter)
+
         if self.topo:
             batch_idx = dataset.get_topo_batch_axis()
         else:
             batch_idx = 0
+
+        on_load_batch = self.on_load_batch
         if self.supervised:
             for (batch_in, batch_target) in iterator:
+                for callback in on_load_batch:
+                    callback(batch_in, batch_target)
                 self.sgd_update(batch_in, batch_target)
                 actual_batch_size = batch_in.shape[batch_idx]
                 self.monitor.report_batch(actual_batch_size)
@@ -313,6 +323,8 @@ class SGD(TrainingAlgorithm):
                     callback(self)
         else:
             for batch in iterator:
+                for callback in on_load_batch:
+                    callback(batch, None)
                 self.sgd_update(batch)
                 actual_batch_size = batch.shape[0] # iterator might return a smaller batch if dataset size
                                                    # isn't divisible by batch_size
@@ -385,7 +397,7 @@ class MonitorBasedLRAdjuster(TrainExtension):
     def __init__(self, high_trigger=1., shrink_amt=.99,
                  low_trigger=.99, grow_amt=1.01,
                  min_lr = 1e-7, max_lr = 1.,
-		         dataset_name=None):
+                 dataset_name=None):
         self.high_trigger = high_trigger
         self.shrink_amt = shrink_amt
         self.low_trigger = low_trigger

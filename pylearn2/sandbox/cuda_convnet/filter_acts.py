@@ -42,8 +42,6 @@ The copyright and licensing notice for this code is reproduced below:
 """
 from theano.sandbox.cuda import CudaNdarrayType
 from theano.gof import Apply
-from theano.gof.op import get_debug_values
-from theano.printing import Print
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
 from pylearn2.sandbox.cuda_convnet.base_acts import UnimplementedError
 #from pylearn2.sandbox.cuda_convnet.weight_acts import WeightActs
@@ -144,16 +142,14 @@ class FilterActs(BaseActs):
             """
 
         assert isinstance(self.pad, py_integer_types)
+        assert self.pad >= 0, "pad must be non-negative"
         basic_setup += """
         #define paddingStart (-%d)
         """ % self.pad
 
-        if self.stride != 1:
-            raise UnimplementedError()
-        else:
-            basic_setup += """
-            #define moduleStride 1
-        """
+        basic_setup += """
+        #define moduleStride %d
+        """ % int(self.stride)
         if self.copy_non_contiguous:
             raise UnimplementedError()
         else:
@@ -220,8 +216,14 @@ class FilterActs(BaseActs):
         if (filter_rows != filter_cols)
         {
             PyErr_Format(PyExc_ValueError,
-            "filter must be square, but have shape (%%d, %%d).",
+            "filter must be square, but instead have shape (%%d, %%d)",
             filter_rows, filter_cols);
+            %(fail)s;
+        }
+        else if (moduleStride > filter_rows) {
+            PyErr_Format(PyExc_ValueError,
+            "stride %%d greater than filter size (%%d, %%d)",
+            moduleStride, filter_rows, filter_cols);
             %(fail)s;
         }
 
@@ -233,8 +235,15 @@ class FilterActs(BaseActs):
         """
         num_braces += 2
 
-        target_rows = "imgSizeY - filter_rows + 1 - paddingStart * 2"
-        target_cols = "imgSizeX - filter_cols + 1 - paddingStart * 2"
+        # p + (m_x - 1) * s + f >= i_x
+        # p + (m_x - 1) * s >= i_x - f
+        # m_x = (i_x - f - p) / s + 1
+        div_ms_y = "((imgSizeY - 2*paddingStart - filter_rows) / moduleStride)"
+        div_ms_x = "((imgSizeX - 2*paddingStart - filter_cols) / moduleStride)"
+        mod_ms_y = "((imgSizeY - 2*paddingStart - filter_rows) % moduleStride)"
+        mod_ms_x = "((imgSizeX - 2*paddingStart - filter_cols) % moduleStride)"
+        target_rows = "%s + ((%s > 0) ? 1 : 0) + 1" % (div_ms_y, mod_ms_y)
+        target_cols = "%s + ((%s > 0) ? 1 : 0) + 1" % (div_ms_x, mod_ms_x)
 
         setup_nv_targets = """
 
@@ -294,7 +303,7 @@ class FilterActs(BaseActs):
         return rval
 
     def c_code_cache_version(self):
-        return (3,)
+        return (10,)
 
     def grad(self, inputs, dout):
 
@@ -311,7 +320,10 @@ class FilterActs(BaseActs):
         if 'Cuda' not in str(type(dout)):
             raise TypeError("output gradients must be cuda")
 
-        d_images = ImageActs(self.pad, self.partial_sum)(dout, filters)
-        d_filters = WeightActs(self.pad, self.partial_sum)(images, dout)[0]
-
+        ishape = images.shape[1:3]
+        fshape = filters.shape[1:3]
+        d_images = ImageActs(self.pad, self.partial_sum, self.stride)(
+            dout, filters, ishape)
+        d_filters = WeightActs(self.pad, self.partial_sum, self.stride)(
+            images, dout, fshape)[0]
         return d_images, d_filters

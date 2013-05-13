@@ -4,6 +4,7 @@ __copyright__ = "Copyright 2013, Universite de Montreal"
 from theano import tensor as T
 
 from pylearn2.costs.cost import Cost
+from pylearn2.costs.mlp.dropout import Dropout
 from pylearn2.utils import safe_izip
 
 class Default(Cost):
@@ -39,7 +40,17 @@ class WeightDecay(Cost):
 
     def __call__(self, model, X, Y = None, ** kwargs):
 
-        layer_costs = [ layer.get_weight_decay(coeff)
+        def wrapped_layer_cost(layer, coef):
+            try:
+                return layer.get_weight_decay(coeff)
+            except NotImplementedError:
+                if coef==0.:
+                    return 0.
+                else:
+                    raise NotImplementedError(str(type(layer))+" does not implement get_weight_decay.")
+
+
+        layer_costs = [ wrapped_layer_cost(layer, coeff)
             for layer, coeff in safe_izip(model.layers, self.coeffs) ]
 
         assert T.scalar() != 0. # make sure theano semantics do what I want

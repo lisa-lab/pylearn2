@@ -85,6 +85,12 @@ class Preprocessor(object):
 
         raise NotImplementedError(str(type(self))+" does not implement an apply method.")
 
+    def invert(self):
+        """
+        Do any necessary prep work to be able to support the "inverse" method
+        later. Default implementation is no-op.
+        """
+
 class ExamplewisePreprocessor(Preprocessor):
     """
         Abstract class.
@@ -908,6 +914,10 @@ class ZCA(Preprocessor):
         dataset.set_design_matrix(new_X)
 
     def invert(self):
+        """
+        Do any necessary prep work to be able to support the "inverse" method
+        later.
+        """
         self.inv_P_ = np.linalg.inv(self.P_)
 
     def inverse(self, X):

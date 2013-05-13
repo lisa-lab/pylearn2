@@ -42,6 +42,7 @@ from theano import config
 import functools
 from theano.gof.op import get_debug_values
 from theano.sandbox.cuda.type import CudaNdarrayType
+from pylearn2.sandbox.tuple_var import TupleVariable
 from pylearn2.utils import py_integer_types
 
 
@@ -115,6 +116,8 @@ class Space(object):
         space.format_as(self.format_as(batch, space), self)
         """
 
+        self.validate(batch)
+
         my_dimension =  self.get_total_dimension()
         other_dimension = space.get_total_dimension()
 
@@ -143,6 +146,13 @@ class Space(object):
         in this space. """
 
         raise NotImplementedError(str(type(self))+" does not implement validate.")
+
+    def batch_size(self, batch):
+        """
+        Read the batch size out of a batch.
+        """
+
+        raise NotImplementedError(str(type(self))+" does not implement batch_size.")
 
 class VectorSpace(Space):
     """A space whose points are defined as fixed-length vectors."""
@@ -197,9 +207,13 @@ class VectorSpace(Space):
             return tuple(pieces)
 
         if isinstance(space, Conv2DSpace):
-            if space.axes[0] != 'b':
-                raise NotImplementedError("Will need to reshape to ('b',*) then do a dimshuffle. Be sure to make this the inverse of space._format_as(x, self)")
             dims = { 'b' : batch.shape[0], 'c' : space.num_channels, 0 : space.shape[0], 1 : space.shape[1] }
+            if space.axes[0] != 'b':
+                tmp_axes = ['b'] + [axis for axis in space.axes if axis != 'b']
+                shape = [dims[ax] for ax in tmp_axes]
+                batch = batch.reshape(shape)
+                batch = batch.dimshuffle(*[tmp_axes.index(ax) for ax in space.axes])
+                return batch
 
             shape = tuple( [ dims[elem] for elem in space.axes ] )
 
@@ -221,6 +235,10 @@ class VectorSpace(Space):
             raise TypeError()
         if batch.ndim != 2:
             raise ValueError('VectorSpace batches must be 2D, got %d dimensions' % batch.ndim)
+
+    def batch_size(self, batch):
+        self.validate(batch)
+        return batch.shape[0]
 
 class Conv2DSpace(Space):
     """A space whose points are defined as (multi-channel) images."""
@@ -275,7 +293,7 @@ class Conv2DSpace(Space):
         return type(self) == type(other) and \
                 self.shape == other.shape and \
                 self.num_channels == other.num_channels \
-                and self.axes == other.axes
+                and tuple(self.axes) == tuple(other.axes)
 
     @functools.wraps(Space.get_origin)
     def get_origin(self):
@@ -299,12 +317,11 @@ class Conv2DSpace(Space):
             dtype = config.floatX
 
         broadcastable = [False] * 4
-        broadcastable[self.axes.index('c')] = self.num_channels == 1
+        broadcastable[self.axes.index('c')] = (self.num_channels == 1)
         broadcastable = tuple(broadcastable)
 
         return TensorType(dtype=dtype,
-                          broadcastable=broadcastable
-                         )(name=name)
+                          broadcastable=broadcastable)(name=name)
 
     @staticmethod
     def convert(tensor, src_axes, dst_axes):
@@ -405,6 +422,10 @@ class Conv2DSpace(Space):
             return Conv2DSpace.convert(batch, self.axes, space.axes)
         raise NotImplementedError("Conv2DSPace doesn't know how to format as "+str(type(space)))
 
+    def batch_size(self, batch):
+        self.validate(batch)
+        return batch.shape[self.axes.index('b')]
+
 
 class CompositeSpace(Space):
     """A Space whose points are tuples of points in other spaces """
@@ -452,7 +473,7 @@ class CompositeSpace(Space):
             idx, = subset
             return batch[idx]
 
-        return tuple([batch[idx] for idx in subset])
+        return tuple([batch[idx_] for idx_ in subset])
 
     @functools.wraps(Space.get_total_dimension)
     def get_total_dimension(self):
@@ -475,7 +496,8 @@ class CompositeSpace(Space):
         if not isinstance(batch, tuple):
             raise TypeError()
         if len(batch) != self.num_components:
-            raise ValueError()
+            raise ValueError("Expected "+str(self.num_components)+" elements in batch, "
+                    "got " + str(len(batch)))
         for batch_elem, component in zip(batch, self.components):
             component.validate(batch_elem)
 
@@ -483,3 +505,13 @@ class CompositeSpace(Space):
     def get_origin_batch(self, n):
         return tuple([component.get_origin_batch(n) for component in self.components])
 
+    @functools.wraps(Space.make_theano_batch)
+    def make_theano_batch(self, name = None, dtype = None):
+
+        def name_generator(i):
+            if name is None:
+                return None
+            return name + '[' + str(i) +']'
+
+        return TupleVariable(tuple(component.make_theano_batch(name = name_generator(i), dtype = dtype)
+                for i, component in enumerate(self.components)), name=name)

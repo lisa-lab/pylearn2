@@ -1,8 +1,8 @@
 import numpy
+np = numpy
 import os
 
 from pylearn2.datasets import dense_design_matrix
-from pylearn.io import filetensor
 from pylearn2.datasets import retina
 
 class NORBSmall(dense_design_matrix.DenseDesignMatrix):
@@ -15,14 +15,14 @@ class NORBSmall(dense_design_matrix.DenseDesignMatrix):
 
         assert desc in ['dat','cat','info']
 
-        base = '%s/norb_small/original/smallnorb-' % os.getenv('PYLEARN2_DATA_PATH')
+        base = '%s/norb_small/original_npy/smallnorb-' % os.getenv('PYLEARN2_DATA_PATH')
         if which_set == 'train':
             base += '5x46789x9x18x6x2x96x96-training'
         else:
             base += '5x01235x9x18x6x2x96x96-testing'
 
-        fp = open(base + '-%s.mat' % desc, 'r')
-        data = filetensor.read(fp)
+        fp = open(base + '-%s.npy' % desc, 'r')
+        data = numpy.load(fp)
         fp.close()
 
         return data
@@ -69,13 +69,15 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
         data = numpy.load(base + '.npy', 'r')
         return data
 
-    def __init__(self, which_set, center=False, multi_target = False):
+    def __init__(self, which_set, center=False, scale = False,
+            start = None, stop = None, one_hot = False, restrict_instances=None):
         """
         :param which_set: one of ['train','test']
         :param center: data is in range [0,256], center=True subtracts 127.5.
         :param multi_target: load extra information as additional labels.
         """
-        assert which_set in ['train','test']
+        if which_set not in ['train','test']:
+            raise ValueError("Unrecognized which_set value: " + which_set)
 
         X = FoveatedNORB.load(which_set)
 
@@ -84,14 +86,40 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
 
         #this is uint8
         y = NORBSmall.load(which_set, 'cat')
-        if multi_target:
-            y_extra = NORBSmall.load(which_set, 'info')
-            y = numpy.hstack((y[:,numpy.newaxis],y_extra))
+        y_extra = NORBSmall.load(which_set, 'info')
+
+        assert y_extra.shape[0] == y.shape[0]
+        instance = y_extra[:, 0]
+        assert instance.min() >= 0
+        assert instance.max() <= 9
+
+
+        if restrict_instances is not None:
+            mask = reduce(np.maximum, [instance == ins for ins in restrict_instances])
+            mask = mask.astype('bool')
+            X = X[mask,:]
+            y = y[mask]
+            assert X.shape[0] == y.shape[0]
+            expected = sum([(instance == ins).sum() for ins in restrict_instances])
+            assert X.shape[0] == expected
+
 
         if center:
             X -= 127.5
+            if scale:
+                X /= 127.5
+        else:
+            if scale:
+                X /= 255.
 
         view_converter = retina.RetinaCodingViewConverter((96,96,2), (8,4,2,2))
 
-        super(FoveatedNORB,self).__init__(X = X, y = y, view_converter = view_converter)
+        super(FoveatedNORB, self).__init__(X=X, y=y, view_converter=view_converter)
+
+        if one_hot:
+            self.convert_to_one_hot()
+
+        self.restrict(start, stop)
+
+        self.y = self.y.astype('float32')
 
