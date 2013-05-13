@@ -2,7 +2,7 @@ __authors__ = 'Ian Goodfellow'
 __copyright__ = "Copyright 2013, Universite de Montreal"
 
 from pylearn2.costs.cost import Cost
-from pylearn2.spaces import CompositeSpace
+from pylearn2.space import CompositeSpace
 
 class Dropout(Cost):
     """
