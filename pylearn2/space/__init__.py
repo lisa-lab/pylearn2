@@ -638,10 +638,21 @@ class CompositeSpace(Space):
 
     @functools.wraps(Space.get_batch_size)
     def get_batch_size(self, data):
-        # Assumption: we have the same batch size for all components in the
-        # data.
+        # All components should have the same effective batch size,
+        # with the exeption of NullSpace, and CompositeSpace with
+        # 0 components, which will return 0, because they do not
+        # represent any data.
         assert isinstance(data, (list, tuple))
-        return self.components[0].get_batch_size(data[0])
+
+        for c, d in safe_zip(self.components, data):
+            b = c.get_batch_size(d)
+
+            if b != 0:
+                # We assume they are all equal to b
+                return b
+
+        # All components are empty
+        return 0
 
 
 class NullSpace(Space):
@@ -663,6 +674,10 @@ class NullSpace(Space):
     def __hash__(self):
         return hash(type(self))
 
+    @functools.wraps(Space.make_theano_batch)
+    def make_theano_batch(self, name=None, dtype=None):
+        return None
+
     @functools.wraps(Space.validate)
     def validate(self, batch):
         if batch is not None:
@@ -681,3 +696,10 @@ class NullSpace(Space):
         self.validate(batch)
         assert isinstance(space, NullSpace)
         return None
+
+    @functools.wraps(Space.get_batch_size)
+    def get_batch_size(self, data):
+        # There is no way to know how many examples would actually
+        # have been in the batch, since it is empty. We return 0.
+        assert data is None
+        return 0
