@@ -9,6 +9,27 @@ from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load
 
 class STL10(dense_design_matrix.DenseDesignMatrix):
+    """
+    The STL-10 dataset
+
+    Adam Coates, Honglak Lee, Andrew Y. Ng An Analysis of Single Layer
+    Networks in Unsupervised Feature Learning AISTATS, 2011
+
+    http://www.stanford.edu/~acoates//stl10/
+
+    When reporting results on this dataset, you are meant to use a somewhat unusal
+    evaluation procedure.
+
+    Use STL10(which_set='train') to load the training set. Then restrict the training
+    set to one of the ten folds using the restrict function below. You must then train
+    only on the data from that fold.
+
+    For the test set, report the average test set performance over the ten trials obtained
+    by training on each of the ten folds.
+
+    The folds here do not define the splits you should use for cross validation. You are
+    free to make your own split within each fold.
+    """
     def __init__(self, which_set, center = False, example_range = None):
 
         if which_set == 'train':
@@ -99,6 +120,22 @@ class STL10(dense_design_matrix.DenseDesignMatrix):
             X[i:i+1,:] = mat
 
         assert not np.any(np.isnan(self.X))
-    #
 
-#
+
+def restrict(dataset, fold):
+    """
+    Restricts the dataset to use the specified fold.
+    """
+
+    fold_indices = dataset.fold_indices
+    assert fold_indices.shape == (10, 1000)
+
+    idxs = fold_indices[fold, :] - 1
+
+    dataset.X = dataset.X[idxs, :].copy()
+    assert dataset.X.shape[0] == 1000
+
+    dataset.y = dataset.y[idxs, ...].copy()
+    assert dataset.y.shape[0] == 1000
+
+    return dataset

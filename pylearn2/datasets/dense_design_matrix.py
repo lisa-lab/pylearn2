@@ -448,7 +448,56 @@ class DenseDesignMatrix(Dataset):
         return self.view_converter.weights_view_shape()
 
     def has_targets(self):
-         return self.y is not None
+        return self.y is not None
+
+    def restrict(self, start, stop):
+        """
+        Restricts the dataset to include only the examples
+        in range(start, stop). Ignored if both arguments are None.
+        """
+        assert (start is None) == (stop is None)
+        if start is None:
+            return
+        assert start >= 0
+        assert stop > start
+        assert stop <= self.X.shape[0]
+        assert self.X.shape[0] == self.y.shape[0]
+        self.X = self.X[start:stop, :]
+        if self.y is not None:
+            self.y = self.y[start:stop, :]
+        assert self.X.shape[0] == self.y.shape[0]
+        assert self.X.shape[0] == stop - start
+
+    def convert_to_one_hot(self, min_class=0):
+        """
+        If y exists and is a vector of ints, converts it to a binary matrix
+        Otherwise will raise some exception
+        """
+
+        if self.y is None:
+            raise ValueError("Called convert_to_one_hot on a DenseDesignMatrix with no labels.")
+
+        if self.y.ndim != 1:
+            raise ValueError("Called convert_to_one_hot on a DenseDesignMatrix whose labels aren't scalar.")
+
+        if 'int' not in str(self.y.dtype):
+            raise ValueError("Called convert_to_one_hot on a DenseDesignMatrix whose labels aren't integer-valued.")
+
+        self.y = self.y - min_class
+
+        if self.y.min() != 0:
+            raise ValueError("Index of first class should be %d." % min_class)
+
+        num_classes = self.y.max() + 1
+
+        y = np.zeros((self.y.shape[0], num_classes))
+
+        for i in xrange(self.y.shape[0]):
+            y[i, self.y[i]] = 1
+
+        self.y = y
+
+
 
 class DenseDesignMatrixPyTables(DenseDesignMatrix):
     """
@@ -738,3 +787,13 @@ def dataset_range(dataset, start, stop):
     rval.adjust_for_viewer = dataset.adjust_for_viewer
     return rval
 
+def convert_to_one_hot(dataset, min_class=0):
+    """
+    Convenient way of accessing convert_to_one_hot from a yaml file
+    """
+    dataset.convert_to_one_hot(min_class=min_class)
+    return dataset
+
+def set_axes(dataset, axes):
+    dataset.view_converter.axes = axes
+    return dataset

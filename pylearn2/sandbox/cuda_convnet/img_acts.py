@@ -41,10 +41,16 @@ The copyright and licensing notice for this code is reproduced below:
 
 """
 
-from theano.sandbox.cuda import CudaNdarrayType
+from theano.gradient import DisconnectedType
 from theano.gof import Apply
+from theano.sandbox.cuda import CudaNdarrayType
+
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
 from pylearn2.sandbox.cuda_convnet.base_acts import UnimplementedError
+
+# Must delay import to avoid circular import problem
+FilterActs = None
+WeightActs = None
 
 
 class ImageActs(BaseActs):
@@ -79,7 +85,10 @@ class ImageActs(BaseActs):
     # you may need to implement a new version of __eq__ and __hash__
     # in ImageActs, that considers these parameters.
 
-    def make_node(self, hid_acts, filters, output_shape):
+    def make_node(self, hid_acts, filters, output_shape=None):
+        """
+        output_shape: 2-element TensorVariable giving the spatial shape of the image
+        """
 
         if not isinstance(hid_acts.type, CudaNdarrayType):
             raise TypeError("ImageActs: expected hid_acts.type to be CudaNdarrayType, "
@@ -89,6 +98,13 @@ class ImageActs(BaseActs):
             raise TypeError("ImageActs: expected filters.type to be CudaNdarrayType, "
                     "got " + str(filters.type))
 
+
+        if output_shape is None:
+            if self.stride != 1:
+                raise ValueError("You must specify an output_shape for ImageActs if the stride is not 1.")
+            hid_shape = hid_acts.shape[1:3]
+            kernel_shape = filters.shape[1:3]
+            output_shape = hid_shape + kernel_shape - 2 * self.pad - 1
 
         assert hid_acts.ndim == 4
         assert filters.ndim == 4
@@ -107,6 +123,29 @@ class ImageActs(BaseActs):
         targets = targets_type()
 
         return Apply(self, [hid_acts, filters, output_shape], [targets])
+
+    def connection_pattern(self, node):
+        return [[1], [1], [0]]
+
+    def grad(self, inputs, g_outputs):
+        hid_acts, filters, output_shape = inputs
+        g_images, = g_outputs
+        assert not isinstance(g_images, list)
+
+        global FilterActs
+        global WeightActs
+        if FilterActs is None:
+            from pylearn2.sandbox.cuda_convnet.filter_acts import FilterActs
+            from pylearn2.sandbox.cuda_convnet.weight_acts import WeightActs
+
+        g_filters = WeightActs(stride=self.stride,
+                partial_sum=self.partial_sum, pad=self.pad)(
+                        g_images, hid_acts, filters.shape[1:3])[0]
+        assert not isinstance(g_filters, list)
+        g_hid_acts = FilterActs(stride=self.stride, pad=self.pad,
+                partial_sum=self.partial_sum)(g_images, filters)
+
+        return [g_hid_acts, g_filters, DisconnectedType()()]
 
     def c_code(self, node, name, inputs, outputs, sub):
         hid_acts, filters, output_shape = inputs

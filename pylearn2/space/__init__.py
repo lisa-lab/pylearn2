@@ -147,6 +147,13 @@ class Space(object):
 
         raise NotImplementedError(str(type(self))+" does not implement validate.")
 
+    def batch_size(self, batch):
+        """
+        Read the batch size out of a batch.
+        """
+
+        raise NotImplementedError(str(type(self))+" does not implement batch_size.")
+
 class VectorSpace(Space):
     """A space whose points are defined as fixed-length vectors."""
     def __init__(self, dim, sparse=False):
@@ -229,6 +236,10 @@ class VectorSpace(Space):
         if batch.ndim != 2:
             raise ValueError('VectorSpace batches must be 2D, got %d dimensions' % batch.ndim)
 
+    def batch_size(self, batch):
+        self.validate(batch)
+        return batch.shape[0]
+
 class Conv2DSpace(Space):
     """A space whose points are defined as (multi-channel) images."""
     def __init__(self, shape, channels = None, num_channels = None, axes = None):
@@ -306,12 +317,11 @@ class Conv2DSpace(Space):
             dtype = config.floatX
 
         broadcastable = [False] * 4
-        broadcastable[self.axes.index('c')] = self.num_channels == 1
+        broadcastable[self.axes.index('c')] = (self.num_channels == 1)
         broadcastable = tuple(broadcastable)
 
         return TensorType(dtype=dtype,
-                          broadcastable=broadcastable
-                          )(name=name)
+                          broadcastable=broadcastable)(name=name)
 
     @staticmethod
     def convert(tensor, src_axes, dst_axes):
@@ -412,6 +422,10 @@ class Conv2DSpace(Space):
             return Conv2DSpace.convert(batch, self.axes, space.axes)
         raise NotImplementedError("Conv2DSPace doesn't know how to format as "+str(type(space)))
 
+    def batch_size(self, batch):
+        self.validate(batch)
+        return batch.shape[self.axes.index('b')]
+
 
 class CompositeSpace(Space):
     """A Space whose points are tuples of points in other spaces """
@@ -459,7 +473,7 @@ class CompositeSpace(Space):
             idx, = subset
             return batch[idx]
 
-        return tuple([batch[idx] for idx in subset])
+        return tuple([batch[idx_] for idx_ in subset])
 
     @functools.wraps(Space.get_total_dimension)
     def get_total_dimension(self):

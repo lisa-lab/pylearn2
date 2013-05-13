@@ -620,6 +620,9 @@ class DBM(Model):
             mx = None
             for new, old in safe_zip(flat_q, flat_prev_q):
                 cur_mx = abs(new - old).max()
+                if new is old:
+                    print new, 'is', old
+                    assert False
                 if mx is None:
                     mx = cur_mx
                 else:
@@ -2111,8 +2114,9 @@ class WeightDoubling(InferenceProcedure):
         else:
             inferred = H_hat
         for elem in flatten(inferred):
-            for value in get_debug_values(elem):
-                assert value.shape[0] == dbm.batch_size
+            # This check doesn't work with ('c', 0, 1, 'b') because 'b' is no longer axis 0
+            # for value in get_debug_values(elem):
+            #    assert value.shape[0] == dbm.batch_size
             assert V in gof.graph.ancestors([elem])
             if Y is not None:
                 assert Y in gof.graph.ancestors([elem])

@@ -291,7 +291,7 @@ def test_grad_strided():
     batch_size = 5
     rows = 9
     cols = 9
-    channels = 4
+    channels = 3
     filter_rows = 3
     filter_cols = filter_rows
     num_filters = 16
