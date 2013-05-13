@@ -1,8 +1,8 @@
 .. _tutorial:
 
-========
+===================
 Quick-start example
-========
+===================
 
 The directory pylearn2/scripts/tutorials/grbm_smd/ contains an example of
 how to train a model using pylearn2.

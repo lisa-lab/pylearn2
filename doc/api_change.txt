@@ -1,8 +1,8 @@
 .. _api_change:
 
-============
+========================================
 Pylearn2 API Change Best Practices Guide
-============
+========================================
 
 API changes are any changes that affect the way a piece of code interacts with the outside world. This means changing the name of any class, function, method, parameter name. It can also mean changing a default argument value, or changing the behavior that results from setting an argument to a certain value.
 Because API changes require the outside world to adapt to changes in pylearn2,
@@ -38,15 +38,15 @@ how to change APIs while doing the least damage possible.
        to the new interface:
 
           * Put a "raise AssertionError()" before all of your new warnings, and run the unit
-          tests. Fix all tests that fail because they would trigger your deprecation warning.
+            tests. Fix all tests that fail because they would trigger your deprecation warning.
  
           * Use "grep -r" to find all instances of the name of the thing you're changing, and
-          make sure that they all use the right interface. Sadly, not everything in pylearn2
-          is unit tested, so just running the tests might miss some cases.
+            make sure that they all use the right interface. Sadly, not everything in pylearn2
+            is unit tested, so just running the tests might miss some cases.
 
           * Remove the "raise AssertionError()" statements before sending your pull request.
-          However, you must leave the warnings in, because clients of the library might (and
-          probably are) still be using the old interface.
+            However, you must leave the warnings in, because clients of the library might (and
+            probably are) still be using the old interface.
 
      * If you're changing the name of a parameter of a function / method, keep the new name,
        add the old name, and have both default to None. Inside the function, raise a warning
@@ -58,17 +58,19 @@ how to change APIs while doing the least damage possible.
 
        Example:
 
-       Suppose you have a function
+    .. code-block:: python
+
+       # Suppose you have a function
 
        def my_func(my_arg = 1):
 
-       and you want to change it to
+       # and you want to change it to
 
        def my_func(arg = 2):
 
-       You should start your function off like this:
+       # You should start your function off like this:
 
-        def my_func(my_arg = None, arg = None):
+       def my_func(my_arg = None, arg = None):
 
             if my_arg is not None:
                 warnings.warn("my_arg is deprecated. Use arg instead. my_arg will be removed "

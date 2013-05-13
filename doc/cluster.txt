@@ -1,8 +1,8 @@
 .. _cluster:
 
-============
+==============================
 Working with computer clusters
-============
+==============================
 
 Pylearn2 doesn't have any features explicitly designed to run large batches
 of experiments on computer clusters, but other related tools exist that enable
