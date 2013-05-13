@@ -163,7 +163,7 @@ class PatchViewer(object):
                             (self.patch_shape[1] + self.pad[1]))
         ce = cs + self.patch_shape[1]
 
-        assert ce <= self.image.shape[1]
+        assert ce <= self.image.shape[1], (ce, self.image.shape[1])
 
         temp *= (temp > 0)
 

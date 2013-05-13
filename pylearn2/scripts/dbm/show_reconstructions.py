@@ -35,8 +35,6 @@ print 'Loading data...'
 dataset = yaml_parse.load(dataset_yaml_src)
 
 
-
-
 vis_batch = dataset.get_batch_topo(m)
 
 _, patch_rows, patch_cols, channels = vis_batch.shape
@@ -45,7 +43,9 @@ assert _ == m
 
 mapback = hasattr(dataset, 'mapback_for_viewer')
 
-pv = PatchViewer((rows,2*cols*(1+mapback)), (patch_rows,patch_cols), is_color = (channels==3))
+actual_cols = 2 * cols * (1 + mapback) * (1 + (channels == 2))
+pv = PatchViewer((rows, actual_cols), (patch_rows, patch_cols), is_color=(channels == 3))
+
 
 batch = model.visible_layer.space.make_theano_batch()
 topo = batch.ndim > 2
@@ -56,7 +56,7 @@ def show():
     ipt = vis_batch.copy()
     if not topo:
         ipt = dataset.get_design_matrix(ipt)
-    recons_batch = recons_func(ipt)
+    recons_batch = recons_func(ipt.astype(batch.dtype))
     if not topo:
         recons_batch = dataset.get_topological_view(recons_batch)
     if mapback:
@@ -76,8 +76,11 @@ def show():
         for j in xrange(cols):
             vis_patch = vis_batch[row_start+j,:,:,:].copy()
             adjusted_vis_patch = dataset.adjust_for_viewer(vis_patch)
-            pv.add_patch(dataset.adjust_for_viewer(
-                adjusted_vis_patch), rescale = False)
+            if vis_patch.shape[-1] == 2:
+                pv.add_patch(adjusted_vis_patch[:,:,1], rescale=False)
+                pv.add_patch(adjusted_vis_patch[:,:,0], rescale=False)
+            else:
+                pv.add_patch(adjusted_vis_patch, rescale = False)
             r = vis_patch
             #print 'vis: '
             #for ch in xrange(3):
@@ -86,7 +89,15 @@ def show():
             if mapback:
                 pv.add_patch(dataset.adjust_for_viewer(
                     mapped_batch[row_start+j,:,:,:].copy()), rescale = False)
-            pv.add_patch(dataset.adjust_to_be_viewed_with(
+            if recons_batch.shape[-1] == 2:
+                pv.add_patch(dataset.adjust_to_be_viewed_with(
+                recons_batch[row_start+j,:,:,1].copy(),
+                vis_patch), rescale = False)
+                pv.add_patch(dataset.adjust_to_be_viewed_with(
+                recons_batch[row_start+j,:,:,0].copy(),
+                vis_patch), rescale = False)
+            else:
+                pv.add_patch(dataset.adjust_to_be_viewed_with(
                 recons_batch[row_start+j,:,:,:].copy(),
                 vis_patch), rescale = False)
             r = recons_batch[row_start+j,:,:,:]
