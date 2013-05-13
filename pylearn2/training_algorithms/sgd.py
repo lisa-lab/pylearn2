@@ -21,7 +21,7 @@ from theano.gof.op import get_debug_values
 from theano import tensor as T
 
 from pylearn2.monitor import Monitor
-from pylearn2.space import CompositeSpace
+from pylearn2.space import CompositeSpace, NullSpace
 from pylearn2.train_extensions import TrainExtension
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 from pylearn2.utils.iteration import is_stochastic
@@ -187,23 +187,27 @@ class SGD(TrainingAlgorithm):
         # the cost
         learning_rate = self.learning_rate
         if self.monitoring_dataset is not None:
-            self.monitor.setup(dataset=self.monitoring_dataset,
-                    cost=self.cost, batch_size=self.batch_size, num_batches=self.monitoring_batches,
-                    extra_costs=self.monitoring_costs, mode=self.monitor_iteration_mode
+            self.monitor.setup(
+                    dataset=self.monitoring_dataset,
+                    cost=self.cost,
+                    batch_size=self.batch_size,
+                    num_batches=self.monitoring_batches,
+                    extra_costs=self.monitoring_costs,
+                    mode=self.monitor_iteration_mode
                     )
             dataset_name = self.monitoring_dataset.keys()[0]
             monitoring_dataset = self.monitoring_dataset[dataset_name]
             #TODO: have Monitor support non-data-dependent channels
             self.monitor.add_channel(name='learning_rate',
-                                     ipt=nested_args,
+                                     ipt=None,
                                      val=learning_rate,
-                                     data_specs=data_specs,
+                                     data_specs=(NullSpace(), ''),
                                      dataset=monitoring_dataset)
             if self.momentum:
                 self.monitor.add_channel(name='momentum',
-                                         ipt=nested_args,
+                                         ipt=None,
                                          val=self.momentum,
-                                         data_specs=data_specs,
+                                         data_specs=(NullSpace(), ''),
                                          dataset=monitoring_dataset)
 
         params = list(model.get_params())
@@ -300,6 +304,13 @@ class SGD(TrainingAlgorithm):
         mapping = DataSpecsMapping(data_specs)
         space_tuple = mapping.flatten(data_specs[0], return_tuple=True)
         source_tuple = mapping.flatten(data_specs[1], return_tuple=True)
+        if len(space_tuple) == 0:
+            # No data will be returned by the iterator, and it is impossible
+            # to know the size of the actual batch.
+            # It is not decided yet what the right thing to do should be.
+            raise NotImplementedError("Unable to train with SGD, because "
+                    "the cost does not actually use data from the data set. "
+                    "data_specs: %s" % str(data_specs))
         flat_data_specs = (CompositeSpace(space_tuple), source_tuple)
 
         iterator = dataset.iterator(mode=self.train_iteration_mode,
@@ -310,7 +321,7 @@ class SGD(TrainingAlgorithm):
         on_load_batch = self.on_load_batch
         for batch in iterator:
             for callback in on_load_batch:
-                callback(*batch)
+                callback(mapping.nest(batch))
             self.sgd_update(*batch)
             # iterator might return a smaller batch if dataset size
             # isn't divisible by batch_size

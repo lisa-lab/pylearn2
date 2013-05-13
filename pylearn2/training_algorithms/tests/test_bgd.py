@@ -301,11 +301,25 @@ def test_fixed_vars():
             return gradients, updates
 
         def get_fixed_var_descr(self, model, data, **kwargs):
-            self.get_data_specs(model)[0].validate(data)
+            data_specs = self.get_data_specs(model)
+            data_specs[0].validate(data)
             rval = FixedVarDescr()
             rval.fixed_vars = {'unsup_aux_var': unsup_counter}
-            theano_func = function(data, updates=[(unsup_counter, unsup_counter + 1)])
-            rval.on_load_batch = [theano_func]
+            rval.data_specs = data_specs
+
+            # The input to function should be a flat, non-redundent tuple
+            mapping = DataSpecsMapping(data_specs)
+            data_tuple = mapping.flatten(data, return_tuple=True)
+            theano_func = function(data_tuple,
+                    updates=[(unsup_counter, unsup_counter + 1)])
+            # the on_load_batch function will take numerical data formatted
+            # as rval.data_specs, so we have to flatten it inside the
+            # returned function too.
+            # Using default argument binds the variables used in the lambda
+            # function to the value they have when the lambda is defined.
+            on_load = (lambda batch, mapping=mapping, theano_func=theano_func:
+                    theano_func(*mapping.flatten(batch, return_tuple=True)))
+            rval.on_load_batch = [on_load]
 
             return rval
 
@@ -323,28 +337,36 @@ def test_fixed_vars():
             X, Y = data
             assert sup_aux_var is sup_counter
             called[2] = True
-            return (model.P * X* Y ).sum()
+            return (model.P * X * Y).sum()
 
         def get_gradients(self, model, data, sup_aux_var=None, **kwargs):
             self.get_data_specs(model)[0].validate(data)
             assert sup_aux_var is sup_counter
             called[3] = True
-            return super(SupervisedCostWithFixedVars, self).get_gradients(model=model, data=data, sup_aux_var=sup_aux_var)
+            return super(SupervisedCostWithFixedVars, self).get_gradients(
+                    model=model, data=data, sup_aux_var=sup_aux_var)
 
         def get_fixed_var_descr(self, model, data):
-            self.get_data_specs(model)[0].validate(data)
+            data_specs = self.get_data_specs(model)
+            data_specs[0].validate(data)
             rval = FixedVarDescr()
             rval.fixed_vars = {'sup_aux_var': sup_counter}
+            rval.data_specs = data_specs
 
             # data has to be flattened into a tuple before being passed
             # to `function`.
-            mapping = DataSpecsMapping(self.get_data_specs)
-            flat_data = mapping.flatten(data)
-            if not isinstance(flat_data, tuple):
-                # TODO: remove that
-                flat_data = (flat_data,)
-            rval.on_load_batch = [function(
-                        flat_data, updates=[(sup_counter, sup_counter + 1)])]
+            mapping = DataSpecsMapping(data_specs)
+            flat_data = mapping.flatten(data, return_tuple=True)
+            theano_func = function(flat_data,
+                                 updates=[(sup_counter, sup_counter + 1)])
+            # the on_load_batch function will take numerical data formatted
+            # as rval.data_specs, so we have to flatten it inside the
+            # returned function too.
+            # Using default argument binds the variables used in the lambda
+            # function to the value they have when the lambda is defined.
+            on_load = (lambda batch, mapping=mapping, theano_func=theano_func:
+                    theano_func(*mapping.flatten(batch, return_tuple=True)))
+            rval.on_load_batch = [on_load]
             return rval
 
         def get_data_specs(self, model):
@@ -353,9 +375,11 @@ def test_fixed_vars():
             source = (model.get_input_source(), model.get_target_source())
             return (space, source)
 
-    cost = SumOfCosts(costs=[UnsupervisedCostWithFixedVars(), SupervisedCostWithFixedVars()])
+    cost = SumOfCosts(costs=[UnsupervisedCostWithFixedVars(),
+                             SupervisedCostWithFixedVars()])
 
-    algorithm = BGD(cost=cost, batch_size=batch_size, conjugate=1, line_search_mode='exhaustive',
+    algorithm = BGD(cost=cost, batch_size=batch_size,
+            conjugate=1, line_search_mode='exhaustive',
             updates_per_batch=updates_per_batch)
 
     algorithm.setup(model=model, dataset=train)
@@ -371,5 +395,3 @@ def test_fixed_vars():
 
     # Make sure the gradient updates were run the right amount of times
     assert grad_counter.get_value() == train_batches * updates_per_batch
-
-
