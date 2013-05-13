@@ -620,6 +620,9 @@ class DBM(Model):
             mx = None
             for new, old in safe_zip(flat_q, flat_prev_q):
                 cur_mx = abs(new - old).max()
+                if new is old:
+                    print new, 'is', old
+                    assert False
                 if mx is None:
                     mx = cur_mx
                 else:
