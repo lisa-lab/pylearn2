@@ -208,17 +208,27 @@ class Monitor(object):
                                     return_tuple=True,
                                     rng=sd)
 
-            actual_ne = 0
-            for X in myiterator:
-                # X is a flat (not nested) tuple
+            # If self._flat_data_specs is empty, no channel needs data,
+            # so we do not need to call the iterator in order to average
+            # the monitored values across different batches, we only
+            # have to call them once.
+            if len(self._flat_data_specs[1]) == 0:
+                X = ()
                 self.run_prereqs(X, d)
                 a(*X)
-                actual_ne += self._flat_data_specs[0].get_batch_size(X)
-            # end for X
-            if actual_ne != ne:
-                raise RuntimeError("At compile time, your iterator said it had "
-                        + str(ne) + " examples total, but at runtime it gave us "
-                        + str(actual_ne) + ".")
+
+            else:
+                actual_ne = 0
+                for X in myiterator:
+                    # X is a flat (not nested) tuple
+                    self.run_prereqs(X, d)
+                    a(*X)
+                    actual_ne += self._flat_data_specs[0].get_batch_size(X)
+                # end for X
+                if actual_ne != ne:
+                    raise RuntimeError("At compile time, your iterator said "
+                            "it had " + str(ne) + " examples total, but at "
+                            "runtime it gave us " + str(actual_ne) + ".")
         # end for d
 
         log.info("Monitoring step:")
@@ -313,6 +323,13 @@ class Monitor(object):
         # the model acts on
         theano_args = self._flat_data_specs[0].make_theano_batch(
                 self._flat_data_specs[1])
+
+        # Get a symbolic expression of the batch size
+        # We do it here, rather than for each channel, because channels with an
+        # empty data_specs do not use data, and are unable to extract the batch
+        # size. The case where the whole data specs is empty is not supported.
+        batch_size = self._flat_data_specs[0].get_batch_size(theano_args)
+
         # Also get a nested representation, for joint iteration
         # with each of channel.graph_input
         nested_theano_args = self._data_specs_mapping.nest(theano_args)
@@ -353,12 +370,20 @@ class Monitor(object):
                 assert channel_X not in g or g[channel_X] is X
                 assert channel_X.type == X.type
                 g[channel_X] = X
-            if n == 0:
-                raise ValueError("Iterating over 0 examples results in divide by 0")
-            val = channel.val * T.cast(
-                    channel.data_specs[0].get_batch_size(
-                            nested_theano_args[i + 1]),
-                    config.floatX) / cur_num_examples
+
+            if batch_size == 0:
+                # No channel does need any data, so there is not need to
+                # average results, and we will call the accum functions only
+                # once.
+                # TODO: better handling of channels not needing data when
+                # some other channels need data.
+                assert len(self._flat_data_specs[1]) == 0
+                val = channel.val
+            else:
+                if n == 0:
+                    raise ValueError("Iterating over 0 examples results in divide by 0")
+                val = (channel.val * T.cast(batch_size, config.floatX)
+                        / cur_num_examples)
             u[channel.val_shared] = channel.val_shared + val
 
         with log_timing(log, "Compiling accum"):
