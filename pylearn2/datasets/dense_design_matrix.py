@@ -130,7 +130,7 @@ class DenseDesignMatrix(Dataset):
         return FiniteDatasetIterator(self,
                                      mode(self.data_specs[0].get_batch_size(X),
                                           batch_size, num_batches, rng),
-                                     self.data_specs)
+                                     data_specs)
 
     def use_design_loc(self, path):
         """

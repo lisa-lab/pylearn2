@@ -2,6 +2,7 @@ __authors__ = 'Ian Goodfellow'
 __copyright__ = "Copyright 2013, Universite de Montreal"
 
 from pylearn2.costs.cost import Cost
+from pylearn2.spaces import CompositeSpace
 
 class Dropout(Cost):
     """
@@ -47,8 +48,8 @@ class Dropout(Cost):
         del self.self
 
     def expr(self, model, data, ** kwargs):
-        assert type(data) in (list, tuple)
-        assert len(data) == 2
+        space, sources = self.get_data_specs(model)
+        space.validate(data)
         (X, Y) = data
         Y_hat = model.dropout_fprop(X, default_input_include_prob=self.default_input_include_prob,
                 input_include_probs=self.input_include_probs, default_input_scale=self.default_input_scale,
@@ -57,6 +58,6 @@ class Dropout(Cost):
         return model.cost(Y, Y_hat)
 
     def get_data_specs(self, model):
-        data = CompositeSpace([model.get_input_space(), model.get_output_space()])
+        space = CompositeSpace([model.get_input_space(), model.get_output_space()])
         sources = (model.get_input_source(), model.get_target_source())
-        return [data, sources]
+        return (space, sources)
