@@ -347,8 +347,8 @@ class S3C(Model, Block):
                             min_shape, max_shape in zip(
                                 local_rf_shape,
                                 local_rf_max_shape) ]
-                    loc = [ self.rng.randint(0, bound - width + 1) for
-                            bound, width in zip(s, shape) ]
+                    loc = [ self.rng.randint(0, bound - width_ + 1) for
+                            bound, width_ in zip(s, shape) ]
 
                     rc, cc = loc
 
@@ -1470,7 +1470,7 @@ class E_Step(object):
             assert monitor_energy_functional is None
         else:
             if s_new_coeff_schedule is None:
-                s_new_coeff_schedule = [ 1.0 for rho in h_new_coeff_schedule ]
+                s_new_coeff_schedule = [ 1.0 for rho_ in h_new_coeff_schedule ]
             else:
                 if len(s_new_coeff_schedule) != len(h_new_coeff_schedule):
                     raise ValueError('s_new_coeff_schedule has %d elems ' % (len(s_new_coeff_schedule),) + \
