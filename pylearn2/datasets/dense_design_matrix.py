@@ -34,33 +34,27 @@ def ensure_tables():
     if tables is None:
         import tables
 
-class DenseDesignMatrix(Dataset):
-    """
-    A class for representing datasets that can be stored as a dense design
-    matrix, such as MNIST or CIFAR10.
-    """
-    _default_seed = (17, 2, 946)
+class ImageDatasets(Dataset):
+    """ A class for representing datastes that contain images of fixed
+    sized and can be stored as a dense design matrix, such as MNIST or
+    CIFAR10. The class is meant for classification into one of N classes.
 
-    def __init__(self, X=None, topo_view=None, y=None,
-                 view_converter=None, axes = ('b', 0, 1, 'c'),
-                 rng=_default_seed, preprocessor = None, fit_preprocessor=False):
+    Class assumes that the dataset can be kept in memory
+    """
+    _defaul_seed = (17,2 946)
+
+    def __init__(self, X, y=None, view_converter=None,
+                 axes = ('v', 0,1, 'c'),
+                 rng=_default_seed,
+                 preprocessor=None, fit_preprocessor=False):
         """
         Parameters
         ----------
 
-        X : ndarray, 2-dimensional, optional
-            Should be supplied if `topo_view` is not. A design
-            matrix of shape (number examples, number features)
-            that defines the dataset.
-        topo_view : ndarray, optional
-            Should be supplied if X is not.  An array whose first
-            dimension is of length number examples. The remaining
-            dimensions are xamples with topological significance,
-            e.g. for images the remaining axes are rows, columns,
-            and channels.
-        y : ndarray, 1-dimensional(?), optional
-            Labels or targets for each example. The semantics here
-            are not quite nailed down for this yet.
+        X : ndarray, 4-dimensional
+            A design matrix whose shape is defined by axes.
+        y : ndarray, 1-dimensional, optional
+            Labels or targets for each example.
         view_converter : object, optional
             An object for converting between design matrices and
             topological views. Currently DefaultViewConverter is
@@ -72,13 +66,30 @@ class DenseDesignMatrix(Dataset):
             indices into the design matrix when choosing minibatches.
         """
         self.X = X
-        if view_converter is not None:
-            assert topo_view is None
-            self.view_converter = view_converter
-        else:
-            if topo_view is not None:
-                self.set_topological_view(topo_view, axes)
-        self.y = y
+
+
+
+class DenseDesignMatrix(Dataset):
+    """
+    A class for representing datasets that can be stored as a dense design
+    matrix, such as MNIST or CIFAR10.
+    """
+    _default_seed = (17, 2, 946)
+
+    def __init__(self,
+                 data = None,
+                 data_specs = None,
+                 rng=_default_seed,
+                 preprocessor=None,
+                 fit_preprocessor=False):
+        """
+        Parameters
+        ----------
+
+        Assumption : There is an equivalence between sources
+        """
+        self.data = data
+        self.data_specs = data_specs
         self.compress = False
         self.design_loc = None
         if hasattr(rng, 'random_integers'):
@@ -87,16 +98,16 @@ class DenseDesignMatrix(Dataset):
             self.rng = np.random.RandomState(rng)
         # Defaults for iterators
         self._iter_mode = resolve_iterator_class('sequential')
-        self._iter_topo = False
-        self._iter_targets = False
 
         if preprocessor:
             preprocessor.apply(self, can_fit=fit_preprocessor)
         self.preprocessor = preprocessor
+        self.input_source = 'features'
+        self.output_source = 'targets'
 
     @functools.wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
-                 topo=None, targets=None, rng=None):
+                 data_specs=None, rng=None):
 
         # TODO: Refactor
         if mode is None:
@@ -107,20 +118,19 @@ class DenseDesignMatrix(Dataset):
                                  'mode set for %s' % str(self))
         else:
             mode = resolve_iterator_class(mode)
+
         if batch_size is None:
             batch_size = getattr(self, '_iter_batch_size', None)
         if num_batches is None:
             num_batches = getattr(self, '_iter_num_batches', None)
-        if topo is None:
-            topo = getattr(self, '_iter_topo', False)
-        if targets is None:
-            targets = getattr(self, '_iter_targets', False)
         if rng is None and mode.stochastic:
             rng = self.rng
+        if data_specs is None:
+            data_specs = self.data_specs
         return FiniteDatasetIterator(self,
-                                     mode(self.X.shape[0], batch_size,
-                                     num_batches, rng),
-                                     topo, targets)
+                                     mode(self.data_specs[0].get_batch_size(X),
+                                          batch_size, num_batches, rng),
+                                     self.data_specs)
 
     def use_design_loc(self, path):
         """
@@ -133,9 +143,6 @@ class DenseDesignMatrix(Dataset):
         custom pylearn2 serialization format).
         """
         self.design_loc = path
-
-    def get_topo_batch_axis(self):
-        return self.view_converter.axes.index('b')
 
     def enable_compression(self):
         """
@@ -154,14 +161,16 @@ class DenseDesignMatrix(Dataset):
         # does. Perhaps as a mixin that specific datasets (i.e. CIFAR10)
         # inherit from.
         if self.compress:
-            rval['compress_min'] = rval['X'].min(axis=0)
+            rval['compress_min'] = np.min([x.min() for x in rvals['data']])
             # important not to do -= on this line, as that will modify the
             # original object
-            rval['X'] = rval['X'] - rval['compress_min']
-            rval['compress_max'] = rval['X'].max(axis=0)
-            rval['compress_max'][rval['compress_max'] == 0] = 1
-            rval['X'] *= 255. / rval['compress_max']
-            rval['X'] = N.cast['uint8'](rval['X'])
+            rval['data'] = [x - rval['compress_min'] for x in rval['data']]
+            rval['compress_max'] = np.max([x.max() for x in rvals['data']])
+            if rval['compress_max'] == 0:
+                rval['compress_max'] = 1
+            rval['data'] = [ 255.*x/rval['compress_max'] for x in
+                            rval['data']]
+            rval['data'] = [np.cast['uint8'](x) for x in rval['data']]
 
         if self.design_loc is not None:
             # TODO: Get rid of this logic, use custom array-aware picklers
@@ -180,17 +189,18 @@ class DenseDesignMatrix(Dataset):
                 d['X'] = None
 
         if d['compress']:
-            X = d['X']
+            data = d['data']
             mx = d['compress_max']
             mn = d['compress_min']
             del d['compress_max']
             del d['compress_min']
-            d['X'] = 0
+            d['data'] = None
             self.__dict__.update(d)
-            if X is not None:
-                self.X = N.cast['float32'](X) * mx / 255. + mn
+            if data is not None:
+                self.data = [N.cast['float32'](X) * mx / 255. + mn
+                             for X in data]
             else:
-                self.X = None
+                self.data = None
         else:
             self.__dict__.update(d)
 
@@ -321,96 +331,22 @@ class DenseDesignMatrix(Dataset):
     def apply_preprocessor(self, preprocessor, can_fit=False):
         preprocessor.apply(self, can_fit)
 
-    def get_topological_view(self, mat=None):
-        """
-        Convert an array (or the entire dataset) to a topological view.
-
-        Parameters
-        ----------
-        mat : ndarray, 2-dimensional, optional
-            An array containing a design matrix representation of training
-            examples. If unspecified, the entire dataset (`self.X`) is used
-            instead.
-
-            This parameter is not named X because X is generally used to
-            refer to the design matrix for the current problem. In this
-            case we want to make it clear that `mat` need not be the design
-            matrix defining the dataset.
-        """
-        if self.view_converter is None:
-            raise Exception("Tried to call get_topological_view on a dataset "
-                            "that has no view converter")
-        if mat is None:
-            mat = self.X
-        return self.view_converter.design_mat_to_topo_view(mat)
-
-    def get_weights_view(self, mat):
-        """
-        Return a view of mat in the topology preserving format.  Currently
-        the same as get_topological_view.
-        """
-
-        if self.view_converter is None:
-            raise Exception("Tried to call get_weights_view on a dataset "
-                            "that has no view converter")
-
-        return self.view_converter.design_mat_to_weights_view(mat)
-
-    def set_topological_view(self, V, axes = ('b', 0, 1, 'c')):
-        """
-        Sets the dataset to represent V, where V is a batch
-        of topological views of examples.
-
-        Parameters
-        ----------
-        V : ndarray
-            An array containing a design matrix representation of training
-            examples. If unspecified, the entire dataset (`self.X`) is used
-            instead.
-        TODO: why is this parameter named 'V'?
-        """
-        assert not N.any(N.isnan(V))
-        rows = V.shape[axes.index(0)]
-        cols = V.shape[axes.index(1)]
-        channels = V.shape[axes.index('c')]
-        self.view_converter = DefaultViewConverter([rows, cols, channels], axes=axes)
-        self.X = self.view_converter.topo_view_to_design_mat(V)
-        assert not N.any(N.isnan(self.X))
-
-    def get_design_matrix(self, topo=None):
-        """
-        Return topo (a batch of examples in topology preserving format),
-        in design matrix format.
-
-        Parameters
-        ----------
-        topo : ndarray, optional
-            An array containing a topological representation of training
-            examples. If unspecified, the entire dataset (`self.X`) is used
-            instead.
-        """
-        if topo is not None:
-            if self.view_converter is None:
-                raise Exception("Tried to convert from topological_view to "
-                                "design matrix using a dataset that has no "
-                                "view converter")
-            return self.view_converter.topo_view_to_design_mat(topo)
-
-        return self.X
-
-    def set_design_matrix(self, X):
+    def set_design_matrices(self, data):
+        # is list?
+        # follows the data specs?
+        self.data = data
         assert len(X.shape) == 2
         assert not N.any(N.isnan(X))
         self.X = X
 
-    def get_targets(self):
+    def get_source(self, name=?):
         return self.y
 
     @property
     def num_examples(self):
-        return self.X.shape[0]
+        return self.data_specs[0].get_batch_size(self.data)
 
-    def get_batch_design(self, batch_size, include_labels=False):
+    def get_batch_design(self, batch_size, data_specs=None):
         try:
             idx = self.rng.randint(self.X.shape[0] - batch_size + 1)
         except ValueError:
@@ -504,7 +440,6 @@ class DenseDesignMatrix(Dataset):
         if per_example is not None:
             warnings.warn("ignoring per_example")
         return np.clip(X / np.abs(ref).max(), -1., 1.)
-
 
 
 class DenseDesignMatrixPyTables(DenseDesignMatrix):
