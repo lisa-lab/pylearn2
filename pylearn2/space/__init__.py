@@ -34,6 +34,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
+import warnings
 import numpy as np
 import theano.tensor as T
 import theano.sparse
@@ -183,6 +184,9 @@ class Space(object):
         """
         Read the batch size out of a batch.
         """
+        warnings.warn("Space.batch_size(batch) is deprecated, please use "
+                "Space.get_batch_size(batch) instead.",
+                stacklevel=2)
         return self.get_batch_size(batch)
 
     def get_batch_size(self, data):
@@ -230,8 +234,7 @@ class VectorSpace(Space):
 
     @functools.wraps(Space.get_batch_size)
     def get_batch_size(self, data):
-        if isinstance(data, tuple):
-            data, = data
+        self.validate(data)
         return data.shape[0]
 
     @functools.wraps(Space.make_theano_batch)
@@ -246,7 +249,6 @@ class VectorSpace(Space):
         if config.compute_test_value != 'off':
             rval.tag.test_value = self.get_origin_batch(n=4)
         return rval
-
 
     @functools.wraps(Space.get_total_dimension)
     def get_total_dimension(self):
@@ -303,9 +305,6 @@ class VectorSpace(Space):
         if batch.ndim != 2:
             raise ValueError('VectorSpace batches must be 2D, got %d dimensions' % batch.ndim)
 
-    def batch_size(self, batch):
-        self.validate(batch)
-        return batch.shape[0]
 
 class Conv2DSpace(Space):
     """A space whose points are defined as (multi-channel) images."""
@@ -399,8 +398,7 @@ class Conv2DSpace(Space):
 
     @functools.wraps(Space.get_batch_size)
     def get_batch_size(self, data):
-        if isinstance(data, tuple):
-            data, = data
+        self.validate(data)
         return data.shape[self.axes.index('b')]
 
 
@@ -515,10 +513,6 @@ class Conv2DSpace(Space):
         if isinstance(space, Conv2DSpace):
             return Conv2DSpace.convert(batch, self.axes, space.axes)
         raise NotImplementedError("Conv2DSPace doesn't know how to format as "+str(type(space)))
-
-    def batch_size(self, batch):
-        self.validate(batch)
-        return batch.shape[self.axes.index('b')]
 
 
 class CompositeSpace(Space):
@@ -642,7 +636,7 @@ class CompositeSpace(Space):
         # with the exeption of NullSpace, and CompositeSpace with
         # 0 components, which will return 0, because they do not
         # represent any data.
-        assert isinstance(data, (list, tuple))
+        self.validate(data)
 
         for c, d in safe_zip(self.components, data):
             b = c.get_batch_size(d)
@@ -701,5 +695,5 @@ class NullSpace(Space):
     def get_batch_size(self, data):
         # There is no way to know how many examples would actually
         # have been in the batch, since it is empty. We return 0.
-        assert data is None
+        self.validate(data)
         return 0
