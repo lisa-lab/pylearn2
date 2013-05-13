@@ -787,3 +787,13 @@ def dataset_range(dataset, start, stop):
     rval.adjust_for_viewer = dataset.adjust_for_viewer
     return rval
 
+def convert_to_one_hot(dataset, min_class=0):
+    """
+    Convenient way of accessing convert_to_one_hot from a yaml file
+    """
+    dataset.convert_to_one_hot(min_class=min_class)
+    return dataset
+
+def set_axes(dataset, axes):
+    dataset.view_converter.axes = axes
+    return dataset
