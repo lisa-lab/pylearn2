@@ -9,7 +9,7 @@ from itertools import izip
 from pylearn2.utils import safe_zip
 from collections import OrderedDict
 from pylearn2.utils import safe_union
-from pylearn2.space import CompositeSpace
+from pylearn2.space import CompositeSpace, NullSpace
 from pylearn2.utils.data_specs import DataSpecsMapping
 
 
@@ -101,6 +101,7 @@ class Cost(object):
                 for monitoring.
 
         """
+        self.get_data_specs(model)[0].validate(data)
         return OrderedDict()
 
     def get_fixed_var_descr(self, model, data):
@@ -111,7 +112,7 @@ class Cost(object):
         TrainingAlgorithms that do multiple updates to a minibatch should
         respect this. See FixedVarDescr below for details.
         """
-
+        self.get_data_specs(model)[0].validate(data)
         return FixedVarDescr()
 
     def get_data_specs(self, model):
@@ -170,6 +171,7 @@ class SumOfCosts(Cost):
             data has to follow the format defined by self.get_data_specs(),
             but this format will always be a flat tuple.
         """
+        self.get_data_specs(model)[0].validate(data)
         composite_specs, mapping = self.get_composite_specs_and_mapping(model)
         nested_data = mapping.nest(data)
         costs = []
@@ -277,13 +279,14 @@ class SumOfCosts(Cost):
         return grads, updates
 
     def get_monitoring_channels(self, model, data, ** kwargs):
-
+        self.get_data_specs(model)[0].validate(data)
         rval = OrderedDict()
         composite_specs, mapping = self.get_composite_specs_and_mapping(model)
         nested_data = mapping.nest(data)
 
         for i, cost in enumerate(self.costs):
             cost_data = nested_data[i]
+            # TODO: not put cost_data in tuple
             if not isinstance(cost_data, tuple):
                 cost_data = (cost_data,)
             try:
@@ -303,7 +306,7 @@ class SumOfCosts(Cost):
         return rval
 
     def get_fixed_var_descr(self, model, data):
-
+        self.get_data_specs(model)[0].validate(data)
         descrs = [cost.get_fixed_var_descr(model, data) for cost in self.costs]
 
         return reduce(merge, descrs)
@@ -342,6 +345,7 @@ class ScaledCost(Cost):
         Y : tensor_like
             the target, if necessary
         """
+        self.get_data_specs(model)[0].validate(data)
         return self.scaling * self.cost(model, data)
 
     def get_data_specs(self, model):
@@ -374,7 +378,7 @@ class LxReg(Cost):
         """
         # This Cost does not depend on any data, and get_data_specs does not
         # ask for any data, so we should not be provided with some.
-        assert data in (None, ())
+        self.get_data_specs(model)[0].validate(data)
 
         Lx = 0
         for var in self.variables:
@@ -382,7 +386,8 @@ class LxReg(Cost):
         return Lx
 
     def get_data_specs(self, model):
-        return (None, None)
+        # This cost does not use any data
+        return (NullSpace, '')
 
 
 class CrossEntropy(Cost):
@@ -392,8 +397,8 @@ class CrossEntropy(Cost):
 
     def expr(self, model, data, ** kwargs):
         """WRITEME"""
-        assert type(data) in (tuple, list)
-        assert len(data) == 2
+        self.get_data_specs(model)[0].validate(data)
+
         # unpack data
         (X, Y) = data
         return (-Y * T.log(model(X)) - \
@@ -404,6 +409,7 @@ class CrossEntropy(Cost):
                                model.get_output_space()])
         sources = (model.get_input_source(), model.get_target_source())
         return (data, sources)
+
 
 class MethodCost(Cost):
     """
@@ -421,10 +427,11 @@ class MethodCost(Cost):
         self.__dict__.update(locals())
         del self.self
 
-    def expr(self, model, *args, **kwargs):
+    def expr(self, model, data, *args, **kwargs):
             """ Patches calls through to a user-specified method of the model """
+            self.get_data_specs(model)[0].validate(data)
             fn = getattr(model, self.method)
-            return fn(*args, **kwargs)
+            return fn(data, *args, **kwargs)
 
     def get_data_specs(self, model):
         if self.data_specs is not None:
