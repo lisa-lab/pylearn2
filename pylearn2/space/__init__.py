@@ -151,8 +151,20 @@ class Space(object):
         """
         Read the batch size out of a batch.
         """
+        return self.get_batch_size(batch)
 
-        raise NotImplementedError(str(type(self))+" does not implement batch_size.")
+    def get_batch_size(self, data):
+        """ Returns the batch size of the given data """
+
+        raise NotImplementedError(str(type(self))+" does not implement "+\
+                                  "get_batch_size")
+
+    def get_batch(self, data, start, end):
+        """ Returns a batch of data starting from index `start` to index
+        `stop`"""
+        raise NotImplementedError(str(type(self))+" does not implement "+\
+                                  "get_batch")
+
 
 class VectorSpace(Space):
     """A space whose points are defined as fixed-length vectors."""
