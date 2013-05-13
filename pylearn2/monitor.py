@@ -322,7 +322,7 @@ class Monitor(object):
         # Get the appropriate kind of theano variable to represent the data
         # the model acts on
         theano_args = self._flat_data_specs[0].make_theano_batch(
-                self._flat_data_specs[1])
+                ['monitoring_%s' % s for s in self._flat_data_specs[1]])
 
         # Get a symbolic expression of the batch size
         # We do it here, rather than for each channel, because channels with an

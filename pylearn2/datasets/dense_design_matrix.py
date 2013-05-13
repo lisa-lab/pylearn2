@@ -661,6 +661,28 @@ class DenseDesignMatrix(Dataset):
         """
         return self.data_specs
 
+    def set_view_converter_axes(self, axes):
+        """
+        Change the axes of the view_converter, if any.
+
+        This function is only useful if you intend to call self.iterator
+        without data_specs, and with "topo=True", which is deprecated.
+        """
+        assert self.view_converter is not None
+        warnings.warn("Rather than setting the axes of a dataset's "
+                "view_converter, then building an iterator with "
+                "'topo=True', which is deprecated, you can simply "
+                "build an iterator with "
+                "'data_specs=Conv2DSpace(..., axes=axes)'.",
+                stacklevel=3)
+
+        self.view_converter.axes = axes
+        # Update self.X_topo_space, which stores the "default"
+        # topological space
+        rows, cols, channels = self.view_converter.shape
+        self.X_topo_space = Conv2DSpace(
+                shape=(rows, cols), num_channels=channels, axes=axes)
+
 
 class DenseDesignMatrixPyTables(DenseDesignMatrix):
     """
@@ -958,5 +980,5 @@ def convert_to_one_hot(dataset, min_class=0):
     return dataset
 
 def set_axes(dataset, axes):
-    dataset.view_converter.axes = axes
+    dataset.set_view_converter_axes(axes)
     return dataset
