@@ -18,8 +18,8 @@ from pylearn2.utils import safe_zip
 from pylearn2.train_extensions import TrainExtension
 from pylearn2.termination_criteria import TerminationCriterion
 from pylearn2.utils import sharedX
-from pylearn2.space import Space
-from pylearn2.utils.data_specs import is_flat_specs
+from pylearn2.space import CompositeSpace, NullSpace, Space
+from pylearn2.utils.data_specs import DataSpecsMapping
 from theano import config
 
 
@@ -109,39 +109,58 @@ class BGD(TrainingAlgorithm):
         self.monitor.set_theano_function_mode(self.theano_function_mode)
 
         data_specs = self.cost.get_data_specs(model)
-        assert is_flat_specs(data_specs), (
-                "data_specs should be flat, but is nested: %s" % data_specs)
+        mapping = DataSpecsMapping(data_specs)
+        space_tuple = mapping.flatten(data_specs[0], return_tuple=True)
+        source_tuple = mapping.flatten(data_specs[1], return_tuple=True)
 
-        # Name variables according to the sources
-        source = data_specs[1]
-        if isinstance(source, str):
-            name = 'BGD_' + source
-        else:
-            name = tuple('BGD_' + s for s in source)
-        theano_args = data_specs[0].make_theano_batch(name=name)
-        if not isinstance(theano_args, tuple):
-            theano_args = (theano_args,)
+        # Build a flat tuple of Theano Variables, one for each space,
+        # named according to the sources.
+        theano_args = []
+        for space, source in safe_zip(space_tuple, source_tuple):
+            name = 'BGD_[%s]' % source
+            arg = space.make_theano_batch(name=name)
+            theano_args.append(arg)
+        theano_args = tuple(theano_args)
 
-        fixed_var_descr = self.cost.get_fixed_var_descr(model, theano_args)
+        # Methods of `self.cost` need args to be passed in a format compatible
+        # with their data_specs
+        nested_args = mapping.nest(theano_args)
+        fixed_var_descr = self.cost.get_fixed_var_descr(model, nested_args)
         self.on_load_batch = fixed_var_descr.on_load_batch
 
-        cost_value = self.cost.expr(model, theano_args, ** fixed_var_descr.fixed_vars)
-        grads, grad_updates = self.cost.get_gradients(model, theano_args, ** fixed_var_descr.fixed_vars)
-        ipt = theano_args
+        cost_value = self.cost.expr(model, nested_args,
+                                    ** fixed_var_descr.fixed_vars)
+        grads, grad_updates = self.cost.get_gradients(
+                model, nested_args, ** fixed_var_descr.fixed_vars)
 
         assert isinstance(grads, OrderedDict)
         assert isinstance(grad_updates, OrderedDict)
-
 
         if cost_value is None:
             raise ValueError("BGD is incompatible with "+str(self.cost)+" because "
                     " it is intractable, but BGD uses the cost function value to do "
                     " line searches.")
 
-        # TODO: replace the following if block with a call to monitor.setup (it does the same thing;
-        # this will reduce code duplication)
-        # may need to still manually add some BGD-specific channels like ave_step_size here
+        # obj_prereqs has to be a list of function f called with f(*data),
+        # where data is a data tuple coming from the iterator.
+        # this function enables capturing "mapping" and "f", while
+        # enabling the "*data" syntax
+        def capture(f, mapping=mapping):
+            new_f = lambda *args: f(mapping.flatten(args, return_tuple=True))
+            return new_f
+
+        obj_prereqs = [capture(f) for f in fixed_var_descr.on_load_batch]
+
         if self.monitoring_dataset is not None:
+            self.monitor.setup(
+                    dataset=self.monitoring_dataset,
+                    cost=self.cost,
+                    batch_size=self.batch_size,
+                    num_batches=self.monitoring_batches,
+                    obj_prereqs=obj_prereqs,
+                    cost_monitoring_args=fixed_var_descr.fixed_vars)
+
+            '''
             channels = model.get_monitoring_channels(theano_args)
             if not isinstance(channels, dict):
                 raise TypeError("model.get_monitoring_channels must return a "
@@ -179,11 +198,10 @@ class BGD(TrainingAlgorithm):
                                              data_specs=data_specs,
                                              dataset = monitoring_dataset,
                                              prereqs=prereqs)
+                '''
 
         params = model.get_params()
 
-        if not isinstance(theano_args, tuple):
-            theano_args = (theano_args,)
 
         self.optimizer = BatchGradientDescent(
                             objective = cost_value,
@@ -203,14 +221,27 @@ class BGD(TrainingAlgorithm):
                             theano_function_mode=self.theano_function_mode,
                             init_alpha=self.init_alpha)
 
+        # These monitoring channels keep track of shared variables,
+        # which do not need inputs nor data.
         if self.monitoring_dataset is not None:
-            self.monitor.add_channel(name='ave_step_size',
-                    ipt=ipt, val = self.optimizer.ave_step_size, dataset=self.monitoring_dataset.values()[0])
-            self.monitor.add_channel(name='ave_grad_size',
-                    ipt=ipt, val = self.optimizer.ave_grad_size, dataset=self.monitoring_dataset.values()[0])
-            self.monitor.add_channel(name='ave_grad_mult',
-                    ipt=ipt, val = self.optimizer.ave_grad_mult, dataset=self.monitoring_dataset.values()[0])
-
+            self.monitor.add_channel(
+                    name='ave_step_size',
+                    ipt=None,
+                    val=self.optimizer.ave_step_size,
+                    data_specs=(NullSpace(), ''),
+                    dataset=self.monitoring_dataset.values()[0])
+            self.monitor.add_channel(
+                    name='ave_grad_size',
+                    ipt=None,
+                    val=self.optimizer.ave_grad_size,
+                    data_specs=(NullSpace(), ''),
+                    dataset=self.monitoring_dataset.values()[0])
+            self.monitor.add_channel(
+                    name='ave_grad_mult',
+                    ipt=None,
+                    val=self.optimizer.ave_grad_mult,
+                    data_specs=(NullSpace(), ''),
+                    dataset=self.monitoring_dataset.values()[0])
 
         self.first = True
         self.bSetup = True
@@ -225,43 +256,41 @@ class BGD(TrainingAlgorithm):
             rng = None
 
         data_specs = self.cost.get_data_specs(self.model)
-        space, source = data_specs
-        if space is not None:
-            assert isinstance(space, Space)
-        if source is None:
-            source = ()
-        elif not isinstance(source, tuple):
-            source = (source,)
-
-        assert is_flat_specs(data_specs), ("data_specs should be flat, "
-                "but is nested: %s" % data_specs)
+        # The iterator should be built from flat data specs, so it returns
+        # flat, non-redundent tuples of data.
+        mapping = DataSpecsMapping(data_specs)
+        space_tuple = mapping.flatten(data_specs[0], return_tuple=True)
+        source_tuple = mapping.flatten(data_specs[1], return_tuple=True)
+        if len(space_tuple) == 0:
+            # No data will be returned by the iterator, and it is impossible
+            # to know the size of the actual batch.
+            # It is not decided yet what the right thing to do should be.
+            raise NotImplementedError("Unable to train with BGD, because "
+                    "the cost does not actually use data from the data set. "
+                    "data_specs: %s" % str(data_specs))
+        flat_data_specs = (CompositeSpace(space_tuple), source_tuple)
 
         iterator = dataset.iterator(mode=train_iteration_mode,
                 batch_size=self.batch_size,
                 num_batches=self.batches_per_iter,
-                data_specs=data_specs, return_tuple=True,
+                data_specs=flat_data_specs, return_tuple=True,
                 rng = rng)
 
         mode = self.theano_function_mode
         for data in iterator:
-            if ('targets' in source and mode is not None
+            if ('targets' in source_tuple and mode is not None
                     and hasattr(mode, 'record')):
-                Y = data[source.index('targets')]
+                Y = data[source_tuple.index('targets')]
                 stry = str(Y).replace('\n',' ')
                 mode.record.handle_line('data Y '+stry+'\n')
 
             for on_load_batch in self.on_load_batch:
-                on_load_batch(*data)
+                on_load_batch(mapping.nest(data))
 
             self.before_step(model)
             self.optimizer.minimize(*data)
             self.after_step(model)
-            if space is None:
-                # There is no way to know how many examples would actually
-                # have been in the batch, since it was empty
-                actual_batch_size = 0
-            else:
-                actual_batch_size = space.get_batch_size(data)
+            actual_batch_size = flat_data_specs[0].get_batch_size(data)
             model.monitor.report_batch(actual_batch_size)
 
     def continue_learning(self, model):

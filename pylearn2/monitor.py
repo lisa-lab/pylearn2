@@ -610,8 +610,8 @@ class Monitor(object):
     def num_batches(self):
         return self._num_batches
 
-    def setup(self, dataset, cost, batch_size, num_batches = None, extra_costs=None,
-            mode='sequential'):
+    def setup(self, dataset, cost, batch_size, num_batches=None, extra_costs=None,
+            mode='sequential', obj_prereqs=None, cost_monitoring_args=None):
         """
         Sets up the monitor for a cost minimization problem.
         Adds channels defined by both the model and the cost for
@@ -630,6 +630,12 @@ class Monitor(object):
 
         cost: a Cost
 
+        obj_prereqs: None, or list of functions to pass as prerequisites to the
+            'objective' channel.
+
+        cost_monitoring_args: dictionary of kwargs that will be passed to
+            cost.get_monitoring_channels() (but not for the extra_costs).
+
         """
         if dataset is None:
             return
@@ -646,6 +652,9 @@ class Monitor(object):
             costs = extra_costs
         assert '' not in costs
         costs[''] = cost
+
+        if cost_monitoring_args is None:
+            cost_monitoring_args = {}
 
         model = self.model
 
@@ -702,6 +711,8 @@ class Monitor(object):
         model_channels = model.get_monitoring_channels(nested_ipt[-1])
         channels = {}
         for name in model_channels:
+            # Note: some code used to consider that model_channels[name]
+            # could be a a (channel, prereqs) pair, this is not supported.
             channels[name] = (model_channels[name],
                               nested_ipt[-1],
                               (spaces[-1], sources[-1]))
@@ -732,15 +743,19 @@ class Monitor(object):
                 if cost_value is not None:
                     if cost_name == '':
                         name = dprefix + 'objective'
+                        prereqs = obj_prereqs
                     else:
                         name = dprefix + cost_name
+                        prereqs = None
 
                     cost.get_data_specs(model)[0].validate(cost_ipt)
                     self.add_channel(name=name,
                                      ipt=cost_ipt,
                                      val=cost_value,
                                      data_specs=cost.get_data_specs(model),
-                                     dataset=cur_dataset)
+                                     dataset=cur_dataset,
+                                     prereqs=prereqs)
+
             for key in custom_channels:
                 val, ipt, data_specs = custom_channels[key]
                 data_specs[0].validate(ipt)
