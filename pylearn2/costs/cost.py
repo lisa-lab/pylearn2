@@ -300,10 +300,43 @@ class SumOfCosts(Cost):
         return rval
 
     def get_fixed_var_descr(self, model, data):
-        self.get_data_specs(model)[0].validate(data)
-        descrs = [cost.get_fixed_var_descr(model, data) for cost in self.costs]
+        data_specs = self.get_data_specs(model)
+        data_specs[0].validate(data)
+        composite_specs, mapping = self.get_composite_specs_and_mapping(model)
+        nested_data = mapping.nest(data)
 
-        return reduce(merge, descrs)
+        descrs = [cost.get_fixed_var_descr(model, cost_data)
+                  for cost, cost_data in safe_zip(self.costs, nested_data)]
+
+        rval = FixedVarDescr()
+        rval.data_specs = data_specs
+        rval.on_load_batch = []
+        # To avoid calling the same function more than once
+        on_load_batch_seen = []
+
+        for i, descr in enumerate(descrs):
+            # We assume aliasing is a bug
+            assert descr.fixed_vars is not rval.fixed_vars
+            assert descr.on_load_batch is not rval.on_load_batch
+
+            for key in descr.fixed_vars:
+                if key in rval.fixed_vars:
+                    raise ValueError("Cannot combine these FixedVarDescrs, "
+                            "two different ones contain %s" % key)
+            rval.fixed_vars.update(descr.fixed_vars)
+
+            for on_load in descr.on_load_batch:
+                if on_load in on_load_batch_seen:
+                    continue
+                # Using default argument binds the variables used in the lambda
+                # function to the value they have when the lambda is defined.
+                new_on_load = (lambda batch, mapping=mapping, i=i,
+                                      on_load=on_load:
+                        on_load(mapping.nest(batch)[i]))
+                rval.on_load_batch.append(new_on_load)
+
+        return rval
+
 
 class ScaledCost(Cost):
     """
@@ -440,7 +473,7 @@ class MethodCost(Cost):
         else:
             return fn
 
-def _no_op(*data):
+def _no_op(data):
     """
     An on_load_batch callback that does nothing.
     """
@@ -464,11 +497,18 @@ class FixedVarDescr(object):
 
         """
         A list of callable objects that the learning algorithm should
-        call with X or X and y as appropriate
+        call with input data (formatted as self.data_specs) as appropriate
         whenever a new batch of data is loaded.
         This will update the shared variables mapped to by fixed_vars.
         """
         self.on_load_batch = [_no_op]
+
+        """
+        A (space, source) pair describing the inputs of every function
+        in self.on_load_batch.
+        """
+        self.data_specs = (NullSpace(), '')
+
 
 def merge(left, right):
     """
@@ -488,6 +528,13 @@ def merge(left, right):
     rval.fixed_vars.update(left.fixed_vars)
     rval.fixed_vars.update(right.fixed_vars)
 
-    rval.on_load_batch = safe_union(left.on_load_batch, right.on_load_batch)
+    if left.data_specs == right.data_specs:
+        # Combining the on_load_batch functions is easy, as they take
+        # the same input arguments
+        rval.data_specs = left.fixed_vars
+        rval.on_load_batch = safe_union(left.on_load_batch, right.on_load_batch)
+    else:
+        # We would have to build a composite data_specs
+        raise NotImplementedError()
 
     return rval

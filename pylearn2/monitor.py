@@ -341,15 +341,13 @@ class Monitor(object):
             cur_num_examples = self.num_examples[index]
             u = updates[index]
 
-            if not isinstance(channel.graph_input, (list, tuple)):
-                channel_inputs = (channel.graph_input,)
-            else:
-                channel_inputs = channel.graph_input
-            if isinstance(nested_theano_args[i + 1], theano.Variable):
-                inputs = (nested_theano_args[i + 1],)
-            else:
-                assert isinstance(nested_theano_args[i + 1], (list, tuple))
-                inputs = nested_theano_args[i + 1]
+            # Flatten channel.graph_input and the appropriate part of
+            # nested_theano_args, to iterate jointly over them.
+            c_mapping = DataSpecsMapping(channel.data_specs)
+            channel_inputs = c_mapping.flatten(channel.graph_input,
+                                               return_tuple=True)
+            inputs = c_mapping.flatten(nested_theano_args[i + 1],
+                                       return_tuple=True)
 
             for (channel_X, X) in safe_izip(channel_inputs, inputs):
                 assert channel_X not in g or g[channel_X] is X
