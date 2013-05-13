@@ -1,4 +1,5 @@
 import numpy
+np = numpy
 import os
 
 from pylearn2.datasets import dense_design_matrix
@@ -68,8 +69,8 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
         data = numpy.load(base + '.npy', 'r')
         return data
 
-    def __init__(self, which_set, center=False, multi_target = False, scale = False,
-            start = None, stop = None, one_hot = False):
+    def __init__(self, which_set, center=False, scale = False,
+            start = None, stop = None, one_hot = False, restrict_instances=None):
         """
         :param which_set: one of ['train','test']
         :param center: data is in range [0,256], center=True subtracts 127.5.
@@ -85,9 +86,23 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
 
         #this is uint8
         y = NORBSmall.load(which_set, 'cat')
-        if multi_target:
-            y_extra = NORBSmall.load(which_set, 'info')
-            y = numpy.hstack((y[:,numpy.newaxis],y_extra))
+        y_extra = NORBSmall.load(which_set, 'info')
+
+        assert y_extra.shape[0] == y.shape[0]
+        instance = y_extra[:, 0]
+        assert instance.min() >= 0
+        assert instance.max() <= 9
+
+
+        if restrict_instances is not None:
+            mask = reduce(np.maximum, [instance == ins for ins in restrict_instances])
+            mask = mask.astype('bool')
+            X = X[mask,:]
+            y = y[mask]
+            assert X.shape[0] == y.shape[0]
+            expected = sum([(instance == ins).sum() for ins in restrict_instances])
+            assert X.shape[0] == expected
+
 
         if center:
             X -= 127.5
