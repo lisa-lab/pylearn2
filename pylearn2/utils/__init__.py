@@ -67,8 +67,7 @@ def safe_update(dict_to, dict_from):
 
 
 class CallbackOp(theano.gof.Op):
-    """A Theano Op that implements the identity transform but
-    also does an arbitrary (user-specified) side effect. """
+    """A Theano Op that implements the identity transform but also does an arbitrary (user-specified) side effect. """
 
 
     view_map = { 0: [0] }

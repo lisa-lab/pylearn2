@@ -126,7 +126,8 @@ def show(image):
         warnings.warn('filesystem race condition')
 
     name = f.name
-    f.flush()
+    ## this is being called on a read-only file
+    #f.flush()
     f.close()
     image.save(name)
     viewer_command = string.preprocess('${PYLEARN2_VIEWER_COMMAND}')

@@ -1,12 +1,8 @@
 
 
 
-all : apidoc doc
+all : 
+	epydoc --config epydoc_conf.cfg
+#python scripts/docgen.py
 
-
-apidoc : epydoc_conf.cfg
-	epydoc --debug --config $<
-
-doc : scripts/docgen.py
-	python $< 
 

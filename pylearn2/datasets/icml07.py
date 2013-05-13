@@ -1,6 +1,6 @@
 import numpy as N
 from pylearn2.datasets import dense_design_matrix
-from pylearn.datasets import icml07
+from pylearn2.datasets import icml07
 
 class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, which_set, center = False):

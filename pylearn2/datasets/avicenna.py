@@ -1,4 +1,4 @@
-from pylearn.datasets import utlc
+from pylearn2.utils import utlc
 import numpy as N
 
 class Avicenna(object):

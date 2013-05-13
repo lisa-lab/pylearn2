@@ -119,6 +119,7 @@ http://deeplearning.net/software/pylearn/v2_planning/API_coding_style.html
 
 * :ref:`api_change` -- the best practices guide you should follow when changing any API in the library
 
+* `api`_
 
 
 .. _pylearn-dev: https://groups.google.com/group/pylearn-dev
@@ -129,4 +130,6 @@ http://deeplearning.net/software/pylearn/v2_planning/API_coding_style.html
 
 .. _LISA: http://www.iro.umontreal.ca/~lisa
 .. _University of Montreal: http://www.umontreal.ca
+
+.. _api: ../doc/apidoc/index.html
 
