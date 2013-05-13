@@ -23,6 +23,7 @@ from pylearn2.space import CompositeSpace, VectorSpace
 from pylearn2.utils import function
 from pylearn2.utils.iteration import is_stochastic
 from pylearn2.utils import sharedX
+from pylearn2.utils import safe_zip
 from pylearn2.utils.data_specs import DataSpecsMapping
 from pylearn2.utils.string_utils import number_aware_alphabetical_key
 from theano import config
@@ -81,12 +82,13 @@ class Monitor(object):
         Also computes the mapping to flatten it.
         This function is called from redo_theano
         """
-        input_spaces = [self.model.get_input_space()]
-        input_sources = [self.model.get_input_source()]
+        # Ask the model what it needs
+        m_space, m_source = self.model.get_monitoring_data_specs()
+        input_spaces = [m_space]
+        input_sources = [m_source]
         for channel in self.channels.values():
-            if channel.data_specs != (None, None):
-                input_spaces.append(channel.data_specs[0])
-                input_sources.append(channel.data_specs[1])
+            input_spaces.append(channel.data_specs[0])
+            input_sources.append(channel.data_specs[1])
 
         nested_space = CompositeSpace(input_spaces)
         nested_source = tuple(input_sources)
@@ -94,9 +96,9 @@ class Monitor(object):
         self._nested_data_specs = (nested_space, nested_source)
         self._data_specs_mapping = DataSpecsMapping(self._nested_data_specs)
 
-        flat_space = self._data_specs_mapping.flatten(nested_space)
-        flat_source = self._data_specs_mapping.flatten(nested_source)
-        self._flat_data_specs = (flat_space, flat_source)
+        flat_space = self._data_specs_mapping.flatten(nested_space, return_tuple=True)
+        flat_source = self._data_specs_mapping.flatten(nested_source, return_tuple=True)
+        self._flat_data_specs = (CompositeSpace(flat_space), flat_source)
 
     def set_theano_function_mode(self, mode):
         if self.theano_function_mode != mode:
@@ -492,7 +494,6 @@ class Monitor(object):
         data_specs: (space, source) pair
             identifies the order, format and semantics of ipt
         """
-
         if isinstance(val, (float, int, long)):
             val = np.cast[theano.config.floatX](val)
 
@@ -506,7 +507,10 @@ class Monitor(object):
         for elem in inputs:
             if not hasattr(elem, 'get_value') and not isinstance(elem, theano.gof.graph.Constant):
                 if elem not in tmp:
-                    raise ValueError("Unspecified input: "+str(elem))
+                    raise ValueError("Unspecified input: "+str(elem)+". "
+                            "This may be due to an incorrect implementation "
+                            "of a cost's get_data_specs() method, or of a "
+                            "model's get_monitoring_data_specs() method.")
 
         mode = self.theano_function_mode
         if mode is not None and hasattr(mode, 'record'):
@@ -645,40 +649,65 @@ class Monitor(object):
         assert '' not in costs
         costs[''] = cost
 
-        supervised = any(cost.supervised for cost in costs.values())
         model = self.model
 
-        X_space = model.get_input_space()
-        X = X_space.make_theano_batch(name='monitor_X')
+        # Build a composite data_specs containing the specs for all costs,
+        # then the specs of the model
+        cost_names = sorted(costs.keys())
+        spaces = []
+        sources = []
+        for c in cost_names:
+            c_space, c_source = costs[c].get_data_specs(model)
+            spaces.append(c_space)
+            sources.append(c_source)
 
-        if config.compute_test_value != 'off':
-            X.tag.test_value = X_space.get_origin_batch(batch_size).astype(X.dtype)
+        # Ask the model for the data_specs needed
+        m_space, m_source = model.get_monitoring_data_specs()
+        spaces.append(m_space)
+        sources.append(m_source)
 
-        if supervised:
-            Y_space = model.get_output_space()
-            Y = Y_space.make_theano_batch(name='monitor_Y')
+        nested_space = CompositeSpace(spaces)
+        nested_sources = tuple(sources)
 
-            if config.compute_test_value != 'off':
-                Y.tag.test_value = Y_space.get_origin_batch(batch_size).astype(Y.dtype)
+        # Flatten this data_specs, so we build only one symbolic Theano
+        # variable for each of the unique (space, source) pairs.
+        mapping = DataSpecsMapping((nested_space, nested_sources))
+        space_tuple = mapping.flatten(nested_space, return_tuple=True)
+        source_tuple = mapping.flatten(nested_sources, return_tuple=True)
+        ipt = tuple(space.make_theano_batch(name='monitor_%s' % source)
+                    for (space, source) in safe_zip(space_tuple, source_tuple))
 
-            ipt = (X, Y)
-        else:
-            Y = None
-            ipt = (X,)
+        # Build a nested tuple from ipt, to dispatch the appropriate parts
+        # of the ipt batch to each cost
+        nested_ipt = mapping.nest(ipt)
+
         custom_channels = {}
-        for cost_name in costs:
+        for i, cost_name in enumerate(cost_names):
             if cost_name == '':
                 prefix = ''
             else:
                 prefix = cost_name + '_'
             cost = costs[cost_name]
-            raw_channels = cost.get_monitoring_channels(model, ipt)
+            cost_ipt = nested_ipt[i]
+            raw_channels = cost.get_monitoring_channels(model, cost_ipt)
             channels = {}
             for name in raw_channels:
-                channels[prefix+name] = raw_channels[name]
+                # We need three things: the value itself (raw_channels[name]),
+                # the input variables (cost_ipt), and the data_specs for
+                # these input variables ((spaces[i], sources[i]))
+                channels[prefix + name] = (raw_channels[name],
+                                           cost_ipt,
+                                           (spaces[i], sources[i]))
             custom_channels.update(channels)
-        model_channels = model.get_monitoring_channels(ipt)
-        custom_channels.update(model_channels)
+
+        # Use the last inputs from nested_ipt for the model
+        model_channels = model.get_monitoring_channels(nested_ipt[-1])
+        channels = {}
+        for name in model_channels:
+            channels[name] = (model_channels[name],
+                              nested_ipt[-1],
+                              (spaces[-1], sources[-1]))
+        custom_channels.update(channels)
 
         if is_stochastic(mode):
             seed = [[2013, 02, 22]]
@@ -698,24 +727,29 @@ class Monitor(object):
                 dprefix = dataset_name + '_'
             # These channel name 'objective' must not vary, since callbacks that respond to the
             # values in the monitor use the name to find it.
-            for cost_name in costs:
+            for i, cost_name in enumerate(cost_names):
                 cost = costs[cost_name]
-                cost_value = cost.expr(model, ipt)
+                cost_ipt = nested_ipt[i]
+                cost_value = cost.expr(model, cost_ipt)
                 if cost_value is not None:
                     if cost_name == '':
                         name = dprefix + 'objective'
                     else:
                         name = dprefix + cost_name
+
+                    cost.get_data_specs(model)[0].validate(cost_ipt)
                     self.add_channel(name=name,
-                                     ipt=ipt,
+                                     ipt=cost_ipt,
                                      val=cost_value,
                                      data_specs=cost.get_data_specs(model),
                                      dataset=cur_dataset)
             for key in custom_channels:
+                val, ipt, data_specs = custom_channels[key]
+                data_specs[0].validate(ipt)
                 self.add_channel(name=dprefix + key,
                                  ipt=ipt,
-                                 val=custom_channels[key],
-                                 data_specs=cost.get_data_specs(model),
+                                 val=val,
+                                 data_specs=data_specs,
                                  dataset=cur_dataset)
 
 
