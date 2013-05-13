@@ -9,7 +9,7 @@ private repository. Some of his code contains private research ideas
 that he can't move to this repository until he has a paper on them.
 """
 __authors__ = "Ian Goodfellow"
-__copyright__ = "Copyright 2012, Universite de Montreal"
+__copyright__ = "Copyright 2012-2013, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
@@ -255,8 +255,7 @@ class DBM(Model):
         for layer in self.hidden_layers:
             for param in layer.get_params():
                 if param.name is None:
-                    print type(layer)
-                    assert False
+                    raise ValueError("All of your parameters should have names, but one of "+layer.layer_name+"'s doesn't")
             layer_params = layer.get_params()
             assert not isinstance(layer_params, set)
             for param in layer_params:
@@ -598,6 +597,10 @@ class DBM(Model):
 
         rval = OrderedDict()
 
+        ch = self.visible_layer.get_monitoring_channels()
+        for key in ch:
+            rval['vis_'+key] = ch[key]
+
         for state, layer in safe_zip(q, self.hidden_layers):
             ch = layer.get_monitoring_channels()
             for key in ch:
@@ -617,6 +620,9 @@ class DBM(Model):
             mx = None
             for new, old in safe_zip(flat_q, flat_prev_q):
                 cur_mx = abs(new - old).max()
+                if new is old:
+                    print new, 'is', old
+                    assert False
                 if mx is None:
                     mx = cur_mx
                 else:
@@ -824,14 +830,26 @@ class HiddenLayer(Layer):
         raise NotImplementedError(str(type(self))+" does not implement get_l2_act_cost")
 
 def init_sigmoid_bias_from_marginals(dataset, use_y = False):
+    """
+    Returns b such that sigmoid(b) has the same marginals as the
+    data. Assumes dataset contains a design matrix. If use_y is
+    true, sigmoid(b) will have the same marginals as the targets,
+    rather than the features.
+    """
     if use_y:
         X = dataset.y
     else:
         X = dataset.get_design_matrix()
+    return init_sigmoid_bias_from_array(X)
+
+def init_sigmoid_bias_from_array(arr):
+    X = arr
     if not (X.max() == 1):
         raise ValueError("Expected design matrix to consist entirely "
                 "of 0s and 1s, but maximum value is "+str(X.max()))
-    assert X.min() == 0.
+    if X.min() != 0.:
+        raise ValueError("Expected design matrix to consist entirely of "
+                "0s and 1s, but minimum value is "+str(X.min()))
     # removed this check so we can initialize the marginals
     # with a dataset of bernoulli params
     # assert not np.any( (X > 0.) * (X < 1.) )
@@ -843,6 +861,7 @@ def init_sigmoid_bias_from_marginals(dataset, use_y = False):
     init_bias = inverse_sigmoid_numpy(mean)
 
     return init_bias
+
 
 class BinaryVector(VisibleLayer):
     """
@@ -1091,6 +1110,8 @@ class BinaryVectorMaxPool(HiddenLayer):
         # Patch old pickle files
         if not hasattr(self, 'mask_weights'):
             self.mask_weights = None
+        if not hasattr(self, 'max_col_norm'):
+            self.max_col_norm = None
 
         if self.mask_weights is not None:
             W ,= self.transformer.get_params()
@@ -1411,7 +1432,7 @@ class BinaryVectorMaxPool(HiddenLayer):
                 continue
             m = s.mean(axis=0)
             assert m.ndim == 1
-            rval += T.maximum(T.square(m-t),0.).mean()*c
+            rval += T.square(m-t).mean()*c
 
         return rval
 
@@ -1439,6 +1460,7 @@ class BinaryVectorMaxPool(HiddenLayer):
         return p_sample, h_sample
 
     def downward_message(self, downward_state):
+        self.h_space.validate(downward_state)
         rval = self.transformer.lmul_T(downward_state)
 
         if self.requires_reformat:
@@ -1621,6 +1643,10 @@ class Softmax(HiddenLayer):
             self.offset = sharedX(np.exp(b) / np.exp(b).sum())
 
     def censor_updates(self, updates):
+
+        if not hasattr(self, 'max_col_norm'):
+            self.max_col_norm = None
+
         if self.max_col_norm is not None:
             W = self.W
             if W in updates:
@@ -2088,8 +2114,9 @@ class WeightDoubling(InferenceProcedure):
         else:
             inferred = H_hat
         for elem in flatten(inferred):
-            for value in get_debug_values(elem):
-                assert value.shape[0] == dbm.batch_size
+            # This check doesn't work with ('c', 0, 1, 'b') because 'b' is no longer axis 0
+            # for value in get_debug_values(elem):
+            #    assert value.shape[0] == dbm.batch_size
             assert V in gof.graph.ancestors([elem])
             if Y is not None:
                 assert Y in gof.graph.ancestors([elem])

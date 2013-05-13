@@ -601,6 +601,13 @@ class RBM(Block, Model):
         else:
             return [self.input_to_v_from_h(hid) for hid in h]
 
+    def upward_pass(self, v):
+        """
+        wrapper around mean_h_given_v method.  Called when RBM is accessed
+        by mlp.HiddenLayer.
+        """
+        return self.mean_h_given_v(v)
+
     def mean_h_given_v(self, v):
         """
         Compute the mean activation of the hidden units given visible unit
@@ -834,6 +841,9 @@ class GaussianBinaryRBM(RBM):
 
     def P_H_given_V(self, V):
         return self.energy_function.mean_H_given_V(V)
+
+    def mean_h_given_v(self, v):
+        return self.P_H_given_V(v)
 
     def mean_v_given_h(self, h):
         """
@@ -1085,6 +1095,17 @@ class mu_pooled_ssRBM(RBM):
 def build_stacked_RBM(nvis, nhids, batch_size, vis_type='binary',
         input_mean_vis=None, irange=1e-3, rng=None):
     """
+    Note from IG:
+        This method doesn't seem to work correctly with Gaussian RBMs.
+        In general, this is a difficult function to support, because it
+        needs to pass the write arguments to the constructor of many kinds
+        of RBMs. It would probably be better to just construct an instance
+        of pylearn2.models.mlp.MLP with its hidden layers set to instances
+        of pylearn2.models.mlp.RBM_Layer. If anyone is working on this kind
+        of problem, a PR replacing this function with a helper function to
+        make such an MLP would be very welcome.
+
+
     Allocate a StackedBlocks containing RBMs.
 
     The visible units of the input RBM can be either binary or gaussian,

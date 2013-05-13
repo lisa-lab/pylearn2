@@ -4,6 +4,7 @@ _logger = logging.getLogger(__name__)
 import numpy as np
 N = np
 from pylearn2.datasets import dense_design_matrix
+from pylearn2.expr.preprocessing import global_contrast_normalize
 
 class CIFAR10(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, which_set, center = False, rescale = False, gcn = None,
@@ -99,15 +100,8 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
 
         self.gcn = gcn
         if gcn is not None:
-            assert isinstance(gcn,float)
-            # Note: this is per-example mean across pixels, not the
-            # per-pixel mean across examples. So it is perfectly fine
-            # to subtract this without worrying about whether the current
-            # object is the train, valid, or test set.
-            mn = X.mean(axis=1)
-            X = (X.T - mn).T
-            X = (X.T / np.sqrt(np.square(X).sum(axis=1))).T
-            X *= gcn
+            gcn = float(gcn)
+            X = global_contrast_normalize(X, scale=gcn)
 
         if start is not None:
             # This needs to come after the prepro so that it doesn't change the pixel

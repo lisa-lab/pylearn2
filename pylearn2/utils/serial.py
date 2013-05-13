@@ -38,6 +38,8 @@ def raise_cannot_open(path):
                 # Don't attempt to guess the right name if the directory is huge
                 raise IOError("Cannot open "+path+" but can open "+parent+".")
 
+            if os.path.islink(path):
+                raise IOError(path + " appears to be a symlink to a non-existent file")
             raise IOError("Cannot open "+path+" but can open "+parent+". Did you mean "+match(bad,candidates)+" instead of "+bad+"?")
         # end if
     # end for
@@ -336,11 +338,17 @@ def from_string(s):
 
 
 def mkdir(filepath):
+    """
+    Make a directory. Should succeed even if it needs to make more than one
+    directory and nest subdirectories to do so. Raises an error if the
+    directory can't be made. Does not raise an error if the directory
+    already exists.
+    """
     try:
         os.makedirs(filepath)
     except:
-        print ("couldn't make directory '" + str(filepath) +
-               "', maybe it already exists")
+        if not os.path.isdir(filepath):
+            raise
 
 def read_int( fin, n = 1):
     if n == 1:

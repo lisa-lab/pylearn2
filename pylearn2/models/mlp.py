@@ -27,11 +27,14 @@ from pylearn2.linear import conv2d
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.models.model import Model
 from pylearn2.expr.nnet import pseudoinverse_softmax_numpy
+from pylearn2.space import CompositeSpace
 from pylearn2.space import Conv2DSpace
 from pylearn2.space import Space
 from pylearn2.space import VectorSpace
 from pylearn2.utils import function
 from pylearn2.utils import py_integer_types
+from pylearn2.utils import safe_union
+from pylearn2.utils import safe_zip
 from pylearn2.utils import sharedX
 
 warnings.warn("MLP changing the recursion limit.")
@@ -105,7 +108,13 @@ class Layer(Model):
     def cost(self, Y, Y_hat):
         """
         The cost of outputting Y_hat when the true output is Y.
+        Y_hat is assumed to be the output of the same layer's fprop, and the implementation
+        may do things like look at the ancestors of Y_hat in the theano graph. This is useful
+        for, e.g., computing numerically stable log probabilities as the cost when Y_hat is
+        the probability.
         """
+
+        raise NotImplementedError(str(type(self))+" does not implement mlp.Layer.cost.")
 
     def cost_from_cost_matrix(self, cost_matrix):
         """
@@ -117,10 +126,20 @@ class Layer(Model):
             cost = model.cost_from_cost_matrix(C)
         """
 
+        raise NotImplementedError(str(type(self))+" does not implement mlp.Layer.cost_from_cost_matrix.")
+
     def cost_matrix(self, Y, Y_hat):
         """
         The element wise cost of outputting Y_hat when the true output is Y.
         """
+        raise NotImplementedError(str(type(self))+" does not implement mlp.Layer.cost_matrix")
+
+    def get_weight_decay(self, coeff):
+        raise NotImplementedError
+    
+    def get_l1_weight_decay(self, coeff):
+        raise NotImplementedError
+
 
 class MLP(Layer):
     """
@@ -257,6 +276,8 @@ class MLP(Layer):
             if layer is self.layers[-1]:
                 args.append(Y)
             ch = layer.get_monitoring_channels_from_state(*args)
+            if not isinstance(ch, OrderedDict):
+                raise TypeError(str((type(ch), layer.layer_name)))
             for key in ch:
                 rval[layer.layer_name+'_'+key]  = ch[key]
 
@@ -443,7 +464,12 @@ class Softmax(Layer):
         if not no_affine:
             self.b = sharedX( np.zeros((n_classes,)), name = 'softmax_b')
             if init_bias_target_marginals:
-                self.b.set_value(pseudoinverse_softmax_numpy(init_bias_target_marginals.y.mean(axis=0)).astype(self.b.dtype))
+                marginals = init_bias_target_marginals.y.mean(axis=0)
+                assert marginals.ndim == 1
+                b = pseudoinverse_softmax_numpy(marginals).astype(self.b.dtype)
+                assert b.ndim == 1
+                assert b.dtype == self.b.dtype
+                self.b.set_value(b)
         else:
             assert init_bias_target_marginals is None
 
@@ -1391,6 +1417,7 @@ class Linear(Layer):
             Z = np.exp(W).sum(axis=0)
             rval =  P / Z
             return rval
+        return W
 
     def set_weights(self, weights):
         W, = self.transformer.get_params()
@@ -1447,6 +1474,11 @@ class Linear(Layer):
         mx = state.max(axis=0)
         mean = state.mean(axis=0)
         mn = state.min(axis=0)
+        rg = mx - mn
+
+        rval['range_x_max_u'] = rg.max()
+        rval['range_x_mean_u'] = rg.mean()
+        rval['range_x_min_u'] = rg.min()
 
         rval['max_x_max_u'] = mx.max()
         rval['max_x_mean_u'] = mx.mean()
@@ -1718,6 +1750,8 @@ class ConvRectifiedLinear(Layer):
         """
         if (irange is None) and (sparse_init is None):
             raise AssertionError("You should specify either irange or sparse_init when calling the constructor of ConvRectifiedLinear.")
+        elif (irange is not None) and (sparse_init is not None):
+            raise AssertionError("You should specify either irange or sparse_init when calling the constructor of ConvRectifiedLinear and not both.")
 
         self.__dict__.update(locals())
         del self.self
@@ -1788,15 +1822,13 @@ class ConvRectifiedLinear(Layer):
         print 'Input shape: ', self.input_space.shape
         print 'Detector space: ', self.detector_space.shape
 
-        if self.mlp.batch_size is None:
-            raise ValueError("Tried to use a convolutional layer with an MLP that has "
-                    "no batch size specified. You must specify the batch size of the "
-                    "model because theano requires the batch size to be known at "
-                    "graph construction time for convolution.")
 
         assert self.pool_type in ['max', 'mean']
 
-        dummy_detector = sharedX(self.detector_space.get_origin_batch(self.mlp.batch_size))
+        dummy_batch_size = self.mlp.batch_size
+        if dummy_batch_size is None:
+            dummy_batch_size = 2
+        dummy_detector = sharedX(self.detector_space.get_origin_batch(dummy_batch_size))
         if self.pool_type == 'max':
             dummy_p = max_pool(bc01=dummy_detector, pool_shape=self.pool_shape,
                     pool_stride=self.pool_stride,
@@ -1960,8 +1992,8 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape):
         assert bc01v.shape[2] == image_shape[0]
         assert bc01v.shape[3] == image_shape[1]
 
-    wide_infinity = T.alloc(-np.inf, bc01.shape[0], bc01.shape[1], required_r, required_c)
-
+    wide_infinity = T.alloc(T.constant(-np.inf, dtype=config.floatX),
+            bc01.shape[0], bc01.shape[1], required_r, required_c)
 
     name = bc01.name
     if name is None:
@@ -2130,3 +2162,224 @@ def L1WeightDecay(*args, **kwargs):
     warnings.warn("pylearn2.models.mlp.L1WeightDecay has moved to pylearn2.costs.mlp.WeightDecay")
     from pylearn2.costs.mlp import L1WeightDecay as L1WD
     return L1WD(*args, **kwargs)
+
+
+class LinearGaussian(Linear):
+    """
+    A Linear layer augmented with a precision vector, for modeling conditionally Gaussian data
+    """
+
+    def __init__(self, init_beta, min_beta, max_beta, beta_lr_scale, ** kwargs):
+        super(LinearGaussian, self).__init__(**kwargs)
+        self.__dict__.update(locals())
+        del self.self
+        del self.kwargs
+
+    def set_input_space(self, space):
+        super(LinearGaussian, self).set_input_space(space)
+        assert isinstance(self.output_space, VectorSpace)
+        self.beta = sharedX(self.output_space.get_origin() + self.init_beta, 'beta')
+
+    def get_monitoring_channels(self):
+        rval = super(LinearGaussian, self).get_monitoring_channels()
+        assert isinstance(rval, OrderedDict)
+        rval['beta_min'] = self.beta.min()
+        rval['beta_mean'] = self.beta.mean()
+        rval['beta_max'] = self.beta.max()
+        return rval
+
+    def get_monitoring_channels_from_state(self, state, target=None):
+        rval = super(LinearGaussian, self).get_monitoring_channels()
+        if target:
+            rval['mse'] = T.sqr(state - target).mean()
+        return rval
+
+    def cost(self, Y, Y_hat):
+        return 0.5 * T.dot(T.sqr(Y-Y_hat), self.beta).mean() - 0.5 * T.log(self.beta).sum()
+
+    def censor_updates(self, updates):
+        super(LinearGaussian, self).censor_updates(updates)
+
+        if self.beta in updates:
+            updates[self.beta] = T.clip(updates[self.beta], self.min_beta, self.max_beta)
+
+    def get_lr_scalers(self):
+        rval = super(LinearGaussian, self).get_lr_scalers()
+        if self.beta_lr_scale is not None:
+            rval[self.beta] = self.beta_lr_scale
+        return rval
+
+    def get_params(self):
+        return super(LinearGaussian, self).get_params() + [self.beta]
+
+def beta_from_design(design, min_var = 1e-6, max_var = 1e6):
+    return 1. / np.clip(design.var(axis=0), min_var, max_var)
+
+def beta_from_targets(dataset, **kwargs):
+    return beta_from_design(dataset.y, **kwargs)
+
+def beta_from_features(dataset, **kwargs):
+    return beta_from_design(dataset.X, **kwargs)
+
+def mean_of_targets(dataset):
+    return dataset.y.mean(axis=0)
+
+class PretrainedLayer(Layer):
+    """
+    A layer whose weights are initialized, and optionally fixed,
+    based on prior training.
+    """
+
+    def __init__(self, layer_name, layer_content, freeze_params=False):
+        """
+        layer_content: A Model that implements "upward_pass", such as an
+            RBM or an Autoencoder
+        freeze_params: If True, regard layer_conent's parameters as fixed
+            If False, they become parameters of this layer and can be
+            fine-tuned to optimize the MLP's cost function.
+        """
+        self.__dict__.update(locals())
+        del self.self
+
+    def set_input_space(self, space):
+        assert self.get_input_space() == space
+
+    def get_params(self):
+        if self.freeze_params:
+            return []
+        return self.layer_content.get_params()
+
+    def get_input_space(self):
+        return self.layer_content.get_input_space()
+
+    def get_output_space(self):
+        return self.layer_content.get_output_space()
+
+    def fprop(self, state_below):
+        return self.layer_content.upward_pass(state_below)
+
+
+
+class RBM_Layer(PretrainedLayer):
+    """An MLP layer whose forward prop is an upward mean field pass through an RBM.
+    Deprecated in favor of direct call to PretrainedLayer.
+    """
+
+    def __init__(self, layer_name, autoencoder, freeze_params=False):
+        warnings.warn("RBM_Layer is deprecated. Use PretrainedLayer instead. RBM_Layer will be removed on or after October 19, 2013", stacklevel=2)
+        PretrainedLayer.__init__(layer_name=layer_name, layer_content=autoencoder,
+                                    freeze_params=freeze_params)
+
+class CompositeLayer(Layer):
+    """
+    A Layer that runs several simpler layers in parallel.
+    """
+
+    def __init__(self, layer_name, layers):
+        """
+        layers: a list or tuple of Layers.
+        """
+        self.__dict__.update(locals())
+        del self.self
+
+    def set_input_space(self, space):
+
+        for layer in self.layers:
+            layer.set_input_space(space)
+
+        self.output_space = CompositeSpace(tuple(layer.get_output_space()
+            for layer in self.layers))
+
+    def get_params(self):
+
+        rval = []
+
+        for layer in self.layers:
+            rval = safe_union(layer.get_params(), rval)
+
+        return rval
+
+    def fprop(self, state_below):
+
+        return tuple(layer.fprop(state_below) for layer in self.layers)
+
+    def cost(self, Y, Y_hat):
+
+        return sum(layer.cost(Y_elem, Y_hat_elem) for layer, Y_elem, Y_hat_elem in \
+                safe_zip(self.layers, Y, Y_hat))
+
+    def set_mlp(self, mlp):
+        super(CompositeLayer, self).set_mlp(mlp)
+        for layer in self.layers:
+            layer.set_mlp(mlp)
+
+class FlattenerLayer(Layer):
+    """
+    A wrapper around a different layer that flattens
+    the original layer's output.
+
+    The cost works by unflattening the target and then
+    calling the wrapped Layer's cost.
+
+    This is mostly intended for use with CompositeLayer as the wrapped
+    Layer, and is mostly useful as a workaround for theano not having
+    a TupleVariable with which to represent a composite target.
+
+    There are obvious memory, performance, and readability issues with doing
+    this, so really it would be better for theano to support TupleTypes.
+
+    See pylearn2.sandbox.tuple_var and the theano-dev e-mail thread "TupleType".
+    """
+
+    def __init__(self, raw_layer):
+        self.__dict__.update(locals())
+        del self.self
+        self.layer_name = raw_layer.layer_name
+
+
+    def set_input_space(self, space):
+
+        self.raw_layer.set_input_space(space)
+
+        self.output_space = VectorSpace(self.raw_layer.get_output_space().get_total_dimension())
+
+    def get_params(self):
+
+        return self.raw_layer.get_params()
+
+    def fprop(self, state_below):
+
+        raw = self.raw_layer.fprop(state_below)
+
+        return self.raw_layer.get_output_space().format_as(raw, self.output_space)
+
+    def cost(self, Y, Y_hat):
+
+        raw_space = self.raw_layer.get_output_space()
+        target_space = self.output_space
+        raw_Y = target_space.format_as(Y, raw_space)
+
+        if isinstance(raw_space, CompositeSpace):
+            # Pick apart the Join that our fprop used to make Y_hat
+            assert hasattr(Y_hat, 'owner')
+            owner = Y_hat.owner
+            assert owner is not None
+            assert str(owner.op) == 'Join'
+            # first input to join op is the axis
+            raw_Y_hat = tuple(owner.inputs[1:])
+        else:
+            # To implement this generally, we'll need to give Spaces an
+            # undo_format or something. You can't do it with format_as
+            # in the opposite direction because Layer.cost needs to be
+            # able to assume that Y_hat is the output of fprop
+            raise NotImplementedError()
+        raw_space.validate(raw_Y_hat)
+
+        return self.raw_layer.cost(raw_Y, raw_Y_hat)
+
+    def set_mlp(self, mlp):
+        super(FlattenerLayer, self).set_mlp(mlp)
+        self.raw_layer.set_mlp(mlp)
+
+    def get_weights(self):
+        return self.raw_layer.get_weights()

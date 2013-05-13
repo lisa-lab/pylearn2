@@ -1,0 +1,13 @@
+This package has diverged from James Bergstra's original repo.
+
+Some of it has been updated for Windows support, but this refers to parts
+of pylearn2 outside of TheanoLinear so can't be pushed back to the original
+repo.
+
+matrixmul.py has been removed because it adds more ops than just matrix
+multiplication into the graph. It was trying to implicitly do Space conversion.
+pylearn2.linear has a replacement, but this can't really be pushed back to
+the TheanoLinear repo because TheanoLinear doesn't have Spaces.
+
+See unshared_conv/README for notes about modifications to that functionality.
+

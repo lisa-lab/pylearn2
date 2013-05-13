@@ -5,10 +5,13 @@ import theano.tensor as T
 
 class DefaultTrainingAlgorithm(TrainingAlgorithm):
     def __init__(self, batch_size=None, batches_per_iter=1000,
-                 monitoring_batches=-1, monitoring_dataset=None):
+                 monitoring_batches=-1, monitoring_dataset=None,
+                 termination_criterion=None):
         """
         if batch_size is None, reverts to the force_batch_size field of the
         model
+        termination_criterion: if specified, can cause the algorithm to terminate
+                before model.learn_batch says to
         """
         self.batch_size, self.batches_per_iter = batch_size, batches_per_iter
         if monitoring_dataset is None:
@@ -16,6 +19,7 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
         self.monitoring_dataset = monitoring_dataset
         self.monitoring_batches = monitoring_batches
         self.bSetup = False
+        self.termination_criterion = termination_criterion
 
     def setup(self, model, dataset):
         """
@@ -93,5 +97,12 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
             msg = ('The learn method of model %s did not return a boolean value.' +
                    'Please update your model accordingly.')
             raise ValueError(msg % str(model))
+        self.learn_more = learn_more
 
-        return learn_more
+    def continue_learning(self, model):
+        if self.learn_more:
+            if self.termination_criterion is not None:
+                return self.termination_criterion.continue_learning(model)
+            return True
+        return False
+

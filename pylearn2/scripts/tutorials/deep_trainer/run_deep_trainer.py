@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 """
 See readme.txt
 
@@ -17,7 +17,7 @@ from pylearn2.models.rbm import GaussianBinaryRBM
 from pylearn2.models.softmax_regression import SoftmaxRegression
 from pylearn2.training_algorithms.sgd import SGD
 from pylearn2.costs.autoencoder import MeanSquaredReconstructionError
-from pylearn2.training_algorithms.sgd import EpochCounter
+from pylearn2.termination_criteria import EpochCounter
 from pylearn2.datasets import cifar10
 from pylearn2.datasets import mnist
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix

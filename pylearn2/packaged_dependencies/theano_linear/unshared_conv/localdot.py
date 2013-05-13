@@ -3,11 +3,21 @@ XXX
 """
 
 from ..linear import LinearTransform
-from unshared_conv import FilterActs, ImgActs, WeightActs
+from unshared_conv import FilterActs, ImgActs
+from theano.sandbox import cuda
+if cuda.cuda_available:
+    import gpu_unshared_conv # register optimizations
+
+import numpy as np
+
+try:
+    import matplotlib.pyplot as plt
+except ImportError:
+    pass
 
 class LocalDot(LinearTransform):
     """
-    LocalDot is an linear operation computationlly similar to
+    LocalDot is an linear operation computationally similar to
     convolution in the spatial domain, except that whereas convolution
     applying a single filter or set of filters across an image, the
     LocalDot has different filterbanks for different points in the image.
@@ -24,13 +34,13 @@ class LocalDot(LinearTransform):
         images
 
     Filterbank shape is 7-tuple (!)
-        row_positions
-        col_positions
-        colors_per_group
-        height
-        width
-        color_groups
-        filters_per_group
+        0 row_positions
+        1 col_positions
+        2 colors_per_group
+        3 height
+        4 width
+        5 color_groups
+        6 filters_per_group
 
     The result of left-multiplication a 5-tuple with shape:
         filter_groups
@@ -43,10 +53,14 @@ class LocalDot(LinearTransform):
 
     def __init__(self, filters, irows, icols=None,
             subsample=(1, 1),
-            border_mode='valid',
             padding_start=None,
             filters_shape=None,
             message=""):
+        """
+
+        irows: image rows
+
+        """
         LinearTransform.__init__(self, [filters])
         self._filters = filters
         if filters_shape is None:
@@ -61,7 +75,6 @@ class LocalDot(LinearTransform):
         if self._icols != self._irows:
             raise NotImplementedError('GPU code at least needs square imgs')
         self._subsample = tuple(subsample)
-        self._border_mode = border_mode
         self._padding_start = padding_start
 
         if len(self._filters_shape) != 7:
@@ -78,6 +91,7 @@ class LocalDot(LinearTransform):
             self._message = filters.name
 
     def rmul(self, x):
+        assert x.ndim == 5
         return self._filter_acts(x, self._filters)
 
     def rmul_T(self, x):
@@ -106,3 +120,21 @@ class LocalDot(LinearTransform):
                 msg='%s{%s}'% (self.__class__.__name__,
                     self._message))
         """
+
+    def imshow_gray(self):
+        filters = self._filters.get_value()
+        modR, modC, colors, rows, cols, grps, fs_per_grp = filters.shape
+        print filters.shape
+
+        rval = np.zeros((
+            modR * (rows + 1) - 1,
+            modC * (cols + 1) - 1,
+        ))
+
+        for rr, modr in enumerate(xrange(0, rval.shape[0], rows + 1)):
+            for cc, modc in enumerate(xrange(0, rval.shape[1], cols + 1)):
+                rval[modr:modr + rows, modc:modc + cols] = filters[rr, cc, 0, :, :, 0, 0]
+
+        plt.imshow(rval, cmap='gray')
+        return rval
+

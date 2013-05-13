@@ -4,7 +4,7 @@ from pylearn2.datasets.dataset import Dataset
 import numpy
 
 def foveate_channel(img, rings, output, start_idx):
-    """ 
+    """
     For a given channel (image), perform pooling on peripheral vision.
     """
     ring_w = numpy.sum(rings)
@@ -18,7 +18,7 @@ def foveate_channel(img, rings, output, start_idx):
     output[:, start_idx : end_idx] = inner_img
 
     # start by downsampling the periphery of the images
-    idx = 0 
+    idx = 0
     start_idx = end_idx
     for rd in rings:
         # downsample the ring with top-left corner (idx,idx) of width rd
@@ -68,12 +68,12 @@ def downsample_rect(img, start_row, start_col, end_row, end_col, width, output, 
             block = img[:, i:i+width, j:j+width]
             output[:,idx] = numpy.apply_over_axes(numpy.mean, block, axes=[1,2])[:,0,0]
             idx += 1
-    
+
     return idx
 
 
 def defoveate_channel(img, rings, dense_input, start_idx):
-    """ 
+    """
     Defoveate a single channel of the DenseDesignMatrix dense_input into the
     variable, stored in topological ordering.
     :param img: channel for defoveated image of shape (batch, img_h, img_w)
@@ -88,12 +88,12 @@ def defoveate_channel(img, rings, dense_input, start_idx):
     inner_w = img.shape[2] - 2*ring_w
     end_idx = start_idx + inner_h * inner_w
     inner_img = dense_input[:, start_idx : end_idx].reshape(-1, inner_h, inner_w)
-   
-    # now restore image center in uncompressed image 
+
+    # now restore image center in uncompressed image
     img[:, ring_w:ring_w+inner_h, ring_w:ring_w+inner_w] = inner_img
 
     # now undo downsampling along the periphery
-    idx = 0 
+    idx = 0
     start_idx = end_idx
     for rd in rings:
         # downsample the ring with top-left corner (idx,idx) of width rd
@@ -155,7 +155,7 @@ def get_encoded_size(img_h, img_w, rings):
     # count number of pixels after compression
     for r in rings:
         if (img_h%r) != 0 or (img_w%r) != 0:
-            raise ValueError('Image width (%i) or height (%i) is not a multiple of ring size %i' % 
+            raise ValueError('Image width (%i) or height (%i) is not a multiple of ring size %i' %
                              (img_h, img_w, r))
         pool_len +=  2*img_h/r +  2*(img_w - 2*r)/r
         img_h -= 2*r
@@ -169,9 +169,9 @@ def encode(topo_X, rings):
     :param topo_X: dataset matrix in topological format (batch, rows, cols, chans)
     :param rings: list of ring_sizes which were used to generate dense_input
     """
-    (batch_size, img_h, img_w, chans) = topo_X.shape        
+    (batch_size, img_h, img_w, chans) = topo_X.shape
 
-    # determine output shape 
+    # determine output shape
     out_size = get_encoded_size(img_h, img_w, rings)
     output = numpy.zeros((batch_size, out_size * chans))
 
@@ -220,8 +220,11 @@ class RetinaDecodingBlock(object):
 
     def apply(self, dataset, can_fit=False):
         X = dataset.get_design_matrix()
-        topo_X = decode(X, self.img_shp, self.rings)
+        topo_X = self.perform(X)
         dataset.set_topological_view(topo_X)
+
+    def perform(self, X):
+        return decode(X, self.img_shp, self.rings)
 
 
 class RetinaCodingViewConverter(DefaultViewConverter):
@@ -233,7 +236,10 @@ class RetinaCodingViewConverter(DefaultViewConverter):
         self.encoder = RetinaEncodingBlock(rings)
 
     def design_mat_to_topo_view(self, X):
-        return self.decoder.apply(X)
+        return self.decoder.perform(X)
+
+    def design_mat_to_weights_view(self, X):
+        return self.design_mat_to_topo_view(X)
 
     def topo_view_to_design_mat(self, V):
         return self.encoder.apply(V)

@@ -2,7 +2,6 @@ import numpy as np
 from PIL import Image
 from pylearn2.datasets.dense_design_matrix import DefaultViewConverter
 from pylearn2.utils.image import show
-from pylearn2.utils import image
 from pylearn2.utils import py_integer_types
 import warnings
 
@@ -107,7 +106,8 @@ class PatchViewer(object):
 
         if self.is_color:
             assert patch.ndim == 3
-            assert patch.shape[-1] == 3
+            if not (patch.shape[-1] == 3):
+                raise ValueError("Expected color image to have shape[-1]=3, but shape[-1] is "+str(patch.shape[-1]))
         else:
             assert patch.ndim in [2,3]
             if patch.ndim == 3:

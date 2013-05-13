@@ -4,13 +4,16 @@ Functionality for preprocessing Datasets.
 
 __authors__ = "Ian Goodfellow, David Warde-Farley, Guillaume Desjardins, and Mehdi Mirza"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
-__credits__ = ["Ian Goodfellow"]
+__credits__ = ["Ian Goodfellow", "David Warde-Farley", "Guillaume Desjardins",
+               "Mehdi Mirza"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
-import warnings
+
 import copy
+import logging
+import warnings
 import numpy as np
 try:
     from scipy import linalg
@@ -22,8 +25,12 @@ import theano.tensor as T
 from pylearn2.base import Block
 from pylearn2.linear.conv2d import Conv2D
 from pylearn2.space import Conv2DSpace
+from pylearn2.expr.preprocessing import global_contrast_normalize
 from pylearn2.utils.insert_along_axis import insert_columns
 from pylearn2.utils import sharedX
+
+
+log = logging.getLogger(__name__)
 
 convert_axes = Conv2DSpace.convert_numpy
 
@@ -77,6 +84,12 @@ class Preprocessor(object):
         """
 
         raise NotImplementedError(str(type(self))+" does not implement an apply method.")
+
+    def invert(self):
+        """
+        Do any necessary prep work to be able to support the "inverse" method
+        later. Default implementation is no-op.
+        """
 
 class ExamplewisePreprocessor(Preprocessor):
     """
@@ -681,50 +694,93 @@ class Downsample(object):
         dataset.set_topological_view(X)
 
 
-class GlobalContrastNormalization(object):
-    def __init__(self, subtract_mean=True, std_bias=10.0, use_norm=False):
+class GlobalContrastNormalization(Preprocessor):
+    def __init__(self, subtract_mean=True,
+                 scale=1., sqrt_bias=None, use_std=None, min_divisor=1e-8,
+                 std_bias=None, use_norm=None,
+                 batch_size=None):
+        """
+        See the docstring for `global_contrast_normalize` in
+        `pylearn2.expr.preprocessing`.
+
+        Parameters
+        ----------
+        batch_size : int or None, optional
+            If specified, read, apply and write the transformed
+            data in batches no larger than `batch_size`.
+
+        std_bias is a deprecated alias for sqrt_bias.
+        use_norm is a deprecated argument that controls the same thing as use_std,
+            except that use_norm=True means use_std=False.
+
+        use_std defaults to True and sqrt_bias defaults to 10 if nothing is specified.
+        Both of these defaults will change for consistency with pylearn2.expr.preprocessing
+        sometime after October 12, 2013.
+        The defaults aren't specified as part of the method signature so that we can tell
+        whether the client is using each name for each option.
         """
 
-        Optionally subtracts the mean of each example
-        Then divides each example either by the standard deviation of the
-        pixels contained in that example or by the norm of that example
+        if std_bias is not None:
+            warnings.warn("std_bias is deprecated, and may be removed after October 12, 2013. Switch to sqrt_bias.", stacklevel=2)
+            if sqrt_bias is not None:
+                if std_bias == sqrt_bias:
+                    warnings.warn("You're specifying both std_bias and sqrt_bias, which are actually aliases for the same parameter. You're setting them both to the same thing so it's OK, but you probably want to change your script to just specify sqrt_bias.",stacklevel=2)
+                else:
+                    raise ValueError("You specified sqrt_bias and std_bias to different values, but they are aliases of each other. Specify only sqrt_bias. std_bias is a deprecated alias.", stacklevel=2)
+            sqrt_bias = std_bias
 
-        Parameters:
+        if sqrt_bias is None:
+            warnings.warn("You are not specifying a value for sqrt_bias. Note that the default value will change on or after October 12, 2013, to be consistent with pylearn2.expr.preprocessing.")
+            sqrt_bias = 10.
 
-            subtract_mean: boolean, if True subtract the mean of each example
-            std_bias: Add this amount inside the square root when computing
-                      the standard deviation or the norm
-            use_norm: If True uses the norm instead of the standard deviation
+        if use_norm is not None:
+            warnings.warn("use_norm is deprecated, and may be removed after October 12, 2013. Pass the opposite value to use_std.", stacklevel=2)
+            if use_std is not None:
+                if use_std == (not use_norm):
+                    warnings.warn("You're specifying both use_std and use_norm. You have them set to the opposite of each other, i.e. both are requesting the same behavior, so you're OK, but you probably want to change your script to only specify one.", stacklevel=2)
+                else:
+                    raise ValueError("use_std conflicts with use_norm.")
+            use_std = not use_norm
 
+        if use_std is None:
+            warnings.warn("You are not specifying a value for use_std. The default of use_std will change on or after October 12, 2013 to be consistent with pylearn2.expr.preprocessing.")
 
-            The default parameters of subtract_mean = True, std_bias = 10.0,
-            use_norm = False are used in replicating one step of the
-            preprocessing used by Coates, Lee and Ng on CIFAR10 in their paper
-            "An Analysis of Single Layer Networks in Unsupervised Feature
-            Learning"
-        """
+            use_std = True
 
-        self.subtract_mean = subtract_mean
-        self.std_bias = std_bias
-        self.use_norm = use_norm
+        self._subtract_mean = subtract_mean
+        self._use_std = use_std
+        self._sqrt_bias = sqrt_bias
+        # These were not parameters of the old preprocessor.
+        self._scale = scale
+        self._min_divisor = min_divisor
+        if batch_size is not None:
+            batch_size = int(batch_size)
+            assert batch_size > 0, "batch_size must be positive"
+        self._batch_size = batch_size
 
     def apply(self, dataset, can_fit=False):
-        X = dataset.get_design_matrix()
-
-        assert X.dtype == 'float32' or X.dtype == 'float64'
-
-        if self.subtract_mean:
-            X -= X.mean(axis=1)[:, None]
-
-        if self.use_norm:
-            scale = np.sqrt(np.square(X).sum(axis=1) + self.std_bias)
+        if self._batch_size is None:
+            X = global_contrast_normalize(dataset.get_design_matrix(),
+                                          scale=self._scale,
+                                          subtract_mean=self._subtract_mean,
+                                          use_std=self._use_std,
+                                          sqrt_bias=self._sqrt_bias,
+                                          min_divisor=self._min_divisor)
+            dataset.set_design_matrix(X)
         else:
-            # use standard deviation
-            scale = np.sqrt(np.square(X).mean(axis=1) + self.std_bias)
-        eps = 1e-8
-        scale[scale < eps] = 1.
-        X /= scale[:, None]
-        dataset.set_design_matrix(X)
+            X = dataset.get_design_matrix()
+            data_size = X.shape[0]
+            last = (np.floor(data_size / float(self._batch_size)) *
+                    self._batch_size)
+            for i in xrange(0, data_size, self._batch_size):
+                if i >= last:
+                    stop = i + np.mod(data_size, self._batch_size)
+                else:
+                    stop = i + self._batch_size
+                log.info("GCN processing data from {} to {}".format(i, stop))
+                data = self.transform(X[i:stop])
+                dataset.set_design_matrix(data, start = i)
+
 
 class GlobalContrastNormalizationPyTables(object):
     def __init__(self, subtract_mean=True, std_bias=10.0, use_norm=False, batch_size = 5000):
@@ -753,6 +809,9 @@ class GlobalContrastNormalizationPyTables(object):
         self.std_bias = std_bias
         self.use_norm = use_norm
         self._batch_size = batch_size
+        warnings.warn("GlobalContrastNormalizationPyTables has been rolled "
+                      "into GlobalContrastNormalization. This class will "
+                      "disappear after October 12, 2013.")
 
     def transform(self, X):
         assert X.dtype == 'float32' or X.dtype == 'float64'
@@ -775,7 +834,10 @@ class GlobalContrastNormalizationPyTables(object):
         data_size = X.shape[0]
         last = np.floor(data_size / float(self._batch_size)) * self._batch_size
         for i in xrange(0, data_size, self._batch_size):
-            stop = i + np.mod(data_size, self._batch_size) if i>= last else i + self._batch_size
+            if i >= last:
+                stop = i + np.mod(data_size, self._batch_size)
+            else:
+                stop = i + self._batch_size
             print "GCN processing data from {} to {}".format(i, stop)
             data = self.transform(X[i:stop])
             dataset.set_design_matrix(data, start = i)
@@ -852,6 +914,10 @@ class ZCA(Preprocessor):
         dataset.set_design_matrix(new_X)
 
     def invert(self):
+        """
+        Do any necessary prep work to be able to support the "inverse" method
+        later.
+        """
         self.inv_P_ = np.linalg.inv(self.P_)
 
     def inverse(self, X):
@@ -1132,5 +1198,51 @@ class CentralWindow(Preprocessor):
             new_arr = np.transpose(new_arr, tuple(('c', 0, 1, 'b').index(axis) for axis in axes))
 
         dataset.set_topological_view(new_arr, axes=axes)
+
+class ShuffleAndSplit(Preprocessor):
+
+    def __init__(self, seed, start, stop):
+        """
+        Allocates a numpy rng with the specified seed.
+        Note: this must be a seed, not a RandomState. A new RandomState is
+        re-created with the same seed every time the preprocessor is called.
+        This way if you save the preprocessor and re-use it later it will give
+        the same dataset regardless of whether you save the preprocessor before
+        or after applying it.
+        Shuffles the data, then takes examples in range (start, stop)
+        """
+
+        self.__dict__.update(locals())
+        del self.self
+
+    def apply(self, dataset, can_fit=False):
+        start = self.start
+        stop = self.stop
+        rng = np.random.RandomState(self.seed)
+        X = dataset.X
+        y = dataset.y
+
+        if y is not None:
+            assert X.shape[0] == y.shape[0]
+
+        for i in xrange(X.shape[0]):
+            j = rng.randint(X.shape[0])
+            tmp = X[i, :].copy()
+            X[i,:] = X[j, :].copy()
+            X[j,:] = tmp
+
+            if y is not None:
+                tmp = y[i, :].copy()
+                y[i, :] = y[j,:].copy()
+                y[j, :] = tmp
+        assert start >= 0
+        assert stop > start
+        assert stop <= X.shape[0]
+
+        dataset.X = X[start:stop, :]
+        if y is not None:
+            dataset.y = y[start:stop, :]
+
+
 
 

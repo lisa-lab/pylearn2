@@ -4,14 +4,18 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
-from pylearn2.packaged_dependencies.theano_linear.conv2d import Conv2d as OrigConv2D
-import theano.tensor as T
-from pylearn2.utils import sharedX
-import numpy as np
-from theano.tensor.nnet.conv import conv2d
-from pylearn2.linear.linear_transform import LinearTransform as P2LT
+
 import functools
+import numpy as np
+
 import theano
+import theano.tensor as T
+from theano.tensor.nnet.conv import conv2d
+
+from pylearn2.packaged_dependencies.theano_linear.conv2d import Conv2d as OrigConv2D
+
+from pylearn2.linear.linear_transform import LinearTransform as P2LT
+from pylearn2.utils import sharedX
 
 class Conv2D(OrigConv2D):
     """ Extend the TheanoLinear Conv2d class to support everything
@@ -68,7 +72,6 @@ class Conv2D(OrigConv2D):
                 axes.index('c'),
                 axes.index(0),
                 axes.index(1))
-
 
         rval =  conv2d(
                 x, self._filters,
@@ -181,7 +184,6 @@ class Conv2D(OrigConv2D):
 
     def set_batch_size(self, batch_size):
         self._img_shape = tuple([ batch_size ] + list(self._img_shape[1:]))
-
 
 
 def default_rng():

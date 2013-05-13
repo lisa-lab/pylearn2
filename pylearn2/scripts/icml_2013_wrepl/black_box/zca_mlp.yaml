@@ -1,0 +1,78 @@
+!obj:pylearn2.train.Train {
+    # Here we specify the dataset to train on. We train on only the first 900 of the examples, so
+    # that the rest may be used as a validation set.
+    # The "&train" syntax lets us refer back to this object as "*train" elsewhere in the yaml file
+    dataset: &train !obj:pylearn2.scripts.icml_2013_wrepl.black_box.black_box_dataset.BlackBoxDataset {
+        which_set: 'train',
+        start: 0,
+        stop: 900,
+        preprocessor: &preprocessor !pkl: "zca.pkl"
+    },
+    # Here we specify the model to train as being an MLP
+    model: !obj:pylearn2.models.mlp.MLP {
+        batch_size: 900,
+        layers : [
+            # We use two hidden layers with rectified linear activations
+            !obj:pylearn2.models.mlp.RectifiedLinear {
+                layer_name: 'h0',
+                dim: 1875,
+                sparse_init: 15,
+                # Rather than using weight decay, we constrain the norms of the weight vectors
+                max_col_norm: 1.
+            },
+            # We use two hidden layers with rectified linear activations
+            !obj:pylearn2.models.mlp.RectifiedLinear {
+                layer_name: 'h1',
+                dim: 1875,
+                sparse_init: 15,
+                # Rather than using weight decay, we constrain the norms of the weight vectors
+                max_col_norm: 1.
+            },
+            !obj:pylearn2.models.mlp.Softmax {
+                max_col_norm: 2.,
+                layer_name: 'y',
+                init_bias_target_marginals: *train,
+                # Initialize the weights to all 0s
+                irange: .0,
+                n_classes: 9
+            }
+        ],
+        nvis: 1875,
+    },
+    # We train using SGD and momentum
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        learning_rate: 10.,
+        init_momentum: .6,
+        # We monitor how well we're doing during training on a validation set
+        monitoring_dataset:
+            {
+                'train' : *train,
+                'valid' : !obj:pylearn2.scripts.icml_2013_wrepl.black_box.black_box_dataset.BlackBoxDataset {
+                    preprocessor: *preprocessor,
+                    which_set: 'train',
+                    start: 900,
+                    stop: 1000,
+                }
+            },
+        # We stop when validation set classification error hasn't decreased for 10 epochs
+        termination_criterion: !obj:pylearn2.termination_criteria.MonitorBased {
+            channel_name: "valid_y_misclass",
+            prop_decrease: 0.,
+            N: 20
+        },
+    },
+    # We save the model whenever we improve on the validation set classification error
+    extensions: [
+        !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
+             channel_name: 'valid_y_misclass',
+             save_path: "${PYLEARN2_TRAIN_FILE_FULL_STEM}_best.pkl"
+        },
+        !obj:pylearn2.training_algorithms.sgd.LinearDecayOverEpoch {
+            start: 5,
+            saturate: 100,
+            decay_factor: .01
+        }
+    ],
+    save_path: "zca_mlp.pkl",
+    save_freq: 1
+}

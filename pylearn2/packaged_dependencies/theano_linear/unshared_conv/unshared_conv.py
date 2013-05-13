@@ -99,9 +99,18 @@ class FilterActs(Base):
                     rc_filters = filters[mR, mC, :, :, :, gg, :]
                     # rc_images are fcolors x frows x fcols x count
                     # rc_filters are fcolors x frows x fcols x fpg
-                    rc_hidacts = numpy.dot(
-                        rc_filters.reshape(-1, filters_per_group).T,
-                        rc_images.reshape(-1, icount))
+
+                    left_arg = rc_filters.reshape(-1, filters_per_group).T
+                    right_arg = rc_images.reshape(-1, icount)
+
+                    try:
+                        rc_hidacts = numpy.dot(left_arg, right_arg)
+                    except ValueError, e:
+                        if 'matrices are not aligned' in str(e):
+                            raise ValueError("matrices are not aligned: " + \
+                                    str(left_arg.shape) + ' vs ' + str(right_arg.shape))
+                        else:
+                            raise
                     hidacts[gg, :, mR, mC, :] = rc_hidacts
         ostor[0][0] = hidacts
 

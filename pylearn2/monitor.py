@@ -20,8 +20,9 @@ import theano.sparse
 from pylearn2.config import yaml_parse
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.utils import function
-from pylearn2.utils.string_utils import number_aware_alphabetical_key
+from pylearn2.utils.iteration import is_stochastic
 from pylearn2.utils import sharedX
+from pylearn2.utils.string_utils import number_aware_alphabetical_key
 from theano import config
 import numpy as np
 from theano import tensor as T
@@ -69,7 +70,7 @@ class Monitor(object):
         # examples. If the model acts on a space with more than the batch index
         # and channel dimension, the model has topological dimensions, so the
         # topological view of the data should be used.
-        vector = model.get_input_space().make_theano_batch()
+        vector = model.get_input_space().make_theano_batch(name='monitoring_input')
         if isinstance(vector.type, theano.sparse.SparseType):
             self.topo = False
         else:
@@ -117,9 +118,11 @@ class Monitor(object):
             seed = [ None ] * len(dataset)
         if not isinstance(seed, list):
             seed = [ seed ]
-        if any([len(l) != len(dataset) for l in [mode, batch_size, seed]]):
+        if len(mode) != len(dataset):
+            raise ValueError("Received "+str(len(dataset))+" dataset but " + str(len(mode)) + " modes.")
+        if any([len(l) != len(dataset) for l in [batch_size, seed]]):
             raise ValueError("make sure each dataset has its iteration " + \
-                        "mode, batch size and number of batches.")
+                        "batch size and number of batches.")
         for (d, m, b, n, sd) in safe_izip(dataset, mode, batch_size, num_batches, seed):
             try:
                 it = d.iterator(mode=m, batch_size=b,
@@ -137,6 +140,8 @@ class Monitor(object):
                 # each time
                 # Also, must not be None, because this makes the iterator pick
                 # a seed based on the clock
+                if sd is None:
+                    raise TypeError("Monitor requires a seed when using stochastic iteration modes.")
                 if not isinstance(sd, (list, tuple, int)):
                     raise TypeError("Monitor requires a seed (not a random number generator) when using stochastic iteration modes.")
             else:
@@ -189,9 +194,10 @@ class Monitor(object):
                     self.run_prereqs(X, None, d)
                     a(X)
                 if X.ndim == 2:
-                    actual_ne += X.shape[0]
+                    actual_batch_size = X.shape[0]
                 else:
-                    actual_ne += X.shape[d.get_topo_batch_axis()]
+                    actual_batch_size = X.shape[d.get_topo_batch_axis()]
+                actual_ne += actual_batch_size
             # end for X
             if actual_ne != ne:
                 raise RuntimeError("At compile time, your iterator said it had "
@@ -559,7 +565,8 @@ class Monitor(object):
     def num_batches(self):
         return self._num_batches
 
-    def setup(self, dataset, cost, batch_size, num_batches = None, extra_costs=None):
+    def setup(self, dataset, cost, batch_size, num_batches = None, extra_costs=None,
+            mode='sequential'):
         """
         Sets up the monitor for a cost minimization problem.
         Adds channels defined by both the model and the cost for
@@ -598,12 +605,19 @@ class Monitor(object):
         supervised = any(cost.supervised for cost in costs.values())
         model = self.model
 
-        X = model.get_input_space().make_theano_batch()
-        X.name = 'monitor_X'
+        X_space = model.get_input_space()
+        X = X_space.make_theano_batch(name='monitor_X')
+
+        if config.compute_test_value != 'off':
+            X.tag.test_value = X_space.get_origin_batch(batch_size).astype(X.dtype)
 
         if supervised:
-            Y = model.get_output_space().make_theano_batch()
-            Y.name = 'monitor_Y'
+            Y_space = model.get_output_space()
+            Y = Y_space.make_theano_batch(name='monitor_Y')
+
+            if config.compute_test_value != 'off':
+                Y.tag.test_value = Y_space.get_origin_batch(batch_size).astype(Y.dtype)
+
             ipt = (X, Y)
         else:
             Y = None
@@ -622,12 +636,19 @@ class Monitor(object):
             custom_channels.update(channels)
         model_channels = model.get_monitoring_channels(X, Y)
         custom_channels.update(model_channels)
+
+        if is_stochastic(mode):
+            seed = [[2013, 02, 22]]
+        else:
+            seed = None
+
         for dataset_name in dataset:
             cur_dataset = dataset[dataset_name]
             self.add_dataset(dataset=cur_dataset,
-                                 mode='sequential',
+                                 mode=mode,
                                  batch_size=batch_size,
-                                 num_batches=num_batches)
+                                 num_batches=num_batches,
+                                 seed=seed)
             if dataset_name == '':
                 dprefix = ''
             else:

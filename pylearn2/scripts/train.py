@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 """
 Script implementing the logic for training pylearn2 models.
 

@@ -31,11 +31,14 @@ either add it or give you advice about how to do it yourself.
     * Log-likelihood
 
 * Models
-    * Spike-and-Slab Sparse coding
+    * Autoencoders, including Contractive and Denoising Autoencoders
     * RBMs, including gaussian and ssRBM. Varying levels of integration into 
        the full framework.
-    * Autoencoders, including Contractive and Denoising Autoencoders
+    * k-means
     * Local Coordinate Coding
+    * Maxout networks
+    * PCA
+    * Spike-and-Slab Sparse coding
     * SVMs (we provide a wrapper around scikits.learn that makes it easy to
             train a multiclass svm on dense training data in a memory
             efficient way, which doesn't always happen using scikits.learn

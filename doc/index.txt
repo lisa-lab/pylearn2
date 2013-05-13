@@ -117,6 +117,7 @@ Developer
 * Follow the LISA lab coding style guidelines:
 http://deeplearning.net/software/pylearn/v2_planning/API_coding_style.html
 
+* :ref:`api_change` -- the best practices guide you should follow when changing any API in the library
 
 
 

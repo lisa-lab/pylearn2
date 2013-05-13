@@ -139,19 +139,20 @@ def instantiate_all(graph):
         for key in graph:
             if should_instantiate(graph[key]):
                 graph[key] = instantiate_all(graph[key])
-            #endif
-        #endfor
-    #endif
+        if hasattr(graph, 'keys'):
+            for key in graph.keys():
+                if should_instantiate(key):
+                    new_key = instantiate_all(key)
+                    graph[new_key] = graph[key]
+                    del graph[key]
+
     if isinstance(graph, ObjectProxy):
         graph = graph.instantiate()
-    #endif
+
     if isinstance(graph, list):
         for i, elem in enumerate(graph):
             if should_instantiate(elem):
                 graph[i] = instantiate_all(elem)
-            #
-        #endfor
-    #endif
 
     return graph
 
@@ -178,6 +179,9 @@ class ObjectProxy(object):
 
     def __iter__(self):
         return self.kwds.__iter__()
+
+    def keys(self):
+        return list(self.kwds)
 
     def instantiate(self):
         """
@@ -283,7 +287,6 @@ def multi_constructor_pkl(loader, tag_suffix, node):
     details on the call signature.
     """
 
-    #print dir(loader)
     mapping = loader.construct_yaml_str(node)
     if tag_suffix != "" and tag_suffix != u"":
         raise AssertionError('Expected tag_suffix to be "" but it is "'+tag_suffix+'"')

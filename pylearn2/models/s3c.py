@@ -883,7 +883,7 @@ class S3C(Model, Block):
 
     def random_design_matrix(self, batch_size, theano_rng = None,
                             H_sample = None, S_sample = None,
-                            full_sample = True):
+                            full_sample = True, return_all = False):
         """
             H_sample: a matrix of values of H
                       if none is provided, samples one from the prior
@@ -904,7 +904,8 @@ class S3C(Model, Block):
 
 
         if H_sample is None:
-            H_sample = theano_rng.binomial( size = hid_shape, n = 1, p = self.p)
+            H_sample = theano_rng.binomial( size = hid_shape, n = 1, p = self.p, dtype = self.W.dtype)
+        assert H_sample.dtype == 'float32' # rm
 
         if hasattr(H_sample,'__array__'):
             assert len(H_sample.shape) == 2
@@ -912,11 +913,10 @@ class S3C(Model, Block):
             assert len(H_sample.type.broadcastable) == 2
 
         if S_sample is None:
-            pos_s_sample = theano_rng.normal( size = hid_shape, avg = self.mu, std = T.sqrt(1./self.alpha) )
-        else:
-            pos_s_sample = S_sample
+            S_sample = theano_rng.normal( size = hid_shape, avg = self.mu, std = T.sqrt(1./self.alpha) )
+        assert S_sample.dtype == 'float32' # rm
 
-        final_hs_sample = H_sample * pos_s_sample
+        final_hs_sample = H_sample * S_sample
 
         assert len(final_hs_sample.type.broadcastable) == 2
 
@@ -925,12 +925,19 @@ class S3C(Model, Block):
 
         if not full_sample:
             warnings.warn('showing conditional means (given sampled h and s) on visible units rather than true samples')
+            if return_all:
+                return H_sample, S_sample, V_mean
             return V_mean
 
         V_sample = theano_rng.normal( size = V_mean.shape, avg = V_mean, std = T.sqrt(1./self.B))
+        assert V_sample.dtype == 'float32' # rm
 
+        if return_all:
+            assert H_sample is not None
+            assert S_sample is not None
+            assert V_sample is not None
+            return H_sample, S_sample, V_sample
         return V_sample
-
 
     @classmethod
     def expected_log_prob_vhs_needed_stats(cls):

@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 #argument: path to a pkl file
 #loads the pkl file and figures out which fields are CudaNDArrays
 

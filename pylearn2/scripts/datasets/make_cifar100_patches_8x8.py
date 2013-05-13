@@ -48,7 +48,7 @@ README.close()
 print "Preprocessing the data..."
 pipeline = preprocessing.Pipeline()
 pipeline.items.append(preprocessing.ExtractPatches(patch_shape=(8,8),num_patches=2*1000*1000))
-pipeline.items.append(preprocessing.GlobalContrastNormalization())
+pipeline.items.append(preprocessing.GlobalContrastNormalization(sqrt_bias=10., use_std=True))
 pipeline.items.append(preprocessing.ZCA())
 data.apply_preprocessor(preprocessor = pipeline, can_fit = True)
 

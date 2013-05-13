@@ -1,4 +1,4 @@
-#!/bin/env python
+#!/usr/bin/env python
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -116,6 +116,9 @@ def validate_all_samples():
             assert is_binary(y)
             s = y.sum(axis=1)
             assert np.all(s == 1 )
+        if 'Ising' in str(type(layer)):
+            s = state.get_value()
+            assert is_binary((s + 1.) / 2.)
 
 
 
