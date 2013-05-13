@@ -486,7 +486,7 @@ class Conv2DSpace(Space):
                 batch = batch.transpose(*[self.axes.index(axis) for axis in new_axes])
             return batch.reshape((batch.shape[0], self.get_total_dimension()))
         if isinstance(space, Conv2DSpace):
-            return Conv2DSpace.convert(batch, self.axes, space.axes)
+            return Conv2DSpace.convert_numpy(batch, self.axes, space.axes)
         raise NotImplementedError("Conv2DSPace doesn't know how to format as "+str(type(space)))
 
 
