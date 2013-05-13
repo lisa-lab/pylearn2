@@ -4,6 +4,7 @@ __copyright__ = "Copyright 2013, Universite de Montreal"
 from theano import tensor as T
 
 from pylearn2.costs.cost import Cost
+from pylearn2.costs.mlp.dropout import Dropout
 from pylearn2.utils import safe_izip
 
 class Default(Cost):

@@ -276,7 +276,7 @@ Original exception: """+str(e))
         if 'hidShape' in dir(model):
             hr, hc = model.hidShape
 
-    pv = patch_viewer.PatchViewer(grid_shape=(hr,hc), patch_shape=weights_view.shape[1:3],
+    pv = patch_viewer.PatchViewer(grid_shape=(hr,hc * 2), patch_shape=weights_view.shape[1:3],
             is_color = weights_view.shape[-1] == 3)
 
     if global_rescale:

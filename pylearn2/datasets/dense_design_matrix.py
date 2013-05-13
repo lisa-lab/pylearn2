@@ -468,7 +468,7 @@ class DenseDesignMatrix(Dataset):
         assert self.X.shape[0] == self.y.shape[0]
         assert self.X.shape[0] == stop - start
 
-    def convert_to_one_hot(self):
+    def convert_to_one_hot(self, min_class=0):
         """
         If y exists and is a vector of ints, converts it to a binary matrix
         Otherwise will raise some exception
@@ -483,8 +483,10 @@ class DenseDesignMatrix(Dataset):
         if 'int' not in str(self.y.dtype):
             raise ValueError("Called convert_to_one_hot on a DenseDesignMatrix whose labels aren't integer-valued.")
 
+        self.y = self.y - min_class
+
         if self.y.min() != 0:
-            raise ValueError("Index of first class should be 0.")
+            raise ValueError("Index of first class should be %d." % min_class)
 
         num_classes = self.y.max() + 1
 
@@ -785,3 +787,13 @@ def dataset_range(dataset, start, stop):
     rval.adjust_for_viewer = dataset.adjust_for_viewer
     return rval
 
+def convert_to_one_hot(dataset, min_class=0):
+    """
+    Convenient way of accessing convert_to_one_hot from a yaml file
+    """
+    dataset.convert_to_one_hot(min_class=min_class)
+    return dataset
+
+def set_axes(dataset, axes):
+    dataset.view_converter.axes = axes
+    return dataset

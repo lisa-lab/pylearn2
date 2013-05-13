@@ -36,15 +36,9 @@ dataset = yaml_parse.load(dataset_yaml_src)
 
 
 
-"""
-sample from greyscale data to see how the model injects color
-warnings.warn('hack!')
-mean = vis_batch.mean(axis=3)
-for ch in xrange(3):
-    vis_batch[:,:,:,ch] = mean
-"""
 
 vis_batch = dataset.get_batch_topo(m)
+
 _, patch_rows, patch_cols, channels = vis_batch.shape
 
 assert _ == m
