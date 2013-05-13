@@ -1144,13 +1144,16 @@ def build_stacked_RBM(nvis, nhids, batch_size, vis_type='binary',
     # Create the stack
     return StackedBlocks(layers)
 
+
 class L1_ActivationCost(Cost):
 
     def __init__(self, target, eps, coeff):
         self.__dict__.update(locals())
         del self.self
 
-    def __call__(self, model, X, Y = None, ** kwargs):
+    def expr(self, model, data, ** kwargs):
+        self.get_data_specs(model)[0].validate(data)
+        X = data
         H = model.P_H_given_V(X)
         h = H.mean(axis=0)
         err = abs(h - self.target)
@@ -1158,6 +1161,10 @@ class L1_ActivationCost(Cost):
         assert dead.ndim == 1
         rval = self.coeff * dead.mean()
         return rval
+
+    def get_data_specs(self, model):
+        return (model.get_input_space(), model.get_input_source())
+
 
 # The following functionality was deprecated, but is evidently
 # still needed to make the RBM work

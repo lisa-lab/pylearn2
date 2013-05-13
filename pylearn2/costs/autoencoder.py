@@ -7,15 +7,18 @@ from theano.tensor.shared_randomstreams import RandomStreams
 
 class MeanSquaredReconstructionError(Cost):
     def expr(self, model, data, ** kwargs):
-        X, = data
+        self.get_data_specs(model)[0].validate(data)
+        X = data
         return ((model.reconstruct(X) - X) ** 2).sum(axis=1).mean()
 
     def get_data_specs(self, model):
         return (model.get_input_space(), model.get_input_source())
 
+
 class MeanBinaryCrossEntropy(Cost):
     def expr(self, model, data, ** kwargs):
-        X, = data
+        self.get_data_specs(model)[0].validate(data)
+        X = data
         return (
             - X * tensor.log(model.reconstruct(X)) -
             (1 - X) * tensor.log(1 - model.reconstruct(X))
@@ -39,7 +42,8 @@ class SampledMeanBinaryCrossEntropy(Cost):
         self.one_ratio = ratio
 
     def expr(self, model, data, ** kwargs):
-        X, = data
+        self.get_data_specs(model)[0].validate(data)
+        X = data
         # X is theano sparse
         X_dense = theano.sparse.dense_from_sparse(X)
         noise = self.random_stream.binomial(size=X_dense.shape, n=1,
@@ -92,7 +96,8 @@ class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
         self.ratio = ratio
 
     def expr(self, model, data, ** kwargs):
-        X, = data
+        self.get_data_specs(model)[0].validate(data)
+        X = data
         # X is theano sparse
         X_dense=theano.sparse.dense_from_sparse(X)
         noise = self.random_stream.binomial(size=X_dense.shape, n=1, prob=self.ratio, ndim=None)
@@ -121,11 +126,15 @@ class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
     def get_data_specs(self, model):
         return (model.get_input_space(), model.get_input_source())
 
-#class MeanBinaryCrossEntropyTanh(object):
+#class MeanBinaryCrossEntropyTanh(Cost):
 #     def expr(self, model, data):
-#        X, = data
+#        self.get_data_specs(model)[0].validate(data)
+#        X = data
 #        X = (X + 1) / 2.
 #        return (
 #            tensor.xlogx.xlogx(model.reconstruct(X)) +
 #            tensor.xlogx.xlogx(1 - model.reconstruct(X))
 #        ).sum(axis=1).mean()
+#
+#    def get_data_specs(self, model):
+#        return (model.get_input_space(), model.get_input_source())

@@ -7,6 +7,7 @@ __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
 from pylearn2.costs.cost import Cost
+from pylearn2.space import NullSpace
 from pylearn2.utils import CallbackOp
 from pylearn2.utils import safe_zip
 from pylearn2.utils.data_specs import is_flat_specs
@@ -42,6 +43,7 @@ class CallbackCost(Cost):
         return self.data_specs
 
     def expr(self, model, data):
+        self.get_data_specs(model)[0].validate(data)
         if not isinstance(self.data_callbacks, tuple):
             callbacks = (self.data_callbacks,)
         else:
@@ -74,7 +76,9 @@ class SumOfParams(Cost):
     """
 
     def expr(self, model, data):
+        self.get_data_specs(model)[0].validate(data)
         return sum(param.sum() for param in model.get_params())
 
     def get_data_specs(self, model):
-        return (None, None)
+        # This cost does not need any data
+        return (NullSpace(), '')

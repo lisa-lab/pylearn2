@@ -14,6 +14,7 @@ from pylearn2.devtools.record import RecordMode
 from theano.tests import disturb_mem
 from pylearn2.utils import safe_union
 from pylearn2.utils import safe_izip
+from pylearn2.utils.data_specs import DataSpecsMapping
 from theano import shared
 from pylearn2.utils import function
 from pylearn2.costs.cost import FixedVarDescr
@@ -87,11 +88,9 @@ def test_bgd_unsup():
     class DummyCost(Cost):
 
         def expr(self, model, data):
-            if isinstance(data, tuple):
-                X, = data
-            else:
-                X = data
-            return T.square(model(X)-X).mean()
+            self.get_data_specs(model)[0].validate(data)
+            X = data
+            return T.square(model(X) - X).mean()
 
         def get_data_specs(self, model):
             return (model.get_input_space(), model.get_input_source())
@@ -183,6 +182,7 @@ def test_determinism():
             supervised = True
 
             def expr(self, model, data, **kwargs):
+                self.get_data_specs(model)[0].validate(data)
                 X, Y = data
                 disturb_mem.disturb_mem()
                 def mlp_pred(non_linearity):
@@ -286,15 +286,14 @@ def test_fixed_vars():
     class UnsupervisedCostWithFixedVars(Cost):
 
         def expr(self, model, data, unsup_aux_var=None, **kwargs):
-            if isinstance(data, tuple):
-                X, = data
-            else:
-                X = data
+            self.get_data_specs(model)[0].validate(data)
+            X = data
             assert unsup_aux_var is unsup_counter
             called[0] = True
             return (model.P * X).sum()
 
         def get_gradients(self, model, data, unsup_aux_var=None, **kwargs):
+            self.get_data_specs(model)[0].validate(data)
             assert unsup_aux_var is unsup_counter
             called[1] = True
             gradients, updates = Cost.get_gradients(self, model, data, unsup_aux_var=unsup_aux_var)
@@ -302,6 +301,7 @@ def test_fixed_vars():
             return gradients, updates
 
         def get_fixed_var_descr(self, model, data, **kwargs):
+            self.get_data_specs(model)[0].validate(data)
             rval = FixedVarDescr()
             rval.fixed_vars = {'unsup_aux_var': unsup_counter}
             theano_func = function(data, updates=[(unsup_counter, unsup_counter + 1)])
@@ -319,20 +319,32 @@ def test_fixed_vars():
         supervised = True
 
         def expr(self, model, data, sup_aux_var=None, **kwargs):
+            self.get_data_specs(model)[0].validate(data)
             X, Y = data
             assert sup_aux_var is sup_counter
             called[2] = True
             return (model.P * X* Y ).sum()
 
         def get_gradients(self, model, data, sup_aux_var=None, **kwargs):
+            self.get_data_specs(model)[0].validate(data)
             assert sup_aux_var is sup_counter
             called[3] = True
             return super(SupervisedCostWithFixedVars, self).get_gradients(model=model, data=data, sup_aux_var=sup_aux_var)
 
         def get_fixed_var_descr(self, model, data):
+            self.get_data_specs(model)[0].validate(data)
             rval = FixedVarDescr()
             rval.fixed_vars = {'sup_aux_var': sup_counter}
-            rval.on_load_batch = [ function(data, updates=[(sup_counter, sup_counter+1)])]
+
+            # data has to be flattened into a tuple before being passed
+            # to `function`.
+            mapping = DataSpecsMapping(self.get_data_specs)
+            flat_data = mapping.flatten(data)
+            if not isinstance(flat_data, tuple):
+                # TODO: remove that
+                flat_data = (flat_data,)
+            rval.on_load_batch = [function(
+                        flat_data, updates=[(sup_counter, sup_counter + 1)])]
             return rval
 
         def get_data_specs(self, model):
