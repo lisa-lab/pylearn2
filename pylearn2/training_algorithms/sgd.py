@@ -46,7 +46,8 @@ class SGD(TrainingAlgorithm):
                  termination_criterion=None, update_callbacks=None,
                  init_momentum = None, set_batch_size = False,
                  train_iteration_mode = None, batches_per_iter=None,
-                 theano_function_mode = None, monitoring_costs=None):
+                 theano_function_mode = None, monitoring_costs=None,
+                 seed=[2012, 10, 5]):
         """
             WRITEME
 
@@ -115,7 +116,7 @@ class SGD(TrainingAlgorithm):
             train_iteration_mode = 'shuffled_sequential'
         self.train_iteration_mode = train_iteration_mode
         self.first = True
-        self.rng = np.random.RandomState([2012, 10, 5])
+        self.rng = np.random.RandomState(seed)
         self.theano_function_mode = theano_function_mode
         self.monitoring_costs = monitoring_costs
 
