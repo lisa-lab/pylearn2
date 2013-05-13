@@ -70,7 +70,8 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
         return data
 
     def __init__(self, which_set, center=False, scale = False,
-            start = None, stop = None, one_hot = False, restrict_instances=None):
+            start = None, stop = None, one_hot = False, restrict_instances=None,
+            preprocessor=None):
         """
         :param which_set: one of ['train','test']
         :param center: data is in range [0,256], center=True subtracts 127.5.
@@ -114,7 +115,8 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
 
         view_converter = retina.RetinaCodingViewConverter((96,96,2), (8,4,2,2))
 
-        super(FoveatedNORB, self).__init__(X=X, y=y, view_converter=view_converter)
+        super(FoveatedNORB, self).__init__(X=X, y=y, view_converter=view_converter,
+                preprocessor=preprocessor)
 
         if one_hot:
             self.convert_to_one_hot()
