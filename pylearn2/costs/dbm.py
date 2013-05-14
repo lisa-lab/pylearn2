@@ -252,7 +252,7 @@ class VariationalPCD(Cost):
         """
         The partition function makes this intractable.
         """
-
+        self.get_data_specs(model)[0].validate(data)
         return None
 
     def get_monitoring_channels(self, model, data):
@@ -514,7 +514,7 @@ class TorontoSparsity(Cost):
                 coeffs=coeffs, supervised=supervised)
 
     def expr(self, model, data, return_locals=False, **kwargs):
-
+        self.get_data_specs(model)[0].validate(data)
         return self.base_cost.expr(model, data, return_locals=return_locals,
                 **kwargs)
 

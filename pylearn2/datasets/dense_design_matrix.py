@@ -207,7 +207,7 @@ class DenseDesignMatrix(Dataset):
         `self.get_data_specs()`.
         """
         if self.y is None:
-            return (self.X,)
+            return self.X
         else:
             return (self.X, self.y)
 
