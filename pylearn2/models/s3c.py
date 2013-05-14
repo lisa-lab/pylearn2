@@ -515,7 +515,9 @@ class S3C(Model, Block):
         self.monitoring_channel_prefix = prefix
 
     def get_monitoring_channels(self, data):
-        V, = data
+        space, source = self.get_monitoring_data_specs()
+        space.validate(data)
+        V = data
         try:
             self.compile_mode()
 
@@ -610,6 +612,14 @@ class S3C(Model, Block):
         finally:
             self.deploy_mode()
 
+    def get_monitoring_data_specs(self):
+        """
+        Get the data_specs describing the data for get_monitoring_channel.
+
+        This implementation returns specification corresponding to unlabeled
+        inputs.
+        """
+        return (self.get_input_space(), self.get_input_source())
 
     def __call__(self, V):
         """ this is the symbolic transformation for the Block class """
