@@ -663,7 +663,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         start = 0 if start is None else start
         stop = gcolumns.X.nrows if stop is None else stop
 
-        atom = tables.Float64Atom() if config.floatX == 'float32' else tables.Float32Atom()
+        atom = tables.Float32Atom() if config.floatX == 'float32' else tables.Float64Atom()
         filters = DenseDesignMatrixPyTables.filters
         x = h5file.createCArray(gcolumns, 'X', atom = atom, shape = ((stop - start, data.X.shape[1])),
                             title = "Data values", filters = filters)
