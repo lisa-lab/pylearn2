@@ -591,7 +591,9 @@ class DBM(Model):
         return rval
 
     def get_monitoring_channels(self, data):
-        X, = data
+        space, source = self.get_monitoring_data_specs()
+        space.validate(data)
+        X = data
         history = self.mf(X, return_history = True)
         q = history[-1]
 
@@ -608,8 +610,6 @@ class DBM(Model):
             ch = layer.get_monitoring_channels_from_state(state)
             for key in ch:
                 rval['mf_'+layer.layer_name+'_'+key]  = ch[key]
-
-
 
         if len(history) > 1:
             prev_q = history[-2]
@@ -639,10 +639,16 @@ class DBM(Model):
                 denom = np.cast[config.floatX](denom)
                 rval['mean_'+layer.layer_name+'_var_param_diff'] = sum_diff / denom
 
-
-
-
         return rval
+
+    def get_monitoring_data_specs(self):
+        """
+        Get the data_specs describing the data for get_monitoring_channel.
+
+        This implementation returns specification corresponding to unlabeled
+        inputs.
+        """
+        return (self.get_input_space(), self.get_input_source())
 
     def get_test_batch_size(self):
         return self.batch_size
