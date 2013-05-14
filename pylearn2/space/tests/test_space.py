@@ -14,9 +14,9 @@ from pylearn2.utils import function
 
 
 class DummySpace(Space):
-    def __init__(self, dim, sparse=False):
+    """Copy of VectorSpace, used for tests"""
+    def __init__(self, dim):
         self.dim = dim
-        self.sparse = sparse
 
     def get_origin(self):
         return np.zeros((self.dim,))
@@ -24,19 +24,19 @@ class DummySpace(Space):
     def get_origin_batch(self, n):
         return np.zeros((n, self.dim))
 
-    def get_batch_size(self, data):
-        if isinstance(data, tuple):
-            data, = data
-        return data.shape[0]
+    def batch_size(self, batch):
+        self.validate(batch)
+        return batch.shape[0]
+
+    def np_batch_size(self, batch):
+        self.np_validate(batch)
+        return batch.shape[0]
 
     def make_theano_batch(self, name=None, dtype=None):
         if dtype is None:
             dtype = config.floatX
 
-        if self.sparse:
-            rval = theano.sparse.csr_matrix(name=name)
-        else:
-            rval = tensor.matrix(name=name, dtype=dtype)
+        rval = tensor.matrix(name=name, dtype=dtype)
         if config.compute_test_value != 'off':
             rval.tag.test_value = self.get_origin_batch(n=4)
         return rval
@@ -70,6 +70,11 @@ class DummySpace(Space):
 
         raise NotImplementedError("VectorSpace doesn't know how to format as "+str(type(space)))
 
+    def np_format_as(self, batch, space):
+        # self._format_as is suitable for both symbolic and numeric formatting
+        self.np_validate(batch)
+        return self._format_as(batch, space)
+
     def __eq__(self, other):
         return type(self) == type(other) and self.dim == other.dim
 
@@ -79,12 +84,26 @@ class DummySpace(Space):
     def validate(self, batch):
         if not isinstance(batch, theano.gof.Variable):
             raise TypeError("VectorSpace batch should be a theano Variable, got "+str(type(batch)))
-        if not self.sparse and not isinstance(batch.type, (theano.tensor.TensorType, CudaNdarrayType)):
+        if not isinstance(batch.type, (theano.tensor.TensorType, CudaNdarrayType)):
             raise TypeError("VectorSpace batch should be TensorType or CudaNdarrayType, got "+str(batch.type))
-        if self.sparse and not isinstance(batch.type, theano.sparse.SparseType):
-            raise TypeError()
         if batch.ndim != 2:
             raise ValueError('VectorSpace batches must be 2D, got %d dimensions' % batch.ndim)
+
+    def np_validate(self, batch):
+        # Use the 'CudaNdarray' string to avoid importing theano.sandbox.cuda
+        # when it is not available
+        if (not isinstance(batch, np.ndarray)
+                and type(batch) != 'CudaNdarray'):
+            raise TypeError("The value of a VectorSpace batch should be a "
+                    "numpy.ndarray, or CudaNdarray, but is %s."
+                    % str(type(batch)))
+        if batch.ndim != 2:
+            raise ValueError("The value of a VectorSpace batch must be "
+                    "2D, got %d dimensions for %s." % (batch.ndim, batch))
+        if batch.shape[1] != self.dim:
+            raise ValueError("The width of a VectorSpace batch must match "
+                    "with the space's dimension, but batch has shape %s and "
+                    "dim = %d." % (str(batch.shape), self.dim))
 
 
 def test_np_format_as_vector2conv2D():
@@ -94,8 +113,8 @@ def test_np_format_as_vector2conv2D():
     data = np.arange(5*8*8*3).reshape(5, 8*8*3)
     rval = vector_space.np_format_as(data, conv2d_space)
     assert np.all(rval == data.reshape((5,3,8,8)))
-    dummy_space = DummySpace(dim=8*8*3, sparse=False)
-    rval = dummy_space.format_as(data, conv2d_space)
+    dummy_space = DummySpace(dim=8*8*3)
+    rval = dummy_space.np_format_as(data, conv2d_space)
     assert np.all(rval == data.reshape((5,3,8,8)))
 
 

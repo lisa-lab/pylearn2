@@ -286,7 +286,7 @@ class BGD(TrainingAlgorithm):
             self.before_step(model)
             self.optimizer.minimize(*data)
             self.after_step(model)
-            actual_batch_size = flat_data_specs[0].get_batch_size(data)
+            actual_batch_size = flat_data_specs[0].np_batch_size(data)
             model.monitor.report_batch(actual_batch_size)
 
     def continue_learning(self, model):
