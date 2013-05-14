@@ -1,5 +1,4 @@
 import numpy as np
-from PIL import Image
 plt = None
 axes = None
 import warnings
@@ -14,6 +13,17 @@ from pylearn2.utils import string_utils as string
 from tempfile import NamedTemporaryFile
 from multiprocessing import Process
 import subprocess
+Image = None
+
+
+def ensure_Image():
+    """
+Makes sure Image has been imported from PIL
+"""
+
+    global Image
+    if Image is None:
+        from PIL import Image
 
 
 def imview(*args, **kwargs):

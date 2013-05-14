@@ -1,6 +1,16 @@
 import sys
 import numpy
-from PIL import Image
+Image = None
+
+
+def ensure_Image():
+    """
+Makes sure Image has been imported from PIL
+"""
+
+    global Image
+    if Image is None:
+        from PIL import Image
 
 
 def scale_to_unit_interval(ndar,eps=1e-8):

@@ -21,15 +21,25 @@ import pickle
 import pylab as pl
 
 from copy import copy
-from PIL import Image
 from optparse import OptionParser
 
 from pylearn2.datasets import mnist
 from pylearn2.utils import string_utils
+Image = None
 
 
 OUTPUT_SIZE = 48
 DOWN_SAMPLE = 1
+
+
+def ensure_Image():
+    """
+Makes sure Image has been imported from PIL
+"""
+
+    global Image
+    if Image is None:
+        from PIL import Image
 
 
 def to_array(img):
