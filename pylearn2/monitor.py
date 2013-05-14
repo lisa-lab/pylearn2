@@ -328,7 +328,7 @@ class Monitor(object):
         # We do it here, rather than for each channel, because channels with an
         # empty data_specs do not use data, and are unable to extract the batch
         # size. The case where the whole data specs is empty is not supported.
-        batch_size = self._flat_data_specs[0].get_batch_size(theano_args)
+        batch_size = self._flat_data_specs[0].batch_size(theano_args)
 
         # Also get a nested representation, for joint iteration
         # with each of channel.graph_input

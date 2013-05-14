@@ -191,12 +191,6 @@ class Space(object):
         raise NotImplementedError(str(type(self))+" does not implement "+\
                                   "np_batch_size")
 
-    def get_batch_size(self, data):
-        """ Returns the batch size of the given data """
-        return self.batch_size(data)
-        raise NotImplementedError(str(type(self))+" does not implement "+\
-                                  "get_batch_size")
-
     def get_batch(self, data, start, end):
         """ Returns a batch of data starting from index `start` to index
         `stop`"""
