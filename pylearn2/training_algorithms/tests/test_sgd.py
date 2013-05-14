@@ -7,6 +7,7 @@ import warnings
 
 from pylearn2.costs.cost import Cost
 from pylearn2.costs.cost import CrossEntropy
+from pylearn2.costs.cost import SumOfCosts
 from pylearn2.devtools.record import Record
 from pylearn2.devtools.record import RecordMode
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
@@ -803,8 +804,10 @@ def test_lr_scalers():
     """
     Tests that SGD respects Model.get_lr_scalers
     """
-
-    cost = SumOfParams()
+    # We include a cost other than SumOfParams so that data is actually
+    # queried from the training set, and the expected number of updates
+    # are applied.
+    cost = SumOfCosts([SumOfParams(), (0., DummyCost())])
 
     scales = [ .01, .02, .05, 1., 5. ]
     shapes = [(1,), (9,), (8, 7), (6, 5, 4), (3, 2, 2, 2)]
@@ -815,6 +818,10 @@ def test_lr_scalers():
         def __init__(self):
             self._params = [sharedX(np.zeros(shape)) for shape in shapes]
             self.input_space = VectorSpace(1)
+
+        def __call__(self, X):
+            # Implemented only so that DummyCost would work
+            return X
 
         def get_lr_scalers(self):
             return dict(zip(self._params, scales))
@@ -850,8 +857,10 @@ def test_lr_scalers_momentum():
     Tests that SGD respects Model.get_lr_scalers when using
     momentum.
     """
-
-    cost = SumOfParams()
+    # We include a cost other than SumOfParams so that data is actually
+    # queried from the training set, and the expected number of updates
+    # are applied.
+    cost = SumOfCosts([SumOfParams(), (0., DummyCost())])
 
     scales = [ .01, .02, .05, 1., 5. ]
     shapes = [(1,), (9,), (8, 7), (6, 5, 4), (3, 2, 2, 2)]
@@ -862,6 +871,10 @@ def test_lr_scalers_momentum():
         def __init__(self):
             self._params = [sharedX(np.zeros(shape)) for shape in shapes]
             self.input_space = VectorSpace(1)
+
+        def __call__(self, X):
+            # Implemented only so that DummyCost would work
+            return X
 
         def get_lr_scalers(self):
             return dict(zip(self._params, scales))
