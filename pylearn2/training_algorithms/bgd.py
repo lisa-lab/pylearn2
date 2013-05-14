@@ -15,6 +15,7 @@ from pylearn2.utils import safe_zip
 from pylearn2.train_extensions import TrainExtension
 from pylearn2.termination_criteria import TerminationCriterion
 from pylearn2.utils import sharedX
+from pylearn2.space import Space
 from pylearn2.utils.data_specs import is_flat_specs
 from theano import config
 
@@ -219,8 +220,8 @@ class BGD(TrainingAlgorithm):
 
         data_specs = self.cost.get_data_specs(self.model)
         space, source = data_specs
-        if space is not None and not isinstance(space, tuple):
-            space = (space,)
+        if space is not None:
+            assert isinstance(space, Space)
         if source is None:
             source = ()
         elif not isinstance(source, tuple):
