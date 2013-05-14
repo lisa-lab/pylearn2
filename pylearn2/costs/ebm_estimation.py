@@ -20,30 +20,27 @@ class NCE(Cost):
     def G(self, X, model):
         return model.log_prob(X) - self.noise.log_prob(X)
 
-    def expr(self, model, data):
-        #The Y here is the noise
+    def expr(self, model, data, noisy_data=None):
+        # noisy_data is not considered part of the data.
         #If you don't pass it in, it will be generated internally
         #Passing it in lets you keep it constant while doing
         #a learn search across several theano function calls
         #and stuff like that
-        #This interface should probably be changed because it
-        #looks too much like the SupervisedCost interface
-        if type(data) in (list, tuple):
-            (X,Y) = data
-        else:
-            X = data
-            Y = None
-
+        space, source = self.get_data_specs(model)
+        space.validate(data)
+        X = data
         if X.name is None:
             X_name = 'X'
         else:
             X_name = X.name
 
-
         m_data = X.shape[0]
         m_noise = m_data * self.noise_per_clean
 
-        if Y is None:
+        if noisy_data is not None:
+            space.validate(noisy_data)
+            Y = noisy_data
+        else:
             Y = self.noise.random_design_matrix(m_noise)
 
         #Y = Print('Y',attrs=['min','max'])(Y)
@@ -77,9 +74,10 @@ class NCE(Cost):
         self.noise_per_clean = noise_per_clean
 
     def get_data_specs(self, model):
-        space = CompositeSpace([model.get_input_space(), model.get_output_space()])
-        sources = (model.get_input_source(), model.get_target_source())
-        return (space, sources)
+        space = model.get_input_space()
+        source = model.get_input_source()
+        return (space, source)
+
 
 class SM(Cost):
     """ Score Matching
