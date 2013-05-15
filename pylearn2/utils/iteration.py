@@ -337,45 +337,42 @@ class FiniteDatasetIterator(object):
         else:
             # Keep only the needed sources in self._raw_data.
             # Remember what source they correspond to in self._source
-            if data_specs == (None, None):
-                # Replace the source by an empty tuple, it is more consistent
-                # TODO: find a generic way
-                data_specs = (None, ())
-            else:
-                assert is_flat_specs(data_specs)
+            assert is_flat_specs(data_specs)
 
-            # Put single elements in tuples for consistency
-            all_data = self._dataset.get_data()
-            if not isinstance(all_data, tuple):
-                all_data = (all_data, )
+            dataset_space, dataset_source = self._dataset.get_data_specs()
+            assert is_flat_specs((dataset_space, dataset_source))
 
-            dataset_space, dataset_source = self._dataset.data_specs
+            # the dataset's data spec is either a single (space, source) pair,
+            # or a pair of (non-nested CompositeSpace, non-nested tuple).
+            # We could build a mapping and call flatten(..., return_tuple=True)
+            # but simply putting spaces, sources and data in tuples is simpler.
             if not isinstance(dataset_source, tuple):
-                dataset_source = (dataset_source, )
+                dataset_source = (dataset_source,)
 
-            source = data_specs[1]
-            if not isinstance(source, tuple):
-                source = (source,)
-
-            self._raw_data = tuple(all_data[dataset_source.index(s)]
-                                   for s in source)
-            self._source = source
-
-            self._convert = []
             if not isinstance(dataset_space, CompositeSpace):
                 dataset_sub_spaces = (dataset_space,)
             else:
                 dataset_sub_spaces = dataset_space.components
             assert len(dataset_source) == len(dataset_sub_spaces)
 
-            space = data_specs[0]
-            if space is None:
-                sub_spaces = ()
-            elif not isinstance(space, CompositeSpace):
+            all_data = self._dataset.get_data()
+            if not isinstance(all_data, tuple):
+                all_data = (all_data,)
+
+            space, source = data_specs
+            if not isinstance(source, tuple):
+                source = (source,)
+            if not isinstance(space, CompositeSpace):
                 sub_spaces = (space,)
             else:
                 sub_spaces = space.components
             assert len(source) == len(sub_spaces)
+
+            self._raw_data = tuple(all_data[dataset_source.index(s)]
+                                   for s in source)
+            self._source = source
+
+            self._convert = []
 
             for (so, sp) in safe_zip(source, sub_spaces):
                 idx = dataset_source.index(so)
