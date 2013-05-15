@@ -347,8 +347,8 @@ class S3C(Model, Block):
                             min_shape, max_shape in zip(
                                 local_rf_shape,
                                 local_rf_max_shape) ]
-                    loc = [ self.rng.randint(0, bound - width + 1) for
-                            bound, width in zip(s, shape) ]
+                    loc = [ self.rng.randint(0, bound - width_ + 1) for
+                            bound, width_ in zip(s, shape) ]
 
                     rc, cc = loc
 
@@ -514,8 +514,10 @@ class S3C(Model, Block):
     def set_monitoring_channel_prefix(self, prefix):
         self.monitoring_channel_prefix = prefix
 
-    def get_monitoring_channels(self, V, Y = None):
-        assert Y is None #just there for method signature compatibility
+    def get_monitoring_channels(self, data):
+        space, source = self.get_monitoring_data_specs()
+        space.validate(data)
+        V = data
         try:
             self.compile_mode()
 
@@ -610,6 +612,14 @@ class S3C(Model, Block):
         finally:
             self.deploy_mode()
 
+    def get_monitoring_data_specs(self):
+        """
+        Get the data_specs describing the data for get_monitoring_channel.
+
+        This implementation returns specification corresponding to unlabeled
+        inputs.
+        """
+        return (self.get_input_space(), self.get_input_source())
 
     def __call__(self, V):
         """ this is the symbolic transformation for the Block class """
@@ -1470,7 +1480,7 @@ class E_Step(object):
             assert monitor_energy_functional is None
         else:
             if s_new_coeff_schedule is None:
-                s_new_coeff_schedule = [ 1.0 for rho in h_new_coeff_schedule ]
+                s_new_coeff_schedule = [ 1.0 for rho_ in h_new_coeff_schedule ]
             else:
                 if len(s_new_coeff_schedule) != len(h_new_coeff_schedule):
                     raise ValueError('s_new_coeff_schedule has %d elems ' % (len(s_new_coeff_schedule),) + \

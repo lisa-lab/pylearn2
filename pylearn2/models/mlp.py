@@ -258,12 +258,11 @@ class MLP(Layer):
 
         self.freeze_set = self.freeze_set.union(parameter_set)
 
-    def get_monitoring_channels(self, X=None, Y=None):
+    def get_monitoring_channels(self, data):
         """
-        Note: X and Y may both be None, in the case when this is
-              a layer of a bigger MLP.
+        data is a flat tuple, and can contain features, targets, or both
         """
-
+        X, Y = data
         state = X
         rval = OrderedDict()
 
@@ -283,6 +282,16 @@ class MLP(Layer):
 
         return rval
 
+    def get_monitoring_data_specs(self):
+        """
+        Return the (space, source) data_specs for self.get_monitoring_channels.
+
+        In this case, we want the inputs and targets.
+        """
+        space = CompositeSpace((self.get_input_space(),
+                                self.get_output_space()))
+        source = (self.get_input_source(), self.get_target_source())
+        return (space, source)
 
     def get_params(self):
 

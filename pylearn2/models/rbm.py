@@ -380,8 +380,8 @@ class RBM(Block, Model):
         return ['v', 'h']
 
 
-    def get_monitoring_channels(self, V, Y = None):
-
+    def get_monitoring_channels(self, data):
+        V = data
         theano_rng = RandomStreams(42)
 
         #TODO: re-enable this in the case where self.transformer
@@ -407,6 +407,15 @@ class RBM(Block, Model):
                  #'W_norms_max' : T.max(norms),
                  #'W_norms_mean' : T.mean(norms),
                 'reconstruction_error' : self.reconstruction_error(V, theano_rng) }
+
+    def get_monitoring_data_specs(self):
+        """
+        Get the data_specs describing the data for get_monitoring_channel.
+
+        This implementation returns specification corresponding to unlabeled
+        inputs.
+        """
+        return (self.get_input_space(), self.get_input_source())
 
     def ml_gradients(self, pos_v, neg_v):
         """
@@ -1144,13 +1153,16 @@ def build_stacked_RBM(nvis, nhids, batch_size, vis_type='binary',
     # Create the stack
     return StackedBlocks(layers)
 
+
 class L1_ActivationCost(Cost):
 
     def __init__(self, target, eps, coeff):
         self.__dict__.update(locals())
         del self.self
 
-    def __call__(self, model, X, Y = None, ** kwargs):
+    def expr(self, model, data, ** kwargs):
+        self.get_data_specs(model)[0].validate(data)
+        X = data
         H = model.P_H_given_V(X)
         h = H.mean(axis=0)
         err = abs(h - self.target)
@@ -1158,6 +1170,10 @@ class L1_ActivationCost(Cost):
         assert dead.ndim == 1
         rval = self.coeff * dead.mean()
         return rval
+
+    def get_data_specs(self, model):
+        return (model.get_input_space(), model.get_input_source())
+
 
 # The following functionality was deprecated, but is evidently
 # still needed to make the RBM work

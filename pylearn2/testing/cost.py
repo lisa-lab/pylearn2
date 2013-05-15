@@ -7,7 +7,11 @@ __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
 from pylearn2.costs.cost import Cost
+from pylearn2.space import NullSpace
 from pylearn2.utils import CallbackOp
+from pylearn2.utils import safe_zip
+from pylearn2.utils.data_specs import DataSpecsMapping
+
 
 class CallbackCost(Cost):
     """
@@ -23,43 +27,43 @@ class CallbackCost(Cost):
     evaluated.
     """
 
-    def __init__(self, X_callback = None, y_callback = None,
-            supervised = False):
+    def __init__(self, data_callbacks, data_specs):
         """
-            X_callback: optional, callback to run on X
-            y_callback: optional, callback to run on y
-            supervised: whether this is a supervised cost or not
-
-            (It is possible to be a supervised cost and not
-            run callbacks on y, but it is not possible to be
-            an unsupervised cost and run callbacks on y)
+        data_callback: optional, callbacks to run on data.
+            It is either a Python callable, or a tuple (possibly nested),
+            in the same format as data_specs.
+        data_specs: (space, source) pair specifying the format
+            and label associated to the data.
         """
-        self.__dict__.update(locals())
-        del self.self
+        self.data_callbacks = data_callbacks
+        self.data_specs = data_specs
+        self._mapping = DataSpecsMapping(data_specs)
 
-        if not supervised:
-            assert y_callback is None
+    def get_data_specs(self, model):
+        return self.data_specs
 
-    def __call__(self, model, X, Y = None):
+    def expr(self, model, data):
+        self.get_data_specs(model)[0].validate(data)
+        callbacks = self.data_callbacks
 
-        if self.X_callback is not None:
-            orig_X = X
-            X = CallbackOp(self.X_callback)(X)
-            assert len(X.owner.inputs) == 1
-            assert orig_X is X.owner.inputs[0]
+        cb_tuple = self._mapping.flatten(callbacks, return_tuple=True)
+        data_tuple = self._mapping.flatten(data, return_tuple=True)
 
-        if self.y_callback is not None:
-            Y = CallbackOp(self.y_callback)(Y)
+        costs = []
+        for (callback, data_var) in safe_zip(cb_tuple, data_tuple):
+            orig_var = data_var
+            data_var = CallbackOp(callback)(data_var)
+            assert len(data_var.owner.inputs) == 1
+            assert orig_var is data_var.owner.inputs[0]
 
-        cost = X.sum()
-        if self.supervised and Y is not None:
-            cost = cost + Y.sum()
+            costs.append(data_var.sum())
 
+        # sum() will call theano.add on the symbolic variables
+        cost = sum(costs)
         model_terms = sum([param.sum() for param in model.get_params()])
-
         cost = cost * model_terms
-
         return cost
+
 
 class SumOfParams(Cost):
     """
@@ -67,7 +71,10 @@ class SumOfParams(Cost):
     on every parameter is 1.
     """
 
-    def __call__(self, model, X, Y = None):
-        assert Y is None
-
+    def expr(self, model, data):
+        self.get_data_specs(model)[0].validate(data)
         return sum(param.sum() for param in model.get_params())
+
+    def get_data_specs(self, model):
+        # This cost does not need any data
+        return (NullSpace(), '')
