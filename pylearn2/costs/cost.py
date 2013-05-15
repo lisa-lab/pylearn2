@@ -393,6 +393,11 @@ class FixedVarDescr(object):
         call with X or X and y as appropriate
         whenever a new batch of data is loaded.
         This will update the shared variables mapped to by fixed_vars.
+
+        TODO: figure out why on_load_batch uses _no_op instead of an
+            empty list--either there is a reason and it should be
+            documented, or there is not reason and it should just be
+            an empty list.
         """
         self.on_load_batch = [_no_op]
 
