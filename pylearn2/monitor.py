@@ -413,8 +413,6 @@ class Monitor(object):
                 # Some channels may not depend on the data, ie, they might just monitor the model
                 # parameters, or some shared variable updated by the training algorithm, so we
                 # need to ignore the unused input error
-                if not isinstance(theano_args, tuple):
-                    theano_args = (theano_args,)
                 self.accum.append(function(theano_args,
                                            givens=g,
                                            updates=u,
