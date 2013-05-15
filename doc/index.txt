@@ -97,7 +97,7 @@ Community
 * Register and post to `pylearn-dev`_ if you want to talk to the developers. We don't bite.
 
 * Register to `pylearn2-github`_ if you want to receive an email for all changes to the GitHub
-repository.
+  repository.
 
 * Register to `theano-buildbot`_ if you want to receive our daily
   buildbot email. This is the buildbot for Pylearn2, Theano, Pylearn
@@ -115,7 +115,7 @@ Developer
 
 * Register to everything listed in the Community section above
 * Follow the LISA lab coding style guidelines:
-http://deeplearning.net/software/pylearn/v2_planning/API_coding_style.html
+  http://deeplearning.net/software/pylearn/v2_planning/API_coding_style.html
 
 * :ref:`api_change` -- the best practices guide you should follow when changing any API in the library
 
