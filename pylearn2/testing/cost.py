@@ -10,7 +10,7 @@ from pylearn2.costs.cost import Cost
 from pylearn2.space import NullSpace
 from pylearn2.utils import CallbackOp
 from pylearn2.utils import safe_zip
-from pylearn2.utils.data_specs import is_flat_specs
+from pylearn2.utils.data_specs import DataSpecsMapping
 
 
 class CallbackCost(Cost):
@@ -30,31 +30,27 @@ class CallbackCost(Cost):
     def __init__(self, data_callbacks, data_specs):
         """
         data_callback: optional, callbacks to run on data.
-            It is either a Python callable, or a flat tuple,
+            It is either a Python callable, or a tuple (possibly nested),
             in the same format as data_specs.
         data_specs: (space, source) pair specifying the format
             and label associated to the data.
         """
         self.data_callbacks = data_callbacks
         self.data_specs = data_specs
-        assert is_flat_specs(data_specs)
+        self._mapping = DataSpecsMapping(data_specs)
 
     def get_data_specs(self, model):
         return self.data_specs
 
     def expr(self, model, data):
         self.get_data_specs(model)[0].validate(data)
-        if not isinstance(self.data_callbacks, tuple):
-            callbacks = (self.data_callbacks,)
-        else:
-            callbacks = self.data_callbacks
+        callbacks = self.data_callbacks
 
-        if not isinstance(data, tuple):
-            assert len(callbacks) == 1
-            data = (data,)
+        cb_tuple = self._mapping.flatten(callbacks, return_tuple=True)
+        data_tuple = self._mapping.flatten(data, return_tuple=True)
 
         costs = []
-        for (callback, data_var) in safe_zip(callbacks, data):
+        for (callback, data_var) in safe_zip(cb_tuple, data_tuple):
             orig_var = data_var
             data_var = CallbackOp(callback)(data_var)
             assert len(data_var.owner.inputs) == 1
