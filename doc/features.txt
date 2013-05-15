@@ -1,8 +1,8 @@
 .. _features:
 
-============
+========
 Features
-============
+========
 
 Pylearn2 contains at least the following features. This documentation often
 gets out of date, so it probably has even more than this!
@@ -20,8 +20,8 @@ either add it or give you advice about how to do it yourself.
 	* Polyak averaging
 	* Early stopping
 	* A simple framework for adding your own extensions
-   * Batch gradient descent with line searches
-   * Nonlinear conjugate gradient descent (with line searches)
+    * Batch gradient descent with line searches
+    * Nonlinear conjugate gradient descent (with line searches)
 
 * Model Estimation Criteria
     * Score Matching

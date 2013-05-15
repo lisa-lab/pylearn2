@@ -9,6 +9,7 @@ describes how the various parts fit together.
 
 First, before learning Pylearn2 it is imperative that you have a good
 understanding of Theano. Before learning Pylearn2 you should first understand:
+
     * How Theano uses Variables, Ops, and Apply nodes to represent
       symbolic expressions.
     * What a Theano function is.
@@ -46,6 +47,7 @@ Part of the Pylearn2 vision is that users should be able to use only the pieces
 of the library that they want to. This way you don't need to learn the entire
 library in order to make use of it. If you want to learn about as little of
 Pylearn2 as possible, you can simply implement two methods:
+
    * "train_all(dataset)'': This method is passed a Pylearn2 Dataset.
       When called, it should do one pass through the dataset and update
       the parameters accordingly. For example, k-means could assign every
