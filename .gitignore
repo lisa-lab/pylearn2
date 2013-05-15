@@ -14,5 +14,5 @@
 #Don't track mac file
 .DS_Store
 
-#Don't track Pycharm .idea folde
+#Don't track Pycharm .idea folder
 .idea
