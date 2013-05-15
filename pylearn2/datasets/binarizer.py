@@ -28,3 +28,9 @@ class Binarizer(TransformerDataset):
 
         super(Binarizer, self).__init__(raw, transformer, space_preserving=True)
 
+
+    def get_design_matrix(self, topo=None):
+        if topo is not None:
+            return self.raw.get_design_matrix(topo)
+        X = self.raw.get_design_matrix()
+        return self.transformer.perform(X)
