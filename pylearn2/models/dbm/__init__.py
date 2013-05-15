@@ -101,6 +101,9 @@ class DBM(Model):
             self.setup_inference_procedure()
         self.inference_procedure.set_dbm(self)
 
+    def get_all_layers(self):
+        return [self.visible_layer] + self.hidden_layers
+
     def energy(self, V, hidden):
         """
             V: a theano batch of visible unit observations
