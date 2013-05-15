@@ -25,21 +25,15 @@ from optparse import OptionParser
 
 from pylearn2.datasets import mnist
 from pylearn2.utils import string_utils
-Image = None
+try:
+    from PIL import Image
+except ImportError:
+    warnings.warn("Couldn't import Image from PIL, so far make_mnistplus "
+            "is only supported with PIL")
 
 
 OUTPUT_SIZE = 48
 DOWN_SAMPLE = 1
-
-
-def ensure_Image():
-    """
-Makes sure Image has been imported from PIL
-"""
-
-    global Image
-    if Image is None:
-        from PIL import Image
 
 
 def to_array(img):

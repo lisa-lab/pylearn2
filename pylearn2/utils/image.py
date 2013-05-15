@@ -12,18 +12,13 @@ import os
 from pylearn2.utils import string_utils as string
 from tempfile import NamedTemporaryFile
 from multiprocessing import Process
+try:
+    from PIL import Image
+except ImportError:
+    warnings.warn("Couldn't import Image from PIL, so far image is "
+            "only supported with PIL")
+            
 import subprocess
-Image = None
-
-
-def ensure_Image():
-    """
-Makes sure Image has been imported from PIL
-"""
-
-    global Image
-    if Image is None:
-        from PIL import Image
 
 
 def imview(*args, **kwargs):
@@ -112,6 +107,7 @@ def show(image):
             image = image[:,:,0]
 
         try:
+	    ensure_Image()
             image = Image.fromarray(image)
         except TypeError:
             raise TypeError("PIL issued TypeError on ndarray of shape " +
@@ -156,6 +152,7 @@ def pil_from_ndarray(ndarray):
             if len(ndarray.shape) == 3 and ndarray.shape[2] == 1:
                 ndarray = ndarray[:, :, 0]
 
+        ensure_Image()
         rval = Image.fromarray(ndarray)
         return rval
     except Exception, e:
@@ -193,6 +190,7 @@ def rescale(image, shape):
 
     i = pil_from_ndarray(image)
 
+    ensure_Image()
     i.thumbnail([shape[1], shape[0]], Image.ANTIALIAS)
 
     rval = ndarray_from_pil(i, dtype=image.dtype)
@@ -268,6 +266,7 @@ def load(filepath, rescale=True, dtype='float64'):
     assert type(filepath) == str
 
     if rescale == False and dtype == 'uint8':
+        ensure_Image()
         rval = np.asarray(Image.open(filepath))
         # print 'image.load: ' + str((rval.min(), rval.max()))
         assert rval.dtype == 'uint8'
@@ -277,6 +276,7 @@ def load(filepath, rescale=True, dtype='float64'):
     if rescale:
         s = 255.
     try:
+        ensure_Image()
         rval = Image.open(filepath)
     except:
         raise Exception("Could not open "+filepath)

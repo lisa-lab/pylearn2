@@ -1,13 +1,14 @@
 import sys
 import numpy
+# Don't import Image from PIL initially, since PIL might not be available
+# everywhere.
 Image = None
 
 
 def ensure_Image():
     """
-Makes sure Image has been imported from PIL
-"""
-
+    Makes sure Image has been imported from PIL
+    """
     global Image
     if Image is None:
         from PIL import Image
@@ -152,8 +153,10 @@ def save_tiled_raster_images(tiled_img, filename):
     Returns the PIL image that was saved
     """
     if tiled_img.ndim==2:
+        ensure_Image()
         img = Image.fromarray( tiled_img, 'L')
     elif tiled_img.ndim==3:
+        ensure_Image()
         img = Image.fromarray(tiled_img, 'RGBA')
     else:
         raise TypeError('bad ndim', tiled_img)
@@ -186,6 +189,7 @@ def tile_slices_to_image_uint8(X, tile_shape=None):
             #print Xrc.shape
             #print out[tr*Hs:tr*Hs+H,tc*Ws:tc*Ws+W].shape
             out[tr*Hs:tr*Hs+H,tc*Ws:tc*Ws+W] = Xrc
+    ensure_Image()
     img = Image.fromarray(out, 'RGB')
     return img
 
