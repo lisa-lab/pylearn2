@@ -44,6 +44,7 @@ from theano.gof.op import get_debug_values
 from theano.sandbox.cuda.type import CudaNdarrayType
 from pylearn2.sandbox.tuple_var import TupleVariable
 from pylearn2.utils import py_integer_types
+from pylearn2.utils import sharedX
 
 
 class Space(object):
@@ -72,6 +73,13 @@ class Space(object):
             each `batch[i]` being a copy of the origin.
         """
         raise NotImplementedError()
+
+    def make_shared_batch(self, batch_size, name=None, dtype=None):
+
+        if dtype is None:
+            return sharedX(self.get_origin_batch(batch_size), name)
+        else:
+            raise NotImplementedError()
 
     def make_theano_batch(self, name=None, dtype=None):
         """
