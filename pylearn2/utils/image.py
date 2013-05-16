@@ -9,16 +9,24 @@ except RuntimeError, e:
     warnings.warn("Unable to import matplotlib. Some features unavailable. "
             "Original exception: " + str(e))
 import os
+# Don't import Image from PIL initially, since PIL might not be available
+# everywhere.
+Image = None
+
 from pylearn2.utils import string_utils as string
 from tempfile import NamedTemporaryFile
 from multiprocessing import Process
-try:
-    from PIL import Image
-except ImportError:
-    warnings.warn("Couldn't import Image from PIL, so far image is "
-            "only supported with PIL")
-            
+
 import subprocess
+
+
+def ensure_Image():
+    """
+    Makes sure Image has been imported from PIL
+    """
+    global Image
+    if Image is None:
+        from PIL import Image
 
 
 def imview(*args, **kwargs):

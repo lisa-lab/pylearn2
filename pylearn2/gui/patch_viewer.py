@@ -3,18 +3,12 @@ from pylearn2.datasets.dense_design_matrix import DefaultViewConverter
 from pylearn2.utils.image import show
 from pylearn2.utils import py_integer_types
 import warnings
-# Don't import Image from PIL initially, since it might not be available
-# everywhere
+# Don't import Image from PIL initially, since PIL might not be available
+# everywhere.
 Image = None
-
-
-def ensure_Image():
-    """
-    Makes sure Image has been imported from PIL
-    """
-    global Image
-    if Image is None:
-        from PIL import Image
+# Import ensure_Image(), which trys to import Image from PIL.  We will
+# preface use of PIL.Image with ensure_Image() throughout.
+from pylearn2.utils.image import ensure_Image()
 
 
 def make_viewer(mat, grid_shape=None, patch_shape=None, activation=None, pad=None, is_color = False, rescale = True):
