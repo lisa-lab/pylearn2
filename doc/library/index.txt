@@ -12,4 +12,7 @@ Library Documentation
    train
    costs
    monitor
+   linear
+   alex
    scripts
+
