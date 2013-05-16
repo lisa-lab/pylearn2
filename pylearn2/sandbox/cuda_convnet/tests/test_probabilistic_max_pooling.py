@@ -18,6 +18,7 @@ from pylearn2.expr.probabilistic_max_pooling import max_pool_softmax_with_bias_o
 from pylearn2.sandbox.cuda_convnet.probabilistic_max_pooling import max_pool_c01b as mymy
 from pylearn2.sandbox.cuda_convnet.probabilistic_max_pooling import max_pool_c01b_P, max_pool_c01b_H
 from pylearn2.testing import no_debug_mode
+from pylearn2.utils import sharedX
 
 def check_correctness_channelwise(f):
 
@@ -283,6 +284,49 @@ def check_correctness_c01b_hapoo():
         assert False
 
     warnings.warn("TODO: make sampling tests run on c01b format of pooling.")
+
+def check_correctness_c01b_hapoo_grad():
+
+    from probabilistic_max_pooling import max_pool_c01b_H
+
+    print 'profiling gr adient of '
+    rng = np.random.RandomState([2012,7,19])
+    batch_size = 16
+    rows = 9
+    cols = 9
+    channels = 16
+    pool_rows = 3
+    pool_cols = 3
+    zv = rng.randn( batch_size, rows, cols, channels ).astype(config.floatX)
+
+    #put the inputs + outputs in shared variables so we don't pay GPU transfer during test
+    grad_shared = sharedX(zv)
+    z_shared = sharedX(zv)
+
+    #h_th = max_pool_c01b_H( z_shared, (pool_rows, pool_cols) )
+    p_th, h_th = mymy( z_shared, (pool_rows, pool_cols) )
+
+    func = function([],updates = { grad_shared : T.grad(h_th.sum() + p_th.sum(), z_shared)}, outputs = [h_th])
+    #func = function([], outputs = [h_th])
+    h_val_hapoo = func()
+    hapoo_val = grad_shared.get_value()
+
+    ## old and correct implent
+    grad_shared = sharedX(zv)
+    z_shared = sharedX(zv)
+
+    p_th, h_th = max_pool_c01b( z_shared, (pool_rows, pool_cols) )
+
+    func = function([],updates = { grad_shared : T.grad(h_th.sum() + p_th.sum(), z_shared)}, outputs = [h_th])
+    h_val_old = func()
+    old_val = grad_shared.get_value()
+
+    #import ipdb
+    #ipdb.set_trace()
+    assert np.allclose(h_val_hapoo[0], h_val_old[0])
+    print "amu"
+    #assert np.allclose(hapoo_val, old_val)
+    assert np.allclose(hapoo_val, old_val)
 
 
 
@@ -685,4 +729,5 @@ def test_max_pool_softmax_with_bias_op():
 
 if __name__ == "__main__":
     #check_correctness_c01b(mymy)
-    check_correctness_c01b_hapoo()
+    #check_correctness_c01b_hapoo()
+    check_correctness_c01b_hapoo_grad()
