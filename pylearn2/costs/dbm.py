@@ -17,7 +17,7 @@ from theano import tensor as T
 from pylearn2.costs.cost import Cost
 from pylearn2.models import dbm
 from pylearn2.models.dbm import flatten
-from pylearn2.spaces import CompositeSpace
+from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_izip
 from pylearn2.utils import safe_zip
 

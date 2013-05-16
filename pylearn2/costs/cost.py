@@ -173,8 +173,8 @@ class SumOfCosts(Cost):
         sources = tuple(sources)
 
         self.mapping = DataSpecsMapping(composite_space, sources)
-        flat_composite_space = mapping.flatten(composite_space)
-        flat_sources = mapping.flatten(sources)
+        flat_composite_space = self.mapping.flatten(composite_space)
+        flat_sources = self.mapping.flatten(sources)
         self.data_specs = (flat_composite_space, flat_sources)
 
         # TODO: remove this when it is no longer necessary
@@ -327,7 +327,7 @@ class LxReg(Cost):
         self.variables = variables
         self.x = x
 
-    def expr(self, model=None, data):
+    def expr(self, model=None, data=None):
         """
         Return the scaled L-x regularization term. The optional parameters are
         never used, they're there only to provide an interface consistent with
@@ -364,11 +364,11 @@ class MethodCost(Cost):
     A cost specified via the string name of a method of the model.
     """
 
-    def __init__(self, method, data_spec):
+    def __init__(self, method, data_specs):
         """
             method: a string specifying the name of the method of the model
                     that should be called to generate the objective function.
-            data_spec: a string specifying the name of a method/property of
+            data_specs: a string specifying the name of a method/property of
                     the model that describe the data specs required by
                     method
         """
@@ -381,7 +381,7 @@ class MethodCost(Cost):
             return fn(*args, **kwargs)
 
     def get_data_specs(self, model):
-        fn = getattr(model, self.data_spec)
+        fn = getattr(model, self.data_specs)
         if callable(fn):
             return fn()
         else:
