@@ -1,0 +1,118 @@
+!obj:pylearn2.train.Train {
+    dataset: &train !obj:pylearn2.datasets.svhn.SVHN {
+        which_set: 'splitted_train',
+        path: "${SVHN_LOCAL_PATH}",
+        axes: ['c', 0, 1, 'b']
+    },
+    model: !obj:pylearn2.models.mlp.MLP {
+        batch_size: 128,
+        layers: [
+                 !obj:pylearn2.models.maxout.MaxoutConvC01B {
+                     layer_name: 'h0',
+                     pad: 4,
+                     tied_b: 1,
+                     W_lr_scale: .05,
+                     b_lr_scale: .05,
+                     num_channels: 64,
+                     num_pieces: 2,
+                     kernel_shape: [5, 5],
+                     pool_shape: [3, 3],
+                     pool_stride: [2, 2],
+                     irange: 0.005000,
+                     max_kernel_norm: .9,
+                 },
+                 !obj:pylearn2.models.maxout.MaxoutConvC01B {
+                     layer_name: 'h1',
+                     pad: 3,
+                     tied_b: 1,
+                     W_lr_scale: .05,
+                     b_lr_scale: .05,
+                     num_channels: 128,
+                     num_pieces: 2,
+                     kernel_shape: [5, 5],
+                     pool_shape: [3, 3],
+                     pool_stride: [2, 2],
+                     irange: 0.005000,
+                     max_kernel_norm: 1.9365,
+                 },
+                 !obj:pylearn2.models.maxout.MaxoutConvC01B {
+                     pad: 3,
+                     layer_name: 'h2',
+                     tied_b: 1,
+                     W_lr_scale: .05,
+                     b_lr_scale: .05,
+                     num_channels: 128,
+                     num_pieces: 2,
+                     kernel_shape: [5, 5],
+                     pool_shape: [3, 3],
+                     pool_stride: [2, 2],
+                     irange: 0.005000,
+                     max_kernel_norm: 1.9365,
+                 },
+                 !obj:pylearn2.models.maxout.Maxout {
+                    layer_name: 'h3',
+                    irange: .005,
+                    num_units: 400,
+                    num_pieces: 5,
+                    max_col_norm: 1.9
+                 },
+                 !obj:pylearn2.models.mlp.Softmax {
+                     max_col_norm: 1.9365,
+                     layer_name: 'y',
+                     n_classes: 10,
+                     irange: 0.005000
+                 }
+                ],
+        input_space: !obj:pylearn2.space.Conv2DSpace {
+            shape: [32, 32],
+            num_channels: 3,
+            axes: ['c', 0, 1, 'b'],
+        },
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        train_iteration_mode: 'batchwise_shuffled_equential',
+        learning_rate: 0.200000,
+        init_momentum: .5,
+        monitoring_dataset:
+            {
+                #'train' : *train,
+                'valid' : !obj:pylearn2.datasets.svhn.SVHN {
+                              which_set: 'valid',
+                              path: "${PYLEARN2_TRAIN_DIR}",
+                              axes: ['c', 0, 1, 'b'],
+                          },
+                'test' : !obj:pylearn2.datasets.svhn.SVHN {
+                              which_set: 'test',
+                              path: "${PYLEARN2_TRAIN_DIR}",
+                              axes: ['c', 0, 1, 'b'],
+                          }
+            },
+        cost: !obj:pylearn2.costs.mlp.dropout.Dropout {
+            input_include_probs: { 'h0' : .8 },
+            input_scales: { 'h0': 1. }
+        },
+        termination_criterion: !obj:pylearn2.termination_criteria.MonitorBased {
+            channel_name: "valid_y_misclass",
+            prop_decrease: 0.,
+            N: 100
+        },
+    },
+    extensions: [
+        !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
+             channel_name: 'valid_y_misclass',
+             # we save in joblib format becasue of large size of models
+             # could cause pickle to crash
+             save_path: "${PYLEARN2_TRAIN_DIR}svhn_best.joblib",
+        },
+        !obj:pylearn2.training_algorithms.sgd.MomentumAdjustor {
+            start: 1,
+            saturate: 250,
+            final_momentum: .6
+        },
+        !obj:pylearn2.training_algorithms.sgd.LinearDecayOverEpoch {
+            start: 1,
+            saturate: 250,
+            decay_factor: 0.001000
+        },
+    ],
+}
