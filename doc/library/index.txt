@@ -1,0 +1,14 @@
+.. _libdoc:
+
+=====================
+Library Documentation
+=====================
+
+.. toctree::
+   :maxdepth: 1
+
+   datasets
+   models
+   train
+   costs
+   monitor

@@ -1,0 +1,13 @@
+========
+Datasets
+========
+
+Dataset
+=======
+.. automodule:: pylearn2.datasets.dataset
+    :members:
+
+Dense Design Matrix
+===================
+.. automodule:: pylearn2.datasets.dense_design_matrix
+    :members:

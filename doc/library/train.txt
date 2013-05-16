@@ -1,0 +1,30 @@
+==========
+Training Algorithms
+==========
+
+Base
+====
+.. automodule:: pylearn2.training_algorithms.training_algorithm
+    :members:
+
+
+Default
+=======
+.. automodule:: pylearn2.training_algorithms.default
+    :members:
+
+
+Stochastic Gradient Descent
+===========================
+.. automodule:: pylearn2.training_algorithms.sgd
+    :members:
+
+
+Batch Gradient Descent
+===========================
+.. automodule:: pylearn2.training_algorithms.bgd
+    :members:
+
+
+
+

@@ -1,0 +1,28 @@
+======
+Models
+======
+
+Base
+====
+.. automodule:: pylearn2.models.model
+    :members:
+
+MLP
+===
+.. automodule:: pylearn2.models.mlp
+    :members:
+
+RBM
+===
+.. automodule:: pylearn2.models.rbm
+    :members:
+
+Auto Encoder
+============
+.. automodule:: pylearn2.models.autoencoder
+    :members:
+
+Maxout
+======
+.. automodule:: pylearn2.models.maxout
+    :members:

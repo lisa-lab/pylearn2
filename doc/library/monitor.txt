@@ -1,0 +1,9 @@
+==========
+Monitoring
+==========
+
+Monitor
+=======
+.. automodule:: pylearn2.monitor
+    :members:
+
