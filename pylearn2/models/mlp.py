@@ -373,8 +373,8 @@ class MLP(Layer):
         if input_scales is None:
             input_scales = {}
 
-        assert all(layer_name in self.layer_names for layer_name in input_include_probs)
-        assert all(layer_name in self.layer_names for layer_name in input_scales)
+        self._validate_layer_names(list(input_include_probs.keys()))
+        self._validate_layer_names(list(input_scales.keys()))
 
         theano_rng = MRG_RandomStreams(self.rng.randint(2 ** 15))
 
@@ -399,6 +399,13 @@ class MLP(Layer):
             state_below = layer.fprop(state_below)
 
         return state_below
+
+    def _validate_layer_names(self, layers):
+        if any(layer not in self.layer_names for layer in layers):
+            unknown_names = [layer for layer in layers
+                                if layer not in self.layer_names]
+            raise ValueError("MLP has no layer(s) named %s" %
+                                ", ".join(unknown_names))
 
     def fprop(self, state_below, return_all = False):
 
