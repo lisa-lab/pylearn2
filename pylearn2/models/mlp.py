@@ -136,7 +136,7 @@ class Layer(Model):
 
     def get_weight_decay(self, coeff):
         raise NotImplementedError
-    
+
     def get_l1_weight_decay(self, coeff):
         raise NotImplementedError
 
@@ -346,8 +346,9 @@ class MLP(Layer):
     def get_weights_topo(self):
         return self.layers[0].get_weights_topo()
 
-    def dropout_fprop(self, state_below, default_input_include_prob=0.5, input_include_probs=None,
-        default_input_scale=2., input_scales=None):
+    def dropout_fprop(self, state_below, default_input_include_prob=0.5,
+                      input_include_probs=None, default_input_scale=2.,
+                      input_scales=None):
         """
         state_below: The input to the MLP
 
@@ -362,7 +363,6 @@ class MLP(Layer):
         layer's input scale is determined by the same scheme as the input probabilities.
 
         """
-
         warnings.warn("dropout should be implemented with fixed_var_descr to"
                 " make sure it works with BGD, this is just a hack to get it"
                 "working with SGD")
@@ -376,7 +376,7 @@ class MLP(Layer):
         assert all(layer_name in self.layer_names for layer_name in input_include_probs)
         assert all(layer_name in self.layer_names for layer_name in input_scales)
 
-        theano_rng = MRG_RandomStreams(self.rng.randint(2**15))
+        theano_rng = MRG_RandomStreams(self.rng.randint(2 ** 15))
 
         for layer in self.layers:
             layer_name = layer.layer_name
@@ -392,9 +392,9 @@ class MLP(Layer):
                 scale = default_input_scale
 
             state_below = self.apply_dropout(state=state_below,
-                    include_prob=include_prob,
-                    theano_rng=theano_rng,
-                    scale=scale)
+                                            include_prob=include_prob,
+                                            theano_rng=theano_rng,
+                                            scale=scale)
 
             state_below = layer.fprop(state_below)
 
