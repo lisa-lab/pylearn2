@@ -45,8 +45,6 @@ from theano.sandbox.cuda.type import CudaNdarrayType
 from pylearn2.utils import py_integer_types
 from pylearn2.utils import safe_zip
 from pylearn2.utils import sharedX
-from pylearn2.utils.data_specs import is_flat_space
-#import pylearn2.utils.data_specs as specs_utils
 
 if theano.sparse.enable_sparse:
     # We know scipy.sparse is available
