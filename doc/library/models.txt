@@ -2,8 +2,11 @@
 Models
 ======
 
-Base
-====
+.. contents::
+   :depth: 2
+
+Models Base Class
+=================
 .. automodule:: pylearn2.models.model
     :members:
 
@@ -15,6 +18,11 @@ MLP
 RBM
 ===
 .. automodule:: pylearn2.models.rbm
+    :members:
+
+DBM
+===
+.. automodule:: pylearn2.models.dbm
     :members:
 
 Auto Encoder
