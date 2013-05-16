@@ -45,6 +45,7 @@ from theano.sandbox.cuda.type import CudaNdarrayType
 from pylearn2.utils import py_integer_types
 from pylearn2.utils import safe_zip
 from pylearn2.utils import sharedX
+from pylearn2.utils.data_specs import is_flat_space
 
 
 class Space(object):
@@ -112,6 +113,31 @@ class Space(object):
         """
 
         raise NotImplementedError(str(type(self))+" does not implement get_total_dimension.")
+
+    def np_fromat_as(self, batch, space):
+        """
+        batch: numpy ndarray which lies in the space represented by self
+        space: a Space
+
+        returns batch formatted to lie in space
+
+        Should be invertible, i.e.
+        batch should equal
+        space.format_as(self.format_as(batch, space), self)
+        """
+        if not hasattr('_np_format_as', self):
+            assert is_flat_space(self)
+            variables = self.make_theano_batch()
+            outputs = self.format_as(variables, space)
+            if not instance(variables, (tuple, list)):
+                variables = (variables,)
+            self._np_format_as = theano.function(variables, outputs)
+        if isinstance(batch, (list, tuple)):
+            return self._np_format_as(*batch)
+        else:
+            return self._np_format_as(batch)
+
+
 
     def format_as(self, batch, space):
         """
@@ -233,6 +259,10 @@ class VectorSpace(Space):
     @functools.wraps(Space.get_total_dimension)
     def get_total_dimension(self):
         return self.dim
+
+    @functools.wraps(Space.np_format_as)
+    def np_format_as(self, batch, space):
+        return self._format_as(batch, space)
 
     @functools.wraps(Space._format_as)
     def _format_as(self, batch, space):
@@ -474,6 +504,19 @@ class Conv2DSpace(Space):
                             str(d) + " of a batch (" + str(batch)+") to have length " + str(expected_shape) + \
                             " but it has "+str(actual_shape))
 
+    @functools.wraps(Space.np_format_as)
+    def np_format_as(self, batch, space):
+        if isinstance(space, VectorSpace):
+            if self.axes[0] != 'b':
+                # We need to ensure that the batch index goes on the first axis before the reshape
+                new_axes = ['b'] + [axis for axis in self.axes if axis != 'b']
+                batch = batch.transpose(*[self.axes.index(axis) for axis in new_axes])
+            return batch.reshape((batch.shape[0], self.get_total_dimension()))
+        if isinstance(space, Conv2DSpace):
+            return Conv2DSpace.convert(batch, self.axes, space.axes)
+        raise NotImplementedError("Conv2DSPace doesn't know how to format as "+str(type(space)))
+
+
     @functools.wraps(Space._format_as)
     def _format_as(self, batch, space):
         self.validate(batch)
@@ -547,6 +590,17 @@ class CompositeSpace(Space):
     def get_total_dimension(self):
         return sum([component.get_total_dimension() for component in
             self.components])
+
+    @functools.wraps(Space.np_format_as)
+    def np_format_as(self, batch, space):
+        if isinstance(space, VectorSpace):
+            pieces = []
+            for component, input_piece in zip(self.components, batch):
+                width = component.get_total_dimension()
+                pieces.append(component.np_format_as(input_piece, VectorSpace(width)))
+            return numpy.concatenate(pieces, axis=1)
+
+        raise NotImplementedError("CompositeSpace does not know how to format as "+str(space))
 
     @functools.wraps(Space._format_as)
     def _format_as(self, batch, space):
