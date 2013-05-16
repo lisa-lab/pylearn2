@@ -2453,3 +2453,55 @@ class FlattenerLayer(Layer):
 
     def get_weights(self):
         return self.raw_layer.get_weights()
+
+
+def geometric_mean_prediction(mlp, inputs, masked_input_layers=None,
+                              default_input_scale=2., input_scales=None):
+    """
+    Take the geometric mean over all dropout masks of an
+    MLP with softmax outputs.
+
+    Parameters
+    ----------
+    mlp : object
+        An MLP object.
+
+    inputs : tensor_like
+        A Theano variable representing a minibatch appropriate
+        for fpropping through the MLP.
+
+    masked_input_layers : list, optional
+        A list of layer names whose input should be masked.
+        Default is all layers (including the first hidden
+        layer, i.e. mask the input).
+
+    default_input_scale : float, optional
+        The amount to scale input in dropped out layers.
+
+    input_scales : dict, optional
+        A dictionary  mapping layer names to constants by
+        which to scale the input.
+
+    Returns
+    -------
+    geo_mean : tensor_like
+        A symbolic graph for the geometric mean prediction
+        of all exponentially many masked subnetworks.
+
+    Notes
+    -----
+    This is obviously exponential in the size of the network,
+    don't do this except for tiny toy networks.
+    """
+    if masked_input_layers is None:
+        masked_input_layers = mlp.layer_names
+
+    num_inputs = mlp.get_total_input_dimension(masked_input_layers)
+    presoftmax = []
+    for mask in xrange(2 ** num_inputs):
+        out = mlp.masked_fprop(masked_input_layers)
+        assert isinstance(out.owner.op, T.nnet.Softmax)
+        assert len(out.owner.inputs) == 0
+        presoftmax.append(out.owner.inputs[0])
+    average = reduce(lambda x, y: x + y, presoftmax) / float(len(presoftmax))
+    return T.nnet.softmax(average)
