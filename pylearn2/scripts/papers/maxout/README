@@ -68,6 +68,31 @@ the art on CIFAR-100.
 
 5) SVHN
 
-In the days ahead, we will provide our yaml config files for getting the state of
-the art on SVHN.
+The paper reports a test error of 2.45 on the SVHN dataset, which is the state
+of the art for a single model.
 
+Since we can not fit all the data to memory we us PyTables hdf5 file format for storing
+the dataset. By running svhn_pre-processing we make a local copy of the dataset in hdf5
+and apply the pre-processing on it. Our pre-processing consists of first global contrast normalization
+followed by local contrast normalization on each of the RGB channels.
+
+export SVHN_LOCAL_PATH={some local folder}
+python svhn_preprocessing.py
+
+Afterwards we train our model using the svhn.yaml file
+
+THEANO_FLAGS="device=gpu,floatX=float32" python train.py svhn.yaml
+
+This should give the best validation error of 3.08% which corresponds to
+test error of 2.50% at epoch 142.
+
+Afterwards using the trick from this paper:
+
+On the importance of momentum and initialization in deep learning,
+Ilya Sutskever, James Martens, George Dahl, and Geoffery Hinton, ICML 2013
+
+We can re-run the model from the previous best point by using smaller
+learning rate which will result in best validation error of 3.07% and
+test error of 2.47% after 9 more epochs.
+
+THEANO_FLAGS="device=gpu,floatX=float32" python train.py svhn2.yaml
