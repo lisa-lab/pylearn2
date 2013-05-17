@@ -6,7 +6,7 @@ module, ensure that the changes do not break pylearn2/scripts/papers/maxout.
 """
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"
-__credits__ = ["Ian Goodfellow"]
+__credits__ = ["Ian Goodfellow", "David Warde-Farley"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
@@ -401,7 +401,40 @@ class MLP(Layer):
 
     def masked_fprop(self, state_below, mask, masked_input_layers=None,
                      default_input_scale=2., input_scales=None):
+        """
+        Forward propagate through the network with a dropout mask
+        determined by an integer (the binary representation of
+        which is used to generate the mask).
 
+        Parameters
+        ----------
+        state_below : tensor_like
+            The (symbolic) output state of the layer below.
+
+        mask : int
+            An integer indexing possible binary masks. It should be
+            < 2 ** get_total_input_dimension(masked_input_layers)
+            and greater than or equal to 0.
+
+        masked_input_layers : list, optional
+            A list of layer names to mask. If `None`, the input to
+            all layers (including the first hidden layer) is masked.
+
+        default_input_scale : float, optional
+            The amount to scale inputs in masked layers that do not
+            appear in `input_scales`. Defaults to 2.
+
+        input_scales : dict, optional
+            A dictionary mapping layer names to floating point
+            numbers indicating how much to scale input to a given
+            layer.
+
+        Returns
+        -------
+        masked_output : tensor_like
+            The output of the forward propagation of the masked
+            network.
+        """
         if input_scales is not None:
             self._validate_layer_names(masked_input_layers)
         else:
