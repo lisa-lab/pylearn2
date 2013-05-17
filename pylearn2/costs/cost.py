@@ -24,6 +24,8 @@ class Cost(object):
 
     def __call__(self, model, X, Y=None, ** kwargs):
         """
+        Parameters
+        ----------
         model: a pylearn2 Model instance
         X: a batch in model.get_input_space()
         Y: a batch in model.get_output_space()
@@ -39,6 +41,8 @@ class Cost(object):
 
     def get_gradients(self, model, X, Y=None, ** kwargs):
         """
+        Parameters
+        ----------
         model: a pylearn2 Model instance
         X: a batch in model.get_input_space()
         Y: a batch in model.get_output_space()
@@ -98,6 +102,8 @@ class Cost(object):
         WRITEME: how do you do prereqs in this setup? (there is a way,
             but I forget how right now)
 
+        Parameters
+        ----------
         model: the model to use to compute the monitoring channels
         X, Y: symbolic expressions for the monitoring data
         kwargs: used so that custom algorithms can use extra variables

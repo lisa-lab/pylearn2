@@ -535,6 +535,8 @@ class DBM(Model):
             theano variables, use the 'mcmc_steps' method. This is a wrapper around
             that method.
 
+            Parameters
+            ----------
             layer_to_state: a dictionary mapping the SuperDBM_Layer instances
                             contained in self to shared variables representing
                             batches of samples of them.
@@ -777,11 +779,14 @@ class Layer(Model):
                 -involve this layer only
                 -if there is a layer below, include terms that
                  involve both this layer and the layer below
+
             Do not include terms that involve the layer below only.
             Do not include any terms that involve the layer above, if it
             exists, in any way (the interface doesn't let you see the layer
             above anyway).
 
+            Parameters
+            ----------
             state_below: the upward state of the layer below.
             state: the total state of this layer
 

@@ -775,7 +775,7 @@ class _PolyakWorker(object):
 class PolyakAveraging(TrainExtension):
     """
     See "A Tutorial on Stochastic Approximation Algorithms
-    for Training Restricted Boltzmann Machines and
+        for Training Restricted Boltzmann Machines and
         Deep Belief Nets" by Kevin Swersky et al
 
     Notes: this is usually used with a fixed, rather than
