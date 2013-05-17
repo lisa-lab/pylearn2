@@ -20,6 +20,10 @@ before_install:
 
 # The "|| cat ..." part prints the error log if the pip command fails
 install:
+#Make sure the pip version used is linked to the used python version
+ - "cat `which pip`"
+ - "which python"
+ - "python --version"
 # If we don't install numpy before SciPy, the SciPy installations fails.
   - "pip install -q numpy==1.5 --use-mirrors"
 # We support scipy 0.7.2, but it is not available on pypi anymore.
