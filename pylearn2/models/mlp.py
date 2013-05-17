@@ -2488,8 +2488,67 @@ class FlattenerLayer(Layer):
         return self.raw_layer.get_weights()
 
 
-def geometric_mean_prediction(mlp, inputs, masked_input_layers=None,
-                              default_input_scale=2., input_scales=None):
+def sampled_dropout_average(mlp, inputs, num_masks,
+                            default_input_include_prob=0.5,
+                            input_include_probs=None,
+                            default_input_scale=2.,
+                            input_scales=None):
+    """
+    Take the geometric mean over a number of randomly sampled
+    dropout masks for an MLP with softmax outputs.
+
+    Parameters
+    ----------
+    mlp : object
+        An MLP object.
+
+    inputs : tensor_like
+        A Theano variable representing a minibatch appropriate
+        for fpropping through the MLP.
+
+    num_masks : int
+        The number of masks to sample.
+
+    inputs : tensor_like
+        A Theano variable representing a minibatch appropriate
+        for fpropping through the MLP.
+
+    masked_input_layers : list, optional
+        A list of layer names whose input should be masked.
+        Default is all layers (including the first hidden
+        layer, i.e. mask the input).
+
+    default_input_scale : float, optional
+        The amount to scale input in dropped out layers.
+
+    input_scales : dict, optional
+        A dictionary  mapping layer names to constants by
+        which to scale the input.
+
+    Returns
+    -------
+    geo_mean : tensor_like
+        A symbolic graph for the geometric mean prediction
+        of all exponentially many masked subnetworks.
+
+    """
+    if input_include_probs is None:
+        input_include_probs = {}
+
+    if input_scales is None:
+        input_scales = {}
+
+    mlp._validate_layer_names(list(input_include_probs.keys()))
+    mlp._validate_layer_names(list(input_scales.keys()))
+    outputs = [mlp.dropout_fprop(inputs, default_input_include_prob,
+                                 input_include_probs, default_input_scale,
+                                 input_scales) for i in xrange(num_masks)]
+
+    return geometric_mean_prediction(outputs)
+
+
+def exhaustive_dropout_average(mlp, inputs, masked_input_layers=None,
+                               default_input_scale=2., input_scales=None):
     """
     Take the geometric mean over all dropout masks of an
     MLP with softmax outputs.
@@ -2530,11 +2589,39 @@ def geometric_mean_prediction(mlp, inputs, masked_input_layers=None,
         masked_input_layers = mlp.layer_names
 
     num_inputs = mlp.get_total_input_dimension(masked_input_layers)
+    outputs = [mlp.masked_fprop(inputs, mask, masked_input_layers,
+                                default_input_scale, input_scales)
+               for mask in xrange(2 ** num_inputs)]
+    return geometric_mean_prediction(outputs)
+
+
+def geometric_mean_prediction(forward_props):
+    """
+    Take the geometric mean over all dropout masks of an
+    MLP with softmax outputs.
+
+    Parameters
+    ----------
+    forward_props : list
+        A list of Theano graphs corresponding to forward
+        propagations through the network with different
+        dropout masks.
+
+    Returns
+    -------
+    geo_mean : tensor_like
+        A symbolic graph for the geometric mean prediction
+        of all exponentially many masked subnetworks.
+
+    Notes
+    -----
+    This is obviously exponential in the size of the network,
+    don't do this except for tiny toy networks.
+    """
     presoftmax = []
-    for mask in xrange(2 ** num_inputs):
-        out = mlp.masked_fprop(masked_input_layers)
+    for out in forward_props:
         assert isinstance(out.owner.op, T.nnet.Softmax)
-        assert len(out.owner.inputs) == 0
+        assert len(out.owner.inputs) == 1
         presoftmax.append(out.owner.inputs[0])
     average = reduce(lambda x, y: x + y, presoftmax) / float(len(presoftmax))
     return T.nnet.softmax(average)
