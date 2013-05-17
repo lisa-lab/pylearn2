@@ -27,8 +27,9 @@ install:
 # We install it later only for the PART that need it.
   - "pip install -q nose==1.0.0 --use-mirrors"
   - "pip install -q PIL --use-mirrors"
-#numexpr 2.0 need numpy 1.6 or above. As we support numpy 1.5, we need older numexpr version
-#  - "pip install -q numexpr==1.4.2 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+#numexpr 2.0 need NumPy 1.6 or above. As we support NumPy 1.5,
+#we need an older numexpr version. numexpr is needed for pytables
+  - "pip install -q numexpr==1.4.2 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
   - "pip install -q cython --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
   - "pip install -q tables --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
   - "pip install -q pyyaml --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
