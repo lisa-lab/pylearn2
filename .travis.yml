@@ -16,7 +16,7 @@ python:
 before_install:
 #zlib1g-dev is needed to allow PIL to uncompress the dataset.
   - sudo apt-get install -qq libatlas3gf-base libatlas-dev liblapack-dev gfortran zlib1g-dev
-    python-yaml pyflakes libhdf5-serial-dev python-pip  #python-imaging python-tables
+    pyflakes libhdf5-serial-dev python-pip  #python-imaging python-tables
 
 # The "|| cat ..." part prints the error log if the pip command fails
 install:
@@ -27,9 +27,10 @@ install:
 # We install it later only for the PART that need it.
   - "pip install -q nose==1.0.0 --use-mirrors"
   - "pip install -q PIL --use-mirrors"
-  - "pip install -q numexpr --use-mirrors"
+  - "pip install -q numexpr --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
   - "pip install -q cython --use-mirrors"
   - "pip install -q tables --use-mirrors"
+  - "pip install -q pyyaml --use-mirrors"
 #  - "pip install -q scipy==0.8 --use-mirrors"
 
   - "sudo pip install -q git+git://git.assembla.com/jobman.git || cat /home/travis/.pip/pip.log"
