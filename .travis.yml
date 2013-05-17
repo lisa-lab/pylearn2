@@ -20,18 +20,19 @@ before_install:
 
 # The "|| cat ..." part prints the error log if the pip command fails
 install:
-# If we don't install numpy before SciPy 0.10.1, the SciPy installations fails.
+# If we don't install numpy before SciPy, the SciPy installations fails.
   - "pip install -q numpy==1.5 --use-mirrors"
 # We support scipy 0.7.2, but it is not available on pypi anymore.
 # So we test with 0.8. Our internal buildbot have 0.7.2.
 # We install it later only for the PART that need it.
   - "pip install -q nose==1.0.0 --use-mirrors"
   - "pip install -q PIL --use-mirrors"
-  - "pip install -q numexpr --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
-  - "pip install -q cython --use-mirrors"
-  - "pip install -q tables --use-mirrors"
-  - "pip install -q pyyaml --use-mirrors"
-#  - "pip install -q scipy==0.8 --use-mirrors"
+#numexpr 2.0 need numpy 1.6 or above. As we support numpy 1.5, we need older numexpr version
+#  - "pip install -q numexpr==1.4.2 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "pip install -q cython --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "pip install -q tables --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "pip install -q pyyaml --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+#  - "pip install -q scipy==0.8 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
 
   - "sudo pip install -q git+git://git.assembla.com/jobman.git || cat /home/travis/.pip/pip.log"
   - "sudo pip install -q --no-deps git+git://github.com/Theano/Theano.git || cat /home/travis/.pip/pip.log"
