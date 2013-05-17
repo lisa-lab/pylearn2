@@ -9,7 +9,7 @@
 language: python
 python:
 #Currently we use functools.cmp_to_key that is available only in python 2.7
-  - "2.6"
+  - "2.7"
 
 
 # command to install dependencies
