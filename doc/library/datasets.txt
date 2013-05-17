@@ -27,14 +27,14 @@ List of Datasets
 
 
 MNIST
-=======
+=====
 .. automodule:: pylearn2.datasets.mnist
     :members:
 
 
 
 MNIST+
-=======
+======
 .. automodule:: pylearn2.datasets.mnistplus
     :members:
 
@@ -47,13 +47,13 @@ CIFAR10
 
 
 CIFAR100
-=======
+========
 .. automodule:: pylearn2.datasets.cifar100
     :members:
 
 
 Street View House Numbers (SVHN)
-=================
+================================
 .. automodule:: pylearn2.datasets.svhn
     :members:
 
