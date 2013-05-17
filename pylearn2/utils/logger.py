@@ -35,7 +35,7 @@ class CustomFormatter(Formatter):
     the log level is WARNING or greater.
     """
     def __init__(self, prefix='', only_from=None):
-        super(CustomFormatter, self).__init__()
+        Formatter.__init__(self)
         self._info_fmt = prefix + "%(message)s"
         self._fmt = prefix + "%(levelname)s (%(name)s): %(message)s"
         self._only_from = only_from

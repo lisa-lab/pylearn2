@@ -1,11 +1,11 @@
 
-import sys
+from collections import defaultdict
+import inspect
+import getopt
 import os
 import shutil
-import inspect
+import sys
 
-import getopt
-from collections import defaultdict
 
 if __name__ == '__main__':
 

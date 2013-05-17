@@ -7,6 +7,8 @@ import functools
 
 from pylearn2.datasets.exc import NoDataPathError
 from pylearn2.utils.exc import EnvironmentVariableError
+from pylearn2.utils.python26 import cmp_to_key
+
 
 def preprocess(string):
     """
@@ -136,7 +138,7 @@ def number_aware_alphabetical_cmp(str1, str2):
     return 0
 
 #key for sorting strings alphabetically with numbers
-number_aware_alphabetical_key = functools.cmp_to_key(number_aware_alphabetical_cmp)
+number_aware_alphabetical_key = cmp_to_key(number_aware_alphabetical_cmp)
 
 def match(wrong, candidates):
     """

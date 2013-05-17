@@ -9,7 +9,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
-from collections import OrderedDict
+from theano.compat.python2x import OrderedDict
 import copy
 import time
 import warnings
@@ -786,6 +786,9 @@ def push_monitor(model, name, transfer_experience = False):
     old monitor under a different name and start a new monitor, wrap
     the model in this function call.
 
+
+    Parameters
+    ----------
     model: The model you loaded
     name: Will save the old monitor to model.name
     transfer_experience: If True, the new monitor will start with its
@@ -815,6 +818,8 @@ def get_channel(model, dataset, channel, cost, batch_size):
     """
     Make a temporary monitor and return the value of a channel in it.
 
+    Parameters
+    ----------
     model: A pylearn2.models.model.Model instance. Will evaluate the
            channel for this Model.
     dataset: The Dataset to run on

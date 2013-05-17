@@ -267,6 +267,8 @@ def setup_detector_layer_c01b(layer, input_space, rng, irange):
     Takes steps to set up an object for use as being some kind of convolutional layer.
     This function sets up only the detector layer.
 
+    Parameters
+    ----------
     layer: Any python object that allows the modifications described below and has
         the following attributes:
             pad: int describing amount of zero padding to add

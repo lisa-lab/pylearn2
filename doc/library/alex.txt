@@ -23,7 +23,7 @@ Pool
     :members:
 
 Resoponse Normalization
-====
+=======================
 .. automodule:: pylearn2.sandbox.cuda_convnet.response_norm
     :members:
 

@@ -4,18 +4,21 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
-from collections import OrderedDict
+
+import numpy as np
+from theano import config
+from theano.compat.python2x import OrderedDict
+import theano.tensor as T
+
 from pylearn2.monitor import Monitor
 from pylearn2.optimization.batch_gradient_descent import BatchGradientDescent
-import theano.tensor as T
 from pylearn2.utils.iteration import is_stochastic
-import numpy as np
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 from pylearn2.utils import safe_zip
 from pylearn2.train_extensions import TrainExtension
 from pylearn2.termination_criteria import TerminationCriterion
 from pylearn2.utils import sharedX
-from theano import config
+
 
 class BGD(TrainingAlgorithm):
     """Batch Gradient Descent training algorithm class"""

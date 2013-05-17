@@ -23,7 +23,11 @@ import sys, os
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sphinx.ext.autodoc', 'sphinx.ext.todo']#, 'ext']
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.todo', 'numpydoc']#, 'ext']
+
+#Needed otherwise, there is many autosummary error done by numpydo:
+#https://github.com/phn/pytpm/issues/3#issuecomment-12133978
+numpydoc_show_class_members = False
 
 todo_include_todos = True
 
