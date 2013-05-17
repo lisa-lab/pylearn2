@@ -1,9 +1,11 @@
-import theano
-import theano.tensor as TT
 import numpy
+
+import theano
+from theano.compat.python2x import OrderedDict
+import theano.tensor as TT
+
 import minres
 
-from collections import OrderedDict
 
 def test_1():
     n = 100

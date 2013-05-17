@@ -59,7 +59,7 @@ class CrossMapNorm(BaseActs):
     """
     Parameters
     ----------
-    size_f ; int
+    size_f : int
         Filter neighbourhood size. Must be >= 1 and <= the number
         of filters (I think).
 

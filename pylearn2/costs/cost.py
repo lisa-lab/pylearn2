@@ -4,11 +4,14 @@ Currently, these are primarily used to specify
 the objective function for the SGD and BGD
 training algorithms.
 """
-import theano.tensor as T
 from itertools import izip
+
+import theano.tensor as T
+from theano.compat.python2x import OrderedDict
+
 from pylearn2.utils import safe_zip
-from collections import OrderedDict
 from pylearn2.utils import safe_union
+
 
 class Cost(object):
     """
@@ -21,6 +24,8 @@ class Cost(object):
 
     def __call__(self, model, X, Y=None, ** kwargs):
         """
+        Parameters
+        ----------
         model: a pylearn2 Model instance
         X: a batch in model.get_input_space()
         Y: a batch in model.get_output_space()
@@ -36,6 +41,8 @@ class Cost(object):
 
     def get_gradients(self, model, X, Y=None, ** kwargs):
         """
+        Parameters
+        ----------
         model: a pylearn2 Model instance
         X: a batch in model.get_input_space()
         Y: a batch in model.get_output_space()
@@ -95,6 +102,8 @@ class Cost(object):
         WRITEME: how do you do prereqs in this setup? (there is a way,
             but I forget how right now)
 
+        Parameters
+        ----------
         model: the model to use to compute the monitoring channels
         X, Y: symbolic expressions for the monitoring data
         kwargs: used so that custom algorithms can use extra variables

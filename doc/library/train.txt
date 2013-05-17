@@ -57,10 +57,3 @@ Window Flip
 ===========
 .. automodule:: pylearn2.train_extensions.window_flip
     :members:
-
-##################
-Training Callbacks
-##################
-
-.. automodule:: pylearn2.training_callback.__init__
-    :members:

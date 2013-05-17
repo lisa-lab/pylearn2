@@ -10,8 +10,7 @@ __maintainer__ = "Ian Goodfellow"
 
 import warnings
 
-from collections import OrderedDict
-
+from theano.compat.python2x import OrderedDict
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 from theano import tensor as T
 
