@@ -6,7 +6,7 @@ module, ensure that the changes do not break pylearn2/scripts/papers/maxout.
 """
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"
-__credits__ = ["Ian Goodfellow"]
+__credits__ = ["Ian Goodfellow", "David Warde-Farley"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
@@ -136,7 +136,7 @@ class Layer(Model):
 
     def get_weight_decay(self, coeff):
         raise NotImplementedError
-    
+
     def get_l1_weight_decay(self, coeff):
         raise NotImplementedError
 
@@ -346,8 +346,9 @@ class MLP(Layer):
     def get_weights_topo(self):
         return self.layers[0].get_weights_topo()
 
-    def dropout_fprop(self, state_below, default_input_include_prob=0.5, input_include_probs=None,
-        default_input_scale=2., input_scales=None):
+    def dropout_fprop(self, state_below, default_input_include_prob=0.5,
+                      input_include_probs=None, default_input_scale=2.,
+                      input_scales=None):
         """
         state_below: The input to the MLP
 
@@ -362,7 +363,6 @@ class MLP(Layer):
         layer's input scale is determined by the same scheme as the input probabilities.
 
         """
-
         warnings.warn("dropout should be implemented with fixed_var_descr to"
                 " make sure it works with BGD, this is just a hack to get it"
                 "working with SGD")
@@ -373,10 +373,10 @@ class MLP(Layer):
         if input_scales is None:
             input_scales = {}
 
-        assert all(layer_name in self.layer_names for layer_name in input_include_probs)
-        assert all(layer_name in self.layer_names for layer_name in input_scales)
+        self._validate_layer_names(list(input_include_probs.keys()))
+        self._validate_layer_names(list(input_scales.keys()))
 
-        theano_rng = MRG_RandomStreams(self.rng.randint(2**15))
+        theano_rng = MRG_RandomStreams(self.rng.randint(2 ** 15))
 
         for layer in self.layers:
             layer_name = layer.layer_name
@@ -392,13 +392,116 @@ class MLP(Layer):
                 scale = default_input_scale
 
             state_below = self.apply_dropout(state=state_below,
-                    include_prob=include_prob,
-                    theano_rng=theano_rng,
-                    scale=scale)
-
+                                            include_prob=include_prob,
+                                            theano_rng=theano_rng,
+                                            scale=scale)
             state_below = layer.fprop(state_below)
 
         return state_below
+
+    def masked_fprop(self, state_below, mask, masked_input_layers=None,
+                     default_input_scale=2., input_scales=None):
+        """
+        Forward propagate through the network with a dropout mask
+        determined by an integer (the binary representation of
+        which is used to generate the mask).
+
+        Parameters
+        ----------
+        state_below : tensor_like
+            The (symbolic) output state of the layer below.
+
+        mask : int
+            An integer indexing possible binary masks. It should be
+            < 2 ** get_total_input_dimension(masked_input_layers)
+            and greater than or equal to 0.
+
+        masked_input_layers : list, optional
+            A list of layer names to mask. If `None`, the input to
+            all layers (including the first hidden layer) is masked.
+
+        default_input_scale : float, optional
+            The amount to scale inputs in masked layers that do not
+            appear in `input_scales`. Defaults to 2.
+
+        input_scales : dict, optional
+            A dictionary mapping layer names to floating point
+            numbers indicating how much to scale input to a given
+            layer.
+
+        Returns
+        -------
+        masked_output : tensor_like
+            The output of the forward propagation of the masked
+            network.
+        """
+        if input_scales is not None:
+            self._validate_layer_names(masked_input_layers)
+        else:
+            input_scales = {}
+        if any(n not in masked_input_layers for n in input_scales):
+            layers = [n for n in input_scales if n not in masked_input_layers]
+            raise ValueError("input scales provided for layer not masked: " %
+                             ", ".join(layers))
+        if masked_input_layers is not None:
+            self._validate_layer_names(masked_input_layers)
+        else:
+            masked_input_layers = self.layer_names
+        num_inputs = self.get_total_input_dimension(masked_input_layers)
+        if np.log2(mask) > num_inputs:
+            raise ValueError("mask value of %d too large; only %d "
+                             "inputs to layers (%s)" %
+                             (mask, num_inputs,
+                              ", ".join(masked_input_layers)))
+
+        def binary_string(x, length, dtype):
+            """
+            Create the binary representation of an integer `x`, padded to
+            `length`, with dtype `dtype`.
+            """
+            s = np.empty(length, dtype=dtype)
+            for i in range(length - 1, -1, -1):
+                if x // (2 ** i) == 1:
+                    s[i] = 1
+                else:
+                    s[i] = 0
+                x = x % (2 ** i)
+            return s
+
+        remaining_mask = mask
+        for layer in self.layers:
+            if layer.layer_name in masked_input_layers:
+                sc = input_scales.get(layer.layer_name, default_input_scale)
+                n_inputs = layer.get_input_space().get_total_dimension()
+                layer_dropout_mask = remaining_mask & (2 ** n_inputs - 1)
+                remaining_mask >>= n_inputs
+                mask = binary_string(layer_dropout_mask, n_inputs,
+                                     config.floatX)
+                s_mask = T.as_tensor_variable(mask).reshape(state_below.shape)
+                state_below = state_below * s_mask * sc
+            state_below = layer.fprop(state_below)
+
+        return state_below
+
+    def _validate_layer_names(self, layers):
+        if any(layer not in self.layer_names for layer in layers):
+            unknown_names = [layer for layer in layers
+                                if layer not in self.layer_names]
+            raise ValueError("MLP has no layer(s) named %s" %
+                                ", ".join(unknown_names))
+
+    def get_total_input_dimension(self, layers):
+        """
+        Get the total number of inputs to the layers whose
+        names are listed in `layers`. Used for computing the
+        total number of dropout masks.
+        """
+        self._validate_layer_names(layers)
+        total = 0
+        for layer in self.layers:
+            if layer.layer_name in layers:
+                total += layer.get_input_space().get_total_dimension()
+        return total
 
     def fprop(self, state_below, return_all = False):
 
@@ -2383,3 +2486,55 @@ class FlattenerLayer(Layer):
 
     def get_weights(self):
         return self.raw_layer.get_weights()
+
+
+def geometric_mean_prediction(mlp, inputs, masked_input_layers=None,
+                              default_input_scale=2., input_scales=None):
+    """
+    Take the geometric mean over all dropout masks of an
+    MLP with softmax outputs.
+
+    Parameters
+    ----------
+    mlp : object
+        An MLP object.
+
+    inputs : tensor_like
+        A Theano variable representing a minibatch appropriate
+        for fpropping through the MLP.
+
+    masked_input_layers : list, optional
+        A list of layer names whose input should be masked.
+        Default is all layers (including the first hidden
+        layer, i.e. mask the input).
+
+    default_input_scale : float, optional
+        The amount to scale input in dropped out layers.
+
+    input_scales : dict, optional
+        A dictionary  mapping layer names to constants by
+        which to scale the input.
+
+    Returns
+    -------
+    geo_mean : tensor_like
+        A symbolic graph for the geometric mean prediction
+        of all exponentially many masked subnetworks.
+
+    Notes
+    -----
+    This is obviously exponential in the size of the network,
+    don't do this except for tiny toy networks.
+    """
+    if masked_input_layers is None:
+        masked_input_layers = mlp.layer_names
+
+    num_inputs = mlp.get_total_input_dimension(masked_input_layers)
+    presoftmax = []
+    for mask in xrange(2 ** num_inputs):
+        out = mlp.masked_fprop(masked_input_layers)
+        assert isinstance(out.owner.op, T.nnet.Softmax)
+        assert len(out.owner.inputs) == 0
+        presoftmax.append(out.owner.inputs[0])
+    average = reduce(lambda x, y: x + y, presoftmax) / float(len(presoftmax))
+    return T.nnet.softmax(average)
