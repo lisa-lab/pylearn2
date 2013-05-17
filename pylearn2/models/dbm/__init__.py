@@ -19,8 +19,8 @@ import sys
 import time
 import warnings
 
-from collections import OrderedDict
 
+from theano.compat.python2x import OrderedDict
 from theano import config
 from theano import function
 from theano import gof

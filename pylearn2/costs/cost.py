@@ -4,11 +4,14 @@ Currently, these are primarily used to specify
 the objective function for the SGD and BGD
 training algorithms.
 """
-import theano.tensor as T
 from itertools import izip
+
+import theano.tensor as T
+from theano.compat.python2x import OrderedDict
+
 from pylearn2.utils import safe_zip
-from collections import OrderedDict
 from pylearn2.utils import safe_union
+
 
 class Cost(object):
     """

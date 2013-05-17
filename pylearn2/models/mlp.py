@@ -10,12 +10,12 @@ __credits__ = ["Ian Goodfellow", "David Warde-Farley"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
-from collections import OrderedDict
-import numpy as np
 import sys
 import warnings
 
+import numpy as np
 from theano import config
+from theano.compat.python2x import OrderedDict
 from theano.gof.op import get_debug_values
 from theano.printing import Print
 from theano.sandbox.rng_mrg import MRG_RandomStreams

@@ -9,7 +9,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
-from collections import OrderedDict
+from theano.compat.python2x import OrderedDict
 import copy
 import time
 import warnings
