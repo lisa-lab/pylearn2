@@ -1,0 +1,66 @@
+========
+Training
+========
+
+
+.. contents::
+   :depth: 3
+
+################
+Training Scripts
+################
+
+Train
+=====
+.. automodule:: pylearn2.scripts.train
+    :members:
+
+
+###################
+Training Algorithms
+###################
+
+Base Class
+==========
+.. automodule:: pylearn2.training_algorithms.training_algorithm
+    :members:
+
+
+Default
+=======
+.. automodule:: pylearn2.training_algorithms.default
+    :members:
+
+
+Stochastic Gradient Descent
+===========================
+.. automodule:: pylearn2.training_algorithms.sgd
+    :members:
+
+
+Batch Gradient Descent
+===========================
+.. automodule:: pylearn2.training_algorithms.bgd
+    :members:
+
+
+################
+Train Extensions
+################
+
+Best Params
+===========
+.. automodule:: pylearn2.train_extensions.best_params
+    :members:
+
+Window Flip
+===========
+.. automodule:: pylearn2.train_extensions.window_flip
+    :members:
+
+##################
+Training Callbacks
+##################
+
+.. automodule:: pylearn2.training_callback.__init__
+    :members:

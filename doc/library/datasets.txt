@@ -1,0 +1,66 @@
+========
+Datasets
+========
+
+.. contents::
+   :depth: 3
+
+
+####################
+Dataset Base Classes
+####################
+
+Dataset
+=======
+.. automodule:: pylearn2.datasets.dataset
+    :members:
+
+Dense Design Matrix
+===================
+.. automodule:: pylearn2.datasets.dense_design_matrix
+    :members:
+
+
+################
+List of Datasets
+################
+
+
+MNIST
+=======
+.. automodule:: pylearn2.datasets.mnist
+    :members:
+
+
+
+MNIST+
+=======
+.. automodule:: pylearn2.datasets.mnistplus
+    :members:
+
+
+
+CIFAR10
+=======
+.. automodule:: pylearn2.datasets.cifar10
+    :members:
+
+
+CIFAR100
+=======
+.. automodule:: pylearn2.datasets.cifar100
+    :members:
+
+
+Street View House Numbers (SVHN)
+=================
+.. automodule:: pylearn2.datasets.svhn
+    :members:
+
+
+STL 10
+======
+.. automodule:: pylearn2.datasets.stl10
+    :members:
+
+

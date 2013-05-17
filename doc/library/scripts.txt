@@ -1,0 +1,31 @@
+=======
+Scripts
+=======
+
+.. contents::
+   :depth: 2
+
+##########
+Monitoring
+##########
+
+Plot Monitor
+============
+
+Print Monitor
+============
+
+#############
+Visualization
+#############
+
+Show Examples
+=============
+
+Show Binocular Grayscale Examples
+=================================
+
+Show Weights
+============
+
+
