@@ -2546,7 +2546,9 @@ def sampled_dropout_average(mlp, inputs, num_masks,
                             default_input_include_prob=0.5,
                             input_include_probs=None,
                             default_input_scale=2.,
-                            input_scales=None):
+                            input_scales=None,
+                            rng=(2013, 05, 17),
+                            per_example=False):
     """
     Take the geometric mean over a number of randomly sampled
     dropout masks for an MLP with softmax outputs.
@@ -2563,14 +2565,16 @@ def sampled_dropout_average(mlp, inputs, num_masks,
     num_masks : int
         The number of masks to sample.
 
-    inputs : tensor_like
-        A Theano variable representing a minibatch appropriate
-        for fpropping through the MLP.
+    default_input_include_prob : float, optional
+        The probability of including an input to a hidden
+        layer, for layers not listed in `input_include_probs`.
+        Default is 0.5.
 
-    masked_input_layers : list, optional
-        A list of layer names whose input should be masked.
-        Default is all layers (including the first hidden
-        layer, i.e. mask the input).
+    input_include_probs : dict, optional
+        A dictionary  mapping layer names to probabilities
+        of input inclusion for that layer. Default is `None`,
+        in which `default_include_prob` is used for all
+        layers.
 
     default_input_scale : float, optional
         The amount to scale input in dropped out layers.
@@ -2579,12 +2583,21 @@ def sampled_dropout_average(mlp, inputs, num_masks,
         A dictionary  mapping layer names to constants by
         which to scale the input.
 
+    rng : RandomState object or seed, optional
+        A `numpy.random.RandomState` object or a seed used to
+        create one.
+
+    per_example : boolean, optional
+        If `True`, generate a different mask for every single
+        test example, so you have `num_masks` per example
+        instead of `num_mask` networks total. If `False`,
+        `num_masks` masks are fixed in the graph.
+
     Returns
     -------
     geo_mean : tensor_like
-        A symbolic graph for the geometric mean prediction
-        of all exponentially many masked subnetworks.
-
+        A symbolic graph for the geometric mean prediction of
+        all the networks.
     """
     if input_include_probs is None:
         input_include_probs = {}
@@ -2592,11 +2605,27 @@ def sampled_dropout_average(mlp, inputs, num_masks,
     if input_scales is None:
         input_scales = {}
 
+    if not hasattr(rng, 'uniform'):
+        rng = np.random.RandomState(rng)
+
     mlp._validate_layer_names(list(input_include_probs.keys()))
     mlp._validate_layer_names(list(input_scales.keys()))
-    outputs = [mlp.dropout_fprop(inputs, default_input_include_prob,
-                                 input_include_probs, default_input_scale,
-                                 input_scales) for i in xrange(num_masks)]
+
+    if per_example:
+        outputs = [mlp.dropout_fprop(inputs, default_input_include_prob,
+                                     input_include_probs,
+                                     default_input_scale,
+                                     input_scales)
+                   for _ in xrange(num_masks)]
+
+    else:
+        masks = [generate_dropout_mask(mlp, default_input_include_prob,
+                                       input_include_probs, rng)
+                 for _ in xrange(num_masks)]
+
+        outputs = [mlp.masked_fprop(inputs, mask, None,
+                                    default_input_scale, input_scales)
+                   for mask in masks]
 
     return geometric_mean_prediction(outputs)
 
