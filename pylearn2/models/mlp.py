@@ -10,6 +10,8 @@ __credits__ = ["Ian Goodfellow", "David Warde-Farley"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
+from collections import OrderedDict
+import math
 import sys
 import warnings
 
@@ -436,7 +438,7 @@ class MLP(Layer):
             network.
         """
         if input_scales is not None:
-            self._validate_layer_names(masked_input_layers)
+            self._validate_layer_names(input_scales)
         else:
             input_scales = {}
         if any(n not in masked_input_layers for n in input_scales):
