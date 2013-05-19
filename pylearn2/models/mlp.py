@@ -2492,6 +2492,56 @@ class FlattenerLayer(Layer):
         return self.raw_layer.get_weights()
 
 
+def generate_dropout_mask(mlp, default_include_prob=0.5,
+                          input_include_probs=None, rng=(2013, 5, 17)):
+    """
+    Generate a dropout mask (as an integer) given inclusion
+    probabilities.
+
+    Parameters
+    ----------
+    mlp : object
+        An MLP object.
+
+    default_include_prob : float, optional
+        The probability of including an input to a hidden
+        layer, for layers not listed in `input_include_probs`.
+        Default is 0.5.
+
+    input_include_probs : dict, optional
+        A dictionary  mapping layer names to probabilities
+        of input inclusion for that layer. Default is `None`,
+        in which `default_include_prob` is used for all
+        layers.
+
+    rng : RandomState object or seed, optional
+        A `numpy.random.RandomState` object or a seed used to
+        create one.
+
+    Returns
+    -------
+    mask : int
+        An integer indexing a dropout mask for the network,
+        drawn with the appropriate probability given the
+        inclusion probabilities.
+    """
+    if input_include_probs is None:
+        input_include_probs = {}
+    if not hasattr(rng, 'uniform'):
+        rng = np.random.RandomState(rng)
+    total_units = 0
+    mask = 0
+    for layer in mlp.layers:
+        if layer.layer_name in input_include_probs:
+            p = input_include_probs[layer.layer_name]
+        else:
+            p = default_include_prob
+        for _ in xrange(layer.get_input_space().get_total_dimension()):
+            mask |= int(rng.uniform() < p) << total_units
+            total_units += 1
+    return mask
+
+
 def sampled_dropout_average(mlp, inputs, num_masks,
                             default_input_include_prob=0.5,
                             input_include_probs=None,
