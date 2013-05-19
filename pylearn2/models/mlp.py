@@ -2670,6 +2670,14 @@ def exhaustive_dropout_average(mlp, inputs, masked_input_layers=None,
     """
     if masked_input_layers is None:
         masked_input_layers = mlp.layer_names
+    mlp._validate_layer_names(masked_input_layers)
+    mlp._validate_layer_names(input_scales.keys())
+
+    if any(key not in masked_input_layers for key in input_scales):
+        not_in = [key for key in input_scales
+                  if key not in mlp.layer_names]
+        raise ValueError(", ".join(not_in) + " in input_scales"
+                         " but not masked")
 
     num_inputs = mlp.get_total_input_dimension(masked_input_layers)
     outputs = [mlp.masked_fprop(inputs, mask, masked_input_layers,
