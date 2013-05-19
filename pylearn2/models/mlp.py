@@ -450,7 +450,7 @@ class MLP(Layer):
         else:
             masked_input_layers = self.layer_names
         num_inputs = self.get_total_input_dimension(masked_input_layers)
-        if np.log2(mask) > num_inputs:
+        if math.log(mask, 2) > num_inputs:
             raise ValueError("mask value of %d too large; only %d "
                              "inputs to layers (%s)" %
                              (mask, num_inputs,
