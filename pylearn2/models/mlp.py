@@ -480,10 +480,9 @@ class MLP(Layer):
                 remaining_mask >>= n_inputs
                 mask = binary_string(layer_dropout_mask, n_inputs,
                                      'uint8')
-                if not np.all(mask):
-                    shape = layer.get_input_space().get_origin_batch(1).shape
-                    s_mask = T.as_tensor_variable(mask).reshape(shape)
-                    state_below = state_below * s_mask * sc
+                shape = layer.get_input_space().get_origin_batch(1).shape
+                s_mask = T.as_tensor_variable(mask).reshape(shape)
+                state_below = state_below * s_mask * sc
             state_below = layer.fprop(state_below)
 
         return state_below
