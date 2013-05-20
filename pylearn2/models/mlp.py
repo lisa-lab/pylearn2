@@ -69,6 +69,11 @@ class Layer(Model):
         we could make this a block.
     """
 
+    # When applying dropout to a layer's input, use this for masked values.
+    # Usually this will be 0, but certain kinds of layers may want to override
+    # this behaviour.
+    dropout_input_mask_value = 0.
+
     def get_mlp(self):
         """
         Returns the MLP that this layer belongs to, or None
@@ -393,10 +398,13 @@ class MLP(Layer):
             else:
                 scale = default_input_scale
 
-            state_below = self.apply_dropout(state=state_below,
-                                            include_prob=include_prob,
-                                            theano_rng=theano_rng,
-                                            scale=scale)
+            state_below = self.apply_dropout(
+                state=state_below,
+                include_prob=include_prob,
+                theano_rng=theano_rng,
+                scale=scale,
+                mask_value=layer.dropout_input_mask_value
+            )
             state_below = layer.fprop(state_below)
 
         return state_below
@@ -480,6 +488,7 @@ class MLP(Layer):
                 remaining_mask >>= n_inputs
                 mask = binary_string(layer_dropout_mask, n_inputs,
                                      'uint8')
+                mask[mask == 0.] = layer.dropout_input_mask_value
                 shape = layer.get_input_space().get_origin_batch(1).shape
                 s_mask = T.as_tensor_variable(mask).reshape(shape)
                 state_below = state_below * s_mask * sc
@@ -521,13 +530,21 @@ class MLP(Layer):
             return rlist
         return rval
 
-    def apply_dropout(self, state, include_prob, scale, theano_rng):
+    def apply_dropout(self, state, include_prob, scale, theano_rng,
+                      mask_value=0):
         if include_prob in [None, 1.0, 1]:
             return state
         assert scale is not None
         if isinstance(state, tuple):
-            return tuple(self.apply_dropout(substate, include_prob, scale, theano_rng) for substate in state)
-        return state * theano_rng.binomial(p=include_prob, size=state.shape, dtype=state.dtype) * scale
+            return tuple(self.apply_dropout(substate, include_prob,
+                                            scale, theano_rng, mask_value)
+                         for substate in state)
+        mask = theano_rng.binomial(p=include_prob, size=state.shape,
+                                   dtype=state.dtype)
+        if mask_value == 0:
+            return state * mask * scale
+        else:
+            return T.switch(mask, state, mask_value) * scale
 
     def cost(self, Y, Y_hat):
         return self.layers[-1].cost(Y, Y_hat)
