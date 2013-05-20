@@ -481,7 +481,8 @@ class MLP(Layer):
         remaining_mask = mask
         for layer in self.layers:
             if layer.layer_name in masked_input_layers:
-                sc = input_scales.get(layer.layer_name, default_input_scale)
+                scale = input_scales.get(layer.layer_name,
+                                         default_input_scale)
                 n_inputs = layer.get_input_space().get_total_dimension()
                 layer_dropout_mask = remaining_mask & (2 ** n_inputs - 1)
                 remaining_mask >>= n_inputs
@@ -490,10 +491,11 @@ class MLP(Layer):
                 shape = layer.get_input_space().get_origin_batch(1).shape
                 s_mask = T.as_tensor_variable(mask).reshape(shape)
                 if layer.dropout_input_mask_value == 0:
-                    state_below = state_below * s_mask * sc
+                    state_below = state_below * s_mask * scale
                 else:
                     state_below = T.switch(s_mask, state_below,
-                                           layer.dropout_input_mask_value)
+                                           layer.dropout_input_mask_value) * \
+                                  scale
             state_below = layer.fprop(state_below)
 
         return state_below
