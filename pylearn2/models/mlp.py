@@ -10,7 +10,6 @@ __credits__ = ["Ian Goodfellow", "David Warde-Farley"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
-from collections import OrderedDict
 import math
 import sys
 import warnings
