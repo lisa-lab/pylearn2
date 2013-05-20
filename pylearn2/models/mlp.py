@@ -10,6 +10,7 @@ __credits__ = ["Ian Goodfellow", "David Warde-Farley"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
+import math
 import sys
 import warnings
 
@@ -66,6 +67,11 @@ class Layer(Model):
         If the Block interface were upgraded to be that flexible, then
         we could make this a block.
     """
+
+    # When applying dropout to a layer's input, use this for masked values.
+    # Usually this will be 0, but certain kinds of layers may want to override
+    # this behaviour.
+    dropout_input_mask_value = 0.
 
     def get_mlp(self):
         """
@@ -391,10 +397,13 @@ class MLP(Layer):
             else:
                 scale = default_input_scale
 
-            state_below = self.apply_dropout(state=state_below,
-                                            include_prob=include_prob,
-                                            theano_rng=theano_rng,
-                                            scale=scale)
+            state_below = self.apply_dropout(
+                state=state_below,
+                include_prob=include_prob,
+                theano_rng=theano_rng,
+                scale=scale,
+                mask_value=layer.dropout_input_mask_value
+            )
             state_below = layer.fprop(state_below)
 
         return state_below
@@ -436,7 +445,7 @@ class MLP(Layer):
             network.
         """
         if input_scales is not None:
-            self._validate_layer_names(masked_input_layers)
+            self._validate_layer_names(input_scales)
         else:
             input_scales = {}
         if any(n not in masked_input_layers for n in input_scales):
@@ -448,7 +457,8 @@ class MLP(Layer):
         else:
             masked_input_layers = self.layer_names
         num_inputs = self.get_total_input_dimension(masked_input_layers)
-        if np.log2(mask) > num_inputs:
+        assert mask >= 0, "Mask must be a non-negative integer."
+        if mask > 0 and math.log(mask, 2) > num_inputs:
             raise ValueError("mask value of %d too large; only %d "
                              "inputs to layers (%s)" %
                              (mask, num_inputs,
@@ -471,14 +481,20 @@ class MLP(Layer):
         remaining_mask = mask
         for layer in self.layers:
             if layer.layer_name in masked_input_layers:
-                sc = input_scales.get(layer.layer_name, default_input_scale)
+                scale = input_scales.get(layer.layer_name,
+                                         default_input_scale)
                 n_inputs = layer.get_input_space().get_total_dimension()
                 layer_dropout_mask = remaining_mask & (2 ** n_inputs - 1)
                 remaining_mask >>= n_inputs
                 mask = binary_string(layer_dropout_mask, n_inputs,
-                                     config.floatX)
-                s_mask = T.as_tensor_variable(mask).reshape(state_below.shape)
-                state_below = state_below * s_mask * sc
+                                     'uint8')
+                shape = layer.get_input_space().get_origin_batch(1).shape
+                s_mask = T.as_tensor_variable(mask).reshape(shape)
+                if layer.dropout_input_mask_value == 0:
+                    state_below = state_below * s_mask * scale
+                else:
+                    state_below = T.switch(s_mask, state_below * scale,
+                                           layer.dropout_input_mask_value)
             state_below = layer.fprop(state_below)
 
         return state_below
@@ -517,13 +533,21 @@ class MLP(Layer):
             return rlist
         return rval
 
-    def apply_dropout(self, state, include_prob, scale, theano_rng):
+    def apply_dropout(self, state, include_prob, scale, theano_rng,
+                      mask_value=0):
         if include_prob in [None, 1.0, 1]:
             return state
         assert scale is not None
         if isinstance(state, tuple):
-            return tuple(self.apply_dropout(substate, include_prob, scale, theano_rng) for substate in state)
-        return state * theano_rng.binomial(p=include_prob, size=state.shape, dtype=state.dtype) * scale
+            return tuple(self.apply_dropout(substate, include_prob,
+                                            scale, theano_rng, mask_value)
+                         for substate in state)
+        mask = theano_rng.binomial(p=include_prob, size=state.shape,
+                                   dtype=state.dtype)
+        if mask_value == 0:
+            return state * mask * scale
+        else:
+            return T.switch(mask, state * scale, mask_value)
 
     def cost(self, Y, Y_hat):
         return self.layers[-1].cost(Y, Y_hat)
@@ -2488,11 +2512,63 @@ class FlattenerLayer(Layer):
         return self.raw_layer.get_weights()
 
 
+def generate_dropout_mask(mlp, default_include_prob=0.5,
+                          input_include_probs=None, rng=(2013, 5, 17)):
+    """
+    Generate a dropout mask (as an integer) given inclusion
+    probabilities.
+
+    Parameters
+    ----------
+    mlp : object
+        An MLP object.
+
+    default_include_prob : float, optional
+        The probability of including an input to a hidden
+        layer, for layers not listed in `input_include_probs`.
+        Default is 0.5.
+
+    input_include_probs : dict, optional
+        A dictionary  mapping layer names to probabilities
+        of input inclusion for that layer. Default is `None`,
+        in which `default_include_prob` is used for all
+        layers.
+
+    rng : RandomState object or seed, optional
+        A `numpy.random.RandomState` object or a seed used to
+        create one.
+
+    Returns
+    -------
+    mask : int
+        An integer indexing a dropout mask for the network,
+        drawn with the appropriate probability given the
+        inclusion probabilities.
+    """
+    if input_include_probs is None:
+        input_include_probs = {}
+    if not hasattr(rng, 'uniform'):
+        rng = np.random.RandomState(rng)
+    total_units = 0
+    mask = 0
+    for layer in mlp.layers:
+        if layer.layer_name in input_include_probs:
+            p = input_include_probs[layer.layer_name]
+        else:
+            p = default_include_prob
+        for _ in xrange(layer.get_input_space().get_total_dimension()):
+            mask |= int(rng.uniform() < p) << total_units
+            total_units += 1
+    return mask
+
+
 def sampled_dropout_average(mlp, inputs, num_masks,
                             default_input_include_prob=0.5,
                             input_include_probs=None,
                             default_input_scale=2.,
-                            input_scales=None):
+                            input_scales=None,
+                            rng=(2013, 05, 17),
+                            per_example=False):
     """
     Take the geometric mean over a number of randomly sampled
     dropout masks for an MLP with softmax outputs.
@@ -2509,14 +2585,16 @@ def sampled_dropout_average(mlp, inputs, num_masks,
     num_masks : int
         The number of masks to sample.
 
-    inputs : tensor_like
-        A Theano variable representing a minibatch appropriate
-        for fpropping through the MLP.
+    default_input_include_prob : float, optional
+        The probability of including an input to a hidden
+        layer, for layers not listed in `input_include_probs`.
+        Default is 0.5.
 
-    masked_input_layers : list, optional
-        A list of layer names whose input should be masked.
-        Default is all layers (including the first hidden
-        layer, i.e. mask the input).
+    input_include_probs : dict, optional
+        A dictionary  mapping layer names to probabilities
+        of input inclusion for that layer. Default is `None`,
+        in which `default_include_prob` is used for all
+        layers.
 
     default_input_scale : float, optional
         The amount to scale input in dropped out layers.
@@ -2525,12 +2603,21 @@ def sampled_dropout_average(mlp, inputs, num_masks,
         A dictionary  mapping layer names to constants by
         which to scale the input.
 
+    rng : RandomState object or seed, optional
+        A `numpy.random.RandomState` object or a seed used to
+        create one.
+
+    per_example : boolean, optional
+        If `True`, generate a different mask for every single
+        test example, so you have `num_masks` per example
+        instead of `num_mask` networks total. If `False`,
+        `num_masks` masks are fixed in the graph.
+
     Returns
     -------
     geo_mean : tensor_like
-        A symbolic graph for the geometric mean prediction
-        of all exponentially many masked subnetworks.
-
+        A symbolic graph for the geometric mean prediction of
+        all the networks.
     """
     if input_include_probs is None:
         input_include_probs = {}
@@ -2538,11 +2625,27 @@ def sampled_dropout_average(mlp, inputs, num_masks,
     if input_scales is None:
         input_scales = {}
 
+    if not hasattr(rng, 'uniform'):
+        rng = np.random.RandomState(rng)
+
     mlp._validate_layer_names(list(input_include_probs.keys()))
     mlp._validate_layer_names(list(input_scales.keys()))
-    outputs = [mlp.dropout_fprop(inputs, default_input_include_prob,
-                                 input_include_probs, default_input_scale,
-                                 input_scales) for i in xrange(num_masks)]
+
+    if per_example:
+        outputs = [mlp.dropout_fprop(inputs, default_input_include_prob,
+                                     input_include_probs,
+                                     default_input_scale,
+                                     input_scales)
+                   for _ in xrange(num_masks)]
+
+    else:
+        masks = [generate_dropout_mask(mlp, default_input_include_prob,
+                                       input_include_probs, rng)
+                 for _ in xrange(num_masks)]
+
+        outputs = [mlp.masked_fprop(inputs, mask, None,
+                                    default_input_scale, input_scales)
+                   for mask in masks]
 
     return geometric_mean_prediction(outputs)
 
@@ -2587,6 +2690,17 @@ def exhaustive_dropout_average(mlp, inputs, masked_input_layers=None,
     """
     if masked_input_layers is None:
         masked_input_layers = mlp.layer_names
+    mlp._validate_layer_names(masked_input_layers)
+
+    if input_scales is None:
+        input_scales = {}
+    mlp._validate_layer_names(input_scales.keys())
+
+    if any(key not in masked_input_layers for key in input_scales):
+        not_in = [key for key in input_scales
+                  if key not in mlp.layer_names]
+        raise ValueError(", ".join(not_in) + " in input_scales"
+                         " but not masked")
 
     num_inputs = mlp.get_total_input_dimension(masked_input_layers)
     outputs = [mlp.masked_fprop(inputs, mask, masked_input_layers,
