@@ -35,13 +35,11 @@ def test_masked_fprop():
     np.testing.assert_equal(f([[5, 3]]), [[144., 144.]])
     np.testing.assert_equal(f([[2, 7]]), [[96., 208.]])
 
-    # Verify that using a too-wide mask fails.
-    raised = False
-    try:
-        mlp.masked_fprop(inp, 22)
-    except ValueError:
-        raised = True
-    np.testing.assert_(raised)
+    np.testing.assert_raises(ValueError, mlp.masked_fprop, inp, 22)
+    np.testing.assert_raises(ValueError, mlp.masked_fprop, inp, 2,
+                             ['h3'])
+    np.testing.assert_raises(ValueError, mlp.masked_fprop, inp, 2,
+                             None, 2., {'h3': 4})
 
 
 def test_sampled_dropout_average():
@@ -74,6 +72,12 @@ def test_exhaustive_dropout_average():
     out = exhaustive_dropout_average(mlp, inp, masked_input_layers=['h1'])
     f = theano.function([inp], out)
     f([[2.3, 4.9]])
+
+    np.testing.assert_raises(ValueError, exhaustive_dropout_average, mlp,
+                             inp, ['h5'])
+
+    np.testing.assert_raises(ValueError, exhaustive_dropout_average, mlp,
+                             inp, ['h0'], 2., {'h5': 3.})
 
 
 def test_dropout_input_mask_value():
