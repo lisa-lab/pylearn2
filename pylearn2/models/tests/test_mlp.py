@@ -5,6 +5,13 @@ from pylearn2.models.mlp import (MLP, Linear, Softmax,
                                  sampled_dropout_average)
 
 
+class IdentityLayer(Linear):
+    dropout_input_mask_value = -np.inf
+
+    def fprop(self, state_below):
+        return state_below
+
+
 def test_masked_fprop():
     # Construct a dirt-simple linear network with identity weights.
     mlp = MLP(nvis=2, layers=[Linear(2, 'h0', irange=0),
@@ -28,13 +35,11 @@ def test_masked_fprop():
     np.testing.assert_equal(f([[5, 3]]), [[144., 144.]])
     np.testing.assert_equal(f([[2, 7]]), [[96., 208.]])
 
-    # Verify that using a too-wide mask fails.
-    raised = False
-    try:
-        mlp.masked_fprop(inp, 22)
-    except ValueError:
-        raised = True
-    np.testing.assert_(raised)
+    np.testing.assert_raises(ValueError, mlp.masked_fprop, inp, 22)
+    np.testing.assert_raises(ValueError, mlp.masked_fprop, inp, 2,
+                             ['h3'])
+    np.testing.assert_raises(ValueError, mlp.masked_fprop, inp, 2,
+                             None, 2., {'h3': 4})
 
 
 def test_sampled_dropout_average():
@@ -59,6 +64,31 @@ def test_exhaustive_dropout_average():
     out = exhaustive_dropout_average(mlp, inp)
     f = theano.function([inp], out)
     f([[2.3, 4.9]])
+
+    out = exhaustive_dropout_average(mlp, inp, input_scales={'h0': 3})
+    f = theano.function([inp], out)
+    f([[2.3, 4.9]])
+
+    out = exhaustive_dropout_average(mlp, inp, masked_input_layers=['h1'])
+    f = theano.function([inp], out)
+    f([[2.3, 4.9]])
+
+    np.testing.assert_raises(ValueError, exhaustive_dropout_average, mlp,
+                             inp, ['h5'])
+
+    np.testing.assert_raises(ValueError, exhaustive_dropout_average, mlp,
+                             inp, ['h0'], 2., {'h5': 3.})
+
+
+def test_dropout_input_mask_value():
+    # Construct a dirt-simple linear network with identity weights.
+    mlp = MLP(nvis=2, layers=[IdentityLayer(2, 'h0', irange=0)])
+    mlp.layers[0].set_weights(np.eye(2, dtype=mlp.get_weights().dtype))
+    mlp.layers[0].set_biases(np.arange(1, 3, dtype=mlp.get_weights().dtype))
+    mlp.layers[0].dropout_input_mask_value = -np.inf
+    inp = theano.tensor.matrix()
+    f = theano.function([inp], mlp.masked_fprop(inp, 1, default_input_scale=1))
+    np.testing.assert_equal(f([[4., 3.]]), [[4., -np.inf]])
 
 
 if __name__ == "__main__":
