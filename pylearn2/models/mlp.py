@@ -493,9 +493,8 @@ class MLP(Layer):
                 if layer.dropout_input_mask_value == 0:
                     state_below = state_below * s_mask * scale
                 else:
-                    state_below = T.switch(s_mask, state_below,
-                                           layer.dropout_input_mask_value) * \
-                                  scale
+                    state_below = T.switch(s_mask, state_below * scale,
+                                           layer.dropout_input_mask_value)
             state_below = layer.fprop(state_below)
 
         return state_below
@@ -548,7 +547,7 @@ class MLP(Layer):
         if mask_value == 0:
             return state * mask * scale
         else:
-            return T.switch(mask, state, mask_value) * scale
+            return T.switch(mask, state * scale, mask_value)
 
     def cost(self, Y, Y_hat):
         return self.layers[-1].cost(Y, Y_hat)
