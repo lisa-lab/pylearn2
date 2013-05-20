@@ -450,7 +450,8 @@ class MLP(Layer):
         else:
             masked_input_layers = self.layer_names
         num_inputs = self.get_total_input_dimension(masked_input_layers)
-        if math.log(mask, 2) > num_inputs:
+        assert mask >= 0, "Mask must be a non-negative integer."
+        if mask > 0 and math.log(mask, 2) > num_inputs:
             raise ValueError("mask value of %d too large; only %d "
                              "inputs to layers (%s)" %
                              (mask, num_inputs,
