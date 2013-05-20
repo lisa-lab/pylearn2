@@ -5,6 +5,13 @@ from pylearn2.models.mlp import (MLP, Linear, Softmax,
                                  sampled_dropout_average)
 
 
+class IdentityLayer(Linear):
+    dropout_input_mask_value = -np.inf
+
+    def fprop(self, state_below):
+        return state_below
+
+
 def test_masked_fprop():
     # Construct a dirt-simple linear network with identity weights.
     mlp = MLP(nvis=2, layers=[Linear(2, 'h0', irange=0),
@@ -59,6 +66,17 @@ def test_exhaustive_dropout_average():
     out = exhaustive_dropout_average(mlp, inp)
     f = theano.function([inp], out)
     f([[2.3, 4.9]])
+
+
+def test_dropout_input_mask_value():
+    # Construct a dirt-simple linear network with identity weights.
+    mlp = MLP(nvis=2, layers=[IdentityLayer(2, 'h0', irange=0)])
+    mlp.layers[0].set_weights(np.eye(2, dtype=mlp.get_weights().dtype))
+    mlp.layers[0].set_biases(np.arange(1, 3, dtype=mlp.get_weights().dtype))
+    mlp.layers[0].dropout_input_mask_value = -np.inf
+    inp = theano.tensor.matrix()
+    f = theano.function([inp], mlp.masked_fprop(inp, 1, default_input_scale=1))
+    np.testing.assert_equal(f([[4., 3.]]), [[4., -np.inf]])
 
 
 if __name__ == "__main__":
