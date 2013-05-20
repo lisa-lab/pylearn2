@@ -67,6 +67,14 @@ def test_exhaustive_dropout_average():
     f = theano.function([inp], out)
     f([[2.3, 4.9]])
 
+    out = exhaustive_dropout_average(mlp, inp, input_scales={'h0': 3})
+    f = theano.function([inp], out)
+    f([[2.3, 4.9]])
+
+    out = exhaustive_dropout_average(mlp, inp, masked_input_layers=['h1'])
+    f = theano.function([inp], out)
+    f([[2.3, 4.9]])
+
 
 def test_dropout_input_mask_value():
     # Construct a dirt-simple linear network with identity weights.
