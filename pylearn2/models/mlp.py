@@ -2671,6 +2671,9 @@ def exhaustive_dropout_average(mlp, inputs, masked_input_layers=None,
     if masked_input_layers is None:
         masked_input_layers = mlp.layer_names
     mlp._validate_layer_names(masked_input_layers)
+
+    if input_scales is None:
+        input_scales = {}
     mlp._validate_layer_names(input_scales.keys())
 
     if any(key not in masked_input_layers for key in input_scales):
