@@ -25,8 +25,8 @@ install:
   - "which python"
   - "python --version"
 # If we don't install numpy before SciPy, the SciPy installations fails.
-# We can't compile scipy 0.8 sparse stuff  with NumPy 1.5 due to a bug.
-  - "pip install -q numpy==1.5.1 --use-mirrors"
+# We can't compile scipy 0.8 sparse stuff  with NumPy 1.5/1.5.1 due to a bug.
+  - "pip install -q numpy==1.6 --use-mirrors"
 # We support scipy 0.7.2, but it is not available on pypi anymore.
 # So we test with 0.8. Our internal buildbot have 0.7.2.
 # We install it later only for the PART that need it.
