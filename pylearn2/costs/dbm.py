@@ -461,7 +461,7 @@ class CD(Cost):
 
     def get_gradients(self, model, X, Y=None):
         """
-        PCD approximation to the gradient of the bound.
+        CD approximation to the gradient of the bound.
         Keep in mind this is a cost, so we are upper bounding
         the negative log likelihood.
         """
@@ -473,29 +473,13 @@ class CD(Cost):
             assert isinstance(model.hidden_layers[-1], dbm.Softmax)
 
 
+        """
+        The positive phase part is the same as VariationalPCD and PCD, maybe
+        it should be refactored into a base class.
+        TODO: refactor positive phase
+        """
 
         q = model.mf(X, Y)
-
-
-        """
-            Use the non-negativity of the KL divergence to construct a lower bound
-            on the log likelihood. We can drop all terms that are constant with
-            repsect to the model parameters:
-
-            log P(v) = L(v, q) + KL(q || P(h|v))
-            L(v, q) = log P(v) - KL(q || P(h|v))
-            L(v, q) = log P(v) - sum_h q(h) log q(h) + q(h) log P(h | v)
-            L(v, q) = log P(v) + sum_h q(h) log P(h | v) + const
-            L(v, q) = log P(v) + sum_h q(h) log P(h, v) - sum_h q(h) log P(v) + const
-            L(v, q) = sum_h q(h) log P(h, v) + const
-            L(v, q) = sum_h q(h) -E(h, v) - log Z + const
-
-            so the cost we want to minimize is
-            expected_energy + log Z + const
-
-
-            Note: for the RBM, this bound is exact, since the KL divergence goes to 0.
-        """
 
         variational_params = flatten(q)
 

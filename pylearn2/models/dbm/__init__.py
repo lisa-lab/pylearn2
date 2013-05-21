@@ -324,7 +324,7 @@ class DBM(Model):
     def get_weights_topo(self):
         return self.hidden_layers[0].get_weights_topo()
 
-    def make_layer_to_state(self, num_examples, rng=None):
+    def make_layer_to_state(self, num_examples, rng=None, return_shared=True):
 
         """ Makes and returns a dictionary mapping layers to states.
             By states, we mean here a real assignment, not a mean field state.
@@ -335,6 +335,10 @@ class DBM(Model):
             Uses a dictionary so it is easy to unambiguously index a layer
             without needing to remember rules like vis layer = 0, hiddens start
             at 1, etc.
+
+            The return_shared flag determines whether the state should be a
+            shared variable (so it can be persistent, as in PCD) or not (so it
+            gets reset every time, as in CD).
         """
 
         # Make a list of all layers
@@ -343,25 +347,26 @@ class DBM(Model):
         if rng is None:
             rng = self.rng
 
-        states = [ layer.make_state(num_examples, rng) for layer in layers ]
+        if return_shared:
+            states = [ layer.make_state(num_examples, rng) for layer in layers ]
 
-        zipped = safe_zip(layers, states)
+            zipped = safe_zip(layers, states)
 
-        def recurse_check(layer, state):
-            if isinstance(state, (list, tuple)):
-                for elem in state:
-                    recurse_check(layer, elem)
-            else:
-                val = state.get_value()
-                m = val.shape[0]
-                if m != num_examples:
-                    raise ValueError(layer.layer_name+" gave state with "+str(m)+ \
-                            " examples in some component. We requested "+str(num_examples))
+            def recurse_check(layer, state):
+                if isinstance(state, (list, tuple)):
+                    for elem in state:
+                        recurse_check(layer, elem)
+                else:
+                    val = state.get_value()
+                    m = val.shape[0]
+                    if m != num_examples:
+                        raise ValueError(layer.layer_name+" gave state with "+str(m)+ \
+                                " examples in some component. We requested "+str(num_examples))
 
-        for layer, state in zipped:
-            recurse_check(layer, state)
+            for layer, state in zipped:
+                recurse_check(layer, state)
 
-        rval = OrderedDict(zipped)
+            rval = OrderedDict(zipped)
 
         return rval
 
