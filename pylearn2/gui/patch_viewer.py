@@ -8,7 +8,7 @@ import warnings
 Image = None
 # Import ensure_Image(), which trys to import Image from PIL.  We will
 # preface use of PIL.Image with ensure_Image() throughout.
-from pylearn2.utils.image import ensure_Image()
+from pylearn2.utils.image import ensure_Image
 
 
 def make_viewer(mat, grid_shape=None, patch_shape=None, activation=None, pad=None, is_color = False, rescale = True):
