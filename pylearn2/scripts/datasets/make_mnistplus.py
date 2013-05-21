@@ -21,11 +21,16 @@ import pickle
 import pylab as pl
 
 from copy import copy
-from PIL import Image
 from optparse import OptionParser
 
 from pylearn2.datasets import mnist
 from pylearn2.utils import string_utils
+
+try:
+    from PIL import Image
+except ImportError:
+    warnings.warn("Couldn't import Image from PIL, so far make_mnistplus "
+            "is only supported with PIL")
 
 
 OUTPUT_SIZE = 48

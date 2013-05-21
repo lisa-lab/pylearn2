@@ -1,9 +1,15 @@
 import numpy as np
-from PIL import Image
 from pylearn2.datasets.dense_design_matrix import DefaultViewConverter
 from pylearn2.utils.image import show
 from pylearn2.utils import py_integer_types
 import warnings
+# Don't import Image from PIL initially, since PIL might not be available
+# everywhere.
+Image = None
+# Import ensure_Image(), which trys to import Image from PIL.  We will
+# preface use of PIL.Image with ensure_Image() throughout.
+from pylearn2.utils.image import ensure_Image
+
 
 def make_viewer(mat, grid_shape=None, patch_shape=None, activation=None, pad=None, is_color = False, rescale = True):
     """ Given filters in rows, guesses dimensions of patches
@@ -227,6 +233,7 @@ class PatchViewer(object):
         x = np.cast['uint8'](self.image * 255.0)
         if x.shape[2] == 1:
             x = x[:, :, 0]
+        ensure_Image()
         img = Image.fromarray(x)
         return img
 
