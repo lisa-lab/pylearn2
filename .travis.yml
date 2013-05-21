@@ -39,7 +39,7 @@ install:
   - "pip install -q cython --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
   - "pip install -q tables --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
   - "pip install -q pyyaml --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
-  - "pip install -q scipy==0.9 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "pip install scipy==0.9 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
 
   - "pip install -q git+git://git.assembla.com/jobman.git || cat /home/travis/.pip/pip.log"
   - "pip install -q --no-deps git+git://github.com/Theano/Theano.git || cat /home/travis/.pip/pip.log"
