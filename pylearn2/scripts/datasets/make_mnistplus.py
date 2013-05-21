@@ -19,6 +19,7 @@ Brodatz texture dataset.
 import numpy
 import pickle
 import pylab as pl
+import warnings
 
 from copy import copy
 from optparse import OptionParser
