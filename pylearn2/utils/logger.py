@@ -67,7 +67,9 @@ class CustomFormatter(Formatter):
         and appended to the message.
         """
         record.message = record.getMessage()
-        if self.usesTime():
+        # Python 2.6 don't have usesTime() fct.
+        # So we skip that information for them.
+        if hasattr(self, 'usesTime') and self.usesTime():
             record.asctime = self.formatTime(record, self.datefmt)
 
         emit_special = (self._only_from is None or
