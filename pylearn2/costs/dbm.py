@@ -22,7 +22,7 @@ from pylearn2.utils import safe_zip
 
 class PCD(Cost):
     """
-    An intractable cost representingmthe negative log likelihood of a DBM.
+    An intractable cost representing the negative log likelihood of a DBM.
     The gradient of this bound is computed using a persistent
     markov chain.
 
