@@ -132,6 +132,13 @@ class IsingVisible(VisibleLayer):
 
         return rval
 
+    def make_symbolic_state(self, theano_rng):
+        driver = theano_rng.uniform(low=0., high=1., size=self.input_space.make_theano_batch.shape())
+        on_prob = T.nnet.sigmoid(2. * self.b)
+        rval = 2. * (driver < on_prob) - 1.
+
+        return rval
+
     def expected_energy_term(self, state, average, state_below = None, average_below = None):
 
         assert state_below is None
@@ -431,6 +438,13 @@ class IsingHidden(HiddenLayer):
 
         return rval
 
+    def make_symbolic_state(self, theano_rng):
+        driver = theano_rng.uniform(low=0., high=1., size=self.input_space.make_theano_batch.shape())
+        on_prob = T.nnet.sigmoid(2. * self.b)
+        rval = 2. * (driver < on_prob) - 1.
+
+        return rval
+
     def expected_energy_term(self, state, average, state_below, average_below):
 
         # state = Print('h_state', attrs=['min', 'max'])(state)
@@ -600,6 +614,13 @@ class BoltzmannIsingVisible(VisibleLayer):
         sample = 2. * (driver < on_prob) - 1.
 
         rval = sharedX(sample, name = 'v_sample_shared')
+
+        return rval
+
+    def make_symbolic_state(self, theano_rng):
+        driver = theano_rng.uniform(low=0., high=1., size=self.input_space.make_theano_batch.shape())
+        on_prob = T.nnet.sigmoid(2. * self.ising_bias())
+        rval = 2. * (driver < on_prob) - 1.
 
         return rval
 
@@ -1033,6 +1054,13 @@ class BoltzmannIsingHidden(HiddenLayer):
         sample = 2. * (driver < on_prob) - 1.
 
         rval = sharedX(sample, name = 'v_sample_shared')
+
+        return rval
+
+    def make_symbolic_state(self, theano_rng):
+        driver = theano_rng.uniform(low=0., high=1., size=self.input_space.make_theano_batch.shape())
+        on_prob = T.nnet.sigmoid(2. * self.ising_b())
+        rval = 2. * (driver < on_prob) - 1.
 
         return rval
 

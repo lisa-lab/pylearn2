@@ -324,7 +324,7 @@ class DBM(Model):
     def get_weights_topo(self):
         return self.hidden_layers[0].get_weights_topo()
 
-    def make_layer_to_state(self, num_examples, rng=None, return_shared=True):
+    def make_layer_to_state(self, num_examples, rng=None):
 
         """ Makes and returns a dictionary mapping layers to states.
             By states, we mean here a real assignment, not a mean field state.
@@ -335,10 +335,6 @@ class DBM(Model):
             Uses a dictionary so it is easy to unambiguously index a layer
             without needing to remember rules like vis layer = 0, hiddens start
             at 1, etc.
-
-            The return_shared flag determines whether the state should be a
-            shared variable (so it can be persistent, as in PCD) or not (so it
-            gets reset every time, as in CD).
         """
 
         # Make a list of all layers
@@ -347,26 +343,53 @@ class DBM(Model):
         if rng is None:
             rng = self.rng
 
-        if return_shared:
-            states = [ layer.make_state(num_examples, rng) for layer in layers ]
+        states = [layer.make_state(num_examples, rng) for layer in layers]
 
-            zipped = safe_zip(layers, states)
+        zipped = safe_zip(layers, states)
 
-            def recurse_check(layer, state):
-                if isinstance(state, (list, tuple)):
-                    for elem in state:
-                        recurse_check(layer, elem)
-                else:
-                    val = state.get_value()
-                    m = val.shape[0]
-                    if m != num_examples:
-                        raise ValueError(layer.layer_name+" gave state with "+str(m)+ \
-                                " examples in some component. We requested "+str(num_examples))
+        def recurse_check(layer, state):
+            if isinstance(state, (list, tuple)):
+                for elem in state:
+                    recurse_check(layer, elem)
+            else:
+                val = state.get_value()
+                m = val.shape[0]
+                if m != num_examples:
+                    raise ValueError(layer.layer_name+" gave state with "+str(m)+ \
+                            " examples in some component. We requested "+str(num_examples))
 
-            for layer, state in zipped:
-                recurse_check(layer, state)
+        for layer, state in zipped:
+            recurse_check(layer, state)
 
-            rval = OrderedDict(zipped)
+        rval = OrderedDict(zipped)
+
+        return rval
+
+    def make_layer_to_symbolic_state(self, rng=None):
+
+        """
+        Makes and returns a dictionary mapping layers to states.
+        By states, we mean here a real assignment, not a mean field state.
+        For example, for a layer containing binary random variables, the
+        state will be a symbolic variable containing values in {0,1}, not
+        [0,1].
+        The visible layer will be included.
+        Uses a dictionary so it is easy to unambiguously index a layer
+        without needing to remember rules like vis layer = 0, hiddens start
+        at 1, etc.
+        """
+
+        # Make a list of all layers
+        layers = [self.visible_layer] + self.hidden_layers
+
+        # TODO: do we relax this and create a rng if one is not provided?
+        assert rng is not None
+
+        states = [layer.make_symbolic_state(rng) for layer in layers]
+
+        zipped = safe_zip(layers, states)
+
+        rval = OrderedDict(zipped)
 
         return rval
 
@@ -745,6 +768,15 @@ class Layer(Model):
         raise NotImplementedError("%s doesn't implement make_state" %
                 type(self))
 
+    def make_symbolic_state(self, theano_rng):
+        """
+        Returns a theano symbolic variable containing an actual state (not a
+        mean field state) for this variable.
+        """
+
+        raise NotImplementedError("%s doesn't implement make_symbolic_state" %
+                                  type(self))
+
     def sample(self, state_below = None, state_above = None,
             layer_above = None,
             theano_rng = None):
@@ -973,6 +1005,17 @@ class BinaryVector(VisibleLayer):
         sample = driver < mean
 
         rval = sharedX(sample, name = 'v_sample_shared')
+
+        return rval
+
+    def make_symbolic_state(self, theano_rng):
+        if not hasattr(self, 'copies'):
+            self.copies = 1
+        if self.copies != 1:
+            raise NotImplementedError()
+        driver = theano_rng.uniform(low=0., high=1., size=self.input_space.make_theano_batch.shape())
+        mean = T.nnet.sigmoid(self.bias)
+        rval = driver < mean
 
         return rval
 
@@ -1530,6 +1573,28 @@ class BinaryVectorMaxPool(HiddenLayer):
 
         return p_state, h_state
 
+    def make_symbolic_state(self, theano_rng):
+        """
+        Returns a theano symbolic variable containing an actual state
+        (not a mean field state) for this variable.
+        """
+
+        if not hasattr(self, 'copies'):
+            self.copies = 1
+
+        if self.copies != 1:
+            raise NotImplementedError()
+
+        default_z = T.zeros_like(self.h_space.make_theano_batch()) + self.b
+
+        p_exp, h_exp, p_sample, h_sample = max_pool_channels(z=default_z,
+                                                             pool_size=self.pool_size,
+                                                             theano_rng=theano_rng)
+
+        assert h_sample.dtype == default_z.dtype
+
+        return p_sample, h_sample
+
     def expected_energy_term(self, state, average, state_below, average_below):
 
         # Don't need to do anything special for centering, upward_state / downward state
@@ -1934,6 +1999,24 @@ class Softmax(HiddenLayer):
         h_state.name = 'softmax_sample_shared'
 
         return h_state
+
+    def make_symbolic_state(self, theano_rng):
+        """
+        Returns a shared variable containing an actual state
+        (not a mean field state) for this variable.
+        """
+
+        if self.copies != 1:
+            raise NotImplementedError("need to make self.copies samples and average them together.")
+
+        default_z = T.zeros_like(self.output_space.make_theano_batch()) + self.b
+
+        h_exp = T.nnet.softmax(default_z)
+
+        h_sample = theano_rng.multinomial(pvals=h_exp, dtype=h_exp.dtype)
+
+
+        return h_sample
 
     def get_weight_decay(self, coeff):
         if isinstance(coeff, str):
