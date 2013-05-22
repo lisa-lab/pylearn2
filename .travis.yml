@@ -38,7 +38,7 @@ install:
   - "pip install -q cython --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
   - "pip install -q tables --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
   - "pip install -q pyyaml --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
-  - "pip install scipy==0.9 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "pip install scipy==0.8 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
 #More recent version then the one in the os
   - "pip install -q pyflakes --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
 
