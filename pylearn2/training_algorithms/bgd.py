@@ -145,7 +145,7 @@ class BGD(TrainingAlgorithm):
         # this will reduce code duplication)
         # may need to still manually add some BGD-specific channels like ave_step_size here
         if self.monitoring_dataset is not None:
-            if not any([dataset.has_targets() for dataset in self.monitoring_dataset.values()]):
+            if not any([d.has_targets() for d in self.monitoring_dataset.values()]):
                 Y = None
 
             channels = model.get_monitoring_channels(X,Y)
