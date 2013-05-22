@@ -1975,7 +1975,7 @@ class Softmax(HiddenLayer):
 
         h_sample = theano_rng.multinomial(pvals = h_exp, dtype = h_exp.dtype)
 
-        p_state = sharedX( self.output_space.get_origin_batch(
+        h_state = sharedX( self.output_space.get_origin_batch(
             num_examples))
 
 
