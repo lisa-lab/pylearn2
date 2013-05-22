@@ -5,7 +5,7 @@ import warnings
 try:
     import matplotlib.pyplot as plt
     import matplotlib.axes
-except RuntimeError, e:
+except (RuntimeError, ImportError), e:
     warnings.warn("Unable to import matplotlib. Some features unavailable. "
             "Original exception: " + str(e))
 import os
@@ -115,7 +115,7 @@ def show(image):
             image = image[:,:,0]
 
         try:
-	    ensure_Image()
+            ensure_Image()
             image = Image.fromarray(image)
         except TypeError:
             raise TypeError("PIL issued TypeError on ndarray of shape " +
