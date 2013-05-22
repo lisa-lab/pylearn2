@@ -19,7 +19,6 @@ Brodatz texture dataset.
 import numpy
 import pickle
 import pylab as pl
-import warnings
 
 from copy import copy
 from optparse import OptionParser
@@ -27,6 +26,7 @@ from optparse import OptionParser
 from pylearn2.datasets import mnist
 from pylearn2.utils import string_utils
 
+import warnings
 try:
     from PIL import Image
 except ImportError:
