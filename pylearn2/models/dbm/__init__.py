@@ -1013,7 +1013,7 @@ class BinaryVector(VisibleLayer):
             self.copies = 1
         if self.copies != 1:
             raise NotImplementedError()
-        driver = theano_rng.uniform(low=0., high=1., size=self.input_space.make_theano_batch.shape())
+        driver = theano_rng.uniform(low=0., high=1., size=self.input_space.make_theano_batch().shape)
         mean = T.nnet.sigmoid(self.bias)
         rval = driver < mean
 
