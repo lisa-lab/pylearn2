@@ -136,7 +136,7 @@ class Layer(Model):
 
     def get_weight_decay(self, coeff):
         raise NotImplementedError
-    
+
     def get_l1_weight_decay(self, coeff):
         raise NotImplementedError
 
@@ -363,9 +363,10 @@ class MLP(Layer):
 
         """
 
-        warnings.warn("dropout should be implemented with fixed_var_descr to"
-                " make sure it works with BGD, this is just a hack to get it"
-                "working with SGD")
+        warnings.warn("dropout doesn't use fixed_var_descr so it won't work with "
+                " algorithms that make more than one theano function call per batch,"
+                " such as BD. Implementing fixed_var descr could increase the memory"
+                " usage though.")
 
         if input_include_probs is None:
             input_include_probs = {}
