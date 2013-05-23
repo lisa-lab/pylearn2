@@ -624,7 +624,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         ensure_tables()
         h5file = tables.openFile(path, mode = "w", title = "SVHN Dataset")
         gcolumns = h5file.createGroup(h5file.root, "Data", "Data")
-        atom = tables.Float64Atom() if config.floatX == 'flaot32' else tables.Float32Atom()
+        atom = tables.Float32Atom() if config.floatX == 'float32' else tables.Float64Atom()
         filters = DenseDesignMatrixPyTables.filters
         h5file.createCArray(gcolumns, 'X', atom = atom, shape = x_shape,
                                 title = "Data values", filters = filters)
