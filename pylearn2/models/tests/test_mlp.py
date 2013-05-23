@@ -1,9 +1,9 @@
 import numpy as np
 import theano
-from pylearn2.models.mlp import (MLP, Linear, Softmax,
+from theano import tensor
+from pylearn2.models.mlp import (MLP, Linear, Softmax, Sigmoid,
                                  exhaustive_dropout_average,
                                  sampled_dropout_average)
-
 
 class IdentityLayer(Linear):
     dropout_input_mask_value = -np.inf
@@ -91,7 +91,26 @@ def test_dropout_input_mask_value():
     np.testing.assert_equal(f([[4., 3.]]), [[4., -np.inf]])
 
 
+def test_sigmoid_layer_misclass_reporting():
+    mlp = MLP(nvis=3, layers=[Sigmoid(layer_name='h0', dim=1, irange=0.005,
+                                      monitor_style='classification')])
+    target = theano.tensor.matrix(dtype=theano.config.floatX)
+    batch = theano.tensor.matrix(dtype=theano.config.floatX)
+    rval = mlp.layers[0].get_monitoring_channels_from_state(mlp.fprop(batch), target)
+
+    f = theano.function([batch, target], [tensor.gt(mlp.fprop(batch), 0.5),
+                                          rval['misclass']])
+    rng = np.random.RandomState(0)
+
+    for _ in range(10):  # repeat a few times for statistical strength
+        targets = (rng.uniform(size=(30, 1)) > 0.5).astype('uint8')
+        out, misclass = f(rng.normal(size=(30, 3)), targets)
+        np.testing.assert_allclose((targets != out).mean(), misclass)
+
+
 if __name__ == "__main__":
     test_masked_fprop()
     test_sampled_dropout_average()
     test_exhaustive_dropout_average()
+    test_dropout_input_mask_value()
+    test_sigmoid_layer_misclass_reporting()
