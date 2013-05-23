@@ -1667,7 +1667,8 @@ class Linear(Layer):
 
 class Tanh(Linear):
     """
-    Implementation of the tanh nonlinearity for MLP.
+    A layer that performs an affine transformation of its (vectorial)
+    input followed by a hyperbolic tangent elementwise nonlinearity.
     """
 
     def fprop(self, state_below):
@@ -1680,10 +1681,11 @@ class Tanh(Linear):
 
 class Sigmoid(Linear):
     """
-    Implementation of the sigmoid nonlinearity for MLP.
+    A layer that performs an affine transformation of its (vectorial)
+    input followed by a logistic sigmoid elementwise nonlinearity.
     """
 
-    def __init__(self, monitor_style = 'detection', ** kwargs):
+    def __init__(self, monitor_style='detection', **kwargs):
         """
             monitor_style: a string, either 'detection' or 'classification'
                            'detection' by default
