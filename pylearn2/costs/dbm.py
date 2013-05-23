@@ -466,40 +466,75 @@ class CD(Cost):
         the negative log likelihood.
         """
 
+        # Get the batch size in symbolic form
+        space = model.get_input_space()
+        num_examples = space.batch_size(X)
+
+        """
+        Positive phase
+        """
+        # Clamp visible layer during positive phase
+        layer_to_clamp = OrderedDict([(model.visible_layer, True)])
+        # Visible layer's state is set to the observed data
+        layer_to_pos_samples = OrderedDict([(model.visible_layer, X)])
+
+        # Clamp last hidden layer during positive phase if it represents
+        # targets
         if self.supervised:
             assert Y is not None
             # note: if the Y layer changes to something without linear energy,
             # we'll need to make the expected energy clamp Y in the positive
             # phase
             assert isinstance(model.hidden_layers[-1], dbm.Softmax)
+            layer_to_clamp[model.hidden_layers[-1]] = True
+            layer_to_pos_samples[model.hidden_layers[-1]] = Y
+            hid = model.hidden_layers[:-1]
+        else:
+            assert Y is None
+            hid = model.hidden_layers
 
-        """
-        The positive phase part is the same as VariationalPCD and PCD, maybe
-        it should be refactored into a base class.
-        TODO: refactor positive phase
-        """
+        for layer in hid:
+            mf_state = layer.init_mf_state()
 
-        q = model.mf(X, Y)
+            def recurse_zeros(x):
+                if isinstance(x, tuple):
+                    return tuple([recurse_zeros(e) for e in x])
+                return x.zeros_like()
 
-        variational_params = flatten(q)
+            layer_to_pos_samples[layer] = recurse_zeros(mf_state)
 
-        # The gradients of the expected energy under q are easy, we can just
-        # do that in theano
-        expected_energy_q = model.expected_energy(X, q).mean()
+        layer_to_pos_samples = model.mcmc_steps(
+            layer_to_state=layer_to_pos_samples,
+            layer_to_clamp=layer_to_clamp,
+            num_steps=self.num_gibbs_steps,
+            theano_rng=self.theano_rng)
+
+        q = [layer_to_pos_samples[layer] for layer in model.hidden_layers]
+
+        pos_samples = flatten(q)
+
+        # The gradients of the expected energy under q are easy, we can
+        # just do that in theano
+        expected_energy_q = model.energy(X, q).mean()
         params = list(model.get_params())
-        gradients = OrderedDict(
-            safe_zip(params, T.grad(expected_energy_q, params,
-                                    consider_constant=variational_params,
-                                    disconnected_inputs='ignore')))
+        gradients = OrderedDict(safe_zip(params,
+                                         T.grad(expected_energy_q,
+                                                params,
+                                                consider_constant=pos_samples,
+                                                disconnected_inputs='ignore')))
 
         """
+        Negative phase
+        --------------
+
         d/d theta log Z = (d/d theta Z) / Z
                         = (d/d theta sum_h sum_v exp(-E(v,h)) ) / Z
                         = (sum_h sum_v - exp(-E(v,h)) d/d theta E(v,h) ) / Z
                         = - sum_h sum_v P(v,h)  d/d theta E(v,h)
         """
 
-        layer_to_chains = model.make_layer_to_symbolic_state(self.theano_rng)
+        layer_to_chains = model.make_layer_to_symbolic_state(num_examples,
+                                                             self.theano_rng)
         # The examples are used to initialize the visible layer's chains
         layer_to_chains[model.visible_layer] = X
 
@@ -507,7 +542,8 @@ class CD(Cost):
 
         # Note that we replace layer_to_chains with a dict mapping to the new
         # state of the chains
-        layer_to_chains = model.mcmc_steps(layer_to_chains, self.theano_rng,
+        layer_to_chains = model.mcmc_steps(layer_to_chains,
+                                           self.theano_rng,
                                            num_steps=self.num_gibbs_steps)
 
         if self.toronto_neg:
@@ -540,7 +576,9 @@ class CD(Cost):
                 state_above=model.hidden_layers[2].downward_state(Y_mf),
                 layer_above=model.hidden_layers[2])
 
-            expected_energy_p = model.energy(V_samples, [H1_mf, H2_mf, Y_samples]).mean()
+            expected_energy_p = model.energy(
+                V_samples, [H1_mf, H2_mf, Y_samples]
+            ).mean()
 
             constants = flatten([V_samples, H1_mf, H2_mf, Y_samples])
 
@@ -548,13 +586,16 @@ class CD(Cost):
                 safe_zip(params, T.grad(-expected_energy_p, params,
                          consider_constant=constants)))
         else:
-            warnings.warn("""TODO: reduce variance of negative phase by integrating out
-                    the even-numbered layers. The Rao-Blackwellize method can do this
-                    for you when expected gradient = gradient of expectation, but doing
-                    this in general is trickier.""")
+            warnings.warn("""TODO: reduce variance of negative phase by
+                    integrating out the even-numbered layers. The
+                    Rao-Blackwellize method can do this for you when expected
+                    gradient = gradient of expectation, but doing this in
+                    general is trickier.""")
             #layer_to_chains = model.rao_blackwellize(layer_to_chains)
-            expected_energy_p = model.energy(layer_to_chains[model.visible_layer],
-                    [layer_to_chains[layer] for layer in model.hidden_layers]).mean()
+            expected_energy_p = model.energy(
+                layer_to_chains[model.visible_layer],
+                [layer_to_chains[layer] for layer in model.hidden_layers]
+            ).mean()
 
             samples = flatten(layer_to_chains.values())
             for i, sample in enumerate(samples):
@@ -570,6 +611,7 @@ class CD(Cost):
             gradients[param] = neg_phase_grads[param] + gradients[param]
 
         return gradients, OrderedDict()
+
 
 class MF_L2_ActCost(Cost):
     """
