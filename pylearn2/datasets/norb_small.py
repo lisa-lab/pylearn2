@@ -93,16 +93,8 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
         instance = y_extra[:, 0]
         assert instance.min() >= 0
         assert instance.max() <= 9
+        self.instance = instance
 
-
-        if restrict_instances is not None:
-            mask = reduce(np.maximum, [instance == ins for ins in restrict_instances])
-            mask = mask.astype('bool')
-            X = X[mask,:]
-            y = y[mask]
-            assert X.shape[0] == y.shape[0]
-            expected = sum([(instance == ins).sum() for ins in restrict_instances])
-            assert X.shape[0] == expected
 
 
         if center:
@@ -121,7 +113,26 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
         if one_hot:
             self.convert_to_one_hot()
 
+        if restrict_instances is not None:
+            assert start is None
+            assert stop is None
+            self.restrict_instances(restrict_instances)
+
+
         self.restrict(start, stop)
 
         self.y = self.y.astype('float32')
 
+    def restrict_instances(self, instances):
+
+        mask = reduce(np.maximum, [self.instance == ins for ins in instances])
+        mask = mask.astype('bool')
+        self.instance = self.instance[mask]
+        self.X = self.X[mask,:]
+        if self.y.ndim == 2:
+            self.y = self.y[mask, :]
+        else:
+            self.y = self.y[mask]
+        assert self.X.shape[0] == self.y.shape[0]
+        expected = sum([(self.instance == ins).sum() for ins in instances])
+        assert self.X.shape[0] == expected
