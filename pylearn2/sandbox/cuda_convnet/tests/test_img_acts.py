@@ -151,7 +151,7 @@ def test_match_full_conv_grad():
         assert False
 
     diff = np.abs(gf - gf_th).max()
-    if diff > 1e-6:
+    if diff > 1.5e-6:
         raise AssertionError(diff)
 
 
