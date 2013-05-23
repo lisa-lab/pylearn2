@@ -1667,7 +1667,8 @@ class Linear(Layer):
 
 class Tanh(Linear):
     """
-    Implementation of the tanh nonlinearity for MLP.
+    A layer that performs an affine transformation of its (vectorial)
+    input followed by a hyperbolic tangent elementwise nonlinearity.
     """
 
     def fprop(self, state_below):
@@ -1680,10 +1681,11 @@ class Tanh(Linear):
 
 class Sigmoid(Linear):
     """
-    Implementation of the sigmoid nonlinearity for MLP.
+    A layer that performs an affine transformation of its (vectorial)
+    input followed by a logistic sigmoid elementwise nonlinearity.
     """
 
-    def __init__(self, monitor_style = 'detection', ** kwargs):
+    def __init__(self, monitor_style='detection', **kwargs):
         """
             monitor_style: a string, either 'detection' or 'classification'
                            'detection' by default
@@ -1825,11 +1827,12 @@ class Sigmoid(Linear):
                 rval.update(self.get_detection_channels_from_state(state, target))
             else:
                 assert self.monitor_style == 'classification'
-
-                Y = T.argmax(target, axis=1)
-                Y_hat = T.argmax(state, axis=1)
-                rval['misclass'] = T.cast(T.neq(Y, Y_hat), state.dtype).mean()
-
+                # Threshold Y_hat at 0.5.
+                prediction = T.gt(state, 0.5)
+                # If even one feature is wrong for a given training example,
+                # it's considered incorrect, so we max over columns.
+                incorrect = T.neq(target, prediction).max(axis=1)
+                rval['misclass'] = T.cast(incorrect, config.floatX).mean()
         return rval
 
 
