@@ -369,9 +369,11 @@ class MLP(Layer):
         layer's input scale is determined by the same scheme as the input probabilities.
 
         """
-        warnings.warn("dropout should be implemented with fixed_var_descr to"
-                " make sure it works with BGD, this is just a hack to get it"
-                "working with SGD")
+
+        warnings.warn("dropout doesn't use fixed_var_descr so it won't work with "
+                "algorithms that make more than one theano function call per batch,"
+                " such as BGD. Implementing fixed_var descr could increase the memory"
+                " usage though.")
 
         if input_include_probs is None:
             input_include_probs = {}
