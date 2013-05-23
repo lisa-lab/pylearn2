@@ -124,4 +124,44 @@ class SharedSetter(TrainExtension):
                 var.set_value(np.cast[var.dtype](val))
         self._count += 1
 
+class ChannelSmoother(TrainExtension):
+    """
+    Makes a smoothed version of a monitoring channel by averaging together
+    the k most recent values of that channel.
+    This is a little bit dangerous because if other TrainExtensions depend
+    on the channel being up to date they must appear after this one in the
+    extensions list. A better long term solution would be to make the Monitor
+    support this kind of channel directly instead of hacking it in.
+    Note that the Monitor will print this channel as having a value of -1, and
+    then the extension will print the right value.
+    """
 
+    def __init__(self, channel_to_smooth, channel_to_publish, k=5):
+        self.__dict__.update(locals())
+        del self.self
+
+    def setup(self, model, dataset, algorithm):
+        monitor = model.monitor
+        channels = monitor.channels
+        channel_to_smooth = channels[self.channel_to_smooth]
+        ipt = channel_to_smooth.graph_input
+        dataset = channel_to_smooth.dataset
+
+        monitor.add_channel(name=self.channel_to_publish,
+                ipt=ipt,
+                val=-1.,
+                dataset=dataset)
+
+        self.in_ch = channel_to_smooth
+        self.out_ch = channels[self.channel_to_publish]
+
+    def on_monitor(self, model, dataset, algorithm):
+
+        val_record = self.in_ch.val_record
+
+        start = max(0, len(val_record) - self.k + 1)
+        values = val_record[start:]
+        mean = sum(values) / float(len(values))
+
+        self.out_ch.val_record[-1] = mean
+        print '\t' + self.channel_to_publish + ': ' + str(mean)
