@@ -83,6 +83,8 @@ class Train(object):
             warnings.warn("dataset has no yaml src, model won't know what data it was trained on")
 
         self.extensions = extensions if extensions is not None else []
+
+    def setup_extensions(self):
         for ext in self.extensions:
             ext.setup(self.model, self.dataset, self.algorithm)
 
@@ -93,6 +95,7 @@ class Train(object):
         """
         if self.algorithm is None:
             self.model.monitor = Monitor.get_monitor(self.model)
+            self.setup_extensions()
             self.run_callbacks_and_monitoring()
             while True:
                 rval = self.model.train_all(dataset=self.dataset)
@@ -107,6 +110,7 @@ class Train(object):
                     break
         else:
             self.algorithm.setup(model=self.model, dataset=self.dataset)
+            self.setup_extensions()
             if not hasattr(self.model, 'monitor'):
                 # TODO: is this really necessary? I just put this error here
                 # to prevent an AttributeError later, but I think we could
