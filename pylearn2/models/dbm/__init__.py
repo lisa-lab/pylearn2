@@ -2227,6 +2227,53 @@ class WeightDoubling(InferenceProcedure):
         else:
             return H_hat
 
+
+class DBMSampler(Block):
+    def __init__(self, dbm):
+        super(DBMSampler, self).__init__()
+        self.theano_rng = MRG_RandomStreams(2012 + 10 + 14)
+        self.dbm = dbm
+
+    def __call__(self, inputs):
+        space = self.dbm.get_input_space()
+        num_examples = space.batch_size(inputs)
+        last_layer = self.dbm.get_all_layers()[-1]
+        layer_to_chains = self.dbm.make_layer_to_symbolic_state(num_examples, self.theano_rng)
+        # The examples are used to initialize the visible layer's chains
+        layer_to_chains[self.dbm.visible_layer] = inputs
+
+        layer_to_clamp = OrderedDict([(self.dbm.visible_layer, True)])
+        layer_to_chains = self.dbm.mcmc_steps(layer_to_chains, self.theano_rng,
+                                              layer_to_clamp=layer_to_clamp,
+                                              num_steps=1)
+
+        rval = layer_to_chains[last_layer]
+        rval = last_layer.upward_state(rval)
+
+        output_space = self.dbm.hidden_layers[-1].get_output_space()
+
+        output_space.validate(rval)
+
+        return rval
+
+
+class DBMSticher(DBM):
+    """
+    A DBM initialized with pre-trained RBM's, with weights selected according
+    to R. Salakhutdinov's policy.
+    """
+    def __init__(self, batch_size, rbm_list, niter, inference_procedure=None):
+        visible_layer = rbm_list[0].visible_layer
+        visible_layer.dbm = None
+        hidden_layers = rbm_list[0].hidden_layers + rbm_list[1].hidden_layers
+        for i, hidden_layer in enumerate(hidden_layers):
+            hidden_layer.dbm = None
+
+        super(DBMSticher, self).__init__(batch_size, visible_layer,
+                                         hidden_layers, niter,
+                                         inference_procedure)
+
+
 def flatten(l):
     """
     Turns a nested graph of lists/tuples/other objects
