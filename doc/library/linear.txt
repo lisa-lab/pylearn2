@@ -1,0 +1,36 @@
+================
+Linear Transform
+================
+
+.. contents::
+   :depth: 3
+
+
+#####
+Intro
+#####
+
+.. automodule:: pylearn2.linear
+    :members:
+
+#########
+Functions
+#########
+
+2D Convolution
+==============
+.. automodule:: pylearn2.linear.conv2d
+    :members:
+
+2D Convolution C01B
+===================
+.. automodule:: pylearn2.linear.conv2d_c01b
+    :members:
+
+
+Matrix Multiplication
+=====================
+.. automodule:: pylearn2.linear.matrixmul
+    :members:
+
+

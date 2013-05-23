@@ -10,13 +10,13 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow, David Warde-Farley"
 __email__ = "goodfeli@iro"
 
-from collections import OrderedDict
 import logging
 import warnings
 import numpy as np
 
 from theano import config
 from theano import function
+from theano.compat.python2x import OrderedDict
 from theano.gof.op import get_debug_values
 from theano import tensor as T
 
@@ -775,7 +775,7 @@ class _PolyakWorker(object):
 class PolyakAveraging(TrainExtension):
     """
     See "A Tutorial on Stochastic Approximation Algorithms
-    for Training Restricted Boltzmann Machines and
+        for Training Restricted Boltzmann Machines and
         Deep Belief Nets" by Kevin Swersky et al
 
     Notes: this is usually used with a fixed, rather than

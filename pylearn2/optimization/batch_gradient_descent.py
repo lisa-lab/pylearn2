@@ -5,11 +5,12 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
-from collections import OrderedDict
-import numpy as np
 import time
 
+import numpy as np
+
 from theano import config
+from theano.compat.python2x import OrderedDict
 from theano.printing import var_descriptor
 import theano.tensor as T
 
@@ -18,11 +19,14 @@ from pylearn2.utils import grad
 from pylearn2.utils import safe_zip
 from pylearn2.utils import sharedX
 
+
 def norm_sq(s):
     return np.square(s.get_value()).sum()
 
+
 def scale(s, a):
     s.set_value(s.get_value() * np.cast[config.floatX](a))
+
 
 class BatchGradientDescent:
     """ A class for minimizing a function via the method of steepest

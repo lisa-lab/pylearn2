@@ -6,18 +6,20 @@ __maintainer__ = "Ian Goodfellow"
 
 
 import time
-from pylearn2.models import Model
-from theano import config, function
-import theano.tensor as T
-import numpy as np
 import warnings
-from theano.gof.op import get_debug_values, debug_error_message, debug_assert
-from pylearn2.utils import make_name, sharedX, as_floatX
-from pylearn2.expr.information_theory import entropy_binary_vector
-from pylearn2.base import Block
-from pylearn2.space import VectorSpace
+
+import numpy as np
+from theano import config, function
 from theano import scan
-from collections import OrderedDict
+from theano.compat.python2x import OrderedDict
+from theano.gof.op import get_debug_values, debug_error_message, debug_assert
+import theano.tensor as T
+
+from pylearn2.utils import make_name, sharedX, as_floatX
+from pylearn2.base import Block
+from pylearn2.expr.information_theory import entropy_binary_vector
+from pylearn2.models import Model
+from pylearn2.space import VectorSpace
 
 warnings.warn('s3c changing the recursion limit')
 import sys

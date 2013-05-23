@@ -6,12 +6,13 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
-from collections import OrderedDict
+import warnings
 
+import numpy as np
+
+from theano.compat.python2x import OrderedDict
 from theano import tensor as T
 from theano import shared
-import numpy as np
-import warnings
 
 
 class Model(object):
