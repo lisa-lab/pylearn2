@@ -47,7 +47,7 @@ def _four_regions_labels(points):
     region[dists > np.sqrt(2)] = np.nan
     outer = dists > 5. / 6.
     region[np.logical_and(tophalf, outer)] = 3
-    region[np.logical_and(np.logical_not(tophalf), outer)] = 4
+    region[np.logical_and(np.logical_not(tophalf), outer)] = 0
 
     firstring = np.logical_and(dists > 1. / 6., dists <= 1. / 2.)
     secondring = np.logical_and(dists > 1. / 2., dists <= 5. / 6.)
