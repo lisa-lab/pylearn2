@@ -461,7 +461,7 @@ class MaxPoolGrad(GpuOp):
         const int ghSizeY = gh_dims[1];
         const int ghSizeX = gh_dims[2];
 
-        NVMatrix nv_gh(%(gh)s, img_channels * ghSizeY * ghSizeX,
+        NVMatrix nv_gh(%(gh)s, gh_channels * ghSizeY * ghSizeX,
                        batch_size, "MaxPool:nv_gh");
         """
         num_braces += 1
@@ -531,7 +531,7 @@ class MaxPoolGrad(GpuOp):
 
         undo_pool = """
         localProbMaxUndo(nv_h, nv_p, nv_gh, nv_gp, nv_targets_z, nv_targets_t,
-                         %(ds)s, %(start)s, %(stride)s, _outputsX);
+                         %(ds)s, %(start)s, %(stride)s, _outputsX, imgSizeX);
         """
 
         braces = '}' * num_braces

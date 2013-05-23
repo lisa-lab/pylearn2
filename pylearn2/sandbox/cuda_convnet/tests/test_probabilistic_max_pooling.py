@@ -289,15 +289,92 @@ def check_correctness_c01b_hapoo_grad():
 
     from probabilistic_max_pooling import max_pool_c01b_H
 
-    print 'profiling gr adient of '
     rng = np.random.RandomState([2012,7,19])
-    batch_size = 16
+    batch_size = 128
     rows = 9
     cols = 9
     channels = 16
     pool_rows = 3
     pool_cols = 3
-    zv = rng.randn( batch_size, rows, cols, channels ).astype(config.floatX)
+    zv = rng.randn( channels, rows, cols, batch_size).astype(config.floatX)
+
+    z = T.tensor4()
+
+    # gpu op
+    p, h = mymy(z, (pool_rows, pool_cols) )
+    gz = T.grad(h.sum() + p.sum(), z)
+    func = function([z], gz)
+
+    op_gz = func(zv)
+
+    # theano graph
+    p, h = max_pool_c01b(z, (pool_rows, pool_cols) )
+    gz = T.grad(h.sum() + p.sum(), z)
+    func = function([z], gz)
+
+    th_gz = func(zv)
+
+    assert np.allclose(op_gz, th_gz, rtol=1e-04, atol=1e-06)
+
+def check_correctness_grad_top_down():
+
+    from probabilistic_max_pooling import MaxPool
+    from theano.sandbox.cuda.basic_ops import gpu_contiguous
+
+    rng = np.random.RandomState([2012,7,19])
+    batch_size = 128
+    rows = 4
+    cols = 4
+    channels = 16
+    pool_rows = 2
+    pool_cols = 2
+    zv = rng.randn(channels, rows, cols, batch_size).astype(config.floatX)
+    tv = rng.randn(channels, rows / pool_rows, cols / pool_cols, batch_size).astype(config.floatX)
+    #zv = np.zeros((channels, rows, cols, batch_size)).astype(config.floatX)
+    #tv = np.zeros((channels, rows / pool_rows, cols / pool_cols, batch_size)).astype(config.floatX)
+
+    z = T.tensor4()
+    t = T.tensor4()
+
+        # theano graph
+    p, h = max_pool_c01b(z, (pool_rows, pool_cols) , top_down = t)
+    gt = T.grad(h.sum() + p.sum(), t)
+    #func = function([z, t], gt)
+    func = function([z, t], [gt, p, h])
+
+    th_gt, p_v, h_v = func(zv, tv)
+
+    # gpu op
+    op = MaxPool(pool_rows)
+    z = gpu_contiguous(z)
+    t = gpu_contiguous(t)
+    p, h = op(z, t)
+    gt = T.grad(h.sum() + p.sum(), t)
+    func = function([z, t], gt)
+
+    op_gt = np.asarray(func(zv, tv))
+
+
+    assert np.allclose(op_gt, th_gt, rtol=1e-04, atol=1e-06)
+
+
+
+
+
+def check_correctness_c01b_hapoo_grad_old():
+
+    from probabilistic_max_pooling import max_pool_c01b_H
+
+    print 'profiling gradient of '
+    rng = np.random.RandomState([2012,7,19])
+    batch_size = 128
+    rows = 9
+    cols = 9
+    channels = 16
+    pool_rows = 3
+    pool_cols = 3
+    zv = rng.randn( channels, rows, cols, batch_size).astype(config.floatX)
+    #zv = np.zeros((channels, rows, cols, batch_size)).astype(config.floatX)
 
     #put the inputs + outputs in shared variables so we don't pay GPU transfer during test
     grad_shared = sharedX(zv)
@@ -311,23 +388,22 @@ def check_correctness_c01b_hapoo_grad():
     h_val_hapoo = func()
     hapoo_val = grad_shared.get_value()
 
-    ## old and correct implent
+    ##---------------- old and correct implent
     grad_shared = sharedX(zv)
     z_shared = sharedX(zv)
 
     p_th, h_th = max_pool_c01b( z_shared, (pool_rows, pool_cols) )
 
-    func = function([],updates = { grad_shared : T.grad(h_th.sum() + p_th.sum(), z_shared)}, outputs = [h_th])
-    h_val_old = func()
+    func = function([],updates = { grad_shared : T.grad(h_th.sum() + p_th.sum(), z_shared)}, outputs = [h_th, p_th])
+    h_val_old, p_val_old = func()
     old_val = grad_shared.get_value()
 
     #import ipdb
     #ipdb.set_trace()
-    assert np.allclose(h_val_hapoo[0], h_val_old[0])
+    assert np.allclose(h_val_hapoo[0], h_val_old, rtol=1e-04, atol=1e-06)
     print "amu"
     #assert np.allclose(hapoo_val, old_val)
-    assert np.allclose(hapoo_val, old_val)
-
+    assert np.allclose(hapoo_val, old_val, rtol=1e-04, atol=1e-06)
 
 
 @no_debug_mode
@@ -730,4 +806,5 @@ def test_max_pool_softmax_with_bias_op():
 if __name__ == "__main__":
     #check_correctness_c01b(mymy)
     #check_correctness_c01b_hapoo()
-    check_correctness_c01b_hapoo_grad()
+    #check_correctness_c01b_hapoo_grad()
+    check_correctness_grad_top_down()
