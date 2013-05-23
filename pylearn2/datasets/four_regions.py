@@ -39,13 +39,13 @@ def _four_regions_labels(points):
       http://books.nips.cc/papers/files/nips01/0133.pdf
     """
     points = np.asarray(points)
-    region = np.zeros(points.shape[0])
+    region = np.zeros(points.shape[0], dtype='uint8')
     tophalf = points[:, 1] > 0
     righthalf = points[:, 0] > 0
     dists = np.sqrt(np.sum(points ** 2, axis=1))
 
     # The easy ones -- the outer shelf.
-    region[dists > np.sqrt(2)] = np.nan
+    region[dists > np.sqrt(2)] = 255
     outer = dists > 5. / 6.
     region[np.logical_and(tophalf, outer)] = 3
     region[np.logical_and(np.logical_not(tophalf), outer)] = 0
@@ -61,7 +61,7 @@ def _four_regions_labels(points):
     region[np.logical_and(secondring, righthalf)] = 1
     region[np.logical_and(np.logical_not(righthalf), dists < 1. / 2.)] = 1
     region[np.logical_and(righthalf, dists < 1. / 6.)] = 1
-    assert(np.all(region > 0))
+    assert np.all(region >= 0) and np.all(region <= 3)
     return region
 
 
