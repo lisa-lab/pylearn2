@@ -47,6 +47,7 @@ The copyright and licensing notice for this code is reproduced below:
 
 import theano
 from theano.sandbox.cuda import CudaNdarrayType
+from theano.sandbox.cuda.basic_ops import as_cuda_ndarray_variable
 from theano.gof import Apply, local_optimizer, TopoOptimizer
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
 from .code_templates import (
@@ -191,6 +192,7 @@ class CrossMapNorm(BaseActs):
         images, = inputs
         acts, denoms = self(images)
         dout, _ = dout  # Ignore the gradient on "denoms"
+        dout = as_cuda_ndarray_variable(dout)
         grad_op = CrossMapNormUndo(self._size_f, self._add_scale,
                                    self._pow_scale, self._blocked,
                                    inplace=False)
