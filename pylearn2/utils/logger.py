@@ -67,7 +67,9 @@ class CustomFormatter(Formatter):
         and appended to the message.
         """
         record.message = record.getMessage()
-        if self.usesTime():
+        # Python 2.6 don't have usesTime() fct.
+        # So we skip that information for them.
+        if hasattr(self, 'usesTime') and self.usesTime():
             record.asctime = self.formatTime(record, self.datefmt)
 
         emit_special = (self._only_from is None or
@@ -166,7 +168,10 @@ class CustomStreamHandler(Handler):
             else:
                 stream = self.stdout
             fs = "%s\n"
-            if not logging._unicode: #if no unicode support...
+            #if no unicode support...
+            #Python 2.6 don't have logging._unicode, so use the no unicode path
+            # as stream.encoding also don't exist.
+            if not getattr(logging, '_unicode', True):
                 stream.write(fs % msg)
             else:
                 try:
