@@ -88,6 +88,7 @@ class TransformerIterator(object):
         self.transformer_dataset = transformer_dataset
         self.stochastic = raw_iterator.stochastic
         self.uneven = raw_iterator.uneven
+        self._targets = raw_iterator._targets
 
     def __iter__(self):
         return self
