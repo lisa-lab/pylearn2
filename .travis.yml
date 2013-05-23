@@ -50,9 +50,9 @@ install:
   - cd ../../
 
 # command to run tests
-#env:
-#  - PART="theano/tensor/nnet/ theano/tensor/signal/ theano/compile/ theano/gof/ theano/misc/ theano/scalar/ theano/tests/"
-#  - PART="theano/scan_module/ theano/sandbox theano/sparse"
+env:
+  - PART=floatX=float32
+  - PART=floatX=float64
 
 # Start testing
 script:
@@ -63,7 +63,7 @@ script:
   - cd ../../..
   - export THEANO_FLAGS=warn.ignore_bug_before=all,on_opt_error=raise,on_shape_error=raise
   - export TRAVIS=1
-  - theano-nose
+  - THEANO_FLAGS=$PART theano-nose
 
 after_failure:
   - cat /home/travis/.pip/pip.log
