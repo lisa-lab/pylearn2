@@ -132,8 +132,8 @@ class IsingVisible(VisibleLayer):
 
         return rval
 
-    def make_symbolic_state(self, theano_rng):
-        driver = theano_rng.uniform(low=0., high=1., size=self.input_space.make_theano_batch().shape)
+    def make_symbolic_state(self, num_examples, theano_rng):
+        driver = theano_rng.uniform(low=0., high=1., size=(num_examples, self.nvis))
         on_prob = T.nnet.sigmoid(2. * self.b)
         rval = 2. * (driver < on_prob) - 1.
 
@@ -438,8 +438,8 @@ class IsingHidden(HiddenLayer):
 
         return rval
 
-    def make_symbolic_state(self, theano_rng):
-        driver = theano_rng.uniform(low=0., high=1., size=self.input_space.make_theano_batch().shape)
+    def make_symbolic_state(self, num_examples, theano_rng):
+        driver = theano_rng.uniform(low=0., high=1., size=(num_examples, self.nvis))
         on_prob = T.nnet.sigmoid(2. * self.b)
         rval = 2. * (driver < on_prob) - 1.
 
@@ -617,8 +617,8 @@ class BoltzmannIsingVisible(VisibleLayer):
 
         return rval
 
-    def make_symbolic_state(self, theano_rng):
-        driver = theano_rng.uniform(low=0., high=1., size=self.input_space.make_theano_batch().shape)
+    def make_symbolic_state(self, num_examples, theano_rng):
+        driver = theano_rng.uniform(low=0., high=1., size=(num_examples, self.nvis))
         on_prob = T.nnet.sigmoid(2. * self.ising_bias())
         rval = 2. * (driver < on_prob) - 1.
 
@@ -1057,8 +1057,8 @@ class BoltzmannIsingHidden(HiddenLayer):
 
         return rval
 
-    def make_symbolic_state(self, theano_rng):
-        driver = theano_rng.uniform(low=0., high=1., size=self.input_space.make_theano_batch().shape)
+    def make_symbolic_state(self, num_examples, theano_rng):
+        driver = theano_rng.uniform(low=0., high=1., size=(num_examples, self.nvis))
         on_prob = T.nnet.sigmoid(2. * self.ising_b())
         rval = 2. * (driver < on_prob) - 1.
 

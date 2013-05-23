@@ -34,6 +34,7 @@ from pylearn2.expr.nnet import sigmoid_numpy
 from pylearn2.expr.probabilistic_max_pooling import max_pool_channels
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.models.model import Model
+from pylearn2.base import Block
 from pylearn2.space import CompositeSpace
 from pylearn2.space import Conv2DSpace
 from pylearn2.space import Space
@@ -59,6 +60,7 @@ warnings.warn("DBM changing the recursion limit.")
 # python interpreter should provide an option to raise the error
 # precisely when you're going to exceed the stack segment.
 sys.setrecursionlimit(40000)
+
 
 class DBM(Model):
     """
@@ -365,7 +367,7 @@ class DBM(Model):
 
         return rval
 
-    def make_layer_to_symbolic_state(self, rng=None):
+    def make_layer_to_symbolic_state(self, num_examples, rng=None):
 
         """
         Makes and returns a dictionary mapping layers to states.
@@ -382,10 +384,10 @@ class DBM(Model):
         # Make a list of all layers
         layers = [self.visible_layer] + self.hidden_layers
 
-        # TODO: do we relax this and create a rng if one is not provided?
+        # TODO: is it too restrictive?
         assert rng is not None
 
-        states = [layer.make_symbolic_state(rng) for layer in layers]
+        states = [layer.make_symbolic_state(num_examples, rng) for layer in layers]
 
         zipped = safe_zip(layers, states)
 
@@ -768,7 +770,7 @@ class Layer(Model):
         raise NotImplementedError("%s doesn't implement make_state" %
                 type(self))
 
-    def make_symbolic_state(self, theano_rng):
+    def make_symbolic_state(self, num_examples, theano_rng):
         """
         Returns a theano symbolic variable containing an actual state (not a
         mean field state) for this variable.
@@ -1008,12 +1010,12 @@ class BinaryVector(VisibleLayer):
 
         return rval
 
-    def make_symbolic_state(self, theano_rng):
+    def make_symbolic_state(self, num_examples, theano_rng):
         if not hasattr(self, 'copies'):
             self.copies = 1
         if self.copies != 1:
             raise NotImplementedError()
-        driver = theano_rng.uniform(low=0., high=1., size=self.input_space.make_theano_batch().shape)
+        driver = theano_rng.uniform(low=0., high=1., size=(num_examples, self.nvis))
         mean = T.nnet.sigmoid(self.bias)
         rval = driver < mean
 
@@ -1573,7 +1575,7 @@ class BinaryVectorMaxPool(HiddenLayer):
 
         return p_state, h_state
 
-    def make_symbolic_state(self, theano_rng):
+    def make_symbolic_state(self, num_examples, theano_rng):
         """
         Returns a theano symbolic variable containing an actual state
         (not a mean field state) for this variable.
