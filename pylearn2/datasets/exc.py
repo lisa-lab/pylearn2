@@ -11,7 +11,7 @@ class NoDataPathError(EnvironmentVariableError):
     defined.
     """
     def __init__(self):
-        super(NoDataPathError, self)(data_path_essay)
+        super(NoDataPathError, self).__init__(data_path_essay)
 
 data_path_essay = """\
 You need to define your PYLEARN2_DATA_PATH environment variable. If you are
