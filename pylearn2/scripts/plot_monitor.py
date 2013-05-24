@@ -22,10 +22,11 @@ import numpy as np
 import sys
 from theano.printing import _TagGenerator
 from pylearn2.utils.string_utils import number_aware_alphabetical_key
+import argparse
 
 channels = {}
 
-model_paths = sys.argv[1:]
+#model_paths = sys.argv[1:]
 
 def unique_substring(s, other, min_size=1):
     size = min(len(s), min_size)
@@ -47,6 +48,12 @@ def unique_substrings(l, min_size=1):
     return [unique_substring(s, [x for x in l if x is not s], min_size) for s in l]
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--out")
+    parser.add_argument("model_paths", nargs='+')
+    options = parser.parse_args()
+    model_paths = options.model_paths
+
     print 'generating names...'
     model_names = [model_path.replace('.pkl', '!') for model_path in model_paths]
     model_names = unique_substrings(model_names, min_size=10)
@@ -253,7 +260,10 @@ def main():
         plt.legend(bbox_to_anchor=(1.05, 1),  loc=2, borderaxespad=0.)
 
 
-        plt.show()
+        if options.out is None:
+          plt.show()
+        else:
+          plt.savefig(options.out)
 
         if not prompt:
             break
