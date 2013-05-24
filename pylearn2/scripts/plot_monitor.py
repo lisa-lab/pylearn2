@@ -9,7 +9,7 @@ all of their monitoring channels and prompts the user to select
 a subset of them to be plotted.
 
 """
-__authors__ = "Ian Goodfellow"
+__authors__ = "Ian Goodfellow, Harm Aarts"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
