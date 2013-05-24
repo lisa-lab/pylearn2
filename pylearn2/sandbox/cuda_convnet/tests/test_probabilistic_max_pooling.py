@@ -1,810 +1,151 @@
+import copy
+import theano
 import numpy as np
-import warnings
-
+import theano.tensor as T
 from theano import config
 from theano import function
-import theano.tensor as T
-from theano.sandbox.rng_mrg import MRG_RandomStreams
-
-from pylearn2.expr.probabilistic_max_pooling import max_pool_python
-from pylearn2.expr.probabilistic_max_pooling import max_pool_channels_python
-from pylearn2.expr.probabilistic_max_pooling import max_pool
-from pylearn2.expr.probabilistic_max_pooling import max_pool_channels
-from pylearn2.expr.probabilistic_max_pooling import max_pool_b01c
 from pylearn2.expr.probabilistic_max_pooling import max_pool_c01b
-from pylearn2.expr.probabilistic_max_pooling import max_pool_unstable
-from pylearn2.expr.probabilistic_max_pooling import max_pool_softmax_op
-from pylearn2.expr.probabilistic_max_pooling import max_pool_softmax_with_bias_op
-from pylearn2.sandbox.cuda_convnet.probabilistic_max_pooling import max_pool_c01b as mymy
-from pylearn2.sandbox.cuda_convnet.probabilistic_max_pooling import max_pool_c01b_P, max_pool_c01b_H
-from pylearn2.testing import no_debug_mode
-from pylearn2.utils import sharedX
+from pylearn2.sandbox.cuda_convnet.probabilistic_max_pooling import max_pool_c01b as max_pool_op
 
-def check_correctness_channelwise(f):
+if theano.config.mode == 'FAST_COMPILE':
+    mode_with_gpu = theano.compile.mode.get_mode('FAST_RUN').including('gpu')
+    mode_without_gpu = theano.compile.mode.get_mode(
+            'FAST_RUN').excluding('gpu')
+else:
+    mode_with_gpu = theano.compile.mode.get_default_mode().including('gpu')
+    mode_without_gpu = theano.compile.mode.get_default_mode().excluding('gpu')
 
-    # Tests that the theano expression emitted by f computes the same values
-    # as the ground truth python function
-    # Note: to keep the python version as dead simple as possible (i.e., to make
-    # sure there are not bugs in the ground truth) it uses the numerically
-    # unstable verison of softmax. So this test does not work with too big of
-    # numbers.
+#The CPU tests already compare C/Py, so we only check C/GPU
+mode_with_gpu = copy.copy(mode_with_gpu)
+mode_without_gpu = copy.copy(mode_without_gpu)
+mode_with_gpu.check_py_code = False
+mode_without_gpu.check_py_code = False
 
-    rng = np.random.RandomState([2012,7,19])
-    batch_size = 5
-    pool_size = 4
-    n = 3 * pool_size
-    zv = rng.randn(batch_size, n).astype(config.floatX) * 1. - 1.5
-    top_down_v = rng.randn(batch_size,  n / pool_size).astype(config.floatX)
 
-    p_np, h_np = max_pool_channels_python(zv, pool_size, top_down_v)
-
-    z_th = T.matrix()
-    z_th.name = 'z_th'
-
-    top_down_th = T.matrix()
-    top_down_th.name = 'top_down_th'
-
-    p_th, h_th = f(z_th, pool_size, top_down_th)
-
-    func = function([z_th, top_down_th], [p_th, h_th])
-
-    pv, hv = func(zv, top_down_v)
-
-    assert p_np.shape == pv.shape
-    assert h_np.shape == hv.shape
-    if not np.allclose(h_np,hv):
-        print (h_np.min(),h_np.max())
-        print (hv.min(),hv.max())
-        assert False
-    if not np.allclose(p_np,pv):
-        diff = abs(p_np - pv)
-        print 'max diff ',diff.max()
-        print 'min diff ',diff.min()
-        print 'ave diff ',diff.mean()
-        assert False
-
-def check_correctness_sigmoid_channelwise(f):
-
-    # Tests that f is equivalent to the sigmoid function when the pool size is 1
+def test_correctness():
+    """
+    Test the forward pass Op against theano graph implementation
+    """
 
     rng = np.random.RandomState([2012,7,19])
-    batch_size = 5
-    pool_size = 1
-    n = 3 * pool_size
-    zv = rng.randn(batch_size, n).astype(config.floatX) * 1. - 1.5
-    top_down_v = rng.randn(batch_size,  n / pool_size).astype(config.floatX)
-
-
-    z_th = T.matrix()
-    z_th.name = 'z_th'
-
-    top_down_th = T.matrix()
-    top_down_th.name = 'top_down_th'
-
-    p_th, h_th = f(z_th, pool_size, top_down_th)
-    h_s = T.nnet.sigmoid(z_th +  top_down_th)
-
-    func = function([z_th, top_down_th], [p_th, h_th, h_s])
-
-    pv, hv, h_s = func(zv, top_down_v)
-    p_s = h_s
-
-    assert p_s.shape == pv.shape
-    assert h_s.shape == hv.shape
-    if not np.allclose(h_s,hv):
-        print (h_s.min(),h_s.max())
-        print (hv.min(),hv.max())
-        assert False
-    if not np.allclose(p_s,pv):
-        diff = abs(p_s - pv)
-        print 'max diff ',diff.max()
-        print 'min diff ',diff.min()
-        print 'ave diff ',diff.mean()
-        assert False
-
-def check_correctness(f):
-    rng = np.random.RandomState([2012,7,19])
-    batch_size = 5
-    rows = 32
-    cols = 30
-    channels = 3
-    pool_rows = 2
-    pool_cols = 3
-    zv = rng.randn( batch_size, rows, cols, channels ).astype(config.floatX) * 2. - 3.
-
-    p_np, h_np = max_pool_python( zv, (pool_rows, pool_cols) )
-
-    z_th = T.TensorType( broadcastable=(False,False,False,False), dtype = config.floatX)()
-    z_th.name = 'z_th'
-
-    p_th, h_th = f( z_th, (pool_rows, pool_cols) )
-
-    func = function([z_th],[p_th,h_th])
-
-    pv, hv = func(zv)
-
-    assert p_np.shape == pv.shape
-    assert h_np.shape == hv.shape
-    if not np.allclose(h_np,hv):
-        print (h_np.min(),h_np.max())
-        print (hv.min(),hv.max())
-        assert False
-    assert np.allclose(p_np,pv)
-
-def check_correctness_bc01(f):
-
-    # Tests that the theano expression emitted by f computes the same values
-    # as the ground truth python function
-    # Note: to keep the python version as dead simple as possible (i.e., to make
-    # sure there are not bugs in the ground truth) it uses the numerically
-    # unstable verison of softmax. So this test does not work with too big of
-    # numbers.
-
-    rng = np.random.RandomState([2012,7,19])
-    batch_size = 5
-    rows = 32
-    cols = 30
-    channels = 3
-    pool_rows = 2
-    pool_cols = 3
-    zv = rng.randn(batch_size,  rows, cols, channels).astype(config.floatX) * 1. - 1.5
-    top_down_v = rng.randn(batch_size,  rows / pool_rows, cols / pool_cols, channels).astype(config.floatX)
-
-    p_np, h_np = max_pool_python(zv, (pool_rows, pool_cols), top_down_v)
-
-    z_th = T.TensorType( broadcastable=(False,False,False,False), dtype = config.floatX)()
-    z_th.name = 'z_th'
-    zr = z_th.dimshuffle(0,3,1,2)
-
-    top_down_th = T.TensorType( broadcastable=(False,False,False,False), dtype = config.floatX)()
-    top_down_th.name = 'top_down_th'
-    top_down_r = top_down_th.dimshuffle(0,3,1,2)
-
-    p_th, h_th = f(zr, (pool_rows, pool_cols), top_down_r)
-
-    func = function([z_th, top_down_th], [p_th.dimshuffle(0,2,3,1), h_th.dimshuffle(0,2,3,1)])
-
-    pv, hv = func(zv, top_down_v)
-
-    assert p_np.shape == pv.shape
-    assert h_np.shape == hv.shape
-    if not np.allclose(h_np,hv):
-        print (h_np.min(),h_np.max())
-        print (hv.min(),hv.max())
-        assert False
-    if not np.allclose(p_np,pv):
-        diff = abs(p_np - pv)
-        print 'max diff ',diff.max()
-        print 'min diff ',diff.min()
-        print 'ave diff ',diff.mean()
-        assert False
-
-def check_correctness_c01b(f):
-
-    # Tests that the theano expression emitted by f computes the same values
-    # as the ground truth python function
-    # Note: to keep the python version as dead simple as possible (i.e., to make
-    # sure there are not bugs in the ground truth) it uses the numerically
-    # unstable version of softmax. So this test does not work with too big of
-    # numbers.
-
-    rng = np.random.RandomState([2013, 5, 6])
-    batch_size = 128
-    rows = 30
-    cols = 30
-    channels = 120
-    pool_rows = 3
-    pool_cols = 3
-
-    # Do the python ground truth in b01c format
-    zv = rng.randn(batch_size,  rows, cols, channels).astype(config.floatX) * 1. - 1.5
-    top_down_v = rng.randn(batch_size,  rows / pool_rows, cols / pool_cols, channels).astype(config.floatX)
-
-    p_np, h_np = max_pool_python(zv, (pool_rows, pool_cols), top_down_v)
-
-    # Dimshuffle the inputs into c01b for the theano implementation
-    z_th = T.TensorType( broadcastable=(False,False,False,False), dtype = config.floatX)()
-    z_th.tag.test_value = zv
-    z_th.name = 'z_th'
-    zr = z_th.dimshuffle(3,1,2,0)
-
-    top_down_th = T.TensorType( broadcastable=(False,False,False,False), dtype = config.floatX)()
-    top_down_th.name = 'top_down_th'
-    top_down_th.tag.test_value = top_down_v
-    top_down_r = top_down_th.dimshuffle(3,1,2,0)
-
-    p_th, h_th = f(zr, (pool_rows, pool_cols), top_down_r)
-
-    func = function([z_th, top_down_th], [p_th.dimshuffle(3,1,2,0), h_th.dimshuffle(3,1,2,0)])
-
-    pv, hv = func(zv, top_down_v)
-
-    if not p_np.shape == pv.shape:
-        raise AssertionError(str((p_np.shape, pv.shape)))
-    assert h_np.shape == hv.shape
-    if not np.allclose(h_np,hv):
-        print (h_np.min(),h_np.max())
-        print (hv.min(),hv.max())
-        assert False
-    if not np.allclose(p_np,pv):
-        diff = abs(p_np - pv)
-        print 'max diff ',diff.max()
-        print 'min diff ',diff.min()
-        print 'ave diff ',diff.mean()
-        assert False
-
-    warnings.warn("TODO: make sampling tests run on c01b format of pooling.")
-
-def check_correctness_c01b_hapoo():
-
-    rng = np.random.RandomState([2013, 5, 6])
-    batch_size = 128
-    rows = 30
-    cols = 30
-    channels = 120
-    pool_rows = 3
-    pool_cols = 3
-
-    # Do the python ground truth in b01c format
-    zv = rng.randn(batch_size,  rows, cols, channels).astype(config.floatX) * 1. - 1.5
-    top_down_v = rng.randn(batch_size,  rows / pool_rows, cols / pool_cols, channels).astype(config.floatX)
-
-    p_np, h_np = max_pool_python(zv, (pool_rows, pool_cols), top_down_v)
-
-    # Dimshuffle the inputs into c01b for the theano implementation
-    z_th = T.TensorType( broadcastable=(False,False,False,False), dtype = config.floatX)()
-    z_th.tag.test_value = zv
-    z_th.name = 'z_th'
-    zr = z_th.dimshuffle(3,1,2,0)
-
-    top_down_th = T.TensorType( broadcastable=(False,False,False,False), dtype = config.floatX)()
-    top_down_th.name = 'top_down_th'
-    top_down_th.tag.test_value = top_down_v
-    top_down_r = top_down_th.dimshuffle(3,1,2,0)
-
-    p_th  = max_pool_c01b_P(zr, (pool_rows, pool_cols), top_down_r)
-    h_th  = max_pool_c01b_H(zr, (pool_rows, pool_cols), top_down_r)
-
-    func = function([z_th, top_down_th], [p_th.dimshuffle(3,1,2,0), h_th.dimshuffle(3,1,2,0)])
-
-    pv, hv = func(zv, top_down_v)
-
-    if not p_np.shape == pv.shape:
-        raise AssertionError(str((p_np.shape, pv.shape)))
-    assert h_np.shape == hv.shape
-    if not np.allclose(h_np,hv):
-        print (h_np.min(),h_np.max())
-        print (hv.min(),hv.max())
-        assert False
-    if not np.allclose(p_np,pv):
-        diff = abs(p_np - pv)
-        print 'max diff ',diff.max()
-        print 'min diff ',diff.min()
-        print 'ave diff ',diff.mean()
-        assert False
-
-    warnings.warn("TODO: make sampling tests run on c01b format of pooling.")
-
-def check_correctness_c01b_hapoo_grad():
-
-    from probabilistic_max_pooling import max_pool_c01b_H
-
-    rng = np.random.RandomState([2012,7,19])
-    batch_size = 128
-    rows = 9
-    cols = 9
+    batch_size_list = [1, 5, 128]
     channels = 16
-    pool_rows = 3
-    pool_cols = 3
-    zv = rng.randn( channels, rows, cols, batch_size).astype(config.floatX)
+    rows_list = [2, 8, 30]
+    pool_rows_list = [2, 4, 3]
 
-    z = T.tensor4()
+    # TODO theano graph version fails with pool shape 1,1,
+    # try it with python version
 
-    # gpu op
-    p, h = mymy(z, (pool_rows, pool_cols) )
-    gz = T.grad(h.sum() + p.sum(), z)
-    func = function([z], gz)
+    for batch_size in batch_size_list:
+        for rows, pool_rows in zip(rows_list, pool_rows_list):
+            cols = rows
+            pool_cols = pool_rows
 
-    op_gz = func(zv)
+            zv = rng.randn(channels, rows, cols, batch_size).astype(config.floatX)
 
-    # theano graph
-    p, h = max_pool_c01b(z, (pool_rows, pool_cols) )
-    gz = T.grad(h.sum() + p.sum(), z)
-    func = function([z], gz)
+            z = T.tensor4()
 
-    th_gz = func(zv)
+            # gpu op
+            p, h = max_pool_op(z, (pool_rows, pool_cols) )
+            func = function([z], [p, h], mode = mode_with_gpu)
 
-    assert np.allclose(op_gz, th_gz, rtol=1e-04, atol=1e-06)
+            p_op, h_op = func(zv)
 
-def check_correctness_grad_top_down():
+            # theano graph
+            p, h = max_pool_c01b(z, (pool_rows, pool_cols) )
+            func = function([z], [p, h], mode = mode_without_gpu)
 
-    from probabilistic_max_pooling import MaxPool
-    from theano.sandbox.cuda.basic_ops import gpu_contiguous
+            p_th, h_th = func(zv)
+
+            assert np.allclose(p_op, p_th)
+            assert np.allclose(h_op, h_th)
+
+def test_grad_correctness():
+    """
+    Test Op's gradient against theano graph implementation
+    """
 
     rng = np.random.RandomState([2012,7,19])
-    batch_size = 128
-    rows = 4
-    cols = 4
+    batch_size_list = [1, 5, 128]
     channels = 16
-    pool_rows = 2
-    pool_cols = 2
-    zv = rng.randn(channels, rows, cols, batch_size).astype(config.floatX)
-    tv = rng.randn(channels, rows / pool_rows, cols / pool_cols, batch_size).astype(config.floatX)
-    #zv = np.zeros((channels, rows, cols, batch_size)).astype(config.floatX)
-    #tv = np.zeros((channels, rows / pool_rows, cols / pool_cols, batch_size)).astype(config.floatX)
+    rows_list = [2, 8, 30]
+    pool_rows_list = [2, 4, 3]
 
-    z = T.tensor4()
-    t = T.tensor4()
+    #TODO theano graph version fails with pool shape 1,1,
+    # try it with python version
 
-        # theano graph
-    p, h = max_pool_c01b(z, (pool_rows, pool_cols) , top_down = t)
-    gt = T.grad(h.sum() + p.sum(), t)
-    #func = function([z, t], gt)
-    func = function([z, t], [gt, p, h])
+    for batch_size in batch_size_list:
+        for rows, pool_rows in zip(rows_list, pool_rows_list):
+            cols = rows
+            pool_cols = pool_rows
 
-    th_gt, p_v, h_v = func(zv, tv)
+            zv = rng.randn(channels, rows, cols, batch_size).astype(config.floatX)
 
-    # gpu op
-    op = MaxPool(pool_rows)
-    z = gpu_contiguous(z)
-    t = gpu_contiguous(t)
-    p, h = op(z, t)
-    gt = T.grad(h.sum() + p.sum(), t)
-    func = function([z, t], gt)
+            z = T.tensor4()
 
-    op_gt = np.asarray(func(zv, tv))
+            # gpu op
+            p, h = max_pool_op(z, (pool_rows, pool_cols) )
+            gz = T.grad(h.sum() + p.sum(), z)
+            func = function([z], gz, mode = mode_with_gpu)
 
+            op_gz = func(zv)
 
-    assert np.allclose(op_gt, th_gt, rtol=1e-04, atol=1e-06)
+            # theano graph
+            p, h = max_pool_c01b(z, (pool_rows, pool_cols) )
+            gz = T.grad(h.sum() + p.sum(), z)
+            func = function([z], gz, mode = mode_without_gpu)
 
+            th_gz = func(zv)
 
+            assert np.allclose(op_gz, th_gz, rtol=1e-04, atol=1e-06)
 
+def test_top_down_grad_correctness():
+    """
+    Test Op's gradient w.r.t top_down against theano graph implementation
+    """
 
-
-def check_correctness_c01b_hapoo_grad_old():
-
-    from probabilistic_max_pooling import max_pool_c01b_H
-
-    print 'profiling gradient of '
     rng = np.random.RandomState([2012,7,19])
-    batch_size = 128
-    rows = 9
-    cols = 9
+    batch_size_list = [128]
     channels = 16
-    pool_rows = 3
-    pool_cols = 3
-    zv = rng.randn( channels, rows, cols, batch_size).astype(config.floatX)
-    #zv = np.zeros((channels, rows, cols, batch_size)).astype(config.floatX)
+    rows_list = [2, 8, 20]
+    pool_rows_list = [2, 4, 5]
 
-    #put the inputs + outputs in shared variables so we don't pay GPU transfer during test
-    grad_shared = sharedX(zv)
-    z_shared = sharedX(zv)
+    # TODO theano graph version fails with pool shape 1,1,
+    # try it with python version
 
-    #h_th = max_pool_c01b_H( z_shared, (pool_rows, pool_cols) )
-    p_th, h_th = mymy( z_shared, (pool_rows, pool_cols) )
+    # TODO the results doesn't match for (30,30), (3, 3)
+    # check verify grad
 
-    func = function([],updates = { grad_shared : T.grad(h_th.sum() + p_th.sum(), z_shared)}, outputs = [h_th])
-    #func = function([], outputs = [h_th])
-    h_val_hapoo = func()
-    hapoo_val = grad_shared.get_value()
+    for batch_size in batch_size_list:
+        for rows, pool_rows in zip(rows_list, pool_rows_list):
+            cols = rows
+            pool_cols = pool_rows
 
-    ##---------------- old and correct implent
-    grad_shared = sharedX(zv)
-    z_shared = sharedX(zv)
+            zv = rng.randn(channels, rows, cols, batch_size).astype(config.floatX)
+            tv = rng.randn(channels, rows / pool_rows, cols / pool_cols, batch_size).astype(config.floatX)
 
-    p_th, h_th = max_pool_c01b( z_shared, (pool_rows, pool_cols) )
+            z = T.tensor4()
+            t = T.tensor4()
 
-    func = function([],updates = { grad_shared : T.grad(h_th.sum() + p_th.sum(), z_shared)}, outputs = [h_th, p_th])
-    h_val_old, p_val_old = func()
-    old_val = grad_shared.get_value()
+            # gpu op
+            p, h = max_pool_op(z, (pool_rows, pool_cols), top_down = t)
+            gt = T.grad(h.sum() + p.sum(), t)
+            gt = T.grad(h.sum() + p.sum(), t)
+            func = function([z, t], gt, mode = mode_with_gpu)
 
-    #import ipdb
-    #ipdb.set_trace()
-    assert np.allclose(h_val_hapoo[0], h_val_old, rtol=1e-04, atol=1e-06)
-    print "amu"
-    #assert np.allclose(hapoo_val, old_val)
-    assert np.allclose(hapoo_val, old_val, rtol=1e-04, atol=1e-06)
+            op_gt = func(zv, tv)
 
+            # theano graph
+            p, h = max_pool_c01b(z, (pool_rows, pool_cols) , top_down = t)
+            gt = T.grad(h.sum() + p.sum(), t)
+            func = function([z, t], gt, mode = mode_without_gpu)
 
-@no_debug_mode
-def check_sample_correctishness(f):
-    batch_size = 5
-    rows = 32
-    cols = 30
-    channels = 3
-    pool_rows = 2
-    pool_cols = 3
-    rng = np.random.RandomState([2012,9,26])
-    zv = rng.randn( batch_size, rows, cols, channels ).astype(config.floatX) * 2. - 3.
-    top_down_v = rng.randn( batch_size, rows / pool_rows, cols / pool_cols, channels ).astype(config.floatX)
+            th_gt = func(zv, tv)
 
-    z_th = T.TensorType( broadcastable=(False,False,False,False), dtype = config.floatX)()
-    z_th.name = 'z_th'
-
-    top_down_th = T.TensorType( broadcastable=(False,False,False,False), dtype = config.floatX)()
-    top_down_th.name = 'top_down_th'
-
-    theano_rng = MRG_RandomStreams(rng.randint(2147462579))
-    p_th, h_th, p_sth, h_sth = f( z_th, (pool_rows, pool_cols), top_down_th, theano_rng )
-
-    prob_func = function([z_th, top_down_th], [p_th, h_th])
-    pv, hv = prob_func(zv, top_down_v)
-
-    sample_func = function([z_th, top_down_th], [p_sth, h_sth])
-
-    acc_p = 0. * pv
-    acc_h = 0. * hv
-
-    # make sure the test gets good coverage, ie, that it includes many different
-    # activation probs for both detector and pooling layer
-    buckets = 10
-    bucket_width = 1. / float(buckets)
-    for i in xrange(buckets):
-        lower_lim = i * bucket_width
-        upper_lim = (i+1) * bucket_width
-
-        assert np.any( (pv >= lower_lim) * (pv < upper_lim) )
-        assert np.any( (hv >= lower_lim) * (hv < upper_lim) )
-
-    assert upper_lim == 1.
-
-
-    for i in xrange(10000):
-        ps, hs = sample_func(zv, top_down_v)
-
-        assert ps.shape == pv.shape
-        assert hs.shape == hv.shape
-
-        acc_p += ps
-        acc_h += hs
-
-    est_p = acc_p / float(i+1)
-    est_h = acc_h / float(i+1)
-
-    pd = np.abs(est_p-pv)
-    hd = np.abs(est_h-hv)
-
-    """
-    # plot maps of the estimation error, this is to see if it has some spatial pattern
-    # this is useful for detecting bugs like not handling the border correctly, etc.
-    from pylearn2.gui.patch_viewer import PatchViewer
-
-    pv = PatchViewer((pd.shape[0],pd.shape[3]),(pd.shape[1],pd.shape[2]),is_color = False)
-    for i in xrange(pd.shape[0]):
-    for j in xrange(pd.shape[3]):
-    pv.add_patch( (pd[i,:,:,j] / pd.max() )* 2.0 - 1.0, rescale = False)
-    pv.show()
-
-    pv = PatchViewer((hd.shape[0],hd.shape[3]),(hd.shape[1],hd.shape[2]),is_color = False)
-    for i in xrange(hd.shape[0]):
-    for j in xrange(hd.shape[3]):
-    pv.add_patch( (hd[i,:,:,j] / hd.max() )* 2.0 - 1.0, rescale = False)
-    pv.show()
-    """
-
-    """
-    plot expectation to estimate versus error in estimation
-    expect bigger errors for values closer to 0.5
-
-    from matplotlib import pyplot as plt
-
-    #nelem = reduce( lambda x, y : x*y, pd.shape)
-    #plt.scatter( pv.reshape(nelem), pd.reshape(nelem))
-    #plt.show()
-
-    nelem = reduce( lambda x, y : x*y, hd.shape)
-    plt.scatter( hv.reshape(nelem), hd.reshape(nelem))
-    plt.show()
-    """
-
-    # don't really know how tight this should be
-    # but you can try to pose an equivalent problem
-    # and implement it in another way
-    # using a numpy implementation in softmax_acc.py
-    # I got a max error of .17
-    assert max(pd.max(), hd.max()) < .17
-
-    # Do exhaustive checks on just the last sample
-    assert np.all( (ps ==0) + (ps == 1) )
-    assert np.all( (hs == 0) + (hs == 1) )
-
-    for k in xrange(batch_size):
-        for i in xrange(ps.shape[1]):
-            for j in xrange(ps.shape[2]):
-                for l in xrange(channels):
-                    p = ps[k,i,j,l]
-                    h = hs[k,i*pool_rows:(i+1)*pool_rows,j*pool_cols:(j+1)*pool_cols,l]
-                    assert h.shape == (pool_rows, pool_cols)
-                    assert p == h.max()
-
-
-    """ If you made it to here, it's correctish
-     (cant tell if samples are perfectly "correct") """
-
-@no_debug_mode
-def check_sample_correctishness_bc01(f):
-
-    # Tests that the sample mean converges to the conditional expectation given by the
-    # function
-    # Tests that p really is the max of the samples
-    # Tests that at most one h in a group is on
-
-    batch_size = 5
-    rows = 32
-    cols = 30
-    channels = 3
-    pool_rows = 2
-    pool_cols = 3
-
-    rng = np.random.RandomState([2012,9,26])
-    zv = rng.randn( batch_size, channels, rows, cols).astype(config.floatX) * 2. - 3.
-    top_down_v = rng.randn( batch_size, channels, rows / pool_rows, cols / pool_cols).astype(config.floatX)
-
-    z_th = T.TensorType( broadcastable=(False,False,False,False), dtype = config.floatX)()
-    z_th.tag.test_value = zv
-    z_th.name = 'z_th'
-
-    top_down_th = T.TensorType( broadcastable=(False,False,False,False), dtype = config.floatX)()
-    top_down_th.tag.test_value = top_down_v
-    top_down_th.name = 'top_down_th'
-
-    theano_rng = MRG_RandomStreams(rng.randint(2147462579))
-    p_th, h_th, p_sth, h_sth = f( z_th, (pool_rows, pool_cols), top_down_th, theano_rng )
-
-    prob_func = function([z_th, top_down_th], [p_th, h_th])
-    pv, hv = prob_func(zv, top_down_v)
-
-    sample_func = function([z_th, top_down_th], [p_sth, h_sth])
-
-    acc_p = 0. * pv
-    acc_h = 0. * hv
-
-    # make sure the test gets good coverage, ie, that it includes many different
-    # activation probs for both detector and pooling layer
-    buckets = 10
-    bucket_width = 1. / float(buckets)
-    for i in xrange(buckets):
-        lower_lim = i * bucket_width
-        upper_lim = (i+1) * bucket_width
-
-        assert np.any( (pv >= lower_lim) * (pv < upper_lim) )
-        assert np.any( (hv >= lower_lim) * (hv < upper_lim) )
-
-    assert upper_lim == 1.
-
-
-    for i in xrange(10000):
-        ps, hs = sample_func(zv, top_down_v)
-
-        assert ps.shape == pv.shape
-        assert hs.shape == hv.shape
-
-        acc_p += ps
-        acc_h += hs
-
-    est_p = acc_p / float(i+1)
-    est_h = acc_h / float(i+1)
-
-    pd = np.abs(est_p-pv)
-    hd = np.abs(est_h-hv)
-
-    """
-    # plot maps of the estimation error, this is to see if it has some spatial pattern
-    # this is useful for detecting bugs like not handling the border correctly, etc.
-    from pylearn2.gui.patch_viewer import PatchViewer
-
-    pv = PatchViewer((pd.shape[0],pd.shape[3]),(pd.shape[1],pd.shape[2]),is_color = False)
-    for i in xrange(pd.shape[0]):
-    for j in xrange(pd.shape[3]):
-    pv.add_patch( (pd[i,:,:,j] / pd.max() )* 2.0 - 1.0, rescale = False)
-    pv.show()
-
-    pv = PatchViewer((hd.shape[0],hd.shape[3]),(hd.shape[1],hd.shape[2]),is_color = False)
-    for i in xrange(hd.shape[0]):
-    for j in xrange(hd.shape[3]):
-    pv.add_patch( (hd[i,:,:,j] / hd.max() )* 2.0 - 1.0, rescale = False)
-    pv.show()
-    """
-
-    """
-    plot expectation to estimate versus error in estimation
-    expect bigger errors for values closer to 0.5
-
-    from matplotlib import pyplot as plt
-
-    #nelem = reduce( lambda x, y : x*y, pd.shape)
-    #plt.scatter( pv.reshape(nelem), pd.reshape(nelem))
-    #plt.show()
-
-    nelem = reduce( lambda x, y : x*y, hd.shape)
-    plt.scatter( hv.reshape(nelem), hd.reshape(nelem))
-    plt.show()
-    """
-
-    # don't really know how tight this should be
-    # but you can try to pose an equivalent problem
-    # and implement it in another way
-    # using a numpy implementation in softmax_acc.py
-    # I got a max error of .17
-    assert max(pd.max(), hd.max()) < .17
-
-    # Do exhaustive checks on just the last sample
-    assert np.all( (ps ==0) + (ps == 1) )
-    assert np.all( (hs == 0) + (hs == 1) )
-
-    for k in xrange(batch_size):
-        for i in xrange(ps.shape[2]):
-            for j in xrange(ps.shape[3]):
-                for l in xrange(channels):
-                    p = ps[k,l,i,j]
-                    h = hs[k,l,i*pool_rows:(i+1)*pool_rows,j*pool_cols:(j+1)*pool_cols]
-                    assert h.shape == (pool_rows, pool_cols)
-                    assert p == h.max()
-                    assert h.sum() <= 1
-
-
-    """ If you made it to here, it's correctish
-     (cant tell if samples are perfectly "correct") """
-
-@no_debug_mode
-def check_sample_correctishness_channelwise(f):
-
-    # Tests that the sample mean converges to the conditional expectation given by the
-    # function
-    # Tests that p really is the max of the samples
-    # Tests that at most one h in a group is on
-
-    batch_size = 27
-    pool_size = 4
-    n = pool_size * 21
-
-    rng = np.random.RandomState([2012,9,26])
-    zv = rng.randn( batch_size, n).astype(config.floatX) * 3.5 - 5.
-    top_down_v = rng.randn( batch_size, n / pool_size).astype(config.floatX)
-
-    z_th = T.matrix()
-    z_th.tag.test_value = zv
-    z_th.name = 'z_th'
-
-    top_down_th = T.matrix()
-    top_down_th.tag.test_value = top_down_v
-    top_down_th.name = 'top_down_th'
-
-    theano_rng = MRG_RandomStreams(rng.randint(2147462579))
-    p_th, h_th, p_sth, h_sth = f(z_th, pool_size, top_down_th, theano_rng)
-
-    prob_func = function([z_th, top_down_th], [p_th, h_th])
-    pv, hv = prob_func(zv, top_down_v)
-
-    sample_func = function([z_th, top_down_th], [p_sth, h_sth])
-
-    acc_p = 0. * pv
-    acc_h = 0. * hv
-
-    # make sure the test gets good coverage, ie, that it includes many different
-    # activation probs for both detector and pooling layer
-    buckets = 10
-    bucket_width = 1. / float(buckets)
-    print pv.min(), pv.max()
-    print hv.min(), hv.max()
-    for i in xrange(buckets):
-        lower_lim = i * bucket_width
-        upper_lim = (i+1) * bucket_width
-        print lower_lim, upper_lim
-
-        assert np.any( (pv >= lower_lim) * (pv < upper_lim) )
-        assert np.any( (hv >= lower_lim) * (hv < upper_lim) )
-
-    assert upper_lim == 1.
-
-
-    for i in xrange(10000):
-        ps, hs = sample_func(zv, top_down_v)
-
-        assert ps.shape == pv.shape
-        assert hs.shape == hv.shape
-
-        acc_p += ps
-        acc_h += hs
-
-    est_p = acc_p / float(i+1)
-    est_h = acc_h / float(i+1)
-
-    pd = np.abs(est_p-pv)
-    hd = np.abs(est_h-hv)
-
-    """
-    # plot maps of the estimation error, this is to see if it has some spatial pattern
-    # this is useful for detecting bugs like not handling the border correctly, etc.
-    from pylearn2.gui.patch_viewer import PatchViewer
-
-    pv = PatchViewer((pd.shape[0],pd.shape[3]),(pd.shape[1],pd.shape[2]),is_color = False)
-    for i in xrange(pd.shape[0]):
-    for j in xrange(pd.shape[3]):
-    pv.add_patch( (pd[i,:,:,j] / pd.max() )* 2.0 - 1.0, rescale = False)
-    pv.show()
-
-    pv = PatchViewer((hd.shape[0],hd.shape[3]),(hd.shape[1],hd.shape[2]),is_color = False)
-    for i in xrange(hd.shape[0]):
-    for j in xrange(hd.shape[3]):
-    pv.add_patch( (hd[i,:,:,j] / hd.max() )* 2.0 - 1.0, rescale = False)
-    pv.show()
-    """
-
-    """
-    plot expectation to estimate versus error in estimation
-    expect bigger errors for values closer to 0.5
-
-    from matplotlib import pyplot as plt
-
-    #nelem = reduce( lambda x, y : x*y, pd.shape)
-    #plt.scatter( pv.reshape(nelem), pd.reshape(nelem))
-    #plt.show()
-
-    nelem = reduce( lambda x, y : x*y, hd.shape)
-    plt.scatter( hv.reshape(nelem), hd.reshape(nelem))
-    plt.show()
-    """
-
-    # don't really know how tight this should be
-    # but you can try to pose an equivalent problem
-    # and implement it in another way
-    # using a numpy implementation in softmax_acc.py
-    # I got a max error of .17
-    assert max(pd.max(), hd.max()) < .17
-
-    # Do exhaustive checks on just the last sample
-    assert np.all( (ps ==0) + (ps == 1) )
-    assert np.all( (hs == 0) + (hs == 1) )
-
-    for k in xrange(batch_size):
-        for i in xrange(ps.shape[1]):
-            p = ps[k,i]
-            h = hs[k,i*pool_size:(i+1)*pool_size]
-            assert h.shape == (pool_size,)
-            assert p == h.max()
-            assert h.sum() <= 1
-
-
-    """ If you made it to here, it's correctish
-     (cant tell if samples are perfectly "correct") """
-
-def test_max_pool_channels():
-    check_correctness_channelwise(max_pool_channels)
-
-def test_max_pool_channels_sigmoid():
-    check_correctness_sigmoid_channelwise(max_pool_channels)
-
-def test_max_pool_channels_samples():
-    check_sample_correctishness_channelwise(max_pool_channels)
-
-def test_max_pool():
-    check_correctness_bc01(max_pool)
-
-def test_max_pool_c01b():
-    check_correctness_c01b(max_pool_c01b)
-
-def test_max_pool_samples():
-    check_sample_correctishness_bc01(max_pool)
-
-def test_max_pool_b01c_samples():
-    check_sample_correctishness(max_pool_b01c)
-
-def test_max_pool_b01c():
-    check_correctness(max_pool_b01c)
-
-def test_max_pool_unstable():
-    check_correctness(max_pool_unstable)
-
-def test_max_pool_softmax_op():
-    check_correctness(max_pool_softmax_op)
-
-def test_max_pool_softmax_with_bias_op():
-    check_correctness(max_pool_softmax_with_bias_op)
-
+            print batch_size, rows, pool_rows
+            assert np.allclose(op_gt, th_gt, rtol=1e-04, atol=1e-06)
 
 if __name__ == "__main__":
-    #check_correctness_c01b(mymy)
-    #check_correctness_c01b_hapoo()
-    #check_correctness_c01b_hapoo_grad()
-    check_correctness_grad_top_down()
+    #test_correctness()
+    #test_grad_correctness()
+    test_top_down_grad_correctness()

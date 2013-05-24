@@ -43,7 +43,7 @@ def profile(f):
     channels = 16
     pool_rows = 3
     pool_cols = 3
-    zv = rng.randn( batch_size, rows, cols, channels ).astype(config.floatX)
+    zv = rng.randn(channels, rows, cols, batch_size).astype(config.floatX)
 
     #put the inputs + outputs in shared variables so we don't pay GPU transfer during test
     p_shared = sharedX(zv[:,0:rows:pool_rows,0:cols:pool_cols,:])
@@ -70,7 +70,6 @@ def profile(f):
         results.append(t2-t1)
     print 'final: ',sum(results)/float(trials)
 
-
 def profile_grad(f):
     print 'profiling gradient of ',f
     rng = np.random.RandomState([2012,7,19])
@@ -80,7 +79,7 @@ def profile_grad(f):
     channels = 16
     pool_rows = 3
     pool_cols = 3
-    zv = rng.randn( batch_size, rows, cols, channels ).astype(config.floatX)
+    zv = rng.randn(channels, rows, cols, batch_size).astype(config.floatX)
 
     #put the inputs + outputs in shared variables so we don't pay GPU transfer during test
     grad_shared = sharedX(zv)
@@ -105,7 +104,6 @@ def profile_grad(f):
         print t2 - t1
         results.append(t2-t1)
     print 'final: ',sum(results)/float(trials)
-
 
 if __name__ == '__main__':
     profile(maxpool_op)
