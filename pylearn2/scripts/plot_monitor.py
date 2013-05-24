@@ -17,7 +17,6 @@ __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
 from pylearn2.utils import serial
-import matplotlib.pyplot as plt
 import numpy as np
 import sys
 from theano.printing import _TagGenerator
@@ -53,6 +52,11 @@ def main():
     parser.add_argument("model_paths", nargs='+')
     options = parser.parse_args()
     model_paths = options.model_paths
+
+    if options.out is not None:
+      import matplotlib
+      matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
 
     print 'generating names...'
     model_names = [model_path.replace('.pkl', '!') for model_path in model_paths]
