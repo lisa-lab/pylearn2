@@ -2002,7 +2002,7 @@ class Softmax(HiddenLayer):
 
         return h_state
 
-    def make_symbolic_state(self, theano_rng):
+    def make_symbolic_state(self, num_examples, theano_rng):
         """
         Returns a shared variable containing an actual state
         (not a mean field state) for this variable.
@@ -2016,7 +2016,6 @@ class Softmax(HiddenLayer):
         h_exp = T.nnet.softmax(default_z)
 
         h_sample = theano_rng.multinomial(pvals=h_exp, dtype=h_exp.dtype)
-
 
         return h_sample
 
