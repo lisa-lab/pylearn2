@@ -190,7 +190,7 @@ def main():
         else:
             final_codes ,= set(codebook.keys())
 
-        fig = plt.figure()
+        plt.figure()
         #Make 2 subplots so the legend gets a plot to itself and won't cover up the plot
         ax = plt.subplot(1,2,1)
 
