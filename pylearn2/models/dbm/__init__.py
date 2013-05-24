@@ -652,6 +652,19 @@ class DBM(Model):
     def get_test_batch_size(self):
         return self.batch_size
 
+    def reconstruct(self, V):
+
+        H = self.mf(V)[0]
+
+        downward_state = self.hidden_layers[0].downward_state(H)
+
+        recons = self.visible_layer.inpaint_update(
+                layer_above = self.hidden_layers[0],
+                state_above = downward_state,
+                drop_mask = None, V = None)
+
+        return recons
+
 
 class Layer(Model):
     """

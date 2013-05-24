@@ -1,11 +1,6 @@
 import sys
 import numpy
-# Don't import Image from PIL initially, since PIL might not be available
-# everywhere.
-Image = None
-# Import ensure_Image(), which trys to import Image from PIL.  We will
-# preface use of PIL.Image with ensure_Image() throughout.
-from pylearn2.utils.image import ensure_Image
+from pylearn2.utils.image import Image, ensure_Image
 
 
 def scale_to_unit_interval(ndar,eps=1e-8):
