@@ -25,8 +25,6 @@ import argparse
 
 channels = {}
 
-#model_paths = sys.argv[1:]
-
 def unique_substring(s, other, min_size=1):
     size = min(len(s), min_size)
     while size <= len(s):
