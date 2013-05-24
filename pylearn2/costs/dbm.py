@@ -448,14 +448,13 @@ class CD(Cost):
             rval['misclass'] = err
 
             if len(model.hidden_layers) > 1:
-                q = model.mf(X, Y = Y)
+                q = model.mf(X, Y=Y)
                 pen = model.hidden_layers[-2].upward_state(q[-2])
-                Y_recons = model.hidden_layers[-1].mf_update(state_below = pen)
+                Y_recons = model.hidden_layers[-1].mf_update(state_below=pen)
                 pred = T.argmax(Y_recons, axis=1)
                 wrong = T.neq(true, pred)
 
                 rval['recons_misclass'] = T.cast(wrong.mean(), X.dtype)
-
 
         return rval
 
@@ -473,55 +472,47 @@ class CD(Cost):
         """
         Positive phase
         """
-        # Clamp visible layer during positive phase
-        layer_to_clamp = OrderedDict([(model.visible_layer, True)])
-        # Visible layer's state is set to the observed data
-        layer_to_pos_samples = OrderedDict([(model.visible_layer, X)])
-
-        # Clamp last hidden layer during positive phase if it represents
-        # targets
         if self.supervised:
             assert Y is not None
             # note: if the Y layer changes to something without linear energy,
             # we'll need to make the expected energy clamp Y in the positive
             # phase
             assert isinstance(model.hidden_layers[-1], dbm.Softmax)
-            layer_to_clamp[model.hidden_layers[-1]] = True
-            layer_to_pos_samples[model.hidden_layers[-1]] = Y
-            hid = model.hidden_layers[:-1]
-        else:
-            assert Y is None
-            hid = model.hidden_layers
 
-        for layer in hid:
-            mf_state = layer.init_mf_state()
+        q = model.mf(X, Y)
 
-            def recurse_zeros(x):
-                if isinstance(x, tuple):
-                    return tuple([recurse_zeros(e) for e in x])
-                return x.zeros_like()
+        """
+        Use the non-negativity of the KL divergence to construct a lower
+        bound on the log likelihood. We can drop all terms that are
+        constant with repsect to the model parameters:
 
-            layer_to_pos_samples[layer] = recurse_zeros(mf_state)
+        log P(v) = L(v, q) + KL(q || P(h|v))
+        L(v, q) = log P(v) - KL(q || P(h|v))
+        L(v, q) = log P(v) - sum_h q(h) log q(h) + q(h) log P(h | v)
+        L(v, q) = log P(v) + sum_h q(h) log P(h | v) + const
+        L(v, q) = log P(v) + sum_h q(h) log P(h, v)
+                           - sum_h q(h) log P(v) + const
+        L(v, q) = sum_h q(h) log P(h, v) + const
+        L(v, q) = sum_h q(h) -E(h, v) - log Z + const
 
-        layer_to_pos_samples = model.mcmc_steps(
-            layer_to_state=layer_to_pos_samples,
-            layer_to_clamp=layer_to_clamp,
-            num_steps=self.num_gibbs_steps,
-            theano_rng=self.theano_rng)
+        so the cost we want to minimize is
+        expected_energy + log Z + const
 
-        q = [layer_to_pos_samples[layer] for layer in model.hidden_layers]
 
-        pos_samples = flatten(q)
+        Note: for the RBM, this bound is exact, since the KL divergence
+        goes to 0.
+        """
 
-        # The gradients of the expected energy under q are easy, we can
-        # just do that in theano
-        expected_energy_q = model.energy(X, q).mean()
+        variational_params = flatten(q)
+
+        # The gradients of the expected energy under q are easy, we can just
+        # do that in theano
+        expected_energy_q = model.expected_energy(X, q).mean()
         params = list(model.get_params())
-        gradients = OrderedDict(safe_zip(params,
-                                         T.grad(expected_energy_q,
-                                                params,
-                                                consider_constant=pos_samples,
-                                                disconnected_inputs='ignore')))
+        gradients = OrderedDict(
+            safe_zip(params, T.grad(expected_energy_q, params,
+                                    consider_constant=variational_params,
+                                    disconnected_inputs='ignore')))
 
         """
         Negative phase
@@ -532,16 +523,34 @@ class CD(Cost):
                         = (sum_h sum_v - exp(-E(v,h)) d/d theta E(v,h) ) / Z
                         = - sum_h sum_v P(v,h)  d/d theta E(v,h)
         """
+        layer_to_clamp = OrderedDict([(model.visible_layer, True)])
 
         layer_to_chains = model.make_layer_to_symbolic_state(num_examples,
                                                              self.theano_rng)
         # The examples are used to initialize the visible layer's chains
         layer_to_chains[model.visible_layer] = X
+        # If we use supervised training, we need to make sure the targets are
+        # also clamped.
+        if self.supervised:
+            assert Y is not None
+            # note: if the Y layer changes to something without linear energy,
+            # we'll need to make the expected energy clamp Y in the positive
+            # phase
+            assert isinstance(model.hidden_layers[-1], dbm.Softmax)
+            layer_to_clamp[model.hidden_layers[-1]] = True
+            layer_to_chains[model.hidden_layers[-1]] = Y
 
         model.layer_to_chains = layer_to_chains
 
         # Note that we replace layer_to_chains with a dict mapping to the new
         # state of the chains
+        # We first initialize the chain by clamping the visible layer and the
+        # target layer (if it exists)
+        layer_to_chains = model.mcmc_steps(layer_to_chains,
+                                           self.theano_rng,
+                                           layer_to_clamp=layer_to_clamp,
+                                           num_steps=1)
+        # We then do the required mcmc steps
         layer_to_chains = model.mcmc_steps(layer_to_chains,
                                            self.theano_rng,
                                            num_steps=self.num_gibbs_steps)
