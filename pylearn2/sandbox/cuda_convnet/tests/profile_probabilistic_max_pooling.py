@@ -31,7 +31,7 @@ from theano import function
 import time
 from pylearn2.utils import sharedX
 
-from pylearn2.sandbox.cuda_convnet.probabilistic_max_pooling import max_pool_c01b as maxpool_op
+from pylearn2.sandbox.cuda_convnet.probabilistic_max_pooling import  prob_max_pool_c01b
 from pylearn2.expr.probabilistic_max_pooling import max_pool_c01b
 
 def profile(f):
@@ -106,9 +106,9 @@ def profile_grad(f):
     print 'final: ',sum(results)/float(trials)
 
 if __name__ == '__main__':
-    profile(maxpool_op)
+    profile(prob_max_pool_c01b)
     profile(max_pool_c01b)
-    profile_grad(maxpool_op)
+    profile_grad(prob_max_pool_c01b)
     profile_grad(max_pool_c01b)
 
 

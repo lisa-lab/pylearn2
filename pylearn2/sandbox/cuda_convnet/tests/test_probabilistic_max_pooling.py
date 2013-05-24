@@ -5,7 +5,10 @@ import theano.tensor as T
 from theano import config
 from theano import function
 from pylearn2.expr.probabilistic_max_pooling import max_pool_c01b
-from pylearn2.sandbox.cuda_convnet.probabilistic_max_pooling import max_pool_c01b as max_pool_op
+from pylearn2.sandbox.cuda_convnet.probabilistic_max_pooling import  prob_max_pool_c01b
+from pylearn2.testing.skip import skip_if_no_gpu
+
+skip_if_no_gpu()
 
 if theano.config.mode == 'FAST_COMPILE':
     mode_with_gpu = theano.compile.mode.get_mode('FAST_RUN').including('gpu')
@@ -45,7 +48,7 @@ def test_correctness():
             z = T.tensor4()
 
             # gpu op
-            p, h = max_pool_op(z, (pool_rows, pool_cols) )
+            p, h = prob_max_pool_c01b(z, (pool_rows, pool_cols) )
             func = function([z], [p, h], mode = mode_with_gpu)
 
             p_op, h_op = func(zv)
@@ -83,7 +86,7 @@ def test_grad_correctness():
             z = T.tensor4()
 
             # gpu op
-            p, h = max_pool_op(z, (pool_rows, pool_cols) )
+            p, h = prob_max_pool_c01b(z, (pool_rows, pool_cols) )
             gz = T.grad(h.sum() + p.sum(), z)
             func = function([z], gz, mode = mode_with_gpu)
 
@@ -127,7 +130,7 @@ def test_top_down_grad_correctness():
             t = T.tensor4()
 
             # gpu op
-            p, h = max_pool_op(z, (pool_rows, pool_cols), top_down = t)
+            p, h = prob_max_pool_c01b(z, (pool_rows, pool_cols), top_down = t)
             gt = T.grad(h.sum() + p.sum(), t)
             gt = T.grad(h.sum() + p.sum(), t)
             func = function([z, t], gt, mode = mode_with_gpu)

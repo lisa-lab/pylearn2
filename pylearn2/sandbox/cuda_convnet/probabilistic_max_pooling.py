@@ -43,7 +43,7 @@ from pylearn2.sandbox.cuda_convnet.convnet_compile import cuda_convnet_loc
 from pylearn2.sandbox.cuda_convnet.shared_code import this_dir
 
 
-def max_pool_c01b(c01b, pool_shape, top_down = None):
+def prob_max_pool_c01b(c01b, pool_shape, top_down = None):
     if pool_shape[0] != pool_shape[1]:
         raise UnimplementedError("Non squre pool shapes are not supported yet")
     assert pool_shape[0] > 0
@@ -54,13 +54,13 @@ def max_pool_c01b(c01b, pool_shape, top_down = None):
     if top_down is None:
         top_down = tensor.zeros((batch_size, zr / r, zc / c, ch), dtype = c01b.dtype)
 
-    op = MaxPool(pool_shape[0])
+    op = ProbMaxPool(pool_shape[0])
     c01b = gpu_contiguous(c01b)
     top_down = gpu_contiguous(top_down)
 
     return op(c01b, top_down)
 
-class MaxPool(GpuOp):
+class ProbMaxPool(GpuOp):
     """
     Probabilistic max pooling code on the GPU.
     The input are in the order (channel, image rows, image cols, batch)
@@ -189,7 +189,7 @@ class MaxPool(GpuOp):
         if self.copy_non_contiguous:
             raise UnimplementedError()
         else:
-            basic_setup = "#define MAXPOOL_COPY_NON_CONTIGUOUS 0\n"
+            basic_setup = "#define PROBMAXPOOL_COPY_NON_CONTIGUOUS 0\n"
 
         # Convert images in nv_images, an NVMatrix, for compatibility
         # with the cuda-convnet functions
@@ -229,7 +229,7 @@ class MaxPool(GpuOp):
         }
 
         NVMatrix nv_images(%(images)s, img_channels * imgSizeY * imgSizeX, batch_size,
-        "MaxPool:nv_images");
+        "ProbMaxPool:nv_images");
         """
         num_braces += 1
 
@@ -248,7 +248,7 @@ class MaxPool(GpuOp):
 
 
         NVMatrix nv_top_down(%(top_down)s, img_channels * _outputsX * _outputsX, batch_size,
-        "MaxPool:nv_top_down");
+        "ProbMaxPool:nv_top_down");
         """
         num_braces += 1
 
@@ -270,7 +270,7 @@ class MaxPool(GpuOp):
         { // setup_nv_target brace # 1
 
         NVMatrix nv_ptargets(%(ptargets)s, target_dims[0] * target_dims[1] * target_dims[2],
-                            target_dims[3], "MaxPool:nv_ptargets");
+                            target_dims[3], "ProbMaxPool:nv_ptargets");
 
         """
         num_braces += 1
@@ -290,7 +290,7 @@ class MaxPool(GpuOp):
         { // setup_nv_target brace # 1
 
         NVMatrix nv_htargets(%(htargets)s, target_dims[0] * target_dims[1] * target_dims[2],
-                            target_dims[3], "MaxPool:nv_htargets");
+                            target_dims[3], "ProbMaxPool:nv_htargets");
 
         """
         num_braces += 1
@@ -322,17 +322,17 @@ class MaxPool(GpuOp):
         gp = gpu_contiguous(gp)
         gh = gpu_contiguous(gh)
         p, h = self(x, top_down)
-        return MaxPoolGrad(self.ds, self.stride, self.start)(p, h, gp, gh)
+        return ProbMaxPoolGrad(self.ds, self.stride, self.start)(p, h, gp, gh)
 
     # Make sure the cuda_convnet library is compiled and up-to-date
     def make_thunk(self, node, storage_map, compute_map, no_recycling):
         if not convnet_available():
             raise RuntimeError('Could not compile cuda_convnet')
 
-        return super(MaxPool, self).make_thunk(
+        return super(ProbMaxPool, self).make_thunk(
                 node, storage_map, storage_map, no_recycling)
 
-class MaxPoolGrad(GpuOp):
+class ProbMaxPoolGrad(GpuOp):
     def __init__(self, ds, stride, start):
         self.ds = ds
         self.stride = stride
@@ -412,7 +412,7 @@ class MaxPoolGrad(GpuOp):
         if self.copy_non_contiguous:
             raise UnimplementedError()
         else:
-            basic_setup = "#define MAXPOOLGRAD_COPY_NON_CONTIGUOUS 0\n"
+            basic_setup = "#define PROBMAXPOOLGRAD_COPY_NON_CONTIGUOUS 0\n"
 
         # Convert images in nv_images, an NVMatrix, for compatibility
         # with the cuda-convnet functions
@@ -454,7 +454,7 @@ class MaxPoolGrad(GpuOp):
 
 
         NVMatrix nv_h(%(h)s, img_channels * imgSizeY * imgSizeX,
-                          batch_size, "MaxPool:nv_h");
+                          batch_size, "ProbMaxPool:nv_h");
         """
         num_braces += 1
 
@@ -473,7 +473,7 @@ class MaxPoolGrad(GpuOp):
 
 
         NVMatrix nv_p(%(p)s, img_channels * _outputsX * _outputsX, batch_size,
-        "MaxPool:nv_p");
+        "ProbMaxPool:nv_p");
         """
         num_braces += 1
 
@@ -501,7 +501,7 @@ class MaxPoolGrad(GpuOp):
         const int ghSizeX = gh_dims[2];
 
         NVMatrix nv_gh(%(gh)s, gh_channels * ghSizeY * ghSizeX,
-                       batch_size, "MaxPool:nv_gh");
+                       batch_size, "ProbMaxPool:nv_gh");
         """
         num_braces += 1
 
@@ -519,7 +519,7 @@ class MaxPoolGrad(GpuOp):
 
 
         NVMatrix nv_gp(%(gp)s, img_channels * _outputsX * _outputsX, batch_size,
-        "MaxPool:nv_gp");
+        "ProbMaxPool:nv_gp");
         """
         num_braces += 1
 
@@ -540,7 +540,7 @@ class MaxPoolGrad(GpuOp):
 
         NVMatrix nv_targets_z(%(targets_z)s,
                             target_z_dims[0] * target_z_dims[1] * target_z_dims[2],
-                            target_z_dims[3], "MaxPool:nv_targets_z");
+                            target_z_dims[3], "ProbMaxPool:nv_targets_z");
 
         """
 
@@ -562,7 +562,7 @@ class MaxPoolGrad(GpuOp):
         { // setup_nv_target brace # 1
 
         NVMatrix nv_targets_t(%(targets_t)s, target_t_dims[0] * target_t_dims[1] * target_t_dims[2],
-                            target_t_dims[3], "MaxPool:nv_targets_t");
+                            target_t_dims[3], "ProbMaxPool:nv_targets_t");
 
         """
         num_braces += 1
@@ -596,7 +596,7 @@ class MaxPoolGrad(GpuOp):
         if not convnet_available():
             raise RuntimeError('Could not compile cuda_convnet')
 
-        return super(MaxPoolGrad, self).make_thunk(
+        return super(ProbMaxPoolGrad, self).make_thunk(
                 node, storage_map, storage_map, no_recycling)
 
 
