@@ -21,7 +21,6 @@ mode_without_gpu = copy.copy(mode_without_gpu)
 mode_with_gpu.check_py_code = False
 mode_without_gpu.check_py_code = False
 
-
 def test_correctness():
     """
     Test the forward pass Op against theano graph implementation
@@ -145,7 +144,3 @@ def test_top_down_grad_correctness():
             print batch_size, rows, pool_rows
             assert np.allclose(op_gt, th_gt, rtol=1e-04, atol=1e-06)
 
-if __name__ == "__main__":
-    #test_correctness()
-    #test_grad_correctness()
-    test_top_down_grad_correctness()

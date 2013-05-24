@@ -1535,7 +1535,7 @@ __global__ void kLocalMaxUndo(float* imgs, float* maxGrads, float* maxActs, floa
     
     if  (blockPxX >= startX && blockPxX < startX + strideX * (outputsX-1) + subsX 
          && blockPxY >= startX && blockPxY < startX + strideX * (outputsX-1) + subsX) {
-        #pragma unrogl
+        #pragma unroll
         for (int i = 0; i < imgsPerThread; i++) {
             if (!checkCaseBounds || imgIdx + i * B_X < numImages) {
                 #pragma unroll
@@ -1580,96 +1580,6 @@ __global__ void kLocalMaxUndo(float* imgs, float* maxGrads, float* maxActs, floa
                 #pragma unroll
                 for (int f = 0; f < filtersPerThread; f++) {
                     target[f * B_Y * imgPixels * numImages + i * B_X] = scaleTargets * target[f * B_Y * imgPixels * numImages + i * B_X] + scaleOutputs * prod[f][i];
-                }
-            }
-        }
-    }
-}
-
-
-template<int B_Y, int B_X, int imgsPerThread, int filtersPerThread, bool add, bool checkCaseBounds>
-__global__ void kLocalProbMaxUndoH(float* top_down, float* maxGrads, float* maxActs, float* target, const int imgSize, const int numFilters, const int numImages, const int subsX, const int startX, const int strideX, const int outputsX) {
-
-    const int numImgBlocks = DIVUP(numImages,B_X*imgsPerThread);
-    const int numFilterBlocks = DIVUP(numFilters, B_Y*filtersPerThread);
-    const int outputIdxX = blockIdx.x / numImgBlocks;
-    const int outputIdxY = blockIdx.y / numFilterBlocks;
-    const int blockImgIdx = (blockIdx.x % numImgBlocks) * B_X * imgsPerThread;
-    const int blockFilterIdx = (blockIdx.y % numFilterBlocks) * B_Y * filtersPerThread;
-    const int myFilterIdx = (blockFilterIdx + threadIdx.y*filtersPerThread);
-    if (myFilterIdx >= numFilters) {
-        return;
-    }
-    
-    const int outputIdx = outputIdxY * outputsX + outputIdxX;
-    const int numOutputs = outputsX * outputsX;
-    const int imgPixels = imgSize * imgSize;
-    
-    const int startImgPxX = startX + outputIdxX * strideX;
-    const int startImgPxY = startX + outputIdxY * strideX;
-    const int imgIdx = blockImgIdx + threadIdx.x;
- 
-
-    maxGrads += myFilterIdx * imgPixels * numImages + imgIdx;
-    maxActs += myFilterIdx * imgPixels * numImages + imgIdx;
-    target += (myFilterIdx * numOutputs + outputIdx) * numImages + imgIdx;
-
-    
-    float prod[filtersPerThread][imgsPerThread];
-    #pragma unroll
-    for (int f = 0; f < filtersPerThread; f++) {
-        #pragma unroll
-        for (int i = 0; i < imgsPerThread; i++) {
-            prod[f][i] = 0;
-        }
-    }
-
-    const int loopStartY = MAX(0, startImgPxY);
-    const int loopStartX = MAX(0, startImgPxX);
-    const int loopEndY = MIN(imgSize, startImgPxY + subsX);
-    const int loopEndX = MIN(imgSize, startImgPxX + subsX);
-    const int regionSize = (loopEndY - loopStartY) * (loopEndX - loopStartX);
-
-
-    for (int y = loopStartY; y < loopEndY; y++) {
-        for (int x = loopStartX; x < loopEndX; x++) {
-            const int imgPx = y * imgSize + x;
-            #pragma unroll
-            for (int i = 0; i < imgsPerThread; i++) {
-                if (!checkCaseBounds || imgIdx + i * B_X < numImages) {
-                    #pragma unroll
-                    for (int f = 0; f < filtersPerThread; f++) {
-                        const float ma = maxActs[(f * imgPixels + imgPx) * numImages + i * B_X]; 
-                        const float mg = maxGrads[(f * imgPixels + imgPx) * numImages + i * B_X];
-                        prod[f][i] += ma * mg;
-                    }
-                }
-            }
-        }
-    }
-
-    /*
-    for (int i = 0; i < imgsPerThread; i++) {
-        if (!checkCaseBounds || imgIdx + i * B_X < numImages) {
-            for (int f = 0; f < filtersPerThread; f++) {
-                prod[f][i] += __expf(-top_down[f*numOutputs*numImages + i * B_X]);
-            }
-        }
-    }
-    */
-
-    for (int y = loopStartY; y < loopEndY; y++) {
-        for (int x = loopStartX; x < loopEndX; x++) {
-            const int imgPx = y * imgSize + x;
-            #pragma unroll
-            for (int i = 0; i < imgsPerThread; i++) {
-                if (!checkCaseBounds || imgIdx + i * B_X < numImages) {
-                    #pragma unroll
-                    for (int f = 0; f < filtersPerThread; f++) {
-                        const float ma = maxActs[(f * imgPixels + imgPx) * numImages + i * B_X]; 
-                        const float mg = maxGrads[(f * imgPixels + imgPx) * numImages + i * B_X];
-                        target[f * B_Y * imgPixels * numImages + i * B_X] = ma * mg - prod[f][i] * ma;
-                    }
                 }
             }
         }
@@ -1774,8 +1684,6 @@ __global__ void kLocalProbMaxUndo(float* maxout_h,  float* maxout_p, float* hGra
         }
     }
 }
-
-
 
 
 /*
@@ -2256,116 +2164,7 @@ void convLocalAvgUndo(NVMatrix& avgGrads, NVMatrix& target,
 /*
 prob max undo
 
-
-
-void localProbMaxUndoH(NVMatrix& maxGrads, NVMatrix& maxActs, NVMatrix& target,
-                      int subsX, int startX, int strideX, int outputsX) {
-    localProbMaxUndoH(maxGrads, maxActs, target, subsX, startX, strideX, outputsX, 0, 1);
-}
 */
-
-/*
- * imgs:        (numFilters * imgPixels, numImages)
- * maxGrads:    (numFilters * numOutputs, numImages)
- * maxActs:    (numFilters * numOutputs, numImages)
- * target:      (numFilters * imgPixels, numImages)
-
- TODO: Better to just pass images dim, since images themselves are not used
- */
-void localProbMaxUndoH(NVMatrix& images, NVMatrix& top_down, NVMatrix& maxGrads, NVMatrix& maxActs, NVMatrix& target,
-                      int subsX, int startX, int strideX, int outputsX) {
-    int outputs = outputsX * outputsX;
-    int numImages = images.getNumCols();
-    int numFilters = maxGrads.getNumRows() / outputs;
-    int imgPixels = images.getNumRows() / numFilters;
-    assert(images.getNumRows() == numFilters * imgPixels);
-    int imgSize = int(sqrt(imgPixels));
-    // They're not used here, get rid of them eventually
-    int scaleTargets = 0;
-    int scaleOutput = 1;
-    
-    assert(imgSize * imgSize == imgPixels);
-    assert(maxGrads.getNumRows() == numFilters * outputs);
-    assert(maxGrads.getNumCols() == numImages);
-    assert(!images.isTrans());
-    assert(!target.isTrans());
-    assert(!maxGrads.isTrans());
-    assert(!maxActs.isTrans());
-    assert(images.isContiguous());
-    assert(maxGrads.isContiguous());
-    assert(maxActs.isContiguous());
-    assert(maxGrads.isSameDims(maxActs));
-    assert(numFilters % 16 == 0);
-//    assert(numImages % 128 == 0);
-    
-    assert(strideX <= subsX);
-    
-    target.resize(images);
-    assert(target.isContiguous());
-    int imgsPerThread = numImages % 128 == 0 ? 4 : numImages % 64 == 0 ? 2 : 1;
-    int checkCaseBounds = numImages % (32*imgsPerThread) != 0;
-    dim3 threads(32, 4);
-    dim3 blocks(DIVUP(numImages,32*imgsPerThread) * imgSize, (numFilters / (4 * 2)) * imgSize);
-    
-    if (imgsPerThread == 4) {
-        if  (checkCaseBounds) {
-            if (scaleTargets == 0 && scaleOutput == 1) {
-                kLocalProbMaxUndoH<4, 32, 4, 2, false, true><<<blocks, threads>>>(top_down.getDevData(), maxGrads.getDevData(), maxActs.getDevData(), target.getDevData(),
-                                                                imgSize, numFilters, numImages, subsX, startX, strideX, outputsX);
-            } else {
-                kLocalProbMaxUndoH<4, 32, 4, 2, true, true><<<blocks, threads>>>(top_down.getDevData(), maxGrads.getDevData(), maxActs.getDevData(), target.getDevData(),
-                                                                imgSize, numFilters, numImages, subsX, startX, strideX, outputsX);
-            }
-        } else {
-            if (scaleTargets == 0 && scaleOutput == 1) {
-                kLocalProbMaxUndoH<4, 32, 4, 2, false, false><<<blocks, threads>>>(top_down.getDevData(), maxGrads.getDevData(), maxActs.getDevData(), target.getDevData(),
-                                                                imgSize, numFilters, numImages, subsX, startX, strideX, outputsX);
-            } else {
-                kLocalProbMaxUndoH<4, 32, 4, 2, true, false><<<blocks, threads>>>(top_down.getDevData(), maxGrads.getDevData(), maxActs.getDevData(), target.getDevData(),
-                                                                imgSize, numFilters, numImages, subsX, startX, strideX, outputsX);
-            }
-        }
-    } else if (imgsPerThread == 2) {
-        if  (checkCaseBounds) {
-            if (scaleTargets == 0 && scaleOutput == 1) {
-                kLocalProbMaxUndoH<4, 32, 2, 2, false, true><<<blocks, threads>>>(top_down.getDevData(), maxGrads.getDevData(), maxActs.getDevData(), target.getDevData(),
-                                                                imgSize, numFilters, numImages, subsX, startX, strideX, outputsX);
-            } else {
-                kLocalProbMaxUndoH<4, 32, 2, 2, true, true><<<blocks, threads>>>(top_down.getDevData(), maxGrads.getDevData(), maxActs.getDevData(), target.getDevData(),
-                                                                imgSize, numFilters, numImages, subsX, startX, strideX, outputsX);
-            }
-        } else {
-            if (scaleTargets == 0 && scaleOutput == 1) {
-                kLocalProbMaxUndoH<4, 32, 2, 2, false, false><<<blocks, threads>>>(top_down.getDevData(), maxGrads.getDevData(), maxActs.getDevData(), target.getDevData(),
-                                                                imgSize, numFilters, numImages, subsX, startX, strideX, outputsX);
-            } else {
-                kLocalProbMaxUndoH<4, 32, 2, 2, true, false><<<blocks, threads>>>(top_down.getDevData(), maxGrads.getDevData(), maxActs.getDevData(), target.getDevData(),
-                                                                imgSize, numFilters, numImages, subsX, startX, strideX, outputsX);
-            }
-        }
-    } else {
-        if  (checkCaseBounds) {
-            if (scaleTargets == 0 && scaleOutput == 1) {
-                kLocalProbMaxUndoH<4, 32, 1, 2, false, true><<<blocks, threads>>>(top_down.getDevData(), maxGrads.getDevData(), maxActs.getDevData(), target.getDevData(),
-                                                                imgSize, numFilters, numImages, subsX, startX, strideX, outputsX);
-            } else {
-                kLocalProbMaxUndoH<4, 32, 1, 2, true, true><<<blocks, threads>>>(top_down.getDevData(), maxGrads.getDevData(), maxActs.getDevData(), target.getDevData(),
-                                                                imgSize, numFilters, numImages, subsX, startX, strideX, outputsX);
-            }
-        } else {
-            if (scaleTargets == 0 && scaleOutput == 1) {
-                kLocalProbMaxUndoH<4, 32, 1, 2, false, false><<<blocks, threads>>>(top_down.getDevData(), maxGrads.getDevData(), maxActs.getDevData(), target.getDevData(),
-                                                                imgSize, numFilters, numImages, subsX, startX, strideX, outputsX);
-            } else {
-                kLocalProbMaxUndoH<4, 32, 1, 2, true, false><<<blocks, threads>>>(top_down.getDevData(), maxGrads.getDevData(), maxActs.getDevData(), target.getDevData(),
-                                                                imgSize, numFilters, numImages, subsX, startX, strideX, outputsX);
-            }
-        }
-    }
-
-    cutilCheckMsg("convLocalMaxUndo: kernel execution failed");
-}
-
 
 void localProbMaxUndo(NVMatrix& maxout_h, NVMatrix& maxout_p, NVMatrix& hGrads, NVMatrix& pGrads, NVMatrix& target_z,
                         NVMatrix& target_t, int subsX, int startX, int strideX, int outputsX, int imgSize) {
