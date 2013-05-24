@@ -2228,16 +2228,22 @@ class WeightDoubling(InferenceProcedure):
 
 
 class DBMSampler(Block):
+    """
+    A Block used to sample from the last layer of a DBM with one hidden layer.
+    """
     def __init__(self, dbm):
         super(DBMSampler, self).__init__()
         self.theano_rng = MRG_RandomStreams(2012 + 10 + 14)
         self.dbm = dbm
+        assert len(self.dbm.hidden_layers) == 1
 
     def __call__(self, inputs):
         space = self.dbm.get_input_space()
         num_examples = space.batch_size(inputs)
+
         last_layer = self.dbm.get_all_layers()[-1]
-        layer_to_chains = self.dbm.make_layer_to_symbolic_state(num_examples, self.theano_rng)
+        layer_to_chains = self.dbm.make_layer_to_symbolic_state(
+            num_examples, self.theano_rng)
         # The examples are used to initialize the visible layer's chains
         layer_to_chains[self.dbm.visible_layer] = inputs
 
