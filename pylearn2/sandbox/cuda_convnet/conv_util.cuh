@@ -1,4 +1,15 @@
-/* 
+/*
+ * There has been some new functions added to the original code.
+ *
+ * Modifications copyright:
+ *  Copyright 2010-2013, Universite de Montreal
+ *  Credits: Mehdi Mirza
+ *  License: 3-clause BSD
+ *  mainainer: Mehdi Mirza
+ *  email: mirzamom@iro
+ *
+ * Orginal copyright:
+ *
  * Copyright (c) 2011, Alex Krizhevsky (akrizhevsky@gmail.com)
  * All rights reserved.
  *
@@ -423,7 +434,6 @@ __global__ void kProbPool(float* imgs, float* top_down, float* ptargets, float* 
         }
     }
 
-
     //add top down value to denom
     for (int i = 0; i < imgsPerThread; i++) {
         if (!checkCaseBounds || imgIdx + i * B_X < numImages) {
@@ -434,8 +444,6 @@ __global__ void kProbPool(float* imgs, float* top_down, float* ptargets, float* 
         }
     }
 
-
-
     // get P
     for (int i = 0; i < imgsPerThread; i++) {
         if (!checkCaseBounds || imgIdx + i * B_X < numImages) {
@@ -443,11 +451,9 @@ __global__ void kProbPool(float* imgs, float* top_down, float* ptargets, float* 
             for (int f = 0; f < filtersPerThread; f++) {
                 float off_pt = __expf(-top_down[f * numOutputs * numImages + i * B_X] - prod[f][i]);
                 ptargets[f * numOutputs * numImages + i * B_X]  = 1. - off_pt / denom[f][i];
-                //ptargets[f * numOutputs * numImages + i * B_X]  = 1.;
             }
         }
     }
-
 
     // get h
     for (int y = loopStartY; y < loopEndY; y++) {
@@ -464,23 +470,191 @@ __global__ void kProbPool(float* imgs, float* top_down, float* ptargets, float* 
             }
         }
     }
+}
 
 
+/*
+ * Stochastic Max Pool
+ */
 
+__device__ inline void normalize(float* arr, const int arrSize) {
+    float max = 0;
+    float sum = 0;
 
-    /*
+    for (int i = 0; i < arrSize; i++) {
+        sum += arr[i];
+    }
 
-    #pragma unroll
+    sum = 1 / sum;
+    for (int i = 0; i < arrSize; i++) {
+        arr[i] = arr[i] * sum;
+    }
+}
+
+__device__ inline void multinomial(float* arr, const int arrSize, float rnd) {
+
+    float sum = 0, prevSum = 0;
+    for (int i = 0; i < arrSize; i++) {
+        sum += arr[i];
+        arr[i] = rnd >= prevSum && rnd < sum;
+        prevSum = sum;
+    }
+}
+
+__device__ inline float MaskMax(float* arr, float* mask, const int arrSize) {
+    //float max = 0;
+    for (int i = 0; i < arrSize; i++) {
+        if (mask[i] != 0) {
+            return arr[i];
+        }
+    }
+    //TODO rasie error here
+    return 0;
+}
+
+__device__ inline float WeightedSum(float* arr, float* weight, const int arrSize) {
+    float sum = 0;
+    for (int i = 0; i < arrSize; i++) {
+        sum += arr[i] * weight[i];
+    }
+    return sum;
+}
+
+__global__ void setup_kernel(curandState *state, float *seed)
+{
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+    int pitch = blockDim.x * gridDim.x;
+    int idx = x + y * pitch;
+    //int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    curand_init(*seed, idx, 0, &state[idx]);
+}
+
+template<class Agg, int B_Y, int B_X, int imgsPerThread, int filtersPerThread, bool checkCaseBounds>
+__global__ void kLocalSotchasticMaxPool(float* imgs, float* target, const int imgSize, const int numFilters,
+                           const int numImages, const int subsX, const int startX, const int strideX,
+                           const int outputsX, Agg agg, curandState *state) {
+    const int numImgBlocks = DIVUP(numImages,B_X*imgsPerThread);
+    const int numFilterBlocks = DIVUP(numFilters, B_Y*filtersPerThread);
+    const int outputIdxX = blockIdx.x / numImgBlocks;
+    const int outputIdxY = blockIdx.y / numFilterBlocks;
+    const int blockImgIdx = (blockIdx.x % numImgBlocks) * B_X * imgsPerThread;
+    const int blockFilterIdx = (blockIdx.y % numFilterBlocks) * B_Y * filtersPerThread;
+    const int myFilterIdx = (blockFilterIdx + threadIdx.y*filtersPerThread);
+    if (myFilterIdx >= numFilters) {
+        return;
+    }
+    
+    const int outputIdx = outputIdxY * outputsX + outputIdxX;
+    const int numOutputs = outputsX * outputsX;
+    const int imgPixels = imgSize * imgSize;
+    
+    const int startImgPxX = startX + outputIdxX * strideX;
+    const int startImgPxY = startX + outputIdxY * strideX;
+    const int imgIdx = blockImgIdx + threadIdx.x;
+   
+    int x = threadIdx.x + blockIdx.x * blockDim.x;
+    int y = threadIdx.y + blockIdx.y * blockDim.y;
+    int pitch = blockDim.x * gridDim.x;
+    int idx = x + y * pitch;
+    curandState localState = state[idx];
+ 
+    imgs += myFilterIdx * imgPixels * numImages + imgIdx;
+    target += (myFilterIdx * numOutputs + outputIdx) * numImages + imgIdx;
+    
+    const int loopStartY = MAX(0, startImgPxY);
+    const int loopStartX = MAX(0, startImgPxX);
+    const int loopEndY = MIN(imgSize, startImgPxY + subsX);
+    const int loopEndX = MIN(imgSize, startImgPxX + subsX);
+    const int regionSize = (loopEndY - loopStartY) * (loopEndX - loopStartX);
+    const int regionX = (loopEndX - loopStartX);
+    const int regionY = (loopEndY - loopStartX);
+    // TODO: Maybe can allocate this in the shared memory?
+    float* window = (float *)malloc(regionSize * sizeof(float));
+    float* pxl_value = (float *)malloc(regionSize * sizeof(float));
+    float rnd;
+
+    
     for (int i = 0; i < imgsPerThread; i++) {
         if (!checkCaseBounds || imgIdx + i * B_X < numImages) {
-            #pragma unroll
             for (int f = 0; f < filtersPerThread; f++) {
-                target[f * numOutputs * numImages + i * B_X] = agg.output(prod[f][i], regionSize); 
+                for (int y = loopStartY; y < loopEndY; y++) {
+                    for (int x = loopStartX; x < loopEndX; x++) {
+                        const int imgPx = y * imgSize + x;
+                        window[(y - loopStartY) * regionX + (x - loopStartX)] = imgs[(f * imgPixels + imgPx) * numImages + i * B_X];
+                        pxl_value[(y - loopStartY) * regionX + (x - loopStartX)] = imgs[(f * imgPixels + imgPx) * numImages + i * B_X];
+                    }
+                }
+                normalize(window, regionSize);
+                rnd = curand_uniform(&localState);
+                multinomial(window, regionSize, rnd);
+                target[f * numOutputs * numImages + i * B_X] = MaskMax(pxl_value, window, regionSize);
             }
         }
     }
-    */
+    state[idx] = localState;
+    free(window);
+    free(pxl_value);
 }
+
+template<class Agg, int B_Y, int B_X, int imgsPerThread, int filtersPerThread, bool checkCaseBounds>
+__global__ void kLocalWeightedPool(float* imgs, float* target, const int imgSize, const int numFilters,
+                           const int numImages, const int subsX, const int startX, const int strideX,
+                           const int outputsX, Agg agg) {
+    const int numImgBlocks = DIVUP(numImages,B_X*imgsPerThread);
+    const int numFilterBlocks = DIVUP(numFilters, B_Y*filtersPerThread);
+    const int outputIdxX = blockIdx.x / numImgBlocks;
+    const int outputIdxY = blockIdx.y / numFilterBlocks;
+    const int blockImgIdx = (blockIdx.x % numImgBlocks) * B_X * imgsPerThread;
+    const int blockFilterIdx = (blockIdx.y % numFilterBlocks) * B_Y * filtersPerThread;
+    const int myFilterIdx = (blockFilterIdx + threadIdx.y*filtersPerThread);
+    if (myFilterIdx >= numFilters) {
+        return;
+    }
+    
+    const int outputIdx = outputIdxY * outputsX + outputIdxX;
+    const int numOutputs = outputsX * outputsX;
+    const int imgPixels = imgSize * imgSize;
+    
+    const int startImgPxX = startX + outputIdxX * strideX;
+    const int startImgPxY = startX + outputIdxY * strideX;
+    const int imgIdx = blockImgIdx + threadIdx.x;
+   
+    imgs += myFilterIdx * imgPixels * numImages + imgIdx;
+    target += (myFilterIdx * numOutputs + outputIdx) * numImages + imgIdx;
+    
+    const int loopStartY = MAX(0, startImgPxY);
+    const int loopStartX = MAX(0, startImgPxX);
+    const int loopEndY = MIN(imgSize, startImgPxY + subsX);
+    const int loopEndX = MIN(imgSize, startImgPxX + subsX);
+    const int regionSize = (loopEndY - loopStartY) * (loopEndX - loopStartX);
+    const int regionX = (loopEndX - loopStartX);
+    const int regionY = (loopEndY - loopStartX);
+    // TODO: Maybe can allocate this in the shared memory?
+    float* window = (float *)malloc(regionSize * sizeof(float));
+    float* pxl_value = (float *)malloc(regionSize * sizeof(float));
+
+    
+    for (int i = 0; i < imgsPerThread; i++) {
+        if (!checkCaseBounds || imgIdx + i * B_X < numImages) {
+            for (int f = 0; f < filtersPerThread; f++) {
+                for (int y = loopStartY; y < loopEndY; y++) {
+                    for (int x = loopStartX; x < loopEndX; x++) {
+                        const int imgPx = y * imgSize + x;
+                        window[(y - loopStartY) * regionX + (x - loopStartX)] = imgs[(f * imgPixels + imgPx) * numImages + i * B_X];
+                        pxl_value[(y - loopStartY) * regionX + (x - loopStartX)] = imgs[(f * imgPixels + imgPx) * numImages + i * B_X];
+                    }
+                }
+                normalize(window, regionSize);
+                target[f * numOutputs * numImages + i * B_X] = WeightedSum(pxl_value, window, regionSize);
+            }
+        } 
+    }
+    free(window);
+    free(pxl_value);
+}
+
+
 
 
 /*
@@ -679,7 +853,9 @@ void convLocalPool(NVMatrix& images, NVMatrix& target, int numFilters,
     cutilCheckMsg("convLocalPool: kernel execution failed");
 }
 
-
+/*
+Probabilistic Max Pool
+*/
 template<class Pooler>
 void probabilisticPool(NVMatrix& images, NVMatrix& top_down, NVMatrix& ptargets, NVMatrix& htargets, int numFilters,
                    int subsX, int startX, int strideX, int outputsX, Pooler pooler) {
@@ -796,6 +972,207 @@ void probabilisticPool(NVMatrix& images, NVMatrix& top_down, NVMatrix& ptargets,
 
 
     cutilCheckMsg("kProbPool: kernel execution failed");
+}
+
+/*
+Stochastic Max Pool
+*/
+
+template<class Pooler>
+void convLocalStochasticMaxPool(NVMatrix& images, NVMatrix& target, int numFilters,
+                   int subsX, int startX, int strideX, int outputsX, Pooler pooler, float * seed) {
+    int numImages = images.getNumCols();
+    int imgPixels = images.getNumRows() / numFilters;
+    assert(images.getNumRows() == numFilters * imgPixels);
+    int imgSize = int(sqrt(imgPixels));
+    assert(imgSize * imgSize == imgPixels);
+    assert(!images.isTrans());
+    assert(!target.isTrans());
+    assert(images.isContiguous());
+//    assert(numFilters % 4 == 0);
+//    assert(numImages % 128 == 0);
+    
+    int outputs = outputsX * outputsX;
+    target.resize(numFilters*outputs, numImages);
+
+    int filtersPerThread = numFilters % 8 == 0 ? 2 : 1;
+    int imgsPerThread = numImages % 128 == 0 ? 4 : numImages % 64 == 0 ? 2 : 1;
+    bool checkCaseBounds = numImages % (32*imgsPerThread) != 0;
+    dim3 threads(32, 4);
+    dim3 blocks(DIVUP(numImages,32*imgsPerThread) * outputsX, DIVUP(numFilters, 4 * filtersPerThread) * outputsX);
+    //seed = time(NULL);
+    //float* h_C = (float*)malloc(sizeof(float));
+    //cudaMemcpy(seed, h_C, sizeof(float), cudaMemcpyDeviceToHost);
+    //printf("\nSEED %d\n", *h_C);
+    curandState *devStates;
+    cudaMalloc((void **)&devStates, blocks.x * blocks.y * threads.x * threads.y * sizeof(curandState));
+    // Turn this on for seeding
+    setup_kernel<<<blocks, threads>>>(devStates, seed);
+
+    if (imgsPerThread == 4) {
+        if (filtersPerThread == 1) {
+            if (checkCaseBounds) {
+                cudaFuncSetCacheConfig(kLocalSotchasticMaxPool<Pooler, 4, 32, 4, 1, true>, cudaFuncCachePreferL1);
+                kLocalSotchasticMaxPool<Pooler, 4, 32, 4, 1, true><<<blocks, threads>>>(images.getDevData(), target.getDevData(),
+                                                                  imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, pooler, devStates);
+            } else {
+                cudaFuncSetCacheConfig(kLocalSotchasticMaxPool<Pooler, 4, 32, 4, 1, false>, cudaFuncCachePreferL1);
+                kLocalSotchasticMaxPool<Pooler, 4, 32, 4, 1, false><<<blocks, threads>>>(images.getDevData(), target.getDevData(),
+                                                                  imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, pooler, devStates);
+            }
+        } else {
+            if (checkCaseBounds) {
+                cudaFuncSetCacheConfig(kLocalSotchasticMaxPool<Pooler, 4, 32, 4, 2, true>, cudaFuncCachePreferL1);
+                kLocalSotchasticMaxPool<Pooler, 4, 32, 4, 2, true><<<blocks, threads>>>(images.getDevData(), target.getDevData(),
+                                                                  imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, pooler, devStates);
+            } else {
+                cudaFuncSetCacheConfig(kLocalSotchasticMaxPool<Pooler, 4, 32, 4, 2, false>, cudaFuncCachePreferL1);
+                kLocalSotchasticMaxPool<Pooler, 4, 32, 4, 2, false><<<blocks, threads>>>(images.getDevData(), target.getDevData(),
+                                                                  imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, pooler, devStates);
+            }
+        }
+    } else if (imgsPerThread == 2) {
+        if (filtersPerThread == 1) {
+            if (checkCaseBounds) {
+                cudaFuncSetCacheConfig(kLocalSotchasticMaxPool<Pooler, 4, 32, 2, 1, true>, cudaFuncCachePreferL1);
+                kLocalSotchasticMaxPool<Pooler, 4, 32, 2, 1, true><<<blocks, threads>>>(images.getDevData(), target.getDevData(),
+                                                                  imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, pooler, devStates);
+            } else {
+                cudaFuncSetCacheConfig(kLocalSotchasticMaxPool<Pooler, 4, 32, 2, 1, false>, cudaFuncCachePreferL1);
+                kLocalSotchasticMaxPool<Pooler, 4, 32, 2, 1, false><<<blocks, threads>>>(images.getDevData(), target.getDevData(),
+                                                                  imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, pooler, devStates);
+            }
+        } else {
+            if (checkCaseBounds) {
+                cudaFuncSetCacheConfig(kLocalSotchasticMaxPool<Pooler, 4, 32, 2, 2, true>, cudaFuncCachePreferL1);
+                kLocalSotchasticMaxPool<Pooler, 4, 32, 2, 2, true><<<blocks, threads>>>(images.getDevData(), target.getDevData(),
+                                                                  imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, pooler, devStates);
+            } else {
+                cudaFuncSetCacheConfig(kLocalSotchasticMaxPool<Pooler, 4, 32, 2, 2, false>, cudaFuncCachePreferL1);
+                kLocalSotchasticMaxPool<Pooler, 4, 32, 2, 2, false><<<blocks, threads>>>(images.getDevData(), target.getDevData(),
+                                                                  imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, pooler, devStates);
+            }
+        }
+    } else {
+        if (filtersPerThread == 1) {
+            if (checkCaseBounds) {
+                cudaFuncSetCacheConfig(kLocalSotchasticMaxPool<Pooler, 4, 32, 1, 1, true>, cudaFuncCachePreferL1);
+                kLocalSotchasticMaxPool<Pooler, 4, 32, 1, 1, true><<<blocks, threads>>>(images.getDevData(), target.getDevData(),
+                                                                  imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, pooler, devStates);
+            } else {
+                cudaFuncSetCacheConfig(kLocalSotchasticMaxPool<Pooler, 4, 32, 1, 1, false>, cudaFuncCachePreferL1);
+                kLocalSotchasticMaxPool<Pooler, 4, 32, 1, 1, false><<<blocks, threads>>>(images.getDevData(), target.getDevData(),
+                                                                  imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, pooler, devStates);
+            }
+        } else {
+            if (checkCaseBounds) {
+                cudaFuncSetCacheConfig(kLocalSotchasticMaxPool<Pooler, 4, 32, 1, 2, true>, cudaFuncCachePreferL1);
+                kLocalSotchasticMaxPool<Pooler, 4, 32, 1, 2, true><<<blocks, threads>>>(images.getDevData(), target.getDevData(),
+                                                                  imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, pooler, devStates);
+            } else {
+                cudaFuncSetCacheConfig(kLocalSotchasticMaxPool<Pooler, 4, 32, 1, 2, false>, cudaFuncCachePreferL1);
+                kLocalSotchasticMaxPool<Pooler, 4, 32, 1, 2, false><<<blocks, threads>>>(images.getDevData(), target.getDevData(),
+                                                                  imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, pooler, devStates);
+            }
+        }
+    }
+    cudaFree(devStates);
+    cutilCheckMsg("convLocalPool: kernel execution failed");
+}
+
+/*
+Weighted Pool
+*/
+
+template<class Pooler>
+void convLocalWeightedPool(NVMatrix& images, NVMatrix& target, int numFilters,
+                   int subsX, int startX, int strideX, int outputsX, Pooler pooler) {
+    int numImages = images.getNumCols();
+    int imgPixels = images.getNumRows() / numFilters;
+    assert(images.getNumRows() == numFilters * imgPixels);
+    int imgSize = int(sqrt(imgPixels));
+    assert(imgSize * imgSize == imgPixels);
+    assert(!images.isTrans());
+    assert(!target.isTrans());
+    assert(images.isContiguous());
+
+    int outputs = outputsX * outputsX;
+    target.resize(numFilters*outputs, numImages);
+
+    int filtersPerThread = numFilters % 8 == 0 ? 2 : 1;
+    int imgsPerThread = numImages % 128 == 0 ? 4 : numImages % 64 == 0 ? 2 : 1;
+    bool checkCaseBounds = numImages % (32*imgsPerThread) != 0;
+    dim3 threads(32, 4);
+    dim3 blocks(DIVUP(numImages,32*imgsPerThread) * outputsX, DIVUP(numFilters, 4 * filtersPerThread) * outputsX);
+
+    if (imgsPerThread == 4) {
+        if (filtersPerThread == 1) {
+            if (checkCaseBounds) {
+                cudaFuncSetCacheConfig(kLocalSotchasticMaxPool<Pooler, 4, 32, 4, 1, true>, cudaFuncCachePreferL1);
+                kLocalWeightedPool<Pooler, 4, 32, 4, 1, true><<<blocks, threads>>>(images.getDevData(), target.getDevData(),
+                                                                  imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, pooler);
+            } else {
+                cudaFuncSetCacheConfig(kLocalSotchasticMaxPool<Pooler, 4, 32, 4, 1, false>, cudaFuncCachePreferL1);
+                kLocalWeightedPool<Pooler, 4, 32, 4, 1, false><<<blocks, threads>>>(images.getDevData(), target.getDevData(),
+                                                                  imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, pooler);
+            }
+        } else {
+            if (checkCaseBounds) {
+                cudaFuncSetCacheConfig(kLocalSotchasticMaxPool<Pooler, 4, 32, 4, 2, true>, cudaFuncCachePreferL1);
+                kLocalWeightedPool<Pooler, 4, 32, 4, 2, true><<<blocks, threads>>>(images.getDevData(), target.getDevData(),
+                                                                  imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, pooler);
+            } else {
+                cudaFuncSetCacheConfig(kLocalSotchasticMaxPool<Pooler, 4, 32, 4, 2, false>, cudaFuncCachePreferL1);
+                kLocalWeightedPool<Pooler, 4, 32, 4, 2, false><<<blocks, threads>>>(images.getDevData(), target.getDevData(),
+                                                                  imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, pooler);
+            }
+        }
+    } else if (imgsPerThread == 2) {
+        if (filtersPerThread == 1) {
+            if (checkCaseBounds) {
+                cudaFuncSetCacheConfig(kLocalSotchasticMaxPool<Pooler, 4, 32, 2, 1, true>, cudaFuncCachePreferL1);
+                kLocalWeightedPool<Pooler, 4, 32, 2, 1, true><<<blocks, threads>>>(images.getDevData(), target.getDevData(),
+                                                                  imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, pooler);
+            } else {
+                cudaFuncSetCacheConfig(kLocalSotchasticMaxPool<Pooler, 4, 32, 2, 1, false>, cudaFuncCachePreferL1);
+                kLocalWeightedPool<Pooler, 4, 32, 2, 1, false><<<blocks, threads>>>(images.getDevData(), target.getDevData(),
+                                                                  imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, pooler);
+            }
+        } else {
+            if (checkCaseBounds) {
+                cudaFuncSetCacheConfig(kLocalSotchasticMaxPool<Pooler, 4, 32, 2, 2, true>, cudaFuncCachePreferL1);
+                kLocalWeightedPool<Pooler, 4, 32, 2, 2, true><<<blocks, threads>>>(images.getDevData(), target.getDevData(),
+                                                                  imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, pooler);
+            } else {
+                cudaFuncSetCacheConfig(kLocalSotchasticMaxPool<Pooler, 4, 32, 2, 2, false>, cudaFuncCachePreferL1);
+                kLocalWeightedPool<Pooler, 4, 32, 2, 2, false><<<blocks, threads>>>(images.getDevData(), target.getDevData(),
+                                                                  imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, pooler);
+            }
+        }
+    } else {
+        if (filtersPerThread == 1) {
+            if (checkCaseBounds) {
+                cudaFuncSetCacheConfig(kLocalSotchasticMaxPool<Pooler, 4, 32, 1, 1, true>, cudaFuncCachePreferL1);
+                kLocalWeightedPool<Pooler, 4, 32, 1, 1, true><<<blocks, threads>>>(images.getDevData(), target.getDevData(),
+                                                                  imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, pooler);
+            } else {
+                cudaFuncSetCacheConfig(kLocalSotchasticMaxPool<Pooler, 4, 32, 1, 1, false>, cudaFuncCachePreferL1);
+                kLocalWeightedPool<Pooler, 4, 32, 1, 1, false><<<blocks, threads>>>(images.getDevData(), target.getDevData(),
+                                                                  imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, pooler);
+            }
+        } else {
+            if (checkCaseBounds) {
+                cudaFuncSetCacheConfig(kLocalSotchasticMaxPool<Pooler, 4, 32, 1, 2, true>, cudaFuncCachePreferL1);
+                kLocalWeightedPool<Pooler, 4, 32, 1, 2, true><<<blocks, threads>>>(images.getDevData(), target.getDevData(),
+                                                                  imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, pooler);
+            } else {
+                cudaFuncSetCacheConfig(kLocalSotchasticMaxPool<Pooler, 4, 32, 1, 2, false>, cudaFuncCachePreferL1);
+                kLocalWeightedPool<Pooler, 4, 32, 1, 2, false><<<blocks, threads>>>(images.getDevData(), target.getDevData(),
+                                                                  imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, pooler);
+            }
+        }
+    }
+    cutilCheckMsg("convLocalPool: kernel execution failed");
 }
 
 
