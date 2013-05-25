@@ -21,7 +21,7 @@ library
 
 __authors__ = "Mehdi Mirza"
 __copyright__ = "Copyright 2010-2013, Universite de Montreal"
-__credits__ = ["Mehdi Mirza", "Ian Goodfellow"]
+__credits__ = ["Mehdi Mirza", "Ian Goodfellow", "David Warde-Farley"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Mehdi Mirza"
 __email__ = "mirzamom@iro"

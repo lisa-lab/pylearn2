@@ -9,7 +9,7 @@ The code is written around Alex Krizhevsky's cuda-convnet
 
 __authors__ = "Mehdi Mirza"
 __copyright__ = "Copyright 2010-2013, Universite de Montreal"
-__credits__ = ["Mehdi Mirza"]
+__credits__ = ["Mehdi Mirza", "David Warde-Farley"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Mehdi Mirza"
 __email__ = "mirzamom@iro"

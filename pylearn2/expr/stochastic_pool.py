@@ -1,14 +1,24 @@
-import sys
-import numpy
+"""
+An implementation of stochastic max-pooling, based on
 
+Stochastic Pooling for Regularization of Deep Convolutional Neural Networks
+Matthew D. Zeiler, Rob Fergus, ICLR 2013
+"""
+
+__authors__ = "Mehdi Mirza"
+__copyright__ = "Copyright 2010-2012, Universite de Montreal"
+__credits__ = ["Mehdi Mirza", "Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Mehdi Mirza"
+__email__ = "mirzamom@iro"
+
+import numpy
 import theano
 from theano import tensor
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 from theano.gof.op import get_debug_values
 
-
-
-def stochastic_max_pool(bc01, pool_shape, pool_stride, image_shape, rng = None):
+def stochastic_max_pool_bc01(bc01, pool_shape, pool_stride, image_shape, rng = None):
     """
     Stochastic max pooling for training as defined in:
 
@@ -20,6 +30,7 @@ def stochastic_max_pool(bc01, pool_shape, pool_stride, image_shape, rng = None):
     pool_shape: shape of the pool region (rows, cols)
     pool_stride: strides between pooling regions (row stride, col stride)
     image_shape: avoid doing some of the arithmetic in theano
+    rng: theano random stream
     """
     r, c = image_shape
     pr, pc = pool_shape
@@ -86,9 +97,9 @@ def stochastic_max_pool(bc01, pool_shape, pool_stride, image_shape, rng = None):
 
     return tensor.cast(res, theano.config.floatX)
 
-def probability_weighting_pool(bc01, pool_shape, pool_stride, image_shape, rng = None):
+def weighted_max_pool_bc01(bc01, pool_shape, pool_stride, image_shape, rng = None):
     """
-    This implements test time probability weighting pooling defined in:
+    This implements test time probability weighted pooling defined in:
 
     Stochastic Pooling for Regularization of Deep Convolutional Neural Networks
     Matthew D. Zeiler, Rob Fergus
