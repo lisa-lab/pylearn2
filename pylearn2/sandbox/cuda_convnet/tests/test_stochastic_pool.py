@@ -2,7 +2,7 @@ import copy
 import numpy
 import theano
 from collections import Counter
-from pylearn2.sandbox.cuda_convnet.stochastic_pool import StochasticMaxPool, WeightedMaxPool
+from pylearn2.sandbox.cuda_convnet.stochastic_pool import stochastic_max_pool_c01b, weighted_max_pool_c01b
 from pylearn2.testing.skip import skip_if_no_gpu
 
 skip_if_no_gpu()
@@ -35,10 +35,8 @@ def test_stochasatic_pool_samples():
     data = rng.uniform(0, 10, size=(1, ds, ds, 1)).astype('float32')
 
     x = theano.tensor.tensor4()
-    op = StochasticMaxPool(ds=ds, stride=stride)
-    f = theano.function([x], op(x), mode=mode_with_gpu)
-    assert any([isinstance(node.op, StochasticMaxPool)
-            for node in f.maker.fgraph.toposort()])
+    s_max = stochastic_max_pool_c01b(x, (ds, ds), (stride, stride))
+    f = theano.function([x], s_max, mode=mode_with_gpu)
 
     samples = []
     for i in xrange(300):
@@ -65,8 +63,8 @@ def test_weighted_pool():
 
                 # op
                 x = theano.tensor.tensor4()
-                op = WeightedMaxPool(ds=ds, stride=stride)
-                f = theano.function([x], op(x), mode=mode_with_gpu)
+                w_max = weighted_max_pool_c01b(x, (ds, ds), (stride, stride))
+                f = theano.function([x], w_max, mode=mode_with_gpu)
                 op_val = numpy.asarray(f(data))
 
                 # python
@@ -75,6 +73,3 @@ def test_weighted_pool():
 
                 assert numpy.allclose(op_val, py_val)
 
-if __name__ == "__main__":
-    test_stochasatic_pool_samples()
-    test_weighted_pool()

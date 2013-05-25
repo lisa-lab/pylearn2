@@ -1,9 +1,7 @@
-import copy
 import numpy
 import theano
 from collections import Counter
 from pylearn2.expr.stochastic_pool import stochastic_max_pool_bc01, weighted_max_pool_bc01
-from pylearn2.testing.skip import skip_if_no_gpu
 
 # TODO add unit tests for: differnt shape, stide, batch and channel size
 
@@ -45,7 +43,6 @@ def test_weighted_pool():
     for ds in [3]:
         for batch in [2]:
             for ch in [2]:
-                stride = ds
                 data = rng.uniform(size=(batch, ch, ds, ds)).astype('float32')
 
                 # op
