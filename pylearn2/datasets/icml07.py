@@ -123,7 +123,7 @@ class RectanglesImage(dense_design_matrix.DenseDesignMatrix):
     """
     Discrimination between Tall and Wide Rectangles
 
-    All data values are binary, and the classification task is binary.
+    The classification task is binary.
 
     Train: 10000
     Valid: 2000
