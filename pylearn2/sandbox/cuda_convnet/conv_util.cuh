@@ -871,7 +871,7 @@ void probabilisticPool(NVMatrix& images, NVMatrix& top_down, NVMatrix& ptargets,
     int numImages = images.getNumCols();
     int imgPixels = images.getNumRows() / numFilters;
     assert(images.getNumRows() == numFilters * imgPixels);
-    int imgSize = int(sqrt(imgPixels));
+    int imgSize = int(sqrt((double)imgPixels));
     assert(imgSize * imgSize == imgPixels);
     
     assert(!images.isTrans());
