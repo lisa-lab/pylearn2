@@ -1,12 +1,13 @@
 """Low-level NumPy functions for building one-hot and k-hot matrices."""
 
+
 __author__ = "David Warde-Farley"
-__copyright__ = "Copyright 2012, Universite de Montreal"
+__copyright__ = "Copyright 2013, Universite de Montreal"
 __credits__ = ["David Warde-Farley"]
 __license__ = "3-clause BSD"
 __email__ = "wardefar@iro"
 __maintainer__ = "David Warde-Farley"
-__all__ = ['one_hot', 'k_hot']
+__all__ = ['one_hot', 'k_hot', "compressed_one_hot"]
 
 import numpy as np
 

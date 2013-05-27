@@ -1,7 +1,7 @@
 import numpy as np
 from numpy.testing import assert_equal, assert_, assert_raises
 
-from one_hot import one_hot, k_hot, compressed_one_hot
+from pylearn2.utils.one_hot import one_hot, k_hot, compressed_one_hot
 
 
 def test_one_hot_basic():
