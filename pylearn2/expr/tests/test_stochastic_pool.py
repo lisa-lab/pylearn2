@@ -1,6 +1,6 @@
 import numpy
 import theano
-from collections import Counter
+from theano.compat.python2x import Counter
 from pylearn2.expr.stochastic_pool import stochastic_max_pool_bc01, weighted_max_pool_bc01
 
 # TODO add unit tests for: differnt shape, stide, batch and channel size

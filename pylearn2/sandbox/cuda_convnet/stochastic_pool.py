@@ -461,7 +461,7 @@ class WeightedMaxPool(GpuOp):
         num_braces += 1
 
         do_pool = """
-        convLocalWeightedMaxPool(nv_images, nv_targets, img_channels, %(ds)s,
+        convLocalWeightedPool(nv_images, nv_targets, img_channels, %(ds)s,
                       %(start)s, %(stride)s, _outputsX, MaxPooler());
         """
 

@@ -1,7 +1,7 @@
 import copy
 import numpy
 import theano
-from collections import Counter
+from theano.compat.python2x import Counter
 from pylearn2.sandbox.cuda_convnet.stochastic_pool import stochastic_max_pool_c01b, weighted_max_pool_c01b
 from pylearn2.testing.skip import skip_if_no_gpu
 
