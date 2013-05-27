@@ -13,7 +13,7 @@ import datetime
 
 
 @contextmanager
-def log_timing(logger, task, level=logging.INFO, final_msg=None):
+def log_timing(logger, task, level=logging.INFO, final_msg=None, monitor=None):
     """
     Context manager that logs the start/end of an operation,
     and timing information, to a given logger.
@@ -49,6 +49,8 @@ def log_timing(logger, task, level=logging.INFO, final_msg=None):
     total_seconds = (delta.microseconds +
                      (delta.seconds + delta.days * 24 * 3600) * 10 ** 6
                  ) / 10 ** 6
+    if monitor is not None:
+        monitor.set_value(total_seconds)
     if total_seconds < 60:
         delta_str = '%f seconds' % total_seconds
     else:
