@@ -1876,8 +1876,6 @@ class ConvRectifiedLinear(Layer):
                  kernel_stride=(1, 1)):
         """
                  output_channels: The number of output channels the layer should have.
-                 Note that it must internally compute num_channels * num_pieces
-                 convolution channels.
                  kernel_shape: The shape of the convolution kernel.
                  pool_shape: The shape of the spatial max pooling. A two-tuple of ints.
                  pool_stride: The stride of the spatial max pooling. Also must be square.
@@ -1912,6 +1910,7 @@ class ConvRectifiedLinear(Layer):
                           as well
                  kernel_stride: The stride of the convolution kernel. A two-tuple of ints.
         """
+
         if (irange is None) and (sparse_init is None):
             raise AssertionError("You should specify either irange or sparse_init when calling the constructor of ConvRectifiedLinear.")
         elif (irange is not None) and (sparse_init is not None):
