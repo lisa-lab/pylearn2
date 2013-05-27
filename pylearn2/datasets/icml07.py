@@ -35,14 +35,14 @@ class Convex(dense_design_matrix.DenseDesignMatrix):
         data_x, data_y = data.load_from_numpy()
 
         if which_set == 'train':
-            data_x = data_x[:6500]
-            data_y = data_y[:6500]
+            data_x = data_x[:6000]
+            data_y = data_y[:6000]
         elif which_set == 'valid':
-            data_x = data_x[6500:6500+1500]
-            data_y = data_y[6500:6500+1500]
+            data_x = data_x[6000:6000+2000]
+            data_y = data_y[6000:6000+2000]
         else:
-            data_x = data_x[6500+1500:6500+1500+50000]
-            data_y = data_y[6500+1500:6500+1500+50000]
+            data_x = data_x[6000+2000:6000+2000+50000]
+            data_y = data_y[6000+2000:6000+2000+50000]
 
         assert data_x.shape[0] == data_y.shape[0]
 
