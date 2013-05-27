@@ -1618,9 +1618,6 @@ __global__ void kLocalProbMaxUndo(float* maxout_h,  float* maxout_p, float* hGra
     pGrads += (myFilterIdx * numOutputs + outputIdx) * numImages + imgIdx;
     target_t += (myFilterIdx * numOutputs + outputIdx) * numImages + imgIdx;
 
-    cuPrintf ("filtersPerThread %d \n", filtersPerThread);
-    cuPrintf ("imagesPerThread %d \n", imgsPerThread);
-
     float prod[filtersPerThread][imgsPerThread];
     for (int f = 0; f < filtersPerThread; f++) {
         for (int i = 0; i < imgsPerThread; i++) {
