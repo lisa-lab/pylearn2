@@ -39,8 +39,6 @@
 #define	CONV_UTIL_CUH
 
 #include <nvmatrix.cuh>
-#include "cuPrintf.cuh"
-#include "cuPrintf.cu"
 
 void convLocalMaxUndo(NVMatrix& images, NVMatrix& maxGrads, NVMatrix& maxActs, NVMatrix& target,
                       int subsX, int startX, int strideX, int outputsX);
