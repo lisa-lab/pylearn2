@@ -1886,8 +1886,8 @@ class ConvRectifiedLinear(Layer):
                  irange: if specified, initializes each weight randomly in
                  U(-irange, irange)
                  border_mode:A string indicating the size of the output:
-                    full - The output is the full discrete linear convolution of the inputs. 
-                    valid - The output consists only of those elements that do not rely 
+                    full - The output is the full discrete linear convolution of the inputs.
+                    valid - The output consists only of those elements that do not rely
                     on the zero-padding.(Default)
                  include_prob: probability of including a weight element in the set
             of weights initialized to U(-irange, irange). If not included
@@ -1946,11 +1946,11 @@ class ConvRectifiedLinear(Layer):
         rng = self.mlp.rng
 
         if self.border_mode == 'valid':
-            output_shape = [self.input_space.shape[0] - self.kernel_shape[0] + 1,
-                self.input_space.shape[1] - self.kernel_shape[1] + 1]
+            output_shape = [(self.input_space.shape[0] - self.kernel_shape[0]) / self.kernel_stride[0] + 1,
+                (self.input_space.shape[1] - self.kernel_shape[1]) / self.kernel_stride[1] + 1]
         elif self.border_mode == 'full':
-            output_shape = [self.input_space.shape[0] + self.kernel_shape[0] - 1,
-                    self.input_space.shape[1] + self.kernel_shape[1] - 1]
+            output_shape = [(self.input_space.shape[0] +  self.kernel_shape[0]) / self.kernel_stride[0] - 1,
+                    (self.input_space.shape[1] + self.kernel_shape[1]) / self.kernel_stride_stride[1] - 1]
 
         self.detector_space = Conv2DSpace(shape=output_shape,
                 num_channels = self.output_channels,
