@@ -1886,8 +1886,9 @@ class ConvRectifiedLinear(Layer):
                  irange: if specified, initializes each weight randomly in
                  U(-irange, irange)
                  border_mode:A string indicating the size of the output:
-                    full - The output is the full discrete linear convolution of the inputs. (Default)
-                    valid - The output consists only of those elements that do not rely on the zero-padding.
+                    full - The output is the full discrete linear convolution of the inputs. 
+                    valid - The output consists only of those elements that do not rely 
+                    on the zero-padding.(Default)
                  include_prob: probability of including a weight element in the set
             of weights initialized to U(-irange, irange). If not included
             it is initialized to 0.
