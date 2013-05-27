@@ -1,29 +1,3 @@
-"""
-
-An implementation of probabilistic max-pooling, based on
-
-"Convolutional Deep Belief Networks for Scalable
-Unsupervised Learning of Hierarchical Representations"
-Honglak Lee, Roger Grosse, Rajesh Ranganath, and Andrew Y. Ng
-ICML 2009
-
-
-This paper defines probabilistic max-pooling in the context
-of a Convolutional Deep Belief Network (its energy function is
-more like a DBM than a DBN but it is trained like a DBN). Here
-we define probabilistic max pooling as a general layer for
-use in an energy-based model regardless of how the rest of the
-model is assembled.
-
-"""
-
-__authors__ = "Ian Goodfellow"
-__copyright__ = "Copyright 2010-2012, Universite de Montreal"
-__credits__ = ["Ian Goodfellow"]
-__license__ = "3-clause BSD"
-__maintainer__ = "Ian Goodfellow"
-__email__ = "goodfeli@iro"
-
 import theano.tensor as T
 import numpy as np
 from theano import config
@@ -110,8 +84,4 @@ if __name__ == '__main__':
     profile(max_pool_c01b)
     profile_grad(prob_max_pool_c01b)
     profile_grad(max_pool_c01b)
-
-
-
-
 
