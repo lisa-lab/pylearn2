@@ -119,3 +119,46 @@ class Rectangles(dense_design_matrix.DenseDesignMatrix):
 
         assert not numpy.any(numpy.isnan(self.X))
 
+class RectanglesImage(dense_design_matrix.DenseDesignMatrix):
+    """
+    Discrimination between Tall and Wide Rectangles
+
+    All data values are binary, and the classification task is binary.
+
+    Train: 10000
+    Valid: 2000
+    Test: 50000
+    """
+    def __init__(self, which_set, one_hot = False):
+
+        assert which_set in ['train', 'valid', 'test']
+
+        data = icml07.icml07_loaders()
+        data = data['rectangles_images']
+        data_x, data_y = data.load_from_numpy()
+
+        if which_set == 'train':
+            data_x = data_x[:10000]
+            data_y = data_y[:10000]
+        elif which_set == 'valid':
+            data_x = data_x[10000:10000+2000]
+            data_y = data_y[10000:10000+2000]
+        else:
+            data_x = data_x[10000+2000:10000+2000+50000]
+            data_y = data_y[10000+2000:10000+2000+50000]
+
+        assert data_x.shape[0] == data_y.shape[0]
+
+        self.one_hot = one_hot
+        if one_hot:
+            one_hot = numpy.zeros((data_y.shape[0], 2), dtype = 'float32')
+            for i in xrange(data_y.shape[0]):
+                one_hot[i, data_y[i]] = 1.
+            data_y = one_hot
+
+
+        view_converter = dense_design_matrix.DefaultViewConverter((28,28,1))
+        super(RectanglesImage, self).__init__(X = data_x, y = data_y, view_converter = view_converter)
+
+        assert not numpy.any(numpy.isnan(self.X))
+
