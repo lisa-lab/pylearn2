@@ -270,7 +270,7 @@ class StochasticMaxPool(GpuOp):
             raise RuntimeError('Could not compile cuda_convnet')
 
         return super(StochasticMaxPool, self).make_thunk(
-                node, storage_map, storage_map, no_recycling)
+                node, storage_map, compute_map, no_recycling)
 
 class WeightedMaxPool(GpuOp):
     """
@@ -488,4 +488,4 @@ class WeightedMaxPool(GpuOp):
             raise RuntimeError('Could not compile cuda_convnet')
 
         return super(WeightedMaxPool, self).make_thunk(
-                node, storage_map, storage_map, no_recycling)
+                node, storage_map, compute_map, no_recycling)

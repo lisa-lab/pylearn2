@@ -330,7 +330,7 @@ class ProbMaxPool(GpuOp):
             raise RuntimeError('Could not compile cuda_convnet')
 
         return super(ProbMaxPool, self).make_thunk(
-                node, storage_map, storage_map, no_recycling)
+                node, storage_map, compute_map, no_recycling)
 
 class ProbMaxPoolGrad(GpuOp):
     def __init__(self, ds, stride, start):
@@ -597,6 +597,6 @@ class ProbMaxPoolGrad(GpuOp):
             raise RuntimeError('Could not compile cuda_convnet')
 
         return super(ProbMaxPoolGrad, self).make_thunk(
-                node, storage_map, storage_map, no_recycling)
+                node, storage_map, compute_map, no_recycling)
 
 
