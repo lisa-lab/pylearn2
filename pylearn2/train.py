@@ -14,6 +14,7 @@ import logging
 import warnings
 from pylearn2.monitor import Monitor
 from pylearn2.utils.timing import log_timing
+import theano.tensor as T
 
 
 log = logging.getLogger(__name__)
@@ -117,9 +118,14 @@ class Train(object):
                 # rewrite to avoid the AttributeError
                 raise RuntimeError("The algorithm is responsible for setting"
                         " up the Monitor, but failed to.")
+            self.model.monitor.add_channel(name="seconds_per_epoch",
+                                           ipt=T.matrix(),
+                                           val=self.monitor_time,
+                                           dataset=self.model.monitor._datasets[0])
             self.run_callbacks_and_monitoring()
             while True:
-                with log_timing(log, None, final_msg='Time this epoch:'):
+                with log_timing(log, None, final_msg='Time this epoch:',
+                                monitor=self.monitor_time):
                     rval = self.algorithm.train(dataset=self.dataset)
                 if rval is not None:
                     raise ValueError("TrainingAlgorithm.train should not return anything. Use TrainingAlgorithm.continue_learning to control whether learning continues.")
