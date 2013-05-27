@@ -14,6 +14,7 @@ import logging
 import warnings
 from pylearn2.monitor import Monitor
 from pylearn2.utils.timing import log_timing
+from pylearn2.utils import sharedX
 import theano.tensor as T
 
 
@@ -84,6 +85,7 @@ class Train(object):
             warnings.warn("dataset has no yaml src, model won't know what data it was trained on")
 
         self.extensions = extensions if extensions is not None else []
+        self.monitor_time = sharedX(value=0,name='seconds_per_epoch')
 
     def setup_extensions(self):
         for ext in self.extensions:
