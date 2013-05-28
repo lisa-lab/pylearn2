@@ -38,6 +38,16 @@ def test_vector_to_conv_c01b_invertible():
 
     Z, C = f(X,A)
 
-    assert np.allclose(Z, X)
-    assert np.allclose(C, A)
+    np.testing.assert_allclose(Z, X)
+    np.testing.assert_allclose(C, A)
 
+
+def test_broadcastable():
+    v = VectorSpace(5).make_theano_batch(batch_size=1)
+    np.testing.assert_(v.broadcastable[0])
+    c = Conv2DSpace((5, 5), channels=3,
+                    axes=['c', 0, 1, 'b']).make_theano_batch(batch_size=1)
+    np.testing.assert_(c.broadcastable[-1])
+    d = Conv2DSpace((5, 5), channels=3,
+                    axes=['b', 0, 1, 'c']).make_theano_batch(batch_size=1)
+    np.testing.assert_(d.broadcastable[0])
