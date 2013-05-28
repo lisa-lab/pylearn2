@@ -120,14 +120,15 @@ class Train(object):
                 # rewrite to avoid the AttributeError
                 raise RuntimeError("The algorithm is responsible for setting"
                         " up the Monitor, but failed to.")
-            self.model.monitor.add_channel(name="seconds_per_epoch",
-                                           ipt=T.matrix(),
-                                           val=self.monitor_time,
-                                           dataset=self.model.monitor._datasets[0])
+            if len(self.model.monitor._datasets)>0:
+                self.model.monitor.add_channel(name="seconds_per_epoch",
+                                               ipt=self.model.get_input_space().make_batch_theano(),
+                                               val=self.monitor_time,
+                                               dataset=self.model.monitor._datasets[0])
             self.run_callbacks_and_monitoring()
             while True:
                 with log_timing(log, None, final_msg='Time this epoch:',
-                                monitor=self.monitor_time):
+                                callbacks=[self.monitor_time.set_value]):
                     rval = self.algorithm.train(dataset=self.dataset)
                 if rval is not None:
                     raise ValueError("TrainingAlgorithm.train should not return anything. Use TrainingAlgorithm.continue_learning to control whether learning continues.")
