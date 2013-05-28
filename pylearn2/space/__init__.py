@@ -81,7 +81,7 @@ class Space(object):
         else:
             raise NotImplementedError()
 
-    def make_theano_batch(self, name=None, dtype=None):
+    def make_theano_batch(self, name=None, dtype=None, batch_size=None):
         """
         Returns a symbolic variable representing a batch of points
         in this space.
@@ -95,10 +95,11 @@ class Space(object):
         """
         raise NotImplementedError()
 
-    def make_batch_theano(self, name = None, dtype = None):
+    def make_batch_theano(self, name=None, dtype=None, batch_size=None):
         """ An alias to make_theano_batch """
 
-        return self.make_theano_batch(name = name, dtype = dtype)
+        return self.make_theano_batch(name=name, dtype=dtype,
+                                      batch_size=batch_size)
 
     def get_total_dimension(self):
         """
@@ -187,14 +188,20 @@ class VectorSpace(Space):
         return np.zeros((n, self.dim))
 
     @functools.wraps(Space.make_theano_batch)
-    def make_theano_batch(self, name=None, dtype=None):
+    def make_theano_batch(self, name=None, dtype=None, batch_size=None):
         if dtype is None:
             dtype = config.floatX
 
         if self.sparse:
+            if batch_size is not None:
+                raise NotImplementedError("batch_size not implemented "
+                                          "for sparse case")
             return theano.sparse.csr_matrix(name=name)
         else:
-            return T.matrix(name=name, dtype=dtype)
+            if batch_size == 1:
+                return T.row(name=name, dtype=dtype)
+            else:
+                return T.matrix(name=name, dtype=dtype)
 
     @functools.wraps(Space.get_total_dimension)
     def get_total_dimension(self):
@@ -320,12 +327,13 @@ class Conv2DSpace(Space):
         return np.zeros(shape)
 
     @functools.wraps(Space.make_theano_batch)
-    def make_theano_batch(self, name=None, dtype=None):
+    def make_theano_batch(self, name=None, dtype=None, batch_size=None):
         if dtype is None:
             dtype = config.floatX
 
         broadcastable = [False] * 4
         broadcastable[self.axes.index('c')] = (self.num_channels == 1)
+        broadcastable[self.axes.index('b')] = (batch_size == 1)
         broadcastable = tuple(broadcastable)
 
         return TensorType(dtype=dtype,
@@ -514,7 +522,7 @@ class CompositeSpace(Space):
         return tuple([component.get_origin_batch(n) for component in self.components])
 
     @functools.wraps(Space.make_theano_batch)
-    def make_theano_batch(self, name = None, dtype = None):
+    def make_theano_batch(self, name=None, dtype=None, batch_size=None):
 
         def name_generator(i):
             if name is None:
