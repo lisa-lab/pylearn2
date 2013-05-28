@@ -133,9 +133,9 @@ class IsingVisible(VisibleLayer):
         return rval
 
     def make_symbolic_state(self, num_examples, theano_rng):
-        driver = theano_rng.uniform(low=0., high=1., size=(num_examples, self.nvis))
-        on_prob = T.nnet.sigmoid(2. * self.b)
-        rval = 2. * (driver < on_prob) - 1.
+        mean = T.nnet.sigmoid(2. * self.b)
+        rval = theano_rng.binomial(size=(num_examples, self.nvis), prob=mean)
+        rval = 2. * (rval) - 1.
 
         return rval
 
@@ -439,9 +439,9 @@ class IsingHidden(HiddenLayer):
         return rval
 
     def make_symbolic_state(self, num_examples, theano_rng):
-        driver = theano_rng.uniform(low=0., high=1., size=(num_examples, self.nvis))
-        on_prob = T.nnet.sigmoid(2. * self.b)
-        rval = 2. * (driver < on_prob) - 1.
+        mean = T.nnet.sigmoid(2. * self.b)
+        rval = theano_rng.binomial(size=(num_examples, self.nvis), prob=mean)
+        rval = 2. * (rval) - 1.
 
         return rval
 
@@ -618,9 +618,9 @@ class BoltzmannIsingVisible(VisibleLayer):
         return rval
 
     def make_symbolic_state(self, num_examples, theano_rng):
-        driver = theano_rng.uniform(low=0., high=1., size=(num_examples, self.nvis))
-        on_prob = T.nnet.sigmoid(2. * self.ising_bias())
-        rval = 2. * (driver < on_prob) - 1.
+        mean = T.nnet.sigmoid(2. * self.ising_bias())
+        rval = theano_rng.binomial(size=(num_examples, self.nvis), prob=mean)
+        rval = 2. * (rval) - 1.
 
         return rval
 
@@ -1058,9 +1058,9 @@ class BoltzmannIsingHidden(HiddenLayer):
         return rval
 
     def make_symbolic_state(self, num_examples, theano_rng):
-        driver = theano_rng.uniform(low=0., high=1., size=(num_examples, self.nvis))
-        on_prob = T.nnet.sigmoid(2. * self.ising_b())
-        rval = 2. * (driver < on_prob) - 1.
+        mean = T.nnet.sigmoid(2. * self.ising_b())
+        rval = theano_rng.binomial(size=(num_examples, self.nvis), prob=mean)
+        rval = 2. * (rval) - 1.
 
         return rval
 
