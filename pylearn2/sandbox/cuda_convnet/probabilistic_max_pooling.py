@@ -28,7 +28,8 @@ __email__ = "mirzamom@iro"
 
 
 import warnings
-
+import theano
+import numpy
 from theano import tensor
 from theano.gof import Apply
 from theano.sandbox.cuda import CudaNdarrayType
@@ -49,10 +50,10 @@ def prob_max_pool_c01b(c01b, pool_shape, top_down = None):
     assert pool_shape[0] > 0
 
 
-    batch_size, zr, zc, ch = c01b.shape
+    ch, zr, zc, batch_size = c01b.shape
     r, c = pool_shape
     if top_down is None:
-        top_down = tensor.zeros((batch_size, zr / r, zc / c, ch), dtype = c01b.dtype)
+        top_down = tensor.zeros((ch, zr / r, zc / c, batch_size), dtype = c01b.dtype)
 
     op = ProbMaxPool(pool_shape[0])
     c01b = gpu_contiguous(c01b)
@@ -318,11 +319,21 @@ class ProbMaxPool(GpuOp):
 
     def grad(self, inp, grads):
         x, top_down = inp
-        gp, gh= grads
+        p, h = self(x, top_down)
+        gp, gh = grads
+        gp_iszero = 0.
+        gh_iszero = 0.
+        if isinstance(gp.type, theano.gradient.DisconnectedType):
+            gp = tensor.zeros_like(p)
+            gp_iszero = 1.
+        if isinstance(gh.type, theano.gradient.DisconnectedType):
+            gh = tensor.zeros_like(h)
+            gh_iszero = 1.
         gp = gpu_contiguous(gp)
         gh = gpu_contiguous(gh)
-        p, h = self(x, top_down)
-        return ProbMaxPoolGrad(self.ds, self.stride, self.start)(p, h, gp, gh)
+        gp_iszero = as_cuda_ndarray_variable(gp_iszero)
+        gh_iszero = as_cuda_ndarray_variable(gh_iszero)
+        return ProbMaxPoolGrad(self.ds, self.stride, self.start)(p, h, gp, gh, gp_iszero, gh_iszero)
 
     # Make sure the cuda_convnet library is compiled and up-to-date
     def make_thunk(self, node, storage_map, compute_map, no_recycling):
@@ -384,7 +395,7 @@ class ProbMaxPoolGrad(GpuOp):
             'class_name_caps': self.__class__.__name__.upper(),
         }
 
-    def make_node(self, p, h, gp, gh):
+    def make_node(self, p, h, gp, gh, gp_iszero, gh_iszero):
         p = as_cuda_ndarray_variable(p)
         h = as_cuda_ndarray_variable(h)
         gp = as_cuda_ndarray_variable(gp)
@@ -399,10 +410,11 @@ class ProbMaxPoolGrad(GpuOp):
             assert nb_channel % 16 == 0
         except NotScalarConstantError:
                     pass
-        return Apply(self, [p, h, gp, gh], [p.type(), h.type()])
+
+        return Apply(self, [p, h, gp, gh, gp_iszero, gh_iszero], [p.type(), h.type()])
 
     def c_code(self, node, name, inputs, outputs, sub):
-        p, h, gp, gh = inputs
+        p, h, gp, gh, gp_iszero, gh_iszero = inputs
         targets_z, targets_t, = outputs
         fail = sub['fail']
 
@@ -455,6 +467,7 @@ class ProbMaxPoolGrad(GpuOp):
 
         NVMatrix nv_h(%(h)s, img_channels * imgSizeY * imgSizeX,
                           batch_size, "ProbMaxPool:nv_h");
+
         """
         num_braces += 1
 
@@ -564,13 +577,16 @@ class ProbMaxPoolGrad(GpuOp):
         NVMatrix nv_targets_t(%(targets_t)s, target_t_dims[0] * target_t_dims[1] * target_t_dims[2],
                             target_t_dims[3], "ProbMaxPool:nv_targets_t");
 
+
+        int * gp_iszero = (int) ceil(%(gp_iszero)%);
+        int * gh_iszero = (int) ceil(%(gh_iszero)%);
         """
         num_braces += 1
 
 
         undo_pool = """
         localProbMaxUndo(nv_h, nv_p, nv_gh, nv_gp, nv_targets_z, nv_targets_t,
-                         %(ds)s, %(start)s, %(stride)s, _outputsX, imgSizeX);
+                         %(ds)s, %(start)s, %(stride)s, _outputsX, imgSizeX, gp_iszero, gh_iszero);
         """
 
         braces = '}' * num_braces
