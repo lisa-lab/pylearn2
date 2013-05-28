@@ -2256,70 +2256,64 @@ class DBMSampler(Block):
         return rval
 
 
-class RBMSticher(DBM):
+def rbmStitcher(batch_size, rbm_list, niter, inference_procedure=None,
+                targets=False):
     """
-    A DBM initialized with pre-trained RBMs, with weights and biases
+    Returns a DBM initialized with pre-trained RBMs, with weights and biases
     initialized according to R. Salakhutdinov's policy.
 
-    Provided the RBMs were trained normally, it divides the first and last
-    hidden layer's weights by two and initialized a hidden layer's biases
-    as the mean of its biases and the biases of the visible layer of the
+    This method assumes the RBMs were trained normally. It divides the first
+    and last hidden layer's weights by two and initialized a hidden layer's
+    biases as the mean of its biases and the biases of the visible layer of the
     RBM above it.
-
-    We assume that there are two RBM's provided, with the second having an
-    extra target layer on top.
     """
-    def __init__(self, batch_size, rbm_list, niter, inference_procedure=None,
-                 targets=False):
+    assert len(rbm_list) > 1
 
-        assert len(rbm_list) > 0
+    # For intermediary hidden layers, there are two set of biases to choose
+    # from: those from the hidden layer of the given RBM, and those from
+    # the visible layer of the RBM above it. As in R. Salakhutdinov's code,
+    # we handle this by computing the mean of those two sets of biases.
+    for this_rbm, above_rbm in zip(rbm_list[:-1], rbm_list[1:]):
+        hidden_layer = this_rbm.hidden_layers[0]
+        visible_layer = above_rbm.visible_layer
+        new_biases = 0.5 * (hidden_layer.get_biases() +
+                            visible_layer.get_biases())
+        hidden_layer.set_biases(new_biases)
 
-        # For intermediary hidden layers, there are two set of biases to choose
-        # from: those from the hidden layer of the given RBM, and those from
-        # the visible layer of the RBM above it. As in R. Salakhutdinov's code,
-        # we handle this by computing the mean of those two sets of biases.
-        for this_rbm, above_rbm in zip(rbm_list[:-1], rbm_list[1:]):
-            hidden_layer = this_rbm.hidden_layers[0]
-            visible_layer = above_rbm.visible_layer
-            new_biases = 0.5 * (hidden_layer.get_biases() +
-                                visible_layer.get_biases())
-            hidden_layer.set_biases(new_biases)
+    visible_layer = rbm_list[0].visible_layer
+    visible_layer.dbm = None
 
-        visible_layer = rbm_list[0].visible_layer
-        visible_layer.dbm = None
+    hidden_layers = []
 
-        hidden_layers = []
-
-        for rbm in rbm_list:
-            # Make sure all DBM have only one hidden layer, except for the last
-            # one, which can have an optional target layer
-            if rbm == rbm_list[-1]:
-                if targets:
-                    assert len(rbm.hidden_layers) == 2
-                else:
-                    assert len(rbm.hidden_layers) == 1
+    for rbm in rbm_list:
+        # Make sure all DBM have only one hidden layer, except for the last
+        # one, which can have an optional target layer
+        if rbm == rbm_list[-1]:
+            if targets:
+                assert len(rbm.hidden_layers) == 2
             else:
                 assert len(rbm.hidden_layers) == 1
-
-            hidden_layers = hidden_layers + rbm.hidden_layers
-
-        for hidden_layer in hidden_layers:
-            hidden_layer.dbm = None
-
-        # Divide first and last hidden layer's weights by two, as described
-        # in R. Salakhutdinov's paper (equivalent to training with RBMs with
-        # doubled weights)
-        first_hidden_layer = hidden_layers[-1]
-        if targets:
-            last_hidden_layer = hidden_layers[-2]
         else:
-            last_hidden_layer = hidden_layer[-1]
-        first_hidden_layer.set_weights(0.5 * first_hidden_layer.get_weights())
-        last_hidden_layer.set_weights(0.5 * last_hidden_layer.get_weights())
+            assert len(rbm.hidden_layers) == 1
 
-        super(RBMSticher, self).__init__(batch_size, visible_layer,
-                                         hidden_layers, niter,
-                                         inference_procedure)
+        hidden_layers = hidden_layers + rbm.hidden_layers
+
+    for hidden_layer in hidden_layers:
+        hidden_layer.dbm = None
+
+    # Divide first and last hidden layer's weights by two, as described
+    # in R. Salakhutdinov's paper (equivalent to training with RBMs with
+    # doubled weights)
+    first_hidden_layer = hidden_layers[-1]
+    if targets:
+        last_hidden_layer = hidden_layers[-2]
+    else:
+        last_hidden_layer = hidden_layer[-1]
+    first_hidden_layer.set_weights(0.5 * first_hidden_layer.get_weights())
+    last_hidden_layer.set_weights(0.5 * last_hidden_layer.get_weights())
+
+    return DBM(batch_size, visible_layer, hidden_layers, niter,
+               inference_procedure)
 
 
 def flatten(l):
