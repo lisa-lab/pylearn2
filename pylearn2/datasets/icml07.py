@@ -76,6 +76,9 @@ class Convex(dense_design_matrix.DenseDesignMatrix):
 
         assert not numpy.any(numpy.isnan(self.X))
 
+    def get_test_set(self):
+        return Convex('test', self.one_hot)
+
 class Rectangles(dense_design_matrix.DenseDesignMatrix):
     """
     Discrimination between Tall and Wide Rectangles
@@ -118,6 +121,9 @@ class Rectangles(dense_design_matrix.DenseDesignMatrix):
         super(Rectangles, self).__init__(X = data_x, y = data_y, view_converter = view_converter)
 
         assert not numpy.any(numpy.isnan(self.X))
+
+    def get_test_set(self):
+        return Rectangles('test', self.one_hot)
 
 class RectanglesImage(dense_design_matrix.DenseDesignMatrix):
     """
@@ -162,3 +168,5 @@ class RectanglesImage(dense_design_matrix.DenseDesignMatrix):
 
         assert not numpy.any(numpy.isnan(self.X))
 
+    def get_test_set(self):
+        return RectanglesImage('test', self.one_hot)
