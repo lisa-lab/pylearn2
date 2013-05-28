@@ -1872,14 +1872,45 @@ class ConvRectifiedLinear(Layer):
                  max_kernel_norm = None,
                  pool_type = 'max',
                  detector_normalization = None,
-                 output_normalization = None):
+                 output_normalization = None,
+                 kernel_stride=(1, 1)):
         """
-
-            include_prob: probability of including a weight element in the set
+                 output_channels: The number of output channels the layer should have.
+                 kernel_shape: The shape of the convolution kernel.
+                 pool_shape: The shape of the spatial max pooling. A two-tuple of ints.
+                 pool_stride: The stride of the spatial max pooling. Also must be square.
+                 layer_name: A name for this layer that will be prepended to
+                 monitoring channels related to this layer.
+                 irange: if specified, initializes each weight randomly in
+                 U(-irange, irange)
+                 border_mode:A string indicating the size of the output:
+                    full - The output is the full discrete linear convolution of the inputs.
+                    valid - The output consists only of those elements that do not rely
+                    on the zero-padding.(Default)
+                 include_prob: probability of including a weight element in the set
             of weights initialized to U(-irange, irange). If not included
             it is initialized to 0.
-
+                 init_bias: All biases are initialized to this number
+                 W_lr_scale:The learning rate on the weights for this layer is
+                 multiplied by this scaling factor
+                 b_lr_scale: The learning rate on the biases for this layer is
+                 multiplied by this scaling factor
+                 left_slope: **TODO**
+                 max_kernel_norm: If specifed, each kernel is constrained to have at most this
+                 norm.
+                 pool_type: The type of the pooling operation performed the the convolution.
+                 Default pooling type is max-pooling.
+                 detector_normalization, output_normalization:
+                      if specified, should be a callable object. the state of the network is
+                      optionally
+                      replaced with normalization(state) at each of the 3 points in processing:
+                          detector: the maxout units can be normalized prior to the spatial
+                          pooling
+                          output: the output of the layer, after sptial pooling, can be normalized
+                          as well
+                 kernel_stride: The stride of the convolution kernel. A two-tuple of ints.
         """
+
         if (irange is None) and (sparse_init is None):
             raise AssertionError("You should specify either irange or sparse_init when calling the constructor of ConvRectifiedLinear.")
         elif (irange is not None) and (sparse_init is not None):
@@ -1914,11 +1945,11 @@ class ConvRectifiedLinear(Layer):
         rng = self.mlp.rng
 
         if self.border_mode == 'valid':
-            output_shape = [self.input_space.shape[0] - self.kernel_shape[0] + 1,
-                self.input_space.shape[1] - self.kernel_shape[1] + 1]
+            output_shape = [(self.input_space.shape[0] - self.kernel_shape[0]) / self.kernel_stride[0] + 1,
+                (self.input_space.shape[1] - self.kernel_shape[1]) / self.kernel_stride[1] + 1]
         elif self.border_mode == 'full':
-            output_shape = [self.input_space.shape[0] + self.kernel_shape[0] - 1,
-                    self.input_space.shape[1] + self.kernel_shape[1] - 1]
+            output_shape = [(self.input_space.shape[0] +  self.kernel_shape[0]) / self.kernel_stride[0] - 1,
+                    (self.input_space.shape[1] + self.kernel_shape[1]) / self.kernel_stride_stride[1] - 1]
 
         self.detector_space = Conv2DSpace(shape=output_shape,
                 num_channels = self.output_channels,
@@ -1932,7 +1963,7 @@ class ConvRectifiedLinear(Layer):
                     output_space = self.detector_space,
                     kernel_shape = self.kernel_shape,
                     batch_size = self.mlp.batch_size,
-                    subsample = (1,1),
+                    subsample = self.kernel_stride,
                     border_mode = self.border_mode,
                     rng = rng)
         elif self.sparse_init is not None:
@@ -1942,7 +1973,7 @@ class ConvRectifiedLinear(Layer):
                     output_space = self.detector_space,
                     kernel_shape = self.kernel_shape,
                     batch_size = self.mlp.batch_size,
-                    subsample = (1,1),
+                    subsample = self.kernel_stride,
                     border_mode = self.border_mode,
                     rng = rng)
         W, = self.transformer.get_params()
