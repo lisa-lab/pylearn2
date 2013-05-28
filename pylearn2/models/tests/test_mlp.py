@@ -98,7 +98,8 @@ def test_sigmoid_layer_misclass_reporting():
                                       monitor_style='classification')])
     target = theano.tensor.matrix(dtype=theano.config.floatX)
     batch = theano.tensor.matrix(dtype=theano.config.floatX)
-    rval = mlp.layers[0].get_monitoring_channels_from_state(mlp.fprop(batch), target)
+    rval = mlp.layers[0].get_monitoring_channels_from_state(mlp.fprop(batch),
+                                                            target)
 
     f = theano.function([batch, target], [tensor.gt(mlp.fprop(batch), 0.5),
                                           rval['misclass']],
@@ -111,9 +112,30 @@ def test_sigmoid_layer_misclass_reporting():
         np.testing.assert_allclose((targets != out).mean(), misclass)
 
 
+def test_batchwise_dropout():
+    mlp = MLP(nvis=2, layers=[IdentityLayer(2, 'h0', irange=0)])
+    mlp.layers[0].set_weights(np.eye(2, dtype=mlp.get_weights().dtype))
+    mlp.layers[0].set_biases(np.arange(1, 3, dtype=mlp.get_weights().dtype))
+    mlp.layers[0].dropout_input_mask_value = 0
+    inp = theano.tensor.matrix()
+    f = theano.function([inp], mlp.dropout_fprop(inp, per_example=False),
+                        allow_input_downcast=True)
+    for _ in range(10):
+        d = f([[3.0, 4.5]] * 3)
+        np.testing.assert_equal(d[0], d[1])
+        np.testing.assert_equal(d[0], d[2])
+
+    f = theano.function([inp], mlp.dropout_fprop(inp, per_example=True),
+                        allow_input_downcast=True)
+    d = f([[3.0, 4.5]] * 3)
+    print d
+    np.testing.assert_(np.any(d[0] != d[1]) or np.any(d[0] != d[2]))
+
+
 if __name__ == "__main__":
     test_masked_fprop()
     test_sampled_dropout_average()
     test_exhaustive_dropout_average()
     test_dropout_input_mask_value()
     test_sigmoid_layer_misclass_reporting()
+    test_batchwise_dropout()

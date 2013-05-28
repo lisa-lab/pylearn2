@@ -354,7 +354,7 @@ class MLP(Layer):
 
     def dropout_fprop(self, state_below, default_input_include_prob=0.5,
                       input_include_probs=None, default_input_scale=2.,
-                      input_scales=None):
+                      input_scales=None, per_example=True):
         """
         state_below: The input to the MLP
 
@@ -368,6 +368,10 @@ class MLP(Layer):
         Each feature is also multiplied by a scale factor. The scale factor for each
         layer's input scale is determined by the same scheme as the input probabilities.
 
+        per_example : bool, optional
+            Sample a different mask value for every example in
+            a batch. Default is `True`. If `False`, sample one
+            mask per mini-batch.
         """
 
         warnings.warn("dropout doesn't use fixed_var_descr so it won't work with "
@@ -404,7 +408,9 @@ class MLP(Layer):
                 include_prob=include_prob,
                 theano_rng=theano_rng,
                 scale=scale,
-                mask_value=layer.dropout_input_mask_value
+                mask_value=layer.dropout_input_mask_value,
+                input_space=layer.get_input_space(),
+                per_example=per_example
             )
             state_below = layer.fprop(state_below)
 
@@ -536,7 +542,18 @@ class MLP(Layer):
         return rval
 
     def apply_dropout(self, state, include_prob, scale, theano_rng,
-                      mask_value=0):
+                      input_space, mask_value=0, per_example=True):
+
+        """
+        Parameters
+        ----------
+        ...
+
+        per_example : bool, optional
+            Sample a different mask value for every example in
+            a batch. Default is `True`. If `False`, sample one
+            mask per mini-batch.
+        """
         if include_prob in [None, 1.0, 1]:
             return state
         assert scale is not None
@@ -544,8 +561,21 @@ class MLP(Layer):
             return tuple(self.apply_dropout(substate, include_prob,
                                             scale, theano_rng, mask_value)
                          for substate in state)
-        mask = theano_rng.binomial(p=include_prob, size=state.shape,
-                                   dtype=state.dtype)
+        # TODO: all of this assumes that if it's not a tuple, it's
+        # a dense tensor. It hasn't been tested with sparse types.
+        # A method to format the mask (or any other values) as
+        # the given symbolic type should be added to the Spaces
+        # interface.
+        if per_example:
+            mask = theano_rng.binomial(p=include_prob, size=state.shape,
+                                       dtype=state.dtype)
+        else:
+            batch = input_space.get_origin_batch(1)
+            mask = theano_rng.binomial(p=include_prob, size=batch.shape,
+                                       dtype=state.dtype)
+            rebroadcast = T.Rebroadcast(*zip(xrange(batch.ndim),
+                                             [s == 1 for s in batch.shape]))
+            mask = rebroadcast(mask)
         if mask_value == 0:
             return state * mask * scale
         else:
