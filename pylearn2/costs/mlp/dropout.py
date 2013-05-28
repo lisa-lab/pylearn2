@@ -25,7 +25,7 @@ class Dropout(Cost):
     supervised = True
 
     def __init__(self, default_input_include_prob=.5, input_include_probs=None,
-            default_input_scale=2., input_scales=None):
+            default_input_scale=2., input_scales=None, per_example=True):
         """
         During training, each input to each layer is randomly included or excluded
         for each example. The probability of inclusion is independent for each input
@@ -46,9 +46,13 @@ class Dropout(Cost):
         self.__dict__.update(locals())
         del self.self
 
-    def __call__(self, model, X, Y, ** kwargs):
-        Y_hat = model.dropout_fprop(X, default_input_include_prob=self.default_input_include_prob,
-                input_include_probs=self.input_include_probs, default_input_scale=self.default_input_scale,
-                input_scales=self.input_scales
-                )
+    def __call__(self, model, X, Y, **kwargs):
+        Y_hat = model.dropout_fprop(
+            X,
+            default_input_include_prob=self.default_input_include_prob,
+            input_include_probs=self.input_include_probs,
+            default_input_scale=self.default_input_scale,
+            input_scales=self.input_scales,
+            per_example=self.per_example
+        )
         return model.cost(Y, Y_hat)
