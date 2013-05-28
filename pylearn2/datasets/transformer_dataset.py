@@ -60,10 +60,7 @@ class TransformerDataset(Dataset):
         return final_iterator
 
     def has_targets(self):
-        if isinstance(self.raw, TransformerDataset):
-            return self.raw.has_targets()
-        else:
-            return self.raw.y is not None
+        return self.raw.has_targets()
 
     def adjust_for_viewer(self, X):
         if self.space_preserving:
