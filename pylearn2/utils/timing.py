@@ -38,6 +38,9 @@ def log_timing(logger, task, level=logging.INFO, final_msg=None, callbacks=None)
         '<task> done. Time elapsed:'. A space will be
         added between this message and the reported
         time.
+    callbacks: list, optional
+        A list of callbacks taking as argument an
+        integer representing the total number of seconds 
     """
     start = datetime.datetime.now()
     if task is not None:
@@ -57,5 +60,6 @@ def log_timing(logger, task, level=logging.INFO, final_msg=None, callbacks=None)
         logger.log(level, str(task) + ' done. Time elapsed: %s' % delta_str)
     else:
         logger.log(level, ' '.join((final_msg, delta_str)))
-    for callback in callbacks:
-        callback(total_seconds)
+    if callbacks is not None:
+        for callback in callbacks:
+            callback(total_seconds)
