@@ -13,7 +13,7 @@ import datetime
 
 
 @contextmanager
-def log_timing(logger, task, level=logging.INFO, final_msg=None):
+def log_timing(logger, task, level=logging.INFO, final_msg=None, callbacks=None):
     """
     Context manager that logs the start/end of an operation,
     and timing information, to a given logger.
@@ -38,6 +38,9 @@ def log_timing(logger, task, level=logging.INFO, final_msg=None):
         '<task> done. Time elapsed:'. A space will be
         added between this message and the reported
         time.
+    callbacks: list, optional
+        A list of callbacks taking as argument an
+        integer representing the total number of seconds 
     """
     start = datetime.datetime.now()
     if task is not None:
@@ -57,3 +60,6 @@ def log_timing(logger, task, level=logging.INFO, final_msg=None):
         logger.log(level, str(task) + ' done. Time elapsed: %s' % delta_str)
     else:
         logger.log(level, ' '.join((final_msg, delta_str)))
+    if callbacks is not None:
+        for callback in callbacks:
+            callback(total_seconds)
