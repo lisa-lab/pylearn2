@@ -384,7 +384,6 @@ class DBM(Model):
         # Make a list of all layers
         layers = [self.visible_layer] + self.hidden_layers
 
-        # TODO: is it too restrictive?
         assert rng is not None
 
         states = [layer.make_symbolic_state(num_examples, rng) for layer in layers]
@@ -1015,9 +1014,8 @@ class BinaryVector(VisibleLayer):
             self.copies = 1
         if self.copies != 1:
             raise NotImplementedError()
-        driver = theano_rng.uniform(low=0., high=1., size=(num_examples, self.nvis))
         mean = T.nnet.sigmoid(self.bias)
-        rval = driver < mean
+        rval = theano_rng.binomial(size=(num_examples, self.nvis), prob=mean)
 
         return rval
 
