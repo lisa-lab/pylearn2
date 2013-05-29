@@ -21,7 +21,11 @@ class LinearTransform(object):
     def get_params(self):
         """ Return a list of parameters that govern the linear transformation """
 
-        raise NotImplementedError()
+        raise NotImplementedError(str(type(self))+" does not implement get_params, function")
+
+    def set_params(self, params):
+        """Sets the paramaeters that is being used in the linear transformation """
+        raise NotImplementedError(str(type(self))+" does not implement set_params, function")
 
     def get_weights_topo(self):
         """ Return a batch of filters, formatted topologically.
