@@ -47,6 +47,10 @@ class Conv2D(OrigConv2D):
     def get_params(self):
         return [ self._filters ]
 
+    @functools.wraps(P2LT.set_params)
+    def set_params(self, filters):
+        self._filters = filters
+
     @functools.wraps(P2LT.get_weights_topo)
     def get_weights_topo(self,borrow):
         return np.transpose(self._filters.get_value(borrow = borrow),(0,2,3,1))
