@@ -752,6 +752,30 @@ class Softmax(Layer):
 
         return self.W.get_value()
 
+    def set_shared_filters(self, filters):
+        """
+        This function sets the filters of the layer to the specified shared variable.
+        Use case:
+            If there is a parameter sharing between different models, you can use this
+            function to make the filters of the model shared.
+        Warning: In order to make sure that the parameter sharing is effective, make sure
+        that this method will be called after the set_input_space function.
+        """
+        self.transformer.set_params(filters)
+        self.set_weights(filters.get_value())
+
+    def set_shared_biases(self, biases):
+        """
+        This function sets the biases of the layer to the specified parameters.
+        Use case:
+            If there is a parameter sharing between different models, you can use this
+            function to make the biases of the model shared.
+        Warning: In order to make sure that this method be effective, make sure
+        that it will be called after the set_input_space function.
+        """
+        self.b = biases
+        self.set_biases(biases.get_value())
+
     def set_weights(self, weights):
         self.W.set_value(weights)
 
@@ -1901,6 +1925,7 @@ class ConvRectifiedLinear(Layer):
                  left_slope = 0.0,
                  max_kernel_norm = None,
                  pool_type = 'max',
+                 shared_params = False,
                  detector_normalization = None,
                  output_normalization = None,
                  kernel_stride=(1, 1)):
@@ -1928,6 +1953,8 @@ class ConvRectifiedLinear(Layer):
                  left_slope: **TODO**
                  max_kernel_norm: If specifed, each kernel is constrained to have at most this
                  norm.
+                 shared_params: Flag that determines whether that architecture shares it parameters
+                 or not.
                  pool_type: The type of the pooling operation performed the the convolution.
                  Default pooling type is max-pooling.
                  detector_normalization, output_normalization:
@@ -1985,27 +2012,31 @@ class ConvRectifiedLinear(Layer):
                 num_channels = self.output_channels,
                 axes = ('b', 'c', 0, 1))
 
-        if self.irange is not None:
-            assert self.sparse_init is None
-            self.transformer = conv2d.make_random_conv2D(
-                    irange = self.irange,
-                    input_space = self.input_space,
-                    output_space = self.detector_space,
-                    kernel_shape = self.kernel_shape,
-                    batch_size = self.mlp.batch_size,
-                    subsample = self.kernel_stride,
-                    border_mode = self.border_mode,
-                    rng = rng)
-        elif self.sparse_init is not None:
-            self.transformer = conv2d.make_sparse_random_conv2D(
-                    num_nonzero = self.sparse_init,
-                    input_space = self.input_space,
-                    output_space = self.detector_space,
-                    kernel_shape = self.kernel_shape,
-                    batch_size = self.mlp.batch_size,
-                    subsample = self.kernel_stride,
-                    border_mode = self.border_mode,
-                    rng = rng)
+        if not (self.shared_params and hasattr(self, "transformer")
+                and self.transformer is not None):
+
+            if self.irange is not None:
+                assert self.sparse_init is None
+                self.transformer = conv2d.make_random_conv2D(
+                        irange = self.irange,
+                        input_space = self.input_space,
+                        output_space = self.detector_space,
+                        kernel_shape = self.kernel_shape,
+                        batch_size = self.mlp.batch_size,
+                        subsample = self.kernel_stride,
+                        border_mode = self.border_mode,
+                        rng = rng)
+            elif self.sparse_init is not None:
+                self.transformer = conv2d.make_sparse_random_conv2D(
+                        num_nonzero = self.sparse_init,
+                        input_space = self.input_space,
+                        output_space = self.detector_space,
+                        kernel_shape = self.kernel_shape,
+                        batch_size = self.mlp.batch_size,
+                        subsample = self.kernel_stride,
+                        border_mode = self.border_mode,
+                        rng = rng)
+
         W, = self.transformer.get_params()
         W.name = 'W'
 
