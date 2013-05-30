@@ -1,24 +1,19 @@
 #!/usr/bin/env python
 #usage: show_weights.py model.pkl
 from pylearn2.gui import get_weights_report
-from optparse import OptionParser
+import argparse
 
 def main():
-    parser = OptionParser()
+    parser = argparse.ArgumentParser()
 
-    parser.add_option("--rescale",dest='rescale',type='string',default="individual")
-    parser.add_option("--out",dest="out",type='string',default=None)
-    parser.add_option("--border", dest="border", action="store_true",default=False)
+    parser.add_argument("--rescale", default="individual")
+    parser.add_argument("--out", default=None)
+    parser.add_argument("--border", action="store_true", default=False)
+    parser.add_argument("path")
 
-    options, positional = parser.parse_args()
+    options = parser.parse_args()
 
-    assert len(positional) == 1
-    path ,= positional
-
-    rescale = options.rescale
-    border = options.border
-
-    pv = get_weights_report.get_weights_report(model_path = path, rescale = rescale, border = border)
+    pv = get_weights_report.get_weights_report(model_path = options.path, rescale = options.rescale, border = options.border)
 
     if options.out is None:
         pv.show()
