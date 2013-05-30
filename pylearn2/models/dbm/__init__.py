@@ -681,6 +681,19 @@ class DBM(Model):
     def get_test_batch_size(self):
         return self.batch_size
 
+    def reconstruct(self, V):
+
+        H = self.mf(V)[0]
+
+        downward_state = self.hidden_layers[0].downward_state(H)
+
+        recons = self.visible_layer.inpaint_update(
+                layer_above = self.hidden_layers[0],
+                state_above = downward_state,
+                drop_mask = None, V = None)
+
+        return recons
+
 
 class Layer(Model):
     """
@@ -1704,7 +1717,7 @@ class BinaryVectorMaxPool(HiddenLayer):
 class Softmax(HiddenLayer):
 
     def __init__(self, n_classes, layer_name, irange = None,
-                 sparse_init = None, W_lr_scale = None,
+                 sparse_init = None, sparse_istdev = 1., W_lr_scale = None,
                  b_lr_scale = None,
                  max_col_norm = None,
                  copies = 1, center = False):
@@ -1806,7 +1819,7 @@ class Softmax(HiddenLayer):
                     idx = rng.randint(0, self.input_dim)
                     while W[idx, i] != 0.:
                         idx = rng.randint(0, self.input_dim)
-                    W[idx, i] = rng.randn()
+                    W[idx, i] = rng.randn() * self.sparse_istdev
 
         self.W = sharedX(W,  'softmax_W' )
 

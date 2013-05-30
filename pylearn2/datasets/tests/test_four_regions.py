@@ -7,4 +7,4 @@ def test_four_regions():
     X = dataset.get_design_matrix()
     np.testing.assert_(((X < 1.) & (X > -1.)).all())
     y = dataset.get_targets()
-    np.testing.assert_equal(np.unique(y), [1, 2, 3, 4])
+    np.testing.assert_equal(np.unique(y), [0, 1, 2, 3])

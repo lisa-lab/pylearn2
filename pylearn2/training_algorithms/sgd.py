@@ -377,11 +377,10 @@ So with Theano you can use (1) then either (2) or (7)/(8) to have both options.
 class MonitorBasedLRAdjuster(TrainExtension):
     """
     A TrainExtension that uses the on_monitor callback to adjust
-    the learning rate on each epoch. It pulls out the only channel
-    in the model's monitor (this won't work for multiple-channel
-    monitors, TODO fix this issue) and adjusts the learning rate
-    based on what happened to the monitoring error on the last
-    epoch. If the objective is greater than high_trigger times
+    the learning rate on each epoch. It pulls out a channel
+    from the model's monitor and adjusts the learning rate
+    based on what happened to the monitoring channel on the last
+    epoch. If the channel is greater than high_trigger times
     its previous value, the learning rate will be scaled by
     shrink_amt (which should be < 1 for this scheme to make
     sense). The idea is that in this case the learning algorithm
@@ -397,14 +396,20 @@ class MonitorBasedLRAdjuster(TrainExtension):
     def __init__(self, high_trigger=1., shrink_amt=.99,
                  low_trigger=.99, grow_amt=1.01,
                  min_lr = 1e-7, max_lr = 1.,
-                 dataset_name=None):
+                 dataset_name=None, channel_name=None):
         self.high_trigger = high_trigger
         self.shrink_amt = shrink_amt
         self.low_trigger = low_trigger
         self.grow_amt = grow_amt
         self.min_lr = min_lr
         self.max_lr = max_lr
-        self.dataset_name = dataset_name
+        if channel_name is not None:
+            self.channel_name = channel_name
+        else:
+            if dataset_name is not None:
+                self.channel_name = dataset_name + '_objective'
+            else:
+                self.channel_name = 'objective'
 
     def on_monitor(self, model, dataset, algorithm):
         # TODO: more sophisticated error checking here.
@@ -415,20 +420,14 @@ class MonitorBasedLRAdjuster(TrainExtension):
                                            str(model))
         monitor = model.monitor
 
-        if self.dataset_name is not None:
-            objective  = self.dataset_name + '_objective'
-            try:
-                v = monitor.channels[objective].val_record
-            except KeyError:
-                raise KeyError('There is no monitoring channel named ' + objective + '. You probably need to change ' + self.dataset_name + ' in the input')
-        else:
-            try:
-                v = monitor.channels['objective'].val_record
-            except KeyError:
-                raise KeyError('There is no monitoring channel named \'objective\'')
+        try:
+            v = monitor.channels[self.channel_name].val_record
+        except KeyError:
+            raise KeyError('There is no monitoring channel named ' + \
+                    self.channel_name + '. You probably need to specify '
+                    'dataset_name in the MonitorBasedLRAdjuster constructor.')
 
         if len(v) < 1:
-
             if monitor.dataset is None:
                 assert len(v) == 0
                 raise ValueError("""You're trying to use a monitor-based learning

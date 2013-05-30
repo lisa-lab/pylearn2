@@ -777,7 +777,7 @@ class GlobalContrastNormalization(Preprocessor):
                     stop = i + np.mod(data_size, self._batch_size)
                 else:
                     stop = i + self._batch_size
-                log.info("GCN processing data from {} to {}".format(i, stop))
+                log.info("GCN processing data from %d to %d" % (i, stop))
                 data = self.transform(X[i:stop])
                 dataset.set_design_matrix(data, start = i)
 
@@ -838,7 +838,7 @@ class GlobalContrastNormalizationPyTables(object):
                 stop = i + np.mod(data_size, self._batch_size)
             else:
                 stop = i + self._batch_size
-            print "GCN processing data from {} to {}".format(i, stop)
+            print "GCN processing data from %d to %d" % (i, stop)
             data = self.transform(X[i:stop])
             dataset.set_design_matrix(data, start = i)
 
@@ -977,7 +977,7 @@ class LeCunLCN(ExamplewisePreprocessor):
         last = np.floor(data_size / float(self._batch_size)) * self._batch_size
         for i in xrange(0, data_size, self._batch_size):
             stop = i + np.mod(data_size, self._batch_size) if i>= last else i + self._batch_size
-            print "LCN processing data from {} to {}".format(i, stop)
+            print "LCN processing data from %d to %d" % (i, stop)
             transformed = self.transform(convert_axes(
                                 dataset.get_topological_view(
                                 dataset.X[i:stop, :]),
@@ -1061,7 +1061,7 @@ class RGB_YUV(ExamplewisePreprocessor):
         last = np.floor(data_size / float(self._batch_size)) * self._batch_size
         for i in xrange(0, data_size, self._batch_size):
             stop = i + np.mod(data_size, self._batch_size) if i>= last else i + self._batch_size
-            print "RGB_YUV processing data from {} to {}".format(i, stop)
+            print "RGB_YUV processing data from %d to %d" % (i, stop)
             data = dataset.get_topological_view(X[i:stop])
             transformed = self.transform(data, dataset.axes)
 

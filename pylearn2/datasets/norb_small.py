@@ -75,8 +75,12 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
         """
         :param which_set: one of ['train','test']
         :param center: data is in range [0,256], center=True subtracts 127.5.
+        # TODO: check this comment, sure it means {0, ..., 255}
         :param multi_target: load extra information as additional labels.
         """
+
+        self.args = locals()
+
         if which_set not in ['train','test']:
             raise ValueError("Unrecognized which_set value: " + which_set)
 
@@ -93,16 +97,8 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
         instance = y_extra[:, 0]
         assert instance.min() >= 0
         assert instance.max() <= 9
+        self.instance = instance
 
-
-        if restrict_instances is not None:
-            mask = reduce(np.maximum, [instance == ins for ins in restrict_instances])
-            mask = mask.astype('bool')
-            X = X[mask,:]
-            y = y[mask]
-            assert X.shape[0] == y.shape[0]
-            expected = sum([(instance == ins).sum() for ins in restrict_instances])
-            assert X.shape[0] == expected
 
 
         if center:
@@ -121,7 +117,37 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
         if one_hot:
             self.convert_to_one_hot()
 
+        if restrict_instances is not None:
+            assert start is None
+            assert stop is None
+            self.restrict_instances(restrict_instances)
+
+
         self.restrict(start, stop)
 
         self.y = self.y.astype('float32')
 
+    def get_test_set(self):
+
+        test_args = {'which_set' : 'test'}
+
+        for key in self.args:
+            if key in ['which_set', 'restrict_instances', 'self', 'start', 'stop']:
+                continue
+            test_args[key] = self.args[key]
+
+        return FoveatedNORB(**test_args)
+
+    def restrict_instances(self, instances):
+
+        mask = reduce(np.maximum, [self.instance == ins for ins in instances])
+        mask = mask.astype('bool')
+        self.instance = self.instance[mask]
+        self.X = self.X[mask,:]
+        if self.y.ndim == 2:
+            self.y = self.y[mask, :]
+        else:
+            self.y = self.y[mask]
+        assert self.X.shape[0] == self.y.shape[0]
+        expected = sum([(self.instance == ins).sum() for ins in instances])
+        assert self.X.shape[0] == expected

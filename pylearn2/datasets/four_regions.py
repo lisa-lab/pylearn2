@@ -11,6 +11,7 @@ __email__ = "wardefar@iro"
 
 
 import numpy as np
+from theano import config
 from pylearn2.datasets import DenseDesignMatrix
 
 
@@ -38,16 +39,16 @@ def _four_regions_labels(points):
       http://books.nips.cc/papers/files/nips01/0133.pdf
     """
     points = np.asarray(points)
-    region = np.zeros(points.shape[0])
+    region = np.zeros(points.shape[0], dtype='uint8')
     tophalf = points[:, 1] > 0
     righthalf = points[:, 0] > 0
     dists = np.sqrt(np.sum(points ** 2, axis=1))
 
     # The easy ones -- the outer shelf.
-    region[dists > np.sqrt(2)] = np.nan
+    region[dists > np.sqrt(2)] = 255
     outer = dists > 5. / 6.
     region[np.logical_and(tophalf, outer)] = 3
-    region[np.logical_and(np.logical_not(tophalf), outer)] = 4
+    region[np.logical_and(np.logical_not(tophalf), outer)] = 0
 
     firstring = np.logical_and(dists > 1. / 6., dists <= 1. / 2.)
     secondring = np.logical_and(dists > 1. / 2., dists <= 5. / 6.)
@@ -60,7 +61,7 @@ def _four_regions_labels(points):
     region[np.logical_and(secondring, righthalf)] = 1
     region[np.logical_and(np.logical_not(righthalf), dists < 1. / 2.)] = 1
     region[np.logical_and(righthalf, dists < 1. / 6.)] = 1
-    assert(np.all(region > 0))
+    assert np.all(region >= 0) and np.all(region <= 3)
     return region
 
 
@@ -87,9 +88,14 @@ class FourRegions(DenseDesignMatrix):
     """
     _default_seed = (2013, 05, 17)
 
-    def __init__(self, num_examples, rng=(2013, 05, 17)):
+    def __init__(self, num_examples, one_hot=False, rng=(2013, 05, 17)):
         if not hasattr(rng, 'uniform'):
             rng = np.random.RandomState(rng)
         X = rng.uniform(-1, 1, size=(num_examples, 2))
-        y = _four_regions_labels(X)
+        if not one_hot:
+            y = _four_regions_labels(X)
+        else:
+            y = np.zeros((num_examples, 4), dtype=config.floatX)
+            labels = _four_regions_labels(X)
+            y.flat[np.arange(0, 4 * num_examples, 4) + labels] = 1.
         super(FourRegions, self).__init__(X=X, y=y)

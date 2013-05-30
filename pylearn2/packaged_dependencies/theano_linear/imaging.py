@@ -1,6 +1,6 @@
 import sys
 import numpy
-from PIL import Image
+from pylearn2.utils.image import Image, ensure_Image
 
 
 def scale_to_unit_interval(ndar,eps=1e-8):
@@ -142,8 +142,10 @@ def save_tiled_raster_images(tiled_img, filename):
     Returns the PIL image that was saved
     """
     if tiled_img.ndim==2:
+        ensure_Image()
         img = Image.fromarray( tiled_img, 'L')
     elif tiled_img.ndim==3:
+        ensure_Image()
         img = Image.fromarray(tiled_img, 'RGBA')
     else:
         raise TypeError('bad ndim', tiled_img)
@@ -176,6 +178,7 @@ def tile_slices_to_image_uint8(X, tile_shape=None):
             #print Xrc.shape
             #print out[tr*Hs:tr*Hs+H,tc*Ws:tc*Ws+W].shape
             out[tr*Hs:tr*Hs+H,tc*Ws:tc*Ws+W] = Xrc
+    ensure_Image()
     img = Image.fromarray(out, 'RGB')
     return img
 

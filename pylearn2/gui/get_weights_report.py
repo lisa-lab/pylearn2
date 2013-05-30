@@ -49,7 +49,17 @@ def get_weights_report(model_path = None, model = None, rescale = 'individual', 
         del model['__version__']
         del model['__header__']
         del model['__globals__']
-        weights ,= model.values()
+        keys = [key for key in model if hasattr(model[key], 'ndim') and model[key].ndim == 2]
+        if len(keys) > 2:
+            key = None
+            while key not in keys:
+                print 'Which is the weights?'
+                for key in keys:
+                    print '\t', key
+                key = raw_input()
+        else:
+            key, = keys
+        weights = model[key]
 
         norms = np.sqrt(np.square(weights).sum(axis=1))
         print 'min norm: ',norms.min()

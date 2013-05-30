@@ -50,7 +50,10 @@ def arg_of_softmax(Y_hat):
         Y_hat, = owner.inputs
         owner = Y_hat.owner
         op = owner.op
-    assert isinstance(op, T.nnet.Softmax)
+    if not isinstance(op, T.nnet.Softmax):
+        raise ValueError("Expected Y_hat to be the output of a softmax, "
+                "but it appears to be the output of " + str(op) + " of type "
+                + str(type(op)))
     z ,= owner.inputs
     assert z.ndim == 2
     return z

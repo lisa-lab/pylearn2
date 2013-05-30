@@ -8,7 +8,7 @@ It assumes that you have already run make_downsampled_stl10.py, which downsample
 
 from pylearn2.utils import serial
 from pylearn2.datasets import preprocessing
-from pylearn2.utils import string
+from pylearn2.utils import string_utils as string
 import numpy as np
 
 data_dir = string.preprocess('${PYLEARN2_DATA_PATH}/stl10')

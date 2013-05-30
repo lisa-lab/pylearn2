@@ -1,5 +1,35 @@
+"""
+
+A GPU implementation of probabilistic max-pooling, based on
+
+"Convolutional Deep Belief Networks for Scalable
+Unsupervised Learning of Hierarchical Representations"
+Honglak Lee, Roger Grosse, Rajesh Ranganath, and Andrew Y. Ng
+ICML 2009
+
+
+This paper defines probabilistic max-pooling in the context
+of a Convolutional Deep Belief Network (its energy function is
+more like a DBM than a DBN but it is trained like a DBN). Here
+we define probabilistic max pooling as a general layer for
+use in an energy-based model regardless of how the rest of the
+model is assembled.
+
+The gpu code is written around Alex Krizhevsky's cuda-convnet
+library
+"""
+
+__authors__ = "Mehdi Mirza"
+__copyright__ = "Copyright 2010-2013, Universite de Montreal"
+__credits__ = ["Mehdi Mirza", "Ian Goodfellow", "David Warde-Farley"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Mehdi Mirza"
+__email__ = "mirzamom@iro"
+
+
 import warnings
 
+from theano import tensor
 from theano.gof import Apply
 from theano.sandbox.cuda import CudaNdarrayType
 from theano.sandbox.cuda.basic_ops import as_cuda_ndarray_variable
@@ -13,28 +43,32 @@ from pylearn2.sandbox.cuda_convnet.convnet_compile import cuda_convnet_loc
 from pylearn2.sandbox.cuda_convnet.shared_code import this_dir
 
 
-def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape = None,  start=0):
-    assert pool_shape[0] == pool_shape[1]
+def prob_max_pool_c01b(c01b, pool_shape, top_down = None):
+    if pool_shape[0] != pool_shape[1]:
+        raise UnimplementedError("Non squre pool shapes are not supported yet")
     assert pool_shape[0] > 0
-    assert pool_stride[0] > 0
-    assert pool_stride[0] <= pool_shape[0]
-    if pool_stride[0] != pool_stride[1]:
-        raise ValueError("pool strides must match, but got "+str(pool_stride))
-    if image_shape is not None:
-        warnings.warn("image_shape argument isn't needed anymore, quit passing it.")
-    op = MaxPool(pool_shape[0], pool_stride[0], start)
+
+
+    batch_size, zr, zc, ch = c01b.shape
+    r, c = pool_shape
+    if top_down is None:
+        top_down = tensor.zeros((batch_size, zr / r, zc / c, ch), dtype = c01b.dtype)
+
+    op = ProbMaxPool(pool_shape[0])
     c01b = gpu_contiguous(c01b)
-    return op(c01b)
+    top_down = gpu_contiguous(top_down)
 
+    return op(c01b, top_down)
 
-class MaxPool(GpuOp):
+class ProbMaxPool(GpuOp):
     """
-    This op wrap Alex's MaxPool code on the GPU.
+    Probabilistic max pooling code on the GPU.
     The input are in the order (channel, image rows, image cols, batch)
 
-    Work only on square images and the grad work only when channel % 16 == 0.
+    Work only on square images wiht squre pooling shape
+    and the grad work only when channel % 16 == 0.
     """
-    def __init__(self, ds, stride, start=0, outputs=0):
+    def __init__(self, ds, start=0, outputs=0):
         """
         :param ds: defines the size of the pooling region in the x
             (equivalently, y) dimension. Squares of size (ds)2 get reduced
@@ -69,11 +103,12 @@ class MaxPool(GpuOp):
 
         """
         self.ds = ds
-        self.stride = stride
+        self.stride = ds
         self.start = start
         self.copy_non_contiguous = 0
-        assert stride > 0 and stride <= ds, (stride, ds)
         assert ds > 0, ds  # We check in the code if ds <= imgSizeX
+        warnings.warn("non squre pool shape and strides different than "
+                    "pool shape hasn't been tested and disabled")
 
     def __eq__(self, other):
         #Dont put copy_non_contigous as this don't change the output
@@ -118,10 +153,12 @@ class MaxPool(GpuOp):
             'class_name_caps': self.__class__.__name__.upper(),
         }
 
-    def make_node(self, images):
+    def make_node(self, images, top_down):
         images = as_cuda_ndarray_variable(images)
+        top_down = as_cuda_ndarray_variable(top_down)
 
         assert images.ndim == 4
+        assert top_down.ndim == 4
 
         channels_broadcastable = images.type.broadcastable[0]
         batch_broadcastable = images.type.broadcastable[3]
@@ -129,16 +166,21 @@ class MaxPool(GpuOp):
         rows_broadcastable = False
         cols_broadcastable = False
 
-        targets_broadcastable = (channels_broadcastable, rows_broadcastable,
+        houtput_broadcastable = (channels_broadcastable, rows_broadcastable,
                 cols_broadcastable, batch_broadcastable)
-        targets_type = CudaNdarrayType(broadcastable=targets_broadcastable)
-        targets = targets_type()
+        houtput_type = CudaNdarrayType(broadcastable=houtput_broadcastable)
+        houtput = houtput_type()
 
-        return Apply(self, [images], [targets])
+        poutput_broadcastable = (channels_broadcastable, rows_broadcastable,
+                cols_broadcastable, batch_broadcastable)
+        poutput_type = CudaNdarrayType(broadcastable=poutput_broadcastable)
+        poutput = poutput_type()
+
+        return Apply(self, [images, top_down], [houtput, poutput])
 
     def c_code(self, node, name, inputs, outputs, sub):
-        images, = inputs
-        targets, = outputs
+        images, top_down = inputs
+        ptargets, htargets = outputs
         fail = sub['fail']
 
         # The amount of braces that must be closed at the end
@@ -147,7 +189,7 @@ class MaxPool(GpuOp):
         if self.copy_non_contiguous:
             raise UnimplementedError()
         else:
-            basic_setup = "#define MAXPOOL_COPY_NON_CONTIGUOUS 0\n"
+            basic_setup = "#define PROBMAXPOOL_COPY_NON_CONTIGUOUS 0\n"
 
         # Convert images in nv_images, an NVMatrix, for compatibility
         # with the cuda-convnet functions
@@ -187,13 +229,32 @@ class MaxPool(GpuOp):
         }
 
         NVMatrix nv_images(%(images)s, img_channels * imgSizeY * imgSizeX, batch_size,
-        "MaxPool:nv_images");
+        "ProbMaxPool:nv_images");
         """
         num_braces += 1
 
-        setup_nv_targets = """
-        //int _outputsX = int(ceil((dic['imgSize'] - dic['start'] - dic['sizeX']) / float(dic['stride']))) + 1;
+        # TODO check if stride != pool shape works, if not put error check
+        setup_nv_top_down = self._argument_contiguity_check("top_down") + """
+        if (%(top_down)s->nd != 4)
+        {
+            PyErr_Format(PyExc_ValueError,
+                "top_down must have nd=4, got nd=%%i", %(images)s->nd);
+            %(fail)s;
+        }
+
+        { //setup_nv_images brace 1
+
         int _outputsX = ((int)(ceil((imgSizeY - %(start)s - %(ds)s) / ((float)%(stride)s)))) + 1;
+
+
+        NVMatrix nv_top_down(%(top_down)s, img_channels * _outputsX * _outputsX, batch_size,
+        "ProbMaxPool:nv_top_down");
+        """
+        num_braces += 1
+
+
+        setup_nv_ptargets = """
+        //int _outputsX = ((int)(ceil((imgSizeY - %(start)s - %(ds)s) / ((float)%(stride)s)))) + 1;
 
         int target_dims [] = {
             img_channels,
@@ -201,22 +262,41 @@ class MaxPool(GpuOp):
             _outputsX,
             batch_size };
 
-        if (CudaNdarray_prep_output(& %(targets)s, 4, target_dims))
+        if (CudaNdarray_prep_output(& %(ptargets)s, 4, target_dims))
         {
             %(fail)s;
         }
 
         { // setup_nv_target brace # 1
 
-        NVMatrix nv_targets(%(targets)s, target_dims[0] * target_dims[1] * target_dims[2],
-                            target_dims[3], "MaxPool:nv_targets");
+        NVMatrix nv_ptargets(%(ptargets)s, target_dims[0] * target_dims[1] * target_dims[2],
+                            target_dims[3], "ProbMaxPool:nv_ptargets");
 
         """
+        num_braces += 1
 
+        setup_nv_htargets = """
+        int target_dims [] = {
+            img_channels,
+            imgSizeX,
+            imgSizeY,
+            batch_size };
+
+        if (CudaNdarray_prep_output(& %(htargets)s, 4, target_dims))
+        {
+            %(fail)s;
+        }
+
+        { // setup_nv_target brace # 1
+
+        NVMatrix nv_htargets(%(htargets)s, target_dims[0] * target_dims[1] * target_dims[2],
+                            target_dims[3], "ProbMaxPool:nv_htargets");
+
+        """
         num_braces += 1
 
         do_pool = """
-        convLocalPool(nv_images, nv_targets, img_channels, %(ds)s,
+        probabilisticPool(nv_images, nv_top_down, nv_ptargets, nv_htargets, img_channels, %(ds)s,
                       %(start)s, %(stride)s, _outputsX, MaxPooler());
         """
 
@@ -224,7 +304,9 @@ class MaxPool(GpuOp):
 
         rval = (basic_setup +
                 setup_nv_images +
-                setup_nv_targets +
+                setup_nv_top_down +
+                setup_nv_ptargets +
+                setup_nv_htargets +
                 do_pool +
                 braces)
         start = self.start
@@ -235,22 +317,22 @@ class MaxPool(GpuOp):
         return rval
 
     def grad(self, inp, grads):
-        x, = inp
-        gz, = grads
-        gz = gpu_contiguous(gz)
-        maxout = self(x)
-        return [MaxPoolGrad(self.ds, self.stride, self.start)(x, maxout, gz)]
+        x, top_down = inp
+        gp, gh= grads
+        gp = gpu_contiguous(gp)
+        gh = gpu_contiguous(gh)
+        p, h = self(x, top_down)
+        return ProbMaxPoolGrad(self.ds, self.stride, self.start)(p, h, gp, gh)
 
     # Make sure the cuda_convnet library is compiled and up-to-date
     def make_thunk(self, node, storage_map, compute_map, no_recycling):
         if not convnet_available():
             raise RuntimeError('Could not compile cuda_convnet')
 
-        return super(MaxPool, self).make_thunk(
+        return super(ProbMaxPool, self).make_thunk(
                 node, storage_map, compute_map, no_recycling)
 
-
-class MaxPoolGrad(GpuOp):
+class ProbMaxPoolGrad(GpuOp):
     def __init__(self, ds, stride, start):
         self.ds = ds
         self.stride = stride
@@ -302,26 +384,26 @@ class MaxPoolGrad(GpuOp):
             'class_name_caps': self.__class__.__name__.upper(),
         }
 
-    def make_node(self, images, maxout, gz):
-        images = as_cuda_ndarray_variable(images)
-        maxout = as_cuda_ndarray_variable(maxout)
-        gz = as_cuda_ndarray_variable(gz)
+    def make_node(self, p, h, gp, gh):
+        p = as_cuda_ndarray_variable(p)
+        h = as_cuda_ndarray_variable(h)
+        gp = as_cuda_ndarray_variable(gp)
+        gh = as_cuda_ndarray_variable(gh)
 
-        assert images.ndim == 4
-        assert maxout.ndim == 4
-        assert gz.ndim == 4
+        assert p.ndim == 4
+        assert h.ndim == 4
+        assert gp.ndim == 4
+        assert gh.ndim == 4
         try:
-            # Note : `get_scalar_constant_value` returns a ndarray not a
-            # int
-            nb_channel = int(get_scalar_constant_value(images.shape[0]))
+            nb_channel = int(get_scalar_constant_value(h.shape[0]))
             assert nb_channel % 16 == 0
         except NotScalarConstantError:
                     pass
-        return Apply(self, [images, maxout, gz], [images.type()])
+        return Apply(self, [p, h, gp, gh], [p.type(), h.type()])
 
     def c_code(self, node, name, inputs, outputs, sub):
-        images, maxout, gz = inputs
-        targets, = outputs
+        p, h, gp, gh = inputs
+        targets_z, targets_t, = outputs
         fail = sub['fail']
 
         # The amount of braces that must be closed at the end
@@ -330,21 +412,21 @@ class MaxPoolGrad(GpuOp):
         if self.copy_non_contiguous:
             raise UnimplementedError()
         else:
-            basic_setup = "#define MAXPOOLGRAD_COPY_NON_CONTIGUOUS 0\n"
+            basic_setup = "#define PROBMAXPOOLGRAD_COPY_NON_CONTIGUOUS 0\n"
 
         # Convert images in nv_images, an NVMatrix, for compatibility
         # with the cuda-convnet functions
-        setup_nv_images = self._argument_contiguity_check("images") + """
-        if (%(images)s->nd != 4)
+        setup_nv_h = self._argument_contiguity_check("h") + """
+        if (%(h)s->nd != 4)
         {
             PyErr_Format(PyExc_ValueError,
-                "images must have nd=4, got nd=%%i", %(images)s->nd);
+                "h must have nd=4, got nd=%%i", %(h)s->nd);
             %(fail)s;
         }
 
         { //setup_nv_images brace 1
 
-        const int * images_dims = CudaNdarray_HOST_DIMS(%(images)s);
+        const int * images_dims = CudaNdarray_HOST_DIMS(%(h)s);
         const int img_channels = images_dims[0];
         const int imgSizeY = images_dims[1];
         const int imgSizeX = images_dims[2];
@@ -362,130 +444,144 @@ class MaxPoolGrad(GpuOp):
                 %(ds)s, imgSizeX, imgSizeY);
             %(fail)s;
         }
+        if (CudaNdarray_HOST_DIMS(%(h)s)[0] %% 16 != 0)
+        {
+            PyErr_Format(PyExc_ValueError,
+                "h must have a number of channels that is a multiple of 16. Got %%d",
+                CudaNdarray_HOST_DIMS(%(gh)s)[0]);
+            %(fail)s;
+        }
 
-        NVMatrix nv_images(%(images)s, img_channels * imgSizeY * imgSizeX, batch_size,
-        "MaxPool:nv_images");
+
+        NVMatrix nv_h(%(h)s, img_channels * imgSizeY * imgSizeX,
+                          batch_size, "ProbMaxPool:nv_h");
         """
         num_braces += 1
 
-        # Convert maxout in nv_maxout
-        setup_nv_maxout = self._argument_contiguity_check("maxout") + """
-        if (%(maxout)s->nd != 4)
+
+        setup_nv_p = self._argument_contiguity_check("p") + """
+        if (%(p)s->nd != 4)
         {
             PyErr_Format(PyExc_ValueError,
-                "maxout must have nd=4, got nd=%%i", %(maxout)s->nd);
+                "P must have nd=4, got nd=%%i", %(p)s->nd);
             %(fail)s;
         }
 
-        { //setup_nv_maxout brace 1
+        { //setup_nv_images brace 1
 
-        const int * maxout_dims = CudaNdarray_HOST_DIMS(%(maxout)s);
-        const int maxout_channels = maxout_dims[0];
-        const int maxoutSizeY = maxout_dims[1];
-        const int maxoutSizeX = maxout_dims[2];
-
-        if(maxoutSizeY != maxoutSizeX){
-            PyErr_Format(PyExc_ValueError,
-                "maxout must be square(dims[1] == dims[2])."
-                " Shape (%%i,%%i,%%i,%%i)",
-                maxout_channels, maxoutSizeY, maxoutSizeX, batch_size);
-            %(fail)s;
-        }
-        if(img_channels != maxout_channels){
-            PyErr_Format(PyExc_ValueError,
-                "img_channels(%%d) should be equal to maxout_channels(%%d).",
-                img_channels, maxout_channels);
-            %(fail)s;
-        }
-        if(maxout_dims[3] != batch_size){
-            PyErr_Format(PyExc_ValueError,
-                "batch_size(%%d) should be equal to maxout_dims[3](%%d)",
-                batch_size, maxout_dims[3]);
-            %(fail)s;
-        }
-
-       NVMatrix nv_maxout(%(maxout)s, img_channels * maxoutSizeY * maxoutSizeX,
-                          batch_size, "MaxPool:nv_maxout");
-        """
-        num_braces += 1
-
-        # Convert gz in nv_gz
-        setup_nv_gz = self._argument_contiguity_check("gz") + """
-        if (%(gz)s->nd != 4)
-        {
-            PyErr_Format(PyExc_ValueError,
-                "gz must have nd=4, got nd=%%i", %(gz)s->nd);
-            %(fail)s;
-        }
-        if (CudaNdarray_HOST_DIMS(%(gz)s)[0] %% 16 != 0)
-        {
-            PyErr_Format(PyExc_ValueError,
-                "gz must have a number of channels that is a multiple of 16. Got %%d",
-                CudaNdarray_HOST_DIMS(%(gz)s)[0]);
-            %(fail)s;
-        }
-
-        { //setup_nv_gz brace 1
-
-        const int * gz_dims = CudaNdarray_HOST_DIMS(%(gz)s);
-        const int gz_channels = gz_dims[0];
-        const int gzSizeY = gz_dims[1];
-        const int gzSizeX = gz_dims[2];
-
-        if(maxout_dims[0] != gz_dims[0] ||
-           maxout_dims[1] != gz_dims[1] ||
-           maxout_dims[2] != gz_dims[2] ||
-           maxout_dims[3] != gz_dims[3]){
-            PyErr_Format(PyExc_ValueError,
-                "gz shape(%%d, %%d, %%d, %%d) must be the same"
-                " as maxout(%%d, %%d, %%d, %%d)",
-                maxout_dims[0], maxout_dims[1], maxout_dims[2], maxout_dims[3],
-                gz_dims[0], gz_dims[1], gz_dims[2], gz_dims[3]);
-            %(fail)s;
-        }
-
-        NVMatrix nv_gz(%(gz)s, img_channels * maxoutSizeY * maxoutSizeX,
-                       batch_size, "MaxPool:nv_gz");
-        """
-        num_braces += 1
-
-        setup_nv_targets = """
-        //int _outputsX = int(ceil((dic['imgSize'] - dic['start'] - dic['sizeX']) / float(dic['stride']))) + 1;
         int _outputsX = ((int)(ceil((imgSizeY - %(start)s - %(ds)s) / ((float)%(stride)s)))) + 1;
 
-        int target_dims [] = {
+
+        NVMatrix nv_p(%(p)s, img_channels * _outputsX * _outputsX, batch_size,
+        "ProbMaxPool:nv_p");
+        """
+        num_braces += 1
+
+        # Convert gh in nv_gh
+        setup_nv_gh = self._argument_contiguity_check("gh") + """
+        if (%(gh)s->nd != 4)
+        {
+            PyErr_Format(PyExc_ValueError,
+                "gh must have nd=4, got nd=%%i", %(gh)s->nd);
+            %(fail)s;
+        }
+        if (CudaNdarray_HOST_DIMS(%(gh)s)[0] %% 16 != 0)
+        {
+            PyErr_Format(PyExc_ValueError,
+                "gh must have a number of channels that is a multiple of 16. Got %%d",
+                CudaNdarray_HOST_DIMS(%(gh)s)[0]);
+            %(fail)s;
+        }
+
+        { //setup_nv_gh brace 1
+
+        const int * gh_dims = CudaNdarray_HOST_DIMS(%(gh)s);
+        const int gh_channels = gh_dims[0];
+        const int ghSizeY = gh_dims[1];
+        const int ghSizeX = gh_dims[2];
+
+        NVMatrix nv_gh(%(gh)s, gh_channels * ghSizeY * ghSizeX,
+                       batch_size, "ProbMaxPool:nv_gh");
+        """
+        num_braces += 1
+
+        setup_nv_gp = self._argument_contiguity_check("gp") + """
+        if (%(gp)s->nd != 4)
+        {
+            PyErr_Format(PyExc_ValueError,
+                "gp must have nd=4, got nd=%%i", %(gp)s->nd);
+            %(fail)s;
+        }
+
+        { //setup_nv_images brace 1
+
+        int _outputsX = ((int)(ceil((imgSizeY - %(start)s - %(ds)s) / ((float)%(stride)s)))) + 1;
+
+
+        NVMatrix nv_gp(%(gp)s, img_channels * _outputsX * _outputsX, batch_size,
+        "ProbMaxPool:nv_gp");
+        """
+        num_braces += 1
+
+
+        setup_nv_targets_z = """
+        int target_z_dims [] = {
             img_channels,
             imgSizeX,
             imgSizeY,
             batch_size };
 
-        if (CudaNdarray_prep_output(& %(targets)s, 4, target_dims))
+        if (CudaNdarray_prep_output(& %(targets_z)s, 4, target_z_dims))
         {
             %(fail)s;
         }
 
         { // setup_nv_target brace # 1
 
-        NVMatrix nv_targets(%(targets)s,
-                            target_dims[0] * target_dims[1] * target_dims[2],
-                            target_dims[3], "MaxPool:nv_targets");
+        NVMatrix nv_targets_z(%(targets_z)s,
+                            target_z_dims[0] * target_z_dims[1] * target_z_dims[2],
+                            target_z_dims[3], "ProbMaxPool:nv_targets_z");
 
         """
 
         num_braces += 1
 
+
+        setup_nv_targets_t = """
+        int target_t_dims [] = {
+            img_channels,
+            _outputsX,
+            _outputsX,
+            batch_size };
+
+        if (CudaNdarray_prep_output(& %(targets_t)s, 4, target_t_dims))
+        {
+            %(fail)s;
+        }
+
+        { // setup_nv_target brace # 1
+
+        NVMatrix nv_targets_t(%(targets_t)s, target_t_dims[0] * target_t_dims[1] * target_t_dims[2],
+                            target_t_dims[3], "ProbMaxPool:nv_targets_t");
+
+        """
+        num_braces += 1
+
+
         undo_pool = """
-        convLocalMaxUndo(nv_images, nv_gz, nv_maxout, nv_targets,
-                         %(ds)s, %(start)s, %(stride)s, _outputsX, 0, 1);
+        localProbMaxUndo(nv_h, nv_p, nv_gh, nv_gp, nv_targets_z, nv_targets_t,
+                         %(ds)s, %(start)s, %(stride)s, _outputsX, imgSizeX);
         """
 
         braces = '}' * num_braces
 
         rval = (basic_setup +
-                setup_nv_images +
-                setup_nv_maxout +
-                setup_nv_gz +
-                setup_nv_targets +
+                setup_nv_h +
+                setup_nv_p +
+                setup_nv_gh +
+                setup_nv_gp +
+                setup_nv_targets_z +
+                setup_nv_targets_t +
                 undo_pool +
                 braces)
         start = self.start
@@ -500,5 +596,7 @@ class MaxPoolGrad(GpuOp):
         if not convnet_available():
             raise RuntimeError('Could not compile cuda_convnet')
 
-        return super(MaxPoolGrad, self).make_thunk(
+        return super(ProbMaxPoolGrad, self).make_thunk(
                 node, storage_map, compute_map, no_recycling)
+
+

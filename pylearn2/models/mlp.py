@@ -354,7 +354,7 @@ class MLP(Layer):
 
     def dropout_fprop(self, state_below, default_input_include_prob=0.5,
                       input_include_probs=None, default_input_scale=2.,
-                      input_scales=None):
+                      input_scales=None, per_example=True):
         """
         state_below: The input to the MLP
 
@@ -368,10 +368,16 @@ class MLP(Layer):
         Each feature is also multiplied by a scale factor. The scale factor for each
         layer's input scale is determined by the same scheme as the input probabilities.
 
+        per_example : bool, optional
+            Sample a different mask value for every example in
+            a batch. Default is `True`. If `False`, sample one
+            mask per mini-batch.
         """
-        warnings.warn("dropout should be implemented with fixed_var_descr to"
-                " make sure it works with BGD, this is just a hack to get it"
-                "working with SGD")
+
+        warnings.warn("dropout doesn't use fixed_var_descr so it won't work with "
+                "algorithms that make more than one theano function call per batch,"
+                " such as BGD. Implementing fixed_var descr could increase the memory"
+                " usage though.")
 
         if input_include_probs is None:
             input_include_probs = {}
@@ -402,7 +408,9 @@ class MLP(Layer):
                 include_prob=include_prob,
                 theano_rng=theano_rng,
                 scale=scale,
-                mask_value=layer.dropout_input_mask_value
+                mask_value=layer.dropout_input_mask_value,
+                input_space=layer.get_input_space(),
+                per_example=per_example
             )
             state_below = layer.fprop(state_below)
 
@@ -534,7 +542,18 @@ class MLP(Layer):
         return rval
 
     def apply_dropout(self, state, include_prob, scale, theano_rng,
-                      mask_value=0):
+                      input_space, mask_value=0, per_example=True):
+
+        """
+        Parameters
+        ----------
+        ...
+
+        per_example : bool, optional
+            Sample a different mask value for every example in
+            a batch. Default is `True`. If `False`, sample one
+            mask per mini-batch.
+        """
         if include_prob in [None, 1.0, 1]:
             return state
         assert scale is not None
@@ -542,8 +561,21 @@ class MLP(Layer):
             return tuple(self.apply_dropout(substate, include_prob,
                                             scale, theano_rng, mask_value)
                          for substate in state)
-        mask = theano_rng.binomial(p=include_prob, size=state.shape,
-                                   dtype=state.dtype)
+        # TODO: all of this assumes that if it's not a tuple, it's
+        # a dense tensor. It hasn't been tested with sparse types.
+        # A method to format the mask (or any other values) as
+        # the given symbolic type should be added to the Spaces
+        # interface.
+        if per_example:
+            mask = theano_rng.binomial(p=include_prob, size=state.shape,
+                                       dtype=state.dtype)
+        else:
+            batch = input_space.get_origin_batch(1)
+            mask = theano_rng.binomial(p=include_prob, size=batch.shape,
+                                       dtype=state.dtype)
+            rebroadcast = T.Rebroadcast(*zip(xrange(batch.ndim),
+                                             [s == 1 for s in batch.shape]))
+            mask = rebroadcast(mask)
         if mask_value == 0:
             return state * mask * scale
         else:
@@ -1665,7 +1697,8 @@ class Linear(Layer):
 
 class Tanh(Linear):
     """
-    Implementation of the tanh nonlinearity for MLP.
+    A layer that performs an affine transformation of its (vectorial)
+    input followed by a hyperbolic tangent elementwise nonlinearity.
     """
 
     def fprop(self, state_below):
@@ -1678,10 +1711,11 @@ class Tanh(Linear):
 
 class Sigmoid(Linear):
     """
-    Implementation of the sigmoid nonlinearity for MLP.
+    A layer that performs an affine transformation of its (vectorial)
+    input followed by a logistic sigmoid elementwise nonlinearity.
     """
 
-    def __init__(self, monitor_style = 'detection', ** kwargs):
+    def __init__(self, monitor_style='detection', **kwargs):
         """
             monitor_style: a string, either 'detection' or 'classification'
                            'detection' by default
@@ -1823,11 +1857,12 @@ class Sigmoid(Linear):
                 rval.update(self.get_detection_channels_from_state(state, target))
             else:
                 assert self.monitor_style == 'classification'
-
-                Y = T.argmax(target, axis=1)
-                Y_hat = T.argmax(state, axis=1)
-                rval['misclass'] = T.cast(T.neq(Y, Y_hat), state.dtype).mean()
-
+                # Threshold Y_hat at 0.5.
+                prediction = T.gt(state, 0.5)
+                # If even one feature is wrong for a given training example,
+                # it's considered incorrect, so we max over columns.
+                incorrect = T.neq(target, prediction).max(axis=1)
+                rval['misclass'] = T.cast(incorrect, config.floatX).mean()
         return rval
 
 
@@ -1867,14 +1902,45 @@ class ConvRectifiedLinear(Layer):
                  max_kernel_norm = None,
                  pool_type = 'max',
                  detector_normalization = None,
-                 output_normalization = None):
+                 output_normalization = None,
+                 kernel_stride=(1, 1)):
         """
-
-            include_prob: probability of including a weight element in the set
+                 output_channels: The number of output channels the layer should have.
+                 kernel_shape: The shape of the convolution kernel.
+                 pool_shape: The shape of the spatial max pooling. A two-tuple of ints.
+                 pool_stride: The stride of the spatial max pooling. Also must be square.
+                 layer_name: A name for this layer that will be prepended to
+                 monitoring channels related to this layer.
+                 irange: if specified, initializes each weight randomly in
+                 U(-irange, irange)
+                 border_mode:A string indicating the size of the output:
+                    full - The output is the full discrete linear convolution of the inputs.
+                    valid - The output consists only of those elements that do not rely
+                    on the zero-padding.(Default)
+                 include_prob: probability of including a weight element in the set
             of weights initialized to U(-irange, irange). If not included
             it is initialized to 0.
-
+                 init_bias: All biases are initialized to this number
+                 W_lr_scale:The learning rate on the weights for this layer is
+                 multiplied by this scaling factor
+                 b_lr_scale: The learning rate on the biases for this layer is
+                 multiplied by this scaling factor
+                 left_slope: **TODO**
+                 max_kernel_norm: If specifed, each kernel is constrained to have at most this
+                 norm.
+                 pool_type: The type of the pooling operation performed the the convolution.
+                 Default pooling type is max-pooling.
+                 detector_normalization, output_normalization:
+                      if specified, should be a callable object. the state of the network is
+                      optionally
+                      replaced with normalization(state) at each of the 3 points in processing:
+                          detector: the maxout units can be normalized prior to the spatial
+                          pooling
+                          output: the output of the layer, after sptial pooling, can be normalized
+                          as well
+                 kernel_stride: The stride of the convolution kernel. A two-tuple of ints.
         """
+
         if (irange is None) and (sparse_init is None):
             raise AssertionError("You should specify either irange or sparse_init when calling the constructor of ConvRectifiedLinear.")
         elif (irange is not None) and (sparse_init is not None):
@@ -1909,11 +1975,11 @@ class ConvRectifiedLinear(Layer):
         rng = self.mlp.rng
 
         if self.border_mode == 'valid':
-            output_shape = [self.input_space.shape[0] - self.kernel_shape[0] + 1,
-                self.input_space.shape[1] - self.kernel_shape[1] + 1]
+            output_shape = [(self.input_space.shape[0] - self.kernel_shape[0]) / self.kernel_stride[0] + 1,
+                (self.input_space.shape[1] - self.kernel_shape[1]) / self.kernel_stride[1] + 1]
         elif self.border_mode == 'full':
-            output_shape = [self.input_space.shape[0] + self.kernel_shape[0] - 1,
-                    self.input_space.shape[1] + self.kernel_shape[1] - 1]
+            output_shape = [(self.input_space.shape[0] +  self.kernel_shape[0]) / self.kernel_stride[0] - 1,
+                    (self.input_space.shape[1] + self.kernel_shape[1]) / self.kernel_stride_stride[1] - 1]
 
         self.detector_space = Conv2DSpace(shape=output_shape,
                 num_channels = self.output_channels,
@@ -1927,7 +1993,7 @@ class ConvRectifiedLinear(Layer):
                     output_space = self.detector_space,
                     kernel_shape = self.kernel_shape,
                     batch_size = self.mlp.batch_size,
-                    subsample = (1,1),
+                    subsample = self.kernel_stride,
                     border_mode = self.border_mode,
                     rng = rng)
         elif self.sparse_init is not None:
@@ -1937,7 +2003,7 @@ class ConvRectifiedLinear(Layer):
                     output_space = self.detector_space,
                     kernel_shape = self.kernel_shape,
                     batch_size = self.mlp.batch_size,
-                    subsample = (1,1),
+                    subsample = self.kernel_stride,
                     border_mode = self.border_mode,
                     rng = rng)
         W, = self.transformer.get_params()
