@@ -85,7 +85,7 @@ class BaseCD(Cost):
             updates[key] = val
 
         gradients = OrderedDict()
-        for param in list(gradients.keys()):
+        for param in list(pos_phase_grads.keys()):
             gradients[param] = neg_phase_grads[param] + pos_phase_grads[param]
 
         return gradients, updates
