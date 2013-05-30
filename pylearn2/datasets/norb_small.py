@@ -75,6 +75,7 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
         """
         :param which_set: one of ['train','test']
         :param center: data is in range [0,256], center=True subtracts 127.5.
+        # TODO: check this comment, sure it means {0, ..., 255}
         :param multi_target: load extra information as additional labels.
         """
         if which_set not in ['train','test']:
