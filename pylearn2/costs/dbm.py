@@ -73,6 +73,19 @@ class BaseCD(Cost):
 
         return rval
 
+    def get_gradients(self, model, X, Y=None):
+        pos_phase_grads, pos_updates = self._get_positive_phase(model, X, Y)
+
+        neg_phase_grads, neg_updates = self._get_negative_phase(model, X, Y)
+
+        updates = OrderedDict(pos_updates, **neg_updates)
+
+        gradients = OrderedDict()
+        for param in list(gradients.keys()):
+            gradients[param] = neg_phase_grads[param] + pos_phase_grads[param]
+
+        return gradients, updates
+
     def _get_toronto_neg(self, model, layer_to_chains):
         # Ruslan Salakhutdinov's undocumented negative phase from
         # http://www.mit.edu/~rsalakhu/code_DBM/dbm_mf.m
@@ -188,7 +201,7 @@ class BaseCD(Cost):
         )
         return gradients
 
-    def _get_standard_pos(self, model, X, Y):
+    def _get_sampling_pos(self, model, X, Y):
         layer_to_clamp = OrderedDict([(model.visible_layer, True)])
         layer_to_pos_samples = OrderedDict([(model.visible_layer, X)])
         if self.supervised:
@@ -249,25 +262,10 @@ class PCD(BaseCD):
         super(PCD, self).__init__(num_chains, num_gibbs_steps,
                                   supervised, toronto_neg)
 
-    def get_gradients(self, model, X, Y=None):
-        """
-        PCD approximation to the gradient.
-        Keep in mind this is a cost, so we use
-        the negative log likelihood.
-        """
+    def _get_positive_phase(self, model, X, Y=None)
+        return self._get_sampling_pos(model, X, Y), OrderedDict()
 
-        """
-        Positive phase
-        """
-        gradients = self._get_standard_pos(model, X, Y)
-
-        """
-        d/d theta log Z = (d/d theta Z) / Z
-                        = (d/d theta sum_h sum_v exp(-E(v,h)) ) / Z
-                        = (sum_h sum_v - exp(-E(v,h)) d/d theta E(v,h) ) / Z
-                        = - sum_h sum_v P(v,h)  d/d theta E(v,h)
-        """
-
+    def _get_negative_phase(self, model, X, Y=None)
         layer_to_chains = model.make_layer_to_state(self.num_chains)
 
         def recurse_check(l):
@@ -292,10 +290,7 @@ class PCD(BaseCD):
         else:
             neg_phase_grads = self._get_standard_neg(model, layer_to_chains)
 
-        for param in list(gradients.keys()):
-            gradients[param] = neg_phase_grads[param] + gradients[param]
-
-        return gradients, updates
+        return neg_phase_grads, updates
 
 
 class VariationalPCD(BaseCD):
@@ -313,27 +308,16 @@ class VariationalPCD(BaseCD):
         super(VariationalPCD, self).__init__(num_chains, num_gibbs_steps,
                                              supervised, toronto_neg)
 
-    def get_gradients(self, model, X, Y=None):
-        """
-        PCD approximation to the gradient of the bound.
-        Keep in mind this is a cost, so we are upper bounding
-        the negative log likelihood.
-        """
+    def _get_positive_phase(self, model, X, Y=None):
+        return self._get_variational_pos(model, X, Y), OrderedDict()
 
+    def _get_negative_phase(self, model, X, Y=None):
         """
-        Positive phase
-        """
-        gradients = self._get_variational_pos(model, X, Y)
-
-        """
-        Negative phase
-        --------------
         d/d theta log Z = (d/d theta Z) / Z
                         = (d/d theta sum_h sum_v exp(-E(v,h)) ) / Z
                         = (sum_h sum_v - exp(-E(v,h)) d/d theta E(v,h) ) / Z
                         = - sum_h sum_v P(v,h)  d/d theta E(v,h)
         """
-
         layer_to_chains = model.make_layer_to_state(self.num_chains)
 
         def recurse_check(l):
@@ -359,13 +343,10 @@ class VariationalPCD(BaseCD):
         else:
             neg_phase_grads = self._get_standard_neg(model, layer_to_chains)
 
-        for param in list(gradients.keys()):
-            gradients[param] = neg_phase_grads[param] + gradients[param]
-
-        return gradients, updates
+        return neg_phase_grads, updates
 
 
-class CD(BaseCD):
+class VariationalCD(BaseCD):
     """
     An intractable cost representing the negative log likelihood of a DBM.
     The gradient of this bound is computed using a markov chain initialized
@@ -379,31 +360,21 @@ class CD(BaseCD):
         super(CD, self).__init__(None, num_gibbs_steps, supervised,
                                  toronto_neg)
 
-    def get_gradients(self, model, X, Y=None):
-        """
-        CD approximation to the gradient of the bound.
-        Keep in mind this is a cost, so we are upper bounding
-        the negative log likelihood.
-        """
+    def _get_positive_pase(self, model, X, Y=None):
+        return self._get_variational_pos(model, X, Y), OrderedDict()
 
-        # Get the batch size in symbolic form
-        space = model.get_input_space()
-        num_examples = space.batch_size(X)
-
+    def _get_negative_pase(self, model, X, Y=None):
         """
-        Positive phase
-        """
-        gradients = self._get_variational_pos(model, X, Y)
-
-        """
-        Negative phase
-        --------------
-
         d/d theta log Z = (d/d theta Z) / Z
                         = (d/d theta sum_h sum_v exp(-E(v,h)) ) / Z
                         = (sum_h sum_v - exp(-E(v,h)) d/d theta E(v,h) ) / Z
                         = - sum_h sum_v P(v,h)  d/d theta E(v,h)
         """
+        # Get the batch size in symbolic form
+        space = model.get_input_space()
+        num_examples = space.batch_size(X)
+
+
         layer_to_clamp = OrderedDict([(model.visible_layer, True)])
 
         layer_to_chains = model.make_layer_to_symbolic_state(num_examples,
@@ -441,10 +412,7 @@ class CD(BaseCD):
         else:
             neg_phase_grads = self._get_standard_neg(model, layer_to_chains)
 
-        for param in list(gradients.keys()):
-            gradients[param] = neg_phase_grads[param] + gradients[param]
-
-        return gradients, OrderedDict()
+        return neg_phase_grads, OrderedDict()
 
 
 class MF_L2_ActCost(Cost):
