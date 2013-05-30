@@ -78,7 +78,11 @@ class BaseCD(Cost):
 
         neg_phase_grads, neg_updates = self._get_negative_phase(model, X, Y)
 
-        updates = OrderedDict(pos_updates, **neg_updates)
+        updates = OrderedDict()
+        for key, val in pos_updates.items():
+            updates[key] = val
+        for key, val in neg_updates.items():
+            updates[key] = val
 
         gradients = OrderedDict()
         for param in list(gradients.keys()):
