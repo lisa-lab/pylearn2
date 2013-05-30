@@ -262,10 +262,10 @@ class PCD(BaseCD):
         super(PCD, self).__init__(num_chains, num_gibbs_steps,
                                   supervised, toronto_neg)
 
-    def _get_positive_phase(self, model, X, Y=None)
+    def _get_positive_phase(self, model, X, Y=None):
         return self._get_sampling_pos(model, X, Y), OrderedDict()
 
-    def _get_negative_phase(self, model, X, Y=None)
+    def _get_negative_phase(self, model, X, Y=None):
         layer_to_chains = model.make_layer_to_state(self.num_chains)
 
         def recurse_check(l):
@@ -357,13 +357,13 @@ class VariationalCD(BaseCD):
     """
 
     def __init__(self, num_gibbs_steps, supervised=False, toronto_neg=False):
-        super(CD, self).__init__(None, num_gibbs_steps, supervised,
-                                 toronto_neg)
+        super(VariationalCD, self).__init__(None, num_gibbs_steps, supervised,
+                                            toronto_neg)
 
-    def _get_positive_pase(self, model, X, Y=None):
+    def _get_positive_phase(self, model, X, Y=None):
         return self._get_variational_pos(model, X, Y), OrderedDict()
 
-    def _get_negative_pase(self, model, X, Y=None):
+    def _get_negative_phase(self, model, X, Y=None):
         """
         d/d theta log Z = (d/d theta Z) / Z
                         = (d/d theta sum_h sum_v exp(-E(v,h)) ) / Z
