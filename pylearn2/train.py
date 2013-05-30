@@ -121,7 +121,7 @@ class Train(object):
                 raise RuntimeError("The algorithm is responsible for setting"
                         " up the Monitor, but failed to.")
             if len(self.model.monitor._datasets)>0:
-                self.model.monitor.add_channel(name="seconds_per_epoch",
+                self.model.monitor.add_channel(name="monitor_seconds_per_epoch",
                                                ipt=self.model.get_input_space().make_batch_theano(),
                                                val=self.monitor_time,
                                                dataset=self.model.monitor._datasets[0])
