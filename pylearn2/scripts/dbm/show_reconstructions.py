@@ -34,6 +34,12 @@ dataset_yaml_src = model.dataset_yaml_src
 print 'Loading data...'
 dataset = yaml_parse.load(dataset_yaml_src)
 
+x = raw_input('use test set? (y/n) ')
+
+if x == 'y':
+    dataset = dataset.get_test_set()
+else:
+    assert x == 'n'
 
 vis_batch = dataset.get_batch_topo(m)
 

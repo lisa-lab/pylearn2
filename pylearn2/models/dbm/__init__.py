@@ -1636,7 +1636,7 @@ class BinaryVectorMaxPool(HiddenLayer):
 class Softmax(HiddenLayer):
 
     def __init__(self, n_classes, layer_name, irange = None,
-                 sparse_init = None, W_lr_scale = None,
+                 sparse_init = None, sparse_istdev = 1., W_lr_scale = None,
                  b_lr_scale = None,
                  max_col_norm = None,
                  copies = 1, center = False):
@@ -1738,7 +1738,7 @@ class Softmax(HiddenLayer):
                     idx = rng.randint(0, self.input_dim)
                     while W[idx, i] != 0.:
                         idx = rng.randint(0, self.input_dim)
-                    W[idx, i] = rng.randn()
+                    W[idx, i] = rng.randn() * self.sparse_istdev
 
         self.W = sharedX(W,  'softmax_W' )
 
