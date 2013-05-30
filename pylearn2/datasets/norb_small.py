@@ -78,6 +78,9 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
         # TODO: check this comment, sure it means {0, ..., 255}
         :param multi_target: load extra information as additional labels.
         """
+
+        self.args = locals()
+
         if which_set not in ['train','test']:
             raise ValueError("Unrecognized which_set value: " + which_set)
 
@@ -123,6 +126,17 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
         self.restrict(start, stop)
 
         self.y = self.y.astype('float32')
+
+    def get_test_set(self):
+
+        test_args = {'which_set' : 'test'}
+
+        for key in self.args:
+            if key in ['which_set', 'restrict_instances', 'self', 'start', 'stop']:
+                continue
+            test_args[key] = self.args[key]
+
+        return FoveatedNORB(**test_args)
 
     def restrict_instances(self, instances):
 
