@@ -7,10 +7,7 @@ __email__ = "mirzamom@iro"
 
 import numpy
 from pylearn2.datasets import dense_design_matrix
-from pylearn2.datasets import control
 from pylearn2.utils import serial
-from pylearn2.utils.mnist_ubyte import read_mnist_images
-from pylearn2.utils.mnist_ubyte import read_mnist_labels
 
 class OCR(dense_design_matrix.DenseDesignMatrix):
 
