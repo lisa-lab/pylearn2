@@ -1026,7 +1026,7 @@ class BinaryVector(VisibleLayer):
         if self.copies != 1:
             raise NotImplementedError()
         mean = T.nnet.sigmoid(self.bias)
-        rval = theano_rng.binomial(size=(num_examples, self.nvis), prob=mean)
+        rval = theano_rng.binomial(size=(num_examples, self.nvis), p=mean)
 
         return rval
 
@@ -2267,7 +2267,7 @@ class DBMSampler(Block):
         return rval
 
 
-def rbmStitcher(batch_size, rbm_list, niter, inference_procedure=None,
+def stitch_rbms(batch_size, rbm_list, niter, inference_procedure=None,
                 targets=False):
     """
     Returns a DBM initialized with pre-trained RBMs, with weights and biases
@@ -2319,7 +2319,7 @@ def rbmStitcher(batch_size, rbm_list, niter, inference_procedure=None,
     if targets:
         last_hidden_layer = hidden_layers[-2]
     else:
-        last_hidden_layer = hidden_layer[-1]
+        last_hidden_layer = hidden_layers[-1]
     first_hidden_layer.set_weights(0.5 * first_hidden_layer.get_weights())
     last_hidden_layer.set_weights(0.5 * last_hidden_layer.get_weights())
 

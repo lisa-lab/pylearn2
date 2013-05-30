@@ -134,7 +134,7 @@ class IsingVisible(VisibleLayer):
 
     def make_symbolic_state(self, num_examples, theano_rng):
         mean = T.nnet.sigmoid(2. * self.b)
-        rval = theano_rng.binomial(size=(num_examples, self.nvis), prob=mean)
+        rval = theano_rng.binomial(size=(num_examples, self.nvis), p=mean)
         rval = 2. * (rval) - 1.
 
         return rval
@@ -440,7 +440,7 @@ class IsingHidden(HiddenLayer):
 
     def make_symbolic_state(self, num_examples, theano_rng):
         mean = T.nnet.sigmoid(2. * self.b)
-        rval = theano_rng.binomial(size=(num_examples, self.nvis), prob=mean)
+        rval = theano_rng.binomial(size=(num_examples, self.nvis), p=mean)
         rval = 2. * (rval) - 1.
 
         return rval
@@ -619,7 +619,7 @@ class BoltzmannIsingVisible(VisibleLayer):
 
     def make_symbolic_state(self, num_examples, theano_rng):
         mean = T.nnet.sigmoid(2. * self.ising_bias())
-        rval = theano_rng.binomial(size=(num_examples, self.nvis), prob=mean)
+        rval = theano_rng.binomial(size=(num_examples, self.nvis), p=mean)
         rval = 2. * (rval) - 1.
 
         return rval
@@ -1059,7 +1059,7 @@ class BoltzmannIsingHidden(HiddenLayer):
 
     def make_symbolic_state(self, num_examples, theano_rng):
         mean = T.nnet.sigmoid(2. * self.ising_b())
-        rval = theano_rng.binomial(size=(num_examples, self.nvis), prob=mean)
+        rval = theano_rng.binomial(size=(num_examples, self.nvis), p=mean)
         rval = 2. * (rval) - 1.
 
         return rval
