@@ -996,6 +996,17 @@ class BinaryVector(VisibleLayer):
 
         return rval
 
+    def mf_update(self, state_above, layer_above):
+        msg = layer_above.downward_message(state_above)
+        mu = self.bias
+
+        z = msg + mu
+
+        rval = T.nnet.sigmoid(z)
+
+        return rval
+
+
     def make_state(self, num_examples, numpy_rng):
         if not hasattr(self, 'copies'):
             self.copies = 1
