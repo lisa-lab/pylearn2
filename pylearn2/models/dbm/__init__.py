@@ -8,7 +8,7 @@ repository yet. Ian is gradually moving pieces of it over from his
 private repository. Some of his code contains private research ideas
 that he can't move to this repository until he has a paper on them.
 """
-__authors__ = "Ian Goodfellow"
+__authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"

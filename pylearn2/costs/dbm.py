@@ -2,7 +2,7 @@
 This module contains cost functions to use with deep Boltzmann machines
 (pylearn2.models.dbm).
 """
-__authors__ = "Ian Goodfellow"
+__authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
 __copyright__ = "Copyright 2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
