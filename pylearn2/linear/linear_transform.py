@@ -20,11 +20,10 @@ class LinearTransform(object):
 
     def get_params(self):
         """ Return a list of parameters that govern the linear transformation """
-
         raise NotImplementedError(str(type(self))+" does not implement get_params, function")
 
     def set_params(self, params):
-        """Sets the paramaeters that is being used in the linear transformation """
+        """Sets the parameters that is being used in the linear transformation """
         raise NotImplementedError(str(type(self))+" does not implement set_params, function")
 
     def get_weights_topo(self):
@@ -34,7 +33,6 @@ class LinearTransform(object):
             If your transformation is defined on a VectorSpace then some other class
             like a ViewConverter will need to transform your vector into a topological
             space; you are not responsible for doing so here."""
-
         raise NotImplementedError()
 
     def set_batch_size(self, batch_size):
