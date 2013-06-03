@@ -220,3 +220,22 @@ def get_choice(choice_to_explanation ):
         first = False
         choice = raw_input(prompt)
     return choice
+
+
+def float32_floatX(f):
+    """
+    This function change floatX to float32 for the call to f.
+
+    This is usefull in GPU tests.
+    """
+    def new_f(*args, **kwargs):
+        old_floatX = theano.config.floatX
+        theano.config.floatX = 'float32'
+        try:
+            f(*args, **kwargs)
+        finally:
+            theano.config.floatX = old_floatX
+
+    # If we don't do that, tests function won't be run.
+    new_f.func_name = f.func_name
+    return new_f

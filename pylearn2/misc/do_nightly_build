@@ -15,6 +15,12 @@ if [ "$1" == "--buildbot" ]; then
     ARGS="Pylearn2"
     PROFILING="--with-coverage --cover-package=theano"
     NOSETESTS=${ROOT_CWD}/Theano/bin/theano-nose
+    cd pylearn2/utils
+    python setup.py build_ext --inplace
+    cd ../..
+    cd pylearn2/scripts/tutorials/grbm_smd/
+    wget -c http://www.iro.umontreal.ca/~lisa/datasets/cifar10_preprocessed_train.pkl
+    cd ../../../..
 else
     COMPILEDIR=`python -c "import theano;print theano.config.compiledir"`
     NOSETESTS=`python -c "import theano; print theano.__path__[0]"`/../bin/theano-nose
