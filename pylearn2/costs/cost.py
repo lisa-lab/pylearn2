@@ -277,46 +277,22 @@ class SumOfCosts(Cost):
 
         return reduce(merge, descrs)
 
-class ScaledCost(Cost):
+def ScaledCost(cost, scaling):
     """
     Represents a given cost scaled by a constant factor.
     TODO: why would you want to use this? SumOfCosts allows you to scale individual
         terms, and if this is the only cost, why not just change the learning rate?
         If there's an obvious use case or rationale we should document it, if not,
         we should remove it.
+
+    Parameters
+    ----------
+    cost: Cost
+        cost to be scaled
+    scaling : float
+        scaling of the cost
     """
-    def __init__(self, cost, scaling):
-        """
-        Parameters
-        ----------
-        cost: Cost
-            cost to be scaled
-        scaling : float
-            scaling of the cost
-        """
-        self.cost = cost
-        self.supervised = cost.supervised
-        self.scaling = scaling
-
-    def __call__(self, model, X, Y=None):
-        """
-        Returns cost scaled by its scaling factor.
-
-        Parameters
-        ----------
-        model : pylearn2.models.model.Model
-            the model for which we want to calculate the scaled cost
-        X : tensor_like
-            input to the model
-        Y : tensor_like
-            the target, if necessary
-        """
-        if Y is None and self.supervised is True:
-            raise ValueError("no targets provided for a supervised cost")
-        if self.supervised:
-            return self.scaling * self.cost(model, X, Y)
-        else:
-            return self.scaling * self.cost(model, X)
+    return SumOfCosts([[scaling,cost]])
 
 class LxReg(Cost):
     """
