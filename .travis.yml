@@ -36,7 +36,7 @@ install:
   - "pip install -q numexpr==1.4.2 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
 #cython is needed by pylearn2/utils/setup.py
   - "pip install -q cython --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
-  - "pip install -q tables --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "pip install -q tables==2.4.0 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
   - "pip install -q pyyaml --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
   - "pip install scipy==0.8 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
 #More recent version then the one in the os
