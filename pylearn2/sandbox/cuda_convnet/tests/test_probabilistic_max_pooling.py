@@ -6,6 +6,7 @@ from theano import config
 from theano import function
 from pylearn2.expr.probabilistic_max_pooling import max_pool_c01b
 from pylearn2.sandbox.cuda_convnet.probabilistic_max_pooling import  prob_max_pool_c01b
+from pylearn2.utils import float32_floatX
 from pylearn2.testing.skip import skip_if_no_gpu
 
 skip_if_no_gpu()
@@ -24,6 +25,7 @@ mode_without_gpu = copy.copy(mode_without_gpu)
 mode_with_gpu.check_py_code = False
 mode_without_gpu.check_py_code = False
 
+@float32_floatX
 def test_correctness():
     """
     Test the forward pass Op against theano graph implementation
@@ -62,6 +64,7 @@ def test_correctness():
             assert np.allclose(p_op, p_th)
             assert np.allclose(h_op, h_th)
 
+@float32_floatX
 def test_top_donw_correctness():
     """
     Test the forward pass Op against theano graph implementation
@@ -102,6 +105,7 @@ def test_top_donw_correctness():
             assert np.allclose(p_op, p_th)
             assert np.allclose(h_op, h_th)
 
+@float32_floatX
 def test_grad():
     """
     Test Op's gradient w.r.t top_down against theano graph implementation
