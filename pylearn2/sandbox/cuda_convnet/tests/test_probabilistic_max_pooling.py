@@ -152,8 +152,8 @@ def test_top_down_grad_correctness2():
     rng = np.random.RandomState([2012,7,19])
     batch_size_list = [1]
     channels = 16
-    rows_list = [2]
-    pool_rows_list = [2]
+    rows_list = [2, 8]
+    pool_rows_list = [2, 2]
 
     # TODO theano graph version fails with pool shape 1,1,
     # try it with python version
@@ -166,41 +166,35 @@ def test_top_down_grad_correctness2():
             cols = rows
             pool_cols = pool_rows
 
-            #zv = rng.randn(channels, rows, cols, batch_size).astype(config.floatX)
-            #tv = rng.randn(channels, rows / pool_rows, cols / pool_cols, batch_size).astype(config.floatX)
-            zv = np.ones((channels, rows, cols, batch_size)).astype(config.floatX)
-            tv = np.ones((channels, rows / pool_rows, cols / pool_cols, batch_size)).astype(config.floatX)
+            zv = rng.randn(channels, rows, cols, batch_size).astype(config.floatX)
+            tv = rng.randn(channels, rows / pool_rows, cols / pool_cols, batch_size).astype(config.floatX)
 
             z = T.tensor4()
             t = T.tensor4()
 
             # gpu op
             p, h = prob_max_pool_c01b(z, (pool_rows, pool_cols), top_down = t)
-            #gh_t = T.grad(h.sum(), t)
-            #gp_t = T.grad(p.sum(), t)
-            #gh_z = T.grad(h.sum(), z)
-            #gp_z = T.grad(p.sum(), z)
-            #gph_z = T.grad(p.sum() + h.sum(), z)
-            gph_t = T.grad(p.sum() + h.sum(), t)
             gh_t = T.grad(h.sum(), t)
+            gp_t = T.grad(p.sum(), t)
+            gh_z = T.grad(h.sum(), z)
+            gp_z = T.grad(p.sum(), z)
+            gph_z = T.grad(p.sum() + h.sum(), z)
+            gph_t = T.grad(p.sum() + h.sum(), t)
 
-            #func = function([z, t], [gh_t, gp_t, gh_z, gp_z, gph_z, gph_t], mode = mode_with_gpu)
-            func = function([z, t], [gh_t, gph_t], mode = mode_with_gpu)
+            func = function([z, t], [gh_t, gp_t, gh_z, gp_z, gph_z, gph_t], mode = mode_with_gpu)
 
             op_rval = func(zv, tv)
 
             # theano graph
             p, h = max_pool_c01b(z, (pool_rows, pool_cols) , top_down = t)
             gh_t = T.grad(h.sum(), t)
-            #gp_t = T.grad(p.sum(), t)
-            #gh_z = T.grad(h.sum(), z)
-            #gp_z = T.grad(p.sum(), z)
-            #gph_z = T.grad(p.sum() + h.sum(), z)
+            gp_t = T.grad(p.sum(), t)
+            gh_z = T.grad(h.sum(), z)
+            gp_z = T.grad(p.sum(), z)
+            gph_z = T.grad(p.sum() + h.sum(), z)
             gph_t = T.grad(p.sum() + h.sum(), t)
-            gh_t = T.grad(h.sum(), t)
 
-            #func = function([z, t], [gh_t, gp_t, gh_z, gp_z, gph_z, gph_t], mode = mode_without_gpu)
-            func = function([z, t], [gh_t, gph_t], mode = mode_without_gpu)
+            func = function([z, t], [gh_t, gp_t, gh_z, gp_z, gph_z, gph_t], mode = mode_without_gpu)
 
             th_rval = func(zv, tv)
 

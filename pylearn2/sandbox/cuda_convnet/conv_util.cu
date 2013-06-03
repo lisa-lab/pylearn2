@@ -1588,7 +1588,7 @@ __global__ void kLocalMaxUndo(float* imgs, float* maxGrads, float* maxActs, floa
 
 
 template<int B_Y, int B_X, int imgsPerThread, int filtersPerThread, bool add, bool checkCaseBounds>
-__global__ void kLocalProbMaxUndo(float* maxout_h,  float* maxout_p, float* hGrads, float* pGrads, float* target_z, float* target_t, const int imgSize, const int numFilters, const int numImages, const int subsX, const int startX, const int strideX, const int outputsX, int * gp_iszero, int * gh_iszero) {
+__global__ void kLocalProbMaxUndo(float* maxout_h,  float* maxout_p, float* hGrads, float* pGrads, float* target_z, float* target_t, const int imgSize, const int numFilters, const int numImages, const int subsX, const int startX, const int strideX, const int outputsX, float * gp_iszero, float * gh_iszero) {
 
     const int numImgBlocks = DIVUP(numImages,B_X*imgsPerThread);
     const int numFilterBlocks = DIVUP(numFilters, B_Y*filtersPerThread);
@@ -1677,7 +1677,6 @@ __global__ void kLocalProbMaxUndo(float* maxout_h,  float* maxout_p, float* hGra
             for (int f = 0; f < filtersPerThread; f++) {
                 const float ma = maxout_p[f*numOutputs*numImages + i * B_X];
                 float mg = pGrads[f*numOutputs*numImages + i * B_X];
-                /*
                 if (*gh_iszero == 1) {
                     target_t[f*numOutputs*numImages + i * B_X] = - prod[f][i] * ma;
                 } else if (*gp_iszero == 1) {
@@ -1685,8 +1684,6 @@ __global__ void kLocalProbMaxUndo(float* maxout_h,  float* maxout_p, float* hGra
                 } else {
                     target_t[f*numOutputs*numImages + i * B_X] = ma * mg - prod[f][i] * ma;
                 }
-                */
-                target_t[f*numOutputs*numImages + i * B_X] = 2;
             }
         }
     }
@@ -2174,13 +2171,12 @@ prob max undo
 */
 
 void localProbMaxUndo(NVMatrix& maxout_h, NVMatrix& maxout_p, NVMatrix& hGrads, NVMatrix& pGrads, NVMatrix& target_z,
-                        NVMatrix& target_t, int subsX, int startX, int strideX, int outputsX, int imgSize, int * gp_iszero, int *  gh_iszero) {
+                        NVMatrix& target_t, int subsX, int startX, int strideX, int outputsX, int imgSize, float * gp_iszero, float * gh_iszero) {
     int outputs = outputsX * outputsX;
     int imgPixels = imgSize * imgSize;
     int numImages = maxout_h.getNumCols();
     int numFilters = maxout_h.getNumRows() / imgPixels;
 
-    printf("hiszero %i,  piszero %i \n", *gh_iszero, *gp_iszero);
     assert(maxout_h.getNumRows() / numFilters == imgPixels);
     assert(maxout_h.getNumRows() == numFilters * imgPixels);
     assert(imgSize * imgSize == imgPixels);

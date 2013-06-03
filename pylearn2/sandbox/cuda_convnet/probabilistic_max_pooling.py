@@ -1,5 +1,4 @@
 """
-
 A GPU implementation of probabilistic max-pooling, based on
 
 "Convolutional Deep Belief Networks for Scalable
@@ -46,7 +45,7 @@ from pylearn2.sandbox.cuda_convnet.shared_code import this_dir
 
 def prob_max_pool_c01b(c01b, pool_shape, top_down = None):
     if pool_shape[0] != pool_shape[1]:
-        raise UnimplementedError("Non squre pool shapes are not supported yet")
+        raise UnimplementedError("Non sqaure pool shapes are not supported yet")
     assert pool_shape[0] > 0
 
 
@@ -66,7 +65,7 @@ class ProbMaxPool(GpuOp):
     Probabilistic max pooling code on the GPU.
     The input are in the order (channel, image rows, image cols, batch)
 
-    Work only on square images wiht squre pooling shape
+    Work only on square images wiht square pooling shape
     and the grad work only when channel % 16 == 0.
     """
     def __init__(self, ds, start=0, outputs=0):
@@ -108,7 +107,7 @@ class ProbMaxPool(GpuOp):
         self.start = start
         self.copy_non_contiguous = 0
         assert ds > 0, ds  # We check in the code if ds <= imgSizeX
-        warnings.warn("non squre pool shape and strides different than "
+        warnings.warn("non square pool shape and strides different than "
                     "pool shape hasn't been tested and disabled")
 
     def __eq__(self, other):
@@ -578,8 +577,8 @@ class ProbMaxPoolGrad(GpuOp):
                             target_t_dims[3], "ProbMaxPool:nv_targets_t");
 
 
-        int * gp_iszero = (int) ceil(%(gp_iszero)%);
-        int * gh_iszero = (int) ceil(%(gh_iszero)%);
+        float * gp_iszero = CudaNdarray_DEV_DATA(%(gp_iszero)s);
+        float * gh_iszero = CudaNdarray_DEV_DATA(%(gh_iszero)s);
         """
         num_braces += 1
 

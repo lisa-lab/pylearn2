@@ -47,7 +47,7 @@ void convLocalAvgUndo(NVMatrix& avgGrads, NVMatrix& target,
 
 void localProbMaxUndo(NVMatrix& maxout_h, NVMatrix& maxout_p, NVMatrix& hGrads, NVMatrix& pGrads, NVMatrix& target_z,
                         NVMatrix& target_t, int subsX, int startX, int strideX, int outputsX, int imgSize,
-                        int * gp_iszero, int * gh_iszero);
+                        float * gp_iszero, float * gh_iszero);
 
 void convLocalAvgUndo(NVMatrix& avgGrads, NVMatrix& target,
                       int subsX, int startX, int strideX, int outputsX, int imgSize,
