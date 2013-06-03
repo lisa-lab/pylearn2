@@ -1587,7 +1587,9 @@ __global__ void kLocalMaxUndo(float* imgs, float* maxGrads, float* maxActs, floa
 }
 
 
-template<int B_Y, int B_X, int imgsPerThread, int filtersPerThread, bool add, bool checkCaseBounds>
+
+
+template<int B_Y, int B_X, int imgsPerThread, int filtersPerThread, bool checkCaseBounds>
 __global__ void kLocalProbMaxUndo(float* maxout_h,  float* maxout_p, float* hGrads, float* pGrads, float* target_z, float* target_t, const int imgSize, const int numFilters, const int numImages, const int subsX, const int startX, const int strideX, const int outputsX, float * gp_iszero, float * gh_iszero) {
 
     const int numImgBlocks = DIVUP(numImages,B_X*imgsPerThread);
@@ -1602,9 +1604,7 @@ __global__ void kLocalProbMaxUndo(float* maxout_h,  float* maxout_p, float* hGra
     }
 
     const int outputIdx = outputIdxY * outputsX + outputIdxX;
-    //const int outputIdx = outputIdxY * imgSize + outputIdxX;
     const int numOutputs = outputsX * outputsX;
-    //const int numOutputs = imgSize * imgSize;
     const int imgPixels = imgSize * imgSize;
 
     const int startImgPxX = startX + outputIdxX * strideX;
@@ -2215,44 +2215,83 @@ void localProbMaxUndo(NVMatrix& maxout_h, NVMatrix& maxout_p, NVMatrix& hGrads, 
     target_z.resize(maxout_h);
     target_t.resize(maxout_p);
 
+    int filtersPerThread = numFilters % 8 == 0 ? 2 : 1;
     int imgsPerThread = numImages % 128 == 0 ? 4 : numImages % 64 == 0 ? 2 : 1;
     int checkCaseBounds = numImages % (32*imgsPerThread) != 0;
     dim3 threads(32, 4);
-    dim3 blocks(DIVUP(numImages,32*imgsPerThread) * imgSize, (numFilters / (4 * 2)) * imgSize);
+    dim3 blocks(DIVUP(numImages,32*imgsPerThread) * outputsX, DIVUP(numFilters, 4 * filtersPerThread) * outputsX);
 
     if (imgsPerThread == 4) {
-        if  (checkCaseBounds) {
-                kLocalProbMaxUndo<4, 32, 4, 2, false, true><<<blocks, threads>>>(maxout_h.getDevData(), maxout_p.getDevData(),
-                            hGrads.getDevData(), pGrads.getDevData(), target_z.getDevData(), target_t.getDevData(),
-                            imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, gp_iszero, gh_iszero);
+        if (filtersPerThread == 1) {
+            if (checkCaseBounds) {
+                    kLocalProbMaxUndo<4, 32, 4, 1, true><<<blocks, threads>>>(maxout_h.getDevData(), maxout_p.getDevData(),
+                                hGrads.getDevData(), pGrads.getDevData(), target_z.getDevData(), target_t.getDevData(),
+                                imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, gp_iszero, gh_iszero);
+            } else {
+                    kLocalProbMaxUndo<4, 32, 4, 1, false><<<blocks, threads>>>(maxout_h.getDevData(), maxout_p.getDevData(),
+                                hGrads.getDevData(), pGrads.getDevData(), target_z.getDevData(), target_t.getDevData(),
+                                imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, gp_iszero, gh_iszero);
+            }
         } else {
-                kLocalProbMaxUndo<4, 32, 4, 2, false, false><<<blocks, threads>>>(maxout_h.getDevData(), maxout_p.getDevData(),
-                            hGrads.getDevData(), pGrads.getDevData(), target_z.getDevData(), target_t.getDevData(),
-                            imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, gp_iszero, gh_iszero);
+            if (checkCaseBounds) {
+                    kLocalProbMaxUndo<4, 32, 4, 2, true><<<blocks, threads>>>(maxout_h.getDevData(), maxout_p.getDevData(),
+                                hGrads.getDevData(), pGrads.getDevData(), target_z.getDevData(), target_t.getDevData(),
+                                imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, gp_iszero, gh_iszero);
+            } else {
+                    kLocalProbMaxUndo<4, 32, 4, 2, false><<<blocks, threads>>>(maxout_h.getDevData(), maxout_p.getDevData(),
+                                hGrads.getDevData(), pGrads.getDevData(), target_z.getDevData(), target_t.getDevData(),
+                                imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, gp_iszero, gh_iszero);
+            }
         }
-    } else if (imgsPerThread == 2) {
-        if  (checkCaseBounds) {
-                kLocalProbMaxUndo<4, 32, 2, 2, false, true><<<blocks, threads>>>(maxout_h.getDevData(), maxout_p.getDevData(),
-                            hGrads.getDevData(), pGrads.getDevData(), target_z.getDevData(), target_t.getDevData(),
-                            imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, gp_iszero, gh_iszero);
+    }
+    else if (imgsPerThread == 2) {
+        if (filtersPerThread == 1) {
+            if  (checkCaseBounds) {
+                    kLocalProbMaxUndo<4, 32, 2, 1, true><<<blocks, threads>>>(maxout_h.getDevData(), maxout_p.getDevData(),
+                                hGrads.getDevData(), pGrads.getDevData(), target_z.getDevData(), target_t.getDevData(),
+                                imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, gp_iszero, gh_iszero);
+            } else {
+                    kLocalProbMaxUndo<4, 32, 2, 1, false><<<blocks, threads>>>(maxout_h.getDevData(), maxout_p.getDevData(),
+                                hGrads.getDevData(), pGrads.getDevData(), target_z.getDevData(), target_t.getDevData(),
+                                imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, gp_iszero, gh_iszero);
+            }
         } else {
-                kLocalProbMaxUndo<4, 32, 2, 2, false, false><<<blocks, threads>>>(maxout_h.getDevData(), maxout_p.getDevData(),
-                            hGrads.getDevData(), pGrads.getDevData(), target_z.getDevData(), target_t.getDevData(),
-                            imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, gp_iszero, gh_iszero);
+            if  (checkCaseBounds) {
+                    kLocalProbMaxUndo<4, 32, 2, 2, true><<<blocks, threads>>>(maxout_h.getDevData(), maxout_p.getDevData(),
+                                hGrads.getDevData(), pGrads.getDevData(), target_z.getDevData(), target_t.getDevData(),
+                                imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, gp_iszero, gh_iszero);
+            } else {
+                    kLocalProbMaxUndo<4, 32, 2, 2, false><<<blocks, threads>>>(maxout_h.getDevData(), maxout_p.getDevData(),
+                                hGrads.getDevData(), pGrads.getDevData(), target_z.getDevData(), target_t.getDevData(),
+                                imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, gp_iszero, gh_iszero);
+            }
         }
-    } else {
-        if  (checkCaseBounds) {
-                kLocalProbMaxUndo<4, 32, 1, 2, false, true><<<blocks, threads>>>(maxout_h.getDevData(), maxout_p.getDevData(),
-                            hGrads.getDevData(), pGrads.getDevData(), target_z.getDevData(), target_t.getDevData(),
-                            imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, gp_iszero, gh_iszero);
+    }
+    else {
+        if (filtersPerThread == 1) {
+            if  (checkCaseBounds) {
+                    kLocalProbMaxUndo<4, 32, 1, 1, true><<<blocks, threads>>>(maxout_h.getDevData(), maxout_p.getDevData(),
+                                hGrads.getDevData(), pGrads.getDevData(), target_z.getDevData(), target_t.getDevData(),
+                                imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, gp_iszero, gh_iszero);
+            } else {
+                    kLocalProbMaxUndo<4, 32, 1, 1, false><<<blocks, threads>>>(maxout_h.getDevData(), maxout_p.getDevData(),
+                                hGrads.getDevData(), pGrads.getDevData(), target_z.getDevData(), target_t.getDevData(),
+                                imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, gp_iszero, gh_iszero);
+            }
         } else {
-                kLocalProbMaxUndo<4, 32, 1, 2, false, false><<<blocks, threads>>>(maxout_h.getDevData(), maxout_p.getDevData(),
-                            hGrads.getDevData(), pGrads.getDevData(), target_z.getDevData(), target_t.getDevData(),
-                            imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, gp_iszero, gh_iszero);
+            if  (checkCaseBounds) {
+                    kLocalProbMaxUndo<4, 32, 1, 2, true><<<blocks, threads>>>(maxout_h.getDevData(), maxout_p.getDevData(),
+                                hGrads.getDevData(), pGrads.getDevData(), target_z.getDevData(), target_t.getDevData(),
+                                imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, gp_iszero, gh_iszero);
+            } else {
+                    kLocalProbMaxUndo<4, 32, 1, 2, false><<<blocks, threads>>>(maxout_h.getDevData(), maxout_p.getDevData(),
+                                hGrads.getDevData(), pGrads.getDevData(), target_z.getDevData(), target_t.getDevData(),
+                                imgSize, numFilters, numImages, subsX, startX, strideX, outputsX, gp_iszero, gh_iszero);
+            }
         }
     }
 
-    cutilCheckMsg("convLocalMaxUndo: kernel execution failed");
+    cutilCheckMsg("localProbMaxUndo: kernel execution failed");
 }
 
 
