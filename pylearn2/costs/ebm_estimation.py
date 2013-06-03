@@ -147,3 +147,97 @@ class SMD(Cost):
         smd.name = 'SMD('+X_name+')'
 
         return smd
+
+class SML(Cost):
+    """ Stochastic Maximum Likelihood
+
+        See "On the convergence of Markovian stochastic algorithms with rapidly 
+             decreasing ergodicity rates" 
+        by Laurent Younes (1998)
+        
+        Also known as Persistent Constrastive Divergence (PCD)
+        See "Training restricted boltzmann machines using approximations to
+             the likelihood gradient" 
+        by Tijmen Tieleman  (2008)
+    """
+
+    def __init__(self, batch_size, nsteps ):
+        """
+            The number of particles fits the batch size.
+
+            Parametes
+            ---------
+            batch_size: int
+                batch size of the training algorithm
+            nsteps: int
+                number of steps made by the block Gibbs sampler
+                between each epoch
+        """
+        super(SML, self).__init__()
+        self.nchains = batch_size
+        self.nsteps  = nsteps
+
+    def get_gradients(self, model, X, Y=None, **kwargs):
+        gradients, updates = super(SML, self).get_gradients(model,X,Y,**kwargs)
+        sampler_updates = self.sampler.updates()
+        updates.update(sampler_updates)
+        return gradients, updates
+
+    def __call__(self, model, X, Y = None):
+        X_name = 'X' if X.name is None else X.name
+
+        if not hasattr(self,'sampler'):
+            self.sampler = BlockGibbsSampler(
+                rbm=model, 
+                particles=0.5+np.zeros((self.nchains,model.get_input_dim())), 
+                rng=model.rng, 
+                steps=self.nsteps)
+
+        # compute negative phase updates
+        sampler_updates = self.sampler.updates()
+
+        # Compulte SML cost
+        pos_v = X
+        neg_v = self.sampler.particles
+
+        ml_cost = (model.free_energy(pos_v).mean()-
+                   model.free_energy(neg_v).mean())
+
+        ml_cost.name = 'SML('+X_name+')'
+        
+        return ml_cost
+
+class CDk(Cost):
+    """ Constrastive Divergence
+
+        See "Training products of experts by minimizing contrastive divergence" 
+        by Geoffrey E. Hinton (2002)
+    """
+
+    def __init__(self, nsteps):
+        """
+            Parametes
+            ---------
+            nsteps: int
+                number of Markov chain steps for the negative sample
+        """
+ 
+        super(CDk, self).__init__()
+        self.nsteps  = nsteps
+
+    def __call__(self, model, X, Y = None):
+        X_name = 'X' if X.name is None else X.name
+
+        pos_v = X
+        neg_v = X
+        
+        for k in range(self.nsteps):
+            [neg_v, _locals] = model.gibbs_step_for_v(neg_v,model.rng)
+
+        # Compute CD cost
+        ml_cost = (model.free_energy(pos_v).mean()-
+                   model.free_energy(neg_v).mean())
+
+        ml_cost.name = 'CD('+X_name+')'
+        
+        return ml_cost
