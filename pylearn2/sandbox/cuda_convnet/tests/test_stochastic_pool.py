@@ -1,9 +1,12 @@
 import copy
+
 import numpy
 import theano
 from theano.compat.python2x import Counter
+
 from pylearn2.sandbox.cuda_convnet.stochastic_pool import stochastic_max_pool_c01b, weighted_max_pool_c01b
 from pylearn2.testing.skip import skip_if_no_gpu
+from pylearn2.utils import float32_floatX
 
 skip_if_no_gpu()
 
@@ -23,6 +26,8 @@ mode_without_gpu.check_py_code = False
 
 # TODO add unit tests for: seed, differnt shape, stide, batch and channel size
 
+
+@float32_floatX
 def test_stochasatic_pool_samples():
     """
     check if the order of frequency of samples from stochastic max pool
@@ -49,6 +54,8 @@ def test_stochasatic_pool_samples():
     for i in range(len(data) -1):
         assert counts[data[i]] >= counts[data[i+1]]
 
+
+@float32_floatX
 def test_weighted_pool():
 
     # TODO: test with different stride values
