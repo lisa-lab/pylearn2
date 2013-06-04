@@ -3,7 +3,17 @@ import theano.tensor as T
 from theano import scan
 from pylearn2.costs.cost import Cost
 from pylearn2.utils import py_integer_types
+from collections import OrderedDict
+from itertools import izip
+from pylearn2.models.rbm import BlockGibbsSampler
+import numpy as np
 
+if 0:
+    print 'WARNING: using SLOW rng'
+    RandomStreams = tensor.shared_randomstreams.RandomStreams
+else:
+    import theano.sandbox.rng_mrg
+    RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
 
 class NCE(Cost):
     """ Noise-Contrastive Estimation
@@ -165,7 +175,7 @@ class SML(Cost):
         """
             The number of particles fits the batch size.
 
-            Parametes
+            Parameters
             ---------
             batch_size: int
                 batch size of the training algorithm
@@ -178,12 +188,22 @@ class SML(Cost):
         self.nsteps  = nsteps
 
     def get_gradients(self, model, X, Y=None, **kwargs):
-        gradients, updates = super(SML, self).get_gradients(model,X,Y,**kwargs)
+        cost = self._cost(model,X,Y,**kwargs)
+
+        params = list(model.get_params())
+
+        grads = T.grad(cost, params, disconnected_inputs = 'ignore', 
+                       consider_constant = [self.sampler.particles])
+
+        gradients = OrderedDict(izip(params, grads))
+
+        updates = OrderedDict()
+
         sampler_updates = self.sampler.updates()
         updates.update(sampler_updates)
         return gradients, updates
 
-    def __call__(self, model, X, Y = None):
+    def _cost(self, model, X, Y = None):
         X_name = 'X' if X.name is None else X.name
 
         if not hasattr(self,'sampler'):
@@ -196,7 +216,7 @@ class SML(Cost):
         # compute negative phase updates
         sampler_updates = self.sampler.updates()
 
-        # Compulte SML cost
+        # Compute SML cost
         pos_v = X
         neg_v = self.sampler.particles
 
@@ -207,32 +227,38 @@ class SML(Cost):
         
         return ml_cost
 
+    def __call__(self, model, X, Y = None):
+        return None
+
 class CDk(Cost):
-    """ Constrastive Divergence
+    """ Contrastive Divergence
 
         See "Training products of experts by minimizing contrastive divergence" 
         by Geoffrey E. Hinton (2002)
     """
 
-    def __init__(self, nsteps):
+    def __init__(self, nsteps, seed=42):
         """
             Parametes
             ---------
             nsteps: int
                 number of Markov chain steps for the negative sample
+            seed: int
+                seed for the random number generator
         """
  
         super(CDk, self).__init__()
         self.nsteps  = nsteps
+        self.rng = RandomStreams(seed)
 
-    def __call__(self, model, X, Y = None):
+    def _cost(self, model, X, Y = None):
         X_name = 'X' if X.name is None else X.name
 
         pos_v = X
         neg_v = X
         
         for k in range(self.nsteps):
-            [neg_v, _locals] = model.gibbs_step_for_v(neg_v,model.rng)
+            [neg_v, _locals] = model.gibbs_step_for_v(neg_v,self.rng)
 
         # Compute CD cost
         ml_cost = (model.free_energy(pos_v).mean()-
@@ -240,4 +266,21 @@ class CDk(Cost):
 
         ml_cost.name = 'CD('+X_name+')'
         
-        return ml_cost
+        return ml_cost, neg_v
+
+    def get_gradients(self, model, X, Y=None, **kwargs):
+        cost, neg_v = self._cost(model,X,Y,**kwargs)
+
+        params = list(model.get_params())
+
+        grads = T.grad(cost, params, disconnected_inputs = 'ignore',
+                       consider_constant = [neg_v])
+
+        gradients = OrderedDict(izip(params, grads))
+
+        updates = OrderedDict()
+
+        return gradients, updates
+
+    def __call__(self, model, X, Y = None):
+        return None
