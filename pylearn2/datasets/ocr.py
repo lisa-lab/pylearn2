@@ -58,6 +58,7 @@ class OCR(dense_design_matrix.DenseDesignMatrix):
         assert data_x.shape[0] == data_y.shape[0]
         assert data_x.shape[0] == self.data_split[which_set]
 
+        self.one_hot = one_hot
         if one_hot:
             one_hot = numpy.zeros((data_y.shape[0], len(letters)), dtype = 'float32')
             for i in xrange(data_y.shape[0]):
@@ -72,5 +73,5 @@ class OCR(dense_design_matrix.DenseDesignMatrix):
 
 
     def get_test_set(self):
-        return OCR('test', self.one_hot)
+        return OCR('test', one_hot = self.one_hot)
 
