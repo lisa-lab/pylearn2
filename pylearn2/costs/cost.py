@@ -277,9 +277,10 @@ class SumOfCosts(Cost):
 
         return reduce(merge, descrs)
 
-def ScaledCost(cost, scaling):
+def scaled_cost(cost, scaling):
     """
     Represents a given cost scaled by a constant factor.
+
     TODO: why would you want to use this? SumOfCosts allows you to scale individual
         terms, and if this is the only cost, why not just change the learning rate?
         If there's an obvious use case or rationale we should document it, if not,
@@ -292,6 +293,16 @@ def ScaledCost(cost, scaling):
     scaling : float
         scaling of the cost
     """
+    return SumOfCosts([[scaling,cost]])
+
+def ScaledCost(cost, scaling):
+    """
+    Represents a given cost scaled by a constant factor.
+
+    Deprecated in favor of scaled_cost.
+    """
+        warnings.warn("ScaledCost is deprecated. Use scaled_cost instead. ScaledCost will be removed on or after December 4, 2013", stacklevel=2)
+
     return SumOfCosts([[scaling,cost]])
 
 class LxReg(Cost):
