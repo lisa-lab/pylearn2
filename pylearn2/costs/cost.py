@@ -301,7 +301,8 @@ def ScaledCost(cost, scaling):
 
     Deprecated in favor of scaled_cost.
     """
-        warnings.warn("ScaledCost is deprecated. Use scaled_cost instead. ScaledCost will be removed on or after December 4, 2013", stacklevel=2)
+
+    warnings.warn("ScaledCost is deprecated. Use scaled_cost instead. ScaledCost will be removed on or after December 4, 2013", stacklevel=2)
 
     return SumOfCosts([[scaling,cost]])
 
