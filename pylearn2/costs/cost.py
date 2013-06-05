@@ -68,7 +68,7 @@ class Cost(object):
         """
 
         try:
-            cost = self(model=model, data=data, **kwargs)
+            cost = self.expr(model=model, data=data, **kwargs)
         except TypeError,e:
             # If anybody knows how to add type(seslf) to the exception message
             # but still preserve the stack trace, please do so
@@ -104,7 +104,8 @@ class Cost(object):
         ----------
         model: the model to use to compute the monitoring channels
         data: symbolic expressions for the monitoring data
-        kwargs: used so that custom algorithms can use extra variables
+
+        cost,get_ds(),kwargs: used so that custom algorithms can use extra variables
                 for monitoring.
 
         """
