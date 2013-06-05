@@ -212,12 +212,21 @@ class VectorSpace(Space):
             if batch_size is not None:
                 raise NotImplementedError("batch_size not implemented "
                                           "for sparse case")
-            return theano.sparse.csr_matrix(name=name)
+            rval = theano.sparse.csr_matrix(name=name)
         else:
             if batch_size == 1:
-                return T.row(name=name, dtype=dtype)
+                rval = T.row(name=name, dtype=dtype)
             else:
-                return T.matrix(name=name, dtype=dtype)
+                rval = T.matrix(name=name, dtype=dtype)
+
+        if config.compute_test_value in ('raise', 'warn'):
+            if batch_size == 1:
+                n = 1
+            else:
+                # TODO: try to extract constant scalar value from batch_size
+                n = 4
+            rval.tag.test_value = self.get_origin_batch(n=n)
+        return rval
 
     @functools.wraps(Space.get_total_dimension)
     def get_total_dimension(self):
@@ -352,8 +361,17 @@ class Conv2DSpace(Space):
         broadcastable[self.axes.index('b')] = (batch_size == 1)
         broadcastable = tuple(broadcastable)
 
-        return TensorType(dtype=dtype,
-                          broadcastable=broadcastable)(name=name)
+        rval = TensorType(dtype=dtype,
+                          broadcastable=broadcastable
+                         )(name=name)
+        if config.compute_test_value in ('raise', 'warn'):
+            if batch_size == 1:
+                n = 1
+            else:
+                # TODO: try to extract constant scalar value from batch_size
+                n = 4
+            rval.tag.test_value = self.get_origin_batch(n=4)
+        return rval
 
     @functools.wraps(Space.get_batch_size)
     def get_batch_size(self, data):
