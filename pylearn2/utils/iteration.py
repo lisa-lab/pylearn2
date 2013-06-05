@@ -21,6 +21,11 @@ import numpy
 np = numpy
 from theano import config
 
+from pylearn2.space import CompositeSpace
+from pylearn2.utils import safe_zip
+from pylearn2.utils.data_specs import is_flat_specs
+
+
 class SubsetIterator(object):
     def __init__(self, dataset_size, batch_size, num_batches, rng=None):
         """
@@ -291,21 +296,109 @@ def resolve_iterator_class(mode):
 
 class FiniteDatasetIterator(object):
     """A thin wrapper around one of the mode iterators."""
-    def __init__(self, dataset, subset_iterator, topo=False, targets=False):
+    def __init__(self, dataset, subset_iterator, topo=None, targets=None,
+                 data_specs=None, return_tuple=False):
+
+        if topo is not None or targets is not None:
+            if data_specs is not None:
+                raise ValueError("In FiniteDatasetIterator, both "
+                        "the `data_specs` argument and deprecated arguments "
+                        "`topo` or `targets` were provided.",
+                        (data_specs, topo, targets))
+
+            warnings.warn("Usage of `topo` and `target` arguments are being "
+                    "deprecated, and will be removed around November 7th, "
+                    "2013. `data_specs` should be used instead.",
+                    stacklevel=2)
+            topo = False
+            targets = False
+            self._deprecated_interface = True
+        else:
+            self._deprecated_interface = False
+
         self._topo = topo
         self._targets = targets
+        self._data_specs = data_specs
         self._dataset = dataset
         self._subset_iterator = subset_iterator
+        self._return_tuple = return_tuple
+
         # TODO: More thought about how to handle things where this
         # fails (gigantic HDF5 files, etc.)
-        self._raw_data = self._dataset.get_design_matrix()
-        if self._targets:
-            self._raw_targets = self._dataset.get_targets()
-            if self._raw_targets is None:
-                raise ValueError("Can't iterate with targets=True on a "
-                                 "dataset object with no targets")
-            self._targets_need_cast = not np.dtype(config.floatX) == self._raw_targets.dtype
-        self._needs_cast = not np.dtype(config.floatX) == self._raw_data.dtype
+        if self._deprecated_interface:
+            self._raw_data = self._dataset.get_design_matrix()
+            if self._targets:
+                self._raw_targets = self._dataset.get_targets()
+                if self._raw_targets is None:
+                    raise ValueError("Can't iterate with targets=True on a "
+                                     "dataset object with no targets")
+                self._targets_need_cast = not np.dtype(config.floatX) == self._raw_targets.dtype
+            self._needs_cast = not np.dtype(config.floatX) == self._raw_data.dtype
+        else:
+            # Keep only the needed sources in self._raw_data.
+            # Remember what source they correspond to in self._source
+            assert is_flat_specs(data_specs)
+
+            dataset_space, dataset_source = self._dataset.get_data_specs()
+            assert is_flat_specs((dataset_space, dataset_source))
+
+            # the dataset's data spec is either a single (space, source) pair,
+            # or a pair of (non-nested CompositeSpace, non-nested tuple).
+            # We could build a mapping and call flatten(..., return_tuple=True)
+            # but simply putting spaces, sources and data in tuples is simpler.
+            if not isinstance(dataset_source, tuple):
+                dataset_source = (dataset_source,)
+
+            if not isinstance(dataset_space, CompositeSpace):
+                dataset_sub_spaces = (dataset_space,)
+            else:
+                dataset_sub_spaces = dataset_space.components
+            assert len(dataset_source) == len(dataset_sub_spaces)
+
+            all_data = self._dataset.get_data()
+            if not isinstance(all_data, tuple):
+                all_data = (all_data,)
+
+            space, source = data_specs
+            if not isinstance(source, tuple):
+                source = (source,)
+            if not isinstance(space, CompositeSpace):
+                sub_spaces = (space,)
+            else:
+                sub_spaces = space.components
+            assert len(source) == len(sub_spaces)
+
+            self._raw_data = tuple(all_data[dataset_source.index(s)]
+                                   for s in source)
+            self._source = source
+
+            self._convert = []
+
+            for (so, sp) in safe_zip(source, sub_spaces):
+                idx = dataset_source.index(so)
+                dspace = dataset_sub_spaces[idx]
+
+                # Compose the functions
+                fn = None
+                needs_cast = not np.dtype(config.floatX) == \
+                                        self._raw_data[idx].dtype
+                if needs_cast:
+                    fn = lambda batch: numpy.cast[config.floatX](batch)
+
+                needs_format = not sp == dspace
+                if needs_format:
+                    # "dspace" and "sp" have to be passed as parameters
+                    # to lambda, in order to capture their current value,
+                    # otherwise they would change in the next iteration
+                    # of the loop.
+                    if fn is None:
+                        fn = (lambda batch, dspace=dspace, sp=sp:
+                                dspace.np_format_as(batch, sp))
+                    else:
+                        fn = (lambda batch, dspace=dspace, sp=sp:
+                                dspace.np_format_as(fn(batch), sp))
+
+                self._convert.append(fn)
 
     def __iter__(self):
         return self
@@ -318,19 +411,27 @@ class FiniteDatasetIterator(object):
         # This saves us some memory (and time spent allocating it)
         # when the dataset dtype matches floatX and next_index is not a
         # fancy-index.
-        if self._needs_cast:
-            features = numpy.cast[config.floatX](self._raw_data[next_index])
+        if self._deprecated_interface:
+            if self._needs_cast:
+                features = numpy.cast[config.floatX](self._raw_data[next_index])
+            else:
+                features = self._raw_data[next_index]
+            if self._topo:
+                features = self._dataset.get_topological_view(features)
+            if self._targets:
+                targets = self._raw_targets[next_index]
+                if self._targets_need_cast:
+                    targets = np.cast[config.floatX](targets)
+                return features, targets
+            else:
+                return features
         else:
-            features = self._raw_data[next_index]
-        if self._topo:
-            features = self._dataset.get_topological_view(features)
-        if self._targets:
-            targets = self._raw_targets[next_index]
-            if self._targets_need_cast:
-                targets = np.cast[config.floatX](targets)
-            return features, targets
-        else:
-            return features
+            rval = tuple(
+                    fn(data[next_index]) if fn else data[next_index]
+                    for data, fn in safe_zip(self._raw_data, self._convert))
+            if not self._return_tuple and len(rval) == 1:
+                rval, = rval
+            return rval
 
     @property
     def batch_size(self):

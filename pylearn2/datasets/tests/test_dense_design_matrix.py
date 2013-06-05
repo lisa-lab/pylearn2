@@ -24,7 +24,10 @@ def test_init_with_X_or_topo():
 
 
 def test_init_with_vc():
-    d = DenseDesignMatrix(view_converter = DefaultViewConverter([1,2,3]))
+    rng = np.random.RandomState([4,5,6])
+    d = DenseDesignMatrix(
+            X=rng.randn(12, 5),
+            view_converter = DefaultViewConverter([1,2,3]))
 
 def get_rnd_design_matrix():
     rng = np.random.RandomState([1,2,3])
