@@ -11,6 +11,10 @@ from theano.compat.python2x import OrderedDict
 
 from pylearn2.utils import safe_zip
 from pylearn2.utils import safe_union
+from pylearn2.space import CompositeSpace
+from pylearn2.utils.data_specs import resolve_nested_structure_from_flat,\
+        flatten_specs, flat_specs_union
+
 
 
 class Cost(object):
@@ -19,16 +23,15 @@ class Cost(object):
     unsupervised cost.
     """
 
-    # If True, the Y argument to __call__ and get_gradients must not be None
+    # If True, the Y argument to expr and get_gradients must not be None
     supervised = False
 
-    def __call__(self, model, X, Y=None, ** kwargs):
+    def expr(self, model, data, ** kwargs):
         """
         Parameters
         ----------
         model: a pylearn2 Model instance
-        X: a batch in model.get_input_space()
-        Y: a batch in model.get_output_space()
+        data : a batch in cost.get_data_specs() form
 
         Returns a symbolic expression for a cost function applied to the
         minibatch of data.
@@ -37,22 +40,21 @@ class Cost(object):
 
         """
 
-        raise NotImplementedError(str(type(self))+" does not implement __call__")
+        raise NotImplementedError(str(type(self))+" does not implement expr.")
 
-    def get_gradients(self, model, X, Y=None, ** kwargs):
+    def get_gradients(self, model, data, ** kwargs):
         """
         Parameters
         ----------
         model: a pylearn2 Model instance
-        X: a batch in model.get_input_space()
-        Y: a batch in model.get_output_space()
+        data : a batch in cost.get_data_specs() form
 
         returns: gradients, updates
             gradients:
                 a dictionary mapping from the model's parameters
                          to their gradients
                 The default implementation is to compute the gradients
-                using T.grad applied to the value returned by __call__.
+                using T.grad applied to the value returned by expr.
                 However, subclasses may return other values for the gradient.
                 For example, an intractable cost may return a sampling-based
                 approximation to its gradient.
@@ -67,15 +69,12 @@ class Cost(object):
         """
 
         try:
-            if Y is None:
-                cost = self(model=model, X=X, **kwargs)
-            else:
-                cost = self(model=model, X=X, Y=Y, **kwargs)
+            cost = self(model=model, data=data, **kwargs)
         except TypeError,e:
             # If anybody knows how to add type(seslf) to the exception message
             # but still preserve the stack trace, please do so
             # The current code does neither
-            e.message += " while calling "+str(type(self))+".__call__"
+            e.message += " while calling "+str(type(self))+".expr"
             print str(type(self))
             print e.message
             raise e
@@ -163,7 +162,7 @@ class SumOfCosts(Cost):
 
         self.supervised = any([cost.supervised for cost in self.costs])
 
-    def __call__(self, model, X, Y=None, ** kwargs):
+    def expr(self, model, data, ** kwargs):
         """
         Returns the sum of the costs the SumOfCosts instance was given at
         initialization.
@@ -172,24 +171,15 @@ class SumOfCosts(Cost):
         ----------
         model : pylearn2.models.model.Model
             the model for which we want to calculate the sum of costs
-        X : tensor_like
-            input to the model
-        Y : tensor_like
-            the target, if necessary
+        data : structured tuple of tensor_like variables in the data specs
         """
-        # If the sum is a supervised cost, check whether the target was
-        # provided
-        if Y is None and self.supervised is True:
-            raise ValueError("no targets provided while some of the " +
-                             "costs in the sum are supervised costs")
-
         costs = []
         for cost in self.costs:
-            if cost.supervised:
-                Y_to_pass = Y
-            else:
-                Y_to_pass = None
-            costs.append(cost(model, X, Y_to_pass, **kwargs))
+            cost_data = resolve_nested_structure_from_flat(
+                data,
+                nested=cost.get_data_specs(),
+                flat=self.get_data_specs())
+            costs.append(cost(model, cost_data, **kwargs))
         assert len(costs) > 0
 
         if any([cost is None for cost in costs]):
@@ -298,7 +288,7 @@ class ScaledCost(Cost):
         self.supervised = cost.supervised
         self.scaling = scaling
 
-    def __call__(self, model, X, Y=None):
+    def expr(self, model, data):
         """
         Returns cost scaled by its scaling factor.
 
@@ -311,12 +301,7 @@ class ScaledCost(Cost):
         Y : tensor_like
             the target, if necessary
         """
-        if Y is None and self.supervised is True:
-            raise ValueError("no targets provided for a supervised cost")
-        if self.supervised:
-            return self.scaling * self.cost(model, X, Y)
-        else:
-            return self.scaling * self.cost(model, X)
+        return self.scaling * self.cost(model, data)
 
 class LxReg(Cost):
     """
@@ -336,7 +321,7 @@ class LxReg(Cost):
         self.variables = variables
         self.x = x
 
-    def __call__(self, model=None, X=None, Y=None):
+    def expr(self, model=None, data):
         """
         Return the scaled L-x regularization term. The optional parameters are
         never used, they're there only to provide an interface consistent with
@@ -392,7 +377,7 @@ class FixedVarDescr(object):
         fixed_vars: maps string names to shared variables or some sort of data structure
                     surrounding shared variables.
                     Any learning algorithm that does multiple updates on the same minibatch
-                    should pass fixed_vars to the cost's __call__ and get_gradient methods
+                    should pass fixed_vars to the cost's expr and get_gradient methods
                     as keyword arguments.
         """
         self.fixed_vars = {}
@@ -433,5 +418,5 @@ def merge(left, right):
     return rval
 
 
-    def __call__(self, X, Y):
-        return self.wrapped(X)
+    def expr(self, data):
+        return self.wrapped(data)
