@@ -143,7 +143,8 @@ def test_sgd_unspec_num_mon_batch():
             visited[int(X[i,0])] = True
 
     monitor.add_channel(name = 'tracker',
-            ipt = X, val = 0., prereqs = [ tracker ])
+            ipt = X, val = 0., prereqs = [ tracker ],
+            data_specs=(model.get_input_space(), model.get_input_source()))
 
     monitor()
 
