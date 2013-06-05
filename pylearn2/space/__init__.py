@@ -46,6 +46,7 @@ from pylearn2.utils import py_integer_types
 from pylearn2.utils import safe_zip
 from pylearn2.utils import sharedX
 from pylearn2.utils.data_specs import is_flat_space
+#import pylearn2.utils.data_specs as specs_utils
 
 
 class Space(object):
@@ -114,7 +115,7 @@ class Space(object):
 
         raise NotImplementedError(str(type(self))+" does not implement get_total_dimension.")
 
-    def np_fromat_as(self, batch, space):
+    def np_format_as(self, batch, space):
         """
         batch: numpy ndarray which lies in the space represented by self
         space: a Space
@@ -126,7 +127,7 @@ class Space(object):
         space.format_as(self.format_as(batch, space), self)
         """
         if not hasattr('_np_format_as', self):
-            assert is_flat_space(self)
+            #assert specs_utils.is_flat_space(self)
             variables = self.make_theano_batch()
             outputs = self.format_as(variables, space)
             if not instance(variables, (tuple, list)):
