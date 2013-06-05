@@ -26,7 +26,7 @@ import sys
 sys.setrecursionlimit(50000)
 
 from pylearn2.expr.basic import (full_min,
-	full_max, numpy_norms, theano_norms)
+        full_max, numpy_norms, theano_norms)
 
 def rotate_towards(old_W, new_W, new_coeff):
     """

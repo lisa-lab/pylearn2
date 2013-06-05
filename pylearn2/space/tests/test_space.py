@@ -41,7 +41,6 @@ class DummySpace(Space):
             rval.tag.test_value = self.get_origin_batch(n=4)
         return rval
 
-
     def get_total_dimension(self):
         return self.dim
 
@@ -87,6 +86,7 @@ class DummySpace(Space):
         if batch.ndim != 2:
             raise ValueError('VectorSpace batches must be 2D, got %d dimensions' % batch.ndim)
 
+
 def test_np_format_as_vector2conv2D():
     vector_space = VectorSpace(dim=8*8*3, sparse=False)
     conv2d_space = Conv2DSpace(shape=(8,8), num_channels=3,
@@ -97,6 +97,7 @@ def test_np_format_as_vector2conv2D():
     dummy_space = DummySpace(dim=8*8*3, sparse=False)
     rval = dummy_space.format_as(data, conv2d_space)
     assert np.all(rval == data.reshape((5,3,8,8)))
+
 
 def test_np_format_as_conv2D2vector():
     vector_space = VectorSpace(dim=8*8*3, sparse=False)
@@ -112,6 +113,7 @@ def test_np_format_as_conv2D2vector():
     data = np.arange(5*8*8*3).reshape(3, 5, 8,8)
     rval = conv2d_space.np_format_as(data, vector_space)
     assert np.all(rval == data.transpose(1,0,2,3).reshape((5,3*8*8)))
+
 
 def test_np_format_as_conv2D2conv2D():
     conv2d_space1 = Conv2DSpace(shape=(8,8), num_channels=3,
