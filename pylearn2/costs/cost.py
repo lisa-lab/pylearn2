@@ -12,8 +12,7 @@ from theano.compat.python2x import OrderedDict
 from pylearn2.utils import safe_zip
 from pylearn2.utils import safe_union
 from pylearn2.space import CompositeSpace
-from pylearn2.utils.data_specs import resolve_nested_structure_from_flat,\
-        flatten_specs, flat_specs_union
+from pylearn2.utils.data_specs import DataSpecsMapping
 
 
 
@@ -150,7 +149,8 @@ class SumOfCosts(Cost):
         self.costs = []
         self.coeffs = []
 
-        data_specs = None
+        spaces = []
+        sources = []
         for cost in costs:
             if isinstance(cost, (list, tuple)):
                 coeff, cost = cost
@@ -158,16 +158,26 @@ class SumOfCosts(Cost):
                 coeff = 1.
             self.coeffs.append(coeff)
             self.costs.append(cost)
-            _flat_specs = flatten_specs(cost.get_data_specs())
-            if data_specs is None:
-                data_specs = _flat_specs
-            else:
-                data_specs = flat_specs_union(data_specs, _flat_specs)
+
+            space, source = cost.get_data_specs()
+            spaces.append(space)
+            sources.append(source)
 
             if not isinstance(cost, Cost):
                 raise ValueError("one of the costs is not " + \
                                  "Cost instance")
-        self.data_specs = data_specs
+
+        # Build composite space representing all inputs,
+        # and flatten it
+        composite_space = CompositeSpace(spaces)
+        sources = tuple(sources)
+
+        self.mapping = DataSpecsMapping(composite_space, sources)
+        flat_composite_space = mapping.flatten(composite_space)
+        flat_sources = mapping.flatten(sources)
+        self.data_specs = (flat_composite_space, flat_sources)
+
+        # TODO: remove this when it is no longer necessary
         self.supervised = any([cost.supervised for cost in self.costs])
 
     def expr(self, model, data, ** kwargs):
@@ -179,15 +189,11 @@ class SumOfCosts(Cost):
         ----------
         model : pylearn2.models.model.Model
             the model for which we want to calculate the sum of costs
-        data : structured tuple of tensor_like variables in the data specs
+        data : flat tuple of tensor_like variables
         """
-        costs = []
-        for cost in self.costs:
-            cost_data = resolve_nested_structure_from_flat(
-                data,
-                nested=cost.get_data_specs(),
-                flat=self.get_data_specs())
-            costs.append(cost(model, cost_data, **kwargs))
+        nested_data = self.mapping.nest(data)
+        costs = [cost(model, cost_data, **kwargs)
+                 for cost, cost_data in safe_zip(self.costs, nested_data)]
         assert len(costs) > 0
 
         if any([cost is None for cost in costs]):
@@ -205,11 +211,8 @@ class SumOfCosts(Cost):
     def get_gradients(self, model, data, ** kwargs):
 
         indiv_results = []
-        for cost in self.costs:
-            cost_data = resolve_nested_structure_from_flat(
-                data,
-                nested = cost.get_data_specs(),
-                flat = self.get_data_specs())
+        nested_data = self.mapping.nest(data)
+        for cost, cost_data in safe_zip(self.costs, nested_data):
             result = cost.get_gradients(model, data, ** kwargs)
             indiv_results.append(result)
 
@@ -239,12 +242,10 @@ class SumOfCosts(Cost):
     def get_monitoring_channels(self, model, data, ** kwargs):
 
         rval = OrderedDict()
+        nested_data = self.mapping.nest(data)
 
         for i, cost in enumerate(self.costs):
-            cost_data = resolve_nested_structure_from_flat(
-                    data,
-                    nested = cost.get_data_specs(),
-                    flat = self.get_data_specs())
+            cost_data = nested_data[i]
             try:
                 rval.update(cost.get_monitoring_channels(model, cost_data, **kwargs))
             except TypeError:
@@ -306,7 +307,7 @@ class ScaledCost(Cost):
         return self.scaling * self.cost(model, data)
 
     def get_data_specs(self, model):
-        return [None, None]
+        return (None, None)
 
 class LxReg(Cost):
     """
@@ -338,7 +339,7 @@ class LxReg(Cost):
         return Lx
 
     def get_data_specs(self, model):
-        return [None, None]
+        return (None, None)
 
 class CrossEntropy(Cost):
     """WRITEME"""
@@ -356,7 +357,7 @@ class CrossEntropy(Cost):
         data = CompositeSpace([model.get_input_space(),
                                model.get_output_space()])
         sources = (model.get_input_source(), model.get_target_source())
-        return [data, sources]
+        return (data, sources)
 
 class MethodCost(Cost):
     """

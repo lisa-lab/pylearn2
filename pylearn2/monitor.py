@@ -22,8 +22,7 @@ from pylearn2.datasets.dataset import Dataset
 from pylearn2.utils import function
 from pylearn2.utils.iteration import is_stochastic
 from pylearn2.utils import sharedX
-from pylearn2.utils.data_specs import flatten_list, flatten_spec,\
-            flat_specs_union
+from pylearn2.utils.data_specs import DataSpecsMapping
 from pylearn2.utils.string_utils import number_aware_alphabetical_key
 from theano import config
 import numpy as np
@@ -68,9 +67,35 @@ class Monitor(object):
         self._rng_seed = []
         self.names_to_del = ['theano_function_mode']
         self.t0 = time.time()
-        self.data_specs = flatten_spec(
-            (self.model.get_input_space(), self.model.get_input_source()))
         self.theano_function_mode = None
+
+        # Initialize self._nested_data_specs, self._data_specs_mapping,
+        # and self._flat_data_specs
+        self._build_data_specs()
+
+    def _build_data_specs(self):
+        """
+        Computes a nested data_specs for input and all channels
+
+        Also computes the mapping to flatten it.
+        This function is called from redo_theano
+        """
+        input_spaces = [self.model.get_input_space()]
+        input_sources = [self.model.get_input_source()]
+        for channel in self.channels.values():
+            if channel.data_specs != (None, None):
+                input_spaces.append(channel.data_specs[0])
+                input_sources.append(channel.data_specs[1])
+
+        nested_space = CompositeSpace(input_spaces)
+        nested_source = tuple(input_sources)
+
+        self._nested_data_specs = (nested_space, nested_source)
+        self._data_specs_mapping = DataSpecsMapping(self._nested_data_specs)
+
+        flat_space = self._data_specs_mapping.flatten(nested_space)
+        flat_source = self._data_specs_mapping.flatten(nested_source)
+        self._flat_data_specs = (flat_space, flat_source)
 
     def set_theano_function_mode(self, mode):
         if self.theano_function_mode != mode:
@@ -120,7 +145,7 @@ class Monitor(object):
             try:
                 it = d.iterator(mode=m, batch_size=b,
                                       num_batches=n,
-                                      data_specs=self.data_specs,
+                                      data_specs=self._flat_data_specs,
                                       rng = sd)
             except ValueError as exc:
                 raise ValueError("invalid iteration parameters in "
@@ -172,14 +197,15 @@ class Monitor(object):
             myiterator = d.iterator(mode=i,
                                     batch_size=b,
                                     num_batches=n,
-                                    data_specs=self.data_specs
+                                    data_specs=self._flat_data_specs
                                     rng=sd)
 
             actual_ne = 0
             for X in myiterator:
-                self.run_prereqs(X,d)
+                # X is in a flat (not nested) tuple
+                self.run_prereqs(X, d)
                 a(X)
-                actual_ne += self.data_specs[0].get_batch_size(X)
+                actual_ne += self._flat_data_specs[0].get_batch_size(X)
             # end for X
             if actual_ne != ne:
                 raise RuntimeError("At compile time, your iterator said it had "
@@ -214,7 +240,7 @@ class Monitor(object):
         if dataset not in self.prereqs:
             return
         for prereq in self.prereqs[dataset]:
-            prereq(*flatten_list(data))
+            prereq(*data)
 
     def get_batches_seen(self):
         """ Returns the number of batches the model has learned on (assuming
@@ -253,6 +279,9 @@ class Monitor(object):
         """
         self._dirty = False
 
+        # Recompute the data specs, since the channels may have changed.
+        self._build_data_specs()
+
         init_names = dir(self)
         self.prereqs = OrderedDict()
         for channel in self.channels.values():
@@ -273,9 +302,10 @@ class Monitor(object):
                     name = 'Monitor.begin_record_entry')
         updates = OrderedDict()
         givens = OrderedDict()
-        # Get the appropriate kind of theano variable to represent the data the model
-        # acts on
-        theano_args = self.data_spec[0].make_theano_batch(self.data_spec[1])
+        # Get the appropriate kind of theano variable to represent the data
+        # the model acts on
+        theano_args = self._flat_data_specs[0].make_theano_batch(
+                self._flat_data_specs[1])
 
         log.info('Monitored channels: ')
         for key in sorted(self.channels.keys()):
@@ -283,7 +313,8 @@ class Monitor(object):
             if mode is not None and hasattr(mode, 'record'):
                 mode.record.handle_line('compiling monitor including channel '+key+'\n')
             log.info('\t%s' % key)
-        it = [d.iterator(mode=i, num_batches=n, batch_size=b, topo=self.topo) \
+        it = [d.iterator(mode=i, num_batches=n, batch_size=b,
+                         data_specs=self._flat_data_specs) \
               for d, i, n, b in safe_izip(self._datasets, self._iteration_mode,
                                     self._num_batches, self._batch_size)]
         self.num_examples = [np.cast[config.floatX](float(i.num_examples)) for i in it]
@@ -298,16 +329,15 @@ class Monitor(object):
 
             if isinstance(channel.graph_input, (list, tuple)):
                 channel.graph_input = [channel.graph_input]
-            relevant_args = resolve_nested_structure_from_flat(
-                theano_args, channel.data_specs, self.data_specs)
-            for (channel_X, X) in safe_zip(channel.graph_inputs,
-                                        flatten_list(relevant_args)):
-                    assert channel_X not in g or g[channel_X] is X
-                    g[channel_X] = X
+            for (channel_X, X) in safe_zip(
+                    self._data_specs_mapping.flatten(channel.graph_inputs),
+                    theano_args):
+                assert channel_X not in g or g[channel_X] is X
+                g[channel_X] = X
             if n == 0:
                 raise ValueError("Iterating over 0 examples results in divide by 0")
             val = channel.val * T.cast(
-                self.data_spec[0].get_batch_size(X), config.floatX) / cur_num_examples
+                self._flat_data_specs[0].get_batch_size(X), config.floatX) / cur_num_examples
             u[channel.val_shared] = channel.val_shared + val
 
         with log_timing(log, "Compiling accum"):
@@ -337,11 +367,11 @@ class Monitor(object):
                 # Some channels may not depend on the data, ie, they might just monitor the model
                 # parameters, or some shared variable updated by the training algorithm, so we
                 # need to ignore the unused input error
-                self.accum.append(function(flatten_list(theano_args),
+                self.accum.append(function(theano_args,
                                            givens=g,
                                            updates=u,
                                            mode=self.theano_function_mode,
-                                            name=function_name))
+                                           name=function_name))
             for a in self.accum:
                 if mode is not None and hasattr(mode, 'record'):
                     for elem in a.maker.fgraph.outputs:
@@ -412,7 +442,7 @@ class Monitor(object):
 
         self.__dict__.update(d)
 
-    def add_channel(self, name, ipt, val, data_spec, dataset=None, prereqs=None):
+    def add_channel(self, name, ipt, val, data_specs, dataset=None, prereqs=None):
         """
         Asks the monitor to start tracking a new value.  Can be called even
         after the monitor is already in use.
@@ -424,7 +454,7 @@ class Monitor(object):
         ipt: tensor_like
             The symbolic tensor which should be clamped to the data.
             (or a list/tuple containing symbolic tensors, following the
-            data_spec)
+            data_specs)
         val: tensor_like
             The value (function of `ipt`) to be tracked.
         dataset: A Dataset instance specifying which dataset to compute
@@ -482,8 +512,6 @@ class Monitor(object):
             raise ValueError("Tried to create the same channel twice (%s)" %
                              name)
 
-        self.data_specs = flat_specs_union(self.data_specs,
-                                           flatten_specs(data_specs))
         self.channels[name] = MonitorChannel(ipt, val, name, data_specs, dataset, prereqs)
         self._dirty = True
 

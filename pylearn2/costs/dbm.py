@@ -17,6 +17,7 @@ from theano import tensor as T
 from pylearn2.costs.cost import Cost
 from pylearn2.models import dbm
 from pylearn2.models.dbm import flatten
+from pylearn2.spaces import CompositeSpace
 from pylearn2.utils import safe_izip
 from pylearn2.utils import safe_zip
 
@@ -213,7 +214,7 @@ class PCD(Cost):
         return gradients, updates
 
     def get_data_specs(self, model):
-        return [None, None]
+        return (None, None)
 
 class VariationalPCD(Cost):
     """
@@ -404,7 +405,7 @@ class VariationalPCD(Cost):
         return gradients, updates
 
     def get_data_specs(self, model):
-        return [None, None]
+        return (None, None)
 
 class MF_L2_ActCost(Cost):
     """
@@ -462,11 +463,11 @@ class MF_L2_ActCost(Cost):
 
     def get_data_specs(self, model):
         if self.supervised:
-            data = CompositeSpace([model.get_input_space(), model.get_output_space()])
+            space = CompositeSpace([model.get_input_space(), model.get_output_space()])
             sources = (model.get_input_source(), model.get_target_source())
-            return [data, sources]
+            return (space, sources)
         else:
-            return [model.get_input_space(), model.get_input_source()]
+            return (model.get_input_space(), model.get_input_source())
 
 def fix(l):
     if isinstance(l, list):
@@ -594,4 +595,4 @@ class WeightDecay(Cost):
         return total_cost
 
     def get_data_specs(self, model):
-        return [None, None]
+        return (None, None)

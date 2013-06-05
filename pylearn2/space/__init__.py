@@ -219,7 +219,7 @@ class VectorSpace(Space):
             else:
                 rval = T.matrix(name=name, dtype=dtype)
 
-        if config.compute_test_value in ('raise', 'warn'):
+        if config.compute_test_value != 'off':
             if batch_size == 1:
                 n = 1
             else:
@@ -364,13 +364,13 @@ class Conv2DSpace(Space):
         rval = TensorType(dtype=dtype,
                           broadcastable=broadcastable
                          )(name=name)
-        if config.compute_test_value in ('raise', 'warn'):
+        if config.compute_test_value != 'off':
             if batch_size == 1:
                 n = 1
             else:
                 # TODO: try to extract constant scalar value from batch_size
                 n = 4
-            rval.tag.test_value = self.get_origin_batch(n=4)
+            rval.tag.test_value = self.get_origin_batch(n=n)
         return rval
 
     @functools.wraps(Space.get_batch_size)
