@@ -56,7 +56,7 @@ class _PCABase(Block):
     subclass to select a particular PCA implementation.
     """
 
-    def __init__(self, num_components=None, min_variance=0.0, keep_var_fraction=1.0e40, whiten=False):
+    def __init__(self, num_components=None, min_variance=0.0, keep_var_fraction=1e40, whiten=False):
         """
         :type num_components: int
         :param num_components: this many components will be preserved, in

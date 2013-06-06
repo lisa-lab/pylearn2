@@ -394,7 +394,7 @@ class ExtractPatchesWithPosition(Preprocessor):
 
         # patches = patches, stamps = positions
         patches_shape = [num_patches]
-        stamps_shape = [num_patches, num_topological_dimensions]
+        stamps_shape = [num_patches, num_topological_dimensions+1]
         # topological dimensions
         for dim in self.patch_shape:
             patches_shape.append(dim)
@@ -412,10 +412,11 @@ class ExtractPatchesWithPosition(Preprocessor):
             for j in xrange(patches_per_image):
                 patch_num = i * patches_per_image + j
                 args = [i]
+                stamps[patch_num, 0] = i
                 for d in xrange(num_topological_dimensions):
                     max_coord = X.shape[d + 1] - self.patch_shape[d]
                     coord = rng.randint(max_coord + 1)
-                    stamps[patch_num, d] = coord
+                    stamps[patch_num, d+1] = coord
                     args.append(slice(coord, coord + self.patch_shape[d]))
                 args.append(channel_slice)
                 patches[patch_num, :] = X[args]
@@ -432,8 +433,11 @@ class ExtractPatchPairs(Preprocessor):
     design_matrix to represent examples of the form (p1,p2,d) where
     p1 and p2 represent 2 patches from the same image and d respresents
     the displacement between them.
+
+    The stamps here track the image the patch pair is from, along with 
+    the location of both patches and their displacements
     """
-    def __init__(self, patches_per_image, num_images, input_width, rng=None):
+    def __init__(self, patches_per_image, num_images, input_width, save_path = None, rng=None):
         self.patches_per_image = patches_per_image
         # should have num_patches attribute?
         # self.num_patches = num_patches
@@ -468,9 +472,10 @@ class ExtractPatchPairs(Preprocessor):
         d_size = (2*max_stamp+1)**input_dim
 
         patch_pairs = np.zeros((num_examples, 2*processed_patch_size))
-        distances = np.zeros((num_examples, input_dim))
-        distances_onehot = np.zeros((num_examples, d_size))
+        displacements = np.zeros((num_examples, input_dim))
+        displacements_onehot = np.zeros((num_examples, d_size))
         examples = np.zeros((num_examples, 2*processed_patch_size + d_size))
+        new_stamps = np.zeros((num_examples, 3*input_dim+1))
 
         nvis = 2*processed_patch_size + d_size
 
@@ -482,13 +487,14 @@ class ExtractPatchPairs(Preprocessor):
                  flat_encoding += encoding[i]
                  flat_encoding *= max_stamp
             flat_encoding += encoding[-1]
+            return flat_encoding
 
 
         # Can be done without (or with less) for loops?
         for i in xrange(num_images):
             for j in xrange(patches_per_image):
                 patch1_num = i * patches_per_image + j
-                patch1_pos = stamps[patch1_num,:]
+                patch1_pos = stamps[patch1_num, :]
                 for k in xrange(patches_per_image):
                     example_num = i*examples_per_image + \
                                   j*(patches_per_image-1) + k
@@ -496,22 +502,22 @@ class ExtractPatchPairs(Preprocessor):
                         example_num -= 1
                     if (k != j):
                         patch2_num = i * patches_per_image + k
-                        patch2_pos = stamps[patch2_num,:]
-                        distance = patch1_pos - patch2_pos
-                        distances[example_num] = distance
-                        distance_encoding = distance + max_stamp
-                        distance_encoding = flatten_encoding(distance_encoding,
-                                                             max_stamp
-                                                            )
-                        distances_onehot[example_num, distance_encoding] = 1
+                        patch2_pos = stamps[patch2_num, 1:input_dim+1]
+                        displacement = patch1_pos - patch2_pos
+                        displacements[example_num] = displacement
+                        displacement_encoding = displacement + max_stamp
+                        displacement_encoding = flatten_encoding(displacement_encoding, max_stamp)
+                        displacements_onehot[example_num, displacement_encoding] = 1
+                        new_stamps[example_num] = np.hstack((patch1_pos, patch2_pos, displacement))
                         p1 = design_matrix[patch1_num]
                         p2 = design_matrix[patch2_num]
                         patch_pairs[example_num] = np.hstack((p1, p2))
                         examples[example_num] = np.hstack(
                                                     (patch_pairs[example_num],
-                                                     distances_onehot[example_num])
+                                                     displacements_onehot[example_num])
                                                          )
         dataset.set_design_matrix(examples)
+        dataset.stamps = new_stamps
 
 
 class ExamplewiseUnitNormBlock(Block):

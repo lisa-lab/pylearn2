@@ -701,6 +701,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         h5file.flush()
         return h5file, gcolumns
 
+
 class DefaultViewConverter(object):
     def __init__(self, shape, axes = ('b', 0, 1, 'c')):
         self.shape = shape
