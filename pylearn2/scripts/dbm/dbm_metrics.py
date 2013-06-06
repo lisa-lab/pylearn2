@@ -185,7 +185,7 @@ def compute_log_za(b_list, pa_bias, marginalize_odd=True):
     return log_za
 
 
-def compute_likelihood_given_logz(nsamples, batch_size, energy_fn,
+def compute_likelihood_given_logz(nsamples, psamples, batch_size, energy_fn,
                                   inference_fn, log_z, test_x):
     """
     Compute test set likelihood as below, where q is the variational
@@ -224,18 +224,19 @@ def compute_likelihood_given_logz(nsamples, batch_size, energy_fn,
         # TODO: determine if relevant
         # perform inference
         # setup_pos_func(x)
-        psamples = inference_fn()
+        inference_fn(x)
 
         # entropy of h(q) adds contribution to variational lower-bound
         hq = 0
         for psample in psamples[1:]:
-            temp = - psample * numpy.log(1e-5 + psample) \
-                   - (1.-psample) * numpy.log(1. - psample + 1e-5)
+            temp = - psample.get_value() * numpy.log(1e-5 + psample.get_value()) \
+                   - (1.-psample.get_value()) * numpy.log(1. - psample.get_value() + 1e-5)
             hq += numpy.sum(temp, axis=1)
 
         # copy into negative phase buffers to measure energy
-        for ii, psample in enumerate(psamples):
-            nsamples[ii].set_value(psample)
+        nsamples[0].set_value(x)
+        for ii, psample in enumerate(psamples[1:]):
+            nsamples[ii].set_value(psample.get_value())
 
         # compute sum of likelihood for current buffer
         x_likelihood = numpy.sum(-energy_fn(1.0) + hq - log_z)
@@ -372,6 +373,7 @@ def estimate_likelihood(W_list, b_list, trainset, testset, free_energy_fn=None,
         nsamples += [utils.sharedX(rng.rand(batch_size,
                                             b.get_value().shape[0]),
                                    name='nsamples%i' % i)]
+    psamples[0] = T.matrix('psamples0')
 
     ##########################
     ## BUILD THEANO FUNCTIONS
@@ -395,15 +397,18 @@ def estimate_likelihood(W_list, b_list, trainset, testset, free_energy_fn=None,
     assert (pos_mf_steps or pos_sample_steps)
     pos_steps = pos_mf_steps if pos_mf_steps else pos_sample_steps
     new_psamples = _e_step(psamples, W_list, b_list, n_steps=pos_steps)
-    inference_fn = theano.function([], new_psamples)
+    ups = OrderedDict()
+    for psample, new_psample in zip(psamples[1:], new_psamples[1:]):
+        ups[psample] = new_psample
+    temp = numpy.asarray(trainset.X, dtype=floatX)
+    mean_train = numpy.mean(temp, axis=0)
+    inference_fn = theano.function(inputs=[psamples[0]], outputs=[],
+                                   updates=ups)
 
-    # TODO: find if this needs to be taken care of
     # Configure baserate bias for (h0 if `marginalize_odd` else h1)
-    # temp = numpy.asarray(trainset.X, dtype=floatX)
-    # mean_train = numpy.mean(temp, axis=0)
-    # model.setup_pos_func(numpy.tile(mean_train[None,:], (model.batch_size,1)))
-    psamples = inference_fn()
-    mean_pos = numpy.minimum(psamples[not marginalize_odd], 1-1e-5)
+    inference_fn(mean_train[None, :])
+    numpy_psamples = [mean_train[None, :]] + [psample.get_value() for psample in psamples[1:]]
+    mean_pos = numpy.minimum(numpy_psamples[not marginalize_odd], 1-1e-5)
     mean_pos = numpy.maximum(mean_pos, 1e-5)
     pa_bias = -numpy.log(1./mean_pos[0] - 1.)
 
@@ -458,6 +463,7 @@ def estimate_likelihood(W_list, b_list, trainset, testset, free_energy_fn=None,
                          numpy.linspace(0.5, 0.9, 1e4),
                          numpy.linspace(0.9, 1.0, 1e4))))
 
+    log_z = 346.325818
     if log_z is None:
         log_ais_w = compute_log_ais_weights(batch_size, free_energy_fn,
                                             sample_fn, betas)
@@ -469,10 +475,10 @@ def estimate_likelihood(W_list, b_list, trainset, testset, free_energy_fn=None,
         logging.info('dlogz = %f' % dlogz)
         logging.info('var_dlogz = %f' % var_dlogz)
 
-    train_ll = compute_likelihood_given_logz(nsamples, batch_size, energy_fn,
+    train_ll = compute_likelihood_given_logz(nsamples, psamples, batch_size, energy_fn,
                                              inference_fn, log_z, trainset.X)
     logging.info('Training likelihood = %f' % train_ll)
-    test_ll = compute_likelihood_given_logz(nsamples, batch_size, energy_fn,
+    test_ll = compute_likelihood_given_logz(nsamples, psamples, batch_size, energy_fn,
                                             inference_fn, log_z, testset.X)
     logging.info('Test likelihood = %f' % test_ll)
 
