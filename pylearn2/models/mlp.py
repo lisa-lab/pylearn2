@@ -762,7 +762,6 @@ class Softmax(Layer):
         that this method will be called after the set_input_space function.
         """
         self.transformer.set_params(filters)
-        self.set_weights(filters.get_value())
 
     def set_shared_biases(self, biases):
         """
@@ -774,7 +773,6 @@ class Softmax(Layer):
         that it will be called after the set_input_space function.
         """
         self.b = biases
-        self.set_biases(biases.get_value())
 
     def set_weights(self, weights):
         self.W.set_value(weights)
@@ -1925,7 +1923,8 @@ class ConvRectifiedLinear(Layer):
                  left_slope = 0.0,
                  max_kernel_norm = None,
                  pool_type = 'max',
-                 shared_params = False,
+                 can_alter_transformer = True,
+                 can_alter_biases = True,
                  detector_normalization = None,
                  output_normalization = None,
                  kernel_stride=(1, 1)):
@@ -1953,8 +1952,15 @@ class ConvRectifiedLinear(Layer):
                  left_slope: **TODO**
                  max_kernel_norm: If specifed, each kernel is constrained to have at most this
                  norm.
-                 shared_params: Flag that determines whether that architecture shares it parameters
-                 or not.
+
+                 can_alter_transformer: Flag that determines if the transformer is changeable.
+                 This flag can be useful for sharing filters across different layers with
+                 set_shared_filters function.
+
+                 can_alter_biases: Flag that determines if the biases are changeable or
+                 not. This flag can be useful for bias sharing across different layers
+                 with set_shared_biases function.
+
                  pool_type: The type of the pooling operation performed the the convolution.
                  Default pooling type is max-pooling.
                  detector_normalization, output_normalization:
@@ -2012,7 +2018,7 @@ class ConvRectifiedLinear(Layer):
                 num_channels = self.output_channels,
                 axes = ('b', 'c', 0, 1))
 
-        if not (self.shared_params and hasattr(self, "transformer")
+        if not (self.can_alter_transformer and hasattr(self, "transformer")
                 and self.transformer is not None):
 
             if self.irange is not None:
@@ -2036,12 +2042,21 @@ class ConvRectifiedLinear(Layer):
                         subsample = self.kernel_stride,
                         border_mode = self.border_mode,
                         rng = rng)
+        else:
+            filters_shape = self.transformer._filters.get_value().shape
+            if (self.input_space.filters_shape[-2:-1] != self.kernel_shape or
+                    self.input_space.filters_shape != filters_shape):
+                raise ValueError("The filters and input space don't have compatible input space.")
+            if self.input_space.num_channels != filter_shape[1]:
+                raise ValueError("The filters and input space don't have compatible number of channels.")
 
         W, = self.transformer.get_params()
         W.name = 'W'
 
-        self.b = sharedX(self.detector_space.get_origin() + self.init_bias)
-        self.b.name = 'b'
+        if not (self.can_alter_biases and hasattr(self, "b")
+                and self.b is not None):
+            self.b = sharedX(self.detector_space.get_origin() + self.init_bias)
+            self.b.name = 'b'
 
         print 'Input shape: ', self.input_space.shape
         print 'Detector space: ', self.detector_space.shape
