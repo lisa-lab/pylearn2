@@ -26,6 +26,7 @@ from pylearn2.base import Block
 from pylearn2.linear.conv2d import Conv2D
 from pylearn2.space import Conv2DSpace
 from pylearn2.expr.preprocessing import global_contrast_normalize
+from pylearn2.expr.preprocessing import global_contrast_normalize_reversible
 from pylearn2.utils.insert_along_axis import insert_columns
 from pylearn2.utils import sharedX
 
@@ -53,6 +54,9 @@ class Preprocessor(object):
         In other words, preprocessors can do a lot more than
         just example-wise transformations of the examples stored
         in the dataset.
+        
+        Currently, preprocessing with PCA or ExtractPatchPairs 
+        can render a datasets topo_view invalid.
     """
 
     def apply(self, dataset, can_fit=False):
@@ -109,6 +113,7 @@ class ExamplewisePreprocessor(Preprocessor):
     def as_block(self):
         raise NotImplementedError(str(type(self))+" does not implement as_block.")
 
+
 class BlockPreprocessor(ExamplewisePreprocessor):
     """
         An ExamplewisePreprocessor implemented by a Block.
@@ -120,7 +125,6 @@ class BlockPreprocessor(ExamplewisePreprocessor):
     def apply(self, dataset, can_fit = False):
         assert not can_fit
         dataset.X = self.block.perform(dataset.X)
-
 
 
 class Pipeline(Preprocessor):
@@ -342,6 +346,181 @@ class ExtractPatches(Preprocessor):
             output[i, :] = X[args]
         dataset.set_topological_view(output)
         dataset.y = None
+
+
+class ExtractPatchesWithPosition(Preprocessor):
+    """ 
+    This only works with 2D inputs, such as images.
+    
+    The original ExtractPatches class converts an 
+    image dataset into a dataset of patches
+    extracted at random from the original dataset. 
+    
+    This class does the same thing as ExtractPatches, 
+    but we also track each patch's position using the 
+    dataset's stamps attribute. The ordered pair 
+    ( stamps[i,1] , stamps[i,2] )
+    represents the patch i's (x,y) position in the image, 
+    in terms starting pixels. 
+
+    stamps[i,0] gives the index of the image the
+    patch is from.
+ 
+    """
+    def __init__(self, patch_shape, patches_per_image, rng=None):
+        self.patch_shape = patch_shape
+        self.patches_per_image = patches_per_image
+
+        if rng != None:
+            self.start_rng = copy.copy(rng)
+        else:
+            self.start_rng = np.random.RandomState([1, 2, 3])
+
+    def apply(self, dataset, can_fit=False):
+        rng = copy.copy(self.start_rng)
+
+        X = dataset.get_topological_view()
+        num_images = X.shape[0] 
+
+        patches_per_image = self.patches_per_image
+        num_patches = num_images * patches_per_image
+
+        num_topological_dimensions = len(X.shape) - 2
+
+        if num_topological_dimensions != len(self.patch_shape):
+            raise ValueError("ExtractPatchesWithPosition with "
+                             + str(len(self.patch_shape))
+                             + " topological dimensions called on "
+                             + "dataset with "
+                             + str(num_topological_dimensions) + ".")
+
+        # patches = patches, stamps = positions
+        patches_shape = [num_patches]
+        stamps_shape = [num_patches, num_topological_dimensions+1]
+        # topological dimensions
+        for dim in self.patch_shape:
+            patches_shape.append(dim)
+        # number of channels
+        patches_shape.append(X.shape[-1])
+        patches = np.zeros(patches_shape, dtype=X.dtype)
+        stamps = np.zeros(stamps_shape, dtype=X.dtype)        
+        channel_slice = slice(0, X.shape[-1])
+
+        # We go through each image sequentially and 
+        # take the same number of patches for each image.
+        # 
+        # We also keep track of the patches' positions in stamps
+        for i in xrange(num_images):
+            for j in xrange(patches_per_image):
+                patch_num = i * patches_per_image + j
+                args = [i]
+                stamps[patch_num, 0] = i
+                for d in xrange(num_topological_dimensions):
+                    max_coord = X.shape[d + 1] - self.patch_shape[d]
+                    coord = rng.randint(max_coord + 1)
+                    stamps[patch_num, d+1] = coord
+                    args.append(slice(coord, coord + self.patch_shape[d]))
+                args.append(channel_slice)
+                patches[patch_num, :] = X[args]
+        
+        dataset.set_topological_view(patches)
+        dataset.y = None
+        dataset.stamps = stamps
+
+
+class ExtractPatchPairs(Preprocessor):
+    """
+    Right now, this assumes the dataset has been preprocessed
+    by ExtractPatchesWithPosition (EPWP).  This sets the dataset's 
+    design_matrix to represent examples of the form (p1,p2,d) where
+    p1 and p2 represent 2 patches from the same image and d respresents
+    the displacement between them.
+
+    The stamps here track the image the patch pair is from, along with 
+    the location of both patches and their displacements
+    """
+    def __init__(self, patches_per_image, num_images, input_width, save_path = None, rng=None):
+        self.patches_per_image = patches_per_image
+        # should have num_patches attribute?
+        # self.num_patches = num_patches
+        self.num_images = num_images
+        self.input_width = input_width
+
+        if rng != None:
+            self.start_rng = copy.copy(rng)
+        else:
+            self.start_rng = np.random.RandomState([1, 2, 3])
+
+    def apply(self, dataset, can_fit=False):
+        rng = copy.copy(self.start_rng)
+
+        num_images = self.num_images
+        
+        patches_per_image = self.patches_per_image
+        examples_per_image = patches_per_image * (patches_per_image-1)
+
+        stamps = dataset.stamps
+        topo_view = dataset.get_topological_view()
+        design_matrix = dataset.get_design_matrix()
+        processed_patch_size = design_matrix.shape[1]
+
+        # Here we are assuming 2D inputs with equal height and width.
+        input_dim = 2
+        input_width = self.input_width
+        patch_width = topo_view.shape[1]
+        num_examples = examples_per_image * num_images
+
+        max_stamp = input_width - patch_width
+        d_size = (2*max_stamp+1)**input_dim
+
+        patch_pairs = np.zeros((num_examples, 2*processed_patch_size))
+        displacements = np.zeros((num_examples, input_dim))
+        displacements_onehot = np.zeros((num_examples, d_size))
+        examples = np.zeros((num_examples, 2*processed_patch_size + d_size))
+        new_stamps = np.zeros((num_examples, 3*input_dim+1))
+
+        nvis = 2*processed_patch_size + d_size
+
+
+        def flatten_encoding(encoding, max_stamp):
+            dims = len(encoding)
+            flat_encoding = 0
+            for i in xrange(dims-1):
+                 flat_encoding += encoding[i]
+                 flat_encoding *= max_stamp
+            flat_encoding += encoding[-1]
+            return flat_encoding
+
+
+        # Can be done without (or with less) for loops?
+        for i in xrange(num_images):
+            for j in xrange(patches_per_image):
+                patch1_num = i * patches_per_image + j
+                patch1_pos = stamps[patch1_num, 1:input_dim+1]
+                for k in xrange(patches_per_image):
+                    example_num = i*examples_per_image + \
+                                  j*(patches_per_image-1) + k
+                    if (k > j):
+                        example_num -= 1
+                    if (k != j):
+                        patch2_num = i * patches_per_image + k
+                        patch2_pos = stamps[patch2_num, 1:input_dim+1]
+                        displacement = patch2_pos - patch1_pos
+                        displacements[example_num] = displacement
+                        displacement_encoding = displacement + max_stamp
+                        displacement_encoding = flatten_encoding(displacement_encoding, max_stamp)
+                        displacements_onehot[example_num, displacement_encoding] = 1
+                        new_stamps[example_num, 0] = i
+                        new_stamps[example_num, 1:] = np.hstack((patch1_pos, patch2_pos, displacement))
+                        p1 = design_matrix[patch1_num]
+                        p2 = design_matrix[patch2_num]
+                        patch_pairs[example_num] = np.hstack((p1, p2))
+                        examples[example_num] = np.hstack(
+                                                    (patch_pairs[example_num],
+                                                     displacements_onehot[example_num])
+                                                         )
+        dataset.set_design_matrix(examples)
+        dataset.stamps = new_stamps
 
 
 class ExamplewiseUnitNormBlock(Block):
@@ -605,8 +784,13 @@ class PCA_ViewConverter(object):
 
 
 class PCA(object):
-    def __init__(self, num_components):
+    def __init__(self, num_components, keep_var_fraction = 1.0e30):
+        # Keeps the largest num_components eigenvalues, or as many as  
+        # necessary to capture keep_var_fraction of the original variance,
+        # whichever is less.  The default value of keep_var_fraction is designed
+        # to never cut off any components, so it should maybe be infinity.
         self._num_components = num_components
+        self._keep_var_fraction = keep_var_fraction
         self._pca = None
         # TODO: Is storing these really necessary? This computation
         # can't really be merged since we're basically creating the
@@ -620,7 +804,7 @@ class PCA(object):
                 raise ValueError("can_fit is False, but PCA preprocessor "
                                  "object has no fitted model stored")
             from pylearn2 import pca
-            self._pca = pca.CovEigPCA(self._num_components)
+            self._pca = pca.CovEigPCA(cov_batch_size = None, num_components = self._num_components, keep_var_fraction = self._keep_var_fraction)
             self._pca.train(dataset.get_design_matrix())
             self._transform_func = function([self._input],
                                             self._pca(self._input))
@@ -698,6 +882,7 @@ class GlobalContrastNormalization(Preprocessor):
     def __init__(self, subtract_mean=True,
                  scale=1., sqrt_bias=None, use_std=None, min_divisor=1e-8,
                  std_bias=None, use_norm=None,
+                 means = None, normalizers = None,
                  batch_size=None):
         """
         See the docstring for `global_contrast_normalize` in
@@ -1163,41 +1348,6 @@ def gaussian_filter(kernel_shape):
             x[i,j] = gauss(i-mid, j-mid)
 
     return x / np.sum(x)
-
-class CentralWindow(Preprocessor):
-    """
-    Preprocesses an image dataset to contain only the central window.
-    """
-
-    def __init__(self, window_shape):
-
-        self.__dict__.update(locals())
-        del self.self
-
-    def apply(self, dataset, can_fit=False):
-
-        w_rows, w_cols = self.window_shape
-
-        arr = dataset.get_topological_view()
-
-        try:
-            axes = dataset.view_converter.axes
-        except AttributeError:
-            raise NotImplementedError("I don't know how to tell what the axes of this kind of dataset are.")
-
-        needs_transpose = not axes[1:3] == (0, 1)
-
-        if needs_transpose:
-            arr = np.transpose(arr, (axes.index('c'), axes.index(0), axes.index(1), axes.index('b')))
-
-        r_off = (arr.shape[1] - w_rows) // 2
-        c_off = (arr.shape[2] - w_cols) // 2
-        new_arr = arr[:, r_off:r_off + w_rows, c_off:c_off + w_cols, :]
-
-        if needs_transpose:
-            new_arr = np.transpose(new_arr, tuple(('c', 0, 1, 'b').index(axis) for axis in axes))
-
-        dataset.set_topological_view(new_arr, axes=axes)
 
 class ShuffleAndSplit(Preprocessor):
 

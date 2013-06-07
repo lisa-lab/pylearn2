@@ -56,7 +56,7 @@ class _PCABase(Block):
     subclass to select a particular PCA implementation.
     """
 
-    def __init__(self, num_components=None, min_variance=0.0, whiten=False):
+    def __init__(self, num_components=None, min_variance=0.0, keep_var_fraction=1e40, whiten=False):
         """
         :type num_components: int
         :param num_components: this many components will be preserved, in
@@ -65,6 +65,11 @@ class _PCABase(Block):
         :type min_variance: float
         :param min_variance: components with normalized variance [0-1] below
             this threshold will be discarded
+            
+        :type keep_var_fraction: float
+        :param keep_var_fraction: We sum normalized variance of components, starting 
+            with the largest until this threshold is crossed, and throw away those 
+            not yet included
 
         :type whiten: bool
         :param whiten: whether or not to divide projected features by their
@@ -74,6 +79,7 @@ class _PCABase(Block):
         super(_PCABase, self).__init__()
 
         self.num_components = num_components
+        self.keep_var_fraction = keep_var_fraction
         self.min_variance = min_variance
         self.whiten = whiten
 
@@ -138,17 +144,6 @@ class _PCABase(Block):
         :param inputs: matrix on which to compute PCA
         """
 
-        # Update component cutoff, in case min_variance or num_components has
-        # changed (or both).
-
-        #TODO: Looks like the person who wrote this function didn't know what
-        #      they were doing
-        # component_cutoff is a shared variable, so updating its value here has
-        # NO EFFECT on the symbolic expression returned by this call (and what
-        # this expression evalutes to can be modified by subsequent calls to
-        # _update_cutoff)
-        self._update_cutoff()
-
         normalized_mean = inputs - self.mean
         normalized_mean.name = 'normalized_mean'
 
@@ -169,8 +164,6 @@ class _PCABase(Block):
         PCA/whitened data
         """
 
-        self._update_cutoff()
-
         component_cutoff = self.component_cutoff.get_value()
 
         W = self.W.get_value(borrow=False)
@@ -185,7 +178,6 @@ class _PCABase(Block):
         """
         Given a PCA transformation of the current data, compute and return
         the reconstruction of the original input """
-        self._update_cutoff()
         if self.whiten:
             inputs *= tensor.sqrt(self.v[:self.component_cutoff])
         X = tensor.dot(inputs, self.W[:, :self.component_cutoff].T)
@@ -207,7 +199,13 @@ class _PCABase(Block):
             'No components exceed the given min. variance'
         var_cutoff = 1 + numpy.where(var_mask)[0].max()
 
-        self.component_cutoff.set_value(min(var_cutoff, self.num_components))
+        'The variance retained by included components is set to be less than keep_var_fraction of the total.'
+        keep_var_fraction = self.keep_var_fraction
+        v = v[v.cumsum()<v.sum()*keep_var_fraction]
+        var_fraction_cutoff = v.shape[0]
+
+        cutoff = min(var_cutoff, self.num_components, var_fraction_cutoff)
+        self.component_cutoff.set_value(cutoff)
 
     def _cov_eigen(self, X):
         """
@@ -277,8 +275,6 @@ class SparseMatPCA(_PCABase):
         super(SparseMatPCA, self).train(X, mean=self.mean_)
 
     def __call__(self, inputs):
-
-        self._update_cutoff()
 
         Y = structured_dot(inputs, self.W[:, :self.component_cutoff])
         Z = Y - tensor.dot(self.mean, self.W[:, :self.component_cutoff])
@@ -424,10 +420,6 @@ class SparsePCA(_PCABase):
         TODO: docstring upgrade. Make it consistent with the numpy/pylearn
         standard.
         """
-
-        # Update component cutoff, in case min_variance or num_components has
-        # changed (or both).
-        self._update_cutoff()
 
         Y = structured_dot(inputs, self.W[:, :self.component_cutoff])
         if self.whiten:

@@ -9,7 +9,7 @@ from pylearn2.expr.preprocessing import global_contrast_normalize
 class CIFAR10(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, which_set, center = False, rescale = False, gcn = None,
             one_hot = False, start = None, stop = None, axes=('b', 0, 1, 'c'),
-            toronto_prepro = False, preprocessor = None):
+            toronto_prepro = False, preprocessor = None, fit_preprocessor = False):
 
 
         # note: there is no such thing as the cifar10 validation set;
@@ -123,7 +123,7 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         assert not np.any(np.isnan(self.X))
 
         if preprocessor:
-            preprocessor.apply(self)
+            preprocessor.apply(self, can_fit = fit_preprocessor)
 
     def adjust_for_viewer(self, X):
         #assumes no preprocessing. need to make preprocessors mark the new ranges
