@@ -51,10 +51,11 @@ install:
 
 # command to run tests
 env:
-  - FLAGS=floatX=float32
-  - FLAGS=floatX=float64
-  - PART=--exclude-dir=pylearn2/models
-  - PART=pylearn2/models
+  - FLAGS=floatX=float64 PART=--exclude-dir=pylearn2/models
+  - FLAGS=floatX=float64 PART=pylearn2/models
+  - FLAGS=floatX=float32 PART=--exclude-dir=pylearn2/models
+  - FLAGS=floatX=float32 PART=pylearn2/models
+
 # Start testing
 script:
 #We can't build the test dataset as the original is not present. We can't download the original as it
