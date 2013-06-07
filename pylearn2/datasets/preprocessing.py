@@ -26,6 +26,7 @@ from pylearn2.base import Block
 from pylearn2.linear.conv2d import Conv2D
 from pylearn2.space import Conv2DSpace
 from pylearn2.expr.preprocessing import global_contrast_normalize
+from pylearn2.expr.preprocessing import global_contrast_normalize_reversible
 from pylearn2.utils.insert_along_axis import insert_columns
 from pylearn2.utils import sharedX
 
@@ -358,12 +359,13 @@ class ExtractPatchesWithPosition(Preprocessor):
     This class does the same thing as ExtractPatches, 
     but we also track each patch's position using the 
     dataset's stamps attribute. The ordered pair 
-    ( patch_positions[i,1] , [patch_positions[i,2] )
+    ( stamps[i,1] , stamps[i,2] )
     represents the patch i's (x,y) position in the image, 
     in terms starting pixels. 
-    
-    We track which image a patch belonged to implicitly, by 
-    taking the same number of patches from each image.
+
+    stamps[i,0] gives the index of the image the
+    patch is from.
+ 
     """
     def __init__(self, patch_shape, patches_per_image, rng=None):
         self.patch_shape = patch_shape
@@ -494,7 +496,7 @@ class ExtractPatchPairs(Preprocessor):
         for i in xrange(num_images):
             for j in xrange(patches_per_image):
                 patch1_num = i * patches_per_image + j
-                patch1_pos = stamps[patch1_num, :]
+                patch1_pos = stamps[patch1_num, 1:input_dim+1]
                 for k in xrange(patches_per_image):
                     example_num = i*examples_per_image + \
                                   j*(patches_per_image-1) + k
@@ -503,12 +505,13 @@ class ExtractPatchPairs(Preprocessor):
                     if (k != j):
                         patch2_num = i * patches_per_image + k
                         patch2_pos = stamps[patch2_num, 1:input_dim+1]
-                        displacement = patch1_pos - patch2_pos
+                        displacement = patch2_pos - patch1_pos
                         displacements[example_num] = displacement
                         displacement_encoding = displacement + max_stamp
                         displacement_encoding = flatten_encoding(displacement_encoding, max_stamp)
                         displacements_onehot[example_num, displacement_encoding] = 1
-                        new_stamps[example_num] = np.hstack((patch1_pos, patch2_pos, displacement))
+                        new_stamps[example_num, 0] = i
+                        new_stamps[example_num, 1:] = np.hstack((patch1_pos, patch2_pos, displacement))
                         p1 = design_matrix[patch1_num]
                         p2 = design_matrix[patch2_num]
                         patch_pairs[example_num] = np.hstack((p1, p2))
@@ -879,6 +882,7 @@ class GlobalContrastNormalization(Preprocessor):
     def __init__(self, subtract_mean=True,
                  scale=1., sqrt_bias=None, use_std=None, min_divisor=1e-8,
                  std_bias=None, use_norm=None,
+                 means = None, normalizers = None,
                  batch_size=None):
         """
         See the docstring for `global_contrast_normalize` in

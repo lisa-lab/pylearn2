@@ -199,8 +199,7 @@ class _PCABase(Block):
             'No components exceed the given min. variance'
         var_cutoff = 1 + numpy.where(var_mask)[0].max()
 
-            'The variance retained by included components
-              is set to be less than keep_var_fraction of the total.'
+        'The variance retained by included components is set to be less than keep_var_fraction of the total.'
         keep_var_fraction = self.keep_var_fraction
         v = v[v.cumsum()<v.sum()*keep_var_fraction]
         var_fraction_cutoff = v.shape[0]
