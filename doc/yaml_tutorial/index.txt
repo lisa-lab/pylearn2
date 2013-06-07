@@ -1,0 +1,298 @@
+.. _yaml_tutorial:
+
+=================
+YAML for Pylearn2
+=================
+
+.. note::
+    Code for this section is available in ``Pylearn2/doc/yaml_tutorial/autoencoder.py``.
+    Since the ``Pylearn2/doc`` will not typically be on your ``PYTHONPATH``, you
+    can run the code using the following command.
+
+    ``[user@host]$ PYTHONPATH=/path/to/Pylearn2/doc python autoencoder.py``.
+
+Pylearn2 makes extensive use of `YAML <http://en.wikipedia.org/wiki/YAML>`_ , a
+human-readable dataset serialization scripting language, for defining an
+experimental configuration. This allows the end-user to completely specificy an
+experiment (includes all parts of model, dataset and training algorithm
+specifications), without having to write a single line of python code. Since
+scores of YAML tutorials can be found online, this tutorial will focus on the
+specific set of YAML features employed by Pylearn2, in particular custom tags
+(registered by Pylearn2) which augment the basic YAML syntax to allow for
+dynamic object creation (with automatic imports), file unpickling, etc.
+
+
+Introduction
+============
+
+We will start by defining a basic Python object, which we will then use to
+highlight Pylearn2's YAML functionality. The object in question is a skeleton
+class for a basic auto-encoder.
+
+.. code-block:: python
+
+    class AutoEncoder:
+
+        def __init__(self, nvis, nhid, iscale=0.1,
+                activation_fn=numpy.tanh,
+                params=None):
+
+            self.nvis = nvis
+            self.nhid = nhid
+            self.activation_fn = activation_fn
+
+            if params is None:
+                self.W = iscale * numpy.random.randn(nvis, nhid)
+                self.bias_vis = numpy.zeros(nvis)
+                self.bias_hid = numpy.zeros(nhid)
+            else:
+                self.W = params[0]
+                self.bias_vis = params[1]
+                self.bias_hid = params[2]
+
+            print self
+
+        def __str__(self):
+            rval  = '%s\n' % self.__class__.__name__
+            rval += '\tnvis = %i\n' % self.nvis
+            rval += '\tnhid = %i\n' % self.nhid
+            rval += '\tactivation_fn = %s\n' % str(self.activation_fn)
+            rval += '\tmean std(weights) = %.2f\n' % self.W.std(axis=0).mean()
+            return rval
+
+        def save(self, fname):
+            fp = open(fname, 'w')
+            pickle.dump([self.W, self.bias_vis, self.bias_hid], fp)
+            fp.close()
+
+
+The above code does nothing more than allocate the model parameters,
+pretty-printing the model description, as well as pickling the model
+parameters in its ``save`` method.
+
+
+Object Instantiation with !obj
+==============================
+
+Objects can be fully specified using Pylearn2/YAML using the
+syntax ``!obj:<package>[.<subpackage>]*.<module>.<object>`` syntax. For example,
+the example below can be used to create an AutoEncoder object, with 784 visible
+and 100 hidden units, with weights initialized from a centered normal
+distribution and 0.2 standard deviation.
+
+.. code-block:: yaml
+
+    !obj:yaml_tutorial.autoencoder.AutoEncoder {
+       "nvis": 784,
+       "nhid": 100,
+       "iscale": 0.2,
+    }
+
+The ``!obj`` tag does two things. Starting from the top-level package or module,
+it recursively imports all other sub-packages, until it imports the final
+module. For this to succeed, the top-level package should be located in one of
+the directories listed in the ``PYTHONPATH`` environment variable, i.e. ``import
+<package>`` should succeed from a vanilla python shell. Once the import phase is
+finished, it then proceeds to instantiate an object of type <object>, whose
+parameters are given in the keyword style syntax.
+
+Assuming this model description was stored in ``example1.yaml``, a Python
+instantiation of this model can be obtained using the load method of the
+pylearn2.config.yaml_parse module (shown below).
+
+.. code-block:: python
+
+    fp = open('example1.yaml')
+    model = yaml_parse.load(fp)
+    print model
+    fp.close()
+
+
+Running the above code yields the following output.
+
+.. code-block:: shell
+
+    AutoEncoder
+        nvis = 784
+        nhid = 100
+        activation_fn = <ufunc 'tanh'>
+        mean std(weights) = 0.20
+
+
+
+Anchors and References
+======================
+
+While anchors and references are not particular to Pylearn2's augmented YAML
+syntax, they are used widely within the library and thus deserve a brief
+mention in the tutorial. Anchors associate a unique identifier to a given
+attribute or object defined in a yaml file. This identifier can then be
+referenced in another section, either to avoid duplicating code or when references
+to the same object are required. Note that references are limited to anchors
+within the same yaml file.
+
+For example, the following yaml script could be used to instantiate an auto-encoder
+with a square weight-matrix.
+
+.. code-block:: yaml
+
+    !obj:yaml_tutorial.autoencoder.AutoEncoder {
+       "nvis": &nvis 100,
+       "nhid": *nvis,
+    }
+
+In the above example, the number of visible units is augmented with an anchor
+``&nvis``.  We can then specify the number of hidden units indirectly through the
+reference ``*nvis``. This can be very useful if we intend on changing the number
+of features ``nvis`` frequently (preventing us from having to modify this number
+in two places). More interestingly, when anchors are applied to objects, as in
+``&model !obj:yaml_tutorial.autoencoder.AutoEncoder``, subsequent use of
+``*model`` will create a pointer to the AutoEncoder object already instantiated
+by the anchor.
+
+
+Dynamic Includes with !import
+=============================
+
+The ``!import`` tag is similar to ``!obj``, in that it also recursively imports
+packages, subpackages and modules. It does not however instantiate any object.
+The end result is thus a pointer to the symbol (package, module or function)
+specified by the tag.  For example, the following allows us to change the
+non-linearity used by our auto-encoder's hidden layer from the default tanh to a
+sigmoidal non-linearity.
+
+.. code-block:: yaml
+
+        !obj:yaml_tutorial.autoencoder.AutoEncoder {
+           "nvis": 784,
+           "nhid": 100,
+           "iscale": 1.0,
+           "activation_fn": !import 'pylearn2.expr.nnet.sigmoid_numpy', 
+        }
+
+Assuming the above yaml script is stored in ``experiment3.yaml``, running
+``yaml_load('experiment3.yaml')`` yields the following output.
+
+.. code-block:: shell
+
+    AutoEncoder
+        nvis = 784
+        nhid = 100
+        activation_fn = <function sigmoid_numpy at 0x307a320>
+        mean std(weights) = 1.00
+
+
+Loading Files through Pickle
+============================
+
+Another useful tag registered by Pylearn2 is ``!pkl`` which allows the end-user
+to dynamically load the contents of a pickle file. This can be especially useful
+when initializing the parameters of a model from a pickled model instance or
+or to load a dataset stored to disk in pickle format.
+
+To showcase this functionality, we start by re-instantiating the model from the
+previous configuration (stored in ``experiment3.yaml``) and then save the
+parameters to disk in the file ``example3_weights.pkl``.
+
+.. code-block:: python
+    fp = open('experiment3.yaml')
+    model = yaml_parse.load(fp)
+    model.save('example3_weights.pkl')
+    fp.close()
+
+
+Once saved to disk, we can leverage the pickled parameters in a subsequent model
+as follows:
+       
+.. code-block:: yaml 
+
+    !obj:yaml_tutorial.autoencoder.AutoEncoder {
+               "nvis": 784,
+               "nhid": 100,
+               "iscale": 0.1,
+               "params": !pkl: 'example3_weights.pkl',
+
+
+The above is equivalent to constructing an AutoEncoder object as follows:
+
+.. code-block::  python
+
+    from yaml_tutorial import autoencoder
+
+    fp = open('example3_weights.pkl')
+    params = pickle.load(fp)
+    fp.close()
+    model = autoencoder.AutoEncoder(nvis=784, nhid=100, iscale=0.1, params=params)
+
+
+The original yaml (once loaded through ``yaml_load``) generates the following
+output.  Note that the mean standard-deviation of the weights is 1.0, despite
+the iscale parameter being set to 0.1. This is expected because the parameters
+were initialized from 'example3_weights.pkl', i.e. the pickled parameters of a model
+initialized with ``iscale=1.0``.
+
+.. code-block:: shell
+
+    AutoEncoder
+        nvis = 784
+        nhid = 100
+        activation_fn = <ufunc 'tanh'>
+        mean std(weights) = 1.00
+
+
+Putting it all Together
+=======================
+
+In the same way that ``!import`` or ``!pkl`` can be used to define the "value"
+of a keyword attribute, we can also use the ``!obj`` tag to instantiate objects
+as member attributes of another object. Since Pylearn2 experiments are themselves
+objects of the type ``pylearn2.train.Train``, which combine:
+    
+    * a dataset, of type ``pylearn2.datasets.dataset.Dataset``
+    * a model, of type ``pylearn2.models.model.Model``
+    * a training algorithm, of type ``pylearn2.training_algorithms.training_algorithm.TrainingAlgorithm``
+
+we can specify a Pylearn2 experiment as follows.
+
+.. code-block:: yaml
+
+    !obj:pylearn2.train.Train {
+        "dataset": !obj:pylearn2.datasets.npy_npz.NpyDataset &dataset {
+            "file" : 'garbage.npy' # Should be an N x 300 matrix on disk.
+        },
+        "model": !obj:pylearn2.autoencoder.DenoisingAutoencoder {
+            "nvis" : 300,
+            "nhid" : 400,
+            "irange" : 0.05,
+            "corruptor": !obj:pylearn2.corruption.BinomialCorruptor {
+                "corruption_level": 0.5,
+            },
+            "act_enc": "tanh",
+            "act_dec": null,    # Linear activation on the decoder side.
+        },
+        "algorithm": !obj:pylearn2.training_algorithms.sgd.ExhaustiveSGD {
+            "learning_rate" : 1e-3,
+            "batch_size" : 10,
+            "monitoring_batches" : 5,
+            "monitoring_dataset" : *dataset,
+            "cost" : !obj:pylearn2.costs.autoencoder.MeanSquaredReconstructionError {},
+            "termination_criterion" : !obj:pylearn2.training_algorithms.sgd.EpochCounter {
+                "max_epochs": 50,
+            },
+        },
+        "save_path": "./garbage.pkl"
+    }
+
+This particular example (which can be found in
+``Pylearn2/pylearn2/scripts/autoencoder_example/dae.yaml``) trains a denoising
+auto-encoder on the ``NpyDataset``, using the exhaustive SGD training
+algorithm. See the pylearn2 documentation for details regarding each argument.
+
+Pylearn2 provides the script ``Pylearn2/pylearn2/train.py``. which combines the
+steps of (1) loading the Train object through ``yaml_load`` and (2) running
+multiple iterations of the training algorithm.
+
+.. code-block:: shell
+    
+    [user@host]$ cd /path/to/Pylearn2/pylearn2
+    [user@host]$ train.py scripts/autoencoder_example/dae.yaml
