@@ -12,9 +12,9 @@ import numpy as np
 
 from collections import OrderedDict
 
-import theano
 from theano import function
 from theano.gof.op import get_debug_values
+from theano.compile.sharedvalue import SharedVariable
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 import theano.tensor as T
 import warnings
@@ -75,7 +75,7 @@ class IsingVisible(VisibleLayer):
         bias_from_marginals: a dataset, whose marginals are used to
                         initialize the visible biases
         """
-        if not isinstance(temperature, theano.gof.SharedVariable):
+        if not isinstance(temperature, SharedVariable):
             raise ValueError("the temperature needs to be a theano shared " +
                              "variable.")
         self.__dict__.update(locals())
@@ -193,7 +193,7 @@ class IsingHidden(HiddenLayer):
                 as a learned parameter
 
         """
-        if not isinstance(temperature, theano.gof.SharedVariable):
+        if not isinstance(temperature, SharedVariable):
             raise ValueError("the temperature needs to be a theano shared " +
                              "variable.")
         self.__dict__.update(locals())
@@ -598,7 +598,7 @@ class BoltzmannIsingVisible(VisibleLayer):
                         initialize the visible biases
         """
 
-        if not isinstance(temperature, theano.gof.SharedVariable):
+        if not isinstance(temperature, SharedVariable):
             raise ValueError("the temperature needs to be a theano shared " +
                              "variable.")
         self.__dict__.update(locals())
@@ -748,7 +748,7 @@ class BoltzmannIsingHidden(HiddenLayer):
                            as a learned parameter
 
         """
-        if not isinstance(temperature, theano.gof.SharedVariable):
+        if not isinstance(temperature, SharedVariable):
             raise ValueError("the temperature needs to be a theano shared " +
                              "variable.")
         self.__dict__.update(locals())
