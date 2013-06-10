@@ -259,10 +259,7 @@ class IsingHidden(HiddenLayer):
     def censor_updates(self, updates):
 
         if self.max_col_norm is not None:
-            if self.learn_temperature:
-                W, _, __ = self.transformer.get_params()
-            else:
-                W, _ = self.transformer.get_params()
+            W, = self.transformer.get_params()
             if W in updates:
                 updated_W = updates[W]
                 col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
@@ -289,10 +286,7 @@ class IsingHidden(HiddenLayer):
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
-        if self.learn_temperature:
-            W, _, __ = self.transformer.get_params()
-        else:
-            W, _ = self.transformer.get_params()
+        W, = self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
     def get_weights(self):
@@ -302,17 +296,11 @@ class IsingHidden(HiddenLayer):
             # in design space. We got the data in topo space
             # and we don't have access to the dataset
             raise NotImplementedError()
-        if self.learn_temperature:
-            W, _, __ = self.transformer.get_params()
-        else:
-            W, _ = self.transformer.get_params()
+        W, = self.transformer.get_params()
         return W.get_value()
 
     def set_weights(self, weights):
-        if self.learn_temperature:
-            W, _, __ = self.transformer.get_params()
-        else:
-            W, _ = self.transformer.get_params()
+        W, = self.transformer.get_params()
         W.set_value(weights)
 
     def set_biases(self, biases, recenter=False):
@@ -334,10 +322,7 @@ class IsingHidden(HiddenLayer):
         if not isinstance(self.input_space, Conv2DSpace):
             raise NotImplementedError()
 
-        if self.learn_temperature:
-            W, _, __ = self.transformer.get_params()
-        else:
-            W, _ = self.transformer.get_params()
+        W, = self.transformer.get_params()
 
         W = W.T
 
@@ -358,10 +343,7 @@ class IsingHidden(HiddenLayer):
 
     def get_monitoring_channels(self):
 
-        if self.learn_temperature:
-            W, _, __ = self.transformer.get_params()
-        else:
-            W, _ = self.transformer.get_params()
+        W, = self.transformer.get_params()
 
         assert W.ndim == 2
 
