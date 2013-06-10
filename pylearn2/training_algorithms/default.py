@@ -1,5 +1,7 @@
 from pylearn2.monitor import Monitor
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
+from pylearn2.utils import safe_zip
+from pylearn2.utils.data_specs import DataSpecsMapping
 import theano.tensor as T
 
 
@@ -39,17 +41,30 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
         self.model = model
 
         self.monitor = Monitor.get_monitor(model)
-        X = T.matrix()
-        Y = T.matrix()
+
         if self.monitoring_dataset is not None:
-            if not self.monitoring_dataset.has_targets():
-                Y = None
+            # Get the data specifications needed by the model
+            space, source = model.get_monitoring_data_specs()
+
+            # Create Theano variables for each of the individual components
+            # of that data. Usually, it will be X for inputs and Y for targets.
+            # First, we need to find these components, and put them in a tuple
+            mapping = DataSpecsMapping((space, source))
+            space_tuple = mapping.flatten(space, return_tuple=True)
+            source_tuple = mapping.flatten(source, return_tuple=True)
+            # Then, build a flat tuple of these Theano variables
+            ipt = tuple(sp.make_theano_batch(name='monitor_%s' % src)
+                    for (sp, src) in safe_zip(space_tuple, source_tuple))
+            # Finally, organize them back into a structure expected by the
+            # monitoring channels of the model
+            nested_ipt = mapping.nest(ipt)
+
             self.monitor.add_dataset(dataset=self.monitoring_dataset,
                                 mode="sequential",
                                 batch_size=self.batch_size,
                                 num_batches=self.monitoring_batches)
-            X.tag.test_value = self.monitoring_dataset.get_batch_design(2)
-            channels = model.get_monitoring_channels(X,Y)
+
+            channels = model.get_monitoring_channels(nested_ipt)
             if not isinstance(channels, dict):
                 raise TypeError("model.get_monitoring_channels must return a "
                                 "dictionary, but it returned " + str(channels))
@@ -61,13 +76,8 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
                 else:
                     prereqs = None
 
-                if Y is not None:
-                    ipt = (X,Y)
-                else:
-                    ipt = X
-
                 self.monitor.add_channel(name=name,
-                                         ipt=ipt,
+                                         ipt=nested_ipt,
                                          val=J,
                                          prereqs=prereqs)
         self.first = True

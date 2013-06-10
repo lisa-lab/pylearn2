@@ -2,8 +2,10 @@ import os
 
 from .general import is_iterable
 import theano
-from pylearn2.datasets import control
+# Delay import of pylearn2.config.yaml_parse and pylearn2.datasets.control
+# to avoid circular imports
 yaml_parse = None
+control = None
 from itertools import izip
 cuda = None
 
@@ -107,8 +109,13 @@ def get_dataless_dataset(model):
     """
 
     global yaml_parse
+    global control
+
     if yaml_parse is None:
         from pylearn2.config import yaml_parse
+
+    if control is None:
+        from pylearn2.datasets import control
 
     control.push_load_data(False)
     try:

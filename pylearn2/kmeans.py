@@ -203,3 +203,7 @@ class KMeans(Block, Model):
     def get_weights_format(self):
         return ['h','v']
 
+    # Use version defined in Model, rather than Block (which raises
+    # NotImplementedError).
+    get_input_space = Model.get_input_space
+    get_output_space = Model.get_output_space

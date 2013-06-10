@@ -6,19 +6,31 @@ import numpy.random
 from theano.tensor.shared_randomstreams import RandomStreams
 
 class MeanSquaredReconstructionError(Cost):
-    def __call__(self, model, X, Y=None, ** kwargs):
+    def expr(self, model, data, ** kwargs):
+        self.get_data_specs(model)[0].validate(data)
+        X = data
         return ((model.reconstruct(X) - X) ** 2).sum(axis=1).mean()
 
+    def get_data_specs(self, model):
+        return (model.get_input_space(), model.get_input_source())
+
+
 class MeanBinaryCrossEntropy(Cost):
-    def __call__(self, model, X, Y=None, ** kwargs):
+    def expr(self, model, data, ** kwargs):
+        self.get_data_specs(model)[0].validate(data)
+        X = data
         return (
             - X * tensor.log(model.reconstruct(X)) -
             (1 - X) * tensor.log(1 - model.reconstruct(X))
         ).sum(axis=1).mean()
 
+    def get_data_specs(self, model):
+        return (model.get_input_space(), model.get_input_source())
+
+
 class SampledMeanBinaryCrossEntropy(Cost):
     """
-    ce cost that goes with sparse autoencoder with L1 regularization on activations
+    CE cost that goes with sparse autoencoder with L1 regularization on activations
 
     For thoery:
     Y. Dauphin, X. Glorot, Y. Bengio. ICML2011
@@ -29,10 +41,13 @@ class SampledMeanBinaryCrossEntropy(Cost):
         self.L1 = L1
         self.one_ratio = ratio
 
-    def __call__(self, model, X, Y=None, ** kwargs):
+    def expr(self, model, data, ** kwargs):
+        self.get_data_specs(model)[0].validate(data)
+        X = data
         # X is theano sparse
-        X_dense=theano.sparse.dense_from_sparse(X)
-        noise = self.random_stream.binomial(size=X_dense.shape, n=1, prob= self.one_ratio, ndim=None)
+        X_dense = theano.sparse.dense_from_sparse(X)
+        noise = self.random_stream.binomial(size=X_dense.shape, n=1,
+                                            prob=self.one_ratio, ndim=None)
 
         # a random pattern that indicates to reconstruct all the 1s and some of the 0s in X
         P = noise + X_dense
@@ -63,6 +78,10 @@ class SampledMeanBinaryCrossEntropy(Cost):
 
         return cost
 
+    def get_data_specs(self, model):
+        return (model.get_input_space(), model.get_input_source())
+
+
 class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
     """
     mse cost that goes with sparse autoencoder with L1 regularization on activations
@@ -76,7 +95,9 @@ class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
         self.L1 = L1
         self.ratio = ratio
 
-    def __call__(self, model, X, Y=None, ** kwargs):
+    def expr(self, model, data, ** kwargs):
+        self.get_data_specs(model)[0].validate(data)
+        X = data
         # X is theano sparse
         X_dense=theano.sparse.dense_from_sparse(X)
         noise = self.random_stream.binomial(size=X_dense.shape, n=1, prob=self.ratio, ndim=None)
@@ -102,11 +123,18 @@ class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
 
         return cost
 
-#class MeanBinaryCrossEntropyTanh(object):
-#     def __call__(self, model, X):
+    def get_data_specs(self, model):
+        return (model.get_input_space(), model.get_input_source())
+
+#class MeanBinaryCrossEntropyTanh(Cost):
+#     def expr(self, model, data):
+#        self.get_data_specs(model)[0].validate(data)
+#        X = data
 #        X = (X + 1) / 2.
 #        return (
 #            tensor.xlogx.xlogx(model.reconstruct(X)) +
 #            tensor.xlogx.xlogx(1 - model.reconstruct(X))
 #        ).sum(axis=1).mean()
-
+#
+#    def get_data_specs(self, model):
+#        return (model.get_input_space(), model.get_input_source())

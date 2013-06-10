@@ -5,6 +5,7 @@ from theano import tensor as T
 
 from pylearn2.costs.cost import Cost
 from pylearn2.costs.mlp.dropout import Dropout
+from pylearn2.space import CompositeSpace, NullSpace
 from pylearn2.utils import safe_izip
 
 class Default(Cost):
@@ -15,9 +16,17 @@ class Default(Cost):
 
     supervised = True
 
-    def __call__(self, model, X, Y, **kwargs):
-
+    def expr(self, model, data, **kwargs):
+        space, sources = self.get_data_specs(model)
+        space.validate(data)
+        (X, Y) = data
         return model.cost_from_X(X, Y)
+
+    def get_data_specs(self, model):
+        space = CompositeSpace([model.get_input_space(), model.get_output_space()])
+        sources = (model.get_input_source(), model.get_target_source())
+        return (space, sources)
+
 
 class WeightDecay(Cost):
     """
@@ -38,7 +47,8 @@ class WeightDecay(Cost):
         self.__dict__.update(locals())
         del self.self
 
-    def __call__(self, model, X, Y = None, ** kwargs):
+    def expr(self, model, data, ** kwargs):
+        self.get_data_specs(model)[0].validate(data)
 
         def wrapped_layer_cost(layer, coef):
             try:
@@ -48,7 +58,6 @@ class WeightDecay(Cost):
                     return 0.
                 else:
                     raise NotImplementedError(str(type(layer))+" does not implement get_weight_decay.")
-
 
         layer_costs = [ wrapped_layer_cost(layer, coeff)
             for layer, coeff in safe_izip(model.layers, self.coeffs) ]
@@ -70,6 +79,10 @@ class WeightDecay(Cost):
 
         return total_cost
 
+    def get_data_specs(self, model):
+        # This cost does not use any data
+        return (NullSpace(), '')
+
 class L1WeightDecay(Cost):
     """
     coeff * sum(abs(weights))
@@ -89,8 +102,8 @@ class L1WeightDecay(Cost):
         self.__dict__.update(locals())
         del self.self
 
-    def __call__(self, model, X, Y = None, ** kwargs):
-
+    def expr(self, model, data, ** kwargs):
+        self.get_data_specs(model)[0].validate(data)
         layer_costs = [ layer.get_l1_weight_decay(coeff)
             for layer, coeff in safe_izip(model.layers, self.coeffs) ]
 
@@ -111,3 +124,6 @@ class L1WeightDecay(Cost):
 
         return total_cost
 
+    def get_data_specs(self, model):
+        # This cost does not use any data
+        return (NullSpace(), '')
