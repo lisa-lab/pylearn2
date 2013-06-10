@@ -235,8 +235,9 @@ def compute_likelihood_given_logz(nsamples, psamples, batch_size, energy_fn,
 
         # copy into negative phase buffers to measure energy
         nsamples[0].set_value(x)
-        for ii, psample in enumerate(psamples[1:]):
-            nsamples[ii].set_value(psample.get_value())
+        for ii, psample in enumerate(psamples):
+            if ii > 0:
+                nsamples[ii].set_value(psample.get_value())
 
         # compute sum of likelihood for current buffer
         x_likelihood = numpy.sum(-energy_fn(1.0) + hq - log_z)
