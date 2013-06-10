@@ -1,10 +1,10 @@
 """TODO: module-level docstring."""
-__authors__ = "Ian Goodfellow and Mehdi Mirza"
-__copyright__ = "Copyright 2010-2012, Universite de Montreal"
-__credits__ = ["Ian Goodfellow"]
+__authors__ = "Pascal Lamblin and Razvan Pascanu"
+__copyright__ = "Copyright 2010-2013, Universite de Montreal"
+__credits__ = ["Pascal Lamblin", "Razvan Pascanu", "Ian Goodfellow", "Mehdi Mirza"]
 __license__ = "3-clause BSD"
-__maintainer__ = "Ian Goodfellow"
-__email__ = "goodfeli@iro"
+__maintainer__ = "Pascal Lamblin"
+__email__ = "lamblinp@iro"
 import functools
 
 import warnings
