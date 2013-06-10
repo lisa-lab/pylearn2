@@ -557,7 +557,7 @@ class IsingHidden(HiddenLayer):
             z.name = self.layer_name + '_' + iter_name + '_z'
         if msg is not None:
             z = z + msg
-        h = T.tanh(T * z)
+        h = T.tanh(self.temperature * z)
 
         return h
 
@@ -568,7 +568,7 @@ class BoltzmannIsingVisible(VisibleLayer):
     space.
     """
 
-    def __init__(self, nvis, temperature, learn_temperature,
+    def __init__(self, nvis, temperature, learn_temperature=False,
                  bias_from_marginals=None):
         """
         nvis: the dimension of the space
@@ -1218,7 +1218,7 @@ class BoltzmannIsingHidden(HiddenLayer):
             z.name = self.layer_name + '_' + iter_name + '_z'
         if msg is not None:
             z = z + msg
-        h = T.tanh(T * z)
+        h = T.tanh(self.temperature * z)
 
         return h
 
