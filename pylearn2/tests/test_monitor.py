@@ -47,7 +47,10 @@ def test_channel_scaling_sequential():
                                 num_batches=num_batches, batch_size=batch_size)
         vis_batch = T.matrix()
         mean = vis_batch.mean()
-        monitor.add_channel(name='mean', ipt=vis_batch, val=mean, dataset=dataset)
+        data_specs = (monitor.model.get_input_space(),
+                      monitor.model.get_input_source())
+        monitor.add_channel(name='mean', ipt=vis_batch, val=mean, dataset=dataset,
+                            data_specs=data_specs)
         monitor()
         assert 'mean' in monitor.channels
         mean = monitor.channels['mean']
@@ -134,7 +137,8 @@ def test_reject_empty():
 
     monitor.add_channel(name = name,
             ipt = model.input_space.make_theano_batch(),
-            val = 0.,)
+            val = 0.,
+            data_specs=(model.get_input_space(), model.get_input_source()))
 
     try:
         monitor()
@@ -159,7 +163,7 @@ def test_prereqs():
     monitor.add_dataset(monitoring_dataset, 'sequential', batch_size=BATCH_SIZE)
 
     prereq_counter = sharedX(0.)
-    def prereq(X,y):
+    def prereq(*data):
         prereq_counter.set_value(
                 prereq_counter.get_value()+1.)
 
@@ -168,7 +172,8 @@ def test_prereqs():
     monitor.add_channel(name = name,
             ipt = model.input_space.make_theano_batch(),
             val = prereq_counter,
-            prereqs = [ prereq ])
+            prereqs = [ prereq ],
+            data_specs=(model.get_input_space(), model.get_input_source()))
 
     channel = monitor.channels[name]
 
@@ -222,11 +227,11 @@ def test_revisit():
                     def __init__(self):
                         self.validate = False
 
-                    def __call__(self, X, y):
+                    def __call__(self, *data):
                         """ Initially, records the batches the monitor shows it.
                         When set to validate mode, makes sure the batches shown
                         on the second monitor call match those from the first."""
-                        assert y is None
+                        X, = data
 
                         idx = batch_idx.get_value()
                         batch_idx.set_value(idx + 1)
@@ -258,7 +263,9 @@ def test_revisit():
                 monitor.add_channel(name = 'dummy',
                     ipt = model.input_space.make_theano_batch(),
                     val = 0.,
-                    prereqs = [ prereq ])
+                    prereqs = [ prereq ],
+                    data_specs=(model.get_input_space(),
+                                model.get_input_source()))
 
                 try:
                     monitor()
@@ -293,7 +300,7 @@ def test_prereqs_batch():
     monitor.add_dataset(monitoring_dataset, 'sequential', batch_size=BATCH_SIZE)
 
     sign = sharedX(1.)
-    def prereq(X,y):
+    def prereq(*data):
         sign.set_value(
                 -sign.get_value())
 
@@ -302,7 +309,8 @@ def test_prereqs_batch():
     monitor.add_channel(name = name,
             ipt = model.input_space.make_theano_batch(),
             val = sign,
-            prereqs = [ prereq ])
+            prereqs = [ prereq ],
+            data_specs=(model.get_input_space(), model.get_input_source()))
 
     channel = monitor.channels[name]
 
@@ -412,7 +420,8 @@ def test_prereqs_multidataset():
                 ipt = model.input_space.make_theano_batch(),
                 val = prereq_counters[i],
                 dataset = datasets[i],
-                prereqs = [ ReadVerifyPrereq(i, prereq_counters[i]) ])
+                prereqs = [ ReadVerifyPrereq(i, prereq_counters[i]) ],
+                data_specs=(model.get_input_space(), model.get_input_source()))
 
         channels.append(monitor.channels[str(i)])
 
@@ -461,6 +470,7 @@ def test_no_data():
     try:
         monitor.add_channel(name = name,
             ipt = model.input_space.make_theano_batch(),
+            data_specs = (model.input_space, 'features'),
             val = 0.)
     except ValueError, e:
         assert e.message == _err_no_data
@@ -494,7 +504,8 @@ def test_ambig_data():
     try:
         monitor.add_channel(name = name,
             ipt = model.input_space.make_theano_batch(),
-            val = 0.)
+            val = 0.,
+            data_specs=(model.get_input_space(), model.get_input_source()))
     except ValueError, e:
         assert e.message == _err_ambig_data
         return

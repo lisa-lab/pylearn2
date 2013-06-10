@@ -141,7 +141,7 @@ class Test_DiagonalMND:
 
             warnings.warn("KL divergence is not very numerically stable, evidently")
 
-        tol = 5.4e-5
+        tol = 6e-5
         if kl > tol:
             print 'kl:',kl
             print 'tol:',tol

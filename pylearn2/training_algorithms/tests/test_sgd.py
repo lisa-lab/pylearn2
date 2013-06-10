@@ -7,11 +7,13 @@ import warnings
 
 from pylearn2.costs.cost import Cost
 from pylearn2.costs.cost import CrossEntropy
+from pylearn2.costs.cost import SumOfCosts
 from pylearn2.devtools.record import Record
 from pylearn2.devtools.record import RecordMode
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.models.model import Model
 from pylearn2.monitor import Monitor
+from pylearn2.space import CompositeSpace
 from pylearn2.space import Conv2DSpace
 from pylearn2.space import VectorSpace
 from pylearn2.termination_criteria import EpochCounter
@@ -30,9 +32,16 @@ from pylearn2.utils import safe_izip
 from pylearn2.utils import safe_union
 from pylearn2.utils import sharedX
 
+
 class DummyCost(Cost):
-    def __call__(self, model, X, Y = None):
-        return T.square(model(X)-X).mean()
+    def expr(self, model, data):
+        self.get_data_specs(model)[0].validate(data)
+        X = data
+        return T.square(model(X) - X).mean()
+
+    def get_data_specs(self, model):
+        return (model.get_input_space(), model.get_input_source())
+
 
 class SoftmaxModel(Model):
     """A dummy model used for testing.
@@ -127,14 +136,15 @@ def test_sgd_unspec_num_mon_batch():
 
     X = T.matrix()
 
-    def tracker(X, y):
-        assert y is None
+    def tracker(*data):
+        X, = data
         assert X.shape[1] == 1
         for i in xrange(X.shape[0]):
             visited[int(X[i,0])] = True
 
     monitor.add_channel(name = 'tracker',
-            ipt = X, val = 0., prereqs = [ tracker ])
+            ipt = X, val = 0., prereqs = [ tracker ],
+            data_specs=(model.get_input_space(), model.get_input_source()))
 
     monitor()
 
@@ -558,8 +568,8 @@ def test_sgd_sequential():
             assert not visited[start+i]
             visited[start+i] = 1
 
-
-    cost = CallbackCost(visit)
+    data_specs = (model.get_input_space(), model.get_input_source())
+    cost = CallbackCost(visit, data_specs)
 
     # We need to include this so the test actually stops running at some point
     termination_criterion = EpochCounter(5)
@@ -606,8 +616,8 @@ def test_determinism():
                 visited[0][i] = counter
                 counter += 1
 
-
-        cost = CallbackCost(visit)
+        data_specs = (model.get_input_space(), model.get_input_source())
+        cost = CallbackCost(visit, data_specs)
 
         # We need to include this so the test actually stops running at some point
         termination_criterion = EpochCounter(5)
@@ -726,7 +736,9 @@ def test_determinism_2():
 
             supervised = True
 
-            def __call__(self, model, X, Y=None, **kwargs):
+            def expr(self, model, data, **kwargs):
+                self.get_data_specs(model)[0].validate(data)
+                X, Y = data
                 disturb_mem.disturb_mem()
                 def mlp_pred(non_linearity):
                     Z = [T.dot(X, W) for W in model.W1]
@@ -740,6 +752,12 @@ def test_determinism_2():
                 disturb_mem.disturb_mem()
 
                 return abs(pred-Y[:,0]).sum()
+
+            def get_data_specs(self, model):
+                data = CompositeSpace((model.get_input_space(),
+                                       model.get_output_space()))
+                source = (model.get_input_source(), model.get_target_source())
+                return (data, source)
 
         cost = LotsOfSummingCost()
 
@@ -787,8 +805,10 @@ def test_lr_scalers():
     """
     Tests that SGD respects Model.get_lr_scalers
     """
-
-    cost = SumOfParams()
+    # We include a cost other than SumOfParams so that data is actually
+    # queried from the training set, and the expected number of updates
+    # are applied.
+    cost = SumOfCosts([SumOfParams(), (0., DummyCost())])
 
     scales = [ .01, .02, .05, 1., 5. ]
     shapes = [(1,), (9,), (8, 7), (6, 5, 4), (3, 2, 2, 2)]
@@ -799,6 +819,10 @@ def test_lr_scalers():
         def __init__(self):
             self._params = [sharedX(np.zeros(shape)) for shape in shapes]
             self.input_space = VectorSpace(1)
+
+        def __call__(self, X):
+            # Implemented only so that DummyCost would work
+            return X
 
         def get_lr_scalers(self):
             return dict(zip(self._params, scales))
@@ -834,8 +858,10 @@ def test_lr_scalers_momentum():
     Tests that SGD respects Model.get_lr_scalers when using
     momentum.
     """
-
-    cost = SumOfParams()
+    # We include a cost other than SumOfParams so that data is actually
+    # queried from the training set, and the expected number of updates
+    # are applied.
+    cost = SumOfCosts([SumOfParams(), (0., DummyCost())])
 
     scales = [ .01, .02, .05, 1., 5. ]
     shapes = [(1,), (9,), (8, 7), (6, 5, 4), (3, 2, 2, 2)]
@@ -846,6 +872,10 @@ def test_lr_scalers_momentum():
         def __init__(self):
             self._params = [sharedX(np.zeros(shape)) for shape in shapes]
             self.input_space = VectorSpace(1)
+
+        def __call__(self, X):
+            # Implemented only so that DummyCost would work
+            return X
 
         def get_lr_scalers(self):
             return dict(zip(self._params, scales))
