@@ -632,7 +632,6 @@ def estimate_likelihood(W_list, b_list, trainset, testset, free_energy_fn=None,
                          numpy.linspace(0.5, 0.9, 1e4),
                          numpy.linspace(0.9, 1.0, 1e4))))
 
-    log_z = 346.325818
     if log_z is None:
         log_ais_w = compute_log_ais_weights(batch_size, free_energy_fn,
                                             sample_fn, betas)
