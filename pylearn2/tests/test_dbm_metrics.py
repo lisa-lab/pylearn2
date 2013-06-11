@@ -7,7 +7,8 @@ from pylearn2.datasets.mnist import MNIST
 
 def test_ais():
     """
-    Test ais computation
+    Test ais computation by comparing the output of estimate_likelihood to
+    Russ's code's output for the same parameters.
     """
     w_list = [None]
     b_list = []
