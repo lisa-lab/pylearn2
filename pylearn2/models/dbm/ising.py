@@ -2,7 +2,7 @@
 Implementation of a densely connected Ising model in the
 pylearn2.models.dbm framework
 """
-__authors__ = "Ian Goodfellow"
+__authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
 __copyright__ = "Copyright 2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
