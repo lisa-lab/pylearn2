@@ -1,8 +1,13 @@
 """
 Test dbm_metrics script
 """
+import numpy
+import theano
+from theano import tensor as T
 from pylearn2.scripts.dbm import dbm_metrics
+from pylearn2 import rbm_tools
 from pylearn2.datasets.mnist import MNIST
+from pylearn2.models.dbm import DBM, BinaryVector, BinaryVectorMaxPool
 
 
 def test_ais():
@@ -10,24 +15,76 @@ def test_ais():
     Test ais computation by comparing the output of estimate_likelihood to
     Russ's code's output for the same parameters.
     """
-    w_list = [None]
-    b_list = []
-    # Add parameters import
+    nvis = 784
+    nhid = 20
+    # Random initialization of RBM parameters
+    w_hid = 10 * numpy.cast[theano.config.floatX](numpy.random.randn(nvis,
+                                                                     nhid))
+    b_vis = 10 * numpy.cast[theano.config.floatX](numpy.random.randn(nvis))
+    b_hid = 10 * numpy.cast[theano.config.floatX](numpy.random.randn(nhid))
+
+    # Initialization of RBM
+    visible_layer = BinaryVector(nvis)
+    hidden_layer = BinaryVectorMaxPool(detector_layer_dim=nhid, pool_size=1,
+                                       layer_name='h', irange=0.1)
+    rbm = DBM(100, visible_layer, [hidden_layer], 1)
+    rbm.visible_layer.set_biases(b_vis)
+    rbm.hidden_layers[0].set_weights(w_hid)
+    rbm.hidden_layers[0].set_biases(b_hid)
+    rbm.nvis = nvis
+    rbm.nhid = nhid
+
+    # Compute logz using rbm_ais
+    (log_zb, var_dlogz), ais = \
+        rbm_tools.rbm_ais([rbm.hidden_layers[0].get_weights(),
+                           rbm.visible_layer.get_biases(),
+                           rbm.hidden_layers[0].get_biases()], 5)
+    rbm_ais_logz = log_zb
+
+    v_sample = T.matrix('v_sample')
+    h_sample = T.matrix('h_sample')
+    W = theano.shared(rbm.hidden_layers[0].get_weights())
+    hbias = theano.shared(rbm.hidden_layers[0].get_biases())
+    vbias = theano.shared(rbm.visible_layer.get_biases())
 
     trainset = MNIST(which_set='train')
     testset = MNIST(which_set='test')
 
-    train_ll, test_ll, log_z = dbm_metrics.estimate_likelihood(w_list,
-                                                               b_list,
+    # Compute train_ll and test_ll using rbm_tools
+    wx_b = T.dot(v_sample, W) + hbias
+    vbias_term = T.dot(v_sample, vbias)
+    hidden_term = T.sum(T.log(1 + T.exp(wx_b)), axis=1)
+    free_energy_v = -hidden_term - vbias_term
+    free_energy_v_fn = theano.function(inputs=[v_sample],
+                                       outputs=free_energy_v)
+
+    wh_c = T.dot(h_sample, W.T) + vbias
+    hbias_term = T.dot(h_sample, hbias)
+    visible_term = T.sum(T.log(1 + T.exp(wh_c)), axis=1)
+    free_energy_h = -visible_term - hbias_term
+    free_energy_h_fn = theano.function(inputs=[h_sample],
+                                       outputs=free_energy_h)
+
+    real_logz = rbm_tools.compute_log_z(rbm, free_energy_h_fn)
+
+    rbm_ais_train_ll = -rbm_tools.compute_nll(rbm,
+                                              trainset.get_design_matrix(),
+                                              log_zb, free_energy_v_fn)
+    rbm_ais_test_ll = -rbm_tools.compute_nll(rbm, testset.get_design_matrix(),
+                                             log_zb, free_energy_v_fn)
+
+    # Compute train_ll, test_ll and logz using dbm_metrics
+    train_ll, test_ll, log_z = dbm_metrics.estimate_likelihood([W],
+                                                               [vbias, hbias],
                                                                trainset,
                                                                testset,
                                                                pos_mf_steps=5)
 
-    # Add log_z, test_ll import
-    russ_log_z = 100.
-    russ_train_ll = -100.
-    russ_test_ll = -100.
+    print real_logz
+    print log_z, rbm_ais_logz
+    print train_ll, rbm_ais_train_ll
+    print test_ll, rbm_ais_test_ll
 
-    assert log_z == russ_log_z
-    assert train_ll == russ_train_ll
-    assert test_ll == russ_test_ll
+    assert log_z == rbm_ais_logz
+    assert train_ll == rbm_ais_train_ll
+    assert test_ll == rbm_ais_test_ll
