@@ -681,4 +681,4 @@ if __name__ == '__main__':
     trainset = dataset(which_set='train')
     testset = dataset(which_set='test')
 
-    metric(W_list, b_list, trainset, testset)
+    metric(W_list, b_list, trainset, testset, pos_mf_steps=5)
