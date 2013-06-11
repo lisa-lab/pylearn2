@@ -2,6 +2,7 @@
 import theano.tensor as T
 from theano import scan
 from pylearn2.costs.cost import Cost
+from pylearn2.space import CompositeSpace
 from pylearn2.utils import py_integer_types
 from collections import OrderedDict
 from itertools import izip
@@ -29,25 +30,27 @@ class NCE(Cost):
     def G(self, X, model):
         return model.log_prob(X) - self.noise.log_prob(X)
 
-    def __call__(self, model, X, Y = None):
-        #The Y here is the noise
+    def expr(self, model, data, noisy_data=None):
+        # noisy_data is not considered part of the data.
         #If you don't pass it in, it will be generated internally
         #Passing it in lets you keep it constant while doing
         #a learn search across several theano function calls
         #and stuff like that
-        #This interface should probably be changed because it
-        #looks too much like the SupervisedCost interface
-
+        space, source = self.get_data_specs(model)
+        space.validate(data)
+        X = data
         if X.name is None:
             X_name = 'X'
         else:
             X_name = X.name
 
-
         m_data = X.shape[0]
         m_noise = m_data * self.noise_per_clean
 
-        if Y is None:
+        if noisy_data is not None:
+            space.validate(noisy_data)
+            Y = noisy_data
+        else:
             Y = self.noise.random_design_matrix(m_noise)
 
         #Y = Print('Y',attrs=['min','max'])(Y)
@@ -80,6 +83,12 @@ class NCE(Cost):
         assert isinstance(noise_per_clean, py_integer_types)
         self.noise_per_clean = noise_per_clean
 
+    def get_data_specs(self, model):
+        space = model.get_input_space()
+        source = model.get_input_source()
+        return (space, source)
+
+
 class SM(Cost):
     """ Score Matching
         See eqn. 4 of "On Autoencoders and Score Matching for Energy Based Models",
@@ -88,7 +97,9 @@ class SM(Cost):
         Uses the mean over visible units rather than sum over visible units
         so that hyperparameters won't depend as much on the # of visible units
     """
-    def __call__(self, model, X, Y=None):
+    def expr(self, model, data):
+        self.get_data_specs(model)[0].validate(data)
+        X = data
         X_name = 'X' if X.name is None else X.name
 
         score = model.score(X)
@@ -114,6 +125,10 @@ class SM(Cost):
 
         return rval
 
+    def get_data_specs(self, model):
+        return (model.get_input_space(), model.get_input_source())
+
+
 class SMD(Cost):
     """ Denoising Score Matching
         See eqn. 4.3 of "A Connection Between Score Matching and Denoising Autoencoders"
@@ -127,7 +142,9 @@ class SMD(Cost):
         super(SMD, self).__init__()
         self.corruptor = corruptor
 
-    def __call__(self, model, X, Y = None):
+    def expr(self, model, data):
+        self.get_data_specs(model)[0].validate(data)
+        X = data
         X_name = 'X' if X.name is None else X.name
 
         corrupted_X = self.corruptor(X)
@@ -158,6 +175,7 @@ class SMD(Cost):
 
         return smd
 
+<<<<<<< HEAD
 class SML(Cost):
     """ Stochastic Maximum Likelihood
 
@@ -284,3 +302,7 @@ class CDk(Cost):
 
     def __call__(self, model, X, Y = None):
         return None
+=======
+    def get_data_specs(self, model):
+        return (model.get_input_space(), model.get_input_source())
+>>>>>>> upstream/master
