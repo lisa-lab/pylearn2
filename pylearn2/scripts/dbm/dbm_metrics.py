@@ -10,6 +10,9 @@ This script computes both an estimate of the partition function of the provided
 DBM model and an estimate of the log-likelihood on the given training and test
 sets.
 
+This is garanteed to work only for DBMs with a BinaryVector visible layer and
+BinaryVectorMaxPool hidden layers with pool sizes of 1.
+
 It uses annealed importance sampling (AIS) to estimate Z, the partition
 function.
 
@@ -27,6 +30,7 @@ optional arguments:
 """
 
 import argparse
+import warnings
 import numpy
 import logging
 from collections import OrderedDict
@@ -535,6 +539,10 @@ def estimate_likelihood(W_list, b_list, trainset, testset, free_energy_fn=None,
     logz : scalar
         Estimate of log-partition function of `model`.
     """
+
+    warnings.warn("This is garanteed to work only for DBMs with a " +
+                  "BinaryVector visible layer and BinaryVectorMaxPool " +
+                  "hidden layers with pool sizes of 1.")
 
     # Add a dummy placeholder for visible layer's weights in W_list
     W_list = [None] + W_list
