@@ -64,20 +64,18 @@ class IsingVisible(VisibleLayer):
     -b^T h
     """
 
-    def __init__(self, nvis, temperature, learn_temperature=False,
-                 bias_from_marginals=None):
+    def __init__(self, nvis, beta, learn_beta=False, bias_from_marginals=None):
         """
         nvis: the dimension of the space
-        temperature: shared variable representing a multiplicative factor of
-                     the energy function
-        learn_temperature: whether or not the temperature should be considered
-                           as a learned parameter
-        bias_from_marginals: a dataset, whose marginals are used to
-                        initialize the visible biases
+        beta: shared variable representing a multiplicative factor of the
+                energy function (the inverse temperature)
+        learn_beta: whether or not the inverse temperature should be considered
+                as a learned parameter
+        bias_from_marginals: a dataset, whose marginals are used to initialize
+                the visible biases
         """
-        if not isinstance(temperature, SharedVariable):
-            raise ValueError("the temperature needs to be a theano shared " +
-                             "variable.")
+        if not isinstance(beta, SharedVariable):
+            raise ValueError("beta needs to be a theano shared variable.")
         self.__dict__.update(locals())
         del self.self
         # Don't serialize the dataset
@@ -109,8 +107,8 @@ class IsingVisible(VisibleLayer):
 
     def get_params(self):
         rval = [self.bias]
-        if self.learn_temperature:
-            rval.append(self.temperature)
+        if self.learn_beta:
+            rval.append(self.beta)
         return rval
 
     def sample(self, state_below=None, state_above=None, layer_above=None,
@@ -124,7 +122,7 @@ class IsingVisible(VisibleLayer):
 
         z = msg + bias
 
-        phi = T.nnet.sigmoid(2. * self.temperature * z)
+        phi = T.nnet.sigmoid(2. * self.beta * z)
 
         rval = theano_rng.binomial(size=phi.shape, p=phi, dtype=phi.dtype, n=1)
 
@@ -132,7 +130,7 @@ class IsingVisible(VisibleLayer):
 
     def make_state(self, num_examples, numpy_rng):
         driver = numpy_rng.uniform(0., 1., (num_examples, self.nvis))
-        on_prob = sigmoid_numpy(2. * self.temperature.get_value() *
+        on_prob = sigmoid_numpy(2. * self.beta.get_value() *
                                 self.bias.get_value())
         sample = 2. * (driver < on_prob) - 1.
 
@@ -150,7 +148,7 @@ class IsingVisible(VisibleLayer):
 
         # Energy function is linear so it doesn't matter if we're averaging
         # or not
-        rval = -(self.temperature * T.dot(state, self.bias))
+        rval = -(self.beta * T.dot(state, self.bias))
 
         assert rval.ndim == 1
 
@@ -173,8 +171,8 @@ class IsingHidden(HiddenLayer):
     def __init__(self,
                  dim,
                  layer_name,
-                 temperature,
-                 learn_temperature=False,
+                 beta,
+                 learn_beta=False,
                  irange=None,
                  sparse_init=None,
                  sparse_stdev=1.,
@@ -187,15 +185,14 @@ class IsingHidden(HiddenLayer):
         include_prob: probability of including a weight element in the set
                 of weights initialized to U(-irange, irange). If not included
                 it is initialized to 0.
-        temperature: shared variable representing a multiplicative factor of
-                the energy function
-        learn_temperature: whether or not the temperature should be considered
+        beta: shared variable representing a multiplicative factor of the
+                energy function (the inverse temperature)
+        learn_beta: whether or not the inverse temperature should be considered
                 as a learned parameter
 
         """
-        if not isinstance(temperature, SharedVariable):
-            raise ValueError("the temperature needs to be a theano shared " +
-                             "variable.")
+        if not isinstance(beta, SharedVariable):
+            raise ValueError("beta needs to be a theano shared variable.")
         self.__dict__.update(locals())
         del self.self
 
@@ -278,8 +275,8 @@ class IsingHidden(HiddenLayer):
         rval = list(rval)
         assert self.b not in rval
         rval.append(self.b)
-        if self.learn_temperature:
-            rval.append(self.temperature)
+        if self.learn_beta:
+            rval.append(self.beta)
         return rval
 
     def get_weight_decay(self, coeff):
@@ -422,7 +419,7 @@ class IsingHidden(HiddenLayer):
         if msg is not None:
             z = z + msg
 
-        on_prob = T.nnet.sigmoid(2. * self.temperature * z)
+        on_prob = T.nnet.sigmoid(2. * self.beta * z)
 
         samples = theano_rng.binomial(p=on_prob, n=1, size=on_prob.shape,
                                       dtype=on_prob.dtype) * 2. - 1.
@@ -451,7 +448,7 @@ class IsingHidden(HiddenLayer):
            (not a mean field state) for this variable.
         """
         driver = numpy_rng.uniform(0., 1., (num_examples, self.dim))
-        on_prob = sigmoid_numpy(2. * self.temperature.get_value() *
+        on_prob = sigmoid_numpy(2. * self.beta.get_value() *
                                 self.b.get_value())
         sample = 2. * (driver < on_prob) - 1.
 
@@ -486,7 +483,7 @@ class IsingHidden(HiddenLayer):
 
         rval = -bias_term - weights_term
 
-        rval *= self.temperature
+        rval *= self.beta
 
         assert rval.ndim == 1
 
@@ -557,7 +554,7 @@ class IsingHidden(HiddenLayer):
             z.name = self.layer_name + '_' + iter_name + '_z'
         if msg is not None:
             z = z + msg
-        h = T.tanh(self.temperature * z)
+        h = T.tanh(self.beta * z)
 
         return h
 
@@ -568,20 +565,19 @@ class BoltzmannIsingVisible(VisibleLayer):
     space.
     """
 
-    def __init__(self, nvis, temperature, learn_temperature=False,
-                 bias_from_marginals=None):
+    def __init__(self, nvis, beta, learn_beta=False, bias_from_marginals=None):
         """
         nvis: the dimension of the space
-        temperature: shared variable representing a multiplicative factor of
-                     the energy function
-        learn_temperature: whether or not the temperature should be considered
-                           as a learned parameter
+        beta: shared variable representing a multiplicative factor of the
+                energy function (the inverse temperature)
+        learn_beta: whether or not the inverse temperature should be considered
+                as a learned parameter
         bias_from_marginals: a dataset, whose marginals are used to
-                        initialize the visible biases
+                initialize the visible biases
         """
 
-        if not isinstance(temperature, SharedVariable):
-            raise ValueError("the temperature needs to be a theano shared " +
+        if not isinstance(beta, SharedVariable):
+            raise ValueError("beta needs to be a theano shared " +
                              "variable.")
         self.__dict__.update(locals())
         del self.self
@@ -623,8 +619,8 @@ class BoltzmannIsingVisible(VisibleLayer):
 
     def get_params(self):
         rval = [self.boltzmann_bias]
-        if self.learn_temperature:
-            rval.append(self.temperature)
+        if self.learn_beta:
+            rval.append(self.beta)
         return rval
 
     def sample(self, state_below=None, state_above=None, layer_above=None,
@@ -638,7 +634,7 @@ class BoltzmannIsingVisible(VisibleLayer):
 
         z = msg + bias
 
-        phi = T.nnet.sigmoid(2. * self.temperature * z)
+        phi = T.nnet.sigmoid(2. * self.beta * z)
 
         rval = theano_rng.binomial(size=phi.shape, p=phi, dtype=phi.dtype, n=1)
 
@@ -646,7 +642,7 @@ class BoltzmannIsingVisible(VisibleLayer):
 
     def make_state(self, num_examples, numpy_rng):
         driver = numpy_rng.uniform(0., 1., (num_examples, self.nvis))
-        on_prob = sigmoid_numpy(2. * self.temperature.get_value() *
+        on_prob = sigmoid_numpy(2. * self.beta.get_value() *
                                 self.ising_bias_numpy())
         sample = 2. * (driver < on_prob) - 1.
 
@@ -666,7 +662,7 @@ class BoltzmannIsingVisible(VisibleLayer):
 
         # Energy function is linear so it doesn't matter if we're averaging
         # or not
-        rval = -(self.temperature * T.dot(state, self.ising_bias()))
+        rval = -(self.beta * T.dot(state, self.ising_bias()))
 
         assert rval.ndim == 1
 
@@ -704,8 +700,8 @@ class BoltzmannIsingHidden(HiddenLayer):
                  dim,
                  layer_name,
                  layer_below,
-                 temperature,
-                 learn_temperature=False,
+                 beta,
+                 learn_beta=False,
                  irange=None,
                  sparse_init=None,
                  sparse_stdev=1.,
@@ -722,17 +718,16 @@ class BoltzmannIsingHidden(HiddenLayer):
                  sampling_b_stdev=None):
         """
         include_prob: probability of including a weight element in the set
-                of weights initialized to U(-irange, irange). If not
-                included it is initialized to 0.
-        temperature: shared variable representing a multiplicative factor of
-                     the energy function
-        learn_temperature: whether or not the temperature should be considered
-                           as a learned parameter
+                 of weights initialized to U(-irange, irange). If not
+                 included it is initialized to 0.
+        beta: shared variable representing a multiplicative factor of
+                 the energy function (the inverse temperature)
+        learn_beta: whether or not the inverse temperature should be considered
+                 as a learned parameter
 
         """
-        if not isinstance(temperature, SharedVariable):
-            raise ValueError("the temperature needs to be a theano shared " +
-                             "variable.")
+        if not isinstance(beta, SharedVariable):
+            raise ValueError("beta needs to be a theano shared variable.")
         self.__dict__.update(locals())
         del self.self
 
@@ -909,8 +904,8 @@ class BoltzmannIsingHidden(HiddenLayer):
         rval = list(rval)
         assert self.boltzmann_b not in rval
         rval.append(self.boltzmann_b)
-        if self.learn_temperature:
-            rval.append(self.temperature)
+        if self.learn_beta:
+            rval.append(self.beta)
         return rval
 
     def ising_weights(self, for_sampling=False):
@@ -1087,7 +1082,7 @@ class BoltzmannIsingHidden(HiddenLayer):
         if msg is not None:
             z = z + msg
 
-        on_prob = T.nnet.sigmoid(2. * self.temperature * z)
+        on_prob = T.nnet.sigmoid(2. * self.beta * z)
 
         samples = theano_rng.binomial(p=on_prob, n=1, size=on_prob.shape,
                                       dtype=on_prob.dtype) * 2. - 1.
@@ -1116,7 +1111,7 @@ class BoltzmannIsingHidden(HiddenLayer):
            (not a mean field state) for this variable.
         """
         driver = numpy_rng.uniform(0., 1., (num_examples, self.dim))
-        on_prob = sigmoid_numpy(2. * self.temperature.get_value() *
+        on_prob = sigmoid_numpy(2. * self.beta.get_value() *
                                 self.ising_b_numpy())
         sample = 2. * (driver < on_prob) - 1.
 
@@ -1152,7 +1147,7 @@ class BoltzmannIsingHidden(HiddenLayer):
 
         rval = -bias_term - weights_term
 
-        rval *= self.temperature
+        rval *= self.beta
 
         assert rval.ndim == 1
 
@@ -1218,7 +1213,7 @@ class BoltzmannIsingHidden(HiddenLayer):
             z.name = self.layer_name + '_' + iter_name + '_z'
         if msg is not None:
             z = z + msg
-        h = T.tanh(self.temperature * z)
+        h = T.tanh(self.beta * z)
 
         return h
 
