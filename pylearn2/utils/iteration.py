@@ -374,14 +374,14 @@ class FiniteDatasetIterator(object):
 
             self._convert = []
 
-            for (so, sp) in safe_zip(source, sub_spaces):
+            for i, (so, sp) in enumerate(safe_zip(source, sub_spaces)):
                 idx = dataset_source.index(so)
                 dspace = dataset_sub_spaces[idx]
 
                 # Compose the functions
                 fn = None
                 needs_cast = not np.dtype(config.floatX) == \
-                                        self._raw_data[idx].dtype
+                                        self._raw_data[i].dtype
                 if needs_cast:
                     fn = lambda batch: numpy.cast[config.floatX](batch)
 
