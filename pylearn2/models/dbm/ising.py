@@ -563,6 +563,8 @@ class BoltzmannIsingVisible(VisibleLayer):
     """
     An IsingVisible whose parameters are defined in Boltzmann machine
     space.
+
+    All parameter noise/clipping is handled by BoltzmannIsingHidden.
     """
 
     def __init__(self, nvis, beta, learn_beta=False, bias_from_marginals=None):
