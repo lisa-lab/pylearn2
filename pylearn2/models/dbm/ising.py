@@ -734,6 +734,7 @@ class BoltzmannIsingHidden(HiddenLayer):
         self.boltzmann_b = sharedX(np.zeros((self.dim,)) + init_bias,
                                    name=layer_name + '_b')
         layer_below.layer_above = self
+        self.resample_fn = None
 
     def get_lr_scalers(self):
 
@@ -891,6 +892,42 @@ class BoltzmannIsingHidden(HiddenLayer):
                                   size=self.noisy_sampling_b.shape,
                                   dtype=ising_bh.dtype)
             updates[self.noisy_sampling_b] = noisy_sampling_bh
+
+    def resample_bias_noise(self):
+        if self.resample_fn is None:
+            updates = OrderedDict()
+
+            if self.noisy_sampling_b is not None:
+                theano_rng = MRG_RandomStreams(self.dbm.rng.randint(2**16))
+                bmn = self.min_ising_b
+                if bmn is None:
+                    bmn = - 1e6
+                bmx = self.max_ising_b
+                if bmx is None:
+                    bmx = 1e6
+
+                bv = self.layer_below.boltzmann_bias
+                ising_bv = 0.5 * bv + 0.25 * self.W.sum(axis=1)
+                noisy_sampling_bv = theano_rng.normal(
+                    avg=ising_bv.dimshuffle('x', 0),
+                    std=self.sampling_b_stdev,
+                    size=self.layer_below.noisy_sampling_b.shape,
+                    dtype=ising_bv.dtype
+                )
+                updates[self.layer_below.noisy_sampling_b] = noisy_sampling_bv
+
+                bh = self.boltzmann_b
+                ising_bh = 0.5 * bh + 0.25 * self.W.sum(axis=0)
+                noisy_sampling_bh = theano_rng.normal(
+                    avg=ising_bh.dimshuffle('x', 0),
+                    std=self.sampling_b_stdev,
+                    size=self.noisy_sampling_b.shape,
+                    dtype=ising_bh.dtype
+                )
+                updates[self.noisy_sampling_b] = noisy_sampling_bh
+            self.resample_fn = function([], updates=updates)
+
+        self.resample_fn()
 
     def get_total_state_space(self):
         return VectorSpace(self.dim)
