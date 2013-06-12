@@ -652,6 +652,17 @@ class BoltzmannIsingVisible(VisibleLayer):
 
         return rval
 
+    def mf_update(self, state_above, layer_above):
+        msg = layer_above.downward_message(state_above, for_sampling=True)
+
+        bias = self.ising_bias(for_sampling=True)
+
+        z = msg + bias
+
+        rval = T.nnet.sigmoid(2. * self.beta * z)
+
+        return rval * 2. - 1.
+
     def expected_energy_term(self, state, average, state_below=None,
                              average_below=None):
 
