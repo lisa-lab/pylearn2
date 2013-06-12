@@ -15,9 +15,13 @@ def test_ais():
     Test ais computation by comparing the output of estimate_likelihood to
     Russ's code's output for the same parameters.
     """
+    trainset = MNIST(which_set='train')
+    testset = MNIST(which_set='test')
+
     nvis = 784
     nhid = 20
     # Random initialization of RBM parameters
+    numpy.random.seed(98734)
     w_hid = 10 * numpy.cast[theano.config.floatX](numpy.random.randn(nvis,
                                                                      nhid))
     b_vis = 10 * numpy.cast[theano.config.floatX](numpy.random.randn(nvis))
@@ -34,23 +38,13 @@ def test_ais():
     rbm.nvis = nvis
     rbm.nhid = nhid
 
-    # Compute logz using rbm_ais
-    (log_zb, var_dlogz), ais = \
-        rbm_tools.rbm_ais([rbm.hidden_layers[0].get_weights(),
-                           rbm.visible_layer.get_biases(),
-                           rbm.hidden_layers[0].get_biases()], 5)
-    rbm_ais_logz = log_zb
-
+    # Compute real logz and associated train_ll and test_ll using rbm_tools
     v_sample = T.matrix('v_sample')
     h_sample = T.matrix('h_sample')
     W = theano.shared(rbm.hidden_layers[0].get_weights())
     hbias = theano.shared(rbm.hidden_layers[0].get_biases())
     vbias = theano.shared(rbm.visible_layer.get_biases())
 
-    trainset = MNIST(which_set='train')
-    testset = MNIST(which_set='test')
-
-    # Compute train_ll and test_ll using rbm_tools
     wx_b = T.dot(v_sample, W) + hbias
     vbias_term = T.dot(v_sample, vbias)
     hidden_term = T.sum(T.log(1 + T.exp(wx_b)), axis=1)
@@ -67,24 +61,18 @@ def test_ais():
 
     real_logz = rbm_tools.compute_log_z(rbm, free_energy_h_fn)
 
-    rbm_ais_train_ll = -rbm_tools.compute_nll(rbm,
-                                              trainset.get_design_matrix(),
-                                              log_zb, free_energy_v_fn)
-    rbm_ais_test_ll = -rbm_tools.compute_nll(rbm, testset.get_design_matrix(),
-                                             log_zb, free_energy_v_fn)
+    real_ais_train_ll = -rbm_tools.compute_nll(rbm,
+                                               trainset.get_design_matrix(),
+                                               real_logz, free_energy_v_fn)
+    real_ais_test_ll = -rbm_tools.compute_nll(rbm, testset.get_design_matrix(),
+                                              real_logz, free_energy_v_fn)
 
     # Compute train_ll, test_ll and logz using dbm_metrics
-    train_ll, test_ll, log_z = dbm_metrics.estimate_likelihood([W],
-                                                               [vbias, hbias],
-                                                               trainset,
-                                                               testset,
-                                                               pos_mf_steps=5)
-
-    print real_logz
-    print log_z, rbm_ais_logz
-    print train_ll, rbm_ais_train_ll
-    print test_ll, rbm_ais_test_ll
-
-    assert log_z == rbm_ais_logz
-    assert train_ll == rbm_ais_train_ll
-    assert test_ll == rbm_ais_test_ll
+    train_ll, test_ll, logz = dbm_metrics.estimate_likelihood([W],
+                                                              [vbias, hbias],
+                                                              trainset,
+                                                              testset,
+                                                              pos_mf_steps=100)
+    assert (real_logz - logz) < 2.0
+    assert (real_ais_train_ll - train_ll) < 2.0
+    assert (real_ais_test_ll - test_ll) < 2.0
