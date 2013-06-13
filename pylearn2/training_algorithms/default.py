@@ -79,7 +79,8 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
                 self.monitor.add_channel(name=name,
                                          ipt=nested_ipt,
                                          val=J,
-                                         prereqs=prereqs)
+                                         prereqs=prereqs,
+                                         data_specs=(space, source))
         self.first = True
         self.bSetup = True
 
