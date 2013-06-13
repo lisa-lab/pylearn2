@@ -1,6 +1,7 @@
 import numpy as np
 
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
+from pylearn2.datasets.dense_design_matrix import DenseDesignMatrixPyTables
 from pylearn2.datasets.dense_design_matrix import DefaultViewConverter
 from pylearn2.utils import serial
 
@@ -48,5 +49,16 @@ def test_split_nfold_datasets():
     folds = ddm.split_dataset_nfolds(10)
     assert folds[0].shape[0] == np.ceil(ddm.num_examples / 10)
 
-#test_split_datasets()
-#test_split_nfold_datasets()
+def test_pytables():
+    """
+    tests wether DenseDesignMatrixPyTables can be loaded and
+    initialize iterator
+    """
+    # TODO more through test
+
+    x = np.ones((2, 3))
+    y = np.ones(2)
+    ds = DenseDesignMatrixPyTables(X = x, y = y)
+
+    it = ds.iterator(mode = 'sequential', batch_size = 1)
+    it.next()
