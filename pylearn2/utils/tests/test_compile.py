@@ -21,14 +21,14 @@ def test_simple_compilation():
     f = x.func
     g = x.func
     assert f is g
-    assert x.func() == Dummy.const
+    assert abs(x.func() - Dummy.const) < 1e-6
 
 
 def test_pickling():
     a = Dummy()
-    assert a.func() == Dummy.const
+    assert abs(a.func() - Dummy.const) < 1e-6
     serialized = pickle.dumps(a)
     b = pickle.loads(serialized)
     assert not hasattr(b, '_compiled_functions')
-    assert b.func() == Dummy.const
+    assert abs(b.func() - Dummy.const) < 1e-6
     assert not (a.func is b.func)
