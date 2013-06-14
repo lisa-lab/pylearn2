@@ -2032,7 +2032,7 @@ class Softmax(HiddenLayer):
 
     def make_symbolic_state(self, num_examples, theano_rng):
         """
-        Returns a shared variable containing an actual state
+        Returns a symbolic variable containing an actual state
         (not a mean field state) for this variable.
         """
 
