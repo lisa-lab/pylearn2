@@ -315,8 +315,10 @@ class VariationalPCD(BaseCD):
         del self.self
         self.theano_rng = MRG_RandomStreams(2012 + 10 + 14)
         assert supervised in [True, False]
-        super(VariationalPCD, self).__init__(num_chains, num_gibbs_steps,
-                                             supervised, toronto_neg)
+        super(VariationalPCD, self).__init__(num_chains=num_chains,
+                                             num_gibbs_steps=num_gibbs_steps,
+                                             supervised=supervised,
+                                             toronto_neg=toronto_neg)
 
     def expr(self, model, data):
         """
@@ -420,8 +422,10 @@ class VariationalCD(BaseCD):
     """
 
     def __init__(self, num_gibbs_steps, supervised=False, toronto_neg=False):
-        super(VariationalCD, self).__init__(None, num_gibbs_steps, supervised,
-                                            toronto_neg)
+        super(VariationalCD, self).__init__(num_chains=None,
+                                            num_gibbs_steps=num_gibbs_steps,
+                                            supervised=supervised,
+                                            toronto_neg=toronto_neg)
 
     def _get_positive_phase(self, model, X, Y=None):
         return self._get_variational_pos(model, X, Y), OrderedDict()
