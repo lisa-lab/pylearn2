@@ -364,10 +364,10 @@ class VariationalPCD(BaseCD):
 
         return rval
 
-    def _get_positive_phase(self, model, X, Y=None):
+    def _get_positive_phase(self, model, data):
         return self._get_variational_pos(model, X, Y), OrderedDict()
 
-    def _get_negative_phase(self, model, X, Y=None):
+    def _get_negative_phase(self, model, data):
         """
         d/d theta log Z = (d/d theta Z) / Z
                         = (d/d theta sum_h sum_v exp(-E(v,h)) ) / Z
