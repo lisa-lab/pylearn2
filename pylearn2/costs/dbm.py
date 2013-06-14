@@ -255,12 +255,6 @@ class PCD(BaseCD):
 
     TODO add citation to Tieleman paper, Younes paper
     """
-
-    def __init__(self, num_chains, num_gibbs_steps, supervised=False,
-                 toronto_neg=False):
-        super(PCD, self).__init__(num_chains, num_gibbs_steps,
-                                  supervised, toronto_neg)
-
     def _get_positive_phase(self, model, X, Y=None):
         return self._get_sampling_pos(model, X, Y), OrderedDict()
 
