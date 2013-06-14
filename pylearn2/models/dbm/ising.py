@@ -626,13 +626,14 @@ class BoltzmannIsingVisible(VisibleLayer):
         return rval
 
     def sample(self, state_below=None, state_above=None, layer_above=None,
-               theano_rng=None):
+               theano_rng=None, use_noisy_samples=True):
 
         assert state_below is None
 
-        msg = layer_above.downward_message(state_above, for_sampling=True)
+        msg = layer_above.downward_message(state_above,
+                                           for_sampling=use_noisy_samples)
 
-        bias = self.ising_bias(for_sampling=True)
+        bias = self.ising_bias(for_sampling=use_noisy_samples)
 
         z = msg + bias
 
@@ -906,9 +907,22 @@ class BoltzmannIsingHidden(HiddenLayer):
                                   dtype=ising_bh.dtype)
             updates[self.noisy_sampling_b] = noisy_sampling_bh
 
-    def resample_bias_noise(self):
+    def resample_bias_noise(self, batch_size_changed=False):
+        if batch_size_changed:
+            self.resample_fn = None
+
         if self.resample_fn is None:
             updates = OrderedDict()
+
+            if self.sampling_b_stdev is not None:
+                self.noisy_sampling_b = \
+                    sharedX(np.zeros((self.dbm.batch_size, self.dim)))
+                self.layer_below.noisy_sampling_b = \
+                    sharedX(np.zeros((self.dbm.batch_size, self.layer_below.nvis)))
+            if self.sampling_W_stdev is not None:
+                self.noisy_sampling_W = \
+                    sharedX(np.zeros((self.input_dim, self.dim)),
+                            'noisy_sampling_W')
 
             if self.noisy_sampling_b is not None:
                 theano_rng = MRG_RandomStreams(self.dbm.rng.randint(2**16))
@@ -1110,7 +1124,7 @@ class BoltzmannIsingHidden(HiddenLayer):
         return rval
 
     def sample(self, state_below=None, state_above=None, layer_above=None,
-               theano_rng=None):
+               theano_rng=None, use_noisy_samples=True):
 
         if theano_rng is None:
             raise ValueError("theano_rng is required; it just defaults to " +
@@ -1118,7 +1132,8 @@ class BoltzmannIsingHidden(HiddenLayer):
                              "/ state_above in the list.")
 
         if state_above is not None:
-            msg = layer_above.downward_message(state_above, for_sampling=True)
+            msg = layer_above.downward_message(state_above,
+                                               for_sampling=use_noisy_samples)
         else:
             msg = None
 
@@ -1126,8 +1141,9 @@ class BoltzmannIsingHidden(HiddenLayer):
             state_below = self.input_space.format_as(state_below,
                                                      self.desired_space)
 
-        z = T.dot(state_below, self.ising_weights(for_sampling=True)) + \
-            self.ising_b(for_sampling=True)
+        z = T.dot(state_below,
+                  self.ising_weights(for_sampling=use_noisy_samples)) + \
+            self.ising_b(for_sampling=use_noisy_samples)
 
         if msg is not None:
             z = z + msg
