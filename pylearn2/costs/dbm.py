@@ -79,27 +79,6 @@ class BaseCD(Cost):
         return rval
 
     def get_gradients(self, model, data):
-        """
-            Use the non-negativity of the KL divergence to construct a lower
-            bound on the log likelihood. We can drop all terms that are
-            constant with repsect to the model parameters:
-
-            log P(v) = L(v, q) + KL(q || P(h|v))
-            L(v, q) = log P(v) - KL(q || P(h|v))
-            L(v, q) = log P(v) - sum_h q(h) log q(h) + q(h) log P(h | v)
-            L(v, q) = log P(v) + sum_h q(h) log P(h | v) + const
-            L(v, q) = log P(v) + sum_h q(h) log P(h, v)
-                               - sum_h q(h) log P(v) + const
-            L(v, q) = sum_h q(h) log P(h, v) + const
-            L(v, q) = sum_h q(h) -E(h, v) - log Z + const
-
-            so the cost we want to minimize is
-            expected_energy + log Z + const
-
-
-            Note: for the RBM, this bound is exact, since the KL divergence
-                  goes to 0.
-        """
         self.get_data_specs(model)[0].validate(data)
         if self.supervised:
             X, Y = data
@@ -202,6 +181,42 @@ class BaseCD(Cost):
 
         q = model.mf(X, Y)
 
+        """
+            Use the non-negativity of the KL divergence to construct a lower
+            bound on the log likelihood. We can drop all terms that are
+            constant with repsect to the model parameters:
+
+            log P(v) = L(v, q) + KL(q || P(h|v))
+            L(v, q) = log P(v) - KL(q || P(h|v))
+            L(v, q) = log P(v) - sum_h q(h) log q(h) + q(h) log P(h | v)
+            L(v, q) = log P(v) + sum_h q(h) log P(h | v) + const
+            L(v, q) = log P(v) + sum_h q(h) log P(h, v)
+                               - sum_h q(h) log P(v) + const
+            L(v, q) = sum_h q(h) log P(h, v) + const
+            L(v, q) = sum_h q(h) -E(h, v) - log Z + const
+
+            so the cost we want to minimize is
+            expected_energy + log Z + const
+
+
+            Note: for the RBM, this bound is exact, since the KL divergence
+                  goes to 0.
+        """
+
+        variational_params = flatten(q)
+
+        # The gradients of the expected energy under q are easy, we can just
+        # do that in theano
+        expected_energy_q = model.expected_energy(X, q).mean()
+        params = list(model.get_params())
+        gradients = OrderedDict(
+            safe_zip(params, T.grad(expected_energy_q,
+                                    params,
+                                    consider_constant=variational_params,
+                                    disconnected_inputs='ignore'))
+        )
+        return gradients
+
     def _get_sampling_pos(self, model, X, Y):
         layer_to_clamp = OrderedDict([(model.visible_layer, True)])
         layer_to_pos_samples = OrderedDict([(model.visible_layer, X)])
@@ -214,6 +229,7 @@ class BaseCD(Cost):
             layer_to_pos_samples[model.hidden_layers[-1]] = Y
             hid = model.hidden_layers[:-1]
         else:
+            assert Y is None
             hid = model.hidden_layers
 
         for layer in hid:
@@ -306,20 +322,6 @@ class VariationalPCD(BaseCD):
     TODO add citation to Tieleman paper, Younes paper
     """
 
-    def __init__(self, num_chains, num_gibbs_steps, supervised = False, toronto_neg=False):
-        """
-            toronto_neg: If True, use a bit of mean field in the negative phase.
-                        Ruslan Salakhutdinov's matlab code does this.
-        """
-        self.__dict__.update(locals())
-        del self.self
-        self.theano_rng = MRG_RandomStreams(2012 + 10 + 14)
-        assert supervised in [True, False]
-        super(VariationalPCD, self).__init__(num_chains=num_chains,
-                                             num_gibbs_steps=num_gibbs_steps,
-                                             supervised=supervised,
-                                             toronto_neg=toronto_neg)
-
     def expr(self, model, data):
         """
         The partition function makes this intractable.
@@ -327,64 +329,18 @@ class VariationalPCD(BaseCD):
         self.get_data_specs(model)[0].validate(data)
         return None
 
-    def get_monitoring_channels(self, model, data):
-        self.get_data_specs(model)[0].validate(data)
-        rval = OrderedDict()
-
-        if self.supervised:
-            X, Y = data
-            assert Y is not None
-        else:
-            X = data
-
-        history = model.mf(X, return_history = True)
-        q = history[-1]
-
-        if self.supervised:
-            Y_hat = q[-1]
-            true = T.argmax(Y,axis=1)
-            pred = T.argmax(Y_hat, axis=1)
-
-            #true = Print('true')(true)
-            #pred = Print('pred')(pred)
-
-            wrong = T.neq(true, pred)
-            err = T.cast(wrong.mean(), X.dtype)
-            rval['misclass'] = err
-
-            if len(model.hidden_layers) > 1:
-                q = model.mf(X, Y = Y)
-                pen = model.hidden_layers[-2].upward_state(q[-2])
-                Y_recons = model.hidden_layers[-1].mf_update(state_below = pen)
-                pred = T.argmax(Y_recons, axis=1)
-                wrong = T.neq(true, pred)
-
-                rval['recons_misclass'] = T.cast(wrong.mean(), X.dtype)
-
-
-        return rval
-
-    def _get_positive_phase(self, model, data):
+    def _get_positive_phase(self, model, X, Y=None):
         return self._get_variational_pos(model, X, Y), OrderedDict()
 
-    def _get_negative_phase(self, model, data):
+    def _get_negative_phase(self, model, X, Y=None):
         """
         d/d theta log Z = (d/d theta Z) / Z
                         = (d/d theta sum_h sum_v exp(-E(v,h)) ) / Z
                         = (sum_h sum_v - exp(-E(v,h)) d/d theta E(v,h) ) / Z
                         = - sum_h sum_v P(v,h)  d/d theta E(v,h)
         """
-        self.get_data_specs(model)[0].validate(data)
         layer_to_chains = model.make_layer_to_state(self.num_chains)
 
-        if self.supervised:
-            (X, Y) = data
-            # note: if the Y layer changes to something without linear energy,
-            # we'll need to make the expected energy clamp Y in the positive phase
-            assert isinstance(model.hidden_layers[-1], dbm.Softmax)
-        else:
-            X = data
-            Y = None
         def recurse_check(l):
             if isinstance(l, (list, tuple)):
                 for elem in l:
