@@ -19,8 +19,7 @@ class Default(Cost):
     def expr(self, model, data, **kwargs):
         space, sources = self.get_data_specs(model)
         space.validate(data)
-        (X, Y) = data
-        return model.cost_from_X(X, Y)
+        return model.cost_from_X(data)
 
     def get_data_specs(self, model):
         space = CompositeSpace([model.get_input_space(), model.get_output_space()])
