@@ -520,13 +520,14 @@ class TorontoSparsity(Cost):
 
     def get_gradients(self, model, data, **kwargs):
         self.get_data_specs(model)[0].validate(data)
-        obj, scratch = self.base_cost(model, data, return_locals=True, **kwargs)
+        obj, scratch = self.base_cost.expr(model, data, return_locals=True,
+                                           **kwargs)
         if self.supervised:
             assert isinstance(data, (list, tuple))
             assert len(data) == 2
             (X, Y) = data
         else:
-            X, = data
+            X = data
         interm_grads = OrderedDict()
 
 
