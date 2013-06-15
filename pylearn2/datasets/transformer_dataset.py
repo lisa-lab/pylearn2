@@ -77,8 +77,16 @@ class TransformerDataset(Dataset):
                 raw_data_specs = data_specs
             else:
                 feature_idx = source.index('features')
+                if self.space_preserving:
+                    # Ask self.raw for the data in the expected space,
+                    # and self.transformer will operate in that space
+                    feature_input_space = space[feature_idx]
+                else:
+                    # We need to ask the transformer what its input space is
+                    feature_input_space = self.transformer.get_input_space()
+
                 raw_space = CompositeSpace(
-                                (self.transformer.get_input_space(),)
+                                (feature_input_space,)
                                 + space[:feature_idx]
                                 + space[feature_idx + 1:])
                 raw_source = (('features',)
@@ -137,10 +145,16 @@ class TransformerIterator(object):
         # Apply transformation on raw_batch, and format it
         # in the requested Space
         transformer = self.transformer_dataset.transformer
-        rval_space = transformer.get_output_space()
         out_space = self.data_specs[0]
         if isinstance(out_space, CompositeSpace):
             out_space = out_space.components[0]
+
+        if self.transformer_dataset.space_preserving:
+            # If the space is preserved, then raw_batch is already provided
+            # in the requested space
+            rval_space = out_space
+        else:
+            rval_space = transformer.get_output_space()
 
         def transform(X_batch):
             rval = transformer.perform(X_batch)
