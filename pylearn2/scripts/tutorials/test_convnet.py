@@ -14,11 +14,14 @@ The differences (needed for speed) are:
 
 This should make the test run in about one minute.
 """
+from nose.plugins.skip import SkipTest
+
+from pylearn2.datasets.exc import NoDataPathError
 from pylearn2.testing import no_debug_mode
 
 
 @no_debug_mode
-def test_convolutional_network():
+def train_convolutional_network():
     train = """
 !obj:pylearn2.train.Train {
     dataset: &train !obj:pylearn2.datasets.mnist.MNIST {
@@ -105,6 +108,13 @@ def test_convolutional_network():
     from pylearn2.config import yaml_parse
     train = yaml_parse.load(train)
     train.main_loop()
+
+
+def test_convolutional_network():
+    try:
+        train_convolutional_network()
+    except NoDataPathError:
+        raise SkipTest("PYLEARN2_DATA_PATH environment variable not defined")
 
 
 if __name__ == '__main__':
