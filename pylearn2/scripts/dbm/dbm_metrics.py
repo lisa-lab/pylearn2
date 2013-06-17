@@ -591,7 +591,7 @@ def estimate_likelihood(W_list, b_list, trainset, testset, free_energy_fn=None,
                                    updates=ups)
 
     # Configure baserate bias for (h0 if `marginalize_odd` else h1)
-    inference_fn(mean_train[None, :])
+    inference_fn(numpy.tile(mean_train, (batch_size, 1)))
     numpy_psamples = [mean_train[None, :]] + \
                      [psample.get_value() for psample in psamples[1:]]
     mean_pos = numpy.minimum(numpy_psamples[not marginalize_odd], 1-1e-5)
