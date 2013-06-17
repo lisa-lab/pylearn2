@@ -301,7 +301,6 @@ class PCD(BaseCD):
 
         return neg_phase_grads, updates
 
-
     def get_data_specs(self, model):
         if self.supervised:
             space = CompositeSpace([model.get_input_space(),
@@ -365,6 +364,15 @@ class VariationalPCD(BaseCD):
             neg_phase_grads = self._get_standard_neg(model, layer_to_chains)
 
         return neg_phase_grads, updates
+
+    def get_data_specs(self, model):
+        if self.supervised:
+            space = CompositeSpace([model.get_input_space(),
+                                    model.get_output_space()])
+            sources = (model.get_input_source(), model.get_target_source())
+            return (space, sources)
+        else:
+            return (model.get_input_space(), model.get_input_source())
 
 
 class VariationalCD(BaseCD):
