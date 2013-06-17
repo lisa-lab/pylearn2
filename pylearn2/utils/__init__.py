@@ -2,8 +2,10 @@ import os
 
 from .general import is_iterable
 import theano
-from pylearn2.datasets import control
+# Delay import of pylearn2.config.yaml_parse and pylearn2.datasets.control
+# to avoid circular imports
 yaml_parse = None
+control = None
 from itertools import izip
 cuda = None
 
@@ -107,8 +109,13 @@ def get_dataless_dataset(model):
     """
 
     global yaml_parse
+    global control
+
     if yaml_parse is None:
         from pylearn2.config import yaml_parse
+
+    if control is None:
+        from pylearn2.datasets import control
 
     control.push_load_data(False)
     try:
@@ -220,3 +227,22 @@ def get_choice(choice_to_explanation ):
         first = False
         choice = raw_input(prompt)
     return choice
+
+
+def float32_floatX(f):
+    """
+    This function change floatX to float32 for the call to f.
+
+    This is usefull in GPU tests.
+    """
+    def new_f(*args, **kwargs):
+        old_floatX = theano.config.floatX
+        theano.config.floatX = 'float32'
+        try:
+            f(*args, **kwargs)
+        finally:
+            theano.config.floatX = old_floatX
+
+    # If we don't do that, tests function won't be run.
+    new_f.func_name = f.func_name
+    return new_f
