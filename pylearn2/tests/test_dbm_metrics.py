@@ -76,3 +76,6 @@ def test_ais():
     assert (real_logz - logz) < 2.0
     assert (real_ais_train_ll - train_ll) < 2.0
     assert (real_ais_test_ll - test_ll) < 2.0
+
+if __name__ == '__main__':
+    test_ais()
