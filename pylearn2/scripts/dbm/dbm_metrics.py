@@ -33,17 +33,16 @@ import argparse
 import warnings
 import numpy
 import logging
-from collections import OrderedDict
 
 import theano
 import theano.tensor as T
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 from theano.sandbox.scan import scan
+from theano.compat.python2x import OrderedDict
 
 import pylearn2
 from pylearn2.utils import serial
 from pylearn2 import utils
-from pylearn2.datasets.mnist import MNIST
 
 floatX = theano.config.floatX
 logging.basicConfig(level=logging.INFO)
