@@ -10,6 +10,7 @@ T = tensor
 from theano.printing import Print
 # Shortcuts
 theano.config.warn.sum_div_dimshuffle_bug = False
+from  pylearn2.utils.rng import *
 
 if 0:
     print 'WARNING: using SLOW rng'
@@ -34,8 +35,7 @@ class Corruptor(object):
             used to initialize a RandomStreams.
         """
         # The default rng should be build in a deterministic way
-        if not hasattr(rng, 'randn'):
-            rng = numpy.random.RandomState(rng)
+        rng = rng_randn(rng)
         seed = int(rng.randint(2 ** 30))
         self.s_rng = RandomStreams(seed)
         self.corruption_level = corruption_level
