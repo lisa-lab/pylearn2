@@ -1,0 +1,30 @@
+============
+Cuda-Convnet
+============
+
+.. contents::
+   :depth: 3
+
+
+#####
+Intro
+#####
+
+These are wrappers around some of the GPU codes from Alex Krizhevsky cuda-convnet project.
+http://code.google.com/p/cuda-convnet/
+
+#######
+Modules
+#######
+
+Pool
+====
+.. automodule:: pylearn2.sandbox.cuda_convnet.pool
+    :members:
+
+Resoponse Normalization
+=======================
+.. automodule:: pylearn2.sandbox.cuda_convnet.response_norm
+    :members:
+
+

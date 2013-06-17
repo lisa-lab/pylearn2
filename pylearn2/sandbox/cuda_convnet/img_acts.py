@@ -44,6 +44,7 @@ The copyright and licensing notice for this code is reproduced below:
 from theano.gradient import DisconnectedType
 from theano.gof import Apply
 from theano.sandbox.cuda import CudaNdarrayType
+from theano.sandbox.cuda.basic_ops import as_cuda_ndarray_variable
 
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
 from pylearn2.sandbox.cuda_convnet.base_acts import UnimplementedError
@@ -130,6 +131,7 @@ class ImageActs(BaseActs):
     def grad(self, inputs, g_outputs):
         hid_acts, filters, output_shape = inputs
         g_images, = g_outputs
+        g_images = as_cuda_ndarray_variable(g_images)
         assert not isinstance(g_images, list)
 
         global FilterActs

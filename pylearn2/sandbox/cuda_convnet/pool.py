@@ -247,7 +247,7 @@ class MaxPool(GpuOp):
             raise RuntimeError('Could not compile cuda_convnet')
 
         return super(MaxPool, self).make_thunk(
-                node, storage_map, storage_map, no_recycling)
+                node, storage_map, compute_map, no_recycling)
 
 
 class MaxPoolGrad(GpuOp):
@@ -501,4 +501,4 @@ class MaxPoolGrad(GpuOp):
             raise RuntimeError('Could not compile cuda_convnet')
 
         return super(MaxPoolGrad, self).make_thunk(
-                node, storage_map, storage_map, no_recycling)
+                node, storage_map, compute_map, no_recycling)

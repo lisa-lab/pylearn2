@@ -82,11 +82,13 @@ Documentation
 Roughly in order of what you'll want to check out:
 
 * :ref:`tutorial` -- Learn the basics via an example.
+* :ref:`yaml_tutorial` -- A tutorial on YAML tags employed by Pylearn2.
 * At this point, you might want to work through the ipython notebooks in the "scripts/tutorials"
   directory.
 * :ref:`features` -- A list of features available in the library.
 * :ref:`overview` -- A detailed but high-level overview of how Pylearn2 works. This is the
   place to start if you want to really learn the library.
+* :ref:`libdoc` -- Documentation of the libray modules.
 * :ref:`cluster` -- The tools we use at LISA for running Pylearn2 jobs on HPC clusters.
 * :ref:`vision` -- Some more detailed elaboration of some points of the Pylearn2 vision.
 
@@ -97,7 +99,7 @@ Community
 * Register and post to `pylearn-dev`_ if you want to talk to the developers. We don't bite.
 
 * Register to `pylearn2-github`_ if you want to receive an email for all changes to the GitHub
-repository.
+  repository.
 
 * Register to `theano-buildbot`_ if you want to receive our daily
   buildbot email. This is the buildbot for Pylearn2, Theano, Pylearn
@@ -115,7 +117,7 @@ Developer
 
 * Register to everything listed in the Community section above
 * Follow the LISA lab coding style guidelines:
-http://deeplearning.net/software/pylearn/v2_planning/API_coding_style.html
+  http://deeplearning.net/software/pylearn/v2_planning/API_coding_style.html
 
 * :ref:`api_change` -- the best practices guide you should follow when changing any API in the library
 
@@ -130,3 +132,9 @@ http://deeplearning.net/software/pylearn/v2_planning/API_coding_style.html
 .. _LISA: http://www.iro.umontreal.ca/~lisa
 .. _University of Montreal: http://www.umontreal.ca
 
+
+.. toctree::
+   :maxdepth: 1
+   :hidden:
+
+   library/index

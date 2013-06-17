@@ -2,6 +2,7 @@ __authors__ = 'Ian Goodfellow'
 __copyright__ = "Copyright 2013, Universite de Montreal"
 
 from pylearn2.costs.cost import Cost
+from pylearn2.space import CompositeSpace
 
 class Dropout(Cost):
     """
@@ -25,7 +26,7 @@ class Dropout(Cost):
     supervised = True
 
     def __init__(self, default_input_include_prob=.5, input_include_probs=None,
-            default_input_scale=2., input_scales=None):
+            default_input_scale=2., input_scales=None, per_example=True):
         """
         During training, each input to each layer is randomly included or excluded
         for each example. The probability of inclusion is independent for each input
@@ -46,9 +47,21 @@ class Dropout(Cost):
         self.__dict__.update(locals())
         del self.self
 
-    def __call__(self, model, X, Y, ** kwargs):
-        Y_hat = model.dropout_fprop(X, default_input_include_prob=self.default_input_include_prob,
-                input_include_probs=self.input_include_probs, default_input_scale=self.default_input_scale,
-                input_scales=self.input_scales
-                )
+    def expr(self, model, data, ** kwargs):
+        space, sources = self.get_data_specs(model)
+        space.validate(data)
+        (X, Y) = data
+        Y_hat = model.dropout_fprop(
+            X,
+            default_input_include_prob=self.default_input_include_prob,
+            input_include_probs=self.input_include_probs,
+            default_input_scale=self.default_input_scale,
+            input_scales=self.input_scales,
+            per_example=self.per_example
+        )
         return model.cost(Y, Y_hat)
+
+    def get_data_specs(self, model):
+        space = CompositeSpace([model.get_input_space(), model.get_output_space()])
+        sources = (model.get_input_source(), model.get_target_source())
+        return (space, sources)

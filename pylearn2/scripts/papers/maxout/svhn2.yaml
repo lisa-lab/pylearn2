@@ -1,0 +1,49 @@
+!obj:pylearn2.train.Train {
+    dataset: &train !obj:pylearn2.datasets.svhn.SVHN {
+        which_set: 'splitted_train',
+        path: "${SVHN_LOCAL_PATH}",
+        axes: ['c', 0, 1, 'b']
+    },
+    model: !obj:pylearn2.monitor.push_monitor {
+        model: !pkl: "${PYLEARN2_TRAIN_DIR}svhn_best.joblib",
+        name: "old_monitor"
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        train_iteration_mode: 'batchwise_shuffled_equential',
+        learning_rate: 0.008600,
+        init_momentum: 0.900000,
+        monitoring_dataset:
+            {
+                #'train' : *train,
+                'valid' : !obj:pylearn2.datasets.svhn.SVHN {
+                              which_set: 'valid',
+                              path: "${SVHN_LOCAL_PATH}",
+                              axes: ['c', 0, 1, 'b'],
+                          },
+                'test' : !obj:pylearn2.datasets.svhn.SVHN {
+                              which_set: 'test',
+                              path: "${SVHN_LOCAL_PATH}",
+                              axes: ['c', 0, 1, 'b'],
+                          }
+            },
+        cost: !obj:pylearn2.costs.mlp.dropout.Dropout {
+            input_include_probs: { 'h0' : .8 },
+            input_scales: { 'h0': 1. }
+        },
+        termination_criterion: !obj:pylearn2.termination_criteria.MonitorBased {
+            channel_name: "valid_y_misclass",
+            prop_decrease: 0.,
+            N: 100
+        },
+    },
+    extensions: [
+        !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
+             channel_name: 'valid_y_misclass',
+             save_path: "${PYLEARN2_TRAIN_DIR}svhn_best2.joblib"
+        },
+        !obj:noisy_encoder.utils.best_params.MonitorBasedBest {
+            channel_name: 'valid_y_misclass',
+            save_channel_names: ['valid_y_misclass'],
+        },
+    ],
+}

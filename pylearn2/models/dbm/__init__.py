@@ -8,7 +8,7 @@ repository yet. Ian is gradually moving pieces of it over from his
 private repository. Some of his code contains private research ideas
 that he can't move to this repository until he has a paper on them.
 """
-__authors__ = "Ian Goodfellow"
+__authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
@@ -19,8 +19,8 @@ import sys
 import time
 import warnings
 
-from collections import OrderedDict
 
+from theano.compat.python2x import OrderedDict
 from theano import config
 from theano import function
 from theano import gof
@@ -34,6 +34,7 @@ from pylearn2.expr.nnet import sigmoid_numpy
 from pylearn2.expr.probabilistic_max_pooling import max_pool_channels
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.models.model import Model
+from pylearn2.base import Block
 from pylearn2.space import CompositeSpace
 from pylearn2.space import Conv2DSpace
 from pylearn2.space import Space
@@ -59,6 +60,7 @@ warnings.warn("DBM changing the recursion limit.")
 # python interpreter should provide an option to raise the error
 # precisely when you're going to exceed the stack segment.
 sys.setrecursionlimit(40000)
+
 
 class DBM(Model):
     """
@@ -100,6 +102,9 @@ class DBM(Model):
         if inference_procedure is None:
             self.setup_inference_procedure()
         self.inference_procedure.set_dbm(self)
+
+    def get_all_layers(self):
+        return [self.visible_layer] + self.hidden_layers
 
     def energy(self, V, hidden):
         """
@@ -340,7 +345,7 @@ class DBM(Model):
         if rng is None:
             rng = self.rng
 
-        states = [ layer.make_state(num_examples, rng) for layer in layers ]
+        states = [layer.make_state(num_examples, rng) for layer in layers]
 
         zipped = safe_zip(layers, states)
 
@@ -357,6 +362,33 @@ class DBM(Model):
 
         for layer, state in zipped:
             recurse_check(layer, state)
+
+        rval = OrderedDict(zipped)
+
+        return rval
+
+    def make_layer_to_symbolic_state(self, num_examples, rng=None):
+
+        """
+        Makes and returns a dictionary mapping layers to states.
+        By states, we mean here a real assignment, not a mean field state.
+        For example, for a layer containing binary random variables, the
+        state will be a symbolic variable containing values in {0,1}, not
+        [0,1].
+        The visible layer will be included.
+        Uses a dictionary so it is easy to unambiguously index a layer
+        without needing to remember rules like vis layer = 0, hiddens start
+        at 1, etc.
+        """
+
+        # Make a list of all layers
+        layers = [self.visible_layer] + self.hidden_layers
+
+        assert rng is not None
+
+        states = [layer.make_symbolic_state(num_examples, rng) for layer in layers]
+
+        zipped = safe_zip(layers, states)
 
         rval = OrderedDict(zipped)
 
@@ -532,6 +564,8 @@ class DBM(Model):
             theano variables, use the 'mcmc_steps' method. This is a wrapper around
             that method.
 
+            Parameters
+            ----------
             layer_to_state: a dictionary mapping the SuperDBM_Layer instances
                             contained in self to shared variables representing
                             batches of samples of them.
@@ -590,8 +624,10 @@ class DBM(Model):
 
         return rval
 
-    def get_monitoring_channels(self, X, Y = None):
-
+    def get_monitoring_channels(self, data):
+        space, source = self.get_monitoring_data_specs()
+        space.validate(data)
+        X = data
         history = self.mf(X, return_history = True)
         q = history[-1]
 
@@ -608,8 +644,6 @@ class DBM(Model):
             ch = layer.get_monitoring_channels_from_state(state)
             for key in ch:
                 rval['mf_'+layer.layer_name+'_'+key]  = ch[key]
-
-
 
         if len(history) > 1:
             prev_q = history[-2]
@@ -639,13 +673,32 @@ class DBM(Model):
                 denom = np.cast[config.floatX](denom)
                 rval['mean_'+layer.layer_name+'_var_param_diff'] = sum_diff / denom
 
-
-
-
         return rval
+
+    def get_monitoring_data_specs(self):
+        """
+        Get the data_specs describing the data for get_monitoring_channel.
+
+        This implementation returns specification corresponding to unlabeled
+        inputs.
+        """
+        return (self.get_input_space(), self.get_input_source())
 
     def get_test_batch_size(self):
         return self.batch_size
+
+    def reconstruct(self, V):
+
+        H = self.mf(V)[0]
+
+        downward_state = self.hidden_layers[0].downward_state(H)
+
+        recons = self.visible_layer.inpaint_update(
+                layer_above = self.hidden_layers[0],
+                state_above = downward_state,
+                drop_mask = None, V = None)
+
+        return recons
 
 
 class Layer(Model):
@@ -735,6 +788,15 @@ class Layer(Model):
         raise NotImplementedError("%s doesn't implement make_state" %
                 type(self))
 
+    def make_symbolic_state(self, num_examples, theano_rng):
+        """
+        Returns a theano symbolic variable containing an actual state (not a
+        mean field state) for this variable.
+        """
+
+        raise NotImplementedError("%s doesn't implement make_symbolic_state" %
+                                  type(self))
+
     def sample(self, state_below = None, state_above = None,
             layer_above = None,
             theano_rng = None):
@@ -774,11 +836,14 @@ class Layer(Model):
                 -involve this layer only
                 -if there is a layer below, include terms that
                  involve both this layer and the layer below
+
             Do not include terms that involve the layer below only.
             Do not include any terms that involve the layer above, if it
             exists, in any way (the interface doesn't let you see the layer
             above anyway).
 
+            Parameters
+            ----------
             state_below: the upward state of the layer below.
             state: the total state of this layer
 
@@ -950,6 +1015,17 @@ class BinaryVector(VisibleLayer):
 
         return rval
 
+    def mf_update(self, state_above, layer_above):
+        msg = layer_above.downward_message(state_above)
+        mu = self.bias
+
+        z = msg + mu
+
+        rval = T.nnet.sigmoid(z)
+
+        return rval
+
+
     def make_state(self, num_examples, numpy_rng):
         if not hasattr(self, 'copies'):
             self.copies = 1
@@ -960,6 +1036,16 @@ class BinaryVector(VisibleLayer):
         sample = driver < mean
 
         rval = sharedX(sample, name = 'v_sample_shared')
+
+        return rval
+
+    def make_symbolic_state(self, num_examples, theano_rng):
+        if not hasattr(self, 'copies'):
+            self.copies = 1
+        if self.copies != 1:
+            raise NotImplementedError()
+        mean = T.nnet.sigmoid(self.bias)
+        rval = theano_rng.binomial(size=(num_examples, self.nvis), p=mean)
 
         return rval
 
@@ -1517,6 +1603,28 @@ class BinaryVectorMaxPool(HiddenLayer):
 
         return p_state, h_state
 
+    def make_symbolic_state(self, num_examples, theano_rng):
+        """
+        Returns a theano symbolic variable containing an actual state
+        (not a mean field state) for this variable.
+        """
+
+        if not hasattr(self, 'copies'):
+            self.copies = 1
+
+        if self.copies != 1:
+            raise NotImplementedError()
+
+        default_z = T.zeros_like(self.h_space.make_theano_batch()) + self.b
+
+        p_exp, h_exp, p_sample, h_sample = max_pool_channels(z=default_z,
+                                                             pool_size=self.pool_size,
+                                                             theano_rng=theano_rng)
+
+        assert h_sample.dtype == default_z.dtype
+
+        return p_sample, h_sample
+
     def expected_energy_term(self, state, average, state_below, average_below):
 
         # Don't need to do anything special for centering, upward_state / downward state
@@ -1615,7 +1723,7 @@ class BinaryVectorMaxPool(HiddenLayer):
 class Softmax(HiddenLayer):
 
     def __init__(self, n_classes, layer_name, irange = None,
-                 sparse_init = None, W_lr_scale = None,
+                 sparse_init = None, sparse_istdev = 1., W_lr_scale = None,
                  b_lr_scale = None,
                  max_col_norm = None,
                  copies = 1, center = False):
@@ -1717,7 +1825,7 @@ class Softmax(HiddenLayer):
                     idx = rng.randint(0, self.input_dim)
                     while W[idx, i] != 0.:
                         idx = rng.randint(0, self.input_dim)
-                    W[idx, i] = rng.randn()
+                    W[idx, i] = rng.randn() * self.sparse_istdev
 
         self.W = sharedX(W,  'softmax_W' )
 
@@ -1897,7 +2005,7 @@ class Softmax(HiddenLayer):
 
         h_sample = theano_rng.multinomial(pvals = h_exp, dtype = h_exp.dtype)
 
-        p_state = sharedX( self.output_space.get_origin_batch(
+        h_state = sharedX( self.output_space.get_origin_batch(
             num_examples))
 
 
@@ -1921,6 +2029,23 @@ class Softmax(HiddenLayer):
         h_state.name = 'softmax_sample_shared'
 
         return h_state
+
+    def make_symbolic_state(self, num_examples, theano_rng):
+        """
+        Returns a symbolic variable containing an actual state
+        (not a mean field state) for this variable.
+        """
+
+        if self.copies != 1:
+            raise NotImplementedError("need to make self.copies samples and average them together.")
+
+        default_z = T.zeros_like(self.output_space.make_theano_batch()) + self.b
+
+        h_exp = T.nnet.softmax(default_z)
+
+        h_sample = theano_rng.multinomial(pvals=h_exp, dtype=h_exp.dtype)
+
+        return h_sample
 
     def get_weight_decay(self, coeff):
         if isinstance(coeff, str):
@@ -2128,6 +2253,98 @@ class WeightDoubling(InferenceProcedure):
             return history
         else:
             return H_hat
+
+
+class DBMSampler(Block):
+    """
+    A Block used to sample from the last layer of a DBM with one hidden layer.
+    """
+    def __init__(self, dbm):
+        super(DBMSampler, self).__init__()
+        self.theano_rng = MRG_RandomStreams(2012 + 10 + 14)
+        self.dbm = dbm
+        assert len(self.dbm.hidden_layers) == 1
+
+    def __call__(self, inputs):
+        space = self.dbm.get_input_space()
+        num_examples = space.batch_size(inputs)
+
+        last_layer = self.dbm.get_all_layers()[-1]
+        layer_to_chains = self.dbm.make_layer_to_symbolic_state(
+            num_examples, self.theano_rng)
+        # The examples are used to initialize the visible layer's chains
+        layer_to_chains[self.dbm.visible_layer] = inputs
+
+        layer_to_clamp = OrderedDict([(self.dbm.visible_layer, True)])
+        layer_to_chains = self.dbm.mcmc_steps(layer_to_chains, self.theano_rng,
+                                              layer_to_clamp=layer_to_clamp,
+                                              num_steps=1)
+
+        rval = layer_to_chains[last_layer]
+        rval = last_layer.upward_state(rval)
+
+        return rval
+
+
+def stitch_rbms(batch_size, rbm_list, niter, inference_procedure=None,
+                targets=False):
+    """
+    Returns a DBM initialized with pre-trained RBMs, with weights and biases
+    initialized according to R. Salakhutdinov's policy.
+
+    This method assumes the RBMs were trained normally. It divides the first
+    and last hidden layer's weights by two and initialized a hidden layer's
+    biases as the mean of its biases and the biases of the visible layer of the
+    RBM above it.
+    """
+    assert len(rbm_list) > 1
+
+    # For intermediary hidden layers, there are two set of biases to choose
+    # from: those from the hidden layer of the given RBM, and those from
+    # the visible layer of the RBM above it. As in R. Salakhutdinov's code,
+    # we handle this by computing the mean of those two sets of biases.
+    for this_rbm, above_rbm in zip(rbm_list[:-1], rbm_list[1:]):
+        hidden_layer = this_rbm.hidden_layers[0]
+        visible_layer = above_rbm.visible_layer
+        new_biases = 0.5 * (hidden_layer.get_biases() +
+                            visible_layer.get_biases())
+        hidden_layer.set_biases(new_biases)
+
+    visible_layer = rbm_list[0].visible_layer
+    visible_layer.dbm = None
+
+    hidden_layers = []
+
+    for rbm in rbm_list:
+        # Make sure all DBM have only one hidden layer, except for the last
+        # one, which can have an optional target layer
+        if rbm == rbm_list[-1]:
+            if targets:
+                assert len(rbm.hidden_layers) == 2
+            else:
+                assert len(rbm.hidden_layers) == 1
+        else:
+            assert len(rbm.hidden_layers) == 1
+
+        hidden_layers = hidden_layers + rbm.hidden_layers
+
+    for hidden_layer in hidden_layers:
+        hidden_layer.dbm = None
+
+    # Divide first and last hidden layer's weights by two, as described
+    # in R. Salakhutdinov's paper (equivalent to training with RBMs with
+    # doubled weights)
+    first_hidden_layer = hidden_layers[-1]
+    if targets:
+        last_hidden_layer = hidden_layers[-2]
+    else:
+        last_hidden_layer = hidden_layers[-1]
+    first_hidden_layer.set_weights(0.5 * first_hidden_layer.get_weights())
+    last_hidden_layer.set_weights(0.5 * last_hidden_layer.get_weights())
+
+    return DBM(batch_size, visible_layer, hidden_layers, niter,
+               inference_procedure)
+
 
 def flatten(l):
     """

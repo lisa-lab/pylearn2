@@ -12,7 +12,8 @@ This script also translates the data to lie in [-127.5, 127.5] instead of
 
 from pylearn2.datasets.stl10 import STL10
 from pylearn2.datasets.preprocessing import Downsample
-from pylearn2.utils import string, serial
+from pylearn2.utils import string_utils as string
+from pylearn2.utils import serial
 import numpy as np
 
 print 'Preparing output directory...'

@@ -1,8 +1,52 @@
+"""Tests for space utilities."""
 import numpy as np
 
+import theano
+from theano import config
+from theano import tensor
+from theano.sandbox.cuda import CudaNdarrayType
+
 from pylearn2.space import Conv2DSpace
+from pylearn2.space import CompositeSpace
 from pylearn2.space import VectorSpace
+from pylearn2.space import Space
 from pylearn2.utils import function
+
+
+def test_np_format_as_vector2conv2D():
+    vector_space = VectorSpace(dim=8*8*3, sparse=False)
+    conv2d_space = Conv2DSpace(shape=(8,8), num_channels=3,
+                               axes=('b','c',0,1))
+    data = np.arange(5*8*8*3).reshape(5, 8*8*3)
+    rval = vector_space.np_format_as(data, conv2d_space)
+    assert np.all(rval == data.reshape((5,3,8,8)))
+
+
+def test_np_format_as_conv2D2vector():
+    vector_space = VectorSpace(dim=8*8*3, sparse=False)
+    conv2d_space = Conv2DSpace(shape=(8,8), num_channels=3,
+                               axes=('b','c',0,1))
+    data = np.arange(5*8*8*3).reshape(5, 3, 8,8)
+    rval = conv2d_space.np_format_as(data, vector_space)
+    assert np.all(rval == data.reshape((5,3*8*8)))
+
+    vector_space = VectorSpace(dim=8*8*3, sparse=False)
+    conv2d_space = Conv2DSpace(shape=(8,8), num_channels=3,
+                               axes=('c','b',0,1))
+    data = np.arange(5*8*8*3).reshape(3, 5, 8,8)
+    rval = conv2d_space.np_format_as(data, vector_space)
+    assert np.all(rval == data.transpose(1,0,2,3).reshape((5,3*8*8)))
+
+
+def test_np_format_as_conv2D2conv2D():
+    conv2d_space1 = Conv2DSpace(shape=(8,8), num_channels=3,
+                               axes=('c','b',1,0))
+    conv2d_space0 = Conv2DSpace(shape=(8,8), num_channels=3,
+                               axes=('b','c',0,1))
+    data = np.arange(5*8*8*3).reshape(5, 3, 8,8)
+    rval = conv2d_space0.np_format_as(data, conv2d_space1)
+    nval = data.transpose(1,0,3,2)
+    assert np.all(rval ==nval )
 
 
 def test_vector_to_conv_c01b_invertible():
@@ -38,6 +82,16 @@ def test_vector_to_conv_c01b_invertible():
 
     Z, C = f(X,A)
 
-    assert np.allclose(Z, X)
-    assert np.allclose(C, A)
+    np.testing.assert_allclose(Z, X)
+    np.testing.assert_allclose(C, A)
 
+
+def test_broadcastable():
+    v = VectorSpace(5).make_theano_batch(batch_size=1)
+    np.testing.assert_(v.broadcastable[0])
+    c = Conv2DSpace((5, 5), channels=3,
+                    axes=['c', 0, 1, 'b']).make_theano_batch(batch_size=1)
+    np.testing.assert_(c.broadcastable[-1])
+    d = Conv2DSpace((5, 5), channels=3,
+                    axes=['b', 0, 1, 'c']).make_theano_batch(batch_size=1)
+    np.testing.assert_(d.broadcastable[0])

@@ -4,33 +4,59 @@
 ## Use language: c to avoid being trapped in a virtualenv,
 # so we can use "apt-get" (instead of "pip" )to install scipy,
 # as pip takes much too long.
-language: c
+#language: c
 
-#language: python
-#python:
+language: python
+python:
 #Currently we use functools.cmp_to_key that is available only in python 2.7
-#  - "2.7"
-
+  - "2.6"
 
 # command to install dependencies
 before_install:
-  - sudo apt-get install -qq libatlas3gf-base libatlas-dev
-    python-numpy python-scipy python-pip python-nose python-yaml
-    pyflakes python-imaging python-tables cython
+#zlib1g-dev is needed to allow PIL to uncompress the dataset.
+  - sudo apt-get install -qq libatlas3gf-base libatlas-dev liblapack-dev gfortran zlib1g-dev
+    libhdf5-serial-dev
 
 # The "|| cat ..." part prints the error log if the pip command fails
 install:
-  - "sudo pip install -q git+git://git.assembla.com/jobman.git || cat /home/travis/.pip/pip.log"
-  - "sudo pip install -q --no-deps git+git://github.com/Theano/Theano.git || cat /home/travis/.pip/pip.log"
+#Make sure the pip version used is linked to the used python version
+  - "cat `which pip`"
+  - "which python"
+  - "python --version"
+# If we don't install numpy before SciPy, the SciPy installations fails.
+# We can't compile scipy 0.9 sparse stuff  with NumPy 1.5/1.5.1 due to a bug.
+  - "pip install -q numpy==1.6 --use-mirrors"
+# We support scipy 0.7.2, but it is not available on pypi anymore.
+# So we test with 0.9. Our internal buildbot have 0.7.2.
+# We install it later only for the PART that need it.
+  - "pip install -q nose==1.0.0 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "pip install -q PIL --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+#numexpr 2.0 need NumPy 1.6 or above. As we support NumPy 1.5,
+#we need an older numexpr version. numexpr is needed for pytables
+  - "pip install -q numexpr==1.4.2 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+#cython is needed by pylearn2/utils/setup.py
+  - "pip install -q cython --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "pip install -q tables==2.4.0 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "pip install -q pyyaml --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "pip install scipy==0.8 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "pip install argparse --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+#More recent version then the one in the os
+  - "pip install -q pyflakes --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+
+  - "pip install -q git+git://git.assembla.com/jobman.git || cat /home/travis/.pip/pip.log"
+  - "pip install -q --no-deps git+git://github.com/Theano/Theano.git || cat /home/travis/.pip/pip.log"
   - cd pylearn2/utils/
   # Change this once we have a unified setup file.
   - python setup.py build_ext --inplace
   - cd ../../
 
 # command to run tests
-#env:
-#  - PART="theano/tensor/nnet/ theano/tensor/signal/ theano/compile/ theano/gof/ theano/misc/ theano/scalar/ theano/tests/"
-#  - PART="theano/scan_module/ theano/sandbox theano/sparse"
+env:
+  - FLAGS=floatX=float64 PART="-e test_autoencoder.py -e test_dbm.py -e test_dense_binary_dbm.py -e test_dropout.py -e test_maxout.py -e test_mlp.py -e test_mnd.py -e test_rbm.py -e test_reflection_clip.py -e test_s3c_inference.py -e test_s3c_misc.py -e test_svm.py"
+  - FLAGS=floatX=float64 PART=pylearn2/models
+#Exclude file inside pylearn2/models, sadly I didn't found a better way.
+  - FLAGS=floatX=float32 PART="-e test_autoencoder.py -e test_dbm.py -e test_dense_binary_dbm.py -e test_dropout.py -e test_maxout.py -e test_mlp.py -e test_mnd.py -e test_rbm.py -e test_reflection_clip.py -e test_s3c_inference.py -e test_s3c_misc.py -e test_svm.py"
+  - FLAGS=floatX=float32 PART=pylearn2/models
 
 # Start testing
 script:
@@ -38,7 +64,11 @@ script:
 # is too big to download each time. If present run: python make_dataset.py
   - cd pylearn2/scripts/tutorials/grbm_smd/
   - wget http://www.iro.umontreal.ca/~lisa/datasets/cifar10_preprocessed_train.pkl
-  - cd ../../..
-  - export THEANO_FLAGS=warn.ignore_bug_before=all,on_opt_error=raise,on_shape_error=raise
+  - cd ../../../..
+  - export THEANO_FLAGS=$FLAGS,warn.ignore_bug_before=all,on_opt_error=raise,on_shape_error=raise
   - export TRAVIS=1
-  - theano-nose
+  - nosetests --help
+  - theano-nose $PART
+
+after_failure:
+  - cat /home/travis/.pip/pip.log

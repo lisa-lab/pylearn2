@@ -206,6 +206,10 @@ class RetinaEncodingBlock(object):
     def __init__(self, rings):
         self.rings = rings
 
+    def perform(self, V):
+        assert V.ndim == 4
+        return encode(V, self.rings)
+
     def apply(self, dataset, can_fit=False):
         topo_X = dataset.get_topological_view()
         fov_X = encode(topo_X, self.rings)
@@ -242,4 +246,4 @@ class RetinaCodingViewConverter(DefaultViewConverter):
         return self.design_mat_to_topo_view(X)
 
     def topo_view_to_design_mat(self, V):
-        return self.encoder.apply(V)
+        return self.encoder.perform(V)

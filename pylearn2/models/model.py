@@ -6,12 +6,15 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
-from collections import OrderedDict
+import warnings
 
+import numpy as np
+
+from theano.compat.python2x import OrderedDict
 from theano import tensor as T
 from theano import shared
-import numpy as np
-import warnings
+
+from pylearn2.space import NullSpace
 
 
 class Model(object):
@@ -77,25 +80,22 @@ class Model(object):
     def get_weights_view_shape(self):
         raise NotImplementedError(str(type(self))+" does not implement get_weights_view_shape (perhaps by design)")
 
-    def get_monitoring_channels(self, V, Y = None):
+    def get_monitoring_channels(self, data):
         """
         Get monitoring channels for this model.
 
         Parameters
         ----------
-        V : tensor_like, 2-dimensional
-            A batch of i.i.d. examples with examples indexed along the
-            first axis and features along the second. This is data on which
-            the monitoring quantities will be calculated (e.g., a validation
-            set).
-        Y : optional class labels. Usually I have been representing them as
-            a one-hot design matrix but we don't really have a standard yet.
+        data: tensor_like, or (possibly nested) tuple of tensor_likes,
+            as described by `self.get_monitoring_data_specs()`.
+            This is data on which the monitoring quantities will be
+            calculated (e.g., a validation set).
 
         Returns
         -------
         channels : dict
             A dictionary with strings as keys, mapping channel names to
-            symbolic values that depend on V.
+            symbolic values that depend on the variables in `data`.
 
         Notes
         -----
@@ -105,7 +105,20 @@ class Model(object):
         probably want to control which channels get added with some config
         option for your model.
         """
+        space, source = self.get_monitoring_data_specs()
+        space.validate(data)
         return OrderedDict()
+
+    def get_monitoring_data_specs(self):
+        """
+        Get the data_specs describing the data for get_monitoring_channels.
+
+        This implementation returns an empty data_specs, appropriate for
+        when no monitoring channels are defined, or when none of the channels
+        actually need data (for instance, if they only monitor functions
+        of the model's parameters).
+        """
+        return (NullSpace(), '')
 
     def set_batch_size(self, batch_size):
         pass
@@ -183,6 +196,18 @@ class Model(object):
         (this is a generalization of get_output_dim) """
 
         return self.output_space
+
+    def get_input_source(self):
+        """ Returns a string, stating the source for the input. By default
+        the input source (when is the only one) is called 'features'
+        """
+        return 'features'
+
+    def get_target_source(self):
+        """ Returns a string, stating the source for the output. By default
+        the output source (when is the only one) is called 'targets'
+        """
+        return 'targets'
 
     def free_energy(self, V):
         """

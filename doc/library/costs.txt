@@ -1,0 +1,18 @@
+=====
+Costs
+=====
+
+Basic
+=====
+.. automodule:: pylearn2.costs.cost
+    :members:
+
+Auto Encoder
+============
+.. automodule:: pylearn2.costs.autoencoder
+    :members:
+
+DBM
+============
+.. automodule:: pylearn2.costs.dbm
+    :members:

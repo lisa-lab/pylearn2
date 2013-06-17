@@ -13,7 +13,10 @@ from pylearn2.utils import serial
 import logging
 import warnings
 from pylearn2.monitor import Monitor
+from pylearn2.space import NullSpace
 from pylearn2.utils.timing import log_timing
+from pylearn2.utils import sharedX
+import theano.tensor as T
 
 
 log = logging.getLogger(__name__)
@@ -83,6 +86,9 @@ class Train(object):
             warnings.warn("dataset has no yaml src, model won't know what data it was trained on")
 
         self.extensions = extensions if extensions is not None else []
+        self.monitor_time = sharedX(value=0,name='seconds_per_epoch')
+
+    def setup_extensions(self):
         for ext in self.extensions:
             ext.setup(self.model, self.dataset, self.algorithm)
 
@@ -93,6 +99,7 @@ class Train(object):
         """
         if self.algorithm is None:
             self.model.monitor = Monitor.get_monitor(self.model)
+            self.setup_extensions()
             self.run_callbacks_and_monitoring()
             while True:
                 rval = self.model.train_all(dataset=self.dataset)
@@ -107,15 +114,25 @@ class Train(object):
                     break
         else:
             self.algorithm.setup(model=self.model, dataset=self.dataset)
+            self.setup_extensions()
             if not hasattr(self.model, 'monitor'):
                 # TODO: is this really necessary? I just put this error here
                 # to prevent an AttributeError later, but I think we could
                 # rewrite to avoid the AttributeError
                 raise RuntimeError("The algorithm is responsible for setting"
                         " up the Monitor, but failed to.")
+            if len(self.model.monitor._datasets)>0:
+                # This monitoring channel keeps track of a shared variable,
+                # which does not need inputs nor data.
+                self.model.monitor.add_channel(name="monitor_seconds_per_epoch",
+                                               ipt=None,
+                                               val=self.monitor_time,
+                                               data_specs=(NullSpace(), ''),
+                                               dataset=self.model.monitor._datasets[0])
             self.run_callbacks_and_monitoring()
             while True:
-                with log_timing(log, None, final_msg='Time this epoch:'):
+                with log_timing(log, None, final_msg='Time this epoch:',
+                                callbacks=[self.monitor_time.set_value]):
                     rval = self.algorithm.train(dataset=self.dataset)
                 if rval is not None:
                     raise ValueError("TrainingAlgorithm.train should not return anything. Use TrainingAlgorithm.continue_learning to control whether learning continues.")

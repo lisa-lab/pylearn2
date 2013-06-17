@@ -24,11 +24,11 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
-from collections import OrderedDict
-import numpy as np
 import warnings
 
+import numpy as np
 from theano import config
+from theano.compat.python2x import OrderedDict
 from theano.gof.op import get_debug_values
 from theano.sandbox import cuda
 from theano import tensor as T
@@ -45,6 +45,7 @@ if cuda.cuda_available:
     from pylearn2.sandbox.cuda_convnet.pool import max_pool_c01b
 from pylearn2.linear import local_c01b
 from pylearn2.sandbox.cuda_convnet import check_cuda
+
 
 class Maxout(Layer):
     """

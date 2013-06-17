@@ -177,7 +177,23 @@ class Identity(Block):
     A Block that computes the identity transformation. Mostly useful as a
     placeholder.
     """
+    def __init__(self, input_space=None):
+        super(Identity, self).__init__()
+        self.input_space = input_space
 
     def __call__(self, inputs):
+        if self.input_space:
+            self.input_space.validate(inputs)
         return inputs
 
+    def set_input_space(self, space):
+        self.input_space = space
+
+    def get_input_space(self):
+        if self.input_space is not None:
+            return self.input_space
+        raise ValueError("No input space was specified for this Block (%s). "
+                "You can call set_input_space to correct that." % str(self))
+
+    def get_output_space(self):
+        return self.get_input_space()

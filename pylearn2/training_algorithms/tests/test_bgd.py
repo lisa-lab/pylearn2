@@ -1,7 +1,7 @@
 from pylearn2.train import Train
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.models.model import Model
-from pylearn2.space import VectorSpace
+from pylearn2.space import CompositeSpace, VectorSpace
 from pylearn2.utils import sharedX
 from pylearn2.training_algorithms.bgd import BGD
 from pylearn2.termination_criteria import EpochCounter
@@ -14,6 +14,7 @@ from pylearn2.devtools.record import RecordMode
 from theano.tests import disturb_mem
 from pylearn2.utils import safe_union
 from pylearn2.utils import safe_izip
+from pylearn2.utils.data_specs import DataSpecsMapping
 from theano import shared
 from pylearn2.utils import function
 from pylearn2.costs.cost import FixedVarDescr
@@ -86,8 +87,13 @@ def test_bgd_unsup():
 
     class DummyCost(Cost):
 
-        def __call__(self, model, X):
-            return T.square(model(X)-X).mean()
+        def expr(self, model, data):
+            self.get_data_specs(model)[0].validate(data)
+            X = data
+            return T.square(model(X) - X).mean()
+
+        def get_data_specs(self, model):
+            return (model.get_input_space(), model.get_input_source())
 
     cost = DummyCost()
 
@@ -175,7 +181,9 @@ def test_determinism():
 
             supervised = True
 
-            def __call__(self, model, X, Y=None, **kwargs):
+            def expr(self, model, data, **kwargs):
+                self.get_data_specs(model)[0].validate(data)
+                X, Y = data
                 disturb_mem.disturb_mem()
                 def mlp_pred(non_linearity):
                     Z = [T.dot(X, W) for W in model.W1]
@@ -189,6 +197,12 @@ def test_determinism():
                 disturb_mem.disturb_mem()
 
                 return abs(pred-Y[:,0]).sum()
+
+            def get_data_specs(self, model):
+                data = CompositeSpace((model.get_input_space(),
+                                       model.get_output_space()))
+                source = (model.get_input_source(), model.get_target_source())
+                return (data, source)
 
         cost = LotsOfSummingCost()
 
@@ -271,26 +285,46 @@ def test_fixed_vars():
 
     class UnsupervisedCostWithFixedVars(Cost):
 
-        def __call__(self, model, X, Y=None, unsup_aux_var=None, **kwargs):
+        def expr(self, model, data, unsup_aux_var=None, **kwargs):
+            self.get_data_specs(model)[0].validate(data)
+            X = data
             assert unsup_aux_var is unsup_counter
             called[0] = True
             return (model.P * X).sum()
 
-        def get_gradients(self, model, X, Y=None, unsup_aux_var=None, **kwargs):
+        def get_gradients(self, model, data, unsup_aux_var=None, **kwargs):
+            self.get_data_specs(model)[0].validate(data)
             assert unsup_aux_var is unsup_counter
             called[1] = True
-            gradients, updates = Cost.get_gradients(self, model, X, Y, unsup_aux_var=unsup_aux_var)
+            gradients, updates = Cost.get_gradients(self, model, data, unsup_aux_var=unsup_aux_var)
             updates[grad_counter] = grad_counter + 1
             return gradients, updates
 
-        def get_fixed_var_descr(self, model, X, Y, **kwargs):
+        def get_fixed_var_descr(self, model, data, **kwargs):
+            data_specs = self.get_data_specs(model)
+            data_specs[0].validate(data)
             rval = FixedVarDescr()
             rval.fixed_vars = {'unsup_aux_var': unsup_counter}
-            Y=T.matrix()
-            theano_func = function([X, Y], updates=[(unsup_counter, unsup_counter + 1)])
-            rval.on_load_batch = [theano_func]
+            rval.data_specs = data_specs
+
+            # The input to function should be a flat, non-redundent tuple
+            mapping = DataSpecsMapping(data_specs)
+            data_tuple = mapping.flatten(data, return_tuple=True)
+            theano_func = function(data_tuple,
+                    updates=[(unsup_counter, unsup_counter + 1)])
+            # the on_load_batch function will take numerical data formatted
+            # as rval.data_specs, so we have to flatten it inside the
+            # returned function too.
+            # Using default argument binds the variables used in the lambda
+            # function to the value they have when the lambda is defined.
+            on_load = (lambda batch, mapping=mapping, theano_func=theano_func:
+                    theano_func(*mapping.flatten(batch, return_tuple=True)))
+            rval.on_load_batch = [on_load]
 
             return rval
+
+        def get_data_specs(self, model):
+            return (model.get_input_space(), model.get_input_source())
 
     sup_counter = shared(0)
 
@@ -298,25 +332,54 @@ def test_fixed_vars():
 
         supervised = True
 
-        def __call__(self, model, X, Y=None, sup_aux_var=None, **kwargs):
+        def expr(self, model, data, sup_aux_var=None, **kwargs):
+            self.get_data_specs(model)[0].validate(data)
+            X, Y = data
             assert sup_aux_var is sup_counter
             called[2] = True
-            return (model.P * X* Y ).sum()
+            return (model.P * X * Y).sum()
 
-        def get_gradients(self, model, X, Y=None, sup_aux_var=None, **kwargs):
+        def get_gradients(self, model, data, sup_aux_var=None, **kwargs):
+            self.get_data_specs(model)[0].validate(data)
             assert sup_aux_var is sup_counter
             called[3] = True
-            return super(SupervisedCostWithFixedVars, self).get_gradients(model=model, X=X, Y=Y, sup_aux_var=sup_aux_var)
+            return super(SupervisedCostWithFixedVars, self).get_gradients(
+                    model=model, data=data, sup_aux_var=sup_aux_var)
 
-        def get_fixed_var_descr(self, model, X, Y=None):
+        def get_fixed_var_descr(self, model, data):
+            data_specs = self.get_data_specs(model)
+            data_specs[0].validate(data)
             rval = FixedVarDescr()
             rval.fixed_vars = {'sup_aux_var': sup_counter}
-            rval.on_load_batch = [ function([X, Y], updates=[(sup_counter, sup_counter+1)])]
+            rval.data_specs = data_specs
+
+            # data has to be flattened into a tuple before being passed
+            # to `function`.
+            mapping = DataSpecsMapping(data_specs)
+            flat_data = mapping.flatten(data, return_tuple=True)
+            theano_func = function(flat_data,
+                                 updates=[(sup_counter, sup_counter + 1)])
+            # the on_load_batch function will take numerical data formatted
+            # as rval.data_specs, so we have to flatten it inside the
+            # returned function too.
+            # Using default argument binds the variables used in the lambda
+            # function to the value they have when the lambda is defined.
+            on_load = (lambda batch, mapping=mapping, theano_func=theano_func:
+                    theano_func(*mapping.flatten(batch, return_tuple=True)))
+            rval.on_load_batch = [on_load]
             return rval
 
-    cost = SumOfCosts(costs=[UnsupervisedCostWithFixedVars(), SupervisedCostWithFixedVars()])
+        def get_data_specs(self, model):
+            space = CompositeSpace((model.get_input_space(),
+                                   model.get_output_space()))
+            source = (model.get_input_source(), model.get_target_source())
+            return (space, source)
 
-    algorithm = BGD(cost=cost, batch_size=batch_size, conjugate=1, line_search_mode='exhaustive',
+    cost = SumOfCosts(costs=[UnsupervisedCostWithFixedVars(),
+                             SupervisedCostWithFixedVars()])
+
+    algorithm = BGD(cost=cost, batch_size=batch_size,
+            conjugate=1, line_search_mode='exhaustive',
             updates_per_batch=updates_per_batch)
 
     algorithm.setup(model=model, dataset=train)
@@ -332,5 +395,3 @@ def test_fixed_vars():
 
     # Make sure the gradient updates were run the right amount of times
     assert grad_counter.get_value() == train_batches * updates_per_batch
-
-

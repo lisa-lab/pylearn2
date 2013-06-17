@@ -72,8 +72,11 @@ while len(clean) > 0:
             bad_channel.append(channel)
             continue
 
-        if not (channel_0.batch_record[record] ==
-                channel_1.batch_record[record]):
+        ch0 = channel_0.batch_record[record]
+        ch1 = channel_1.batch_record[record]
+        eq = ch0 == ch1
+        both_nan = np.isnan(ch0) and np.isnan(ch1)
+        if not (eq or both_nan):
             print channel+'.batch_record differs at record entry',record
             print '\t',channel_0.batch_record[record], 'vs', channel_1.batch_record[record]
             bad_channel.append(channel)
@@ -93,14 +96,19 @@ while len(clean) > 0:
             bad_channel.append(channel)
             continue
 
-        if cmp_mode == 'equal':
-            match = np.all(channel_0.val_record[record] ==
-                    channel_1.val_record[record])
-        elif cmp_mode == 'allclose':
-            match = np.allclose(channel_0.val_record[record],
-                channel_1.val_record[record])
+        ch0 = channel_0.val_record[record]
+        ch1 = channel_1.val_record[record]
+        both_nan = np.isnan(ch0) and np.isnan(ch1)
+        if both_nan:
+            match = True
         else:
-            assert False # unrecognized cmp_mode
+            if cmp_mode == 'equal':
+                match = ch0 == ch1
+            elif cmp_mode == 'allclose':
+                match = np.allclose(channel_0.val_record[record],
+                    channel_1.val_record[record])
+            else:
+                assert False # unrecognized cmp_mode
 
         if not match:
             print channel+'.val_record differs at record entry',record
