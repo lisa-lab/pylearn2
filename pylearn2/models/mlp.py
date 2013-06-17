@@ -264,12 +264,11 @@ class MLP(Layer):
 
         self.freeze_set = self.freeze_set.union(parameter_set)
 
-    def get_monitoring_channels(self, X=None, Y=None):
+    def get_monitoring_channels(self, data):
         """
-        Note: X and Y may both be None, in the case when this is
-              a layer of a bigger MLP.
+        data is a flat tuple, and can contain features, targets, or both
         """
-
+        X, Y = data
         state = X
         rval = OrderedDict()
 
@@ -289,6 +288,16 @@ class MLP(Layer):
 
         return rval
 
+    def get_monitoring_data_specs(self):
+        """
+        Return the (space, source) data_specs for self.get_monitoring_channels.
+
+        In this case, we want the inputs and targets.
+        """
+        space = CompositeSpace((self.get_input_space(),
+                                self.get_output_space()))
+        source = (self.get_input_source(), self.get_target_source())
+        return (space, source)
 
     def get_params(self):
 
@@ -590,14 +599,28 @@ class MLP(Layer):
     def cost_from_cost_matrix(self, cost_matrix):
         return self.layers[-1].cost_from_cost_matrix(cost_matrix)
 
-    def cost_from_X(self, X, Y):
+    def cost_from_X(self, data):
         """
-        Computes self.cost, but takes X rather than Y_hat as an argument.
+        Computes self.cost, but takes data=(X, Y) rather than Y_hat as an argument.
         This is just a wrapper around self.cost that computes Y_hat by
         calling Y_hat = self.fprop(X)
         """
+        self.cost_from_X_data_specs()[0].validate(data)
+        X, Y = data
         Y_hat = self.fprop(X)
         return self.cost(Y, Y_hat)
+
+    def cost_from_X_data_specs(self):
+        """
+        Returns the data specs needed by cost_from_X.
+
+        This is useful if cost_from_X is used in a MethodCost.
+        """
+        space = CompositeSpace((self.get_input_space(),
+                                self.get_output_space()))
+        source = (self.get_input_source(), self.get_target_source())
+        return (space, source)
+
 
 class Softmax(Layer):
 

@@ -11,6 +11,13 @@ if [ "$1" == "--buildbot" ]; then
     FLAGS=compiledir=$COMPILEDIR
     cd ${ROOT_CWD}/Pylearn2
     git rev-parse HEAD
+    cd pylearn2/utils
+    python setup.py build_ext --inplace
+    cd ../..
+    cd pylearn2/scripts/tutorials/grbm_smd/
+    wget -c http://www.iro.umontreal.ca/~lisa/datasets/cifar10_preprocessed_train.pkl
+    cd ../../../..
+
     cd ..
     ARGS="Pylearn2"
     PROFILING="--with-coverage --cover-package=theano"
