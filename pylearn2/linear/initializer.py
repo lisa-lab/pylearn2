@@ -151,7 +151,7 @@ class Sparse(Initializer):
 class Instance(Initializer):
     """
     Initializes weights and biases using (possibly pretrained) 
-    instances
+    instances.
     """
     def __init__(self, weights, biases, mask_weights = 1):
         """
@@ -161,6 +161,10 @@ class Instance(Initializer):
             weights are initialized with this weight matrix
         bias: vector
             biases are initialized with this weight matrix
+        mask_weights: matrix
+            a matrix where the position of non-zero values indicate to
+            the initializer that the commesurate position in the weight 
+            matrix cannot be initialized with a non-zero value.
         """
         self.weights = weights
         self.biases = biases
@@ -175,6 +179,21 @@ class Instance(Initializer):
         return self.biases
       
 if __name__ == '__main__':
+    """
+    The first step is to demonstrate the potential application of 
+    weight, bias and mask initializer objects in Layers. Below, we 
+    provide an example re-implementation of the Linear layer which 
+    we initialize with all 4 kinds of Initiliazers, plus another that 
+    tests the mask_weights constructor parameter.
+    
+    The second step (not included in this pull request), will be 
+    to modify all non-conv Layer sublcasses to make use of these 
+    initializers.
+    
+    The third step (not included in this pull request), will be to 
+    add convolutional initializer (functions or distinct classes?) and
+    to modify all conv Layer subclasses to make use of them.
+    """
     from pylearn2.models.mlp import Layer
     from pylearn2.space import Conv2DSpace,Space,VectorSpace
     from pylearn2.utils import function
@@ -187,6 +206,10 @@ if __name__ == '__main__':
         """
         An example implementation of layer Linear using the new 
         weight initiliazation interface.
+    
+        In order to make parameter names uniform accross Layer 
+        subclasses, we have opted to use sharedX matrices directly, i.e.
+        instead of pylearn2.linear.matrixmul.MatrixMul. 
         """
 
         def __init__(self,
@@ -420,7 +443,7 @@ if __name__ == '__main__':
         def cost_matrix(self, Y, Y_hat):
             return T.sqr(Y - Y_hat)
             
-    """ Tests """
+    """ Test intializers on a deep linear mlp for the Iris dataset """
     initializers = [Uniform(init_range = 0.5), 
                     Normal(stdev = 0.05),
                     Sparse(), 
