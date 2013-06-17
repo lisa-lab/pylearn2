@@ -369,8 +369,8 @@ class ExamplewiseUnitNormBlock(Block):
     def get_input_space(self):
         if self.input_space is not None:
             return self.input_space
-        raise ValueError("No input space was specified for this Block. "
-                "You can call set_input_space to correct that.")
+        raise ValueError("No input space was specified for this Block (%s). "
+                "You can call set_input_space to correct that." % str(self))
 
     def get_output_space(self):
         return self.get_input_space()
@@ -460,8 +460,8 @@ class ExamplewiseAddScaleTransform(Block):
     def get_input_space(self):
         if self.input_space is not None:
             return self.input_space
-        raise ValueError("No input space was specified for this Block. "
-                "You can call set_input_space to correct that.")
+        raise ValueError("No input space was specified for this Block (%s). "
+                "You can call set_input_space to correct that." % str(self))
 
     def get_output_space(self):
         return self.get_input_space()
