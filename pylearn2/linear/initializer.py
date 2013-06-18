@@ -9,15 +9,26 @@ __maintainer__ = "Nicholas Leonard"
 
 import numpy as np
 
-class Initializer:
+class Initializer(object):
     """
     An semi-abstract class to initialize weight matrices 
     and bias vectors
     """
-    def __init__(self, mask_weights = 1):
+    def __init__(self, mask_weights = 1, biases = 0):
+        """
+        Parameters
+        ----------
+        mask_weights: matrix
+            a matrix where the position of non-zero values indicate to
+            the initializer that the commesurate position in the weight 
+            matrix cannot be initialized with a non-zero value.
+        biases: float or ndarray
+            biases are initialized to this value (default 0)
+        """
         if mask_weights is None:
             mask_weights = 1
         self.mask_weights = mask_weights 
+        self.biases = biases
         
     def get_weights(self, rng, shape):
         """
@@ -31,7 +42,8 @@ class Initializer:
         Should return an initialized bias tensor of shape shape[-1].
         Default is to return np.zeros(shape)
         """
-        return np.zeros((shape[-1],), dtype=theano.config.floatX)
+        return np.zeros((shape[-1],), dtype=theano.config.floatX) \
+                    + self.biases
         
     def check_mask(self, shape):
         if self.mask_weights is not None \
@@ -51,13 +63,16 @@ class Initializer:
     
 class Uniform(Initializer):
     """Initializes weights using a uniform distribution."""
-    def __init__(self, init_range, include_prob=1., mask_weights=1):
+    def __init__(self, init_range, include_prob=1., mask_weights=1, 
+                 biases = 0):
         """
         Parameters
         ----------
-        init_range: float
+        init_range: float or tuple of floats
             weights are initialized from a uniform distribution
-            between -init_range and +init_range.
+            between -init_range and +init_range in the case of a float
+            or between init_range[0] and init_range[1] in the case of 
+            a tuple.
         include_prob: float
             probability of including a weight in the matrix. If a 
             weight isn't included, it is initialized to zero.
@@ -65,47 +80,58 @@ class Uniform(Initializer):
             a matrix where the position of non-zero values indicate to
             the initializer that the commesurate position in the weight 
             matrix cannot be initialized with a non-zero value.
+        biases: float or ndarray
+            biases are initialized to this value (default 0)
         """
+        if isinstance(init_range, float):
+            init_range = (-init_range, init_range)
         self.init_range = init_range
         self.include_prob = include_prob
-        Initializer.__init__(self, mask_weights)
+        super(Uniform, self).__init__(mask_weights, biases)
         
     def get_weights(self, rng, shape):
         # a matrix of 0 and 1s to determine which weights to zero:
         inclusion_matrix = rng.uniform(0., 1., shape) \
                               < self.include_prob
-        W = rng.uniform(-self.init_range, self.init_range, shape) \
+        W = rng.uniform(self.init_range[0], self.init_range[1], shape) \
                               * inclusion_matrix 
         self.check_mask(shape)
         return W
                                
 class Normal(Initializer):
     """Initializes weights using a normal distribution. """
-    def __init__(self, stdev, mask_weights = 1):
+    def __init__(self, stdev, mean = 0., mask_weights = 1, biases = 0):
         """
         Parameters
         ----------
         stdev: float
             weights are initialized from a normal distribution 
-            having standard deviation and mean 0.
+            having standard deviation stdev
+        mean:
+            mean of the normal distribution from which to sample 
+            initial weight values.
         mask_weights: matrix
             a matrix where the position of non-zero values indicate to
             the initializer that the commesurate position in the weight 
             matrix cannot be initialized with a non-zero value.
+        biases: float or ndarray
+            biases are initialized to this value (default 0)
         """
         self.stdev = stdev
-        Initializer.__init__(self, mask_weights)
+        self.mean = mean
+        super(Normal, self).__init__(mask_weights, biases)
         
     def get_weights(self, rng, shape):
         self.check_mask(shape)
-        return rng.randn(*shape) * self.stdev
+        return (rng.randn(*shape) * self.stdev) + self.mean
 
 class Sparse(Initializer):
     """
     Initialize weights using a normal distribution while enforcing 
     weight matrix column sparsity.
     """
-    def __init__(self, sparse_init = 15, stdev = 1.0, mask_weights = 1):
+    def __init__(self, sparse_init = 15, stdev = 1.0, mask_weights = 1,
+                 biases = 0):
         """
         Parameters
         ----------
@@ -120,10 +146,12 @@ class Sparse(Initializer):
             a matrix where the position of non-zero values indicate to
             the initializer that the commesurate position in the weight 
             matrix cannot be initialized with a non-zero value.
+        biases: float or ndarray
+            biases are initialized to this value (default 0)
         """
         self.stdev = stdev
         self.sparse_init = sparse_init
-        Initializer.__init__(self, mask_weights)
+        super(Sparse, self).__init__(mask_weights, biases)
         
     def get_weights(self, rng, shape):
         input_dim, output_dim = shape
@@ -153,30 +181,25 @@ class Instance(Initializer):
     Initializes weights and biases using (possibly pretrained) 
     instances.
     """
-    def __init__(self, weights, biases, mask_weights = 1):
+    def __init__(self, weights, mask_weights = 1, biases = 0):
         """
         Parameters
         ----------
         weights: matrix
             weights are initialized with this weight matrix
-        bias: vector
-            biases are initialized with this weight matrix
         mask_weights: matrix
             a matrix where the position of non-zero values indicate to
             the initializer that the commesurate position in the weight 
             matrix cannot be initialized with a non-zero value.
+        biases: float or ndarray
+            biases are initialized to this value (default 0)
         """
         self.weights = weights
-        self.biases = biases
-        Initializer.__init__(self, mask_weights)
+        super(Instance, self).__init__(mask_weights, biases)
         
     def get_weights(self, rng, shape):
         assert self.weights.shape == shape
         return self.weights
-    
-    def get_biases(self, rng, shape):
-        assert self.biases.shape == (shape[-1],)
-        return self.biases
       
 if __name__ == '__main__':
     """
@@ -445,7 +468,7 @@ if __name__ == '__main__':
             
     """ Test intializers on a deep linear mlp for the Iris dataset """
     initializers = [Uniform(init_range = 0.5), 
-                    Normal(stdev = 0.05),
+                    Normal(stdev = 0.05, biases = np.random.randn(20)),
                     Sparse(), 
                     Instance(np.random.randn(5,3),np.zeros(3)),
                     Uniform(init_range = 0.,
