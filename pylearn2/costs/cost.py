@@ -389,38 +389,38 @@ class ScaledCost(Cost):
         return self.cost.get_data_specs(model)
 
 
-class LxReg(Cost):
+class LpNorm(Cost):
     """
-    L-x regularization term for the list of tensor variables provided.
+    Regularization term on the L-p norm of the tensor variables provided.
     """
-    def __init__(self, variables, x):
+    def __init__(self, variables, p):
         """
-        Initialize LxReg with the variables and scaling provided.
+        Initialize LpNorm with the variables and scaling provided.
 
         Parameters:
         -----------
         variables: list
             list of tensor variables to be regularized
-        x: int
+        p: int
             the x in "L-x regularization""
         """
         self.variables = variables
-        self.x = x
+        self.p = p
 
-    def expr(self, model=None, data=None):
+    def expr(self, model, data, **kwargs):
         """
-        Return the scaled L-x regularization term. The optional parameters are
-        never used, they're there only to provide an interface consistent with
-        both SupervisedCost and UnsupervisedCost.
+        Return the L-p norm term. The optional parameters are never used;
+        they're only there to provide an interface that's consistent with
+        the Cost superclass.
         """
         # This Cost does not depend on any data, and get_data_specs does not
         # ask for any data, so we should not be provided with some.
         self.get_data_specs(model)[0].validate(data)
 
-        Lx = 0
+        norm = 0
         for var in self.variables:
-            Lx = Lx + abs(var ** self.x).sum()
-        return Lx
+            norm = norm + abs(var ** self.p).sum()
+        return norm
 
     def get_data_specs(self, model):
         # This cost does not use any data
