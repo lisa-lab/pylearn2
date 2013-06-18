@@ -593,7 +593,8 @@ class TorontoSparsity(Cost):
 
             params = list(layer.get_params())
             fake_grads = T.grad(cost=None, consider_constant=flatten(state_below),
-                    wrt=params, known_grads = real_grads)
+                    wrt=params, known_grads = real_grads,
+                    disconnected_inputs='ignore')
 
             for param, grad in safe_zip(params, fake_grads):
                 if param in grads:

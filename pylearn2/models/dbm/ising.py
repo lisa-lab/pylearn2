@@ -667,7 +667,7 @@ class BoltzmannIsingVisible(VisibleLayer):
         return rval
 
     def make_symbolic_state(self, num_examples, theano_rng):
-        mean = T.nnet.sigmoid(2. * self.ising_bias())
+        mean = T.nnet.sigmoid(2. * self.beta * self.ising_bias())
         rval = theano_rng.binomial(size=(num_examples, self.nvis), p=mean)
         rval = 2. * (rval) - 1.
 
@@ -1206,7 +1206,7 @@ class BoltzmannIsingHidden(HiddenLayer):
         return rval
 
     def make_symbolic_state(self, num_examples, theano_rng):
-        mean = T.nnet.sigmoid(2. * self.ising_b())
+        mean = T.nnet.sigmoid(2. * self.beta * self.ising_b())
         rval = theano_rng.binomial(size=(num_examples, self.nvis), p=mean)
         rval = 2. * (rval) - 1.
 
