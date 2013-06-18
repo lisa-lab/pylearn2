@@ -20,6 +20,7 @@ from theano.tensor.nnet.conv import conv2d
 from theano.tensor import as_tensor_variable
 from theano import function
 import warnings
+from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
 
 def test_match_grad_valid_conv():
 
@@ -27,7 +28,7 @@ def test_match_grad_valid_conv():
     # with respect to the weights.
 
     for partial_sum in [0, 1, 4]:
-        rng = np.random.RandomState([2012,10,9])
+        rng = rng_uniform()
 
         batch_size = 3
         rows = 7

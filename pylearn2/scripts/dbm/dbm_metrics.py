@@ -43,10 +43,11 @@ from theano.compat.python2x import OrderedDict
 import pylearn2
 from pylearn2.utils import serial
 from pylearn2 import utils
+from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
 
 floatX = theano.config.floatX
 logging.basicConfig(level=logging.INFO)
-rng = numpy.random.RandomState(9873242)
+rng = rng_ints()
 theano_rng = RandomStreams(rng.randint(2**30))
 
 

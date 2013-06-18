@@ -21,6 +21,7 @@ from pylearn2.utils import sharedX
 from pylearn2.space import CompositeSpace, NullSpace, Space
 from pylearn2.utils.data_specs import DataSpecsMapping
 from theano import config
+from pylearn2.utils.rng import  rng_randn, rng_ints, rng_uniform, rng_normal
 
 
 class BGD(TrainingAlgorithm):
@@ -71,7 +72,7 @@ class BGD(TrainingAlgorithm):
         self.termination_criterion = termination_criterion
         if seed is None:
             seed = [2012, 10, 16]
-        self.rng = np.random.RandomState(seed)
+        rng = rng_ints(default_seed = seed)
 
     def setup(self, model, dataset):
         """

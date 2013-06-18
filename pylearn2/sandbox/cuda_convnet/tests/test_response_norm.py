@@ -2,6 +2,7 @@ import numpy
 import theano
 from nose.plugins.skip import SkipTest
 from theano.tests.unittest_tools import verify_grad
+from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
 
 try:
     from pylearn2.sandbox.cuda_convnet.response_norm import (
@@ -23,7 +24,7 @@ def test_cross_map_norm_simple():
 
 
 def test_cross_map_norm_grad_simple():
-    rng = numpy.random.RandomState([2013, 02, 10])
+    rng = rng_normal()
     op = CrossMapNorm(16, 15/16., 1, True)
     make_graph = lambda inp: op(gpu_from_host(inp))[0]
     verify = lambda array: verify_grad(make_graph, [array])

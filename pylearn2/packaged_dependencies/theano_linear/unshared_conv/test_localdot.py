@@ -8,6 +8,7 @@ import theano
 from localdot import LocalDot
 
 from ..test_matrixmul import SymbolicSelfTestMixin
+from pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
 
 
 class TestLocalDot32x32(unittest.TestCase, SymbolicSelfTestMixin):
@@ -93,7 +94,7 @@ class TestLocalDotLargeGray(TestLocalDot32x32):
         vh = skdata.vanhateren.dataset.Calibrated(n_images)
         patches = vh.raw_patches((self.n_patches,) + self.imshp,
                                  items=vh.meta[:n_images],
-                                 rng=np.random.RandomState(123),
+                                 rng=rng_ints(),
                                 )
         patches = patches.astype('float32')
         patches /= patches.reshape(self.n_patches, self.imshp[0] * self.imshp[1])\

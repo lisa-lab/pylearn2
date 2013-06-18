@@ -23,6 +23,7 @@ from pylearn2.expr.nnet import inverse_sigmoid_numpy
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.space import VectorSpace
 from pylearn2.utils import safe_union
+from pylearn2.utils import *
 theano.config.warn.sum_div_dimshuffle_bug = False
 
 if 0:
@@ -95,8 +96,7 @@ class Sampler(object):
             RandomStreams object used in training.
         """
         self.__dict__.update(rbm=rbm)
-        if not hasattr(rng, 'randn'):
-            rng = numpy.random.RandomState(rng)
+        rng = rng_randn(rng)
         seed = int(rng.randint(2 ** 30))
         self.s_rng = RandomStreams(seed)
         self.particles = sharedX(particles, name='particles')

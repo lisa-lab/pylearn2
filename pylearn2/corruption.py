@@ -10,7 +10,8 @@ T = tensor
 from theano.printing import Print
 # Shortcuts
 theano.config.warn.sum_div_dimshuffle_bug = False
-from  pylearn2.utils.rng import *
+from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+
 
 if 0:
     print 'WARNING: using SLOW rng'

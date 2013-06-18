@@ -18,6 +18,7 @@ from pylearn2.testing.prereqs import ReadVerifyPrereq
 from pylearn2.monitor import _err_no_data
 from pylearn2.monitor import _err_ambig_data
 from pylearn2.testing.datasets import ArangeDataset
+from pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
 
 
 class DummyModel(Model):
@@ -27,7 +28,7 @@ class DummyModel(Model):
 
 class DummyDataset(DenseDesignMatrix):
     def __init__(self, num_examples, num_features):
-        rng = np.random.RandomState([4, 12, 17])
+        rng = rng_uniform()
         super(DummyDataset, self).__init__(
             X=rng.uniform(1., 2., (num_examples, num_features))
         )
