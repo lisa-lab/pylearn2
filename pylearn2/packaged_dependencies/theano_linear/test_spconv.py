@@ -12,7 +12,7 @@ if 0:
     import numpy
     import numpy as N
     #from theano.sparse.sandbox import spconv as sp
-
+    from pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
     import unittest
     import time
     sp = None
@@ -39,7 +39,7 @@ if 0:
         # symbolic stuff
         kerns = T.tensor4()
         imgs = T.tensor4()
-        rng = N.random.RandomState(3423489)
+        rng = rng_ints()
         kern_data = rng.rand(*kshp4_channel_major).astype(kerns.dtype)+1
         img_data = rng.rand(*ishp4_channel_major).astype(imgs.dtype)+1
 
@@ -126,7 +126,7 @@ if 0:
         bias = T.dvector()
         kerns = T.dvector()
         input = T.dmatrix()
-        rng = N.random.RandomState(3423489)
+        rng = rng_ints()
 
         import theano.gof as gof
         #Mode(optimizer='fast_run', linker=gof.OpWiseCLinker(allow_gc=False)),):

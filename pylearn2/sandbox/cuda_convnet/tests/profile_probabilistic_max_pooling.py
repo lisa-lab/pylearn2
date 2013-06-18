@@ -7,10 +7,11 @@ from pylearn2.utils import sharedX
 
 from pylearn2.sandbox.cuda_convnet.probabilistic_max_pooling import  prob_max_pool_c01b
 from pylearn2.expr.probabilistic_max_pooling import max_pool_c01b
+from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
 
 def profile(f):
     print 'profiling ',f
-    rng = np.random.RandomState([2012,7,19])
+    rng = rng_randn()
     batch_size = 128
     rows = 30
     cols = 30
@@ -46,7 +47,7 @@ def profile(f):
 
 def profile_grad(f):
     print 'profiling gradient of ',f
-    rng = np.random.RandomState([2012,7,19])
+    rng = rng_randn()
     batch_size = 128
     rows = 9
     cols = 9

@@ -33,13 +33,13 @@ from optparse import OptionParser
 
 import numpy
 import numpy.random
-
+from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
 
 class ToyDataset(DenseDesignMatrix):
     def __init__(self):
 
         # simulated random dataset
-        rng = numpy.random.RandomState(seed=42)
+        rng = rng_normal()
         data = rng.normal(size=(1000, 10))
         self.y = numpy.ones((1000, 2))
         positive = numpy.random.binomial(1, 0.5, [1000])

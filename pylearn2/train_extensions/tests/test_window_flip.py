@@ -1,6 +1,8 @@
 import hashlib
 import itertools
 import numpy
+
+from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
 from pylearn2.train_extensions.window_flip import WindowAndFlipC01B
 
 from pylearn2.datasets.dense_design_matrix import (
@@ -14,7 +16,7 @@ class DummyDataset(DenseDesignMatrix):
     def __init__(self):
         axes = ['c', 0, 1, 'b']
         vc = DefaultViewConverter((5, 5, 2), axes=axes)
-        rng = numpy.random.RandomState([2013, 3, 12])
+        rng = rng_normal()
         X = rng.normal(size=(4, 50)).astype('float32')
         super(DummyDataset, self).__init__(X=X, view_converter=vc, axes=axes)
 

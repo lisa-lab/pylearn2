@@ -19,14 +19,14 @@ from theano.tensor.nnet.conv import conv2d
 from theano import function
 from theano import tensor as T
 import warnings
-
+from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
 
 def test_match_valid_conv():
 
     # Tests that running FilterActs with no padding is the same as running
     # theano's conv2D in valid mode
 
-    rng = np.random.RandomState([2012,10,9])
+    rng = rng_uniform()
 
     batch_size = 5
     rows = 10
@@ -83,7 +83,7 @@ def test_match_valid_conv_strided():
     # Tests that running FilterActs with stride is the same as running
     # theano's conv2D in valid mode and then downsampling
 
-    rng = np.random.RandomState([2012,10,9])
+    rng = rng_uniform()
 
     batch_size = 5
     rows = 9
@@ -141,7 +141,7 @@ def test_match_valid_conv_padded():
     # Tests that running FilterActs with no padding is the same as running
     # theano's conv2D in valid mode
 
-    rng = np.random.RandomState([2012,10,9])
+    rng = rng_uniform()
 
     batch_size = 5
     rows = 10
@@ -203,7 +203,7 @@ def test_match_valid_conv_padded():
 
 
 def test_grad():
-    rng = np.random.RandomState([2012, 10, 9])
+    rng = rng_uniform()
     batch_size = 5
     rows = 10
     cols = 9
@@ -287,7 +287,7 @@ def test_grad():
 
 
 def test_grad_strided():
-    rng = np.random.RandomState([2012, 10, 9])
+    rng = rng_uniform()
     batch_size = 5
     rows = 9
     cols = 9

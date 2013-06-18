@@ -1,6 +1,7 @@
 """Tests for pylearn2.utils.video"""
 import numpy
 from pylearn2.utils.video import FrameLookup, spatiotemporal_cubes
+from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
 
 __author__ = "David Warde-Farley"
 __copyright__ = "Copyright 2011, David Warde-Farley / Universite de Montreal"
@@ -24,7 +25,7 @@ def test_frame_lookup():
 
 def test_spatiotemporal_cubes():
     def check_patch_coverage(files):
-        rng = numpy.random.RandomState(1)
+        rng = rng_ints()
         inputs = [(fname, array.shape) for fname, array in files.iteritems()]
         shape = (5, 7, 7)
         for fname, index in spatiotemporal_cubes(inputs, shape, 50000, rng):

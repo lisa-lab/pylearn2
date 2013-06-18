@@ -4,6 +4,8 @@ from pylearn2.utils import sharedX
 import numpy as np
 from theano import config
 from theano.printing import min_informative_str
+from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+
 
 def test_batch_gradient_descent():
         """ Verify that batch gradient descent works by checking that
@@ -30,7 +32,7 @@ def test_batch_gradient_descent():
 
         num_samples = 3
 
-        rng = np.random.RandomState([1,2,3])
+        rng = rng_ints()
 
         for i in xrange(num_samples):
             A = np.cast[config.floatX](rng.randn(1.5*n,n))

@@ -11,6 +11,8 @@ from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.models.model import Model
 from pylearn2.space import VectorSpace
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
+from pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+
 
 class DummyModel(Model):
     def  __init__(self, num_features):
@@ -26,7 +28,7 @@ def test_serialization_guard():
     dim = 2
     m = 11
 
-    rng = np.random.RandomState([28,9,2012])
+    rng = rng_randn()
     X = rng.randn(m, dim)
     dataset = DenseDesignMatrix(X=X)
 

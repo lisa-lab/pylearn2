@@ -24,7 +24,7 @@ from theano import config
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_zip
 from pylearn2.utils.data_specs import is_flat_specs
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
 
 
 class SubsetIterator(object):

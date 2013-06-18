@@ -16,7 +16,7 @@ from pylearn2.expr.probabilistic_max_pooling import max_pool_unstable
 from pylearn2.expr.probabilistic_max_pooling import max_pool_softmax_op
 from pylearn2.expr.probabilistic_max_pooling import max_pool_softmax_with_bias_op
 from pylearn2.testing import no_debug_mode
-
+from pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
 
 def check_correctness_channelwise(f):
 
@@ -27,7 +27,7 @@ def check_correctness_channelwise(f):
     # unstable verison of softmax. So this test does not work with too big of
     # numbers.
 
-    rng = np.random.RandomState([2012,7,19])
+    rng = rng_randn()
     batch_size = 5
     pool_size = 4
     n = 3 * pool_size
@@ -65,7 +65,7 @@ def check_correctness_sigmoid_channelwise(f):
 
     # Tests that f is equivalent to the sigmoid function when the pool size is 1
 
-    rng = np.random.RandomState([2012,7,19])
+    rng = rng_randn()
     batch_size = 5
     pool_size = 1
     n = 3 * pool_size
@@ -101,7 +101,7 @@ def check_correctness_sigmoid_channelwise(f):
         assert False
 
 def check_correctness(f):
-    rng = np.random.RandomState([2012,7,19])
+    rng = rng_randn()
     batch_size = 5
     rows = 32
     cols = 30
@@ -138,7 +138,7 @@ def check_correctness_bc01(f):
     # unstable verison of softmax. So this test does not work with too big of
     # numbers.
 
-    rng = np.random.RandomState([2012,7,19])
+    rng = rng_randn()
     batch_size = 5
     rows = 32
     cols = 30
@@ -186,7 +186,7 @@ def check_correctness_c01b(f):
     # unstable version of softmax. So this test does not work with too big of
     # numbers.
 
-    rng = np.random.RandomState([2013, 5, 6])
+    rng = rng_randn()
     batch_size = 5
     rows = 32
     cols = 30
@@ -240,7 +240,7 @@ def check_sample_correctishness(f):
     channels = 3
     pool_rows = 2
     pool_cols = 3
-    rng = np.random.RandomState([2012,9,26])
+    rng = rng_randn()
     zv = rng.randn( batch_size, rows, cols, channels ).astype(config.floatX) * 2. - 3.
     top_down_v = rng.randn( batch_size, rows / pool_rows, cols / pool_cols, channels ).astype(config.floatX)
 
@@ -362,7 +362,7 @@ def check_sample_correctishness_bc01(f):
     pool_rows = 2
     pool_cols = 3
 
-    rng = np.random.RandomState([2012,9,26])
+    rng = rng_randn()
     zv = rng.randn( batch_size, channels, rows, cols).astype(config.floatX) * 2. - 3.
     top_down_v = rng.randn( batch_size, channels, rows / pool_rows, cols / pool_cols).astype(config.floatX)
 
@@ -484,7 +484,7 @@ def check_sample_correctishness_channelwise(f):
     pool_size = 4
     n = pool_size * 21
 
-    rng = np.random.RandomState([2012,9,26])
+    rng = rng_randn()
     zv = rng.randn( batch_size, n).astype(config.floatX) * 3.5 - 5.
     top_down_v = rng.randn( batch_size, n / pool_size).astype(config.floatX)
 
