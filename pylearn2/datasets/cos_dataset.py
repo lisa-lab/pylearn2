@@ -2,7 +2,7 @@ import numpy as N
 import copy
 from theano import config
 import theano.tensor as T
-
+from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
 
 class CosDataset(object):
     """ Makes a dataset that streams randomly generated 2D examples.
@@ -12,8 +12,7 @@ class CosDataset(object):
 
     def __init__(self, min_x=-6.28, max_x=6.28, std=.05, rng=None):
         self.min_x, self.max_x, self.std = min_x, max_x, std
-        if rng is None:
-            rng = N.random.RandomState([17, 2, 946])
+        rng = rng_ints(rng)
         self.default_rng = copy.copy(rng)
         self.rng = rng
 
@@ -75,7 +74,7 @@ class CosDataset(object):
 
     def reset_RNG(self):
         if 'default_rng' not in dir(self):
-            self.default_rng = N.random.RandomState([17, 2, 946])
+            self.default_rng = rng_ints()
         self.rng = copy.copy(self.default_rng)
 
     def apply_preprocessor(self, preprocessor, can_fit=False):

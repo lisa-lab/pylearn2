@@ -24,7 +24,7 @@ from theano import config
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_zip
 from pylearn2.utils.data_specs import is_flat_specs
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
 
 
 class SubsetIterator(object):
@@ -390,8 +390,8 @@ class FiniteDatasetIterator(object):
                         fn = (lambda batch, dspace=dspace, sp=sp:
                                 dspace.np_format_as(batch, sp))
                     else:
-                        fn = (lambda batch, dspace=dspace, sp=sp, fn_=fn:
-                                dspace.np_format_as(fn_(batch), sp))
+                        fn = (lambda batch, dspace=dspace, sp=sp:
+                                dspace.np_format_as(fn(batch), sp))
 
                 self._convert.append(fn)
 

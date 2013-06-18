@@ -9,6 +9,8 @@ import numpy as N
 from pylearn2.gui import patch_viewer
 from pylearn2.config import yaml_parse
 from optparse import OptionParser
+from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+
 
 parser = OptionParser()
 
@@ -61,7 +63,7 @@ else:
     #obj is a Model
     model = obj
     from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
-    theano_rng = RandomStreams(42)
+    theano_rng = RandomStreams(rng_ints())
     design_examples_var = model.random_design_matrix(batch_size = rows * cols, theano_rng = theano_rng)
     from theano import function
     print 'compiling sampling function'

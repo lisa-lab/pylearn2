@@ -19,6 +19,7 @@ from theano import shared
 from pylearn2.utils import function
 from pylearn2.costs.cost import FixedVarDescr
 from pylearn2.costs.cost import SumOfCosts
+from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
 
 class SoftmaxModel(Model):
     """A dummy model used for testing.
@@ -33,7 +34,7 @@ class SoftmaxModel(Model):
 
     def __init__(self, dim):
         self.dim = dim
-        rng = np.random.RandomState([2012,9,25])
+        rng = rng_uniform()
         self.P = sharedX( rng.uniform(-1.,1.,(dim,)))
         self.force_batch_size = None
 
@@ -66,7 +67,7 @@ def test_bgd_unsup():
     dim = 3
     m = 10
 
-    rng = np.random.RandomState([25,9,2012])
+    rng = rng_randn()
 
     X = rng.randn(m, dim)
 
@@ -120,7 +121,7 @@ def test_determinism():
     def run_bgd(mode):
         # Must be seeded the same both times run_bgd is called
         disturb_mem.disturb_mem()
-        rng = np.random.RandomState([2012, 11, 27, 8])
+        rng = rng_randn()
 
         batch_size = 5
         train_batches = 3
@@ -253,7 +254,7 @@ def test_fixed_vars():
     functions are called the right number of times.
     """
 
-    rng = np.random.RandomState([2012, 11, 27, 9])
+    rng = rng_randn()
 
     batch_size = 5
     updates_per_batch = 4

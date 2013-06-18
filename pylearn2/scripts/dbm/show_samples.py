@@ -23,6 +23,8 @@ from theano import function
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 import numpy as np
 from pylearn2.expr.basic import is_binary
+from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+
 
 rows = 10
 cols = 10
@@ -132,7 +134,7 @@ if x >= 0:
 
 validate_all_samples()
 
-theano_rng = MRG_RandomStreams(2012+9+18)
+theano_rng = MRG_RandomStreams(rng_ints())
 
 if x > 0:
     sampling_updates = model.get_sampling_updates(layer_to_state, theano_rng,

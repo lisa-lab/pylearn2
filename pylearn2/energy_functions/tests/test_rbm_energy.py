@@ -7,10 +7,12 @@ from theano import function
 from pylearn2.utils import as_floatX
 from pylearn2.utils import sharedX
 from pylearn2.linear.matrixmul import MatrixMul
+from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+
 
 test_m = 2
 
-rng = N.random.RandomState([1,2,3])
+rng = rng_ints()
 nv = 3
 nh = 4
 
@@ -55,7 +57,7 @@ class TestGRBM_Type_1:
         # E(v,h_2) - E(v,h_1) = log(a)
         # also log P(h_1 | v) - log P(h_2) = log(a)
 
-        rng = N.random.RandomState([1,2,3])
+        rng = rng_ints()
 
         m = 5
 

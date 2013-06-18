@@ -11,6 +11,7 @@ from theano import config
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load
 from pylearn2.utils.string_utils import preprocess
+from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
 
 
 class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
@@ -106,7 +107,7 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
                             image_size], [sizes[which_set], 10]))
 
         # For consistency between experiments better to make new random stream
-        rng = numpy.random.RandomState(322)
+        rng = rng_ints()
 
         def design_matrix_view(data_x, data_y):
             """reshape data_x to deisng matrix view
@@ -301,7 +302,7 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
         image_size = 32 * 32 * 3
 
         # For consistency between experiments better to make new random stream
-        rng = numpy.random.RandomState(322)
+        rng = rng_ints()
 
         def design_matrix_view(data_x, data_y):
             """reshape data_x to deisng matrix view

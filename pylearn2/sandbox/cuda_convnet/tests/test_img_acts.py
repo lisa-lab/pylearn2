@@ -19,6 +19,7 @@ from theano import shared
 from theano import tensor as T
 from theano.tensor import as_tensor_variable
 from theano.tensor.nnet.conv import conv2d
+from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
 
 from pylearn2.sandbox.cuda_convnet.img_acts import ImageActs
 
@@ -30,7 +31,7 @@ def test_match_full_conv():
     # In other words, if convolution computes H=XK, we now compute
     # R=HK^T
 
-    rng = np.random.RandomState([2013, 1, 29])
+    rng = rng_uniform()
 
     batch_size = 2
     rows = 6
@@ -95,7 +96,7 @@ def test_match_full_conv_grad():
     # theano's conv2D in full mode after flipping the kernel and tranposing
     # the output and input channels
 
-    rng = np.random.RandomState([2013, 1, 29])
+    rng = rng_uniform()
 
     batch_size = 2
     rows = 6

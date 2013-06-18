@@ -3,7 +3,7 @@ import theano
 from theano import tensor, config
 from theano.tensor import nnet
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
-from pylearn2.utils import *
+from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
 
 def compute_log_z(rbm, free_energy_fn, max_bits=15):
     """

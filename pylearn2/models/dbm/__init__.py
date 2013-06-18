@@ -44,6 +44,8 @@ from pylearn2.utils import py_integer_types
 from pylearn2.utils import safe_zip
 from pylearn2.utils import safe_izip
 from pylearn2.utils import sharedX
+from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+
 
 warnings.warn("DBM changing the recursion limit.")
 # We need this to be high enough that the big theano graphs we make
@@ -203,7 +205,7 @@ class DBM(Model):
         return rval
 
     def setup_rng(self):
-        self.rng = np.random.RandomState([2012, 10, 17])
+        self.rng = rng_ints()
 
     def setup_inference_procedure(self):
         if not hasattr(self, 'inference_procedure') or \

@@ -14,13 +14,14 @@ from pylearn2.sandbox.cuda_convnet.img_acts import ImageActs
 from theano.sandbox.cuda import gpu_from_host
 from theano import function
 from theano.tensor import as_tensor_variable
+from pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
 
 
 def test_reject_rect():
     for cls in (FilterActs, ImageActs):
         # Tests that running FilterActs with a non-square
         # kernel is an error
-        rng = np.random.RandomState([2012, 10, 9])
+        rng = rng_uniform()
         batch_size = 5
         rows = 10
         cols = 9
@@ -55,7 +56,7 @@ def test_reject_bad_filt_number():
     for cls in (FilterActs, ImageActs):
         # Tests that running FilterActs with a # of filters per
         # group that is not 16 is an error
-        rng = np.random.RandomState([2012, 10, 9])
+        rng = rng_uniform()
         batch_size = 5
         rows = 10
         cols = 9

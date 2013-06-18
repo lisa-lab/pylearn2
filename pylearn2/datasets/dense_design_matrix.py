@@ -25,6 +25,7 @@ from pylearn2.datasets.dataset import Dataset
 from pylearn2.datasets import control
 from pylearn2.space import CompositeSpace, Conv2DSpace, VectorSpace
 from theano import config
+from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
 
 
 def ensure_tables():
@@ -120,10 +121,7 @@ class DenseDesignMatrix(Dataset):
 
         self.compress = False
         self.design_loc = None
-        if hasattr(rng, 'random_integers'):
-            self.rng = rng
-        else:
-            self.rng = np.random.RandomState(rng)
+        rng = rng_ints(rng)
         # Defaults for iterators
         self._iter_mode = resolve_iterator_class('sequential')
         self._iter_topo = False
@@ -443,7 +441,7 @@ class DenseDesignMatrix(Dataset):
         """
 
         if 'default_rng' not in dir(self):
-            self.default_rng = N.random.RandomState([17, 2, 946])
+            self.default_rng = rng_ints()
         self.rng = copy.copy(self.default_rng)
 
     def apply_preprocessor(self, preprocessor, can_fit=False):

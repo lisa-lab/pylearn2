@@ -190,8 +190,6 @@ class MLP(Layer):
                         "October 2, 2013. They should be removed from the "
                         "SoftmaxRegression subclass at the same time.")
 
-        if seed is None:
-            seed = [2013, 1, 4]
 
         self.seed = seed
         self.setup_rng()
@@ -227,7 +225,7 @@ class MLP(Layer):
             return 1. / x
 
     def setup_rng(self):
-        self.rng = np.random.RandomState(self.seed)
+        self.rng = rng_ints(default_seed = self.seed)
 
     def get_default_cost(self):
         return Default()
@@ -2417,8 +2415,8 @@ def generate_dropout_mask(mlp, default_include_prob=0.5,
     """
     if input_include_probs is None:
         input_include_probs = {}
-    if not hasattr(rng, 'uniform'):
-        rng = np.random.RandomState(rng)
+
+    rng = rng_uniform(rng)
     total_units = 0
     mask = 0
     for layer in mlp.layers:
@@ -2495,8 +2493,7 @@ def sampled_dropout_average(mlp, inputs, num_masks,
     if input_scales is None:
         input_scales = {}
 
-    if not hasattr(rng, 'uniform'):
-        rng = np.random.RandomState(rng)
+    rng = rng_uniform(rng)
 
     mlp._validate_layer_names(list(input_include_probs.keys()))
     mlp._validate_layer_names(list(input_scales.keys()))

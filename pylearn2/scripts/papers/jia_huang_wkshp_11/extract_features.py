@@ -28,6 +28,7 @@ from pylearn2.datasets.cifar100 import CIFAR100
 from pylearn2.datasets.tl_challenge import TL_Challenge
 from pylearn2.expr.coding import triangle_code
 from pylearn2.space import VectorSpace
+from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
 
 
 import sys
@@ -208,7 +209,7 @@ class FeatureExtractor:
         nvis = input_space.dim
         self.size = int(np.sqrt(nvis/3))
 
-        rng = np.random.RandomState([1,2,3])
+        rng = rng_ints()
 
         #Generate the random pooling structure
         num_filters = self.model.mu.get_value().shape[0]
