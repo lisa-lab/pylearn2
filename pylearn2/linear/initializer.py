@@ -40,7 +40,7 @@ class Initializer(object):
     def get_biases(self, rng, shape):
         """
         Should return an initialized bias tensor of shape shape[-1].
-        Default is to return np.zeros(shape)
+        Default is to return a vector of size shape[-1].
         """
         return np.zeros((shape[-1],), dtype=theano.config.floatX) \
                     + self.biases
@@ -75,7 +75,9 @@ class Uniform(Initializer):
             a tuple.
         include_prob: float
             probability of including a weight in the matrix. If a 
-            weight isn't included, it is initialized to zero.
+            weight isn't included, it is initialized to zero. A weight 
+            will be non-zero only if it is included (sampled with 
+            probability include_prob) and its mask_weights is non-zero.
         mask_weights: matrix
             a matrix where the position of non-zero values indicate to
             the initializer that the commesurate position in the weight 
@@ -138,7 +140,9 @@ class Sparse(Initializer):
         sparse_init: int
             an int that determines the amount of weight matrix 
             variables to be initialized from a normal distribution
-            in each column
+            in each column. The default value is 15 as per :
+            Learning Recurrent Neural Networks with Hessian-Free 
+            Optimization (James Martens, Ilya Sutskever), ICML 2011
         stdev: float
             weights are initialized from a normal distribution 
             having standard deviation stdev and mean 0.
@@ -167,8 +171,15 @@ class Sparse(Initializer):
             # initialize self.sparse_init input weights:
             for j in xrange(self.sparse_init):
                 idx = rng.randint(0, input_dim)
+                stopper = 0
                 while W[idx, i] != 0 or mask_rejects(idx, i):
                     idx = rng.randint(0, input_dim)
+                    stopper += 1
+                    if stopper > (input_dim * 10):
+                        print '''Got stuck in a potentially infinit 
+                                loop in Sparse.get_weights().
+                                Breaking loop'''
+                        break
                 W[idx, i] = rng.randn()
         W *= self.stdev
         
@@ -190,7 +201,10 @@ class Instance(Initializer):
         mask_weights: matrix
             a matrix where the position of non-zero values indicate to
             the initializer that the commesurate position in the weight 
-            matrix cannot be initialized with a non-zero value.
+            matrix cannot be initialized with a non-zero value. In this
+            case it will not be used to initialize the weights, but 
+            may be used by Layer instances to make keep masked weights 
+            from being updated.
         biases: float or ndarray
             biases are initialized to this value (default 0)
         """
