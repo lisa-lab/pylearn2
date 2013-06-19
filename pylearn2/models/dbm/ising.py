@@ -139,7 +139,7 @@ class IsingVisible(VisibleLayer):
         return rval
 
     def make_symbolic_state(self, num_examples, theano_rng):
-        mean = T.nnet.sigmoid(2. * self.b)
+        mean = T.nnet.sigmoid(2. * self.beta * self.b)
         rval = theano_rng.binomial(size=(num_examples, self.nvis), p=mean)
         rval = 2. * (rval) - 1.
 
@@ -463,7 +463,7 @@ class IsingHidden(HiddenLayer):
         return rval
 
     def make_symbolic_state(self, num_examples, theano_rng):
-        mean = T.nnet.sigmoid(2. * self.b)
+        mean = T.nnet.sigmoid(2. * self.beta * self.b)
         rval = theano_rng.binomial(size=(num_examples, self.nvis), p=mean)
         rval = 2. * (rval) - 1.
 
