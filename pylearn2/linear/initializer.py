@@ -1,5 +1,8 @@
 """
 A module for initializing weight matrices and bias vectors
+
+TODO: add tanh/sigmoid initializers (using the deep learning formula).
+        this could be an argument to Uniform.
 """
 __authors__ = "Nicholas Leonard"
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"
@@ -8,6 +11,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Nicholas Leonard"
 
 import numpy as np
+import theano
 
 class Initializer(object):
     """
@@ -158,6 +162,7 @@ class Sparse(Initializer):
         super(Sparse, self).__init__(mask_weights, biases)
         
     def get_weights(self, rng, shape):
+        self.check_mask(shape)
         input_dim, output_dim = shape
         W = np.zeros(shape)
         def mask_rejects(idx, i):
@@ -182,8 +187,6 @@ class Sparse(Initializer):
                         break
                 W[idx, i] = rng.randn()
         W *= self.stdev
-        
-        self.check_mask(shape)
                 
         return W
         
@@ -210,6 +213,7 @@ class Instance(Initializer):
         """
         self.weights = weights
         super(Instance, self).__init__(mask_weights, biases)
+        self.check_mask(weights.shape)
         
     def get_weights(self, rng, shape):
         assert self.weights.shape == shape
