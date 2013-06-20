@@ -17,5 +17,7 @@ def _class_creator(klass):
         def get_data_specs(self, model):
             return (model.get_input_space(), model.get_input_source())
 
+    return Inner
+
 MSWalkbackReconstructionError = _class_creator(MeanSquaredReconstructionError)
-MBWalkbackCrossEntroy = _class_creator(MeanBinaryCrossEntropy)
+MBWalkbackCrossEntropy = _class_creator(MeanBinaryCrossEntropy)
