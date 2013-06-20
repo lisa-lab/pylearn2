@@ -179,7 +179,7 @@ class SaltPepperCorruptor(Corruptor):
     def _corrupt(self, x):
         pepper = self.s_rng.binomial(size=x.shape,
             n=1,
-            p=(1 - self.corruption_level / 2.0),
+            p=1 - self.corruption_level / 2.0,
             dtype=theano.config.floatX
         ) * x
 
