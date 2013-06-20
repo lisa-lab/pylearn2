@@ -3,7 +3,7 @@ import unittest
 from pylearn2.testing.skip import skip_if_no_data
 import numpy as np
 
-class TestMNIST(unittest.TestCase):
+class TestCIFAR10(unittest.TestCase):
     def setUp(self):
         skip_if_no_data()
         self.train = CIFAR10(which_set = 'train')
