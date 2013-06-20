@@ -11,6 +11,7 @@ __authors__ = "Eric Martin"
 __copyright__ = "Copyright 2013, Universite de Montreal"
 __license__ = "3-clause BSD"
 
+import functools
 import warnings
 
 import theano.tensor as T
@@ -19,8 +20,7 @@ from pylearn2.base import StackedBlocks
 from pylearn2.models.model import Model
 
 class GSN(StackedBlocks, Model):
-    # FIXME: add noise parameters to this method
-    def __init__(self, autoencoders):
+    def __init__(self, autoencoders, preact_cors=None, postact_cors=None):
         """
         Initialize an Generative Stochastic Network (GSN) object.
 
@@ -29,8 +29,21 @@ class GSN(StackedBlocks, Model):
         autoencoders : list
             A list of autoencoder objects. As of now, only the functionality
             from the base Autoencoder class is used.
+        preact_cor : list
+            A list of length len(autoencoders) + 1 where each element is a
+            callable (which includes Corruptor objects). The callable at index
+            i is called before activating the ith layer. Name stands for
+            "preactivation corruptors".
+        postact_cor : list
+            A list of length len(autoencoders) + 1 where each element is a
+            callable (which includes Corruptor objects). The callable at index
+            i is called directly after activating the ith layer. Name stands for
+            "postactivation corruptors".
         """
         super(StackedBlocks, self).__init__(autoencoders)
+
+        self.preact_cors = preact_cors
+        self.postact_cors = postact_cors
 
         # only for convenience
         self.aes = self._layers
@@ -43,8 +56,7 @@ class GSN(StackedBlocks, Model):
                     warnings.warn("Overwriting number of hidden units so that" +
                                   "layers are the correct size")
 
-
-                # set to the correct size
+                # ensure correct size
                 ae.set_visible_size(autoencoder[i - 1].nhid)
 
         # each row of an activation is the activation of a cell, there is a row
@@ -55,11 +67,36 @@ class GSN(StackedBlocks, Model):
         # FIXME: make right data type
         self.activations = [self.aes[0].nvis] + [ae.nhid for ae in self.aes]
 
-    def run(self, inputs, walkback=0):
-        # FIXME: set up inputs first
+        def _make_callable_list(previous):
+            identity = lambda x: x
+            if previous is None:
+                previous = [identity] * len(self.activations)
 
-        for _ in xrange(len(self.aes) + walkback):
+            assert len(previous) == len(self.activations)
+
+            for i, f in enumerate(previous):
+                if not callable(f):
+                    previous[i] = identity
+            return previous
+
+        self.preact_cors = _make_callable_list(self.preact_cors)
+        self.postact_cors = _make_callable_list(self.postact_cors)
+
+    @functools.wraps(Model.get_params)
+    def get_params(self):
+        return reduce(lambda a, b: a.extend(b),
+                      [ae.get_params() for ae in self.aes],
+                      [])
+
+    def get_samples(self, minibatch, walkback=0):
+        # FIXME: put minibatch in activations[0]
+        activations[0] = minibatch
+
+        reconstructions = [None] * (len(self.aes) + walkback)
+        for i in xrange(len(self.aes) + walkback):
             self._update()
+            reconstructions[i] = self.activations[0]
+        return reconstructions
 
     def _update(self):
         # odd activations
@@ -69,6 +106,8 @@ class GSN(StackedBlocks, Model):
         self._update_activations(xrange(0, len(activations), 2))
 
     def _update_activations(idx_iter):
+        # FIXME: should my lambda use get_weight instead of just .weight?
+
         from_above = lambda i: (self.aes[i].hidbias +
                                 T.dot(self.activations[i + 1],
                                       self.aes[i].weights.T))
@@ -92,12 +131,17 @@ class GSN(StackedBlocks, Model):
 
             # then activate!
 
+            self.activations[i] = self.preact_cors[i](self.activations[i])
+
             # using activation function from lower autoencoder
             # no activation function on input layer
             if i != 0 and self.aes[i - 1].act_enc is not None:
                 self.activations[i] = self.aes[i - 1].act_enc(self.activations[i])
 
+            self.activations[i] = self.postact_cors[i](self.activations[i])
 
-    # needs to be changed quite a lot
     def __call__(self, inputs):
-        pass
+        if isinstance(inputs, T.Variable):
+            return self.run(inputs)[-1]
+        else:
+            return [self(i) for i in inputs]
