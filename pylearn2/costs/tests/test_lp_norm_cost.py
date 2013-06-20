@@ -4,6 +4,7 @@ Test LpNorm cost
 import os
 import numpy
 from nose.tools import raises
+import theano
 from pylearn2.models.mlp import Linear
 from pylearn2.models.mlp import Softmax
 from pylearn2.models.mlp import MLP
@@ -92,7 +93,7 @@ def test_symbolic_expressions_of_shared_variables():
     trainer.main_loop()
 
 
-@raises(Exception)
+@raises(ValueError)
 def test_symbolic_variables():
     '''
     LpNorm should not handle symbolic variables
@@ -120,8 +121,7 @@ def test_symbolic_variables():
         termination_criterion=EpochCounter(1)
     )
 
-    import pdb; pdb.set_trace()
-#    cost.costs.variables = [model.fprop()]
+    cost.costs[1].variables = [model.fprop(theano.tensor.matrix())]
 
     trainer = Train(
         dataset=dataset,
