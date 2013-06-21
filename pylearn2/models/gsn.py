@@ -14,10 +14,12 @@ __license__ = "3-clause BSD"
 import functools
 import warnings
 
+import numpy as np
 import theano.tensor as T
 
 from pylearn2.base import StackedBlocks
 from pylearn2.models.model import Model
+from pylearn2.utils import sharedX
 
 class GSN(StackedBlocks, Model):
     def __init__(self, autoencoders, preact_cors=None, postact_cors=None):
@@ -42,9 +44,6 @@ class GSN(StackedBlocks, Model):
         """
         super(StackedBlocks, self).__init__(autoencoders)
 
-        self.preact_cors = preact_cors
-        self.postact_cors = postact_cors
-
         # only for convenience
         self.aes = self._layers
 
@@ -52,20 +51,14 @@ class GSN(StackedBlocks, Model):
             assert ae.tied_weight, "Autoencoder weights must be tied"
 
             if i != 0:
+                # visible layer of autoencoder is the same as the hidden layer
+                # of the autoencoder before it
                 if not (ae.nvis == 0 or ae.nvis == self.aes[i - 1].nhid):
                     warnings.warn("Overwriting number of hidden units so that" +
                                   "layers are the correct size")
 
                 # ensure correct size
                 ae.set_visible_size(autoencoder[i - 1].nhid)
-
-        # each row of an activation is the activation of a cell, there is a row
-        # for each activation in the mini batch
-        # note there are len(self) + 1 activations (one for the visible layer)
-        # initialize activations to all zeros
-
-        # FIXME: make right data type
-        self.activations = [self.aes[0].nvis] + [ae.nhid for ae in self.aes]
 
         def _make_callable_list(previous):
             identity = lambda x: x
@@ -79,8 +72,8 @@ class GSN(StackedBlocks, Model):
                     previous[i] = identity
             return previous
 
-        self.preact_cors = _make_callable_list(self.preact_cors)
-        self.postact_cors = _make_callable_list(self.postact_cors)
+        self.preact_cors = _make_callable_list(preact_cors)
+        self.postact_cors = _make_callable_list(postact_cors)
 
     @functools.wraps(Model.get_params)
     def get_params(self):
@@ -88,31 +81,126 @@ class GSN(StackedBlocks, Model):
                       [ae.get_params() for ae in self.aes],
                       [])
 
-    def get_samples(self, minibatch, walkback=0):
-        # FIXME: put minibatch in activations[0]
-        activations[0] = minibatch
+    ###############
+    # PROXY METHODS
+    ###############
+    def set_visible_size(self, *args, **kwargs):
+        """
+        Proxy method to Autoencoder.set_visible_size. Sets visible size on first
+        autoencoder.
+        """
+        self.aes[0].set_visible_size(*args, **kwargs)
 
-        reconstructions = [None] * (len(self.aes) + walkback)
-        for i in xrange(len(self.aes) + walkback):
+    def get_input_space(self):
+        return self.aes[0].get_input_space()
+
+    def get_output_space(self):
+        return self.aes[-1].get_output_space()
+    # done with proxy methods
+
+    def _run(self, minibatch, walkback=0):
+        """
+        This runs the GSN on input 'minibatch' are returns all of the activations
+        at every time step.
+
+        Parameters
+        ----------
+        minibatch : tensor_like
+            Theano symbolic representing the input minibatch.
+        walkback : int
+            How many walkback steps to perform. DOCUMENT BETTER
+
+        Returns
+        ---------
+        steps : list of list of tensor_likes
+            A list of the activations at each time step. The activations
+            themselves are lists of tensor_like symbolic (shared) variables.
+            A time step consists of a call to the _update function (so updating
+            both the odd and even layers).
+
+        Notes
+        ---------
+            At the beginning of execution, the activations in the higher layers
+            are still 0 because the input data has not reached there yet. These
+            0 valued activations are NOT included in the return value of this
+            function (so the first time steps will include less activation
+            vectors than the later time steps, because the high layers haven't
+            been activated yet).
+        """
+        self._set_activations(minibatch)
+
+        steps = [self.activations]
+        for time in xrange(1, len(self.aes) + walkback + 1):
             self._update()
-            reconstructions[i] = self.activations[0]
-        return reconstructions
+
+            # slicing makes a shallow copy
+            steps.append(self.activations[:(2 * time) + 1])
+
+        return steps
+
+
+    def get_samples(self, minibatch, walkback=0):
+        """
+        Runs minibatch through GSN and returns reconstructed data.
+
+        Parameters
+        ----------
+        minibatch : tensor_like
+            Theano symbolic representing the input minibatch.
+        walkback : int
+            How many walkback steps to perform. This is both how many extra
+            samples to take as well as how many extra reconstructed points
+            to train off of.
+
+        Returns
+        ---------
+        reconstructions : list of tensor_likes
+            A list of length 1 + walkback that contains the samples generated
+            by the GSN. The samples will be of the same size as the minibatch.
+        """
+        # FIXME: should this return all of the reconstructions, or only the ones
+        # that made it all the way to last layer (ie just 1 if no walkback)
+
+        results = self._run(minibatch, walkback=walkback)
+        activations = results[len(self.aes):]
+        return [act[-1] for act in activations]
+
+    def _set_activations(self, minibatch):
+        """
+        Sets the input layer to minibatch and all other layers to 0.
+
+        Parameters:
+        ------------
+        minibatch : tensor_like
+            Theano symbolic representing the input minibatch
+
+
+        """
+        mb_size = minibatch.shape[0]
+
+        f = lambda units: sharedX(np.zeros(mb_size, units))
+        self.activations = [minibatch] + map(f, ae.nhid for ae in self.aes)
 
     def _update(self):
-        # odd activations
+        """
+        See Figure 1 in "Deep Generative Stochastic Networks as Generative
+        Models" by Bengio, Thibodeau-Laufer.
+        This and _update_activations implement exactly that, which is essentially
+        forward propogating the neural network in both directions.
+        """
+
+        # odd layers
         self._update_activations(xrange(1, len(activations), 2))
 
-        # even activations
+        # even even layers
         self._update_activations(xrange(0, len(activations), 2))
 
     def _update_activations(idx_iter):
-        # FIXME: should my lambda use get_weight instead of just .weight?
-
         from_above = lambda i: (self.aes[i].hidbias +
                                 T.dot(self.activations[i + 1],
                                       self.aes[i].weights.T))
 
-        ''' equivalent
+        ''' equivalent code:
         from_below = lambda i: self.aes[i - 1]._hidden_input(
             self.activations[i - 1])
         '''
@@ -141,7 +229,7 @@ class GSN(StackedBlocks, Model):
             self.activations[i] = self.postact_cors[i](self.activations[i])
 
     def __call__(self, inputs):
-        if isinstance(inputs, T.Variable):
-            return self.run(inputs)[-1]
-        else:
-            return [self(i) for i in inputs]
+        """
+        As specified by StackedBlocks, this returns the output representation of
+        all layers.
+        """

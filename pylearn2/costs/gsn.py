@@ -2,6 +2,10 @@ from pylearn2.costs.cost import Cost
 from pylearn2.costs.autoencoder import (MeanSquaredReconstructionError,
                                         MeanBinaryCrossEntropy)
 
+# FIXME: When do we backprop? Do we backprop at the end of execution (how it is
+# written now, or do we backprop as soon as we each sample (would have to change
+# into generator)
+
 def _class_creator(klass):
     # klass should be a subclass of WalkbackFriendlyCost, but if it quacks like
     # a duck then that's good enough
