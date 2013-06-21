@@ -18,8 +18,12 @@ from pylearn2.models.dbm import BinaryVector
 from pylearn2.models.dbm import BinaryVectorMaxPool
 from pylearn2.models.dbm import DBM
 from pylearn2.models.dbm import Softmax
+from pylearn2.costs.dbm import VariationalCD
+import pylearn2.testing.datasets as datasets
 from pylearn2.space import VectorSpace
 from pylearn2.utils import sharedX
+from pylearn2.utils import safe_zip
+from pylearn2.utils.data_specs import DataSpecsMapping
 
 def check_binary_samples(value, expected_shape, expected_mean, tol):
     """
@@ -891,6 +895,69 @@ def test_softmax_mf_sample_consistent():
     y_samples = function([], y_samples)()
 
     check_multinomial_samples(y_samples, (num_samples, n_classes), expected_y, tol)
+
+
+def test_make_symbolic_state():
+    # Tests whether the returned p_sample and h_sample have the right
+    # dimensions
+    num_examples = 40
+    theano_rng = MRG_RandomStreams(2012+11+1)
+
+    visible_layer = BinaryVector(nvis=100)
+    rval = visible_layer.make_symbolic_state(num_examples=num_examples,
+                                             theano_rng=theano_rng)
+
+    hidden_layer = BinaryVectorMaxPool(detector_layer_dim=500,
+                                       pool_size=1,
+                                       layer_name='h',
+                                       irange=0.05,
+                                       init_bias=-2.0)
+    p_sample, h_sample = hidden_layer.make_symbolic_state(num_examples=num_examples,
+                                                          theano_rng=theano_rng)
+
+    softmax_layer = Softmax(n_classes=10, layer_name='s', irange=0.05)
+    h_sample_s = softmax_layer.make_symbolic_state(num_examples=num_examples,
+                                                   theano_rng=theano_rng)
+
+    required_shapes = [(40, 100), (40, 500), (40, 500), (40, 10)]
+    f = function(inputs=[],
+                 outputs=[rval, p_sample, h_sample, h_sample_s])
+
+    for s, r in zip(f(), required_shapes):
+        assert s.shape == r
+
+
+def test_variational_cd():
+
+    # Verifies that VariationalCD works well with make_layer_to_symbolic_state
+    visible_layer = BinaryVector(nvis=100)
+    hidden_layer = BinaryVectorMaxPool(detector_layer_dim=500,
+                                       pool_size=1,
+                                       layer_name='h',
+                                       irange=0.05,
+                                       init_bias=-2.0)
+    model = DBM(visible_layer=visible_layer,
+                hidden_layers=[hidden_layer],
+                batch_size=100,
+                niter=1)
+
+    cost = VariationalCD(num_chains=100, num_gibbs_steps=2)
+
+    data_specs = cost.get_data_specs(model)
+    mapping = DataSpecsMapping(data_specs)
+    space_tuple = mapping.flatten(data_specs[0], return_tuple=True)
+    source_tuple = mapping.flatten(data_specs[1], return_tuple=True)
+
+    theano_args = []
+    for space, source in safe_zip(space_tuple, source_tuple):
+        name = '%s' % (source)
+        arg = space.make_theano_batch(name=name)
+        theano_args.append(arg)
+    theano_args = tuple(theano_args)
+    nested_args = mapping.nest(theano_args)
+
+    grads, updates = cost.get_gradients(model, nested_args)
+
 
 def test_extra():
     """
