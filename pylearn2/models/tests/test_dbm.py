@@ -892,6 +892,37 @@ def test_softmax_mf_sample_consistent():
 
     check_multinomial_samples(y_samples, (num_samples, n_classes), expected_y, tol)
 
+
+def test_make_symbolic_state():
+    # Tests whether the returned p_sample and h_sample have the right
+    # dimensions
+    num_examples = 40
+    theano_rng = MRG_RandomStreams(2012+11+1)
+
+    visible_layer = BinaryVector(nvis=100)
+    rval = visible_layer.make_symbolic_state(num_examples=num_examples,
+                                             theano_rng=theano_rng)
+
+    hidden_layer = BinaryVectorMaxPool(detector_layer_dim=500,
+                                       pool_size=1,
+                                       layer_name='h',
+                                       irange=0.05,
+                                       init_bias=-2.0)
+    p_sample, h_sample = hidden_layer.make_symbolic_state(num_examples=num_examples,
+                                                          theano_rng=theano_rng)
+
+    softmax_layer = Softmax(n_classes=10, layer_name='s', irange=0.05)
+    h_sample_s = softmax_layer.make_symbolic_state(num_examples=num_examples,
+                                                   theano_rng=theano_rng)
+
+    required_shapes = [(40, 100), (40, 500), (40, 500), (40, 10)]
+    f = function(inputs=[],
+                 outputs=[rval, p_sample, h_sample, h_sample_s])
+
+    for s, r in zip(f(), required_shapes):
+        assert s.shape == r
+
+
 def test_extra():
     """
     Test functionality that remains private, if available.
