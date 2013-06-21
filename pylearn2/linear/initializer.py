@@ -241,11 +241,11 @@ if __name__ == '__main__':
     The first step is to demonstrate the potential application of
     weight, bias and mask initializer objects in Layers. Below, we
     provide an example re-implementation of the Linear layer which
-    we initialize with all 4 kinds of Initiliazers, plus another that
+    we initialize with all 4 kinds of Initializers, plus another that
     tests the mask_weights constructor parameter.
 
     The second step (not included in this pull request), will be
-    to modify all non-conv Layer sublcasses to make use of these
+    to modify all non-conv Layer subclasses to make use of these
     initializers.
 
     The third step (not included in this pull request), will be to
