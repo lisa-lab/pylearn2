@@ -2039,7 +2039,7 @@ class Softmax(HiddenLayer):
         if self.copies != 1:
             raise NotImplementedError("need to make self.copies samples and average them together.")
 
-        default_z = T.alloc(self.b, num_examples, self.num_classes)
+        default_z = T.alloc(self.b, num_examples, self.n_classes)
 
         h_exp = T.nnet.softmax(default_z)
 
