@@ -1615,7 +1615,9 @@ class BinaryVectorMaxPool(HiddenLayer):
         if self.copies != 1:
             raise NotImplementedError()
 
-        default_z = self.b
+        default_z = T.alloc(0., num_examples,
+                            self.detector_layer_dim).astype(self.b.dtype) + \
+                    self.b.dimshuffle('x', 0)
 
         p_exp, h_exp, p_sample, h_sample = max_pool_channels(z=default_z,
                                                              pool_size=self.pool_size,
@@ -2039,7 +2041,9 @@ class Softmax(HiddenLayer):
         if self.copies != 1:
             raise NotImplementedError("need to make self.copies samples and average them together.")
 
-        default_z = self.b
+        default_z = T.alloc(0., num_examples,
+                            self.num_classes).astype(self.b.dtype) + \
+                    self.b.dimshuffle('x', 0)
 
         h_exp = T.nnet.softmax(default_z)
 
