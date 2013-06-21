@@ -81,22 +81,12 @@ class GSN(StackedBlocks, Model):
                       [ae.get_params() for ae in self.aes],
                       [])
 
-    ###############
-    # PROXY METHODS
-    ###############
     def set_visible_size(self, *args, **kwargs):
         """
         Proxy method to Autoencoder.set_visible_size. Sets visible size on first
         autoencoder.
         """
         self.aes[0].set_visible_size(*args, **kwargs)
-
-    def get_input_space(self):
-        return self.aes[0].get_input_space()
-
-    def get_output_space(self):
-        return self.aes[-1].get_output_space()
-    # done with proxy methods
 
     def _run(self, minibatch, walkback=0):
         """
@@ -165,6 +155,13 @@ class GSN(StackedBlocks, Model):
         activations = results[len(self.aes):]
         return [act[-1] for act in activations]
 
+    def __call__(self, minibatch):
+        """
+        As specified by StackedBlocks, this returns the output representation of
+        all layers. This occurs at the final time step.
+        """
+        return self._run(minibatch)[-1]
+
     def _set_activations(self, minibatch):
         """
         Sets the input layer to minibatch and all other layers to 0.
@@ -227,9 +224,3 @@ class GSN(StackedBlocks, Model):
                 self.activations[i] = self.aes[i - 1].act_enc(self.activations[i])
 
             self.activations[i] = self.postact_cors[i](self.activations[i])
-
-    def __call__(self, inputs):
-        """
-        As specified by StackedBlocks, this returns the output representation of
-        all layers.
-        """
