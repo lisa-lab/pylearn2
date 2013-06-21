@@ -273,9 +273,16 @@ if __name__ == '__main__':
         def __init__(self,
                      dim,
                      layer_name,
-                     initializer,
+                     irange=None,
+                     istdev=None,
+                     sparse_init=None,
+                     sparse_stdev=1.,
+                     include_prob=1.0,
+                     init_bias=0.,
+                     initializer=None,
                      W_lr_scale=None,
                      b_lr_scale=None,
+                     mask_weights=None,
                      max_row_norm=None,
                      max_col_norm=None,
                      softmax_columns=False,
@@ -288,6 +295,48 @@ if __name__ == '__main__':
             """
             self.__dict__.update(locals())
             del self.self
+            self.backwards_initializer()
+            
+        def backwards_initializer(self):
+            """
+            For backwards compatibility, we initialize an initializer 
+            using the old interface.
+            """
+            if self.initializer is None:
+                warnings.warn('''irange, istdev, sparse_init, 
+                    sparse_stdev, mask_weights and init_bias 
+                    __init__ parameters are deprecated. 
+                    Please use initializer parameter instead.''')
+                if self.irange is not None:
+                    assert (self.istdev is None) \
+                            and (self.sparse_init is None)
+                    self.initializer \
+                        = Uniform(init_range=self.irange,
+                                  mask_weights=self.mask_weights,
+                                  include_prob=self.include_prob,
+                                  biases=self.init_bias)
+                elif self.istdev is not None:
+                    assert (self.sparse_init is None)
+                    self.initializer \
+                        = Normal(stdev=self.istdev,
+                                 mask_weights=self.mask_weights,
+                                 biases=self.init_bias)
+                elif self.sparse_init is not None:
+                    self.initializer \
+                        = Sparse(sparse_init=self.sparse_init,
+                                 stdev=self.sparse_stdev,
+                                 mask_weights=self.mask_weights,
+                                 biases=self.init_bias)
+                else:
+                    raise ValueError('''cannot initialize parameters.
+                                Please provide value for initializer
+                                __init__ parameter''')
+                del self.irange
+                del self.istdev
+                del self.sparse_init
+                del self.sparse_stdev
+                del self.mask_weights
+                del self.init_bias
 
         def get_lr_scalers(self):
 
@@ -519,14 +568,26 @@ if __name__ == '__main__':
     for i in xrange(5):
         layers.append(Linear(dim=dims[i], layer_name='linear' + str(i),
                              initializer=initializers[i]))
-    from pylearn2.datasets.iris import Iris
-    ddm = Iris()
-    from pylearn2.models.mlp import MLP
-    mlp = MLP(layers=layers, nvis=4, batch_size=10)
-    from pylearn2.costs.mlp import Default
-    cost = Default()
-    from pylearn2.training_algorithms.sgd import SGD
-    sgd = SGD(learning_rate=0.01, cost=cost, monitoring_dataset=ddm)
-    from pylearn2.train import Train
-    trainer = Train(dataset=ddm, model=mlp, algorithm=sgd)
-    trainer.main_loop()
+                             
+    bwlayers = [Linear(2, layer_name='lin0', irange=-0.5),
+                Linear(20, layer_name='lin1', istdev=0.05, init_bias=1),
+                Linear(5, layer_name='lin2', sparse_init=15),
+                Linear(3, layer_name='lin4', irange=0.,
+                       mask_weights=np.random.randint(0, 2, (5, 3)))\
+            ]
+
+    def test(layers):
+        from pylearn2.datasets.iris import Iris
+        ddm = Iris()
+        from pylearn2.models.mlp import MLP
+        mlp = MLP(layers=layers, nvis=4, batch_size=10)
+        from pylearn2.costs.mlp import Default
+        cost = Default()
+        from pylearn2.training_algorithms.sgd import SGD
+        sgd = SGD(learning_rate=0.01, cost=cost, monitoring_dataset=ddm)
+        from pylearn2.train import Train
+        trainer = Train(dataset=ddm, model=mlp, algorithm=sgd)
+        trainer.main_loop()
+
+    test(bwlayers)
+    #test(layers)
