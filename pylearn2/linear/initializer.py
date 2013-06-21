@@ -296,16 +296,16 @@ if __name__ == '__main__':
             self.__dict__.update(locals())
             del self.self
             self.backwards_initializer()
-            
+
         def backwards_initializer(self):
             """
-            For backwards compatibility, we initialize an initializer 
+            For backwards compatibility, we initialize an initializer
             using the old interface.
             """
             if self.initializer is None:
-                warnings.warn('''irange, istdev, sparse_init, 
-                    sparse_stdev, mask_weights and init_bias 
-                    __init__ parameters are deprecated. 
+                warnings.warn('''irange, istdev, sparse_init,
+                    sparse_stdev, mask_weights and init_bias
+                    __init__ parameters are deprecated.
                     Please use initializer parameter instead.''')
                 if self.irange is not None:
                     assert (self.istdev is None) \
@@ -568,7 +568,7 @@ if __name__ == '__main__':
     for i in xrange(5):
         layers.append(Linear(dim=dims[i], layer_name='linear' + str(i),
                              initializer=initializers[i]))
-                             
+
     bwlayers = [Linear(2, layer_name='lin0', irange=-0.5),
                 Linear(20, layer_name='lin1', istdev=0.05, init_bias=1),
                 Linear(5, layer_name='lin2', sparse_init=15),
