@@ -1,6 +1,7 @@
 import numpy as np
 import theano
-from pylearn2.linear.initializer import *
+from pylearn2.linear.initializer import Uniform, Normal, Sparse, \
+                                        Instance
 
 def test_initializer_subclasses():
     shape = (30, 31)
