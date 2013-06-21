@@ -1615,7 +1615,7 @@ class BinaryVectorMaxPool(HiddenLayer):
         if self.copies != 1:
             raise NotImplementedError()
 
-        default_z = T.zeros_like(self.h_space.make_theano_batch()) + self.b
+        default_z = T.alloc(self.b, num_examples, self.detector_layer_dim)
 
         p_exp, h_exp, p_sample, h_sample = max_pool_channels(z=default_z,
                                                              pool_size=self.pool_size,
@@ -2039,7 +2039,7 @@ class Softmax(HiddenLayer):
         if self.copies != 1:
             raise NotImplementedError("need to make self.copies samples and average them together.")
 
-        default_z = T.zeros_like(self.output_space.make_theano_batch()) + self.b
+        default_z = T.alloc(self.b, num_examples, self.n_classes)
 
         h_exp = T.nnet.softmax(default_z)
 

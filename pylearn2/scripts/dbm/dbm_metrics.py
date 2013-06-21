@@ -41,6 +41,7 @@ from theano.sandbox.scan import scan
 from theano.compat.python2x import OrderedDict
 
 import pylearn2
+from pylearn2.datasets.mnist import MNIST
 from pylearn2.utils import serial
 from pylearn2 import utils
 
@@ -665,7 +666,7 @@ def estimate_likelihood(W_list, b_list, trainset, testset, free_energy_fn=None,
 if __name__ == '__main__':
     # Possible metrics
     metrics = {'ais': estimate_likelihood}
-    datasets = {'mnist': pylearn2.datasets.mnist.MNIST}
+    datasets = {'mnist': MNIST}
 
     # Argument parsing
     parser = argparse.ArgumentParser()
