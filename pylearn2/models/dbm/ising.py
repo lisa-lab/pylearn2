@@ -842,6 +842,11 @@ class BoltzmannIsingHidden(HiddenLayer):
 
     def censor_updates(self, updates):
 
+        beta = self.beta
+        if beta in updates:
+            updated_beta = updates[beta]
+            updates[beta] = T.clip(updated_beta, 0., 1000.)
+
         if self.max_col_norm is not None:
             W = self.W
             if W in updates:
