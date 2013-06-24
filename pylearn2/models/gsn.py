@@ -18,6 +18,7 @@ import numpy as np
 import theano.tensor as T
 
 from pylearn2.base import StackedBlocks
+from pylearn2.models.autoencoder import Autoencoder
 from pylearn2.models.model import Model
 from pylearn2.utils import sharedX
 
@@ -42,30 +43,28 @@ class GSN(StackedBlocks, Model):
             i is called directly after activating the ith layer. Name stands for
             "postactivation corruptors".
         """
-        super(StackedBlocks, self).__init__(autoencoders)
+        super(GSN, self).__init__(autoencoders)
 
         # only for convenience
         self.aes = self._layers
 
         for i, ae in enumerate(self.aes):
-            assert ae.tied_weight, "Autoencoder weights must be tied"
+            assert ae.tied_weights, "Autoencoder weights must be tied"
 
             if i != 0:
-                # visible layer of autoencoder is the same as the hidden layer
-                # of the autoencoder before it
-                if not (ae.nvis == 0 or ae.nvis == self.aes[i - 1].nhid):
-                    warnings.warn("Overwriting number of hidden units so that" +
-                                  "layers are the correct size")
-
-                # ensure correct size
-                ae.set_visible_size(autoencoder[i - 1].nhid)
+                if self.weights is None:
+                    ae.set_visible_size(self.aes[i - 1].nhid)
+                else:
+                    assert (self.weights.get_value().shape[0] ==
+                            self.aes[i - 1].nhid)
 
         def _make_callable_list(previous):
+            num_activations = len(self.aes) + 1
             identity = lambda x: x
             if previous is None:
-                previous = [identity] * len(self.activations)
+                previous = [identity] * num_activations
 
-            assert len(previous) == len(self.activations)
+            assert len(previous) == num_activations
 
             for i, f in enumerate(previous):
                 if not callable(f):
@@ -74,6 +73,40 @@ class GSN(StackedBlocks, Model):
 
         self.preact_cors = _make_callable_list(preact_cors)
         self.postact_cors = _make_callable_list(postact_cors)
+
+    @classmethod
+    def new(cls, layer_sizes, vis_corruptor, hidden_corruptor, act="sigmoid"):
+        """
+        This is just a convenience method to initialize GSN instances. The
+        __init__ method is far more general, but this should capture most
+        of the GSM use cases.
+
+        Parameters
+        ----------
+        layer_sizes : list of integers
+            Each element of this list states the size of a layer in the GSN. The
+            first element in this list is the size of the visual layer, which
+            can be initially set to 0 and later specified with
+            GSN.set_visible_size.
+        vis_corruptor : callable
+            A callable object (such as a Corruptor) that is used to corrupt the
+            visible layer.
+        hidden_corruptor : callable
+            Same sort of object as the vis_corruptor, used to corrupt (add noise)
+            to all of the hidden activations prior to activation.
+        act : callable or string
+            The value for act must be a valid value for both the act_enc and the
+            act_dec arguments in Autoencoder.__init__.
+        """
+        aes = []
+        for i in xrange(len(layer_sizes) - 1):
+            aes.append(Autoencoder(layer_sizes[i], layer_sizes[i + 1],
+                                   act, act, tied_weights=True))
+
+        corruptors = [vis_corruptor] + [hidden_corruptor] * len(aes)
+        return GSN(aes, preact_cors=corruptors)
+
+
 
     @functools.wraps(Model.get_params)
     def get_params(self):
@@ -173,10 +206,10 @@ class GSN(StackedBlocks, Model):
 
 
         """
-        mb_size = minibatch.shape[0]
+        mb_size = minibatch.get_value().shape[0]
 
         f = lambda units: sharedX(np.zeros(mb_size, units))
-        self.activations = [minibatch] + map(f, ae.nhid for ae in self.aes)
+        self.activations = [minibatch] + map(f, (ae.nhid for ae in self.aes))
 
     def _update(self):
         """
@@ -215,12 +248,14 @@ class GSN(StackedBlocks, Model):
                 self.activations[i] = from_below(i) + from_above(i)
 
             # then activate!
-
+            # pre activation corruption
             self.activations[i] = self.preact_cors[i](self.activations[i])
 
             # using activation function from lower autoencoder
             # no activation function on input layer
-            if i != 0 and self.aes[i - 1].act_enc is not None:
-                self.activations[i] = self.aes[i - 1].act_enc(self.activations[i])
+            if i != 0:
+                if self.aes[i - 1].act_enc is not None:
+                    self.activations[i] = self.aes[i - 1].act_enc(self.activations[i])
 
-            self.activations[i] = self.postact_cors[i](self.activations[i])
+                # post activation corruption
+                self.activations[i] = self.postact_cors[i](self.activations[i])
