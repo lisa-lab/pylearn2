@@ -6,12 +6,12 @@ from pylearn2.testing.skip import skip_if_no_data
 class TestOCR(unittest.TestCase):
     def setUp(self):
         #TODO: test axes, test one_hot
-        skip_if_no_data()
+        skip_if_no_data('ocr_letters')
         self.train = OCR(which_set='train')
         self.test = OCR(which_set='test')
 
     def get_test_set(self):
         test_from_train = self.train.get_test_set()
-        assert numpy.all(test_from_train.get_design_matrix() == self.test.get_design_matrix())
-        assert numpy.all(test_from_train.get_targets() == self.test.get_targets())
+        self.assertTrue(numpy.all(test_from_train.get_design_matrix() == self.test.get_design_matrix()))
+        self.assertTrue(numpy.all(test_from_train.get_targets() == self.test.get_targets()))
         

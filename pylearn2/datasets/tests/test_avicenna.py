@@ -5,6 +5,7 @@ from pylearn2.testing.skip import skip_if_no_data
 
 class TestAvicenna(unittest.TestCase):
     def setUp(self):
+        #WARN: relies on pylearn1 to load the avicena dataset. Should not work.
         skip_if_no_data()
         self.train = Avicenna(which_set='train', standardize=False)
         self.test = Avicenna(which_set='test', standardize=False)

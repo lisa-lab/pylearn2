@@ -5,6 +5,7 @@ from pylearn2.testing.skip import skip_if_no_data
 
 class test_MNIST_rotated_background(unittest.TestCase):
     def setUp(self):
+        #WARN: relies on pylearn1 to load icml07 data. Should not work.
         skip_if_no_data()
         self.train = MNIST_rotated_background(which_set='train')
         self.test = MNIST_rotated_background(which_set='test')
@@ -18,8 +19,8 @@ class test_Convex(unittest.TestCase):
 
     def test_get_test_set(self):
         test = self.train.get_test_set()
-        assert numpy.all(test.get_design_matrix() == self.test.get_design_matrix())
-        assert numpy.all(test.get_targets() == self.test.get_targets())
+        self.assertTrue(numpy.all(test.get_design_matrix() == self.test.get_design_matrix()))
+        self.assertTrue(numpy.all(test.get_targets() == self.test.get_targets()))
 
 class test_Rectangles(unittest.TestCase):
     def setUp(self):
@@ -29,8 +30,8 @@ class test_Rectangles(unittest.TestCase):
 
     def test_get_test_set(self):
         test = self.train.get_test_set()
-        assert numpy.all(test.get_design_matrix() == self.test.get_design_matrix())
-        assert numpy.all(test.get_targets() == self.test.get_targets())
+        self.assertTrue(numpy.all(test.get_design_matrix() == self.test.get_design_matrix()))
+        self.assertTrue(numpy.all(test.get_targets() == self.test.get_targets()))
         
 class test_RectanglesImage(unittest.TestCase):
     def setUp(self):
@@ -40,6 +41,6 @@ class test_RectanglesImage(unittest.TestCase):
 
     def test_get_test_set(self):
         test = self.train.get_test_set()
-        assert numpy.all(test.get_design_matrix() == self.test.get_design_matrix())
-        assert numpy.all(test.get_targets() == self.test.get_targets())
+        self.assertTrue(numpy.all(test.get_design_matrix() == self.test.get_design_matrix()))
+        self.assertTrue(numpy.all(test.get_targets() == self.test.get_targets()))
 

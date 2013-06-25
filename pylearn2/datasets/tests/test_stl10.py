@@ -5,7 +5,8 @@ from pylearn2.testing.skip import skip_if_no_data
 
 class TestSTL10(unittest.TestCase):
     def setUp(self):
-        skip_if_no_data()
+        skip_if_no_data('stl10')
+        skip_if_no_data('stl10_matlab')
         self.train = STL10(which_set='train')
         self.test = STL10(which_set='test') 
 

@@ -5,7 +5,7 @@ from pylearn2.datasets.mnistplus import MNISTPlus
 
 class TestMNISTPlus(unittest.TestCase):
     def setUp(self):
-        skip_if_no_data()
+        skip_if_no_data('mnistplus')
         self.train = MNISTPlus(which_set='train')
         self.test = MNISTPlus(which_set='test')
 

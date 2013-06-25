@@ -6,11 +6,12 @@ __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 import numpy as N
 from pylearn2.datasets import dense_design_matrix
+from pylearn2.utils.string_utils import preprocess
 
 class Wiskott(dense_design_matrix.DenseDesignMatrix):
     def __init__(self):
 
-        X = 1. - N.load("/data/lisa/data/wiskott/wiskott_fish_layer0_15_standard_64x64_shuffled.npy")
+        X = 1. - N.load(preprocess("${PYLEARN2_DATA_PATH}/wiskott/wiskott_fish_layer0_15_standard_64x64_shuffled.npy"))
 
 
         view_converter = dense_design_matrix.DefaultViewConverter((64,64,1))

@@ -5,7 +5,7 @@ import numpy
 
 class TestNORBSmall(unittest.TestCase):
     def setUp(self):
-        skip_if_no_data()
+        skip_if_no_data('norb_small')
         self.train = NORBSmall(which_set='train')
         self.test = NORBSmall(which_set='test')
 
@@ -14,7 +14,7 @@ class TestNORBSmall(unittest.TestCase):
 
 class TestFoveatedNORB(unittest.TestCase):
     def setUp(self):
-        skip_if_no_data()
+        skip_if_no_data('norb_small')
         self.train = FoveatedNORB(which_set='train')
         self.test = FoveatedNORB(which_set='test')
         self.train_one_hot = self.train.convert_to_one_hot()
@@ -23,11 +23,11 @@ class TestFoveatedNORB(unittest.TestCase):
     def test_one_hot(self):
         train_non_zeros = numpy.transpose(numpy.nonzeros(self.train_one_hot))
         test_non_zeros = numpy.transpose(numpy.nonzeros(self.test_one_hot))
-        assert(len(train_non_zeros) == 1)
-        assert(len(test_non_zeros) == 1)
-        assert(self.train_one_hot[train_non_zeros[0]] == 1)
-        assert(self.test_one_hot[test_non_zeros[0]] == 1)
+        self.assertTrue(len(train_non_zeros) == 1)
+        self.assertTrue(len(test_non_zeros) == 1)
+        self.assertTrue(self.train_one_hot[train_non_zeros[0]] == 1)
+        self.assertTrue(self.test_one_hot[test_non_zeros[0]] == 1)
 
     def test_restrict_instances(self):
         pass
-        #TODO: what are 'instances'?
+        #TODO: what are 'instances' and how do I generate one to perform testing?

@@ -2,6 +2,7 @@ import unittest
 import numpy
 from pylearn2.testing.skip import skip_if_no_data
 from pylearn2.datasets.cos_dataset import CosDataset
+import theano
 
 class TestCosDataset(unittest.TestCase):
     def setUp(self):
@@ -11,27 +12,32 @@ class TestCosDataset(unittest.TestCase):
     def test_energy(self):
         #tests if there's no failure
         res = self.dataset.energy(numpy.asarray([[0, 1], [1, 0]]))
-        assert res.shape == numpy.asarray([[0, 1], [1, 0]]).shape
+        self.assertTrue(res.shape == (2,))
 
     def test_pdf_func(self):
         #tests if there's no failure
         res = self.dataset.pdf_func(numpy.asarray([[0, 1], [1, 0]]))
-        assert res.shape == numpy.asarray([[0, 1], [1, 0]]).shape
+        self.assertTrue(res.shape == (2,))
 
         #tests behavior when components are out of bound
         res = self.dataset.pdf_func(numpy.asarray([[7, 7], [-7, -7]]))
-        assert res.shape == numpy.asarray([[7, 7], [-7, -7]]).shape
-        assert len(numpy.nonzeros(res)) == 0
+        self.assertTrue(res.shape == (2,))
+        self.assertTrue(len(numpy.nonzero(res)[0]) == 0)
 
     def test_free_energy(self):
-        self.dataset.free_energy(numpy.zeros(shape=(2, 2)))
+        self.dataset.free_energy(numpy.zeros(shape=(2,2)))
         #TODO: how to test?
 
     def test_pdf(self):
-        #actually the exact same function as pdf_func for some reason
-        mat = numpy.zeros(shape=(2,2))
+        #tests if there's no failure
+        res = theano.function([],self.dataset.pdf(numpy.asarray([[0, 1], [1, 0]])))()
+        self.assertTrue(res.shape == (2,))
 
-        assert numpy.all(self.dataset.pdf(mat) == self.dataset.pdf_func(mat))
+        #tests behavior when components are out of bound
+        res = theano.function([],self.dataset.pdf(numpy.asarray([[7, 7], [-7, -7]])))()
+        self.assertTrue(res.shape == (2,))
+        print res
+        self.assertTrue(len(numpy.nonzero(res)[0]) == 0)
 
     def test_get_stream_position(self):
         pass
@@ -51,7 +57,6 @@ class TestCosDataset(unittest.TestCase):
 
     def test_get_batch_design(self):
         #tests that the shape of the array (the concatenation of X and Y)
-        # is correct (it must be (2*batch_size, 1) )
+        # is correct (it must be (batch_size, 2) )
         res = self.dataset.get_batch_design(10)
-        assert res.shape[0] == 2*10
-        assert res.shape[1] == 1
+        self.assertTrue(res.shape == (10, 2))

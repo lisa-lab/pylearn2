@@ -5,8 +5,9 @@ from pylearn2.datasets.preprocessing import ExtractGridPatches, ReassembleGridPa
 from pylearn2.datasets.preprocessing import LeCunLCN, RGB_YUV
 from pylearn2.utils import as_floatX
 import numpy as np
+import unittest
 
-class testGlobalContrastNormalization:
+class testGlobalContrastNormalization(unittest.TestCase):
     """Tests for the GlobalContrastNormalization class """
 
     def test_zero_vector(self):
@@ -27,8 +28,8 @@ class testGlobalContrastNormalization:
 
         result = dataset.get_design_matrix()
 
-        assert not np.any(np.isnan(result))
-        assert not np.any(np.isinf(result))
+        self.assertTrue(not np.any(np.isnan(result)))
+        self.assertTrue(not np.any(np.isinf(result)))
 
     def test_unit_norm(self):
         """ Test that using std_bias = 0.0 and use_norm = True
@@ -61,38 +62,67 @@ class testGlobalContrastNormalization:
 
         tol = 3e-5
 
-        assert max_norm_error < tol
+        self.assertTrue(max_norm_error < tol)
 
-def test_extract_reassemble():
-    """ Tests that ExtractGridPatches and ReassembleGridPatches are
-    inverse of each other """
+class TestExtraPreprocessing(unittest.TestCase):
+    def setUp(self):
+        pass
 
-    rng = np.random.RandomState([1,3,7])
+    def test_extract_reassemble(self):
+        """ Tests that ExtractGridPatches and ReassembleGridPatches are
+        inverse of each other """
 
-    topo = rng.randn(4,3*5,3*7,2)
+        rng = np.random.RandomState([1,3,7])
 
-    dataset = DenseDesignMatrix(topo_view = topo)
+        topo = rng.randn(4,3*5,3*7,2)
 
-    patch_shape = (3,7)
+        dataset = DenseDesignMatrix(topo_view = topo)
 
-    extractor = ExtractGridPatches(patch_shape, patch_shape)
-    reassemblor = ReassembleGridPatches(patch_shape = patch_shape, orig_shape = topo.shape[1:3])
+        patch_shape = (3,7)
 
-    dataset.apply_preprocessor(extractor)
-    dataset.apply_preprocessor(reassemblor)
+        extractor = ExtractGridPatches(patch_shape, patch_shape)
+        reassemblor = ReassembleGridPatches(patch_shape = patch_shape, orig_shape = topo.shape[1:3])
 
-    new_topo = dataset.get_topological_view()
+        dataset.apply_preprocessor(extractor)
+        dataset.apply_preprocessor(reassemblor)
 
-    assert new_topo.shape == topo.shape
+        new_topo = dataset.get_topological_view()
 
-    if not np.all(new_topo == topo):
-        assert False
+        self.assertTrue(new_topo.shape == topo.shape)
+
+        if not np.all(new_topo == topo):
+            self.assertTrue(False)
+
+    def test_rgb_yuv(self):
+        """
+        Test on a random image if the per-processor loads and works without
+        anyerror and doesn't result in any nan or inf values
+
+        """
+
+        rng = np.random.RandomState([1,2,3])
+        X = as_floatX(rng.randn(5,32*32*3))
+
+        axes = ['b', 0, 1, 'c']
+        view_converter = dense_design_matrix.DefaultViewConverter((32, 32, 3),
+                                                                    axes)
+        dataset = DenseDesignMatrix(X = X, view_converter = view_converter)
+        dataset.axes = axes
+        preprocessor = RGB_YUV()
+        dataset.apply_preprocessor(preprocessor)
+        result = dataset.get_design_matrix()
+
+        self.assertTrue(not np.any(np.isnan(result)))
+        self.assertTrue(not np.any(np.isinf(result)))
 
 
-class testLeCunLCN:
+
+class testLeCunLCN(unittest.TestCase):
     """
     Test LeCunLCN
     """
+    def setUp(self):
+        pass
 
     def test_random_image(self):
         """
@@ -113,8 +143,8 @@ class testLeCunLCN:
         dataset.apply_preprocessor(preprocessor)
         result = dataset.get_design_matrix()
 
-        assert not np.any(np.isnan(result))
-        assert not np.any(np.isinf(result))
+        self.assertTrue(not np.any(np.isnan(result)))
+        self.assertTrue(not np.any(np.isinf(result)))
 
     def test_zero_image(self):
         """
@@ -132,8 +162,8 @@ class testLeCunLCN:
         dataset.apply_preprocessor(preprocessor)
         result = dataset.get_design_matrix()
 
-        assert not np.any(np.isnan(result))
-        assert not np.any(np.isinf(result))
+        self.assertTrue(not np.any(np.isnan(result)))
+        self.assertTrue(not np.any(np.isinf(result)))
 
     def test_channel(self):
         """
@@ -152,29 +182,6 @@ class testLeCunLCN:
         dataset.apply_preprocessor(preprocessor)
         result = dataset.get_design_matrix()
 
-        assert not np.any(np.isnan(result))
-        assert not np.any(np.isinf(result))
-
-
-def test_rgb_yuv():
-    """
-    Test on a random image if the per-processor loads and works without
-    anyerror and doesn't result in any nan or inf values
-
-    """
-
-    rng = np.random.RandomState([1,2,3])
-    X = as_floatX(rng.randn(5,32*32*3))
-
-    axes = ['b', 0, 1, 'c']
-    view_converter = dense_design_matrix.DefaultViewConverter((32, 32, 3),
-                                                                axes)
-    dataset = DenseDesignMatrix(X = X, view_converter = view_converter)
-    dataset.axes = axes
-    preprocessor = RGB_YUV()
-    dataset.apply_preprocessor(preprocessor)
-    result = dataset.get_design_matrix()
-
-    assert not np.any(np.isnan(result))
-    assert not np.any(np.isinf(result))
+        self.assertTrue(not np.any(np.isnan(result)))
+        self.assertTrue(not np.any(np.isinf(result)))
 
