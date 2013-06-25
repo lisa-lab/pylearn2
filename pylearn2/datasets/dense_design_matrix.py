@@ -54,7 +54,7 @@ class DenseDesignMatrix(Dataset):
             Should be supplied if `topo_view` is not. A design
             matrix of shape (number examples, number features)
             that defines the dataset.
-        topo_view : ndarray, optional
+        topo_view : ndarray, deprecated, optional
             Should be supplied if X is not.  An array whose first
             dimension is of length number examples. The remaining
             dimensions are xamples with topological significance,
@@ -63,7 +63,7 @@ class DenseDesignMatrix(Dataset):
         y : ndarray, 1-dimensional(?), optional
             Labels or targets for each example. The semantics here
             are not quite nailed down for this yet.
-        view_converter : object, optional
+        view_converter : object, deprecated, optional
             An object for converting between design matrices and
             topological views. Currently DefaultViewConverter is
             the only type available but later we may want to add
