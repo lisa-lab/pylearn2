@@ -1444,7 +1444,8 @@ class Linear(Layer):
                  max_row_norm = None,
                  max_col_norm = None,
                  softmax_columns = False,
-                 copy_input = 0):
+                 copy_input = 0,
+                 use_abs_loss = False):
         """
 
         include_prob: probability of including a weight element in the set
@@ -1716,8 +1717,10 @@ class Linear(Layer):
         return cost_matrix.sum(axis=1).mean()
 
     def cost_matrix(self, Y, Y_hat):
-        return T.sqr(Y - Y_hat)
-
+        if(self.use_abs_loss):
+          return T.abs_(Y - Y_hat)
+        else:
+	  return T.sqr(Y - Y_hat)
 class Tanh(Linear):
     """
     A layer that performs an affine transformation of its (vectorial)
