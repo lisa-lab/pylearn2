@@ -8,7 +8,7 @@ If you are not working from the LISA lab, you'll need to setup
 the dataset yourself.
 Be sure to follow the "Download and Installation" instructions at
 http://deeplearning.net/software/pylearn2/ to set up your
-PYLEARN2_DATA_PATH directory. Then make a directory called 
+PYLEARN2_DATA_PATH directory. Then make a directory called
 ${PYLEARN2_DATA_PATH}/cifar10 and put the python version of
 the CIFAR-10 dataset inside of it, with the path
 ${PYLEARN2_DATA_PATH}/cifar10/cifar-10-batches-py.
@@ -90,5 +90,3 @@ plot_monitor.py cifar_grbm_smd.pkl
 
 This will display a plot of the objective function over time, so you
 can see what happened during training.
-
-

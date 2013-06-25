@@ -75,7 +75,8 @@ class GSN(StackedBlocks, Model):
         self.postact_cors = _make_callable_list(postact_cors)
 
     @classmethod
-    def new(cls, layer_sizes, vis_corruptor, hidden_corruptor, act="sigmoid"):
+    def new(cls, layer_sizes, vis_corruptor,
+            hidden_pre_corruptor, hidden_post_corruptor, act="sigmoid"):
         """
         This is just a convenience method to initialize GSN instances. The
         __init__ method is far more general, but this should capture most
@@ -91,9 +92,12 @@ class GSN(StackedBlocks, Model):
         vis_corruptor : callable
             A callable object (such as a Corruptor) that is used to corrupt the
             visible layer.
-        hidden_corruptor : callable
+        hidden_pre_corruptor : callable
             Same sort of object as the vis_corruptor, used to corrupt (add noise)
             to all of the hidden activations prior to activation.
+        hidden_post_corruptor : callable
+            Same sort of object as the other corruptors, used to corrupt hidden
+            activations after activation.
         act : callable or string
             The value for act must be a valid value for both the act_enc and the
             act_dec arguments in Autoencoder.__init__.
@@ -103,8 +107,9 @@ class GSN(StackedBlocks, Model):
             aes.append(Autoencoder(layer_sizes[i], layer_sizes[i + 1],
                                    act, act, tied_weights=True))
 
-        corruptors = [vis_corruptor] + [hidden_corruptor] * len(aes)
-        return GSN(aes, preact_cors=corruptors)
+        pre_corruptors = [vis_corruptor] + [hidden_pre_corruptor] * len(aes)
+        post_corruptors = [None] + [hidden_post_corruptor] * len(aes)
+        return GSN(aes, preact_cors=pre_corruptors, postact_cors=post_corruptors)
 
 
 
