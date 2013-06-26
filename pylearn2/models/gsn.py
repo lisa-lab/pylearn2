@@ -53,7 +53,6 @@ class GSN(StackedBlocks, Model):
 
             if i != 0:
                 if ae.weights is None:
-                    print 'wtf'
                     ae.set_visible_size(self.aes[i - 1].nhid)
                 else:
                     assert (ae.weights.get_value().shape[0] ==
@@ -157,7 +156,9 @@ class GSN(StackedBlocks, Model):
         """
         self._set_activations(minibatch)
 
-        steps = [self.activations]
+        # only the visible unit is nonzero at first
+        steps = [[self.activations[0]]]
+
         for time in xrange(1, len(self.aes) + walkback + 1):
             self._update()
 
@@ -165,7 +166,6 @@ class GSN(StackedBlocks, Model):
             steps.append(self.activations[:(2 * time) + 1])
 
         return steps
-
 
     def get_samples(self, minibatch, walkback=0):
         """
@@ -192,6 +192,12 @@ class GSN(StackedBlocks, Model):
         results = self._run(minibatch, walkback=walkback)
         activations = results[len(self.aes):]
         return [act[0] for act in activations]
+
+    def reconstruct(self, minibatch):
+        """
+        Included for compatibility with autoencoder cost functions.
+        """
+        return self.get_samples(minibatch, walkback=0)[0]
 
     def __call__(self, minibatch):
         """
@@ -234,7 +240,6 @@ class GSN(StackedBlocks, Model):
         self._update_activations(xrange(0, len(self.activations), 2))
 
     def _update_activations(self, idx_iter):
-        # FIXME: adding in this bias was breaking things. Should be adding it.
         from_above = lambda i: (self.aes[i].visbias +
                                 T.dot(self.activations[i + 1],
                                       self.aes[i].weights.T))

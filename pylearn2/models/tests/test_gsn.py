@@ -1,7 +1,10 @@
 import theano
 
+#from pylearn2.costs.gsn import MSWalkbackReconstructionError as Cost
+#from pylearn2.costs.gsn import MBWalkbackCrossEntropy as Cost
+from pylearn2.costs.autoencoder import MeanSquaredReconstructionError as Cost
+
 from pylearn2.corruption import GaussianCorruptor, SaltPepperCorruptor
-from pylearn2.costs.gsn import MBWalkbackCrossEntropy as Cost
 from pylearn2.datasets.mnist import MNIST
 from pylearn2.models.gsn import GSN
 from pylearn2.termination_criteria import EpochCounter
@@ -24,8 +27,10 @@ dataset = MNIST(which_set='train')
 
 # just 1 hidden layer
 layers = [dataset.X.shape[1], HIDDEN_SIZE]
-vis_corruptor = SaltPepperCorruptor(SALT_PEPPER_NOISE)
-pre_corruptor = post_corruptor = GaussianCorruptor(GAUSSIAN_NOISE)
+
+# FIXME: SaltPepperCorruptor causing errors
+vis_corruptor = GaussianCorruptor(1) #SaltPepperCorruptor(SALT_PEPPER_NOISE)
+pre_corruptor = post_corruptor = GaussianCorruptor(0) #GAUSSIAN_NOISE)
 
 gsn = GSN.new(layers, vis_corruptor, pre_corruptor, post_corruptor)
 
@@ -55,7 +60,6 @@ def debug():
     print "Activation 1: ", data[1]
 
 def test():
-    import pdb; pdb.set_trace()
     alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=Cost(),
               termination_criterion=EpochCounter(MAX_EPOCHS),
               batches_per_iter=BATCHES_PER_EPOCH, batch_size=BATCH_SIZE)
