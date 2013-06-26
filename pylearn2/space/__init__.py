@@ -298,11 +298,12 @@ class VectorSpace(Space):
 
         if isinstance(space, Conv2DSpace):
             dims = { 'b' : batch.shape[0], 'c' : space.num_channels, 0 : space.shape[0], 1 : space.shape[1] }
-            if space.axes[0] != 'b':
-                tmp_axes = ['b'] + [axis for axis in space.axes if axis != 'b']
-                shape = [dims[ax] for ax in tmp_axes]
+            if space.axes != space.default_axes:
+                # Always use default_axes, so conversions like
+                # Conv2DSpace(c01b) -> VectorSpace -> Conv2DSpace(b01c) work
+                shape = [dims[ax] for ax in space.default_axes]
                 batch = batch.reshape(shape)
-                batch = batch.transpose(*[tmp_axes.index(ax) for ax in space.axes])
+                batch = batch.transpose(*[space.default_axes.index(ax) for ax in space.axes])
                 return batch
 
             shape = tuple( [ dims[elem] for elem in space.axes ] )
@@ -360,6 +361,12 @@ class VectorSpace(Space):
 
 class Conv2DSpace(Space):
     """A space whose points are defined as (multi-channel) images."""
+
+    # Assume pylearn2's get_topological_view format, since this is how
+    # data is currently served up. If we make better iterators change
+    # default to ('b', 'c', 0, 1) for theano conv2d
+    default_axes = ('b', 0, 1, 'c')
+
     def __init__(self, shape, channels = None, num_channels = None, axes = None):
         """
         Initialize a Conv2DSpace.
@@ -398,10 +405,7 @@ class Conv2DSpace(Space):
         self.shape = tuple(shape)
         self.num_channels = num_channels
         if axes is None:
-            # Assume pylearn2's get_topological_view format, since this is how
-            # data is currently served up. If we make better iterators change
-            # default to ('b', 'c', 0, 1) for theano conv2d
-            axes = ('b', 0, 1, 'c')
+            axes = self.default_axes
         assert len(axes) == 4
         self.axes = tuple(axes)
 
@@ -570,28 +574,35 @@ class Conv2DSpace(Space):
     def np_format_as(self, batch, space):
         self.np_validate(batch)
         if isinstance(space, VectorSpace):
-            if self.axes[0] != 'b':
-                # We need to ensure that the batch index goes on the first axis before the reshape
-                new_axes = ['b'] + [axis for axis in self.axes if axis != 'b']
-                batch = batch.transpose(*[self.axes.index(axis) for axis in new_axes])
+            # We need to ensure that the resulting batch will always be
+            # the same in `space`, no matter what the axes of `self` are.
+            if self.axes != self.default_axes:
+                # The batch index goes on the first axis
+                assert self.default_axes[0] == 'b'
+                batch = batch.transpose(*[self.axes.index(axis)
+                                          for axis in self.default_axes])
             return batch.reshape((batch.shape[0], self.get_total_dimension()))
         if isinstance(space, Conv2DSpace):
             return Conv2DSpace.convert_numpy(batch, self.axes, space.axes)
-        raise NotImplementedError("Conv2DSPace doesn't know how to format as "+str(type(space)))
-
+        raise NotImplementedError("%s doesn't know how to format as %s"
+                                  % (str(self), str(space)))
 
     @functools.wraps(Space._format_as)
     def _format_as(self, batch, space):
         self.validate(batch)
         if isinstance(space, VectorSpace):
-            if self.axes[0] != 'b':
-                # We need to ensure that the batch index goes on the first axis before the reshape
-                new_axes = ['b'] + [axis for axis in self.axes if axis != 'b']
-                batch = batch.transpose(*[self.axes.index(axis) for axis in new_axes])
+            # We need to ensure that the resulting batch will always be
+            # the same in `space`, no matter what the axes of `self` are.
+            if self.axes != self.default_axes:
+                # The batch index goes on the first axis
+                assert self.default_axes[0] == 'b'
+                batch = batch.transpose(*[self.axes.index(axis)
+                                          for axis in self.default_axes])
             return batch.reshape((batch.shape[0], self.get_total_dimension()))
         if isinstance(space, Conv2DSpace):
             return Conv2DSpace.convert(batch, self.axes, space.axes)
-        raise NotImplementedError("Conv2DSPace doesn't know how to format as "+str(type(space)))
+        raise NotImplementedError("%s doesn't know how to format as %s"
+                                  % (str(self), str(space)))
 
 
 class CompositeSpace(Space):
