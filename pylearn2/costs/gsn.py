@@ -13,10 +13,10 @@ def _class_creator(klass):
 
     class Inner(Cost):
         def expr(self, model, data, walkback=0):
-            self.get_data_specs(self, model)[0].validate(data)
+            self.get_data_specs(model)[0].validate(data)
             X = data
             return sum(klass.cost(X, reconstructed)
-                       for reconstructed in model.get_sample(X, walkback=walkback))
+                       for reconstructed in model.get_samples(X, walkback=walkback))
 
         def get_data_specs(self, model):
             return (model.get_input_space(), model.get_input_source())

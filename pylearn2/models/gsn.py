@@ -52,10 +52,11 @@ class GSN(StackedBlocks, Model):
             assert ae.tied_weights, "Autoencoder weights must be tied"
 
             if i != 0:
-                if self.weights is None:
+                if ae.weights is None:
+                    print 'wtf'
                     ae.set_visible_size(self.aes[i - 1].nhid)
                 else:
-                    assert (self.weights.get_value().shape[0] ==
+                    assert (ae.weights.get_value().shape[0] ==
                             self.aes[i - 1].nhid)
 
         def _make_callable_list(previous):
@@ -111,13 +112,12 @@ class GSN(StackedBlocks, Model):
         post_corruptors = [None] + [hidden_post_corruptor] * len(aes)
         return GSN(aes, preact_cors=pre_corruptors, postact_cors=post_corruptors)
 
-
-
     @functools.wraps(Model.get_params)
     def get_params(self):
-        return reduce(lambda a, b: a.extend(b),
-                      [ae.get_params() for ae in self.aes],
-                      [])
+        params = []
+        for ae in self.aes:
+            params.extend(ae.get_params())
+        return params
 
     def set_visible_size(self, *args, **kwargs):
         """
@@ -191,7 +191,7 @@ class GSN(StackedBlocks, Model):
 
         results = self._run(minibatch, walkback=walkback)
         activations = results[len(self.aes):]
-        return [act[-1] for act in activations]
+        return [act[0] for act in activations]
 
     def __call__(self, minibatch):
         """
@@ -208,13 +208,16 @@ class GSN(StackedBlocks, Model):
         ------------
         minibatch : tensor_like
             Theano symbolic representing the input minibatch
-
-
         """
-        mb_size = minibatch.get_value().shape[0]
+        self.activations = [minibatch]
 
-        f = lambda units: sharedX(np.zeros(mb_size, units))
-        self.activations = [minibatch] + map(f, (ae.nhid for ae in self.aes))
+        for i in xrange(len(self.aes)):
+            self.activations.append(
+                T.zeros_like(
+                    T.dot(self.activations[i], self.aes[i].weights)
+                )
+            )
+
 
     def _update(self):
         """
@@ -225,13 +228,14 @@ class GSN(StackedBlocks, Model):
         """
 
         # odd layers
-        self._update_activations(xrange(1, len(activations), 2))
+        self._update_activations(xrange(1, len(self.activations), 2))
 
         # even even layers
-        self._update_activations(xrange(0, len(activations), 2))
+        self._update_activations(xrange(0, len(self.activations), 2))
 
-    def _update_activations(idx_iter):
-        from_above = lambda i: (self.aes[i].hidbias +
+    def _update_activations(self, idx_iter):
+        # FIXME: adding in this bias was breaking things. Should be adding it.
+        from_above = lambda i: (self.aes[i].visbias +
                                 T.dot(self.activations[i + 1],
                                       self.aes[i].weights.T))
 
@@ -251,6 +255,7 @@ class GSN(StackedBlocks, Model):
                 self.activations[i] = from_below(i)
             else:
                 self.activations[i] = from_below(i) + from_above(i)
+                pass
 
             # then activate!
             # pre activation corruption
