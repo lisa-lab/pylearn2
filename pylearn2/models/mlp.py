@@ -1720,7 +1720,7 @@ class Linear(Layer):
         if(self.use_abs_loss):
             return T.abs_(Y - Y_hat)
         else:
-	    return T.sqr(Y - Y_hat)
+            return T.sqr(Y - Y_hat)
 class Tanh(Linear):
     """
     A layer that performs an affine transformation of its (vectorial)
