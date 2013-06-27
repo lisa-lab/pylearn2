@@ -522,7 +522,7 @@ class IsingHidden(HiddenLayer):
             Should disregard top-down feedback
         """
 
-        z = self.transformer.lmul(state_below) + self.b
+        z = self.beta * (self.transformer.lmul(state_below) + self.b)
 
         if self.pool_size != 1:
             # Should probably implement sum pooling for the non-pooled version,
@@ -1272,7 +1272,7 @@ class BoltzmannIsingHidden(HiddenLayer):
             Should disregard top-down feedback
         """
 
-        z = T.dot(state_below, self.ising_weights()) + self.ising_b()
+        z = self.beta * (T.dot(state_below, self.ising_weights()) + self.ising_b())
 
         return z
 
