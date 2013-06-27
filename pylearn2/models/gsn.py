@@ -135,7 +135,7 @@ class GSN(StackedBlocks, Model):
         minibatch : tensor_like
             Theano symbolic representing the input minibatch.
         walkback : int
-            How many walkback steps to perform. DOCUMENT BETTER
+            How many walkback steps to perform.
 
         Returns
         ---------
@@ -189,9 +189,6 @@ class GSN(StackedBlocks, Model):
             A list of length 1 + walkback that contains the samples generated
             by the GSN. The samples will be of the same size as the minibatch.
         """
-        # FIXME: should this return all of the reconstructions, or only the ones
-        # that made it all the way to last layer (ie just 1 if no walkback)
-
         results = self._run(minibatch, walkback=walkback)
         activations = results[len(self.aes):]
         return [act[0] for act in activations]

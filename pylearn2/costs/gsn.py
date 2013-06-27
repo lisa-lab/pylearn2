@@ -12,11 +12,16 @@ def _class_creator(klass):
     assert hasattr(klass, 'cost') and callable(klass.cost)
 
     class Inner(Cost):
-        def expr(self, model, data, walkback=0):
+        def __init__(self, walkback=0):
+            super(Inner, self).__init__()
+            self.walkback = walkback
+
+        def expr(self, model, data):
             self.get_data_specs(model)[0].validate(data)
             X = data
             return sum(klass.cost(X, reconstructed)
-                       for reconstructed in model.get_samples(X, walkback=walkback))
+                       for reconstructed in
+                       model.get_samples(X, walkback=self.walkback))
 
         def get_data_specs(self, model):
             return (model.get_input_space(), model.get_input_source())

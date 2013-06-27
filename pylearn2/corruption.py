@@ -181,7 +181,7 @@ class SaltPepperCorruptor(Corruptor):
             n=1,
             p=1 - self.corruption_level / 2.0,
             dtype=theano.config.floatX
-        ) * x
+        )
 
         salt = self.s_rng.binomial(size=x.shape,
             n=1,
@@ -189,6 +189,9 @@ class SaltPepperCorruptor(Corruptor):
             dtype=theano.config.floatX
         )
 
+        # as of right now, can add to values over 1. If this ever
+        # needs to be fixed, this could be changed to something like
+        # return T.minimum(pepper * x + salt, 1.0)
         return pepper * x + salt
 
 
