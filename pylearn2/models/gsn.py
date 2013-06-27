@@ -18,6 +18,7 @@ import numpy as np
 import theano.tensor as T
 
 from pylearn2.base import StackedBlocks
+from pylearn2.corruption import BinomialSampler, ComposedCorruptor
 from pylearn2.models.autoencoder import Autoencoder
 from pylearn2.models.model import Model
 from pylearn2.utils import sharedX
@@ -106,6 +107,8 @@ class GSN(StackedBlocks, Model):
         for i in xrange(len(layer_sizes) - 1):
             aes.append(Autoencoder(layer_sizes[i], layer_sizes[i + 1],
                                    act, act, tied_weights=True))
+
+        vis_corruptor = ComposedCorruptor(vis_corruptor, BinomialSampler())
 
         pre_corruptors = [None] + [hidden_pre_corruptor] * len(aes)
         post_corruptors = [vis_corruptor] + [hidden_post_corruptor] * len(aes)

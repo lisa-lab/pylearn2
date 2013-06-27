@@ -9,7 +9,7 @@ from pylearn2.termination_criteria import EpochCounter
 from pylearn2.train import Train
 from pylearn2.training_algorithms.sgd import SGD
 
-HIDDEN_SIZE = 1500
+HIDDEN_SIZE = 1000
 SALT_PEPPER_NOISE = 0.4
 GAUSSIAN_NOISE = 2
 
@@ -17,18 +17,17 @@ LEARNING_RATE = 0.25
 MOMENTUM = 0.5
 
 MAX_EPOCHS = 20
-BATCHES_PER_EPOCH = 10
-
+BATCHES_PER_EPOCH = 1000
 BATCH_SIZE = 32
 
 dataset = MNIST(which_set='train')
 
 # just 1 hidden layer
-layers = [dataset.X.shape[1], HIDDEN_SIZE, HIDDEN_SIZE - 500]
+layers = [dataset.X.shape[1], HIDDEN_SIZE, HIDDEN_SIZE]
 
-vis_corruptor = SaltPepperCorruptor(SALT_PEPPER_NOISE)
-pre_corruptor = GaussianCorruptor(GAUSSIAN_NOISE)
-post_corruptor = GaussianCorruptor(GAUSSIAN_NOISE)
+vis_corruptor = SaltPepperCorruptor(0.05)
+pre_corruptor = GaussianCorruptor(.2)
+post_corruptor = GaussianCorruptor(.2)
 
 gsn = GSN.new(layers, vis_corruptor, pre_corruptor, post_corruptor)
 
@@ -73,9 +72,11 @@ def debug(walkback = 0):
         print map(check, data)
 
 def test():
-    alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=Cost(walkback=2),
+    alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=Cost(walkback=1),
               termination_criterion=EpochCounter(MAX_EPOCHS),
-              batches_per_iter=BATCHES_PER_EPOCH, batch_size=BATCH_SIZE)
+              batches_per_iter=BATCHES_PER_EPOCH, batch_size=BATCH_SIZE
+              #,monitoring_dataset=dataset
+              )
 
     trainer = Train(dataset, gsn, algorithm=alg)
     trainer.main_loop()

@@ -173,18 +173,17 @@ class SaltPepperCorruptor(Corruptor):
     """
     Corrupts the input with salt and pepper noise.
 
-    Sets scalar elements to 0 with probability self.corruption_level / 2.0 and
-    then sets scalar elements to 1 with probability self.corruption_level / 2.0.
+    Note
+    ----
+    This corruptor only makes sense over binary valued matrices.
     """
     def _corrupt(self, x):
         pepper = self.s_rng.binomial(size=x.shape,
-            n=1,
             p=1 - self.corruption_level / 2.0,
             dtype=theano.config.floatX
         )
 
         salt = self.s_rng.binomial(size=x.shape,
-            n=1,
             p=self.corruption_level / 2.0,
             dtype=theano.config.floatX
         )
@@ -193,6 +192,44 @@ class SaltPepperCorruptor(Corruptor):
         # needs to be fixed, this could be changed to something like
         # return T.minimum(pepper * x + salt, 1.0)
         return pepper * x + salt
+
+class BinomialSampler(Corruptor):
+    def __init__(self, *args, **kwargs):
+        # pass up a 0 because corruption_level is not relevant here
+        super(BinomialSampler, self).__init__(0, *args, **kwargs)
+
+    """
+    "Corrupts" an input of values between 0 and 1 by treating those
+    values as probabilities and sampling binary values.
+    """
+    def _corrupt(self, x):
+        return self.s_rng.binomial(size=x.shape, p=x,
+                                   dtype=theano.config.floatX)
+
+class ComposedCorruptor(Corruptor):
+    def __init__(self, *corruptors):
+        """
+        Parameters
+        ----------
+        corruptors : list of Corruptor objects
+            The corruptors are applied in reverse order. This matches the typical
+            function application notation. Thus ComposedCorruptor([a, b])._corrupt(X)
+            is the same as a(b(X))
+
+            Note
+            ----
+            Does NOT call Corruptor.__init__, so does not contain all of the
+            standard fields for Corruptors.
+        """
+        # pass up the 0 for corruption_level (not relevant here)
+        assert len(corruptors) >= 1
+        self._corruptors = corruptors
+
+    def _corrupt(self, x):
+        result = x
+        for c in reversed(self._corruptors):
+            result = c(x)
+        return result
 
 
 ##################################################
