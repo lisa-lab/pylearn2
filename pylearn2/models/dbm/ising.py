@@ -846,7 +846,7 @@ class BoltzmannIsingHidden(HiddenLayer):
         beta = self.beta
         if beta in updates:
             updated_beta = updates[beta]
-            updates[beta] = T.clip(updated_beta, 0., 1000.)
+            updates[beta] = T.clip(updated_beta, 1., 1000.)
 
         if self.max_col_norm is not None:
             W = self.W
@@ -945,10 +945,6 @@ class BoltzmannIsingHidden(HiddenLayer):
                     sharedX(np.zeros((self.dbm.batch_size, self.dim)))
                 self.layer_below.noisy_sampling_b = \
                     sharedX(np.zeros((self.dbm.batch_size, self.layer_below.nvis)))
-            if self.sampling_W_stdev is not None:
-                self.noisy_sampling_W = \
-                    sharedX(np.zeros((self.input_dim, self.dim)),
-                            'noisy_sampling_W')
 
             if self.noisy_sampling_b is not None:
                 theano_rng = MRG_RandomStreams(self.dbm.rng.randint(2**16))
