@@ -397,7 +397,7 @@ class IsingHidden(HiddenLayer):
                 ('range_x.min_u', v_range.min()),
                 ('mean_x.max_u', v_mean.max()),
                 ('mean_x.mean_u', v_mean.mean()),
-                ('mean_x.min_u', v_mean.min())
+                ('mean_x.min_u', v_mean.min()),
             ]:
                 rval[prefix+key] = val
 
@@ -709,6 +709,7 @@ class BoltzmannIsingVisible(VisibleLayer):
 
         rval['ising_b_min'] = ising_b.min()
         rval['ising_b_max'] = ising_b.max()
+        rval['beta'] = self.beta
 
         if hasattr(self, 'noisy_sampling_b'):
             rval['noisy_sampling_b_min'] = self.noisy_sampling_b.min()
