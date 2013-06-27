@@ -680,9 +680,9 @@ class BoltzmannIsingVisible(VisibleLayer):
 
         z = msg + bias
 
-        rval = T.nnet.sigmoid(2. * self.beta * z)
+        rval = T.tanh(self.beta * z)
 
-        return rval * 2. - 1.
+        return rval
 
     def expected_energy_term(self, state, average, state_below=None,
                              average_below=None):
