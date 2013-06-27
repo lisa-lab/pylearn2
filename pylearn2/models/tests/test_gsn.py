@@ -18,19 +18,19 @@ GAUSSIAN_NOISE = 2
 LEARNING_RATE = 0.25
 MOMENTUM = 0.5
 
-MAX_EPOCHS = 10
-BATCHES_PER_EPOCH = 20
+MAX_EPOCHS = 20
+BATCHES_PER_EPOCH = 10
 
-BATCH_SIZE = 16
+BATCH_SIZE = 32
 
 dataset = MNIST(which_set='train')
 
 # just 1 hidden layer
 layers = [dataset.X.shape[1], HIDDEN_SIZE]
 
-# FIXME: SaltPepperCorruptor causing errors
-vis_corruptor = GaussianCorruptor(1) #SaltPepperCorruptor(SALT_PEPPER_NOISE)
-pre_corruptor = post_corruptor = GaussianCorruptor(0) #GAUSSIAN_NOISE)
+vis_corruptor = SaltPepperCorruptor(0.5)
+pre_corruptor = None
+post_corruptor = None
 
 gsn = GSN.new(layers, vis_corruptor, pre_corruptor, post_corruptor)
 

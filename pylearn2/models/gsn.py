@@ -107,8 +107,8 @@ class GSN(StackedBlocks, Model):
             aes.append(Autoencoder(layer_sizes[i], layer_sizes[i + 1],
                                    act, act, tied_weights=True))
 
-        pre_corruptors = [vis_corruptor] + [hidden_pre_corruptor] * len(aes)
-        post_corruptors = [None] + [hidden_post_corruptor] * len(aes)
+        pre_corruptors = [None] + [hidden_pre_corruptor] * len(aes)
+        post_corruptors = [vis_corruptor] + [hidden_post_corruptor] * len(aes)
         return GSN(aes, preact_cors=pre_corruptors, postact_cors=post_corruptors)
 
     @functools.wraps(Model.get_params)
@@ -165,6 +165,9 @@ class GSN(StackedBlocks, Model):
             # slicing makes a shallow copy
             steps.append(self.activations[:(2 * time) + 1])
 
+            # Apply post activation corruption to even layers
+            self._apply_postact_corruption(xrange(0, len(self.activations), 2))
+
         return steps
 
     def get_samples(self, minibatch, walkback=0):
@@ -215,7 +218,8 @@ class GSN(StackedBlocks, Model):
         minibatch : tensor_like
             Theano symbolic representing the input minibatch
         """
-        self.activations = [minibatch]
+        # corrupt the input
+        self.activations = [self.postact_cors[0](minibatch)]
 
         for i in xrange(len(self.aes)):
             self.activations.append(
@@ -223,7 +227,6 @@ class GSN(StackedBlocks, Model):
                     T.dot(self.activations[i], self.aes[i].weights)
                 )
             )
-
 
     def _update(self):
         """
@@ -233,11 +236,21 @@ class GSN(StackedBlocks, Model):
         forward propogating the neural network in both directions.
         """
 
-        # odd layers
-        self._update_activations(xrange(1, len(self.activations), 2))
+        # FIXME: Right now the pre and post activation noise is added to the
+        # uninitialized (still 0) layers.
 
-        # even even layers
+        # Update and corrupt all of the odd layers
+        odds = range(1, len(self.activations), 2)
+        self._update_activations(odds)
+        self._apply_postact_corruption(odds)
+
+        # Update the even layers. Not applying post activation noise now so that
+        # that cost function can be evaluated
         self._update_activations(xrange(0, len(self.activations), 2))
+
+    def _apply_postact_corruption(self, idx_iter):
+        for i in idx_iter:
+            self.activations[i] = self.postact_cors[i](self.activations[i])
 
     def _update_activations(self, idx_iter):
         from_above = lambda i: (self.aes[i].visbias +
@@ -260,17 +273,18 @@ class GSN(StackedBlocks, Model):
                 self.activations[i] = from_below(i)
             else:
                 self.activations[i] = from_below(i) + from_above(i)
-                pass
 
-            # then activate!
             # pre activation corruption
             self.activations[i] = self.preact_cors[i](self.activations[i])
 
-            # using activation function from lower autoencoder
-            # no activation function on input layer
-            if i != 0:
-                if self.aes[i - 1].act_enc is not None:
-                    self.activations[i] = self.aes[i - 1].act_enc(self.activations[i])
+            # Using the activation function from lower autoencoder
+            act_func = None
+            if i == 0:
+                act_func = self.aes[0].act_dec
+            else:
+                act_func = self.aes[i - 1].act_enc
 
-                # post activation corruption
-                self.activations[i] = self.postact_cors[i](self.activations[i])
+            # ACTIVATION
+            # None implies linear
+            if act_func != None:
+                self.activations[i] = act_func(self.activations[i])
