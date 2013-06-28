@@ -1,6 +1,14 @@
+import copy
+
+import numpy as np
+import theano
+T = theano.tensor
+F = theano.function
+
 #from pylearn2.costs.gsn import MSWalkbackReconstructionError as Cost
-from pylearn2.costs.gsn import MBWalkbackCrossEntropy as Cost
+#from pylearn2.costs.gsn import MBWalkbackCrossEntropy as Cost
 #from pylearn2.costs.autoencoder import MeanSquaredReconstructionError as Cost
+from pylearn2.costs.autoencoder import MeanBinaryCrossEntropy as Cost
 
 from pylearn2.corruption import GaussianCorruptor, SaltPepperCorruptor
 from pylearn2.datasets.mnist import MNIST
@@ -23,19 +31,15 @@ BATCH_SIZE = 32
 dataset = MNIST(which_set='train')
 
 # just 1 hidden layer
-layers = [dataset.X.shape[1], HIDDEN_SIZE, HIDDEN_SIZE, HIDDEN_SIZE]
+layers = [dataset.X.shape[1], HIDDEN_SIZE]
 
-vis_corruptor = SaltPepperCorruptor(0.4)
-pre_corruptor = GaussianCorruptor(2)
-post_corruptor = GaussianCorruptor(2)
+vis_corruptor = SaltPepperCorruptor(0.1)
+pre_corruptor = GaussianCorruptor(.2)
+post_corruptor = GaussianCorruptor(.2)
 
 gsn = GSN.new(layers, vis_corruptor, pre_corruptor, post_corruptor)
 
 def debug(walkback = 0):
-    import numpy as np
-    import theano
-    T = theano.tensor
-    F = theano.function
 
     check = lambda x: np.any(np.isnan(x)) or np.any(np.isinf(x))
     check_val = lambda x: np.all(x > 0.0) and np.all(x < 1.0)
@@ -75,10 +79,10 @@ def debug(walkback = 0):
         print map(check, data)
 
 def test():
-    alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=Cost(walkback=1),
+    alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=Cost(),
               termination_criterion=EpochCounter(MAX_EPOCHS),
               batches_per_iter=BATCHES_PER_EPOCH, batch_size=BATCH_SIZE
-              #,monitoring_dataset=dataset
+              ,monitoring_dataset=dataset
               )
 
     trainer = Train(dataset, gsn, algorithm=alg)
@@ -87,4 +91,4 @@ def test():
 
 
 if __name__ == '__main__':
-    debug()
+    test()

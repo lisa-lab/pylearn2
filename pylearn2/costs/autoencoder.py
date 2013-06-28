@@ -35,7 +35,7 @@ class MeanBinaryCrossEntropy(WalkbackFriendlyCost):
     def expr(self, model, data, ** kwargs):
         self.get_data_specs(model)[0].validate(data)
         X = data
-        return cost(X, model.reconstruct(X))
+        return self.cost(X, model.reconstruct(X))
 
     def get_data_specs(self, model):
         return (model.get_input_space(), model.get_input_source())

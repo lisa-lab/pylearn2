@@ -172,8 +172,8 @@ class GSN(StackedBlocks, Model):
             steps.append(self.activations[:(2 * time) + 1])
 
             # Apply post activation corruption to even layers
-            self._apply_postact_corruption(xrange(0, len(self.activations), 2),
-                                           2 * time)
+            evens = xrange(0, min(2 * time + 1, len(self.activations)), 2)
+            self._apply_postact_corruption(evens)
 
         return steps
 
@@ -204,6 +204,9 @@ class GSN(StackedBlocks, Model):
         """
         Included for compatibility with autoencoder cost functions.
         """
+        # sanity check, didn't work too well... wut
+        #return self.aes[0].reconstruct(minibatch)
+
         return self.get_samples(minibatch, walkback=0)[0]
 
     def __call__(self, minibatch):
@@ -247,17 +250,16 @@ class GSN(StackedBlocks, Model):
             time = len(self.activations)
 
         # Update and corrupt all of the odd layers
-        odds = range(1, len(self.activations), 2)
-        cutoff = 2 * time - 1
-        self._update_activations(odds, cutoff)
-        self._apply_postact_corruption(odds, cutoff)
+        odds = range(1, min(2 * time, len(self.activations)), 2)
+        self._update_activations(odds)
+        self._apply_postact_corruption(odds)
 
         # Update the even layers. Not applying post activation noise now so that
         # that cost function can be evaluated
-        cutoff = 2 * time
-        self._update_activations(xrange(0, len(self.activations), 2), cutoff)
+        evens = xrange(0, min(2 * time + 1, len(self.activations)), 2)
+        self._update_activations(evens)
 
-    def _apply_postact_corruption(self, idx_iter, cutoff):
+    def _apply_postact_corruption(self, idx_iter):
         """
         Applies post activation corruption to layers.
 
@@ -266,27 +268,17 @@ class GSN(StackedBlocks, Model):
         idx_iter : iterable
             An iterable of indices into self.activations. The indexes indicate
             which layers the post activation corruptors should be applied to.
-            idx_iter must be sorted for this method to work correctly.
-        cutoff : int
-            The maximum layer index which should be corrupted. It does not matter
-            if the value for this is larger than the number of layers.
         """
         for i in idx_iter:
-            if i > cutoff:
-                return
             self.activations[i] = self.postact_cors[i](self.activations[i])
 
-    def _update_activations(self, idx_iter, cutoff):
+    def _update_activations(self, idx_iter):
         """
         Parameters
         ----------
         idx_iter : iterable
             An iterable of indices into self.activations. The indexes indicate
-            which layers should be updated. idx_iter must be sorted for this
-            method to work correctly.
-        cutoff : int
-            The maximum layer index which should be updated and corrupted. It does
-            not matter if the values for this is larger than the number of layers.
+            which layers should be updated.
         """
         from_above = lambda i: (self.aes[i].visbias +
                                 T.dot(self.activations[i + 1],
@@ -297,9 +289,6 @@ class GSN(StackedBlocks, Model):
                                      self.aes[i - 1].weights))
 
         for i in idx_iter:
-            if i > cutoff:
-                return
-
             # first compute then hidden activation
             if i == 0:
                 self.activations[i] = from_above(i)
@@ -320,5 +309,5 @@ class GSN(StackedBlocks, Model):
 
             # ACTIVATION
             # None implies linear
-            if act_func != None:
+            if act_func is not None:
                 self.activations[i] = act_func(self.activations[i])
