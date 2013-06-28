@@ -108,7 +108,10 @@ class GSN(StackedBlocks, Model):
             aes.append(Autoencoder(layer_sizes[i], layer_sizes[i + 1],
                                    act, act, tied_weights=True))
 
-        vis_corruptor = ComposedCorruptor(vis_corruptor, BinomialSampler())
+        if callable(vis_corruptor):
+            vis_corruptor = ComposedCorruptor(vis_corruptor, BinomialSampler())
+        else:
+            vis_corruptor = BinomialSampler()
 
         pre_corruptors = [None] + [hidden_pre_corruptor] * len(aes)
         post_corruptors = [vis_corruptor] + [hidden_post_corruptor] * len(aes)
@@ -163,13 +166,14 @@ class GSN(StackedBlocks, Model):
         steps = [[self.activations[0]]]
 
         for time in xrange(1, len(self.aes) + walkback + 1):
-            self._update()
+            self._update(time=time)
 
             # slicing makes a shallow copy
             steps.append(self.activations[:(2 * time) + 1])
 
             # Apply post activation corruption to even layers
-            self._apply_postact_corruption(xrange(0, len(self.activations), 2))
+            self._apply_postact_corruption(xrange(0, len(self.activations), 2),
+                                           2 * time)
 
         return steps
 
@@ -228,44 +232,74 @@ class GSN(StackedBlocks, Model):
                 )
             )
 
-    def _update(self):
+    def _update(self, time=None):
         """
         See Figure 1 in "Deep Generative Stochastic Networks as Generative
         Models" by Bengio, Thibodeau-Laufer.
         This and _update_activations implement exactly that, which is essentially
         forward propogating the neural network in both directions.
-        """
 
-        # FIXME: Right now the pre and post activation noise is added to the
-        # uninitialized (still 0) layers.
+        The time parameter ensures noise doesn't get added to the layers which are
+        are still 0 (signal hasn't reached them yet).
+        """
+        if time is None:
+            # set time high enough so that we add noise to all layers
+            time = len(self.activations)
 
         # Update and corrupt all of the odd layers
         odds = range(1, len(self.activations), 2)
-        self._update_activations(odds)
-        self._apply_postact_corruption(odds)
+        cutoff = 2 * time - 1
+        self._update_activations(odds, cutoff)
+        self._apply_postact_corruption(odds, cutoff)
 
         # Update the even layers. Not applying post activation noise now so that
         # that cost function can be evaluated
-        self._update_activations(xrange(0, len(self.activations), 2))
+        cutoff = 2 * time
+        self._update_activations(xrange(0, len(self.activations), 2), cutoff)
 
-    def _apply_postact_corruption(self, idx_iter):
+    def _apply_postact_corruption(self, idx_iter, cutoff):
+        """
+        Applies post activation corruption to layers.
+
+        Parameters
+        ----------
+        idx_iter : iterable
+            An iterable of indices into self.activations. The indexes indicate
+            which layers the post activation corruptors should be applied to.
+            idx_iter must be sorted for this method to work correctly.
+        cutoff : int
+            The maximum layer index which should be corrupted. It does not matter
+            if the value for this is larger than the number of layers.
+        """
         for i in idx_iter:
+            if i > cutoff:
+                return
             self.activations[i] = self.postact_cors[i](self.activations[i])
 
-    def _update_activations(self, idx_iter):
+    def _update_activations(self, idx_iter, cutoff):
+        """
+        Parameters
+        ----------
+        idx_iter : iterable
+            An iterable of indices into self.activations. The indexes indicate
+            which layers should be updated. idx_iter must be sorted for this
+            method to work correctly.
+        cutoff : int
+            The maximum layer index which should be updated and corrupted. It does
+            not matter if the values for this is larger than the number of layers.
+        """
         from_above = lambda i: (self.aes[i].visbias +
                                 T.dot(self.activations[i + 1],
                                       self.aes[i].weights.T))
 
-        ''' equivalent code:
-        from_below = lambda i: self.aes[i - 1]._hidden_input(
-            self.activations[i - 1])
-        '''
         from_below = lambda i: (self.aes[i - 1].hidbias +
                                 T.dot(self.activations[i - 1],
                                      self.aes[i - 1].weights))
 
         for i in idx_iter:
+            if i > cutoff:
+                return
+
             # first compute then hidden activation
             if i == 0:
                 self.activations[i] = from_above(i)

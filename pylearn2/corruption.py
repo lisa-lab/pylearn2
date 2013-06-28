@@ -178,20 +178,20 @@ class SaltPepperCorruptor(Corruptor):
     This corruptor only makes sense over binary valued matrices.
     """
     def _corrupt(self, x):
-        pepper = self.s_rng.binomial(size=x.shape,
-            p=1 - self.corruption_level / 2.0,
+        a = self.s_rng.binomial(
+            size=x.shape,
+            p=(1 - self.corruption_level),
             dtype=theano.config.floatX
         )
 
-        salt = self.s_rng.binomial(size=x.shape,
-            p=self.corruption_level / 2.0,
+        b = self.s_rng.binomial(
+            size=x.shape,
+            p=0.5,
             dtype=theano.config.floatX
         )
 
-        # as of right now, can add to values over 1. If this ever
-        # needs to be fixed, this could be changed to something like
-        # return T.minimum(pepper * x + salt, 1.0)
-        return pepper * x + salt
+        c = T.eq(a, 0) * b
+        return x * a + c
 
 class BinomialSampler(Corruptor):
     def __init__(self, *args, **kwargs):
@@ -228,7 +228,7 @@ class ComposedCorruptor(Corruptor):
     def _corrupt(self, x):
         result = x
         for c in reversed(self._corruptors):
-            result = c(x)
+            result = c(result)
         return result
 
 

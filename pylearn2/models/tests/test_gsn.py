@@ -23,11 +23,11 @@ BATCH_SIZE = 32
 dataset = MNIST(which_set='train')
 
 # just 1 hidden layer
-layers = [dataset.X.shape[1], HIDDEN_SIZE, HIDDEN_SIZE]
+layers = [dataset.X.shape[1], HIDDEN_SIZE, HIDDEN_SIZE, HIDDEN_SIZE]
 
-vis_corruptor = SaltPepperCorruptor(0.05)
-pre_corruptor = GaussianCorruptor(.2)
-post_corruptor = GaussianCorruptor(.2)
+vis_corruptor = SaltPepperCorruptor(0.4)
+pre_corruptor = GaussianCorruptor(2)
+post_corruptor = GaussianCorruptor(2)
 
 gsn = GSN.new(layers, vis_corruptor, pre_corruptor, post_corruptor)
 
@@ -50,24 +50,27 @@ def debug(walkback = 0):
     data = F([x], gsn.activations)(mb)
     print "STEP 0"
     for j in xrange(len(data)):
-        print "Activation %d: " % j, data[j]
+        print "Activation %d: " % j, data[j][0][:5]
     print map(check, data)
 
     for time in xrange(1, len(gsn.aes) + walkback + 1):
         print ''
-        gsn._update()
+        gsn._update(time=time)
         data = F([x], gsn.activations)(mb)
         print "DATA GOOD: ", check_val(data[0])
+        print "STEP (PRE CORRUPTION) %d" % time
+        for j in xrange(len(data)):
+            print "Activation %d: " % j, data[j][0][:5]
 
-        gsn._apply_postact_corruption(xrange(0, len(gsn.activations), 2))
+
+        print "STEP (POST CORRUPTION) %d" % time
+        gsn._apply_postact_corruption(xrange(0, len(gsn.activations), 2), 2*time)
         data = F([x], gsn.activations)(mb)
-
-        print "STEP %d" % time
         if time > len(gsn.aes):
             print "WALKBACK %d" % (time - len(gsn.aes))
 
         for j in xrange(len(data)):
-            print "Activation %d: " % j, data[j]
+            print "Activation %d: " % j, data[j][0][:5]
 
         print map(check, data)
 
@@ -84,4 +87,4 @@ def test():
 
 
 if __name__ == '__main__':
-    test()
+    debug()
