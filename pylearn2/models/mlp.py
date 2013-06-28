@@ -1445,7 +1445,8 @@ class Linear(Layer):
                  max_col_norm = None,
                  softmax_columns = False,
                  copy_input = 0,
-                 use_abs_loss = False):
+                 use_abs_loss = False, 
+                 use_bias = True):
         """
 
         include_prob: probability of including a weight element in the set
@@ -1453,10 +1454,18 @@ class Linear(Layer):
         it is initialized to 0.
 
         """
+        
+        if use_bias and init_bias is None:
+            init_bias = 0.
+
         self.__dict__.update(locals())
         del self.self
 
-        self.b = sharedX( np.zeros((self.dim,)) + init_bias, name = layer_name + '_b')
+        if use_bias:
+            self.b = sharedX( np.zeros((self.dim,)) + init_bias, name = layer_name + '_b')
+        else:
+            assert b_lr_scale is None
+            init_bias is None
 
     def get_lr_scalers(self):
 
@@ -1566,8 +1575,10 @@ class Linear(Layer):
         rval = self.transformer.get_params()
         assert not isinstance(rval, set)
         rval = list(rval)
-        assert self.b not in rval
-        rval.append(self.b)
+        if self.use_bias:
+            assert self.b.name is not None
+            assert self.b not in rval
+            rval.append(self.b)
         return rval
 
     def get_weight_decay(self, coeff):
@@ -1721,6 +1732,7 @@ class Linear(Layer):
             return T.abs_(Y - Y_hat)
         else:
             return T.sqr(Y - Y_hat)
+
 class Tanh(Linear):
     """
     A layer that performs an affine transformation of its (vectorial)
@@ -1891,6 +1903,22 @@ class Sigmoid(Linear):
                 rval['misclass'] = T.cast(incorrect, config.floatX).mean()
         return rval
 
+class RectifiedLinear(Linear):
+    """
+    Implementation of the sigmoid nonlinearity for MLP.
+    """
+
+    def __init__(self, left_slope = 0.0, **kwargs):
+        super(RectifiedLinear, self).__init__(**kwargs)
+        self.left_slope = left_slope
+    
+    def fprop(self, state_below):
+        p = self._linear_part(state_below)
+        p = p * (p > 0.) + self.left_slope * p * (p < 0.)
+        return p
+
+    def cost(self, *args, **kwargs):
+        raise NotImplementedError()
 
 class SpaceConverter(Layer):
 
