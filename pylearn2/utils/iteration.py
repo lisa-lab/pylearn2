@@ -374,14 +374,14 @@ class FiniteDatasetIterator(object):
 
             self._convert = []
 
-            for (so, sp) in safe_zip(source, sub_spaces):
+            for i, (so, sp) in enumerate(safe_zip(source, sub_spaces)):
                 idx = dataset_source.index(so)
                 dspace = dataset_sub_spaces[idx]
 
                 # Compose the functions
                 fn = None
                 needs_cast = not np.dtype(config.floatX) == \
-                                        self._raw_data[idx].dtype
+                                        self._raw_data[i].dtype
                 if needs_cast:
                     fn = lambda batch: numpy.cast[config.floatX](batch)
 
@@ -395,8 +395,8 @@ class FiniteDatasetIterator(object):
                         fn = (lambda batch, dspace=dspace, sp=sp:
                                 dspace.np_format_as(batch, sp))
                     else:
-                        fn = (lambda batch, dspace=dspace, sp=sp:
-                                dspace.np_format_as(fn(batch), sp))
+                        fn = (lambda batch, dspace=dspace, sp=sp, fn_=fn:
+                                dspace.np_format_as(fn_(batch), sp))
 
                 self._convert.append(fn)
 
@@ -455,24 +455,38 @@ class FiniteDatasetIterator(object):
 
 class FiniteDatasetIteratorPyTables(FiniteDatasetIterator):
     def next(self):
+        warnings.warn("This class is obselete with the new interface change, "
+                    "and will be removed around November 7th",
+                    stacklevel=2)
+
         next_index = self._subset_iterator.next()
-        if isinstance(next_index, np.ndarray) and len(next_index) == 1:
-            next_index = next_index[0]
-        if self._needs_cast:
-            features = numpy.cast[config.floatX](self._raw_data[next_index])
+
+        if self._deprecated_interface:
+            if isinstance(next_index, np.ndarray) and len(next_index) == 1:
+                next_index = next_index[0]
+            if self._needs_cast:
+                features = numpy.cast[config.floatX](self._raw_data[next_index])
+            else:
+                features = self._raw_data[next_index,:]
+            if self._topo:
+                if len(features.shape) != 2:
+                    features = features.reshape((1, features.shape[0]))
+                features = self._dataset.get_topological_view(features)
+            if self._targets:
+                targets = self._raw_targets[next_index,:]
+                if len(targets.shape) != 2:
+                    targets = targets.reshape((1, targets.shape[0]))
+                if self._targets_need_cast:
+                    targets = np.cast[config.floatX](targets)
+                return features, targets
+            else:
+                return features
         else:
-            features = self._raw_data[next_index,:]
-        if self._topo:
-            if len(features.shape) != 2:
-                features = features.reshape((1, features.shape[0]))
-            features = self._dataset.get_topological_view(features)
-        if self._targets:
-            targets = self._raw_targets[next_index,:]
-            if len(targets.shape) != 2:
-                targets = targets.reshape((1, targets.shape[0]))
-            if self._targets_need_cast:
-                targets = np.cast[config.floatX](targets)
-            return features, targets
-        else:
-            return features
+            rval = tuple(
+                    fn(data[next_index]) if fn else data[next_index]
+                    for data, fn in safe_zip(self._raw_data, self._convert))
+            if not self._return_tuple and len(rval) == 1:
+                rval, = rval
+            return rval
+
 

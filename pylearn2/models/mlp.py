@@ -599,14 +599,28 @@ class MLP(Layer):
     def cost_from_cost_matrix(self, cost_matrix):
         return self.layers[-1].cost_from_cost_matrix(cost_matrix)
 
-    def cost_from_X(self, X, Y):
+    def cost_from_X(self, data):
         """
-        Computes self.cost, but takes X rather than Y_hat as an argument.
+        Computes self.cost, but takes data=(X, Y) rather than Y_hat as an argument.
         This is just a wrapper around self.cost that computes Y_hat by
         calling Y_hat = self.fprop(X)
         """
+        self.cost_from_X_data_specs()[0].validate(data)
+        X, Y = data
         Y_hat = self.fprop(X)
         return self.cost(Y, Y_hat)
+
+    def cost_from_X_data_specs(self):
+        """
+        Returns the data specs needed by cost_from_X.
+
+        This is useful if cost_from_X is used in a MethodCost.
+        """
+        space = CompositeSpace((self.get_input_space(),
+                                self.get_output_space()))
+        source = (self.get_input_source(), self.get_target_source())
+        return (space, source)
+
 
 class Softmax(Layer):
 
@@ -1430,7 +1444,8 @@ class Linear(Layer):
                  max_row_norm = None,
                  max_col_norm = None,
                  softmax_columns = False,
-                 copy_input = 0):
+                 copy_input = 0,
+                 use_abs_loss = False):
         """
 
         include_prob: probability of including a weight element in the set
@@ -1702,8 +1717,10 @@ class Linear(Layer):
         return cost_matrix.sum(axis=1).mean()
 
     def cost_matrix(self, Y, Y_hat):
-        return T.sqr(Y - Y_hat)
-
+        if(self.use_abs_loss):
+            return T.abs_(Y - Y_hat)
+        else:
+            return T.sqr(Y - Y_hat)
 class Tanh(Linear):
     """
     A layer that performs an affine transformation of its (vectorial)

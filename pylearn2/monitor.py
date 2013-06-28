@@ -19,7 +19,7 @@ import theano.sparse
 
 from pylearn2.config import yaml_parse
 from pylearn2.datasets.dataset import Dataset
-from pylearn2.space import CompositeSpace, VectorSpace
+from pylearn2.space import CompositeSpace, NullSpace
 from pylearn2.utils import function
 from pylearn2.utils.iteration import is_stochastic
 from pylearn2.utils import sharedX
@@ -520,14 +520,45 @@ class Monitor(object):
 
         val = T.as_tensor_variable(val)
 
-        if not isinstance(ipt, (list, tuple)):
-            tmp = [ipt]
-        else:
-            tmp = ipt
+        if data_specs is None:
+            warnings.warn("parameter 'data_specs' should be provided when "
+                    "calling add_channel. We will build a default one.",
+                    stacklevel=2)
+            if isinstance(ipt, list):
+                ipt = tuple(ipt)
+            if ipt is not None and not isinstance(ipt, tuple):
+                ipt = (ipt,)
+
+            if ipt is None:
+                data_specs = (NullSpace(), '')
+            elif len(ipt) == 0:
+                data_specs = (CompositeSpace([]), ())
+            elif hasattr(dataset, 'get_data_specs'):
+                dataset_space, dataset_source = dataset.get_data_specs()
+                if (len(ipt) == 1 and
+                        dataset_source is not None and
+                        (not isinstance(dataset_source, tuple) or
+                            len(dataset_source) == 1) and
+                        'features' in dataset_source):
+                    data_specs = (dataset_space, dataset_source)
+                elif (len(ipt) == 2 and
+                        dataset_source == ('features', 'targets')):
+                    data_specs = (dataset_space, dataset_source)
+                else:
+                    raise ValueError("Cannot infer default data_specs for the "
+                            "following input points and dataset: "
+                            "ipt = %s, dataset = %s" % (ipt, dataset))
+
+        data_specs[0].validate(ipt)
+
+        mapping = DataSpecsMapping(data_specs)
+        flat_ipt = mapping.flatten(ipt)
+        if not isinstance(flat_ipt, tuple):
+            flat_ipt = (flat_ipt,)
         inputs = theano.gof.graph.inputs([val])
         for elem in inputs:
             if not hasattr(elem, 'get_value') and not isinstance(elem, theano.gof.graph.Constant):
-                if elem not in tmp:
+                if elem not in flat_ipt:
                     raise ValueError("Unspecified input: "+str(elem)+". "
                             "This may be due to an incorrect implementation "
                             "of a cost's get_data_specs() method, or of a "
@@ -536,11 +567,12 @@ class Monitor(object):
         mode = self.theano_function_mode
         if mode is not None and hasattr(mode, 'record'):
             mode.record.handle_line('Adding monitor channel '+name+'\n')
-            if isinstance(ipt, (list, tuple)):
-                for elem in ipt:
+            assert isinstance(flat_ipt, tuple)
+            if len(flat_ipt) != 1:
+                for elem in flat_ipt:
                     mode.record.handle_line('Includes input var '+var_descriptor(elem)+'\n')
             else:
-                mode.record.handle_line(name+' input var is '+var_descriptor(ipt)+'\n')
+                mode.record.handle_line(name+' input var is '+var_descriptor(flat_ipt[0])+'\n')
             mode.record.handle_line('channel '+name+' is '+var_descriptor(val)+'\n')
 
         if dataset is None:
@@ -560,31 +592,6 @@ class Monitor(object):
         if name in self.channels:
             raise ValueError("Tried to create the same channel twice (%s)" %
                              name)
-
-        if data_specs is None:
-            warnings.warn("parameter 'data_specs' should be provided when "
-                    "calling add_channel. We will build a default one.",
-                    stacklevel=2)
-            if isinstance(ipt, list):
-                ipt = tuple(ipt)
-            if not isinstance(ipt, tuple):
-                ipt = (ipt,)
-
-            if hasattr(dataset, 'get_data_specs'):
-                dataset_space, dataset_source = dataset.get_data_specs()
-                if (len(ipt) == 1 and
-                        dataset_source is not None and
-                        (not isinstance(dataset_source, tuple) or
-                            len(dataset_source) == 1) and
-                        'features' in dataset_source):
-                    data_specs = (dataset_space, dataset_source)
-                elif (len(ipt) == 2 and
-                        dataset_source == ('features', 'targets')):
-                    data_specs = (dataset_space, dataset_source)
-                else:
-                    raise ValueError("Cannot infer default data_specs for the "
-                            "following input points and dataset: "
-                            "ipt = %s, dataset = %s" % (ipt, dataset))
 
         self.channels[name] = MonitorChannel(ipt, val, name, data_specs,
                                              dataset, prereqs)
