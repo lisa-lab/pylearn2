@@ -57,8 +57,18 @@ Note that this is only an example, and if you are not in the LISA lab, you will 
 choose a directory path that is valid on your filesystem. Simply choose a path where
 it will be convenient for you to store datasets for use with Pylearn2.
 
+Other methods
+-----
 
+Vagrant (any OS)
+~~~~~~~~
 
+`Pylearn2 in a box <https://github.com/ironchief/pylearn2_vagrant>`_ uses Vagrant to easily create a new VM installed with Pylearn2 and the necessary packages.
+
+1. Download and install Vagrant http://www.vagrantup.com/
+2. Download and install Virtual Box and VirtualBox Extension Pack https://www.virtualbox.org/wiki/Downloads
+3. Download the Vagrant scripts from `Pylearn2 in a box <https://github.com/ironchief/pylearn2_vagrant>`_
+4. Start the VM by running ``vagrant up`` in the directory from step 3
 
 Dependencies
 ============
