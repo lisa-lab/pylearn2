@@ -131,7 +131,7 @@ class GSN(StackedBlocks, Model):
         """
         self.aes[0].set_visible_size(*args, **kwargs)
 
-    def _run(self, minibatch, walkback=0):
+    def _run(self, minibatch, walkback=0, clamped=None):
         """
         This runs the GSN on input 'minibatch' are returns all of the activations
         at every time step.
@@ -142,6 +142,11 @@ class GSN(StackedBlocks, Model):
             Theano symbolic representing the input minibatch.
         walkback : int
             How many walkback steps to perform.
+        clamped : tensor_like
+            A theano matrix that is 1 at all indices where the visible layer
+            should be kept constant and 0 everywhere else. If no indices are
+            going to be clamped, its faster to keep clamped as None rather
+            than set it to the 0 matrix.
 
         Returns
         ---------
@@ -162,11 +167,19 @@ class GSN(StackedBlocks, Model):
         """
         self._set_activations(minibatch)
 
+        if clamped is not None:
+            clamped_vals = minibatch * clamped
+            unclamped = T.eq(clamped, 0)
+
         # only the visible unit is nonzero at first
         steps = [[self.activations[0]]]
 
         for time in xrange(1, len(self.aes) + walkback + 1):
             self._update(time=time)
+
+            if clamped is not None:
+                self.activations[0] = (self.activations[0] * unclamped
+                                       + clamped_vals)
 
             # slicing makes a shallow copy
             steps.append(self.activations[:(2 * time) + 1])

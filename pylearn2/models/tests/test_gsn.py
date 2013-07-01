@@ -82,7 +82,7 @@ def test():
     alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=Cost(),
               termination_criterion=EpochCounter(MAX_EPOCHS),
               batches_per_iter=BATCHES_PER_EPOCH, batch_size=BATCH_SIZE
-              ,monitoring_dataset=dataset
+              ,monitoring_dataset={"train": dataset, "test": MNIST(which_set='test')}
               )
 
     trainer = Train(dataset, gsn, algorithm=alg)
