@@ -21,21 +21,22 @@ HIDDEN_SIZE = 1000
 SALT_PEPPER_NOISE = 0.4
 GAUSSIAN_NOISE = 2
 
-LEARNING_RATE = 0.25
-MOMENTUM = 0.5
+LEARNING_RATE = 0.25 / 784
+MOMENTUM = 0.5 / 784
 
-MAX_EPOCHS = 20
-BATCHES_PER_EPOCH = 1000
+MAX_EPOCHS = 100
+BATCHES_PER_EPOCH = None # covers full training set
 BATCH_SIZE = 32
+
+WALKBACK = 0
 
 dataset = MNIST(which_set='train')
 
-# just 1 hidden layer
 layers = [dataset.X.shape[1], HIDDEN_SIZE, HIDDEN_SIZE]
 
-vis_corruptor = None #SaltPepperCorruptor(0.4)
-pre_corruptor = None #GaussianCorruptor(.2)
-post_corruptor = None #GaussianCorruptor(.2)
+vis_corruptor = SaltPepperCorruptor(0.4)
+pre_corruptor = GaussianCorruptor(.2)
+post_corruptor = GaussianCorruptor(.2)
 
 gsn = GSN.new(layers, vis_corruptor, pre_corruptor, post_corruptor)
 
@@ -79,10 +80,10 @@ def debug(walkback = 0):
         print map(check, data)
 
 def test():
-    alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=Cost(),
+    alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=Cost(walkback=WALKBACK),
               termination_criterion=EpochCounter(MAX_EPOCHS),
               batches_per_iter=BATCHES_PER_EPOCH, batch_size=BATCH_SIZE
-              ,monitoring_dataset={"train": dataset, "test": MNIST(which_set='test')}
+              ,monitoring_dataset={"test": MNIST(which_set='test')}
               )
 
     trainer = Train(dataset, gsn, algorithm=alg)

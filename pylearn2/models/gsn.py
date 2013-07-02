@@ -43,6 +43,12 @@ class GSN(StackedBlocks, Model):
             callable (which includes Corruptor objects). The callable at index
             i is called directly after activating the ith layer. Name stands for
             "postactivation corruptors".
+
+        Notes
+        -----
+        The activation function for the visible layer is the "act_dec"
+        function on the first autoencoder, and the activation function for the ith
+        hidden layer is the "act_enc" function on the (i - 1)th autoencoder.
         """
         super(GSN, self).__init__(autoencoders)
 
@@ -76,8 +82,9 @@ class GSN(StackedBlocks, Model):
         self.postact_cors = _make_callable_list(postact_cors)
 
     @classmethod
-    def new(cls, layer_sizes, vis_corruptor,
-            hidden_pre_corruptor, hidden_post_corruptor, act="sigmoid"):
+    def new(cls, layer_sizes, vis_corruptor=None, hidden_pre_corruptor=None,
+            hidden_post_corruptor=None, visible_act="sigmoid",
+            hidden_act="tanh"):
         """
         This is just a convenience method to initialize GSN instances. The
         __init__ method is far more general, but this should capture most
@@ -99,14 +106,17 @@ class GSN(StackedBlocks, Model):
         hidden_post_corruptor : callable
             Same sort of object as the other corruptors, used to corrupt hidden
             activations after activation.
-        act : callable or string
-            The value for act must be a valid value for both the act_enc and the
-            act_dec arguments in Autoencoder.__init__.
+        visible_act : callable or string
+            The value for visible_act must be a valid value for the act_dec
+            parameter of Autoencoder.__init__
+        hidden_act : callable or string
+            The value for visible_act must be a valid value for the act_enc
+            parameter of Autoencoder.__init__
         """
         aes = []
         for i in xrange(len(layer_sizes) - 1):
             aes.append(Autoencoder(layer_sizes[i], layer_sizes[i + 1],
-                                   'tanh', 'sigmoid', tied_weights=True))
+                                   hidden_act, visible_act, tied_weights=True))
 
         if callable(vis_corruptor):
             vis_corruptor = ComposedCorruptor(vis_corruptor, BinomialSampler())
@@ -210,17 +220,21 @@ class GSN(StackedBlocks, Model):
             by the GSN. The samples will be of the same size as the minibatch.
         """
         results = self._run(minibatch, walkback=walkback)
-        #activations = results[len(self.aes):]
-        activations = results[1:]
+        # FIXME: should I backprop over all of the reconstructed versions, or only
+        # the reconstructions which passed through all layers of the network
+
+        # all reconstructions
+        #activations = results[1:]
+
+        # reconstructions which have gone through all layers of the network
+        activations = results[len(self.aes):]
         return [act[0] for act in activations]
 
+    @functools.wraps(Autoencoder.reconstruct)
     def reconstruct(self, minibatch):
-        """
-        Included for compatibility with autoencoder cost functions.
-        """
-        # sanity check, didn't work too well... wut
-        #return self.aes[0].reconstruct(minibatch)
+        # included for compatibility with cost functions for autoencoders
 
+        # FIXME: change based on fixme in GSN.get_samples.
         return self.get_samples(minibatch, walkback=0)[0]
 
     def __call__(self, minibatch):
