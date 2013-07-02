@@ -135,7 +135,6 @@ class TransformerIterator(object):
         self.stochastic = raw_iterator.stochastic
         self.uneven = raw_iterator.uneven
         self.data_specs = data_specs
-        self._targets = raw_iterator._targets
 
     def __iter__(self):
         return self
