@@ -106,7 +106,7 @@ class GSN(StackedBlocks, Model):
         aes = []
         for i in xrange(len(layer_sizes) - 1):
             aes.append(Autoencoder(layer_sizes[i], layer_sizes[i + 1],
-                                   act, act, tied_weights=True))
+                                   'tanh', 'sigmoid', tied_weights=True))
 
         if callable(vis_corruptor):
             vis_corruptor = ComposedCorruptor(vis_corruptor, BinomialSampler())
@@ -210,7 +210,8 @@ class GSN(StackedBlocks, Model):
             by the GSN. The samples will be of the same size as the minibatch.
         """
         results = self._run(minibatch, walkback=walkback)
-        activations = results[len(self.aes):]
+        #activations = results[len(self.aes):]
+        activations = results[1:]
         return [act[0] for act in activations]
 
     def reconstruct(self, minibatch):

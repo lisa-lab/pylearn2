@@ -30,7 +30,7 @@ class MeanBinaryCrossEntropy(WalkbackFriendlyCost):
         return (
             - a * tensor.log(b) -
             (1 - a) * tensor.log(1 - b)
-        ).sum(axis=1).mean()
+        ).mean()
 
     def expr(self, model, data, ** kwargs):
         self.get_data_specs(model)[0].validate(data)

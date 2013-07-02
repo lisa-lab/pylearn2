@@ -6,9 +6,9 @@ T = theano.tensor
 F = theano.function
 
 #from pylearn2.costs.gsn import MSWalkbackReconstructionError as Cost
-#from pylearn2.costs.gsn import MBWalkbackCrossEntropy as Cost
+from pylearn2.costs.gsn import MBWalkbackCrossEntropy as Cost
 #from pylearn2.costs.autoencoder import MeanSquaredReconstructionError as Cost
-from pylearn2.costs.autoencoder import MeanBinaryCrossEntropy as Cost
+#from pylearn2.costs.autoencoder import MeanBinaryCrossEntropy as Cost
 
 from pylearn2.corruption import GaussianCorruptor, SaltPepperCorruptor
 from pylearn2.datasets.mnist import MNIST
@@ -31,11 +31,11 @@ BATCH_SIZE = 32
 dataset = MNIST(which_set='train')
 
 # just 1 hidden layer
-layers = [dataset.X.shape[1], HIDDEN_SIZE]
+layers = [dataset.X.shape[1], HIDDEN_SIZE, HIDDEN_SIZE]
 
-vis_corruptor = SaltPepperCorruptor(0.1)
-pre_corruptor = GaussianCorruptor(.2)
-post_corruptor = GaussianCorruptor(.2)
+vis_corruptor = None #SaltPepperCorruptor(0.4)
+pre_corruptor = None #GaussianCorruptor(.2)
+post_corruptor = None #GaussianCorruptor(.2)
 
 gsn = GSN.new(layers, vis_corruptor, pre_corruptor, post_corruptor)
 
