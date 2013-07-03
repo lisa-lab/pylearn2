@@ -216,7 +216,7 @@ class GSN(StackedBlocks, Model):
         steps = [[self.activations[0]]]
 
         for time in xrange(1, len(self.aes) + walkback + 1):
-            self._update(time=time)
+            self._update(self.activations, time=time)
 
             if clamped is not None:
                 self.activations[0] = (self.activations[0] * unclamped
@@ -227,7 +227,7 @@ class GSN(StackedBlocks, Model):
 
             # Apply post activation corruption to even layers
             evens = xrange(0, min(2 * time + 1, len(self.activations)), 2)
-            self._apply_postact_corruption(evens)
+            self._apply_postact_corruption(self.activations, evens)
 
         self._activation_history = steps
         return steps
@@ -285,7 +285,23 @@ class GSN(StackedBlocks, Model):
         """
         return self._run(minibatch)[-1]
 
-    def _set_activations(self, minibatch):
+    """
+    NOTE: The following methods contain the algorithmic content of the GSN class.
+    All of these methods are written in a way such that they can be run without
+    modifying the state of the GSN object. This primary visible consequence of this
+    is that the methods take an "activations parameter", which is generally just
+    self.activations.
+    Although this style is a bit odd, it is completely necessary. Theano can handle
+    small amounts of walkback (which allows us to train for walkback), but for
+    many sampling iterations (ie more than 10) Theano takes an extremely long time
+    to compile these large computational graphs. Making all of these methods
+    take activations as an explicit parameter (which they then modify in place,
+    which allows calling with self.activations) allows one to create smaller
+    external Theano functions that allow many sampling iterations.
+    See pylearn2.models.tests.test_gsn.sampling_test for an example.
+    """
+
+    def _set_activations(self, minibatch, set_val=True):
         """
         Sets the input layer to minibatch and all other layers to 0.
 
@@ -293,21 +309,30 @@ class GSN(StackedBlocks, Model):
         ------------
         minibatch : tensor_like
             Theano symbolic representing the input minibatch
+        set_val : bool
+            Determines whether the method sets self.activations.
+
+        Note
+        ----
+        This method creates a new list, not modifying an existing list.
         """
         # corrupt the input
-        self.activations = [self.postact_cors[0](minibatch)]
+        activations = [self.postact_cors[0](minibatch)]
 
         for i in xrange(len(self.aes)):
-            self.activations.append(
+            activations.append(
                 T.zeros_like(
-                    T.dot(self.activations[i], self.aes[i].weights)
+                    T.dot(activations[i], self.aes[i].weights)
                 )
             )
 
-        # not used during training
-        return self.activations
+        if set_val:
+            self.activations = activations
 
-    def _update(self, time=None, old_activations=None):
+        # not used during training
+        return activations
+
+    def _update(self, activations, time=None):
         """
         See Figure 1 in "Deep Generative Stochastic Networks as Generative
         Models" by Bengio, Thibodeau-Laufer.
@@ -328,22 +353,21 @@ class GSN(StackedBlocks, Model):
         """
         if time is None:
             # set time high enough so that we add noise to all layers
-            time = len(self.activations)
+            time = len(activations)
 
         # Update and corrupt all of the odd layers
-        odds = range(1, min(2 * time, len(self.activations)), 2)
-        self._update_activations(odds)
-        self._apply_postact_corruption(odds)
+        odds = range(1, min(2 * time, len(activations)), 2)
+        self._update_activations(activations, odds)
+        self._apply_postact_corruption(activations, odds)
 
         # Update the even layers. Not applying post activation noise now so that
         # that cost function can be evaluated
-        evens = xrange(0, min(2 * time + 1, len(self.activations)), 2)
-        self._update_activations(evens)
+        evens = xrange(0, min(2 * time + 1, len(activations)), 2)
+        self._update_activations(activations, evens)
 
-        # return value isn't used for training, but needed for sampling
-        return self.activations
+        return activations
 
-    def _apply_postact_corruption(self, idx_iter):
+    def _apply_postact_corruption(self, activations, idx_iter):
         """
         Applies post activation corruption to layers.
 
@@ -354,12 +378,11 @@ class GSN(StackedBlocks, Model):
             which layers the post activation corruptors should be applied to.
         """
         for i in idx_iter:
-            self.activations[i] = self.postact_cors[i](self.activations[i])
+            activations[i] = self.postact_cors[i](activations[i])
 
-        # not needed for training
-        return self.activations
+        return activations
 
-    def _update_activations(self, idx_iter):
+    def _update_activations(self, activations, idx_iter):
         """
         Parameters
         ----------
@@ -368,24 +391,24 @@ class GSN(StackedBlocks, Model):
             which layers should be updated.
         """
         from_above = lambda i: (self.aes[i].visbias +
-                                T.dot(self.activations[i + 1],
+                                T.dot(activations[i + 1],
                                       self.aes[i].weights.T))
 
         from_below = lambda i: (self.aes[i - 1].hidbias +
-                                T.dot(self.activations[i - 1],
+                                T.dot(activations[i - 1],
                                      self.aes[i - 1].weights))
 
         for i in idx_iter:
             # first compute then hidden activation
             if i == 0:
-                self.activations[i] = from_above(i)
-            elif i == len(self.activations) - 1:
-                self.activations[i] = from_below(i)
+                activations[i] = from_above(i)
+            elif i == len(activations) - 1:
+                activations[i] = from_below(i)
             else:
-                self.activations[i] = from_below(i) + from_above(i)
+                activations[i] = from_below(i) + from_above(i)
 
             # pre activation corruption
-            self.activations[i] = self.preact_cors[i](self.activations[i])
+            activations[i] = self.preact_cors[i](activations[i])
 
             # Using the activation function from lower autoencoder
             act_func = None
@@ -397,7 +420,7 @@ class GSN(StackedBlocks, Model):
             # ACTIVATION
             # None implies linear
             if act_func is not None:
-                self.activations[i] = act_func(self.activations[i])
+                activations[i] = act_func(activations[i])
 
 class SoftmaxGSN(GSN):
     """
