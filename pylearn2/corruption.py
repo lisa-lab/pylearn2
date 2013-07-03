@@ -198,13 +198,47 @@ class BinomialSampler(Corruptor):
         # pass up a 0 because corruption_level is not relevant here
         super(BinomialSampler, self).__init__(0, *args, **kwargs)
 
-    """
-    "Corrupts" an input of values between 0 and 1 by treating those
-    values as probabilities and sampling binary values.
-    """
     def _corrupt(self, x):
+        """
+        Treats each element in matrix as probability for Bernoulli trial.
+
+        Parameters
+        ----------
+        x : tensor_like
+            A tensor like with all values between 0 and 1 (inclusive).
+
+        Returns
+        ----------
+        y : tensor_like
+            y_i,j is 1 with probability x_i,j.
+        """
+
         return self.s_rng.binomial(size=x.shape, p=x,
                                    dtype=theano.config.floatX)
+
+class MultinomialSampler(Corruptor):
+    def __init__(self, *args, **kwargs):
+        # corruption_level isn't relevant here
+        super(MultinomialSampler, self).__init__(0, *args, **kwargs)
+
+    def _corrupt(self, x):
+        """
+        Treats each row in matrix as a multinomial trial.
+
+        Parameters
+        ----------
+        x : tensor_like
+            x must be a matrix where each row sums to 1.0. A good example of this
+            is the output of a softmax function.
+
+        Returns
+        ---------
+        y : tensor_like
+            y will have the same shape as x. Each row in y will be a one hot vector,
+            and can be viewed as the outcome of the multinomial trial defined by
+            the probabilities of that row in x.
+        """
+        return self.s_rng.multinomial(pvals=x, dtype=theano.config.floatX)
 
 class ComposedCorruptor(Corruptor):
     def __init__(self, *corruptors):

@@ -1,15 +1,9 @@
-import copy
-
 import numpy as np
 import theano
 T = theano.tensor
 F = theano.function
 
-#from pylearn2.costs.gsn import MSWalkbackReconstructionError as Cost
 from pylearn2.costs.gsn import MBWalkbackCrossEntropy as Cost
-#from pylearn2.costs.autoencoder import MeanSquaredReconstructionError as Cost
-#from pylearn2.costs.autoencoder import MeanBinaryCrossEntropy as Cost
-
 from pylearn2.corruption import GaussianCorruptor, SaltPepperCorruptor
 from pylearn2.datasets.mnist import MNIST
 from pylearn2.models.gsn import GSN
@@ -24,7 +18,7 @@ GAUSSIAN_NOISE = 2
 LEARNING_RATE = 0.25 / 784
 MOMENTUM = 0.5 / 784
 
-MAX_EPOCHS = 100
+MAX_EPOCHS = 80
 BATCHES_PER_EPOCH = None # covers full training set
 BATCH_SIZE = 32
 
@@ -86,10 +80,31 @@ def test():
               ,monitoring_dataset={"test": MNIST(which_set='test')}
               )
 
-    trainer = Train(dataset, gsn, algorithm=alg)
+    trainer = Train(dataset, gsn, algorithm=alg, save_path="gsn_model.pkl",
+                    save_freq=5)
     trainer.main_loop()
     print "done training"
 
+def more_tests():
+    import cPickle
+    with open("gsn_model.pkl") as f:
+        gsn = cPickle.load(f)
+
+    print "DONE UNPICKLING"
+
+    # just the first point
+    mb = MNIST(which_set='test').X[:1, :]
+    x = T.fmatrix()
+
+    print "START GET SAMPLES"
+    samples = gsn.get_samples(x, walkback=10)
+    print "DONE GET SAMPLES"
+
+    print "START COMPILING"
+    f = F([x], samples)
+    print "DONE COMPILING"
+    f(mb)
+    print "DONE COMPUTING"
 
 if __name__ == '__main__':
-    test()
+    more_tests()

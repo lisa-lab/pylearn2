@@ -17,8 +17,10 @@ import warnings
 import numpy as np
 import theano.tensor as T
 
+import pylearn2
 from pylearn2.base import StackedBlocks
-from pylearn2.corruption import BinomialSampler, ComposedCorruptor
+from pylearn2.corruption import BinomialSampler, ComposedCorruptor,\
+                                MultinomialSampler
 from pylearn2.models.autoencoder import Autoencoder
 from pylearn2.models.model import Model
 from pylearn2.utils import sharedX
@@ -83,7 +85,7 @@ class GSN(StackedBlocks, Model):
 
         def _make_callable_list(previous):
             num_activations = len(self.aes) + 1
-            identity = lambda x: x
+            identity = pylearn2.utils.identity
             if previous is None:
                 previous = [identity] * num_activations
 
@@ -146,7 +148,10 @@ class GSN(StackedBlocks, Model):
 
         pre_corruptors = [None] + [hidden_pre_corruptor] * len(aes)
         post_corruptors = [vis_corruptor] + [hidden_post_corruptor] * len(aes)
+
+        # binomial sampling on visible layer by default
         layer_samplers = [BinomialSampler()] + [None] * len(aes)
+
         return GSN(aes, preact_cors=pre_corruptors, postact_cors=post_corruptors,
                    layer_samplers=layer_samplers)
 
@@ -243,6 +248,7 @@ class GSN(StackedBlocks, Model):
             by the GSN. The samples will be of the same size as the minibatch.
         """
         results = self._run(minibatch, walkback=walkback)
+
         # FIXME: should I backprop over all of the reconstructed versions, or only
         # the reconstructions which passed through all layers of the network
 
@@ -286,19 +292,31 @@ class GSN(StackedBlocks, Model):
                 )
             )
 
-    def _update(self, time=None):
+    def _update(self, time=None, old_activations=None):
         """
         See Figure 1 in "Deep Generative Stochastic Networks as Generative
         Models" by Bengio, Thibodeau-Laufer.
         This and _update_activations implement exactly that, which is essentially
         forward propogating the neural network in both directions.
 
-        The time parameter ensures noise doesn't get added to the layers which are
-        are still 0 (signal hasn't reached them yet).
+        Parameters
+        ----------
+        time : int
+            The time step for which we are computing the activations. This
+            value must start at 1. This parameter is used to ensure that noise
+            does not get added to the activations that the signal has yet to
+            reach.
+        old_activations : list of tensors
+            This parameter should not be used during training. This exists so that
+            many iterations of sampling can be done without having to build a huge
+            Theano computation graph.
         """
         if time is None:
             # set time high enough so that we add noise to all layers
             time = len(self.activations)
+
+        if old_activations is not None:
+            self.activations = old_activations
 
         # Update and corrupt all of the odd layers
         odds = range(1, min(2 * time, len(self.activations)), 2)
@@ -309,6 +327,9 @@ class GSN(StackedBlocks, Model):
         # that cost function can be evaluated
         evens = xrange(0, min(2 * time + 1, len(self.activations)), 2)
         self._update_activations(evens)
+
+        # return value isn't used for training, but needed for sampling
+        return self.activations
 
     def _apply_postact_corruption(self, idx_iter):
         """
@@ -362,3 +383,46 @@ class GSN(StackedBlocks, Model):
             # None implies linear
             if act_func is not None:
                 self.activations[i] = act_func(self.activations[i])
+
+class SoftmaxGSN(GSN):
+    """
+    GSN where the last layer has a softmax activation function
+
+    Notes
+    -----
+    All of the functionality here is present in the GSN class, but this
+    provides some convenience functions.
+
+    Also, the size of the last layer must be the same as the number of classes.
+
+    It is still recommended to initialize this class using GSN.new (so call
+    SoftmaxGSN.new).
+
+    A cost should be used that is some combination of a classification cost
+    (called on some aggregating function of get_predictions) and a
+    reconstruction cost (called on get_samples)
+    """
+    def __init__(self, *args, **kwargs):
+        # this is just a bunch of hacks so that SoftmaxGSN.new() works how
+        # one would expect it to.
+
+        super(SoftmaxGSN, self).__init__(*args, **kwargs)
+
+        # change last activation function
+        self.aes[-1].act_enc = T.nnet.softmax
+
+        # FIXME: Should the multinomial sampling be corrupted? This would involve
+        # either modifying GSN.new or just changing the the last postact corruptor
+        # here.
+        self.postact_cors[-1] = ComposedCorruptor(
+            self.postact_cors[-1],
+            MultinomialSampler()
+        )
+
+    def get_predictions(self, minibatch, walkback=0):
+        results = self._run(minibatch, walkback=walkback)
+
+        # once signal has propagated to softmax layer
+        valid_index = (len(self.aes) + 1) / 2
+        results = results[valid_index:]
+        return [r[-1] for r in results]
