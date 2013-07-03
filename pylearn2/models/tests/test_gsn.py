@@ -90,21 +90,14 @@ def more_tests():
     with open("gsn_model.pkl") as f:
         gsn = cPickle.load(f)
 
-    print "DONE UNPICKLING"
+    mb_data = MNIST(which_set='test').X[:1, :]
 
-    # just the first point
-    mb = MNIST(which_set='test').X[:1, :]
-    x = T.fmatrix()
+    mb = theano.fmatrix()
+    f_init = F([mb], gsn._set_activations(mb))
 
-    print "START GET SAMPLES"
-    samples = gsn.get_samples(x, walkback=10)
-    print "DONE GET SAMPLES"
+    prev = T.fmatrices(len(gsn.activations))
+    f_step = F([prev], gsn._update(time=None, old_activations=prev))
 
-    print "START COMPILING"
-    f = F([x], samples)
-    print "DONE COMPILING"
-    f(mb)
-    print "DONE COMPUTING"
 
 if __name__ == '__main__':
     more_tests()

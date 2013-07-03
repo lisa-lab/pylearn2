@@ -15,7 +15,8 @@ import functools
 import warnings
 
 import numpy as np
-import theano.tensor as T
+import theano
+T = theano.tensor
 
 import pylearn2
 from pylearn2.base import StackedBlocks
@@ -202,6 +203,8 @@ class GSN(StackedBlocks, Model):
             function (so the first time steps will include less activation
             vectors than the later time steps, because the high layers haven't
             been activated yet).
+
+            This overwrites self._activation_history
         """
         self._set_activations(minibatch)
 
@@ -226,9 +229,10 @@ class GSN(StackedBlocks, Model):
             evens = xrange(0, min(2 * time + 1, len(self.activations)), 2)
             self._apply_postact_corruption(evens)
 
+        self._activation_history = steps
         return steps
 
-    def get_samples(self, minibatch, walkback=0):
+    def get_samples(self, minibatch, walkback=0, fresh=True):
         """
         Runs minibatch through GSN and returns reconstructed data.
 
@@ -240,6 +244,11 @@ class GSN(StackedBlocks, Model):
             How many walkback steps to perform. This is both how many extra
             samples to take as well as how many extra reconstructed points
             to train off of.
+        fresh : bool
+            Indicates whether or not the minibatch should be ran through
+            the network or existing activations should be used. Generally
+            fresh should be True, unless you want to call get_samples and
+            some other function of the activation history for the same minibatch.
 
         Returns
         ---------
@@ -247,7 +256,10 @@ class GSN(StackedBlocks, Model):
             A list of length 1 + walkback that contains the samples generated
             by the GSN. The samples will be of the same size as the minibatch.
         """
-        results = self._run(minibatch, walkback=walkback)
+        if fresh:
+            results = self._run(minibatch, walkback=walkback)
+        else:
+            results = self._activation_history
 
         # FIXME: should I backprop over all of the reconstructed versions, or only
         # the reconstructions which passed through all layers of the network
@@ -260,11 +272,11 @@ class GSN(StackedBlocks, Model):
         return [act[0] for act in activations]
 
     @functools.wraps(Autoencoder.reconstruct)
-    def reconstruct(self, minibatch):
+    def reconstruct(self, minibatch, fresh=True):
         # included for compatibility with cost functions for autoencoders
 
         # FIXME: change based on fixme in GSN.get_samples.
-        return self.get_samples(minibatch, walkback=0)[0]
+        return self.get_samples(minibatch, walkback=0, fresh=fresh)[0]
 
     def __call__(self, minibatch):
         """
@@ -292,6 +304,9 @@ class GSN(StackedBlocks, Model):
                 )
             )
 
+        # not used during training
+        return self.activations
+
     def _update(self, time=None, old_activations=None):
         """
         See Figure 1 in "Deep Generative Stochastic Networks as Generative
@@ -314,9 +329,6 @@ class GSN(StackedBlocks, Model):
         if time is None:
             # set time high enough so that we add noise to all layers
             time = len(self.activations)
-
-        if old_activations is not None:
-            self.activations = old_activations
 
         # Update and corrupt all of the odd layers
         odds = range(1, min(2 * time, len(self.activations)), 2)
@@ -343,6 +355,9 @@ class GSN(StackedBlocks, Model):
         """
         for i in idx_iter:
             self.activations[i] = self.postact_cors[i](self.activations[i])
+
+        # not needed for training
+        return self.activations
 
     def _update_activations(self, idx_iter):
         """
@@ -419,8 +434,11 @@ class SoftmaxGSN(GSN):
             MultinomialSampler()
         )
 
-    def get_predictions(self, minibatch, walkback=0):
-        results = self._run(minibatch, walkback=walkback)
+    def get_predictions(self, minibatch, walkback=0, fresh=True):
+        if fresh:
+            results = self._run(minibatch, walkback=walkback)
+        else:
+            results = self._activation_history
 
         # once signal has propagated to softmax layer
         valid_index = (len(self.aes) + 1) / 2
