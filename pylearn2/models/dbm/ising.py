@@ -441,7 +441,7 @@ class IsingHidden(HiddenLayer):
         return rval
 
     def init_mf_state(self):
-        raise NotImplementedError("This is just a copy-paste of BVMP")
+        #raise NotImplementedError("This is just a copy-paste of BVMP")
         # work around theano bug with broadcasted vectors
         z = T.alloc(0., self.dbm.batch_size,
                     self.detector_layer_dim).astype(self.b.dtype) + \
@@ -1186,12 +1186,11 @@ class BoltzmannIsingHidden(HiddenLayer):
         return rval
 
     def init_mf_state(self):
-        raise NotImplementedError("This is just a copy-paste of BVMP")
         # work around theano bug with broadcasted vectors
         z = T.alloc(0., self.dbm.batch_size,
-                    self.detector_layer_dim).astype(self.boltzmann_b.dtype) + \
+                    self.dim).astype(self.boltzmann_b.dtype) + \
             self.ising_b().dimshuffle('x', 0)
-        rval = max_pool_channels(z=z, pool_size=self.pool_size)
+        rval = T.tanh(self.beta * z)
         return rval
 
     def make_state(self, num_examples, numpy_rng):
