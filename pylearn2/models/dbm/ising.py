@@ -1178,7 +1178,8 @@ class BoltzmannIsingHidden(HiddenLayer):
         return samples
 
     def downward_message(self, downward_state, for_sampling=False):
-        rval = T.dot(downward_state, self.ising_weights(for_sampling=False).T)
+        rval = T.dot(downward_state,
+                     self.ising_weights(for_sampling=for_sampling).T)
 
         if self.requires_reformat:
             rval = self.desired_space.format_as(rval, self.input_space)
