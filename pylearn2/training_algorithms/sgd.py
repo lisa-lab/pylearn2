@@ -166,7 +166,7 @@ class SGD(TrainingAlgorithm):
         theano_args = []
         for space, source in safe_zip(space_tuple, source_tuple):
             name = '%s[%s]' % (self.__class__.__name__, source)
-            arg = space.make_theano_batch(name=name)
+            arg = space.make_theano_batch(name=name, batch_size = self.batch_size)
             theano_args.append(arg)
         theano_args = tuple(theano_args)
 
