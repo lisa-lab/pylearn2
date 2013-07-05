@@ -173,9 +173,7 @@ class SaltPepperCorruptor(Corruptor):
     """
     Corrupts the input with salt and pepper noise.
 
-    Note
-    ----
-    This corruptor only makes sense over binary valued matrices.
+    Sets some elements of the tensor to 0 or 1.
     """
     def _corrupt(self, x):
         a = self.s_rng.binomial(

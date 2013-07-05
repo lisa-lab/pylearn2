@@ -265,17 +265,15 @@ class GSN(StackedBlocks, Model):
         # the reconstructions which passed through all layers of the network
 
         # all reconstructions
-        #activations = results[1:]
+        activations = results[1:]
 
         # reconstructions which have gone through all layers of the network
-        activations = results[len(self.aes):]
+        #activations = results[len(self.aes):]
         return [act[0] for act in activations]
 
     @functools.wraps(Autoencoder.reconstruct)
     def reconstruct(self, minibatch, fresh=True):
         # included for compatibility with cost functions for autoencoders
-
-        # FIXME: change based on fixme in GSN.get_samples.
         return self.get_samples(minibatch, walkback=0, fresh=fresh)[0]
 
     def __call__(self, minibatch):
@@ -366,7 +364,6 @@ class GSN(StackedBlocks, Model):
         self._update_activations(activations, evens)
 
         return activations
-
     def _apply_postact_corruption(self, activations, idx_iter):
         """
         Applies post activation corruption to layers.

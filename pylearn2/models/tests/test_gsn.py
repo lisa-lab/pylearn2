@@ -1,3 +1,5 @@
+import copy
+
 import numpy as np
 import theano
 T = theano.tensor
@@ -19,7 +21,7 @@ GAUSSIAN_NOISE = 2
 LEARNING_RATE = 0.25 / 784
 MOMENTUM = 0.5 / 784
 
-MAX_EPOCHS = 80
+MAX_EPOCHS = 50
 BATCHES_PER_EPOCH = None # covers full training set
 BATCH_SIZE = 32
 
@@ -29,64 +31,25 @@ dataset = MNIST(which_set='train')
 
 layers = [dataset.X.shape[1], HIDDEN_SIZE, HIDDEN_SIZE]
 
-vis_corruptor = SaltPepperCorruptor(0.4)
+vis_corruptor = SaltPepperCorruptor(0.1)
 pre_corruptor = GaussianCorruptor(.2)
 post_corruptor = GaussianCorruptor(.2)
 
 gsn = GSN.new(layers, vis_corruptor, pre_corruptor, post_corruptor)
 
-def debug(walkback = 0):
-
-    check = lambda x: np.any(np.isnan(x)) or np.any(np.isinf(x))
-    check_val = lambda x: np.all(x > 0.0) and np.all(x < 1.0)
-
-    x = T.fmatrix()
-    mb = dataset.X[:4, :]
-
-    gsn._set_activations(x)
-    data = F([x], gsn.activations)(mb)
-    print "Activation shapes: ", data[0].shape, data[1].shape
-
-    data = F([x], gsn.activations)(mb)
-    print "STEP 0"
-    for j in xrange(len(data)):
-        print "Activation %d: " % j, data[j][0][:5]
-    print map(check, data)
-
-    for time in xrange(1, len(gsn.aes) + walkback + 1):
-        print ''
-        gsn._update(time=time)
-        data = F([x], gsn.activations)(mb)
-        print "DATA GOOD: ", check_val(data[0])
-        print "STEP (PRE CORRUPTION) %d" % time
-        for j in xrange(len(data)):
-            print "Activation %d: " % j, data[j][0][:5]
-
-
-        print "STEP (POST CORRUPTION) %d" % time
-        gsn._apply_postact_corruption(xrange(0, len(gsn.activations), 2), 2*time)
-        data = F([x], gsn.activations)(mb)
-        if time > len(gsn.aes):
-            print "WALKBACK %d" % (time - len(gsn.aes))
-
-        for j in xrange(len(data)):
-            print "Activation %d: " % j, data[j][0][:5]
-
-        print map(check, data)
-
-def test():
+def test_train():
     alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=Cost(walkback=WALKBACK),
               termination_criterion=EpochCounter(MAX_EPOCHS),
               batches_per_iter=BATCHES_PER_EPOCH, batch_size=BATCH_SIZE
               ,monitoring_dataset={"test": MNIST(which_set='test')}
               )
 
-    trainer = Train(dataset, gsn, algorithm=alg, save_path="gsn_model2.pkl",
+    trainer = Train(dataset, gsn, algorithm=alg, save_path="gsn_model3.pkl",
                     save_freq=5)
     trainer.main_loop()
     print "done training"
 
-def sampling_test():
+def test_sample():
     import cPickle
     with open("gsn_model.pkl") as f:
         gsn = cPickle.load(f)
@@ -95,16 +58,26 @@ def sampling_test():
     f_init = F([mb], gsn._set_activations(mb))
 
     prev = T.fmatrices(len(gsn.activations))
-    f_step = F(prev, gsn._update(prev))
+    f_step = F(prev, gsn._update(copy.copy(prev)),
+               on_unused_input='ignore')
 
+    precor = T.fmatrices(len(gsn.activations))
     evens = xrange(0, len(gsn.activations), 2)
-    corrupted = gsn._apply_postact_corruption(prev, evens)
-    f_even_corrupt = F(prev, corrupted)
+    f_even_corrupt = F(
+        precor,
+        gsn._apply_postact_corruption(
+            copy.copy(precor),
+            evens
+        ),
+    )
 
+    mb_data = MNIST(which_set='test').X[100:101, :]
 
-    mb_data = MNIST(which_set='test').X[:1, :]
+    history = [mb_data[0]]
     activations = f_init(mb_data)
-    history = [activations[0][0]]
+
+    import pdb; pdb.set_trace()
+
     for _ in xrange(1000):
         activations = f_step(*activations)
         history.append(activations[0][0])
@@ -116,5 +89,40 @@ def sampling_test():
                                      tile_spacing=(2,2))
     image.save("woot_test.png", tiled)
 
+def debug_corrupt():
+    import cPickle
+    with open("gsn_model.pkl") as f:
+        gsn = cPickle.load(f)
+
+
+    mb = T.fmatrix()
+    f_init = F([mb], gsn._set_activations(mb))
+
+    act = T.fmatrices(3)
+    f_cor = F(inputs=copy.copy(act),
+              outputs=gsn._apply_postact_corruption(act, range(len(act))),
+              allow_input_downcast=True)
+
+    mb_data = MNIST(which_set='test').X[:1, :]
+    activations = f_init(mb_data)
+
+    import pdb; pdb.set_trace()
+
+def print_char(A):
+    print a_to_s(A.round().reshape((28, 28)))
+
+def a_to_s(A):
+    """Prints binary array"""
+    strs = []
+    for row in A:
+        x = [None] * len(row)
+        for i, num in enumerate(row):
+            if num != 0:
+                x[i] = "@"
+            else:
+                x[i] = " "
+        strs.append("".join(x))
+    return "\n".join(strs)
+
 if __name__ == '__main__':
-    sampling_test()
+    test_train()
