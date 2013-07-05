@@ -19,8 +19,8 @@ class test_Convex(unittest.TestCase):
 
     def test_get_test_set(self):
         test = self.train.get_test_set()
-        self.assertTrue(numpy.all(test.get_design_matrix() == self.test.get_design_matrix()))
-        self.assertTrue(numpy.all(test.get_targets() == self.test.get_targets()))
+        numpy.testing.assert_equal(test.get_design_matrix(), self.test.get_design_matrix())
+        numpy.testing.assert_equal(test.get_targets(), self.test.get_targets())
 
 class test_Rectangles(unittest.TestCase):
     def setUp(self):
@@ -30,8 +30,8 @@ class test_Rectangles(unittest.TestCase):
 
     def test_get_test_set(self):
         test = self.train.get_test_set()
-        self.assertTrue(numpy.all(test.get_design_matrix() == self.test.get_design_matrix()))
-        self.assertTrue(numpy.all(test.get_targets() == self.test.get_targets()))
+        numpy.testing.assert_equal(test.get_design_matrix(), self.test.get_design_matrix())
+        numpy.testing.assert_equal(test.get_targets(), self.test.get_targets())
         
 class test_RectanglesImage(unittest.TestCase):
     def setUp(self):
@@ -41,6 +41,6 @@ class test_RectanglesImage(unittest.TestCase):
 
     def test_get_test_set(self):
         test = self.train.get_test_set()
-        self.assertTrue(numpy.all(test.get_design_matrix() == self.test.get_design_matrix()))
-        self.assertTrue(numpy.all(test.get_targets() == self.test.get_targets()))
+        numpy.testing.assert_equal(test.get_design_matrix(), self.test.get_design_matrix())
+        numpy.testing.assert_equal(test.get_targets(), self.test.get_targets())
 

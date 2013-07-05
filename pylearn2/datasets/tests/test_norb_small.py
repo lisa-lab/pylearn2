@@ -23,10 +23,10 @@ class TestFoveatedNORB(unittest.TestCase):
     def test_one_hot(self):
         train_non_zeros = numpy.transpose(numpy.nonzeros(self.train_one_hot))
         test_non_zeros = numpy.transpose(numpy.nonzeros(self.test_one_hot))
-        self.assertTrue(len(train_non_zeros) == 1)
-        self.assertTrue(len(test_non_zeros) == 1)
-        self.assertTrue(self.train_one_hot[train_non_zeros[0]] == 1)
-        self.assertTrue(self.test_one_hot[test_non_zeros[0]] == 1)
+        self.assertEquals(len(train_non_zeros), 1)
+        self.assertEquals(len(test_non_zeros), 1)
+        self.assertEquals(self.train_one_hot[train_non_zeros[0]], 1)
+        self.assertEquals(self.test_one_hot[test_non_zeros[0]], 1)
 
     def test_restrict_instances(self):
         pass

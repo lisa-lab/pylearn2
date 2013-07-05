@@ -45,14 +45,14 @@ class TestDenseDesignMatrix(unittest.TestCase):
         #Test the split dataset function.
         ddm = self.get_rnd_design_matrix()
         (train, valid) = ddm.split_dataset_holdout(train_prop=0.5)
-        self.assertTrue(valid.shape[0] == np.ceil(ddm.num_examples * 0.5))
-        self.assertTrue(train.shape[0] == (ddm.num_examples - valid.shape[0]))
+        self.assertEquals(valid.shape[0], np.ceil(ddm.num_examples * 0.5))
+        self.assertEquals(train.shape[0], (ddm.num_examples - valid.shape[0]))
 
     def test_split_nfold_datasets(self):
         #Load and create ddm from cifar100
         ddm = self.get_rnd_design_matrix()
         folds = ddm.split_dataset_nfolds(10)
-        self.assertTrue(folds[0].shape[0] == np.ceil(ddm.num_examples / 10))
+        self.assertEquals(folds[0].shape[0], np.ceil(ddm.num_examples / 10))
 
     def test_pytables(self):
         """

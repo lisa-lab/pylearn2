@@ -9,18 +9,18 @@ class TestHepatitis(unittest.TestCase):
         self.dataset = Hepatitis()
 
     def test_neg_missing(self):
-        self.assertTrue(neg_missing('?') == '-1')
-        self.assertTrue(neg_missing('3') == '3')
+        self.assertEqual(neg_missing('?'), '-1')
+        self.assertEqual(neg_missing('3'), '3')
 
     def test_data_integrity(self):
-        self.assertTrue(numpy.all(self.dataset.get_design_matrix()[0]==[30.,1.,85.,18.,4.,-1.,1.,1.,0.,1.,1.,1.,1.,0.,1.,1.,1.,1.,1.]))
+        numpy.testing.assert_equal(self.dataset.get_design_matrix()[0], [30.,1.,85.,18.,4.,-1.,1.,1.,0.,1.,1.,1.,1.,0.,1.,1.,1.,1.,1.])
         rng = numpy.random.RandomState()
         
         for _ in xrange(1000):
             targets = self.dataset.get_targets()[rng.randint(len(self.dataset.get_targets()))]
             non_zeros = numpy.transpose(numpy.nonzero(targets))
 
-            self.assertTrue(len(non_zeros) == 1)
-            self.assertTrue(targets[non_zeros[0]] == 1)
+            self.assertEqual(len(non_zeros), 1)
+            self.assertEqual(targets[non_zeros[0]], 1)
 
         

@@ -10,6 +10,6 @@ class TestFourRegions(unittest.TestCase):
 
     def test_data_integrity(self):
         X = self.dataset.get_design_matrix()
-        self.assertTrue(((X < 1.) & (X > -1.)).all())
+        np.testing.assert_(((X < 1.) & (X > -1.)).all())
         y = self.dataset.get_targets()
-        self.assertTrue(np.all(np.unique(y) == [0, 1, 2, 3]))
+        np.testing.assert_equal(np.unique(y), [0, 1, 2, 3])
