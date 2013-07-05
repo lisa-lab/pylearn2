@@ -123,9 +123,7 @@ class GSN(StackedBlocks, Model):
         ----------
         layer_sizes : list of integers
             Each element of this list states the size of a layer in the GSN. The
-            first element in this list is the size of the visual layer, which
-            can be initially set to 0 and later specified with
-            GSN.set_visible_size.
+            first element in this list is the size of the visual layer.
         vis_corruptor : callable
             A callable object (such as a Corruptor) that is used to corrupt the
             visible layer.
@@ -162,13 +160,6 @@ class GSN(StackedBlocks, Model):
         for ae in self.aes:
             params.extend(ae.get_params())
         return params
-
-    def set_visible_size(self, *args, **kwargs):
-        """
-        Proxy method to Autoencoder.set_visible_size. Sets visible size on first
-        autoencoder.
-        """
-        self.aes[0].set_visible_size(*args, **kwargs)
 
     def _run(self, minibatch, walkback=0, clamped=None):
         """
@@ -265,10 +256,10 @@ class GSN(StackedBlocks, Model):
         # the reconstructions which passed through all layers of the network
 
         # all reconstructions
-        activations = results[1:]
+        #activations = results[1:]
 
         # reconstructions which have gone through all layers of the network
-        #activations = results[len(self.aes):]
+        activations = results[len(self.aes):]
         return [act[0] for act in activations]
 
     @functools.wraps(Autoencoder.reconstruct)
@@ -364,6 +355,7 @@ class GSN(StackedBlocks, Model):
         self._update_activations(activations, evens)
 
         return activations
+
     def _apply_postact_corruption(self, activations, idx_iter):
         """
         Applies post activation corruption to layers.
