@@ -256,10 +256,10 @@ class GSN(StackedBlocks, Model):
         # the reconstructions which passed through all layers of the network
 
         # all reconstructions
-        #activations = results[1:]
+        activations = results[1:]
 
         # reconstructions which have gone through all layers of the network
-        activations = results[len(self.aes):]
+        #activations = results[len(self.aes):]
         return [act[0] for act in activations]
 
     @functools.wraps(Autoencoder.reconstruct)
