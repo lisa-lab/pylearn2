@@ -12,11 +12,8 @@ __copyright__ = "Copyright 2013, Universite de Montreal"
 __license__ = "3-clause BSD"
 
 import functools
-import warnings
 
-import numpy as np
-import theano
-T = theano.tensor
+import theano.tensor as T
 
 import pylearn2
 from pylearn2.base import StackedBlocks
@@ -24,7 +21,6 @@ from pylearn2.corruption import BinomialSampler, ComposedCorruptor,\
                                 MultinomialSampler
 from pylearn2.models.autoencoder import Autoencoder
 from pylearn2.models.model import Model
-from pylearn2.utils import sharedX
 
 class GSN(StackedBlocks, Model):
     def __init__(self, autoencoders, preact_cors=None, postact_cors=None,
@@ -75,8 +71,6 @@ class GSN(StackedBlocks, Model):
         self.aes = self._layers
 
         for i, ae in enumerate(self.aes):
-            assert ae.tied_weights, "Autoencoder weights must be tied"
-
             if i != 0:
                 if ae.weights is None:
                     ae.set_visible_size(self.aes[i - 1].nhid)
@@ -97,8 +91,8 @@ class GSN(StackedBlocks, Model):
                     previous[i] = identity
             return previous
 
-        self.preact_cors = _make_callable_list(preact_cors)
-        self.postact_cors = _make_callable_list(postact_cors)
+        self._preact_cors = _make_callable_list(preact_cors)
+        self._postact_cors = _make_callable_list(postact_cors)
 
         if layer_samplers is not None:
             assert len(layer_samplers) == len(self.postact_cors)
@@ -109,15 +103,51 @@ class GSN(StackedBlocks, Model):
                         layer_samplers[i]
                     )
 
+    @staticmethod
+    def _make_aes(layer_sizes, activation_funcs, tied=True):
+        aes = []
+        assert len(activation_funcs) == len(layer_sizes)
+
+        for i in xrange(len(layer_sizes) - 1):
+            # activation for visible layer is aes[0].act_dec
+            act_enc = activation_funcs[i + 1]
+            act_dec = act_enc if i != 0 else activation_funcs[0]
+            aes.append(
+                Autoencoder(layer_sizes[i], layer_sizes[i + 1],
+                            act_enc, act_dec, tied_weights=tied)
+            )
+
+        return aes
 
     @classmethod
-    def new(cls, layer_sizes, vis_corruptor=None, hidden_pre_corruptor=None,
-            hidden_post_corruptor=None, visible_act="sigmoid",
-            hidden_act="tanh"):
+    def new(cls,
+            layer_sizes,
+            activation_funcs,
+            pre_corruptors,
+            post_corruptors,
+            layer_samplers):
+
+        aes = cls._make_aes(layer_sizes, activation_funcs)
+
+        return cls(aes,
+                   preact_cors=pre_corruptors,
+                   postact_cors=post_corruptors,
+                   layer_samplers=layer_samplers)
+
+    @classmethod
+    def new_ae_gsn(cls, layer_sizes, vis_corruptor=None, hidden_pre_corruptor=None,
+                   hidden_post_corruptor=None, visible_act="sigmoid",
+                   hidden_act="tanh"):
         """
         This is just a convenience method to initialize GSN instances. The
         __init__ method is far more general, but this should capture most
-        of the GSM use cases.
+        of the GSN use cases.
+
+        Note
+        ----
+        This is used only for the autoencoder like GSNs described in the papers
+        referenced above. GSNs for supervised learning should not use this
+        method.
 
         Parameters
         ----------
@@ -129,10 +159,10 @@ class GSN(StackedBlocks, Model):
             visible layer.
         hidden_pre_corruptor : callable
             Same sort of object as the vis_corruptor, used to corrupt (add noise)
-            to all of the hidden activations prior to activation.
+            the top hidden activations prior to activation.
         hidden_post_corruptor : callable
-            Same sort of object as the other corruptors, used to corrupt hidden
-            activations after activation.
+            Same sort of object as the other corruptors, used to corrupt top
+            hidden activation after activation.
         visible_act : callable or string
             The value for visible_act must be a valid value for the act_dec
             parameter of Autoencoder.__init__
@@ -140,19 +170,17 @@ class GSN(StackedBlocks, Model):
             The value for visible_act must be a valid value for the act_enc
             parameter of Autoencoder.__init__
         """
-        aes = []
-        for i in xrange(len(layer_sizes) - 1):
-            aes.append(Autoencoder(layer_sizes[i], layer_sizes[i + 1],
-                                   hidden_act, visible_act, tied_weights=True))
+        activations = [visible_act] + [hidden_act] * (len(self.layers) - 1)
 
-        pre_corruptors = [None] + [hidden_pre_corruptor] * len(aes)
-        post_corruptors = [vis_corruptor] + [hidden_post_corruptor] * len(aes)
+        pre_corruptors = [None] * len(aes) + [hidden_pre_corruptor]
+        post_corruptors = [vis_corruptor] + None * (len(aes) - 1) +\
+            [hidden_post_corruptor]
 
         # binomial sampling on visible layer by default
         layer_samplers = [BinomialSampler()] + [None] * len(aes)
 
-        return GSN(aes, preact_cors=pre_corruptors, postact_cors=post_corruptors,
-                   layer_samplers=layer_samplers)
+        return cls.new(layer_sizes, activations, pre_corruptors, post_corruptors,
+                       layer_samplers)
 
     @functools.wraps(Model.get_params)
     def get_params(self):
@@ -168,7 +196,7 @@ class GSN(StackedBlocks, Model):
 
         Parameters
         ----------
-        minibatch : tensor_like
+        minibatch : tensor_like or list of tensor_likes
             Theano symbolic representing the input minibatch.
         walkback : int
             How many walkback steps to perform.
@@ -186,44 +214,36 @@ class GSN(StackedBlocks, Model):
             A time step consists of a call to the _update function (so updating
             both the odd and even layers).
 
-        Notes
-        ---------
-            At the beginning of execution, the activations in the higher layers
-            are still 0 because the input data has not reached there yet. These
-            0 valued activations are NOT included in the return value of this
-            function (so the first time steps will include less activation
-            vectors than the later time steps, because the high layers haven't
-            been activated yet).
-
             This overwrites self._activation_history
         """
         self._set_activations(minibatch)
 
+        # FIXME: extend clamping for multiple values with costs
         if clamped is not None:
             clamped_vals = minibatch * clamped
             unclamped = T.eq(clamped, 0)
 
-        # only the visible unit is nonzero at first
-        steps = [[self.activations[0]]]
+        # intialize steps
+        steps = [self.activations[:]]
 
         for time in xrange(1, len(self.aes) + walkback + 1):
-            self._update(self.activations, time=time)
+            self._update(self.activations)
 
             if clamped is not None:
                 self.activations[0] = (self.activations[0] * unclamped
                                        + clamped_vals)
 
             # slicing makes a shallow copy
-            steps.append(self.activations[:(2 * time) + 1])
+            steps.append(self.activations[:])
 
             # Apply post activation corruption to even layers
-            evens = xrange(0, min(2 * time + 1, len(self.activations)), 2)
+            evens = xrange(0, len(self.activations), 2)
             self._apply_postact_corruption(self.activations, evens)
 
         self._activation_history = steps
         return steps
 
-    def get_samples(self, minibatch, walkback=0, fresh=True):
+    def get_samples(self, minibatch, walkback=0, indices=None, fresh=True):
         """
         Runs minibatch through GSN and returns reconstructed data.
 
@@ -247,25 +267,25 @@ class GSN(StackedBlocks, Model):
             A list of length 1 + walkback that contains the samples generated
             by the GSN. The samples will be of the same size as the minibatch.
         """
+        # by default just get the first (bottom) layer
+        if indices is None:
+            indices = [0]
+
         if fresh:
             results = self._run(minibatch, walkback=walkback)
         else:
             results = self._activation_history
 
-        # FIXME: should I backprop over all of the reconstructed versions, or only
-        # the reconstructions which passed through all layers of the network
-
-        # all reconstructions
+        # leave out the first time step
         activations = results[1:]
 
-        # reconstructions which have gone through all layers of the network
-        #activations = results[len(self.aes):]
-        return [act[0] for act in activations]
+        return [[act[i] for i in indices] for act in activations]
 
     @functools.wraps(Autoencoder.reconstruct)
     def reconstruct(self, minibatch, fresh=True):
         # included for compatibility with cost functions for autoencoders
-        return self.get_samples(minibatch, walkback=0, fresh=fresh)[0]
+        return self.get_samples(minibatch, walkback=0, fresh=fresh,
+                                indices=[0])[0]
 
     def __call__(self, minibatch):
         """
@@ -306,7 +326,7 @@ class GSN(StackedBlocks, Model):
         This method creates a new list, not modifying an existing list.
         """
         # corrupt the input
-        activations = [self.postact_cors[0](minibatch)]
+        activations = self._apply_postact_cors(self.activations, [0])
 
         for i in xrange(len(self.aes)):
             activations.append(
@@ -321,7 +341,7 @@ class GSN(StackedBlocks, Model):
         # not used during training
         return activations
 
-    def _update(self, activations, time=None):
+    def _update(self, activations):
         """
         See Figure 1 in "Deep Generative Stochastic Networks as Generative
         Models" by Bengio, Thibodeau-Laufer.
@@ -330,46 +350,50 @@ class GSN(StackedBlocks, Model):
 
         Parameters
         ----------
-        time : int
-            The time step for which we are computing the activations. This
-            value must start at 1. This parameter is used to ensure that noise
-            does not get added to the activations that the signal has yet to
-            reach.
         old_activations : list of tensors
             This parameter should not be used during training. This exists so that
             many iterations of sampling can be done without having to build a huge
             Theano computation graph.
         """
-        if time is None:
-            # set time high enough so that we add noise to all layers
-            time = len(activations)
-
         # Update and corrupt all of the odd layers
-        odds = range(1, min(2 * time, len(activations)), 2)
+        odds = range(1, len(activations), 2)
         self._update_activations(activations, odds)
         self._apply_postact_corruption(activations, odds)
 
         # Update the even layers. Not applying post activation noise now so that
         # that cost function can be evaluated
-        evens = xrange(0, min(2 * time + 1, len(activations)), 2)
+        evens = xrange(0, len(activations), 2)
         self._update_activations(activations, evens)
 
         return activations
 
-    def _apply_postact_corruption(self, activations, idx_iter):
+    @staticmethod
+    def _apply_corruption(activations, corruptors, idx_iter):
         """
         Applies post activation corruption to layers.
 
         Parameters
         ----------
+        activations : list of tensor_likes
+            Generally gsn.activations
+        corruptors : list of callables
+            Generally gsn.postact_cors or gsn.preact_cors
         idx_iter : iterable
             An iterable of indices into self.activations. The indexes indicate
             which layers the post activation corruptors should be applied to.
         """
+        assert len(corruptors) == len(activations)
         for i in idx_iter:
-            activations[i] = self.postact_cors[i](activations[i])
-
+            activations[i] = corruptors[i](activations[i])
         return activations
+
+    def apply_preact_corruption(self, activations, idx_iter):
+        return self._apply_corruption(activations, self._preact_cors,
+                                      idx_iter)
+
+    def apply_postact_corruption(self, activations, idx_iter):
+        return self._apply_corruption(activations, self._postact_cors,
+                                      idx_iter)
 
     def _update_activations(self, activations, idx_iter):
         """
@@ -378,10 +402,11 @@ class GSN(StackedBlocks, Model):
         idx_iter : iterable
             An iterable of indices into self.activations. The indexes indicate
             which layers should be updated.
+            Must be able to iterate over idx_iter multiple times.
         """
         from_above = lambda i: (self.aes[i].visbias +
                                 T.dot(activations[i + 1],
-                                      self.aes[i].weights.T))
+                                      self.aes[i].w_prime))
 
         from_below = lambda i: (self.aes[i - 1].hidbias +
                                 T.dot(activations[i - 1],
@@ -396,9 +421,9 @@ class GSN(StackedBlocks, Model):
             else:
                 activations[i] = from_below(i) + from_above(i)
 
-            # pre activation corruption
-            activations[i] = self.preact_cors[i](activations[i])
+        self._apply_preact_corruption(self.activations, idx_iter)
 
+        for i in idx_iter:
             # Using the activation function from lower autoencoder
             act_func = None
             if i == 0:
@@ -410,49 +435,3 @@ class GSN(StackedBlocks, Model):
             # None implies linear
             if act_func is not None:
                 activations[i] = act_func(activations[i])
-
-class SoftmaxGSN(GSN):
-    """
-    GSN where the last layer has a softmax activation function
-
-    Notes
-    -----
-    All of the functionality here is present in the GSN class, but this
-    provides some convenience functions.
-
-    Also, the size of the last layer must be the same as the number of classes.
-
-    It is still recommended to initialize this class using GSN.new (so call
-    SoftmaxGSN.new).
-
-    A cost should be used that is some combination of a classification cost
-    (called on some aggregating function of get_predictions) and a
-    reconstruction cost (called on get_samples)
-    """
-    def __init__(self, *args, **kwargs):
-        # this is just a bunch of hacks so that SoftmaxGSN.new() works how
-        # one would expect it to.
-
-        super(SoftmaxGSN, self).__init__(*args, **kwargs)
-
-        # change last activation function
-        self.aes[-1].act_enc = T.nnet.softmax
-
-        # FIXME: Should the multinomial sampling be corrupted? This would involve
-        # either modifying GSN.new or just changing the the last postact corruptor
-        # here.
-        self.postact_cors[-1] = ComposedCorruptor(
-            self.postact_cors[-1],
-            MultinomialSampler()
-        )
-
-    def get_predictions(self, minibatch, walkback=0, fresh=True):
-        if fresh:
-            results = self._run(minibatch, walkback=walkback)
-        else:
-            results = self._activation_history
-
-        # once signal has propagated to softmax layer
-        valid_index = (len(self.aes) + 1) / 2
-        results = results[valid_index:]
-        return [r[-1] for r in results]

@@ -5,12 +5,12 @@ from pylearn2.costs.cost import Cost
 import numpy.random
 from theano.tensor.shared_randomstreams import RandomStreams
 
-class WalkbackFriendlyCost(Cost):
+class GSNFriendlyCost(Cost):
     @staticmethod
     def cost(a, b):
         raise NotImplementedError
 
-class MeanSquaredReconstructionError(WalkbackFriendlyCost):
+class MeanSquaredReconstructionError(GSNFriendlyCost):
     @staticmethod
     def cost(a, b):
         return ((a - b) ** 2).sum(axis=1).mean()
@@ -24,7 +24,7 @@ class MeanSquaredReconstructionError(WalkbackFriendlyCost):
         return (model.get_input_space(), model.get_input_source())
 
 
-class MeanBinaryCrossEntropy(WalkbackFriendlyCost):
+class MeanBinaryCrossEntropy(GSNFriendlyCost):
     @staticmethod
     def cost(a, b):
         return (
