@@ -744,6 +744,7 @@ class BoltzmannIsingHidden(HiddenLayer):
                  init_bias=0.,
                  W_lr_scale=None,
                  b_lr_scale=None,
+                 beta_lr_scale=None,
                  max_col_norm=None,
                  min_ising_b=None,
                  max_ising_b=None,
@@ -779,6 +780,9 @@ class BoltzmannIsingHidden(HiddenLayer):
         if not hasattr(self, 'b_lr_scale'):
             self.b_lr_scale = None
 
+        if not hasattr(self, 'beta_lr_scale'):
+            self.beta_lr_scale = None
+
         rval = OrderedDict()
 
         if self.W_lr_scale is not None:
@@ -787,6 +791,9 @@ class BoltzmannIsingHidden(HiddenLayer):
 
         if self.b_lr_scale is not None:
             rval[self.boltzmann_b] = self.b_lr_scale
+
+        if self.beta_lr_scale is not None:
+            rval[self.beta] = self.beta_lr_scale
 
         return rval
 
