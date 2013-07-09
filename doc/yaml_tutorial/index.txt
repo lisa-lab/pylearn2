@@ -110,7 +110,7 @@ pylearn2.config.yaml_parse module (shown below).
 
 Running the above code yields the following output.
 
-.. code-block:: shell
+.. code-block:: none
 
     AutoEncoder
         nvis = 784
@@ -173,7 +173,7 @@ sigmoidal non-linearity.
 Assuming the above yaml script is stored in ``experiment3.yaml``, running
 ``yaml_load('experiment3.yaml')`` yields the following output.
 
-.. code-block:: shell
+.. code-block:: none
 
     AutoEncoder
         nvis = 784
@@ -231,7 +231,7 @@ the iscale parameter being set to 0.1. This is expected because the parameters
 were initialized from 'example3_weights.pkl', i.e. the pickled parameters of a model
 initialized with ``iscale=1.0``.
 
-.. code-block:: shell
+.. code-block:: none
 
     AutoEncoder
         nvis = 784
@@ -292,7 +292,7 @@ Pylearn2 provides the script ``Pylearn2/pylearn2/train.py``. which combines the
 steps of (1) loading the Train object through ``yaml_load`` and (2) running
 multiple iterations of the training algorithm.
 
-.. code-block:: shell
+.. code-block:: none
     
     [user@host]$ cd /path/to/Pylearn2/pylearn2
     [user@host]$ train.py scripts/autoencoder_example/dae.yaml
