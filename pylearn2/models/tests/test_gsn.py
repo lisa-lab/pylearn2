@@ -5,7 +5,8 @@ import theano
 T = theano.tensor
 F = theano.function
 
-from pylearn2.costs.gsn import MBWalkbackCrossEntropy as Cost
+from pylearn2.costs.autoencoder import MeanBinaryCrossEntropy
+from pylearn2.costs.gsn import GSNCost
 from pylearn2.corruption import GaussianCorruptor, SaltPepperCorruptor
 from pylearn2.datasets.mnist import MNIST
 from pylearn2.models.gsn import GSN
@@ -35,10 +36,11 @@ vis_corruptor = SaltPepperCorruptor(SALT_PEPPER_NOISE)
 pre_corruptor = GaussianCorruptor(GAUSSIAN_NOISE)
 post_corruptor = GaussianCorruptor(GAUSSIAN_NOISE)
 
-gsn = GSN.new(layers, vis_corruptor, pre_corruptor, post_corruptor)
+gsn = GSN.new_ae(layers, vis_corruptor, pre_corruptor, post_corruptor)
 
 def test_train():
-    alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=Cost(walkback=WALKBACK),
+    c = GSNCost([(0, 1.0, MeanBinaryCrossEntropy)], walkback=WALKBACK)
+    alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=c,
               termination_criterion=EpochCounter(MAX_EPOCHS),
               batches_per_iter=BATCHES_PER_EPOCH, batch_size=BATCH_SIZE
               ,monitoring_dataset={"test": MNIST(which_set='test')}

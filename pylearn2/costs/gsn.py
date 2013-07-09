@@ -34,7 +34,7 @@ class GSNCost(Cost):
 
         self.walkback = walkback
 
-    def set_active_layers(layer_idxs):
+    def set_active_layers(self, layer_idxs):
         """
         Informs the GSNCost which layers will be set at first.
 
@@ -66,7 +66,7 @@ class GSNCost(Cost):
         data : list of tensor_likes
             data must be a list of the same length as self._cost_subset, which
             defaults to all of self.costs and is specified by the indexes passed
-            to self._set_active_layers. All elements in data must be tensor_likes
+            to self.set_active_layers. All elements in data must be tensor_likes
             (ie they cannot be None).
         """
         assert len(data) == len(self._cost_subset)
@@ -112,10 +112,11 @@ class GSNCost(Cost):
             sources = (model.get_input_source(), model.get_target_source())
             return (spaces, sources)
         else:
-            idx = self._layer_idx[0]
+            idx = self._cost_subset[0][0]
             if idx == 0:
                 space = model.aes[0].get_input_space()
             else:
                 space = model.aes[idx - 1].get_output_space()
-            return (space, model.get_target_source())
+
+            return (CompositeSpace([space]), model.get_input_source())
 

@@ -95,11 +95,11 @@ class GSN(StackedBlocks, Model):
         self._postact_cors = _make_callable_list(postact_cors)
 
         if layer_samplers is not None:
-            assert len(layer_samplers) == len(self.postact_cors)
+            assert len(layer_samplers) == len(self._postact_cors)
             for i, sampler in enumerate(layer_samplers):
                 if callable(sampler):
-                    self.postact_cors[i] = ComposedCorruptor(
-                        self.postact_cors[i],
+                    self._postact_cors[i] = ComposedCorruptor(
+                        self._postact_cors[i],
                         layer_samplers[i]
                     )
 
@@ -135,7 +135,7 @@ class GSN(StackedBlocks, Model):
                    layer_samplers=layer_samplers)
 
     @classmethod
-    def new_ae_gsn(cls, layer_sizes, vis_corruptor=None, hidden_pre_corruptor=None,
+    def new_ae(cls, layer_sizes, vis_corruptor=None, hidden_pre_corruptor=None,
                    hidden_post_corruptor=None, visible_act="sigmoid",
                    hidden_act="tanh"):
         """
@@ -170,14 +170,15 @@ class GSN(StackedBlocks, Model):
             The value for visible_act must be a valid value for the act_enc
             parameter of Autoencoder.__init__
         """
-        activations = [visible_act] + [hidden_act] * (len(self.layers) - 1)
+        num_layers = len(layer_sizes)
+        activations = [visible_act] + [hidden_act] * (len(layer_sizes) - 1)
 
-        pre_corruptors = [None] * len(aes) + [hidden_pre_corruptor]
-        post_corruptors = [vis_corruptor] + None * (len(aes) - 1) +\
+        pre_corruptors = [None] * (num_layers - 1) + [hidden_pre_corruptor]
+        post_corruptors = [vis_corruptor] + [None] * (num_layers - 2) +\
             [hidden_post_corruptor]
 
         # binomial sampling on visible layer by default
-        layer_samplers = [BinomialSampler()] + [None] * len(aes)
+        layer_samplers = [BinomialSampler()] + [None] * (num_layers - 1)
 
         return cls.new(layer_sizes, activations, pre_corruptors, post_corruptors,
                        layer_samplers)
@@ -189,7 +190,7 @@ class GSN(StackedBlocks, Model):
             params.extend(ae.get_params())
         return params
 
-    def _run(self, minibatch, walkback=0, clamped=None, sparse=sparse):
+    def _run(self, minibatch, walkback=0, clamped=None, sparse=True):
         """
         This runs the GSN on input 'minibatch' are returns all of the activations
         at every time step.
