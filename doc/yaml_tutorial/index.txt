@@ -195,6 +195,7 @@ previous configuration (stored in ``experiment3.yaml``) and then save the
 parameters to disk in the file ``example3_weights.pkl``.
 
 .. code-block:: python
+
     fp = open('experiment3.yaml')
     model = yaml_parse.load(fp)
     model.save('example3_weights.pkl')
