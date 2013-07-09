@@ -1,5 +1,6 @@
 from pylearn2.costs.cost import Cost
 from pylearn2.costs.autoencoder import GSNFriendlyCost
+from pylearn2.space import CompositeSpace
 
 class GSNCost(Cost):
     def __init__(self, costs, walkback=0):
@@ -21,6 +22,9 @@ class GSNCost(Cost):
         super(GSNCost, self).__init__()
         self.costs = costs
 
+        # assuming full supervised training
+        self.set_active_layers([c[0] for c in self.costs])
+
         # convert GSNFriendCost instances into just callables
         for i, cost_tup in enumerate(self.costs):
             if isinstance(cost_tup[2], GSNFriendlyCost):
@@ -30,20 +34,43 @@ class GSNCost(Cost):
 
         self.walkback = walkback
 
+    def set_active_layers(layer_idxs):
+        """
+        Informs the GSNCost which layers will be set at first.
+
+        This function can be called to switch between supervised and unsupervised
+        training.
+
+        Parameters
+        ----------
+        layers : list of int
+            Indicates which layers will be set for forthcoming training. This
+            list MUST be sorted in the same order as the indexes for the costs
+            passed into to __init__.
+
+        Note
+        ----
+        GSNCost.expr currently works without the contraint that only some layers
+        can be set at once. This constraint is necessary to implement
+        GSNCost.get_data_specs. Either GSNCost.expr should be restricted (would
+        make the code simpler) or the Space model should allow union types.
+        """
+        assert len(layer_idxs) > 0
+        self._cost_subset = filter(lambda c: c[0] in layer_idxs, self.costs)
+
     def expr(self, model, data):
         """
         Parameters
         ----------
         model : GSN object
         data : list of tensor_likes
-            data must be a list of the same length as self.costs. Each element
-            in data can either be a tensor_like or None. The value at data[i]
-            will be placed in the initial activation array at position
-            self.costs[i][0] (the layer_idx component). This means that the
-            ordering on the data is identical to the order of the cost functions
-            that this GSNCost instance was created with.
+            data must be a list of the same length as self._cost_subset, which
+            defaults to all of self.costs and is specified by the indexes passed
+            to self._set_active_layers. All elements in data must be tensor_likes
+            (ie they cannot be None).
         """
-        assert len(data) == len(self.costs)
+        assert len(data) == len(self._cost_subset)
+
         zerof = lambda x, y: 0.0
 
         # just treat every layer as if it had a cost function (where most of them
@@ -51,18 +78,13 @@ class GSNCost(Cost):
         expanded_data = [None] * (len(model.aes) + 1)
         expanded_costs = [(0.0, zerof)] * (len(model.aes) + 1)
 
-        for cost_idx, layer_idx, coeff, costf in enumerate(self.costs):
+        for cost_idx, layer_idx, coeff, costf in enumerate(self._cost_subset):
             expanded_data[layer_idx] = data[cost_idx]
 
-            # we only want to calculate costs where data is not None
-            if expanded_data[layer_idx] is not None:
-                expanded_costs[layer_idx] = (coeff, costf)
+            assert expanded_data[layer_idx] is not None
+            expanded_costs[layer_idx] = (coeff, costf)
 
-        for i in xrange(len(expanded_data)):
-            if expanded_data[i] is None:
-                assert expanded_costs[i][1] is zerof
-
-        cost_indices = [c[0] for c in self.costs]
+        cost_indices = [c[0] for c in self._cost_subset]
 
         # get all of the output except at first time step
         output = model.get_samples(zip(cost_indices, data), walkback=0,
@@ -76,7 +98,24 @@ class GSNCost(Cost):
             for i in xrange(len(ec))
         )
 
-    def get_data_specs(self, model):
-        return (model.get_input_space(), model.get_input_source())
+        return sum(map(step_sum, xrange(len(output))))
 
+    def get_data_specs(self, model):
+        if len(self._cost_subset) > 1:
+            spaces = []
+            for idx, _, _ in self._cost_subset:
+                if idx == 0:
+                    spaces.append(model.aes[0].get_input_space())
+                else:
+                    spaces.append(model.aes[idx - 1].get_output_space())
+            spaces = CompositeSpace(spaces)
+            sources = (model.get_input_source(), model.get_target_source())
+            return (spaces, sources)
+        else:
+            idx = self._layer_idx[0]
+            if idx == 0:
+                space = model.aes[0].get_input_space()
+            else:
+                space = model.aes[idx - 1].get_output_space()
+            return (space, model.get_target_source())
 
