@@ -197,7 +197,8 @@ class GSN(StackedBlocks, Model):
         Parameters
         ----------
         minibatch : tensor_like or list of tensor_likes
-            Theano symbolic representing the input minibatch.
+            Theano symbolic representing the input minibatch. See documentation
+            for _set_activations for more information on the data format.
         walkback : int
             How many walkback steps to perform.
         clamped : tensor_like
@@ -205,6 +206,8 @@ class GSN(StackedBlocks, Model):
             should be kept constant and 0 everywhere else. If no indices are
             going to be clamped, its faster to keep clamped as None rather
             than set it to the 0 matrix.
+        sparse : bool
+            See documentation on _set_activations.
 
         Returns
         ---------
@@ -243,7 +246,8 @@ class GSN(StackedBlocks, Model):
         self._activation_history = steps
         return steps
 
-    def get_samples(self, minibatch, walkback=0, indices=None, fresh=True):
+    def get_samples(self, minibatch, walkback=0, indices=None, fresh=True,
+                    sparse=True):
         """
         Runs minibatch through GSN and returns reconstructed data.
 
@@ -272,14 +276,14 @@ class GSN(StackedBlocks, Model):
             indices = [0]
 
         if fresh:
-            results = self._run(minibatch, walkback=walkback)
+            results = self._run(minibatch, walkback=walkback, sparse=sparse)
         else:
             results = self._activation_history
 
         # leave out the first time step
-        activations = results[1:]
+        steps = results[1:]
 
-        return [[act[i] for i in indices] for act in activations]
+        return [[step[i] for i in indices] for step in steps]
 
     @functools.wraps(Autoencoder.reconstruct)
     def reconstruct(self, minibatch, fresh=True):
@@ -323,12 +327,16 @@ class GSN(StackedBlocks, Model):
             Determines whether the method sets self.activations.
         sparse : bool
             Indicates whether minibatch is a sparse list of activations
-            or a dense list. If sparse is true, then the minibatch
+            or a dense list.
+            If sparse is true, then the minibatch
             parameter must be a list of tuples of form (int, tensor_like),
             where the int component represents the index of the layer
             (so 0 for visible, -1 for top/last layer) and the tensor_like
             represents the activation at that level. Components not included
-            in the sparse activations will be set to 0.
+            in the sparse activations will be set to 0. For tuples included
+            in the sparse activation, the tensor_like component can actually
+            be None; this will result in that activation getting set to 0.
+
             If sparse if false, then the input must be a list of length
             equal to the number of layers (visible included) of the network.
             When sparse is false, each element in the list must either be

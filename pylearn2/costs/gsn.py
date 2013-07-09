@@ -15,7 +15,6 @@ class GSNCost(Cost):
             that is a callable rather than an instance of GSN friendly cost,
             it will be called with 2 arguments: the initial value and the
             reconstructed value.
-
         walkback : int
             how many steps of walkback to perform
         """
@@ -32,24 +31,50 @@ class GSNCost(Cost):
         self.walkback = walkback
 
     def expr(self, model, data):
-        assert len(data) == len(costs)
+        """
+        Parameters
+        ----------
+        model : GSN object
+        data : list of tensor_likes
+            data must be a list of the same length as self.costs. Each element
+            in data can either be a tensor_like or None. The value at data[i]
+            will be placed in the initial activation array at position
+            self.costs[i][0] (the layer_idx component). This means that the
+            ordering on the data is identical to the order of the cost functions
+            that this GSNCost instance was created with.
+        """
+        assert len(data) == len(self.costs)
+        zerof = lambda x, y: 0.0
 
-        indices = [c[0] for c in self.costs]
+        # just treat every layer as if it had a cost function (where most of them
+        # are always 0)
+        expanded_data = [None] * (len(model.aes) + 1)
+        expanded_costs = [(0.0, zerof)] * (len(model.aes) + 1)
 
-        non_none = filter(lambda i: data[i] is not None, indices)
+        for cost_idx, layer_idx, coeff, costf in enumerate(self.costs):
+            expanded_data[layer_idx] = data[cost_idx]
 
-        # make idx, value pairs
-        data = zip(indices, data)
+            # we only want to calculate costs where data is not None
+            if expanded_data[layer_idx] is not None:
+                expanded_costs[layer_idx] = (coeff, costf)
 
-        output = model.get_samples(data, walkback=self.walkback,
-                                   indices=non_none)
+        for i in xrange(len(expanded_data)):
+            if expanded_data[i] is None:
+                assert expanded_costs[i][1] is zerof
 
-        layer_cost = lambda activations: sum(
-            self.costs[i][1] * self.costs[i][2](data[i], activations[i])
-            for i in xrange(len(self.costs))
+        cost_indices = [c[0] for c in self.costs]
+
+        # get all of the output except at first time step
+        output = model.get_samples(zip(cost_indices, data), walkback=0,
+                                   indices=range(len(expanded_data)))
+
+        ec = expanded_costs
+
+        # cost occuring at step idx
+        step_sum = lambda idx: sum(
+            ec[i][0] * ec[i][1](expanded_data[i], output[idx][i])
+            for i in xrange(len(ec))
         )
-
-        return sum(map(layer_cost, output))
 
     def get_data_specs(self, model):
         return (model.get_input_space(), model.get_input_source())
