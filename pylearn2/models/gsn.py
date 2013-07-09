@@ -189,7 +189,7 @@ class GSN(StackedBlocks, Model):
             params.extend(ae.get_params())
         return params
 
-    def _run(self, minibatch, walkback=0, clamped=None):
+    def _run(self, minibatch, walkback=0, clamped=None, sparse=sparse):
         """
         This runs the GSN on input 'minibatch' are returns all of the activations
         at every time step.
@@ -216,7 +216,7 @@ class GSN(StackedBlocks, Model):
 
             This overwrites self._activation_history
         """
-        self._set_activations(minibatch)
+        self._set_activations(minibatch, sparse=sparse)
 
         # FIXME: extend clamping for multiple values with costs
         if clamped is not None:
@@ -310,35 +310,62 @@ class GSN(StackedBlocks, Model):
     See pylearn2.models.tests.test_gsn.sampling_test for an example.
     """
 
-    def _set_activations(self, minibatch, set_val=True):
+    def _set_activations(self, minibatch, set_val=True, sparse=True):
         """
         Sets the input layer to minibatch and all other layers to 0.
 
         Parameters:
         ------------
-        minibatch : tensor_like
-            Theano symbolic representing the input minibatch
+        minibatch : tensor_like or list of (int, tensor_like)
+            Theano symbolic representing the input minibatch. See
+            description for sparse parameter.
         set_val : bool
             Determines whether the method sets self.activations.
-
+        sparse : bool
+            Indicates whether minibatch is a sparse list of activations
+            or a dense list. If sparse is true, then the minibatch
+            parameter must be a list of tuples of form (int, tensor_like),
+            where the int component represents the index of the layer
+            (so 0 for visible, -1 for top/last layer) and the tensor_like
+            represents the activation at that level. Components not included
+            in the sparse activations will be set to 0.
+            If sparse if false, then the input must be a list of length
+            equal to the number of layers (visible included) of the network.
+            When sparse is false, each element in the list must either be
+            a tensor_like or None (items that are None will be set to 0's).
         Note
         ----
         This method creates a new list, not modifying an existing list.
         """
-        # corrupt the input
-        activations = self._apply_postact_cors(self.activations, [0])
 
-        for i in xrange(len(self.aes)):
-            activations.append(
-                T.zeros_like(
-                    T.dot(activations[i], self.aes[i].weights)
+        if sparse:
+            activations = [None] * (len(self.aes) + 1)
+            indices = [t[0] for t in minibatch]
+            for i, val in minibatch:
+                activations[i] = val
+        else:
+            assert len(minibatch) == (len(self.aes) + 1)
+            activations = minibatch[:]
+            indices = filter(lambda i: activations[i] is not None, xrange(len(activations)))
+
+        # this shouldn't be strictly necessary, but the algorithm is much easier if the
+        # first activation is always set. This code should be restructured if someone
+        # wants to run this without setting the first activation (because the for loop
+        # below assumes that the first activation is non-None
+
+        assert activations[0] is not None
+        for i in xrange(1, len(activations)):
+            if activations[i] is None:
+                activations[i] = T.zeros_like(
+                    T.dot(activations[i - 1], self.aes[i - 1].weights)
                 )
-            )
+
+        # corrupt the input
+        activations = self._apply_postact_cors(self.activations, indices)
 
         if set_val:
             self.activations = activations
 
-        # not used during training
         return activations
 
     def _update(self, activations):
