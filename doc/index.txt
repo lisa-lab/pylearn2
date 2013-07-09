@@ -148,3 +148,14 @@ Developer
    :hidden:
 
    library/index
+   api_change
+   cluster
+   features
+   internal/index
+   internal/metadocumentation
+   overview
+   tutorial/index
+   tutorial/with_jobman
+   vision
+   yaml_tutorial/index
+   LICENSE
