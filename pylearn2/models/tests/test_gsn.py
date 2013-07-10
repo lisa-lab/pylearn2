@@ -9,6 +9,7 @@ from pylearn2.costs.autoencoder import MeanBinaryCrossEntropy
 from pylearn2.costs.gsn import GSNCost
 from pylearn2.corruption import GaussianCorruptor, SaltPepperCorruptor
 from pylearn2.datasets.mnist import MNIST
+from pylearn2.distributions.parzen import ParzenWindows
 from pylearn2.models.gsn import GSN
 from pylearn2.termination_criteria import EpochCounter
 from pylearn2.train import Train
@@ -49,29 +50,13 @@ def test_train():
     trainer = Train(dataset, gsn, algorithm=alg, save_path="gsn_repro.pkl",
                     save_freq=5)
     trainer.main_loop()
+
     print "done training"
 
 def test_sample():
     import cPickle
     with open("gsn_model6.pkl") as f:
         gsn = cPickle.load(f)
-
-    mb = T.fmatrix()
-    f_init = F([mb], gsn._set_activations(mb))
-
-    prev = T.fmatrices(len(gsn.activations))
-    f_step = F(prev, gsn._update(copy.copy(prev)),
-               on_unused_input='ignore')
-
-    precor = T.fmatrices(len(gsn.activations))
-    evens = xrange(0, len(gsn.activations), 2)
-    f_even_corrupt = F(
-        precor,
-        gsn._apply_postact_corruption(
-            copy.copy(precor),
-            evens
-        ),
-    )
 
     mb_data = MNIST(which_set='test').X[105:106, :]
 

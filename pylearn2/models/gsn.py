@@ -11,18 +11,26 @@ __authors__ = "Eric Martin"
 __copyright__ = "Copyright 2013, Universite de Montreal"
 __license__ = "3-clause BSD"
 
+import copy
 import functools
+import warnings
 
-import theano.tensor as T
+import theano
+T = theano.tensor
 
 import pylearn2
 from pylearn2.base import StackedBlocks
-from pylearn2.corruption import BinomialSampler, ComposedCorruptor,\
-                                MultinomialSampler
+from pylearn2.corruption import BinomialSampler, ComposedCorruptor
 from pylearn2.models.autoencoder import Autoencoder
 from pylearn2.models.model import Model
+from pylearn2.utils import safe_zip
 
 class GSN(StackedBlocks, Model):
+    """
+    Note: Anyone trying to use this class should read the docstring for
+    GSN._set_activations. This describes the format for the minibatch parameter
+    that many methods require.
+    """
     def __init__(self, autoencoders, preact_cors=None, postact_cors=None,
                  layer_samplers=None):
         """
@@ -190,16 +198,14 @@ class GSN(StackedBlocks, Model):
             params.extend(ae.get_params())
         return params
 
-    def _run(self, minibatch, walkback=0, clamped=None, sparse=True):
+    def _run(self, minibatch, walkback=0, clamped=None):
         """
         This runs the GSN on input 'minibatch' are returns all of the activations
         at every time step.
 
         Parameters
         ----------
-        minibatch : tensor_like or list of tensor_likes
-            Theano symbolic representing the input minibatch. See documentation
-            for _set_activations for more information on the data format.
+        minibatch : see parameter description in _set_activations
         walkback : int
             How many walkback steps to perform.
         clamped : tensor_like
@@ -207,8 +213,6 @@ class GSN(StackedBlocks, Model):
             should be kept constant and 0 everywhere else. If no indices are
             going to be clamped, its faster to keep clamped as None rather
             than set it to the 0 matrix.
-        sparse : bool
-            See documentation on _set_activations.
 
         Returns
         ---------
@@ -217,54 +221,85 @@ class GSN(StackedBlocks, Model):
             themselves are lists of tensor_like symbolic (shared) variables.
             A time step consists of a call to the _update function (so updating
             both the odd and even layers).
-
-            This overwrites self._activation_history
         """
-        self._set_activations(minibatch, sparse=sparse)
-
-        # FIXME: extend clamping for multiple values with costs
-        if clamped is not None:
-            clamped_vals = minibatch * clamped
-            unclamped = T.eq(clamped, 0)
+        self._set_activations(minibatch)
+        EVENS = xrange(0, len(self.activations), 2)
 
         # intialize steps
         steps = [self.activations[:]]
 
-        for time in xrange(1, len(self.aes) + walkback + 1):
-            self._update(self.activations)
+        # corrupt the initial activations
+        self.apply_postact_corruption(self.activations, EVENS)
 
-            if clamped is not None:
-                self.activations[0] = (self.activations[0] * unclamped
-                                       + clamped_vals)
+        for _ in xrange(len(self.aes) + walkback):
+            self._update(self.activations)
 
             # slicing makes a shallow copy
             steps.append(self.activations[:])
 
             # Apply post activation corruption to even layers
-            evens = xrange(0, len(self.activations), 2)
-            self.apply_postact_corruption(self.activations, evens)
+            self.apply_postact_corruption(self.activations, EVENS)
 
-        self._activation_history = steps
         return steps
 
-    def get_samples(self, minibatch, walkback=0, indices=None, fresh=True,
-                    sparse=True):
+    def _make_or_get_compiled(self, indices):
+        def compile_f_init():
+            mb = T.fmatrices(len(indices))
+            zipped = safe_zip(indices, mb)
+            f_init = theano.function(mb, self._set_activations(zipped))
+            return f_init
+
+        if hasattr(self, '_compiled_cache'):
+            if indices == self._compiled_cache[0]:
+                return self._compiled_cache[1:]
+            else:
+                f_init = compile_f_init()
+                cc = self._compiled_cache
+                self._compiled_cache = (indices, f_init, cc[2], cc[3])
+
+        # make init
+        f_init = compile_f_init()
+
+        # make step function
+        prev = T.fmatrices(len(gsn.activations))
+        f_step = T(prev, self._update(copy.copy(prev)))
+
+        # make even corruptor
+        precor = T.fmatrices(len(self.activations))
+        evens = xrange(0, len(gsn.activations), 2)
+        f_even_corrupt = theano.function(
+            precor,
+            self.apply_postact_corruption(
+                copy.copy(precor),
+                evens
+            )
+        )
+
+        self._compiled_cache = (indices, f_init, f_step, f_even_corrupt)
+        return self._compiled_cache
+
+    def get_samples(self, minibatch, walkback=0, indices=None, symbolic=True):
         """
         Runs minibatch through GSN and returns reconstructed data.
 
+        This function
+
         Parameters
         ----------
-        minibatch : tensor_like
-            Theano symbolic representing the input minibatch.
+        minibatch : see parameter description in _set_activations
         walkback : int
             How many walkback steps to perform. This is both how many extra
             samples to take as well as how many extra reconstructed points
             to train off of.
-        fresh : bool
-            Indicates whether or not the minibatch should be ran through
-            the network or existing activations should be used. Generally
-            fresh should be True, unless you want to call get_samples and
-            some other function of the activation history for the same minibatch.
+        indices : None or list of ints
+            Indices of the layers that should be returned for each time step.
+            If indices is None, then get_samples returns the values for all of
+            the layers which were initially specified (by minibatch).
+        symbolic : bool
+            Whether the input (minibatch) contains a sparse array of Theano
+            (symbolic) tensors or actual (numpy) arrays. This flag is needed
+            because Theano cannot compile the large computational graphs that
+            walkback creates.
 
         Returns
         ---------
@@ -272,14 +307,29 @@ class GSN(StackedBlocks, Model):
             A list of length 1 + walkback that contains the samples generated
             by the GSN. The samples will be of the same size as the minibatch.
         """
-        # by default just get the first (bottom) layer
-        if indices is None:
-            indices = [0]
+        if walkback > 8 and not symbolic:
+            warnings.warn(("Running GSN in symbolic mode (needed for training) " +
+                           "with a lot of walkback. Theano may take a very long " +
+                           "time to compile this computational graph. If " +
+                           "compiling is taking too long, then reduce the amount " +
+                           "of walkback."))
 
-        if fresh:
-            results = self._run(minibatch, walkback=walkback, sparse=sparse)
+        input_idxs = safe_zip(*minibatch)[0]
+        if indices is None:
+            indices = input_idxs
+
+        if not symbolic:
+            vals = safe_zip(*minibatch)[1]
+            f_init, f_step, f_even_corrupt = self._make_or_get_compiled(input_idxs)
+
+            activations = f_init(*vals)
+            results = [activations]
+            for _ in xrange(len(self.aes) + walkback):
+                activations = f_step(*activations)
+                results.append(activations)
+                activations = f_even_corrupt(*activations)
         else:
-            results = self._activation_history
+            results = self._run(minibatch, walkback=walkback)
 
         # leave out the first time step
         steps = results[1:]
@@ -287,10 +337,10 @@ class GSN(StackedBlocks, Model):
         return [[step[i] for i in indices] for step in steps]
 
     @functools.wraps(Autoencoder.reconstruct)
-    def reconstruct(self, minibatch, fresh=True):
-        # included for compatibility with cost functions for autoencoders
-        return self.get_samples(minibatch, walkback=0, fresh=fresh,
-                                indices=[0])[0]
+    def reconstruct(self, minibatch):
+        # included for compatibility with cost functions for autoencoders,
+        # so assumes model is in unsupervised mode
+        return self.get_samples(minibatch, walkback=0, indices=[0])
 
     def __call__(self, minibatch):
         """
@@ -315,7 +365,7 @@ class GSN(StackedBlocks, Model):
     See pylearn2.models.tests.test_gsn.sampling_test for an example.
     """
 
-    def _set_activations(self, minibatch, set_val=True, sparse=True):
+    def _set_activations(self, minibatch, set_val=True):
         """
         Sets the input layer to minibatch and all other layers to 0.
 
@@ -324,12 +374,7 @@ class GSN(StackedBlocks, Model):
         minibatch : tensor_like or list of (int, tensor_like)
             Theano symbolic representing the input minibatch. See
             description for sparse parameter.
-        set_val : bool
-            Determines whether the method sets self.activations.
-        sparse : bool
-            Indicates whether minibatch is a sparse list of activations
-            or a dense list.
-            If sparse is true, then the minibatch
+            The minibatch
             parameter must be a list of tuples of form (int, tensor_like),
             where the int component represents the index of the layer
             (so 0 for visible, -1 for top/last layer) and the tensor_like
@@ -337,26 +382,17 @@ class GSN(StackedBlocks, Model):
             in the sparse activations will be set to 0. For tuples included
             in the sparse activation, the tensor_like component can actually
             be None; this will result in that activation getting set to 0.
-
-            If sparse if false, then the input must be a list of length
-            equal to the number of layers (visible included) of the network.
-            When sparse is false, each element in the list must either be
-            a tensor_like or None (items that are None will be set to 0's).
+        set_val : bool
+            Determines whether the method sets self.activations.
         Note
         ----
         This method creates a new list, not modifying an existing list.
         """
 
-        if sparse:
-            activations = [None] * (len(self.aes) + 1)
-            indices = [t[0] for t in minibatch]
-            for i, val in minibatch:
-                activations[i] = val
-        else:
-            assert len(minibatch) == (len(self.aes) + 1)
-            activations = minibatch[:]
-            indices = filter(lambda i: activations[i] is not None,
-                             xrange(len(activations)))
+        activations = [None] * (len(self.aes) + 1)
+        indices = [t[0] for t in minibatch if t[1] is not None]
+        for i, val in minibatch:
+            activations[i] = val
 
         # this shouldn't be strictly necessary, but the algorithm is much easier if the
         # first activation is always set. This code should be restructured if someone
@@ -369,9 +405,6 @@ class GSN(StackedBlocks, Model):
                 activations[i] = T.zeros_like(
                     T.dot(activations[i - 1], self.aes[i - 1].weights)
                 )
-
-        # corrupt the input
-        activations = self.apply_postact_corruption(activations, indices)
 
         if set_val:
             self.activations = activations
@@ -387,10 +420,14 @@ class GSN(StackedBlocks, Model):
 
         Parameters
         ----------
-        old_activations : list of tensors
-            This parameter should not be used during training. This exists so that
-            many iterations of sampling can be done without having to build a huge
-            Theano computation graph.
+        activations : list of tensors
+            List of activations at time step t - 1.
+
+        Returns
+        -------
+        y : list of tensors
+            List of activations at time step t (prior to adding postact noise to
+            the even layers).
         """
         # Update and corrupt all of the odd layers
         odds = range(1, len(activations), 2)
