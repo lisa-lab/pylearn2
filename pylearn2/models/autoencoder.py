@@ -9,6 +9,7 @@ import operator
 # Third-party imports
 import numpy
 import theano
+import theano.sandbox.rng_mrg
 from theano import tensor
 
 # Local imports
@@ -19,14 +20,7 @@ from pylearn2.utils.theano_graph import is_pure_elemwise
 from pylearn2.space import VectorSpace
 
 theano.config.warn.sum_div_dimshuffle_bug = False
-
-if 0:
-    print 'WARNING: using SLOW rng'
-    RandomStreams = tensor.shared_randomstreams.RandomStreams
-else:
-    import theano.sandbox.rng_mrg
-    RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
-
+RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
 
 class Autoencoder(Block, Model):
     """
