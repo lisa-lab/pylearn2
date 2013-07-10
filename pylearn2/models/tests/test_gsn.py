@@ -39,7 +39,7 @@ post_corruptor = GaussianCorruptor(GAUSSIAN_NOISE)
 gsn = GSN.new_ae(layers, vis_corruptor, pre_corruptor, post_corruptor)
 
 def test_train():
-    c = GSNCost([(0, 1.0, MeanBinaryCrossEntropy)], walkback=WALKBACK)
+    c = GSNCost([(0, 1.0, MeanBinaryCrossEntropy())], walkback=WALKBACK)
     alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=c,
               termination_criterion=EpochCounter(MAX_EPOCHS),
               batches_per_iter=BATCHES_PER_EPOCH, batch_size=BATCH_SIZE

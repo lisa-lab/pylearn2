@@ -242,7 +242,7 @@ class GSN(StackedBlocks, Model):
 
             # Apply post activation corruption to even layers
             evens = xrange(0, len(self.activations), 2)
-            self._apply_postact_corruption(self.activations, evens)
+            self.apply_postact_corruption(self.activations, evens)
 
         self._activation_history = steps
         return steps
@@ -355,7 +355,8 @@ class GSN(StackedBlocks, Model):
         else:
             assert len(minibatch) == (len(self.aes) + 1)
             activations = minibatch[:]
-            indices = filter(lambda i: activations[i] is not None, xrange(len(activations)))
+            indices = filter(lambda i: activations[i] is not None,
+                             xrange(len(activations)))
 
         # this shouldn't be strictly necessary, but the algorithm is much easier if the
         # first activation is always set. This code should be restructured if someone
@@ -370,7 +371,7 @@ class GSN(StackedBlocks, Model):
                 )
 
         # corrupt the input
-        activations = self._apply_postact_cors(self.activations, indices)
+        activations = self.apply_postact_corruption(activations, indices)
 
         if set_val:
             self.activations = activations
@@ -394,7 +395,7 @@ class GSN(StackedBlocks, Model):
         # Update and corrupt all of the odd layers
         odds = range(1, len(activations), 2)
         self._update_activations(activations, odds)
-        self._apply_postact_corruption(activations, odds)
+        self.apply_postact_corruption(activations, odds)
 
         # Update the even layers. Not applying post activation noise now so that
         # that cost function can be evaluated
@@ -457,7 +458,7 @@ class GSN(StackedBlocks, Model):
             else:
                 activations[i] = from_below(i) + from_above(i)
 
-        self._apply_preact_corruption(self.activations, idx_iter)
+        self.apply_preact_corruption(self.activations, idx_iter)
 
         for i in idx_iter:
             # Using the activation function from lower autoencoder
