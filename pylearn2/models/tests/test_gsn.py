@@ -63,12 +63,18 @@ def test_sample():
                               symbolic=False, include_first=True)
 
     history = list(itertools.chain(*history))
+    history = np.vstack(history)
 
-    tiled = image.tile_raster_images(np.array(history),
+    tiled = image.tile_raster_images(history,
                                      img_shape=[28,28],
                                      tile_shape=[50,50],
                                      tile_spacing=(2,2))
     image.save("woot_test.png", tiled)
+
+    # code to get log likelihood from kernel density estimator
+    # this crashed on GPU (out of memory), but works on CPU
+    pw = ParzenWindows(MNIST(which_set='test').X, .20)
+    print pw.get_ll(history)
 
 def print_char(A):
     print a_to_s(A.round().reshape((28, 28)))

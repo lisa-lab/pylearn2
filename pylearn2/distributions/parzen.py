@@ -71,4 +71,4 @@ class ParzenWindows(object):
         for i in range(n_batches):
             lls.extend(self.lpdf(x[inds[i::n_batches]]))
 
-        return lls
+        return numpy.array(lls).mean()
