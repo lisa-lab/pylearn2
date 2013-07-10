@@ -4,13 +4,6 @@
 Developer Start Guide
 =====================
 
-
-
-TODO: This is a copy from Theano. Do the needed change.
-
-
-
-
 To get up to speed, you'll need to
 
 - Learn some non-basic Python to understand what's going on in some of the
@@ -30,16 +23,16 @@ Accounts
 --------
 
 To obtain developer access: register with `GitHub
-<http://www.github.com/>`_ and create a fork of `Theano
-<http://www.github.com/Theano/Theano>`_.
+<http://www.github.com/>`_ and create a fork of `Pylearn2
+<http://www.github.com/lisa-lab/pylearn2>`_.
 
 Coding style
 ------------
 
-We didn't had any coding style when we started Theano. We now use
-`this one
+We use the
+`following
 <http://deeplearning.net/software/pylearn/v2_planning/API_coding_style.html>`_
-except that we don't use the numpy docstring standard.
+coding style for Pylearn2.
 
 We do not plan to change all existing code to follow this coding
 style, but as we modify the code, we update it accordingly.
@@ -47,8 +40,8 @@ style, but as we modify the code, we update it accordingly.
 Mailing list
 ------------
 
-See the Theano main page for the theano-dev, theano-buildbot and
-theano-github mailing list. They are useful to Theano contributors.
+See the Pylearn2 main page for the pylearn-dev, theano-buildbot and
+pylearn2-github mailing list. They are useful to Pylearn2 contributors.
 
 Git config
 ----------
@@ -65,13 +58,13 @@ Clone your fork locally with
 
 .. code-block:: bash
 
-    git clone git@github.com:your_github_login/Theano.git
+    git clone git@github.com:your_github_login/pylearn2.git
 
 and add a reference to the 'central' Theano repository with
 
 .. code-block:: bash
 
-    git remote add central git://github.com/Theano/Theano.git
+    git remote add central git://github.com/lisa-lab/pylearn2.git
 
 When working on a new feature in your own fork, start from an up-to-date copy
 of the trunk:
@@ -89,7 +82,7 @@ Once your code is ready for others to review, push your branch to your github fo
 
 then go to your fork's github page on the github website, select your feature
 branch and hit the "Pull Request" button in the top right corner.
-If you don't get any feedback, bug us on the theano-dev mailing list.
+If you don't get any feedback, bug us on the pylearn-dev mailing list.
 
 When the your pull request have been merged, you can delete the branch
 from the github list of branch. That is usefull to don't have too many
@@ -121,7 +114,7 @@ typo) to keep the history clean, you can do it like this:
 Coding Style Auto Check
 -----------------------
 
-In Theano, we use the same coding style as the `Pylearn
+In Pylearn2, we use the same coding style as the `Pylearn
 <http://deeplearning.net/software/pylearn/v2_planning/API_coding_style.html>`_
 project. The principal thing to know is that we follow the
 `pep8 <http://www.python.org/dev/peps/pep-0008/>`_ coding style.
@@ -175,9 +168,9 @@ Python to search for them. If a package has sub-packages of interest to you,
 do **not** add them to ``$PYTHONPATH``: it is not portable, might shadow other
 packages or short-circuit important things in its ``__init__``.
 
-It is advisable to never import Theano's files from outside Theano itself
-(this is good advice for Python packages in general). Use ``from theano import
-tensor`` instead of ``import tensor``. ``$PYTHONPATH`` should only contain
+It is advisable to never import Pylearn2's files from outside Pylearn2 itself
+(this is good advice for Python packages in general). Use ``from pylearn2 import
+module`` instead of ``import module``. ``$PYTHONPATH`` should only contain
 paths to complete packages.
 
 When you install a package, only the package name can be imported directly. If
@@ -190,20 +183,14 @@ a certain order, which is best handled by the package's own ``__init__.py``.
 More instructions
 -----------------
 
-Once you have completed these steps, you should run the tests like this:
-
-.. code-block:: python
-
-   import theano
-   theano.test()
-
-Or by running ``nosetests`` from your checkout directory.
+Once you have completed these steps, you should run the by running
+``nosetests`` from your checkout directory.
 
 All tests should pass. If some test fails on your machine, you are
-encouraged to tell us what went wrong on the `theano-users`_
+encouraged to tell us what went wrong on the `pylearn-dev`_
 mailing list.
 
-.. _theano-users: https://groups.google.com/group/theano-users
+.. _pylearn-dev: https://groups.google.com/group/pylearn-dev
 
 To update your library to the latest revision, you should have a branch
 that tracks the main trunk. You can add one with:
@@ -251,7 +238,7 @@ To run all the tests with the same configuration as the buildbot, run this scrip
 
 .. code-block:: bash
 
-   theano/misc/do_nightly_build
+   pylearn2/misc/do_nightly_build
 
 This function accepts arguments that it forward to nosetests. You can
 run only some tests or enable pdb by giving the equivalent nosetests

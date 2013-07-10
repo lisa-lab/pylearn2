@@ -130,6 +130,7 @@ Developer
   http://deeplearning.net/software/pylearn/v2_planning/API_coding_style.html
 
 * :ref:`api_change` -- the best practices guide you should follow when changing any API in the library
+* :ref:`dev_start_guide` -- how to contribute code to Pylearn2
 
 
 
