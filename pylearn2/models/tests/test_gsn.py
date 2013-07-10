@@ -1,4 +1,4 @@
-import copy
+import itertools
 
 import numpy as np
 import theano
@@ -47,26 +47,22 @@ def test_train():
               ,monitoring_dataset={"test": MNIST(which_set='test')}
               )
 
-    trainer = Train(dataset, gsn, algorithm=alg, save_path="gsn_repro.pkl",
+    trainer = Train(dataset, gsn, algorithm=alg, save_path="gsn_trash.pkl",
                     save_freq=5)
     trainer.main_loop()
-
     print "done training"
 
 def test_sample():
     import cPickle
-    with open("gsn_model6.pkl") as f:
+    with open("gsn_repro.pkl") as f:
         gsn = cPickle.load(f)
 
     mb_data = MNIST(which_set='test').X[105:106, :]
 
-    history = [mb_data[0]]
-    activations = f_init(mb_data)
+    history = gsn.get_samples([(0, mb_data)], walkback=1000,
+                              symbolic=False, include_first=True)
 
-    for _ in xrange(2500):
-        activations = f_step(*activations)
-        history.append(activations[0][0])
-        activations = f_even_corrupt(*activations)
+    history = list(itertools.chain(*history))
 
     tiled = image.tile_raster_images(np.array(history),
                                      img_shape=[28,28],
@@ -91,4 +87,4 @@ def a_to_s(A):
     return "\n".join(strs)
 
 if __name__ == '__main__':
-    test_train()
+    test_sample()

@@ -261,12 +261,13 @@ class GSN(StackedBlocks, Model):
         f_init = compile_f_init()
 
         # make step function
-        prev = T.fmatrices(len(gsn.activations))
-        f_step = T(prev, self._update(copy.copy(prev)))
+        prev = T.fmatrices(len(self.activations))
+        f_step = theano.function(prev, self._update(copy.copy(prev)),
+                                 on_unused_input='ignore')
 
         # make even corruptor
         precor = T.fmatrices(len(self.activations))
-        evens = xrange(0, len(gsn.activations), 2)
+        evens = xrange(0, len(self.activations), 2)
         f_even_corrupt = theano.function(
             precor,
             self.apply_postact_corruption(
@@ -278,7 +279,8 @@ class GSN(StackedBlocks, Model):
         self._compiled_cache = (indices, f_init, f_step, f_even_corrupt)
         return self._compiled_cache
 
-    def get_samples(self, minibatch, walkback=0, indices=None, symbolic=True):
+    def get_samples(self, minibatch, walkback=0, indices=None, symbolic=True,
+                    include_first=False):
         """
         Runs minibatch through GSN and returns reconstructed data.
 
@@ -300,6 +302,10 @@ class GSN(StackedBlocks, Model):
             (symbolic) tensors or actual (numpy) arrays. This flag is needed
             because Theano cannot compile the large computational graphs that
             walkback creates.
+        include_first : bool
+            Whether to include the initial activations (ie just the input) in
+            the output. This is useful for visualization, but can screw up
+            training due to some cost functions failing on perfect reconstruction.
 
         Returns
         ---------
@@ -320,7 +326,8 @@ class GSN(StackedBlocks, Model):
 
         if not symbolic:
             vals = safe_zip(*minibatch)[1]
-            f_init, f_step, f_even_corrupt = self._make_or_get_compiled(input_idxs)
+            f_init, f_step, f_even_corrupt =\
+                self._make_or_get_compiled(input_idxs)[1:]
 
             activations = f_init(*vals)
             results = [activations]
@@ -332,9 +339,10 @@ class GSN(StackedBlocks, Model):
             results = self._run(minibatch, walkback=walkback)
 
         # leave out the first time step
-        steps = results[1:]
+        if not include_first:
+            results = results[1:]
 
-        return [[step[i] for i in indices] for step in steps]
+        return [[step[i] for i in indices] for step in results]
 
     @functools.wraps(Autoencoder.reconstruct)
     def reconstruct(self, minibatch):
