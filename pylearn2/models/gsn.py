@@ -20,7 +20,8 @@ T = theano.tensor
 
 import pylearn2
 from pylearn2.base import StackedBlocks
-from pylearn2.corruption import BinomialSampler, ComposedCorruptor
+from pylearn2.corruption import (BinomialSampler, ComposedCorruptor,
+                                 MultinomialSampler)
 from pylearn2.models.autoencoder import Autoencoder
 from pylearn2.models.model import Model
 from pylearn2.utils import safe_zip
@@ -179,7 +180,7 @@ class GSN(StackedBlocks, Model):
             parameter of Autoencoder.__init__
         """
         num_layers = len(layer_sizes)
-        activations = [visible_act] + [hidden_act] * (len(layer_sizes) - 1)
+        activations = [visible_act] + [hidden_act] * (num_layers - 1)
 
         pre_corruptors = [None] * (num_layers - 1) + [hidden_pre_corruptor]
         post_corruptors = [vis_corruptor] + [None] * (num_layers - 2) +\
@@ -190,6 +191,28 @@ class GSN(StackedBlocks, Model):
 
         return cls.new(layer_sizes, activations, pre_corruptors, post_corruptors,
                        layer_samplers)
+
+    @classmethod
+    def new_classifier(cls, layer_sizes, vis_corruptor=None,
+                       hidden_pre_corruptor=None, hidden_post_corruptor=None,
+                       visible_act="sigmoid", hidden_act="tanh",
+                       classifier_act="softmax"):
+        """
+        FIXME: documentation
+        """
+        num_hidden = len(layer_sizes) - 2
+        activations= [visible_act] + [hidden_act] * (num_hidden) + [classifier_act]
+
+        pre_corruptors = [None] + [hidden_pre_corruptor] * num_hidden + [None]
+        post_corruptors = [vis_corruptor] + [hidden_post_corruptor] * num_hidden +\
+            [None]
+
+        layer_samplers = [BinomialSampler()] + [None] * num_hidden +\
+            [MultinomialSampler()]
+
+        return cls.new(layer_sizes, activations, pre_corruptors, post_corruptors,
+                       layer_samplers)
+
 
     @functools.wraps(Model.get_params)
     def get_params(self):

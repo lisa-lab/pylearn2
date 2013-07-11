@@ -5,7 +5,8 @@ import theano
 T = theano.tensor
 F = theano.function
 
-from pylearn2.costs.autoencoder import MeanBinaryCrossEntropy
+from pylearn2.costs.autoencoder import (MeanBinaryCrossEntropy,
+                                        MeanSquaredReconstructionError)
 from pylearn2.costs.gsn import GSNCost
 from pylearn2.corruption import GaussianCorruptor, SaltPepperCorruptor
 from pylearn2.datasets.mnist import MNIST
@@ -20,7 +21,7 @@ HIDDEN_SIZE = 1500
 SALT_PEPPER_NOISE = 0.4
 GAUSSIAN_NOISE = 2
 
-WALKBACK = 4
+WALKBACK = 1
 
 LEARNING_RATE = 0.25 / 784
 MOMENTUM = 0.5 / 784
@@ -29,17 +30,16 @@ MAX_EPOCHS = 200
 BATCHES_PER_EPOCH = None # covers full training set
 BATCH_SIZE = 100
 
-dataset = MNIST(which_set='train')
+dataset = MNIST(which_set='train', one_hot=True)
 
-layers = [dataset.X.shape[1], HIDDEN_SIZE, HIDDEN_SIZE]
+layers = [dataset.X.shape[1], HIDDEN_SIZE, HIDDEN_SIZE, HIDDEN_SIZE]
 
 vis_corruptor = SaltPepperCorruptor(SALT_PEPPER_NOISE)
 pre_corruptor = GaussianCorruptor(GAUSSIAN_NOISE)
 post_corruptor = GaussianCorruptor(GAUSSIAN_NOISE)
 
-gsn = GSN.new_ae(layers, vis_corruptor, pre_corruptor, post_corruptor)
-
-def test_train():
+def test_train_ae():
+    gsn = GSN.new_ae(layers, vis_corruptor, pre_corruptor, post_corruptor)
     c = GSNCost([(0, 1.0, MeanBinaryCrossEntropy())], walkback=WALKBACK)
     alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=c,
               termination_criterion=EpochCounter(MAX_EPOCHS),
@@ -48,6 +48,29 @@ def test_train():
               )
 
     trainer = Train(dataset, gsn, algorithm=alg, save_path="gsn_trash.pkl",
+                    save_freq=5)
+    trainer.main_loop()
+    print "done training"
+
+def test_train_supervised():
+    gsn = GSN.new_classifier(layers + [10], vis_corruptor=vis_corruptor,
+                             hidden_pre_corruptor=None, hidden_post_corruptor=None)
+
+    # Bugs: works with 1 or 3 hidden layers, but not 2 (theano bugs)
+    # cross entropy doesn't work for softmax layer (NaN)
+    c = GSNCost(
+        [
+            (0, 0.5, MeanBinaryCrossEntropy()),
+            (4, 300, MeanSquaredReconstructionError())
+        ],
+        walkback=WALKBACK)
+    alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=c,
+              termination_criterion=EpochCounter(MAX_EPOCHS),
+              batches_per_iter=BATCHES_PER_EPOCH, batch_size=BATCH_SIZE
+              ,monitoring_dataset={"test": MNIST(which_set='test', one_hot=True)}
+              )
+
+    trainer = Train(dataset, gsn, algorithm=alg, save_path="gsn_sup.pkl",
                     save_freq=5)
     trainer.main_loop()
     print "done training"
@@ -93,4 +116,4 @@ def a_to_s(A):
     return "\n".join(strs)
 
 if __name__ == '__main__':
-    test_sample()
+    test_train_supervised()

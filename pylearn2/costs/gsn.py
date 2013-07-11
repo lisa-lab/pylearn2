@@ -46,7 +46,6 @@ class GSNCost(Cost):
             data must be a list or tuple of the same length as self.costs. All
             elements in data must be a tensor_like (cannot be None).
         """
-
         layer_idxs = [idx for idx, _, _ in self.costs]
         output = model.get_samples(safe_zip(layer_idxs, data),
                                    walkback=self.walkback, indices=layer_idxs)
@@ -57,7 +56,9 @@ class GSNCost(Cost):
             for step in output:
                 cost_total += costf(data[cost_idx], step[cost_idx])
             total += coeff * cost_total
-        return total
+
+        # return an average
+        return total / (len(output) * len(self.costs))
 
     def get_data_specs(self, model):
         # get space for layer i
@@ -67,7 +68,7 @@ class GSNCost(Cost):
         spaces = map(lambda c: get_space(c[0]), self.costs)
         sources = [model.get_input_source()]
         if len(self.costs) == 2:
-            sources.append(model.get_output_source())
+            sources.append(model.get_target_source())
 
         return (CompositeSpace(spaces), tuple(sources))
 
