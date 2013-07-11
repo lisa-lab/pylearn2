@@ -27,6 +27,7 @@ class MeanSquaredReconstructionError(GSNFriendlyCost):
 class MeanBinaryCrossEntropy(GSNFriendlyCost):
     @staticmethod
     def cost(a, b):
+        return tensor.nnet.binary_crossentropy(a, b).sum(axis=1).mean()
         return (
             - a * tensor.log(b) -
             (1 - a) * tensor.log(1 - b)

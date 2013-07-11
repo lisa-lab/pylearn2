@@ -26,6 +26,16 @@ from pylearn2.models.autoencoder import Autoencoder
 from pylearn2.models.model import Model
 from pylearn2.utils import safe_zip
 
+def plushmax(x, eps=100.0):
+    """
+    A softer softmax.
+
+    Instead of computing exp(x_i) / sum_j(exp(x_j)), this computes
+    (exp(x_i) + eps) / sum_j(exp(x_j) + eps)
+    """
+    y = x + T.log(1.0 + eps * T.exp(-x))
+    return T.nnet.softmax(y)
+
 class GSN(StackedBlocks, Model):
     """
     Note: Anyone trying to use this class should read the docstring for
