@@ -22,8 +22,8 @@ GAUSSIAN_NOISE = 2
 
 WALKBACK = 4
 
-LEARNING_RATE = 0.25 / 784
-MOMENTUM = 0.5 / 784
+LEARNING_RATE = 0.25
+MOMENTUM = 0.5
 
 MAX_EPOCHS = 200
 BATCHES_PER_EPOCH = None # covers full training set
@@ -39,22 +39,23 @@ post_corruptor = GaussianCorruptor(GAUSSIAN_NOISE)
 
 gsn = GSN.new_ae(layers, vis_corruptor, pre_corruptor, post_corruptor)
 
-def test_train():
-    c = GSNCost([(0, 1.0, MeanBinaryCrossEntropy())], walkback=WALKBACK)
+def test_train_ae():
+    mbce = MeanBinaryCrossEntropy()
+    cost = lambda a, b: mbce.cost(a, b) / 784.0
+    c = GSNCost([(0, 1.0, cost)], walkback=WALKBACK)
     alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=c,
               termination_criterion=EpochCounter(MAX_EPOCHS),
-              batches_per_iter=BATCHES_PER_EPOCH, batch_size=BATCH_SIZE
-              ,monitoring_dataset={"test": MNIST(which_set='test')}
-              )
+              batches_per_iter=BATCHES_PER_EPOCH, batch_size=BATCH_SIZE,
+              monitoring_dataset={"test": MNIST(which_set='test')})
 
-    trainer = Train(dataset, gsn, algorithm=alg, save_path="gsn_trash.pkl",
+    trainer = Train(dataset, gsn, algorithm=alg, save_path="gsn_ae_example.pkl",
                     save_freq=5)
     trainer.main_loop()
     print "done training"
 
-def test_sample():
+def test_sample_ae():
     import cPickle
-    with open("gsn_repro.pkl") as f:
+    with open("gsn_ae_example.pkl") as f:
         gsn = cPickle.load(f)
 
     mb_data = MNIST(which_set='test').X[105:106, :]
@@ -69,13 +70,14 @@ def test_sample():
                                      img_shape=[28,28],
                                      tile_shape=[50,50],
                                      tile_spacing=(2,2))
-    image.save("woot_test.png", tiled)
+    image.save("gsn_ae_example.png", tiled)
 
     # code to get log likelihood from kernel density estimator
     # this crashed on GPU (out of memory), but works on CPU
     pw = ParzenWindows(MNIST(which_set='test').X, .20)
     print pw.get_ll(history)
 
+# some utility methods for viewing MNIST characters without any GUI
 def print_char(A):
     print a_to_s(A.round().reshape((28, 28)))
 
@@ -93,4 +95,4 @@ def a_to_s(A):
     return "\n".join(strs)
 
 if __name__ == '__main__':
-    test_sample()
+    test_train_ae()

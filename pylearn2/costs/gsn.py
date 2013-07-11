@@ -57,7 +57,11 @@ class GSNCost(Cost):
             for step in output:
                 cost_total += costf(data[cost_idx], step[cost_idx])
             total += coeff * cost_total
-        return total
+
+        coeff_sum = sum(coeff for _, coeff, _ in self.costs)
+
+        # little bit of normalization
+        return total / (len(output) * coeff_sum)
 
     def get_data_specs(self, model):
         # get space for layer i
@@ -67,7 +71,7 @@ class GSNCost(Cost):
         spaces = map(lambda c: get_space(c[0]), self.costs)
         sources = [model.get_input_source()]
         if len(self.costs) == 2:
-            sources.append(model.get_output_source())
+            sources.append(model.get_target_source())
 
         return (CompositeSpace(spaces), tuple(sources))
 
