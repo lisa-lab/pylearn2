@@ -60,7 +60,7 @@ Clone your fork locally with
 
     git clone git@github.com:your_github_login/pylearn2.git
 
-and add a reference to the 'central' Theano repository with
+and add a reference to the 'central' Pylearn2 repository with
 
 .. code-block:: bash
 
@@ -122,7 +122,7 @@ project. The principal thing to know is that we follow the
 We use git hooks provided in the project `pygithooks
 <https://github.com/lumberlabs/pygithooks>`_ to validate that commits
 respect pep8. This happens when each user commits, not when we
-push/merge to the Theano repository. Github doesn't allow us to have
+push/merge to the Pylearn2 repository. Github doesn't allow us to have
 code executed when we push to the repository. So we ask all
 contributors to use those hooks.
 
@@ -130,7 +130,7 @@ For historic reason, we currently don't have all files respecting pep8.
 We decided to fix everything incrementally. So not all files respect it
 now. So we strongly suggest that you use the "increment" pygithooks
 config option to have a good workflow. See the pygithooks main page
-for how to set it up for Theano and how to enable this option.
+for how to set it up for Pylearn2 and how to enable this option.
 
 Cleaning up history
 -------------------
@@ -208,7 +208,7 @@ Once you have such a branch, in order to update it, do:
     git pull
 
 Keep in mind that this branch should be "read-only": if you want to patch
-Theano, do it in another branch like described above.
+Pylearn2, do it in another branch like described above.
 
 Optional
 --------

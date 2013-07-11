@@ -90,7 +90,7 @@ It will not appear in the output generated.
 How documentation is built on deeplearning.net
 ----------------------------------------------
 
-The server that hosts the theano documentation runs a cron job roughly every
+The server that hosts the pylearn2 documentation runs a cron job roughly every
 2 hours that fetches a fresh Pylearn2 install (clone, not just pull) and
 executes the docgen.py script. It then over-writes the previous docs with the
 newly generated ones. 
@@ -98,7 +98,7 @@ newly generated ones.
 Note that the server will most definitely use a different version of sphinx
 than yours so formatting could be slightly off, or even wrong. If you're
 getting unxpected results and/or the auto-build of the documentation seems
-broken, please contact theano-dev@.
+broken, please contact pylearn-dev@.
 
 In the future, we might go back to the system of auto-refresh on push (though
 that might increase the load of the server quite significantly).
@@ -116,7 +116,7 @@ be logged into ``ceylon``, Fred leaves a shell open for that.)
 The cronjob executes the scripts
 ``~/nightly_build/do_nightly_build_{theano,pylearn,deeplearning}``.
 These scripts perform an update of theano (and pylearn, and
-DeepLearningTutorials too), and execute theano-nose (in various settings).
+DeepLearningTutorials too), and executes nose (in various settings).
 
 The output is emailed automatically to the `theano-buildbot`_ mailing list.
 
