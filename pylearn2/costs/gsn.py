@@ -57,8 +57,10 @@ class GSNCost(Cost):
                 cost_total += costf(data[cost_idx], step[cost_idx])
             total += coeff * cost_total
 
-        # return an average
-        return total / (len(output) * len(self.costs))
+        coeff_sum = sum(coeff for _, coeff, _ in self.costs)
+
+        # little bit of normalization
+        return total / (len(output) * coeff_sum)
 
     def get_data_specs(self, model):
         # get space for layer i

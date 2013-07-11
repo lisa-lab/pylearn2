@@ -8,15 +8,22 @@ from pylearn2.scripts.dbm import dbm_metrics
 from pylearn2 import rbm_tools
 from pylearn2.datasets.mnist import MNIST
 from pylearn2.models.dbm import DBM, BinaryVector, BinaryVectorMaxPool
+from nose.plugins.skip import SkipTest
+from pylearn2.datasets.exc import NoDataPathError
+from pylearn2.testing import no_debug_mode
 
 
+@no_debug_mode
 def test_ais():
     """
     Test ais computation by comparing the output of estimate_likelihood to
     Russ's code's output for the same parameters.
     """
-    trainset = MNIST(which_set='train')
-    testset = MNIST(which_set='test')
+    try:
+        trainset = MNIST(which_set='train')
+        testset = MNIST(which_set='test')
+    except NoDataPathError:
+        raise SkipTest("PYLEARN2_DATA_PATH environment variable not defined")
 
     nvis = 784
     nhid = 20
