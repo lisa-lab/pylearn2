@@ -14,7 +14,7 @@ from collections import OrderedDict
 
 from theano import function
 from theano.gof.op import get_debug_values
-from theano.printing import Print
+from theano.compile.sharedvalue import SharedVariable
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 import theano.tensor as T
 import warnings
@@ -63,15 +63,18 @@ class IsingVisible(VisibleLayer):
     -b^T h
     """
 
-    def __init__(self,
-            nvis,
-            bias_from_marginals = None):
+    def __init__(self, nvis, beta, learn_beta=False, bias_from_marginals=None):
         """
-            nvis: the dimension of the space
-            bias_from_marginals: a dataset, whose marginals are used to
-                            initialize the visible biases
+        nvis: the dimension of the space
+        beta: shared variable representing a multiplicative factor of the
+                energy function (the inverse temperature)
+        learn_beta: whether or not the inverse temperature should be considered
+                as a learned parameter
+        bias_from_marginals: a dataset, whose marginals are used to initialize
+                the visible biases
         """
-
+        if not isinstance(beta, SharedVariable):
+            raise ValueError("beta needs to be a theano shared variable.")
         self.__dict__.update(locals())
         del self.self
         # Don't serialize the dataset
@@ -102,11 +105,13 @@ class IsingVisible(VisibleLayer):
         return total_state
 
     def get_params(self):
-        return [self.bias]
+        rval = [self.bias]
+        if self.learn_beta:
+            rval.append(self.beta)
+        return rval
 
-    def sample(self, state_below = None, state_above = None,
-            layer_above = None,
-            theano_rng = None):
+    def sample(self, state_below=None, state_above=None, layer_above=None,
+               theano_rng=None):
 
         assert state_below is None
 
@@ -116,42 +121,44 @@ class IsingVisible(VisibleLayer):
 
         z = msg + bias
 
-        phi = T.nnet.sigmoid(2. * z)
+        phi = T.nnet.sigmoid(2. * self.beta * z)
 
-        rval = theano_rng.binomial(size = phi.shape, p = phi, dtype = phi.dtype,
-                       n = 1 )
+        rval = theano_rng.binomial(size=phi.shape, p=phi, dtype=phi.dtype, n=1)
 
         return rval * 2. - 1.
 
     def make_state(self, num_examples, numpy_rng):
-        driver = numpy_rng.uniform(0.,1., (num_examples, self.nvis))
-        on_prob = sigmoid_numpy(2. * self.bias.get_value())
+        driver = numpy_rng.uniform(0., 1., (num_examples, self.nvis))
+        on_prob = sigmoid_numpy(2. * self.beta.get_value() *
+                                self.bias.get_value())
         sample = 2. * (driver < on_prob) - 1.
 
-        rval = sharedX(sample, name = 'v_sample_shared')
+        rval = sharedX(sample, name='v_sample_shared')
 
         return rval
 
     def make_symbolic_state(self, num_examples, theano_rng):
-        mean = T.nnet.sigmoid(2. * self.b)
+        mean = T.nnet.sigmoid(2. * self.beta * self.b)
         rval = theano_rng.binomial(size=(num_examples, self.nvis), p=mean)
         rval = 2. * (rval) - 1.
 
         return rval
 
-    def expected_energy_term(self, state, average, state_below = None, average_below = None):
-
+    def expected_energy_term(self, state, average, state_below=None,
+                             average_below=None):
         assert state_below is None
         assert average_below is None
         assert average in [True, False]
         self.space.validate(state)
 
-        # Energy function is linear so it doesn't matter if we're averaging or not
-        rval = -T.dot(state, self.bias)
+        # Energy function is linear so it doesn't matter if we're averaging
+        # or not
+        rval = -(self.beta * T.dot(state, self.bias))
 
         assert rval.ndim == 1
 
         return rval
+
 
 class IsingHidden(HiddenLayer):
     """
@@ -167,27 +174,35 @@ class IsingHidden(HiddenLayer):
     """
 
     def __init__(self,
-            dim,
-            layer_name,
-            irange = None,
-            sparse_init = None,
-            sparse_stdev = 1.,
-            include_prob = 1.0,
-            init_bias = 0.,
-            W_lr_scale = None,
-            b_lr_scale = None,
-            max_col_norm = None):
+                 dim,
+                 layer_name,
+                 beta,
+                 learn_beta=False,
+                 irange=None,
+                 sparse_init=None,
+                 sparse_stdev=1.,
+                 include_prob=1.0,
+                 init_bias=0.,
+                 W_lr_scale=None,
+                 b_lr_scale=None,
+                 max_col_norm=None):
         """
-
-            include_prob: probability of including a weight element in the set
-                    of weights initialized to U(-irange, irange). If not included
-                    it is initialized to 0.
+        include_prob: probability of including a weight element in the set
+                of weights initialized to U(-irange, irange). If not included
+                it is initialized to 0.
+        beta: shared variable representing a multiplicative factor of the
+                energy function (the inverse temperature)
+        learn_beta: whether or not the inverse temperature should be considered
+                as a learned parameter
 
         """
+        if not isinstance(beta, SharedVariable):
+            raise ValueError("beta needs to be a theano shared variable.")
         self.__dict__.update(locals())
         del self.self
 
-        self.b = sharedX( np.zeros((self.dim,)) + init_bias, name = layer_name + '_b')
+        self.b = sharedX(np.zeros((self.dim,)) + init_bias,
+                         name=layer_name + '_b')
 
     def get_lr_scalers(self):
 
@@ -259,20 +274,22 @@ class IsingHidden(HiddenLayer):
 
     def get_params(self):
         assert self.b.name is not None
-        W ,= self.transformer.get_params()
+        W, = self.transformer.get_params()
         assert W.name is not None
         rval = self.transformer.get_params()
         assert not isinstance(rval, set)
         rval = list(rval)
         assert self.b not in rval
         rval.append(self.b)
+        if self.learn_beta:
+            rval.append(self.beta)
         return rval
 
     def get_weight_decay(self, coeff):
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
-        W ,= self.transformer.get_params()
+        W, = self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
     def get_weights(self):
@@ -396,16 +413,18 @@ class IsingHidden(HiddenLayer):
             msg = None
 
         if self.requires_reformat:
-            state_below = self.input_space.format_as(state_below, self.desired_space)
+            state_below = self.input_space.format_as(state_below,
+                                                     self.desired_space)
 
         z = self.transformer.lmul(state_below) + self.b
 
-        if msg != None:
+        if msg is not None:
             z = z + msg
 
-        on_prob = T.nnet.sigmoid(2. * z)
+        on_prob = T.nnet.sigmoid(2. * self.beta * z)
 
-        samples = theano_rng.binomial(p = on_prob, n=1, size=on_prob.shape, dtype=on_prob.dtype) * 2. - 1.
+        samples = theano_rng.binomial(p=on_prob, n=1, size=on_prob.shape,
+                                      dtype=on_prob.dtype) * 2. - 1.
 
         return samples
 
@@ -418,28 +437,29 @@ class IsingHidden(HiddenLayer):
         return rval
 
     def init_mf_state(self):
-        raise NotImplementedError("This is just a copy-paste of BVMP")
+        #raise NotImplementedError("This is just a copy-paste of BVMP")
         # work around theano bug with broadcasted vectors
-        z = T.alloc(0., self.dbm.batch_size, self.detector_layer_dim).astype(self.b.dtype) + \
-                self.b.dimshuffle('x', 0)
-        rval = max_pool_channels(z = z,
-                pool_size = self.pool_size)
+        z = T.alloc(0., self.dbm.batch_size,
+                    self.detector_layer_dim).astype(self.b.dtype) + \
+            self.b.dimshuffle('x', 0)
+        rval = max_pool_channels(z=z, pool_size=self.pool_size)
         return rval
 
     def make_state(self, num_examples, numpy_rng):
         """ Returns a shared variable containing an actual state
            (not a mean field state) for this variable.
         """
-        driver = numpy_rng.uniform(0.,1., (num_examples, self.dim))
-        on_prob = sigmoid_numpy(2. * self.b.get_value())
+        driver = numpy_rng.uniform(0., 1., (num_examples, self.dim))
+        on_prob = sigmoid_numpy(2. * self.beta.get_value() *
+                                self.b.get_value())
         sample = 2. * (driver < on_prob) - 1.
 
-        rval = sharedX(sample, name = 'v_sample_shared')
+        rval = sharedX(sample, name='v_sample_shared')
 
         return rval
 
     def make_symbolic_state(self, num_examples, theano_rng):
-        mean = T.nnet.sigmoid(2. * self.b)
+        mean = T.nnet.sigmoid(2. * self.beta * self.b)
         rval = theano_rng.binomial(size=(num_examples, self.nvis), p=mean)
         rval = 2. * (rval) - 1.
 
@@ -455,19 +475,24 @@ class IsingHidden(HiddenLayer):
             if not isinstance(state_below, tuple):
                 for sb in get_debug_values(state_below):
                     if sb.shape[0] != self.dbm.batch_size:
-                        raise ValueError("self.dbm.batch_size is %d but got shape of %d" % (self.dbm.batch_size, sb.shape[0]))
-                    assert reduce(lambda x,y: x * y, sb.shape[1:]) == self.input_dim
+                        raise ValueError("self.dbm.batch_size is %d but got " +
+                                         "shape of %d" % (self.dbm.batch_size,
+                                                          sb.shape[0]))
+                    assert reduce(lambda x, y: x * y, sb.shape[1:]) == self.input_dim
 
-            state_below = self.input_space.format_as(state_below, self.desired_space)
+            state_below = self.input_space.format_as(state_below,
+                                                     self.desired_space)
 
-        # Energy function is linear so it doesn't matter if we're averaging or not
-        # Specifically, our terms are -u^T W d - b^T d where u is the upward state of layer below
-        # and d is the downward state of this layer
+        # Energy function is linear so it doesn't matter if we're averaging or
+        # not. Specifically, our terms are -u^T W d - b^T d where u is the
+        # upward state of layer below and d is the downward state of this layer
 
         bias_term = T.dot(state, self.b)
         weights_term = (self.transformer.lmul(state_below) * state).sum(axis=1)
 
         rval = -bias_term - weights_term
+
+        rval *= self.beta
 
         assert rval.ndim == 1
 
@@ -475,23 +500,25 @@ class IsingHidden(HiddenLayer):
 
     def linear_feed_forward_approximation(self, state_below):
         """
-        Used to implement TorontoSparsity. Unclear exactly what properties of it are
-        important or how to implement it for other layers.
+        Used to implement TorontoSparsity. Unclear exactly what properties of
+        it are important or how to implement it for other layers.
 
         Properties it must have:
-            output is same kind of data structure (ie, tuple of theano 2-tensors)
-            as mf_update
+            output is same kind of data structure (ie, tuple of theano
+            2-tensors) as mf_update
 
         Properties it probably should have for other layer types:
-            An infinitesimal change in state_below or the parameters should cause the same sign of change
-            in the output of linear_feed_forward_approximation and in mf_update
+            An infinitesimal change in state_below or the parameters should
+            cause the same sign of change in the output of
+            linear_feed_forward_approximation and in mf_update
 
-            Should not have any non-linearities that cause the gradient to shrink
+            Should not have any non-linearities that cause the gradient to
+            shrink
 
             Should disregard top-down feedback
         """
 
-        z = self.transformer.lmul(state_below) + self.b
+        z = self.beta * (self.transformer.lmul(state_below) + self.b)
 
         if self.pool_size != 1:
             # Should probably implement sum pooling for the non-pooled version,
@@ -531,25 +558,33 @@ class IsingHidden(HiddenLayer):
             z.name = self.layer_name + '_' + iter_name + '_z'
         if msg is not None:
             z = z + msg
-        h = T.tanh(z)
+        h = T.tanh(self.beta * z)
 
         return h
+
 
 class BoltzmannIsingVisible(VisibleLayer):
     """
     An IsingVisible whose parameters are defined in Boltzmann machine
     space.
+
+    All parameter noise/clipping is handled by BoltzmannIsingHidden.
     """
 
-    def __init__(self,
-            nvis,
-            bias_from_marginals = None):
+    def __init__(self, nvis, beta, learn_beta=False, bias_from_marginals=None):
         """
-            nvis: the dimension of the space
-            bias_from_marginals: a dataset, whose marginals are used to
-                            initialize the visible biases
+        nvis: the dimension of the space
+        beta: shared variable representing a multiplicative factor of the
+                energy function (the inverse temperature)
+        learn_beta: whether or not the inverse temperature should be considered
+                as a learned parameter
+        bias_from_marginals: a dataset, whose marginals are used to
+                initialize the visible biases
         """
 
+        if not isinstance(beta, SharedVariable):
+            raise ValueError("beta needs to be a theano shared " +
+                             "variable.")
         self.__dict__.update(locals())
         del self.self
         # Don't serialize the dataset
@@ -564,67 +599,84 @@ class BoltzmannIsingVisible(VisibleLayer):
             init_bias = np.zeros((nvis,))
         else:
             # data is in [-1, 1], but want biases for a sigmoid
-            init_bias = init_sigmoid_bias_from_array(bias_from_marginals.X / 2. + 0.5)
+            init_bias = \
+                init_sigmoid_bias_from_array(bias_from_marginals.X / 2. + 0.5)
             # init_bias =
         self.boltzmann_bias = sharedX(init_bias, 'visible_bias')
 
     def get_biases(self):
-        assert False # not really sure what this should do for this layer
+        assert False  # not really sure what this should do for this layer
 
     def set_biases(self, biases, recenter=False):
-        assert False # not really sure what this should do for this layer
+        assert False  # not really sure what this should do for this layer
 
     def ising_bias(self, for_sampling=False):
         if for_sampling and self.layer_above.sampling_b_stdev is not None:
             return self.noisy_sampling_b
-        return 0.5 * self.boltzmann_bias + 0.25 * self.layer_above.W.sum(axis=1)
+        return \
+            0.5 * self.boltzmann_bias + 0.25 * self.layer_above.W.sum(axis=1)
 
     def ising_bias_numpy(self):
-        return 0.5 * self.boltzmann_bias.get_value() + 0.25 * self.layer_above.W.get_value().sum(axis=1)
+        return 0.5 * self.boltzmann_bias.get_value() + \
+            0.25 * self.layer_above.W.get_value().sum(axis=1)
 
     def upward_state(self, total_state):
         return total_state
 
     def get_params(self):
-        rval =  [self.boltzmann_bias]
+        rval = [self.boltzmann_bias]
+        if self.learn_beta:
+            rval.append(self.beta)
         return rval
 
-    def sample(self, state_below = None, state_above = None,
-            layer_above = None,
-            theano_rng = None):
+    def sample(self, state_below=None, state_above=None, layer_above=None,
+               theano_rng=None, use_noisy_samples=True):
 
         assert state_below is None
 
+        msg = layer_above.downward_message(state_above,
+                                           for_sampling=use_noisy_samples)
+
+        bias = self.ising_bias(for_sampling=use_noisy_samples)
+
+        z = msg + bias
+
+        phi = T.nnet.sigmoid(2. * self.beta * z)
+
+        rval = theano_rng.binomial(size=phi.shape, p=phi, dtype=phi.dtype, n=1)
+
+        return rval * 2. - 1.
+
+    def make_state(self, num_examples, numpy_rng):
+        driver = numpy_rng.uniform(0., 1., (num_examples, self.nvis))
+        on_prob = sigmoid_numpy(2. * self.beta.get_value() *
+                                self.ising_bias_numpy())
+        sample = 2. * (driver < on_prob) - 1.
+
+        rval = sharedX(sample, name='v_sample_shared')
+
+        return rval
+
+    def make_symbolic_state(self, num_examples, theano_rng):
+        mean = T.nnet.sigmoid(2. * self.beta * self.ising_bias())
+        rval = theano_rng.binomial(size=(num_examples, self.nvis), p=mean)
+        rval = 2. * (rval) - 1.
+
+        return rval
+
+    def mf_update(self, state_above, layer_above):
         msg = layer_above.downward_message(state_above, for_sampling=True)
 
         bias = self.ising_bias(for_sampling=True)
 
         z = msg + bias
 
-        phi = T.nnet.sigmoid(2. * z)
-
-        rval = theano_rng.binomial(size = phi.shape, p = phi, dtype = phi.dtype,
-                       n = 1 )
-
-        return rval * 2. - 1.
-
-    def make_state(self, num_examples, numpy_rng):
-        driver = numpy_rng.uniform(0.,1., (num_examples, self.nvis))
-        on_prob = sigmoid_numpy(2. * self.ising_bias_numpy())
-        sample = 2. * (driver < on_prob) - 1.
-
-        rval = sharedX(sample, name = 'v_sample_shared')
+        rval = T.tanh(self.beta * z)
 
         return rval
 
-    def make_symbolic_state(self, num_examples, theano_rng):
-        mean = T.nnet.sigmoid(2. * self.ising_bias())
-        rval = theano_rng.binomial(size=(num_examples, self.nvis), p=mean)
-        rval = 2. * (rval) - 1.
-
-        return rval
-
-    def expected_energy_term(self, state, average, state_below = None, average_below = None):
+    def expected_energy_term(self, state, average, state_below=None,
+                             average_below=None):
 
         # state = Print('v_state', attrs=['min', 'max'])(state)
 
@@ -633,8 +685,9 @@ class BoltzmannIsingVisible(VisibleLayer):
         assert average in [True, False]
         self.space.validate(state)
 
-        # Energy function is linear so it doesn't matter if we're averaging or not
-        rval = -T.dot(state, self.ising_bias())
+        # Energy function is linear so it doesn't matter if we're averaging
+        # or not
+        rval = -(self.beta * T.dot(state, self.ising_bias()))
 
         assert rval.ndim == 1
 
@@ -647,6 +700,7 @@ class BoltzmannIsingVisible(VisibleLayer):
 
         rval['ising_b_min'] = ising_b.min()
         rval['ising_b_max'] = ising_b.max()
+        rval['beta'] = self.beta
 
         if hasattr(self, 'noisy_sampling_b'):
             rval['noisy_sampling_b_min'] = self.noisy_sampling_b.min()
@@ -668,35 +722,45 @@ class BoltzmannIsingHidden(HiddenLayer):
     """
 
     def __init__(self,
-            dim,
-            layer_name,
-            layer_below,
-            irange = None,
-            sparse_init = None,
-            sparse_stdev = 1.,
-            include_prob = 1.0,
-            init_bias = 0.,
-            W_lr_scale = None,
-            b_lr_scale = None,
-            max_col_norm = None,
-            min_ising_b = None,
-            max_ising_b = None,
-            min_ising_W = None,
-            max_ising_W = None,
-            sampling_W_stdev = None,
-            sampling_b_stdev = None):
+                 dim,
+                 layer_name,
+                 layer_below,
+                 beta,
+                 learn_beta=False,
+                 irange=None,
+                 sparse_init=None,
+                 sparse_stdev=1.,
+                 include_prob=1.0,
+                 init_bias=0.,
+                 W_lr_scale=None,
+                 b_lr_scale=None,
+                 beta_lr_scale=None,
+                 max_col_norm=None,
+                 min_ising_b=None,
+                 max_ising_b=None,
+                 min_ising_W=None,
+                 max_ising_W=None,
+                 sampling_W_stdev=None,
+                 sampling_b_stdev=None):
         """
-
-            include_prob: probability of including a weight element in the set
-                    of weights initialized to U(-irange, irange). If not included
-                    it is initialized to 0.
+        include_prob: probability of including a weight element in the set
+                 of weights initialized to U(-irange, irange). If not
+                 included it is initialized to 0.
+        beta: shared variable representing a multiplicative factor of
+                 the energy function (the inverse temperature)
+        learn_beta: whether or not the inverse temperature should be considered
+                 as a learned parameter
 
         """
+        if not isinstance(beta, SharedVariable):
+            raise ValueError("beta needs to be a theano shared variable.")
         self.__dict__.update(locals())
         del self.self
 
-        self.boltzmann_b = sharedX( np.zeros((self.dim,)) + init_bias, name = layer_name + '_b')
+        self.boltzmann_b = sharedX(np.zeros((self.dim,)) + init_bias,
+                                   name=layer_name + '_b')
         layer_below.layer_above = self
+        self.resample_fn = None
 
     def get_lr_scalers(self):
 
@@ -706,6 +770,9 @@ class BoltzmannIsingHidden(HiddenLayer):
         if not hasattr(self, 'b_lr_scale'):
             self.b_lr_scale = None
 
+        if not hasattr(self, 'beta_lr_scale'):
+            self.beta_lr_scale = None
+
         rval = OrderedDict()
 
         if self.W_lr_scale is not None:
@@ -714,6 +781,9 @@ class BoltzmannIsingHidden(HiddenLayer):
 
         if self.b_lr_scale is not None:
             rval[self.boltzmann_b] = self.b_lr_scale
+
+        if self.beta_lr_scale is not None:
+            rval[self.beta] = self.beta_lr_scale
 
         return rval
 
@@ -751,20 +821,30 @@ class BoltzmannIsingHidden(HiddenLayer):
         self.W = W
 
         if self.sampling_b_stdev is not None:
-            self.noisy_sampling_b = sharedX(np.zeros((self.dbm.batch_size, self.dim)))
-            self.layer_below.noisy_sampling_b = sharedX(np.zeros((self.dbm.batch_size, self.layer_below.nvis)))
+            self.noisy_sampling_b = \
+                sharedX(np.zeros((self.dbm.batch_size, self.dim)))
+            self.layer_below.noisy_sampling_b = \
+                sharedX(np.zeros((self.dbm.batch_size, self.layer_below.nvis)))
         if self.sampling_W_stdev is not None:
-            self.noisy_sampling_W = sharedX(np.zeros((self.input_dim, self.dim)), 'noisy_sampling_W')
+            self.noisy_sampling_W = \
+                sharedX(np.zeros((self.input_dim, self.dim)),
+                        'noisy_sampling_W')
 
         updates = OrderedDict()
         updates[self.boltzmann_b] = self.boltzmann_b
         updates[self.W] = self.W
-        updates[self.layer_below.boltzmann_bias] = self.layer_below.boltzmann_bias
+        updates[self.layer_below.boltzmann_bias] = \
+            self.layer_below.boltzmann_bias
         self.censor_updates(updates)
         f = function([], updates=updates)
         f()
 
     def censor_updates(self, updates):
+
+        beta = self.beta
+        if beta in updates:
+            updated_beta = updates[beta]
+            updates[beta] = T.clip(updated_beta, 1., 1000.)
 
         if self.max_col_norm is not None:
             W = self.W
@@ -854,6 +934,8 @@ class BoltzmannIsingHidden(HiddenLayer):
         rval = list(rval)
         assert self.boltzmann_b not in rval
         rval.append(self.boltzmann_b)
+        if self.learn_beta:
+            rval.append(self.beta)
         return rval
 
     def ising_weights(self, for_sampling=False):
@@ -997,39 +1079,46 @@ class BoltzmannIsingHidden(HiddenLayer):
                     ('mean_x.max_u', v_mean.max()),
                     ('mean_x.mean_u', v_mean.mean()),
                     ('mean_x.min_u', v_mean.min())
-                    ]:
+            ]:
                 rval[prefix+key] = val
 
         return rval
 
-    def sample(self, state_below = None, state_above = None,
-            layer_above = None,
-            theano_rng = None):
+    def sample(self, state_below=None, state_above=None, layer_above=None,
+               theano_rng=None, use_noisy_samples=True):
 
         if theano_rng is None:
-            raise ValueError("theano_rng is required; it just defaults to None so that it may appear after layer_above / state_above in the list.")
+            raise ValueError("theano_rng is required; it just defaults to " +
+                             "None so that it may appear after layer_above " +
+                             "/ state_above in the list.")
 
         if state_above is not None:
-            msg = layer_above.downward_message(state_above, for_sampling=True)
+            msg = layer_above.downward_message(state_above,
+                                               for_sampling=use_noisy_samples)
         else:
             msg = None
 
         if self.requires_reformat:
-            state_below = self.input_space.format_as(state_below, self.desired_space)
+            state_below = self.input_space.format_as(state_below,
+                                                     self.desired_space)
 
-        z = T.dot(state_below, self.ising_weights(for_sampling=True)) + self.ising_b(for_sampling=True)
+        z = T.dot(state_below,
+                  self.ising_weights(for_sampling=use_noisy_samples)) + \
+            self.ising_b(for_sampling=use_noisy_samples)
 
-        if msg != None:
+        if msg is not None:
             z = z + msg
 
-        on_prob = T.nnet.sigmoid(2. * z)
+        on_prob = T.nnet.sigmoid(2. * self.beta * z)
 
-        samples = theano_rng.binomial(p = on_prob, n=1, size=on_prob.shape, dtype=on_prob.dtype) * 2. - 1.
+        samples = theano_rng.binomial(p=on_prob, n=1, size=on_prob.shape,
+                                      dtype=on_prob.dtype) * 2. - 1.
 
         return samples
 
     def downward_message(self, downward_state, for_sampling=False):
-        rval = T.dot(downward_state, self.ising_weights(for_sampling=False).T)
+        rval = T.dot(downward_state,
+                     self.ising_weights(for_sampling=for_sampling).T)
 
         if self.requires_reformat:
             rval = self.desired_space.format_as(rval, self.input_space)
@@ -1037,28 +1126,28 @@ class BoltzmannIsingHidden(HiddenLayer):
         return rval
 
     def init_mf_state(self):
-        raise NotImplementedError("This is just a copy-paste of BVMP")
         # work around theano bug with broadcasted vectors
-        z = T.alloc(0., self.dbm.batch_size, self.detector_layer_dim).astype(self.boltzmann_b.dtype) + \
-                self.ising_b().dimshuffle('x', 0)
-        rval = max_pool_channels(z = z,
-                pool_size = self.pool_size)
+        z = T.alloc(0., self.dbm.batch_size,
+                    self.dim).astype(self.boltzmann_b.dtype) + \
+            self.ising_b().dimshuffle('x', 0)
+        rval = T.tanh(self.beta * z)
         return rval
 
     def make_state(self, num_examples, numpy_rng):
         """ Returns a shared variable containing an actual state
            (not a mean field state) for this variable.
         """
-        driver = numpy_rng.uniform(0.,1., (num_examples, self.dim))
-        on_prob = sigmoid_numpy(2. * self.ising_b_numpy())
+        driver = numpy_rng.uniform(0., 1., (num_examples, self.dim))
+        on_prob = sigmoid_numpy(2. * self.beta.get_value() *
+                                self.ising_b_numpy())
         sample = 2. * (driver < on_prob) - 1.
 
-        rval = sharedX(sample, name = 'v_sample_shared')
+        rval = sharedX(sample, name='v_sample_shared')
 
         return rval
 
     def make_symbolic_state(self, num_examples, theano_rng):
-        mean = T.nnet.sigmoid(2. * self.ising_b())
+        mean = T.nnet.sigmoid(2. * self.beta * self.ising_b())
         rval = theano_rng.binomial(size=(num_examples, self.nvis), p=mean)
         rval = 2. * (rval) - 1.
 
@@ -1074,19 +1163,25 @@ class BoltzmannIsingHidden(HiddenLayer):
             if not isinstance(state_below, tuple):
                 for sb in get_debug_values(state_below):
                     if sb.shape[0] != self.dbm.batch_size:
-                        raise ValueError("self.dbm.batch_size is %d but got shape of %d" % (self.dbm.batch_size, sb.shape[0]))
-                    assert reduce(lambda x,y: x * y, sb.shape[1:]) == self.input_dim
+                        raise ValueError("self.dbm.batch_size is %d but got " +
+                                         "shape of %d" % (self.dbm.batch_size,
+                                                          sb.shape[0]))
+                    assert reduce(lambda x, y: x * y, sb.shape[1:]) == self.input_dim
 
-            state_below = self.input_space.format_as(state_below, self.desired_space)
+            state_below = self.input_space.format_as(state_below,
+                                                     self.desired_space)
 
-        # Energy function is linear so it doesn't matter if we're averaging or not
-        # Specifically, our terms are -u^T W d - b^T d where u is the upward state of layer below
-        # and d is the downward state of this layer
+        # Energy function is linear so it doesn't matter if we're averaging or
+        # not. Specifically, our terms are -u^T W d - b^T d where u is the
+        # upward state of layer below and d is the downward state of this layer
 
         bias_term = T.dot(state, self.ising_b())
-        weights_term = (T.dot(state_below, self.ising_weights()) * state).sum(axis=1)
+        weights_term = \
+            (T.dot(state_below, self.ising_weights()) * state).sum(axis=1)
 
         rval = -bias_term - weights_term
+
+        rval *= self.beta
 
         assert rval.ndim == 1
 
@@ -1094,27 +1189,30 @@ class BoltzmannIsingHidden(HiddenLayer):
 
     def linear_feed_forward_approximation(self, state_below):
         """
-        Used to implement TorontoSparsity. Unclear exactly what properties of it are
-        important or how to implement it for other layers.
+        Used to implement TorontoSparsity. Unclear exactly what properties of
+        it are important or how to implement it for other layers.
 
         Properties it must have:
-            output is same kind of data structure (ie, tuple of theano 2-tensors)
-            as mf_update
+            output is same kind of data structure (ie, tuple of theano
+            2-tensors) as mf_update
 
         Properties it probably should have for other layer types:
-            An infinitesimal change in state_below or the parameters should cause the same sign of change
-            in the output of linear_feed_forward_approximation and in mf_update
+            An infinitesimal change in state_below or the parameters should
+            cause the same sign of change in the output of
+            linear_feed_forward_approximation and in mf_update
 
-            Should not have any non-linearities that cause the gradient to shrink
+            Should not have any non-linearities that cause the gradient to
+            shrink
 
             Should disregard top-down feedback
         """
 
-        z = T.dot(state_below, self.ising_weights()) + self.ising_b()
+        z = self.beta * (T.dot(state_below, self.ising_weights()) + self.ising_b())
 
         return z
 
-    def mf_update(self, state_below, state_above, layer_above = None, double_weights = False, iter_name = None):
+    def mf_update(self, state_below, state_above, layer_above=None,
+                  double_weights=False, iter_name=None):
 
         self.input_space.validate(state_below)
 
@@ -1145,7 +1243,7 @@ class BoltzmannIsingHidden(HiddenLayer):
             z.name = self.layer_name + '_' + iter_name + '_z'
         if msg is not None:
             z = z + msg
-        h = T.tanh(z)
+        h = T.tanh(self.beta * z)
 
         return h
 
