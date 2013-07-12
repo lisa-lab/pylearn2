@@ -32,20 +32,20 @@ from pylearn2.utils import sharedX
 
 
 """
-Note: if h can be -1 or 1, and p(h) = exp(z*h), then
-the expected value of h is given by tanh(z), and the
-probability that h is 1 is given by sigmoid(2z)
-
+Note: if h can be -1 or 1, and p(h) = exp(T*z*h), then
+the expected value of h is given by tanh(T*z), and the
+probability that h is 1 is given by sigmoid(2*T*z)
 """
 
-def init_tanh_bias_from_marginals(dataset, use_y = False):
+
+def init_tanh_bias_from_marginals(dataset, use_y=False):
     if use_y:
         X = dataset.y
     else:
         X = dataset.get_design_matrix()
     if not (X.max() == 1):
         raise ValueError("Expected design matrix to consist entirely "
-                "of 0s and 1s, but maximum value is "+str(X.max()))
+                         "of 0s and 1s, but maximum value is "+str(X.max()))
     assert X.min() == -1.
 
     mean = X.mean(axis=0)
@@ -55,6 +55,7 @@ def init_tanh_bias_from_marginals(dataset, use_y = False):
     init_bias = np.arctanh(mean)
 
     return init_bias
+
 
 class IsingVisible(VisibleLayer):
     """
@@ -242,11 +243,10 @@ class IsingHidden(HiddenLayer):
         rng = self.dbm.rng
         if self.irange is not None:
             assert self.sparse_init is None
-            W = rng.uniform(-self.irange,
-                                 self.irange,
-                                 (self.input_dim, self.dim)) * \
-                    (rng.uniform(0.,1., (self.input_dim, self.dim))
-                     < self.include_prob)
+            W = rng.uniform(-self.irange, self.irange,
+                            (self.input_dim, self.dim)) * \
+                (rng.uniform(0., 1., (self.input_dim, self.dim))
+                    < self.include_prob)
         else:
             assert self.sparse_init is not None
             W = np.zeros((self.input_dim, self.dim))
@@ -257,7 +257,7 @@ class IsingHidden(HiddenLayer):
 
         self.transformer = MatrixMul(W)
 
-        W ,= self.transformer.get_params()
+        W, = self.transformer.get_params()
         assert W.name is not None
 
     def censor_updates(self, updates):
@@ -300,14 +300,14 @@ class IsingHidden(HiddenLayer):
             # in design space. We got the data in topo space
             # and we don't have access to the dataset
             raise NotImplementedError()
-        W ,= self.transformer.get_params()
+        W, = self.transformer.get_params()
         return W.get_value()
 
     def set_weights(self, weights):
         W, = self.transformer.get_params()
         W.set_value(weights)
 
-    def set_biases(self, biases, recenter = False):
+    def set_biases(self, biases, recenter=False):
         self.b.set_value(biases)
         if recenter:
             assert self.center
@@ -326,12 +326,14 @@ class IsingHidden(HiddenLayer):
         if not isinstance(self.input_space, Conv2DSpace):
             raise NotImplementedError()
 
-        W ,= self.transformer.get_params()
+        W, = self.transformer.get_params()
 
         W = W.T
 
-        W = W.reshape((self.detector_layer_dim, self.input_space.shape[0],
-            self.input_space.shape[1], self.input_space.nchannels))
+        W = W.reshape(
+            (self.detector_layer_dim, self.input_space.shape[0],
+             self.input_space.shape[1], self.input_space.nchannels)
+        )
 
         W = Conv2DSpace.convert(W, self.input_space.axes, ('b', 0, 1, 'c'))
 
@@ -345,7 +347,7 @@ class IsingHidden(HiddenLayer):
 
     def get_monitoring_channels(self):
 
-        W ,= self.transformer.get_params()
+        W, = self.transformer.get_params()
 
         assert W.ndim == 2
 
@@ -355,13 +357,13 @@ class IsingHidden(HiddenLayer):
         col_norms = T.sqrt(sq_W.sum(axis=0))
 
         return OrderedDict([
-              ('row_norms_min'  , row_norms.min()),
-              ('row_norms_mean' , row_norms.mean()),
-              ('row_norms_max'  , row_norms.max()),
-              ('col_norms_min'  , col_norms.min()),
-              ('col_norms_mean' , col_norms.mean()),
-              ('col_norms_max'  , col_norms.max()),
-            ])
+            ('row_norms_min', row_norms.min()),
+            ('row_norms_mean', row_norms.mean()),
+            ('row_norms_max', row_norms.max()),
+            ('col_norms_min', col_norms.min()),
+            ('col_norms_mean', col_norms.mean()),
+            ('col_norms_max', col_norms.max()),
+        ])
 
     def get_monitoring_channels_from_state(self, state):
 
@@ -369,7 +371,7 @@ class IsingHidden(HiddenLayer):
 
         rval = OrderedDict()
 
-        vars_and_prefixes = [ (P,'') ]
+        vars_and_prefixes = [(P, '')]
 
         for var, prefix in vars_and_prefixes:
             v_max = var.max(axis=0)
@@ -377,36 +379,38 @@ class IsingHidden(HiddenLayer):
             v_mean = var.mean(axis=0)
             v_range = v_max - v_min
 
-            # max_x.mean_u is "the mean over *u*nits of the max over e*x*amples"
-            # The x and u are included in the name because otherwise its hard
-            # to remember which axis is which when reading the monitor
-            # I use inner.outer rather than outer_of_inner or something like that
-            # because I want mean_x.* to appear next to each other in the alphabetical
-            # list, as these are commonly plotted together
+            # max_x.mean_u is "the mean over *u*nits of the max over
+            # e*x*amples". The x and u are included in the name because
+            # otherwise its hard to remember which axis is which when reading
+            # the monitor I use inner.outer rather than outer_of_inner or
+            # something like that because I want mean_x.* to appear next to
+            # each other in the alphabetical list, as these are commonly
+            # plotted together
             for key, val in [
-                    ('max_x.max_u', v_max.max()),
-                    ('max_x.mean_u', v_max.mean()),
-                    ('max_x.min_u', v_max.min()),
-                    ('min_x.max_u', v_min.max()),
-                    ('min_x.mean_u', v_min.mean()),
-                    ('min_x.min_u', v_min.min()),
-                    ('range_x.max_u', v_range.max()),
-                    ('range_x.mean_u', v_range.mean()),
-                    ('range_x.min_u', v_range.min()),
-                    ('mean_x.max_u', v_mean.max()),
-                    ('mean_x.mean_u', v_mean.mean()),
-                    ('mean_x.min_u', v_mean.min())
-                    ]:
+                ('max_x.max_u', v_max.max()),
+                ('max_x.mean_u', v_max.mean()),
+                ('max_x.min_u', v_max.min()),
+                ('min_x.max_u', v_min.max()),
+                ('min_x.mean_u', v_min.mean()),
+                ('min_x.min_u', v_min.min()),
+                ('range_x.max_u', v_range.max()),
+                ('range_x.mean_u', v_range.mean()),
+                ('range_x.min_u', v_range.min()),
+                ('mean_x.max_u', v_mean.max()),
+                ('mean_x.mean_u', v_mean.mean()),
+                ('mean_x.min_u', v_mean.min()),
+            ]:
                 rval[prefix+key] = val
 
         return rval
 
-    def sample(self, state_below = None, state_above = None,
-            layer_above = None,
-            theano_rng = None):
+    def sample(self, state_below=None, state_above=None, layer_above=None,
+               theano_rng=None):
 
         if theano_rng is None:
-            raise ValueError("theano_rng is required; it just defaults to None so that it may appear after layer_above / state_above in the list.")
+            raise ValueError("theano_rng is required; it just defaults to " +
+                             "None so that it may appear after layer_above " +
+                             "/ state_above in the list.")
 
         if state_above is not None:
             msg = layer_above.downward_message(state_above)
@@ -528,7 +532,8 @@ class IsingHidden(HiddenLayer):
 
         return z, z
 
-    def mf_update(self, state_below, state_above, layer_above = None, double_weights = False, iter_name = None):
+    def mf_update(self, state_below, state_above, layer_above=None,
+                  double_weights=False, iter_name=None):
 
         self.input_space.validate(state_below)
 
@@ -536,10 +541,13 @@ class IsingHidden(HiddenLayer):
             if not isinstance(state_below, tuple):
                 for sb in get_debug_values(state_below):
                     if sb.shape[0] != self.dbm.batch_size:
-                        raise ValueError("self.dbm.batch_size is %d but got shape of %d" % (self.dbm.batch_size, sb.shape[0]))
-                    assert reduce(lambda x,y: x * y, sb.shape[1:]) == self.input_dim
+                        raise ValueError("self.dbm.batch_size is %d but got " +
+                                         "shape of %d" % (self.dbm.batch_size,
+                                                          sb.shape[0]))
+                    assert reduce(lambda x, y: x * y, sb.shape[1:]) == self.input_dim
 
-            state_below = self.input_space.format_as(state_below, self.desired_space)
+            state_below = self.input_space.format_as(state_below,
+                                                     self.desired_space)
 
         if iter_name is None:
             iter_name = 'anon'
@@ -547,7 +555,8 @@ class IsingHidden(HiddenLayer):
         if state_above is not None:
             assert layer_above is not None
             msg = layer_above.downward_message(state_above)
-            msg.name = 'msg_from_'+layer_above.layer_name+'_to_'+self.layer_name+'['+iter_name+']'
+            msg.name = 'msg_from_' + layer_above.layer_name + '_to_' + \
+                       self.layer_name + '[' + iter_name + ']'
         else:
             msg = None
 
@@ -709,6 +718,7 @@ class BoltzmannIsingVisible(VisibleLayer):
 
         return rval
 
+
 class BoltzmannIsingHidden(HiddenLayer):
     """
 
@@ -806,11 +816,10 @@ class BoltzmannIsingHidden(HiddenLayer):
         rng = self.dbm.rng
         if self.irange is not None:
             assert self.sparse_init is None
-            W = rng.uniform(-self.irange,
-                                 self.irange,
-                                 (self.input_dim, self.dim)) * \
-                    (rng.uniform(0.,1., (self.input_dim, self.dim))
-                     < self.include_prob)
+            W = rng.uniform(-self.irange, self.irange,
+                            (self.input_dim, self.dim)) * \
+                (rng.uniform(0., 1., (self.input_dim, self.dim))
+                    < self.include_prob)
         else:
             assert self.sparse_init is not None
             W = np.zeros((self.input_dim, self.dim))
@@ -855,8 +864,10 @@ class BoltzmannIsingHidden(HiddenLayer):
                 desired_norms = T.clip(col_norms, 0, self.max_col_norm)
                 updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
-        if any(constraint is not None for constraint in [self.min_ising_b, self.max_ising_b,
-            self.min_ising_W, self.max_ising_W]):
+        if any(constraint is not None for constraint in [self.min_ising_b,
+                                                         self.max_ising_b,
+                                                         self.min_ising_W,
+                                                         self.max_ising_W]):
             assert not hasattr(self.layer_below, 'layer_below')
             bmn = self.min_ising_b
             if bmn is None:
@@ -883,7 +894,6 @@ class BoltzmannIsingHidden(HiddenLayer):
             ising_bh = 0.5 * bh + 0.25 * W.sum(axis=0)
             ising_bh = T.clip(ising_bh, bmn, bmx)
 
-
             Wn = 4. * ising_W
             bvn = 2. * (ising_bv - ising_W.sum(axis=1))
             bhn = 2. * (ising_bh - ising_W.sum(axis=0))
@@ -908,20 +918,73 @@ class BoltzmannIsingHidden(HiddenLayer):
                 wmx = 1e6
             W = updates[self.W]
             ising_W = 0.25 * W
-            noisy_sampling_W = theano_rng.normal(avg=ising_W, std=self.sampling_W_stdev, size=ising_W.shape, dtype=ising_W.dtype)
+            noisy_sampling_W = \
+                theano_rng.normal(avg=ising_W, std=self.sampling_W_stdev,
+                                  size=ising_W.shape, dtype=ising_W.dtype)
             updates[self.noisy_sampling_W] = noisy_sampling_W
 
             bv = updates[self.layer_below.boltzmann_bias]
             ising_bv = 0.5 * bv + 0.25 * W.sum(axis=1)
-            noisy_sampling_bv = theano_rng.normal(avg=ising_bv.dimshuffle('x', 0), std=self.sampling_b_stdev,
-                    size=self.layer_below.noisy_sampling_b.shape, dtype=ising_bv.dtype)
+            noisy_sampling_bv = \
+                theano_rng.normal(avg=ising_bv.dimshuffle('x', 0),
+                                  std=self.sampling_b_stdev,
+                                  size=self.layer_below.noisy_sampling_b.shape,
+                                  dtype=ising_bv.dtype)
             updates[self.layer_below.noisy_sampling_b] = noisy_sampling_bv
 
             bh = updates[self.boltzmann_b]
             ising_bh = 0.5 * bh + 0.25 * W.sum(axis=0)
-            noisy_sampling_bh = theano_rng.normal(avg=ising_bh.dimshuffle('x', 0), std=self.sampling_b_stdev, size = self.noisy_sampling_b.shape, dtype=ising_bh.dtype)
+            noisy_sampling_bh = \
+                theano_rng.normal(avg=ising_bh.dimshuffle('x', 0),
+                                  std=self.sampling_b_stdev,
+                                  size=self.noisy_sampling_b.shape,
+                                  dtype=ising_bh.dtype)
             updates[self.noisy_sampling_b] = noisy_sampling_bh
 
+    def resample_bias_noise(self, batch_size_changed=False):
+        if batch_size_changed:
+            self.resample_fn = None
+
+        if self.resample_fn is None:
+            updates = OrderedDict()
+
+            if self.sampling_b_stdev is not None:
+                self.noisy_sampling_b = \
+                    sharedX(np.zeros((self.dbm.batch_size, self.dim)))
+                self.layer_below.noisy_sampling_b = \
+                    sharedX(np.zeros((self.dbm.batch_size, self.layer_below.nvis)))
+
+            if self.noisy_sampling_b is not None:
+                theano_rng = MRG_RandomStreams(self.dbm.rng.randint(2**16))
+                bmn = self.min_ising_b
+                if bmn is None:
+                    bmn = - 1e6
+                bmx = self.max_ising_b
+                if bmx is None:
+                    bmx = 1e6
+
+                bv = self.layer_below.boltzmann_bias
+                ising_bv = 0.5 * bv + 0.25 * self.W.sum(axis=1)
+                noisy_sampling_bv = theano_rng.normal(
+                    avg=ising_bv.dimshuffle('x', 0),
+                    std=self.sampling_b_stdev,
+                    size=self.layer_below.noisy_sampling_b.shape,
+                    dtype=ising_bv.dtype
+                )
+                updates[self.layer_below.noisy_sampling_b] = noisy_sampling_bv
+
+                bh = self.boltzmann_b
+                ising_bh = 0.5 * bh + 0.25 * self.W.sum(axis=0)
+                noisy_sampling_bh = theano_rng.normal(
+                    avg=ising_bh.dimshuffle('x', 0),
+                    std=self.sampling_b_stdev,
+                    size=self.noisy_sampling_b.shape,
+                    dtype=ising_bh.dtype
+                )
+                updates[self.noisy_sampling_b] = noisy_sampling_bh
+            self.resample_fn = function([], updates=updates)
+
+        self.resample_fn()
 
     def get_total_state_space(self):
         return VectorSpace(self.dim)
@@ -958,7 +1021,8 @@ class BoltzmannIsingHidden(HiddenLayer):
     def ising_b_numpy(self):
         if hasattr(self, 'layer_above'):
             raise NotImplementedError()
-        return 0.5 * self.boltzmann_b.get_value() + 0.25 * self.W.get_value().sum(axis=0)
+        return 0.5 * self.boltzmann_b.get_value() + \
+            0.25 * self.W.get_value().sum(axis=0)
 
     def get_weight_decay(self, coeff):
         if isinstance(coeff, str):
@@ -968,26 +1032,29 @@ class BoltzmannIsingHidden(HiddenLayer):
         return coeff * T.sqr(W).sum()
 
     def get_weights(self):
-        warnings.warn("BoltzmannIsingHidden.get_weights returns the BOLTZMANN weights, is that what we want?")
+        warnings.warn("BoltzmannIsingHidden.get_weights returns the " +
+                      "BOLTZMANN weights, is that what we want?")
         W = self.W
         return W.get_value()
 
     def set_weights(self, weights):
-        warnings.warn("BoltzmannIsingHidden.set_weights sets the BOLTZMANN weights, is that what we want?")
+        warnings.warn("BoltzmannIsingHidden.set_weights sets the BOLTZMANN " +
+                      "weights, is that what we want?")
         W = self.W
         W.set_value(weights)
 
-    def set_biases(self, biases, recenter = False):
-        assert False # not really sure what this should do
+    def set_biases(self, biases, recenter=False):
+        assert False  # not really sure what this should do
 
     def get_biases(self):
-        assert False # not really sure what this should do
+        assert False  # not really sure what this should do
 
     def get_weights_format(self):
         return ('v', 'h')
 
     def get_weights_topo(self):
-        warnings.warn("BoltzmannIsingHidden.get_weights_topo returns the BOLTZMANN weights, is that what we want?")
+        warnings.warn("BoltzmannIsingHidden.get_weights_topo returns the " +
+                      "BOLTZMANN weights, is that what we want?")
 
         if not isinstance(self.input_space, Conv2DSpace):
             raise NotImplementedError()
@@ -997,7 +1064,7 @@ class BoltzmannIsingHidden(HiddenLayer):
         W = W.T
 
         W = W.reshape((self.detector_layer_dim, self.input_space.shape[0],
-            self.input_space.shape[1], self.input_space.nchannels))
+                       self.input_space.shape[1], self.input_space.nchannels))
 
         W = Conv2DSpace.convert(W, self.input_space.axes, ('b', 0, 1, 'c'))
 
@@ -1020,14 +1087,14 @@ class BoltzmannIsingHidden(HiddenLayer):
         row_norms = T.sqrt(sq_W.sum(axis=1))
         col_norms = T.sqrt(sq_W.sum(axis=0))
 
-        rval =  OrderedDict([
-              ('boltzmann_row_norms_min'  , row_norms.min()),
-              ('boltzmann_row_norms_mean' , row_norms.mean()),
-              ('boltzmann_row_norms_max'  , row_norms.max()),
-              ('boltzmann_col_norms_min'  , col_norms.min()),
-              ('boltzmann_col_norms_mean' , col_norms.mean()),
-              ('boltzmann_col_norms_max'  , col_norms.max()),
-            ])
+        rval = OrderedDict([
+            ('boltzmann_row_norms_min', row_norms.min()),
+            ('boltzmann_row_norms_mean', row_norms.mean()),
+            ('boltzmann_row_norms_max', row_norms.max()),
+            ('boltzmann_col_norms_min', col_norms.min()),
+            ('boltzmann_col_norms_mean', col_norms.mean()),
+            ('boltzmann_col_norms_max', col_norms.max()),
+        ])
 
         ising_W = self.ising_weights()
 
@@ -1053,7 +1120,7 @@ class BoltzmannIsingHidden(HiddenLayer):
 
         rval = OrderedDict()
 
-        vars_and_prefixes = [ (P,'') ]
+        vars_and_prefixes = [(P, '')]
 
         for var, prefix in vars_and_prefixes:
             v_max = var.max(axis=0)
@@ -1061,12 +1128,13 @@ class BoltzmannIsingHidden(HiddenLayer):
             v_mean = var.mean(axis=0)
             v_range = v_max - v_min
 
-            # max_x.mean_u is "the mean over *u*nits of the max over e*x*amples"
-            # The x and u are included in the name because otherwise its hard
-            # to remember which axis is which when reading the monitor
-            # I use inner.outer rather than outer_of_inner or something like that
-            # because I want mean_x.* to appear next to each other in the alphabetical
-            # list, as these are commonly plotted together
+            # max_x.mean_u is "the mean over *u*nits of the max over
+            # e*x*amples". The x and u are included in the name because
+            # otherwise its hard to remember which axis is which when reading
+            # the monitor I use inner.outer rather than outer_of_inner or
+            # something like that because I want mean_x.* to appear next to
+            # each other in the alphabetical list, as these are commonly
+            # plotted together
             for key, val in [
                     ('max_x.max_u', v_max.max()),
                     ('max_x.mean_u', v_max.mean()),
@@ -1221,10 +1289,13 @@ class BoltzmannIsingHidden(HiddenLayer):
             if not isinstance(state_below, tuple):
                 for sb in get_debug_values(state_below):
                     if sb.shape[0] != self.dbm.batch_size:
-                        raise ValueError("self.dbm.batch_size is %d but got shape of %d" % (self.dbm.batch_size, sb.shape[0]))
-                    assert reduce(lambda x,y: x * y, sb.shape[1:]) == self.input_dim
+                        raise ValueError("self.dbm.batch_size is %d but got " +
+                                         "shape of %d" % (self.dbm.batch_size,
+                                                          sb.shape[0]))
+                    assert reduce(lambda x, y: x * y, sb.shape[1:]) == self.input_dim
 
-            state_below = self.input_space.format_as(state_below, self.desired_space)
+            state_below = self.input_space.format_as(state_below,
+                                                     self.desired_space)
 
         if iter_name is None:
             iter_name = 'anon'
@@ -1232,7 +1303,8 @@ class BoltzmannIsingHidden(HiddenLayer):
         if state_above is not None:
             assert layer_above is not None
             msg = layer_above.downward_message(state_above)
-            msg.name = 'msg_from_'+layer_above.layer_name+'_to_'+self.layer_name+'['+iter_name+']'
+            msg.name = 'msg_from_' + layer_above.layer_name + '_to_' + \
+                       self.layer_name + '[' + iter_name+']'
         else:
             msg = None
 
@@ -1252,4 +1324,3 @@ class BoltzmannIsingHidden(HiddenLayer):
         avg = state.mean(axis=0)
         diff = avg - target
         return coeff * T.sqr(diff).mean()
-
