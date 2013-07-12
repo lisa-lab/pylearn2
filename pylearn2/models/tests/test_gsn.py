@@ -32,7 +32,7 @@ BATCH_SIZE = 100
 
 dataset = MNIST(which_set='train', one_hot=True)
 
-layers = [dataset.X.shape[1], HIDDEN_SIZE]
+layers = [dataset.X.shape[1], HIDDEN_SIZE, HIDDEN_SIZE]
 
 vis_corruptor = SaltPepperCorruptor(SALT_PEPPER_NOISE)
 pre_corruptor = GaussianCorruptor(GAUSSIAN_NOISE)
@@ -67,7 +67,7 @@ def test_train_supervised():
     c = GSNCost(
         [
             (0, 1.0, reconstruction_cost),
-            (2, 1.0, classification_cost)
+            (3, 1.0, classification_cost)
         ],
         walkback=WALKBACK)
     alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=c,

@@ -138,6 +138,9 @@ class GSN(StackedBlocks, Model):
 
     @staticmethod
     def _make_aes(layer_sizes, activation_funcs, tied=True):
+        """
+        Creates the Autoencoder objects needed by the GSN.
+        """
         aes = []
         assert len(activation_funcs) == len(layer_sizes)
 
@@ -220,7 +223,7 @@ class GSN(StackedBlocks, Model):
     def new_classifier(cls, layer_sizes, vis_corruptor=None,
                        hidden_pre_corruptor=None, hidden_post_corruptor=None,
                        visible_act="sigmoid", hidden_act="tanh",
-                       classifier_act="softmax"):
+                       classifier_act=plushmax):
         """
         FIXME: documentation
         """
@@ -236,7 +239,6 @@ class GSN(StackedBlocks, Model):
 
         return cls.new(layer_sizes, activations, pre_corruptors, post_corruptors,
                        layer_samplers)
-
 
     @functools.wraps(Model.get_params)
     def get_params(self):
@@ -269,17 +271,24 @@ class GSN(StackedBlocks, Model):
             A time step consists of a call to the _update function (so updating
             both the odd and even layers).
         """
+        # the indices which are being set
+        set_idxs = safe_zip(*minibatch)[0]
+
+        diff = lambda L: [L[i] - L[i - 1] for i in xrange(1, len(L))]
+        assert 1 not in diff(sorted(set_idxs)), "Cannot set adjacent layers"
+
         self._set_activations(minibatch)
         EVENS = xrange(0, len(self.activations), 2)
 
         # intialize steps
         steps = [self.activations[:]]
 
-        # corrupt the initial activations
-        self.apply_postact_corruption(self.activations, EVENS)
+        self.apply_postact_corruption(self.activations, set_idxs)
 
         for _ in xrange(len(self.aes) + walkback):
-            self._update(self.activations)
+            self._update(self.activations, skip_idxs=set_idxs)
+            # only skip some layers on the first step
+            set_idxs = frozenset()
 
             # slicing makes a shallow copy
             steps.append(self.activations[:])
@@ -466,7 +475,7 @@ class GSN(StackedBlocks, Model):
 
         return activations
 
-    def _update(self, activations):
+    def _update(self, activations, skip_idxs=frozenset()):
         """
         See Figure 1 in "Deep Generative Stochastic Networks as Generative
         Models" by Bengio, Thibodeau-Laufer.
@@ -484,8 +493,10 @@ class GSN(StackedBlocks, Model):
             List of activations at time step t (prior to adding postact noise to
             the even layers).
         """
-        # Update and corrupt all of the odd layers
-        odds = range(1, len(activations), 2)
+        # Update and corrupt all of the odd layers (which we aren't skipping)
+        odds = filter(lambda i: i not in skip_idxs,
+                      range(1, len(activations), 2))
+
         self._update_activations(activations, odds)
         self.apply_postact_corruption(activations, odds)
 
@@ -528,6 +539,9 @@ class GSN(StackedBlocks, Model):
         """
         Parameters
         ----------
+        activations : list of tensor_likes
+            The activations to update (could be self.activations). Updates
+            in-place.
         idx_iter : iterable
             An iterable of indices into self.activations. The indexes indicate
             which layers should be updated.
@@ -542,7 +556,7 @@ class GSN(StackedBlocks, Model):
                                      self.aes[i - 1].weights))
 
         for i in idx_iter:
-            # first compute then hidden activation
+            # first compute the hidden activation
             if i == 0:
                 activations[i] = from_above(i)
             elif i == len(activations) - 1:
