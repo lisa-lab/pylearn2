@@ -74,8 +74,8 @@ class Corruptor(object):
 
         Returns
         -------
-        corrupted : tensor_like, or list of tensor_likes
-            Theano symbolic(s) representing the corresponding corrupted inputs.
+        corrupted : tensor_like
+            Theano symbolic representing the corresponding corrupted input.
 
         Notes
         -----
@@ -105,16 +105,16 @@ class BinomialCorruptor(Corruptor):
 
         Parameters
         ----------
-        x : tensor_like,
-            Theano symbolic representing a (list of) (mini)batch of inputs
-            to be corrupted, with the first dimension indexing training
-            examples and the second indexing data dimensions.
+        x : tensor_like
+            Theano symbolic representing a (mini)batch to be corrupted,
+            with the first dimension indexing training examples and the second
+            indexing data dimensions.
 
         Returns
         -------
         corrupted : tensor_like
-            Theano symbolic representing the corresponding corrupted inputs,
-            where individual inputs have been masked with independent
+            Theano symbolic representing the corresponding corrupted input,
+            where the input has been masked with independent
             probability equal to `self.corruption_level`.
         """
         return self.s_rng.binomial(
@@ -136,20 +136,20 @@ class GaussianCorruptor(Corruptor):
 
     def _corrupt(self, x):
         """
-        (Symbolically) corrupt the inputs with Gaussian noise.
+        (Symbolically) corrupt the input with Gaussian noise.
 
         Parameters
         ----------
-        x : tensor_like, or list of tensor_likes
-            Theano symbolic(s) representing a (list of) (mini)batch of inputs
+        x : tensor_like
+            Theano symbolic representing a (mini)batch to be corrupted
             to be corrupted, with the first dimension indexing training
             examples and the second indexing data dimensions.
 
         Returns
         -------
-        corrupted : tensor_like, or list of tensor_likes
-            Theano symbolic(s) representing the corresponding corrupted inputs,
-            where individual inputs have been corrupted by zero mean Gaussian
+        corrupted : tensor_like
+            Theano symbolic representing the corresponding corrupted input,
+            where the input has been corrupted by zero mean Gaussian
             noise with standard deviation equal to `self.corruption_level`.
         """
         noise = self.s_rng.normal(
@@ -206,11 +206,10 @@ class BinomialSampler(Corruptor):
             A tensor like with all values between 0 and 1 (inclusive).
 
         Returns
-        ----------
+        -------
         y : tensor_like
             y_i,j is 1 with probability x_i,j.
         """
-
         return self.s_rng.binomial(size=x.shape, p=x,
                                    dtype=theano.config.floatX)
 
@@ -230,7 +229,7 @@ class MultinomialSampler(Corruptor):
             is the output of a softmax function.
 
         Returns
-        ---------
+        -------
         y : tensor_like
             y will have the same shape as x. Each row in y will be a one hot vector,
             and can be viewed as the outcome of the multinomial trial defined by
@@ -248,10 +247,10 @@ class ComposedCorruptor(Corruptor):
             function application notation. Thus ComposedCorruptor([a, b])._corrupt(X)
             is the same as a(b(X))
 
-            Note
-            ----
-            Does NOT call Corruptor.__init__, so does not contain all of the
-            standard fields for Corruptors.
+        Note
+        ----
+        Does NOT call Corruptor.__init__, so does not contain all of the
+        standard fields for Corruptors.
         """
         # pass up the 0 for corruption_level (not relevant here)
         assert len(corruptors) >= 1

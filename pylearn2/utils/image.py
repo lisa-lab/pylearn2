@@ -341,27 +341,29 @@ def tile_raster_images(X, img_shape, tile_shape, tile_spacing=(0, 0),
     and also columns of matrices for transforming those rows
     (such as the first layer of a neural net).
 
-    :type X: a 2-D ndarray or a tuple of 4 channels, elements of which can
-    be 2-D ndarrays or None;
-    :param X: a 2-D array in which every row is a flattened image.
+    Parameters
+    ----------
+    x : 2-d ndarray or 4 tuple of 2-d ndarrays or None for channels
+        2-D array in which every row is a flattened image.
 
-    :type img_shape: tuple; (height, width)
-    :param img_shape: the original shape of each image
+    shape : 2-tuple of ints
+        The first component is the height of each image, the second component is
+        the width.
 
-    :type tile_shape: tuple; (rows, cols)
-    :param tile_shape: the number of images to tile (rows, cols)
+    tile_shape : 2-tuple of ints
+        The number of images to tile in (row, columns) form.
 
-    :param output_pixel_vals: if output should be pixel values (i.e. int8
-    values) or floats
+    scale_rows_to_unit_interval : bool
+        Whether or not the values need to be before being plotted to [0, 1].
 
-    :param scale_rows_to_unit_interval: if the values need to be scaled before
-    being plotted to [0,1] or not
+    output_pixel_vals : bool
+        Whether or not the output should be pixel values (int8) or floats
 
-
-    :returns: array suitable for viewing as an image.
-    (See:`PIL.Image.fromarray`.)
-    :rtype: a 2-d array with same dtype as X.
-
+    Returns
+    -------
+    y : 2d-ndarray
+        The return value has the same dtype as X, and is suitable for viewing as
+        an image with PIL.Image.fromarray.
     """
 
     assert len(img_shape) == 2

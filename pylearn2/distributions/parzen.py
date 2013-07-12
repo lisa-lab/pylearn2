@@ -21,7 +21,7 @@ def make_lpdf(mu, sigma):
         point.
 
     Returns
-    --------
+    -------
     lpdf : callable
         Estimator of the log of the probability density under a point.
     """

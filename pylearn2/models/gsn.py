@@ -215,7 +215,7 @@ class GSN(StackedBlocks, Model):
             than set it to the 0 matrix.
 
         Returns
-        ---------
+        -------
         steps : list of list of tensor_likes
             A list of the activations at each time step. The activations
             themselves are lists of tensor_like symbolic (shared) variables.
@@ -308,7 +308,7 @@ class GSN(StackedBlocks, Model):
             training due to some cost functions failing on perfect reconstruction.
 
         Returns
-        ---------
+        -------
         reconstructions : list of tensor_likes
             A list of length 1 + walkback that contains the samples generated
             by the GSN. The samples will be of the same size as the minibatch.
@@ -377,8 +377,8 @@ class GSN(StackedBlocks, Model):
         """
         Sets the input layer to minibatch and all other layers to 0.
 
-        Parameters:
-        ------------
+        Parameters
+        ----------
         minibatch : tensor_like or list of (int, tensor_like)
             Theano symbolic representing the input minibatch. See
             description for sparse parameter.
