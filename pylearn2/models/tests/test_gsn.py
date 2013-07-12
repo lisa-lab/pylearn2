@@ -17,11 +17,11 @@ from pylearn2.train import Train
 from pylearn2.training_algorithms.sgd import SGD
 from pylearn2.utils import image
 
-HIDDEN_SIZE = 1500
+HIDDEN_SIZE = 1000
 SALT_PEPPER_NOISE = 0.4
 GAUSSIAN_NOISE = 2
 
-WALKBACK = 1
+WALKBACK = 0
 
 LEARNING_RATE = 0.25
 MOMENTUM = 0.5
@@ -118,6 +118,15 @@ def test_sample_supervised():
     history = list(itertools.chain(*history))
     print np.vstack(history)
 
+#####################
+# tests and utilities
+#####################
+
+def test_funcs():
+    x = T.fmatrix()
+    data = np.random.rand(2, 5)
+    f = F([x], plushmax(x), allow_input_downcast=True)
+    import pdb; pdb.set_trace()
 
 # some utility methods for viewing MNIST characters without any GUI
 def print_char(A):

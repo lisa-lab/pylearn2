@@ -26,13 +26,27 @@ from pylearn2.models.autoencoder import Autoencoder
 from pylearn2.models.model import Model
 from pylearn2.utils import safe_zip
 
-def plushmax(x, eps=100.0):
+def plushmax(x, eps=0.0):
     """
     A softer softmax.
 
     Instead of computing exp(x_i) / sum_j(exp(x_j)), this computes
     (exp(x_i) + eps) / sum_j(exp(x_j) + eps)
+
+    Additionally, all values in the return vector will be at least MIN_SAFE
+    (which is defined in the function). esp may be increased to satisfy this
+    constraint.
     """
+    assert eps >= 0.0
+
+    MIN_SAFE = 0.00001
+
+    s = T.sum(T.exp(x), axis=1, keepdims=True)
+    safe_eps = (MIN_SAFE * s) / (1.0 - x.shape[1] * MIN_SAFE)
+    safe_eps = T.cast(safe_eps, 'float32')
+
+    eps = T.maximum(eps, safe_eps)
+
     y = x + T.log(1.0 + eps * T.exp(-x))
     return T.nnet.softmax(y)
 
