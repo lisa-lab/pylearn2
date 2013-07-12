@@ -52,8 +52,9 @@ class Train(object):
             automatic saving altogether. A frequency of 1 saves every
             epoch. A frequency of 2 saves every other epoch, etc. (default=0,
             i.e. never save)
-            Note: the model is always saved at the end of learning, even
-            if the final epoch is not a multiple of save_freq.
+            Note: when automatic saving is enabled (eg save_freq > 0), the
+            model is always saved after learning, even when the final epoch is
+            not a multiple of save_freq.
         extensions : iterable, optional
             A collection of TrainExtension objects whose callbacks are
             triggered at various points in learning.

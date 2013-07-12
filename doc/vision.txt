@@ -8,33 +8,43 @@ A brief statement of the Pylearn2 vision is given on the :ref:`index` page.
 Here we explore some points of the vision statement in more detail:
 
 * We build the parts of the library when we need them or shortly before.
+
    * There is NOT a big programming effort for stuff that we are not sure we will use.
    * Don't over-engineer. This killed Pylearn1. Start with simple interfaces and introduce
      generality as it is needed. Don't try to make everything fully general from the start.
    * That being said, keep the overall Vision in mind while coding. Try to design interfaces
      that will be easy to modify in the future to support predictable desired features.
+
 * Pylearn2 is a machine learning toolbox for scientific experimentation.
+
    * This means it is OK to expect a high level of machine learning sophistication
      from our users.
    * It also means the framework should not restrict very much what is possible.
    * These are very different design goals / a very different target user from
      say scikit-learn where everything should have a "fit" method that just works
      out of the box.
+
 * One goal we used to have but no one seems to actually work is supporting the
   scikit.learn interface. It could make sense to add support for the the scikit-learn
   interface to one of our models such as S3C, RBMs, or autoencoders and add it to
+
    * https://github.com/scikit-learn/scikit-learn/wiki/Related-Projects
+
 * Dataset interface
+
    * Pylearn2 datasets need to be able to understand topology. Many kinds of data
      have different kinds of topology: 1-D topology like a measurement collected over
      time, 2-D topology like images, 3-D topology like videos, etc.
    * Pylearn2 models may use topology in different ways:  convolution, tiled convolution,
      local receptive fields with no tied weights, Toronto's fovea-approximating
      techniques, etc.
+
 * Support many views for each object. Make it easy for different
   component play different roles. 
+
    * For example, generative models and datasets both define probability
      distributions that we should be able to sample from.
+
 * Contain a concise human-readable experiment description language
   that makes it easy for other people to replicate our exact experiments
   with others implementations. This should include hyperparameter and other
