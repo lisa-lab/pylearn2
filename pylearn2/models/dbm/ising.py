@@ -1,7 +1,26 @@
-
 """
 Implementation of a densely connected Ising model in the
 pylearn2.models.dbm framework
+
+Note
+----
+If :math:`h` can be -1 or 1, and
+
+.. math::
+
+    p(h) = \exp(T\dot z \dot h),
+
+then the expected value of :math:`h` is given by
+
+.. math::
+
+    \\tanh(T \dot z),
+
+and the probability that :math:`h` is 1 is given by
+
+.. math::
+
+    \sigma(2T \dot z)
 """
 __authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
 __copyright__ = "Copyright 2012, Universite de Montreal"
@@ -31,13 +50,6 @@ from pylearn2.space import VectorSpace
 from pylearn2.utils import sharedX
 
 
-"""
-Note: if h can be -1 or 1, and p(h) = exp(T*z*h), then
-the expected value of h is given by tanh(T*z), and the
-probability that h is 1 is given by sigmoid(2*T*z)
-"""
-
-
 def init_tanh_bias_from_marginals(dataset, use_y=False):
     if use_y:
         X = dataset.y
@@ -60,20 +72,26 @@ def init_tanh_bias_from_marginals(dataset, use_y=False):
 class IsingVisible(VisibleLayer):
     """
     A DBM visible layer consisting of random variables living
-    in a VectorSpace, with values in {-1, 1}
-    Implements the energy function term
-    -b^T h
+    in a `VectorSpace`, with values in {-1, 1}.
+
+    Implements the energy function term :math:`-\mathbf{b}^T \mathbf{h}`.
     """
 
     def __init__(self, nvis, beta, learn_beta=False, bias_from_marginals=None):
         """
-        nvis: the dimension of the space
-        beta: shared variable representing a multiplicative factor of the
-                energy function (the inverse temperature)
-        learn_beta: whether or not the inverse temperature should be considered
-                as a learned parameter
-        bias_from_marginals: a dataset, whose marginals are used to initialize
-                the visible biases
+        Parameters
+        ----------
+        nvis : int
+            The dimension of the space
+        beta : theano shared variable
+            Shared variable representing a multiplicative factor of the energy
+            function (the inverse temperature)
+        learn_beta : boolean, optional
+            Whether or not the inverse temperature should be considered as a
+            learned parameter
+        bias_from_marginals : `pylearn2.datasets.dataset.Dataset`, optional
+            A dataset whose marginals are used to initialize the visible
+            biases
         """
         if not isinstance(beta, SharedVariable):
             raise ValueError("beta needs to be a theano shared variable.")
@@ -164,15 +182,15 @@ class IsingVisible(VisibleLayer):
 
 class IsingHidden(HiddenLayer):
     """
-
-    A hidden layer with h being a vector in {-1, 1}^dim,
+    A hidden layer with :math:`\mathbf{h}` being a vector in {-1, 1},
     implementing the energy function term
 
-    -v^T Wh -b^T h
+    .. math::
 
-    where W and b are parameters of this layer, and v is
-    the upward state of the layer below
+        -\mathbf{v}^T \mathbf{W}\mathbf{h} -\mathbf{b}^T \mathbf{h}
 
+    where :math:`\mathbf{W}` and :math:`\mathbf{b}` are parameters of this
+    layer, and :math:`\mathbf{v}` is the upward state of the layer below.
     """
 
     def __init__(self,
@@ -189,14 +207,18 @@ class IsingHidden(HiddenLayer):
                  b_lr_scale=None,
                  max_col_norm=None):
         """
-        include_prob: probability of including a weight element in the set
-                of weights initialized to U(-irange, irange). If not included
-                it is initialized to 0.
-        beta: shared variable representing a multiplicative factor of the
-                energy function (the inverse temperature)
-        learn_beta: whether or not the inverse temperature should be considered
-                as a learned parameter
-
+        Parameters
+        ----------
+        include_prob : float, optional
+            Probability of including a weight element in the set of weights
+            initialized to U(-irange, irange). If not included it is
+            initialized to 0.
+        beta : theano shared variable
+            Shared variable representing a multiplicative factor of the energy
+            function (the inverse temperature)
+        learn_beta : boolean, optional
+            Whether or not the inverse temperature should be considered as a
+            learned parameter
         """
         if not isinstance(beta, SharedVariable):
             raise ValueError("beta needs to be a theano shared variable.")
@@ -575,21 +597,28 @@ class IsingHidden(HiddenLayer):
 
 class BoltzmannIsingVisible(VisibleLayer):
     """
-    An IsingVisible whose parameters are defined in Boltzmann machine
-    space.
+    An IsingVisible whose parameters are defined in Boltzmann machine space.
 
+    Note
+    ----
     All parameter noise/clipping is handled by BoltzmannIsingHidden.
     """
 
     def __init__(self, nvis, beta, learn_beta=False, bias_from_marginals=None):
         """
-        nvis: the dimension of the space
-        beta: shared variable representing a multiplicative factor of the
-                energy function (the inverse temperature)
-        learn_beta: whether or not the inverse temperature should be considered
+        Parameters
+        ----------
+        nvis : int
+            Number of visible units
+        beta : theano shared variable
+            Shared variable representing a multiplicative factor of the energy
+            function (the inverse temperature)
+        learn_beta : boolean, optional
+            Whether or not the inverse temperature should be considered
                 as a learned parameter
-        bias_from_marginals: a dataset, whose marginals are used to
-                initialize the visible biases
+        bias_from_marginals : `pylearn2.datasets.dataset.Dataset`, optional
+            A dataset whose marginals are used to initialize the visible
+            biases
         """
 
         if not isinstance(beta, SharedVariable):
@@ -721,15 +750,7 @@ class BoltzmannIsingVisible(VisibleLayer):
 
 class BoltzmannIsingHidden(HiddenLayer):
     """
-
-    A hidden layer with h being a vector in {-1, 1}^dim,
-    implementing the energy function term
-
-    -v^T Wh -b^T h
-
-    where W and b are parameters of this layer, and v is
-    the upward state of the layer below
-
+    An IsingHidden whose parameters are defined in Boltzmann machine space.
     """
 
     def __init__(self,
@@ -762,6 +783,17 @@ class BoltzmannIsingHidden(HiddenLayer):
         learn_beta: whether or not the inverse temperature should be considered
                  as a learned parameter
 
+        Parameters
+        ----------
+        beta : theano shared variable
+            Shared variable representing a multiplicative factor of the energy
+            function (the inverse temperature)
+        learn_beta : boolean, optional
+            Whether or not the inverse temperature should be considered
+                as a learned parameter
+        bias_from_marginals : `pylearn2.datasets.dataset.Dataset`, optional
+            A dataset whose marginals are used to initialize the visible
+            biases
         """
         if not isinstance(beta, SharedVariable):
             raise ValueError("beta needs to be a theano shared variable.")

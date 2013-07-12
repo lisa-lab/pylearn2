@@ -25,6 +25,11 @@ DBM
 .. automodule:: pylearn2.models.dbm
     :members:
 
+Ising
+=====
+.. automodule:: pylearn2.models.dbm.ising
+    :members:
+
 Auto Encoder
 ============
 .. automodule:: pylearn2.models.autoencoder
