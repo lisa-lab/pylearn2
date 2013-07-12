@@ -1,7 +1,9 @@
 import numpy as np
+import os
 N = np
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils import serial
+from pylearn2.datasets.exc import NoDataPathError, NotInstalledError
 
 class CIFAR100(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, which_set, center = False,
@@ -9,9 +11,14 @@ class CIFAR100(dense_design_matrix.DenseDesignMatrix):
             axes = ('b', 0, 1, 'c'),
             start = None, stop = None, one_hot = False):
 
+        if 'PYLEARN2_DATA_PATH' not in os.environ:
+            raise NoDataPathError()
+
         assert which_set in ['train','test']
 
         path = "${PYLEARN2_DATA_PATH}/cifar100/cifar-100-python/"+which_set
+        if not os.path.exists(os.environ['PYLEARN2_DATA_PATH'] + '/cifar100/cifar-100-python/' + which_set):
+            raise NotInstalledError()
 
         obj = serial.load(path)
         X = obj['data']

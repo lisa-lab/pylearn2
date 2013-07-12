@@ -1,11 +1,9 @@
 import numpy
 import unittest
-from pylearn2.testing.skip import skip_if_no_data
 from pylearn2.datasets.hepatitis import Hepatitis, neg_missing
 
 class TestHepatitis(unittest.TestCase):
     def setUp(self):
-        skip_if_no_data()
         self.dataset = Hepatitis()
 
     def test_neg_missing(self):

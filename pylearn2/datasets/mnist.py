@@ -12,6 +12,8 @@ from pylearn2.datasets import control
 from pylearn2.utils import serial
 from pylearn2.utils.mnist_ubyte import read_mnist_images
 from pylearn2.utils.mnist_ubyte import read_mnist_labels
+from pylearn2.datasets.exc import NotInstalledError, NoDataPathError
+import os
 
 class MNIST(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, which_set, center = False, shuffle = False,
@@ -20,6 +22,8 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
             preprocessor = None,
             fit_preprocessor = False,
             fit_test_preprocessor = False):
+        if 'PYLEARN2_DATA_PATH' not in os.environ:
+            raise NoDataPathError()
 
         self.args = locals()
 
@@ -40,6 +44,9 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
 
         if control.get_load_data():
             path = "${PYLEARN2_DATA_PATH}/mnist/"
+            if not os.path.exists(os.path.join(os.environ['PYLEARN2_DATA_PATH'], 'mnist')):
+                raise NotInstalledError()
+
             if which_set == 'train':
                 im_path = path + 'train-images-idx3-ubyte'
                 label_path = path + 'train-labels-idx1-ubyte'
@@ -145,7 +152,13 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
 class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
 
     def __init__(self, which_set, center = False, one_hot = False):
+        if 'PYLEARN2_DATA_PATH' not in os.environ:
+            raise NoDataPathError()
+
         path = "${PYLEARN2_DATA_PATH}/mnist/mnist_rotation_back_image/"+which_set
+        
+        if not os.path.exists(os.path.join(os.environ['PYLEARN2_DATA_PATH'], 'mnist', 'mnist_rotation_back_image', which_set)):
+            raise NotInstalledError()
 
         obj = serial.load(path)
         X = obj['data']

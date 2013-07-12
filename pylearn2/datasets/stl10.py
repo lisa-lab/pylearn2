@@ -8,6 +8,10 @@ import numpy as np
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load
 
+import os
+from pylearn2.datasets.exc import NoDataPathError, NotInstalledError
+
+
 class STL10(dense_design_matrix.DenseDesignMatrix):
     """
     The STL-10 dataset
@@ -33,6 +37,15 @@ class STL10(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, which_set, center = False, example_range = None):
 
         if which_set == 'train':
+            if 'PYLEARN2_DATA_PATH' not in os.environ:
+                raise NoDataPathError()
+            if not os.path.exists(os.path.join(os.environ['PYLEARN2_DATA_PATH'], 'stl10', 'stl10_matlab')):
+                raise NotInstalledError()
+
+            if not os.path.exists(os.path.join(os.environ['PYLEARN2_DATA_PATH'], 'stl10_matlab')):  ## This path is probably a typo (in this file; this condition
+                ## replicates the path as it is displayed here).
+                raise NotInstalledError()
+
             train = load('${PYLEARN2_DATA_PATH}/stl10/stl10_matlab/train.mat')
 
             #Load the class names

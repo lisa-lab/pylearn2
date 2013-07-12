@@ -1,10 +1,12 @@
 import unittest
 import numpy
 from pylearn2.datasets.zca_dataset import ZCA_Dataset
-from pylearn2.testing.skip import skip_if_no_data
+
+from unittest import SkipTest
+
 
 class TestZCA_Dataset(unittest.TestCase):
     def setUp(self):
-        skip_if_no_data()
+        raise SkipTest()
         #self.dataset = ZCA_Dataset()
-        #TODO: how to test?
+        #TODO: how to test? Requires arguments...

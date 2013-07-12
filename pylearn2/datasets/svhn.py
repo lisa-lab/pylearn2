@@ -11,6 +11,7 @@ from theano import config
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load
 from pylearn2.utils.string_utils import preprocess
+from pylearn2.datasets.exc import NotInstalledError, NoDataPathError
 
 
 class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
@@ -29,6 +30,9 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
         If you wish to modify the data, you should pass a local copy
         to the path argument.
         """
+
+        if 'PYLEARN2_DATA_PATH' not in os.environ:
+            raise NoDataPathError()
 
         assert which_set in self.mapper.keys()
 
@@ -50,6 +54,9 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
 
         # load data
         path = preprocess(path)
+        if not os.path.exists(path):
+            raise NotInstalledError()
+
         file_n = "{}{}_32x32.h5".format(path + "h5/", which_set)
         if os.path.isfile(file_n):
             make_new = False
