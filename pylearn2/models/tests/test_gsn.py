@@ -32,7 +32,7 @@ BATCH_SIZE = 100
 
 dataset = MNIST(which_set='train', one_hot=True)
 
-layers = [dataset.X.shape[1], HIDDEN_SIZE, HIDDEN_SIZE]
+layers = [dataset.X.shape[1], HIDDEN_SIZE]
 
 vis_corruptor = SaltPepperCorruptor(SALT_PEPPER_NOISE)
 pre_corruptor = GaussianCorruptor(GAUSSIAN_NOISE)
@@ -67,7 +67,7 @@ def test_train_supervised():
     c = GSNCost(
         [
             (0, 1.0, reconstruction_cost),
-            (3, 1.0, classification_cost)
+            (2, 1.0, classification_cost)
         ],
         walkback=WALKBACK)
     alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=c,
@@ -122,11 +122,26 @@ def test_sample_supervised():
 # tests and utilities
 #####################
 
-def test_funcs():
-    x = T.fmatrix()
-    data = np.random.rand(2, 5)
-    f = F([x], plushmax(x), allow_input_downcast=True)
+def debug():
+    raw_class_cost = MeanBinaryCrossEntropy()
+    classification_cost = lambda a, b: raw_class_cost.cost(a, b) / 784.0
+
+    gsn = GSN.new_classifier(layers + [10], vis_corruptor=vis_corruptor,
+                             hidden_pre_corruptor=None, hidden_post_corruptor=None,
+                             classifier_act=plushmax)
+
+    c = GSNCost(
+        [
+            (0, 1.0, reconstruction_cost),
+            (3, 1.0, classification_cost)
+        ],
+        walkback=WALKBACK)
+
+    mb_data = MNIST(which_set='test').X[105:106, :]
+
+    samples = gsn.get_samples([(0, mb_data)], symbolic=False)
     import pdb; pdb.set_trace()
+
 
 # some utility methods for viewing MNIST characters without any GUI
 def print_char(A):
@@ -147,4 +162,3 @@ def a_to_s(A):
 
 if __name__ == '__main__':
     test_train_supervised()
-

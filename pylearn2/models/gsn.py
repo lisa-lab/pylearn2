@@ -278,7 +278,6 @@ class GSN(StackedBlocks, Model):
         assert 1 not in diff(sorted(set_idxs)), "Cannot set adjacent layers"
 
         self._set_activations(minibatch)
-        EVENS = xrange(0, len(self.activations), 2)
 
         # intialize steps
         steps = [self.activations[:]]
@@ -286,15 +285,9 @@ class GSN(StackedBlocks, Model):
         self.apply_postact_corruption(self.activations, set_idxs)
 
         for _ in xrange(len(self.aes) + walkback):
-            self._update(self.activations, skip_idxs=set_idxs)
+            steps.append(self._update(self.activations, skip_idxs=set_idxs)[0])
             # only skip some layers on the first step
             set_idxs = frozenset()
-
-            # slicing makes a shallow copy
-            steps.append(self.activations[:])
-
-            # Apply post activation corruption to even layers
-            self.apply_postact_corruption(self.activations, EVENS)
 
         return steps
 
@@ -302,7 +295,9 @@ class GSN(StackedBlocks, Model):
         def compile_f_init():
             mb = T.fmatrices(len(indices))
             zipped = safe_zip(indices, mb)
-            f_init = theano.function(mb, self._set_activations(zipped))
+            import pdb; pdb.set_trace()
+            f_init = theano.function(mb,
+                                     self._set_activations(zipped, corrupt=True))
             return f_init
 
         if hasattr(self, '_compiled_cache'):
@@ -311,7 +306,7 @@ class GSN(StackedBlocks, Model):
             else:
                 f_init = compile_f_init()
                 cc = self._compiled_cache
-                self._compiled_cache = (indices, f_init, cc[2], cc[3])
+                self._compiled_cache = (indices, f_init, cc[2])
 
         # make init
         f_init = compile_f_init()
@@ -321,18 +316,7 @@ class GSN(StackedBlocks, Model):
         f_step = theano.function(prev, self._update(copy.copy(prev)),
                                  on_unused_input='ignore')
 
-        # make even corruptor
-        precor = T.fmatrices(len(self.activations))
-        evens = xrange(0, len(self.activations), 2)
-        f_even_corrupt = theano.function(
-            precor,
-            self.apply_postact_corruption(
-                copy.copy(precor),
-                evens
-            )
-        )
-
-        self._compiled_cache = (indices, f_init, f_step, f_even_corrupt)
+        self._compiled_cache = (indices, f_init, f_step)
         return self._compiled_cache
 
     def get_samples(self, minibatch, walkback=0, indices=None, symbolic=True,
@@ -382,15 +366,13 @@ class GSN(StackedBlocks, Model):
 
         if not symbolic:
             vals = safe_zip(*minibatch)[1]
-            f_init, f_step, f_even_corrupt =\
-                self._make_or_get_compiled(input_idxs)[1:]
+            f_init, f_step = self._make_or_get_compiled(input_idxs)[1:]
 
-            activations = f_init(*vals)
-            results = [activations]
+            precor, activations = f_init(*vals)
+            results = [precor]
             for _ in xrange(len(self.aes) + walkback):
-                activations = f_step(*activations)
-                results.append(activations)
-                activations = f_even_corrupt(*activations)
+                precor, activations = f_step(*activations)
+                results.append(precor)
         else:
             results = self._run(minibatch, walkback=walkback)
 
@@ -429,7 +411,7 @@ class GSN(StackedBlocks, Model):
     See pylearn2.models.tests.test_gsn.sampling_test for an example.
     """
 
-    def _set_activations(self, minibatch, set_val=True):
+    def _set_activations(self, minibatch, set_val=True, corrupt=False):
         """
         Sets the input layer to minibatch and all other layers to 0.
 
@@ -473,7 +455,11 @@ class GSN(StackedBlocks, Model):
         if set_val:
             self.activations = activations
 
-        return activations
+        if corrupt:
+            return (activations,
+                    self.apply_postact_corruption(activations[:], indices))
+        else:
+            return activations
 
     def _update(self, activations, skip_idxs=frozenset()):
         """
@@ -490,22 +476,47 @@ class GSN(StackedBlocks, Model):
         Returns
         -------
         y : list of tensors
-            List of activations at time step t (prior to adding postact noise to
-            the even layers).
+            List of activations at time step t (prior to adding postact noise).
+
+        Note
+        ----
+        The return value is generally not equal to the value of activations at the
+        the end of this method. The return value contains all layers without
+        postactivation noise, but the activations value contains noise on the
+        odd layers (necessary to compute the even layers).
         """
         # Update and corrupt all of the odd layers (which we aren't skipping)
         odds = filter(lambda i: i not in skip_idxs,
                       range(1, len(activations), 2))
 
+        # ODDS
+        # update
         self._update_activations(activations, odds)
+
+        # copy
+        odds_copy = [(i, activations[i]) for i in xrange(1, len(activations), 2)]
+
+        # corrupt
         self.apply_postact_corruption(activations, odds)
 
-        # Update the even layers. Not applying post activation noise now so that
-        # that cost function can be evaluated
+        # EVENS
         evens = xrange(0, len(activations), 2)
         self._update_activations(activations, evens)
 
-        return activations
+        # copy
+        evens_copy = [(i, activations[i]) for i in evens]
+
+        # corrupt
+        self.apply_postact_corruption(activations, evens)
+
+        # precor is before sampling + postactivation corruption (after preactivation
+        # corruption and activation)
+        precor = [None] * len(self.activations)
+        for idx, val in odds_copy + evens_copy:
+            precor[idx] = val
+        assert None not in precor
+
+        return precor, activations
 
     @staticmethod
     def _apply_corruption(activations, corruptors, idx_iter):
