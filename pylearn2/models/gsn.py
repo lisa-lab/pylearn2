@@ -285,7 +285,7 @@ class GSN(StackedBlocks, Model):
         self.apply_postact_corruption(self.activations, set_idxs)
 
         for _ in xrange(len(self.aes) + walkback):
-            steps.append(self._update(self.activations, skip_idxs=set_idxs)[0])
+            steps.append(self._update(self.activations, skip_idxs=set_idxs))
             # only skip some layers on the first step
             set_idxs = frozenset()
 
@@ -295,10 +295,14 @@ class GSN(StackedBlocks, Model):
         def compile_f_init():
             mb = T.fmatrices(len(indices))
             zipped = safe_zip(indices, mb)
-            import pdb; pdb.set_trace()
             f_init = theano.function(mb,
                                      self._set_activations(zipped, corrupt=True))
-            return f_init
+            # handle splitting of concatenated data
+            def wrap_f_init(*args):
+                data = f_init(*args)
+                length = len(data) / 2
+                return data[:length], data[length:]
+            return wrap_f_init
 
         if hasattr(self, '_compiled_cache'):
             if indices == self._compiled_cache[0]:
@@ -307,17 +311,24 @@ class GSN(StackedBlocks, Model):
                 f_init = compile_f_init()
                 cc = self._compiled_cache
                 self._compiled_cache = (indices, f_init, cc[2])
+                return self._compiled_cache[1:]
 
         # make init
         f_init = compile_f_init()
 
         # make step function
         prev = T.fmatrices(len(self.activations))
-        f_step = theano.function(prev, self._update(copy.copy(prev)),
+        f_step = theano.function(prev,
+                                 self._update(copy.copy(prev),
+                                              return_activations=True),
                                  on_unused_input='ignore')
+        def wrap_f_step(*args):
+            data = f_step(*args)
+            length = len(data) / 2
+            return data[:length], data[length:]
 
-        self._compiled_cache = (indices, f_init, f_step)
-        return self._compiled_cache
+        self._compiled_cache = (indices, f_init, wrap_f_step)
+        return self._compiled_cache[1:]
 
     def get_samples(self, minibatch, walkback=0, indices=None, symbolic=True,
                     include_first=False):
@@ -364,9 +375,11 @@ class GSN(StackedBlocks, Model):
         if indices is None:
             indices = input_idxs
 
+
         if not symbolic:
+            # FIXME: not protecting odd layer values
             vals = safe_zip(*minibatch)[1]
-            f_init, f_step = self._make_or_get_compiled(input_idxs)[1:]
+            f_init, f_step = self._make_or_get_compiled(input_idxs)
 
             precor, activations = f_init(*vals)
             results = [precor]
@@ -456,12 +469,12 @@ class GSN(StackedBlocks, Model):
             self.activations = activations
 
         if corrupt:
-            return (activations,
+            return (activations +
                     self.apply_postact_corruption(activations[:], indices))
         else:
             return activations
 
-    def _update(self, activations, skip_idxs=frozenset()):
+    def _update(self, activations, skip_idxs=frozenset(), return_activations=False):
         """
         See Figure 1 in "Deep Generative Stochastic Networks as Generative
         Models" by Bengio, Thibodeau-Laufer.
@@ -490,23 +503,14 @@ class GSN(StackedBlocks, Model):
                       range(1, len(activations), 2))
 
         # ODDS
-        # update
         self._update_activations(activations, odds)
-
-        # copy
         odds_copy = [(i, activations[i]) for i in xrange(1, len(activations), 2)]
-
-        # corrupt
         self.apply_postact_corruption(activations, odds)
 
         # EVENS
         evens = xrange(0, len(activations), 2)
         self._update_activations(activations, evens)
-
-        # copy
         evens_copy = [(i, activations[i]) for i in evens]
-
-        # corrupt
         self.apply_postact_corruption(activations, evens)
 
         # precor is before sampling + postactivation corruption (after preactivation
@@ -516,7 +520,10 @@ class GSN(StackedBlocks, Model):
             precor[idx] = val
         assert None not in precor
 
-        return precor, activations
+        if return_activations:
+            return precor + activations
+        else:
+            return precor
 
     @staticmethod
     def _apply_corruption(activations, corruptors, idx_iter):

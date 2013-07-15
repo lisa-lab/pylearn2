@@ -15,7 +15,7 @@ from pylearn2.models.gsn import GSN, plushmax
 from pylearn2.termination_criteria import EpochCounter
 from pylearn2.train import Train
 from pylearn2.training_algorithms.sgd import SGD
-from pylearn2.utils import image
+from pylearn2.utils import image, safe_zip
 
 HIDDEN_SIZE = 1000
 SALT_PEPPER_NOISE = 0.4
@@ -32,7 +32,7 @@ BATCH_SIZE = 100
 
 dataset = MNIST(which_set='train', one_hot=True)
 
-layers = [dataset.X.shape[1], HIDDEN_SIZE]
+layers = [dataset.X.shape[1], HIDDEN_SIZE, HIDDEN_SIZE]
 
 vis_corruptor = SaltPepperCorruptor(SALT_PEPPER_NOISE)
 pre_corruptor = GaussianCorruptor(GAUSSIAN_NOISE)
@@ -40,6 +40,7 @@ post_corruptor = GaussianCorruptor(GAUSSIAN_NOISE)
 
 mbce = MeanBinaryCrossEntropy()
 reconstruction_cost = lambda a, b: mbce.cost(a, b) / 784.0
+reconstruction_cost = mbce
 
 def test_train_ae():
     gsn = GSN.new_ae(layers, vis_corruptor, pre_corruptor, post_corruptor)
@@ -56,7 +57,6 @@ def test_train_ae():
 
 def test_train_supervised():
     raw_class_cost = MeanBinaryCrossEntropy()
-    classification_cost = lambda a, b: raw_class_cost.cost(a, b) / 784.0
 
     gsn = GSN.new_classifier(layers + [10], vis_corruptor=vis_corruptor,
                              hidden_pre_corruptor=None, hidden_post_corruptor=None,
@@ -67,7 +67,7 @@ def test_train_supervised():
     c = GSNCost(
         [
             (0, 1.0, reconstruction_cost),
-            (2, 1.0, classification_cost)
+            (3, 1.0, classification_cost)
         ],
         walkback=WALKBACK)
     alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=c,
@@ -121,27 +121,53 @@ def test_sample_supervised():
 #####################
 # tests and utilities
 #####################
-
 def debug():
     raw_class_cost = MeanBinaryCrossEntropy()
     classification_cost = lambda a, b: raw_class_cost.cost(a, b) / 784.0
+    classification_cost = MeanBinaryCrossEntropy()
 
     gsn = GSN.new_classifier(layers + [10], vis_corruptor=vis_corruptor,
                              hidden_pre_corruptor=None, hidden_post_corruptor=None,
                              classifier_act=plushmax)
 
-    c = GSNCost(
+    _costf = lambda t, o: T.mean(T.nnet.binary_crossentropy(o, t))
+    _t, _o = T.fmatrices(2)
+    costf = F([_t, _o], _costf(_t, _o))
+
+    cost = GSNCost(
         [
-            (0, 1.0, reconstruction_cost),
-            (3, 1.0, classification_cost)
+            (0, 1.0, _costf),
+            (3, 1.0, _costf)
         ],
         walkback=WALKBACK)
 
     mb_data = MNIST(which_set='test').X[105:106, :]
+    y = MNIST(which_set='test', one_hot=True).y[105:106, :]
+    data = (mb_data, y)
 
-    samples = gsn.get_samples([(0, mb_data)], symbolic=False)
-    import pdb; pdb.set_trace()
+    _x = T.fmatrix()
+    _y = T.fmatrix()
+    get_cost = F([_x, _y], cost.expr(gsn, (_x, _y)))
+    z = get_cost(mb_data, y)
 
+    # copy of code within cost
+    layer_idxs = [idx for idx, _, _ in cost.costs]
+    output = gsn.get_samples(safe_zip(layer_idxs, data),
+                             walkback=0, indices=layer_idxs, symbolic=False)
+    total = 0.0
+    for cost_idx in xrange(len(cost.costs)):
+        for step in output:
+            total += costf(data[cost_idx], step[cost_idx])
+    # end copy
+
+    samples = gsn.get_samples(safe_zip(layer_idxs, (_x, _y)), indices=layer_idxs)
+    vis = [s[0] for s in samples]
+    soft = [s[1] for s in samples]
+
+    get_vis = F([_x, _y], vis)
+    get_soft = F([_x, _y], soft)
+
+    from IPython import embed; embed()
 
 # some utility methods for viewing MNIST characters without any GUI
 def print_char(A):
@@ -161,4 +187,4 @@ def a_to_s(A):
     return "\n".join(strs)
 
 if __name__ == '__main__':
-    test_train_supervised()
+    debug()
