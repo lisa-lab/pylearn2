@@ -282,12 +282,11 @@ class GSN(StackedBlocks, Model):
         # intialize steps
         steps = [self.activations[:]]
 
-        self.apply_postact_corruption(self.activations, set_idxs)
+        self.apply_postact_corruption(self.activations,
+                                      xrange(len(self.activations)))
 
         for _ in xrange(len(self.aes) + walkback):
-            steps.append(self._update(self.activations, skip_idxs=set_idxs))
-            # only skip some layers on the first step
-            set_idxs = frozenset()
+            steps.append(self._update(self.activations))
 
         return steps
 
@@ -375,9 +374,7 @@ class GSN(StackedBlocks, Model):
         if indices is None:
             indices = input_idxs
 
-
         if not symbolic:
-            # FIXME: not protecting odd layer values
             vals = safe_zip(*minibatch)[1]
             f_init, f_step = self._make_or_get_compiled(input_idxs)
 
@@ -465,16 +462,39 @@ class GSN(StackedBlocks, Model):
                     T.dot(activations[i - 1], self.aes[i - 1].weights)
                 )
 
+        self._update_odds(activations, skip_idxs=indices, corrupt=False)
+
         if set_val:
             self.activations = activations
 
         if corrupt:
             return (activations +
-                    self.apply_postact_corruption(activations[:], indices))
+                    self.apply_postact_corruption(activations[:],
+                                                  xrange(len(activations))))
         else:
             return activations
 
-    def _update(self, activations, skip_idxs=frozenset(), return_activations=False):
+    def _update_odds(self, activations, skip_idxs=frozenset(), corrupt=True):
+        # Update and corrupt all of the odd layers (which we aren't skipping)
+        odds = filter(lambda i: i not in skip_idxs,
+                      range(1, len(activations), 2))
+
+        self._update_activations(activations, odds)
+        odds_copy = [(i, activations[i]) for i in xrange(1, len(activations), 2)]
+
+        if corrupt:
+            self.apply_postact_corruption(activations, odds)
+
+        return odds_copy
+
+    def _update_evens(self, activations):
+        evens = xrange(0, len(activations), 2)
+        self._update_activations(activations, evens)
+        evens_copy = [(i, activations[i]) for i in evens]
+        self.apply_postact_corruption(activations, evens)
+        return evens_copy
+
+    def _update(self, activations, return_activations=False):
         """
         See Figure 1 in "Deep Generative Stochastic Networks as Generative
         Models" by Bengio, Thibodeau-Laufer.
@@ -498,25 +518,15 @@ class GSN(StackedBlocks, Model):
         postactivation noise, but the activations value contains noise on the
         odd layers (necessary to compute the even layers).
         """
-        # Update and corrupt all of the odd layers (which we aren't skipping)
-        odds = filter(lambda i: i not in skip_idxs,
-                      range(1, len(activations), 2))
 
-        # ODDS
-        self._update_activations(activations, odds)
-        odds_copy = [(i, activations[i]) for i in xrange(1, len(activations), 2)]
-        self.apply_postact_corruption(activations, odds)
-
-        # EVENS
-        evens = xrange(0, len(activations), 2)
-        self._update_activations(activations, evens)
-        evens_copy = [(i, activations[i]) for i in evens]
-        self.apply_postact_corruption(activations, evens)
+        evens_copy = self._update_evens(activations)
+        odds_copy = self._update_odds(activations)
 
         # precor is before sampling + postactivation corruption (after preactivation
         # corruption and activation)
         precor = [None] * len(self.activations)
-        for idx, val in odds_copy + evens_copy:
+        for idx, val in evens_copy + odds_copy:
+            assert precor[idx] is None
             precor[idx] = val
         assert None not in precor
 
@@ -582,7 +592,7 @@ class GSN(StackedBlocks, Model):
             else:
                 activations[i] = from_below(i) + from_above(i)
 
-        self.apply_preact_corruption(self.activations, idx_iter)
+        self.apply_preact_corruption(activations, idx_iter)
 
         for i in idx_iter:
             # Using the activation function from lower autoencoder

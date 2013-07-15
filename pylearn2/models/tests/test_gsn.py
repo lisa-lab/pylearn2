@@ -17,9 +17,9 @@ from pylearn2.train import Train
 from pylearn2.training_algorithms.sgd import SGD
 from pylearn2.utils import image, safe_zip
 
-HIDDEN_SIZE = 1000
+HIDDEN_SIZE = 1500
 SALT_PEPPER_NOISE = 0.4
-GAUSSIAN_NOISE = 2
+GAUSSIAN_NOISE = 2.0
 
 WALKBACK = 0
 
@@ -32,7 +32,7 @@ BATCH_SIZE = 100
 
 dataset = MNIST(which_set='train', one_hot=True)
 
-layers = [dataset.X.shape[1], HIDDEN_SIZE, HIDDEN_SIZE]
+layers = [dataset.X.shape[1], HIDDEN_SIZE]
 
 vis_corruptor = SaltPepperCorruptor(SALT_PEPPER_NOISE)
 pre_corruptor = GaussianCorruptor(GAUSSIAN_NOISE)
@@ -40,7 +40,6 @@ post_corruptor = GaussianCorruptor(GAUSSIAN_NOISE)
 
 mbce = MeanBinaryCrossEntropy()
 reconstruction_cost = lambda a, b: mbce.cost(a, b) / 784.0
-reconstruction_cost = mbce
 
 def test_train_ae():
     gsn = GSN.new_ae(layers, vis_corruptor, pre_corruptor, post_corruptor)
@@ -57,17 +56,16 @@ def test_train_ae():
 
 def test_train_supervised():
     raw_class_cost = MeanBinaryCrossEntropy()
+    classification_cost = lambda a, b: raw_class_cost.cost(a, b) / 10.0
 
     gsn = GSN.new_classifier(layers + [10], vis_corruptor=vis_corruptor,
-                             hidden_pre_corruptor=None, hidden_post_corruptor=None,
+                             hidden_pre_corruptor=pre_corruptor, hidden_post_corruptor=pre_corruptor,
                              classifier_act=plushmax)
 
-    # Bugs: works with 1 or 3 hidden layers, but not 2 (theano bugs)
-    # cross entropy doesn't work for softmax layer (NaN)
     c = GSNCost(
         [
             (0, 1.0, reconstruction_cost),
-            (3, 1.0, classification_cost)
+            (2, 1.0, classification_cost)
         ],
         walkback=WALKBACK)
     alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=c,
@@ -187,4 +185,4 @@ def a_to_s(A):
     return "\n".join(strs)
 
 if __name__ == '__main__':
-    debug()
+    test_sample_supervised()
