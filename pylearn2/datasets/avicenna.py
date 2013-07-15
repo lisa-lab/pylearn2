@@ -1,5 +1,5 @@
 from pylearn.datasets import utlc
-from pylearn2.datasets.exc import EnvironmentVariableError, NotInstalledError
+from pylearn2.datasets.exc import NoDataPathError, NotInstalledError
 import numpy as N
 import os
 

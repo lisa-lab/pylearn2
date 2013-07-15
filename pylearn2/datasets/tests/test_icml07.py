@@ -56,7 +56,7 @@ class test_RectanglesImage(unittest.TestCase):
         try:
             from pylearn2.datasets.icml07 import RectanglesImage
             self.train = RectanglesImage(which_set='train')
-            self.test = RectangleImage(which_set = 'test')
+            self.test = RectanglesImage(which_set = 'test')
         except (NoDataPathError, NotInstalledError):
             raise SkipTest()
 
