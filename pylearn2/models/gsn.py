@@ -257,11 +257,11 @@ class GSN(StackedBlocks, Model):
         minibatch : see parameter description in _set_activations
         walkback : int
             How many walkback steps to perform.
-        clamped : tensor_like
-            A theano matrix that is 1 at all indices where the visible layer
-            should be kept constant and 0 everywhere else. If no indices are
-            going to be clamped, its faster to keep clamped as None rather
-            than set it to the 0 matrix.
+        clamped : list of theano tensors or None.
+            clamped must be None or a list of len(minibatch) where each element
+            is a Theano tensor or None. Each Theano tensor should be 1 for
+            indices where the value should be clamped and 0 for where the value
+            should not be clamped.
 
         Returns
         ---------
@@ -285,12 +285,16 @@ class GSN(StackedBlocks, Model):
         self.apply_postact_corruption(self.activations,
                                       xrange(len(self.activations)))
 
+        if clamped is not None:
+            vals = safe_zip(*minibatch)[1]
+            clamped = safe_zip(set_idxs, vals, clamped)
+
         for _ in xrange(len(self.aes) + walkback):
-            steps.append(self._update(self.activations))
+            steps.append(self._update(self.activations, clamped=clamped))
 
         return steps
 
-    def _make_or_get_compiled(self, indices):
+    def _make_or_get_compiled(self, indices, clamped):
         def compile_f_init():
             mb = T.fmatrices(len(indices))
             zipped = safe_zip(indices, mb)
@@ -303,6 +307,31 @@ class GSN(StackedBlocks, Model):
                 return data[:length], data[length:]
             return wrap_f_init
 
+        def compile_f_step():
+            prev = T.fmatrices(len(self.activations))
+            if clamped is not None:
+                assert len(clamped) == len(indices)
+
+                _initial = T.fmatrices(len(indices))
+                _clamps = T.fmatrices(len(indices))
+
+                z = self._update(copy.copy(prev),
+                                 clamped=safe_zip(indices, _initial, _clamps),
+                                 return_activations=True,
+                                 symbolic=False)
+                f = theano.function(prev + _initial + _clamps, z,
+                                    on_unused_input='ignore')
+            else:
+                z = self._update(copy.copy(prev), return_activations=True)
+                f = theano.function(prev, z, on_unused_input='ignore')
+
+            def wrapped(*args):
+                data = f(*args)
+                length = len(data) / 2
+                return data[:length], data[length:]
+
+            return wrapped
+
         if hasattr(self, '_compiled_cache'):
             if indices == self._compiled_cache[0]:
                 return self._compiled_cache[1:]
@@ -312,25 +341,14 @@ class GSN(StackedBlocks, Model):
                 self._compiled_cache = (indices, f_init, cc[2])
                 return self._compiled_cache[1:]
 
-        # make init
         f_init = compile_f_init()
+        f_step = compile_f_step()
 
-        # make step function
-        prev = T.fmatrices(len(self.activations))
-        f_step = theano.function(prev,
-                                 self._update(copy.copy(prev),
-                                              return_activations=True),
-                                 on_unused_input='ignore')
-        def wrap_f_step(*args):
-            data = f_step(*args)
-            length = len(data) / 2
-            return data[:length], data[length:]
-
-        self._compiled_cache = (indices, f_init, wrap_f_step)
+        self._compiled_cache = (indices, f_init, f_step)
         return self._compiled_cache[1:]
 
     def get_samples(self, minibatch, walkback=0, indices=None, symbolic=True,
-                    include_first=False):
+                    include_first=False, clamped=None):
         """
         Runs minibatch through GSN and returns reconstructed data.
 
@@ -356,6 +374,8 @@ class GSN(StackedBlocks, Model):
             Whether to include the initial activations (ie just the input) in
             the output. This is useful for visualization, but can screw up
             training due to some cost functions failing on perfect reconstruction.
+        clamped : same as minibatch
+            See description on _run.
 
         Returns
         ---------
@@ -375,8 +395,11 @@ class GSN(StackedBlocks, Model):
             indices = input_idxs
 
         if not symbolic:
+            if clamped is not None:
+                clamped = safe_zip(input_idxs, safe_zip(*minibatch)[1], clamped)
+
             vals = safe_zip(*minibatch)[1]
-            f_init, f_step = self._make_or_get_compiled(input_idxs)
+            f_init, f_step = self._make_or_get_compiled(input_idxs, clamped)
 
             precor, activations = f_init(*vals)
             results = [precor]
@@ -384,7 +407,7 @@ class GSN(StackedBlocks, Model):
                 precor, activations = f_step(*activations)
                 results.append(precor)
         else:
-            results = self._run(minibatch, walkback=walkback)
+            results = self._run(minibatch, walkback=walkback, clamped=clamped)
 
         # leave out the first time step
         if not include_first:
@@ -474,12 +497,17 @@ class GSN(StackedBlocks, Model):
         else:
             return activations
 
-    def _update_odds(self, activations, skip_idxs=frozenset(), corrupt=True):
+    def _update_odds(self, activations, skip_idxs=frozenset(), corrupt=True,
+                     clamped=None, symbolic=True):
         # Update and corrupt all of the odd layers (which we aren't skipping)
         odds = filter(lambda i: i not in skip_idxs,
                       range(1, len(activations), 2))
 
         self._update_activations(activations, odds)
+
+        if clamped is not None:
+            self._apply_clamping(activations, clamped, symbolic=symbolic)
+
         odds_copy = [(i, activations[i]) for i in xrange(1, len(activations), 2)]
 
         if corrupt:
@@ -487,14 +515,23 @@ class GSN(StackedBlocks, Model):
 
         return odds_copy
 
-    def _update_evens(self, activations):
+    def _update_evens(self, activations, clamped=None, symbolic=True):
         evens = xrange(0, len(activations), 2)
+
         self._update_activations(activations, evens)
+        if clamped is not None:
+            self._apply_clamping(activations, clamped)
+
         evens_copy = [(i, activations[i]) for i in evens]
         self.apply_postact_corruption(activations, evens)
+
+        if clamped is not None:
+            self._apply_clamping(activations, clamped, symbolic=symbolic)
+
         return evens_copy
 
-    def _update(self, activations, return_activations=False):
+    def _update(self, activations, clamped=None, symbolic=True,
+                return_activations=False):
         """
         See Figure 1 in "Deep Generative Stochastic Networks as Generative
         Models" by Bengio, Thibodeau-Laufer.
@@ -518,9 +555,10 @@ class GSN(StackedBlocks, Model):
         postactivation noise, but the activations value contains noise on the
         odd layers (necessary to compute the even layers).
         """
-
-        evens_copy = self._update_evens(activations)
-        odds_copy = self._update_odds(activations)
+        evens_copy = self._update_evens(activations, clamped=clamped,
+                                        symbolic=symbolic)
+        odds_copy = self._update_odds(activations, clamped=clamped,
+                                      symbolic=symbolic)
 
         # precor is before sampling + postactivation corruption (after preactivation
         # corruption and activation)
@@ -534,6 +572,21 @@ class GSN(StackedBlocks, Model):
             return precor + activations
         else:
             return precor
+
+    @staticmethod
+    def _apply_clamping(clamped, symbolic=True):
+        for idx, initial, clamp in clamps:
+            # take values from initial
+            clamped_val = clamp * initial
+
+            # zero out values in activations
+            if symbolic:
+                zerod = activations[idx] * T.eq(clamp, 0.0)
+            else:
+                zerod = activations[idx] * (clamp == 0.0)
+
+            activations[idx] = zerod + clamped_val
+        return activations
 
     @staticmethod
     def _apply_corruption(activations, corruptors, idx_iter):

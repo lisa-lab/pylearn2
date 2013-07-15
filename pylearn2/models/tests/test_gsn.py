@@ -114,7 +114,7 @@ def test_sample_supervised():
                               symbolic=False, include_first=False,
                               indices=[2])
     history = list(itertools.chain(*history))
-    print np.vstack(history)
+    print np.argmax(np.vstack(history), axis=1)
 
 #####################
 # tests and utilities
