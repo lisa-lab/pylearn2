@@ -2,7 +2,7 @@ import numpy
 import unittest
 from pylearn2.datasets.ocr import OCR
 
-from unittest import SkipTest
+from nose.plugins.skip import SkipTest
 from pylearn2.datasets.exc import NoDataPathError, NotInstalledError
 
 

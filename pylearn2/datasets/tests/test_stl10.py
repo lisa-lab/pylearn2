@@ -1,7 +1,7 @@
 import unittest
 from pylearn2.datasets.stl10 import STL10, restrict
 
-from unittest import SkipTest
+from nose.plugins.skip import SkipTest
 from pylearn2.datasets.exc import NoDataPathError, NotInstalledError
 
 

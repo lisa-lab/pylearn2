@@ -2,7 +2,7 @@ import numpy as np
 from pylearn2.datasets.four_regions import FourRegions
 import unittest
 
-from unittest import SkipTest
+from nose.plugins.skip import SkipTest
 from pylearn2.datasets.exc import NoDataPathError, NotInstalledError
 
 

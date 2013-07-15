@@ -2,7 +2,7 @@ import numpy
 import unittest
 from numpy.testing.decorators import knownfailureif
 from pylearn2.datasets.exc import NoDataPathError, NotInstalledError
-from unittest import SkipTest
+from nose.plugins.skip import SkipTest
 
 RELIES_ON_PYLEARN_ONE = True
 

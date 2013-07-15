@@ -2,7 +2,7 @@ from pylearn2.datasets.cifar10 import CIFAR10
 import unittest
 import numpy as np
 
-from unittest import SkipTest
+from nose.plugins.skip import SkipTest
 from pylearn2.datasets.exc import NoDataPathError, NotInstalledError
 
 

@@ -1,6 +1,6 @@
 import numpy
 import unittest
-from unittest import SkipTest
+from nose.plugins.skip import SkipTest
 
 from pylearn2.datasets.exc import NoDataPathError, NotInstalledError
 from numpy.testing.decorators import knownfailureif

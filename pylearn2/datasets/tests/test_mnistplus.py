@@ -3,7 +3,7 @@ from pylearn2.testing.skip import skip_if_no_data
 import unittest
 from pylearn2.datasets.mnistplus import MNISTPlus
 
-from unittest import SkipTest
+from nose.plugins.skip import SkipTest
 from pylearn2.datasets.exc import NoDataPathError, NotInstalledError
 
 

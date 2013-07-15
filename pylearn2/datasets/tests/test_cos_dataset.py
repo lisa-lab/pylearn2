@@ -3,7 +3,7 @@ import numpy
 from pylearn2.datasets.cos_dataset import CosDataset
 import theano
 
-from unittest import SkipTest
+from nose.plugins.skip import SkipTest
 from pylearn2.datasets.exc import NoDataPathError, NotInstalledError
 
 

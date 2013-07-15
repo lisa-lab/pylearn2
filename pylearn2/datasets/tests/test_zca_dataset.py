@@ -2,7 +2,7 @@ import unittest
 import numpy
 from pylearn2.datasets.zca_dataset import ZCA_Dataset
 
-from unittest import SkipTest
+from nose.plugins.skip import SkipTest
 
 
 class TestZCA_Dataset(unittest.TestCase):
