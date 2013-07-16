@@ -13,8 +13,10 @@ __license__ = "3-clause BSD"
 
 import copy
 import functools
+import itertools
 import warnings
 
+import numpy as np
 import theano
 T = theano.tensor
 
@@ -43,7 +45,7 @@ def plushmax(x, eps=0.0):
 
     s = T.sum(T.exp(x), axis=1, keepdims=True)
     safe_eps = (MIN_SAFE * s) / (1.0 - x.shape[1] * MIN_SAFE)
-    safe_eps = T.cast(safe_eps, 'float32')
+    safe_eps = T.cast(safe_eps, theano.config.floatX)
 
     eps = T.maximum(eps, safe_eps)
 
@@ -294,7 +296,7 @@ class GSN(StackedBlocks, Model):
 
         return steps
 
-    def _make_or_get_compiled(self, indices, clamped):
+    def _make_or_get_compiled(self, indices, clamped=False):
         def compile_f_init():
             mb = T.fmatrices(len(indices))
             zipped = safe_zip(indices, mb)
@@ -309,16 +311,13 @@ class GSN(StackedBlocks, Model):
 
         def compile_f_step():
             prev = T.fmatrices(len(self.activations))
-            if clamped is not None:
-                assert len(clamped) == len(indices)
-
+            if clamped:
                 _initial = T.fmatrices(len(indices))
                 _clamps = T.fmatrices(len(indices))
 
                 z = self._update(copy.copy(prev),
                                  clamped=safe_zip(indices, _initial, _clamps),
-                                 return_activations=True,
-                                 symbolic=False)
+                                 return_activations=True)
                 f = theano.function(prev + _initial + _clamps, z,
                                     on_unused_input='ignore')
             else:
@@ -395,16 +394,20 @@ class GSN(StackedBlocks, Model):
             indices = input_idxs
 
         if not symbolic:
-            if clamped is not None:
-                clamped = safe_zip(input_idxs, safe_zip(*minibatch)[1], clamped)
-
             vals = safe_zip(*minibatch)[1]
-            f_init, f_step = self._make_or_get_compiled(input_idxs, clamped)
+            f_init, f_step = self._make_or_get_compiled(input_idxs,
+                                                        clamped=clamped is not None)
+
+            if clamped is None:
+                get_args = lambda x: x
+            else:
+                mb_values = [mb[1] for mb in minibatch]
+                get_args = lambda x: x + mb_values + clamped
 
             precor, activations = f_init(*vals)
             results = [precor]
             for _ in xrange(len(self.aes) + walkback):
-                precor, activations = f_step(*activations)
+                precor, activations = f_step(*get_args(activations))
                 results.append(precor)
         else:
             results = self._run(minibatch, walkback=walkback, clamped=clamped)
@@ -498,7 +501,7 @@ class GSN(StackedBlocks, Model):
             return activations
 
     def _update_odds(self, activations, skip_idxs=frozenset(), corrupt=True,
-                     clamped=None, symbolic=True):
+                     clamped=None):
         # Update and corrupt all of the odd layers (which we aren't skipping)
         odds = filter(lambda i: i not in skip_idxs,
                       range(1, len(activations), 2))
@@ -506,7 +509,7 @@ class GSN(StackedBlocks, Model):
         self._update_activations(activations, odds)
 
         if clamped is not None:
-            self._apply_clamping(activations, clamped, symbolic=symbolic)
+            self._apply_clamping(activations, clamped)
 
         odds_copy = [(i, activations[i]) for i in xrange(1, len(activations), 2)]
 
@@ -515,7 +518,7 @@ class GSN(StackedBlocks, Model):
 
         return odds_copy
 
-    def _update_evens(self, activations, clamped=None, symbolic=True):
+    def _update_evens(self, activations, clamped=None):
         evens = xrange(0, len(activations), 2)
 
         self._update_activations(activations, evens)
@@ -525,13 +528,9 @@ class GSN(StackedBlocks, Model):
         evens_copy = [(i, activations[i]) for i in evens]
         self.apply_postact_corruption(activations, evens)
 
-        if clamped is not None:
-            self._apply_clamping(activations, clamped, symbolic=symbolic)
-
         return evens_copy
 
-    def _update(self, activations, clamped=None, symbolic=True,
-                return_activations=False):
+    def _update(self, activations, clamped=None, return_activations=False):
         """
         See Figure 1 in "Deep Generative Stochastic Networks as Generative
         Models" by Bengio, Thibodeau-Laufer.
@@ -555,10 +554,8 @@ class GSN(StackedBlocks, Model):
         postactivation noise, but the activations value contains noise on the
         odd layers (necessary to compute the even layers).
         """
-        evens_copy = self._update_evens(activations, clamped=clamped,
-                                        symbolic=symbolic)
-        odds_copy = self._update_odds(activations, clamped=clamped,
-                                      symbolic=symbolic)
+        evens_copy = self._update_evens(activations, clamped=clamped)
+        odds_copy = self._update_odds(activations, clamped=clamped)
 
         # precor is before sampling + postactivation corruption (after preactivation
         # corruption and activation)
@@ -574,8 +571,8 @@ class GSN(StackedBlocks, Model):
             return precor
 
     @staticmethod
-    def _apply_clamping(clamped, symbolic=True):
-        for idx, initial, clamp in clamps:
+    def _apply_clamping(activations, clamped, symbolic=True):
+        for idx, initial, clamp in clamped:
             # take values from initial
             clamped_val = clamp * initial
 
@@ -659,3 +656,34 @@ class GSN(StackedBlocks, Model):
             # None implies linear
             if act_func is not None:
                 activations[i] = act_func(activations[i])
+
+class GSNAutoencoder(GSN):
+    @classmethod
+    def new(cls, *args, **kwargs):
+        return cls.new_ae(*args, **kwargs)
+
+class GSNClassifier(GSN):
+    @classmethod
+    def convert(cls, gsn):
+        gsn.__class__ = cls
+        return gsn
+
+    @classmethod
+    def new(cls, *args, **kwargs):
+        return cls.new_classifier(*args, **kwargs)
+
+    def classify(self, minibatch, index, trials=10):
+        assert len(minibatch) == 1
+        clamped = np.ones(minibatch[0][1].shape, dtype=np.float32)
+        data = self.get_samples(minibatch, walkback=trials - len(self.aes),
+                                indices=[index], clamped=[clamped], symbolic=False)
+
+        data = np.array(list(itertools.chain(*data)))
+
+        mean = data.mean(axis=0)
+        am = np.argmax(mean, axis=1)
+
+        labels = np.zeros_like(mean)
+        labels[np.arange(labels.shape[0]), am] = 1.0
+
+        return labels

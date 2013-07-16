@@ -11,7 +11,7 @@ from pylearn2.costs.gsn import GSNCost
 from pylearn2.corruption import GaussianCorruptor, SaltPepperCorruptor
 from pylearn2.datasets.mnist import MNIST
 from pylearn2.distributions.parzen import ParzenWindows
-from pylearn2.models.gsn import GSN, plushmax
+from pylearn2.models.gsn import *
 from pylearn2.termination_criteria import EpochCounter
 from pylearn2.train import Train
 from pylearn2.training_algorithms.sgd import SGD
@@ -108,13 +108,22 @@ def test_sample_supervised():
     with open("gsn_sup_example.pkl") as f:
         gsn = cPickle.load(f)
 
-    mb_data = MNIST(which_set='test').X[105:106, :]
+    gsn = GSNClassifier.convert(gsn)
 
+    ds = MNIST(which_set='test', one_hot=True)
+    mb_data = ds.X[100:200, :]
+    y = ds.y[100:200, :]
+
+    y_hat = gsn.classify([(0, mb_data)], 2)
+
+    print np.sum(np.absolute(y_hat - y)) / 2.0
+    """
     history = gsn.get_samples([(0, mb_data)], walkback=5,
                               symbolic=False, include_first=False,
                               indices=[2])
     history = list(itertools.chain(*history))
     print np.argmax(np.vstack(history), axis=1)
+    """
 
 #####################
 # tests and utilities
