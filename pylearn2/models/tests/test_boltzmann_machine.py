@@ -1,3 +1,12 @@
+"""
+Tests for pylearn2.models.boltzmann_machine
+"""
+__authors__ = ["Vincent Dumoulin"]
+__copyright__ = "Copyright 2013, Universite de Montreal"
+__credits__ = ["Vincent Dumoulin"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Vincent Dumoulin"
+
 import theano
 import numpy
 
