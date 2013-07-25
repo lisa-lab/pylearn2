@@ -34,7 +34,7 @@ class BoltzmannMachine(Model):
     independent given units in all other layers.
     """
 
-    def __init__(self, visible_layers, hidden_layers, irange):
+    def __init__(self, visible_layers, hidden_layers, irange, connectivity=None):
         """
         Parameters
         ----------
@@ -50,7 +50,9 @@ class BoltzmannMachine(Model):
         self.hidden_layers = hidden_layers
 
         self.irange = irange
+        self.connectivity = connectivity
 
+        self._initialize_connectivity()
         self._initialize_biases()
         self._initialize_weights()
 
@@ -68,6 +70,68 @@ class BoltzmannMachine(Model):
         layers.extend(self.visible_layers)
         layers.extend(self.hidden_layers)
         return layers
+
+    def _initialize_connectivity(self):
+        """
+        Initializes the Boltzmann machine's connectivity pattern as a
+        dictionary mapping `(layer1, layer2)` tuples to (layer1.ndim,
+        layer2.ndim) binary ndarrays in which element `(i, j)` is 1 if
+        `layer1`'s `i`th unit is connected to `layer2`'s `j`th unit or 0
+        otherwise.
+
+        The values can also be `None`, in which case it is equivalent to having
+        a zero-valued ndarray.
+        """
+        # By default, self.connectivity is None, which means layers are fully
+        # connected
+        if self.connectivity is None:
+            self.connectivity = OrderedDict()
+            layers = self.get_all_layers()
+            for i, layer1 in enumerate(layers[:-1]):
+                for layer2 in layers[i + 1:]:
+                   self.connectivity[(layer1, layer2)] = numpy.ones(
+                        shape=(layer1.ndim, layer2.ndim),
+                        dtype='int'
+                    )
+        # Validate self.connectivity's format
+        else:
+            layers = self.get_all_layers()
+            for i, layer1 in enumerate(layers[:-1]):
+                for layer2 in layers[i + 1:]:
+                    # Validate keys
+                    # First case: two keys. Raise an error
+                    if (layer1, layer2) in self.connectivity.keys() \
+                    and (layer2, layer1) in self.connectivity.keys():
+                        raise ValueError("two connectivity patterns were" +
+                                         "found for the same pair of layers")
+                    # Second case: no key at all. Raise an error
+                    elif (layer1, layer2) not in self.connectivity.keys() and \
+                    (layer2, layer1) not in self.connectivity.keys():
+                        raise ValueError("a connectivity pattern is missing " +
+                                         "for a pair of layers")
+                    # Third case: key in the wrong order. Put the key in the
+                    # right order
+                    elif (layer2, layer1) in self.connectivity.keys():
+                        pattern = self.connectivity[(layer2, layer1)]
+                        self.connectivity[(layer1, layer2)] = pattern.T
+                        del self.connectivity[(layer2, layer1)]
+
+                    # Validate values
+                    pattern = self.connectivity[(layer1, layer2)]
+                    if pattern is not None:
+                        # Make sure connectivity pattern has the right shape
+                        if not pattern.shape == (layer1.ndim, layer2.ndim):
+                            raise ValueError("connectivity pattern has the " +
+                                             "wrong shape for a pair of " +
+                                             "layers")
+                        # Make sure connectivity pattern is binary
+                        if not (numpy.logical_or(numpy.equal(0, pattern),
+                                                 numpy.equal(1, pattern))).all():
+                            raise ValueError("connectivity pattern is not " +
+                                             "binary for a pair of layers")
+                        # Replace zero-valued connectivty patterns by None
+                        if numpy.equal(0, pattern).all():
+                            self.connectivity[(layer1, layer2)] = None
 
     def _initialize_biases(self):
         """
@@ -94,38 +158,23 @@ class BoltzmannMachine(Model):
         """
         weights = OrderedDict()
 
-        # Visible to visible weights
-        for i, layer1 in enumerate(self.visible_layers[:-1]):
-            for layer2 in self.visible_layers[i + 1:]:
-                weights[(layer1, layer2)] = sharedX(
-                    value=numpy.random.uniform(-self.irange, self.irange,
-                                               (layer1.ndim, layer2.ndim)),
-                    name=layer1.name + '_to_' + layer2.name + '_W'
-                )
+        layers = self.get_all_layers()
 
-        # Visible to hidden weights
-        for layer1 in self.visible_layers:
-            for layer2 in self.hidden_layers:
-                weights[(layer1, layer2)] = sharedX(
-                    value=numpy.random.uniform(-self.irange, self.irange,
-                                               (layer1.ndim, layer2.ndim)),
-                    name=layer1.name + '_to_' + layer2.name + '_W'
-                )
-
-        # Hidden to hidden weights
-        for i, layer1 in enumerate(self.hidden_layers[:-1]):
-            for layer2 in self.hidden_layers[i + 1:]:
-                weights[(layer1, layer2)] = sharedX(
-                    value=numpy.random.uniform(-self.irange, self.irange,
-                                               (layer1.ndim, layer2.ndim)),
-                    name=layer1.name + '_to_' + layer2.name + '_W'
-                )
+        for i, layer1 in enumerate(layers[:-1]):
+            for layer2 in layers[i + 1:]:
+                if self.connectivity[(layer1, layer2)] is not None:
+                    weights[(layer1, layer2)] = sharedX(
+                        value=numpy.random.uniform(-self.irange, self.irange,
+                                                   (layer1.ndim, layer2.ndim))
+                              * self.connectivity[(layer1, layer2)],
+                        name=layer1.name + '_to_' + layer2.name + '_W'
+                    )
 
         self.weights = weights
 
     def energy(self, layer_to_state):
         """
-        Computes the energy of a given boltzmann machine state.
+        Computes the energy of a given Boltzmann machine state.
 
         Parameters
         ----------
@@ -169,15 +218,22 @@ class BoltzmannMachine(Model):
             return layer_to_state
 
         layer_to_updated_state = OrderedDict()
+
         layers = self.get_all_layers()
+        # Validate layer_to_state
+        assert all([layer in layer_to_state.keys() for layer in layers])
+        assert all([layer in layers for layer in layer_to_state.keys()])
+
         for i, layer in enumerate(layers):
             z = -self.biases[layer]
             for other_layer in layers[:i]:
-                z -= theano.tensor.dot(other_layer,
-                                       self.weights[(other_layer, layer)])
+                if self.connectivity[(other_layer, layer)] is not None:
+                    z -= theano.tensor.dot(other_layer,
+                                           self.weights[(other_layer, layer)])
             for other_layer in layers[i + 1:]:
-                z -= theano.tensor.dot(self.weights[(layer, other_layer)],
-                                       other_layer)
+                if self.connectivity[(layer, other_layer)] is not None:
+                    z -= theano.tensor.dot(self.weights[(layer, other_layer)],
+                                           other_layer)
             p = theano.tensor.nnet.sigmoid(z)
             layer_to_updated_state[layer] = theano_rng.binomial(size=p.shape,
                                                                 p=p,
