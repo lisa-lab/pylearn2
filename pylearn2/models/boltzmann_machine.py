@@ -24,7 +24,8 @@ class BoltzmannMachine(Model):
 
     .. math::
 
-        E(\mathbf{u}) = -\mathbf{b}^T \mathbf{u} - \mathbf{u}^T\mathbf{W}\mathbf{u}
+        E(\mathbf{u}) = -\mathbf{b}^T \mathbf{u}
+                        - \mathbf{u}^T\mathbf{W}\mathbf{u}
 
     We distinguish two types of units: visible units, corresponding to observed
     variables, and hidden units, corresponding to hidden variables.
@@ -34,7 +35,8 @@ class BoltzmannMachine(Model):
     independent given units in all other layers.
     """
 
-    def __init__(self, visible_layers, hidden_layers, irange, connectivity=None):
+    def __init__(self, visible_layers, hidden_layers, irange,
+                 connectivity=None):
         """
         Parameters
         ----------
@@ -89,7 +91,7 @@ class BoltzmannMachine(Model):
             layers = self.get_all_layers()
             for i, layer1 in enumerate(layers[:-1]):
                 for layer2 in layers[i + 1:]:
-                   self.connectivity[(layer1, layer2)] = numpy.ones(
+                    self.connectivity[(layer1, layer2)] = numpy.ones(
                         shape=(layer1.ndim, layer2.ndim),
                         dtype='int'
                     )
@@ -98,20 +100,36 @@ class BoltzmannMachine(Model):
             layers = self.get_all_layers()
             for i, layer1 in enumerate(layers[:-1]):
                 for layer2 in layers[i + 1:]:
+                    two_keys = (
+                        (layer1, layer2) in self.connectivity.keys()
+                        and
+                        (layer2, layer1) in self.connectivity.keys()
+                    )
+
+                    no_key = (
+                        (layer1, layer2) not in self.connectivity.keys()
+                        and
+                        (layer2, layer1) not in self.connectivity.keys()
+                    )
+
+                    wrong_order = (
+                        (layer1, layer2) not in self.connectivity.keys()
+                        and
+                        (layer2, layer1) in self.connectivity.keys()
+                    )
+
                     # Validate keys
                     # First case: two keys. Raise an error
-                    if (layer1, layer2) in self.connectivity.keys() \
-                    and (layer2, layer1) in self.connectivity.keys():
+                    if two_keys:
                         raise ValueError("two connectivity patterns were" +
                                          "found for the same pair of layers")
                     # Second case: no key at all. Raise an error
-                    elif (layer1, layer2) not in self.connectivity.keys() and \
-                    (layer2, layer1) not in self.connectivity.keys():
+                    elif no_key:
                         raise ValueError("a connectivity pattern is missing " +
                                          "for a pair of layers")
                     # Third case: key in the wrong order. Put the key in the
                     # right order
-                    elif (layer2, layer1) in self.connectivity.keys():
+                    elif wrong_order:
                         pattern = self.connectivity[(layer2, layer1)]
                         self.connectivity[(layer1, layer2)] = pattern.T
                         del self.connectivity[(layer2, layer1)]
@@ -125,8 +143,11 @@ class BoltzmannMachine(Model):
                                              "wrong shape for a pair of " +
                                              "layers")
                         # Make sure connectivity pattern is binary
-                        if not (numpy.logical_or(numpy.equal(0, pattern),
-                                                 numpy.equal(1, pattern))).all():
+                        binary_pattern = numpy.logical_or(
+                            numpy.equal(0, pattern),
+                            numpy.equal(1, pattern)
+                        ).all()
+                        if not binary_pattern:
                             raise ValueError("connectivity pattern is not " +
                                              "binary for a pair of layers")
                         # Replace zero-valued connectivty patterns by None
@@ -166,7 +187,7 @@ class BoltzmannMachine(Model):
                     weights[(layer1, layer2)] = sharedX(
                         value=numpy.random.uniform(-self.irange, self.irange,
                                                    (layer1.ndim, layer2.ndim))
-                              * self.connectivity[(layer1, layer2)],
+                        * self.connectivity[(layer1, layer2)],
                         name=layer1.name + '_to_' + layer2.name + '_W'
                     )
 
@@ -203,9 +224,12 @@ class BoltzmannMachine(Model):
         for i, layer1 in enumerate(layers[:-1]):
             for layer2 in layers[i + 1:]:
                 if self.connectivity[(layer1, layer2)] is not None:
-                    energy -= (theano.tensor.dot(layer_to_state[layer1],
-                                                 self.weights[(layer1, layer2)])
-                               * layer_to_state[layer2]).sum(axis=1)
+                    energy -= (
+                        theano.tensor.dot(
+                            layer_to_state[layer1],
+                            self.weights[(layer1, layer2)]
+                        ) * layer_to_state[layer2]
+                    ).sum(axis=1)
 
         return energy
 
