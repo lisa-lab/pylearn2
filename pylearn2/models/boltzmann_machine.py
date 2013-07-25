@@ -328,7 +328,9 @@ class BoltzmannMachine(Model):
         # case
         if n_steps != 1:
             for i in xrange(n_steps):
-                layer_to_state = self.sample(layer_to_state, n_steps=1)
+                layer_to_state = self.sample(layer_to_state,
+                                             theano_rng,
+                                             n_steps=1)
             return layer_to_state
 
         layer_to_updated_state = OrderedDict()
