@@ -268,23 +268,31 @@ class BoltzmannMachine(Model):
 
         for i, layer in enumerate(layers):
             z = -self.biases[layer]
+
+            # These layers have already been updated; their corresponding state
+            # should come from *layer_to_updated_state*.
             for other_layer in layers[:i]:
+                other_state = layer_to_updated_state[other_layer]
+                W = self.weights[(other_layer, layer)]
                 if self.connectivity[(other_layer, layer)] is not None:
-                    z -= theano.tensor.dot(other_layer,
-                                           self.weights[(other_layer, layer)])
+                    z -= theano.tensor.dot(other_state, W)
+
+            # These layers have yet to be updated; their corresponding state
+            # should come from *layer_to_state*.
             for other_layer in layers[i + 1:]:
+                W = self.weights[(layer, other_layer)]
+                other_state = layer_to_state[other_layer]
                 if self.connectivity[(layer, other_layer)] is not None:
-                    z -= theano.tensor.dot(self.weights[(layer, other_layer)],
-                                           other_layer)
+                    z -= theano.tensor.dot(W, other_state)
+
             p = theano.tensor.nnet.sigmoid(z)
-            layer_to_updated_state[layer] = theano_rng.binomial(size=p.shape,
-                                                                p=p,
-                                                                dtype=p.dtype,
-                                                                n=1)
+
+            layer_to_updated_state[layer] = \
+                theano_rng.binomial(size=p.shape, p=p, dtype=p.dtype, n=1)
 
         return layer_to_updated_state
 
-    def variational_inference(self, layer_to_state, n_steps=5):
+    def variational_inference(self, layer_to_state, theano_rng, n_steps=5):
         """
         Samples from the inferred hidden unit probabilities given the state
         of visible units.
@@ -324,33 +332,49 @@ class BoltzmannMachine(Model):
             return layer_to_state
 
         layer_to_updated_state = OrderedDict()
-        for key, val in layer_to_state.items():
-            layer_to_updated[key] = val
+
+        layers = self.get_all_layers()
+        # Validate layer_to_state
+        assert all([layer in layer_to_state.keys() for layer in layers])
+        assert all([layer in layers for layer in layer_to_state.keys()])
+
         for i, hidden_layer in enumerate(self.hidden_layers):
             z = -self.biases[hidden_layer]
 
-            for visible_layer in self.visible_layers:
-                if self.connectivity[(visible_layer, hidden_layer)] is not None:
-                    z -= theano.tensor.dot(visible_layer,
-                                           self.weights[(visible_layer,
-                                                         hidden_layer)])
+            # Visible layers should not be updated; their state therefore comes
+            # from layer_to_state.
+            for vis_layer in self.visible_layers:
+                vis_state = layer_to_state[vis_layer]
+                W = self.weights[(vis_layer, hidden_layer)]
+                if self.connectivity[(vis_layer, hidden_layer)] is not None:
+                    z -= theano.tensor.dot(vis_state, W)
 
+            # These hidden layers have already been updated; their
+            # corresponding state should come from *layer_to_updated_state*.
             for other_layer in self.hidden_layers[:i]:
+                other_state = layer_to_updated_state[other_layer]
+                W = self.weights[(other_layer, hidden_layer)]
                 if self.connectivity[(other_layer, hidden_layer)] is not None:
-                    z -= theano.tensor.dot(other_layer,
-                                           self.weights[(other_layer,
-                                                         hidden_layer)])
+                    z -= theano.tensor.dot(other_state, W)
 
-            for other_layer in hidden_layers[i + 1:]:
+            # These hidden layers have yet to be updated; their corresponding
+            # state should come from *layer_to_updated_state*.
+            for other_layer in self.hidden_layers[i + 1:]:
                 if self.connectivity[(hidden_layer, other_layer)] is not None:
-                    z -= theano.tensor.dot(self.weights[(hidden_layer,
-                                                         other_layer)],
-                                           other_layer)
-            p = theano.tensor.nnet.sigmoid(z)
-            layer_to_updated_state[hidden_layer] = theano_rng.binomial(
-                size=p.shape, p=p, dtype=p.dtype, n=1
-            )
+                    W = self.weights[(hidden_layer, other_layer)]
+                    other_state = layer_to_state[other_layer]
+                    z -= theano.tensor.dot(W, other_state)
 
+            p = theano.tensor.nnet.sigmoid(z)
+
+            layer_to_updated_state[hidden_layer] = \
+                theano_rng.binomial(size=p.shape, p=p, dtype=p.dtype, n=1)
+
+        # Visible layers are not updated; their state remains the same in
+        # layer_to_updated_state
+        for visible_layer in self.visible_layers:
+            layer_to_updated_state[visible_layer] = \
+                layer_to_state[visible_layer]
 
         return layer_to_updated_state
 
