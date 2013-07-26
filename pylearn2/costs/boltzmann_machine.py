@@ -11,6 +11,7 @@ __maintainer__ = "Vincent Dumoulin"
 import theano
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 from theano.compat.python2x import OrderedDict
+import numpy
 
 from pylearn2.costs.cost import Cost
 from pylearn2.utils import safe_zip
@@ -21,6 +22,7 @@ class BaseCD(Cost):
         self.num_chains = num_chains
         self.num_gibbs_steps = num_gibbs_steps
         self.theano_rng = MRG_RandomStreams(2012 + 10 + 14)
+        self.numpy_rng = numpy.random.RandomState([2012, 10, 17])
 
     def expr(self, model, data):
         """
@@ -59,7 +61,10 @@ class BaseCD(Cost):
         return gradients, updates
 
     def _get_standard_neg(self, model, X, Y=None):
-        layer_to_state = model.make_layer_to_state(self.num_chains)
+        layer_to_state = model.make_layer_to_state(
+            batch_size=self.num_chains,
+            numpy_rng=self.numpy_rng
+        )
 
         layer_to_updated_state = model.sample(
             layer_to_state=layer_to_state,
@@ -74,10 +79,7 @@ class BaseCD(Cost):
 
         params = list(model.get_params())
 
-        energy = model.energy(
-            [layer_to_updated_state[layer] for layer in model.visible_layers],
-            [layer_to_updated_state[layer] for layer in model.hidden_layers]
-        ).mean()
+        energy = model.energy(layer_to_updated_state).mean()
 
         samples = layer_to_updated_state.values()
         for i, sample in enumerate(samples):
@@ -93,23 +95,23 @@ class BaseCD(Cost):
         return neg_phase_grads, updates
 
     def _get_variational_pos(self, model, X, Y):
-        layer_to_state = model.make_layer_to_state(self.num_chains)
+        layer_to_symbolic_state = model.make_layer_to_symbolic_state(
+            batch_size=self.num_chains,
+            theano_rng=self.theano_rng
+        )
 
         for visible_layer, state in safe_zip(model.visible_layers, X):
-            layer_to_state[visible_layer] = X
+            layer_to_symbolic_state[visible_layer] = state
 
         layer_to_updated_state = model.variational_inference(
-            layer_to_state=layer_to_state,
+            layer_to_state=layer_to_symbolic_state,
             theano_rng=self.theano_rng,
             n_steps=self.num_gibbs_steps
         )
 
         params = list(model.get_params())
 
-        energy = model.energy(
-            [layer_to_updated_state[layer] for layer in model.visible_layers],
-            [layer_to_updated_state[layer] for layer in model.hidden_layers]
-        ).mean()
+        energy = model.energy(layer_to_updated_state).mean()
 
         samples = layer_to_updated_state.values()
         for i, sample in enumerate(samples):

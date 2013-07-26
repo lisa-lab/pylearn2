@@ -12,6 +12,7 @@ import theano
 
 from theano.compat.python2x import OrderedDict
 
+from pylearn2.expr.nnet import sigmoid_numpy
 from pylearn2.utils import sharedX
 from pylearn2.utils import py_integer_types
 from pylearn2.models.model import Model
@@ -252,7 +253,33 @@ class BoltzmannMachine(Model):
 
         return energy
 
-    def sample(self, layer_to_state, theano_rng, n_steps=5):
+    def make_layer_to_state(self, batch_size, numpy_rng):
+        layer_to_state = OrderedDict()
+
+        for layer in self.get_all_layers():
+            driver = numpy_rng.uniform(0., 1., (batch_size, layer.n_units))
+            mean = sigmoid_numpy(self.biases[layer].get_value())
+            sample = driver < mean
+
+            state = sharedX(sample, name=layer.name + '_sample_shared')
+            layer_to_state[layer] = state
+
+        return layer_to_state
+
+    def make_layer_to_symbolic_state(self, batch_size, theano_rng):
+        layer_to_symbolic_state = OrderedDict()
+
+        for layer in self.get_all_layers():
+            mean = theano.tensor.nnet.sigmoid(self.biases[layer])
+            state = theano_rng.binomial(size=(batch_size, layer.n_units),
+                                        p=mean)
+
+            layer_to_symbolic_state[layer] = state
+
+        return layer_to_symbolic_state
+
+    def sample(self, layer_to_state, theano_rng, n_steps=5,
+               layers_to_clamp=[]):
         """
         Generates samples from the model starting from the provided layer
         states.
@@ -317,7 +344,10 @@ class BoltzmannMachine(Model):
         # case
         if n_steps != 1:
             for i in xrange(n_steps):
-                layer_to_state = self.sample(layer_to_state, n_steps=1)
+                layer_to_state = self.sample(layer_to_state,
+                                             theano_rng,
+                                             n_steps=1,
+                                             layers_to_clamp=layers_to_clamp)
             return layer_to_state
 
         layer_to_updated_state = OrderedDict()
@@ -326,30 +356,41 @@ class BoltzmannMachine(Model):
         # Validate layer_to_state
         assert all([layer in layer_to_state.keys() for layer in layers])
         assert all([layer in layers for layer in layer_to_state.keys()])
+        # Validate layers_to_clamp
+        assert all([layer in layers for layer in layers_to_clamp])
 
         for i, layer in enumerate(layers):
-            z = -self.biases[layer]
+            # We go through computations only if it is necessary
+            if layer not in layers_to_clamp:
+                # Transform parameters for sampling in this layer's space (if
+                # necessary)
+                weights, bias = \
+                    layer.format_parameter_space(self.weights,
+                                                 self.biases[layer])
 
-            # These layers have already been updated; their corresponding state
-            # should come from *layer_to_updated_state*.
-            for other_layer in layers[:i]:
-                other_state = layer_to_updated_state[other_layer]
-                W = self.weights[(other_layer, layer)]
-                if self.connectivity[(other_layer, layer)] is not None:
-                    z -= theano.tensor.dot(other_state, W)
+                # Compute the argument to the sampling function
+                z = bias
+                # These layers have already been updated; their corresponding
+                # state should come from *layer_to_updated_state*.
+                for other_layer in layers[:i]:
+                    other_state = layer_to_updated_state[other_layer]
+                    W = weights[(other_layer, layer)]
+                    if self.connectivity[(other_layer, layer)] is not None:
+                        z += theano.tensor.dot(other_state, W)
+                # These layers have yet to be updated; their corresponding
+                # state should come from *layer_to_state*.
+                for other_layer in layers[i + 1:]:
+                    W = weights[(layer, other_layer)]
+                    other_state = layer_to_state[other_layer]
+                    if self.connectivity[(layer, other_layer)] is not None:
+                        z += theano.tensor.dot(other_state, W.T)
 
-            # These layers have yet to be updated; their corresponding state
-            # should come from *layer_to_state*.
-            for other_layer in layers[i + 1:]:
-                W = self.weights[(layer, other_layer)]
-                other_state = layer_to_state[other_layer]
-                if self.connectivity[(layer, other_layer)] is not None:
-                    z -= theano.tensor.dot(W, other_state)
+                p = layer.sampling_function(z)
 
-            p = theano.tensor.nnet.sigmoid(z)
-
-            layer_to_updated_state[layer] = \
-                theano_rng.binomial(size=p.shape, p=p, dtype=p.dtype, n=1)
+                layer_to_updated_state[layer] = \
+                    theano_rng.binomial(size=p.shape, p=p, dtype=p.dtype, n=1)
+            else:
+                layer_to_updated_state[layer] = layer_to_state[layer]
 
         return layer_to_updated_state
 
@@ -357,18 +398,6 @@ class BoltzmannMachine(Model):
         """
         Samples from the inferred hidden unit probabilities given the state
         of visible units.
-
-        Using a variational method, we can show that we can approximate
-        sampling hidden units given visible units by sequentially sampling
-        each :math:`h_i` according to
-
-        .. math::
-
-            p(h_i|\mathbf{v}, \mathbf{h}_{\\i}) \approx
-                sigmoid(b_i + \sum_{s_j \in N(h_i)} w_{ij} s_j)
-
-        where :math:`s_j \in N(h_i)` represents a unit in the neighborhood of
-        :math:`h_i`.
 
         Parameters
         ----------
