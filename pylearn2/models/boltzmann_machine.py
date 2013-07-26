@@ -266,6 +266,45 @@ class BoltzmannMachine(Model):
             A random number generator from which samples are drawn
         n_steps : int, optional
             Number of Gibbs sampling steps
+
+        Note
+        ----
+        Say the total state of the Boltzmann machine is specified by
+        :math:`\mathbf{s}`, where all elements of :math:`\mathbf{s}` are
+        discrete-valued (the continuous case can be derived in the same way by
+        substituting summations for integrals where appropriate). Its energy is
+        then
+
+        .. math::
+
+            E(\mathbf{s}) = -\sum_i b_i s_i - \sum_{j \neq i} w_{ij} s_i s_j
+
+        while the probability of a given state is
+
+        .. math::
+
+            p(\mathbf{s}) &= \frac{\exp{-E(\mathbf{s})}}{Z}, \\
+            Z &= \sum_{\tilde{\mathbf{s}}} \exp{-E(\tilde{\mathbf{s}})}
+
+        We can compute the conditional probability of one unit of the Bolzmann
+        machine given the state of the other units as
+
+        .. math::
+
+            p(s_i | \mathbf{s}_{\\i})
+                &= \frac{p(\mathbf{s})}
+                        {p(\mathbf{s}_{\\i})} \\
+                &= \frac{p(\mathbf{s})}
+                        {\sum_{\tilde{s}_i p(\tilde{s}_i, s_{\\i}} \\
+                &= \frac{\exp{b_i s_i + \sum_{j \neq i} b_j s_j +
+                              s_i \sum_{j \neq i} s_j w_{ij} +
+                              \sum_{k \neq i} \sum_{j \neq k} s_k s_j w_{kj}}}
+                        {\sum_{\tilde{s}_i} \exp{b_i \tilde{s}_i +
+                                                 \sum_{j \neq i} b_j s_j +
+                                                 \tilde{s}_i \sum_{j \neq i} s_j w_{ij} +
+                                                 \sum_{k \neq i} \sum_{j \neq k} s_k s_j w_{kj}}} \\
+                &= \frac{\exp{s_i (b_i + \sum_{j \neq i} s_j w_{ij})}
+                        {\sum_{\tilde{s}_i} \exp{\tilde{s}_i (b_i + \sum_{j \neq i} s_j w_{ij})}}
         """
         # Validate n_steps
         assert isinstance(n_steps, py_integer_types)
