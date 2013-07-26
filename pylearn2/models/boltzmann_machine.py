@@ -15,6 +15,8 @@ from theano.compat.python2x import OrderedDict
 from pylearn2.utils import sharedX
 from pylearn2.utils import py_integer_types
 from pylearn2.models.model import Model
+from pylearn2.space import VectorSpace
+from pylearn2.space import CompositeSpace
 
 
 class BoltzmannMachine(Model):
@@ -57,6 +59,14 @@ class BoltzmannMachine(Model):
         self._initialize_connectivity()
         self._initialize_biases()
         self._initialize_weights()
+
+        self.input_space = CompositeSpace([visible_layer.get_input_space()
+                                           for visible_layer in
+                                           self.visible_layers])
+
+    def get_input_source(self):
+        return tuple([visible_layer.get_input_source() for
+                      visible_layer in self.visible_layers])
 
     def get_all_layers(self):
         """
