@@ -37,7 +37,7 @@ class BoltzmannMachine(Model):
     independent given units in all other layers.
     """
 
-    def __init__(self, visible_layers, hidden_layers, irange,
+    def __init__(self, visible_layers, hidden_layers, irange=0.05,
                  connectivity=None):
         """
         Parameters
