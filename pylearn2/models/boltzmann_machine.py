@@ -83,11 +83,18 @@ class BoltzmannMachine(Model):
         layers.extend(self.hidden_layers)
         return layers
 
+    def get_params(self):
+        params = []
+        params.extend(self.weights.values())
+        params.extend(self.biases.values())
+
+        return params
+
     def _initialize_connectivity(self):
         """
         Initializes the Boltzmann machine's connectivity pattern as a
-        dictionary mapping `(layer1, layer2)` tuples to (layer1.ndim,
-        layer2.ndim) binary ndarrays in which element `(i, j)` is 1 if
+        dictionary mapping `(layer1, layer2)` tuples to (layer1.n_units,
+        layer2.n_units) binary ndarrays in which element `(i, j)` is 1 if
         `layer1`'s `i`th unit is connected to `layer2`'s `j`th unit or 0
         otherwise.
 
@@ -102,7 +109,7 @@ class BoltzmannMachine(Model):
             for i, layer1 in enumerate(layers[:-1]):
                 for layer2 in layers[i + 1:]:
                     self.connectivity[(layer1, layer2)] = numpy.ones(
-                        shape=(layer1.ndim, layer2.ndim),
+                        shape=(layer1.n_units, layer2.n_units),
                         dtype='int'
                     )
         # Validate self.connectivity's format
@@ -148,7 +155,8 @@ class BoltzmannMachine(Model):
                     pattern = self.connectivity[(layer1, layer2)]
                     if pattern is not None:
                         # Make sure connectivity pattern has the right shape
-                        if not pattern.shape == (layer1.ndim, layer2.ndim):
+                        if not pattern.shape == (layer1.n_units,
+                                                 layer2.n_units):
                             raise ValueError("connectivity pattern has the " +
                                              "wrong shape for a pair of " +
                                              "layers")
@@ -174,7 +182,7 @@ class BoltzmannMachine(Model):
         biases = OrderedDict()
 
         for layer in self.get_all_layers():
-            biases[layer] = sharedX(value=numpy.zeros((layer.ndim, )),
+            biases[layer] = sharedX(value=numpy.zeros((layer.n_units, )),
                                     name=layer.name + '_b')
 
         self.biases = biases
@@ -196,7 +204,8 @@ class BoltzmannMachine(Model):
                 if self.connectivity[(layer1, layer2)] is not None:
                     weights[(layer1, layer2)] = sharedX(
                         value=numpy.random.uniform(-self.irange, self.irange,
-                                                   (layer1.ndim, layer2.ndim))
+                                                   (layer1.n_units,
+                                                    layer2.n_units))
                         * self.connectivity[(layer1, layer2)],
                         name=layer1.name + '_to_' + layer2.name + '_W'
                     )
