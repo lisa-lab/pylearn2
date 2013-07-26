@@ -8,6 +8,13 @@ __credits__ = ["Vincent Dumoulin"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Vincent Dumoulin"
 
+import theano
+from theano.sandbox.rng_mrg import MRG_RandomStreams
+from theano.compat.python2x import OrderedDict
+
+from pylearn2.costs.cost import Cost
+from pylearn2.utils import safe_zip
+
 
 class BaseCD(Cost):
     def __init__(self, num_chains, num_gibbs_steps):
@@ -31,12 +38,9 @@ class BaseCD(Cost):
 
     def get_gradients(self, model, data):
         self.get_data_specs(model)[0].validate(data)
-        if self.supervised:
-            X, Y = data
-            assert Y is not None
-        else:
-            X = data
-            Y = None
+
+        X = data
+        Y = None
 
         pos_phase_grads, pos_updates = self._get_positive_phase(model, X, Y)
 
@@ -54,37 +58,71 @@ class BaseCD(Cost):
 
         return gradients, updates
 
-    def _get_standard_neg(self, model, layer_to_chains):
+    def _get_standard_neg(self, model, X, Y=None):
+        layer_to_state = model.make_layer_to_state(self.num_chains)
+
+        layer_to_updated_state = model.sample(
+            layer_to_state=layer_to_state,
+            theano_rng=self.theano_rng,
+            n_steps=self.num_gibbs_steps
+        )
+
+        updates = OrderedDict()
+        for old_state, new_state in safe_zip(layer_to_state.values(),
+                                             layer_to_updated_state.values()):
+            updates[old_state] = new_state
+
         params = list(model.get_params())
 
-        expected_energy_p = model.energy(
-            layer_to_chains[model.visible_layer],
-            [layer_to_chains[layer] for layer in model.hidden_layers]
+        energy = model.energy(
+            [layer_to_updated_state[layer] for layer in model.visible_layers],
+            [layer_to_updated_state[layer] for layer in model.hidden_layers]
         ).mean()
 
-        samples = layer_to_chains.values()
+        samples = layer_to_updated_state.values()
         for i, sample in enumerate(samples):
             if sample.name is None:
                 sample.name = 'sample_'+str(i)
 
         neg_phase_grads = OrderedDict(
-            safe_zip(params, T.grad(-expected_energy_p, params,
-                                    consider_constant=samples,
-                                    disconnected_inputs='ignore'))
+            safe_zip(params, theano.tensor.grad(-energy, params,
+                                                consider_constant=samples,
+                                                disconnected_inputs='ignore'))
         )
-        return neg_phase_grads
+
+        return neg_phase_grads, updates
 
     def _get_variational_pos(self, model, X, Y):
+        layer_to_state = model.make_layer_to_state(self.num_chains)
 
-        expected_energy_q = model.expected_energy(X, q).mean()
-        params = list(model.get_params())
-        gradients = OrderedDict(
-            safe_zip(params, T.grad(expected_energy_q,
-                                    params,
-                                    consider_constant=variational_params,
-                                    disconnected_inputs='ignore'))
+        for visible_layer, state in safe_zip(model.visible_layers, X):
+            layer_to_state[visible_layer] = X
+
+        layer_to_updated_state = model.variational_inference(
+            layer_to_state=layer_to_state,
+            theano_rng=self.theano_rng,
+            n_steps=self.num_gibbs_steps
         )
-        return gradients
+
+        params = list(model.get_params())
+
+        energy = model.energy(
+            [layer_to_updated_state[layer] for layer in model.visible_layers],
+            [layer_to_updated_state[layer] for layer in model.hidden_layers]
+        ).mean()
+
+        samples = layer_to_updated_state.values()
+        for i, sample in enumerate(samples):
+            if sample.name is None:
+                sample.name = 'sample_'+str(i)
+
+        gradients = OrderedDict(
+            safe_zip(params, theano.tensor.grad(energy, params,
+                                                consider_constant=samples,
+                                                disconnected_inputs='ignore'))
+        )
+
+        return gradients, OrderedDict()
 
 
 class VariationalPCD(BaseCD):
@@ -98,38 +136,10 @@ class VariationalPCD(BaseCD):
         Add citation to Tieleman paper, Younes paper
     """
     def _get_positive_phase(self, model, X, Y=None):
-        return self._get_variational_pos(model, X, Y), OrderedDict()
+        return self._get_variational_pos(model, X, Y)
 
     def _get_negative_phase(self, model, X, Y=None):
-        """
-        d/d theta log Z = (d/d theta Z) / Z
-                        = (d/d theta sum_h sum_v exp(-E(v,h)) ) / Z
-                        = (sum_h sum_v - exp(-E(v,h)) d/d theta E(v,h) ) / Z
-                        = - sum_h sum_v P(v,h)  d/d theta E(v,h)
-        """
-        layer_to_chains = model.make_layer_to_state(self.num_chains)
-
-        def recurse_check(l):
-            if isinstance(l, (list, tuple)):
-                for elem in l:
-                    recurse_check(elem)
-            else:
-                assert l.get_value().shape[0] == self.num_chains
-
-        recurse_check(layer_to_chains.values())
-
-        model.layer_to_chains = layer_to_chains
-
-        # Note that we replace layer_to_chains with a dict mapping to the new
-        # state of the chains
-        updates, layer_to_chains = model.get_sampling_updates(
-            layer_to_chains,
-            self.theano_rng, num_steps=self.num_gibbs_steps,
-            return_layer_to_updated=True)
-
-        neg_phase_grads = self._get_standard_neg(model, layer_to_chains)
-
-        return neg_phase_grads, updates
+        return self._get_standard_neg(model, X, Y)
 
     def get_data_specs(self, model):
         return (model.get_input_space(), model.get_input_source())
