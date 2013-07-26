@@ -40,6 +40,11 @@ DBM
 .. automodule:: pylearn2.models.dbm
     :members:
 
+BoltzmannMachine
+================
+.. automodule:: pylearn2.models.boltzmann_machine
+    :members:
+
 Ising
 =====
 .. automodule:: pylearn2.models.dbm.ising

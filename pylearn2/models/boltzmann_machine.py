@@ -218,7 +218,7 @@ class BoltzmannMachine(Model):
 
         Parameters
         ----------
-        layer_to_state : dict mapping `BoltzmannLayer` objects to tensor_like
+        layer_to_state : dict mapping `BoltzmannLayer` objects to tensor_like \
                          variables
             Dictionary mapping from layers to their corresponding state
 
@@ -259,7 +259,7 @@ class BoltzmannMachine(Model):
 
         Parameters
         ----------
-        layer_to_state : dict mapping `BoltzmannLayer` objects to tensor_like
+        layer_to_state : dict mapping `BoltzmannLayer` objects to tensor_like \
                          variables
             Dictionary mapping from layers to their corresponding state
         theano_rng : theano.sandbox.rng_mrg.MRG_RandomStreams
@@ -267,45 +267,48 @@ class BoltzmannMachine(Model):
         n_steps : int, optional
             Number of Gibbs sampling steps
 
-        Note
-        ----
-        Say the total state of the Boltzmann machine is specified by
-        :math:`\mathbf{s}`, where all elements of :math:`\mathbf{s}` are
-        discrete-valued (the continuous case can be derived in the same way by
-        substituting summations for integrals where appropriate). Its energy is
-        then
-
-        .. math::
-
-            E(\mathbf{s}) = -\sum_i b_i s_i - \sum_{j \neq i} w_{ij} s_i s_j
-
-        while the probability of a given state is
-
-        .. math::
-
-            p(\mathbf{s}) &= \frac{\exp{-E(\mathbf{s})}}{Z}, \\
-            Z &= \sum_{\tilde{\mathbf{s}}} \exp{-E(\tilde{\mathbf{s}})}
-
-        We can compute the conditional probability of one unit of the Bolzmann
-        machine given the state of the other units as
-
-        .. math::
-
-            p(s_i | \mathbf{s}_{\\i})
-                &= \frac{p(\mathbf{s})}
-                        {p(\mathbf{s}_{\\i})} \\
-                &= \frac{p(\mathbf{s})}
-                        {\sum_{\tilde{s}_i p(\tilde{s}_i, s_{\\i}} \\
-                &= \frac{\exp{b_i s_i + \sum_{j \neq i} b_j s_j +
-                              s_i \sum_{j \neq i} s_j w_{ij} +
-                              \sum_{k \neq i} \sum_{j \neq k} s_k s_j w_{kj}}}
-                        {\sum_{\tilde{s}_i} \exp{b_i \tilde{s}_i +
-                                                 \sum_{j \neq i} b_j s_j +
-                                                 \tilde{s}_i \sum_{j \neq i} s_j w_{ij} +
-                                                 \sum_{k \neq i} \sum_{j \neq k} s_k s_j w_{kj}}} \\
-                &= \frac{\exp{s_i (b_i + \sum_{j \neq i} s_j w_{ij})}
-                        {\sum_{\tilde{s}_i} \exp{\tilde{s}_i (b_i + \sum_{j \neq i} s_j w_{ij})}}
         """
+        # On the implementation of BoltzmannMachine.state
+        # ===============================================
+        #
+        # Say the total state of the Boltzmann machine is specified by s, where
+        # all elements of s are discrete-valued (the continuous case can be
+        # derived in the same way by substituting summations for integrals
+        # where appropriate). Its energy is then
+        #
+        #     E(s) = -\sum_i (b_i * s_i)
+        #            -\sum_i\sum_{j != i} (w_{ij} * s_i * s_j)
+        #
+        # while the probability of a given state is
+        #
+        #     p(s) = exp(-E(s)) / Z,
+        #        Z = sum_{s'} exp(-E(s'))
+        #
+        # We can compute the conditional probability of one unit of the
+        # Bolzmann machine given the state of all other units as
+        #
+        #     p(s_i | s_{\i}) = p(s) / p(s_{\i})
+        #                     = p(s) / (sum_{s_i'} p(s_i', s_{\i}))
+        #                     = (exp(-E(s)) / Z)
+        #                       / (sum_{s_i'} (exp(-E(s_i', s_{\i}) / Z)))
+        #                     = exp(b_i.s_i
+        #                           + sum_{j != i} b_j.s_j
+        #                           + sum_{j != i} s_i.s_j.w_{ij}
+        #                           + sum_{k != i} sum_{j != k} s_k.s_j.w_{kj})
+        #                       / (sum_{s_i'}
+        #                            exp(b_i.s_i'
+        #                                + sum_{j != i} b_j.s_j
+        #                                + sum_{j != i} s_i'.s_j.w_{ij}
+        #                                + sum_{k != i} sum_{j != k}
+        #                                      s_k.s_j.w_{kj})),
+        #     p(s_i | s_{\i}) =
+        #         exp(b_i.s_i + sum_{j != i} s_i.s_j.w_{ij}) /
+        #         (sum_{s_i'} exp(b_i.s_i'+ sum_{j != i} s_i'.s_j.w_{ij}))
+        #
+        # To further simplify the expression, we need to know which values
+        # units can take; this is done in the implementation of the layer
+        # itself.
+
         # Validate n_steps
         assert isinstance(n_steps, py_integer_types)
         assert n_steps > 0
@@ -369,7 +372,7 @@ class BoltzmannMachine(Model):
 
         Parameters
         ----------
-        layer_to_state : dict mapping `BoltzmannLayer` objects to tensor_like
+        layer_to_state : dict mapping `BoltzmannLayer` objects to tensor_like \
                          variables
             Dictionary mapping from layers to their corresponding state. Only
             hidden units will be updated.
@@ -377,73 +380,160 @@ class BoltzmannMachine(Model):
             A random number generator from which samples are drawn
         n_steps : int, optional
             Number of sampling steps
+
         """
-        # Validate n_steps
-        assert isinstance(n_steps, py_integer_types)
-        assert n_steps > 0
+        # On the implementation of BoltzmannMachine.variational_inference
+        # ===============================================================
+        #
+        # Using the variational method outlined in Bishop's 'Pattern
+        # Recognition and Machine Learning' (section 10.1, page 462), let's
+        # approximate p(h | v) as
+        #
+        #     p(h | v) ~= q(h) = prod_i q_i(h_i)
+        #
+        # It follows that the function q(h) minimizing the KL divergence
+        # between q(h) and p(h | v) is given by
+        #
+        #     ln (q_i)* = EXP_{j != i} [ln p(v, h)] + const.
+        #
+        # where EXP_{j != i} is the expectation over all distributions q_j
+        # except for q_i.
+        #
+        # Thus if
+        #
+        #     ln p(v, h) = b.v + c.h + h.W.v + v.M.v + h.Y.h + const.
+        #
+        # we have
+        #
+        #     ln (q_i)* = EXP_{j != i} [b.v + c.h + h.W.v + v.M.v
+        #                                         + h.Y.h + const.] + const.
+        #
+        #          (absorbing EXP_{i != j} [b.v + v.M.v + const.] into const.)
+        #
+        #               = EXP_{j != i} [c.h + h.W.v + h.Y.h] + const
+        #               = EXP_{j != i} [sum_k (h_k.(c_k + W_k.v)
+        #                                      + h_k.Y_k.h)] + const.
+        #               = h_i.(c_i + W_i.v)
+        #                 + EXP_{j != i} [h_i.Y_i.h]
+        #                 + \sum_{k != i} EXP_{j != i} [h_k.(c_k + W_k.v
+        #                                                        + Y_k.h)]
+        #                 + const.
+        #
+        #          (absorbing everything non-h_i-related into cont.)
+        #
+        #               = h_i.(c_i + W_i.v + sum_{k != i} Y_k.h_k') + const.
+        #
+        # where h_k' = EXP_{i != j} [h_k].
+        #
+        # This implies
+        #
+        #     p(h_i = 1 | v) ~= exp(c_i + W_i.v + sum_{k != i} Y_k.h_k')
+        #                       / sum_{h_i"} exp(h_i"(c_i + W_i.v
+        #                                             + sum_{k != i} Y_k.h_k'))
+        #
+        # It turns out this is equivalent to sampling with visible layers
+        # clamped, which is why we use a call to `self.sample` to implement
+        # this method.
 
-        # Implement the n_steps > 1 case by repeatedly calling the n_steps == 1
-        # case
-        if n_steps != 1:
-            for i in xrange(n_steps):
-                layer_to_state = self.sample(layer_to_state,
-                                             theano_rng,
-                                             n_steps=1)
-            return layer_to_state
-
-        layer_to_updated_state = OrderedDict()
-
-        layers = self.get_all_layers()
-        # Validate layer_to_state
-        assert all([layer in layer_to_state.keys() for layer in layers])
-        assert all([layer in layers for layer in layer_to_state.keys()])
-
-        for i, hidden_layer in enumerate(self.hidden_layers):
-            z = -self.biases[hidden_layer]
-
-            # Visible layers should not be updated; their state therefore comes
-            # from layer_to_state.
-            for vis_layer in self.visible_layers:
-                vis_state = layer_to_state[vis_layer]
-                W = self.weights[(vis_layer, hidden_layer)]
-                if self.connectivity[(vis_layer, hidden_layer)] is not None:
-                    z -= theano.tensor.dot(vis_state, W)
-
-            # These hidden layers have already been updated; their
-            # corresponding state should come from *layer_to_updated_state*.
-            for other_layer in self.hidden_layers[:i]:
-                other_state = layer_to_updated_state[other_layer]
-                W = self.weights[(other_layer, hidden_layer)]
-                if self.connectivity[(other_layer, hidden_layer)] is not None:
-                    z -= theano.tensor.dot(other_state, W)
-
-            # These hidden layers have yet to be updated; their corresponding
-            # state should come from *layer_to_updated_state*.
-            for other_layer in self.hidden_layers[i + 1:]:
-                if self.connectivity[(hidden_layer, other_layer)] is not None:
-                    W = self.weights[(hidden_layer, other_layer)]
-                    other_state = layer_to_state[other_layer]
-                    z -= theano.tensor.dot(W, other_state)
-
-            p = theano.tensor.nnet.sigmoid(z)
-
-            layer_to_updated_state[hidden_layer] = \
-                theano_rng.binomial(size=p.shape, p=p, dtype=p.dtype, n=1)
-
-        # Visible layers are not updated; their state remains the same in
-        # layer_to_updated_state
-        for visible_layer in self.visible_layers:
-            layer_to_updated_state[visible_layer] = \
-                layer_to_state[visible_layer]
+        layers_to_clamp = self.visible_layers
+        layer_to_updated_state = self.sample(layer_to_state=layer_to_state,
+                                             theano_rng=theano_rng,
+                                             layers_to_clamp=layers_to_clamp,
+                                             n_steps=n_steps)
 
         return layer_to_updated_state
 
 
-class BoltzmannLayer:
-    def __init__(self, ndim, name):
-        self.ndim = ndim
+class BoltzmannLayer(Model):
+    """
+    An abstract representation of a Boltzmann machine layer, which is defined
+    here as a group of conditionally independent units.
+    """
+    def __init__(self, n_units, name):
+        self.n_units = n_units
         self.name = name
+        self.input_space = VectorSpace(n_units)
+
+    def format_parameter_space(self, weights, bias):
+        """
+        Transforms parameters so they live in the right parameter space.
+
+
+        This is useful when samples and gradients are not computed with respect
+        to the same parameter space.
+
+        As an example, we may want a layer with ising units (i.e. units with
+        values in {-1, 1}) to sample in the ising space, while the gradient is
+        computed with respect to the usual binary boltzmann space.
+
+        Parameters
+        ----------
+        weights : dict mapping tuples of `BoltzmannLayer` objects to \
+                  their corresponding weight matrix
+            The model's weights
+        bias : theano shared variable
+            Bias associated with this layer
+
+        Returns
+        -------
+        weights : dict mapping tuples of `BoltzmannLayer` objects to \
+                  their corresponding weight matrix
+            A transformation of the weights provided as input
+        bias : tensor_like variable
+            A transformation of the bias provided as input
+        """
+        raise NotImplementedError("BoltzmannLayer does not implement the " +
+                                  "format_parameter_space method. You " +
+                                  "should use one of its subclasses instead.")
+
+    def sampling_function(self, z):
+        """
+        Samples from this layer's units given a linear combination
+        :math:`\mathbf{z}` of the state of units connected to them.
+
+        More formally, :math:`\mathbf{z}` is defined such that
+
+        .. math::
+
+            z_i = b_i + \sum_{s_j \in N(s_i)} s_j w_{ij}
+
+        where :math:`N(s_i)` is the set of all units connected to :math:`s_i`:.
+
+        Parameters
+        ----------
+        z : tensor_like variable
+            The argument to this layer's sampling funciton
+
+        Returns
+        -------
+        p : tensor_like variable
+            The conditional probability for this layer given the state of all
+            layers connected to it
+        """
+        raise NotImplementedError("BoltzmannLayer does not implement the " +
+                                  "sample method. You should use one of its " +
+                                  "subclasses instead.")
 
 
 class BinaryBoltzmannLayer(BoltzmannLayer):
-    pass
+    """
+    A layer whose units' values are in {0, 1}.
+    """
+    def format_parameter_space(self, weights, bias):
+        return weights, bias
+
+    def sampling_function(self, z):
+        # On the implementation of BinaryBoltzmannLayer.sampling_function
+        # ===============================================================
+        #
+        # If the layer is binary-valued, then
+        #
+        #     p(s_i = 1 | s_{\i})
+        #         = exp(b_i + sum_{j != i} s_j.w_{ij}
+        #               / (exp(0.(b_i + sum_{j != i} s_j w_{ij}))
+        #                  + exp(1.(b_i + sum_{j != i} s_j w_{ij})))
+        #         = exp(b_i + sum_{j != i} s_j.w_{ij}
+        #               / (1 + exp(1.(b_i + sum_{j != i} s_j w_{ij})))
+        #         = sigmoid(b_i + sum_{j != i} s_j.w_{ij})
+        #
+        return theano.tensor.nnet.sigmoid(z)
