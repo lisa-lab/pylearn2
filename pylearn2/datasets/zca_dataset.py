@@ -82,6 +82,8 @@ class ZCA_Dataset(DenseDesignMatrix):
         print '...done inverting'
 
         self.view_converter.axes = axes
+        super(ZCA_Dataset, self).__init__(X=self.X, y=self.y,
+                            view_converter=self.view_converter)
 
     def has_targets(self):
         return self.preprocessed_dataset.has_targets()
