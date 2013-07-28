@@ -460,6 +460,93 @@ class MonitorBasedLRAdjuster(TrainExtension):
 
         lr.set_value(np.cast[lr.dtype](rval))
 
+class MonitorBasedSharedAdjuster(TrainExtension):
+    """
+    TODO: docstring just coped from LRAdjuster
+    A TrainExtension that uses the on_monitor callback to adjust
+    the learning rate on each epoch. It pulls out a channel
+    from the model's monitor and adjusts the learning rate
+    based on what happened to the monitoring channel on the last
+    epoch. If the channel is greater than high_trigger times
+    its previous value, the learning rate will be scaled by
+    shrink_amt (which should be < 1 for this scheme to make
+    sense). The idea is that in this case the learning algorithm
+    is overshooting the bottom of the objective function.
+
+    If the objective is less than high_trigger but
+    greater than low_trigger times its previous value, the
+    learning rate will be scaled by grow_amt (which should be > 1
+    for this scheme to make sense). The idea is that the learning
+    algorithm is making progress but at too slow of a rate.
+    """
+
+    def __init__(self, shared, high_trigger=1., shrink_amt=.99,
+                 low_trigger=.99, grow_amt=1.01,
+                 min_lr = 1e-7, max_lr = 1.,
+                 dataset_name=None, channel_name=None):
+        self.shared = shared
+        self.high_trigger = high_trigger
+        self.shrink_amt = shrink_amt
+        self.low_trigger = low_trigger
+        self.grow_amt = grow_amt
+        self.min_lr = min_lr
+        self.max_lr = max_lr
+        if channel_name is not None:
+            self.channel_name = channel_name
+        else:
+            if dataset_name is not None:
+                self.channel_name = dataset_name + '_objective'
+            else:
+                self.channel_name = 'objective'
+
+    def on_monitor(self, model, dataset, algorithm):
+        # TODO: more sophisticated error checking here.
+        model = algorithm.model
+        lr = self.shared
+        current_learning_rate = lr.get_value()
+        assert hasattr(model, 'monitor'), ("no monitor associated with " +
+                                           str(model))
+        monitor = model.monitor
+
+        try:
+            v = monitor.channels[self.channel_name].val_record
+        except KeyError:
+            raise KeyError('There is no monitoring channel named ' + \
+                    self.channel_name + '. You probably need to specify '
+                    'dataset_name in the MonitorBasedLRAdjuster constructor.')
+
+        if len(v) < 1:
+            if monitor.dataset is None:
+                assert len(v) == 0
+                raise ValueError("""You're trying to use a monitor-based learning
+                        adjustor but the monitor has no entries because you didn't
+                        specify a monitoring dataset""")
+
+            raise ValueError("""For some reason there are no monitor entries,
+                    yet the MonitorBasedLRAdjuster has been called. This should NEVER happen.
+                    The Train object should call the monitor once on initialization, then
+                    call the callbacks.
+                    It seems you are either calling the callback manually rather than as part of
+                    a training algorithm, or there is a problem with the Train object.""")
+        if len(v) == 1:
+            #only the initial monitoring has happened
+            #no learning has happened, so we can't adjust the learning rate yet
+            #just do nothing
+            return
+
+        rval = current_learning_rate
+
+        if v[-1] > self.high_trigger * v[-2]:
+            rval *= self.shrink_amt
+            log.info("shrinking shared var to %f" % rval)
+        elif v[-1] > self.low_trigger * v[-2]:
+            rval *= self.grow_amt
+            log.info("growing shared var to %f" % rval)
+
+        rval = max(self.min_lr, rval)
+        rval = min(self.max_lr, rval)
+
+        lr.set_value(np.cast[lr.dtype](rval))
 
 class PatienceBasedTermCrit(object):
     """
