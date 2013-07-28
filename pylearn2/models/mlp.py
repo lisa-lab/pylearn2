@@ -333,9 +333,11 @@ class MLP(Layer):
             # No two layers can contend to scale a parameter
             assert not any([key in rval for key in contrib])
             # Don't try to scale anything that's not a parameter
-            assert all([key in params for key in contrib])
+            assert all([key in params or key in self.freeze_set for key in contrib])
 
-            rval.update(contrib)
+            for key in contrib:
+                if key not in self.freeze_set:
+                    rval[key] = contrib[key]
         assert all([isinstance(val, float) for val in rval.values()])
 
         return rval
