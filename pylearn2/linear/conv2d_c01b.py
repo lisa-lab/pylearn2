@@ -317,7 +317,7 @@ def setup_detector_layer_c01b(layer, input_space, rng, irange):
         raise ValueError('layer argument must have a "detector_channels" attribute specifying how many channels to put in the convolution kernel stack.')
 
     # Store the input space
-    self.input_space = input_space
+    layer.input_space = input_space
 
     # Make sure number of channels is supported by cuda-convnet
     # (multiple of 4 or <= 3)
@@ -330,7 +330,7 @@ def setup_detector_layer_c01b(layer, input_space, rng, irange):
         self.dummy_channels = 0
     self.dummy_space = Conv2DSpace(shape=input_space.shape,
                                    channels=input_space.num_channels + self.dummy_channels,
-                                   axes=('c', 0, 1, 'b'))
+                                   axes=input_space.axes)
 
 
     if hasattr(self, 'kernel_stride'):
