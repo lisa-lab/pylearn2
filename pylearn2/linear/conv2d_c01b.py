@@ -354,7 +354,9 @@ def setup_detector_layer_c01b(layer, input_space, rng, irange):
                 output_shape[idx] = 1
                 warnings.warn("Had to change the kernel shape to make network feasible")
             else:
-                raise ValueError("kernel too big for input (even with zero padding)")
+                raise ValueError(layer.layer_name + ": Kernel too big for input (even with zero padding). " +
+                        "Kernel dim: " + str(self.kernel_shape[idx]) + ". Input dim: " +
+                        str(self.input_space.shape[idx]))
 
     map(handle_kernel_shape, [0, 1])
 
