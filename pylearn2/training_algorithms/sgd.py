@@ -21,6 +21,7 @@ from theano.gof.op import get_debug_values
 from theano import tensor as T
 
 from pylearn2.monitor import Monitor
+from pylearn2.space import CompositeSpace, NullSpace
 from pylearn2.train_extensions import TrainExtension
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 from pylearn2.utils.iteration import is_stochastic
@@ -28,7 +29,9 @@ from pylearn2.utils import py_integer_types, py_float_types
 from pylearn2.utils import safe_zip
 from pylearn2.utils import serial
 from pylearn2.utils import sharedX
+from pylearn2.utils.data_specs import DataSpecsMapping
 from pylearn2.utils.timing import log_timing
+
 
 log = logging.getLogger(__name__)
 
@@ -150,61 +153,63 @@ class SGD(TrainingAlgorithm):
         self.monitor = Monitor.get_monitor(model)
         self.monitor._sanity_check()
 
+        data_specs = self.cost.get_data_specs(self.model)
+        mapping = DataSpecsMapping(data_specs)
+        space_tuple = mapping.flatten(data_specs[0], return_tuple=True)
+        source_tuple = mapping.flatten(data_specs[1], return_tuple=True)
 
+        # Build a flat tuple of Theano Variables, one for each space.
+        # We want that so that if the same space/source is specified
+        # more than once in data_specs, only one Theano Variable
+        # is generated for it, and the corresponding value is passed
+        # only once to the compiled Theano function.
+        theano_args = []
+        for space, source in safe_zip(space_tuple, source_tuple):
+            name = '%s[%s]' % (self.__class__.__name__, source)
+            arg = space.make_theano_batch(name=name, batch_size = self.batch_size)
+            theano_args.append(arg)
+        theano_args = tuple(theano_args)
 
-
-        X = model.get_input_space().make_theano_batch(name="%s[X]" % self.__class__.__name__)
-        self.topo = not X.ndim == 2
-
-        if config.compute_test_value == 'raise':
-            if self.topo:
-                X.tag.test_value = dataset.get_batch_topo(self.batch_size)
-            else:
-                X.tag.test_value = dataset.get_batch_design(self.batch_size)
-
-        Y = T.matrix(name="%s[Y]" % self.__class__.__name__)
-
-        fixed_var_descr = self.cost.get_fixed_var_descr(model, X, Y)
+        # Methods of `self.cost` need args to be passed in a format compatible
+        # with data_specs
+        nested_args = mapping.nest(theano_args)
+        fixed_var_descr = self.cost.get_fixed_var_descr(model, nested_args)
         self.on_load_batch = fixed_var_descr.on_load_batch
 
-        if self.cost.supervised:
-            if config.compute_test_value == 'raise':
-                _, Y.tag.test_value = dataset.get_batch_design(self.batch_size, True)
+        cost_value = self.cost.expr(model, nested_args,
+                                    ** fixed_var_descr.fixed_vars)
 
-            self.supervised = True
-            cost_value = self.cost(model, X, Y, ** fixed_var_descr.fixed_vars)
-
-        else:
-            self.supervised = False
-            cost_value = self.cost(model, X, ** fixed_var_descr.fixed_vars)
         if cost_value is not None and cost_value.name is None:
-            if self.supervised:
-                cost_value.name = 'objective(' + X.name + ', ' + Y.name + ')'
-            else:
-                cost_value.name = 'objective(' + X.name + ')'
-
+            # Concatenate the name of all tensors in theano_args !?
+            cost_value.name = 'objective'
 
         # Set up monitor to model the objective value, learning rate,
         # momentum (if applicable), and extra channels defined by
         # the cost
         learning_rate = self.learning_rate
         if self.monitoring_dataset is not None:
-            self.monitor.setup(dataset=self.monitoring_dataset,
-                    cost=self.cost, batch_size=self.batch_size, num_batches=self.monitoring_batches,
-                    extra_costs=self.monitoring_costs, mode=self.monitor_iteration_mode
+            self.monitor.setup(
+                    dataset=self.monitoring_dataset,
+                    cost=self.cost,
+                    batch_size=self.batch_size,
+                    num_batches=self.monitoring_batches,
+                    extra_costs=self.monitoring_costs,
+                    mode=self.monitor_iteration_mode
                     )
-            if self.supervised:
-                ipt = (X, Y)
-            else:
-                ipt = X
             dataset_name = self.monitoring_dataset.keys()[0]
             monitoring_dataset = self.monitoring_dataset[dataset_name]
             #TODO: have Monitor support non-data-dependent channels
-            self.monitor.add_channel(name='learning_rate', ipt=ipt,
-                    val=learning_rate, dataset=monitoring_dataset)
+            self.monitor.add_channel(name='learning_rate',
+                                     ipt=None,
+                                     val=learning_rate,
+                                     data_specs=(NullSpace(), ''),
+                                     dataset=monitoring_dataset)
             if self.momentum:
-                self.monitor.add_channel(name='momentum', ipt=ipt,
-                        val=self.momentum, dataset=monitoring_dataset)
+                self.monitor.add_channel(name='momentum',
+                                         ipt=None,
+                                         val=self.momentum,
+                                         data_specs=(NullSpace(), ''),
+                                         dataset=monitoring_dataset)
 
         params = list(model.get_params())
         assert len(params) > 0
@@ -212,11 +217,8 @@ class SGD(TrainingAlgorithm):
             if param.name is None:
                 param.name = 'sgd_params[%d]' % i
 
-        if self.cost.supervised:
-            grads, updates = self.cost.get_gradients(model, X, Y, ** fixed_var_descr.fixed_vars)
-        else:
-            grads, updates = self.cost.get_gradients(model, X, ** fixed_var_descr.fixed_vars)
-
+        grads, updates = self.cost.get_gradients(model, nested_args,
+                                                 ** fixed_var_descr.fixed_vars)
 
         for param in grads:
             assert param in params
@@ -274,13 +276,8 @@ class SGD(TrainingAlgorithm):
 
 
         with log_timing(log, 'Compiling sgd_update'):
-            if self.supervised:
-                fn_inputs = [X, Y]
-            else:
-                fn_inputs = [X]
-
-
-            self.sgd_update = function(fn_inputs, updates=updates,
+            self.sgd_update = function(theano_args,
+                                       updates=updates,
                                        name='sgd_update',
                                        on_unused_input='ignore',
                                        mode=self.theano_function_mode)
@@ -289,8 +286,6 @@ class SGD(TrainingAlgorithm):
     def train(self, dataset):
         if not hasattr(self, 'sgd_update'):
             raise Exception("train called without first calling setup")
-        model = self.model
-        batch_size = self.batch_size
 
         # Make sure none of the parameters have bad values
         for param in self.params:
@@ -302,35 +297,42 @@ class SGD(TrainingAlgorithm):
         rng = self.rng
         if not is_stochastic(self.train_iteration_mode):
             rng = None
-        iterator = dataset.iterator(mode=self.train_iteration_mode,
-                batch_size=self.batch_size, targets=self.supervised,
-                topo=self.topo, rng = rng, num_batches = self.batches_per_iter)
 
-        if self.topo:
-            batch_idx = dataset.get_topo_batch_axis()
-        else:
-            batch_idx = 0
+        data_specs = self.cost.get_data_specs(self.model)
+
+        # The iterator should be built from flat data specs, so it returns
+        # flat, non-redundent tuples of data.
+        mapping = DataSpecsMapping(data_specs)
+        space_tuple = mapping.flatten(data_specs[0], return_tuple=True)
+        source_tuple = mapping.flatten(data_specs[1], return_tuple=True)
+        if len(space_tuple) == 0:
+            # No data will be returned by the iterator, and it is impossible
+            # to know the size of the actual batch.
+            # It is not decided yet what the right thing to do should be.
+            raise NotImplementedError("Unable to train with SGD, because "
+                    "the cost does not actually use data from the data set. "
+                    "data_specs: %s" % str(data_specs))
+        flat_data_specs = (CompositeSpace(space_tuple), source_tuple)
+
+        iterator = dataset.iterator(mode=self.train_iteration_mode,
+                batch_size=self.batch_size,
+                data_specs=flat_data_specs, return_tuple=True,
+                rng = rng, num_batches = self.batches_per_iter)
 
         on_load_batch = self.on_load_batch
-        if self.supervised:
-            for (batch_in, batch_target) in iterator:
-                for callback in on_load_batch:
-                    callback(batch_in, batch_target)
-                self.sgd_update(batch_in, batch_target)
-                actual_batch_size = batch_in.shape[batch_idx]
-                self.monitor.report_batch(actual_batch_size)
-                for callback in self.update_callbacks:
-                    callback(self)
-        else:
-            for batch in iterator:
-                for callback in on_load_batch:
-                    callback(batch, None)
-                self.sgd_update(batch)
-                actual_batch_size = batch.shape[0] # iterator might return a smaller batch if dataset size
-                                                   # isn't divisible by batch_size
-                self.monitor.report_batch(actual_batch_size)
-                for callback in self.update_callbacks:
-                    callback(self)
+        for batch in iterator:
+            for callback in on_load_batch:
+                callback(mapping.nest(batch))
+            self.sgd_update(*batch)
+            # iterator might return a smaller batch if dataset size
+            # isn't divisible by batch_size
+            # Note: if data_specs[0] is a NullSpace, there is no way to know
+            # how many examples would actually have been in the batch,
+            # since it was empty, so actual_batch_size would be reported as 0.
+            actual_batch_size = flat_data_specs[0].np_batch_size(batch)
+            self.monitor.report_batch(actual_batch_size)
+            for callback in self.update_callbacks:
+                callback(self)
 
         # Make sure none of the parameters have bad values
         for param in self.params:

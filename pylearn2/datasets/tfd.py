@@ -97,6 +97,7 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
         assert not np.any(np.isnan(self.X))
 
         self.y_identity = data_y_identity
+        self.axes = axes
 
         if preprocessor is not None:
             preprocessor.apply(self)

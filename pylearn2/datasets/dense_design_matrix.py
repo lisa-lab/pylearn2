@@ -23,7 +23,9 @@ tables = None
 
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.datasets import control
+from pylearn2.space import CompositeSpace, Conv2DSpace, VectorSpace
 from theano import config
+
 
 def ensure_tables():
     """
@@ -52,7 +54,7 @@ class DenseDesignMatrix(Dataset):
             Should be supplied if `topo_view` is not. A design
             matrix of shape (number examples, number features)
             that defines the dataset.
-        topo_view : ndarray, optional
+        topo_view : ndarray, deprecated, optional
             Should be supplied if X is not.  An array whose first
             dimension is of length number examples. The remaining
             dimensions are xamples with topological significance,
@@ -61,7 +63,7 @@ class DenseDesignMatrix(Dataset):
         y : ndarray, 1-dimensional(?), optional
             Labels or targets for each example. The semantics here
             are not quite nailed down for this yet.
-        view_converter : object, optional
+        view_converter : object, deprecated, optional
             An object for converting between design matrices and
             topological views. Currently DefaultViewConverter is
             the only type available but later we may want to add
@@ -72,13 +74,50 @@ class DenseDesignMatrix(Dataset):
             indices into the design matrix when choosing minibatches.
         """
         self.X = X
-        if view_converter is not None:
-            assert topo_view is None
-            self.view_converter = view_converter
-        else:
-            if topo_view is not None:
-                self.set_topological_view(topo_view, axes)
         self.y = y
+
+        if topo_view is not None:
+            assert view_converter is None
+            self.set_topological_view(topo_view, axes)
+        else:
+            assert X is not None, ("DenseDesignMatrix needs to be provided "
+                    "with either topo_view, or X")
+            if view_converter is not None:
+                self.view_converter = view_converter
+
+                # Build a Conv2DSpace from the view_converter
+                if not (isinstance(view_converter, DefaultViewConverter)
+                        and len(view_converter.shape) == 3):
+                    raise NotImplementedError("Not able to build a Conv2DSpace "
+                            "corresponding to this converter: %s"
+                            % view_converter)
+
+                axes = view_converter.axes
+                rows, cols, channels = view_converter.shape
+
+                # self.X_topo_space stores a "default" topological space that
+                # will be used only when self.iterator is called without a
+                # data_specs, and with "topo=True", which is deprecated.
+                self.X_topo_space = Conv2DSpace(
+                        shape=(rows, cols), num_channels=channels, axes=axes)
+            else:
+                self.X_topo_space = None
+
+            # Update data specs, if not done in set_topological_view
+            X_space = VectorSpace(dim=self.X.shape[1])
+            X_source = 'features'
+            if y is None:
+                space = X_space
+                source = X_source
+            else:
+                y_space = VectorSpace(dim=self.y.shape[-1])
+                y_source = 'targets'
+
+                space = CompositeSpace((X_space, y_space))
+                source = (X_source, y_source)
+            self.data_specs = (space, source)
+            self.X_space = X_space
+
         self.compress = False
         self.design_loc = None
         if hasattr(rng, 'random_integers'):
@@ -89,6 +128,7 @@ class DenseDesignMatrix(Dataset):
         self._iter_mode = resolve_iterator_class('sequential')
         self._iter_topo = False
         self._iter_targets = False
+        self._iter_data_specs = (self.X_space, 'features')
 
         if preprocessor:
             preprocessor.apply(self, can_fit=fit_preprocessor)
@@ -96,7 +136,44 @@ class DenseDesignMatrix(Dataset):
 
     @functools.wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
-                 topo=None, targets=None, rng=None):
+                 topo=None, targets=None, rng=None, data_specs=None,
+                 return_tuple=False):
+
+        if topo is not None or targets is not None:
+            if data_specs is not None:
+                raise ValueError("In DenseDesignMatrix.iterator, both "
+                        "the `data_specs` argument and deprecated arguments "
+                        "`topo` or `targets` were provided.",
+                        (data_specs, topo, targets))
+
+            warnings.warn("Usage of `topo` and `target` arguments are being "
+                    "deprecated, and will be removed around November 7th, "
+                    "2013. `data_specs` should be used instead.",
+                    stacklevel=2)
+            # build data_specs from topo and targets if needed
+            if topo is None:
+                topo = getattr(self, '_iter_topo', False)
+            if topo:
+                # self.iterator is called without a data_specs, and with
+                # "topo=True", so we use the default topological space
+                # stored in self.X_topo_space
+                assert self.X_topo_space is not None
+                X_space = self.X_topo_space
+            else:
+                X_space = self.X_space
+
+            if targets is None:
+                targets = getattr(self, '_iter_targets', False)
+            if targets:
+                assert self.y is not None
+                y_space = self.data_specs[0][1]
+                space = (X_space, y_space)
+                source = ('features', 'targets')
+            else:
+                space = X_space
+                source = 'features'
+
+            data_specs = (space, source)
 
         # TODO: Refactor
         if mode is None:
@@ -107,20 +184,32 @@ class DenseDesignMatrix(Dataset):
                                  'mode set for %s' % str(self))
         else:
             mode = resolve_iterator_class(mode)
+
         if batch_size is None:
             batch_size = getattr(self, '_iter_batch_size', None)
         if num_batches is None:
             num_batches = getattr(self, '_iter_num_batches', None)
-        if topo is None:
-            topo = getattr(self, '_iter_topo', False)
-        if targets is None:
-            targets = getattr(self, '_iter_targets', False)
         if rng is None and mode.stochastic:
             rng = self.rng
+        if data_specs is None:
+            data_specs = self._iter_data_specs
         return FiniteDatasetIterator(self,
                                      mode(self.X.shape[0], batch_size,
                                      num_batches, rng),
-                                     topo, targets)
+                                     data_specs=data_specs,
+                                     return_tuple=return_tuple)
+
+    def get_data(self):
+        """
+        Returns all the data, as it is internally stored.
+
+        The definition and format of these data are described in
+        `self.get_data_specs()`.
+        """
+        if self.y is None:
+            return self.X
+        else:
+            return (self.X, self.y)
 
     def use_design_loc(self, path):
         """
@@ -193,6 +282,45 @@ class DenseDesignMatrix(Dataset):
                 self.X = None
         else:
             self.__dict__.update(d)
+
+        # To be able to unpickle older data after the addition of
+        # the data_specs mechanism
+        if not all(m in d for m in ('data_specs', 'X_space',
+                                    '_iter_data_specs', 'X_topo_space')):
+            X_space = VectorSpace(dim=self.X.shape[1])
+            X_source = 'features'
+            if self.y is None:
+                space = X_space
+                source = X_source
+            else:
+                y_space = VectorSpace(dim=self.y.shape[-1])
+                y_source = 'targets'
+
+                space = CompositeSpace((X_space, y_space))
+                source = (X_source, y_source)
+
+            self.data_specs = (space, source)
+            self.X_space = X_space
+            self._iter_data_specs = (X_space, X_source)
+
+            view_converter = d.get('view_converter', None)
+            if view_converter is not None:
+                # Build a Conv2DSpace from the view_converter
+                if not (isinstance(view_converter, DefaultViewConverter)
+                        and len(view_converter.shape) == 3):
+                    raise NotImplementedError(
+                            "Not able to build a Conv2DSpace "
+                            "corresponding to this converter: %s"
+                            % view_converter)
+
+                axes = view_converter.axes
+                rows, cols, channels = view_converter.shape
+
+                # self.X_topo_space stores a "default" topological space that
+                # will be used only when self.iterator is called without a
+                # data_specs, and with "topo=True", which is deprecated.
+                self.X_topo_space = Conv2DSpace(
+                        shape=(rows, cols), num_channels=channels, axes=axes)
 
     def _apply_holdout(self, _mode="sequential", train_size=0, train_prop=0):
         """
@@ -356,7 +484,7 @@ class DenseDesignMatrix(Dataset):
 
         return self.view_converter.design_mat_to_weights_view(mat)
 
-    def set_topological_view(self, V, axes = ('b', 0, 1, 'c')):
+    def set_topological_view(self, V, axes=('b', 0, 1, 'c')):
         """
         Sets the dataset to represent V, where V is a batch
         of topological views of examples.
@@ -365,8 +493,7 @@ class DenseDesignMatrix(Dataset):
         ----------
         V : ndarray
             An array containing a design matrix representation of training
-            examples. If unspecified, the entire dataset (`self.X`) is used
-            instead.
+            examples.
         TODO: why is this parameter named 'V'?
         """
         assert not N.any(N.isnan(V))
@@ -375,7 +502,28 @@ class DenseDesignMatrix(Dataset):
         channels = V.shape[axes.index('c')]
         self.view_converter = DefaultViewConverter([rows, cols, channels], axes=axes)
         self.X = self.view_converter.topo_view_to_design_mat(V)
+        # self.X_topo_space stores a "default" topological space that
+        # will be used only when self.iterator is called without a
+        # data_specs, and with "topo=True", which is deprecated.
+        self.X_topo_space = Conv2DSpace(
+                shape=(rows, cols), num_channels=channels, axes=axes)
         assert not N.any(N.isnan(self.X))
+
+        # Update data specs
+        X_space = VectorSpace(dim=self.X.shape[1])
+        X_source = 'features'
+        if self.y is None:
+            space = X_space
+            source = X_source
+        else:
+            y_space = VectorSpace(dim=self.y.shape[-1])
+            y_source = 'targets'
+            space = CompositeSpace((X_space, y_space))
+            source = (X_source, y_source)
+
+        self.data_specs = (space, source)
+        self.X_space = X_space
+        self._iter_data_specs = (X_space, X_source)
 
     def get_design_matrix(self, topo=None):
         """
@@ -505,7 +653,35 @@ class DenseDesignMatrix(Dataset):
             warnings.warn("ignoring per_example")
         return np.clip(X / np.abs(ref).max(), -1., 1.)
 
+    def get_data_specs(self):
+        """
+        Returns the data_specs specifying how the data is internally stored.
 
+        This is the format the data returned by `self.get_data()` will be.
+        """
+        return self.data_specs
+
+    def set_view_converter_axes(self, axes):
+        """
+        Change the axes of the view_converter, if any.
+
+        This function is only useful if you intend to call self.iterator
+        without data_specs, and with "topo=True", which is deprecated.
+        """
+        assert self.view_converter is not None
+        warnings.warn("Rather than setting the axes of a dataset's "
+                "view_converter, then building an iterator with "
+                "'topo=True', which is deprecated, you can simply "
+                "build an iterator with "
+                "'data_specs=Conv2DSpace(..., axes=axes)'.",
+                stacklevel=3)
+
+        self.view_converter.axes = axes
+        # Update self.X_topo_space, which stores the "default"
+        # topological space
+        rows, cols, channels = self.view_converter.shape
+        self.X_topo_space = Conv2DSpace(
+                shape=(rows, cols), num_channels=channels, axes=axes)
 
 class DenseDesignMatrixPyTables(DenseDesignMatrix):
     """
@@ -587,9 +763,53 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
 
     @functools.wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
-                 topo=None, targets=None, rng=None):
+                 topo=None, targets=None, rng=None, data_specs=None,
+                 return_tuple=False):
 
-        # TODO: Refactor, deduplicate with DenseDesignMatrix.iterator
+        warnings.warn("Overloading this method is not necessary with the new "
+                     "interface change and this will be removed around November "
+                     "7th 2013", stacklevel=2)
+
+        if topo is not None or targets is not None:
+            if data_specs is not None:
+                raise ValueError("In DenseDesignMatrix.iterator, both "
+                        "the `data_specs` argument and deprecated arguments "
+                        "`topo` or `targets` were provided.",
+                        (data_specs, topo, targets))
+
+            warnings.warn("Usage of `topo` and `target` arguments are being "
+                    "deprecated, and will be removed around November 7th, "
+                    "2013. `data_specs` should be used instead.",
+                    stacklevel=2)
+            # build data_specs from topo and targets if needed
+            if topo is None:
+                topo = getattr(self, '_iter_topo', False)
+            if topo:
+                # self.iterator is called without a data_specs, and with
+                # "topo=True", so we use the default topological space
+                # stored in self.X_topo_space
+                assert self.X_topo_space is not None
+                X_space = self.X_topo_space
+            else:
+                X_space = self.X_space
+
+            if targets is None:
+                targets = getattr(self, '_iter_targets', False)
+            if targets:
+                assert self.y is not None
+                y_space = self.data_specs[0][1]
+                space = (X_space, y_space)
+                source = ('features', 'targets')
+            else:
+                space = X_space
+                source = 'features'
+
+            data_specs = (space, source)
+            _deprecated_interface = True
+        else:
+            _deprecated_interface = False
+
+        # TODO: Refactor
         if mode is None:
             if hasattr(self, '_iter_subset_class'):
                 mode = self._iter_subset_class
@@ -598,20 +818,27 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
                                  'mode set for %s' % str(self))
         else:
             mode = resolve_iterator_class(mode)
+
         if batch_size is None:
             batch_size = getattr(self, '_iter_batch_size', None)
         if num_batches is None:
             num_batches = getattr(self, '_iter_num_batches', None)
-        if topo is None:
-            topo = getattr(self, '_iter_topo', False)
-        if targets is None:
-            targets = getattr(self, '_iter_targets', False)
         if rng is None and mode.stochastic:
             rng = self.rng
-        return FiniteDatasetIteratorPyTables(self,
+        if data_specs is None:
+            data_specs = self._iter_data_specs
+        if _deprecated_interface:
+            return FiniteDatasetIteratorPyTables(self,
                                      mode(self.X.shape[0], batch_size,
                                      num_batches, rng),
-                                     topo, targets)
+                                     data_specs=data_specs,
+                                     return_tuple=return_tuple)
+        else:
+            return FiniteDatasetIterator(self,
+                                     mode(self.X.shape[0], batch_size,
+                                     num_batches, rng),
+                                     data_specs=data_specs,
+                                     return_tuple=return_tuple)
 
     @staticmethod
     def init_hdf5(path, shapes):
@@ -803,5 +1030,5 @@ def convert_to_one_hot(dataset, min_class=0):
     return dataset
 
 def set_axes(dataset, axes):
-    dataset.view_converter.axes = axes
+    dataset.set_view_converter_axes(axes)
     return dataset
