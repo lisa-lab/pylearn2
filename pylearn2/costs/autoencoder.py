@@ -20,7 +20,7 @@ class SampledMeanBinaryCrossEntropy(Cost):
     """
     ce cost that goes with sparse autoencoder with L1 regularization on activations
 
-    For thoery:
+    For theory:
     Y. Dauphin, X. Glorot, Y. Bengio. ICML2011
     Large-Scale Learning of Embeddings with Reconstruction Sampling
     """
