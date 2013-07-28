@@ -36,6 +36,8 @@ from pylearn2.sandbox.cuda_convnet.filter_acts import FilterActs
 from pylearn2.sandbox.cuda_convnet.filter_acts import ImageActs
 from pylearn2.space import Conv2DSpace
 
+from theano.gof.op import get_debug_values
+
 class Conv2D(LinearTransform):
     """
     A pylearn2 linear operator based on 2D convolution,
@@ -110,7 +112,7 @@ class Conv2D(LinearTransform):
         op_axes = ('c', 0, 1, 'b')
 
         if tuple(x_axes) != op_axes:
-            x = x.dimshuffle(*[x_axes.index(axis) for axis in x_axes])
+            x = x.dimshuffle(*[x_axes.index(axis) for axis in op_axes])
 
         x = gpu_contiguous(x)
 
