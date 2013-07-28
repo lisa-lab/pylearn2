@@ -2140,7 +2140,7 @@ class WeightDoubling(InferenceProcedure):
             #    assert value.shape[0] == dbm.batch_size
             assert V in gof.graph.ancestors([elem])
             if Y is not None:
-                assert Y in gof.graph.ancestors([elem])
+                assert Y in gof.graph.ancestors([elem]) or niter == 1
         if Y is not None:
             assert all([elem[-1] is Y for elem in history])
             assert H_hat[-1] is Y

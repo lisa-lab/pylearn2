@@ -197,7 +197,7 @@ class MLP(Layer):
         self.setup_rng()
 
         assert isinstance(layers, list)
-        assert all(isinstance(layer, Layer) for layer in layers)
+        assert all(isinstance(layer, Layer) for layer in layers), [type(layer) for layer in layers]
         assert len(layers) >= 1
         self.layer_names = set()
         for layer in layers:
