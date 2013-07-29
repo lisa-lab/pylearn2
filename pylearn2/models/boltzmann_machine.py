@@ -213,6 +213,22 @@ class BoltzmannMachine(Model):
 
         return weights
 
+    def censor_updates(self, updates):
+        """
+        Enforces connectivity pattern by multiplying the weights updates with
+        their corresponding weight mask found in `self.connectivity`.
+
+        Parameters
+        ----------
+        updates : dict mapping parameters to their updated value
+            The updates about to be applied on parameters
+        """
+        for layer_pair, weight in self.weights.items():
+            if weight in updates.keys():
+                updated_weight = updates[weight]
+                updates[weight] = \
+                    self.connectivity[layer_pair] * updated_weight
+
     def energy(self, layer_to_state):
         """
         Computes the energy of a given Boltzmann machine state.
