@@ -17,9 +17,9 @@ from pylearn2.train import Train
 from pylearn2.training_algorithms.sgd import SGD
 from pylearn2.utils import image, safe_zip
 
-HIDDEN_SIZE = 1500
+HIDDEN_SIZE = 1000
 SALT_PEPPER_NOISE = 0.4
-GAUSSIAN_NOISE = 2.0
+GAUSSIAN_NOISE = 1.0
 
 WALKBACK = 0
 
@@ -45,7 +45,7 @@ def test_train_ae():
     gsn = GSN.new_ae(layers, vis_corruptor, pre_corruptor, post_corruptor)
     c = GSNCost([(0, 1.0, reconstruction_cost)], walkback=WALKBACK)
     alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=c,
-              termination_criterion=EpochCounter(MAX_EPOCHS),
+              termination_criterion=EpochCounter(5),
               batches_per_iter=BATCHES_PER_EPOCH, batch_size=BATCH_SIZE,
               monitoring_dataset={"test": MNIST(which_set='test')})
 
@@ -65,7 +65,7 @@ def test_train_supervised():
     c = GSNCost(
         [
             (0, 1.0, reconstruction_cost),
-            (2, 1.0, classification_cost)
+            (2, 4.0, classification_cost)
         ],
         walkback=WALKBACK)
     alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=c,
@@ -74,7 +74,7 @@ def test_train_supervised():
               ,monitoring_dataset={"test": MNIST(which_set='test', one_hot=True)}
               )
 
-    trainer = Train(dataset, gsn, algorithm=alg, save_path="gsn_sup_example.pkl",
+    trainer = Train(dataset, gsn, algorithm=alg, save_path="gsn_sup_example5.pkl",
                     save_freq=5)
     trainer.main_loop()
     print "done training"
@@ -105,25 +105,26 @@ def test_sample_ae():
 
 def test_sample_supervised():
     import cPickle
-    with open("gsn_sup_example.pkl") as f:
+    with open("gsn_sup_example4.pkl") as f:
         gsn = cPickle.load(f)
 
-    gsn = GSNClassifier.convert(gsn)
+    gsn = JointGSN.convert(gsn, 0, 3)
+    gsn._corrupt_switch = False
+
+    # hack just for this model
+    """
+    gsn._layer_samplers = [BinomialSampler()] + [lambda x: x] * 2 +\
+        [MultinomialSampler()]
+    """
 
     ds = MNIST(which_set='test', one_hot=True)
-    mb_data = ds.X[100:200, :]
-    y = ds.y[100:200, :]
+    mb_data = ds.X
+    y = ds.y
+    y_hat = gsn.classify(mb_data, trials=5)
 
-    y_hat = gsn.classify([(0, mb_data)], 2)
+    errors = np.abs(y_hat - y).sum() / 2.0
 
-    print np.sum(np.absolute(y_hat - y)) / 2.0
-    """
-    history = gsn.get_samples([(0, mb_data)], walkback=5,
-                              symbolic=False, include_first=False,
-                              indices=[2])
-    history = list(itertools.chain(*history))
-    print np.argmax(np.vstack(history), axis=1)
-    """
+    print errors, errors / 10000.0
 
 #####################
 # tests and utilities
@@ -194,4 +195,4 @@ def a_to_s(A):
     return "\n".join(strs)
 
 if __name__ == '__main__':
-    test_sample_supervised()
+    test_train_supervised()

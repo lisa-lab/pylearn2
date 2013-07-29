@@ -22,26 +22,24 @@ T = theano.tensor
 
 import pylearn2
 from pylearn2.base import StackedBlocks
-from pylearn2.corruption import (BinomialSampler, ComposedCorruptor,
-                                 MultinomialSampler)
+from pylearn2.corruption import BinomialSampler, MultinomialSampler
 from pylearn2.models.autoencoder import Autoencoder
 from pylearn2.models.model import Model
 from pylearn2.utils import safe_zip
 
-def plushmax(x, eps=0.0):
+def plushmax(x, eps=0.0, min_val=0.0):
     """
     A softer softmax.
 
     Instead of computing exp(x_i) / sum_j(exp(x_j)), this computes
     (exp(x_i) + eps) / sum_j(exp(x_j) + eps)
 
-    Additionally, all values in the return vector will be at least MIN_SAFE
-    (which is defined in the function). esp may be increased to satisfy this
-    constraint.
+    Additionally, all values in the return vector will be at least min_val.
+    eps may be increased to satisfy this constraint.
     """
     assert eps >= 0.0
 
-    MIN_SAFE = 0.00001
+    MIN_SAFE = max(0.00001, min_val)
 
     s = T.sum(T.exp(x), axis=1, keepdims=True)
     safe_eps = (MIN_SAFE * s) / (1.0 - x.shape[1] * MIN_SAFE)
@@ -105,6 +103,9 @@ class GSN(StackedBlocks, Model):
         # only for convenience
         self.aes = self._layers
 
+        # easy way to turn off corruption (True => corrupt, False => don't)
+        self._corrupt_switch = True
+
         for i, ae in enumerate(self.aes):
             if i != 0:
                 if ae.weights is None:
@@ -128,15 +129,7 @@ class GSN(StackedBlocks, Model):
 
         self._preact_cors = _make_callable_list(preact_cors)
         self._postact_cors = _make_callable_list(postact_cors)
-
-        if layer_samplers is not None:
-            assert len(layer_samplers) == len(self._postact_cors)
-            for i, sampler in enumerate(layer_samplers):
-                if callable(sampler):
-                    self._postact_cors[i] = ComposedCorruptor(
-                        self._postact_cors[i],
-                        layer_samplers[i]
-                    )
+        self._layer_samplers = _make_callable_list(layer_samplers)
 
     @staticmethod
     def _make_aes(layer_sizes, activation_funcs, tied=True):
@@ -163,9 +156,10 @@ class GSN(StackedBlocks, Model):
             activation_funcs,
             pre_corruptors,
             post_corruptors,
-            layer_samplers):
+            layer_samplers,
+            tied=True):
 
-        aes = cls._make_aes(layer_sizes, activation_funcs)
+        aes = cls._make_aes(layer_sizes, activation_funcs, tied=tied)
 
         return cls(aes,
                    preact_cors=pre_corruptors,
@@ -175,7 +169,7 @@ class GSN(StackedBlocks, Model):
     @classmethod
     def new_ae(cls, layer_sizes, vis_corruptor=None, hidden_pre_corruptor=None,
                    hidden_post_corruptor=None, visible_act="sigmoid",
-                   hidden_act="tanh"):
+                   hidden_act="tanh", tied=True):
         """
         This is just a convenience method to initialize GSN instances. The
         __init__ method is far more general, but this should capture most
@@ -219,28 +213,33 @@ class GSN(StackedBlocks, Model):
         layer_samplers = [BinomialSampler()] + [None] * (num_layers - 1)
 
         return cls.new(layer_sizes, activations, pre_corruptors, post_corruptors,
-                       layer_samplers)
+                       layer_samplers, tied=tied)
 
     @classmethod
     def new_classifier(cls, layer_sizes, vis_corruptor=None,
                        hidden_pre_corruptor=None, hidden_post_corruptor=None,
                        visible_act="sigmoid", hidden_act="tanh",
-                       classifier_act=plushmax):
+                       classifier_act=plushmax, tied=True, only_corrupt_top=False):
         """
         FIXME: documentation
         """
         num_hidden = len(layer_sizes) - 2
-        activations= [visible_act] + [hidden_act] * (num_hidden) + [classifier_act]
+        activations = [visible_act] + [hidden_act] * (num_hidden) + [classifier_act]
 
-        pre_corruptors = [None] + [hidden_pre_corruptor] * num_hidden + [None]
-        post_corruptors = [vis_corruptor] + [hidden_post_corruptor] * num_hidden +\
-            [None]
+        if not only_corrupt_top:
+            pre_corruptors = [None] + [hidden_pre_corruptor] * num_hidden + [None]
+            post_corruptors = [vis_corruptor] + [hidden_post_corruptor] * num_hidden +\
+                [None]
+        else:
+            pre_corruptors = [None] * num_hidden + [hidden_pre_corruptor] + [None]
+            post_corruptors = [vis_corruptor] + [None] * (num_hidden - 1) +\
+                [hidden_post_corruptor] + [None]
 
         layer_samplers = [BinomialSampler()] + [None] * num_hidden +\
             [MultinomialSampler()]
 
         return cls.new(layer_sizes, activations, pre_corruptors, post_corruptors,
-                       layer_samplers)
+                       layer_samplers, tied=tied)
 
     @functools.wraps(Model.get_params)
     def get_params(self):
@@ -291,6 +290,7 @@ class GSN(StackedBlocks, Model):
             vals = safe_zip(*minibatch)[1]
             clamped = safe_zip(set_idxs, vals, clamped)
 
+        # main loop
         for _ in xrange(len(self.aes) + walkback):
             steps.append(self._update(self.activations, clamped=clamped))
 
@@ -382,7 +382,7 @@ class GSN(StackedBlocks, Model):
             A list of length 1 + walkback that contains the samples generated
             by the GSN. The samples will be of the same size as the minibatch.
         """
-        if walkback > 8 and not symbolic:
+        if walkback > 8 and symbolic:
             warnings.warn(("Running GSN in symbolic mode (needed for training) " +
                            "with a lot of walkback. Theano may take a very long " +
                            "time to compile this computational graph. If " +
@@ -606,11 +606,22 @@ class GSN(StackedBlocks, Model):
         return activations
 
     def apply_preact_corruption(self, activations, idx_iter):
-        return self._apply_corruption(activations, self._preact_cors,
-                                      idx_iter)
+        if self._corrupt_switch:
+            self._apply_corruption(activations, self._preact_cors,
+                                   idx_iter)
+        return activations
 
-    def apply_postact_corruption(self, activations, idx_iter):
-        return self._apply_corruption(activations, self._postact_cors,
+    def apply_postact_corruption(self, activations, idx_iter, sample=True):
+        if sample:
+            self.apply_sampling(activations, idx_iter)
+        if self._corrupt_switch:
+            self._apply_corruption(activations, self._postact_cors,
+                                   idx_iter)
+        return activations
+
+    def apply_sampling(self, activations, idx_iter):
+        # using _apply_corruption to apply samplers
+        return self._apply_corruption(activations, self._layer_samplers,
                                       idx_iter)
 
     def _update_activations(self, activations, idx_iter):
@@ -657,33 +668,59 @@ class GSN(StackedBlocks, Model):
             if act_func is not None:
                 activations[i] = act_func(activations[i])
 
-class GSNAutoencoder(GSN):
+class JointGSN(GSN):
+    """
+    This class only provides a few convenient methods on top of the GSN class
+    above. This class should be used when learning the joint distribution between
+    2 or more variables.
+    """
     @classmethod
-    def new(cls, *args, **kwargs):
-        return cls.new_ae(*args, **kwargs)
-
-class GSNClassifier(GSN):
-    @classmethod
-    def convert(cls, gsn):
+    def convert(cls, gsn, input_idx, label_idx):
         gsn.__class__ = cls
+        gsn.input_idx = input_idx
+        gsn.label_idx = label_idx
         return gsn
 
-    @classmethod
-    def new(cls, *args, **kwargs):
-        return cls.new_classifier(*args, **kwargs)
+    def calc_walkback(self, trials):
+        wb = trials + len(self.aes)
+        if wb < 0:
+            return 0
+        else:
+            return wb
 
-    def classify(self, minibatch, index, trials=10):
-        assert len(minibatch) == 1
-        clamped = np.ones(minibatch[0][1].shape, dtype=np.float32)
-        data = self.get_samples(minibatch, walkback=trials - len(self.aes),
-                                indices=[index], clamped=[clamped], symbolic=False)
+    def classify(self, inputs, trials=10, skip=0):
+        """
+        Parameters
+        ----------
+        FIXME: write me
+        """
+        clamped = np.ones(inputs.shape, dtype=np.float32)
 
-        data = np.array(list(itertools.chain(*data)))
+        data = self.get_samples([(self.input_idx, inputs)],
+                                walkback=self.calc_walkback(trials + skip),
+                                indices=[self.label_idx],
+                                clamped=[clamped],
+                                symbolic=False)
+
+        # 3d tensor: axis 0 is time step, axis 1 is minibatch item,
+        # axis 2 is softmax output for label
+        data = np.array(list(itertools.chain(*data[skip:skip+trials])))
 
         mean = data.mean(axis=0)
         am = np.argmax(mean, axis=1)
 
+        # convert argmax's to one-hot format
         labels = np.zeros_like(mean)
         labels[np.arange(labels.shape[0]), am] = 1.0
 
         return labels
+
+    def get_samples_from_labels(self, labels, trials=5):
+        clamped = np.ones(labels.shape, dtype=np.float32)
+        data = self.get_samples([(self.label_idx, labels)],
+                                walkback=self.calc_walkback(trials),
+                                indices=[self.input_idx],
+                                clamped=[clamped],
+                                symbolic=False)
+
+        return np.array(list(itertools.chain(*data)))

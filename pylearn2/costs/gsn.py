@@ -1,10 +1,12 @@
+from theano.compat.python2x import OrderedDict
+
 from pylearn2.costs.cost import Cost
 from pylearn2.costs.autoencoder import GSNFriendlyCost
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_zip
 
 class GSNCost(Cost):
-    def __init__(self, costs, walkback=0):
+    def __init__(self, costs, walkback=0, mode="joint"):
         """
         Parameters
         ----------
@@ -19,9 +21,25 @@ class GSNCost(Cost):
             reconstructed value.
         walkback : int
             how many steps of walkback to perform
+        mode : str
+            Should be either 'joint' or 'supervised'. joint means setting
+            all of the layers and calculating reconstruction costs. 'supervised'
+            means setting just the input layer (the first cost) and attempting
+            to predict the label layer (the second cost).
+
+        Note
+        ----
+        As of now, the costs list can contain only 1 or 2 elements. If it contains
+        2 elements, the first element must be for the input to the model and the
+        second must be the output/labels.
         """
         super(GSNCost, self).__init__()
         self.walkback = walkback
+
+        assert mode in ["joint", "supervised"]
+        if mode == "supervised":
+            assert len(costs) == 2
+        self.mode = mode
 
         assert len(costs) in [1, 2], "This is (hopefully) a temporary restriction"
         assert len(set(c[0] for c in costs)) == len(costs), "Must have only" +\
@@ -37,6 +55,26 @@ class GSNCost(Cost):
             else:
                 assert callable(cost_tup[2])
 
+    @staticmethod
+    def _get_total_for_cost(idx, costf, init_data, model_output):
+        total = 0.0
+        for step in model_output:
+            total += costf(init_data[idx], step[idx])
+        return total / len(model_output)
+
+    def _get_samples_from_model(self, model, data):
+        layer_idxs = [idx for idx, _, _ in self.costs]
+        zipped = safe_zip(layer_idxs, data)
+        if self.mode == "joint":
+            return model.get_samples(zipped,
+                                     walkback=self.walkback,
+                                     indices=layer_idxs)
+        else:
+            # don't include the label layer
+            return model.get_samples(zipped[:1],
+                                     walkback=self.walkback,
+                                     indices=layer_idxs)
+
     def expr(self, model, data):
         """
         Parameters
@@ -46,21 +84,32 @@ class GSNCost(Cost):
             data must be a list or tuple of the same length as self.costs. All
             elements in data must be a tensor_like (cannot be None).
         """
-        layer_idxs = [idx for idx, _, _ in self.costs]
-        output = model.get_samples(safe_zip(layer_idxs, data),
-                                   walkback=self.walkback, indices=layer_idxs)
+        self.get_data_specs(model)[0].validate(data)
+        output = self._get_samples_from_model(model, data)
 
         total = 0.0
         for cost_idx, (_, coeff, costf) in enumerate(self.costs):
-            cost_total = 0.0
-            for step in output:
-                cost_total += costf(data[cost_idx], step[cost_idx])
-            total += coeff * cost_total
+            total += (coeff *
+                      self._get_total_for_cost(cost_idx, costf, data, output))
 
         coeff_sum = sum(coeff for _, coeff, _ in self.costs)
 
         # little bit of normalization
-        return total / (len(output) * coeff_sum)
+        return total / coeff_sum
+
+    def get_monitoring_channels(self, model, data, **kwargs):
+        self.get_data_specs(model)[0].validate(data)
+        output = self._get_samples_from_model(model, data)
+
+        rval = OrderedDict()
+        rval['reconstruction_cost'] =\
+            self._get_total_for_cost(0, self.costs[0][2], data, output)
+
+        if len(self.costs) == 2:
+            rval['classification_cost'] =\
+                self._get_total_for_cost(1, self.costs[1][2], data, output)
+
+        return rval
 
     def get_data_specs(self, model):
         # get space for layer i
@@ -73,4 +122,5 @@ class GSNCost(Cost):
             sources.append(model.get_target_source())
 
         return (CompositeSpace(spaces), tuple(sources))
+
 
