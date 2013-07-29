@@ -58,8 +58,8 @@ class BoltzmannMachine(Model):
         self.connectivity = connectivity
 
         self._initialize_connectivity()
-        self._initialize_biases()
-        self._initialize_weights()
+        self.biases = self._initialize_biases()
+        self.weights = self._initialize_weights()
 
         self.input_space = CompositeSpace([visible_layer.get_input_space()
                                            for visible_layer in
@@ -186,7 +186,7 @@ class BoltzmannMachine(Model):
             biases[layer] = sharedX(value=numpy.zeros((layer.n_units, )),
                                     name=layer.name + '_b')
 
-        self.biases = biases
+        return biases
 
     def _initialize_weights(self):
         """
@@ -211,7 +211,7 @@ class BoltzmannMachine(Model):
                         name=layer1.name + '_to_' + layer2.name + '_W'
                     )
 
-        self.weights = weights
+        return weights
 
     def energy(self, layer_to_state):
         """
