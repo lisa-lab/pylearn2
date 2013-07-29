@@ -73,6 +73,10 @@ class ZCA_Dataset(DenseDesignMatrix):
         if self.X is not None:
             if self.y is not None:
                 assert self.y.shape[0] == self.X.shape[0]
+
+        self.data_specs = preprocessed_dataset.data_specs
+        self.X_space = preprocessed_dataset.X_space
+        self.X_topo_space = preprocessed_dataset.X_topo_space
         self.view_converter = preprocessed_dataset.view_converter
 
         #self.mn = self.X.min()
