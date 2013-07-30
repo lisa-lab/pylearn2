@@ -26,6 +26,7 @@ def make_rng(rng_or_seed = None, default_seed=None, typeStr=None):
         if isinstance(typeStr, (list,tuple)):
             for typestr in typeStr:
                 if not hasattr(rng_or_seed, typestr):
+                    #print 'User Warning: "',typestr,'" not found in "rng_or_seed", using numpy RandomState instead'
                     try:
                         rng = numpy.random.RandomState(rng_or_seed)
                     except ValueError:
