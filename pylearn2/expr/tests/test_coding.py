@@ -3,7 +3,7 @@ import numpy as np
 import theano.tensor as T
 from theano import function
 from pylearn2.utils import as_floatX
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from  pylearn2.utils.rng import rng_randn
 
 def test_triangle_code():
     rng = rng_randn()
