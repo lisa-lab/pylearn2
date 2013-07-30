@@ -3,7 +3,7 @@ from theano import tensor, config
 import numpy
 import linear_cg
 import warnings
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from  pylearn2.utils.rng import rng_randn
 
 from pylearn2.testing.skip import skip_if_no_scipy
 try:
@@ -13,7 +13,7 @@ except ImportError:
 import time
 
 def test_linear_cg():
-    rng = rng_ints()
+    rng = rng_randn()
     n = 5
     M = rng.randn(2*n,n)
     M = numpy.dot(M.T,M).astype(config.floatX)
