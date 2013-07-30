@@ -19,7 +19,7 @@ from theano import shared
 from theano import tensor as T
 from theano.tensor import as_tensor_variable
 from theano.tensor.nnet.conv import conv2d
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_uniform
 
 from pylearn2.sandbox.cuda_convnet.img_acts import ImageActs
 
