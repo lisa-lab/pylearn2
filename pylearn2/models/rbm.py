@@ -277,7 +277,7 @@ class RBM(Block, Model):
         if init_bias_vis is None:
             init_bias_vis = 0.0
 
-        rng=rng_uniform()
+        rng=rng_uniform(rng)
     
         self.rng = rng
 
