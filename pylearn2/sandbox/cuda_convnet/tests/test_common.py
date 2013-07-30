@@ -14,7 +14,7 @@ from pylearn2.sandbox.cuda_convnet.img_acts import ImageActs
 from theano.sandbox.cuda import gpu_from_host
 from theano import function
 from theano.tensor import as_tensor_variable
-from pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_uniform
 
 
 def test_reject_rect():
