@@ -24,6 +24,8 @@ from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.space import VectorSpace
 from pylearn2.utils import safe_union
 from pylearn2.utils import *
+from pylearn2.utils.rng import make_rng, rng_normal, rng_ints, rng_uniform
+
 theano.config.warn.sum_div_dimshuffle_bug = False
 
 if 0:
@@ -275,7 +277,7 @@ class RBM(Block, Model):
         if init_bias_vis is None:
             init_bias_vis = 0.0
 
-        rng=rng_uniform()rng
+        rng=rng_uniform()
     
         self.rng = rng
 
@@ -936,7 +938,7 @@ class GaussianBinaryRBM(RBM):
             return v_mean
         else:
             # zero mean, std sigma noise
-            rng=rng_normal
+            rng=rng_normal(rng)
             zero_mean = rng.normal(size=shape) * self.sigma
             return zero_mean + v_mean
 
