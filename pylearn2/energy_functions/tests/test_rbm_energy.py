@@ -7,12 +7,12 @@ from theano import function
 from pylearn2.utils import as_floatX
 from pylearn2.utils import sharedX
 from pylearn2.linear.matrixmul import MatrixMul
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from  pylearn2.utils.rng import rng_randn, make_rng
 
 
 test_m = 2
 
-rng = rng_ints()
+rng = make_rng(typeStr=("randn","uniform"))
 nv = 3
 nh = 4
 
@@ -57,7 +57,7 @@ class TestGRBM_Type_1:
         # E(v,h_2) - E(v,h_1) = log(a)
         # also log P(h_1 | v) - log P(h_2) = log(a)
 
-        rng = rng_ints()
+        rng = rng_randn()
 
         m = 5
 
@@ -80,7 +80,7 @@ class TestGRBM_Type_1:
 
     def test_free_energy(self):
 
-        rng = N.random.RandomState([1,2,3])
+        rng = rng_randn()
 
         m = 2 ** nh
 
@@ -103,7 +103,7 @@ class TestGRBM_Type_1:
 
 
     def test_score(self):
-        rng = N.random.RandomState([1,2,3])
+        rng = rng_randn()
 
         m = 10
 
