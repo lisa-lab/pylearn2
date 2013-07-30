@@ -31,7 +31,7 @@ from pylearn2.utils.iteration import _iteration_schemes
 from pylearn2.utils import safe_izip
 from pylearn2.utils import safe_union
 from pylearn2.utils import sharedX
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal, make_rng
+from pylearn2.utils.rng import rng_randn, rng_uniform, make_rng
 
 class DummyCost(Cost):
     def expr(self, model, data):
