@@ -3,7 +3,7 @@ Utilities for working with videos, pulling out patches, etc.
 """
 import numpy
 import warnings
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_ints
 
 try:
     from pylearn2.utils._video import rgb_to_gray
