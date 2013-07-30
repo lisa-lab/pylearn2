@@ -25,7 +25,7 @@ from pylearn2.datasets.dataset import Dataset
 from pylearn2.datasets import control
 from pylearn2.space import CompositeSpace, Conv2DSpace, VectorSpace
 from theano import config
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_ints
 
 
 def ensure_tables():
@@ -441,7 +441,7 @@ class DenseDesignMatrix(Dataset):
         """
 
         if 'default_rng' not in dir(self):
-            self.default_rng = rng_ints()
+            self.default_rng = N.random.RandomState([17, 2, 946]) # left unchanged since is an argument
         self.rng = copy.copy(self.default_rng)
 
     def apply_preprocessor(self, preprocessor, can_fit=False):
