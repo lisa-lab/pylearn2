@@ -13,7 +13,7 @@ __email__ = "wardefar@iro"
 import numpy as np
 from theano import config
 from pylearn2.datasets import DenseDesignMatrix
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_uniform
 
 def _four_regions_labels(points):
     """
@@ -88,7 +88,7 @@ class FourRegions(DenseDesignMatrix):
     """
     _default_seed = (2013, 05, 17)
 
-    def __init__(self, num_examples, one_hot=False, rng=(2013, 05, 17)):
+    def __init__(self, num_examples, one_hot=False, rng=None):
         rng = rng_uniform(rng, default_seed = _default_seed)
         X = rng.uniform(-1, 1, size=(num_examples, 2))
         if not one_hot:
