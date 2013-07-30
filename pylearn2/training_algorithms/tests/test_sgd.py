@@ -31,7 +31,7 @@ from pylearn2.utils.iteration import _iteration_schemes
 from pylearn2.utils import safe_izip
 from pylearn2.utils import safe_union
 from pylearn2.utils import sharedX
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal, make_rng
 
 class DummyCost(Cost):
     def expr(self, model, data):
@@ -113,7 +113,7 @@ def test_sgd_unspec_num_mon_batch():
     m = 25
 
     visited = [ False ] * m
-    rng = rng_randn()
+ 
     X = np.zeros((m,1))
     X[:,0] = np.arange(m)
     dataset = DenseDesignMatrix(X=X)
@@ -161,7 +161,7 @@ def test_sgd_sup():
     dim = 3
     m = 10
 
-    rng = rng_randn()
+    rng = make_rng(typeStr=("randn","randint"))
 
     X = rng.randn(m, dim)
 
@@ -250,6 +250,7 @@ def test_sgd_unsup():
     train.main_loop()
 
 def get_topological_dataset(rng, rows, cols, channels, m):
+    rng = make_rng(rng_or_seed=rng, typeStr=("randn","randint"))
     X = rng.randn(m, rows, cols, channels)
 
     dim = rows * cols * channels
@@ -413,7 +414,7 @@ def test_sgd_topo():
     dim = rows * cols * channels
     m = 10
 
-    rng = rng_randn()
+    rng = np.random.RandomState([25,9,2012]) # left unchanged since is an argument
 
     dataset = get_topological_dataset(rng, rows, cols, channels, m)
 
@@ -453,7 +454,7 @@ def test_sgd_no_mon():
     dim = 3
     m = 10
 
-    rng = rng_randn()
+    rng = make_rng(typeStr=("randn", "randnint"))
 
     X = rng.randn(m, dim)
 
@@ -502,7 +503,7 @@ def test_reject_mon_batch_without_mon():
     dim = 3
     m = 10
 
-    rng = rng_randn()
+    rng = make_rng(typeStr=("randn", "randnint"))
 
     X = rng.randn(m, dim)
 
