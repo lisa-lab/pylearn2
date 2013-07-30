@@ -34,7 +34,7 @@ from theano.printing import Print
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 from theano.gof.op import get_debug_values
 import warnings
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_randn, make_rng
 
 def max_pool(z, pool_shape, top_down = None, theano_rng = None):
     """
@@ -929,7 +929,7 @@ def profile_bc01(f):
 
 def profile_samples(f):
     print 'profiling samples',f
-    rng = rng_randn()
+    rng = make_rng(typeStr=("randn", "randint"))
     theano_rng = MRG_RandomStreams(rng.randint(2147462579))
     batch_size = 80
     rows = 26
