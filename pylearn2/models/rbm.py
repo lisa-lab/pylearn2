@@ -96,7 +96,7 @@ class Sampler(object):
             RandomStreams object used in training.
         """
         self.__dict__.update(rbm=rbm)
-        rng = rng_randn(rng)
+        rng = rng_ints(rng)
         seed = int(rng.randint(2 ** 30))
         self.s_rng = RandomStreams(seed)
         self.particles = sharedX(particles, name='particles')
@@ -275,9 +275,8 @@ class RBM(Block, Model):
         if init_bias_vis is None:
             init_bias_vis = 0.0
 
-        if rng is None:
-            # TODO: global rng configuration stuff.
-            rng = numpy.random.RandomState(1001)
+        rng=rng_uniform()rng
+    
         self.rng = rng
 
         if vis_space is None:
@@ -527,6 +526,8 @@ class RBM(Block, Model):
              * `v_mean`: the returned value from `mean_v_given_h`
              * `v_sample`: the stochastically sampled visible units
         """
+        
+        rng = make_rng(rng_or_seed=rng, typeStr=("binomial"))
         h_mean = self.mean_h_given_v(v)
         assert h_mean.type.dtype == v.type.dtype
         # For binary hidden units
@@ -561,6 +562,7 @@ class RBM(Block, Model):
             Theano symbolic representing stochastic samples from :math:`p(v|h)`
         """
         v_mean = params[0]
+        rng = rng_uniform(rng)
         return as_floatX(rng.uniform(size=shape) < v_mean)
 
     def input_to_h_from_v(self, v):
@@ -934,6 +936,7 @@ class GaussianBinaryRBM(RBM):
             return v_mean
         else:
             # zero mean, std sigma noise
+            rng=rng_normal
             zero_mean = rng.normal(size=shape) * self.sigma
             return zero_mean + v_mean
 
@@ -963,10 +966,8 @@ class mu_pooled_ssRBM(RBM):
             mu0,
             W_irange=None,
             rng=None):
-        if rng is None:
-            # TODO: global rng default seed
-            rng = numpy.random.RandomState(1001)
-
+       
+        rng=make_rng(typeStr=("rand"))
         self.nhid = nhid
         self.nslab = nhid * n_s_per_h
         self.n_s_per_h = n_s_per_h
@@ -1025,6 +1026,7 @@ class mu_pooled_ssRBM(RBM):
         # sample h given v
         h_mean = self.mean_h_given_v(v)
         h_mean_shape = (batch_size, self.nhid)
+        rng = make_rng(rng_or_seed, typeStr="binomial")
         h_sample = rng.binomial(size=h_mean_shape,
                 n = 1, p = h_mean, dtype = h_mean.dtype)
 
