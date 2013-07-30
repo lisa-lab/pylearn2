@@ -5,6 +5,7 @@ from pylearn2.datasets.preprocessing import ExtractGridPatches, ReassembleGridPa
 from pylearn2.datasets.preprocessing import LeCunLCN, RGB_YUV
 from pylearn2.utils import as_floatX
 import numpy as np
+from pylearn2.utils.rng import rng_randn
 
 class testGlobalContrastNormalization:
     """Tests for the GlobalContrastNormalization class """
@@ -39,7 +40,7 @@ class testGlobalContrastNormalization:
         num_examples = 5
         num_features = 10
 
-        rng = np.random.RandomState([1,2,3])
+        rng = rng_randn()
 
         X = as_floatX(rng.randn(5,10))
 
@@ -67,7 +68,7 @@ def test_extract_reassemble():
     """ Tests that ExtractGridPatches and ReassembleGridPatches are
     inverse of each other """
 
-    rng = np.random.RandomState([1,3,7])
+    rng = rng_randn()
 
     topo = rng.randn(4,3*5,3*7,2)
 
@@ -101,7 +102,7 @@ class testLeCunLCN:
 
         """
 
-        rng = np.random.RandomState([1,2,3])
+        rng = rng_randn()
         X = as_floatX(rng.randn(5,32*32*3))
 
         axes = ['b', 0, 1, 'c']
@@ -140,7 +141,7 @@ class testLeCunLCN:
         Test if works fine withe different number of channel as argument
         """
 
-        rng = np.random.RandomState([1,2,3])
+        rng = rng_randn()
         X = as_floatX(rng.randn(5,32*32*3))
 
         axes = ['b', 0, 1, 'c']
@@ -163,7 +164,7 @@ def test_rgb_yuv():
 
     """
 
-    rng = np.random.RandomState([1,2,3])
+    rng = rng_randn()
     X = as_floatX(rng.randn(5,32*32*3))
 
     axes = ['b', 0, 1, 'c']
