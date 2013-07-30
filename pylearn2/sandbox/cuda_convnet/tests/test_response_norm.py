@@ -2,7 +2,7 @@ import numpy
 import theano
 from nose.plugins.skip import SkipTest
 from theano.tests.unittest_tools import verify_grad
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_normal
 
 try:
     from pylearn2.sandbox.cuda_convnet.response_norm import (
