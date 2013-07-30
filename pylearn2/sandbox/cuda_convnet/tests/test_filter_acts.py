@@ -19,7 +19,7 @@ from theano.tensor.nnet.conv import conv2d
 from theano import function
 from theano import tensor as T
 import warnings
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_uniform, make_rng
 
 def test_match_valid_conv():
 
@@ -203,7 +203,7 @@ def test_match_valid_conv_padded():
 
 
 def test_grad():
-    rng = rng_uniform()
+    rng = make_rng(typeStr=("normal", "uniform"))
     batch_size = 5
     rows = 10
     cols = 9
