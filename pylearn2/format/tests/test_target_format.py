@@ -2,7 +2,7 @@ import numpy
 import theano
 from pylearn2.format.target_format import OneHotFormatter
 from theano.scalar.basic import all_types
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from  pylearn2.utils.rng import rng_ints
 
 def test_one_hot_formatter_simple():
     def check_one_hot_formatter(seed, max_labels, dtype, ncases):
@@ -13,7 +13,7 @@ def test_one_hot_formatter_simple():
         assert len(zip(*one_hot_labels.nonzero())) == ncases
         for case, label in enumerate(integer_labels):
             assert one_hot_labels[case, label] == 1
-    rng = rng_ints()
+    rng = rng_ints(rng_or_seed = 0)
     for seed, dtype in enumerate(all_types):
         yield (check_one_hot_formatter, seed, rng.random_integers(1, 30), dtype,
                rng.random_integers(1, 100))
@@ -32,7 +32,7 @@ def test_one_hot_formatter_symbolic():
         for case, label in enumerate(integer_labels):
             assert one_hot_labels[case, label] == 1
 
-    rng = rng_ints()
+    rng = rng_ints(rng_or_seed = 0)
     for seed, dtype in enumerate(all_types):
         yield (check_one_hot_formatter_symbolic, seed,
                rng.random_integers(1, 30), dtype,
