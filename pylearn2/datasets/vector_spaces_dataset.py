@@ -25,7 +25,7 @@ from pylearn2.datasets.dataset import Dataset
 from pylearn2.datasets import control
 from pylearn2.space import VectorSpace, CompositeSpace
 from pylearn2.utils.data_specs import is_flat_specs
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from  pylearn2.utils.rng import rng_ints
 
 from theano import config
 
@@ -88,7 +88,7 @@ class VectorSpacesDataset(Dataset):
 
         self.compress = False
         self.design_loc = None
-        rng = rng_ints(rng)
+        rng = rng_ints(rng_or_seed = rng)
         # Defaults for iterators
         self._iter_mode = resolve_iterator_class('sequential')
 
