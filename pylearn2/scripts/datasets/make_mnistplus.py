@@ -25,7 +25,7 @@ from optparse import OptionParser
 
 from pylearn2.datasets import mnist
 from pylearn2.utils import string_utils
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_ints
 
 
 import warnings
@@ -129,7 +129,7 @@ def gendata(enable, os, downsample, textid=None, seed=2313, verbose=False):
     :param seed: integer for seeding RNG.
     :param verbose: bool
     """
-    rng = rng_ints(default_seed = seed)
+    rng = rng_ints(seed)
 
     data  = mnist.MNIST('train')
     test  = mnist.MNIST('test')
