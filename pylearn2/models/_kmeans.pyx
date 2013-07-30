@@ -15,6 +15,7 @@ import numpy as np
 cimport numpy as np
 from numpy.random import normal
 from pylearn2.utils import *
+from pylearn2.utils.rng import rng_ints
 
 cdef extern from "numpy/npy_math.h":
     double NPY_INFINITY
