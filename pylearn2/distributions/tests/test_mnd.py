@@ -2,7 +2,7 @@ import numpy as np
 from pylearn2.distributions.mnd import MND
 from theano import function
 from pylearn2.testing.skip import skip_if_no_scipy
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from  pylearn2.utils.rng import make_rng
 
 def test_seed_same():
     """Verifies that two MNDs initialized with the same
@@ -10,7 +10,7 @@ def test_seed_same():
 
     skip_if_no_scipy()
 
-    rng = rng_ints()
+    rng = make_rng(typeStr=("randn","randint"))
 
     #the number in the argument here is the limit on
     #seed value
@@ -49,7 +49,7 @@ def test_seed_diff():
 
     skip_if_no_scipy()
 
-    rng = rng_randn()
+    rng = make_rng(typeStr=("randint","randn"))
 
     #the number in the argument here is the limit on
     #seed value, and we subtract 1 so it will be
