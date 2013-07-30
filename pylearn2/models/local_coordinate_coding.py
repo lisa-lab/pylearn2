@@ -4,7 +4,7 @@ from pylearn2.optimization import linear_cg as cg
 from pylearn2.optimization.feature_sign import feature_sign_search
 import numpy as N
 import theano.tensor as T
-from pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import make_rng
 
 
 class LocalCoordinateCoding(object):
@@ -12,7 +12,7 @@ class LocalCoordinateCoding(object):
         self.nvis = nvis
         self.nhid = nhid
         self.coeff = float(coeff)
-        self.rng = rng_randn()
+        self.rng = make_rng(typeStr=("randn", "randint"))
 
         self.redo_everything()
 
