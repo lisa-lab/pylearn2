@@ -5,7 +5,7 @@ from pylearn2.optimization.batch_gradient_descent import BatchGradientDescent
 from theano import config
 from theano import function
 import warnings
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import make_rng
 floatX = config.floatX
 
 class Test_DiagonalMND:
@@ -32,7 +32,7 @@ class Test_DiagonalMND:
         """ checks that two models with the same parameters
         have zero KL divergence """
 
-        rng = rng_uniform()
+        rng = make_rng(typeStr=("uniform", "randn"))
 
         dim = self.dim
 
@@ -64,7 +64,7 @@ class Test_DiagonalMND:
         """ checks that the kl divergence is non-negative
             at sampled parameter values for q and p"""
 
-        rng = rng_randn()
+        rng = make_rng(typeStr=("uniform", "randn"))
 
         dim = self.dim
 
@@ -94,7 +94,7 @@ class Test_DiagonalMND:
             using batch gradient descent and checks that
             the result is zero"""
 
-        rng = rng_uniform()
+        rng = make_rng(typeStr=("uniform", "randn"))
 
         dim = self.dim
 
