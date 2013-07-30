@@ -16,7 +16,7 @@ from pylearn2.expr.probabilistic_max_pooling import max_pool_unstable
 from pylearn2.expr.probabilistic_max_pooling import max_pool_softmax_op
 from pylearn2.expr.probabilistic_max_pooling import max_pool_softmax_with_bias_op
 from pylearn2.testing import no_debug_mode
-from pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_randn, make_rng
 
 def check_correctness_channelwise(f):
 
@@ -240,7 +240,7 @@ def check_sample_correctishness(f):
     channels = 3
     pool_rows = 2
     pool_cols = 3
-    rng = rng_randn()
+    rng = make_rng(typeStr=("randn", "randint"))
     zv = rng.randn( batch_size, rows, cols, channels ).astype(config.floatX) * 2. - 3.
     top_down_v = rng.randn( batch_size, rows / pool_rows, cols / pool_cols, channels ).astype(config.floatX)
 
@@ -362,7 +362,8 @@ def check_sample_correctishness_bc01(f):
     pool_rows = 2
     pool_cols = 3
 
-    rng = rng_randn()
+    rng = make_rng(typeStr=("randn", "randint"))
+    
     zv = rng.randn( batch_size, channels, rows, cols).astype(config.floatX) * 2. - 3.
     top_down_v = rng.randn( batch_size, channels, rows / pool_rows, cols / pool_cols).astype(config.floatX)
 
@@ -484,7 +485,7 @@ def check_sample_correctishness_channelwise(f):
     pool_size = 4
     n = pool_size * 21
 
-    rng = rng_randn()
+    rng = make_rng(typeStr=("randn", "randint"))
     zv = rng.randn( batch_size, n).astype(config.floatX) * 3.5 - 5.
     top_down_v = rng.randn( batch_size, n / pool_size).astype(config.floatX)
 
