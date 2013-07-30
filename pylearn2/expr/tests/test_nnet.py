@@ -15,7 +15,7 @@ from pylearn2.expr.nnet import pseudoinverse_softmax_numpy
 from pylearn2.expr.nnet import softmax_numpy
 from pylearn2.expr.nnet import softmax_ratio
 from pylearn2.utils import sharedX
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from  pylearn2.utils.rng import rng_randn
 
 def test_softmax_ratio():
     # Tests that the numerically stabilized version of the softmax ratio
