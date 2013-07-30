@@ -2,7 +2,7 @@ import numpy as np
 from pylearn2.models.s3c import reflection_clip
 from theano import function
 from theano import shared
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_randn
 
 def test_reflection_clip():
     N = 5
