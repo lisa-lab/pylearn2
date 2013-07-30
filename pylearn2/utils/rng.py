@@ -57,9 +57,9 @@ def rng_ints(rng_or_seed = None, default_seed=None):
     return make_rng(rng_or_seed, default_seed, typeStr = 'random_integers')
 
 
-def rng_normal(rng):
+def rng_normal(rng_or_seed = None, default_seed=None):
     return make_rng(rng_or_seed, default_seed, typeStr = 'normal')
 
 
-def rng_uniform(rng):
+def rng_uniform(rng_or_seed =None, default_seed=None):
     return make_rng(rng_or_seed, default_seed, typeStr = 'uniform')
