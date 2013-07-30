@@ -19,7 +19,7 @@ from theano import shared
 from pylearn2.utils import function
 from pylearn2.costs.cost import FixedVarDescr
 from pylearn2.costs.cost import SumOfCosts
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from  pylearn2.utils.rng import rng_randn, rng_uniform
 
 class SoftmaxModel(Model):
     """A dummy model used for testing.
