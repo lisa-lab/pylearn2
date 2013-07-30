@@ -20,7 +20,7 @@ from theano.tensor.nnet.conv import conv2d
 from theano.tensor import as_tensor_variable
 from theano import function
 import warnings
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_uniform
 
 def test_match_grad_valid_conv():
 
