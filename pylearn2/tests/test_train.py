@@ -11,7 +11,7 @@ from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.models.model import Model
 from pylearn2.space import VectorSpace
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
-from pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_randn
 
 
 class DummyModel(Model):
