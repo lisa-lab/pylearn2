@@ -6,7 +6,7 @@ from pylearn2.models.rbm import GaussianBinaryRBM, BlockGibbsSampler, \
 from pylearn2.deprecated.optimizer import SGDOptimizer
 from pylearn2.rbm_tools import compute_log_z, compute_nll
 from pylearn2.energy_functions.rbm_energy import GRBM_Type_1
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_normal
 
 
 #TODO: what is/was this? I've commented it out, remove it?
@@ -21,7 +21,7 @@ if __name__ == "__main__":
                         default=False, const=True,
                         required=False, help='Disable plotting of results.')
     args = parser.parse_args()
-    data_rng = rng_ints()
+    data_rng = rng_normal()
     data = data_rng.normal(size=(500, 20)).astype(theano.config.floatX)
 
     conf = {
@@ -36,7 +36,8 @@ if __name__ == "__main__":
 
     rbm = GaussianBinaryRBM(nvis=conf['nvis'], nhid=conf['nhid'],
                          irange=0.5, energy_function_class = GRBM_Type_1)
-    rng = numpy.random.RandomState(seed=conf.get('rbm_seed', 42))
+                         
+    rng = numpy.random.RandomState(seed=conf.get('rbm_seed', 42)) #left unchanged since is an argument
     sampler = BlockGibbsSampler(rbm, data[0:100], rng,
                                   steps=conf['pcd_steps'])
     minibatch = tensor.matrix()
