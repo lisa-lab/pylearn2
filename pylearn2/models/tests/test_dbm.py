@@ -24,7 +24,7 @@ from pylearn2.space import VectorSpace
 from pylearn2.utils import sharedX
 from pylearn2.utils import safe_zip
 from pylearn2.utils.data_specs import DataSpecsMapping
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal, make_rng
+from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, make_rng
 
 
 def check_binary_samples(value, expected_shape, expected_mean, tol):
