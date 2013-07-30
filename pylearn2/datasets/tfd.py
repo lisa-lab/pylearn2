@@ -1,7 +1,7 @@
 import numpy as np
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import make_rng
 
 class TFD(dense_design_matrix.DenseDesignMatrix):
     """
@@ -62,7 +62,7 @@ class TFD(dense_design_matrix.DenseDesignMatrix):
             data_x /= 255.
 
         if shuffle:
-            rng = rng_ints(rng, default_seed = seed)
+            rng = make_rng(rng_or_seed=rng, default_seed=seed, typeStr="permutation")
             rand_idx = rng.permutation(len(data_x))
             data_x = data_x[rand_idx]
 
