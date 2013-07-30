@@ -20,7 +20,7 @@ from pylearn2.base import Block
 from pylearn2.expr.information_theory import entropy_binary_vector
 from pylearn2.models import Model
 from pylearn2.space import VectorSpace
-from pylearn2.utils.rng import *
+from pylearn2.utils.rng import rng_uniform, rng_randn, rng_ints
 
 
 warnings.warn('s3c changing the recursion limit')
@@ -437,7 +437,7 @@ class S3C(Model, Block):
         self.redo_everything()
 
     def reset_rng(self):
-        self.rng = rng_ints(default_seed = self.seed)
+        self.rng = rng_uniform(default_seed = self.seed)
 
     def redo_everything(self):
 

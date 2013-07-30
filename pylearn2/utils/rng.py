@@ -22,11 +22,22 @@ def make_rng(rng_or_seed = None, default_seed=None, typeStr=None):
     May raise a TypeError if rng_or_seed or default_seed is bad.
     """
     if rng_or_seed is not None:
-        if not hasattr(rng_or_seed, typeStr):
-            try:
-                rng = numpy.random.RandomState(rng_or_seed)
-            except ValueError:
-                raise ValueError("user passed seed should be an integer or array_like")
+
+        if isinstance(typeStr, (list,tuple)):
+            for typestr in typeStr:
+                if not hasattr(rng_or_seed, typestr):
+                    try:
+                        rng = numpy.random.RandomState(rng_or_seed)
+                    except ValueError:
+                        raise ValueError("user passed seed should be an integer or array_like")
+        else:
+            for typestr in typeStr:
+                if not hasattr(rng_or_seed, typestr):
+                    try:
+                        rng = numpy.random.RandomState(rng_or_seed)
+                    except ValueError:
+                        raise ValueError("user passed seed should be an integer or array_like")
+                    
     else:
         if default_seed is None:
             try:
@@ -37,14 +48,18 @@ def make_rng(rng_or_seed = None, default_seed=None, typeStr=None):
            rng = numpy.random.RandomState(42)
     return rng
 
+
 def rng_randn(rng_or_seed = None, default_seed=None):
     return make_rng(rng_or_seed, default_seed, typeStr = 'randn')
+
 
 def rng_ints(rng_or_seed = None, default_seed=None):
     return make_rng(rng_or_seed, default_seed, typeStr = 'random_integers')
 
+
 def rng_normal(rng):
     return make_rng(rng_or_seed, default_seed, typeStr = 'normal')
+
 
 def rng_uniform(rng):
     return make_rng(rng_or_seed, default_seed, typeStr = 'uniform')
