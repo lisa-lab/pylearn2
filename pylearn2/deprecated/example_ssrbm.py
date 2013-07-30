@@ -5,7 +5,7 @@ from pylearn2.rbm import (mu_pooled_ssRBM, PersistentCDSampler,
         training_updates)
 from pylearn2.deprecated.optimizer import SGDOptimizer
 from pylearn2.rbm_tools import compute_log_z, compute_nll
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_normal
 
 
 import utils.debug
@@ -20,7 +20,7 @@ if __name__ == "__main__":
                         default=False, const=True,
                         required=False, help='Disable plotting of results.')
     args = parser.parse_args()
-    data_rng = rng_ints()
+    data_rng = rng_normal()
     data = data_rng.normal(size=(500, 20)).astype(theano.config.floatX)
 
     conf = {
@@ -51,7 +51,8 @@ if __name__ == "__main__":
     }
     conf['W_irange'] = 2 / numpy.sqrt(conf['nvis'] * conf['nhid'])
 
-    rng = numpy.random.RandomState(seed=conf.get('rbm_seed', 42))
+        
+    rng = numpy.random.RandomState(seed=conf.get('rbm_seed', 42))   #left unchanged because its passed as arguments to multiple constructors
 
     rbm = mu_pooled_ssRBM(
             nvis=conf['nvis'],
