@@ -8,7 +8,7 @@ from pylearn2.sandbox.cuda_convnet.stochastic_pool import (stochastic_max_pool_c
                                                            weighted_max_pool_c01b)
 from pylearn2.testing.skip import skip_if_no_gpu
 from pylearn2.utils import float32_floatX
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_uniform
 
 skip_if_no_gpu()
 
