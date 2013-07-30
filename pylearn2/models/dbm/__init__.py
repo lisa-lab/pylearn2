@@ -44,7 +44,7 @@ from pylearn2.utils import py_integer_types
 from pylearn2.utils import safe_zip
 from pylearn2.utils import safe_izip
 from pylearn2.utils import sharedX
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_uniform, make_rng
 
 
 warnings.warn("DBM changing the recursion limit.")
@@ -1029,6 +1029,8 @@ class BinaryVector(VisibleLayer):
 
 
     def make_state(self, num_examples, numpy_rng):
+        
+        numpy_rng = rng_uniform(numpy_rng)
         if not hasattr(self, 'copies'):
             self.copies = 1
         if self.copies != 1:
@@ -1991,6 +1993,7 @@ class Softmax(HiddenLayer):
            (not a mean field state) for this variable.
         """
 
+        numpy_rng = make_rng(numpy_rng, typeStr=("randint"))
         if self.copies != 1:
             raise NotImplementedError("need to make self.copies samples and average them together.")
 
