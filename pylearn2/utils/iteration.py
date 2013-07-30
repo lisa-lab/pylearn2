@@ -24,7 +24,7 @@ from theano import config
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_zip
 from pylearn2.utils.data_specs import is_flat_specs
-from pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_ints
 
 
 class SubsetIterator(object):
@@ -139,6 +139,7 @@ class ShuffledSequentialSubsetIterator(SequentialSubsetIterator):
             num_batches,
             None
         )
+        
         rng = rng_ints(rng)
         self._shuffled = numpy.arange(self._dataset_size)
         self._rng.shuffle(self._shuffled)
@@ -218,11 +219,8 @@ class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
 class BatchwiseShuffledSequentialIterator(SequentialSubsetIterator):
     """ Returns minibatches randomly, but sequential inside each minibatch"""
 
-    def __init__(self, dataset_size, batch_size, num_batches = None, rng=None):
-        if rng is not None and hasattr(rng, 'random_integers'):
-            self._rng = rng
-        else:
-            self._rng = numpy.random.RandomState(rng)
+    def __init__(self, dataset_size, batch_size, num_batches = None, rng=None)
+        rng = rng_ints()
 
         assert num_batches is None or num_batches >= 0
         self._dataset_size = dataset_size
