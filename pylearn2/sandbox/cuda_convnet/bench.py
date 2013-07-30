@@ -14,11 +14,11 @@ from theano.tensor.nnet.conv import conv2d
 from theano import function
 import time
 import matplotlib.pyplot as plt
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_uniform
 
 def make_funcs(batch_size, rows, cols, channels, filter_rows,
         num_filters):
-    rng = rng_ints()
+    rng = rng_uniform()
 
     filter_cols = filter_rows
 
