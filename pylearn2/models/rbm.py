@@ -967,7 +967,7 @@ class mu_pooled_ssRBM(RBM):
             W_irange=None,
             rng=None):
        
-        rng=make_rng(typeStr=("rand"))
+        rng=make_rng(rng_or_seed=rng, typeStr=("rand"))
         self.nhid = nhid
         self.nslab = nhid * n_s_per_h
         self.n_s_per_h = n_s_per_h
@@ -1026,7 +1026,7 @@ class mu_pooled_ssRBM(RBM):
         # sample h given v
         h_mean = self.mean_h_given_v(v)
         h_mean_shape = (batch_size, self.nhid)
-        rng = make_rng(rng_or_seed, typeStr="binomial")
+        rng = make_rng(rng_or_seed=rng, typeStr=("binomial", "normal"))
         h_sample = rng.binomial(size=h_mean_shape,
                 n = 1, p = h_mean, dtype = h_mean.dtype)
 
