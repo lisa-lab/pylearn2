@@ -425,16 +425,16 @@ class BoltzmannMachine(Model):
                 # These layers have already been updated; their corresponding
                 # state should come from *layer_to_updated_state*.
                 for other_layer in layers[:i]:
-                    other_state = layer_to_updated_state[other_layer]
-                    W = weights[(other_layer, layer)]
                     if self.connectivity[(other_layer, layer)] is not None:
+                        other_state = layer_to_updated_state[other_layer]
+                        W = weights[(other_layer, layer)]
                         z += theano.tensor.dot(other_state, W)
                 # These layers have yet to be updated; their corresponding
                 # state should come from *layer_to_state*.
                 for other_layer in layers[i + 1:]:
-                    W = weights[(layer, other_layer)]
-                    other_state = layer_to_state[other_layer]
                     if self.connectivity[(layer, other_layer)] is not None:
+                        W = weights[(layer, other_layer)]
+                        other_state = layer_to_state[other_layer]
                         z += theano.tensor.dot(other_state, W.T)
 
                 p = layer.sampling_function(z)
@@ -523,6 +523,93 @@ class BoltzmannMachine(Model):
                                              n_steps=n_steps)
 
         return layer_to_updated_state
+
+    def conditional_expectations(self, layer_to_state):
+        layer_to_conditional_expectation = OrderedDict()
+
+        layers = self.get_all_layers()
+        # Validate layer_to_state
+        assert all([layer in layer_to_state.keys() for layer in layers])
+        assert all([layer in layers for layer in layer_to_state.keys()])
+
+        for i, layer in enumerate(layers):
+            # Transform parameters for sampling in this layer's space (if
+            # necessary)
+            weights, bias = \
+                layer.format_parameter_space(self.weights,
+                                             self.biases[layer])
+
+            # Compute the argument to the sampling function
+            z = bias
+            for other_layer in layers[:i]:
+                if self.connectivity[(other_layer, layer)] is not None:
+                    other_state = layer_to_state[other_layer]
+                    W = weights[(other_layer, layer)]
+                    z += theano.tensor.dot(other_state, W)
+            for other_layer in layers[i + 1:]:
+                if self.connectivity[(layer, other_layer)] is not None:
+                    W = weights[(layer, other_layer)]
+                    other_state = layer_to_state[other_layer]
+                    z += theano.tensor.dot(other_state, W.T)
+
+            layer_to_conditional_expectation[layer] = \
+                layer.sampling_function(z)
+
+        return layer_to_conditional_expectation
+
+    def extract_samples_from_visible_state(self, layer_to_state):
+        """
+        Maps the activation of visible units in its layer-wise representation
+        to the actual visible sample.
+
+        Parameters
+        ----------
+        layer_to_state : dict mapping `BoltzmannLayer` objects to tensor_like \
+                         variables
+            Dictionary mapping from layers to their corresponding state.
+        """
+        layers = self.get_all_layers()
+        # Validate layer_to_state
+        assert all([layer in layer_to_state.keys() for layer in layers])
+        assert all([layer in layers for layer in layer_to_state.keys()])
+
+        visible_state = [layer_to_state[visible_layer].get_value()
+                         for visible_layer in self.visible_layers]
+
+        samples = numpy.zeros((visible_state[0].shape[0],
+                               self.input_space.dim),
+                              dtype=theano.config.floatX)
+
+        for state, partition in safe_zip(visible_state, self.data_partition):
+            samples[:, partition] = state
+
+        return samples
+
+    def update_visible_state_with_samples(self, samples, layer_to_state):
+        """
+        Assigns the value of actual visible samples to the shared variables
+        representing the activation of visible units in a layer-wise
+        representation.
+
+        Parameters
+        ----------
+        layer_to_state : dict mapping `BoltzmannLayer` objects to tensor_like \
+                         variables
+            Dictionary mapping from layers to their corresponding state.
+        """
+        layers = self.get_all_layers()
+        # Validate layer_to_state
+        assert all([layer in layer_to_state.keys() for layer in layers])
+        assert all([layer in layers for layer in layer_to_state.keys()])
+
+        visible_state = [samples[:, partition] for
+                         partition in self.data_partition]
+        visible_shared_state = [layer_to_state[layer] for layer
+                                in self.visible_layers]
+
+        for shared_state, state in safe_zip(visible_shared_state,
+                                            visible_state):
+            shared_state.set_value(state)
 
 
 class BoltzmannLayer(Model):
