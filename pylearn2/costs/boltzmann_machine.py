@@ -41,7 +41,7 @@ class BaseCD(Cost):
     def get_gradients(self, model, data):
         self.get_data_specs(model)[0].validate(data)
 
-        X = data
+        X = [data[:, partition] for partition in model.data_partition]
         Y = None
 
         pos_phase_grads, pos_updates = self._get_positive_phase(model, X, Y)

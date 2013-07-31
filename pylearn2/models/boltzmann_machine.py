@@ -15,6 +15,7 @@ from theano.compat.python2x import OrderedDict
 from pylearn2.expr.nnet import sigmoid_numpy
 from pylearn2.utils import sharedX
 from pylearn2.utils import py_integer_types
+from pylearn2.utils import safe_zip
 from pylearn2.models.model import Model
 from pylearn2.space import VectorSpace
 from pylearn2.space import CompositeSpace
@@ -39,7 +40,7 @@ class BoltzmannMachine(Model):
     """
 
     def __init__(self, visible_layers, hidden_layers, irange=0.05,
-                 connectivity=None):
+                 connectivity=None, data_partition=None):
         """
         Parameters
         ----------
@@ -56,18 +57,18 @@ class BoltzmannMachine(Model):
 
         self.irange = irange
         self.connectivity = connectivity
+        self.data_partition = data_partition
 
         self._initialize_connectivity()
+        self._initialize_data_partition()
         self.biases = self._initialize_biases()
         self.weights = self._initialize_weights()
 
-        self.input_space = CompositeSpace([visible_layer.get_input_space()
-                                           for visible_layer in
-                                           self.visible_layers])
+        nvis = numpy.sum([layer.n_units for layer in self.visible_layers])
+        self.input_space = VectorSpace(nvis)
 
     def get_input_source(self):
-        return tuple([visible_layer.get_input_source() for
-                      visible_layer in self.visible_layers])
+        return 'features'
 
     def get_all_layers(self):
         """
@@ -111,7 +112,7 @@ class BoltzmannMachine(Model):
                 for layer2 in layers[i + 1:]:
                     self.connectivity[(layer1, layer2)] = numpy.ones(
                         shape=(layer1.n_units, layer2.n_units),
-                        dtype='int'
+                        dtype=theano.config.floatX
                     )
         # Validate self.connectivity's format
         else:
@@ -172,6 +173,41 @@ class BoltzmannMachine(Model):
                         # Replace zero-valued connectivty patterns by None
                         if numpy.equal(0, pattern).all():
                             self.connectivity[(layer1, layer2)] = None
+
+    def _initialize_data_partition(self):
+        """
+        Initializes the data partition as a trivial partition if no data
+        partition was passed as constructor argument. Tests the validity of the
+        partition if one was provided.
+        """
+        # If None is passed as data_partition, we consider data is partitioned
+        # trivially
+        if self.data_partition is None:
+            data_partition = []
+            begin_index = 0
+            for visible_layer in self.visible_layers:
+                end_index = begin_index + visible_layer.n_units
+                data_partition.append(range(begin_index, end_index))
+                begin_index = end_index
+            self.data_partition = data_partition
+        # Otherwise we need to make sure it is a valid partition
+        else:
+            nvis = numpy.sum([layer.n_units for layer in self.visible_layers])
+            data_partition = self.data_partition
+            indexes = []
+            for partition in data_partition:
+                for index in partition:
+                    # Make sure an index is found at most once in the partition
+                    if not index in indexes:
+                        indexes.append(index)
+                    else:
+                        raise ValueError("the data partition provided is " +
+                                         "not a valid partition")
+
+            # Make sure all indexes are found at least once in the partition
+            if not numpy.equal(numpy.sort(indexes), numpy.arange(nvis)).all():
+                raise ValueError("the data partition provided is not a " +
+                                 "valid partition")
 
     def _initialize_biases(self):
         """
