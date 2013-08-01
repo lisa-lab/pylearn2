@@ -9,7 +9,7 @@ __email__ = "goodfeli@iro"
 
 import numpy as N
 import theano.tensor as T
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_randn
 
 
 import theano
@@ -31,7 +31,7 @@ class DifferentiableSparseCoding(object):
 
         self.predictor_learning_rate = self.learning_rate
 
-        self.rng = rng_ints()
+        self.rng = rng_randn()
 
         self.error_record = []
         self.ERROR_RECORD_MODE_MONITORING = 0
