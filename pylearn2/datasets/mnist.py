@@ -12,7 +12,7 @@ from pylearn2.datasets import control
 from pylearn2.utils import serial
 from pylearn2.utils.mnist_ubyte import read_mnist_images
 from pylearn2.utils.mnist_ubyte import read_mnist_labels
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_ints
 
 class MNIST(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, which_set, center = False, shuffle = False,
