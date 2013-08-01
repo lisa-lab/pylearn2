@@ -40,7 +40,7 @@ def make_rng(rng_or_seed = None, default_seed=None, typeStr=None):
                         raise ValueError("user passed seed should be an integer or array_like")
                     
     else:
-        if default_seed is None:
+        if default_seed is not None:
             try:
                 rng = numpy.random.RandomState(default_seed)
             except ValueError:
