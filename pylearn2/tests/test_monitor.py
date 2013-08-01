@@ -18,7 +18,7 @@ from pylearn2.testing.prereqs import ReadVerifyPrereq
 from pylearn2.monitor import _err_no_data
 from pylearn2.monitor import _err_ambig_data
 from pylearn2.testing.datasets import ArangeDataset
-from pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_uniform
 
 
 class DummyModel(Model):
