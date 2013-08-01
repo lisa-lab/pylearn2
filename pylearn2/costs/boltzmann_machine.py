@@ -105,7 +105,6 @@ class BaseCD(Cost):
 
         layer_to_updated_state = model.variational_inference(
             layer_to_state=layer_to_symbolic_state,
-            theano_rng=self.theano_rng,
             n_steps=self.num_gibbs_steps
         )
 

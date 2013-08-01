@@ -446,10 +446,10 @@ class BoltzmannMachine(Model):
 
         return layer_to_updated_state
 
-    def variational_inference(self, layer_to_state, theano_rng, n_steps=5):
+    def variational_inference(self, layer_to_state, n_steps=5):
         """
-        Samples from the inferred hidden unit probabilities given the state
-        of visible units.
+        Computes the inferred hidden unit probabilities given the state of
+        visible units.
 
         Parameters
         ----------
@@ -457,8 +457,6 @@ class BoltzmannMachine(Model):
                          variables
             Dictionary mapping from layers to their corresponding state. Only
             hidden units will be updated.
-        theano_rng : theano.sandbox.rng_mrg.MRG_RandomStreams
-            A random number generator from which samples are drawn
         n_steps : int, optional
             Number of sampling steps
 
@@ -511,16 +509,54 @@ class BoltzmannMachine(Model):
         #     p(h_i = 1 | v) ~= exp(c_i + W_i.v + sum_{k != i} Y_k.h_k')
         #                       / sum_{h_i"} exp(h_i"(c_i + W_i.v
         #                                             + sum_{k != i} Y_k.h_k'))
-        #
-        # It turns out this is equivalent to sampling with visible layers
-        # clamped, which is why we use a call to `self.sample` to implement
-        # this method.
 
-        layers_to_clamp = self.visible_layers
-        layer_to_updated_state = self.sample(layer_to_state=layer_to_state,
-                                             theano_rng=theano_rng,
-                                             layers_to_clamp=layers_to_clamp,
-                                             n_steps=n_steps)
+        # Validate n_steps
+        assert isinstance(n_steps, py_integer_types)
+        assert n_steps > 0
+
+        # Implement the n_steps > 1 case by repeatedly calling the n_steps == 1
+        # case
+        if n_steps != 1:
+            for i in xrange(n_steps):
+                layer_to_state = self.variational_inference(layer_to_state,
+                                                            n_steps=1)
+            return layer_to_state
+
+        layer_to_updated_state = OrderedDict()
+
+        layers = self.get_all_layers()
+        # Validate layer_to_state
+        assert all([layer in layer_to_state.keys() for layer in layers])
+        assert all([layer in layers for layer in layer_to_state.keys()])
+
+        for i, layer in enumerate(layers):
+            if layer in self.hidden_layers:
+                # Transform parameters for sampling in this layer's space (if
+                # necessary)
+                weights, bias = \
+                    layer.format_parameter_space(self.weights,
+                                                 self.biases[layer])
+
+                # Compute the argument to the sampling function
+                z = bias
+                # These layers have already been updated; their corresponding
+                # state should come from *layer_to_updated_state*.
+                for other_layer in layers[:i]:
+                    if self.connectivity[(other_layer, layer)] is not None:
+                        other_state = layer_to_updated_state[other_layer]
+                        W = weights[(other_layer, layer)]
+                        z += theano.tensor.dot(other_state, W)
+                # These layers have yet to be updated; their corresponding
+                # state should come from *layer_to_state*.
+                for other_layer in layers[i + 1:]:
+                    if self.connectivity[(layer, other_layer)] is not None:
+                        W = weights[(layer, other_layer)]
+                        other_state = layer_to_state[other_layer]
+                        z += theano.tensor.dot(other_state, W.T)
+
+                layer_to_updated_state[layer] = layer.sampling_function(z)
+            else:
+                layer_to_updated_state[layer] = layer_to_state[layer]
 
         return layer_to_updated_state
 
