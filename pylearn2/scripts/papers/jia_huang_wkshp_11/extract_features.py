@@ -28,7 +28,7 @@ from pylearn2.datasets.cifar100 import CIFAR100
 from pylearn2.datasets.tl_challenge import TL_Challenge
 from pylearn2.expr.coding import triangle_code
 from pylearn2.space import VectorSpace
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_ints
 
 
 import sys
