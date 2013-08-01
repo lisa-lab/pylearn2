@@ -11,7 +11,7 @@ import warnings
 from theano import config
 from theano import function
 import theano.tensor as T
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_randn
 
 
 from pylearn2.expr.normalize import (CrossChannelNormalization,
