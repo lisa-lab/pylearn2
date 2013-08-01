@@ -2,7 +2,7 @@ import hashlib
 import itertools
 import numpy
 
-from  pylearn2.utils.rng import rng_randn, rng_ints, rng_uniform, rng_normal
+from pylearn2.utils.rng import rng_normal
 from pylearn2.train_extensions.window_flip import WindowAndFlipC01B
 
 from pylearn2.datasets.dense_design_matrix import (
