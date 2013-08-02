@@ -51,6 +51,14 @@ class BoltzmannMachine(Model):
         irange : float
             Range of the uniform distribution from which weights are
             initialized (:math:`w~U(-irange, irange)`)
+        connectivity : dict mapping (`BoltzmannLayer`, `BoltzmannLayer`)\
+                       tuples to binary `numpy.ndarray` or None, optional
+            Describes the connectivity pattern between all layers. Maps a pair
+            of layers to a binary weights masking matrix in which element
+            (i, j) is 1 if unit i of the first layer is connected to unit j
+            of the second layer and 0 otherwise. If the matrix is replaced by
+            None, this means the two layers are conditionally independent one
+            from another given all other layers.
         """
         self.visible_layers = visible_layers
         self.hidden_layers = hidden_layers
