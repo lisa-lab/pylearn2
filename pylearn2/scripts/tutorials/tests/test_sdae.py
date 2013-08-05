@@ -18,7 +18,7 @@ def train_yaml(yaml_file):
 
 def train_layer1(yaml_file_path, save_path):
 
-    yaml = open("{}/dae_l1.yaml".format(yaml_file_path), 'r').read()
+    yaml = open("{0}/dae_l1.yaml".format(yaml_file_path), 'r').read()
     hyper_params = {'train_stop' : 50,
                     'batch_size' : 50,
                     'monitoring_batches' : 1,
@@ -30,7 +30,7 @@ def train_layer1(yaml_file_path, save_path):
 
 def train_layer2(yaml_file_path, save_path):
 
-    yaml = open("{}/dae_l2.yaml".format(yaml_file_path), 'r').read()
+    yaml = open("{0}/dae_l2.yaml".format(yaml_file_path), 'r').read()
     hyper_params = {'train_stop' : 50,
                     'batch_size' : 50,
                     'monitoring_batches' : 1,
@@ -43,7 +43,7 @@ def train_layer2(yaml_file_path, save_path):
 
 def train_mlp(yaml_file_path, save_path):
 
-    yaml = open("{}/dae_mlp.yaml".format(yaml_file_path), 'r').read()
+    yaml = open("{0}/dae_mlp.yaml".format(yaml_file_path), 'r').read()
     hyper_params = {'train_stop' : 50,
                     'valid_stop' : 50050,
                     'batch_size' : 50,
@@ -60,11 +60,11 @@ def test_sda():
 
     try:
         train_layer1(yaml_file_path, save_path)
+        train_layer2(yaml_file_path, save_path)
+        train_mlp(yaml_file_path, save_path)
     except NoDataPathError:
         raise SkipTest("PYLEARN2_DATA_PATH environment variable not defined")
 
-    train_layer2(yaml_file_path, save_path)
-    train_mlp(yaml_file_path, save_path)
     try:
         os.remove("{}/dae_l1.pkl".format(save_path))
         os.remove("{}/dae_l2.pkl".format(save_path))
