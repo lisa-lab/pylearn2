@@ -106,8 +106,7 @@ Roughly in order of what you'll want to check out:
 Community
 =========
 
-* Register and post to `pylearn-users`_ for general inquiries and support
-questions or if you want to talk to other users.
+* Register and post to `pylearn-users`_ for general inquiries and support questions or if you want to talk to other users.
 
 * Register and post to `pylearn-dev`_ if you want to talk to the developers. We don't bite.
 
