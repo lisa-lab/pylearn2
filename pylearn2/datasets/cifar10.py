@@ -5,6 +5,7 @@ import numpy as np
 N = np
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.expr.preprocessing import global_contrast_normalize
+from pylearn2.utils.rng import make_rng
 
 class CIFAR10(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, which_set, center = False, rescale = False, gcn = None,
@@ -17,7 +18,7 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         # (as it is here)
 
         self.axes = axes
-
+        
         # we define here:
         dtype  = 'uint8'
         ntrain = 50000
@@ -30,6 +31,10 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         self.n_classes = 10
         self.label_names = ['airplane', 'automobile', 'bird', 'cat', 'deer',
                             'dog', 'frog','horse','ship','truck']
+
+        #assigning a random state
+        self.rng = make_rng()
+        print self.rng
 
         # prepare loading
         fnames = ['data_batch_%i' % i for i in range(1,6)]

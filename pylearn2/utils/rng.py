@@ -21,6 +21,8 @@ def make_rng(rng_or_seed = None, default_seed=None, typeStr=None):
     
     May raise a TypeError if rng_or_seed or default_seed is bad.
     """
+    #import pdb
+    #pdb.set_trace()
     if rng_or_seed is not None:
 
         if isinstance(typeStr, (list,tuple)):
@@ -31,13 +33,16 @@ def make_rng(rng_or_seed = None, default_seed=None, typeStr=None):
                         rng = numpy.random.RandomState(rng_or_seed)
                     except ValueError:
                         raise ValueError("user passed seed should be an integer or array_like")
+                else:
+                    rng = rng_or_seed
         else:
-            for typestr in typeStr:
-                if not hasattr(rng_or_seed, typestr):
-                    try:
-                        rng = numpy.random.RandomState(rng_or_seed)
-                    except ValueError:
-                        raise ValueError("user passed seed should be an integer or array_like")
+            if not hasattr(rng_or_seed, typeStr):
+                try:
+                    rng = numpy.random.RandomState(rng_or_seed)
+                except ValueError:
+                    raise ValueError("user passed seed should be an integer or array_like")
+            else:
+                rng = rng_or_seed
                     
     else:
         if default_seed is not None:

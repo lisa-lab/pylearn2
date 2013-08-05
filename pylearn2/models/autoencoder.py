@@ -17,7 +17,9 @@ from pylearn2.models import Model
 from pylearn2.utils import sharedX
 from pylearn2.utils.theano_graph import is_pure_elemwise
 from pylearn2.space import VectorSpace
-from pylearn2.utils import *
+#from pylearn2.utils import *
+from pylearn2.utils.rng import rng_randn
+
 
 theano.config.warn.sum_div_dimshuffle_bug = False
 

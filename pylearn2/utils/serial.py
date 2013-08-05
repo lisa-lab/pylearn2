@@ -92,6 +92,8 @@ def load(filepath, recurse_depth=0, retry = True):
             print "Waiting " + str(nsec) + " seconds and trying again"
             time.sleep(nsec)
             return load(filepath, recurse_depth + 1, retry)
+        
+    print filepath
 
     try:
         if not joblib_available:

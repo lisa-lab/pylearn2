@@ -20,7 +20,7 @@ from pylearn2.utils.rng import make_rng
 # Tests that running FilterActs with no padding is the same as running
 # theano's conv2D in valid mode
 
-rng = make_rng(typeStr=("uniform","randint")
+rng = make_rng(typeStr=("uniform","randint"))
 
 batch_size = 128
 rows = 32

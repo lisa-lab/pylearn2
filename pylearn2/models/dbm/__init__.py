@@ -44,7 +44,7 @@ from pylearn2.utils import py_integer_types
 from pylearn2.utils import safe_zip
 from pylearn2.utils import safe_izip
 from pylearn2.utils import sharedX
-from pylearn2.utils.rng import rng_uniform, make_rng
+from pylearn2.utils.rng import rng_uniform, make_rng, rng_ints
 
 
 warnings.warn("DBM changing the recursion limit.")

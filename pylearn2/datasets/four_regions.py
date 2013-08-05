@@ -89,7 +89,8 @@ class FourRegions(DenseDesignMatrix):
     _default_seed = (2013, 05, 17)
 
     def __init__(self, num_examples, one_hot=False, rng=None):
-        rng = rng_uniform(rng, default_seed = _default_seed)
+        rng = rng_uniform(rng, default_seed = self._default_seed)
+        #rng = rng_uniform(rng, default_seed = (2013, 05, 17))
         X = rng.uniform(-1, 1, size=(num_examples, 2))
         if not one_hot:
             y = _four_regions_labels(X)

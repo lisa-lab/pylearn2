@@ -11,7 +11,7 @@ from theano import config
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load
 from pylearn2.utils.string_utils import preprocess
-from  pylearn2.utils.rng import make_rng
+from  pylearn2.utils.rng import make_rng, rng_ints
 
 
 class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):

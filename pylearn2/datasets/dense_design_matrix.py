@@ -121,7 +121,7 @@ class DenseDesignMatrix(Dataset):
 
         self.compress = False
         self.design_loc = None
-        rng = rng_ints(rng)
+        self.rng = rng_ints(rng)
         # Defaults for iterators
         self._iter_mode = resolve_iterator_class('sequential')
         self._iter_topo = False

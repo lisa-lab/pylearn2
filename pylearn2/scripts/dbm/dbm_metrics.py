@@ -48,7 +48,7 @@ from pylearn2.utils.rng import make_rng
 
 floatX = theano.config.floatX
 logging.basicConfig(level=logging.INFO)
-rng = make_rng(typeStr=("rand", "random_sample")
+rng = make_rng(typeStr=("rand", "random_sample"))
 theano_rng = RandomStreams(rng.randint(2**30))
 
 

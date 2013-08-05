@@ -156,7 +156,7 @@ def rbm_ais(rbm_params, n_runs, visbias_a=None, data=None,
     """
     (weights, visbias, hidbias) = rbm_params
 
-    rng = make_rng(rng, seed, ("random_sample")
+    rng = make_rng(rng, seed, ("random_sample"))
 
     if data is None:
         if visbias_a is None:

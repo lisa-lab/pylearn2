@@ -94,7 +94,7 @@ class Test_DiagonalMND:
             using batch gradient descent and checks that
             the result is zero"""
 
-        rng = make_rng(typeStr=("uniform", "randn"))
+        rng = make_rng([1,2,3], typeStr=("uniform", "randn"))
 
         dim = self.dim
 

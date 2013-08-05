@@ -12,7 +12,7 @@ from pylearn2.datasets import control
 from pylearn2.utils import serial
 from pylearn2.utils.mnist_ubyte import read_mnist_images
 from pylearn2.utils.mnist_ubyte import read_mnist_labels
-from pylearn2.utils.rng import rng_ints
+from pylearn2.utils.rng import rng_ints, make_rng
 
 class MNIST(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, which_set, center = False, shuffle = False,
@@ -78,6 +78,8 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
             else:
                 assert False
 
+            #making default random state
+            self.rng = make_rng()
 
             if center:
                 topo_view -= topo_view.mean(axis=0)

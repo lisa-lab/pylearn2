@@ -72,7 +72,7 @@ class BGD(TrainingAlgorithm):
         self.termination_criterion = termination_criterion
         if seed is None:
             seed = [2012, 10, 16]
-        rng = rng_ints(default_seed = seed)
+        self.rng = rng_ints(default_seed = seed)
 
     def setup(self, model, dataset):
         """

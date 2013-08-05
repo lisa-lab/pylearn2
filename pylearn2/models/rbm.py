@@ -23,7 +23,7 @@ from pylearn2.expr.nnet import inverse_sigmoid_numpy
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.space import VectorSpace
 from pylearn2.utils import safe_union
-from pylearn2.utils import *
+#from pylearn2.utils import *
 from pylearn2.utils.rng import make_rng, rng_normal, rng_ints, rng_uniform
 
 theano.config.warn.sum_div_dimshuffle_bug = False

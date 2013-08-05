@@ -37,7 +37,7 @@ from pylearn2.utils import py_integer_types
 from pylearn2.utils import safe_union
 from pylearn2.utils import safe_zip
 from pylearn2.utils import sharedX
-from pylearn2.utils.rng import rng_uniform
+from pylearn2.utils.rng import rng_ints, rng_uniform
 
 warnings.warn("MLP changing the recursion limit.")
 # We need this to be high enough that the big theano graphs we make
@@ -226,7 +226,7 @@ class MLP(Layer):
             return 1. / x
 
     def setup_rng(self):
-        self.rng = rng_ints(default_seed = self.seed)
+        self.rng = rng_ints(self.seed)
 
     def get_default_cost(self):
         return Default()
