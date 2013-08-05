@@ -74,7 +74,7 @@ Dependencies
 ============
 
 * `Theano <http://deeplearning.net/software/theano/>`_ and its dependencies are required to use
-  Pylearn2. Since pylearn2 is under rapid development some of its feature might depends on the `bleeding-edge version of Theano <http://deeplearning.net/software/theano/install.html#bleeding-edge-install-instructions>`_.
+  Pylearn2. Since pylearn2 is under rapid development some of its features might depend on the `bleeding-edge version of Theano <http://deeplearning.net/software/theano/install.html#bleeding-edge-install-instructions>`_.
 * PyYAML is required for most functionality.
 * PIL is required for some image-related functionality.
 * Some dependencies are optional:
