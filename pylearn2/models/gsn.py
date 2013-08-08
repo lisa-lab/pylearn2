@@ -106,6 +106,9 @@ class GSN(StackedBlocks, Model):
         # easy way to turn off corruption (True => corrupt, False => don't)
         self._corrupt_switch = True
 
+        # easy way to not use bias (True => use bias, False => don't)
+        self._bias_switch = True
+
         for i, ae in enumerate(self.aes):
             if i != 0:
                 if ae.weights is None:
@@ -168,8 +171,9 @@ class GSN(StackedBlocks, Model):
 
     @classmethod
     def new_ae(cls, layer_sizes, vis_corruptor=None, hidden_pre_corruptor=None,
-                   hidden_post_corruptor=None, visible_act="sigmoid",
-                   hidden_act="tanh", tied=True):
+               hidden_post_corruptor=None, visible_act="sigmoid",
+               visible_sampler=BinomialSampler(),
+               hidden_act="tanh", tied=True, only_corrupt_top=True):
         """
         This is just a convenience method to initialize GSN instances. The
         __init__ method is far more general, but this should capture most
@@ -202,38 +206,40 @@ class GSN(StackedBlocks, Model):
             The value for visible_act must be a valid value for the act_enc
             parameter of Autoencoder.__init__
         """
-        num_layers = len(layer_sizes)
-        activations = [visible_act] + [hidden_act] * (num_layers - 1)
+        num_hidden = len(layer_sizes) - 1
+        activations = [visible_act] + [hidden_act] * num_hidden
 
-        pre_corruptors = [None] * (num_layers - 1) + [hidden_pre_corruptor]
-        post_corruptors = [vis_corruptor] + [None] * (num_layers - 2) +\
-            [hidden_post_corruptor]
+        if not only_corrupt_top:
+            pre_corruptors = [None] + [hidden_pre_corruptor] * num_hidden
+            post_corruptors = [vis_corruptor] + [hidden_post_corruptor] * num_hidden
+        else:
+            pre_corruptors = [None] * num_hidden + [hidden_pre_corruptor]
+            post_corruptors = [vis_corruptor] + [None] * (num_hidden - 1) +\
+                [hidden_post_corruptor]
 
         # binomial sampling on visible layer by default
-        layer_samplers = [BinomialSampler()] + [None] * (num_layers - 1)
+        layer_samplers = [visible_sampler] + [None] * num_hidden
 
         return cls.new(layer_sizes, activations, pre_corruptors, post_corruptors,
                        layer_samplers, tied=tied)
 
     @classmethod
-    def new_classifier(cls, layer_sizes, vis_corruptor=None,
+    def new_classifier(cls, layer_sizes, vis1_pre_corruptor=None,
+                       vis1_post_corruptor=None, vis2_pre_corruptor=None,
+                       vis2_post_corruptor=None,
                        hidden_pre_corruptor=None, hidden_post_corruptor=None,
                        visible_act="sigmoid", hidden_act="tanh",
-                       classifier_act=plushmax, tied=True, only_corrupt_top=False):
+                       classifier_act=plushmax, tied=True):
         """
         FIXME: documentation
         """
         num_hidden = len(layer_sizes) - 2
         activations = [visible_act] + [hidden_act] * (num_hidden) + [classifier_act]
 
-        if not only_corrupt_top:
-            pre_corruptors = [None] + [hidden_pre_corruptor] * num_hidden + [None]
-            post_corruptors = [vis_corruptor] + [hidden_post_corruptor] * num_hidden +\
-                [None]
-        else:
-            pre_corruptors = [None] * num_hidden + [hidden_pre_corruptor] + [None]
-            post_corruptors = [vis_corruptor] + [None] * (num_hidden - 1) +\
-                [hidden_post_corruptor] + [None]
+        pre_corruptors = [vis1_pre_corruptor] + [hidden_pre_corruptor] * num_hidden +\
+            [vis2_pre_corruptor]
+        post_corruptors = [vis1_post_corruptor] + [hidden_post_corruptor] * num_hidden +\
+            [vis2_post_corruptor]
 
         layer_samplers = [BinomialSampler()] + [None] * num_hidden +\
             [MultinomialSampler()]
@@ -298,7 +304,7 @@ class GSN(StackedBlocks, Model):
 
     def _make_or_get_compiled(self, indices, clamped=False):
         def compile_f_init():
-            mb = T.fmatrices(len(indices))
+            mb = T.matrices(len(indices))
             zipped = safe_zip(indices, mb)
             f_init = theano.function(mb,
                                      self._set_activations(zipped, corrupt=True))
@@ -310,16 +316,17 @@ class GSN(StackedBlocks, Model):
             return wrap_f_init
 
         def compile_f_step():
-            prev = T.fmatrices(len(self.activations))
+            prev = T.matrices(len(self.activations))
             if clamped:
-                _initial = T.fmatrices(len(indices))
-                _clamps = T.fmatrices(len(indices))
+                _initial = T.matrices(len(indices))
+                _clamps = T.matrices(len(indices))
 
                 z = self._update(copy.copy(prev),
                                  clamped=safe_zip(indices, _initial, _clamps),
                                  return_activations=True)
                 f = theano.function(prev + _initial + _clamps, z,
-                                    on_unused_input='ignore')
+                                    on_unused_input='ignore',
+                                    allow_input_downcast=True)
             else:
                 z = self._update(copy.copy(prev), return_activations=True)
                 f = theano.function(prev, z, on_unused_input='ignore')
@@ -636,11 +643,11 @@ class GSN(StackedBlocks, Model):
             which layers should be updated.
             Must be able to iterate over idx_iter multiple times.
         """
-        from_above = lambda i: (self.aes[i].visbias +
+        from_above = lambda i: (self.aes[i].visbias if self._bias_switch else 0 +
                                 T.dot(activations[i + 1],
                                       self.aes[i].w_prime))
 
-        from_below = lambda i: (self.aes[i - 1].hidbias +
+        from_below = lambda i: (self.aes[i - 1].hidbias if self._bias_switch else 0 +
                                 T.dot(activations[i - 1],
                                      self.aes[i - 1].weights))
 

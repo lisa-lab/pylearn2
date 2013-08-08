@@ -226,9 +226,8 @@ class MultinomialSampler(Corruptor):
         Parameters
         ----------
         x : tensor_like
-            x must be a matrix where each row sums to 1.0. A good example of this
-            is the output of a softmax function.
-
+            x must be a matrix where all elements are non-negative (with at least
+            one non-zero element)
         Returns
         ---------
         y : tensor_like
@@ -236,7 +235,8 @@ class MultinomialSampler(Corruptor):
             and can be viewed as the outcome of the multinomial trial defined by
             the probabilities of that row in x.
         """
-        return self.s_rng.multinomial(pvals=x, dtype=theano.config.floatX)
+        normalized = x / x.sum(axis=1, keepdims=True)
+        return self.s_rng.multinomial(pvals=normalized, dtype=theano.config.floatX)
 
 class ComposedCorruptor(Corruptor):
     def __init__(self, *corruptors):
