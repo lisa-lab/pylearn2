@@ -643,11 +643,11 @@ class GSN(StackedBlocks, Model):
             which layers should be updated.
             Must be able to iterate over idx_iter multiple times.
         """
-        from_above = lambda i: (self.aes[i].visbias if self._bias_switch else 0 +
+        from_above = lambda i: ((self.aes[i].visbias if self._bias_switch else 0) +
                                 T.dot(activations[i + 1],
                                       self.aes[i].w_prime))
 
-        from_below = lambda i: (self.aes[i - 1].hidbias if self._bias_switch else 0 +
+        from_below = lambda i: ((self.aes[i - 1].hidbias if self._bias_switch else 0) +
                                 T.dot(activations[i - 1],
                                      self.aes[i - 1].weights))
 

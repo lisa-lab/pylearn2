@@ -16,11 +16,11 @@ from pylearn2.train import Train
 from pylearn2.training_algorithms.sgd import SGD, MonitorBasedLRAdjuster
 from pylearn2.utils import image, safe_zip
 
-HIDDEN_SIZE = 1500
+HIDDEN_SIZE = 1000
 SALT_PEPPER_NOISE = 0.4
 GAUSSIAN_NOISE = 1.0
 
-WALKBACK = 1
+WALKBACK = 0
 
 LEARNING_RATE = 0.35
 MOMENTUM = 0.5
@@ -73,7 +73,7 @@ def test_train_supervised():
     c = GSNCost(
         [
             (0, 1.0, reconstruction_cost),
-            (2, 2.0, classification_cost)
+            (2, 1e6, classification_cost)
         ],
         walkback=WALKBACK)
     alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=c,
@@ -147,4 +147,4 @@ def a_to_s(A):
     return "\n".join(strs)
 
 if __name__ == '__main__':
-    test_sample_supervised()
+    test_train_supervised()
