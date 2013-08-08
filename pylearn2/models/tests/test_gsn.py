@@ -16,11 +16,11 @@ from pylearn2.train import Train
 from pylearn2.training_algorithms.sgd import SGD, MonitorBasedLRAdjuster
 from pylearn2.utils import image, safe_zip
 
-HIDDEN_SIZE = 1000
+HIDDEN_SIZE = 100
 SALT_PEPPER_NOISE = 0.4
 GAUSSIAN_NOISE = 1.0
 
-WALKBACK = 0
+WALKBACK = 2
 
 LEARNING_RATE = 0.35
 MOMENTUM = 0.5
@@ -58,24 +58,18 @@ def test_train_supervised():
     classification_cost = lambda a, b: raw_class_cost.cost(a, b) / 10.0
 
     gsn = GSN.new(layers + [10], ["sigmoid", "tanh", plushmax],
-                  [None, None, GaussianCorruptor(0.75)],
-                  [SaltPepperCorruptor(0.4), None, None],
+                  [GaussianCorruptor(1.0)] * 3,
+                  [SaltPepperCorruptor(0.3), GaussianCorruptor(0.2), None],
                   [BinomialSampler(), None, MultinomialSampler()],
                   tied=False)
-
-    """
-    gsn = GSN.new_classifier(layers + [10], vis_corruptor=vis_corruptor,
-                             hidden_pre_corruptor=None,
-                             hidden_post_corruptor=None,
-                             classifier_act=plushmax)
-    """
 
     c = GSNCost(
         [
             (0, 1.0, reconstruction_cost),
-            (2, 1e6, classification_cost)
+            (2, 3.0, classification_cost)
         ],
-        walkback=WALKBACK)
+        walkback=WALKBACK, mode='supervised')
+
     alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=c,
               termination_criterion=EpochCounter(MAX_EPOCHS),
               batches_per_iter=BATCHES_PER_EPOCH, batch_size=BATCH_SIZE,

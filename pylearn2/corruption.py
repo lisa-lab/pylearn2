@@ -169,6 +169,7 @@ class GaussianCorruptor(Corruptor):
         assert len(rval.type.broadcastable) == 1
         return rval
 
+
 class SaltPepperCorruptor(Corruptor):
     """
     Corrupts the input with salt and pepper noise.
@@ -191,6 +192,44 @@ class SaltPepperCorruptor(Corruptor):
         c = T.eq(a, 0) * b
         return x * a + c
 
+
+class OneHotCorruptor(Corruptor):
+    """
+    Corrupts a one-hot vector by changing active element with some probability.
+    """
+    def _corrupt(self, x):
+        """
+        Parameters
+        ----------
+        x : tensor_like
+            Each row of x must be a one-hot vector.
+
+        Returns
+        -------
+        y : tensor_like
+            Row i of y is not equal to row i of x with probability corruption_level.
+        """
+        num_examples = x.shape[0]
+        num_classes = x.shape[1]
+
+        keep_mask = T.addbroadcast(
+            self.s_rng.binomial(
+                size=(num_examples, 1),
+                p=1 - self.corruption_level
+            ),
+            1
+        )
+
+        # generate a random one-hot matrix
+        idxs = T.floor(self.s_rng.uniform((num_examples,)) * num_classes)
+
+        ranges = T.shape_padleft(T.arange(num_classes), 1)
+        padded_idxs = T.shape_padright(idxs, 1)
+        one_hot = T.eq(ranges, padded_idxs)
+
+        return keep_mask * x + (1 - keep_mask) * one_hot
+
+
 class BinomialSampler(Corruptor):
     def __init__(self, *args, **kwargs):
         # pass up a 0 because corruption_level is not relevant here
@@ -206,13 +245,14 @@ class BinomialSampler(Corruptor):
             A tensor like with all values between 0 and 1 (inclusive).
 
         Returns
-        ----------
+        -------
         y : tensor_like
             y_i,j is 1 with probability x_i,j.
         """
 
         return self.s_rng.binomial(size=x.shape, p=x,
                                    dtype=theano.config.floatX)
+
 
 class MultinomialSampler(Corruptor):
     def __init__(self, *args, **kwargs):
@@ -237,6 +277,7 @@ class MultinomialSampler(Corruptor):
         """
         normalized = x / x.sum(axis=1, keepdims=True)
         return self.s_rng.multinomial(pvals=normalized, dtype=theano.config.floatX)
+
 
 class ComposedCorruptor(Corruptor):
     def __init__(self, *corruptors):
