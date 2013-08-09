@@ -604,7 +604,8 @@ class BoltzmannIsingVisible(VisibleLayer):
     All parameter noise/clipping is handled by BoltzmannIsingHidden.
     """
 
-    def __init__(self, nvis, beta, learn_beta=False, bias_from_marginals=None):
+    def __init__(self, nvis, beta, learn_beta=False, bias_from_marginals=None,
+                 sampling_b_stdev=None, min_ising_b=None, max_ising_b=None):
         """
         Parameters
         ----------
@@ -632,8 +633,6 @@ class BoltzmannIsingVisible(VisibleLayer):
         self.space = VectorSpace(nvis)
         self.input_space = self.space
 
-        origin = self.space.get_origin()
-
         if bias_from_marginals is None:
             init_bias = np.zeros((nvis,))
         else:
@@ -643,8 +642,101 @@ class BoltzmannIsingVisible(VisibleLayer):
             # init_bias =
         self.boltzmann_bias = sharedX(init_bias, 'visible_bias')
 
+        self.resample_fn = None
+
+    def set_sampling_space(self):
+        if self.sampling_b_stdev is not None:
+            self.noisy_sampling_b = \
+                sharedX(np.zeros((self.layer_above.dbm.batch_size, self.nvis)))
+            # We take care of layer below if it's a visible layer
+
+        updates = OrderedDict()
+        updates[self.boltzmann_bias] = self.boltzmann_bias
+        updates[self.layer_above.W] = self.layer_above.W
+        self.censor_updates(updates)
+        f = function([], updates=updates)
+        f()
+
+    def censor_updates(self, updates):
+        beta = self.beta
+        if beta in updates:
+            updated_beta = updates[beta]
+            updates[beta] = T.clip(updated_beta, 1., 1000.)
+
+        if any(constraint is not None for constraint in [self.min_ising_b,
+                                                         self.max_ising_b]):
+            bmn = self.min_ising_b
+            if bmn is None:
+                bmn = - 1e6
+            bmx = self.max_ising_b
+            if bmx is None:
+                bmx = 1e6
+            wmn_above = self.layer_above.min_ising_W
+            if wmn_above is None:
+                wmn_above = - 1e6
+            wmx_above = self.layer_above.max_ising_W
+            if wmx_above is None:
+                wmx_above = 1e6
+
+            b = updates[self.boltzmann_bias]
+            W_above = updates[self.layer_above.W]
+            ising_b = 0.5 * b + 0.25 * W_above.sum(axis=1)
+            ising_b = T.clip(ising_b, bmn, bmx)
+
+            ising_W_above = 0.25 * W_above
+            ising_W_above = T.clip(ising_W_above, wmn_above, wmx_above)
+            bhn = 2. * (ising_b - ising_W_above.sum(axis=1))
+
+            updates[self.boltzmann_b] = bhn
+
+        if self.noisy_sampling_b is not None:
+            theano_rng = \
+                MRG_RandomStreams(self.dbm.rng.randint(2**16))
+
+            b = updates[self.boltzmann_bias]
+            W_above = updates[self.layer_above.W]
+            ising_b = 0.5 * b + 0.25 * W_above.sum(axis=1)
+
+            noisy_sampling_b = \
+                theano_rng.normal(avg=ising_b.dimshuffle('x', 0),
+                                  std=self.sampling_b_stdev,
+                                  size=self.noisy_sampling_b.shape,
+                                  dtype=ising_b.dtype)
+            updates[self.noisy_sampling_b] = noisy_sampling_b
+
+    def resample_bias_noise(self, batch_size_changed=False):
+        if batch_size_changed:
+            self.resample_fn = None
+
+        if self.resample_fn is None:
+            updates = OrderedDict()
+
+            if self.sampling_b_stdev is not None:
+                self.noisy_sampling_b = \
+                    sharedX(np.zeros((self.dbm.batch_size, self.nvis)))
+
+            if self.noisy_sampling_b is not None:
+                theano_rng = MRG_RandomStreams(self.dbm.rng.randint(2**16))
+
+                b = self.boltzmann_bias
+                W_above = self.layer_above.W
+                ising_b = 0.5 * b + 0.25 * W_above.sum(axis=1)
+
+                noisy_sampling_b = \
+                    theano_rng.normal(avg=ising_b.dimshuffle('x', 0),
+                                      std=self.sampling_b_stdev,
+                                      size=self.noisy_sampling_b.shape,
+                                      dtype=ising_b.dtype)
+                updates[self.noisy_sampling_b] = noisy_sampling_b
+
+            self.resample_fn = function([], updates=updates)
+
+        self.resample_fn()
+
     def get_biases(self):
-        assert False  # not really sure what this should do for this layer
+        warnings.warn("BoltzmannIsingVisible.get_biases returns the " +
+                      "BOLTZMANN biases, is that what we want?")
+        return self.boltzmann_bias.get_value()
 
     def set_biases(self, biases, recenter=False):
         assert False  # not really sure what this should do for this layer
@@ -800,9 +892,8 @@ class BoltzmannIsingHidden(HiddenLayer):
         self.__dict__.update(locals())
         del self.self
 
-        self.boltzmann_b = sharedX(np.zeros((self.dim,)) + init_bias,
-                                   name=layer_name + '_b')
         layer_below.layer_above = self
+        self.layer_above = None
         self.resample_fn = None
 
     def get_lr_scalers(self):
@@ -846,6 +937,7 @@ class BoltzmannIsingHidden(HiddenLayer):
         self.output_space = VectorSpace(self.dim)
 
         rng = self.dbm.rng
+
         if self.irange is not None:
             assert self.sparse_init is None
             W = rng.uniform(-self.irange, self.irange,
@@ -856,17 +948,17 @@ class BoltzmannIsingHidden(HiddenLayer):
             assert self.sparse_init is not None
             W = np.zeros((self.input_dim, self.dim))
             W *= self.sparse_stdev
-
         W = sharedX(W)
         W.name = self.layer_name + '_W'
-
         self.W = W
 
+        self.boltzmann_b = sharedX(np.zeros((self.dim,)) + self.init_bias,
+                                   name=self.layer_name + '_b')
+
+    def set_sampling_space(self):
         if self.sampling_b_stdev is not None:
             self.noisy_sampling_b = \
                 sharedX(np.zeros((self.dbm.batch_size, self.dim)))
-            self.layer_below.noisy_sampling_b = \
-                sharedX(np.zeros((self.dbm.batch_size, self.layer_below.nvis)))
         if self.sampling_W_stdev is not None:
             self.noisy_sampling_W = \
                 sharedX(np.zeros((self.input_dim, self.dim)),
@@ -875,14 +967,13 @@ class BoltzmannIsingHidden(HiddenLayer):
         updates = OrderedDict()
         updates[self.boltzmann_b] = self.boltzmann_b
         updates[self.W] = self.W
-        updates[self.layer_below.boltzmann_bias] = \
-            self.layer_below.boltzmann_bias
+        if self.layer_above is not None:
+            updates[self.layer_above.W] = self.layer_above.W
         self.censor_updates(updates)
         f = function([], updates=updates)
         f()
 
     def censor_updates(self, updates):
-
         beta = self.beta
         if beta in updates:
             updated_beta = updates[beta]
@@ -900,7 +991,6 @@ class BoltzmannIsingHidden(HiddenLayer):
                                                          self.max_ising_b,
                                                          self.min_ising_W,
                                                          self.max_ising_W]):
-            assert not hasattr(self.layer_below, 'layer_below')
             bmn = self.min_ising_b
             if bmn is None:
                 bmn = - 1e6
@@ -913,65 +1003,64 @@ class BoltzmannIsingHidden(HiddenLayer):
             wmx = self.max_ising_W
             if wmx is None:
                 wmx = 1e6
+            if self.layer_above is not None:
+                wmn_above = self.layer_above.min_ising_W
+                if wmn_above is None:
+                    wmn_above = - 1e6
+                wmx_above = self.layer_above.max_ising_W
+                if wmx_above is None:
+                    wmx_above = 1e6
 
             W = updates[self.W]
             ising_W = 0.25 * W
             ising_W = T.clip(ising_W, wmn, wmx)
 
-            bv = updates[self.layer_below.boltzmann_bias]
-            ising_bv = 0.5 * bv + 0.25 * W.sum(axis=1)
-            ising_bv = T.clip(ising_bv, bmn, bmx)
+            b = updates[self.boltzmann_b]
+            if self.layer_above is not None:
+                W_above = updates[self.layer_above.W]
+                ising_b = 0.5 * b + 0.25 * W.sum(axis=0) \
+                                  + 0.25 * W_above.sum(axis=1)
+            else:
+                ising_b = 0.5 * b + 0.25 * W.sum(axis=0)
+            ising_b = T.clip(ising_b, bmn, bmx)
 
-            bh = updates[self.boltzmann_b]
-            ising_bh = 0.5 * bh + 0.25 * W.sum(axis=0)
-            ising_bh = T.clip(ising_bh, bmn, bmx)
-
+            if self.layer_above is not None:
+                ising_W_above = 0.25 * W_above
+                ising_W_above = T.clip(ising_W_above, wmn_above, wmx_above)
+                bhn = 2. * (ising_b - ising_W.sum(axis=0)
+                                    - ising_W_above.sum(axis=1))
+            else:
+                bhn = 2. * (ising_b - ising_W.sum(axis=0))
             Wn = 4. * ising_W
-            bvn = 2. * (ising_bv - ising_W.sum(axis=1))
-            bhn = 2. * (ising_bh - ising_W.sum(axis=0))
 
             updates[self.W] = Wn
-            updates[self.layer_below.boltzmann_bias] = bvn
             updates[self.boltzmann_b] = bhn
 
         if self.noisy_sampling_W is not None:
             theano_rng = MRG_RandomStreams(self.dbm.rng.randint(2**16))
-            bmn = self.min_ising_b
-            if bmn is None:
-                bmn = - 1e6
-            bmx = self.max_ising_b
-            if bmx is None:
-                bmx = 1e6
-            wmn = self.min_ising_W
-            if wmn is None:
-                wmn = - 1e6
-            wmx = self.max_ising_W
-            if wmx is None:
-                wmx = 1e6
+
             W = updates[self.W]
             ising_W = 0.25 * W
+
             noisy_sampling_W = \
                 theano_rng.normal(avg=ising_W, std=self.sampling_W_stdev,
                                   size=ising_W.shape, dtype=ising_W.dtype)
             updates[self.noisy_sampling_W] = noisy_sampling_W
 
-            bv = updates[self.layer_below.boltzmann_bias]
-            ising_bv = 0.5 * bv + 0.25 * W.sum(axis=1)
-            noisy_sampling_bv = \
-                theano_rng.normal(avg=ising_bv.dimshuffle('x', 0),
-                                  std=self.sampling_b_stdev,
-                                  size=self.layer_below.noisy_sampling_b.shape,
-                                  dtype=ising_bv.dtype)
-            updates[self.layer_below.noisy_sampling_b] = noisy_sampling_bv
+            b = updates[self.boltzmann_b]
+            if self.layer_above is not None:
+                W_above = updates[self.layer_above.W]
+                ising_b = 0.5 * b + 0.25 * W.sum(axis=0) \
+                                  + 0.25 * W_above.sum(axis=1)
+            else:
+                ising_b = 0.5 * b + 0.25 * W.sum(axis=0)
 
-            bh = updates[self.boltzmann_b]
-            ising_bh = 0.5 * bh + 0.25 * W.sum(axis=0)
-            noisy_sampling_bh = \
-                theano_rng.normal(avg=ising_bh.dimshuffle('x', 0),
+            noisy_sampling_b = \
+                theano_rng.normal(avg=ising_b.dimshuffle('x', 0),
                                   std=self.sampling_b_stdev,
                                   size=self.noisy_sampling_b.shape,
-                                  dtype=ising_bh.dtype)
-            updates[self.noisy_sampling_b] = noisy_sampling_bh
+                                  dtype=ising_b.dtype)
+            updates[self.noisy_sampling_b] = noisy_sampling_b
 
     def resample_bias_noise(self, batch_size_changed=False):
         if batch_size_changed:
@@ -983,37 +1072,25 @@ class BoltzmannIsingHidden(HiddenLayer):
             if self.sampling_b_stdev is not None:
                 self.noisy_sampling_b = \
                     sharedX(np.zeros((self.dbm.batch_size, self.dim)))
-                self.layer_below.noisy_sampling_b = \
-                    sharedX(np.zeros((self.dbm.batch_size, self.layer_below.nvis)))
 
             if self.noisy_sampling_b is not None:
                 theano_rng = MRG_RandomStreams(self.dbm.rng.randint(2**16))
-                bmn = self.min_ising_b
-                if bmn is None:
-                    bmn = - 1e6
-                bmx = self.max_ising_b
-                if bmx is None:
-                    bmx = 1e6
 
-                bv = self.layer_below.boltzmann_bias
-                ising_bv = 0.5 * bv + 0.25 * self.W.sum(axis=1)
-                noisy_sampling_bv = theano_rng.normal(
-                    avg=ising_bv.dimshuffle('x', 0),
-                    std=self.sampling_b_stdev,
-                    size=self.layer_below.noisy_sampling_b.shape,
-                    dtype=ising_bv.dtype
-                )
-                updates[self.layer_below.noisy_sampling_b] = noisy_sampling_bv
+                b = self.boltzmann_b
+                if self.layer_above is not None:
+                    W_above = self.layer_above.W
+                    ising_b = 0.5 * b + 0.25 * self.W.sum(axis=0) \
+                                      + 0.25 * W_above.sum(axis=1)
+                else:
+                    ising_b = 0.5 * b + 0.25 * self.W.sum(axis=0)
 
-                bh = self.boltzmann_b
-                ising_bh = 0.5 * bh + 0.25 * self.W.sum(axis=0)
-                noisy_sampling_bh = theano_rng.normal(
-                    avg=ising_bh.dimshuffle('x', 0),
-                    std=self.sampling_b_stdev,
-                    size=self.noisy_sampling_b.shape,
-                    dtype=ising_bh.dtype
-                )
-                updates[self.noisy_sampling_b] = noisy_sampling_bh
+                noisy_sampling_b = \
+                    theano_rng.normal(avg=ising_b.dimshuffle('x', 0),
+                                      std=self.sampling_b_stdev,
+                                      size=self.noisy_sampling_b.shape,
+                                      dtype=ising_b.dtype)
+                updates[self.noisy_sampling_b] = noisy_sampling_b
+
             self.resample_fn = function([], updates=updates)
 
         self.resample_fn()
@@ -1042,19 +1119,26 @@ class BoltzmannIsingHidden(HiddenLayer):
         return 0.25 * self.W
 
     def ising_b(self, for_sampling=False):
-        if hasattr(self, 'layer_above'):
-            raise NotImplementedError()
         if not hasattr(self, 'sampling_b_stdev'):
             self.sampling_b_stdev = None
         if for_sampling and self.sampling_b_stdev is not None:
             return self.noisy_sampling_b
-        return 0.5 * self.boltzmann_b + 0.25 * self.W.sum(axis=0)
+        else:
+            if self.layer_above is not None:
+                return 0.5 * self.boltzmann_b + \
+                    0.25 * self.W.sum(axis=0) + \
+                    0.25 * self.layer_above.W.sum(axis=1)
+            else:
+                return 0.5 * self.boltzmann_b + 0.25 * self.W.sum(axis=0)
 
     def ising_b_numpy(self):
-        if hasattr(self, 'layer_above'):
-            raise NotImplementedError()
-        return 0.5 * self.boltzmann_b.get_value() + \
-            0.25 * self.W.get_value().sum(axis=0)
+        if self.layer_above is not None:
+            return 0.5 * self.boltzmann_b.get_value() + \
+                0.25 * self.W.get_value().sum(axis=0) + \
+                0.25 * self.layer_above.W.get_value().sum(axis=1)
+        else:
+            return 0.5 * self.boltzmann_b.get_value() + \
+                0.25 * self.W.get_value().sum(axis=0)
 
     def get_weight_decay(self, coeff):
         if isinstance(coeff, str):
@@ -1079,7 +1163,9 @@ class BoltzmannIsingHidden(HiddenLayer):
         assert False  # not really sure what this should do
 
     def get_biases(self):
-        assert False  # not really sure what this should do
+        warnings.warn("BoltzmannIsingHidden.get_biases returns the " +
+                      "BOLTZMANN biases, is that what we want?")
+        return self.boltzmann_b.get_value()
 
     def get_weights_format(self):
         return ('v', 'h')
