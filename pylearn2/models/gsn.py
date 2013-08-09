@@ -477,23 +477,22 @@ class GSN(StackedBlocks, Model):
         ----
         This method creates a new list, not modifying an existing list.
         """
-
         activations = [None] * (len(self.aes) + 1)
+
+        mb_size = minibatch[0][1].shape[0]
+        first_layer_size = self.aes[0].weights.shape[0]
+
+        # zero out activations to start
+        activations[0] = T.alloc(0, mb_size, first_layer_size)
+        for i in xrange(1, len(activations)):
+            activations[i] = T.zeros_like(
+                T.dot(activations[i - 1], self.aes[i - 1].weights)
+            )
+
+        # set minibatch
         indices = [t[0] for t in minibatch if t[1] is not None]
         for i, val in minibatch:
             activations[i] = val
-
-        # this shouldn't be strictly necessary, but the algorithm is much easier if the
-        # first activation is always set. This code should be restructured if someone
-        # wants to run this without setting the first activation (because the for loop
-        # below assumes that the first activation is non-None
-
-        assert activations[0] is not None
-        for i in xrange(1, len(activations)):
-            if activations[i] is None:
-                activations[i] = T.zeros_like(
-                    T.dot(activations[i - 1], self.aes[i - 1].weights)
-                )
 
         self._update_odds(activations, skip_idxs=indices, corrupt=False)
 

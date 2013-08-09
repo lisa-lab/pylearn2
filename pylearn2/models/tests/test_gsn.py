@@ -1,3 +1,4 @@
+import cPickle as pickle
 import itertools
 
 import numpy as np
@@ -16,11 +17,11 @@ from pylearn2.train import Train
 from pylearn2.training_algorithms.sgd import SGD, MonitorBasedLRAdjuster
 from pylearn2.utils import image, safe_zip
 
-HIDDEN_SIZE = 100
+HIDDEN_SIZE = 1000
 SALT_PEPPER_NOISE = 0.4
 GAUSSIAN_NOISE = 1.0
 
-WALKBACK = 2
+WALKBACK = 1
 
 LEARNING_RATE = 0.35
 MOMENTUM = 0.5
@@ -58,17 +59,17 @@ def test_train_supervised():
     classification_cost = lambda a, b: raw_class_cost.cost(a, b) / 10.0
 
     gsn = GSN.new(layers + [10], ["sigmoid", "tanh", plushmax],
-                  [GaussianCorruptor(1.0)] * 3,
-                  [SaltPepperCorruptor(0.3), GaussianCorruptor(0.2), None],
+                  [GaussianCorruptor(0.75)] * 3,
+                  [SaltPepperCorruptor(0.3), GaussianCorruptor(0.2), OneHotCorruptor(0.8)],
                   [BinomialSampler(), None, MultinomialSampler()],
                   tied=False)
 
     c = GSNCost(
         [
             (0, 1.0, reconstruction_cost),
-            (2, 3.0, classification_cost)
+            (2, 2.5, classification_cost)
         ],
-        walkback=WALKBACK, mode='supervised')
+        walkback=WALKBACK, mode='anti_supervised')
 
     alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=c,
               termination_criterion=EpochCounter(MAX_EPOCHS),
@@ -107,9 +108,9 @@ def test_sample_ae():
     print pw.get_ll(history)
 
 def test_sample_supervised():
-    import cPickle
+
     with open("gsn_sup_example.pkl") as f:
-        gsn = cPickle.load(f)
+        gsn = pickle.load(f)
 
     gsn = JointGSN.convert(gsn, 0, 2)
     gsn._corrupt_switch = False
@@ -117,11 +118,12 @@ def test_sample_supervised():
     ds = MNIST(which_set='test', one_hot=True)
     mb_data = ds.X
     y = ds.y
-    y_hat = gsn.classify(mb_data, trials=2)
 
-    errors = np.abs(y_hat - y).sum() / 2.0
+    for i in xrange(1, 5):
+        y_hat = gsn.classify(mb_data, trials=i)
+        errors = np.abs(y_hat - y).sum() / 2.0
 
-    print errors, errors / 10000.0
+        print i, errors, errors / 10000.0
 
 # some utility methods for viewing MNIST characters without any GUI
 def print_char(A):

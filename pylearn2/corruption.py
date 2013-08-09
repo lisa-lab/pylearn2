@@ -208,6 +208,7 @@ class OneHotCorruptor(Corruptor):
         -------
         y : tensor_like
             Row i of y is not equal to row i of x with probability corruption_level.
+            Each row of y is a one-hot vector.
         """
         num_examples = x.shape[0]
         num_classes = x.shape[1]
@@ -215,13 +216,16 @@ class OneHotCorruptor(Corruptor):
         keep_mask = T.addbroadcast(
             self.s_rng.binomial(
                 size=(num_examples, 1),
-                p=1 - self.corruption_level
+                p=1 - self.corruption_level,
+                dtype='int8'
             ),
             1
         )
 
         # generate a random one-hot matrix
-        idxs = T.floor(self.s_rng.uniform((num_examples,)) * num_classes)
+        idxs = T.floor(
+            num_classes * self.s_rng.uniform((num_examples,))
+        )
 
         ranges = T.shape_padleft(T.arange(num_classes), 1)
         padded_idxs = T.shape_padright(idxs, 1)

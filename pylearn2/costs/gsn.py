@@ -36,8 +36,8 @@ class GSNCost(Cost):
         super(GSNCost, self).__init__()
         self.walkback = walkback
 
-        assert mode in ["joint", "supervised"]
-        if mode == "supervised":
+        assert mode in ["joint", "supervised", "anti_supervised"]
+        if mode in ["supervised", "anti_supervised"]:
             assert len(costs) == 2
         self.mode = mode
 
@@ -66,14 +66,19 @@ class GSNCost(Cost):
         layer_idxs = [idx for idx, _, _ in self.costs]
         zipped = safe_zip(layer_idxs, data)
         if self.mode == "joint":
-            return model.get_samples(zipped,
-                                     walkback=self.walkback,
-                                     indices=layer_idxs)
+            use = zipped
+        elif self.mode == "supervised":
+            # don't include label layer
+            use = zipped[:1]
+        elif self.mode == "anti_supervised":
+            # don't include features
+            use = zipped[1:]
         else:
-            # don't include the label layer
-            return model.get_samples(zipped[:1],
-                                     walkback=self.walkback,
-                                     indices=layer_idxs)
+            raise ValueError("Unknown mode \"%s\" for GSNCost" % self.mode)
+
+        return model.get_samples(use,
+                                 walkback=self.walkback,
+                                 indices=layer_idxs)
 
     def expr(self, model, data):
         """
@@ -117,6 +122,7 @@ class GSNCost(Cost):
                                else model.aes[i - 1].get_output_space())
 
         spaces = map(lambda c: get_space(c[0]), self.costs)
+
         sources = [model.get_input_source()]
         if len(self.costs) == 2:
             sources.append(model.get_target_source())
