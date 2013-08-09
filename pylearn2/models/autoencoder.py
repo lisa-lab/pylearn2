@@ -621,6 +621,10 @@ class DeepComposedAutoencoder(Autoencoder):
         return reduce(operator.add,
                       [ae.get_params() for ae in self.autoencoders])
 
+    def censor_updates(self, updates):
+        for autoencoder in self.autoencoders:
+            autoencoder.censor_updates(updates)
+
 
 def build_stacked_ae(nvis, nhids, act_enc, act_dec,
                      tied_weights=False, irange=1e-3, rng=None,
