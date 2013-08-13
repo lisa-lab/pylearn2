@@ -125,6 +125,16 @@ class BinomialCorruptor(Corruptor):
         ) * x
 
 
+class DropoutCorruptor(BinomialCorruptor):
+    def _corrupt(self, x):
+        # for stability
+        if self.corruption_level < 1e-5:
+            return x
+
+        dropped = super(DropoutCorruptor, self)._corrupt(x)
+        return 1.0 / self.corruption_level * dropped
+
+
 class GaussianCorruptor(Corruptor):
     """
     A Gaussian corruptor transforms inputs by adding zero
@@ -232,6 +242,20 @@ class OneHotCorruptor(Corruptor):
         one_hot = T.eq(ranges, padded_idxs)
 
         return keep_mask * x + (1 - keep_mask) * one_hot
+
+
+class SmoothOneHotCorruptor(Corruptor):
+    def _corrupt(self, x):
+        from pylearn2.models.gsn import plushmax
+
+        noise = self.s_rng.normal(
+            size=x.shape,
+            avg=0.,
+            std=self.corruption_level,
+            dtype=theano.config.floatX
+        )
+
+        return plushmax(x + noise)
 
 
 class BinomialSampler(Corruptor):

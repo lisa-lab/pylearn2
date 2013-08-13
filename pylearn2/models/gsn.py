@@ -688,8 +688,8 @@ class JointGSN(GSN):
         return gsn
 
     def calc_walkback(self, trials):
-        wb = trials + len(self.aes)
-        if wb < 0:
+        wb = trials - len(self.aes)
+        if wb <= 0:
             return 0
         else:
             return wb

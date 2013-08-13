@@ -15,15 +15,15 @@ from pylearn2.models.gsn import *
 from pylearn2.termination_criteria import EpochCounter
 from pylearn2.train import Train
 from pylearn2.training_algorithms.sgd import SGD, MonitorBasedLRAdjuster
-from pylearn2.utils import image, safe_zip
+from pylearn2.utils import image, safe_zip, identity
 
 HIDDEN_SIZE = 1000
 SALT_PEPPER_NOISE = 0.4
-GAUSSIAN_NOISE = 1.0
+GAUSSIAN_NOISE = 0.5
 
-WALKBACK = 1
+WALKBACK = 0
 
-LEARNING_RATE = 0.35
+LEARNING_RATE = 0.2
 MOMENTUM = 0.5
 
 MAX_EPOCHS = 100
@@ -58,18 +58,28 @@ def test_train_supervised():
     raw_class_cost = MeanBinaryCrossEntropy()
     classification_cost = lambda a, b: raw_class_cost.cost(a, b) / 10.0
 
+    """
     gsn = GSN.new(layers + [10], ["sigmoid", "tanh", plushmax],
-                  [GaussianCorruptor(0.75)] * 3,
-                  [SaltPepperCorruptor(0.3), GaussianCorruptor(0.2), OneHotCorruptor(0.8)],
+                  [GaussianCorruptor(0.75), None, GaussianCorruptor(0.75)],
+                  [SaltPepperCorruptor(0.3), None, SmoothOneHotCorruptor(0.75)],
                   [BinomialSampler(), None, MultinomialSampler()],
                   tied=False)
+    """
+    with open("pre_gsn_4.pkl", 'r') as f:
+        gsn = pickle.load(f)
+    del gsn.monitor
+
+
+    gsn._layer_samplers = [identity] * 3
+    cor = ComposedCorruptor(BinomialCorruptor(0.5), GaussianCorruptor(.75))
+    gsn._postact_cors = [cor] * 3
 
     c = GSNCost(
         [
             (0, 1.0, reconstruction_cost),
-            (2, 2.5, classification_cost)
+            (2, 10.0, classification_cost)
         ],
-        walkback=WALKBACK, mode='anti_supervised')
+        walkback=WALKBACK, mode='supervised')
 
     alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=c,
               termination_criterion=EpochCounter(MAX_EPOCHS),
@@ -84,9 +94,8 @@ def test_train_supervised():
     print "done training"
 
 def test_sample_ae():
-    import cPickle
     with open("gsn_ae_example.pkl") as f:
-        gsn = cPickle.load(f)
+        gsn = pickle.load(f)
 
     mb_data = MNIST(which_set='test').X[105:106, :]
 
@@ -108,7 +117,6 @@ def test_sample_ae():
     print pw.get_ll(history)
 
 def test_sample_supervised():
-
     with open("gsn_sup_example.pkl") as f:
         gsn = pickle.load(f)
 
@@ -124,6 +132,20 @@ def test_sample_supervised():
         errors = np.abs(y_hat - y).sum() / 2.0
 
         print i, errors, errors / 10000.0
+
+def vis_samples(samples):
+    images = []
+    labels = []
+    for step in samples:
+        assert len(step) == 2
+        images.append(step[0])
+        labels.append(np.argmax(step[1], axis=1))
+    for i in xrange(len(images)):
+        print "Step %s" % i
+        print "Label: %s" % labels[i]
+        print_char(images[0])
+        print "-----------------------------"
+
 
 # some utility methods for viewing MNIST characters without any GUI
 def print_char(A):
@@ -143,4 +165,4 @@ def a_to_s(A):
     return "\n".join(strs)
 
 if __name__ == '__main__':
-    test_train_supervised()
+    test_sample_supervised()
