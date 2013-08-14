@@ -48,6 +48,10 @@ class ZCA_Dataset(DenseDesignMatrix):
         self.preprocessed_dataset = preprocessed_dataset
         self.preprocessor = preprocessor
         self.rng = self.preprocessed_dataset.rng
+        self.data_specs = preprocessed_dataset.data_specs
+        self.X_space = preprocessed_dataset.X_space
+        self.X_topo_space = preprocessed_dataset.X_topo_space
+        self.view_converter = preprocessed_dataset.view_converter
 
         self.y = preprocessed_dataset.y
         if convert_to_one_hot:
@@ -59,6 +63,8 @@ class ZCA_Dataset(DenseDesignMatrix):
                 y[i,self.y[i]] = 1.
             self.y = y
             assert self.y is not None
+            space, source = self.data_specs
+            space.components[source.index('targets')].dim = nclass
 
         if control.get_load_data():
             if start is not None:
@@ -74,10 +80,6 @@ class ZCA_Dataset(DenseDesignMatrix):
             if self.y is not None:
                 assert self.y.shape[0] == self.X.shape[0]
 
-        self.data_specs = preprocessed_dataset.data_specs
-        self.X_space = preprocessed_dataset.X_space
-        self.X_topo_space = preprocessed_dataset.X_topo_space
-        self.view_converter = preprocessed_dataset.view_converter
 
         #self.mn = self.X.min()
         #self.mx = self.X.max()
