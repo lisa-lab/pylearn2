@@ -32,7 +32,6 @@ from pylearn2.utils import sharedX
 from pylearn2.utils.data_specs import DataSpecsMapping
 from pylearn2.utils.timing import log_timing
 
-
 log = logging.getLogger(__name__)
 
 class SGD(TrainingAlgorithm):
@@ -121,7 +120,7 @@ class SGD(TrainingAlgorithm):
             train_iteration_mode = 'shuffled_sequential'
         self.train_iteration_mode = train_iteration_mode
         self.first = True
-        self.rng = np.random.RandomState(seed)
+        self.rng = np.random.RandomState(seed) #left unchanged since is an argument
         self.theano_function_mode = theano_function_mode
         self.monitoring_costs = monitoring_costs
 

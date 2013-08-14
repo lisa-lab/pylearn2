@@ -8,6 +8,7 @@ __email__ = "goodfeli@iro"
 
 import numpy as np
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
+from pylearn2.utils.rng import make_rng
 
 class ArangeDataset(DenseDesignMatrix):
     """ A dataset where example i is just the number i.
@@ -20,6 +21,7 @@ class ArangeDataset(DenseDesignMatrix):
 
 
 def random_one_hot_dense_design_matrix(rng, num_examples, dim, num_classes):
+    rng=make_rng(rng_or_seed=rng, typeStr=("randn","randint"))
     X = rng.randn(num_examples, dim)
 
 
@@ -41,6 +43,8 @@ def random_one_hot_topological_dense_design_matrix(rng, num_examples, shape, cha
         dims[i] = dim
 
     shape = [dims[axis] for axis in axes]
+    
+    rng = make_rng(rng_or_seed=rng, typeStr=("randn", "randint"))
 
     X = rng.randn(*shape)
 

@@ -3,7 +3,7 @@ import theano
 from theano import tensor, config
 from theano.tensor import nnet
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
-
+from pylearn2.utils.rng import make_rng
 
 def compute_log_z(rbm, free_energy_fn, max_bits=15):
     """
@@ -156,8 +156,7 @@ def rbm_ais(rbm_params, n_runs, visbias_a=None, data=None,
     """
     (weights, visbias, hidbias) = rbm_params
 
-    if rng is None:
-        rng = numpy.random.RandomState(seed)
+    rng = make_rng(rng, seed, ("random_sample"))
 
     if data is None:
         if visbias_a is None:
@@ -216,8 +215,7 @@ def rbm_z_ratio(rbmA_params, rbmB_params, n_runs, v0=None,
     # check that both models have the same number of visible units
     assert len(rbmA_params[1]) == len(rbmB_params[1])
 
-    if rng is None:
-        rng = numpy.random.RandomState(seed)
+    rng = make_rng(rng, seed, ("rand"))
     # make sure parameters are in floatX format for GPU support
     rbmA_params = [numpy.asarray(q, dtype=config.floatX) for q in rbmA_params]
     rbmB_params = [numpy.asarray(q, dtype=config.floatX) for q in rbmB_params]

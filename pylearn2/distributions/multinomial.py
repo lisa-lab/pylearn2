@@ -5,7 +5,10 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
+
+
 import numpy as N
+from pylearn2.utils.rng import make_rng
 
 
 class Multinomial(object):
@@ -14,7 +17,7 @@ class Multinomial(object):
         """TODO: document me."""
         self.pi = pi
         assert self.pi.min() >= 0.0
-        self.rng = rng
+        self.rng = make_rng(rng_or_seed=rng, typeStr="multinomial")
         if renormalize:
             self.pi = self.pi / self.pi.sum()
         else:

@@ -31,7 +31,7 @@ from pylearn2.utils.iteration import _iteration_schemes
 from pylearn2.utils import safe_izip
 from pylearn2.utils import safe_union
 from pylearn2.utils import sharedX
-
+from pylearn2.utils.rng import rng_randn, rng_uniform, make_rng
 
 class DummyCost(Cost):
     def expr(self, model, data):
@@ -56,7 +56,7 @@ class SoftmaxModel(Model):
 
     def __init__(self, dim):
         self.dim = dim
-        rng = np.random.RandomState([2012,9,25])
+        rng = rng_uniform()
         self.P = sharedX( rng.uniform(-1.,1.,(dim,)))
 
     def get_params(self):
@@ -87,7 +87,7 @@ class TopoSoftmaxModel(Model):
         dim = rows * cols * channels
         self.input_space = Conv2DSpace((rows, cols), channels)
         self.dim = dim
-        rng = np.random.RandomState([2012,9,25])
+        rng = rng_uniform()
         self.P = sharedX( rng.uniform(-1.,1.,(dim,)))
 
     def get_params(self):
@@ -113,7 +113,7 @@ def test_sgd_unspec_num_mon_batch():
     m = 25
 
     visited = [ False ] * m
-    rng = np.random.RandomState([25,9,2012])
+ 
     X = np.zeros((m,1))
     X[:,0] = np.arange(m)
     dataset = DenseDesignMatrix(X=X)
@@ -161,7 +161,7 @@ def test_sgd_sup():
     dim = 3
     m = 10
 
-    rng = np.random.RandomState([25,9,2012])
+    rng = make_rng(typeStr=("randn","randint"))
 
     X = rng.randn(m, dim)
 
@@ -214,7 +214,7 @@ def test_sgd_unsup():
     dim = 3
     m = 10
 
-    rng = np.random.RandomState([25,9,2012])
+    rng = rng_randn()
 
     X = rng.randn(m, dim)
 
@@ -250,6 +250,7 @@ def test_sgd_unsup():
     train.main_loop()
 
 def get_topological_dataset(rng, rows, cols, channels, m):
+    rng = make_rng(rng_or_seed=rng, typeStr=("randn","randint"))
     X = rng.randn(m, rows, cols, channels)
 
     dim = rows * cols * channels
@@ -275,7 +276,7 @@ def test_linear_decay_over_epoch():
     dim = 3
     m = 10
 
-    rng = np.random.RandomState([25,9,2012])
+    rng = rng_randn()
 
     X = rng.randn(m, dim)
 
@@ -346,7 +347,7 @@ def test_monitor_based_lr():
     dim = 3
     m = 10
 
-    rng = np.random.RandomState([25,9,2012])
+    rng = rng_randn()
 
     X = rng.randn(m, dim)
 
@@ -413,7 +414,7 @@ def test_sgd_topo():
     dim = rows * cols * channels
     m = 10
 
-    rng = np.random.RandomState([25,9,2012])
+    rng = np.random.RandomState([25,9,2012]) # left unchanged since is an argument
 
     dataset = get_topological_dataset(rng, rows, cols, channels, m)
 
@@ -453,7 +454,7 @@ def test_sgd_no_mon():
     dim = 3
     m = 10
 
-    rng = np.random.RandomState([25,9,2012])
+    rng = make_rng(typeStr=("randn", "randnint"))
 
     X = rng.randn(m, dim)
 
@@ -502,7 +503,7 @@ def test_reject_mon_batch_without_mon():
     dim = 3
     m = 10
 
-    rng = np.random.RandomState([25,9,2012])
+    rng = make_rng(typeStr=("randn", "randnint"))
 
     X = rng.randn(m, dim)
 
@@ -675,7 +676,7 @@ def test_determinism_2():
     def run_sgd(mode):
         # Must be seeded the same both times run_sgd is called
         disturb_mem.disturb_mem()
-        rng = np.random.RandomState([2012, 11, 27])
+        rng = rng_randn()
 
         batch_size = 5
         train_batches = 3

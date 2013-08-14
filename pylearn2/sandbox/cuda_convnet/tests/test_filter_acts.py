@@ -19,14 +19,14 @@ from theano.tensor.nnet.conv import conv2d
 from theano import function
 from theano import tensor as T
 import warnings
-
+from pylearn2.utils.rng import rng_uniform, make_rng
 
 def test_match_valid_conv():
 
     # Tests that running FilterActs with no padding is the same as running
     # theano's conv2D in valid mode
 
-    rng = np.random.RandomState([2012,10,9])
+    rng = rng_uniform()
 
     batch_size = 5
     rows = 10
@@ -63,6 +63,9 @@ def test_match_valid_conv():
     warnings.warn("""test_match_valid_conv success criterion is not very strict. Can we verify that this is OK?
                      One possibility is that theano is numerically unstable and Alex's code is better.
                      Probably theano CPU 64 bit is OK but it's worth checking the others.""")
+
+
+    
     if np.abs(output - output_conv2d).max() > 2.4e-6:
         assert type(output) == type(output_conv2d)
         assert output.dtype == output_conv2d.dtype
@@ -83,7 +86,7 @@ def test_match_valid_conv_strided():
     # Tests that running FilterActs with stride is the same as running
     # theano's conv2D in valid mode and then downsampling
 
-    rng = np.random.RandomState([2012,10,9])
+    rng = rng_uniform()
 
     batch_size = 5
     rows = 9
@@ -141,7 +144,7 @@ def test_match_valid_conv_padded():
     # Tests that running FilterActs with no padding is the same as running
     # theano's conv2D in valid mode
 
-    rng = np.random.RandomState([2012,10,9])
+    rng = rng_uniform()
 
     batch_size = 5
     rows = 10
@@ -203,7 +206,7 @@ def test_match_valid_conv_padded():
 
 
 def test_grad():
-    rng = np.random.RandomState([2012, 10, 9])
+    rng = make_rng(typeStr=("normal", "uniform"))
     batch_size = 5
     rows = 10
     cols = 9
@@ -268,7 +271,8 @@ def test_grad():
         print 'theano value range: ', (images_conv2d_grad.min(),
                                        images_conv2d_grad.max())
         assert False
-    if np.abs(filters_grad - filters_conv2d_grad).max() > 1e-5:
+
+    if np.abs(filters_grad - filters_conv2d_grad).max() > 2e-5:
         print "=== FILTERS GRADIENT ==="
         assert type(filters_grad) == type(filters_conv2d_grad)
         assert filters_grad.dtype == filters_conv2d_grad.dtype
@@ -287,7 +291,7 @@ def test_grad():
 
 
 def test_grad_strided():
-    rng = np.random.RandomState([2012, 10, 9])
+    rng = rng_uniform()
     batch_size = 5
     rows = 9
     cols = 9

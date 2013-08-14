@@ -10,6 +10,7 @@ from theano import tensor as T
 from pylearn2.linear.linear_transform import LinearTransform
 import functools
 import numpy as np
+from pylearn2.utils.rng import rng_uniform
 from pylearn2.utils import sharedX
 
 class MatrixMul(LinearTransform):
@@ -61,7 +62,7 @@ def make_local_rfs(dataset, nhid, rf_shape, stride, irange = .05, draw_patches =
     last_row = s[0] - rf_shape[0]
     last_col = s[1] - rf_shape[1]
 
-    rng = np.random.RandomState([2012,07,18])
+    rng = rng_uniform()
 
 
     if stride is not None:

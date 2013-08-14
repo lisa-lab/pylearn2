@@ -16,6 +16,8 @@ from pylearn2.packaged_dependencies.theano_linear.conv2d import Conv2d as OrigCo
 
 from pylearn2.linear.linear_transform import LinearTransform as P2LT
 from pylearn2.utils import sharedX
+from pylearn2.utils.rng import make_rng, rng_uniform
+
 
 class Conv2D(OrigConv2D):
     """ Extend the TheanoLinear Conv2d class to support everything
@@ -195,8 +197,7 @@ def make_random_conv2D(irange, input_space, output_space,
         subsample = (1,1), border_mode = 'valid', message = "", rng = None):
     """ Creates a Conv2D with random kernels """
 
-    if rng is None:
-        rng = default_rng()
+    rng = rng_uniform(rng_or_seed=rng)
 
     W = sharedX( rng.uniform(-irange,irange,( output_space.num_channels, input_space.num_channels, \
             kernel_shape[0], kernel_shape[1])))
@@ -218,8 +219,7 @@ def make_sparse_random_conv2D(num_nonzero, input_space, output_space,
     """ Creates a Conv2D with random kernels, where the randomly initialized
     values are sparse"""
 
-    if rng is None:
-        rng = default_sparse_rng()
+    rng = make_rng(rng_or_seed=rng, typeStr=("randint", "randn"))
 
     W = np.zeros(( output_space.num_channels, input_space.num_channels, \
             kernel_shape[0], kernel_shape[1]))

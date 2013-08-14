@@ -28,7 +28,7 @@ from pylearn2.models.dbm import VisibleLayer
 from pylearn2.space import Conv2DSpace
 from pylearn2.space import VectorSpace
 from pylearn2.utils import sharedX
-
+from pylearn2.utils.rng import rng_uniform
 
 """
 Note: if h can be -1 or 1, and p(h) = exp(z*h), then
@@ -124,6 +124,7 @@ class IsingVisible(VisibleLayer):
         return rval * 2. - 1.
 
     def make_state(self, num_examples, numpy_rng):
+        numpy_rng = rng_uniform(numpy_rng)
         driver = numpy_rng.uniform(0.,1., (num_examples, self.nvis))
         on_prob = sigmoid_numpy(2. * self.bias.get_value())
         sample = 2. * (driver < on_prob) - 1.
@@ -430,6 +431,7 @@ class IsingHidden(HiddenLayer):
         """ Returns a shared variable containing an actual state
            (not a mean field state) for this variable.
         """
+        numpy_rng = rng_uniform(numpy_rng)
         driver = numpy_rng.uniform(0.,1., (num_examples, self.dim))
         on_prob = sigmoid_numpy(2. * self.b.get_value())
         sample = 2. * (driver < on_prob) - 1.
@@ -609,6 +611,7 @@ class BoltzmannIsingVisible(VisibleLayer):
         return rval * 2. - 1.
 
     def make_state(self, num_examples, numpy_rng):
+        numpy_rng = rng_uniform(numpy_rng)
         driver = numpy_rng.uniform(0.,1., (num_examples, self.nvis))
         on_prob = sigmoid_numpy(2. * self.ising_bias_numpy())
         sample = 2. * (driver < on_prob) - 1.
@@ -1049,6 +1052,7 @@ class BoltzmannIsingHidden(HiddenLayer):
         """ Returns a shared variable containing an actual state
            (not a mean field state) for this variable.
         """
+        numpy_rng = rng_uniform(numpy_rng)
         driver = numpy_rng.uniform(0.,1., (num_examples, self.dim))
         on_prob = sigmoid_numpy(2. * self.ising_b_numpy())
         sample = 2. * (driver < on_prob) - 1.

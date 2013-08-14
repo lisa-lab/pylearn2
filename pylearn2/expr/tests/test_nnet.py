@@ -15,6 +15,7 @@ from pylearn2.expr.nnet import pseudoinverse_softmax_numpy
 from pylearn2.expr.nnet import softmax_numpy
 from pylearn2.expr.nnet import softmax_ratio
 from pylearn2.utils import sharedX
+from  pylearn2.utils.rng import rng_randn
 
 def test_softmax_ratio():
     # Tests that the numerically stabilized version of the softmax ratio
@@ -23,7 +24,7 @@ def test_softmax_ratio():
     n = 3
     m = 4
 
-    rng = np.random.RandomState([2013, 3, 23])
+    rng = rng_randn()
 
     Z_numer = sharedX(rng.randn(m,n))
     Z_denom = sharedX(rng.randn(m,n))
@@ -40,7 +41,7 @@ def test_softmax_ratio():
     assert np.allclose(naive, stable)
 
 def test_pseudoinverse_softmax_numpy():
-    rng = np.random.RandomState([2013, 3, 28])
+    rng = rng_randn()
 
     p = np.abs(rng.randn(5))
     p /= p.sum()

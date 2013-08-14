@@ -11,6 +11,7 @@ from pylearn2.space import CompositeSpace
 from pylearn2.space import VectorSpace
 from pylearn2.space import Space
 from pylearn2.utils import function
+from pylearn2.utils.rng import rng_randn
 
 
 def test_np_format_as_vector2conv2D():
@@ -88,7 +89,7 @@ def test_vector_to_conv_c01b_invertible():
     axis format.
     """
 
-    rng = np.random.RandomState([2013, 5, 1])
+    rng = rng_randn()
 
     batch_size = 3
     rows = 4

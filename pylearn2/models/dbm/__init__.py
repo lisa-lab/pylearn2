@@ -44,6 +44,8 @@ from pylearn2.utils import py_integer_types
 from pylearn2.utils import safe_zip
 from pylearn2.utils import safe_izip
 from pylearn2.utils import sharedX
+from pylearn2.utils.rng import rng_uniform, make_rng, rng_ints
+
 
 warnings.warn("DBM changing the recursion limit.")
 # We need this to be high enough that the big theano graphs we make
@@ -203,7 +205,7 @@ class DBM(Model):
         return rval
 
     def setup_rng(self):
-        self.rng = np.random.RandomState([2012, 10, 17])
+        self.rng = rng_ints()
 
     def setup_inference_procedure(self):
         if not hasattr(self, 'inference_procedure') or \
@@ -1027,6 +1029,8 @@ class BinaryVector(VisibleLayer):
 
 
     def make_state(self, num_examples, numpy_rng):
+        
+        numpy_rng = rng_uniform(numpy_rng)
         if not hasattr(self, 'copies'):
             self.copies = 1
         if self.copies != 1:
@@ -1989,6 +1993,7 @@ class Softmax(HiddenLayer):
            (not a mean field state) for this variable.
         """
 
+        numpy_rng = make_rng(numpy_rng, typeStr=("randint"))
         if self.copies != 1:
             raise NotImplementedError("need to make self.copies samples and average them together.")
 

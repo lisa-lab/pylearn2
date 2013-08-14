@@ -19,6 +19,7 @@ from theano import shared
 from theano import tensor as T
 from theano.tensor import as_tensor_variable
 from theano.tensor.nnet.conv import conv2d
+from pylearn2.utils.rng import rng_uniform
 
 from pylearn2.sandbox.cuda_convnet.img_acts import ImageActs
 
@@ -30,7 +31,7 @@ def test_match_full_conv():
     # In other words, if convolution computes H=XK, we now compute
     # R=HK^T
 
-    rng = np.random.RandomState([2013, 1, 29])
+    rng = rng_uniform()
 
     batch_size = 2
     rows = 6
@@ -74,7 +75,8 @@ def test_match_full_conv():
     warnings.warn("""test_match_full_conv success criterion is not very strict. Can we verify that this is OK?
                      One possibility is that theano is numerically unstable and Alex's code is better.
                      Probably theano CPU 64 bit is OK but it's worth checking the others.""")
-    if np.abs(output - output_conv2d).max() > 2.4e-6:
+
+    if np.abs(output - output_conv2d).max() > 2.9e-6:
         assert type(output) == type(output_conv2d)
         assert output.dtype == output_conv2d.dtype
         if output.shape != output_conv2d.shape:
@@ -95,7 +97,7 @@ def test_match_full_conv_grad():
     # theano's conv2D in full mode after flipping the kernel and tranposing
     # the output and input channels
 
-    rng = np.random.RandomState([2013, 1, 29])
+    rng = rng_uniform()
 
     batch_size = 2
     rows = 6
@@ -147,7 +149,8 @@ def test_match_full_conv_grad():
 
     assert gi.shape == gi_th.shape
     diff = np.abs(gi - gi_th).max()
-    if diff > 2.9e-6:
+
+    if diff > 3.9e-6:
         assert False
 
     diff = np.abs(gf - gf_th).max()

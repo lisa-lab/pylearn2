@@ -29,6 +29,7 @@ from pylearn2.expr.information_theory import entropy_binary_vector
 from theano.tensor.shared_randomstreams import RandomStreams
 from pylearn2.models.rbm import RBM
 from pylearn2.expr.nnet import sigmoid_numpy
+from pylearn2.utils.rng import make_rng
 
 warnings.warn('s3c changing the recursion limit')
 import sys
@@ -171,7 +172,7 @@ class DBM(Model):
         return VectorSpace(self.num_classes)
 
     def reset_rng(self):
-        self.rng = np.random.RandomState([1,2,3])
+        self.rng = make_rng(typeStr=("uniform", "randn"))
 
     def redo_everything(self):
         """ compiles learn_func if necessary

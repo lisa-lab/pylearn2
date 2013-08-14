@@ -14,12 +14,13 @@ from theano.sandbox.cuda import gpu_from_host
 from theano.sandbox.cuda import host_from_gpu
 from theano.tensor.nnet.conv import conv2d
 from theano import function
+from pylearn2.utils.rng import make_rng
 
 
 # Tests that running FilterActs with no padding is the same as running
 # theano's conv2D in valid mode
 
-rng = np.random.RandomState([2012,10,9])
+rng = make_rng(typeStr=("uniform","randint"))
 
 batch_size = 128
 rows = 32

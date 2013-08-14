@@ -17,6 +17,9 @@ from pylearn2.models import Model
 from pylearn2.utils import sharedX
 from pylearn2.utils.theano_graph import is_pure_elemwise
 from pylearn2.space import VectorSpace
+#from pylearn2.utils import *
+from pylearn2.utils.rng import rng_randn
+
 
 theano.config.warn.sum_div_dimshuffle_bug = False
 
@@ -82,10 +85,7 @@ class Autoencoder(Block, Model):
         self.nhid = nhid
         self.irange = irange
         self.tied_weights = tied_weights
-        if not hasattr(rng, 'randn'):
-            self.rng = numpy.random.RandomState(rng)
-        else:
-            self.rng = rng
+        self.rng = rng_randn(rng)
         self._initialize_hidbias()
         if nvis > 0:
             self._initialize_visbias(nvis)

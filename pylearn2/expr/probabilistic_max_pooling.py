@@ -34,6 +34,7 @@ from theano.printing import Print
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 from theano.gof.op import get_debug_values
 import warnings
+from pylearn2.utils.rng import rng_randn, make_rng
 
 def max_pool(z, pool_shape, top_down = None, theano_rng = None):
     """
@@ -856,7 +857,7 @@ def max_pool_softmax_op(z, pool_shape):
 
 def profile(f):
     print 'profiling ',f
-    rng = np.random.RandomState([2012,7,19])
+    rng = rng_randn()
     batch_size = 80
     rows = 26
     cols = 27
@@ -892,7 +893,7 @@ def profile(f):
 
 def profile_bc01(f):
     print 'profiling ',f
-    rng = np.random.RandomState([2012,7,19])
+    rng = rng_randn()
     batch_size = 80
     rows = 26
     cols = 27
@@ -928,7 +929,7 @@ def profile_bc01(f):
 
 def profile_samples(f):
     print 'profiling samples',f
-    rng = np.random.RandomState([2012,7,19])
+    rng = make_rng(typeStr=("randn", "randint"))
     theano_rng = MRG_RandomStreams(rng.randint(2147462579))
     batch_size = 80
     rows = 26
@@ -965,7 +966,7 @@ def profile_samples(f):
 
 def profile_grad(f):
     print 'profiling gradient of ',f
-    rng = np.random.RandomState([2012,7,19])
+    rng = rng_randn()
     batch_size = 80
     rows = 26
     cols = 27
@@ -1000,7 +1001,7 @@ def profile_grad(f):
 
 def profile_grad_bc01(f):
     print 'profiling gradient of ',f
-    rng = np.random.RandomState([2012,7,19])
+    rng = rng_randn()
     batch_size = 80
     rows = 26
     cols = 27

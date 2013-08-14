@@ -8,6 +8,7 @@ from pylearn2.sandbox.cuda_convnet.stochastic_pool import (stochastic_max_pool_c
                                                            weighted_max_pool_c01b)
 from pylearn2.testing.skip import skip_if_no_gpu
 from pylearn2.utils import float32_floatX
+from pylearn2.utils.rng import rng_uniform
 
 skip_if_no_gpu()
 
@@ -37,7 +38,7 @@ def test_stochasatic_pool_samples():
 
     ds = 3
     stride = 3
-    rng = numpy.random.RandomState(220)
+    rng = rng_uniform()
     data = rng.uniform(0, 10, size=(1, ds, ds, 1)).astype('float32')
 
     x = theano.tensor.tensor4()
@@ -61,7 +62,7 @@ def test_weighted_pool():
 
     # TODO: test with different stride values
 
-    rng = numpy.random.RandomState(220)
+    rng = rng_uniform()
 
     for ds in [9, 2]:
         for batch in [1, 10]:

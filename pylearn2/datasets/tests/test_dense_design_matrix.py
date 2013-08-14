@@ -4,14 +4,14 @@ from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrixPyTables
 from pylearn2.datasets.dense_design_matrix import DefaultViewConverter
 from pylearn2.utils import serial
-
+from pylearn2.utils.rng import rng_randn
 
 def test_init_with_X_or_topo():
     #tests that constructing with topo_view works
     #tests that construction with design matrix works
     #tests that conversion from topo_view to design matrix and back works
     #tests that conversion the other way works too
-    rng = np.random.RandomState([1,2,3])
+    rng = rng_randn()
     topo_view = rng.randn(5,2,2,3)
     d1 = DenseDesignMatrix(topo_view = topo_view)
     X = d1.get_design_matrix()
@@ -31,7 +31,7 @@ def test_init_with_vc():
             view_converter = DefaultViewConverter([1,2,3]))
 
 def get_rnd_design_matrix():
-    rng = np.random.RandomState([1,2,3])
+    rng = rng_randn()
     topo_view = rng.randn(10,2,2,3)
     d1 = DenseDesignMatrix(topo_view = topo_view)
     return d1

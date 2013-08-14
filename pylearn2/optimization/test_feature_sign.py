@@ -11,12 +11,13 @@ __email__ = "wardefar@iro"
 
 import numpy as np
 from pylearn2.optimization.feature_sign import feature_sign_search
+from pylearn2.utils.rng import rng_normal
 
 
 class TestFeatureSign(object):
     @classmethod
     def setup_class(cls):
-        rng = np.random.RandomState(0)
+        rng = rng_normal(0)  #seed zero given to avoid assertion errors in nosetests
         cls.dictionary = rng.normal(size=(100, 500)) / 1000
         cls.dictionary /= np.sqrt((cls.dictionary ** 2).sum(axis=0))
         cls.gram = np.dot(cls.dictionary.T, cls.dictionary)

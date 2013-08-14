@@ -5,6 +5,8 @@ from pylearn2.models.mlp import (MLP, Linear, Softmax, Sigmoid,
                                  exhaustive_dropout_average,
                                  sampled_dropout_average)
 
+from pylearn2.utils.rng import make_rng
+
 
 class IdentityLayer(Linear):
     dropout_input_mask_value = -np.inf
@@ -104,7 +106,7 @@ def test_sigmoid_layer_misclass_reporting():
     f = theano.function([batch, target], [tensor.gt(mlp.fprop(batch), 0.5),
                                           rval['misclass']],
                         allow_input_downcast=True)
-    rng = np.random.RandomState(0)
+    rng = make_rng(typeStr=("normal", "uniform"))
 
     for _ in range(10):  # repeat a few times for statistical strength
         targets = (rng.uniform(size=(30, 1)) > 0.5).astype('uint8')

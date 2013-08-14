@@ -8,6 +8,7 @@ from pylearn2.expr.probabilistic_max_pooling import max_pool_c01b
 from pylearn2.sandbox.cuda_convnet.probabilistic_max_pooling import  prob_max_pool_c01b
 from pylearn2.utils import float32_floatX
 from pylearn2.testing.skip import skip_if_no_gpu
+from pylearn2.utils.rng import rng_randn
 
 skip_if_no_gpu()
 
@@ -31,7 +32,7 @@ def test_correctness():
     Test the forward pass Op against theano graph implementation
     """
 
-    rng = np.random.RandomState([2012,7,19])
+    rng = rng_randn()
     batch_size_list = [1, 5]
     channels = 16
     rows_list = [2, 24]
@@ -70,7 +71,7 @@ def test_top_donw_correctness():
     Test the forward pass Op against theano graph implementation
     """
 
-    rng = np.random.RandomState([2012,7,19])
+    rng = rng_randn()
     batch_size_list = [1]
     channels = 16
     rows_list = [2, 24]
@@ -111,7 +112,7 @@ def test_grad():
     Test Op's gradient w.r.t top_down against theano graph implementation
     """
 
-    rng = np.random.RandomState([2012,7,19])
+    rng = rng_randn()
     batch_size_list = [1]
     channels = 16
     rows_list = [2, 24]

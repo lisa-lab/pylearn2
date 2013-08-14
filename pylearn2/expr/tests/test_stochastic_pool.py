@@ -2,6 +2,7 @@ import numpy
 import theano
 from theano.compat.python2x import Counter
 from pylearn2.expr.stochastic_pool import stochastic_max_pool_bc01, weighted_max_pool_bc01
+from pylearn2.utils.rng import rng_uniform
 
 # TODO add unit tests for: differnt shape, stide, batch and channel size
 
@@ -16,7 +17,7 @@ def test_stochasatic_pool_samples():
     pool_shape = (2, 2)
     pool_stride = (2, 2)
     image_shape = (2, 2)
-    rng = numpy.random.RandomState(12345)
+    rng = rng_uniform(12345)
     data = rng.uniform(0, 10, size=(batch, channel, image_shape[0], image_shape[1])).astype('float32')
 
     x = theano.tensor.tensor4()
@@ -38,7 +39,7 @@ def test_weighted_pool():
     Test weighted pooling theano implementation against numpy implementation
     """
 
-    rng = numpy.random.RandomState(220)
+    rng = rng_uniform()
 
     for ds in [3]:
         for batch in [2]:

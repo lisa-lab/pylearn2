@@ -11,6 +11,8 @@ import warnings
 from theano import config
 from theano import function
 import theano.tensor as T
+from pylearn2.utils.rng import rng_randn
+
 
 from pylearn2.expr.normalize import (CrossChannelNormalization,
                                      CrossChannelNormalizationBC01)
@@ -62,7 +64,7 @@ def basic_test():
     
     # Perform test for C01B
 
-    rng = np.random.RandomState([2013,2])
+    rng = rng_randn()
 
     c01b = rng.randn(*shape).astype(config.floatX)
     

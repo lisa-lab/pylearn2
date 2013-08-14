@@ -16,6 +16,9 @@ from mpl_toolkits.mplot3d import Axes3D
 
 # Local imports
 from pylearn2.datasets.utlc import get_constant, sharedX
+from pylearn2.utils.rng import make_rng
+
+
 
 ##################################################
 # 3D Visualization
@@ -172,7 +175,7 @@ class BatchIterator(object):
 
         # Use a deterministic seed
         self.seed = seed
-        rng = numpy.random.RandomState(seed=self.seed)
+        rng = make_rng(self.seed, typeStr="permutation")
         self.permut = rng.permutation(index_tab)
 
     def __iter__(self):

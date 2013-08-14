@@ -7,6 +7,7 @@ import numpy
 import theano
 from theano import tensor
 
+
 try:
     import pylearn2
 except ImportError:
@@ -20,10 +21,11 @@ except ImportError:
 from pylearn2.cost import SquaredError
 from pylearn2.autoencoder import ContractiveAutoencoder, build_stacked_ae
 from pylearn2.deprecated.optimizer import SGDOptimizer
+from pylearn2.utils.rng import rng_normal
 
 if __name__ == "__main__":
     # Simulate some fake data.
-    rng = numpy.random.RandomState(seed=42)
+    rng = rng_normal()
     data = rng.normal(size=(1000, 15))
 
     conf = {

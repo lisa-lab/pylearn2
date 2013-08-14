@@ -21,11 +21,12 @@ from pylearn2.cost import SquaredError
 from pylearn2.corruption import GaussianCorruptor
 from pylearn2.autoencoder import DenoisingAutoencoder,build_stacked_ae
 from pylearn2.deprecated.optimizer import SGDOptimizer
+from pylearn2.utils.rng import rng_normal
 
 
 if __name__ == "__main__":
     # Simulate some fake data.
-    rng = numpy.random.RandomState(seed=42)
+    rng = rng_normal()
     data = numpy.ndarray.astype(rng.normal(size=(500, 15)), numpy.float32)
 
     conf = {
