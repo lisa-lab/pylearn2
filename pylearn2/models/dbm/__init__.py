@@ -44,6 +44,7 @@ from pylearn2.utils import py_integer_types
 from pylearn2.utils import safe_zip
 from pylearn2.utils import safe_izip
 from pylearn2.utils import sharedX
+from pylearn2.constraints import NormConstraint
 
 warnings.warn("DBM changing the recursion limit.")
 # We need this to be high enough that the big theano graphs we make
@@ -1208,10 +1209,9 @@ class BinaryVectorMaxPool(HiddenLayer):
             W, = self.transformer.get_params()
             if W in updates:
                 updated_W = updates[W]
-                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
-
+                normConstraint = NormConstraint()
+                updates[W] = normConstraint.constrain_param(param=updated_W,
+                                                        max_norm_constraint=self.max_col_norm)
 
     def get_total_state_space(self):
         return CompositeSpace((self.output_space, self.h_space))
@@ -1759,9 +1759,9 @@ class Softmax(HiddenLayer):
             W = self.W
             if W in updates:
                 updated_W = updates[W]
-                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
+                normConstraint = NormConstraint()
+                updates[W] = normConstraint.constrain_param(param=updated_W,
+                                                        max_norm_constraint=self.max_col_norm)
 
     def get_lr_scalers(self):
 

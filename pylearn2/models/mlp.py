@@ -28,6 +28,8 @@ from pylearn2.linear import conv2d
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.models.model import Model
 from pylearn2.expr.nnet import pseudoinverse_softmax_numpy
+from pylearn2.constraints import NormConstraint
+
 from pylearn2.space import CompositeSpace
 from pylearn2.space import Conv2DSpace
 from pylearn2.space import Space
@@ -870,17 +872,15 @@ class Softmax(Layer):
             W = self.W
             if W in updates:
                 updated_W = updates[W]
-                row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=1))
-                desired_norms = T.clip(row_norms, 0, self.max_row_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle(0, 'x')
+
         if self.max_col_norm is not None:
             assert self.max_row_norm is None
             W = self.W
             if W in updates:
                 updated_W = updates[W]
-                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
+                normConstraint = NormConstraint()
+                updates[W] = normConstraint.constrain_param(param=updated_W,
+                                                        max_norm_constraint=self.max_col_norm)
 
 class SoftmaxPool(Layer):
     """
@@ -1010,9 +1010,10 @@ class SoftmaxPool(Layer):
             W ,= self.transformer.get_params()
             if W in updates:
                 updated_W = updates[W]
-                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
+                normConstraint = NormConstraint()
+                updates[W] = normConstraint.constrain_param(param=updated_W,
+                                                            max_norm_constraint=self.max_col_norm)
+
 
     def get_params(self):
         assert self.b.name is not None
@@ -1195,7 +1196,7 @@ class Linear(Layer):
                  max_col_norm = None,
                  softmax_columns = False,
                  copy_input = 0,
-                 use_abs_loss = False, 
+                 use_abs_loss = False,
                  use_bias = True):
         """
 
@@ -1204,7 +1205,7 @@ class Linear(Layer):
         it is initialized to 0.
 
         """
-        
+
         if use_bias and init_bias is None:
             init_bias = 0.
 
@@ -1304,18 +1305,18 @@ class Linear(Layer):
             W ,= self.transformer.get_params()
             if W in updates:
                 updated_W = updates[W]
-                row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=1))
-                desired_norms = T.clip(row_norms, 0, self.max_row_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle(0, 'x')
+                normConstraint = NormConstraint(axis=(1,), dimshuffle_pattern=(0, 'x'))
+                updates[W] = normConstraint.constrain_param(param=updated_W,
+                                                        max_norm_constraint=self.max_row_norm)
 
         if self.max_col_norm is not None:
             assert self.max_row_norm is None
             W ,= self.transformer.get_params()
             if W in updates:
                 updated_W = updates[W]
-                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
-                updates[W] = updated_W * desired_norms / (1e-7 + col_norms)
+                normConstraint = NormConstraint()
+                updates[W] = normConstraint.constrain_param(param=updated_W,
+                                                        max_norm_constraint=self.max_col_norm)
 
 
     def get_params(self):
@@ -1661,7 +1662,7 @@ class RectifiedLinear(Linear):
     def __init__(self, left_slope = 0.0, **kwargs):
         super(RectifiedLinear, self).__init__(**kwargs)
         self.left_slope = left_slope
-    
+
     def fprop(self, state_below):
         p = self._linear_part(state_below)
         p = p * (p > 0.) + self.left_slope * p * (p < 0.)
@@ -1848,10 +1849,11 @@ class ConvRectifiedLinear(Layer):
             W ,= self.transformer.get_params()
             if W in updates:
                 updated_W = updates[W]
-                row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=(1,2,3)))
-                desired_norms = T.clip(row_norms, 0, self.max_kernel_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle(0, 'x', 'x', 'x')
-
+                axis = (1, 2, 3)
+                dimshuffle_pattern = (0, 'x', 'x', 'x')
+                kern_row_constraint = NormConstraint(axis=axis, dimshuffle_pattern=dimshuffle_pattern)
+                updates[W] = kern_row_constraint.constrain_param(param=updated_W,
+                                                                 max_norm_constraint=self.max_kernel_norm)
 
     def get_params(self):
         assert self.b.name is not None
