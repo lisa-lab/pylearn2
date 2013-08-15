@@ -1747,9 +1747,9 @@ class ConvLinear(Layer):
         """
 
         if (irange is None) and (sparse_init is None):
-            raise AssertionError("You should specify either irange or sparse_init when calling the constructor of ConvRectifiedLinear.")
+            raise AssertionError("You should specify either irange or sparse_init when calling the constructor of ConvLinear.")
         elif (irange is not None) and (sparse_init is not None):
-            raise AssertionError("You should specify either irange or sparse_init when calling the constructor of ConvRectifiedLinear and not both.")
+            raise AssertionError("You should specify either irange or sparse_init when calling the constructor of ConvLinear and not both.")
 
         self.__dict__.update(locals())
         del self.self
@@ -1914,7 +1914,11 @@ class ConvLinear(Layer):
                             ('kernel_norms_max'  , row_norms.max()),
                             ])
 
-    def fprop(self, state_below):
+    def fprop(self, state_below, enable_pooling=True):
+        """
+        pooling: If pooling is false, don't do any pooling just return
+        the linear activation.
+        """
 
         self.input_space.validate(state_below)
 
@@ -1922,31 +1926,34 @@ class ConvLinear(Layer):
         if self.layer_name is not None:
             z.name = self.layer_name + '_z'
 
-        self.detector_space.validate(d)
+        if enable_pooling:
+            self.detector_space.validate(d)
 
-        if not hasattr(self, 'detector_normalization'):
-            self.detector_normalization = None
+            if not hasattr(self, 'detector_normalization'):
+                self.detector_normalization = None
 
-        if self.detector_normalization:
-            z = self.detector_normalization(z)
+            if self.detector_normalization:
+                z = self.detector_normalization(z)
 
-        assert self.pool_type in ['max', 'mean']
-        if self.pool_type == 'max':
-            p = max_pool(bc01=z, pool_shape=self.pool_shape,
-                    pool_stride=self.pool_stride,
-                    image_shape=self.detector_space.shape)
-        elif self.pool_type == 'mean':
-            p = mean_pool(bc01=z, pool_shape=self.pool_shape,
-                    pool_stride=self.pool_stride,
-                    image_shape=self.detector_space.shape)
+            assert self.pool_type in ['max', 'mean']
+            if self.pool_type == 'max':
+                p = max_pool(bc01=z, pool_shape=self.pool_shape,
+                        pool_stride=self.pool_stride,
+                        image_shape=self.detector_space.shape)
+            elif self.pool_type == 'mean':
+                p = mean_pool(bc01=z, pool_shape=self.pool_shape,
+                        pool_stride=self.pool_stride,
+                        image_shape=self.detector_space.shape)
 
-        self.output_space.validate(p)
+            self.output_space.validate(p)
 
-        if not hasattr(self, 'output_normalization'):
-            self.output_normalization = None
+            if not hasattr(self, 'output_normalization'):
+                self.output_normalization = None
 
-        if self.output_normalization:
-            p = self.output_normalization(p)
+            if self.output_normalization:
+                p = self.output_normalization(p)
+        else:
+            p = z
 
         return p
 
@@ -2021,14 +2028,7 @@ class ConvRectifiedLinear(ConvLinear):
 
     def fprop(self, state_below):
 
-        self.input_space.validate(state_below)
-
-        z = self.transformer.lmul(state_below) + self.b
-        if self.layer_name is not None:
-            z.name = self.layer_name + '_z'
-
-        d = z * (z > 0.) + self.left_slope * z * (z < 0.)
-
+        d = super(ConvRectifiedLinear, self).fprop(state_below, enable_pooling=False)
         self.detector_space.validate(d)
 
         if not hasattr(self, 'detector_normalization'):
@@ -2278,12 +2278,7 @@ class ConvSigmoid(ConvLinear):
 
     def fprop(self, state_below):
 
-        self.input_space.validate(state_below)
-
-        z = self.transformer.lmul(state_below) + self.b
-        if self.layer_name is not None:
-            z.name = self.layer_name + '_z'
-
+        z = super(ConvSigmoid, self).fprop(state_below, enable_pooling=False)
         d = T.nnet.sigmoid(z)
 
         self.detector_space.validate(d)
