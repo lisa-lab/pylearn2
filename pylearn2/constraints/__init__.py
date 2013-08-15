@@ -20,7 +20,15 @@ class Constraint(object):
 class NormConstraint(Constraint):
     """
         A class implementing norm constraints. This class can be used to implement max/min norm
-        constraints on the parameters of the model.
+        constraints on a matrix, vector or a tensor such that if the norm constraint is not
+        satisfied rescale the values along the given axis.
+
+        Applying norm constraint on the parameters was first proposed in the following paper:
+            Srebro, Nathan, and Adi Shraibman. "Rank, trace-norm and max-norm." Learning Theory.
+            Springer Berlin Heidelberg, 2005. 545-560.
+        But it is further popularized in neural networks with drop-out in the following publication:
+            Hinton, Geoffrey E., et al. "Improving neural networks by preventing co-adaptation of feature
+            detectors." arXiv preprint arXiv:1207.0580 (2012).
     """
     def __init__(self, axis=(0,), dimshuffle_pattern=None):
         """
