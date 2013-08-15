@@ -1,3 +1,4 @@
+
 from collections import OrderedDict
 import warnings
 import theano.tensor as T
@@ -7,12 +8,12 @@ class Constraint(object):
     """
         Base class for implementing constraints.
     """
-    def __init__(self, axis=None):
+    def __init__(self, axes=None):
         """
-            axis: determines which axises to apply the constraints on.
+            axes: determines which axes to apply the constraints on.
         """
-        axis = axis if axis is not None else (0,)
-        self.axis = axis
+        axes = axes if axes is not None else (0,)
+        self.axes = axes
 
     def constrain_params(self, constraint_val):
         raise NotImplementedError()
@@ -21,7 +22,7 @@ class NormConstraint(Constraint):
     """
         A class implementing norm constraints. This class can be used to implement max/min norm
         constraints on a matrix, vector or a tensor such that if the norm constraint is not
-        satisfied rescale the values along the given axis.
+        satisfied rescale the values along the given axes.
 
         Applying norm constraint on the parameters was first proposed in the following paper:
             Srebro, Nathan, and Adi Shraibman. "Rank, trace-norm and max-norm." Learning Theory.
@@ -30,14 +31,13 @@ class NormConstraint(Constraint):
             Hinton, Geoffrey E., et al. "Improving neural networks by preventing co-adaptation of feature
             detectors." arXiv preprint arXiv:1207.0580 (2012).
     """
-    def __init__(self, axis=(0,), dimshuffle_pattern=None):
+    def __init__(self, axes=(0,), dimshuffle_pattern=None):
         """
-            axis: determines which axises to apply the constraints on.
-            dimshuffle_pattern: determines which dimshuffling pattern to apply the dimshuffling
-            pattern on.
+            axes: determines which axes to apply the constraints on.
+            dimshuffle_pattern: axes that we dimshuffle the tensor/matrix/vector along.
         """
         self.dimshuffle_pattern = dimshuffle_pattern
-        super(NormConstraint, self).__init__(axis)
+        super(NormConstraint, self).__init__(axes)
 
     def _clip_norms(self,
                     init_param,
@@ -52,14 +52,14 @@ class NormConstraint(Constraint):
             denominator never becomes 0.
         """
 
-        axis = self.axis if self.axis is not None else (0,)
-        assert type(axis) is tuple, "Axis you have provided to the norm constraint class, should be a tuple."
+        axes = self.axes if self.axes is not None else (0,)
+        assert type(axes) is tuple, "axes you have provided to the norm constraint class, should be a tuple."
         assert max_norm is not None
         min_norm_constr = min_norm if min_norm is not None else 0
         dimshuffle_pattern = self.dimshuffle_pattern
 
         sqr_param = T.sqr(init_param)
-        norm = T.sqrt(T.sum(sqr_param, axis=axis))
+        norm = T.sqrt(T.sum(sqr_param, axes=axes))
         desired_norm = T.clip(norm, min_norm_constr, max_norm)
         desired_norm_ratio = desired_norm / (eps + norm)
 
