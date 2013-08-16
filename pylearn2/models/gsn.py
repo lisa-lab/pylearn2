@@ -363,6 +363,8 @@ class GSN(StackedBlocks, Model):
         Parameters
         ----------
         minibatch : see parameter description in _set_activations
+            In addition to the description in get_samples, the tensor_likes
+            in the list should be replaced by numpy matrices if symbolic=False.
         walkback : int
             How many walkback steps to perform. This is both how many extra
             samples to take as well as how many extra reconstructed points
@@ -380,8 +382,10 @@ class GSN(StackedBlocks, Model):
             Whether to include the initial activations (ie just the input) in
             the output. This is useful for visualization, but can screw up
             training due to some cost functions failing on perfect reconstruction.
-        clamped : same as minibatch
-            See description on _run.
+        clamped : list of tensor_likes
+            See description on _run. Theano symbolics should be replaced by
+            numpy matrices if symbolic=False.
+            Length must be the same as length of minibatch.
 
         Returns
         ---------
@@ -579,6 +583,9 @@ class GSN(StackedBlocks, Model):
     @staticmethod
     def _apply_clamping(activations, clamped, symbolic=True):
         for idx, initial, clamp in clamped:
+            if clamp is None:
+                continue
+
             # take values from initial
             clamped_val = clamp * initial
 

@@ -23,7 +23,7 @@ GAUSSIAN_NOISE = 0.5
 
 WALKBACK = 0
 
-LEARNING_RATE = 0.2
+LEARNING_RATE = 0.3
 MOMENTUM = 0.5
 
 MAX_EPOCHS = 100
@@ -54,45 +54,6 @@ def test_train_ae():
     trainer.main_loop()
     print "done training"
 
-def test_train_supervised():
-    raw_class_cost = MeanBinaryCrossEntropy()
-    classification_cost = lambda a, b: raw_class_cost.cost(a, b) / 10.0
-
-    """
-    gsn = GSN.new(layers + [10], ["sigmoid", "tanh", plushmax],
-                  [GaussianCorruptor(0.75), None, GaussianCorruptor(0.75)],
-                  [SaltPepperCorruptor(0.3), None, SmoothOneHotCorruptor(0.75)],
-                  [BinomialSampler(), None, MultinomialSampler()],
-                  tied=False)
-    """
-    with open("pre_gsn_4.pkl", 'r') as f:
-        gsn = pickle.load(f)
-    del gsn.monitor
-
-
-    gsn._layer_samplers = [identity] * 3
-    cor = ComposedCorruptor(BinomialCorruptor(0.5), GaussianCorruptor(.75))
-    gsn._postact_cors = [cor] * 3
-
-    c = GSNCost(
-        [
-            (0, 1.0, reconstruction_cost),
-            (2, 10.0, classification_cost)
-        ],
-        walkback=WALKBACK, mode='supervised')
-
-    alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=c,
-              termination_criterion=EpochCounter(MAX_EPOCHS),
-              batches_per_iter=BATCHES_PER_EPOCH, batch_size=BATCH_SIZE,
-              monitoring_dataset=MNIST(which_set='train', one_hot=True),
-              monitoring_batches=10, monitor_iteration_mode="shuffled_sequential"
-              )
-
-    trainer = Train(dataset, gsn, algorithm=alg, save_path="gsn_sup_example.pkl",
-                    save_freq=5, extensions=[MonitorBasedLRAdjuster()])
-    trainer.main_loop()
-    print "done training"
-
 def test_sample_ae():
     with open("gsn_ae_example.pkl") as f:
         gsn = pickle.load(f)
@@ -116,7 +77,39 @@ def test_sample_ae():
     pw = ParzenWindows(MNIST(which_set='test').X, .20)
     print pw.get_ll(history)
 
-def test_sample_supervised():
+def test_train_supervised():
+    raw_class_cost = MeanBinaryCrossEntropy()
+    classification_cost = lambda a, b: raw_class_cost.cost(a, b) / 10.0
+
+    dc = DropoutCorruptor(.5)
+    gc = GaussianCorruptor(.5)
+
+    gsn = GSN.new([784, 1000, 10], ["sigmoid", "tanh", plushmax],
+                  [gc, None, None],
+                  [SaltPepperCorruptor(0.3), dc, SmoothOneHotCorruptor(0.75)],
+                  [BinomialSampler(), None, MultinomialSampler()],
+                  tied=False)
+
+    c = GSNCost(
+        [
+            (0, 1.0, reconstruction_cost),
+            (2, 1.0, classification_cost)
+        ],
+        walkback=1, mode='joint')
+
+    alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=c,
+              termination_criterion=EpochCounter(MAX_EPOCHS),
+              batches_per_iter=BATCHES_PER_EPOCH, batch_size=BATCH_SIZE,
+              monitoring_dataset=MNIST(which_set='train', one_hot=True),
+              monitoring_batches=10, monitor_iteration_mode="shuffled_sequential"
+              )
+
+    trainer = Train(dataset, gsn, algorithm=alg, save_path="gsn_sup_example.pkl",
+                    save_freq=5, extensions=[MonitorBasedLRAdjuster()])
+    trainer.main_loop()
+    print "done training"
+
+def test_classify():
     with open("gsn_sup_example.pkl") as f:
         gsn = pickle.load(f)
 
@@ -127,24 +120,53 @@ def test_sample_supervised():
     mb_data = ds.X
     y = ds.y
 
-    for i in xrange(1, 5):
+    for i in xrange(1, 10):
         y_hat = gsn.classify(mb_data, trials=i)
         errors = np.abs(y_hat - y).sum() / 2.0
 
         print i, errors, errors / 10000.0
 
+def test_sample_supervised():
+    with open("gsn_sup_example.pkl") as f:
+        gsn = pickle.load(f)
+
+    ds = MNIST(which_set='test', one_hot=True)
+    samples = gsn.get_samples([(0, ds.X[0:1, :])],
+                              indices=[0, 2],
+                              walkback=1000, symbolic=False,
+                              include_first=True)
+    vis_samples(samples)
+
 def vis_samples(samples):
     images = []
     labels = []
+
+    from PIL import ImageDraw, ImageFont
+    img = image.pil_from_ndarray(np.zeros((28, 28)))
+
     for step in samples:
         assert len(step) == 2
+        assert step[0].shape[0] == step[1].shape[0] == 1
+
         images.append(step[0])
-        labels.append(np.argmax(step[1], axis=1))
-    for i in xrange(len(images)):
-        print "Step %s" % i
-        print "Label: %s" % labels[i]
-        print_char(images[0])
-        print "-----------------------------"
+        label = np.argmax(step[1][0])
+
+        c = img.copy()
+        draw = ImageDraw.Draw(c)
+        draw.text((11, 11), str(label), 255)
+        nd = image.ndarray_from_pil(c)[:, :, 0]
+        nd = nd.reshape((1, 784))
+        labels.append(nd)
+
+    data = safe_zip(images, labels)
+    data = list(itertools.chain(*data))
+    data = np.vstack(data)
+
+    tiled = image.tile_raster_images(data,
+                                     img_shape=[28,28],
+                                     tile_shape=[50,50],
+                                     tile_spacing=(2,2))
+    image.save("gsn_sup_example.png", tiled)
 
 
 # some utility methods for viewing MNIST characters without any GUI
@@ -165,4 +187,5 @@ def a_to_s(A):
     return "\n".join(strs)
 
 if __name__ == '__main__':
+    test_classify()
     test_sample_supervised()
