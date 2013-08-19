@@ -1,11 +1,18 @@
 from pylearn.datasets import utlc
+from pylearn2.datasets.exc import NoDataPathError, NotInstalledError
 import numpy as N
+import os
 
 class Avicenna(object):
     def __init__(self, which_set, standardize):
+        if 'PYLEARN2_DATA_PATH' not in os.environ:
+            raise NoDataPathError()
+        if not os.path.exists(os.path.join(os.environ['PYLEARN2_DATA_PATH'], 'avicenna')):
+            raise NotInstalledError() #XXX: check path
 
         #train, valid, test = N.random.randn(50,50), N.random.randn(50,50), N.random.randn(50,50)
         #print "avicenna hacked to load small random data instead of actual data"
+
         train, valid, test = utlc.load_ndarray_dataset('avicenna')
 
         if which_set == 'train':

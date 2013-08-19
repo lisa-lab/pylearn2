@@ -9,6 +9,10 @@ import numpy
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils import serial
 
+import os
+from pylearn2.datasets.exc import NoDataPathError, NotInstalledError
+
+
 class OCR(dense_design_matrix.DenseDesignMatrix):
 
     """
@@ -26,12 +30,17 @@ class OCR(dense_design_matrix.DenseDesignMatrix):
     data_split = {"train" : 32152, "valid" : 10000, "test" : 10000 }
 
     def __init__(self, which_set, one_hot = False, axes=['b', 0, 1, 'c']):
+        if 'PYLEARN2_DATA_PATH' not in os.environ:
+            raise NoDataPathError()
 
         self.args = locals()
 
         assert which_set in self.data_split.keys()
 
         path = serial.preprocess("${PYLEARN2_DATA_PATH}/ocr_letters/letter.data")
+        if not os.path.exists(path):
+            raise NotInstalledError()
+
         with open(path, 'r') as data_f:
             data = data_f.readlines()
             data = [line.split("\t") for line in data]

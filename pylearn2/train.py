@@ -52,9 +52,8 @@ class Train(object):
             automatic saving altogether. A frequency of 1 saves every
             epoch. A frequency of 2 saves every other epoch, etc. (default=0,
             i.e. never save)
-            Note: when automatic saving is enabled (eg save_freq > 0), the
-            model is always saved after learning, even when the final epoch is
-            not a multiple of save_freq.
+            Note: the model is always saved at the end of learning, even
+            if the final epoch is not a multiple of save_freq.
         extensions : iterable, optional
             A collection of TrainExtension objects whose callbacks are
             triggered at various points in learning.
@@ -134,6 +133,8 @@ class Train(object):
             while True:
                 with log_timing(log, None, final_msg='Time this epoch:',
                                 callbacks=[self.monitor_time.set_value]):
+                    import time
+                    print 'current time', time.strftime("%H:%M:%S")
                     rval = self.algorithm.train(dataset=self.dataset)
                 if rval is not None:
                     raise ValueError("TrainingAlgorithm.train should not return anything. Use TrainingAlgorithm.continue_learning to control whether learning continues.")

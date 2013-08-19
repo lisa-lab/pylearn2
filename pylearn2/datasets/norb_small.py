@@ -4,6 +4,8 @@ import os
 
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.datasets import retina
+from pylearn2.datasets.exc import NotInstalledError, NoDataPathError
+
 
 class NORBSmall(dense_design_matrix.DenseDesignMatrix):
     """
@@ -13,9 +15,15 @@ class NORBSmall(dense_design_matrix.DenseDesignMatrix):
     @classmethod
     def load(cls, which_set, desc):
 
+        if 'PYLEARN2_DATA_PATH' not in os.environ:
+            raise NoDataPathError()
+
         assert desc in ['dat','cat','info']
 
         base = '%s/norb_small/original_npy/smallnorb-' % os.getenv('PYLEARN2_DATA_PATH')
+        if not os.path.exists(os.path.join(os.environ['PYLEARN2_DATA_PATH'], 'norb_small', 'original_npy')):
+            raise NotInstalledError()
+
         if which_set == 'train':
             base += '5x46789x9x18x6x2x96x96-training'
         else:
@@ -60,7 +68,15 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
     @classmethod
     def load(cls, which_set):
 
+        if 'PYLEARN2_DATA_PATH' not in os.environ:
+            raise NoDataPathError()
+
         base = '%s/norb_small/foveated/smallnorb-' % os.getenv('PYLEARN2_DATA_PATH')
+
+        if not os.path.exists(os.path.join(os.environ['PYLEARN2_DATA_PATH'], 'norb_small', 'foveated')):
+            raise NotInstalledError()
+
+
         if which_set == 'train':
             base += '5x46789x9x18x6x2x96x96-training-dat'
         else:

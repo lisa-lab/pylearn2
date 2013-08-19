@@ -25,7 +25,6 @@ from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_zip
 from pylearn2.utils.data_specs import is_flat_specs
 
-
 class SubsetIterator(object):
     def __init__(self, dataset_size, batch_size, num_batches, rng=None):
         """
@@ -318,7 +317,8 @@ class FiniteDatasetIterator(object):
 
         self._topo = topo
         self._targets = targets
-        self._data_specs = data_specs
+        #self._data_specs = data_specs
+        self._data_specs = dataset.get_data_specs()
         self._dataset = dataset
         self._subset_iterator = subset_iterator
         self._return_tuple = return_tuple
@@ -337,7 +337,9 @@ class FiniteDatasetIterator(object):
         else:
             # Keep only the needed sources in self._raw_data.
             # Remember what source they correspond to in self._source
-            assert is_flat_specs(data_specs)
+            #print data_specs
+            #print self._dataset.get_data_specs()
+            assert is_flat_specs(self._data_specs)
 
             dataset_space, dataset_source = self._dataset.get_data_specs()
             assert is_flat_specs((dataset_space, dataset_source))
@@ -359,13 +361,15 @@ class FiniteDatasetIterator(object):
             if not isinstance(all_data, tuple):
                 all_data = (all_data,)
 
-            space, source = data_specs
+            space, source = self._data_specs
             if not isinstance(source, tuple):
                 source = (source,)
             if not isinstance(space, CompositeSpace):
                 sub_spaces = (space,)
             else:
                 sub_spaces = space.components
+            #print "problem at:", source, sub_spaces
+            #print 'with space:', space, space.components
             assert len(source) == len(sub_spaces)
 
             self._raw_data = tuple(all_data[dataset_source.index(s)]
@@ -405,6 +409,7 @@ class FiniteDatasetIterator(object):
 
     def next(self):
         next_index = self._subset_iterator.next()
+
         # TODO: handle fancy-index copies by allocating a buffer and
         # using numpy.take()
 
@@ -426,11 +431,22 @@ class FiniteDatasetIterator(object):
             else:
                 return features
         else:
+            if isinstance(next_index, slice):
+                idx_me = lambda x, idx: x[idx]
+            else:
+                idx_me = lambda x, idx: numpy.asarray([x[i] for i in idx])
+
+            #print 'data:', self._raw_data[0], next_index
+            #print 'test:', idx_me(self._raw_data[0], next_index)
+            #print 'success...'
+
+            #numpy.take determined as being a huge bottleneck. XXX
             rval = tuple(
-                    fn(data[next_index]) if fn else data[next_index]
+                    fn(idx_me(data, next_index)) if fn else idx_me(data, next_index)
                     for data, fn in safe_zip(self._raw_data, self._convert))
             if not self._return_tuple and len(rval) == 1:
                 rval, = rval
+
             return rval
 
     @property

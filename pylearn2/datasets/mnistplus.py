@@ -2,6 +2,8 @@ import numpy as np
 from theano import config
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load
+from pylearn2.datasets.exc import NoDataPathError, NotInstalledError
+import os
 
 
 class MNISTPlus(dense_design_matrix.DenseDesignMatrix):
@@ -26,11 +28,17 @@ class MNISTPlus(dense_design_matrix.DenseDesignMatrix):
         :param center: if True, remove mean (across examples) for each pixel
         :param contrast_normalize: if True, for each image, remove mean and divide by standard deviation.
         """
+        if 'PYLEARN2_DATA_PATH' not in os.environ:
+            raise NoDataPathError()
+
         assert which_set in ['train','valid','test']
         assert label_type in [None,'label','azimuth','rotation','texture_id']
 
         # load data
         fname = '${PYLEARN2_DATA_PATH}/mnistplus/mnistplus'
+        if not os.path.exists(os.path.join(os.environ['PYLEARN2_DATA_PATH'], 'mnistplus', 'mnistplus')):
+            raise NotInstalledError()
+
         if azimuth:
             fname += '_azi'
         if rotation:

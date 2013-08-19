@@ -6,11 +6,24 @@ __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 import numpy as N
 from pylearn2.datasets import dense_design_matrix
+from pylearn2.utils.string_utils import preprocess
+
+from pylearn2.datasets.exc import NoDataPathError, NotInstalledError
+import os
+
 
 class Wiskott(dense_design_matrix.DenseDesignMatrix):
     def __init__(self):
 
-        X = 1. - N.load("/data/lisa/data/wiskott/wiskott_fish_layer0_15_standard_64x64_shuffled.npy")
+        if 'PYLEARN2_DATA_PATH' not in os.environ:
+            raise NoDataPathError()
+
+        path = preprocess("${PYLEARN2_DATA_PATH}/wiskott/wiskott_fish_layer0_15_standard_64x64_shuffled.npy")
+
+        if not os.path.exists(path):
+            raise NotInstalledError()
+
+        X = 1. - N.load(path)
 
 
         view_converter = dense_design_matrix.DefaultViewConverter((64,64,1))

@@ -1,4 +1,5 @@
 import os, cPickle, logging
+from pylearn2.datasets.exc import NotInstalledError, NoDataPathError
 _logger = logging.getLogger(__name__)
 
 import numpy as np
@@ -10,7 +11,8 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
     def __init__(self, which_set, center = False, rescale = False, gcn = None,
             one_hot = False, start = None, stop = None, axes=('b', 0, 1, 'c'),
             toronto_prepro = False, preprocessor = None):
-
+        if 'PYLEARN2_DATA_PATH' not in os.environ:
+            raise NoDataPathError()
 
         # note: there is no such thing as the cifar10 validation set;
         # pylearn1 defined one but really it should be user-configurable
@@ -205,8 +207,9 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
                 'cifar-10-batches-py',
                 file)
         if not os.path.exists(fname):
-            raise IOError(fname+" was not found. You probably need to download "
-                    " the CIFAR-10 dataset from http://www.cs.utoronto.ca/~kriz/cifar.html")
+            raise NotInstalledError()
+            #raise IOError(fname+" was not found. You probably need to download "
+             #       " the CIFAR-10 dataset from http://www.cs.utoronto.ca/~kriz/cifar.html")
         _logger.info('loading file %s' % fname)
         fo = open(fname, 'rb')
         dict = cPickle.load(fo)
