@@ -63,6 +63,7 @@ class OneHotFormatter(object):
         row_offsets = tensor.arange(0, self._max_labels * targets.shape[0],
                                     self._max_labels)
         indices = row_offsets + targets
-        one_hot_flat = tensor.set_subtensor(one_hot_flat[indices], 1)
+        one_hot_flat = tensor.set_subtensor(one_hot_flat[indices],
+                                            numpy.cast[self._dtype](1))
         return one_hot_flat.reshape((targets.shape[0],
                                      tensor.constant(self._max_labels)))
