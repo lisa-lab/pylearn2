@@ -32,6 +32,7 @@ from theano import tensor as T
 from pylearn2.utils import safe_izip
 from pylearn2.utils.timing import log_timing
 import logging
+import sys
 
 log = logging.getLogger(__name__)
 
@@ -395,7 +396,6 @@ class Monitor(object):
                                 + key.name + ' has dtype ' + key.dtype + \
                                 ' but is driven by an expression with type ' + \
                                 up[key].dtype)
-
             self.accum = []
             for idx, packed in enumerate(safe_izip(givens, updates)):
                 g, u = packed
@@ -711,8 +711,7 @@ class Monitor(object):
         mapping = DataSpecsMapping((nested_space, nested_sources))
         space_tuple = mapping.flatten(nested_space, return_tuple=True)
         source_tuple = mapping.flatten(nested_sources, return_tuple=True)
-        ipt = tuple(space.make_theano_batch(name='monitor_%s' % source,
-                    batch_size = batch_size)
+        ipt = tuple(space.make_theano_batch(name='monitor_%s' % source)
                     for (space, source) in safe_zip(space_tuple, source_tuple))
 
         # Build a nested tuple from ipt, to dispatch the appropriate parts

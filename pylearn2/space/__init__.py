@@ -57,6 +57,9 @@ class Space(object):
     def __ne__(self, other):
         return not (self == other)
 
+    def __str__(self):
+        return self.__class__.__name__
+
     def __repr__(self):
         return str(self)
 
@@ -235,10 +238,8 @@ class VectorSpace(Space):
         return np.zeros((self.dim,))
 
     @functools.wraps(Space.get_origin_batch)
-    def get_origin_batch(self, n, dtype = None):
-        if dtype is None:
-            dtype = config.floatX
-        return np.zeros((n, self.dim), dtype = dtype)
+    def get_origin_batch(self, n):
+        return np.zeros((n, self.dim))
 
     @functools.wraps(Space.batch_size)
     def batch_size(self, batch):
@@ -300,12 +301,11 @@ class VectorSpace(Space):
 
         if isinstance(space, Conv2DSpace):
             dims = { 'b' : batch.shape[0], 'c' : space.num_channels, 0 : space.shape[0], 1 : space.shape[1] }
-            if space.axes != space.default_axes:
-                # Always use default_axes, so conversions like
-                # Conv2DSpace(c01b) -> VectorSpace -> Conv2DSpace(b01c) work
-                shape = [dims[ax] for ax in space.default_axes]
+            if space.axes[0] != 'b':
+                tmp_axes = ['b'] + [axis for axis in space.axes if axis != 'b']
+                shape = [dims[ax] for ax in tmp_axes]
                 batch = batch.reshape(shape)
-                batch = batch.transpose(*[space.default_axes.index(ax) for ax in space.axes])
+                batch = batch.transpose(*[tmp_axes.index(ax) for ax in space.axes])
                 return batch
 
             shape = tuple( [ dims[elem] for elem in space.axes ] )
@@ -363,12 +363,6 @@ class VectorSpace(Space):
 
 class Conv2DSpace(Space):
     """A space whose points are defined as (multi-channel) images."""
-
-    # Assume pylearn2's get_topological_view format, since this is how
-    # data is currently served up. If we make better iterators change
-    # default to ('b', 'c', 0, 1) for theano conv2d
-    default_axes = ('b', 0, 1, 'c')
-
     def __init__(self, shape, channels = None, num_channels = None, axes = None):
         """
         Initialize a Conv2DSpace.
@@ -407,7 +401,10 @@ class Conv2DSpace(Space):
         self.shape = tuple(shape)
         self.num_channels = num_channels
         if axes is None:
-            axes = self.default_axes
+            # Assume pylearn2's get_topological_view format, since this is how
+            # data is currently served up. If we make better iterators change
+            # default to ('b', 'c', 0, 1) for theano conv2d
+            axes = ('b', 0, 1, 'c')
         assert len(axes) == 4
         self.axes = tuple(axes)
 
@@ -430,17 +427,14 @@ class Conv2DSpace(Space):
         return np.zeros(shape)
 
     @functools.wraps(Space.get_origin_batch)
-    def get_origin_batch(self, n, dtype = None):
-        if dtype is None:
-            dtype = config.floatX
-
+    def get_origin_batch(self, n):
         if not isinstance(n, py_integer_types):
             raise TypeError("Conv2DSpace.get_origin_batch expects an int, got " +
                     str(n) + " of type " + str(type(n)))
         assert n > 0
         dims = { 'b' : n, 0: self.shape[0], 1: self.shape[1], 'c' : self.num_channels }
         shape = [ dims[elem] for elem in self.axes ]
-        return np.zeros(shape, dtype = dtype)
+        return np.zeros(shape)
 
     @functools.wraps(Space.make_theano_batch)
     def make_theano_batch(self, name=None, dtype=None, batch_size=None):
@@ -579,35 +573,28 @@ class Conv2DSpace(Space):
     def np_format_as(self, batch, space):
         self.np_validate(batch)
         if isinstance(space, VectorSpace):
-            # We need to ensure that the resulting batch will always be
-            # the same in `space`, no matter what the axes of `self` are.
-            if self.axes != self.default_axes:
-                # The batch index goes on the first axis
-                assert self.default_axes[0] == 'b'
-                batch = batch.transpose(*[self.axes.index(axis)
-                                          for axis in self.default_axes])
+            if self.axes[0] != 'b':
+                # We need to ensure that the batch index goes on the first axis before the reshape
+                new_axes = ['b'] + [axis for axis in self.axes if axis != 'b']
+                batch = batch.transpose(*[self.axes.index(axis) for axis in new_axes])
             return batch.reshape((batch.shape[0], self.get_total_dimension()))
         if isinstance(space, Conv2DSpace):
             return Conv2DSpace.convert_numpy(batch, self.axes, space.axes)
-        raise NotImplementedError("%s doesn't know how to format as %s"
-                                  % (str(self), str(space)))
+        raise NotImplementedError("Conv2DSPace doesn't know how to format as "+str(type(space)))
+
 
     @functools.wraps(Space._format_as)
     def _format_as(self, batch, space):
         self.validate(batch)
         if isinstance(space, VectorSpace):
-            # We need to ensure that the resulting batch will always be
-            # the same in `space`, no matter what the axes of `self` are.
-            if self.axes != self.default_axes:
-                # The batch index goes on the first axis
-                assert self.default_axes[0] == 'b'
-                batch = batch.transpose(*[self.axes.index(axis)
-                                          for axis in self.default_axes])
+            if self.axes[0] != 'b':
+                # We need to ensure that the batch index goes on the first axis before the reshape
+                new_axes = ['b'] + [axis for axis in self.axes if axis != 'b']
+                batch = batch.transpose(*[self.axes.index(axis) for axis in new_axes])
             return batch.reshape((batch.shape[0], self.get_total_dimension()))
         if isinstance(space, Conv2DSpace):
             return Conv2DSpace.convert(batch, self.axes, space.axes)
-        raise NotImplementedError("%s doesn't know how to format as %s"
-                                  % (str(self), str(space)))
+        raise NotImplementedError("Conv2DSPace doesn't know how to format as "+str(type(space)))
 
 
 class CompositeSpace(Space):
