@@ -133,7 +133,7 @@ Developer
 
 * :ref:`api_change` -- the best practices guide you should follow when changing any API in the library
 * :ref:`dev_start_guide` -- how to contribute code to Pylearn2
-
+* :ref:`data_specs` -- the interface different elements use to request and provide data
 
 
 .. _pylearn-users: https://groups.google.com/group/pylearn-users

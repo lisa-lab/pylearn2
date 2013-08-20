@@ -1,0 +1,408 @@
+.. _data_specs:
+
+Data specifications, spaces, and sources
+========================================
+
+Data specifications, often called ``data_specs``, are used as a
+specification for requesting and providing data in a certain format
+across different parts of a Pylearn2 experiment.
+
+A ``data_specs`` is a ``(space, source)`` pair, where ``source`` is an
+identifier or the data source or sources required (for instance, inputs
+and targets), and ``space`` is an instance of :class:`.space.Space`
+representing the *format* of these data (for instance, a vector, a 3D
+tensor representing an RGB image, or a one-hot vector).
+
+The main use of ``data_specs`` is to request data from a
+:class:`.datasets.Dataset` object, via an iterator. Various objects can
+request data this way: models, costs, monitoring channels, training
+algorithms, even some data sets that perform a transformation on data.
+
+
+The ``Space`` object
+====================
+
+A ``Space`` represents a way in which a mini-batch of data can be
+formatted. For instance, an batch of RGB images (each of shape ``(rows,
+columns)``) can be represented in different ways, for instance:
+
+- as a matrix where each row corresponds to a different image, and is
+of length ``rows * columns * 3``: the corresponding space would be
+a :class:`.space.VectorSpace`, more precisely
+``VectorSpace(dim=(rows * columns * 3))``;
+
+- as a 4-dimensional tensor, where rows, columns, and channels (here:
+red, green, and blue) are different axes: the corresponding space would
+be a :class:`.space.Conv2DSpace`. Theano convolutions prefer that
+tensor to have shape ``(batch_size, channels, rows, columns)``, which
+corresponds to ``Conv2DSpace(shape=(rows, columns), num_channels=3,
+axes=('b', 'c', 0, 1))``;
+
+- as a 4-dimensional tensors with a different shape, for instance,
+cuda-convnet prefers ``(channels, rows, columns, batch_size)``: the
+space would be ``Conv2DSpace(shape=(rows, columns), num_channels=3,
+axes=('c', 0, 1, 'b'))``.
+
+Spaces can be either elementary, representing one mini-batch from one
+source of data, such as ``VectorSpace`` and ``Conv2DSpace`` mentionned
+above, or *composite* (:class:`.space.CompositeSpace), representing
+the aggregation of several sources of data (some of these may in
+turn be aggregations of sources). A mini-batch for an elementary
+space will usually be a NumPy ``ndarray``, whereas a mini-batch for a
+``CompositeSpace`` will be a Python tuple of elementary (or composite)
+mini-batches.
+
+Notable methods of the :class:`Space` class are:
+
+- :method:`Space.make_theano_batch`: creates a Theano Variable
+(or tuple of Theano Variable in the case of ``CompositeSpace``)
+representing a *symbolic* mini-batch of data. For instance,
+``VectorSpace(...).make_theano_batch(...)`` will essentially call
+``theano.tensor.matrix()``.
+
+- :method:`Space.validate(batch)` will check that symbolic
+variable ``batch`` can correctly represent a mini-batch
+of data for the corresponding space. For instance,
+``VectorSpace(...).validate(theano.tensor.matrix()`` will work, but
+``VectorSpace(...).validate(theano.tensor.vector()`` will raise an
+Exception.
+
+- :method:`Space.np_validate(batch)` (where ``np`` stands for NumPy)
+is similar, but operates on a mini-batch of numeric data, rather than
+on a symbolic variable. This enables more checks to be performed. For
+instance, ``VectorSpace(dim=3).validate(np.zeros((4, 3)))`` will work,
+because it correctly describes a mini-batch of 4 samples of dimension
+3, but ``VectorSpace(dim=4).validate(np.zeros((4, 3)))`` will raise an
+exception.
+
+- :method:`Space.format_as(batch, space)` and
+:method:`Space.np_format_as(batch, space)` are the way we can convert
+data from their original space into the destination ``space``.
+``format_as`` operates on a symbolic ``batch``, and returns a symbolic
+expression of the newly-formatted data, whereas ``np_format_as``
+operates on a numeric batch, and returns numeric data. This formatting
+can happen between different instances of the same ``Space`` class,
+for instance, converting between two instances of ``Conv2DSpace`` with
+different ``axes`` amounts to correctly transpose the ``batch``. It can
+also happen between different subclasses of ``Space``, for instance,
+converting between a ``VectorSpace`` and ``Conv2DSpace`` of compatible
+shape involves reshaping and transposition of the data.
+
+
+Sources
+=======
+
+Sources are simple identifiers that specify *which* data should be
+returned, whereas spaces specify *how* that data should be formatted.
+
+An elementary source is identified by a Python string. For instance, the
+most used sources are ``'features'`` and ``'targets'``. ``'features'``
+usually denotes the part of the data that models will use as input, and
+``'targets'``, for labeled data sets, contains the value the model will
+try to predict. However, this is only a convention, and some data sets
+will declare other sources, that can be used in varying ways by models,
+for instance when using multi-modal data.
+
+A composite source is identified by a tuple of sources. For instance,
+to request features and targets from a data set, the `source` would be
+``('features', 'targets')``.
+
+
+Structure of composite specifications
+=====================================
+
+When using composite specifications ``data_specs=(space, source)``,
+``space`` and ``source`` have to have the same *structure*. This means
+that:
+
+- if ``space`` is an elementary space, then ``source`` has to be an
+elementary source, i.e., a string;
+
+- if ``space`` is a composite space, then ``source`` has to be a
+composite source (a tuple), with exactly as many components as the
+number of sub-spaces of ``space``; and the corresponding sub-sources and
+sub-spaces again have to have the same *structure*.
+
+
+For example, let us define the following spaces:
+
+.. code-block:: Python
+
+    input_vecspace = VectorSpace(dim=(32 * 32 * 3))
+    input_convspace = Conv2DSpace(shape=(32, 32), num_channels=3, axes=('b', 'c', 0, 1))
+    target_space = VectorSpace(dim=10)
+
+and suppose ``"features"`` and ``"targets"`` are sources present in our
+data. Then, the following data_specs are correct:
+
+- ``(input_vecspace, "features")``: only the features, mini-batches will be matrices;
+- ``(input_convspace, "features")``: only the features, mini-batches will be 4-D tensors;
+- ``(target_space, "targets")``: only the targets, mini-batches will be matrices;
+
+- ``(CompositeSpace((input_vecspace, target_space)), ("features",
+"targets"))``: features and targets, in that order; mini-batches will be
+(matrix, matrix) pairs;
+
+- ``(CompositeSpace((target_space, input_convspace)), ("targets",
+"features"))``: targets and features, in that order; mini-batches will
+be (matrix, 4-D tensor) pairs;
+
+- ``(CompositeSpace((input_vecspace, input_vecspace, input_vecspace,
+target_space)), ("features", "features", "features", "targets"))``:
+features repeated 3 times, then targets; mini-batches will be (matrix,
+matrix, matrix, matrix) tuples;
+
+- ``(CompositeSpace((CompositeSpace((input_vecspace, input_vecspace,
+input_vecspace)), target_space)), (("features", "features", "features"),
+"targets"))``: same as above, but the repeated features are in another
+CompositeSpace; mini-batches will be ((matrix, matrix, matrix), matrix)
+pairs with the first element being a triplet.
+
+The following ones are incorrect:
+
+- ``(target_vecspace, "features")``: it will not crash immediately, but
+as soon as actual data are used, it will crash because feature data will
+have a width of 32 * 32 * 3 = 3072, but ``target_vecspace.dim`` is 10;
+
+- ``(CompositeSpace((input_vecspace, input_convspace)), "features")``:
+the ``source`` part has to have as many elements as there are
+sub-spaces of the ``CompositeSpace``, but ``"features"`` is not
+a pair. You would need to write ``(CompositeSpace((input_vecspace,
+input_convspace)), ("features", "features"))``;
+
+- ``(CompositeSpace((input_vecspace,)), "features")``: the ``source``
+part should be a tuple of length 1, not a string.  You would need to
+write ``(CompositeSpace((input_vecspace,)), ("features",))``;
+
+- ``(CompositeSpace((input_vecspace, input_vecspace, input_vecspace,
+target_space)), (("features", "features", "features"), "targets"))``:
+even if the total number of elementary spaces and elementary sources
+match, their *structure* do not: the sub-spaces are in a flat tuple of
+length 4, the sources are in a nested tuple;
+
+- ``(CompositeSpace((CompositeSpace((input_vecspace, input_vecspace,
+input_vecspace)), target_space)), ("features", "features", "features",
+"targets"))``: it is the same problem, the other way around.
+
+
+Examples of use
+===============
+
+Here are some examples of how data specifications are currently used in
+different Pylearn2 objects.
+
+
+Input of a model
+----------------
+
+A Model object used in an experiment has to declare its input
+source and space, so the right data will be provided to it by
+the data set iterator, in the appropriate format. This is done
+by the methods :method:`.models.Model.get_input_source()` and
+:method:`.models.Model.get_input_space()`.
+
+By default, most models will simply use ``"features"`` as input source,
+but that could be changed for an experiment where the user wants to
+apply the model on a different source of the data set, or on a data set
+where sources are named differently.
+
+Models that do not care for the topology of the input will use a
+``VectorSpace`` as input space, whereas convolutional models, for
+instance, will use an instance of ``Conv2DSpace``.
+
+Models also declare an output space, which can be useful for the cost,
+for instance, or for other objects that can use or embed a model.
+
+
+Input of a cost
+---------------
+
+A Cost object needs to implement the
+:method:`.costs.Cost.get_data_specs(self, model)` method, which will
+be used to determine which data (and format) will be passed as the
+``data`` argument of :method:`.costs.Cost.expr(self, model, data)` and
+:method:`.costs.Cost.get_gradients(self, model, data)`.
+
+Example 1: cost without data
+++++++++++++++++++++++++++++
+
+For instance, a cost that does not depend on data at all, but only on
+the model parameters, like an L1 regularization penalty, would typically
+use ``(NullSpace(), '')`` for data specifications, and ``expr`` would be
+passed ``data=None``.
+
+
+Example 2: unsupervised cost
+++++++++++++++++++++++++++++
+
+An unsupervised cost, that uses only unlabeled features, and
+not targets, will usually use ``(model.get_input_space(),
+model.get_input_source())``, so the ``data`` passed to ``expr`` will
+directly be usable by the model.
+
+
+Example 3: supervised cost
+++++++++++++++++++++++++++
+
+Finally, a supervised cost, needing both features and targets, will
+usually request the targets to be in the same space as the model's
+predictions (the model's output space):
+
+.. code-block:: Python
+
+    def get_data_specs(self, model):
+        return (CompositeSpace((model.get_input_space(),
+                                model.get_output_space())),
+                (model.get_input_source(),
+                 "targets"))
+
+Then, ``data`` would be a pair, the first element of which can be passed
+directly to the model.
+
+Of course, it does not have to be implemented that way, and the
+following is as correct (if more confusing) if you prefer having
+``data`` be a (targets, inputs) pair instead:
+
+.. code-block:: Python
+
+    def get_data_specs(self, model):
+        return (CompositeSpace((model.get_output_space(),
+                                model.get_input_space())),
+                ("targets",
+                 model.get_input_source()))
+
+
+Input of a monitoring channel
+-----------------------------
+
+As for costs used for training, variables monitored by MonitorChannels
+have to declare data specs corresponding to the input variables
+necessary to compute the monitored value. It is passed directly to the
+constructor, for instance, when calling:
+
+.. code-block:: Python
+
+    channel = MonitorChannel(
+        graph_inputs=input_variables,
+        val=monitored_value,
+        name='channel_name',
+        data_specs=data_specs,
+        dataset=dataset)
+
+``data_specs`` describe the format and semantics of ``input_variables``.
+
+As in the previous section, if ``val`` does not need any input data,
+for instance if it is a shared variable, ``data_specs`` will be
+``(NullSpace(), '')``. If ``val`` corresponds to an unsupervised cost,
+or quantity depending only on the ``"features"`` source, ``data_specs``
+could be ``(VectorSpace(...), "features")``, etc.
+
+For monitored values defined in
+:method:`.models.Model.get_monitoring_channels(self, data)`, the
+data_specs of ``data``, which are also the ``data_specs`` to
+pass to MonitorChannel's constructor, are returned by a call to
+method:`.models.Model.get_monitoring_channels_data(self)`.
+
+
+Nesting and flattening data_specs
+---------------------------------
+
+In order to avoid duplicating data and creating lots of symbolic inputs
+to Theano functions (which also do not support nested arguments), it
+can be useful to convert a nested, composite data_specs into a flat,
+non-redundant one. That *flat* data_specs can be used to create theano
+variables or get mini-batches of data, for instance, which are then
+*nested* back into the original *structure* of the data_specs.
+
+We use the :class:`.utils.data_specs.DataSpecsMapping` class to build a
+*mapping* between the original, nested data specs, and the flat one.
+For instance, using the spaces defined earlier:
+
+.. code-block:: Python
+
+    source = ("features", ("features", "targets"))
+    space = CompositeSpace((input_vecspace,
+                            CompositeSpace((input_convspace,
+                                            target_space))))
+    mapping = DataSpecsMapping((space, source))
+    flat_source = mapping.flatten(source)
+    # flat_source == ('features', 'features', 'targets')
+    flat_space = mapping.flatten(space)
+    # flat_space == (input_vecspace, input_convspace, target_space)
+
+    # We can use the mapping the other way around
+    nested_source = mapping.nest(flat_source)
+    assert source == flat_source
+    nested_space = mapping.nest(flat_space)
+    assert space == flat_space
+
+    # We can also nest other things
+    print mapping.nest((1, 2, 3))
+    # (1, (2, 3))
+
+Here, ``'features'`` appear twice in the flat source, that is because
+the corresponding space is different. However, if there is an actual
+duplicate, it gets removed:
+
+.. code-block:: Python
+
+    source = (("features", "targets"), ("features", "targets"))
+    space = CompositeSpace((CompositeSpace((input_vecspace, target_space)),
+                            CompositeSpace((input_vecspace, target_space))))
+    mapping = DataSpecsMapping((space, source))
+    flat_source = mapping.flatten(source)
+    # flat_source == ('features', 'targets')
+    flat_space = mapping.flatten(space)
+    # flat_space == (input_vecspace, target_space)
+
+    # We can use the mapping the other way around
+    nested_source = mapping.nest(flat_source)
+    assert source == flat_source
+    nested_space = mapping.nest(flat_space)
+    assert space == flat_space
+
+    # We can also nest other things
+    print mapping.nest((1, 2))
+    # ((1, 2), (1, 2))
+
+The flat tuple of spaces can be used to create non-redundant Theano
+input variables, which will be nested back to be dispatched between the
+different components having requested them:
+
+.. code-block:: Python
+
+    # From the block above:
+    # flat_space == (input_vecspace, target_space)
+
+    flat_composite_space = CompositeSpace(flat_space)
+    flat_inputs = flat_composite_space.make_theano_variables(name='input')
+    print flat_inputs
+    # (input[0], input[1])
+
+    # We can use the mapping to nest the theano variables
+    nested_inputs = mapping.nest(theano_inputs)
+    print nested_inputs
+    # ((input[0], input[1]), (input[0], input[1]))
+
+    # Then, we can build expressions from these input variables.
+    # Finally, a Theano function will be compiled with
+    f = theano.function(flat_inputs, outputs, ...)
+
+    # A dataset iterator can also be created from the flat composite space
+    it = my_dataset.iterator(..., data_specs=(flat_composite_space, flat_source))
+
+    # When it is time to call f on data, we can then do
+    for flat_data in it:
+        out = f(*flat_data)
+
+
+The big picture
+---------------
+
+The ``TrainingAlgorithm`` object (for instance
+``DefaultTrainingAlgorithm``, or ``SGD``) is usually the one requesting
+the data_specs from the various objects defined in an experiment
+script (model, costs, monitor channels), combines them in one nested
+data_specs, flattens it, requests iterators from the data sets, iterates
+over the data set, converting back the flat version of the data so it
+can be correctly dispatched between all the objects requiring data.
