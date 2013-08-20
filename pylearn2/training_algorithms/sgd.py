@@ -126,6 +126,9 @@ class SGD(TrainingAlgorithm):
         self.monitoring_costs = monitoring_costs
 
     def setup(self, model, dataset):
+        if getattr(self, "done_setup", False):
+            return
+        self.done_setup = True
 
         if self.cost is None:
             self.cost = model.get_default_cost()

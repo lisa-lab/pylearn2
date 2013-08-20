@@ -7,7 +7,7 @@ T = theano.tensor
 F = theano.function
 
 from pylearn2.costs.autoencoder import MeanBinaryCrossEntropy
-from pylearn2.costs.gsn import GSNCost
+from pylearn2.costs.gsn import *
 from pylearn2.corruption import *
 from pylearn2.datasets.mnist import MNIST
 from pylearn2.distributions.parzen import ParzenWindows
@@ -82,32 +82,105 @@ def test_train_supervised():
     classification_cost = lambda a, b: raw_class_cost.cost(a, b) / 10.0
 
     dc = DropoutCorruptor(.5)
-    gc = GaussianCorruptor(.5)
+    gc = GaussianCorruptor(1.0)
+    dgc = ComposedCorruptor(dc, gc)
 
-    gsn = GSN.new([784, 1000, 10], ["sigmoid", "tanh", plushmax],
-                  [gc, None, None],
-                  [SaltPepperCorruptor(0.3), dc, SmoothOneHotCorruptor(0.75)],
+    gsn = GSN.new([784, 1000, 600, 300, 10],
+                  ["sigmoid", "tanh", "tanh", "tanh", plushmax],
+                  [gc, None, None, None, gc],
+                  [SaltPepperCorruptor(0.3), dc, dc, dgc, SmoothOneHotCorruptor(0.75)],
+                  [BinomialSampler(), None, None, None, MultinomialSampler()],
+                  tied=False)
+
+    c1 = GSNCost(
+        [
+            (0, 1.0, reconstruction_cost),
+            (4, 3.0, classification_cost)
+        ],
+        walkback=1, mode='supervised')
+
+    c2 = GSNCost(
+        [
+            (0, 3.0, reconstruction_cost),
+            (4, 1.0, classification_cost)
+        ],
+        walkback=1, mode='anti_supervised')
+
+    algs = map(lambda c:
+        SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=c,
+            termination_criterion=EpochCounter(1),
+            batches_per_iter=BATCHES_PER_EPOCH, batch_size=BATCH_SIZE,
+            monitoring_dataset=MNIST(which_set='train', one_hot=True),
+            monitoring_batches=10, monitor_iteration_mode="shuffled_sequential"
+        ),
+        [c1, c2]
+    )
+
+    monitors = [None, None]
+    for i in xrange(50):
+        print "ITERATION %s" % i
+        for step in xrange(2):
+            alg = algs[step]
+            if i != 0:
+                gsn.monitor = monitors[step]
+
+            trainer = Train(dataset, gsn, algorithm=alg,
+                            save_path="gsn_sup_example.pkl",
+                            extensions=[MonitorBasedLRAdjuster()])
+            trainer.main_loop()
+
+            if step == 0:
+                alg.termination_criterion = EpochCounter(5)
+            else:
+                alg.termination_criterion = EpochCounter(1)
+
+
+            monitors[step] = gsn.monitor
+            del gsn.monitor
+
+
+        if i % 5 == 0:
+            trainer.save()
+
+    print "done training"
+
+def test_train_supervised2():
+    raw_class_cost = MeanBinaryCrossEntropy()
+    classification_cost = lambda a, b: raw_class_cost.cost(a, b) / 10.0
+
+    dc = DropoutCorruptor(.5)
+    gc = GaussianCorruptor(1.0)
+    dgc = ComposedCorruptor(dc, gc)
+    x = [None] * 3
+
+    gsn = GSN.new([784, 1000, 10],
+                  ["sigmoid", "tanh", plushmax],
+                  [gc, None, gc],
+                  [SaltPepperCorruptor(0.3), dgc, SmoothOneHotCorruptor(0.75)],
                   [BinomialSampler(), None, MultinomialSampler()],
                   tied=False)
 
-    c = GSNCost(
+    c = CrazyGSNCost(
         [
-            (0, 1.0, reconstruction_cost),
-            (2, 1.0, classification_cost)
+            (0, 1.0, crazy_costf),
+            (2, 3.0, crazy_costf)
         ],
-        walkback=1, mode='joint')
+        walkback=1, p_keep=[.5, .3])
 
-    alg = SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=c,
-              termination_criterion=EpochCounter(MAX_EPOCHS),
-              batches_per_iter=BATCHES_PER_EPOCH, batch_size=BATCH_SIZE,
-              monitoring_dataset=MNIST(which_set='train', one_hot=True),
-              monitoring_batches=10, monitor_iteration_mode="shuffled_sequential"
-              )
+    alg = SGD(
+        LEARNING_RATE, init_momentum=MOMENTUM, cost=c,
+        termination_criterion=EpochCounter(100),
+        batches_per_iter=BATCHES_PER_EPOCH, batch_size=BATCH_SIZE,
+        monitoring_dataset=MNIST(which_set='train', one_hot=True),
+        monitoring_batches=10, monitor_iteration_mode="shuffled_sequential"
+    )
 
-    trainer = Train(dataset, gsn, algorithm=alg, save_path="gsn_sup_example.pkl",
-                    save_freq=5, extensions=[MonitorBasedLRAdjuster()])
+    trainer = Train(dataset, gsn, algorithm=alg,
+                    save_path="gsn_sup_example.pkl", save_freq=5,
+                    extensions=[MonitorBasedLRAdjuster()])
     trainer.main_loop()
     print "done training"
+
 
 def test_classify():
     with open("gsn_sup_example.pkl") as f:
@@ -116,7 +189,8 @@ def test_classify():
     gsn = JointGSN.convert(gsn, 0, 2)
     gsn._corrupt_switch = False
 
-    ds = MNIST(which_set='test', one_hot=True)
+    #ds = MNIST(which_set='test', one_hot=True)
+    ds = MNIST(which_set='train', one_hot=True)
     mb_data = ds.X
     y = ds.y
 
@@ -124,50 +198,80 @@ def test_classify():
         y_hat = gsn.classify(mb_data, trials=i)
         errors = np.abs(y_hat - y).sum() / 2.0
 
+        # error indices
+        #return np.sum(np.abs(y_hat - y), axis=1) != 0
+
         print i, errors, errors / 10000.0
 
-def test_sample_supervised():
+def test_sample_supervised(idxs=None, noisy=True):
     with open("gsn_sup_example.pkl") as f:
         gsn = pickle.load(f)
 
-    ds = MNIST(which_set='test', one_hot=True)
-    samples = gsn.get_samples([(0, ds.X[0:1, :])],
-                              indices=[0, 2],
-                              walkback=1000, symbolic=False,
+    if not noisy:
+        gsn._corrupt_switch = False
+
+    #ds = MNIST(which_set='test', one_hot=True)
+    ds = MNIST(which_set='train', one_hot=True)
+
+    if idxs is None:
+        data = ds.X[:50]
+    else:
+        data = ds.X[idxs]
+
+    samples = gsn.get_samples([(0, data)],
+                              indices=[0, 4],
+                              walkback=19, symbolic=False,
                               include_first=True)
-    vis_samples(samples)
-
-def vis_samples(samples):
-    images = []
-    labels = []
-
-    from PIL import ImageDraw, ImageFont
-    img = image.pil_from_ndarray(np.zeros((28, 28)))
-
-    for step in samples:
-        assert len(step) == 2
-        assert step[0].shape[0] == step[1].shape[0] == 1
-
-        images.append(step[0])
-        label = np.argmax(step[1][0])
-
-        c = img.copy()
-        draw = ImageDraw.Draw(c)
-        draw.text((11, 11), str(label), 255)
-        nd = image.ndarray_from_pil(c)[:, :, 0]
-        nd = nd.reshape((1, 784))
-        labels.append(nd)
-
-    data = safe_zip(images, labels)
-    data = list(itertools.chain(*data))
-    data = np.vstack(data)
-
-    tiled = image.tile_raster_images(data,
+    stacked = vis_samples(samples)
+    tiled = image.tile_raster_images(stacked,
                                      img_shape=[28,28],
                                      tile_shape=[50,50],
                                      tile_spacing=(2,2))
     image.save("gsn_sup_example.png", tiled)
 
+def vis_samples(samples):
+    from PIL import ImageDraw, ImageFont
+    img = image.pil_from_ndarray(np.zeros((28, 28)))
+
+    chains = []
+    num_rows = samples[0][0].shape[0]
+
+    for row in xrange(num_rows):
+        images = []
+        labels = []
+
+        for step in samples:
+            assert len(step) == 2
+
+            images.append(step[0][row])
+
+            vec = step[1][row]
+            sorted_idxs = np.argsort(vec)
+            label1 = sorted_idxs[-1]
+            label2 = sorted_idxs[-2]
+
+            if vec[label1] == 0:
+                ratio = 1
+            else:
+                ratio = vec[label2] / vec[label1]
+
+            c = img.copy()
+            draw = ImageDraw.Draw(c)
+            draw.text((8, 11), str(label1), 255)
+            draw.text((14, 11), str(label2), int(255 * ratio))
+            nd = image.ndarray_from_pil(c)[:, :, 0]
+            nd = nd.reshape((1, 784))
+            labels.append(nd)
+
+        data = safe_zip(images, labels)
+        data = list(itertools.chain(*data))
+
+        # white block to indicate end of chain
+        data.extend([np.ones((1, 784))] * 2)
+
+        chains.append(np.vstack(data))
+
+    return np.vstack(chains)
 
 # some utility methods for viewing MNIST characters without any GUI
 def print_char(A):
@@ -187,5 +291,4 @@ def a_to_s(A):
     return "\n".join(strs)
 
 if __name__ == '__main__':
-    test_classify()
-    test_sample_supervised()
+    test_train_supervised2()

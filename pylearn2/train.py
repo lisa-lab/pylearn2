@@ -125,11 +125,12 @@ class Train(object):
             if len(self.model.monitor._datasets)>0:
                 # This monitoring channel keeps track of a shared variable,
                 # which does not need inputs nor data.
-                self.model.monitor.add_channel(name="monitor_seconds_per_epoch",
-                                               ipt=None,
-                                               val=self.monitor_time,
-                                               data_specs=(NullSpace(), ''),
-                                               dataset=self.model.monitor._datasets[0])
+                if not 'monitor_seconds_per_epoch' in self.model.monitor.channels:
+                    self.model.monitor.add_channel(name="monitor_seconds_per_epoch",
+                                                   ipt=None,
+                                                   val=self.monitor_time,
+                                                   data_specs=(NullSpace(), ''),
+                                                   dataset=self.model.monitor._datasets[0])
             self.run_callbacks_and_monitoring()
             while True:
                 with log_timing(log, None, final_msg='Time this epoch:',

@@ -307,7 +307,8 @@ class GSN(StackedBlocks, Model):
             mb = T.matrices(len(indices))
             zipped = safe_zip(indices, mb)
             f_init = theano.function(mb,
-                                     self._set_activations(zipped, corrupt=True))
+                                     self._set_activations(zipped, corrupt=True),
+                                     allow_input_downcast=True)
             # handle splitting of concatenated data
             def wrap_f_init(*args):
                 data = f_init(*args)
@@ -329,7 +330,8 @@ class GSN(StackedBlocks, Model):
                                     allow_input_downcast=True)
             else:
                 z = self._update(copy.copy(prev), return_activations=True)
-                f = theano.function(prev, z, on_unused_input='ignore')
+                f = theano.function(prev, z, on_unused_input='ignore',
+                                    allow_input_downcast=True)
 
             def wrapped(*args):
                 data = f(*args)

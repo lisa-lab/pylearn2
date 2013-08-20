@@ -22,10 +22,12 @@ class GSNCost(Cost):
         walkback : int
             how many steps of walkback to perform
         mode : str
-            Should be either 'joint' or 'supervised'. joint means setting
-            all of the layers and calculating reconstruction costs. 'supervised'
-            means setting just the input layer (the first cost) and attempting
-            to predict the label layer (the second cost).
+            Should be either 'joint', 'supervised', or 'anti_supervised'. joint
+            means setting all of the layers and calculating reconstruction costs.
+            'supervised' means setting just the input layer (the first cost)
+            and attempting to predict the label layer (the second cost).
+            'anti_supervised' is attempting to predict the input layer given the
+            label layer.
 
         Note
         ----
@@ -130,3 +132,59 @@ class GSNCost(Cost):
         return (CompositeSpace(spaces), tuple(sources))
 
 
+# randomness
+import numpy as np
+import theano.tensor as T
+import theano.sandbox.rng_mrg
+RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
+def crazy_costf(target, output, mask):
+    ce = T.nnet.binary_crossentropy(output, target)
+    T.switch(mask, 0.0, ce)
+    return ce.sum() / T.sum(T.ones_like(mask) - mask)
+
+class CrazyGSNCost(GSNCost):
+    def __init__(self, costs, walkback=0, p_keep=.5, rng=2001):
+        # just making mode be joint so things don't break
+        super(CrazyGSNCost, self).__init__(costs, walkback=walkback,
+                                           mode="joint")
+
+        if not hasattr(rng, 'randn'):
+            rng = np.random.RandomState(rng)
+        seed = int(rng.randint(2 ** 30))
+        self.s_rng = RandomStreams(seed)
+
+        # probability of keeping a vector element for training
+        # we back prop of the complement of this set
+        # inspired by Goodfellow DBM paper
+        if type(p_keep) is list:
+            assert len(p_keep) == len(costs)
+        else:
+            p_keep = [p_keep] * len(costs)
+
+        self.p_keep = p_keep
+
+    def _get_total_for_cost(self, idx, costf, *args, **kwargs):
+        wrapped_costf = lambda t, o: costf(t, o, self.masks[idx])
+        return super(CrazyGSNCost, self)._get_total_for_cost(
+            idx, wrapped_costf, *args, **kwargs
+        )
+
+    def _get_samples_from_model(self, model, data):
+        self.masks = [None] * len(data)
+        for idx, layer_data in enumerate(data):
+            self.masks[idx] = self.s_rng.binomial(
+                size=layer_data.shape,
+                n=1,
+                p=self.p_keep[idx],
+                dtype=theano.config.floatX
+            )
+
+            #self.masks[idx] = T.zeros_like(layer_data)
+
+        layer_idxs = [idx for idx, _, _ in self.costs]
+        masked_data = map(lambda i: self.masks[i] * data[i], xrange(len(data)))
+        zipped = safe_zip(layer_idxs, masked_data)
+
+        return model.get_samples(zipped, walkback=self.walkback,
+                                 indices=layer_idxs)
+                                 #,clamped=self.masks)
