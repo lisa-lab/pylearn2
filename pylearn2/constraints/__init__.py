@@ -1,7 +1,7 @@
-
-from collections import OrderedDict
 import warnings
+
 import theano.tensor as T
+from theano.compat.python2x import OrderedDict
 
 class Constraint(object):
 
