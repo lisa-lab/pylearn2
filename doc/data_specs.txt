@@ -16,7 +16,7 @@ tensor representing an RGB image, or a one-hot vector).
 The main use of ``data_specs`` is to request data from a
 :class:`.datasets.Dataset` object, via an iterator. Various objects can
 request data this way: models, costs, monitoring channels, training
-algorithms, even some data sets that perform a transformation on data.
+algorithms, even some datasets that perform a transformation on data.
 
 
 The ``Space`` object
@@ -98,13 +98,13 @@ returned, whereas spaces specify *how* that data should be formatted.
 An elementary source is identified by a Python string. For instance, the
 most used sources are ``'features'`` and ``'targets'``. ``'features'``
 usually denotes the part of the data that models will use as input, and
-``'targets'``, for labeled data sets, contains the value the model will
-try to predict. However, this is only a convention, and some data sets
+``'targets'``, for labeled datasets, contains the value the model will
+try to predict. However, this is only a convention, and some datasets
 will declare other sources, that can be used in varying ways by models,
 for instance when using multi-modal data.
 
 A composite source is identified by a tuple of sources. For instance,
-to request features and targets from a data set, the `source` would be
+to request features and targets from a dataset, the `source` would be
 ``('features', 'targets')``.
 
 
@@ -197,13 +197,13 @@ Input of a model
 
 A Model object used in an experiment has to declare its input
 source and space, so the right data will be provided to it by
-the data set iterator, in the appropriate format. This is done
+the dataset iterator, in the appropriate format. This is done
 by the methods :meth:`.models.Model.get_input_source()` and
 :meth:`.models.Model.get_input_space()`.
 
 By default, most models will simply use ``"features"`` as input source,
 but that could be changed for an experiment where the user wants to
-apply the model on a different source of the data set, or on a data set
+apply the model on a different source of the dataset, or on a dataset
 where sources are named differently.
 
 Models that do not care for the topology of the input will use a
@@ -403,6 +403,6 @@ The ``TrainingAlgorithm`` object (for instance
 ``DefaultTrainingAlgorithm``, or ``SGD``) is usually the one requesting
 the data_specs from the various objects defined in an experiment
 script (model, costs, monitor channels), combines them in one nested
-data_specs, flattens it, requests iterators from the data sets, iterates
-over the data set, converting back the flat version of the data so it
+data_specs, flattens it, requests iterators from the datasets, iterates
+over the dataset, converting back the flat version of the data so it
 can be correctly dispatched between all the objects requiring data.
