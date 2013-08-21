@@ -192,6 +192,18 @@ Here are some examples of how data specifications are currently used in
 different Pylearn2 objects.
 
 
+The big picture
+---------------
+
+The ``TrainingAlgorithm`` object (for instance
+``DefaultTrainingAlgorithm``, or ``SGD``) is usually the one requesting
+the data_specs from the various objects defined in an experiment
+script (model, costs, monitor channels), combines them in one nested
+data_specs, flattens it, requests iterators from the datasets, iterates
+over the dataset, converting back the flat version of the data so it
+can be correctly dispatched between all the objects requiring data.
+
+
 Input of a model
 ----------------
 
@@ -394,15 +406,3 @@ different components having requested them:
     # When it is time to call f on data, we can then do
     for flat_data in it:
         out = f(*flat_data)
-
-
-The big picture
----------------
-
-The ``TrainingAlgorithm`` object (for instance
-``DefaultTrainingAlgorithm``, or ``SGD``) is usually the one requesting
-the data_specs from the various objects defined in an experiment
-script (model, costs, monitor channels), combines them in one nested
-data_specs, flattens it, requests iterators from the datasets, iterates
-over the dataset, converting back the flat version of the data so it
-can be correctly dispatched between all the objects requiring data.
