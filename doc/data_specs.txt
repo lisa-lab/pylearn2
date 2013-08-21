@@ -23,25 +23,25 @@ The ``Space`` object
 ====================
 
 A ``Space`` represents a way in which a mini-batch of data can be
-formatted. For instance, an batch of RGB images (each of shape ``(rows,
+formatted. For instance, a batch of RGB images (each of shape ``(rows,
 columns)``) can be represented in different ways, for instance:
 
 - as a matrix where each row corresponds to a different image, and is
-of length ``rows * columns * 3``: the corresponding space would be
-a :class:`.space.VectorSpace`, more precisely
-``VectorSpace(dim=(rows * columns * 3))``;
+  of length ``rows * columns * 3``: the corresponding space would be
+  a :class:`.space.VectorSpace`, more precisely
+  ``VectorSpace(dim=(rows * columns * 3))``;
 
 - as a 4-dimensional tensor, where rows, columns, and channels (here:
-red, green, and blue) are different axes: the corresponding space would
-be a :class:`.space.Conv2DSpace`. Theano convolutions prefer that
-tensor to have shape ``(batch_size, channels, rows, columns)``, which
-corresponds to ``Conv2DSpace(shape=(rows, columns), num_channels=3,
-axes=('b', 'c', 0, 1))``;
+  red, green, and blue) are different axes: the corresponding space would
+  be a :class:`.space.Conv2DSpace`. Theano convolutions prefer that
+  tensor to have shape ``(batch_size, channels, rows, columns)``, which
+  corresponds to ``Conv2DSpace(shape=(rows, columns), num_channels=3,
+  axes=('b', 'c', 0, 1))``;
 
-- as a 4-dimensional tensors with a different shape, for instance,
-cuda-convnet prefers ``(channels, rows, columns, batch_size)``: the
-space would be ``Conv2DSpace(shape=(rows, columns), num_channels=3,
-axes=('c', 0, 1, 'b'))``.
+- as a 4-dimensional tensors with a different shape: for instance,
+  cuda-convnet prefers ``(channels, rows, columns, batch_size)``: the
+  space would be ``Conv2DSpace(shape=(rows, columns), num_channels=3,
+  axes=('c', 0, 1, 'b'))``.
 
 Spaces can be either elementary, representing one mini-batch from one
 source of data, such as ``VectorSpace`` and ``Conv2DSpace`` mentionned
@@ -55,38 +55,38 @@ mini-batches.
 Notable methods of the :class:`Space` class are:
 
 - :method:`Space.make_theano_batch`: creates a Theano Variable
-(or tuple of Theano Variable in the case of ``CompositeSpace``)
-representing a *symbolic* mini-batch of data. For instance,
-``VectorSpace(...).make_theano_batch(...)`` will essentially call
-``theano.tensor.matrix()``.
+  (or tuple of Theano Variable in the case of ``CompositeSpace``)
+  representing a *symbolic* mini-batch of data. For instance,
+  ``VectorSpace(...).make_theano_batch(...)`` will essentially call
+  ``theano.tensor.matrix()``.
 
 - :method:`Space.validate(batch)` will check that symbolic
-variable ``batch`` can correctly represent a mini-batch
-of data for the corresponding space. For instance,
-``VectorSpace(...).validate(theano.tensor.matrix()`` will work, but
-``VectorSpace(...).validate(theano.tensor.vector()`` will raise an
-Exception.
+  variable ``batch`` can correctly represent a mini-batch
+  of data for the corresponding space. For instance,
+  ``VectorSpace(...).validate(theano.tensor.matrix())`` will work, but
+  ``VectorSpace(...).validate(theano.tensor.vector())`` will raise an
+  exception.
 
 - :method:`Space.np_validate(batch)` (where ``np`` stands for NumPy)
-is similar, but operates on a mini-batch of numeric data, rather than
-on a symbolic variable. This enables more checks to be performed. For
-instance, ``VectorSpace(dim=3).validate(np.zeros((4, 3)))`` will work,
-because it correctly describes a mini-batch of 4 samples of dimension
-3, but ``VectorSpace(dim=4).validate(np.zeros((4, 3)))`` will raise an
-exception.
+  is similar, but operates on a mini-batch of numeric data, rather than
+  on a symbolic variable. This enables more checks to be performed. For
+  instance, ``VectorSpace(dim=3).validate(np.zeros((4, 3)))`` will work,
+  because it correctly describes a mini-batch of 4 samples of dimension
+  3, but ``VectorSpace(dim=4).validate(np.zeros((4, 3)))`` will raise an
+  exception.
 
 - :method:`Space.format_as(batch, space)` and
-:method:`Space.np_format_as(batch, space)` are the way we can convert
-data from their original space into the destination ``space``.
-``format_as`` operates on a symbolic ``batch``, and returns a symbolic
-expression of the newly-formatted data, whereas ``np_format_as``
-operates on a numeric batch, and returns numeric data. This formatting
-can happen between different instances of the same ``Space`` class,
-for instance, converting between two instances of ``Conv2DSpace`` with
-different ``axes`` amounts to correctly transpose the ``batch``. It can
-also happen between different subclasses of ``Space``, for instance,
-converting between a ``VectorSpace`` and ``Conv2DSpace`` of compatible
-shape involves reshaping and transposition of the data.
+  :method:`Space.np_format_as(batch, space)` are the way we can convert
+  data from their original space into the destination ``space``.
+  ``format_as`` operates on a symbolic ``batch``, and returns a symbolic
+  expression of the newly-formatted data, whereas ``np_format_as``
+  operates on a numeric batch, and returns numeric data. This formatting
+  can happen between different instances of the same ``Space`` class,
+  for instance, converting between two instances of ``Conv2DSpace`` with
+  different ``axes`` amounts to correctly transpose the ``batch``. It can
+  also happen between different subclasses of ``Space``, for instance,
+  converting between a ``VectorSpace`` and ``Conv2DSpace`` of compatible
+  shape involves reshaping and transposition of the data.
 
 
 Sources
@@ -116,12 +116,12 @@ When using composite specifications ``data_specs=(space, source)``,
 that:
 
 - if ``space`` is an elementary space, then ``source`` has to be an
-elementary source, i.e., a string;
+  elementary source, i.e., a string;
 
 - if ``space`` is a composite space, then ``source`` has to be a
-composite source (a tuple), with exactly as many components as the
-number of sub-spaces of ``space``; and the corresponding sub-sources and
-sub-spaces again have to have the same *structure*.
+  composite source (a tuple), with exactly as many components as the
+  number of sub-spaces of ``space``; and the corresponding sub-sources and
+  sub-spaces again have to have the same *structure*.
 
 
 For example, let us define the following spaces:
@@ -140,49 +140,49 @@ data. Then, the following data_specs are correct:
 - ``(target_space, "targets")``: only the targets, mini-batches will be matrices;
 
 - ``(CompositeSpace((input_vecspace, target_space)), ("features",
-"targets"))``: features and targets, in that order; mini-batches will be
-(matrix, matrix) pairs;
+  "targets"))``: features and targets, in that order; mini-batches will be
+  (matrix, matrix) pairs;
 
 - ``(CompositeSpace((target_space, input_convspace)), ("targets",
-"features"))``: targets and features, in that order; mini-batches will
-be (matrix, 4-D tensor) pairs;
+  "features"))``: targets and features, in that order; mini-batches will
+  be (matrix, 4-D tensor) pairs;
 
 - ``(CompositeSpace((input_vecspace, input_vecspace, input_vecspace,
-target_space)), ("features", "features", "features", "targets"))``:
-features repeated 3 times, then targets; mini-batches will be (matrix,
-matrix, matrix, matrix) tuples;
+  target_space)), ("features", "features", "features", "targets"))``:
+  features repeated 3 times, then targets; mini-batches will be (matrix,
+  matrix, matrix, matrix) tuples;
 
 - ``(CompositeSpace((CompositeSpace((input_vecspace, input_vecspace,
-input_vecspace)), target_space)), (("features", "features", "features"),
-"targets"))``: same as above, but the repeated features are in another
-CompositeSpace; mini-batches will be ((matrix, matrix, matrix), matrix)
-pairs with the first element being a triplet.
+  input_vecspace)), target_space)), (("features", "features", "features"),
+  "targets"))``: same as above, but the repeated features are in another
+  CompositeSpace; mini-batches will be ((matrix, matrix, matrix), matrix)
+  pairs with the first element being a triplet.
 
 The following ones are incorrect:
 
 - ``(target_vecspace, "features")``: it will not crash immediately, but
-as soon as actual data are used, it will crash because feature data will
-have a width of 32 * 32 * 3 = 3072, but ``target_vecspace.dim`` is 10;
+  as soon as actual data are used, it will crash because feature data will
+  have a width of 32 * 32 * 3 = 3072, but ``target_vecspace.dim`` is 10;
 
 - ``(CompositeSpace((input_vecspace, input_convspace)), "features")``:
-the ``source`` part has to have as many elements as there are
-sub-spaces of the ``CompositeSpace``, but ``"features"`` is not
-a pair. You would need to write ``(CompositeSpace((input_vecspace,
-input_convspace)), ("features", "features"))``;
+  the ``source`` part has to have as many elements as there are
+  sub-spaces of the ``CompositeSpace``, but ``"features"`` is not
+  a pair. You would need to write ``(CompositeSpace((input_vecspace,
+  input_convspace)), ("features", "features"))``;
 
 - ``(CompositeSpace((input_vecspace,)), "features")``: the ``source``
-part should be a tuple of length 1, not a string.  You would need to
-write ``(CompositeSpace((input_vecspace,)), ("features",))``;
+  part should be a tuple of length 1, not a string.  You would need to
+  write ``(CompositeSpace((input_vecspace,)), ("features",))``;
 
 - ``(CompositeSpace((input_vecspace, input_vecspace, input_vecspace,
-target_space)), (("features", "features", "features"), "targets"))``:
-even if the total number of elementary spaces and elementary sources
-match, their *structure* do not: the sub-spaces are in a flat tuple of
-length 4, the sources are in a nested tuple;
+  target_space)), (("features", "features", "features"), "targets"))``:
+  even if the total number of elementary spaces and elementary sources
+  match, their *structure* do not: the sub-spaces are in a flat tuple of
+  length 4, the sources are in a nested tuple;
 
 - ``(CompositeSpace((CompositeSpace((input_vecspace, input_vecspace,
-input_vecspace)), target_space)), ("features", "features", "features",
-"targets"))``: it is the same problem, the other way around.
+  input_vecspace)), target_space)), ("features", "features", "features",
+  "targets"))``: it is the same problem, the other way around.
 
 
 Examples of use
