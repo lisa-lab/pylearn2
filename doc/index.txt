@@ -157,10 +157,11 @@ Developer
    features
    internal/index
    internal/metadocumentation
+   internal/data_specs
    overview
    tutorial/index
    tutorial/with_jobman
    vision
    yaml_tutorial/index
-   tutorial/notebook
+   tutorial/notebook_tutorials
    LICENSE

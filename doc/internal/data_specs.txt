@@ -126,7 +126,7 @@ that:
 
 For example, let us define the following spaces:
 
-.. code-block:: Python
+.. code-block:: python
 
     input_vecspace = VectorSpace(dim=(32 * 32 * 3))
     input_convspace = Conv2DSpace(shape=(32, 32), num_channels=3, axes=('b', 'c', 0, 1))
@@ -248,7 +248,7 @@ Finally, a supervised cost, needing both features and targets, will
 usually request the targets to be in the same space as the model's
 predictions (the model's output space):
 
-.. code-block:: Python
+.. code-block:: python
 
     def get_data_specs(self, model):
         return (CompositeSpace((model.get_input_space(),
@@ -263,7 +263,7 @@ Of course, it does not have to be implemented that way, and the
 following is as correct (if more confusing) if you prefer having
 ``data`` be a (targets, inputs) pair instead:
 
-.. code-block:: Python
+.. code-block:: python
 
     def get_data_specs(self, model):
         return (CompositeSpace((model.get_output_space(),
@@ -280,7 +280,7 @@ have to declare data specs corresponding to the input variables
 necessary to compute the monitored value. It is passed directly to the
 constructor, for instance, when calling:
 
-.. code-block:: Python
+.. code-block:: python
 
     channel = MonitorChannel(
         graph_inputs=input_variables,
@@ -318,7 +318,7 @@ We use the :class:`.utils.data_specs.DataSpecsMapping` class to build a
 *mapping* between the original, nested data specs, and the flat one.
 For instance, using the spaces defined earlier:
 
-.. code-block:: Python
+.. code-block:: python
 
     source = ("features", ("features", "targets"))
     space = CompositeSpace((input_vecspace,
@@ -344,7 +344,7 @@ Here, ``'features'`` appear twice in the flat source, that is because
 the corresponding space is different. However, if there is an actual
 duplicate, it gets removed:
 
-.. code-block:: Python
+.. code-block:: python
 
     source = (("features", "targets"), ("features", "targets"))
     space = CompositeSpace((CompositeSpace((input_vecspace, target_space)),
@@ -369,7 +369,7 @@ The flat tuple of spaces can be used to create non-redundant Theano
 input variables, which will be nested back to be dispatched between the
 different components having requested them:
 
-.. code-block:: Python
+.. code-block:: python
 
     # From the block above:
     # flat_space == (input_vecspace, target_space)
