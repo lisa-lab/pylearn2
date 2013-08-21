@@ -45,7 +45,7 @@ columns)``) can be represented in different ways, for instance:
 
 Spaces can be either elementary, representing one mini-batch from one
 source of data, such as ``VectorSpace`` and ``Conv2DSpace`` mentionned
-above, or *composite* (:class:`.space.CompositeSpace), representing
+above, or *composite* (:class:`.space.CompositeSpace`), representing
 the aggregation of several sources of data (some of these may in
 turn be aggregations of sources). A mini-batch for an elementary
 space will usually be a NumPy ``ndarray``, whereas a mini-batch for a
@@ -301,7 +301,7 @@ For monitored values defined in
 :method:`.models.Model.get_monitoring_channels(self, data)`, the
 data_specs of ``data``, which are also the ``data_specs`` to
 pass to MonitorChannel's constructor, are returned by a call to
-method:`.models.Model.get_monitoring_channels_data(self)`.
+:method:`.models.Model.get_monitoring_channels_data(self)`.
 
 
 Nesting and flattening data_specs
