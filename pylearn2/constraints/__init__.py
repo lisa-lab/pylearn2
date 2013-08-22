@@ -59,7 +59,7 @@ class NormConstraint(Constraint):
         dimshuffle_pattern = self.dimshuffle_pattern
 
         sqr_param = T.sqr(init_param)
-        norm = T.sqrt(T.sum(sqr_param, axes=axes))
+        norm = T.sqrt(T.sum(sqr_param, axis=axes))
         desired_norm = T.clip(norm, min_norm_constr, max_norm)
         desired_norm_ratio = desired_norm / (eps + norm)
 
