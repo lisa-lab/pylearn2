@@ -190,7 +190,12 @@ def function(*args, **kwargs):
          the default from theano is inappropriate for this project.
     """
 
-    return theano.function(*args, on_unused_input='ignore', **kwargs)
+    new_kwargs = {'on_unused_input': 'ignore'}
+
+    for key in kwargs:
+        new_kwargs[key] = kwargs[key]
+
+    return theano.function(*args, **new_kwargs)
 
 def grad(*args, **kwargs):
     """
