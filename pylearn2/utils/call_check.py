@@ -100,6 +100,9 @@ def checked_call(to_call, kwargs):
         check_call_arguments(to_call, kwargs)
         raise
 
+def checked_call_implicit(to_call, ** kwargs):
+    return checked_call(to_call, kwargs)
+
 def sensible_argument_errors(func):
     @functools.wraps(func)
     def wrapped_func(*args, **kwargs):

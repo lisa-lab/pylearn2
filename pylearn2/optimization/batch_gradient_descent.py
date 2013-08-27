@@ -536,6 +536,7 @@ class Accumulator(object):
                 update = updates[var]
                 transformed_updates[var] = var + (batch_size / total_examples) * update
         self._shared_mask = [ hasattr(elem, 'get_value') for elem in inputs]
+        assert len(inputs) == len(self._shared_mask)
         true_inputs = self._true_inputs(inputs)
         self._shared = self._shared_inputs(inputs)
         if outputs is not None:

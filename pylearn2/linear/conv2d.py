@@ -15,6 +15,8 @@ from theano.tensor.nnet.conv import conv2d
 from pylearn2.packaged_dependencies.theano_linear.conv2d import Conv2d as OrigConv2D
 
 from pylearn2.linear.linear_transform import LinearTransform as P2LT
+from pylearn2.space import Conv2DSpace
+from pylearn2.utils.call_check import checked_call_implicit
 from pylearn2.utils import sharedX
 
 class Conv2D(OrigConv2D):
@@ -48,7 +50,7 @@ class Conv2D(OrigConv2D):
         return [ self._filters ]
 
     @functools.wraps(P2LT.get_weights_topo)
-    def get_weights_topo(self,borrow):
+    def get_weights_topo(self, borrow=False):
         return np.transpose(self._filters.get_value(borrow = borrow),(0,2,3,1))
 
     def lmul(self, x):
@@ -242,3 +244,108 @@ def make_sparse_random_conv2D(num_nonzero, input_space, output_space,
         output_axes = output_space.axes,
         subsample = subsample, border_mode = border_mode,
         filters_shape = W.get_value(borrow=True).shape, message = message)
+
+def setup_detector_layer_bc01(layer, input_space, rng, irange):
+    """
+    Takes steps to set up an object for use as being some kind of convolutional layer.
+    This function sets up only the detector layer.
+
+    Parameters
+    ----------
+    layer: Any python object that allows the modifications described below and has
+        the following attributes:
+            pad: int describing amount of zero padding to add
+            kernel_shape: 2-element tuple or list describing spatial shape of kernel
+            fix_kernel_shape: bool, if true, will shrink the kernel shape to make it
+                feasible, as needed (useful for hyperparameter searchers)
+            detector_channels: The number of channels in the detector layer
+            init_bias: A numeric constant added to a tensor of zeros to initialize the
+                    bias
+            tied_b: If true, biases are shared across all spatial locations
+
+    input_space: A Conv2DSpace to be used as input to the layer
+
+    rng: a numpy RandomState or equivalent
+
+    irange: float. kernel elements are initialized randomly from U(-irange, irange)
+
+    Does the following:
+        raises a RuntimeError if cuda is not available
+        sets layer.input_space to input_space
+        sets layer.detector_space to the space for the detector layer
+        sets layer.transformer to be a Conv2D instance
+        sets layer.b to the right value
+    """
+
+    # Use "self" to refer to layer from now on, so we can pretend we're just running
+    # in the set_input_space method of the layer
+    self = layer
+
+    # Validate input
+    if not isinstance(input_space, Conv2DSpace):
+        raise TypeError("The input to a convolutional layer should be a Conv2DSpace, "
+                " but layer " + self.layer_name + " got "+str(type(self.input_space)))
+
+    if not hasattr(self, 'detector_channels'):
+        raise ValueError('layer argument must have a "detector_channels" attribute specifying how many channels to put in the convolution kernel stack.')
+
+    # Store the input space
+    self.input_space = input_space
+
+
+    if hasattr(self, 'kernel_stride'):
+        kernel_stride = self.kernel_stride
+    else:
+        kernel_stride = [1, 1]
+
+    if self.border_mode == 'valid':
+        output_shape = [self.input_space.shape[0] - self.kernel_shape[0] + 1,
+            self.input_space.shape[1] - self.kernel_shape[1] + 1]
+    elif self.border_mode == 'full':
+        output_shape = [self.input_space.shape[0] + self.kernel_shape[0] - 1,
+                self.input_space.shape[1] + self.kernel_shape[1] - 1]
+
+    def handle_kernel_shape(idx):
+        if self.kernel_shape[idx] < 1:
+            raise ValueError("kernel must have strictly positive size on all axes but has shape: "+str(self.kernel_shape))
+        if output_shape[idx] <= 0:
+            if self.fix_kernel_shape:
+                self.kernel_shape[idx] = self.input_space.shape[idx] + 2 * self.pad
+                assert self.kernel_shape[idx] != 0
+                output_shape[idx] = 1
+                warnings.warn("Had to change the kernel shape to make network feasible")
+            else:
+                raise ValueError("kernel too big for input (even with zero padding)")
+
+    map(handle_kernel_shape, [0, 1])
+
+    self.detector_space = Conv2DSpace(shape=output_shape,
+                                      num_channels = self.detector_channels,
+                                      axes = ('b', 'c', 0, 1))
+
+
+    self.transformer = checked_call_implicit(make_random_conv2D,
+          batch_size = layer.mlp.batch_size,
+          irange = self.irange,
+          input_space = self.input_space,
+          output_space = self.detector_space,
+          # input_channels = self.dummy_space.num_channels,
+          # output_channels = self.detector_space.num_channels,
+          kernel_shape = self.kernel_shape,
+          border_mode = self.border_mode,
+          subsample = kernel_stride,
+          rng = rng)
+
+    W, = self.transformer.get_params()
+    W.name = 'W'
+
+    if self.tied_b:
+        self.b = sharedX(np.zeros((self.detector_space.num_channels)) + self.init_bias)
+    else:
+        self.b = sharedX(self.detector_space.get_origin() + self.init_bias)
+    self.b.name = 'b'
+
+    print 'Input shape: ', self.input_space.shape
+    print 'Detector space: ', self.detector_space.shape
+
+

@@ -197,7 +197,7 @@ class MLP(Layer):
         self.setup_rng()
 
         assert isinstance(layers, list)
-        assert all(isinstance(layer, Layer) for layer in layers)
+        assert all(isinstance(layer, Layer) for layer in layers), [type(layer) for layer in layers]
         assert len(layers) >= 1
         self.layer_names = set()
         for layer in layers:
@@ -342,9 +342,11 @@ class MLP(Layer):
             # No two layers can contend to scale a parameter
             assert not any([key in rval for key in contrib])
             # Don't try to scale anything that's not a parameter
-            assert all([key in params for key in contrib])
+            assert all([key in params or key in self.freeze_set for key in contrib])
 
-            rval.update(contrib)
+            for key in contrib:
+                if key not in self.freeze_set:
+                    rval[key] = contrib[key]
         assert all([isinstance(val, float) for val in rval.values()])
 
         return rval
@@ -1195,7 +1197,7 @@ class Linear(Layer):
                  max_col_norm = None,
                  softmax_columns = False,
                  copy_input = 0,
-                 use_abs_loss = False, 
+                 use_abs_loss = False,
                  use_bias = True):
         """
 
@@ -1204,7 +1206,7 @@ class Linear(Layer):
         it is initialized to 0.
 
         """
-        
+
         if use_bias and init_bias is None:
             init_bias = 0.
 
@@ -1661,7 +1663,7 @@ class RectifiedLinear(Linear):
     def __init__(self, left_slope = 0.0, **kwargs):
         super(RectifiedLinear, self).__init__(**kwargs)
         self.left_slope = left_slope
-    
+
     def fprop(self, state_below):
         p = self._linear_part(state_below)
         p = p * (p > 0.) + self.left_slope * p * (p < 0.)

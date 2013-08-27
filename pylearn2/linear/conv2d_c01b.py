@@ -36,6 +36,8 @@ from pylearn2.sandbox.cuda_convnet.filter_acts import FilterActs
 from pylearn2.sandbox.cuda_convnet.filter_acts import ImageActs
 from pylearn2.space import Conv2DSpace
 
+from theano.gof.op import get_debug_values
+
 class Conv2D(LinearTransform):
     """
     A pylearn2 linear operator based on 2D convolution,
@@ -110,7 +112,7 @@ class Conv2D(LinearTransform):
         op_axes = ('c', 0, 1, 'b')
 
         if tuple(x_axes) != op_axes:
-            x = x.dimshuffle(*[x_axes.index(axis) for axis in x_axes])
+            x = x.dimshuffle(*[x_axes.index(axis) for axis in op_axes])
 
         x = gpu_contiguous(x)
 
@@ -315,7 +317,7 @@ def setup_detector_layer_c01b(layer, input_space, rng, irange):
         raise ValueError('layer argument must have a "detector_channels" attribute specifying how many channels to put in the convolution kernel stack.')
 
     # Store the input space
-    self.input_space = input_space
+    layer.input_space = input_space
 
     # Make sure number of channels is supported by cuda-convnet
     # (multiple of 4 or <= 3)
@@ -328,7 +330,7 @@ def setup_detector_layer_c01b(layer, input_space, rng, irange):
         self.dummy_channels = 0
     self.dummy_space = Conv2DSpace(shape=input_space.shape,
                                    channels=input_space.num_channels + self.dummy_channels,
-                                   axes=('c', 0, 1, 'b'))
+                                   axes=input_space.axes)
 
 
     if hasattr(self, 'kernel_stride'):
@@ -352,7 +354,9 @@ def setup_detector_layer_c01b(layer, input_space, rng, irange):
                 output_shape[idx] = 1
                 warnings.warn("Had to change the kernel shape to make network feasible")
             else:
-                raise ValueError("kernel too big for input (even with zero padding)")
+                raise ValueError(layer.layer_name + ": Kernel too big for input (even with zero padding). " +
+                        "Kernel dim: " + str(self.kernel_shape[idx]) + ". Input dim: " +
+                        str(self.input_space.shape[idx]))
 
     map(handle_kernel_shape, [0, 1])
 
