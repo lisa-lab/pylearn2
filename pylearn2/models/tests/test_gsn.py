@@ -6,6 +6,7 @@ import theano
 T = theano.tensor
 F = theano.function
 
+from pylearn2.costs.cost import SumOfCosts
 from pylearn2.costs.autoencoder import MeanBinaryCrossEntropy
 from pylearn2.costs.gsn import *
 from pylearn2.corruption import *
@@ -23,10 +24,10 @@ GAUSSIAN_NOISE = 0.5
 
 WALKBACK = 0
 
-LEARNING_RATE = 0.3
-MOMENTUM = 0.5
+LEARNING_RATE = 0.25
+MOMENTUM = 0.75
 
-MAX_EPOCHS = 100
+MAX_EPOCHS = 500
 BATCHES_PER_EPOCH = None # covers full training set
 BATCH_SIZE = 100
 
@@ -81,106 +82,38 @@ def test_train_supervised():
     raw_class_cost = MeanBinaryCrossEntropy()
     classification_cost = lambda a, b: raw_class_cost.cost(a, b) / 10.0
 
-    dc = DropoutCorruptor(.5)
-    gc = GaussianCorruptor(1.0)
-    dgc = ComposedCorruptor(dc, gc)
+    GC = GaussianCorruptor
+    DO = DropoutCorruptor
 
-    gsn = GSN.new([784, 1000, 600, 300, 10],
-                  ["sigmoid", "tanh", "tanh", "tanh", plushmax],
-                  [gc, None, None, None, gc],
-                  [SaltPepperCorruptor(0.3), dc, dc, dgc, SmoothOneHotCorruptor(0.75)],
-                  [BinomialSampler(), None, None, None, MultinomialSampler()],
-                  tied=False)
-
-    c1 = GSNCost(
-        [
-            (0, 1.0, reconstruction_cost),
-            (4, 3.0, classification_cost)
-        ],
-        walkback=1, mode='supervised')
-
-    c2 = GSNCost(
-        [
-            (0, 3.0, reconstruction_cost),
-            (4, 1.0, classification_cost)
-        ],
-        walkback=1, mode='anti_supervised')
-
-    algs = map(lambda c:
-        SGD(LEARNING_RATE, init_momentum=MOMENTUM, cost=c,
-            termination_criterion=EpochCounter(1),
-            batches_per_iter=BATCHES_PER_EPOCH, batch_size=BATCH_SIZE,
-            monitoring_dataset=MNIST(which_set='train', one_hot=True),
-            monitoring_batches=10, monitor_iteration_mode="shuffled_sequential"
-        ),
-        [c1, c2]
+    gsn = GSN.new(
+        [784, 1000, 10],
+        ["sigmoid", "tanh", plushmax],
+        [None] * 3,
+        [SaltPepperCorruptor(.3), None, SmoothOneHotCorruptor(.5)],
+        [BinomialSampler(), None, MultinomialSampler()],
+        tied=False
     )
 
-    monitors = [None, None]
-    for i in xrange(50):
-        print "ITERATION %s" % i
-        for step in xrange(2):
-            alg = algs[step]
-            if i != 0:
-                gsn.monitor = monitors[step]
-
-            trainer = Train(dataset, gsn, algorithm=alg,
-                            save_path="gsn_sup_example.pkl",
-                            extensions=[MonitorBasedLRAdjuster()])
-            trainer.main_loop()
-
-            if step == 0:
-                alg.termination_criterion = EpochCounter(5)
-            else:
-                alg.termination_criterion = EpochCounter(1)
-
-
-            monitors[step] = gsn.monitor
-            del gsn.monitor
-
-
-        if i % 5 == 0:
-            trainer.save()
-
-    print "done training"
-
-def test_train_supervised2():
-    raw_class_cost = MeanBinaryCrossEntropy()
-    classification_cost = lambda a, b: raw_class_cost.cost(a, b) / 10.0
-
-    dc = DropoutCorruptor(.5)
-    gc = GaussianCorruptor(1.0)
-    dgc = ComposedCorruptor(dc, gc)
-    x = [None] * 3
-
-    gsn = GSN.new([784, 1000, 10],
-                  ["sigmoid", "tanh", plushmax],
-                  [gc, None, gc],
-                  [SaltPepperCorruptor(0.3), dgc, SmoothOneHotCorruptor(0.75)],
-                  [BinomialSampler(), None, MultinomialSampler()],
-                  tied=False)
-
-    c = CrazyGSNCost(
+    c = GSNCost(
         [
-            (0, 1.0, crazy_costf),
-            (2, 3.0, crazy_costf)
+            (0, 1.0, reconstruction_cost),
+            (2, 2.0, classification_cost)
         ],
-        walkback=1, p_keep=[.5, .3])
+        walkback=1, mode="supervised")
 
     alg = SGD(
         LEARNING_RATE, init_momentum=MOMENTUM, cost=c,
-        termination_criterion=EpochCounter(100),
+        termination_criterion=EpochCounter(1000),
         batches_per_iter=BATCHES_PER_EPOCH, batch_size=BATCH_SIZE,
         monitoring_dataset=MNIST(which_set='train', one_hot=True),
         monitoring_batches=10, monitor_iteration_mode="shuffled_sequential"
     )
 
     trainer = Train(dataset, gsn, algorithm=alg,
-                    save_path="gsn_sup_example.pkl", save_freq=5,
+                    save_path="gsn_sup_example.pkl", save_freq=10,
                     extensions=[MonitorBasedLRAdjuster()])
     trainer.main_loop()
     print "done training"
-
 
 def test_classify():
     with open("gsn_sup_example.pkl") as f:
@@ -189,8 +122,7 @@ def test_classify():
     gsn = JointGSN.convert(gsn, 0, 2)
     gsn._corrupt_switch = False
 
-    #ds = MNIST(which_set='test', one_hot=True)
-    ds = MNIST(which_set='train', one_hot=True)
+    ds = MNIST(which_set='test', one_hot=True)
     mb_data = ds.X
     y = ds.y
 
@@ -199,9 +131,9 @@ def test_classify():
         errors = np.abs(y_hat - y).sum() / 2.0
 
         # error indices
-        #return np.sum(np.abs(y_hat - y), axis=1) != 0
+        #np.sum(np.abs(y_hat - y), axis=1) != 0
 
-        print i, errors, errors / 10000.0
+        print i, errors, errors / mb_data.shape[0]
 
 def test_sample_supervised(idxs=None, noisy=True):
     with open("gsn_sup_example.pkl") as f:
@@ -214,13 +146,13 @@ def test_sample_supervised(idxs=None, noisy=True):
     ds = MNIST(which_set='train', one_hot=True)
 
     if idxs is None:
-        data = ds.X[:50]
+        data = ds.X[100:150]
     else:
         data = ds.X[idxs]
 
     samples = gsn.get_samples([(0, data)],
-                              indices=[0, 4],
-                              walkback=19, symbolic=False,
+                              indices=[0, 2],
+                              walkback=21, symbolic=False,
                               include_first=True)
     stacked = vis_samples(samples)
     tiled = image.tile_raster_images(stacked,
@@ -291,4 +223,6 @@ def a_to_s(A):
     return "\n".join(strs)
 
 if __name__ == '__main__':
-    test_train_supervised2()
+    test_train_supervised()
+    test_classify()
+    test_sample_supervised()

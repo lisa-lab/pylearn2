@@ -139,8 +139,52 @@ import theano.sandbox.rng_mrg
 RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
 def crazy_costf(target, output, mask):
     ce = T.nnet.binary_crossentropy(output, target)
-    T.switch(mask, 0.0, ce)
-    return ce.sum() / T.sum(T.ones_like(mask) - mask)
+
+    # zero out costs from what we already knew
+    #ce = T.switch(mask, 0.0, ce)
+    #return ce.sum() / T.sum(T.eq(mask, 0))
+
+    return ce.mean()
+
+
+class ManifoldTangentCost(Cost):
+    def get_hidden_repr(self, model, data):
+        raise NotImplementedError()
+
+    def get_label_probs(self, model, data):
+        raise NotImplementedError()
+
+    def expr(self, model, data):
+        """ data must be a theano tensor of list of theano tensors """
+        if type(data) is not list:
+            data = [data]
+
+        hidden_repr = self.get_hidden_reprs(model, data)
+        label_probs = self.get_label_probs(model, data)
+        assert len(hidden_repr) == len(label_probs)
+
+        # want these to be orthogonal
+        hid_grad = theano.gradient.jacobian(hidden_repr, data)
+        label_grad = theano.gradient.jacobian(label_probs, data)
+
+        return T.sum(T.dot(hid_grad, label_grad.T) ** 2)
+
+class GSNMTC(ManifoldTangentCost):
+    def __init__(self, idxs, walkback=0):
+        self.idxs = idxs
+        self.walkback = walkback
+
+    def expr(self, model, data):
+        label_idx = max(self.idxs)
+        zipped = safe_zip(self.idxs, data)
+
+        self.samples = model.get_samples(
+            zipped,
+            walkback=self.walkback,
+            indices=[label_idx - 1, label_idx]
+        )
+
+        return super(ManifoldTangentCost, self).expr(model, data)
 
 class CrazyGSNCost(GSNCost):
     def __init__(self, costs, walkback=0, p_keep=.5, rng=2001):
@@ -165,8 +209,11 @@ class CrazyGSNCost(GSNCost):
 
     def _get_total_for_cost(self, idx, costf, *args, **kwargs):
         wrapped_costf = lambda t, o: costf(t, o, self.masks[idx])
-        return super(CrazyGSNCost, self)._get_total_for_cost(
-            idx, wrapped_costf, *args, **kwargs
+        return T.cast(
+            super(CrazyGSNCost, self)._get_total_for_cost(
+                idx, wrapped_costf, *args, **kwargs
+            ),
+            theano.config.floatX
         )
 
     def _get_samples_from_model(self, model, data):
@@ -179,12 +226,13 @@ class CrazyGSNCost(GSNCost):
                 dtype=theano.config.floatX
             )
 
-            #self.masks[idx] = T.zeros_like(layer_data)
-
         layer_idxs = [idx for idx, _, _ in self.costs]
-        masked_data = map(lambda i: self.masks[i] * data[i], xrange(len(data)))
+        masked_data = map(
+            lambda i: self.masks[i] * data[i] / self.p_keep[i],
+            xrange(len(data)))
         zipped = safe_zip(layer_idxs, masked_data)
 
+        # FIXME: should be able to run with clamping without NaN
         return model.get_samples(zipped, walkback=self.walkback,
                                  indices=layer_idxs)
                                  #,clamped=self.masks)

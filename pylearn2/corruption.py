@@ -7,7 +7,7 @@ import numpy
 import theano
 from theano import tensor
 T = tensor
-from theano.printing import Print
+
 # Shortcuts
 theano.config.warn.sum_div_dimshuffle_bug = False
 
@@ -18,6 +18,7 @@ else:
     import theano.sandbox.rng_mrg
     RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
 
+from pylearn2.utils import identity
 
 class Corruptor(object):
     def __init__(self, corruption_level, rng=2001):
@@ -126,13 +127,18 @@ class BinomialCorruptor(Corruptor):
 
 
 class DropoutCorruptor(BinomialCorruptor):
+    """
+    Sets inputs to 0 with probability of corruption_level and then divides
+    by 1 - corruption_level to keep expected activation constant.
+    """
+
     def _corrupt(self, x):
         # for stability
         if self.corruption_level < 1e-5:
             return x
 
         dropped = super(DropoutCorruptor, self)._corrupt(x)
-        return 1.0 / self.corruption_level * dropped
+        return 1.0 / (1.0 - self.corruption_level) * dropped
 
 
 class GaussianCorruptor(Corruptor):
@@ -305,6 +311,16 @@ class MultinomialSampler(Corruptor):
         """
         normalized = x / x.sum(axis=1, keepdims=True)
         return self.s_rng.multinomial(pvals=normalized, dtype=theano.config.floatX)
+
+
+class HalftimeCorruptor(Corruptor):
+    def __init__(self, corruptor):
+        self.corruptor = corruptor
+        self.state = theano.shared(0)
+
+    def _corrupt(self, x):
+        self.state = T.switch(self.state, 0, 1)
+        return T.switch(self.state, x, self.corruptor(x))
 
 
 class ComposedCorruptor(Corruptor):
