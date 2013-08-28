@@ -1,9 +1,3 @@
-def identity(x):
-    """
-    Importable identity function. Created for the purposes of pickling.
-    """
-    return x
-
 def is_iterable(obj):
     """
     Robustly test whether an object is iterable.
