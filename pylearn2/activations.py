@@ -7,9 +7,12 @@ def identity(x):
     return x
 
 def relu(x):
+    """
+    Rectified linear activation
+    """
     return T.max(0, x)
 
-def plushmax(x, eps=0.0, min_val=0.0):
+def plushmax(x, eps=0.0, min_val=1e-5):
     """
     A softer softmax.
 
@@ -20,11 +23,10 @@ def plushmax(x, eps=0.0, min_val=0.0):
     eps may be increased to satisfy this constraint.
     """
     assert eps >= 0.0
-
-    MIN_SAFE = max(0.00001, min_val)
+    assert min_val > 0
 
     s = T.sum(T.exp(x), axis=1, keepdims=True)
-    safe_eps = (MIN_SAFE * s) / (1.0 - x.shape[1] * MIN_SAFE)
+    safe_eps = (min_val * s) / (1.0 - x.shape[1] * min_val)
     safe_eps = T.cast(safe_eps, theano.config.floatX)
 
     eps = T.maximum(eps, safe_eps)

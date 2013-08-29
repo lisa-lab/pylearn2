@@ -93,7 +93,7 @@ class GSN(StackedBlocks, Model):
         def _make_callable_list(previous):
             identity = pylearn2.utils.identity
 
-            if not len(previous) == len(self.aes) + 1:
+            if len(previous) != self.nlayers:
                 raise ValueError("Need same number of corruptors/samplers as layers")
 
             if not all(map(lambda x: callable(x) or x is None, previous)):
@@ -195,6 +195,13 @@ class GSN(StackedBlocks, Model):
             params.extend(ae.get_params())
         return params
 
+    @property
+    def nlayers(self):
+        """
+        Returns how many layers the GSN has.
+        """
+        return len(self.aes) + 1
+
     def _run(self, minibatch, walkback=0, clamped=None):
         """
         This runs the GSN on input 'minibatch' are returns all of the activations
@@ -234,7 +241,7 @@ class GSN(StackedBlocks, Model):
         steps = [self.activations[:]]
 
         self.apply_postact_corruption(self.activations,
-                                      xrange(len(self.activations)))
+                                      xrange(self.nlayers)
 
         if clamped is not None:
             vals = safe_zip(*minibatch)[1]
@@ -265,7 +272,7 @@ class GSN(StackedBlocks, Model):
             return wrap_f_init
 
         def compile_f_step():
-            prev = T.matrices(len(self.activations))
+            prev = T.matrices(self.nlayers)
             if clamped:
                 _initial = T.matrices(len(indices))
                 _clamps = T.matrices(len(indices))
@@ -319,6 +326,7 @@ class GSN(StackedBlocks, Model):
             How many walkback steps to perform. This is both how many extra
             samples to take as well as how many extra reconstructed points
             to train off of. See description in _run.
+            This parameter controls how many samples you get back.
         indices : None or list of ints
             Indices of the layers that should be returned for each time step.
             If indices is None, then get_samples returns the values for all of
@@ -438,7 +446,7 @@ class GSN(StackedBlocks, Model):
         This method creates a new list, not modifying an existing list.
         This method also does the first odd step in the network.
         """
-        activations = [None] * (len(self.aes) + 1)
+        activations = [None] * self.nlayers
 
         mb_size = minibatch[0][1].shape[0]
         first_layer_size = self.aes[0].weights.shape[0]
@@ -714,7 +722,7 @@ class JointGSN(GSN):
     2 vectors.
     """
     @classmethod
-    def convert(cls, gsn, input_idx, label_idx):
+    def convert(cls, gsn, input_idx=0, label_idx=None):
         """
         'convert' essentially serves as the constructor for JointGSN.
 
@@ -723,14 +731,15 @@ class JointGSN(GSN):
         gsn : GSN
         input_idx : int
             The index of the layer which serves as the "input" to the network.
-            During classification, this layer will be given.
+            During classification, this layer will be given. Defaults to 0.
         label_idx : int
             The index of the layer which serves as the "output" of the network.
-            This label is predicted during classification.
+            This label is predicted during classification. Defaults to top
+            layer of network.
         """
         gsn.__class__ = cls
         gsn.input_idx = input_idx
-        gsn.label_idx = label_idx
+        gsn.label_idx = label_idx or (gsn.nlayers - 1)
         return gsn
 
     def calc_walkback(self, trials):

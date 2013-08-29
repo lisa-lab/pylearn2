@@ -7,36 +7,26 @@ from theano.tensor.shared_randomstreams import RandomStreams
 
 class GSNFriendlyCost(Cost):
     @staticmethod
-    def cost(a, b):
+    def cost(target, output):
         raise NotImplementedError
+
+    def expr(self, model, data, *args, **kwargs):
+        self.get_data_specs(model)[0].validate(data)
+        X = data
+        return self.cost(X, model.reconstruct(X))
+
+    def get_data_specs(self, model):
+        return (model.get_input_space(), model.get_input_source())
 
 class MeanSquaredReconstructionError(GSNFriendlyCost):
     @staticmethod
     def cost(a, b):
         return ((a - b) ** 2).sum(axis=1).mean()
 
-    def expr(self, model, data, ** kwargs):
-        self.get_data_specs(model)[0].validate(data)
-        X = data
-        return self.cost(X, model.reconstruct(X))
-
-    def get_data_specs(self, model):
-        return (model.get_input_space(), model.get_input_source())
-
-
 class MeanBinaryCrossEntropy(GSNFriendlyCost):
     @staticmethod
     def cost(target, output):
         return tensor.nnet.binary_crossentropy(output, target).sum(axis=1).mean()
-
-    def expr(self, model, data, ** kwargs):
-        self.get_data_specs(model)[0].validate(data)
-        X = data
-        return self.cost(X, model.reconstruct(X))
-
-    def get_data_specs(self, model):
-        return (model.get_input_space(), model.get_input_source())
-
 
 class SampledMeanBinaryCrossEntropy(Cost):
     """

@@ -18,7 +18,7 @@ else:
     import theano.sandbox.rng_mrg
     RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
 
-from pylearn2.utils import identity
+from pylearn2.activations import identity, plushmax
 
 class Corruptor(object):
     def __init__(self, corruption_level, rng=2001):
@@ -190,7 +190,8 @@ class SaltPepperCorruptor(Corruptor):
     """
     Corrupts the input with salt and pepper noise.
 
-    Sets some elements of the tensor to 0 or 1.
+    Sets some elements of the tensor to 0 or 1. Only really makes sense to use
+    on binary valued matrices.
     """
     def _corrupt(self, x):
         a = self.s_rng.binomial(
@@ -251,8 +252,12 @@ class OneHotCorruptor(Corruptor):
 
 
 class SmoothOneHotCorruptor(Corruptor):
+    """
+    Corrupts a one-hot vector in a way that preserves some information.
+
+    This add Gaussian noise to a vector and then computes the softmax.
+    """
     def _corrupt(self, x):
-        from pylearn2.models.gsn import plushmax
 
         noise = self.s_rng.normal(
             size=x.shape,
@@ -313,16 +318,6 @@ class MultinomialSampler(Corruptor):
         return self.s_rng.multinomial(pvals=normalized, dtype=theano.config.floatX)
 
 
-class HalftimeCorruptor(Corruptor):
-    def __init__(self, corruptor):
-        self.corruptor = corruptor
-        self.state = theano.shared(0)
-
-    def _corrupt(self, x):
-        self.state = T.switch(self.state, 0, 1)
-        return T.switch(self.state, x, self.corruptor(x))
-
-
 class ComposedCorruptor(Corruptor):
     def __init__(self, *corruptors):
         """
@@ -333,8 +328,8 @@ class ComposedCorruptor(Corruptor):
             function application notation. Thus ComposedCorruptor([a, b])._corrupt(X)
             is the same as a(b(X))
 
-            Note
-            ----
+            Notes
+            -----
             Does NOT call Corruptor.__init__, so does not contain all of the
             standard fields for Corruptors.
         """
