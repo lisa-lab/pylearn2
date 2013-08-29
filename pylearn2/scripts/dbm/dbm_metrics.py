@@ -506,7 +506,7 @@ def _e_step(psamples, W_list, b_list, n_steps=100, eps=1e-5):
 
 def estimate_likelihood(W_list, b_list, trainset, testset, free_energy_fn=None,
                         batch_size=100, large_ais=False, log_z=None,
-                        pos_mf_steps=1, pos_sample_steps=0):
+                        pos_mf_steps=50, pos_sample_steps=0):
     """
     Compute estimate of log-partition function and likelihood of trainset and
     testset
@@ -514,8 +514,6 @@ def estimate_likelihood(W_list, b_list, trainset, testset, free_energy_fn=None,
     Parameters
     ----------
     W_list : array-like object of theano shared variables
-        Weight matrices of the DBM. Its first element is ignored, since in the
-        Pylearn2 framework a visible layer does not have a weight matrix.
     b_list : array-like object of theano shared variables
         Biases of the DBM
     trainset : pylearn2.datasets.dataset.Dataset
@@ -531,6 +529,10 @@ def estimate_likelihood(W_list, b_list, trainset, testset, free_energy_fn=None,
     large_ais : boolean
         If True, will use 3e5 chains, instead of 3e4
     log_z : log-partition function (if precomputed)
+    pos_mf_steps: the number of fixed-point iterations for approximate inference
+    pos_sample_steps: same thing as pos_mf_steps
+        when both pos_mf_steps > 0 and pos_sample_steps > 0,
+        pos_mf_steps has a priority
 
     Returns
     -------
