@@ -20,6 +20,7 @@ import numpy as np
 import theano
 T = theano.tensor
 
+from pylearn2.activations import identity
 from pylearn2.base import StackedBlocks
 from pylearn2.corruption import BinomialSampler, MultinomialSampler
 from pylearn2.models.autoencoder import Autoencoder
@@ -84,15 +85,13 @@ class GSN(StackedBlocks, Model):
 
         # check that autoencoders are the correct sizes by looking at previous
         # layer. We can't do this for the first ae, so we skip it.
-        for i in xrange(1, self.aes):
-            assert (aes[i].weights.get_value().shape[0] ==
+        for i in xrange(1, len(self.aes)):
+            assert (self.aes[i].weights.get_value().shape[0] ==
                     self.aes[i - 1].nhid)
 
 
         # do some type checking and convert None's to identity function
         def _make_callable_list(previous):
-            identity = pylearn2.utils.identity
-
             if len(previous) != self.nlayers:
                 raise ValueError("Need same number of corruptors/samplers as layers")
 
@@ -241,7 +240,7 @@ class GSN(StackedBlocks, Model):
         steps = [self.activations[:]]
 
         self.apply_postact_corruption(self.activations,
-                                      xrange(self.nlayers)
+                                      xrange(self.nlayers))
 
         if clamped is not None:
             vals = safe_zip(*minibatch)[1]

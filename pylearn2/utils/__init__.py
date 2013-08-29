@@ -1,6 +1,6 @@
 import os
 
-from .general import identity, is_iterable
+from .general import is_iterable
 import theano
 # Delay import of pylearn2.config.yaml_parse and pylearn2.datasets.control
 # to avoid circular imports

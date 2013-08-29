@@ -1,4 +1,5 @@
-import theano.tensor as T
+import theano
+T = theano.tensor
 
 def identity(x):
     """
