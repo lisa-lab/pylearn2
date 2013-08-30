@@ -6,6 +6,9 @@ This is described in:
    Vincent. arXiv:1305.6663
 - "Deep Generative Stochastic Networks Trainable by Backprop" Bengio,
    Thibodeau-Laufer. arXiv:1306.1091
+
+There is an example of training both unsupervised and supervised GSNs on MNIST
+in pylearn2/scripts/gsn_example.py
 """
 __authors__ = "Eric Martin"
 __copyright__ = "Copyright 2013, Universite de Montreal"
