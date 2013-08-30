@@ -25,7 +25,6 @@ T = theano.tensor
 
 from pylearn2.activations import identity
 from pylearn2.base import StackedBlocks
-from pylearn2.corruption import BinomialSampler, MultinomialSampler
 from pylearn2.models.autoencoder import Autoencoder
 from pylearn2.models.model import Model
 from pylearn2.utils import safe_zip

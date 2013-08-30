@@ -324,7 +324,7 @@ class ComposedCorruptor(Corruptor):
         ----------
         corruptors : list of Corruptor objects
             The corruptors are applied in reverse order. This matches the typical
-            function application notation. Thus ComposedCorruptor([a, b])._corrupt(X)
+            function application notation. Thus ComposedCorruptor(a, b)._corrupt(X)
             is the same as a(b(X))
 
         Notes
