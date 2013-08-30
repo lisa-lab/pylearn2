@@ -300,22 +300,27 @@ class GSN(StackedBlocks, Model):
 
             return wrapped
 
-        if hasattr(self, '_compiled_cache'):
-            if indices == self._compiled_cache[0]:
-                # everything is cached, return all but indices
-                return self._compiled_cache[1:]
+        # things that require re-compiling everything
+        state = (self._corrupt_switch, self._sample_switch, self._bias_switch)
+
+        if hasattr(self, '_compiled_cache') and state == self._compiled_cache[0]:
+            # already have some cached functions
+
+            if indices == self._compiled_cache[1]:
+                # everything is cached, return all but state and indices
+                return self._compiled_cache[2:]
             else:
                 # indices have changed, need to recompile f_init
                 f_init = compile_f_init()
                 cc = self._compiled_cache
-                self._compiled_cache = (indices, f_init, cc[2])
-                return self._compiled_cache[1:]
-
-        f_init = compile_f_init()
-        f_step = compile_f_step()
-
-        self._compiled_cache = (indices, f_init, f_step)
-        return self._compiled_cache[1:]
+                self._compiled_cache = (state, indices, f_init, cc[3])
+                return self._compiled_cache[2:]
+        else:
+            # have no cached function (or incorrect state)
+            f_init = compile_f_init()
+            f_step = compile_f_step()
+            self._compiled_cache = (state, indices, f_init, f_step)
+            return self._compiled_cache[2:]
 
     def get_samples(self, minibatch, walkback=0, indices=None, symbolic=True,
                     include_first=False, clamped=None):
@@ -788,9 +793,6 @@ class JointGSN(GSN):
         This method does not directly control whether or not corruption and
         sampling is applied during classification. These are decided by
         self._corrupt_switch and self._sample_switch.
-
-        FIXME: Need to invalidate cached Theano functions based on state of
-               those variables.
         """
         clamped = np.ones(minibatch.shape, dtype=np.float32)
 
