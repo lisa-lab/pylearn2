@@ -135,6 +135,15 @@ Developer
 * :ref:`dev_start_guide` -- how to contribute code to Pylearn2
 * :ref:`data_specs` -- the interface different elements use to request and provide data
 
+License
+=======
+Pylearn2 is released under the 3-claused BSD license, so it may be used for commercial purposes.
+The license does not require anyone to cite Pylearn2, but if you use Pylearn2 in published research
+work we encourage you to cite this article:
+
+* Ian J. Goodfellow, David Warde-Farley, Pascal Lamblin, Vincent Dumoulin, Mehdi Mirza, Razvan Pascanu, James Bergstra, Frédéric Bastien, Yoshua Bengio. Pylearn2: a machine learning research library. `arXiv:1308.4214 <http://arxiv.org/abs/1308.4214>`_
+
+
 
 .. _pylearn-users: https://groups.google.com/group/pylearn-users
 .. _pylearn-dev: https://groups.google.com/group/pylearn-dev
