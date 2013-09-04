@@ -20,10 +20,12 @@ is now developed by the LISA lab.
 Quick start and basic design rules
 ------------------
 - Installation instructions are available `here <http://deeplearning.net/software/pylearn2/#download-and-installation>`_.
+- Subscribe to the `pylearn-users Google group
+  <http://groups.google.com/group/pylearn-users>`_ for important updates. Please write
+  to this list for general inquiries and support questions.
 - Subscribe to the `pylearn-dev Google group
-  <http://groups.google.com/group/pylearn-dev>`_ for important updates. Please write
-  to this list for troubleshooting help or any feedback you have about the library,
-  even if you're not a Pylearn2 developer.
+  <http://groups.google.com/group/pylearn-dev>`_ for important development updates. Please write
+  to this list if you find any bug or want to contribute to the project.
 - Read through the documentation and examples mentioned above.
 - Pylearn2 should not force users to commit to the whole library. If someone just wants
   to implement a Model, they should be able to do that and not need to implement
@@ -42,4 +44,11 @@ Highlights
   network library. This wrapper lets you use Theano's symbolic differentiation and other
   capabilities with minimal overhead. See pylearn2.sandbox.cuda_convnet.
 
+License
+----------
+    Pylearn2 is released under the 3-claused BSD license, so it may be used for commercial purposes.
+    The license does not require anyone to cite Pylearn2, but if you use Pylearn2 in published research
+    work we encourage you to cite this article:
+
+    Ian J. Goodfellow, David Warde-Farley, Pascal Lamblin, Vincent Dumoulin, Mehdi Mirza, Razvan Pascanu, James Bergstra, Frédéric Bastien, Yoshua Bengio. Pylearn2: a machine learning research library. `arXiv:1308.4214 <http://arxiv.org/abs/1308.4214>`_
 
