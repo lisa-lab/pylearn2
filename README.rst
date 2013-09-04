@@ -44,11 +44,16 @@ Highlights
   network library. This wrapper lets you use Theano's symbolic differentiation and other
   capabilities with minimal overhead. See pylearn2.sandbox.cuda_convnet.
 
-License
-----------
-    Pylearn2 is released under the 3-claused BSD license, so it may be used for commercial purposes.
-    The license does not require anyone to cite Pylearn2, but if you use Pylearn2 in published research
-    work we encourage you to cite this article:
+License and Citations
+---------------------
+Pylearn2 is released under the 3-claused BSD license, so it may be used for commercial purposes.
+The license does not require anyone to cite Pylearn2, but if you use Pylearn2 in published research
+work we encourage you to cite this article:
 
-    Ian J. Goodfellow, David Warde-Farley, Pascal Lamblin, Vincent Dumoulin, Mehdi Mirza, Razvan Pascanu, James Bergstra, Frédéric Bastien, Yoshua Bengio. Pylearn2: a machine learning research library. `arXiv:1308.4214 <http://arxiv.org/abs/1308.4214>`_
-
+- Ian J. Goodfellow, David Warde-Farley, Pascal Lamblin, Vincent Dumoulin,
+  Mehdi Mirza, Razvan Pascanu, James Bergstra, Frédéric Bastien, and
+  Yoshua Bengio.
+  `"Pylearn2: a machine learning research library"
+  <http://arxiv.org/abs/1308.4214>`_.
+  *arXiv preprint arXiv:1308.4214* (`BibTeX
+  <http://www.iro.umontreal.ca/~lisa/publications2/index.php/export/publication/594/bibtex>`_)
