@@ -16,13 +16,13 @@ nh = 4
 
 vW = rng.randn(nv, nh)
 W = sharedX(vW)
-vbv = rng.randn(nv)
+vbv = as_floatX(rng.randn(nv))
 bv = T.as_tensor_variable(vbv)
 bv.tag.test_value = vbv
-vbh = rng.randn(nh)
+vbh = as_floatX(rng.randn(nh))
 bh = T.as_tensor_variable(vbh)
 bh.tag.test_value = bh
-vsigma = rng.uniform(0.1, 5)
+vsigma = as_floatX(rng.uniform(0.1, 5))
 sigma = T.as_tensor_variable(vsigma)
 sigma.tag.test_value = vsigma
 
@@ -30,9 +30,9 @@ E = GRBM_Type_1(transformer=MatrixMul(W), bias_vis=bv,
                 bias_hid=bh, sigma=sigma)
 
 V = T.matrix()
-V.tag.test_value = rng.rand(test_m, nv)
+V.tag.test_value = as_floatX(rng.rand(test_m, nv))
 H = T.matrix()
-H.tag.test_value = rng.rand(test_m, nh)
+H.tag.test_value = as_floatX(rng.rand(test_m, nh))
 
 E_func = function([V, H], E([V, H]))
 F_func = function([V], E.free_energy(V))
