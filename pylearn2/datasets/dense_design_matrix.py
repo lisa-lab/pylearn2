@@ -85,21 +85,17 @@ class DenseDesignMatrix(Dataset):
             if view_converter is not None:
                 self.view_converter = view_converter
 
-                # Build a Conv2DSpace from the view_converter
-                if not (isinstance(view_converter, DefaultViewConverter)
-                        and len(view_converter.shape) == 3):
-                    raise NotImplementedError("Not able to build a Conv2DSpace "
-                            "corresponding to this converter: %s"
+                # Get the topo_space (usually Conv2DSpace) from the
+                # view_converter
+                if not hasattr(view_converter, 'topo_space'):
+                    raise NotImplementedError("Not able to get a topo_space "
+                            "from this converter: %s"
                             % view_converter)
-
-                axes = view_converter.axes
-                rows, cols, channels = view_converter.shape
 
                 # self.X_topo_space stores a "default" topological space that
                 # will be used only when self.iterator is called without a
                 # data_specs, and with "topo=True", which is deprecated.
-                self.X_topo_space = Conv2DSpace(
-                        shape=(rows, cols), num_channels=channels, axes=axes)
+                self.X_topo_space = view_converter.topo_space
             else:
                 self.X_topo_space = None
 
@@ -309,22 +305,16 @@ class DenseDesignMatrix(Dataset):
 
             view_converter = d.get('view_converter', None)
             if view_converter is not None:
-                # Build a Conv2DSpace from the view_converter
-                if not (isinstance(view_converter, DefaultViewConverter)
-                        and len(view_converter.shape) == 3):
-                    raise NotImplementedError(
-                            "Not able to build a Conv2DSpace "
-                            "corresponding to this converter: %s"
+                # Get the topo_space from the view_converter
+                if not hasattr(view_converter, 'topo_space'):
+                    raise NotImplementedError("Not able to get a topo_space "
+                            "from this converter: %s"
                             % view_converter)
-
-                axes = view_converter.axes
-                rows, cols, channels = view_converter.shape
 
                 # self.X_topo_space stores a "default" topological space that
                 # will be used only when self.iterator is called without a
                 # data_specs, and with "topo=True", which is deprecated.
-                self.X_topo_space = Conv2DSpace(
-                        shape=(rows, cols), num_channels=channels, axes=axes)
+                self.X_topo_space = view_converter.topo_space
 
     def _apply_holdout(self, _mode="sequential", train_size=0, train_prop=0):
         """
@@ -532,8 +522,7 @@ class DenseDesignMatrix(Dataset):
         # self.X_topo_space stores a "default" topological space that
         # will be used only when self.iterator is called without a
         # data_specs, and with "topo=True", which is deprecated.
-        self.X_topo_space = Conv2DSpace(
-                shape=(rows, cols), num_channels=channels, axes=axes)
+        self.X_topo_space = self.view_converter.topo_space
         assert not N.any(N.isnan(self.X))
 
         # Update data specs
@@ -699,10 +688,10 @@ class DenseDesignMatrix(Dataset):
 
         self.view_converter.axes = axes
         # Update self.X_topo_space, which stores the "default"
-        # topological space
-        rows, cols, channels = self.view_converter.shape
-        self.X_topo_space = Conv2DSpace(
-                shape=(rows, cols), num_channels=channels, axes=axes)
+        # topological space, which is the topological output space
+        # of the view_converter
+        self.X_topo_space = self.view_converter.topo_space
+
 
 class DenseDesignMatrixPyTables(DenseDesignMatrix):
     """
