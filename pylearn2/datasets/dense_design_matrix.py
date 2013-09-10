@@ -176,6 +176,9 @@ class DenseDesignMatrix(Dataset):
             convert = None
 
         else:
+            if data_specs is None:
+                data_specs = self._iter_data_specs
+
             # If there is a view_converter, we have to use it to convert
             # the stored data for "features" into one that the iterator
             # can return.
@@ -189,7 +192,8 @@ class DenseDesignMatrix(Dataset):
 
             convert = []
             for sp, src in safe_zip(sub_spaces, sub_sources):
-                if src == 'features' and self.view_converter is not None:
+                if (src == 'features' and
+                        getattr(self, 'view_converter', None) is not None):
                     conv_fn = (lambda batch, self=self, space=sp:
                                self.view_converter.get_formatted_batch(
                                    batch,
@@ -214,8 +218,6 @@ class DenseDesignMatrix(Dataset):
             num_batches = getattr(self, '_iter_num_batches', None)
         if rng is None and mode.stochastic:
             rng = self.rng
-        if data_specs is None:
-            data_specs = self._iter_data_specs
         return FiniteDatasetIterator(self,
                                      mode(self.X.shape[0], batch_size,
                                      num_batches, rng),
