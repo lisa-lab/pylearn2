@@ -24,6 +24,7 @@ tables = None
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.datasets import control
 from pylearn2.space import CompositeSpace, Conv2DSpace, VectorSpace
+from pylearn2.utils import safe_zip
 from theano import config
 
 
@@ -63,12 +64,10 @@ class DenseDesignMatrix(Dataset):
         y : ndarray, 1-dimensional(?), optional
             Labels or targets for each example. The semantics here
             are not quite nailed down for this yet.
-        view_converter : object, deprecated, optional
-            An object for converting between design matrices and
-            topological views. Currently DefaultViewConverter is
-            the only type available but later we may want to add
-            one that uses the retina encoding that the U of T group
-            uses.
+        view_converter : object, optional
+            An object for converting between the design matrix
+            stored internally and the data that will be returned
+            by iterators.
         rng : object, optional
             A random number generator used for picking random
             indices into the design matrix when choosing minibatches.
@@ -174,6 +173,30 @@ class DenseDesignMatrix(Dataset):
                 source = 'features'
 
             data_specs = (space, source)
+            convert = None
+
+        else:
+            # If there is a view_converter, we have to use it to convert
+            # the stored data for "features" into one that the iterator
+            # can return.
+            space, source = data_specs
+            if isinstance(space, CompositeSpace):
+                sub_spaces = space.components
+                sub_sources = source
+            else:
+                sub_spaces = (space,)
+                sub_sources = (source,)
+
+            convert = []
+            for sp, src in safe_zip(sub_spaces, sub_sources):
+                if src == 'features' and self.view_converter is not None:
+                    conv_fn = (lambda batch, self=self, space=sp:
+                               self.view_converter.get_formatted_batch(
+                                   batch,
+                                   space))
+                else:
+                    conv_fn = None
+                convert.append(conv_fn)
 
         # TODO: Refactor
         if mode is None:
@@ -197,7 +220,8 @@ class DenseDesignMatrix(Dataset):
                                      mode(self.X.shape[0], batch_size,
                                      num_batches, rng),
                                      data_specs=data_specs,
-                                     return_tuple=return_tuple)
+                                     return_tuple=return_tuple,
+                                     convert=convert)
 
     def get_data(self):
         """
