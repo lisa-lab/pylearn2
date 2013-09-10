@@ -476,6 +476,29 @@ class DenseDesignMatrix(Dataset):
             mat = self.X
         return self.view_converter.design_mat_to_topo_view(mat)
 
+    def get_formatted_view(self, mat, dspace):
+        """
+        Convert an array (or the entire dataset) to a destination space.
+
+        Parameters
+        ----------
+        mat : ndarray, 2-dimensional
+            An array containing a design matrix representation of training
+            examples.
+
+        dspace : Space
+            A Space we want the data in mat to be formatted in. It can be
+            a VectorSpace for a design matrix output, a Conv2DSpace for a
+            topological output for instance. Valid values depend on the
+            type of `self.view_converter`.
+        """
+        if self.view_converter is None:
+            raise Exception("Tried to call get_formatted_view on a dataset "
+                            "that has no view converter")
+
+        self.X_space.np_validate(mat)
+        return self.view_converter.get_formatted_batch(mat, dspace)
+
     def get_weights_view(self, mat):
         """
         Return a view of mat in the topology preserving format.  Currently
@@ -673,12 +696,6 @@ class DenseDesignMatrix(Dataset):
         without data_specs, and with "topo=True", which is deprecated.
         """
         assert self.view_converter is not None
-        warnings.warn("Rather than setting the axes of a dataset's "
-                "view_converter, then building an iterator with "
-                "'topo=True', which is deprecated, you can simply "
-                "build an iterator with "
-                "'data_specs=Conv2DSpace(..., axes=axes)'.",
-                stacklevel=3)
 
         self.view_converter.axes = axes
         # Update self.X_topo_space, which stores the "default"
@@ -924,6 +941,11 @@ class DefaultViewConverter(object):
             self.pixels_per_channel *= dim
         self.axes = axes
 
+        rows, cols, channels = shape
+        self.topo_space = Conv2DSpace(shape=(rows, cols),
+                                      num_channels=channels,
+                                      axes=axes)
+
     def view_shape(self):
         return self.shape
 
@@ -981,6 +1003,25 @@ class DefaultViewConverter(object):
         assert rval.dtype == V.dtype
 
         return rval
+
+    def get_formatted_batch(self, batch, dspace):
+        """
+        Reformat batch from the internal storage format into dspace.
+        """
+        if isinstance(dspace, VectorSpace):
+            # If a VectorSpace is requested, batch should already be
+            # in that space.
+            dspace.np_validate(batch)
+            return batch
+        elif isinstance(dspace, Conv2DSpace):
+            # design_mat_to_topo_view will return a batch formatted
+            # in a Conv2DSpace, but not necessarily the right one.
+            topo_batch = self.design_mat_to_topo_view(batch)
+            return self.topo_space.np_format_as(topo_batch, dspace)
+        else:
+            raise ValueError("%s does not know how to format a batch into "
+                             "%s of type %s."
+                             % (self.__class__.__name__, dspace, type(dspace)))
 
     def __setstate__(self, d):
         # Patch old pickle files that don't have the axes attribute.
