@@ -43,6 +43,24 @@ class DummyCost(Cost):
         return (model.get_input_space(), model.get_input_source())
 
 
+class DummyModel(Model):
+
+    def __init__(self, shapes, lr_scalers=None):
+        self._params = [sharedX(np.random.random(shape)) for shape in shapes]
+        self.input_space = VectorSpace(1)
+        self.lr_scalers = lr_scalers
+
+    def __call__(self, X):
+        # Implemented only so that DummyCost would work
+        return X
+    
+    def get_lr_scalers(self):
+        if self.lr_scalers:
+            return dict(zip(self._params, self.lr_scalers))
+        else:
+            return dict()
+
+
 class SoftmaxModel(Model):
     """A dummy model used for testing.
        Important properties:
@@ -866,24 +884,9 @@ def test_lr_scalers_momentum():
     scales = [ .01, .02, .05, 1., 5. ]
     shapes = [(1,), (9,), (8, 7), (6, 5, 4), (3, 2, 2, 2)]
 
-    learning_rate = .001
-
-    class ModelWithScalers(Model):
-        def __init__(self):
-            self._params = [sharedX(np.zeros(shape)) for shape in shapes]
-            self.input_space = VectorSpace(1)
-
-        def __call__(self, X):
-            # Implemented only so that DummyCost would work
-            return X
-
-        def get_lr_scalers(self):
-            return dict(zip(self._params, scales))
-
-    model = ModelWithScalers()
-
+    model = DummyModel(shapes, lr_scalers=scales)
     dataset = ArangeDataset(1)
-
+    learning_rate = .001
     momentum = 0.5
 
     sgd = SGD(cost=cost, learning_rate=learning_rate, init_momentum=momentum,
