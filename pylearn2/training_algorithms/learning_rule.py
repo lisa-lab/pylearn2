@@ -4,6 +4,7 @@ from theano import tensor as T
 
 from theano.compat.python2x import OrderedDict
 from pylearn2.space import NullSpace
+from pylearn2.train_extensions import TrainExtension
 from pylearn2.utils import sharedX
 
 class LearningRule():
@@ -95,6 +96,57 @@ class Momentum(LearningRule):
             updates[param] = param + updated_inc
 
         return updates
+
+
+class MomentumAdjustor(TrainExtension):
+
+    def __init__(self, final_momentum, start, saturate):
+        """
+            final_momentum: the momentum coefficient to use at the end
+                            of learning.
+            start: the epoch on which to start growing the momentum coefficient.
+            saturate: the epoch on which the moment should reach its final value
+        """
+
+        if saturate < start:
+            raise TypeError("Momentum can't saturate at its maximum value before it starts increasing.")
+
+        self.__dict__.update(locals())
+        del self.self
+        self._initialized = False
+        self._count = 0
+
+    def on_monitor(self, model, dataset, algorithm):
+        if hasattr(algorithm, 'learning_rule'):
+            momentum = algorithm.learning_rule.momentum
+        else:
+            # TODO: remove once training_algorithm.sgd.SGD(init_momentum)
+            # is officially deprecated.
+            momentum = algorithm.momentum
+
+        if not self._initialized:
+            self._init_momentum = momentum.get_value()
+            self._initialized = True
+        self._count += 1
+        momentum.set_value( np.cast[config.floatX](self.current_momentum()))
+
+    def current_momentum(self):
+        w = self.saturate - self.start
+
+        if w == 0:
+            # saturate=start, so just jump straight to final momentum
+            if self._count >= self.start:
+                return self.final_momentum
+            return self._init_momentum
+
+        alpha = float(self._count - self.start) / float(w)
+        if alpha < 0.:
+            alpha = 0.
+        if alpha > 1.:
+            alpha = 1.
+        return self._init_momentum * (1.-alpha)+alpha*self.final_momentum
+
+
 
 
 class AdaDelta(LearningRule):

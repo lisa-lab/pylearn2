@@ -24,6 +24,7 @@ from pylearn2.monitor import Monitor
 from pylearn2.space import CompositeSpace, NullSpace
 from pylearn2.train_extensions import TrainExtension
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
+from pylearn2.training_algorithms import learning_rule
 from pylearn2.utils.iteration import is_stochastic
 from pylearn2.utils import py_integer_types, py_float_types
 from pylearn2.utils import safe_zip
@@ -651,45 +652,11 @@ class LinearDecay(object):
         new_lr = np.cast[config.floatX](new_lr)
         algorithm.learning_rate.set_value(new_lr)
 
-class MomentumAdjustor(TrainExtension):
-    def __init__(self, final_momentum, start, saturate):
-        """
-            final_momentum: the momentum coefficient to use at the end
-                            of learning.
-            start: the epoch on which to start growing the momentum coefficient.
-            saturate: the epoch on which the moment should reach its final value
-        """
 
-        if saturate < start:
-            raise TypeError("Momentum can't saturate at its maximum value before it starts increasing.")
+# TODO: remove once training_algorithm.sgd.SGD(init_momentum)
+# is officially deprecated.
+MomentumAdjustor = learning_rule.MomentumAdjustor
 
-        self.__dict__.update(locals())
-        del self.self
-        self._initialized = False
-        self._count = 0
-
-    def on_monitor(self, model, dataset, algorithm):
-        if not self._initialized:
-            self._init_momentum = algorithm.momentum.get_value()
-            self._initialized = True
-        self._count += 1
-        algorithm.momentum.set_value( np.cast[config.floatX](self.current_momentum()))
-
-    def current_momentum(self):
-        w = self.saturate - self.start
-
-        if w == 0:
-            # saturate=start, so just jump straight to final momentum
-            if self._count >= self.start:
-                return self.final_momentum
-            return self._init_momentum
-
-        alpha = float(self._count - self.start) / float(w)
-        if alpha < 0.:
-            alpha = 0.
-        if alpha > 1.:
-            alpha = 1.
-        return self._init_momentum * (1.-alpha)+alpha*self.final_momentum
 
 class OneOverEpoch(TrainExtension):
     """
