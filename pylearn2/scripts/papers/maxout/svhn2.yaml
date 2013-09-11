@@ -11,7 +11,9 @@
     algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
         train_iteration_mode: 'batchwise_shuffled_equential',
         learning_rate: 0.008600,
-        init_momentum: 0.900000,
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+            init_momentum: 0.900000,
+        },
         monitoring_dataset:
             {
                 #'train' : *train,

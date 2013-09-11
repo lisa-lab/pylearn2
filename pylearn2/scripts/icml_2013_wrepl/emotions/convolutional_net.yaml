@@ -51,7 +51,9 @@
     algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
         batch_size: 100,
         learning_rate: .001,
-        init_momentum: .5,
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+            init_momentum: .5,
+        },
         # We monitor how well we're doing during training on a validation set
         monitoring_dataset:
             {
