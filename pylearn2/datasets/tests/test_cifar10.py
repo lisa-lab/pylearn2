@@ -1,9 +1,11 @@
-from pylearn2.datasets.cifar10 import CIFAR10
 import unittest
-from pylearn2.testing.skip import skip_if_no_data
 import numpy as np
+from pylearn2.datasets.cifar10 import CIFAR10
+from pylearn2.space import Conv2DSpace
+from pylearn2.testing.skip import skip_if_no_data
 
-class TestMNIST(unittest.TestCase):
+
+class TestCIFAR10(unittest.TestCase):
     def setUp(self):
         skip_if_no_data()
         self.train = CIFAR10(which_set = 'train')
@@ -33,3 +35,54 @@ class TestMNIST(unittest.TestCase):
         assert b01c_direct.shape == b01c.shape
         assert np.all(b01c_direct == b01c)
 
+    def test_iterator(self):
+        # Tests that batches returned by an iterator with topological
+        # data_specs are the same as the ones returned by calling
+        # get_topological_view on the dataset with the corresponding order
+        batch_size = 100
+        b01c_X = self.test.X[0:batch_size, :]
+        b01c_topo = self.test.get_topological_view(b01c_X)
+        b01c_b01c_it = self.test.iterator(
+            mode='sequential',
+            batch_size=batch_size,
+            data_specs=(Conv2DSpace(shape=(32, 32),
+                                    num_channels=3,
+                                    axes=('b', 0, 1, 'c')),
+                        'features'))
+        b01c_b01c = b01c_b01c_it.next()
+        assert np.all(b01c_topo == b01c_b01c)
+
+        c01b_test = CIFAR10(which_set='test', axes=('c', 0, 1, 'b'))
+        c01b_X = c01b_test.X[0:batch_size, :]
+        c01b_topo = c01b_test.get_topological_view(c01b_X)
+        c01b_c01b_it = c01b_test.iterator(
+            mode='sequential',
+            batch_size=batch_size,
+            data_specs=(Conv2DSpace(shape=(32, 32),
+                                    num_channels=3,
+                                    axes=('c', 0, 1, 'b')),
+                        'features'))
+        c01b_c01b = c01b_c01b_it.next()
+        assert np.all(c01b_topo == c01b_c01b)
+
+        # Also check that samples from iterators with the same data_specs
+        # with Conv2DSpace do not depend on the axes of the dataset
+        b01c_c01b_it = self.test.iterator(
+            mode='sequential',
+            batch_size=batch_size,
+            data_specs=(Conv2DSpace(shape=(32, 32),
+                                    num_channels=3,
+                                    axes=('c', 0, 1, 'b')),
+                        'features'))
+        b01c_c01b = b01c_c01b_it.next()
+        assert np.all(b01c_c01b == c01b_c01b)
+
+        c01b_b01c_it = c01b_test.iterator(
+            mode='sequential',
+            batch_size=batch_size,
+            data_specs=(Conv2DSpace(shape=(32, 32),
+                                    num_channels=3,
+                                    axes=('b', 0, 1, 'c')),
+                        'features'))
+        c01b_b01c = c01b_b01c_it.next()
+        assert np.all(c01b_b01c == b01c_b01c)
