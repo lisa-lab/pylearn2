@@ -7,22 +7,65 @@ from pylearn2.space import NullSpace
 from pylearn2.utils import sharedX
 
 class LearningRule():
+    """
+    A pylearn2 learning rule is an object which computes parameter updates given
+    a learning rate and the current estimated gradient.
+    """
 
     def add_channels_to_monitor(self, monitor, monitoring_dataset):
+        """
+        Method called by the training algorithm, which allows LearningRules to
+        add monitoring channels.
+
+        monitor: a pylearn2.monitor.Monitor object, to which the rule
+        should register additional monitoring channels.
+        monitoring_dataset: a Dataset instance of dictionary whose values
+        are Dataset objects.
+        """
         raise NotImplementedError()
 
     def get_updates(self, learning_rate, grads, lr_scalers=None):
+        """
+
+        Parameters
+        ----------
+        learning_rate: float, learning rate coefficient.
+        grads: a dictionary mapping from the model's parameters
+        to their gradients.
+        lr_scalers: dictionary mapping from the model's parameters
+        to a learning rate multiplier.
+
+        Returns
+        -------
+        A dictionary whose keys are model parameters, and values are the change
+        in parameter values (i.e. \Delta \theta) to apply for the current
+        iteration of the training algorithm.
+
+        e.g. for standard SGD, one would return `delta_param` defined below.
+
+            delta_param = OrderedDict()
+            for (param, grad) in grads.iteritems():
+                delta_param[k] = param - learning_rate * lr_scalers.get(param, 1.) * grad
+        """
         raise NotImplementedError()
 
 
 class Momentum(LearningRule):
     """
+    Implements momentum as described in Section 9 of 
+    "A Practical Guide to Training Restricted Boltzmann Machines", Geoffrey Hinton.
+
     Parameters are updated by the formula:
     inc := momentum * inc - learning_rate * d cost / d param
     param := param + inc
     """
 
     def __init__(self, init_momentum):
+        """
+        init_momentum: initial value for the momentum coefficient. It remains
+        fixed during training unless used with a
+        training_algorithms.sgd.MomentumAdjustor extension.
+        """
         assert init_momentum >= 0.
         assert init_momentum < 1.
         self.momentum = sharedX(init_momentum, 'momentum')
@@ -51,13 +94,24 @@ class Momentum(LearningRule):
 
 
 class AdaDelta(LearningRule):
+    """
+    Implements the AdaDelta learning rule as described in:
+    "AdaDelta: An Adaptive Learning Rate Method", Matthew D. Zeiler.
+    """
 
     def __init__(self, decay=0.95):
+        """
+        Parameters
+        ----------
+        decay: float
+            decay rate \rho in Algorithm 1 of the afore-mentioned paper.
+        """
         assert decay >= 0.
         assert decay < 1.
         self.decay = decay
 
     def add_channels_to_monitor(self, monitor, monitoring_dataset):
+        """ TODO: add channels worth monitoring """
         return
 
     def get_updates(self, learning_rate, grads, lr_scalers=None):

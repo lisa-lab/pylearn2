@@ -101,8 +101,9 @@ class SGD(TrainingAlgorithm):
                     " a sum of Costs. Use pylearn2.costs.cost.SumOfCosts instead.")
 
         if init_momentum:
-            warning.warn("""init_momentum interface is deprecated. Please use
-            pylearn2.training_algorithms.learning_rule.Momentum instead""")
+            warnings.warn("""init_momentum interface is deprecated. Please use the
+            `learning_rule` parameter instead, providing an object of type
+            `pylearn2.training_algorithms.learning_rule.Momentum` instead""")
             # Old momentum interface is not compatible with new learning rules.
             assert learning_rule is None
 
