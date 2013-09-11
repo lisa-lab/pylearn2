@@ -8,8 +8,9 @@ from pylearn2.utils import sharedX
 
 class LearningRule():
     """
-    A pylearn2 learning rule is an object which computes parameter updates given
-    a learning rate and the current estimated gradient.
+    A pylearn2 learning rule is an object which computes new parameter values
+    given (1) a learning rate (2) current parameter values and (3) the current
+    estimated gradient.
     """
 
     def add_channels_to_monitor(self, monitor, monitoring_dataset):
@@ -37,15 +38,17 @@ class LearningRule():
 
         Returns
         -------
-        A dictionary whose keys are model parameters, and values are the change
-        in parameter values (i.e. \Delta \theta) to apply for the current
-        iteration of the training algorithm.
+        A dictionary mapping from the old model parameters, to their new
+        values after a single iteration of the learning rule.
 
-        e.g. for standard SGD, one would return `delta_param` defined below.
+        e.g. for standard SGD, one would return `sgd_rule_updates` defined
+        below. Note that such a LearningRule object is not implemented, as these
+        updates are implemented by default when the `learning_rule` parameter
+        of sgd.SGD.__init__ is None.
 
-            delta_param = OrderedDict()
+            sgd_rule_updates = OrderedDict()
             for (param, grad) in grads.iteritems():
-                delta_param[k] = param - learning_rate * lr_scalers.get(param, 1.) * grad
+                sgd_rule_updates[k] = param - learning_rate * lr_scalers.get(param, 1.) * grad
         """
         raise NotImplementedError()
 
@@ -150,10 +153,3 @@ class AdaDelta(LearningRule):
             updates[param] = param + delta_x_t
         
         return updates
-
-
-
-
-
-
-

@@ -76,9 +76,11 @@ class SGD(TrainingAlgorithm):
                             See section 9 of Geoffrey Hinton's "A Practical
                             Guide to Training Restricted Boltzmann Machines"
                             for details.
-            learning_rule: if not standard SGD, an object of type
-                           training_algorithms.learning_rule.LearningRule, which
-                           computes \Delta\theta given the first-order gradients.
+            learning_rule: training_algorithms.learning_rule.LearningRule,
+                           a learning rule computes the new parameter values given
+                           old parameters and first-order gradients. If learning_rule
+                           is None, sgd.SGD will update parameters according to
+                           the standard SGD learning rule.
             set_batch_size: if True, and batch_size conflicts with
                             model.force_batch_size, will call
                             model.set_batch_size(batch_size) in an attempt
@@ -262,10 +264,9 @@ class SGD(TrainingAlgorithm):
             lr = learning_rate.get_value() * lr_scalers.get(param,1.)
             log.info('\t' + param_name + ': ' + str(lr))
 
-        if self.learning_rule is None:
-            updates.update( dict(safe_zip(params, [param - learning_rate * \
-                lr_scalers.get(param, 1.) * grads[param]
-                                    for param in params])))
+        if self.learning_rule:
+            updates.update(self.learning_rule.get_updates(
+                learning_rate, grads, lr_scalers))
         elif self.momentum is None:
             updates.update( dict(safe_zip(params, [param - learning_rate * \
                 lr_scalers.get(param, 1.) * grads[param]
