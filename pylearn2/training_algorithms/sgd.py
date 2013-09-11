@@ -48,7 +48,7 @@ class SGD(TrainingAlgorithm):
                  monitoring_batches=None, monitoring_dataset=None,
                  monitor_iteration_mode='sequential',
                  termination_criterion=None, update_callbacks=None,
-                 init_momentum = None, set_batch_size = False,
+                 learning_rule = None, init_momentum = None, set_batch_size = False,
                  train_iteration_mode = None, batches_per_iter=None,
                  theano_function_mode = None, monitoring_costs=None,
                  seed=[2012, 10, 5]):
@@ -63,7 +63,7 @@ class SGD(TrainingAlgorithm):
                   function to be minimized.
                   Optionally, may be None. In this case, SGD will call the model's
                   get_default_cost method to obtain the objective function.
-            init_momentum: if None, does not use momentum
+            init_momentum: **DEPRECATED** if None, does not use momentum
                             otherwise, use momentum and initialize the
                             momentum coefficient to init_momentum.
                             Callbacks can change this over time just like
@@ -76,6 +76,9 @@ class SGD(TrainingAlgorithm):
                             See section 9 of Geoffrey Hinton's "A Practical
                             Guide to Training Restricted Boltzmann Machines"
                             for details.
+            learning_rule: if not standard SGD, an object of type
+                           training_algorithms.learning_rule.LearningRule, which
+                           computes \Delta\theta given the first-order gradients.
             set_batch_size: if True, and batch_size conflicts with
                             model.force_batch_size, will call
                             model.set_batch_size(batch_size) in an attempt
@@ -97,6 +100,12 @@ class SGD(TrainingAlgorithm):
             raise TypeError("SGD no longer supports using collections of Costs to represent "
                     " a sum of Costs. Use pylearn2.costs.cost.SumOfCosts instead.")
 
+        if init_momentum:
+            warning.warn("""init_momentum interface is deprecated. Please use
+            pylearn2.training_algorithms.learning_rule.Momentum instead""")
+            # Old momentum interface is not compatible with new learning rules.
+            assert learning_rule is None
+
         self.learning_rate = sharedX(learning_rate, 'learning_rate')
         self.cost = cost
         self.batch_size = batch_size
@@ -109,6 +118,7 @@ class SGD(TrainingAlgorithm):
             if monitoring_batches is not None:
                 raise ValueError("Specified an amount of monitoring batches but not a monitoring dataset.")
         self.termination_criterion = termination_criterion
+        self.learning_rule = learning_rule
         self.init_momentum = init_momentum
         if init_momentum is None:
             self.momentum = None
@@ -204,7 +214,12 @@ class SGD(TrainingAlgorithm):
                                      val=learning_rate,
                                      data_specs=(NullSpace(), ''),
                                      dataset=monitoring_dataset)
-            if self.momentum:
+
+            if self.learning_rule:
+                self.learning_rule.add_channels_to_monitor(
+                        self.monitor,
+                        monitoring_dataset)
+            elif self.momentum:
                 self.monitor.add_channel(name='momentum',
                                          ipt=None,
                                          val=self.momentum,
@@ -246,7 +261,11 @@ class SGD(TrainingAlgorithm):
             lr = learning_rate.get_value() * lr_scalers.get(param,1.)
             log.info('\t' + param_name + ': ' + str(lr))
 
-        if self.momentum is None:
+        if self.learning_rule is None:
+            updates.update( dict(safe_zip(params, [param - learning_rate * \
+                lr_scalers.get(param, 1.) * grads[param]
+                                    for param in params])))
+        elif self.momentum is None:
             updates.update( dict(safe_zip(params, [param - learning_rate * \
                 lr_scalers.get(param, 1.) * grads[param]
                                     for param in params])))
