@@ -343,7 +343,11 @@ def compute_likelihood_given_logz(nsamples, psamples, batch_size, energy_fn,
     for i in xrange(0, len(test_x), batch_size):
 
         # Recast data as floatX and apply preprocessing if required
-        x = numpy.array(test_x[i:i + batch_size, :], dtype=floatX)
+        x = numpy.array(test_x[i:numpy.minimum(test_x.shape[0], i + batch_size), :], dtype=floatX)
+        batch_size0 = len(x)
+        if len(x) < batch_size:
+            # concatenate x to have some dummy entries
+            x = numpy.concatenate((x, numpy.zeros((batch_size-len(x),x.shape[1]), dtype=floatX)), axis=0)
 
         # Perform inference
         inference_fn(x)
@@ -364,11 +368,11 @@ def compute_likelihood_given_logz(nsamples, psamples, batch_size, energy_fn,
                 nsamples[ii].set_value(psample.get_value())
 
         # Compute sum of likelihood for current buffer
-        x_likelihood = numpy.sum(-energy_fn(1.0) + hq - log_z)
+        x_likelihood = numpy.sum((-energy_fn(1.0) + hq - log_z)[:batch_size0])
 
         # Perform moving average of negative likelihood
         # Divide by len(x) and not bufsize, since last buffer might be smaller
-        likelihood = (i * likelihood + x_likelihood) / (i + len(x))
+        likelihood = (i * likelihood + x_likelihood) / (i + batch_size0)
 
     return likelihood
 
