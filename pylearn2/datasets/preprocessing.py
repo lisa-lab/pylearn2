@@ -653,6 +653,17 @@ class PCA_ViewConverter(object):
     def topo_view_to_design_mat(self, V):
         return self.to_pca(self.orig_view_converter.topo_view_to_design_mat(V))
 
+    def get_formatted_batch(self, batch, dspace):
+        if isinstance(dspace, VectorSpace):
+            # Return the batch in the original storage space
+            dspace.np_validate(batch)
+            return batch
+        else:
+            # Uncompress and go through the original view converter
+            to_input = self.to_input(batch)
+            return self.orig_view_converter.get_formatted_batch(to_input,
+                                                                dspace)
+
 
 class PCA(object):
     def __init__(self, num_components):
