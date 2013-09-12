@@ -712,7 +712,7 @@ class DenseDesignMatrix(Dataset):
         """
         assert self.view_converter is not None
 
-        self.view_converter.axes = axes
+        self.view_converter.set_axes(axes)
         # Update self.X_topo_space, which stores the "default"
         # topological space, which is the topological output space
         # of the view_converter
@@ -955,11 +955,7 @@ class DefaultViewConverter(object):
         for dim in self.shape[:-1]:
             self.pixels_per_channel *= dim
         self.axes = axes
-
-        rows, cols, channels = shape
-        self.topo_space = Conv2DSpace(shape=(rows, cols),
-                                      num_channels=channels,
-                                      axes=axes)
+        self._update_topo_space()
 
     def view_shape(self):
         return self.shape
@@ -1032,6 +1028,11 @@ class DefaultViewConverter(object):
             # design_mat_to_topo_view will return a batch formatted
             # in a Conv2DSpace, but not necessarily the right one.
             topo_batch = self.design_mat_to_topo_view(batch)
+            if self.topo_space.axes != self.axes:
+                warnings.warn("It looks like %s.axes has been changed "
+                              "directly, please use the set_axes() method "
+                              "instead." % self.__class__.__name__)
+                self._update_topo_space()
             return self.topo_space.np_format_as(topo_batch, dspace)
         else:
             raise ValueError("%s does not know how to format a batch into "
@@ -1043,6 +1044,22 @@ class DefaultViewConverter(object):
         if 'axes' not in d:
             d['axes'] = ['b', 0, 1, 'c']
         self.__dict__.update(d)
+
+        # Same for topo_space
+        if 'topo_space' not in self.__dict__:
+            self._update_topo_space()
+
+    def _update_topo_space(self):
+        """Update self.topo_space from self.shape and self.axes"""
+        rows, cols, channels = self.shape
+        self.topo_space = Conv2DSpace(shape=(rows, cols),
+                                      num_channels=channels,
+                                      axes=self.axes)
+
+    def set_axes(self, axes):
+        self.axes = axes
+        self._update_topo_space()
+
 
 def from_dataset(dataset, num_examples):
     try:
