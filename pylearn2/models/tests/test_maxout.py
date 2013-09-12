@@ -18,6 +18,7 @@ from theano import config
 from theano.sandbox import cuda
 
 from pylearn2.config import yaml_parse
+from pylearn2.datasets.exc import NoDataPathError
 
 
 def test_maxout_basic():
@@ -187,6 +188,78 @@ yaml_string_maxout_conv_c01b_basic = """
     }
     """
 
+yaml_string_maxout_conv_c01b_cifar10 = """
+    !obj:pylearn2.train.Train {
+        dataset: &train !obj:pylearn2.datasets.cifar10.CIFAR10 {
+            toronto_prepro: True,
+            which_set: 'train',
+            one_hot: 1,
+            axes: ['c', 0, 1, 'b'],
+            start: 0,
+            stop: 50000
+        },
+        model: !obj:pylearn2.models.mlp.MLP {
+            batch_size: 128,
+            input_space: !obj:pylearn2.space.Conv2DSpace {
+                shape: [32, 32],
+                num_channels: 3,
+                axes: ['c', 0, 1, 'b'],
+            },
+            layers: [
+                     !obj:pylearn2.models.maxout.MaxoutConvC01B {
+                         layer_name: 'conv1',
+                         pad: 0,
+                         num_channels: 32,
+                         num_pieces: 1,
+                         kernel_shape: [5, 5],
+                         pool_shape: [3, 3],
+                         pool_stride: [2, 2],
+                         irange: .01,
+                         min_zero: True,
+                         W_lr_scale: 1.,
+                         b_lr_scale: 2.,
+                         tied_b: True,
+                         max_kernel_norm: 9.9,
+                     },
+                     !obj:pylearn2.models.mlp.Softmax {
+                         layer_name: 'y',
+                         n_classes: 10,
+                         istdev: .01,
+                         W_lr_scale: 1.,
+                         b_lr_scale: 2.,
+                         max_col_norm: 9.9365
+                     }
+                    ],
+        },
+        algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+            batch_size: 128,
+            learning_rate: .01,
+            init_momentum: .9,
+            monitoring_dataset:
+                {
+                    'valid' : !obj:pylearn2.datasets.cifar10.CIFAR10 {
+                                  toronto_prepro: True,
+                                  axes: ['c', 0, 1, 'b'],
+                                  which_set: 'train',
+                                  one_hot: 1,
+                                  start: 40000,
+                                  stop:  50000
+                              },
+                    'test'  : !obj:pylearn2.datasets.cifar10.CIFAR10 {
+                                  toronto_prepro: True,
+                                  axes: ['c', 0, 1, 'b'],
+                                  which_set: 'test',
+                                  one_hot: 1,
+                              }
+                },
+            termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
+                max_epochs: 5
+            }
+        }
+    }
+
+    """
+
 
 class TestMaxout(unittest.TestCase):
     def test_maxout_conv_c01b_basic_err(self):
@@ -214,6 +287,38 @@ class TestMaxout(unittest.TestCase):
             config.floatX = old_floatX
             cuda.unuse()
         assert cuda.cuda_enabled is False
+
+    def test_maxout_conv_c01b_cifar10(self):
+        if cuda.cuda_available is False:
+            raise SkipTest('Optional package cuda disabled')
+        if not hasattr(cuda, 'unuse'):
+            raise Exception("Theano version too old to run this test!")
+        # Tests that we can run a small convolutional model on GPU,
+        assert cuda.cuda_enabled is False
+        # Even if there is a GPU, but the user didn't specify device=gpu
+        # we want to run this test.
+        try:
+            old_floatX = config.floatX
+            cuda.use('gpu')
+            config.floatX = 'float32'
+            try:
+                train = yaml_parse.load(yaml_string_maxout_conv_c01b_cifar10)
+            except NoDataPathError:
+                raise SkipTest("PYLEARN2_DATA_PATH environment variable "
+                               "not defined")
+            train.main_loop()
+            # Check that the performance is close to the expected one:
+            # test_y_misclass: 0.3777000308036804
+            misclass_chan = train.algorithm.monitor.channels['test_y_misclass']
+            assert misclass_chan.val_record[-1] < 0.38
+            # test_y_nll: 1.0978516340255737
+            nll_chan = train.algorithm.monitor.channels['test_y_nll']
+            assert nll_chan.val_record[-1] < 1.1
+        finally:
+            config.floatX = old_floatX
+            cuda.unuse()
+        assert cuda.cuda_enabled is False
+
 
 if __name__ == '__main__':
 
