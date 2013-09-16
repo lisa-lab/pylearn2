@@ -10,13 +10,17 @@ class GSNCost(Cost):
     Customizable cost class for GSNs.
 
     This class currently can only handle datasets with only one or two sets
-    of vectors. Model.get_input_source() is used for the name of the first
-    set of vectors and Model.get_target_source is used for the second set
-    of vectors.
+    of vectors. The get_input_source and get_target_source methods on the model
+    instance are called to get the names for the fields in the dataset.
+    get_input_source() is used for the name of the first set of vectors and
+    get_target_source() is used for the second set of vectors.
 
-    Expanding GSNCost to learn the joint distribution between more than two
-    sets of vectors would require modification to the Model class (as well
-    as modification to GSNCost).
+    The explicit use of get_input_source and get_target_source (and the
+    non-existance of similar hooks) is what limits this class to learning
+    the joint distribution between only 2 sets of vectors. The allow for more
+    than 2 sets of vectors, the Model class would need to be modified, preferably
+    in a way that allows reference to arbitrarily many sets of vectors within
+    one dataset.
     """
     def __init__(self, costs, walkback=0, mode="joint"):
         """
@@ -31,16 +35,25 @@ class GSNCost(Cost):
             that is a callable rather than an instance of GSN friendly cost,
             it will be called with 2 arguments: the initial value followed by the
             reconstructed value.
+
+            costs must be of length 1 or 2 (explained in docstring for GSNCost
+            class) and the meaning of the ordering of the costs parameter is
+            explained in the docstring for the mode parameter.
         walkback : int
             how many steps of walkback to perform
         mode : str
-            Should be either 'joint', 'supervised', or 'anti_supervised'.
+            Must be either 'joint', 'supervised', or 'anti_supervised'.
+            The terms "input layer" and "label layer" are used below in the
+            description of the modes. The "input layer" refers to the layer at the
+            index specified in the first tuple in the costs parameter, and the
+            "label layer" refers to the layer at the index specified in the second
+            tuple in the costs parameter.
 
             'joint' means setting all of the layers and calculating
             reconstruction costs.
 
-            'supervised' means setting just the input layer (the first cost)
-            and attempting to predict the label layer (the second cost).
+            'supervised' means setting just the input layer and attempting to
+            predict the label layer
 
             'anti_supervised' is attempting to predict the input layer given the
             label layer.

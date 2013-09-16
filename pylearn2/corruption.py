@@ -18,7 +18,7 @@ else:
     import theano.sandbox.rng_mrg
     RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
 
-from pylearn2.activations import identity, plushmax
+from pylearn2.expr.activations import identity, plushmax
 
 class Corruptor(object):
     def __init__(self, corruption_level, rng=2001):
@@ -224,8 +224,8 @@ class OneHotCorruptor(Corruptor):
         Returns
         -------
         y : tensor_like
-            Row i of y is not equal to row i of x with probability corruption_level.
-            Each row of y is a one-hot vector.
+            There is a probability corruption_level that row i of y is a random
+            one-hot vector.
         """
         num_examples = x.shape[0]
         num_classes = x.shape[1]
@@ -239,17 +239,11 @@ class OneHotCorruptor(Corruptor):
             1
         )
 
-        # generate a random one-hot matrix
-        idxs = T.floor(
-            num_classes * self.s_rng.uniform((num_examples,))
-        )
-
-        ranges = T.shape_padleft(T.arange(num_classes), 1)
-        padded_idxs = T.shape_padright(idxs, 1)
-        one_hot = T.eq(ranges, padded_idxs)
+        # generate random one-hot matrix
+        pvals = T.alloc(1.0 / num_classes, num_classes)
+        one_hot = self.s_rng.multinomial(size=(num_examples,), pvals=pvals)
 
         return keep_mask * x + (1 - keep_mask) * one_hot
-
 
 class SmoothOneHotCorruptor(Corruptor):
     """

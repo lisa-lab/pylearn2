@@ -4,7 +4,7 @@ import itertools
 import numpy as np
 import theano.tensor as T
 
-from pylearn2.activations import plushmax
+from pylearn2.expr.activations import plushmax
 from pylearn2.costs.autoencoder import MeanBinaryCrossEntropy
 from pylearn2.costs.gsn import GSNCost
 from pylearn2.corruption import *
