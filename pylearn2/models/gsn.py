@@ -208,7 +208,7 @@ class GSN(StackedBlocks, Model):
 
     def _run(self, minibatch, walkback=0, clamped=None):
         """
-        This runs the GSN on input 'minibatch' are returns all of the activations
+        This runs the GSN on input 'minibatch' and returns all of the activations
         at every time step.
 
         Parameters
@@ -236,8 +236,24 @@ class GSN(StackedBlocks, Model):
         # the indices which are being set
         set_idxs = safe_zip(*minibatch)[0]
 
+        if self.nlayers == 2 and len(set_idxs) == 2:
+            raise ValueError("Cannot set both layers of 2 layer GSN")
+
         diff = lambda L: [L[i] - L[i - 1] for i in xrange(1, len(L))]
-        assert 1 not in diff(sorted(set_idxs)), "Cannot set adjacent layers of GSN"
+        if 1 in diff(sorted(set_idxs)):
+            # currently doing an odd step at first. If this warning appears, you
+            # should remember that the odd step (ie calculating the odd activations)
+            # is done first (so all setting of odd layers is valid) and that for
+            # an even layer to have an effect it must be used to compute either the
+            # (odd) layer below or above it.
+            warnings.warn("Adjacent layers in the GSN are being set. There is a" +
+                          " significant possibility that some of the set values" +
+                          " are not being used and are just overwriting each " +
+                          "other. This is dependent on both the ordering of the " +
+                          "even and odd steps as well as the proximity to the " +
+                          "edge of the network.\n It is recommended to read the " +
+                          "source to ensure the behavior is understood if setting " +
+                          "adjacent layers.")
 
         self._set_activations(minibatch)
 
