@@ -118,7 +118,7 @@ class MomentumAdjustor(TrainExtension):
         self._count = 0
 
     def on_monitor(self, model, dataset, algorithm):
-        if algorithm.learning_rule:
+        if hasattr(algorithm, 'learning_rule'):
             momentum = algorithm.learning_rule.momentum
         else:
             # TODO: remove once training_algorithm.sgd.SGD(init_momentum)

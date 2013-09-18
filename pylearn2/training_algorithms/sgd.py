@@ -24,7 +24,8 @@ from pylearn2.monitor import Monitor
 from pylearn2.space import CompositeSpace, NullSpace
 from pylearn2.train_extensions import TrainExtension
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
-from pylearn2.training_algorithms import learning_rule
+from pylearn2.training_algorithms.learning_rule import Momentum
+from pylearn2.training_algorithms.learning_rule import MomentumAdjustor as LRMomentumAdjustor
 from pylearn2.utils.iteration import is_stochastic
 from pylearn2.utils import py_integer_types, py_float_types
 from pylearn2.utils import safe_zip
@@ -104,11 +105,14 @@ class SGD(TrainingAlgorithm):
                     " a sum of Costs. Use pylearn2.costs.cost.SumOfCosts instead.")
 
         if init_momentum:
-            warnings.warn("""init_momentum interface is deprecated. Please use the
-            `learning_rule` parameter instead, providing an object of type
-            `pylearn2.training_algorithms.learning_rule.Momentum` instead""")
-            # Old momentum interface is not compatible with new learning rules.
-            assert learning_rule is None
+            warnings.warn("init_momentum interface is deprecated and will "
+            "become officially unsuported as of May 9, 2014. Please use the "
+            "`learning_rule` parameter instead, providing an object of type "
+            "`pylearn2.training_algorithms.learning_rule.Momentum` instead")
+            # Convert to new interface under the hood.
+            self.learning_rule = Momentum(init_momentum)
+        else:
+            self.learning_rule = learning_rule
 
         self.learning_rate = sharedX(learning_rate, 'learning_rate')
         self.cost = cost
@@ -122,14 +126,6 @@ class SGD(TrainingAlgorithm):
             if monitoring_batches is not None:
                 raise ValueError("Specified an amount of monitoring batches but not a monitoring dataset.")
         self.termination_criterion = termination_criterion
-        self.learning_rule = learning_rule
-        self.init_momentum = init_momentum
-        if init_momentum is None:
-            self.momentum = None
-        else:
-            assert init_momentum >= 0.
-            assert init_momentum < 1.
-            self.momentum = sharedX(init_momentum, 'momentum')
         self._register_update_callbacks(update_callbacks)
         if train_iteration_mode is None:
             train_iteration_mode = 'shuffled_sequential'
@@ -223,12 +219,6 @@ class SGD(TrainingAlgorithm):
                 self.learning_rule.add_channels_to_monitor(
                         self.monitor,
                         monitoring_dataset)
-            elif self.momentum:
-                self.monitor.add_channel(name='momentum',
-                                         ipt=None,
-                                         val=self.momentum,
-                                         data_specs=(NullSpace(), ''),
-                                         dataset=monitoring_dataset)
 
         params = list(model.get_params())
         assert len(params) > 0
@@ -268,19 +258,11 @@ class SGD(TrainingAlgorithm):
         if self.learning_rule:
             updates.update(self.learning_rule.get_updates(
                 learning_rate, grads, lr_scalers))
-        elif self.momentum is None:
+        else:
+            # Use standard SGD updates with fixed learning rate.
             updates.update( dict(safe_zip(params, [param - learning_rate * \
                 lr_scalers.get(param, 1.) * grads[param]
                                     for param in params])))
-        else:
-            for param in params:
-                inc = sharedX(param.get_value() * 0.)
-                if param.name is not None:
-                    inc.name = 'inc_'+param.name
-                updated_inc = self.momentum * inc - learning_rate * lr_scalers.get(param, 1.) * grads[param]
-                updates[inc] = updated_inc
-                updates[param] = param + updated_inc
-
 
         for param in params:
             if updates[param].name is None:
@@ -653,9 +635,11 @@ class LinearDecay(object):
         algorithm.learning_rate.set_value(new_lr)
 
 
-# TODO: remove once training_algorithm.sgd.SGD(init_momentum)
-# is officially deprecated.
-MomentumAdjustor = learning_rule.MomentumAdjustor
+def MomentumAdjustor(final_momentum, start, saturate):
+    warnings.warn("sgd.MomentumAdjustor interface is deprecated and will "
+    "become officially unsuported as of May 9, 2014. Please use "
+    "`learning_rule.MomentumAdjustor` instead.")
+    return LRMomentumAdjustor(final_momentum, start, saturate)
 
 
 class OneOverEpoch(TrainExtension):

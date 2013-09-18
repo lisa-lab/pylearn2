@@ -20,8 +20,9 @@ from test_sgd import DummyCost, DummyModel
 
 def test_momentum():
     """
-    Original code from test_sgd.py:test_lr_scalers_momentum. This new version
-    checks the validity of the new learning_rule.Momentum implementation.
+    Make sure that learning_rule.Momentum obtains the same parameter values as
+    with a hand-crafted sgd w/ momentum implementation, given a dummy model and
+    learning rate scaler for each parameter.
     """
     # We include a cost other than SumOfParams so that data is actually
     # queried from the training set, and the expected number of updates
@@ -63,6 +64,14 @@ def test_momentum():
 
 
 def test_adadelta():
+    """
+    Make sure that learning_rule.AdaDelta obtains the same parameter values as
+    with a hand-crafted AdaDelta implementation, given a dummy model and
+    learning rate scaler for each parameter.
+    
+    Reference:
+    "AdaDelta: An Adaptive Learning Rate Method", Matthew D. Zeiler.
+    """
 
     # We include a cost other than SumOfParams so that data is actually
     # queried from the training set, and the expected number of updates
