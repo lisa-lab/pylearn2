@@ -237,7 +237,14 @@ class GSN(StackedBlocks, Model):
         set_idxs = safe_zip(*minibatch)[0]
 
         if self.nlayers == 2 and len(set_idxs) == 2:
-            raise ValueError("Cannot set both layers of 2 layer GSN")
+            if clamped is None:
+                raise ValueError("Setting both layers of 2 layer GSN without " +
+                                 "clamping causes one layer to overwrite the " +
+                                 "other. The value for layer 0 will not be used.")
+            else:
+                warning.warn("Setting both layers of 2 layer GSN with clamping " +
+                             "may not be valid, depending on what clamping is " +
+                             "done")
 
         diff = lambda L: [L[i] - L[i - 1] for i in xrange(1, len(L))]
         if 1 in diff(sorted(set_idxs)):
@@ -644,11 +651,9 @@ class GSN(StackedBlocks, Model):
 
             # zero out values in activations
             if symbolic:
-                zerod = activations[idx] * T.eq(clamp, 0.0)
+                activations[idx] = T.switch(clamp, initial, activations[idx])
             else:
-                zerod = activations[idx] * (clamp == 0.0)
-
-            activations[idx] = zerod + clamped_val
+                activations[idx] = np.switch(clamp, initial, activations[idx])
         return activations
 
     @staticmethod
@@ -766,6 +771,7 @@ class JointGSN(GSN):
             This label is predicted during classification. Defaults to top
             layer of network.
         """
+        gsn = copy.copy(gsn)
         gsn.__class__ = cls
         gsn.input_idx = input_idx
         gsn.label_idx = label_idx or (gsn.nlayers - 1)
@@ -789,6 +795,7 @@ class JointGSN(GSN):
         This method clamps minibatch at self.input_idx and then runs the GSN.
         The first 'skip' predictions are skipped and the next 'trials'
         predictions are averaged and then arg-maxed to make a final prediction.
+        The prediction vectors are the activations at self.label_idx.
 
         Parameters
         ----------
@@ -818,9 +825,8 @@ class JointGSN(GSN):
                                 symbolic=False)
 
         # 3d tensor: axis 0 is time step, axis 1 is minibatch item,
-        # axis 2 is softmax output for label
-        # list and itertools.chain used because only element at each timestep
-        data = np.array(list(itertools.chain(*data[skip:skip+trials])))
+        # axis 2 is softmax output for label (after slicing)
+        data = np.asarray(data[skip:skip+trials])[:, 0, :, :]
 
         mean = data.mean(axis=0)
         am = np.argmax(mean, axis=1)
@@ -842,4 +848,4 @@ class JointGSN(GSN):
                                 clamped=[clamped],
                                 symbolic=False)
 
-        return np.array(list(itertools.chain(*data)))
+        return np.array(data)[:, 0, :, :]

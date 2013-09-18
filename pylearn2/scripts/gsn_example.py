@@ -7,7 +7,9 @@ import theano.tensor as T
 from pylearn2.expr.activations import plushmax
 from pylearn2.costs.autoencoder import MeanBinaryCrossEntropy
 from pylearn2.costs.gsn import GSNCost
-from pylearn2.corruption import *
+from pylearn2.corruption import (BinomialSampler, GaussianCorruptor,
+                                 MultinomialSampler, SaltPepperCorruptor,
+                                 SmoothOneHotCorruptor)
 from pylearn2.datasets.mnist import MNIST
 from pylearn2.distributions.parzen import ParzenWindows
 from pylearn2.models.gsn import GSN, JointGSN
