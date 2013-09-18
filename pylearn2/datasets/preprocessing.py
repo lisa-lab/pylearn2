@@ -210,7 +210,8 @@ class ExtractGridPatches(Preprocessor):
         dataset.set_topological_view(output)
 
         # fix lables
-        dataset.y = np.repeat(dataset.y, num_patches / X.shape[0])
+        if dataset.y is not None:
+            dataset.y = np.repeat(dataset.y, num_patches / X.shape[0])
 
 
 class ReassembleGridPatches(Preprocessor):
@@ -298,7 +299,8 @@ class ReassembleGridPatches(Preprocessor):
         dataset.set_topological_view(reassembled)
 
         # fix labels
-        dataset.y = dataset.y[::patches.shape[0] / reassembled_shape[0]]
+        if dataset.y is not None:
+            dataset.y = dataset.y[::patches.shape[0] / reassembled_shape[0]]
 
 
 class ExtractPatches(Preprocessor):
