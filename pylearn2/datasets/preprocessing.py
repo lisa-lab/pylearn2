@@ -209,6 +209,9 @@ class ExtractGridPatches(Preprocessor):
                     j = j + 1
         dataset.set_topological_view(output)
 
+        # fix lables
+        dataset.y = np.repeat(dataset.y, num_patches / X.shape[0])
+
 
 class ReassembleGridPatches(Preprocessor):
     """ Converts a dataset of patches into a dataset of full examples
@@ -293,6 +296,9 @@ class ReassembleGridPatches(Preprocessor):
                     j = j + 1
 
         dataset.set_topological_view(reassembled)
+
+        # fix labels
+        dataset.y = dataset.y[::patches.shape[0] / reassembled_shape[0]]
 
 
 class ExtractPatches(Preprocessor):
