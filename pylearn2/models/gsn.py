@@ -788,7 +788,7 @@ class JointGSN(GSN):
         else:
             return wb
 
-    def _get_aggregate_classication(self, minibatch, trials=10, skip=0):
+    def _get_aggregate_classification(self, minibatch, trials=10, skip=0):
         """
         See classify method.
 
