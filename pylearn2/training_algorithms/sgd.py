@@ -126,7 +126,6 @@ class SGD(TrainingAlgorithm):
         self.monitoring_costs = monitoring_costs
 
     def setup(self, model, dataset):
-
         if self.cost is None:
             self.cost = model.get_default_cost()
 
