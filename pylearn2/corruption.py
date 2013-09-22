@@ -18,7 +18,7 @@ else:
     import theano.sandbox.rng_mrg
     RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
 
-from pylearn2.expr.activations import identity, plushmax
+from pylearn2.expr.activations import identity, rescaled_softmax
 
 class Corruptor(object):
     def __init__(self, corruption_level, rng=2001):
@@ -260,7 +260,7 @@ class SmoothOneHotCorruptor(Corruptor):
             dtype=theano.config.floatX
         )
 
-        return plushmax(x + noise)
+        return rescaled_softmax(x + noise)
 
 
 class BinomialSampler(Corruptor):

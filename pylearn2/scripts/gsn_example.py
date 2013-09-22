@@ -4,7 +4,7 @@ import itertools
 import numpy as np
 import theano.tensor as T
 
-from pylearn2.expr.activations import plushmax
+from pylearn2.expr.activations import rescaled_softmax
 from pylearn2.costs.autoencoder import MeanBinaryCrossEntropy
 from pylearn2.costs.gsn import GSNCost
 from pylearn2.corruption import (BinomialSampler, GaussianCorruptor,
@@ -28,7 +28,7 @@ WALKBACK = 0
 LEARNING_RATE = 0.25
 MOMENTUM = 0.75
 
-MAX_EPOCHS = 100
+MAX_EPOCHS = 1
 BATCHES_PER_EPOCH = None # covers full training set
 BATCH_SIZE = 100
 
@@ -102,7 +102,7 @@ def test_train_supervised():
     # initialize the GSN
     gsn = GSN.new(
         layer_sizes=[ds.X.shape[1], 1000, ds.y.shape[1]],
-        activation_funcs=["sigmoid", "tanh", plushmax],
+        activation_funcs=["sigmoid", "tanh", rescaled_softmax],
         pre_corruptors=[GaussianCorruptor(0.5)] * 3,
         post_corruptors=[SaltPepperCorruptor(.3), None, SmoothOneHotCorruptor(.5)],
         layer_samplers=[BinomialSampler(), None, MultinomialSampler()],

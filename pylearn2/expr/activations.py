@@ -13,24 +13,10 @@ def relu(x):
     """
     return T.max(0, x)
 
-def plushmax(x, eps=0.0, min_val=1e-5):
-    """
-    A softer softmax.
+def _rescale_softmax(sm, min_val):
+    n_classes = sm.shape[-1]
+    return sm * (1 - n_classes * min_val) + min_val
 
-    Instead of computing exp(x_i) / sum_j(exp(x_j)), this computes
-    (exp(x_i) + eps) / sum_j(exp(x_j) + eps)
+def rescaled_softmax(x, min_val=1e-5):
+    return _rescale_softmax(T.nnet.softmax(x), min_val=min_val)
 
-    Additionally, all values in the return vector will be at least min_val.
-    eps may be increased to satisfy this constraint.
-    """
-    assert eps >= 0.0
-    assert min_val > 0
-
-    s = T.sum(T.exp(x), axis=1, keepdims=True)
-    safe_eps = (min_val * s) / (1.0 - x.shape[1] * min_val)
-    safe_eps = T.cast(safe_eps, theano.config.floatX)
-
-    eps = T.maximum(eps, safe_eps)
-
-    y = x + T.log(1.0 + eps * T.exp(-x))
-    return T.nnet.softmax(y)

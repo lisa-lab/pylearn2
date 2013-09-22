@@ -788,6 +788,27 @@ class JointGSN(GSN):
         else:
             return wb
 
+    def _get_aggregate_classication(self, minibatch, trials=10, skip=0):
+        """
+        See classify method.
+
+        Returns the prediction vector aggregated over all time steps where
+        axis 0 is the minibatch item and axis 1 is the output for the label.
+        """
+        clamped = np.ones(minibatch.shape, dtype=np.float32)
+
+        data = self.get_samples([(self.input_idx, minibatch)],
+                                walkback=self.calc_walkback(trials + skip),
+                                indices=[self.label_idx],
+                                clamped=[clamped],
+                                symbolic=False)
+
+        # 3d tensor: axis 0 is time step, axis 1 is minibatch item,
+        # axis 2 is softmax output for label (after slicing)
+        data = np.asarray(data[skip:skip+trials])[:, 0, :, :]
+
+        return data.mean(axis=0)
+
     def classify(self, minibatch, trials=10, skip=0):
         """
         Classifies a minibatch.
@@ -816,19 +837,8 @@ class JointGSN(GSN):
         sampling is applied during classification. These are decided by
         self._corrupt_switch and self._sample_switch.
         """
-        clamped = np.ones(minibatch.shape, dtype=np.float32)
-
-        data = self.get_samples([(self.input_idx, minibatch)],
-                                walkback=self.calc_walkback(trials + skip),
-                                indices=[self.label_idx],
-                                clamped=[clamped],
-                                symbolic=False)
-
-        # 3d tensor: axis 0 is time step, axis 1 is minibatch item,
-        # axis 2 is softmax output for label (after slicing)
-        data = np.asarray(data[skip:skip+trials])[:, 0, :, :]
-
-        mean = data.mean(axis=0)
+        mean = self._get_aggregate_classification(minibatch, trials=trials,
+                                                  skip=skip)
         am = np.argmax(mean, axis=1)
 
         # convert argmax's to one-hot format
