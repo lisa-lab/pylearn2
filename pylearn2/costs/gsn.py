@@ -109,7 +109,7 @@ class GSNCost(Cost):
             total += costf(init_data[idx], step[idx])
 
         # normalize for number of steps
-        return (total / len(model_output)).astype("float32")
+        return total / len(model_output)
 
     def _get_samples_from_model(self, model, data):
         """
