@@ -242,9 +242,9 @@ class GSN(StackedBlocks, Model):
                                  "clamping causes one layer to overwrite the " +
                                  "other. The value for layer 0 will not be used.")
             else:
-                warning.warn("Setting both layers of 2 layer GSN with clamping " +
-                             "may not be valid, depending on what clamping is " +
-                             "done")
+                warnings.warn("Setting both layers of 2 layer GSN with clamping " +
+                              "may not be valid, depending on what clamping is " +
+                              "done")
 
         diff = lambda L: [L[i] - L[i - 1] for i in xrange(1, len(L))]
         if 1 in diff(sorted(set_idxs)):
