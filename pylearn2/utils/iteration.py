@@ -277,7 +277,7 @@ _iteration_schemes = {
     'shuffled_sequential': ShuffledSequentialSubsetIterator,
     'random_slice': RandomSliceSubsetIterator,
     'random_uniform': RandomUniformSubsetIterator,
-    'batchwise_shuffled_equential': BatchwiseShuffledSequentialIterator,
+    'batchwise_shuffled_sequential': BatchwiseShuffledSequentialIterator,
 }
 
 
