@@ -70,7 +70,7 @@
         },
     },
     algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
-        train_iteration_mode: 'batchwise_shuffled_equential',
+        train_iteration_mode: 'batchwise_shuffled_sequential',
         learning_rate: 0.200000,
         init_momentum: .5,
         monitoring_dataset:
