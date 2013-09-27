@@ -49,9 +49,7 @@ class TrainingAlgorithm(object):
 
         Returns
         -------
-        status : bool
-            `True` if the algorithm wishes to continue for another epoch.
-            `False` if the algorithm has converged.
+        None
         """
         raise NotImplementedError()
 
