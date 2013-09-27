@@ -796,7 +796,7 @@ class Softmax(Layer):
 
         for value in get_debug_values(state_below):
             if self.mlp.batch_size is not None and value.shape[0] != self.mlp.batch_size:
-                raise ValueError("state_below should have batch size "+str(self.dbm.batch_size)+" but has "+str(value.shape[0]))
+                raise ValueError("state_below should have batch size "+str(self.mlp.batch_size)+" but has "+str(value.shape[0]))
 
         self.desired_space.validate(state_below)
         assert state_below.ndim == 2
@@ -1159,8 +1159,8 @@ class SoftmaxPool(Layer):
         if self.requires_reformat:
             if not isinstance(state_below, tuple):
                 for sb in get_debug_values(state_below):
-                    if sb.shape[0] != self.dbm.batch_size:
-                        raise ValueError("self.dbm.batch_size is %d but got shape of %d" % (self.dbm.batch_size, sb.shape[0]))
+                    if sb.shape[0] != self.mlp.batch_size:
+                        raise ValueError("self.mlp.batch_size is %d but got shape of %d" % (self.mlp.batch_size, sb.shape[0]))
                     assert reduce(lambda x,y: x * y, sb.shape[1:]) == self.input_dim
 
             state_below = self.input_space.format_as(state_below, self.desired_space)
@@ -1445,8 +1445,8 @@ class Linear(Layer):
         if self.requires_reformat:
             if not isinstance(state_below, tuple):
                 for sb in get_debug_values(state_below):
-                    if sb.shape[0] != self.dbm.batch_size:
-                        raise ValueError("self.dbm.batch_size is %d but got shape of %d" % (self.dbm.batch_size, sb.shape[0]))
+                    if sb.shape[0] != self.mlp.batch_size:
+                        raise ValueError("self.mlp.batch_size is %d but got shape of %d" % (self.mlp.batch_size, sb.shape[0]))
                     assert reduce(lambda x,y: x * y, sb.shape[1:]) == self.input_dim
 
             state_below = self.input_space.format_as(state_below, self.desired_space)
