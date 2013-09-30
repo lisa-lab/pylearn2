@@ -1,10 +1,9 @@
 import theano
 import theano.tensor as TT
-from theano.ifelse import ifelse
-from theano.sandbox.scan import scan
-from linesearch import *
 import numpy
 import time
+from linesearch import scalar_armijo_search
+from linesearch import scalar_search_wolfe2
 
 
 def line_search_armijo(ftemp, derphi0, old_fval, args=(), c1=1e-4, alpha0=1,
@@ -121,11 +120,11 @@ def test():
                                           dtype=theano.config.floatX),
                                   name='derphi0')
 
-    outs = scalar_armijo_search(phi, phi0, derphi0, profile=1)
+    outs = scalar_armijo_search(phi, phi0, derphi0, profile=0)
 
     f = theano.function([],
                         outs,
-                        profile=1,
+                        profile=0,
                         name='test_scalar_search',
                         mode=theano.Mode(linker='cvm'))
 
@@ -133,14 +132,12 @@ def test():
                                  derphi,
                                  phi0,
                                  derphi0,
-                                 profile=1)
+                                 profile=0)
     f2 = theano.function([],
                          rvals,
-                         profile=1,
+                         profile=0,
                          name='test_wolfe',
                          mode=theano.Mode(linker='cvm'))
-
-    #theano.printing.pydotprint(f2, 'f2.png', scan_graphs=True, with_ids=True)
 
     t_py = 0
     f0 = func(0)
