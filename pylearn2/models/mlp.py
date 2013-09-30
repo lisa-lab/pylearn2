@@ -775,6 +775,28 @@ class Softmax(Layer):
 
         return self.W.get_value()
 
+    def set_shared_filters(self, filters):
+        """
+        This function sets the filters of the layer to the specified shared variable.
+        Use case:
+            If there is a parameter sharing between different models, you can use this
+            function to make the filters of the model shared.
+        Warning: In order to make sure that the parameter sharing is effective, make sure
+        that this method will be called after the set_input_space function.
+        """
+        self.transformer.set_params(filters)
+
+    def set_shared_biases(self, biases):
+        """
+        This function sets the biases of the layer to the specified parameters.
+        Use case:
+            If there is a parameter sharing between different models, you can use this
+            function to make the biases of the model shared.
+        Warning: In order to make sure that this method be effective, make sure
+        that it will be called after the set_input_space function.
+        """
+        self.b = biases
+
     def set_weights(self, weights):
         self.W.set_value(weights)
 
@@ -1705,6 +1727,8 @@ class ConvRectifiedLinear(Layer):
                  left_slope = 0.0,
                  max_kernel_norm = None,
                  pool_type = 'max',
+                 can_alter_transformer = True,
+                 can_alter_biases = True,
                  detector_normalization = None,
                  output_normalization = None,
                  kernel_stride=(1, 1)):
@@ -1732,6 +1756,15 @@ class ConvRectifiedLinear(Layer):
                  left_slope: **TODO**
                  max_kernel_norm: If specifed, each kernel is constrained to have at most this
                  norm.
+
+                 can_alter_transformer: Flag that determines if the transformer is changeable.
+                 This flag can be useful for sharing filters across different layers with
+                 set_shared_filters function.
+
+                 can_alter_biases: Flag that determines if the biases are changeable or
+                 not. This flag can be useful for bias sharing across different layers
+                 with set_shared_biases function.
+
                  pool_type: The type of the pooling operation performed the the convolution.
                  Default pooling type is max-pooling.
                  detector_normalization, output_normalization:
@@ -1789,32 +1822,45 @@ class ConvRectifiedLinear(Layer):
                 num_channels = self.output_channels,
                 axes = ('b', 'c', 0, 1))
 
-        if self.irange is not None:
-            assert self.sparse_init is None
-            self.transformer = conv2d.make_random_conv2D(
-                    irange = self.irange,
-                    input_space = self.input_space,
-                    output_space = self.detector_space,
-                    kernel_shape = self.kernel_shape,
-                    batch_size = self.mlp.batch_size,
-                    subsample = self.kernel_stride,
-                    border_mode = self.border_mode,
-                    rng = rng)
-        elif self.sparse_init is not None:
-            self.transformer = conv2d.make_sparse_random_conv2D(
-                    num_nonzero = self.sparse_init,
-                    input_space = self.input_space,
-                    output_space = self.detector_space,
-                    kernel_shape = self.kernel_shape,
-                    batch_size = self.mlp.batch_size,
-                    subsample = self.kernel_stride,
-                    border_mode = self.border_mode,
-                    rng = rng)
+        if not (self.can_alter_transformer and hasattr(self, "transformer")
+                and self.transformer is not None):
+
+            if self.irange is not None:
+                assert self.sparse_init is None
+                self.transformer = conv2d.make_random_conv2D(
+                        irange = self.irange,
+                        input_space = self.input_space,
+                        output_space = self.detector_space,
+                        kernel_shape = self.kernel_shape,
+                        batch_size = self.mlp.batch_size,
+                        subsample = self.kernel_stride,
+                        border_mode = self.border_mode,
+                        rng = rng)
+            elif self.sparse_init is not None:
+                self.transformer = conv2d.make_sparse_random_conv2D(
+                        num_nonzero = self.sparse_init,
+                        input_space = self.input_space,
+                        output_space = self.detector_space,
+                        kernel_shape = self.kernel_shape,
+                        batch_size = self.mlp.batch_size,
+                        subsample = self.kernel_stride,
+                        border_mode = self.border_mode,
+                        rng = rng)
+        else:
+            filters_shape = self.transformer._filters.get_value().shape
+            if (self.input_space.filters_shape[-2:-1] != self.kernel_shape or
+                    self.input_space.filters_shape != filters_shape):
+                raise ValueError("The filters and input space don't have compatible input space.")
+            if self.input_space.num_channels != filter_shape[1]:
+                raise ValueError("The filters and input space don't have compatible number of channels.")
+
         W, = self.transformer.get_params()
         W.name = 'W'
 
-        self.b = sharedX(self.detector_space.get_origin() + self.init_bias)
-        self.b.name = 'b'
+        if not (self.can_alter_biases and hasattr(self, "b")
+                and self.b is not None):
+            self.b = sharedX(self.detector_space.get_origin() + self.init_bias)
+            self.b.name = 'b'
 
         print 'Input shape: ', self.input_space.shape
         print 'Detector space: ', self.detector_space.shape
