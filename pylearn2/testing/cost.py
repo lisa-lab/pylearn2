@@ -78,3 +78,18 @@ class SumOfParams(Cost):
     def get_data_specs(self, model):
         # This cost does not need any data
         return (NullSpace(), '')
+
+
+class SumOfOneHalfParamsSquared(Cost):
+    """
+    A cost that is just 0.5 * the sum of all parameters squared, so the gradient
+    on every parameter is the parameter itself.
+    """
+
+    def expr(self, model, data):
+        self.get_data_specs(model)[0].validate(data)
+        return 0.5 * sum((param**2).sum() for param in model.get_params())
+
+    def get_data_specs(self, model):
+        # This cost does not need any data
+        return (NullSpace(), '')
