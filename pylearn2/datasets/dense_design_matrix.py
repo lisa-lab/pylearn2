@@ -55,7 +55,7 @@ class DenseDesignMatrix(Dataset):
             Should be supplied if `topo_view` is not. A design
             matrix of shape (number examples, number features)
             that defines the dataset.
-        topo_view : ndarray, deprecated, optional
+        topo_view : ndarray, optional
             Should be supplied if X is not.  An array whose first
             dimension is of length number examples. The remaining
             dimensions are xamples with topological significance,
