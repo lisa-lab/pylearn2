@@ -1,6 +1,7 @@
 *.pyc
-*.py~
+*~
 *.swp
+*.bak
 
 #Don't track the binary data files:
 *.npy

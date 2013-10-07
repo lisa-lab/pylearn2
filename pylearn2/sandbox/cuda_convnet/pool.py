@@ -12,6 +12,8 @@ from pylearn2.sandbox.cuda_convnet.convnet_compile import convnet_available
 from pylearn2.sandbox.cuda_convnet.convnet_compile import cuda_convnet_loc
 from pylearn2.sandbox.cuda_convnet.shared_code import this_dir
 
+import pylearn2.sandbox.cuda_convnet.pthreads
+from theano import config
 
 def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape = None,  start=0):
     assert pool_shape[0] == pool_shape[1]
@@ -88,16 +90,16 @@ class MaxPool(GpuOp):
                 hash(self.stride) ^ hash(self.start))
 
     def c_header_dirs(self):
-        return [this_dir]
+        return [this_dir, config.pthreads.inc_dir] if config.pthreads.inc_dir else [this_dir]
 
     def c_headers(self):
         return ['nvmatrix.cuh', 'conv_util.cuh']
 
     def c_lib_dirs(self):
-        return [cuda_convnet_loc]
+        return [cuda_convnet_loc, config.pthreads.lib_dir] if config.pthreads.lib_dir else [cuda_convnet_loc]
 
     def c_libraries(self):
-        return ['cuda_convnet']
+        return ['cuda_convnet', config.pthreads.lib] if config.pthreads.lib else ['cuda_convnet']
 
     def c_code_cache_version(self):
         return (1,)
@@ -502,16 +504,16 @@ class MaxPoolGrad(GpuOp):
                 hash(self.stride) ^ hash(self.start))
 
     def c_header_dirs(self):
-        return [this_dir]
+        return [this_dir, config.pthreads.inc_dir] if config.pthreads.inc_dir else [this_dir]
 
     def c_headers(self):
         return ['nvmatrix.cuh', 'conv_util.cuh']
 
     def c_lib_dirs(self):
-        return [cuda_convnet_loc]
+        return [cuda_convnet_loc, config.pthreads.lib_dir] if config.pthreads.lib_dir else [cuda_convnet_loc]
 
     def c_libraries(self):
-        return ['cuda_convnet']
+        return ['cuda_convnet', config.pthreads.lib] if config.pthreads.lib else ['cuda_convnet']
 
     def c_code_cache_version(self):
         return (1,)
