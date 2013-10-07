@@ -13,6 +13,8 @@ from theano.sandbox.cuda import nvcc_compiler
 
 from shared_code import this_dir
 
+import pylearn2.sandbox.cuda_convnet.pthreads
+
 _logger_name = 'pylearn2.sandbox.cuda_convnet.convnet_compile'
 _logger = logging.getLogger(_logger_name)
 #_logger.addHandler(logging.StreamHandler())
@@ -23,8 +25,9 @@ _logger.debug('importing')
 
 cuda_convnet_loc = os.path.join(config.compiledir, 'cuda_convnet')
 # In partial dependency order: the last ones depend on the first ones
-cuda_convnet_file_roots = ('nvmatrix_kernels', 'nvmatrix', 'conv_util',
-                           'filter_acts', 'img_acts', 'weight_acts')
+cuda_convnet_file_sources = ('nvmatrix_kernels.cu', 'nvmatrix.cu',
+                             'conv_util.cu', 'filter_acts.cu', 'img_acts.cu',
+                             'weight_acts.cu')
 cuda_convnet_so = os.path.join(cuda_convnet_loc,
         'cuda_convnet.' + get_lib_extension())
 libcuda_convnet_so = os.path.join(cuda_convnet_loc,
@@ -115,8 +118,7 @@ def convnet_compile():
 
         # Concatenate all .cu files into one big mod.cu
         code = []
-        for file_root in cuda_convnet_file_roots:
-            source_file = file_root + '.cu'
+        for source_file in cuda_convnet_file_sources:
             code.append(open(os.path.join(this_dir, source_file)).read())
         code = '\n'.join(code)
 
@@ -139,15 +141,15 @@ def convnet_compile():
                         os.makedirs(cuda_convnet_loc)
                     compiler.compile_str('cuda_convnet',
                             code,
-                            location=cuda_convnet_loc,
-                            include_dirs=[this_dir],
-                            lib_dirs=nvcc_compiler.rpath_defaults,  # ???
-                            libs=['cublas'],
-                            preargs=['-O3'] + args,
+                            location = cuda_convnet_loc,
+                            include_dirs = [this_dir, config.pthreads.inc_dir] if config.pthreads.inc_dir else [this_dir],
+                            lib_dirs = nvcc_compiler.rpath_defaults + [cuda_convnet_loc] + ([config.pthreads.lib_dir] if config.pthreads.lib_dir else []),
+                            libs = ['cublas', config.pthreads.lib] if config.pthreads.lib else ['cublas'],
+                            preargs = ['-O3'] + args,
                             py_module=False)
                 except Exception, e:
-                    _logger.error("Failed to compile %s.cu: %s",
-                                  file_root, str(e))
+                    _logger.error("Failed to compile %s %s: %s",
+                                  os.path.join(cuda_convnet_loc, 'mod.cu'), cuda_convnet_file_sources, str(e))
                     return False
             else:
                 _logger.debug('already compiled by another process')
