@@ -619,8 +619,8 @@ class LinearDecay(object):
     def __call__(self, algorithm):
         if self._count == 0:
             self._base_lr = algorithm.learning_rate.get_value()
-            self._step = (self._base_lr - self._base_lr * self.decay_factor) /\
-                    (self.saturate - self.start + 1)
+            self._step = ((self._base_lr - self._base_lr * self.decay_factor) /
+                          (self.saturate - self.start + 1))
         self._count += 1
         if self._count >= self.start:
             if self._count < self.saturate:
@@ -707,8 +707,8 @@ class LinearDecayOverEpoch(TrainExtension):
     def on_monitor(self, model, dataset, algorithm):
         if not self._initialized:
             self._init_lr = algorithm.learning_rate.get_value()
-            self._step = (self._init_lr - self._init_lr * self.decay_factor) /\
-                    (self.saturate - self.start + 1)
+            self._step = ((self._init_lr - self._init_lr * self.decay_factor) /
+                          (self.saturate - self.start + 1))
             self._initialized = True
         self._count += 1
         algorithm.learning_rate.set_value( np.cast[config.floatX](self.current_lr()))

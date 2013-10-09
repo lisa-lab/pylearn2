@@ -345,7 +345,7 @@ def test_linear_decay():
 
     train.main_loop()
 
-    step = (learning_rate - learning_rate * decay_factor)/(saturate - start  + 1)
+    step = (learning_rate - learning_rate * decay_factor)/(saturate - start + 1)
 
     num_batches = np.ceil(dataset_size / float(batch_size)).astype(int)
     for i in xrange(epoch_num * num_batches):
@@ -355,7 +355,7 @@ def test_linear_decay():
             expected = learning_rate
         elif batches_seen >= saturate:
             expected = learning_rate*decay_factor
-        elif (start <= batches_seen) and (batches_seen < saturate) :
+        elif (start <= batches_seen) and (batches_seen < saturate):
             expected = decay_factor * learning_rate + (saturate - batches_seen) * step
         if not np.allclose(actual, expected):
             raise AssertionError("After %d batches, expected learning rate to be %f, but it is %f." % (
@@ -414,7 +414,7 @@ def test_linear_decay_over_epoch():
     train.main_loop()
 
     lr = model.monitor.channels['learning_rate']
-    step = (learning_rate - learning_rate * decay_factor)/(saturate - start  + 1)
+    step = (learning_rate - learning_rate * decay_factor)/(saturate - start + 1)
 
     for i in xrange(epoch_num + 1):
         actual = lr.val_record[i]
@@ -422,7 +422,7 @@ def test_linear_decay_over_epoch():
             expected = learning_rate
         elif i >=saturate:
             expected = learning_rate*decay_factor
-        elif (start <= i) and (i<saturate) :
+        elif (start <= i) and (i < saturate):
             expected = decay_factor * learning_rate + (saturate - i) * step
         if not np.allclose(actual, expected):
             raise AssertionError("After %d epochs, expected learning rate to be %f, but it is %f." % (
