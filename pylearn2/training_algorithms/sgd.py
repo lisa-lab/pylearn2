@@ -619,7 +619,7 @@ class LinearDecay(object):
     def __call__(self, algorithm):
         if self._count == 0:
             self._base_lr = algorithm.learning_rate.get_value()
-            self.step = (self._base_lr - self._base_lr * self.decay_factor) /\
+            self._step = (self._base_lr - self._base_lr * self.decay_factor) /\
                     (self.saturate - self.start + 1)
         self._count += 1
         if self._count >= self.start:

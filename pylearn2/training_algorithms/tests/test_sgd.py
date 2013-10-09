@@ -24,6 +24,7 @@ from pylearn2.train import Train
 from pylearn2.training_algorithms.sgd import ExponentialDecay
 from pylearn2.training_algorithms.sgd import MomentumAdjustor
 from pylearn2.training_algorithms.sgd import PolyakAveraging
+from pylearn2.training_algorithms.sgd import LinearDecay
 from pylearn2.training_algorithms.sgd import LinearDecayOverEpoch
 from pylearn2.training_algorithms.sgd import MonitorBasedLRAdjuster
 from pylearn2.training_algorithms.sgd import SGD
@@ -280,7 +281,86 @@ def get_topological_dataset(rng, rows, cols, channels, m):
     return DenseDesignMatrix(topo_view=X, y=Y)
 
 
-warnings.warn("TODO: LinearDecay is not tested, only LinearDecayOverEpoch is.")
+def test_linear_decay():
+
+    # tests that the class LinearDecay in sgd.py
+    # gets the learning rate properly over the training batches
+    # it runs a small softmax and at the end checks the learning values.
+    # the learning rates are expected to start changing at batch 'start'
+    # by an amount of 'step' specified below.
+    # the decrease of the learning rate should continue linearly untill
+    # we reach batch 'saturate' at which the learning rate equals 'learning_rate * decay_factor'
+
+    class LearningRateTracker(object):
+        def __init__(self):
+            self.lr_rates = []
+
+        def __call__(self, algorithm):
+            self.lr_rates.append(algorithm.learning_rate.get_value())
+
+    dim = 3
+    dataset_size = 10
+
+    rng = np.random.RandomState([25,9,2012])
+
+    X = rng.randn(dataset_size, dim)
+
+    dataset = DenseDesignMatrix(X=X)
+
+    m = 15
+    X = rng.randn(m, dim)
+
+
+    # including a monitoring datasets lets us test that
+    # the monitor works with supervised data
+    monitoring_dataset = DenseDesignMatrix(X=X)
+
+    model = SoftmaxModel(dim)
+
+    learning_rate = 1e-1
+    batch_size = 5
+
+    # We need to include this so the test actually stops running at some point
+    epoch_num = 15
+    termination_criterion = EpochCounter(epoch_num)
+
+    cost = DummyCost()
+
+    start = 5
+    saturate = 10
+    decay_factor = 0.1
+    linear_decay = LinearDecay(start=start, saturate=saturate,
+                               decay_factor=decay_factor)
+
+    # including this extension for saving learning rate value after each batch
+    lr_tracker = LearningRateTracker()
+    algorithm = SGD(learning_rate, cost, batch_size=batch_size,
+                 monitoring_batches=3, monitoring_dataset= monitoring_dataset,
+                 termination_criterion=termination_criterion,
+                 update_callbacks=[linear_decay, lr_tracker],
+                 init_momentum = None, set_batch_size = False)
+
+    train = Train(dataset, model, algorithm, save_path=None,
+                 save_freq=0, extensions=None)
+
+    train.main_loop()
+
+    step = (learning_rate - learning_rate * decay_factor)/(saturate - start  + 1)
+
+    num_batches = np.ceil(dataset_size / float(batch_size)).astype(int)
+    for i in xrange(epoch_num * num_batches):
+        actual = lr_tracker.lr_rates[i]
+        batches_seen = i + 1
+        if batches_seen < start:
+            expected = learning_rate
+        elif batches_seen >= saturate:
+            expected = learning_rate*decay_factor
+        elif (start <= batches_seen) and (batches_seen < saturate) :
+            expected = decay_factor * learning_rate + (saturate - batches_seen) * step
+        if not np.allclose(actual, expected):
+            raise AssertionError("After %d batches, expected learning rate to be %f, but it is %f." % (
+                batches_seen, expected, actual))
+
 
 def test_linear_decay_over_epoch():
 
@@ -346,7 +426,7 @@ def test_linear_decay_over_epoch():
             expected = decay_factor * learning_rate + (saturate - i) * step
         if not np.allclose(actual, expected):
             raise AssertionError("After %d epochs, expected learning rate to be %f, but it is %f." % (
-                i, actual, expected))
+                i, expected, actual))
 
 def test_monitor_based_lr():
     # tests that the class MonitorBasedLRAdjuster in sgd.py
