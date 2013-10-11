@@ -24,6 +24,11 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef _WEIGHT_ACTS_EXPORT
+#define _WEIGHT_ACTS_EXPORT 
+#endif
+
+#include <weight_acts.cuh>
 #include <cudaconv2.cuh>
 
 #define LO16(x)     ((x) & 0x0000FFFF)

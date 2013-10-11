@@ -33,7 +33,9 @@
     algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
         batch_size: 100,
         learning_rate: .1,
-        init_momentum: .5,
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+            init_momentum: .5,
+        },
         monitoring_dataset:
             {
                 'train' : *train,
@@ -67,7 +69,7 @@
              channel_name: 'valid_y_misclass',
              save_path: "${PYLEARN2_TRAIN_FILE_FULL_STEM}_best.pkl"
         },
-        !obj:pylearn2.training_algorithms.sgd.MomentumAdjustor {
+        !obj:pylearn2.training_algorithms.learning_rule.MomentumAdjustor {
             start: 1,
             saturate: 250,
             final_momentum: .7

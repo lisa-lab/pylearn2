@@ -14,10 +14,12 @@
             monitor_name: "monitor_validation",
             channel_name: "learning_rate"
         },
-        init_momentum: !obj:pylearn2.monitor.read_channel {
-            model: *model,
-            monitor_name: "monitor_validation",
-            channel_name: "momentum"
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+            init_momentum: !obj:pylearn2.monitor.read_channel {
+                model: *model,
+                monitor_name: "monitor_validation",
+                channel_name: "momentum"
+            },
         },
         monitoring_dataset:
             {

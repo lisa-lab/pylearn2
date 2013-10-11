@@ -70,9 +70,11 @@
         },
     },
     algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
-        train_iteration_mode: 'batchwise_shuffled_equential',
+        train_iteration_mode: 'batchwise_shuffled_sequential',
         learning_rate: 0.200000,
-        init_momentum: .5,
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+            init_momentum: 0.5,
+        },
         monitoring_dataset:
             {
                 #'train' : *train,
@@ -104,7 +106,7 @@
              # could cause pickle to crash
              save_path: "${PYLEARN2_TRAIN_DIR}svhn_best.joblib",
         },
-        !obj:pylearn2.training_algorithms.sgd.MomentumAdjustor {
+        !obj:pylearn2.training_algorithms.learning_rule.MomentumAdjustor {
             start: 1,
             saturate: 250,
             final_momentum: .6

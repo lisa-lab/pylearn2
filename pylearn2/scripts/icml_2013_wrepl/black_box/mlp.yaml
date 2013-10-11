@@ -39,7 +39,9 @@
     # We train using SGD and momentum
     algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
         learning_rate: .1,
-        init_momentum: .5,
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+            init_momentum: .5,
+        },
         # We monitor how well we're doing during training on a validation set
         monitoring_dataset:
             {
