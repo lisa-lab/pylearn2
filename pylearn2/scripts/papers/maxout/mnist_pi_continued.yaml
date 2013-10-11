@@ -10,7 +10,9 @@
     algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
         batch_size: 100,
         learning_rate: 0.0615082606673,
-        init_momentum: 0.694376766682,
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+            init_momentum: 0.694376766682,
+        },
         monitoring_dataset:
             {
                 'train' : *train,

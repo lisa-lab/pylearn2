@@ -63,7 +63,10 @@
                # We initialize the learning rate and momentum here. Down below
                # we can control the way they decay with various callbacks.
                learning_rate: 1e-3,
-               init_momentum: .5,
+               # Compute new model parameters using SGD + Momentum
+               learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+                   init_momentum: 0.5,
+               },
                # These arguments say to compute the monitoring channels on 10 batches
                # of the training set.
                monitoring_batches: 10,
@@ -110,7 +113,7 @@
     extensions: [
             # This callback makes the momentum grow to 0.9 linearly. It starts
             # growing at epoch 5 and finishes growing at epoch 6.
-            !obj:pylearn2.training_algorithms.sgd.MomentumAdjustor {
+            !obj:pylearn2.training_algorithms.learning_rule.MomentumAdjustor {
                 final_momentum: .9,
                 start: 5,
                 saturate: 6

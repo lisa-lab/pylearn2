@@ -15,8 +15,6 @@ from pylearn2.utils import safe_union
 from pylearn2.space import CompositeSpace, NullSpace
 from pylearn2.utils.data_specs import DataSpecsMapping
 
-
-
 class Cost(object):
     """
     Represents a cost that can be called either as a supervised cost or an

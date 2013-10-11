@@ -74,7 +74,7 @@ Dependencies
 ============
 
 * `Theano <http://deeplearning.net/software/theano/>`_ and its dependencies are required to use
-  Pylearn2.
+  Pylearn2. Since pylearn2 is under rapid development some of its features might depend on the `bleeding-edge version of Theano <http://deeplearning.net/software/theano/install.html#bleeding-edge-install-instructions>`_.
 * PyYAML is required for most functionality.
 * PIL is required for some image-related functionality.
 * Some dependencies are optional:
@@ -85,6 +85,25 @@ Dependencies
       for loading some datasets, such as the Unsupervised and Transfer Learning Challenge datasets
     * Some features (SVMs) depend on scikits-learn.
 
+License and Citations
+=====================
+
+Pylearn2 is released under the 3-claused BSD license, so it may be used for commercial purposes.
+The license does not require anyone to cite Pylearn2, but if you use Pylearn2 in published research
+work we encourage you to cite this article:
+
+* Ian J. Goodfellow, David Warde-Farley, Pascal Lamblin, Vincent Dumoulin,
+  Mehdi Mirza, Razvan Pascanu, James Bergstra, Frédéric Bastien, and
+  Yoshua Bengio.
+  `"Pylearn2: a machine learning research library"
+  <http://arxiv.org/abs/1308.4214>`_.
+  *arXiv preprint arXiv:1308.4214* (`BibTeX
+  <http://www.iro.umontreal.ca/~lisa/publications2/index.php/export/publication/594/bibtex>`_)
+
+Pylearn2 is primarily developed by academics, and so citations matter a lot to
+us. As an added benefit, you increase Pylearn2's exposure and potential user
+(and developer) base, which is to the benefit of all users of Pylearn2. Thanks
+in advance!
 
 Documentation
 =============
@@ -93,7 +112,7 @@ Roughly in order of what you'll want to check out:
 
 * :ref:`tutorial` -- Learn the basics via an example.
 * :ref:`yaml_tutorial` -- A tutorial on YAML tags employed by Pylearn2.
-* At this point, you might want to work through the ipython notebooks in the "scripts/tutorials"
+* :ref:`notebook_tutorials` -- At this point, you might want to work through the ipython notebooks in the "scripts/tutorials"
   directory.
 * :ref:`features` -- A list of features available in the library.
 * :ref:`overview` -- A detailed but high-level overview of how Pylearn2 works. This is the
@@ -105,6 +124,8 @@ Roughly in order of what you'll want to check out:
 
 Community
 =========
+
+* Register and post to `pylearn-users`_ for general inquiries and support questions or if you want to talk to other users.
 
 * Register and post to `pylearn-dev`_ if you want to talk to the developers. We don't bite.
 
@@ -131,9 +152,10 @@ Developer
 
 * :ref:`api_change` -- the best practices guide you should follow when changing any API in the library
 * :ref:`dev_start_guide` -- how to contribute code to Pylearn2
+* :ref:`data_specs` -- the interface different elements use to request and provide data
 
 
-
+.. _pylearn-users: https://groups.google.com/group/pylearn-users
 .. _pylearn-dev: https://groups.google.com/group/pylearn-dev
 .. _pylearn2-github: https://groups.google.com/group/pylearn2-github
 .. _theano-buildbot: http://groups.google.com/group/theano-buildbot
@@ -154,9 +176,11 @@ Developer
    features
    internal/index
    internal/metadocumentation
+   internal/data_specs
    overview
    tutorial/index
    tutorial/with_jobman
    vision
    yaml_tutorial/index
+   tutorial/notebook_tutorials
    LICENSE

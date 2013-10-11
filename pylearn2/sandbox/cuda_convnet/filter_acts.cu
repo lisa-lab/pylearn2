@@ -24,6 +24,10 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#ifndef _CUDACONV2_EXPORT
+#define _CUDACONV2_EXPORT 
+#endif
+
 #include <cutil_inline.h>
 #include <nvmatrix.cuh>
 #include <cudaconv2.cuh>
@@ -585,7 +589,7 @@ __global__ void filterActs_YxX_sparse_random(float* images, float* filters, floa
     int imgStride = images.getStride(); // images does not need to be a contiguous matrix
 
     int filterPixels = filters.getNumRows() / (filterModuleMult * numFilterColors);
-    int filterSize = int(sqrt(filterPixels));
+    int filterSize = int(sqrt((double)filterPixels));
     assert(filterSize * filterSize == filterPixels);
     assert(filters.getNumRows() == filterModuleMult * numFilterColors * filterPixels);
 
@@ -1247,7 +1251,7 @@ void _filterActsSparse(NVMatrix& images, NVMatrix& filters, NVMatrix& targets, i
     int imgStride = images.getStride(); // images does not need to be a contiguous matrix
 
     int filterPixels = filters.getNumRows() / (filterModuleMult * numFilterColors);
-    int filterSize = int(sqrt(filterPixels));
+    int filterSize = int(sqrt((double)filterPixels));
     assert(filterSize * filterSize == filterPixels);
     assert(filters.getNumRows() == filterModuleMult * numFilterColors * filterPixels);
 
