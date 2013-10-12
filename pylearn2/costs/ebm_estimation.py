@@ -32,7 +32,7 @@ if 0:
     RandomStreams = T.shared_randomstreams.RandomStreams
 else:
     import theano.sandbox.rng_mrg
-    RandomStreams = T.sandbox.rng_mrg.MRG_RandomStreams
+    RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
 
 class NCE(Cost):
     """ Noise-Contrastive Estimation
