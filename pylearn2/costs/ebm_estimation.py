@@ -29,7 +29,7 @@ sys.setrecursionlimit(40000)
 
 use_sandbox = True
 if use_sandbox:
-    import theano.sandbox.rng_mrg.MRG_RandomStreams as RandomStreams
+    from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 else:
     warnings.warn('using SLOW rng')
     RandomStreams = T.shared_randomstreams.RandomStreams
