@@ -419,32 +419,32 @@ class DBM(Model):
                              layer_to_clamp=None, num_steps=1,
                              return_layer_to_updated=False):
         """
-            This method is for getting an updates dictionary for a theano function.
-            It thus implies that the samples are represented as shared variables.
-            If you want an expression for a sampling step applied to arbitrary
-            theano variables, use the 'mcmc_steps' method. This is a wrapper around
-            that method.
+        This method is for getting an updates dictionary for a theano function.
+        It thus implies that the samples are represented as shared variables.
+        If you want an expression for a sampling step applied to arbitrary
+        theano variables, use the 'mcmc_steps' method. This is a wrapper around
+        that method.
 
-            Parameters
-            ----------
-            layer_to_state: a dictionary mapping the SuperDBM_Layer instances
-                            contained in self to shared variables representing
-                            batches of samples of them.
-                            (you can allocate one by calling
-                            self.make_layer_to_state)
-            theano_rng: a MRG_RandomStreams object
-            layer_to_clamp: (optional) a dictionary mapping layers to bools
-                            if a layer is not in the dictionary, defaults to False
-                            True indicates that this layer should be clamped, so
-                            we are sampling from a conditional distribution rather
-                            than the joint
-            returns a dictionary mapping each shared variable to an expression
-                     to update it. Repeatedly applying these updates does MCMC
-                     sampling.
+        Parameters
+        ----------
+        layer_to_state: a dictionary mapping the SuperDBM_Layer instances
+                        contained in self to shared variables representing
+                        batches of samples of them.
+                        (you can allocate one by calling
+                        self.make_layer_to_state)
+        theano_rng: a MRG_RandomStreams object
+        layer_to_clamp: (optional) a dictionary mapping layers to bools
+                        if a layer is not in the dictionary, defaults to False
+                        True indicates that this layer should be clamped, so
+                        we are sampling from a conditional distribution rather
+                        than the joint
+        returns a dictionary mapping each shared variable to an expression
+                 to update it. Repeatedly applying these updates does MCMC
+                 sampling.
 
-            The specific sampling schedule used is to sample all of the even-idexed
-            layers of model.hidden_layers, then the visible layer and all the odd-indexed
-            layers.
+        The specific sampling schedule used is to sample all of the even-idexed
+        layers of model.hidden_layers, then the visible layer and all the odd-indexed
+        layers.
         """
 
         updated = self.sampling_procedure.sample(layer_to_state, theano_rng,
@@ -2349,6 +2349,12 @@ class DBMSampler(Block):
         rval = last_layer.upward_state(rval)
 
         return rval
+
+    def get_input_space(self):
+        return self.dbm.get_input_space()
+
+    def get_output_space(self):
+        return self.dbm.get_output_space()
 
 
 def stitch_rbms(batch_size, rbm_list, niter, inference_procedure=None,
