@@ -130,6 +130,17 @@ class IsingVisible(VisibleLayer):
             rval.append(self.beta)
         return rval
 
+    def mf_update(self, state_above, layer_above):
+        msg = layer_above.downward_message(state_above)
+
+        bias = self.bias
+
+        z = msg + bias
+
+        rval = T.tanh(self.beta * z)
+
+        return rval
+
     def sample(self, state_below=None, state_above=None, layer_above=None,
                theano_rng=None):
 
@@ -467,9 +478,9 @@ class IsingHidden(HiddenLayer):
         #raise NotImplementedError("This is just a copy-paste of BVMP")
         # work around theano bug with broadcasted vectors
         z = T.alloc(0., self.dbm.batch_size,
-                    self.detector_layer_dim).astype(self.b.dtype) + \
+                    self.dim).astype(self.b.dtype) + \
             self.b.dimshuffle('x', 0)
-        rval = max_pool_channels(z=z, pool_size=self.pool_size)
+        rval = T.tanh(self.beta * z)
         return rval
 
     def make_state(self, num_examples, numpy_rng):
@@ -687,7 +698,7 @@ class BoltzmannIsingVisible(VisibleLayer):
             ising_W_above = T.clip(ising_W_above, wmn_above, wmx_above)
             bhn = 2. * (ising_b - ising_W_above.sum(axis=1))
 
-            updates[self.boltzmann_b] = bhn
+            updates[self.boltzmann_bias] = bhn
 
         if self.noisy_sampling_b is not None:
             theano_rng = \
@@ -761,14 +772,13 @@ class BoltzmannIsingVisible(VisibleLayer):
         return rval
 
     def sample(self, state_below=None, state_above=None, layer_above=None,
-               theano_rng=None, use_noisy_samples=True):
+               theano_rng=None):
 
         assert state_below is None
 
-        msg = layer_above.downward_message(state_above,
-                                           for_sampling=use_noisy_samples)
+        msg = layer_above.downward_message(state_above, for_sampling=True)
 
-        bias = self.ising_bias(for_sampling=use_noisy_samples)
+        bias = self.ising_bias(for_sampling=True)
 
         z = msg + bias
 
@@ -1160,7 +1170,8 @@ class BoltzmannIsingHidden(HiddenLayer):
         W.set_value(weights)
 
     def set_biases(self, biases, recenter=False):
-        assert False  # not really sure what this should do
+        self.boltzmann_b.set_value(biases)
+        assert not recenter  # not really sure what this should do if True
 
     def get_biases(self):
         warnings.warn("BoltzmannIsingHidden.get_biases returns the " +
@@ -1272,7 +1283,7 @@ class BoltzmannIsingHidden(HiddenLayer):
         return rval
 
     def sample(self, state_below=None, state_above=None, layer_above=None,
-               theano_rng=None, use_noisy_samples=True):
+               theano_rng=None):
 
         if theano_rng is None:
             raise ValueError("theano_rng is required; it just defaults to " +
@@ -1280,8 +1291,7 @@ class BoltzmannIsingHidden(HiddenLayer):
                              "/ state_above in the list.")
 
         if state_above is not None:
-            msg = layer_above.downward_message(state_above,
-                                               for_sampling=use_noisy_samples)
+            msg = layer_above.downward_message(state_above, for_sampling=True)
         else:
             msg = None
 
@@ -1289,9 +1299,8 @@ class BoltzmannIsingHidden(HiddenLayer):
             state_below = self.input_space.format_as(state_below,
                                                      self.desired_space)
 
-        z = T.dot(state_below,
-                  self.ising_weights(for_sampling=use_noisy_samples)) + \
-            self.ising_b(for_sampling=use_noisy_samples)
+        z = T.dot(state_below, self.ising_weights(for_sampling=True)) + \
+            self.ising_b(for_sampling=True)
 
         if msg is not None:
             z = z + msg
@@ -1335,7 +1344,7 @@ class BoltzmannIsingHidden(HiddenLayer):
 
     def make_symbolic_state(self, num_examples, theano_rng):
         mean = T.nnet.sigmoid(2. * self.beta * self.ising_b())
-        rval = theano_rng.binomial(size=(num_examples, self.nvis), p=mean)
+        rval = theano_rng.binomial(size=(num_examples, self.dim), p=mean)
         rval = 2. * (rval) - 1.
 
         return rval
