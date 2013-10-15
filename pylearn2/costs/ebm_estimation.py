@@ -6,7 +6,7 @@ from theano import scan
 from pylearn2.costs.cost import Cost
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import py_integer_types
-from collections import OrderedDict
+from theano.compat.python2x import OrderedDict
 from itertools import izip
 from pylearn2.models.rbm import BlockGibbsSampler
 import numpy as np
