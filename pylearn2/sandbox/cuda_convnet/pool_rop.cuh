@@ -21,8 +21,8 @@
  * EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-#ifndef CONV_UTIL_CUH
-#define	CONV_UTIL_CUH
+#ifndef POOL_ROP_CUH
+#define POOL_ROP_CUH
 
 #include <nvmatrix.cuh>
 #include <conv_util.cuh>
@@ -572,5 +572,5 @@ void convLocalPoolR(NVMatrix& images,
     cutilCheckMsg("convLocalPool: kernel execution failed");
 }
 
-#endif	/* CONV_UTIL_CUH */
+#endif /* POOL_ROP_CUH */
 
