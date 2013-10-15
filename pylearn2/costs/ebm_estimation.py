@@ -27,12 +27,12 @@ warnings.warn("Cost changing the recursion limit.")
 # precisely when you're going to exceed the stack segment.
 sys.setrecursionlimit(40000)
 
-if 0:
-    print 'WARNING: using SLOW rng'
-    RandomStreams = T.shared_randomstreams.RandomStreams
+use_sandbox = True
+if use_sandbox:
+    import theano.sandbox.rng_mrg.MRG_RandomStreams as RandomStreams
 else:
-    import theano.sandbox.rng_mrg
-    RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
+    warnings.warn('using SLOW rng')
+    RandomStreams = T.shared_randomstreams.RandomStreams
 
 class NCE(Cost):
     """ Noise-Contrastive Estimation
