@@ -193,6 +193,9 @@ class SMD(Cost):
 
         return smd
 
+    def get_data_specs(self, model):
+        return (model.get_input_space(), model.get_input_source())
+
 class SML(Cost):
     """ Stochastic Maximum Likelihood
 
