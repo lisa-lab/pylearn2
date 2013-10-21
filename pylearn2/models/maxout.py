@@ -603,8 +603,7 @@ class MaxoutConvC01B(Layer):
 
         setup_detector_layer_c01b(layer=self,
                 input_space=space,
-                rng=self.mlp.rng,
-                irange=self.irange)
+                rng=self.mlp.rng)
 
         rng = self.mlp.rng
 
