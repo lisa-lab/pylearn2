@@ -387,27 +387,27 @@ class ScaledCost(Cost):
         return self.cost.get_data_specs(model)
 
 
-class LpNorm(Cost):
+class LpPenalty(Cost):
     """
-    Regularization term on the L-p norm of the tensor variables provided.
+    L-p penalty of the tensor variables provided.
     """
     def __init__(self, variables, p):
         """
-        Initialize LpNorm with the variables and scaling provided.
+        Initialize LpPenalty with the variables provided.
 
         Parameters:
         -----------
         variables: list
             list of tensor variables to be regularized
         p: int
-            the x in "L-x regularization""
+            the p in "L-p penalty"
         """
         self.variables = variables
         self.p = p
 
     def expr(self, model, data, **kwargs):
         """
-        Return the L-p norm term. The optional parameters are never used;
+        Return the L-p penalty term. The optional parameters are never used;
         they're only there to provide an interface that's consistent with
         the Cost superclass.
         """
@@ -415,10 +415,11 @@ class LpNorm(Cost):
         # ask for any data, so we should not be provided with some.
         self.get_data_specs(model)[0].validate(data)
 
-        norm = 0
+        penalty = 0
         for var in self.variables:
-            norm = norm + abs(var ** self.p).sum()
-        return norm
+            # Absolute value handles odd-valued p cases
+            penalty = penalty + abs(var ** self.p).sum()
+        return penalty
 
     def get_data_specs(self, model):
         # This cost does not use any data
