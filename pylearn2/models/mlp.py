@@ -1195,7 +1195,7 @@ class Linear(Layer):
                  max_col_norm = None,
                  softmax_columns = False,
                  copy_input = 0,
-                 use_abs_loss = False, 
+                 use_abs_loss = False,
                  use_bias = True):
         """
 
@@ -1204,7 +1204,7 @@ class Linear(Layer):
         it is initialized to 0.
 
         """
-        
+
         if use_bias and init_bias is None:
             init_bias = 0.
 
@@ -1655,13 +1655,13 @@ class Sigmoid(Linear):
 
 class RectifiedLinear(Linear):
     """
-    Implementation of the sigmoid nonlinearity for MLP.
+    Rectified linear MLP layer (Glorot and Bengio 2011).
     """
 
     def __init__(self, left_slope = 0.0, **kwargs):
         super(RectifiedLinear, self).__init__(**kwargs)
         self.left_slope = left_slope
-    
+
     def fprop(self, state_below):
         p = self._linear_part(state_below)
         p = p * (p > 0.) + self.left_slope * p * (p < 0.)
