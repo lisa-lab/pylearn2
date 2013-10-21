@@ -615,7 +615,11 @@ class CompositeSpace(Space):
     def __init__(self, components):
         assert isinstance(components, (list, tuple))
         self.num_components = len(components)
-        assert all([isinstance(component, Space) for component in components])
+        for i, component in enumerate(components):
+            if not isinstance(component, Space):
+                raise TypeError("component %d is %s of type %s, expected "
+                        "Space instance. " %
+                        (i, str(component), str(type(component))))
         self.components = list(components)
 
     def __eq__(self, other):

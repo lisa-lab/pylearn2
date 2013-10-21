@@ -27,7 +27,6 @@ __maintainer__ = "Ian Goodfellow"
 import warnings
 
 import numpy as np
-from theano import config
 from theano.compat.python2x import OrderedDict
 from theano.gof.op import get_debug_values
 from theano.sandbox import cuda

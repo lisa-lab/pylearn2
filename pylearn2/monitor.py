@@ -20,6 +20,7 @@ import theano.sparse
 from pylearn2.config import yaml_parse
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.space import CompositeSpace, NullSpace
+from pylearn2.space import Space
 from pylearn2.utils import function
 from pylearn2.utils.iteration import is_stochastic
 from pylearn2.utils import sharedX
@@ -87,7 +88,9 @@ class Monitor(object):
         input_spaces = [m_space]
         input_sources = [m_source]
         for channel in self.channels.values():
-            input_spaces.append(channel.data_specs[0])
+            space = channel.data_specs[0]
+            assert isinstance(space, Space)
+            input_spaces.append(space)
             input_sources.append(channel.data_specs[1])
 
         nested_space = CompositeSpace(input_spaces)
