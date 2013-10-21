@@ -15,11 +15,11 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
-from collections import OrderedDict
 import functools
 import numpy as np
 import warnings
 
+from theano.compat.python2x import OrderedDict
 from theano.sandbox import cuda
 import theano.tensor as T
 
