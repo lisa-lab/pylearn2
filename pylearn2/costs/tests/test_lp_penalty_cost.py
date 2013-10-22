@@ -1,5 +1,5 @@
 """
-Test LpNorm cost
+Test LpPenalty cost
 """
 import os
 import numpy
@@ -8,7 +8,7 @@ from pylearn2.models.mlp import Linear
 from pylearn2.models.mlp import Softmax
 from pylearn2.models.mlp import MLP
 from pylearn2.costs.supervised_cost import NegativeLogLikelihood
-from pylearn2.costs.cost import LpNorm
+from pylearn2.costs.cost import LpPenalty
 from pylearn2.costs.cost import SumOfCosts
 from pylearn2.testing import datasets
 from pylearn2.training_algorithms.sgd import SGD
@@ -18,7 +18,7 @@ from pylearn2.train import Train
 
 def test_shared_variables():
     '''
-    LpNorm should handle shared variables.
+    LpPenalty should handle shared variables.
     '''
     model = MLP(
         layers=[Linear(dim=100, layer_name='linear', irange=1.0),
@@ -35,7 +35,7 @@ def test_shared_variables():
     )
 
     cost = SumOfCosts([NegativeLogLikelihood(),
-                       LpNorm(variables=model.get_params(), p=2)])
+                       LpPenalty(variables=model.get_params(), p=2)])
 
     algorithm = SGD(
         learning_rate=0.01,
@@ -55,7 +55,7 @@ def test_shared_variables():
 
 def test_symbolic_expressions_of_shared_variables():
     '''
-    LpNorm should handle symbolic expressions of shared variables.
+    LpPenalty should handle symbolic expressions of shared variables.
     '''
     model = MLP(
         layers=[Linear(dim=100, layer_name='linear', irange=1.0),
@@ -72,7 +72,7 @@ def test_symbolic_expressions_of_shared_variables():
     )
 
     cost = SumOfCosts([NegativeLogLikelihood(),
-                       LpNorm(variables=[param ** 2 for param in
+                       LpPenalty(variables=[param ** 2 for param in
                                          model.get_params()],
                               p=2)])
 
@@ -95,7 +95,7 @@ def test_symbolic_expressions_of_shared_variables():
 @raises(Exception)
 def test_symbolic_variables():
     '''
-    LpNorm should not handle symbolic variables
+    LpPenalty should not handle symbolic variables
     '''
     model = MLP(
         layers=[Linear(dim=100, layer_name='linear', irange=1.0),
@@ -111,7 +111,7 @@ def test_symbolic_variables():
         num_classes=10
     )
 
-    cost = SumOfCosts([NegativeLogLikelihood(), LpNorm(variables=[], p=2)])
+    cost = SumOfCosts([NegativeLogLikelihood(), LpPenalty(variables=[], p=2)])
 
     algorithm = SGD(
         learning_rate=0.01,
@@ -119,9 +119,6 @@ def test_symbolic_variables():
         monitoring_dataset=dataset,
         termination_criterion=EpochCounter(1)
     )
-
-    import pdb; pdb.set_trace()
-#    cost.costs.variables = [model.fprop()]
 
     trainer = Train(
         dataset=dataset,
