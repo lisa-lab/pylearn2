@@ -13,7 +13,7 @@ YAML for Pylearn2
 
 Pylearn2 makes extensive use of `YAML <http://en.wikipedia.org/wiki/YAML>`_ , a
 human-readable dataset serialization scripting language, for defining an
-experimental configuration. This allows the end-user to completely specificy an
+experimental configuration. This allows the end-user to completely specify an
 experiment (includes all parts of model, dataset and training algorithm
 specifications), without having to write a single line of python code. Since
 scores of YAML tutorials can be found online, this tutorial will focus on the
@@ -97,8 +97,8 @@ finished, it then proceeds to instantiate an object of type <object>, whose
 parameters are given in the keyword style syntax.
 
 Assuming this model description was stored in ``example1.yaml``, a Python
-instantiation of this model can be obtained using the load method of the
-pylearn2.config.yaml_parse module (shown below).
+instantiation of this model can be obtained using the ``load`` method of the
+``pylearn2.config.yaml_parse`` module (shown below).
 
 .. code-block:: python
 
@@ -110,7 +110,7 @@ pylearn2.config.yaml_parse module (shown below).
 
 Running the above code yields the following output.
 
-.. code-block:: sh
+.. code-block:: none
 
     AutoEncoder
         nvis = 784
@@ -163,17 +163,17 @@ sigmoidal non-linearity.
 
 .. code-block:: yaml
 
-        !obj:yaml_tutorial.autoencoder.AutoEncoder {
-           "nvis": 784,
-           "nhid": 100,
-           "iscale": 1.0,
-           "activation_fn": !import 'pylearn2.expr.nnet.sigmoid_numpy', 
-        }
+    !obj:yaml_tutorial.autoencoder.AutoEncoder {
+       "nvis": 784,
+       "nhid": 100,
+       "iscale": 1.0,
+       "activation_fn": !import 'pylearn2.expr.nnet.sigmoid_numpy', 
+    }
 
 Assuming the above yaml script is stored in ``experiment3.yaml``, running
 ``yaml_load('experiment3.yaml')`` yields the following output.
 
-.. code-block:: sh
+.. code-block:: none
 
     AutoEncoder
         nvis = 784
@@ -208,10 +208,10 @@ as follows:
 .. code-block:: yaml 
 
     !obj:yaml_tutorial.autoencoder.AutoEncoder {
-               "nvis": 784,
-               "nhid": 100,
-               "iscale": 0.1,
-               "params": !pkl: 'example3_weights.pkl',
+       "nvis": 784,
+       "nhid": 100,
+       "iscale": 0.1,
+       "params": !pkl: 'example3_weights.pkl',
 
 
 The above is equivalent to constructing an AutoEncoder object as follows:
@@ -232,7 +232,7 @@ the iscale parameter being set to 0.1. This is expected because the parameters
 were initialized from 'example3_weights.pkl', i.e. the pickled parameters of a model
 initialized with ``iscale=1.0``.
 
-.. code-block:: sh
+.. code-block:: none
 
     AutoEncoder
         nvis = 784
