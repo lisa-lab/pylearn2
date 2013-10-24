@@ -77,7 +77,12 @@ python lcn.py public_test
    words appearing given the BOVW for each image. The last layer of this MLP was
    pretrained by training an RBM on the tags in the ESP Game dataset.
 
-   http://www-etud.iro.umontreal.ca/~goodfeli/mlp.pkl
+   The two files are the same, but one is for CPU and one is for GPU. Download
+   the format for the compute device you prefer to work with and rename it to
+   mlp.pkl:
+
+   http://www-etud.iro.umontreal.ca/~lisa/mlc2013/mlp_gpu.pkl
+   http://www-etud.iro.umontreal.ca/~lisa/mlc2013/mlp_cpu.pkl
 
 8. Run the MLP on the extracted features to make your submission:
 
