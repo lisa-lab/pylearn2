@@ -15,6 +15,7 @@ from theano import tensor as T
 from theano import shared
 
 from pylearn2.space import NullSpace
+from pylearn2.scripts.get_version import LibVersion
 
 
 class Model(object):
@@ -344,6 +345,15 @@ class Model(object):
     def __init__(self):
         self.names_to_del = set()
         self._test_batch_size = 2
+   
+    def get_versions(self):
+        """
+        Obtain version of the various Python packages as a string.
+        e.g. numpy:1.6.1 | pylearn:a6e634b83d | pylearn2:57a156beb0
+        """
+        if not hasattr(self, 'libv'):
+            self.libv = LibVersion()
+        return self.libv.get_versions()
 
     def get_test_batch_size(self):
         """ Batches of examples used to initialize
