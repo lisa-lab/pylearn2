@@ -33,6 +33,7 @@ def main():
     libv = LibVersion()
     libv.print_versions()
     libv.print_exp_env_info(args.print_theano)
+    print libv.get_versions()
 
     return 0
 
