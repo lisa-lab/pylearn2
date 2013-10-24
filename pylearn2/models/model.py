@@ -13,6 +13,7 @@ from theano import tensor as T
 
 from pylearn2.space import NullSpace
 from pylearn2.utils import function
+from pylearn2.scripts.get_version import LibVersion
 
 
 class Model(object):
@@ -403,6 +404,15 @@ class Model(object):
             WRITEME
         """
         self.names_to_del = set()
+   
+    def get_versions(self):
+        """
+        Obtain version of the various Python packages as a string.
+        e.g. numpy:1.6.1 | pylearn:a6e634b83d | pylearn2:57a156beb0
+        """
+        if not hasattr(self, 'libv'):
+            self.libv = LibVersion()
+        return self.libv.get_versions()
 
     def get_test_batch_size(self):
         """
