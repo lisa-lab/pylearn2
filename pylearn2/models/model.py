@@ -403,7 +403,7 @@ class Model(object):
             WRITEME
         """
         self.names_to_del = set()
-
+   
     def get_test_batch_size(self):
         """
         Batches of examples used to initialize X.tag.test_value should have this
