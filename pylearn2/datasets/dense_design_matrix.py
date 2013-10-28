@@ -687,6 +687,13 @@ class DenseDesignMatrix(Dataset):
 
         self.y = y
 
+        # Update self.data_specs with the updated dimension of self.y
+        init_space, source = self.data_specs
+        X_space, init_y_space = init_space.components
+        new_y_space = VectorSpace(dim=num_classes)
+        new_space = CompositeSpace(X_space, new_y_space)
+        self.data_specs = (new_space, source)
+
     def adjust_for_viewer(self, X):
         return X / np.abs(X).max()
 
