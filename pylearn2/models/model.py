@@ -185,7 +185,7 @@ class Model(object):
 
     def get_input_space(self):
         """ Returns an instance of pylearn2.space.Space describing
-        the format of the vector space that the model operates oni
+        the format of the vector space that the model operates on
         (this is a generalization of get_input_dim) """
 
         return self.input_space
@@ -313,15 +313,19 @@ class Model(object):
         pass
 
     def get_input_dim(self):
-        """ Returns the number of visible units of the model.
+        """
+        Returns the number of visible units of the model.
         Deprecated; this assumes the model operates on a vector.
-        Use get_input_space instead """
+        Use get_input_space instead.
+        """
         raise NotImplementedError()
 
     def get_output_dim(self):
-        """ Returns the number of visible units of the model.
+        """
+        Returns the number of visible units of the model.
         Deprecated; this assumes the model operates on a vector.
-        Use get_input_space instead """
+        Use get_input_space instead.
+        """
         raise NotImplementedError()
 
     def __getstate__(self):
@@ -346,12 +350,12 @@ class Model(object):
         self._test_batch_size = 2
 
     def get_test_batch_size(self):
-        """ Batches of examples used to initialize
-            X.tag.test_value should have this many
-            examples if used as input to the model.
-            (The model specifies the number of examples
-            in case it needs a fixed batch size or to
-            keep the memory usage of testing under control)"""
+        """
+        Batches of examples used to initialize X.tag.test_value should have this
+        many examples if used as input to the model.  (The model
+        specifies the number of examples in case it needs a fixed batch
+        size or to keep the memory usage of testing under control.)
+        """
         return self._test_batch_size
 
     def register_names_to_del(self, names):
