@@ -570,7 +570,7 @@ class ConvNDSpace(Space):
                     "but it is %d" % (d, self.num_channels, actual_channels))
         assert batch.shape[self.axes.index('c')] == self.num_channels
 
-        for coord in range(self.data_dimensions-1):
+        for coord in xrange(self.data_dimensions-1):
             d = self.axes.index(coord)
             actual_shape = batch.shape[d]
             expected_shape = self.shape[coord]
@@ -596,7 +596,7 @@ class ConvNDSpace(Space):
         # this only supports conversion from 2D -> 2D and 3D -> 3D. 
         # Possible TODO: allow promotion from 2D -> 3D
         if isinstance(space, ConvNDSpace):
-            return ConvNDSpace.convert_numpy(batch, self.axes, space.axes)
+            return space.convert_numpy(batch, self.axes, space.axes)
         raise NotImplementedError("%s doesn't know how to format as %s"
                                   % (str(self), str(space)))
 
