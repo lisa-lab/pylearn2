@@ -64,7 +64,7 @@ class FilterActs(BaseActs):
     Currently, this op must be inserted manually, not by optimizations.
 
 
-    images:          (channels, rows, cols, batch_size)
+    images:          (input channels, rows, cols, batch_size)
                      channels must be <=3, or be even
                      note: if you want to take the gradient with respect to the weights,
                            channels must be divisible by 4
