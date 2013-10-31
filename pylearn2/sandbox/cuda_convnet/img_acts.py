@@ -125,6 +125,16 @@ class ImageActs(BaseActs):
 
         return Apply(self, [hid_acts, filters, output_shape], [targets])
 
+    def flops(self, inputs, outputs):
+        """ Useful with the hack in profilemode to print the MFlops"""
+        hid_acts, filters, output_shape = inputs
+        out, = outputs
+        assert hid_acts[0] == filters[3]
+        flops = (hid_acts[3] * filters[0] * hid_acts[0] *
+                 filters[1] * filters[2] *
+                 hid_acts[1] * hid_acts[2] * 2)
+        return flops
+
     def connection_pattern(self, node):
         return [[1], [1], [0]]
 
