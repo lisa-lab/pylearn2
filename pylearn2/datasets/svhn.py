@@ -101,7 +101,7 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
         sizes = {'train': 73257, 'test': 26032, 'extra': 531131,
                 'train_all': 604388, 'valid': 6000, 'splitted_train' : 598388}
         image_size = 32 * 32 * 3
-        h_file_n = "{}{}_32x32.h5".format(path + "h5/", which_set)
+        h_file_n = "{}_32x32.h5".format(os.path.join(path, "h5", which_set))
         h5file, node = SVHN.init_hdf5(h_file_n, ([sizes[which_set],
                             image_size], [sizes[which_set], 10]))
 
