@@ -68,7 +68,7 @@ class ImageActs(BaseActs):
     Note that below the term "input" refers to the input to FilterActs.
     This op does the tranpose of that, so its output is sized like FilterActs' input.
 
-    images:          (output channels, rows, cols, batch_size)
+    hid_acts:        (output channels, rows, cols, batch_size)
     filters:         (input channels, filter rows, filter cols, output channels)
                      rows must be the same as cols
                      output channels must be a multiple of 16
