@@ -80,37 +80,37 @@ class NCE(Cost):
 
 
 class SM(Cost):
-    """ Score Matching
-        See eqn. 4 of "On Autoencoders and Score Matching for Energy Based Models",
-        Swersky et al 2011, for details
-
+    """ (Regularized) Score Matching
+        
+        See:
+        - "Regularized estimation of image statistics by Score Matching",
+          D. Kingma, Y. LeCun, NIPS 2010
+        - eqn. 4 of "On Autoencoders and Score Matching for Energy Based Models"
+          Swersky et al 2011
+        
         Uses the mean over visible units rather than sum over visible units
         so that hyperparameters won't depend as much on the # of visible units
     """
+    
+    def __init__(self, lambd = 0):
+        assert lambd >= 0
+        self.lambd = lambd
+
     def expr(self, model, data):
         self.get_data_specs(model)[0].validate(data)
         X = data
         X_name = 'X' if X.name is None else X.name
 
-        score = model.score(X)
+        def f(i, _X, _dx):
+            return T.grad(_dx[:,i].sum(), _X)[:,i]
 
-        sq = 0.5 * T.sqr(score)
+        dx = model.score(X)
+        ddx, _ = scan(f, sequences = [T.arange(X.shape[1])], non_sequences = [X, dx])
+        ddx = ddx.T
 
-        def f(i, fX, fscore):
-            score_i_batch = fscore[:,i]
-            dummy = score_i_batch.sum()
-            full_grad = T.grad(dummy, fX)
-            return full_grad[:,i]
+        assert len(ddx.type.broadcastable) == 2
 
-        second_derivs, ignored = scan( f, sequences = T.arange(X.shape[1]), non_sequences = [X, score] )
-        second_derivs = second_derivs.T
-
-        assert len(second_derivs.type.broadcastable) == 2
-
-        temp = sq + second_derivs
-
-        rval = T.mean(temp)
-
+        rval = T.mean(0.5 * dx**2 + ddx + self.lambd * ddx**2)
         rval.name = 'sm('+X_name+')'
 
         return rval
