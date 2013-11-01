@@ -912,6 +912,7 @@ class Softmax(Layer):
                 desired_norms = T.clip(col_norms, 0, self.max_col_norm)
                 updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
+
 class SoftmaxPool(Layer):
     """
         A hidden layer that uses the softmax function to do
@@ -1203,6 +1204,7 @@ class SoftmaxPool(Layer):
         p.name = self.layer_name + '_p_'
 
         return p
+
 
 class Linear(Layer):
     """
@@ -1513,6 +1515,7 @@ class Linear(Layer):
         else:
             return T.sqr(Y - Y_hat)
 
+
 class Tanh(Linear):
     """
     A layer that performs an affine transformation of its (vectorial)
@@ -1526,6 +1529,7 @@ class Tanh(Linear):
 
     def cost(self, *args, **kwargs):
         raise NotImplementedError()
+
 
 class Sigmoid(Linear):
     """
@@ -1682,6 +1686,7 @@ class Sigmoid(Linear):
                 incorrect = T.neq(target, prediction).max(axis=1)
                 rval['misclass'] = T.cast(incorrect, config.floatX).mean()
         return rval
+
 
 class RectifiedLinear(Linear):
     """
@@ -2378,7 +2383,8 @@ class FlattenerLayer(Layer):
 
         raw = self.raw_layer.fprop(state_below)
 
-        return self.raw_layer.get_output_space().format_as(raw, self.output_space)
+        return self.raw_layer.get_output_space().format_as(raw,
+                self.output_space)
 
     def cost(self, Y, Y_hat):
 
