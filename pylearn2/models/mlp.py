@@ -54,6 +54,7 @@ warnings.warn("MLP changing the recursion limit.")
 # precisely when you're going to exceed the stack segment.
 sys.setrecursionlimit(40000)
 
+
 class Layer(Model):
     """
     Abstract class.
@@ -93,7 +94,7 @@ class Layer(Model):
 
     def get_monitoring_channels(self):
         """
-        TODO WRITME
+        TODO WRITEME
         """
         return OrderedDict()
 
@@ -202,7 +203,9 @@ class MLP(Layer):
         self.layer_names = set()
         for layer in layers:
             assert layer.get_mlp() is None
-            assert layer.layer_name not in self.layer_names
+            if layer.layer_name in self.layer_names:
+                raise ValueError("MLP.__init__ given two or more layers "
+                        "with same name: " + layer.layer_name)
             layer.set_mlp(self)
             self.layer_names.add(layer.layer_name)
 
