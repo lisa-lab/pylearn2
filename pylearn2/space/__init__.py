@@ -378,7 +378,7 @@ class ConvNDSpace(Space):
         Parameters
         ----------
         shape : sequence
-            The shape of a single example (rows, cols) for 2D or (rows, cols, frames) for 3D
+            The shape of a single example (rows, cols) for 2D or (frames, rows, cols) for 3D
         num_channels: int     (synonym: channels)
             Number of channels in the image, i.e. 3 if RGB.
         axes: A tuple indicating the semantics of each axis.
@@ -646,16 +646,16 @@ class Conv3DSpace(ConvNDSpace):
     A space whose points are defined as a video block comprised of a
     sequence of (multi-channel) images.
 
-    Note that we assume that the axes 0 and 1 represent image
-    coordinates, as always, and axis 2 always represents time.
+    Note that in the default case we assume that axis 0 represents
+    time and axes 1 and 2 represent image coordinates.
     """
 
-    default_axes = ('b', 2, 0, 1, 'c')
+    default_axes = ('b', 0, 1, 2, 'c')
 
-    # e.g. (2, 0, 1, 'c')
+    # e.g. (0, 1, 2, 'c')
     data_dimensions = 4
 
-    # the length of an axes specifier, e.g. ('b', 2, 0, 1, 'c')
+    # the length of an axes specifier, e.g. ('b', 0, 1, 2, 'c')
     axes_length = 5
 
     def get_dim_dict(self, batch_size = None):
