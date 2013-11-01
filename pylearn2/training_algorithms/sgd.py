@@ -227,6 +227,9 @@ class SGD(TrainingAlgorithm):
 
         grads, updates = self.cost.get_gradients(model, nested_args,
                                                  ** fixed_var_descr.fixed_vars)
+        if not isinstance(grads, OrderedDict):
+            raise TypeError(str(type(self.cost)) + ".get_gradients returned something with"
+                    + str(type(grads)) + "as its first member. Expected OrderedDict.")
 
         for param in grads:
             assert param in params
