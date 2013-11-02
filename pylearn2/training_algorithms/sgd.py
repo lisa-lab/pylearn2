@@ -241,6 +241,7 @@ class SGD(TrainingAlgorithm):
                 grads[param].name = ('grad(%(costname)s, %(paramname)s)' %
                                      {'costname': cost_value.name,
                                       'paramname': param.name})
+            assert grads[param].dtype == param.dtype
 
         lr_scalers = model.get_lr_scalers()
 
