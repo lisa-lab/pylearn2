@@ -71,9 +71,9 @@ is different)
 
 3b) State of the art on CIFAR-10 with data augmentation
 TODO
+
 3c) An older state of the art on CIFAR-10 without data augmentation, using a
 smaller, faster model.
-TODO
 
 The February 2013 version of the paper that we originally posted on
 arXiv reports a test set error of 12.93% on the CIFAR-10 dataset,
