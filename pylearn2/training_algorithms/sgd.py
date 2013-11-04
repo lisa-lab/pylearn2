@@ -227,6 +227,9 @@ class SGD(TrainingAlgorithm):
 
         grads, updates = self.cost.get_gradients(model, nested_args,
                                                  ** fixed_var_descr.fixed_vars)
+        if not isinstance(grads, OrderedDict):
+            raise TypeError(str(type(self.cost)) + ".get_gradients returned something with"
+                    + str(type(grads)) + "as its first member. Expected OrderedDict.")
 
         for param in grads:
             assert param in params
@@ -238,6 +241,7 @@ class SGD(TrainingAlgorithm):
                 grads[param].name = ('grad(%(costname)s, %(paramname)s)' %
                                      {'costname': cost_value.name,
                                       'paramname': param.name})
+            assert grads[param].dtype == param.dtype
 
         lr_scalers = model.get_lr_scalers()
 
