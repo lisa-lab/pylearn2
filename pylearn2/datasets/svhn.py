@@ -50,7 +50,7 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
 
         # load data
         path = preprocess(path)
-        file_n = "{}{}_32x32.h5".format(path + "h5/", which_set)
+        file_n = "{}_32x32.h5".format(os.path.join(path, "h5", which_set))
         if os.path.isfile(file_n):
             make_new = False
         else:
