@@ -771,7 +771,8 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
                                             axes = axes,
                                             rng = rng)
         ensure_tables()
-        self.filters = tables.Filters(complib='blosc', complevel=5)
+        if not hasattr(self, 'filters'):
+            self.filters = tables.Filters(complib='blosc', complevel=5)
 
     def set_design_matrix(self, X, start = 0):
         assert len(X.shape) == 2
@@ -883,8 +884,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
                                      data_specs=data_specs,
                                      return_tuple=return_tuple)
 
-    @staticmethod
-    def init_hdf5(path, shapes):
+    def init_hdf5(self, path, shapes):
         """
         Initialize hdf5 file to be used ba dataset
         """
@@ -925,8 +925,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
 
             file.flush()
 
-    @staticmethod
-    def resize(h5file, start, stop):
+    def resize(self, h5file, start, stop):
         ensure_tables()
         # TODO is there any smarter and more efficient way to this?
 
