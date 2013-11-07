@@ -15,6 +15,7 @@ from theano import function
 from theano import tensor as T
 import warnings
 from theano.sandbox import cuda
+from theano.sandbox.cuda.var import float32_shared_constructor 
 
 def FilterActs_python(images,
                       filters,
@@ -97,17 +98,13 @@ def test_filter_acts_strided():
                   ]
 
     for test_idx in xrange(len(shape_list)):
-        images = shared(rng.uniform(-1., 1., shape_list[test_idx][0]).astype('float32'), name='images')
-        filters = shared(rng.uniform(-1., 1., shape_list[test_idx][1]).astype('float32'), name='filters')
+        images = rng.uniform(-1., 1., shape_list[test_idx][0]).astype('float32')
+        filters = rng.uniform(-1., 1., shape_list[test_idx][1]).astype('float32')
+        gpu_images = float32_shared_constructor(images,name='images')
+        gpu_filters = float32_shared_constructor(filters,name='filters')
         print "test case %d..."%(test_idx+1) 
-        #gpu_images = gpu_from_host(images)
-        #gpu_filters = gpu_from_host(filters)
-        gpu_images = images
-        gpu_filters = filters
-    
-        images_val = images.get_value(borrow=True)
-        filters_val = filters.get_value(borrow=True)
-        for ii in xrange(filters_val.shape[1]):
+        
+        for ii in xrange(filters.shape[1]):
             stride = ii + 1
             
             output = FilterActs(stride=stride)(gpu_images, gpu_filters)
@@ -115,7 +112,7 @@ def test_filter_acts_strided():
             f = function([], output)
             output_val = f()
         
-            output_python = FilterActs_python(images_val,filters_val,stride)
+            output_python = FilterActs_python(images,filters,stride)
                         
             if np.abs(output_val - output_python).max() > 8.6e-6:
                 assert type(output_val) == type(output_python)

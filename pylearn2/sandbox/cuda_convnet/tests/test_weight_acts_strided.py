@@ -17,9 +17,9 @@ from theano import function
 from theano import tensor as T
 import warnings
 from theano.sandbox import cuda
+from theano.sandbox.cuda.var import float32_shared_constructor 
 
 from test_filter_acts_strided import FilterActs_python
-
 
 def WeightActs_python(images,
                       hidacts,
@@ -93,32 +93,28 @@ def test_weight_acts_strided():
     for partial_sum in [0, 1, 4]:
         print "partial_sum: %d"%(partial_sum)
         for test_idx in xrange(len(shape_list)):
-            images = shared(rng.uniform(-1., 1., shape_list[test_idx][0]).astype('float32'), name='images')
-            filters = shared(rng.uniform(-1., 1., shape_list[test_idx][1]).astype('float32'), name='filters')
+            images = rng.uniform(-1., 1., shape_list[test_idx][0]).astype('float32')
+            filters = rng.uniform(-1., 1., shape_list[test_idx][1]).astype('float32')
+            gpu_images = float32_shared_constructor(images,name='images')
             print "test case %d..."%(test_idx+1) 
-            #gpu_images = gpu_from_host(images)
-            #gpu_filters = gpu_from_host(filters)
-            gpu_images = images
-            gpu_filters = filters    
-            images_val = images.get_value(borrow=True)
-            filters_val = filters.get_value(borrow=True)
-            for ii in xrange(filters_val.shape[1]):
+              
+            for ii in xrange(filters.shape[1]):
                 stride = ii + 1                            
-                output_python = FilterActs_python(images_val,filters_val,stride)   
+                output_python = FilterActs_python(images,filters,stride)   
                 _, h_rows, h_cols, _ = output_python.shape
                 if partial_sum == 4:
                     if (h_rows*h_cols)%partial_sum != 0:
                         print "skip test case %d, stride %d when partial_sum is equal to %d"%(test_idx+1,stride,partial_sum)
                         break
-                hidacts = shared(rng.uniform(-1., 1., output_python.shape).astype('float32'), name='hidacts')
-                hidacts_val = hidacts.get_value(borrow=True)
-                weights_grad_python = WeightActs_python(images_val,hidacts_val,filters_val.shape[1],filters_val.shape[2],stride)
+                hidacts = rng.uniform(-1., 1., output_python.shape).astype('float32')
+                gpu_hidacts = float32_shared_constructor(hidacts,name='hidacts')
+                    
+                weights_grad_python = WeightActs_python(images,hidacts,filters.shape[1],filters.shape[2],stride)
                 
-                gpu_hidacts = hidacts
                 weights_grad = WeightActs(partial_sum=partial_sum,stride=stride)(
                                                     gpu_images,
                                                     gpu_hidacts,
-                                                    as_tensor_variable((filters_val.shape[1], filters_val.shape[2]))
+                                                    as_tensor_variable((filters.shape[1], filters.shape[2]))
                                                    )[0]
                 weights_grad = host_from_gpu(weights_grad)
                 f = function([], weights_grad)

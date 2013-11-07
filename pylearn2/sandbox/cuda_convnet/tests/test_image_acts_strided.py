@@ -17,6 +17,7 @@ from theano import function
 from theano import tensor as T
 import warnings
 from theano.sandbox import cuda
+from theano.sandbox.cuda.var import float32_shared_constructor 
 
 from test_filter_acts_strided import FilterActs_python
 
@@ -97,26 +98,21 @@ def test_image_acts_strided():
                   ]
 
     for test_idx in xrange(len(shape_list)):
-        images = shared(rng.uniform(-1., 1., shape_list[test_idx][0]).astype('float32'), name='images')
-        filters = shared(rng.uniform(-1., 1., shape_list[test_idx][1]).astype('float32'), name='filters')
+        images = rng.uniform(-1., 1., shape_list[test_idx][0]).astype('float32')
+        filters = rng.uniform(-1., 1., shape_list[test_idx][1]).astype('float32')
+        gpu_images = float32_shared_constructor(images,name='images')
+        gpu_filters = float32_shared_constructor(filters,name='filters')
         print "test case %d..."%(test_idx+1) 
-        #gpu_images = gpu_from_host(images)
-        #gpu_filters = gpu_from_host(filters)
-        gpu_images = images
-        gpu_filters = filters
-    
-        images_val = images.get_value(borrow=True)
-        filters_val = filters.get_value(borrow=True)
-        for ii in xrange(filters_val.shape[1]):
+        
+        for ii in xrange(filters.shape[1]):
             stride = ii + 1
                    
-            output_python = FilterActs_python(images_val,filters_val,stride)
-            hidacts = shared(rng.uniform(-1., 1., output_python.shape).astype('float32'), name='hidacts')
-            hidacts_val = hidacts.get_value(borrow=True)                
-            Img_output_python = ImageActs_python(filters_val,hidacts_val,stride,(images_val.shape[1], images_val.shape[2]))            
+            output_python = FilterActs_python(images,filters,stride)
+            hidacts = rng.uniform(-1., 1., output_python.shape).astype('float32')
+            gpu_hidacts = float32_shared_constructor(hidacts,name='hidacts')
+            Img_output_python = ImageActs_python(filters,hidacts,stride,(images.shape[1], images.shape[2]))            
             
-            gpu_hidacts = hidacts
-            Img_output = ImageActs(stride=stride)(gpu_hidacts, gpu_filters, as_tensor_variable((images_val.shape[1], images_val.shape[2])))
+            Img_output = ImageActs(stride=stride)(gpu_hidacts, gpu_filters, as_tensor_variable((images.shape[1], images.shape[2])))
             Img_output = host_from_gpu(Img_output)
             f = function([], Img_output)
             Img_output_val = f()
