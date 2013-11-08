@@ -49,7 +49,16 @@ pylearn2/scripts/datasets/make_cifar10_gcn_whitened.py.
 You may then proceed to reproducing the various results described below:
 
 3a) State of the art on CIFAR-10 without data augmentation
-TODO
+
+The ICML paper reports a state of the art result on the test set of 11.68%
+classification error. You can reproduce this result by running:
+
+THEANO_FLAGS="device=gpu,floatX=float32" train.py cifar10_no_aug.yaml
+
+This should run for 785 epochs. In our tests, it obtained a test set error
+of 11.62%. This slight improvement in the test set error relative to the
+result in the ICML paper is likely due to running the script on a different
+machine than we used for the original experiment.
 
 The number of epochs was obtained by monitoring the error on the validation
 set when running this script:
@@ -62,9 +71,9 @@ is different)
 
 3b) State of the art on CIFAR-10 with data augmentation
 TODO
+
 3c) An older state of the art on CIFAR-10 without data augmentation, using a
 smaller, faster model.
-TODO
 
 The February 2013 version of the paper that we originally posted on
 arXiv reports a test set error of 12.93% on the CIFAR-10 dataset,

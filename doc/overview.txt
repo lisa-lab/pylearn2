@@ -48,12 +48,12 @@ of the library that they want to. This way you don't need to learn the entire
 library in order to make use of it. If you want to learn about as little of
 Pylearn2 as possible, you can simply implement two methods:
 
-   * "train_all(dataset)'': This method is passed a Pylearn2 Dataset.
-      When called, it should do one pass through the dataset and update
-      the parameters accordingly. For example, k-means could assign every
-      point in the dataset to a centroid, then update the centroid to the
-      mean of all the points belong to that centroid.
-   * "continue_learning()'': This method should return True if the algorithm
+   * ``train_all(dataset)``: This method is passed a Pylearn2 Dataset.
+     When called, it should do one pass through the dataset and update
+     the parameters accordingly. For example, k-means could assign every
+     point in the dataset to a centroid, then update the centroid to the
+     mean of all the points belong to that centroid.
+   * ``continue_learning()``: This method should return True if the algorithm
      needs to continue learning. For example, the k-means algorithm could
      return True if the centroids moved more than a certain amount on the most
      recent pass. (If not trained at all, this should always return True).
@@ -220,7 +220,7 @@ TrainingAlgorithm to do each epoch, rather than calling the Model's train_all me
 Pylearn2 includes some basic yet powerful training algorithms, SGD (Stochastic Gradient Descent)
 and BGD (Batch Gradient Descent). Both of these algorithms work by minizing some cost function
 of the model parameters and the training data. For example, to fit a logistic regression classifier,
-you could minimize log P(Y | X) where Y is training labels and X is training input features. Both
+you could minimize -log P(Y | X) where Y is training labels and X is training input features. Both
 of them are configurable to perform more advanced optimization algorithms. For example, BGD can
 be configured to do nonlinear conjugate gradient descent. SGD supports user-provided callbacks
 that can provide powerful extra features. Pylearn2 uses this callback system to implement Polyak
