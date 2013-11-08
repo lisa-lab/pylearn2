@@ -23,7 +23,7 @@ def test_convsigmoid_basic():
         model: !obj:pylearn2.models.mlp.MLP {
             batch_size: 2,
             layers: [
-                     !obj:pylearn2.models.mlp.ConvSigmoid {
+                     !obj:pylearn2.models.mlp.ConvElemwise {
                          layer_name: 'h0',
                          output_channels: 8,
                          pool_type: "max",
@@ -32,6 +32,7 @@ def test_convsigmoid_basic():
                          pool_stride: [2, 2],
                          irange: .005,
                          max_kernel_norm: .9,
+                         nonlinearity: !obj:pylearn2.models.mlp.RectifierConvNonlinearity {}
                      },
                      !obj:pylearn2.models.mlp.Softmax {
                          max_col_norm: 1.9365,
