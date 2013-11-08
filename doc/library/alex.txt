@@ -17,9 +17,22 @@ http://code.google.com/p/cuda-convnet/
 Modules
 #######
 
+Convolution
+===========
+.. automodule:: pylearn2.sandbox.cuda_convnet.filter_acts
+    :members:
+.. automodule:: pylearn2.sandbox.cuda_convnet.img_acts
+    :members:
+.. automodule:: pylearn2.sandbox.cuda_convnet.weight_acts
+    :members:
+
 Pool
 ====
 .. automodule:: pylearn2.sandbox.cuda_convnet.pool
+    :members:
+.. automodule:: pylearn2.sandbox.cuda_convnet.probabilistic_max_pooling
+    :members:
+.. automodule:: pylearn2.sandbox.cuda_convnet.stochastic_pool
     :members:
 
 Resoponse Normalization

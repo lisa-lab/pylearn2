@@ -117,6 +117,21 @@ class WeightActs(BaseActs):
         return Apply(self, [images, hid_grads, output_shape],
                      [weights_grads, partial_sums])
 
+    def flops(self, inputs, outputs):
+        """ Useful with the hack in profilemode to print the MFlops"""
+        images, kerns, output_shape = inputs
+        out, partial = outputs
+        # The partial sum is just a way to specify how to compute
+        # stuff inside the op.  It don't change the number of flops.
+        assert images[3] == kerns[3]
+        # nb mul and add by output pixed
+        flops = kerns[1] * kerns[2] * 2
+        #nb flops by output image
+        flops *= out[1] * out[2]
+        # for all outputs images#n_stack==self.imshp[0]
+        flops *= images[3] * kerns[0] * images[0]
+        return flops
+
     def c_headers(self):
         # For some reason, the function called in the C code (_weightActs)
         # is not defined in cudaconv2.cuh, so I defined it in weight_acts.cuh

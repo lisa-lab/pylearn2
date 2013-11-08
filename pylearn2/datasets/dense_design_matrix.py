@@ -771,7 +771,8 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
                                             axes = axes,
                                             rng = rng)
         ensure_tables()
-        filters = tables.Filters(complib='blosc', complevel=5)
+        if not hasattr(self, 'filters'):
+            self.filters = tables.Filters(complib='blosc', complevel=5)
 
     def set_design_matrix(self, X, start = 0):
         assert len(X.shape) == 2
@@ -883,8 +884,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
                                      data_specs=data_specs,
                                      return_tuple=return_tuple)
 
-    @staticmethod
-    def init_hdf5(path, shapes):
+    def init_hdf5(self, path, shapes):
         """
         Initialize hdf5 file to be used ba dataset
         """
@@ -895,11 +895,10 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         h5file = tables.openFile(path, mode = "w", title = "SVHN Dataset")
         gcolumns = h5file.createGroup(h5file.root, "Data", "Data")
         atom = tables.Float32Atom() if config.floatX == 'float32' else tables.Float64Atom()
-        filters = DenseDesignMatrixPyTables.filters
         h5file.createCArray(gcolumns, 'X', atom = atom, shape = x_shape,
-                                title = "Data values", filters = filters)
+                                title = "Data values", filters = self.filters)
         h5file.createCArray(gcolumns, 'y', atom = atom, shape = y_shape,
-                                title = "Data targets", filters = filters)
+                                title = "Data targets", filters = self.filters)
         return h5file, gcolumns
 
     @staticmethod
@@ -926,8 +925,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
 
             file.flush()
 
-    @staticmethod
-    def resize(h5file, start, stop):
+    def resize(self, h5file, start, stop):
         ensure_tables()
         # TODO is there any smarter and more efficient way to this?
 
@@ -942,11 +940,10 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         stop = gcolumns.X.nrows if stop is None else stop
 
         atom = tables.Float32Atom() if config.floatX == 'float32' else tables.Float64Atom()
-        filters = DenseDesignMatrixPyTables.filters
         x = h5file.createCArray(gcolumns, 'X', atom = atom, shape = ((stop - start, data.X.shape[1])),
-                            title = "Data values", filters = filters)
+                            title = "Data values", filters = self.filters)
         y = h5file.createCArray(gcolumns, 'y', atom = atom, shape = ((stop - start, 10)),
-                            title = "Data targets", filters = filters)
+                            title = "Data targets", filters = self.filters)
         x[:] = data.X[start:stop]
         y[:] = data.y[start:stop]
 
