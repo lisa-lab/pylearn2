@@ -12,7 +12,7 @@ def test_shebangs():
         l = fd.readline()
         fd.close()
         if l.startswith("#!"):
-            if not l.startswith("#!/usr/bin/env"):
+            if not l[2:].strip().startswith("/usr/bin/env"):
                 print l
                 print f
                 raise AssertionError("Bad shebang")
