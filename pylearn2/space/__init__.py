@@ -363,13 +363,34 @@ class VectorSpace(Space):
 
 class ConvNDSpace(Space):
     """
-    A base class for a space whose points are defined as
+    An abstract base class for a space whose points are defined as
     (multi-channel) images/videos/etc. This is the base class for
     Conv2DSpace and Conv3DSpace (so far).
     
     This is an abstract base class that may not be instantiated
-    (create an instance of Conv2DSpace or Conv3DSpace instead).
+    (create an instance of a derived class instead, like
+    Conv2DSpace or Conv3DSpace).
     """
+
+    """
+    Number of dimensions over which convolution is possible. (e.g. 2 for images)
+    This class attribute must be defined in the derived class.
+    """
+    conv_dimensions = None
+
+    """
+    Default axes ordering, e.g. ('b', 0, 1, 'c') for images.
+    This class attribute must be defined in the derived class.
+    """
+    default_axes = None
+
+    """
+    Number of elements in an axes specifier for this class,
+    e.g. 4 for images ('b', 0, 1, 'c')
+    This class attribute must be defined in the derived class.
+    """
+    axes_length = None
+
 
     def __init__(self, shape, channels = None, num_channels = None, axes = None):
         """
@@ -393,14 +414,24 @@ class ConvNDSpace(Space):
                 theano's conv2d operator uses ('b', 'c', 0, 1) images.
         """
 
+        # Don't allow creation of the ConvNDSpace class directly
+        assert type(self) != ConvNDSpace, ("ConvNDSpace is an abstract base class "
+                                           "and can't be instantiated directly. "
+                                           "Instantiate a derived class instead.")
+
+        # Make sure the derived class defines the necessary attributes:
+        assert self.conv_dimensions != None, "Derived class must set conv_dimensions"
+        assert self.default_axes != None, "Derived class must set default_axes"
+        assert self.axes_length != None, "Derived class must set default_axes"
+
         assert (channels is None) + (num_channels is None) == 1
         if num_channels is None:
             num_channels = channels
 
         assert isinstance(num_channels, py_integer_types)
 
-        if not hasattr(shape, '__len__') or len(shape) != self.data_dimensions - 1:
-            raise ValueError("shape argument to %s must be length %d" % (self.__class__.__name__, self.data_dimensions-1))
+        if not hasattr(shape, '__len__') or len(shape) != self.conv_dimensions:
+            raise ValueError("shape argument to %s must be length %d" % (self.__class__.__name__, self.conv_dimensions))
         assert all(isinstance(elem, py_integer_types) for elem in shape)
         assert all(elem > 0 for elem in shape)
         assert isinstance(num_channels, py_integer_types)
@@ -424,9 +455,6 @@ class ConvNDSpace(Space):
 
     def __hash__(self):
         return hash((type(self), self.shape, self.num_channels, self.axes))
-
-    def get_dim_dict(self):
-        raise NotImplementedError()
 
     @functools.wraps(Space.get_origin)
     def get_origin(self):
@@ -570,7 +598,7 @@ class ConvNDSpace(Space):
                     "but it is %d" % (d, self.num_channels, actual_channels))
         assert batch.shape[self.axes.index('c')] == self.num_channels
 
-        for coord in xrange(self.data_dimensions-1):
+        for coord in xrange(self.conv_dimensions):
             d = self.axes.index(coord)
             actual_shape = batch.shape[d]
             expected_shape = self.shape[coord]
@@ -619,26 +647,32 @@ class ConvNDSpace(Space):
         raise NotImplementedError("%s doesn't know how to format as %s"
                                   % (str(self), str(space)))
 
+    def get_dim_dict(self, batch_size = None):
+        """
+        batch_size: integer or None
+
+        Returns a dictionary mapping from dimension index to the size of that dimension.
+        E.g. for a Conv2DSpace of 640x480 color images, this might return
+        {0: 480, 1: 640, 'c': 3}
+        If batch_size is specified, it will be added to the returned dict with key 'b'
+        {'b': 123, 0: 480, 1: 640, 'c': 3}
+        """
+
+        ret = dict([(dim,self.shape[dim]) for dim in range(self.conv_dimensions)])
+        ret['c'] = self.num_channels
+        if batch_size is not None:
+            ret['b'] = batch_size
+        return ret
+
 
 class Conv2DSpace(ConvNDSpace):
     """A space whose points are defined as (multi-channel) images."""
 
-    # Assume pylearn2's get_topological_view format, since this is how
-    # data is currently served up. If we make better iterators change
-    # default to ('b', 'c', 0, 1) for theano conv2d
-    default_axes = ('b', 0, 1, 'c')
+    conv_dimensions = 2
 
-    # e.g. (0, 1, 'c')
-    data_dimensions = 3
+    axes_length = conv_dimensions + 2
 
-    # the length of an axes specifier, e.g. ('b', 0, 1, 'c')
-    axes_length = 4
-
-    def get_dim_dict(self, batch_size = None):
-        ret = { 0: self.shape[0], 1: self.shape[1], 'c' : self.num_channels }
-        if batch_size is not None:
-            ret['b'] = batch_size
-        return ret
+    default_axes = tuple(['b'] + range(conv_dimensions) + ['c'])
 
 
 class Conv3DSpace(ConvNDSpace):
@@ -650,19 +684,11 @@ class Conv3DSpace(ConvNDSpace):
     time and axes 1 and 2 represent image coordinates.
     """
 
-    default_axes = ('b', 0, 1, 2, 'c')
+    conv_dimensions = 3
 
-    # e.g. (0, 1, 2, 'c')
-    data_dimensions = 4
+    axes_length = conv_dimensions + 2
 
-    # the length of an axes specifier, e.g. ('b', 0, 1, 2, 'c')
-    axes_length = 5
-
-    def get_dim_dict(self, batch_size = None):
-        ret = { 0: self.shape[0], 1: self.shape[1], 2: self.shape[2], 'c' : self.num_channels }
-        if batch_size is not None:
-            ret['b'] = batch_size
-        return ret
+    default_axes = tuple(['b'] + range(conv_dimensions) + ['c'])
 
 
 class CompositeSpace(Space):

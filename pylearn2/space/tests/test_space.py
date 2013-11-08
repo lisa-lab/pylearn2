@@ -6,7 +6,7 @@ from theano import config
 from theano import tensor
 from theano.sandbox.cuda import CudaNdarrayType
 
-from pylearn2.space import Conv2DSpace
+from pylearn2.space import ConvNDSpace, Conv2DSpace, Conv3DSpace
 from pylearn2.space import CompositeSpace
 from pylearn2.space import VectorSpace
 from pylearn2.space import Space
@@ -126,3 +126,20 @@ def test_broadcastable():
     d = Conv2DSpace((5, 5), channels=3,
                     axes=['b', 0, 1, 'c']).make_theano_batch(batch_size=1)
     np.testing.assert_(d.broadcastable[0])
+
+
+def test_no_abstract_ConvNDSpace_creation():
+    try:
+        convNDSpace = ConvNDSpace((1,1), channels = 1) # should fail
+    except AssertionError:
+        pass
+    else:
+        raise Exception('Instantiation of abstract base class ConvNDSpace should have failed but it suceeded.')
+
+
+def test_Conv2DSpace_creation():
+    c = Conv2DSpace((1,1), channels = 1)
+
+
+def test_Conv3DSpace_creation():
+    c = Conv3DSpace((1,1,1), channels = 1)
