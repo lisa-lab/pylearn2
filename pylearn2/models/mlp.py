@@ -799,7 +799,7 @@ class Softmax(Layer):
 
         for value in get_debug_values(state_below):
             if self.mlp.batch_size is not None and value.shape[0] != self.mlp.batch_size:
-                raise ValueError("state_below should have batch size "+str(self.dbm.batch_size)+" but has "+str(value.shape[0]))
+                raise ValueError("state_below should have batch size "+str(self.mlp.batch_size)+" but has "+str(value.shape[0]))
 
         self.desired_space.validate(state_below)
         assert state_below.ndim == 2
@@ -1190,8 +1190,8 @@ class SoftmaxPool(Layer):
         if self.requires_reformat:
             if not isinstance(state_below, tuple):
                 for sb in get_debug_values(state_below):
-                    if sb.shape[0] != self.dbm.batch_size:
-                        raise ValueError("self.dbm.batch_size is %d but got shape of %d" % (self.dbm.batch_size, sb.shape[0]))
+                    if sb.shape[0] != self.mlp.batch_size:
+                        raise ValueError("self.mlp.batch_size is %d but got shape of %d" % (self.mlp.batch_size, sb.shape[0]))
                     assert reduce(lambda x,y: x * y, sb.shape[1:]) == self.input_dim
 
             state_below = self.input_space.format_as(state_below, self.desired_space)
@@ -1477,8 +1477,8 @@ class Linear(Layer):
         if self.requires_reformat:
             if not isinstance(state_below, tuple):
                 for sb in get_debug_values(state_below):
-                    if sb.shape[0] != self.dbm.batch_size:
-                        raise ValueError("self.dbm.batch_size is %d but got shape of %d" % (self.dbm.batch_size, sb.shape[0]))
+                    if sb.shape[0] != self.mlp.batch_size:
+                        raise ValueError("self.mlp.batch_size is %d but got shape of %d" % (self.mlp.batch_size, sb.shape[0]))
                     assert reduce(lambda x,y: x * y, sb.shape[1:]) == self.input_dim
 
             state_below = self.input_space.format_as(state_below, self.desired_space)
@@ -1719,11 +1719,16 @@ class SpaceConverter(Layer):
 
         return self.input_space.format_as(state_below, self.output_space)
 
-class ConvRectifiedLinear(Layer):
+class ConvElemwise(Layer):
     """
-        WRITEME
+    Generic convolutional elemwise layer.
+    Takes the ConvNonlinearity object as an argument and implements convolutional layer with the specific nonlinearity.
+    This function can implement:
+        * Linear convolutional layer
+        * Rectifier convolutional layer
+        * Sigmoid convolutional layer
+    based on the nonlinearity parameter that it gets.
     """
-
     def __init__(self,
                  output_channels,
                  kernel_shape,
@@ -1732,17 +1737,18 @@ class ConvRectifiedLinear(Layer):
                  layer_name,
                  irange = None,
                  border_mode = 'valid',
+                 monitor_style = "classification",
                  sparse_init = None,
                  include_prob = 1.0,
                  init_bias = 0.,
                  W_lr_scale = None,
                  b_lr_scale = None,
-                 left_slope = 0.0,
                  max_kernel_norm = None,
                  pool_type = 'max',
                  detector_normalization = None,
                  output_normalization = None,
-                 kernel_stride=(1, 1)):
+                 kernel_stride=(1, 1),
+                 nonlinearity=None):
         """
                  output_channels: The number of output channels the layer should have.
                  kernel_shape: The shape of the convolution kernel.
@@ -1752,6 +1758,7 @@ class ConvRectifiedLinear(Layer):
                  monitoring channels related to this layer.
                  irange: if specified, initializes each weight randomly in
                  U(-irange, irange)
+                 monitor_style: by default monitor_style is classification. It makes sense to change this parameter if you are only using Sigmoid nonlinearity.
                  border_mode:A string indicating the size of the output:
                     full - The output is the full discrete linear convolution of the inputs.
                     valid - The output consists only of those elements that do not rely
@@ -1764,7 +1771,6 @@ class ConvRectifiedLinear(Layer):
                  multiplied by this scaling factor
                  b_lr_scale: The learning rate on the biases for this layer is
                  multiplied by this scaling factor
-                 left_slope: **TODO**
                  max_kernel_norm: If specifed, each kernel is constrained to have at most this
                  norm.
                  pool_type: The type of the pooling operation performed the the convolution.
@@ -1778,13 +1784,15 @@ class ConvRectifiedLinear(Layer):
                           output: the output of the layer, after sptial pooling, can be normalized
                           as well
                  kernel_stride: The stride of the convolution kernel. A two-tuple of ints.
+                 nonlinearity: An instance of a nonlinearity object inherited from the LinearConvNonlinearity class.
         """
-
         if (irange is None) and (sparse_init is None):
-            raise AssertionError("You should specify either irange or sparse_init when calling the constructor of ConvRectifiedLinear.")
-        elif (irange is not None) and (sparse_init is not None):
-            raise AssertionError("You should specify either irange or sparse_init when calling the constructor of ConvRectifiedLinear and not both.")
+            raise AssertionError("You should specify either irange or sparse_init when calling the constructor of ConvLinear.")
 
+        elif (irange is not None) and (sparse_init is not None):
+            raise AssertionError("You should specify either irange or sparse_init when calling the constructor of ConvLinear and not both.")
+
+        assert monitor_style in ['classification', 'detection']
         self.__dict__.update(locals())
         del self.self
 
@@ -1807,23 +1815,7 @@ class ConvRectifiedLinear(Layer):
 
         return rval
 
-    def set_input_space(self, space):
-        """ Note: this resets parameters! """
-
-        self.input_space = space
-        rng = self.mlp.rng
-
-        if self.border_mode == 'valid':
-            output_shape = [(self.input_space.shape[0] - self.kernel_shape[0]) / self.kernel_stride[0] + 1,
-                (self.input_space.shape[1] - self.kernel_shape[1]) / self.kernel_stride[1] + 1]
-        elif self.border_mode == 'full':
-            output_shape = [(self.input_space.shape[0] +  self.kernel_shape[0]) / self.kernel_stride[0] - 1,
-                    (self.input_space.shape[1] + self.kernel_shape[1]) / self.kernel_stride_stride[1] - 1]
-
-        self.detector_space = Conv2DSpace(shape=output_shape,
-                num_channels = self.output_channels,
-                axes = ('b', 'c', 0, 1))
-
+    def initialize_transformer(self, rng):
         if self.irange is not None:
             assert self.sparse_init is None
             self.transformer = conv2d.make_random_conv2D(
@@ -1845,6 +1837,52 @@ class ConvRectifiedLinear(Layer):
                     subsample = self.kernel_stride,
                     border_mode = self.border_mode,
                     rng = rng)
+
+    def initialize_output_space(self):
+        dummy_batch_size = self.mlp.batch_size
+        if dummy_batch_size is None:
+            dummy_batch_size = 2
+        dummy_detector = sharedX(self.detector_space.get_origin_batch(dummy_batch_size))
+        if self.pool_type is not None:
+            assert self.pool_type in ['max', 'mean']
+
+            if self.pool_type == 'max':
+                dummy_p = max_pool(bc01=dummy_detector, pool_shape=self.pool_shape,
+                        pool_stride=self.pool_stride,
+                        image_shape=self.detector_space.shape)
+            elif self.pool_type == 'mean':
+                dummy_p = mean_pool(bc01=dummy_detector, pool_shape=self.pool_shape,
+                        pool_stride=self.pool_stride,
+                        image_shape=self.detector_space.shape)
+            dummy_p = dummy_p.eval()
+            self.output_space = Conv2DSpace(shape=[dummy_p.shape[2], dummy_p.shape[3]],
+                    num_channels = self.output_channels, axes = ('b', 'c', 0, 1) )
+        else:
+            dummy_detector = dummy_detector.eval()
+            self.output_space = Conv2DSpace(shape=[dummy_detector.shape[2], dummy_detector.shape[3]],
+                    num_channels = self.output_channels, axes = ('b', 'c', 0, 1) )
+        print 'Output space: ', self.output_space.shape
+
+
+    def set_input_space(self, space):
+        """ Note: this function will reset the parameters! """
+
+        self.input_space = space
+        rng = self.mlp.rng
+
+        if self.border_mode == 'valid':
+            output_shape = [(self.input_space.shape[0] - self.kernel_shape[0]) / self.kernel_stride[0] + 1,
+                (self.input_space.shape[1] - self.kernel_shape[1]) / self.kernel_stride[1] + 1]
+        elif self.border_mode == 'full':
+            output_shape = [(self.input_space.shape[0] +  self.kernel_shape[0]) / self.kernel_stride[0] - 1,
+                    (self.input_space.shape[1] + self.kernel_shape[1]) / self.kernel_stride_stride[1] - 1]
+
+        self.detector_space = Conv2DSpace(shape=output_shape,
+                num_channels = self.output_channels,
+                axes = ('b', 'c', 0, 1))
+
+        self.initialize_transformer(rng)
+
         W, = self.transformer.get_params()
         W.name = 'W'
 
@@ -1854,28 +1892,7 @@ class ConvRectifiedLinear(Layer):
         print 'Input shape: ', self.input_space.shape
         print 'Detector space: ', self.detector_space.shape
 
-
-        assert self.pool_type in ['max', 'mean']
-
-        dummy_batch_size = self.mlp.batch_size
-        if dummy_batch_size is None:
-            dummy_batch_size = 2
-        dummy_detector = sharedX(self.detector_space.get_origin_batch(dummy_batch_size))
-        if self.pool_type == 'max':
-            dummy_p = max_pool(bc01=dummy_detector, pool_shape=self.pool_shape,
-                    pool_stride=self.pool_stride,
-                    image_shape=self.detector_space.shape)
-        elif self.pool_type == 'mean':
-            dummy_p = mean_pool(bc01=dummy_detector, pool_shape=self.pool_shape,
-                    pool_stride=self.pool_stride,
-                    image_shape=self.detector_space.shape)
-        dummy_p = dummy_p.eval()
-        self.output_space = Conv2DSpace(shape=[dummy_p.shape[2], dummy_p.shape[3]],
-                num_channels = self.output_channels, axes = ('b', 'c', 0, 1) )
-
-        print 'Output space: ', self.output_space.shape
-
-
+        self.initialize_output_space()
 
     def censor_updates(self, updates):
 
@@ -1886,7 +1903,6 @@ class ConvRectifiedLinear(Layer):
                 row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=(1,2,3)))
                 desired_norms = T.clip(row_norms, 0, self.max_kernel_norm)
                 updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle(0, 'x', 'x', 'x')
-
 
     def get_params(self):
         assert self.b.name is not None
@@ -1932,6 +1948,65 @@ class ConvRectifiedLinear(Layer):
 
         return np.transpose(raw, (outp,rows,cols,inp))
 
+    def get_detection_channels_from_state(self, state, target):
+        rval = OrderedDict()
+        y_hat = state > 0.5
+        y = target > 0.5
+        wrong_bit = T.cast(T.neq(y, y_hat), state.dtype)
+
+        rval['01_loss'] = wrong_bit.mean()
+        rval['kl'] = self.cost(Y_hat=state, Y=target)
+
+        y = T.cast(y, state.dtype)
+        y_hat = T.cast(y_hat, state.dtype)
+        tp = (y * y_hat).sum()
+        fp = ((1-y) * y_hat).sum()
+        precision = tp / T.maximum(1., tp + fp)
+        recall = tp / T.maximum(1., y.sum())
+
+        rval['precision'] = precision
+        rval['recall'] = recall
+        rval['f1'] = 2. * precision * recall / T.maximum(1, precision + recall)
+
+        tp = (y * y_hat).sum(axis=[0, 1])
+        fp = ((1-y) * y_hat).sum(axis=[0, 1])
+        precision = tp / T.maximum(1., tp + fp)
+
+        rval['per_output_precision.max'] = precision.max()
+        rval['per_output_precision.mean'] = precision.mean()
+        rval['per_output_precision.min'] = precision.min()
+
+        recall = tp / T.maximum(1., y.sum(axis=[0, 1]))
+
+        rval['per_output_recall.max'] = recall.max()
+        rval['per_output_recall.mean'] = recall.mean()
+        rval['per_output_recall.min'] = recall.min()
+
+        f1 = 2. * precision * recall / T.maximum(1, precision + recall)
+
+        rval['per_output_f1.max'] = f1.max()
+        rval['per_output_f1.mean'] = f1.mean()
+        rval['per_output_f1.min'] = f1.min()
+        return rval
+
+    def get_monitoring_channels_from_state(self, state, target=None):
+
+        rval = super(ConvElemwise, self).get_monitoring_channels_from_state(state, target)
+
+        if target is not None and self.nonlinearity.non_lin_name == "sigmoid":
+            if self.monitor_style == 'detection':
+                rval.update(self.get_detection_channels_from_state(state, target))
+            else:
+                assert self.monitor_style == 'classification'
+                # Threshold Y_hat at 0.5.
+                prediction = T.gt(state, 0.5)
+                # If even one feature is wrong for a given training example,
+                # it's considered incorrect, so we max over columns.
+                incorrect = T.neq(target, prediction).max(axis=1)
+                rval['misclass'] = T.cast(incorrect, config.floatX).mean()
+
+        return rval
+
     def get_monitoring_channels(self):
 
         W ,= self.transformer.get_params()
@@ -1948,43 +2023,172 @@ class ConvRectifiedLinear(Layer):
                             ('kernel_norms_max'  , row_norms.max()),
                             ])
 
-    def fprop(self, state_below):
+    def fprop(self, state_below, enable_pooling=True):
+        """
+        pooling: If pooling is false, don't do any pooling just return
+        the linear activation.
+        """
 
         self.input_space.validate(state_below)
 
         z = self.transformer.lmul(state_below) + self.b
+        d = self.nonlinearity(z)
+
         if self.layer_name is not None:
-            z.name = self.layer_name + '_z'
+            d.name = self.layer_name + '_z'
+            self.detector_space.validate(d)
 
-        d = z * (z > 0.) + self.left_slope * z * (z < 0.)
+        if self.pool_type is not None:
+            if not hasattr(self, 'detector_normalization'):
+                self.detector_normalization = None
 
-        self.detector_space.validate(d)
+            if self.detector_normalization:
+                z = self.detector_normalization(z)
 
-        if not hasattr(self, 'detector_normalization'):
-            self.detector_normalization = None
+            assert self.pool_type in ['max', 'mean']
 
-        if self.detector_normalization:
-            d = self.detector_normalization(d)
+            if self.pool_type == 'max':
+                p = max_pool(bc01=z, pool_shape=self.pool_shape,
+                        pool_stride=self.pool_stride,
+                        image_shape=self.detector_space.shape)
+            elif self.pool_type == 'mean':
+                p = mean_pool(bc01=z, pool_shape=self.pool_shape,
+                        pool_stride=self.pool_stride,
+                        image_shape=self.detector_space.shape)
 
-        assert self.pool_type in ['max', 'mean']
-        if self.pool_type == 'max':
-            p = max_pool(bc01=d, pool_shape=self.pool_shape,
-                    pool_stride=self.pool_stride,
-                    image_shape=self.detector_space.shape)
-        elif self.pool_type == 'mean':
-            p = mean_pool(bc01=d, pool_shape=self.pool_shape,
-                    pool_stride=self.pool_stride,
-                    image_shape=self.detector_space.shape)
+            self.output_space.validate(p)
 
-        self.output_space.validate(p)
+            if not hasattr(self, 'output_normalization'):
+                self.output_normalization = None
 
-        if not hasattr(self, 'output_normalization'):
-            self.output_normalization = None
-
-        if self.output_normalization:
-            p = self.output_normalization(p)
+            if self.output_normalization:
+                p = self.output_normalization(p)
+        else:
+            p = z
 
         return p
+
+    def cost(self, Y, Y_hat):
+        """
+        Note : Method copied from the Sigmoid class
+
+        mean across units, mean across batch of KL divergence
+        KL(P || Q) where P is defined by Y and Q is defined by Y_hat
+        KL(P || Q) = p log p - p log q + (1-p) log (1-p) - (1-p) log (1-q)
+        """
+        assert self.nonlinearity.non_lin_name == "sigmoid", "ConvElemwise supports cost function\
+                for only sigmoid layers for now."
+        ave_total = self.kl(Y, Y_hat)
+        ave = ave_total.mean()
+        return ave
+
+
+    def kl(self, Y, Y_hat):
+        """
+        Returns a batch (vector) of
+        mean across units of KL divergence for each example
+        KL(P || Q) where P is defined by Y and Q is defined by Y_hat
+        Currently Y must be purely binary. If it's not, you'll still
+        get the right gradient, but the value in the monitoring channel
+        will be wrong.
+        Y_hat must be generated by fprop, i.e., it must be a symbolic
+        sigmoid.
+
+        p log p - p log q + (1-p) log (1-p) - (1-p) log (1-q)
+        For binary p, some terms drop out:
+        - p log q - (1-p) log (1-q)
+        - p log sigmoid(z) - (1-p) log sigmoid(-z)
+        p softplus(-z) + (1-p) softplus(z)
+        """
+        # Pull out the argument to the sigmoid
+        assert hasattr(Y_hat, 'owner')
+        owner = Y_hat.owner
+        assert owner is not None
+        op = owner.op
+
+        if not hasattr(op, 'scalar_op'):
+            owner = Y_hat.owner.inputs[0].owner
+            assert owner is not None
+            op = owner.op
+
+        if not hasattr(op, 'scalar_op'):
+            raise ValueError("Expected Y_hat to be generated by an Elemwise op, got "+str(op)+" of type "+str(type(op)))
+
+        assert isinstance(op.scalar_op, T.nnet.sigm.ScalarSigmoid)
+        z ,= owner.inputs
+
+        term_1 = Y * T.nnet.softplus(-z)
+        term_2 = (1 - Y) * T.nnet.softplus(z)
+
+        total = term_1 + term_2
+
+        ave_ch = total.mean(axis=1)
+        assert ave_ch.ndim == 3
+
+        ave_x = ave_ch.mean(axis=1)
+        assert ave_x.ndim == 2
+
+        ave_y = ave_x.mean(axis=1)
+        assert ave_y.ndim == 1
+
+        return ave_y
+
+class LinearConvNonlinearity(object):
+    """
+        Generic convolutional nonlinearity class by default this class is linear activation.
+    """
+    def __init__(self):
+        self.non_lin_name = "linear"
+
+    def __call__(self, linear_response):
+        """
+            linear_response: linear response of the layer.
+        """
+        return linear_response
+
+class RectifierConvNonlinearity(LinearConvNonlinearity):
+    """
+        A simple rectifier nonlinearity class for convolutional layers.
+    """
+    def __init__(self, left_slope=0.0):
+        self.non_lin_name = "rectifier"
+        self.left_slope = left_slope
+
+    def __call__(self, linear_response):
+        """
+            linear_response: linear response of the layer.
+        """
+        p = linear_response * (linear_response > 0.) + self.left_slope * linear_response * (linear_response < 0.)
+        return p
+
+class SigmoidConvNonlinearity(LinearConvNonlinearity):
+    """
+        Sigmoid nonlinearity class for convolutional layers.
+    """
+    def __init__(self):
+        self.non_lin_name = "sigmoid"
+
+    def __call__(self, linear_response):
+        """
+            linear_response: linear response of the layer.
+        """
+        p = T.nnet.sigmoid(linear_response)
+        return p
+
+class TanhConvNonlinearity(LinearConvNonlinearity):
+    """
+        Tanh nonlinearity class for convolutional layers.
+    """
+    def __init__(self):
+        self.non_lin_name = "sigmoid"
+
+    def __call__(self, linear_response):
+        """
+            linear_response: linear response of the layer.
+        """
+        p = T.tanh(linear_response)
+        return p
+
 
 def max_pool(bc01, pool_shape, pool_stride, image_shape):
     """
