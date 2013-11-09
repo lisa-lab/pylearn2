@@ -1758,7 +1758,8 @@ class ConvElemwise(Layer):
                  monitoring channels related to this layer.
                  irange: if specified, initializes each weight randomly in
                  U(-irange, irange)
-                 monitor_style: by default monitor_style is classification. It makes sense to change this parameter if you are only using Sigmoid nonlinearity.
+                 monitor_style: by default monitor_style is classification. It makes sense to
+                 change this parameter if you are only using Sigmoid nonlinearity at the output.
                  border_mode:A string indicating the size of the output:
                     full - The output is the full discrete linear convolution of the inputs.
                     valid - The output consists only of those elements that do not rely
@@ -1784,7 +1785,7 @@ class ConvElemwise(Layer):
                           output: the output of the layer, after sptial pooling, can be normalized
                           as well
                  kernel_stride: The stride of the convolution kernel. A two-tuple of ints.
-                 nonlinearity: An instance of a nonlinearity object inherited from the LinearConvNonlinearity class.
+                 nonlinearity: An instance of a nonlinearity object which might be inherited from the LinearConvNonlinearity class.
         """
         if (irange is None) and (sparse_init is None):
             raise AssertionError("You should specify either irange or sparse_init when calling the constructor of ConvLinear.")
@@ -1793,6 +1794,7 @@ class ConvElemwise(Layer):
             raise AssertionError("You should specify either irange or sparse_init when calling the constructor of ConvLinear and not both.")
 
         assert monitor_style in ['classification', 'detection']
+
         self.__dict__.update(locals())
         del self.self
 
@@ -1844,7 +1846,7 @@ class ConvElemwise(Layer):
             dummy_batch_size = 2
         dummy_detector = sharedX(self.detector_space.get_origin_batch(dummy_batch_size))
         if self.pool_type is not None:
-            assert self.pool_type in ['max', 'mean']
+            assert self.pool_type in ['max', 'mean'], "pool_type should be either max or mean pooling."
 
             if self.pool_type == 'max':
                 dummy_p = max_pool(bc01=dummy_detector, pool_shape=self.pool_shape,
@@ -2045,7 +2047,7 @@ class ConvElemwise(Layer):
             if self.detector_normalization:
                 z = self.detector_normalization(z)
 
-            assert self.pool_type in ['max', 'mean']
+            assert self.pool_type in ['max', 'mean'], "pool_type should be either max or mean pooling."
 
             if self.pool_type == 'max':
                 p = max_pool(bc01=z, pool_shape=self.pool_shape,
