@@ -1722,7 +1722,7 @@ class SpaceConverter(Layer):
 class ConvElemwise(Layer):
     """
     Generic convolutional elemwise layer.
-    Takes the ConvNonlinearity object as an argument and implements the specific nonlinearity.
+    Takes the ConvNonlinearity object as an argument and implements convolutional layer with the specific nonlinearity.
     This function can implement:
         * Linear convolutional layer
         * Rectifier convolutional layer
@@ -1865,7 +1865,7 @@ class ConvElemwise(Layer):
 
 
     def set_input_space(self, space):
-        """ Note: this resets parameters! """
+        """ Note: this function will reset the parameters! """
 
         self.input_space = space
         rng = self.mlp.rng
@@ -2158,7 +2158,6 @@ class RectifierConvNonlinearity(LinearConvNonlinearity):
         """
             linear_response: linear response of the layer.
         """
-
         p = linear_response * (linear_response > 0.) + self.left_slope * linear_response * (linear_response < 0.)
         return p
 
