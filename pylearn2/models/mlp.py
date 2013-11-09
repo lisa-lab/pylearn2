@@ -1794,7 +1794,6 @@ class ConvElemwise(Layer):
             raise AssertionError("You should specify either irange or sparse_init when calling the constructor of ConvLinear and not both.")
 
         assert monitor_style in ['classification', 'detection']
-
         self.__dict__.update(locals())
         del self.self
 
@@ -1841,7 +1840,9 @@ class ConvElemwise(Layer):
                     rng = rng)
 
     def initialize_output_space(self):
+
         dummy_batch_size = self.mlp.batch_size
+
         if dummy_batch_size is None:
             dummy_batch_size = 2
         dummy_detector = sharedX(self.detector_space.get_origin_batch(dummy_batch_size))
@@ -2087,6 +2088,7 @@ class ConvElemwise(Layer):
 
     def kl(self, Y, Y_hat):
         """
+        Warning: This function expects a sigmoid nonlinearity in the output layer.
         Returns a batch (vector) of
         mean across units of KL divergence for each example
         KL(P || Q) where P is defined by Y and Q is defined by Y_hat
@@ -2140,6 +2142,9 @@ class LinearConvNonlinearity(object):
         Generic convolutional nonlinearity class by default this class is linear activation.
     """
     def __init__(self):
+        """
+        isinstance function is considered harmful. So one can sue non_lin_name instead.
+        """
         self.non_lin_name = "linear"
 
     def __call__(self, linear_response):
@@ -2182,7 +2187,7 @@ class TanhConvNonlinearity(LinearConvNonlinearity):
         Tanh nonlinearity class for convolutional layers.
     """
     def __init__(self):
-        self.non_lin_name = "sigmoid"
+        self.non_lin_name = "tanh"
 
     def __call__(self, linear_response):
         """
