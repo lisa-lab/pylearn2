@@ -56,6 +56,9 @@ class Maxout(Layer):
     Mehdi Mirza, Aaron Courville, and Yoshua Bengio. ICML 2013
     """
 
+    def __str__(self):
+        return "Maxout"
+
     def __init__(self,
                  layer_name,
                  num_units,
