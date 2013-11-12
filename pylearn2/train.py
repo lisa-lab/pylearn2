@@ -1,5 +1,5 @@
 """
-WRITEME
+Module containing the Train class and support functionality.
 """
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
