@@ -50,7 +50,7 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
 
         # load data
         path = preprocess(path)
-        file_n = "{}{}_32x32.h5".format(path + "h5/", which_set)
+        file_n = "{}_32x32.h5".format(os.path.join(path, "h5", which_set))
         if os.path.isfile(file_n):
             make_new = False
         else:
@@ -59,6 +59,7 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
 
         # if hdf5 file does not exist make them
         if make_new:
+            self.filters = tables.Filters(complib='blosc', complevel=5)
             self.make_data(which_set, path)
 
         self.h5file = tables.openFile(file_n, mode = mode)
@@ -95,14 +96,13 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
                     start = self.start, stop = self.stop,
                     axes = self.axes, preprocessor = self.preprocessor)
 
-    @staticmethod
-    def make_data(which_set, path, shuffle = True):
+    def make_data(self, which_set, path, shuffle = True):
 
         sizes = {'train': 73257, 'test': 26032, 'extra': 531131,
                 'train_all': 604388, 'valid': 6000, 'splitted_train' : 598388}
         image_size = 32 * 32 * 3
-        h_file_n = "{}{}_32x32.h5".format(path + "h5/", which_set)
-        h5file, node = SVHN.init_hdf5(h_file_n, ([sizes[which_set],
+        h_file_n = "{}_32x32.h5".format(os.path.join(path, "h5", which_set))
+        h5file, node = self.init_hdf5(h_file_n, ([sizes[which_set],
                             image_size], [sizes[which_set], 10]))
 
         # For consistency between experiments better to make new random stream
@@ -293,8 +293,7 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
                     start = self.start, stop = self.stop,
                     axes = self.axes, preprocessor = self.preprocessor)
 
-    @staticmethod
-    def make_data(which_set, path, shuffle = True):
+    def make_data(self, which_set, path, shuffle = True):
 
         sizes = {'train': 73257, 'test': 26032, 'extra': 531131,
                 'train_all': 604388, 'valid': 6000, 'splitted_train' : 598388}

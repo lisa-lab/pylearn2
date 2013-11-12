@@ -218,6 +218,12 @@ def make_sparse_random_conv2D(num_nonzero, input_space, output_space,
     """ Creates a Conv2D with random kernels, where the randomly initialized
     values are sparse"""
 
+    raise AssertionError("TODO: I think this is a bug--num_nonzero "
+            "determines the "
+            "total number of nonzero elements in the whole kernel stack, not "
+            "the number of non-zero elements per kernel. Investigate what it's "
+            "meant to do.")
+
     if rng is None:
         rng = default_sparse_rng()
 

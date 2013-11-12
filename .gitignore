@@ -15,5 +15,8 @@
 #Don't track mac file
 .DS_Store
 
+#Don't track mac/linux .inputrc files
+.inputrc
+
 #Don't track Pycharm .idea folder
 .idea

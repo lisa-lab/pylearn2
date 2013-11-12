@@ -54,6 +54,7 @@ warnings.warn("MLP changing the recursion limit.")
 # precisely when you're going to exceed the stack segment.
 sys.setrecursionlimit(40000)
 
+
 class Layer(Model):
     """
     Abstract class.
@@ -93,7 +94,7 @@ class Layer(Model):
 
     def get_monitoring_channels(self):
         """
-        TODO WRITME
+        TODO WRITEME
         """
         return OrderedDict()
 
@@ -202,7 +203,9 @@ class MLP(Layer):
         self.layer_names = set()
         for layer in layers:
             assert layer.get_mlp() is None
-            assert layer.layer_name not in self.layer_names
+            if layer.layer_name in self.layer_names:
+                raise ValueError("MLP.__init__ given two or more layers "
+                        "with same name: " + layer.layer_name)
             layer.set_mlp(self)
             self.layer_names.add(layer.layer_name)
 
@@ -850,6 +853,33 @@ class Softmax(Layer):
 
         return - rval
 
+    def cost_matrix(self, Y, Y_hat):
+        """
+        Y must be one-hot binary. Y_hat is a softmax estimate.
+        of Y. Returns negative log probability of Y under the Y_hat
+        distribution.
+        """
+
+        assert hasattr(Y_hat, 'owner')
+        owner = Y_hat.owner
+        assert owner is not None
+        op = owner.op
+        if isinstance(op, Print):
+            assert len(owner.inputs) == 1
+            Y_hat, = owner.inputs
+            owner = Y_hat.owner
+            op = owner.op
+        assert isinstance(op, T.nnet.Softmax)
+        z ,= owner.inputs
+        assert z.ndim == 2
+
+        z = z - z.max(axis=1).dimshuffle(0, 'x')
+        log_prob = z - T.log(T.exp(z).sum(axis=1).dimshuffle(0, 'x'))
+        # we use sum and not mean because this is really one variable per row
+        log_prob_of = (Y * log_prob)
+
+        return -log_prob_of
+
     def get_weight_decay(self, coeff):
         if isinstance(coeff, str):
             coeff = float(coeff)
@@ -881,6 +911,7 @@ class Softmax(Layer):
                 col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
                 desired_norms = T.clip(col_norms, 0, self.max_col_norm)
                 updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
+
 
 class SoftmaxPool(Layer):
     """
@@ -1174,6 +1205,7 @@ class SoftmaxPool(Layer):
 
         return p
 
+
 class Linear(Layer):
     """
         WRITEME
@@ -1195,7 +1227,7 @@ class Linear(Layer):
                  max_col_norm = None,
                  softmax_columns = False,
                  copy_input = 0,
-                 use_abs_loss = False, 
+                 use_abs_loss = False,
                  use_bias = True):
         """
 
@@ -1204,7 +1236,7 @@ class Linear(Layer):
         it is initialized to 0.
 
         """
-        
+
         if use_bias and init_bias is None:
             init_bias = 0.
 
@@ -1483,6 +1515,7 @@ class Linear(Layer):
         else:
             return T.sqr(Y - Y_hat)
 
+
 class Tanh(Linear):
     """
     A layer that performs an affine transformation of its (vectorial)
@@ -1496,6 +1529,7 @@ class Tanh(Linear):
 
     def cost(self, *args, **kwargs):
         raise NotImplementedError()
+
 
 class Sigmoid(Linear):
     """
@@ -1653,15 +1687,16 @@ class Sigmoid(Linear):
                 rval['misclass'] = T.cast(incorrect, config.floatX).mean()
         return rval
 
+
 class RectifiedLinear(Linear):
     """
-    Implementation of the sigmoid nonlinearity for MLP.
+    Rectified linear MLP layer (Glorot and Bengio 2011).
     """
 
     def __init__(self, left_slope = 0.0, **kwargs):
         super(RectifiedLinear, self).__init__(**kwargs)
         self.left_slope = left_slope
-    
+
     def fprop(self, state_below):
         p = self._linear_part(state_below)
         p = p * (p > 0.) + self.left_slope * p * (p < 0.)
@@ -2348,7 +2383,8 @@ class FlattenerLayer(Layer):
 
         raw = self.raw_layer.fprop(state_below)
 
-        return self.raw_layer.get_output_space().format_as(raw, self.output_space)
+        return self.raw_layer.get_output_space().format_as(raw,
+                self.output_space)
 
     def cost(self, Y, Y_hat):
 

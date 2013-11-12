@@ -227,6 +227,9 @@ class SGD(TrainingAlgorithm):
 
         grads, updates = self.cost.get_gradients(model, nested_args,
                                                  ** fixed_var_descr.fixed_vars)
+        if not isinstance(grads, OrderedDict):
+            raise TypeError(str(type(self.cost)) + ".get_gradients returned something with"
+                    + str(type(grads)) + "as its first member. Expected OrderedDict.")
 
         for param in grads:
             assert param in params
@@ -238,6 +241,7 @@ class SGD(TrainingAlgorithm):
                 grads[param].name = ('grad(%(costname)s, %(paramname)s)' %
                                      {'costname': cost_value.name,
                                       'paramname': param.name})
+            assert grads[param].dtype == param.dtype
 
         lr_scalers = model.get_lr_scalers()
 
@@ -619,8 +623,8 @@ class LinearDecay(object):
     def __call__(self, algorithm):
         if self._count == 0:
             self._base_lr = algorithm.learning_rate.get_value()
-            self.step = (self._base_lr - self._base_lr * self.decay_factor) /\
-                    (self.saturate - self.start + 1)
+            self._step = ((self._base_lr - self._base_lr * self.decay_factor) /
+                          (self.saturate - self.start + 1))
         self._count += 1
         if self._count >= self.start:
             if self._count < self.saturate:
@@ -707,8 +711,8 @@ class LinearDecayOverEpoch(TrainExtension):
     def on_monitor(self, model, dataset, algorithm):
         if not self._initialized:
             self._init_lr = algorithm.learning_rate.get_value()
-            self._step = (self._init_lr - self._init_lr * self.decay_factor) /\
-                    (self.saturate - self.start + 1)
+            self._step = ((self._init_lr - self._init_lr * self.decay_factor) /
+                          (self.saturate - self.start + 1))
             self._initialized = True
         self._count += 1
         algorithm.learning_rate.set_value( np.cast[config.floatX](self.current_lr()))

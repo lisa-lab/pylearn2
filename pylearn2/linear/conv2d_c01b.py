@@ -19,6 +19,7 @@ import functools
 import numpy as np
 import warnings
 
+from theano.compat.python2x import OrderedDict
 from theano.sandbox import cuda
 import theano.tensor as T
 
@@ -27,7 +28,6 @@ if cuda.cuda_enabled:
     from theano.sandbox.cuda import gpu_from_host
     from theano.sandbox.cuda import host_from_gpu
 
-from pylearn2.utils import sharedX
 from pylearn2.linear.conv2d import default_rng
 from pylearn2.linear.conv2d import default_sparse_rng
 from pylearn2.linear.linear_transform import LinearTransform
@@ -35,6 +35,8 @@ from pylearn2.sandbox.cuda_convnet import check_cuda
 from pylearn2.sandbox.cuda_convnet.filter_acts import FilterActs
 from pylearn2.sandbox.cuda_convnet.filter_acts import ImageActs
 from pylearn2.space import Conv2DSpace
+from pylearn2.utils.call_check import checked_call
+from pylearn2.utils import sharedX
 
 class Conv2D(LinearTransform):
     """
@@ -210,7 +212,7 @@ def make_random_conv2D(irange, input_channels, input_axes, output_axes,
         output_channels,
         kernel_shape,
         kernel_stride = (1,1), pad=0, message = "", rng = None,
-        partial_sum = None):
+        partial_sum = None, sparse_init = None):
     """ Creates a Conv2D with random kernels.
         Should be functionally equivalent to
         pylearn2.linear.conv2d.make_random_conv2D
@@ -230,39 +232,39 @@ def make_random_conv2D(irange, input_channels, input_axes, output_axes,
 
 
 def make_sparse_random_conv2D(num_nonzero, input_space, output_space,
-        kernel_shape, batch_size, \
-        kernel_stride = (1,1), border_mode = 'valid', message = "", rng=None):
-    raise NotImplementedError("Not yet modified after copy-paste from "
-            "pylearn2.linear.conv2d")
+        kernel_shape,
+                pad = 0,
+        kernel_stride = (1,1), border_mode = 'valid', message = "", rng=None,
+        partial_sum = None):
     """ Creates a Conv2D with random kernels, where the randomly initialized
     values are sparse"""
 
     if rng is None:
         rng = default_sparse_rng()
 
-    W = np.zeros(( output_space.num_channels, input_space.num_channels, \
-            kernel_shape[0], kernel_shape[1]))
+    W = np.zeros((input_space.num_channels, \
+            kernel_shape[0], kernel_shape[1],
+            output_space.num_channels))
 
     def random_coord():
-        return [ rng.randint(dim) for dim in W.shape ]
+        return [rng.randint(dim) for dim in W.shape[0:3] ]
 
-    for i in xrange(num_nonzero):
-        o, ch, r, c = random_coord()
-        while W[o, ch, r, c] != 0:
-            o, ch, r, c = random_coord()
-        W[o, ch, r, c] = rng.randn()
+    for o in xrange(output_space.num_channels):
+        for i in xrange(num_nonzero):
+            ch, r, c = random_coord()
+            while W[ch, r, c, o] != 0:
+                ch, r, c = random_coord()
+            W[ch, r, c, o] = rng.randn()
 
-
-    W = sharedX( W)
+    W = sharedX(W)
 
     return Conv2D(filters = W,
-        batch_size = batch_size,
-        input_space = input_space,
+        input_axes = input_space.axes,
         output_axes = output_space.axes,
-        kernel_stride = kernel_stride, border_mode = border_mode,
-        filters_shape = W.get_value(borrow=True).shape, message = message)
+        kernel_stride = kernel_stride, pad=pad,
+        message = message, partial_sum=partial_sum)
 
-def setup_detector_layer_c01b(layer, input_space, rng, irange):
+def setup_detector_layer_c01b(layer, input_space, rng, irange= "not specified"):
     """
     Takes steps to set up an object for use as being some kind of convolutional layer.
     This function sets up only the detector layer.
@@ -284,7 +286,6 @@ def setup_detector_layer_c01b(layer, input_space, rng, irange):
 
     rng: a numpy RandomState or equivalent
 
-    irange: float. kernel elements are initialized randomly from U(-irange, irange)
 
     Does the following:
         raises a RuntimeError if cuda is not available
@@ -298,6 +299,15 @@ def setup_detector_layer_c01b(layer, input_space, rng, irange):
         sets layer.transformer to be a Conv2D instance
         sets layer.b to the right value
     """
+
+    if irange != "not specified":
+        raise AssertionError("There was a bug in setup_detector_layer_c01b."
+                "It uses layer.irange instead of the irange parameter to the "
+                "function. The irange parameter is now disabled by this "
+                "AssertionError, so that this error message can alert you that "
+                "the bug affected your code and explain why the interface is "
+                "changing. The irange parameter to the function and this "
+                "error message may be removed after April 21, 2014.")
 
     # Use "self" to refer to layer from now on, so we can pretend we're just running
     # in the set_input_space method of the layer
@@ -369,17 +379,29 @@ def setup_detector_layer_c01b(layer, input_space, rng, irange):
         partial_sum = 1
 
 
-    self.transformer = make_random_conv2D(
-          irange = self.irange,
-          input_axes = self.input_space.axes,
-          output_axes = self.detector_space.axes,
-          input_channels = self.dummy_space.num_channels,
-          output_channels = self.detector_space.num_channels,
-          kernel_shape = self.kernel_shape,
-          pad = self.pad,
-          partial_sum = partial_sum,
-          kernel_stride = kernel_stride,
-          rng = rng)
+    if hasattr(self, 'sparse_init') and self.sparse_init is not None:
+        self.transformer = checked_call(make_sparse_random_conv2D,
+             OrderedDict([
+              ('num_nonzero', self.sparse_init),
+              ('input_space', self.input_space),
+              ('output_space', self.detector_space),
+              ('kernel_shape', self.kernel_shape),
+              ('pad', self.pad),
+              ('partial_sum', partial_sum),
+              ('kernel_stride', kernel_stride),
+              ('rng', rng)]))
+    else:
+        self.transformer = make_random_conv2D(
+              irange = self.irange,
+              input_axes = self.input_space.axes,
+              output_axes = self.detector_space.axes,
+              input_channels = self.dummy_space.num_channels,
+              output_channels = self.detector_space.num_channels,
+              kernel_shape = self.kernel_shape,
+              pad = self.pad,
+              partial_sum = partial_sum,
+              kernel_stride = kernel_stride,
+              rng = rng)
 
     W, = self.transformer.get_params()
     W.name = self.layer_name + '_W'

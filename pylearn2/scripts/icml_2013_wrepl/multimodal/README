@@ -39,7 +39,7 @@ python lcn.py public_test
    Dataset after the same local contrast normalization preprocessing. The
    dictionary is available at this link:
 
-   http://www-etud.iro.umontreal.ca/~goodfeli/lcn_means.npy
+   http://www-etud.iro.umontreal.ca/~lisa/mlc2013/lcn_means.npy
 
    Save the downloaded file in 'multimodal', the same directory as this
    README.
@@ -54,7 +54,7 @@ python lcn.py public_test
 4. Download a k-means dictionary that was trained on patches of these k-means feature
    maps. The dictionary is available at this link:
 
-   http://www-etud.iro.umontreal.ca/~goodfeli/l1_means.npy
+   http://www-etud.iro.umontreal.ca/~lisa/mlc2013/l1_means.npy
 
    Save the downloaded file in 'multimodal', the same directory as this
    README.
@@ -77,7 +77,12 @@ python lcn.py public_test
    words appearing given the BOVW for each image. The last layer of this MLP was
    pretrained by training an RBM on the tags in the ESP Game dataset.
 
-   http://www-etud.iro.umontreal.ca/~goodfeli/mlp.pkl
+   The two files are the same, but one is for CPU and one is for GPU. Download
+   the format for the compute device you prefer to work with and rename it to
+   mlp.pkl:
+
+   http://www-etud.iro.umontreal.ca/~lisa/mlc2013/mlp_gpu.pkl
+   http://www-etud.iro.umontreal.ca/~lisa/mlc2013/mlp_cpu.pkl
 
 8. Run the MLP on the extracted features to make your submission:
 
@@ -86,9 +91,10 @@ python lcn.py public_test
    This creates a file called "submission.csv" which may be uploaded to kaggle.com
    to be evaluated.
 
-9. Download a collection of 4,000 logistic regression models that do the same task.
-   
-   http://www-etud.iro.umontreal.ca/~goodfeli/logreg_best.pkl
+9. Download a collection of 4,000 logistic regression models that do the same task. Choose either the CPU or GPU version and rename it to logreg_best.pkl after downloading.
+
+   http://www-etud.iro.umontreal.ca/~lisa/mlc2013/logreg_best_cpu.pkl
+   http://www-etud.iro.umontreal.ca/~lisa/mlc2013/logreg_best_gpu.pkl
 
 10. Run the logistic regression models on the extracted features to make your submission:
 

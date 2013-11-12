@@ -27,7 +27,6 @@ __maintainer__ = "Ian Goodfellow"
 import warnings
 
 import numpy as np
-from theano import config
 from theano.compat.python2x import OrderedDict
 from theano.gof.op import get_debug_values
 from theano.sandbox import cuda
@@ -56,6 +55,9 @@ class Maxout(Layer):
     "Maxout Networks" Ian J. Goodfellow, David Warde-Farley,
     Mehdi Mirza, Aaron Courville, and Yoshua Bengio. ICML 2013
     """
+
+    def __str__(self):
+        return "Maxout"
 
     def __init__(self,
                  layer_name,
@@ -604,8 +606,7 @@ class MaxoutConvC01B(Layer):
 
         setup_detector_layer_c01b(layer=self,
                 input_space=space,
-                rng=self.mlp.rng,
-                irange=self.irange)
+                rng=self.mlp.rng)
 
         rng = self.mlp.rng
 

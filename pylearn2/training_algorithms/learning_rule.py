@@ -8,6 +8,7 @@ from pylearn2.space import NullSpace
 from pylearn2.train_extensions import TrainExtension
 from pylearn2.utils import sharedX
 
+
 class LearningRule():
     """
     A pylearn2 learning rule is an object which computes new parameter values
@@ -44,21 +45,23 @@ class LearningRule():
         values after a single iteration of the learning rule.
 
         e.g. for standard SGD, one would return `sgd_rule_updates` defined
-        below. Note that such a LearningRule object is not implemented, as these
-        updates are implemented by default when the `learning_rule` parameter
-        of sgd.SGD.__init__ is None.
+        below. Note that such a LearningRule object is not implemented, as
+        these updates are implemented by default when the `learning_rule`
+        parameter of sgd.SGD.__init__ is None.
 
             sgd_rule_updates = OrderedDict()
             for (param, grad) in grads.iteritems():
-                sgd_rule_updates[k] = param - learning_rate * lr_scalers.get(param, 1.) * grad
+                sgd_rule_updates[k] = param - learning_rate *
+                lr_scalers.get(param, 1.) * grad
         """
         raise NotImplementedError()
 
 
 class Momentum(LearningRule):
     """
-    Implements momentum as described in Section 9 of 
-    "A Practical Guide to Training Restricted Boltzmann Machines", Geoffrey Hinton.
+    Implements momentum as described in Section 9 of
+    "A Practical Guide to Training Restricted Boltzmann Machines",
+    Geoffrey Hinton.
 
     Parameters are updated by the formula:
     inc := momentum * inc - learning_rate * d cost / d param
@@ -77,11 +80,11 @@ class Momentum(LearningRule):
 
     def add_channels_to_monitor(self, monitor, monitoring_dataset):
         monitor.add_channel(
-                name='momentum',
-                ipt=None,
-                val=self.momentum,
-                data_specs=(NullSpace(), ''),
-                dataset=monitoring_dataset)
+            name='momentum',
+            ipt=None,
+            val=self.momentum,
+            data_specs=(NullSpace(), ''),
+            dataset=monitoring_dataset)
 
     def get_updates(self, learning_rate, grads, lr_scalers=None):
 
@@ -89,10 +92,13 @@ class Momentum(LearningRule):
 
         for (param, grad) in grads.iteritems():
             inc = sharedX(param.get_value() * 0.)
+            assert param.dtype == inc.dtype
+            assert grad.dtype == param.dtype
             if param.name is not None:
                 inc.name = 'inc_'+param.name
             updated_inc = self.momentum * inc -\
-                          learning_rate * lr_scalers.get(param, 1.) * grad
+                learning_rate * lr_scalers.get(param, 1.) * grad
+            assert updated_inc.dtype == inc.dtype
             updates[inc] = updated_inc
             updates[param] = param + updated_inc
 
@@ -146,8 +152,6 @@ class MomentumAdjustor(TrainExtension):
         if alpha > 1.:
             alpha = 1.
         return self._init_momentum * (1.-alpha)+alpha*self.final_momentum
-
-
 
 
 class AdaDelta(LearningRule):
@@ -205,5 +209,5 @@ class AdaDelta(LearningRule):
             updates[mean_square_grad] = new_mean_squared_grad
             updates[mean_square_dx] = new_mean_square_dx
             updates[param] = param + delta_x_t
-        
+
         return updates

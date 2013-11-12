@@ -13,6 +13,7 @@ __email__ = "goodfeli@iro"
 
 import copy
 import logging
+import time
 import warnings
 import numpy as np
 try:
@@ -956,17 +957,20 @@ class ZCA(Preprocessor):
         X -= self.mean_
         # TODO: logging
         print 'computing zca'
-        eigs, eigv = linalg.eigh(np.dot(X.T, X) / X.shape[0])
-        print 'done with eigh'
+        t1 = time.time()
+        eigs, eigv = linalg.eigh(np.dot(X.T, X) / X.shape[0] + self.filter_bias * np.identity(X.shape[1]))
+        t2 = time.time()
+        print "cov estimate + eigh took",t2-t1,"seconds"
         assert not np.any(np.isnan(eigs))
         assert not np.any(np.isnan(eigv))
+        assert eigs.min() > 0
         if self.n_components:
             eigs = eigs[:self.n_components]
             eigv = eigv[:, :self.n_components]
         if self.n_drop_components:
             eigs = eigs[self.n_drop_components:]
             eigv = eigv[:, self.n_drop_components:]
-        self.P_ = np.dot(eigv * np.sqrt(1.0 / (eigs + self.filter_bias)),
+        self.P_ = np.dot(eigv * np.sqrt(1.0 / eigs),
                          eigv.T)
         # print 'zca components'
         # print np.square(self.P_).sum(axis=0)
