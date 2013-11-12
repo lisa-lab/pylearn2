@@ -77,10 +77,14 @@
         # takes.  Here we use fairly big steps initially because we have a
         # learning rate adjustment scheme that will scale them down if
         # necessary.
-        learning_rate : 1e-1,
+#        learning_rate : 1e-1,
+#        learning_rate : 5e-2,
+        learning_rate : 2.5e-2,
 
         # Each gradient step will be based on this many examples
-        batch_size : 5,
+#        batch_size : 5,
+#        batch_size : 10,
+        batch_size : 20,
 
         # We'll monitor our progress by looking at the first 20 batches of the
         # training dataset. This is an estimate of the training error. To be
@@ -119,7 +123,8 @@
 
         termination_criterion : !obj:pylearn2.termination_criteria.MonitorBased {
             prop_decrease : 0.01,
-            N : 1,
+#            N : 1,
+            N : 10,
         },
 
         # Let's throw a learning rate adjuster into the training algorithm.
@@ -132,7 +137,14 @@
         # This is not a very mathematically principled approach, but it works
         # well in practice.
         },
-    extensions : [!obj:pylearn2.training_algorithms.sgd.MonitorBasedLRAdjuster {}],
+    extensions : [
+#!obj:pylearn2.training_algorithms.sgd.MonitorBasedLRAdjuster {}, 
+    !obj:save_on_epoch.SaveOnEpoch {
+    output_dir : "epoch_snapshots",
+    save_models : False,
+    save_images : True
+    }],
+
     #Finally, request that the model be saved after each epoch
     save_freq : 1
 }
