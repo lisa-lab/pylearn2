@@ -166,7 +166,7 @@ class DenseDesignMatrix(Dataset):
             if targets:
                 assert self.y is not None
                 y_space = self.data_specs[0].components[1]
-                space = (X_space, y_space)
+                space = CompositeSpace((X_space, y_space))
                 source = ('features', 'targets')
             else:
                 space = X_space
