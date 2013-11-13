@@ -51,13 +51,11 @@ class Test_DiagonalMND:
             kl = function([],kl)()
 
             tol = 1e-7
-            if kl > tol:
+            # Second part of the check handles cases where kl is None, etc.
+            if kl > tol or not (kl <= tol):
                 raise AssertionError("KL divergence between two "
                         "equivalent models should be 0 but is "+
                         str(kl))
-            #second check because the above evaluates to False
-            #if kl is None, etc.
-            assert kl <= tol
 
     def test_nonnegative_samples(self):
         """ checks that the kl divergence is non-negative
