@@ -1,0 +1,13 @@
+!obj:pylearn2.sandbox.lisa_rl.bandit.simulator.Simulator {
+    environment: !obj:pylearn2.sandbox.lisa_rl.bandit.gaussian_bandit.GaussianBandit {
+        num_arms: &num_arms 10,
+        std_std: .01
+    },
+    agent: !obj:pylearn2.sandbox.lisa_rl.bandit.average_agent.AverageAgent {
+        # Optimistic initialization to encourage exploration
+        init_reward_estimate: 5.,
+        num_arms: *num_arms
+    },
+    algorithm: !obj:pylearn2.sandbox.lisa_rl.bandit.algorithm.Algorithm {},
+    save_path: "experiments/basic_bandit_002.pkl"
+}
