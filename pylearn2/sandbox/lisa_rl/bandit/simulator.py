@@ -12,10 +12,11 @@ class Simulator(object):
         self.algorithm.setup(agent=self.agent, environment=self.environment)
         i = 0
         while True:
-            rval = self.algorithm.train(environment=self.environment)
+            rval = self.algorithm.train()
             assert rval is None
             i += 1
-            if i == 1000:
+            if i % 1000 == 0:
                 serial.save(self.save_path, self.agent)
+                print 'saved!'
 
 

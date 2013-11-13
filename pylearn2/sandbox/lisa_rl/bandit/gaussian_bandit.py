@@ -35,6 +35,6 @@ class GaussianBandit(Environment):
         reward_mean = self.means[action]
         reward_std = self.stds[action]
         reward = self.theano_rng.normal(avg=reward_mean, std=reward_std,
-                dtype=config.floatX, size=())
+                dtype=config.floatX, size=reward_mean.shape)
         rval = function([action], reward)
         return rval
