@@ -172,7 +172,7 @@ class WeightActs(BaseActs):
         const int hidGradsSizeX = hid_grads_dims[2];
         const int numModules = hidGradsSizeX * hidGradsSizeY;
         int partialSum = %(partial_sum)d > 0 ? %(partial_sum)d : numModules;
-        if (numModules %% partialSum > 0) {
+        if ( numModules - (numModules / partialSum) * partialSum != 0) {
             PyErr_Format(PyExc_ValueError,
                 "partialSum must divide numModules, but partialSum=%%d and "
                 "numModules=%%d", partialSum, numModules);
@@ -378,4 +378,4 @@ class WeightActs(BaseActs):
         return rval
 
     def c_code_cache_version(self):
-        return (6,)
+        return (7,)
