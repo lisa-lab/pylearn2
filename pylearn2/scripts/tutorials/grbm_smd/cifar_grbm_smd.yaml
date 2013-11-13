@@ -139,10 +139,10 @@
         },
     extensions : [
 #!obj:pylearn2.training_algorithms.sgd.MonitorBasedLRAdjuster {}, 
-    !obj:save_on_epoch.SaveOnEpoch {
-    output_dir : "epoch_snapshots",
-    save_models : False,
-    save_images : True
+    !obj:mkg.pylearn2.train_extensions.SaveOnEpoch {
+      output_dir : "epoch_snapshots",
+      save_models : False,
+      save_images : True
     }],
 
     #Finally, request that the model be saved after each epoch
