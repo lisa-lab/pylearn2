@@ -697,7 +697,7 @@ class DenseDesignMatrix(Dataset):
         init_space, source = self.data_specs
         X_space, init_y_space = init_space.components
         new_y_space = VectorSpace(dim=num_classes)
-        new_space = CompositeSpace(X_space, new_y_space)
+        new_space = CompositeSpace((X_space, new_y_space))
         self.data_specs = (new_space, source)
 
     def adjust_for_viewer(self, X):
