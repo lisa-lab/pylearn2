@@ -172,6 +172,9 @@ class WeightActs(BaseActs):
         const int hidGradsSizeX = hid_grads_dims[2];
         const int numModules = hidGradsSizeX * hidGradsSizeY;
         int partialSum = %(partial_sum)d > 0 ? %(partial_sum)d : numModules;
+        
+        // using this expression instead of numModules %% partialSum
+        // because nvcc+msvc9 yield a strange behaviour when using %%
         if ( numModules - (numModules / partialSum) * partialSum != 0) {
             PyErr_Format(PyExc_ValueError,
                 "partialSum must divide numModules, but partialSum=%%d and "
