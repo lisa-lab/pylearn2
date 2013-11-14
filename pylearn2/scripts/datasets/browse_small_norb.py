@@ -1,10 +1,10 @@
 #! /usr/bin/python
 
+import sys, argparse
+import numpy
+from matplotlib import pyplot
 from pylearn2.datasets import norb
 
-import sys, argparse
-from matplotlib import pyplot
-import numpy as N
 
 def main():
     def parse_args():
@@ -26,15 +26,14 @@ def main():
                                     topo = True, 
                                     targets = True)
         values, labels = iterator.next()
-        return values, N.array(labels, 'int')
+        return values, numpy.array(labels, 'int')
 
     args = parse_args()
     values, labels = get_data(args.which_set)
 
-    #
-    # For convenience, remap the instance labels to be 0:4,
-    # and the azimuth labels to be 0:17
-    #
+    # For programming convenience, internally remap the instance labels to be
+    # 0-4, and the azimuth labels to be 0-17. The user will still only see the
+    # original, unmodified label values.
 
     instance_index = norb.SmallNORB.label_type_to_index['instance']
 
@@ -45,18 +44,18 @@ def main():
             new_to_old_instance = [0, 1, 2, 3, 5]
 
         num_instances = len(new_to_old_instance)
-        old_to_new_instance = N.ndarray(10, 'int')
+        old_to_new_instance = numpy.ndarray(10, 'int')
         old_to_new_instance.fill(-1)
-        old_to_new_instance[new_to_old_instance] = N.arange(num_instances)
+        old_to_new_instance[new_to_old_instance] = numpy.arange(num_instances)
 
-        instance_slice = N.index_exp[:, instance_index]
+        instance_slice = numpy.index_exp[:, instance_index]
         old_instances = labels[instance_slice]
 
         new_instances = old_to_new_instance[old_instances]
         labels[instance_slice] = new_instances
 
         azimuth_index = norb.SmallNORB.label_type_to_index['azimuth']
-        azimuth_slice = N.index_exp[:, azimuth_index]
+        azimuth_slice = numpy.index_exp[:, azimuth_index]
         labels[azimuth_slice] = labels[azimuth_slice] / 2
 
         return new_to_old_instance
@@ -67,16 +66,16 @@ def main():
         return 20 * scalar_label;
     
     # Maps a label vector to the corresponding index in <values>
-    num_labels_by_type = N.array(norb.SmallNORB.num_labels_by_type, 'int')
+    num_labels_by_type = numpy.array(norb.SmallNORB.num_labels_by_type, 'int')
     num_labels_by_type[instance_index] = len(new_to_old_instance)
 
-    label_to_index = N.ndarray(num_labels_by_type, 'int')
+    label_to_index = numpy.ndarray(num_labels_by_type, 'int')
     label_to_index.fill(-1)
 
     for i, label in enumerate(labels):
         label_to_index[tuple(label)] = i
 
-    assert not N.any(label_to_index == -1)  # all elements have been set
+    assert not numpy.any(label_to_index == -1)  # all elements have been set
 
     figure, axes = pyplot.subplots(1,2, squeeze=True)
 
@@ -87,7 +86,7 @@ def main():
     figure.subplots_adjust(bottom=0.05)
 
     num_label_types = len(norb.SmallNORB.num_labels_by_type)
-    current_labels = N.zeros(num_label_types, 'int')
+    current_labels = numpy.zeros(num_label_types, 'int')
     current_label_type = [0,]
 
     label_text = figure.suptitle("title text",
