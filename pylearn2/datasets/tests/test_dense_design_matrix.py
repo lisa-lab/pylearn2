@@ -23,6 +23,13 @@ def test_init_with_X_or_topo():
     X2 = d2.get_design_matrix(topo_view_3)
     assert np.allclose(X,X2)
 
+def test_convert_to_one_hot():
+    rng = np.random.RandomState([2013, 11, 14])
+    m = 11
+    d = DenseDesignMatrix(
+            X=rng.randn(m, 4),
+            y=rng.randint(low=0, high=10, size=(m,)))
+    d.convert_to_one_hot()
 
 def test_init_with_vc():
     rng = np.random.RandomState([4,5,6])
