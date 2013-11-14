@@ -675,8 +675,14 @@ class DenseDesignMatrix(Dataset):
 
         self.y = self.y - min_class
 
-        if self.y.min() != 0:
-            raise ValueError("Index of first class should be %d." % min_class)
+        if self.y.min() < 0:
+            raise ValueError("We do not support negative classes. You can use"
+                    "the min_class argument to remap negative classes to "
+                    "positive values, but we require this to be done"
+                    "explicitly so you are aware of the remapping.")
+        # Note: we don't check that the minimum occurring class is exactly 0,
+        # since this dataset could be just a small subset of a larger dataset
+        # and may not contain all the classes.
 
         num_classes = self.y.max() + 1
 
