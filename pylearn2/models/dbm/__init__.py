@@ -20,7 +20,7 @@ import sys
 import time
 import warnings
 
-
+import theano
 from theano.compat.python2x import OrderedDict
 from theano import config
 from theano import function
@@ -32,7 +32,13 @@ import theano.tensor as T
 
 from pylearn2.expr.nnet import inverse_sigmoid_numpy
 from pylearn2.expr.nnet import sigmoid_numpy
+from pylearn2.expr.probabilistic_max_pooling import max_pool
+from pylearn2.expr.probabilistic_max_pooling import max_pool_b01c
+from pylearn2.expr.probabilistic_max_pooling import max_pool_c01b
 from pylearn2.expr.probabilistic_max_pooling import max_pool_channels
+from pylearn2.linear.conv2d import make_random_conv2D
+from pylearn2.linear.conv2d import make_sparse_random_conv2D
+from pylearn2.linear.conv2d_c01b import setup_detector_layer_c01b
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.models.model import Model
 from pylearn2.base import Block
@@ -4821,7 +4827,7 @@ class UpDown(InferenceProcedure):
         """
 
         if Y is not None:
-            assert isinstance(self.hidden_layers[-1], dbm.Softmax)
+            assert isinstance(self.hidden_layers[-1], Softmax)
 
         model = self.dbm
 
