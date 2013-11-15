@@ -171,6 +171,14 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
               see if your particular type of subtensor is supported.
               """
 
+            def readNums(file_handle, num_type, count):
+                """
+                Reads 4 bytes from file, returns it as a 32-bit integer.
+                """
+                num_bytes = count * numpy.dtype(num_type).itemsize
+                string = file_handle.read(num_bytes)
+                return numpy.fromstring(string, dtype = num_type)
+
             def readHeader(file_handle, debug=False, from_gzip=None):
                 """
                 :param file_handle: an open file handle. 
@@ -181,14 +189,6 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
                 :returns: data type, element size, rank, shape, size
                 """
-
-                def readNums(file_handle, num_type, count):
-                    """
-                    Reads 4 bytes from file, returns it as a 32-bit integer.
-                    """
-                    num_bytes = count * numpy.dtype(num_type).itemsize
-                    string = file_handle.read(num_bytes)
-                    return numpy.fromstring(string, dtype = num_type)
 
                 if from_gzip is None:
                     from_gzip = isinstance(file_handle,
@@ -206,7 +206,7 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
                 elem_type, elem_size = key_to_type[type_key]
                 if debug: 
                     print "header's type key, type, type size: ", \
-                        magic, elem_type, elem_size
+                        type_key, elem_type, elem_size
                 if elem_type == 'packed matrix':
                     raise NotImplementedError('packed matrix not supported')
 
