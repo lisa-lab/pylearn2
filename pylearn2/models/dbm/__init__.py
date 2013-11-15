@@ -3965,33 +3965,39 @@ class SuperWeightDoubling(WeightDoubling):
     def do_inpainting(self, V, Y = None, drop_mask = None, drop_mask_Y = None,
             return_history = False, noise = False, niter = None, block_grad = None):
         """
-            Gives the mean field expression for units masked out by drop_mask.
-            Uses self.niter mean field updates.
+        If you use this method in your research work, please cite:
 
-            Comes in two variants, unsupervised and supervised:
-                unsupervised:
-                    Y and drop_mask_Y are not passed to the method.
-                    The method produces V_hat, an inpainted version of V
-                supervised:
-                    Y and drop_mask_Y are passed to the method.
-                    The method produces V_hat and Y_hat
+            Multi-prediction deep Boltzmann machines. Ian J. Goodfellow, Mehdi Mirza,
+            Aaron Courville, and Yoshua Bengio. NIPS 2013.
 
-            V: a theano batch in model.input_space
-            Y: a theano batch in model.output_space, ie, in the output
-                space of the last hidden layer
-                (it's not really a hidden layer anymore, but oh well.
-                it's convenient to code it this way because the labels
-                are sort of "on top" of everything else)
-                *** Y is always assumed to be a matrix of one-hot category
-                labels. ***
-            drop_mask: a theano batch in model.input_space
-                Should be all binary, with 1s indicating that the corresponding
-                element of X should be "dropped", ie, hidden from the algorithm
-                and filled in as part of the inpainting process
-            drop_mask_Y: a theano vector
-                Since we assume Y is a one-hot matrix, each row is a single
-                categorical variable. drop_mask_Y is a binary mask specifying
-                which *rows* to drop.
+
+        Gives the mean field expression for units masked out by drop_mask.
+        Uses self.niter mean field updates.
+
+        Comes in two variants, unsupervised and supervised:
+            unsupervised:
+                Y and drop_mask_Y are not passed to the method.
+                The method produces V_hat, an inpainted version of V
+            supervised:
+                Y and drop_mask_Y are passed to the method.
+                The method produces V_hat and Y_hat
+
+        V: a theano batch in model.input_space
+        Y: a theano batch in model.output_space, ie, in the output
+            space of the last hidden layer
+            (it's not really a hidden layer anymore, but oh well.
+            it's convenient to code it this way because the labels
+            are sort of "on top" of everything else)
+            *** Y is always assumed to be a matrix of one-hot category
+            labels. ***
+        drop_mask: a theano batch in model.input_space
+            Should be all binary, with 1s indicating that the corresponding
+            element of X should be "dropped", ie, hidden from the algorithm
+            and filled in as part of the inpainting process
+        drop_mask_Y: a theano vector
+            Since we assume Y is a one-hot matrix, each row is a single
+            categorical variable. drop_mask_Y is a binary mask specifying
+            which *rows* to drop.
         """
 
         dbm = self.dbm
@@ -4218,33 +4224,38 @@ class MoreConsistent2(WeightDoubling):
     def do_inpainting(self, V, Y = None, drop_mask = None, drop_mask_Y = None,
             return_history = False, noise = False, niter = None, block_grad = None):
         """
-            Gives the mean field expression for units masked out by drop_mask.
-            Uses self.niter mean field updates.
+        If you use this method in your research work, please cite:
 
-            Comes in two variants, unsupervised and supervised:
-                unsupervised:
-                    Y and drop_mask_Y are not passed to the method.
-                    The method produces V_hat, an inpainted version of V
-                supervised:
-                    Y and drop_mask_Y are passed to the method.
-                    The method produces V_hat and Y_hat
+            Multi-prediction deep Boltzmann machines. Ian J. Goodfellow, Mehdi Mirza,
+            Aaron Courville, and Yoshua Bengio. NIPS 2013.
 
-            V: a theano batch in model.input_space
-            Y: a theano batch in model.output_space, ie, in the output
-                space of the last hidden layer
-                (it's not really a hidden layer anymore, but oh well.
-                it's convenient to code it this way because the labels
-                are sort of "on top" of everything else)
-                *** Y is always assumed to be a matrix of one-hot category
-                labels. ***
-            drop_mask: a theano batch in model.input_space
-                Should be all binary, with 1s indicating that the corresponding
-                element of X should be "dropped", ie, hidden from the algorithm
-                and filled in as part of the inpainting process
-            drop_mask_Y: a theano vector
-                Since we assume Y is a one-hot matrix, each row is a single
-                categorical variable. drop_mask_Y is a binary mask specifying
-                which *rows* to drop.
+        Gives the mean field expression for units masked out by drop_mask.
+        Uses self.niter mean field updates.
+
+        Comes in two variants, unsupervised and supervised:
+            unsupervised:
+                Y and drop_mask_Y are not passed to the method.
+                The method produces V_hat, an inpainted version of V
+            supervised:
+                Y and drop_mask_Y are passed to the method.
+                The method produces V_hat and Y_hat
+
+        V: a theano batch in model.input_space
+        Y: a theano batch in model.output_space, ie, in the output
+            space of the last hidden layer
+            (it's not really a hidden layer anymore, but oh well.
+            it's convenient to code it this way because the labels
+            are sort of "on top" of everything else)
+            *** Y is always assumed to be a matrix of one-hot category
+            labels. ***
+        drop_mask: a theano batch in model.input_space
+            Should be all binary, with 1s indicating that the corresponding
+            element of X should be "dropped", ie, hidden from the algorithm
+            and filled in as part of the inpainting process
+        drop_mask_Y: a theano vector
+            Since we assume Y is a one-hot matrix, each row is a single
+            categorical variable. drop_mask_Y is a binary mask specifying
+            which *rows* to drop.
         """
 
         dbm = self.dbm
@@ -4544,33 +4555,37 @@ class BiasInit(InferenceProcedure):
     def do_inpainting(self, V, Y = None, drop_mask = None, drop_mask_Y = None,
             return_history = False, noise = False, niter = None, block_grad = None):
         """
-            Gives the mean field expression for units masked out by drop_mask.
-            Uses self.niter mean field updates.
+        If you use this method in your research work, please cite:
 
-            Comes in two variants, unsupervised and supervised:
-                unsupervised:
-                    Y and drop_mask_Y are not passed to the method.
-                    The method produces V_hat, an inpainted version of V
-                supervised:
-                    Y and drop_mask_Y are passed to the method.
-                    The method produces V_hat and Y_hat
+            Multi-prediction deep Boltzmann machines. Ian J. Goodfellow, Mehdi Mirza,
+            Aaron Courville, and Yoshua Bengio. NIPS 2013.
+        Gives the mean field expression for units masked out by drop_mask.
+        Uses self.niter mean field updates.
 
-            V: a theano batch in model.input_space
-            Y: a theano batch in model.output_space, ie, in the output
-                space of the last hidden layer
-                (it's not really a hidden layer anymore, but oh well.
-                it's convenient to code it this way because the labels
-                are sort of "on top" of everything else)
-                *** Y is always assumed to be a matrix of one-hot category
-                labels. ***
-            drop_mask: a theano batch in model.input_space
-                Should be all binary, with 1s indicating that the corresponding
-                element of X should be "dropped", ie, hidden from the algorithm
-                and filled in as part of the inpainting process
-            drop_mask_Y: a theano vector
-                Since we assume Y is a one-hot matrix, each row is a single
-                categorical variable. drop_mask_Y is a binary mask specifying
-                which *rows* to drop.
+        Comes in two variants, unsupervised and supervised:
+            unsupervised:
+                Y and drop_mask_Y are not passed to the method.
+                The method produces V_hat, an inpainted version of V
+            supervised:
+                Y and drop_mask_Y are passed to the method.
+                The method produces V_hat and Y_hat
+
+        V: a theano batch in model.input_space
+        Y: a theano batch in model.output_space, ie, in the output
+            space of the last hidden layer
+            (it's not really a hidden layer anymore, but oh well.
+            it's convenient to code it this way because the labels
+            are sort of "on top" of everything else)
+            *** Y is always assumed to be a matrix of one-hot category
+            labels. ***
+        drop_mask: a theano batch in model.input_space
+            Should be all binary, with 1s indicating that the corresponding
+            element of X should be "dropped", ie, hidden from the algorithm
+            and filled in as part of the inpainting process
+        drop_mask_Y: a theano vector
+            Since we assume Y is a one-hot matrix, each row is a single
+            categorical variable. drop_mask_Y is a binary mask specifying
+            which *rows* to drop.
         """
 
         dbm = self.dbm
@@ -4797,33 +4812,38 @@ class UpDown(InferenceProcedure):
     def do_inpainting(self, V, Y = None, drop_mask = None, drop_mask_Y = None,
             return_history = False, noise = False, niter = None, block_grad = None):
         """
-            Gives the mean field expression for units masked out by drop_mask.
-            Uses self.niter mean field updates.
+        If you use this method in your research work, please cite:
 
-            Comes in two variants, unsupervised and supervised:
-                unsupervised:
-                    Y and drop_mask_Y are not passed to the method.
-                    The method produces V_hat, an inpainted version of V
-                supervised:
-                    Y and drop_mask_Y are passed to the method.
-                    The method produces V_hat and Y_hat
+            Multi-prediction deep Boltzmann machines. Ian J. Goodfellow, Mehdi Mirza,
+            Aaron Courville, and Yoshua Bengio. NIPS 2013.
 
-            V: a theano batch in model.input_space
-            Y: a theano batch in model.output_space, ie, in the output
-                space of the last hidden layer
-                (it's not really a hidden layer anymore, but oh well.
-                it's convenient to code it this way because the labels
-                are sort of "on top" of everything else)
-                *** Y is always assumed to be a matrix of one-hot category
-                labels. ***
-            drop_mask: a theano batch in model.input_space
-                Should be all binary, with 1s indicating that the corresponding
-                element of X should be "dropped", ie, hidden from the algorithm
-                and filled in as part of the inpainting process
-            drop_mask_Y: a theano vector
-                Since we assume Y is a one-hot matrix, each row is a single
-                categorical variable. drop_mask_Y is a binary mask specifying
-                which *rows* to drop.
+        Gives the mean field expression for units masked out by drop_mask.
+        Uses self.niter mean field updates.
+
+        Comes in two variants, unsupervised and supervised:
+            unsupervised:
+                Y and drop_mask_Y are not passed to the method.
+                The method produces V_hat, an inpainted version of V
+            supervised:
+                Y and drop_mask_Y are passed to the method.
+                The method produces V_hat and Y_hat
+
+        V: a theano batch in model.input_space
+        Y: a theano batch in model.output_space, ie, in the output
+            space of the last hidden layer
+            (it's not really a hidden layer anymore, but oh well.
+            it's convenient to code it this way because the labels
+            are sort of "on top" of everything else)
+            *** Y is always assumed to be a matrix of one-hot category
+            labels. ***
+        drop_mask: a theano batch in model.input_space
+            Should be all binary, with 1s indicating that the corresponding
+            element of X should be "dropped", ie, hidden from the algorithm
+            and filled in as part of the inpainting process
+        drop_mask_Y: a theano vector
+            Since we assume Y is a one-hot matrix, each row is a single
+            categorical variable. drop_mask_Y is a binary mask specifying
+            which *rows* to drop.
         """
 
         if Y is not None:

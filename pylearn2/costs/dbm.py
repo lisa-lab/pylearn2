@@ -646,6 +646,12 @@ class WeightDecay(Cost):
 
 
 class MultiPrediction(Cost):
+    """
+    If you use this class in your research work, please cite:
+
+    Multi-prediction deep Boltzmann machines. Ian J. Goodfellow, Mehdi Mirza,
+    Aaron Courville, and Yoshua Bengio. NIPS 2013.
+    """
     def __init__(self,
             monitor_multi_inference = False,
                     mask_gen = None,
