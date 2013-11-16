@@ -3,6 +3,7 @@ Test LpPenalty cost
 """
 import os
 import numpy
+import theano
 from nose.tools import raises
 from pylearn2.models.mlp import Linear
 from pylearn2.models.mlp import Softmax
@@ -16,120 +17,29 @@ from pylearn2.termination_criteria import EpochCounter
 from pylearn2.train import Train
 
 
-def test_shared_variables():
-    '''
-    LpPenalty should handle shared variables.
-    '''
+def test_correctness():
     model = MLP(
-        layers=[Linear(dim=100, layer_name='linear', irange=1.0),
-                Softmax(n_classes=10, layer_name='softmax', irange=1.0)],
+        layers=[Linear(dim=10, layer_name='linear', irange=1.0),
+                Softmax(n_classes=2, layer_name='softmax', irange=1.0)],
         batch_size=10,
-        nvis=50
+        nvis=10
     )
 
-    dataset = datasets.random_one_hot_dense_design_matrix(
-        rng=numpy.random.RandomState(1876),
-        num_examples=100,
-        dim=50,
-        num_classes=10
-    )
+    cost = LpPenalty(variables=model.get_params(), p=2)
 
-    cost = SumOfCosts([NegativeLogLikelihood(),
-                       LpPenalty(variables=model.get_params(), p=2)])
+    penalty = cost.expr(model, None)
 
-    algorithm = SGD(
-        learning_rate=0.01,
-        cost=cost, batch_size=10,
-        monitoring_dataset=dataset,
-        termination_criterion=EpochCounter(1)
-    )
+    penalty_function = theano.function(inputs=[], outputs=penalty)
 
-    trainer = Train(
-        dataset=dataset,
-        model=model,
-        algorithm=algorithm
-    )
+    p = penalty_function()
 
-    trainer.main_loop()
+    actual_p = 0
+    for param in model.get_params():
+        actual_p += numpy.sum(param.get_value() ** 2)
 
+    assert numpy.allclose(p, actual_p)
 
-def test_symbolic_expressions_of_shared_variables():
-    '''
-    LpPenalty should handle symbolic expressions of shared variables.
-    '''
-    model = MLP(
-        layers=[Linear(dim=100, layer_name='linear', irange=1.0),
-                Softmax(n_classes=10, layer_name='softmax', irange=1.0)],
-        batch_size=10,
-        nvis=50
-    )
-
-    dataset = datasets.random_one_hot_dense_design_matrix(
-        rng=numpy.random.RandomState(1876),
-        num_examples=100,
-        dim=50,
-        num_classes=10
-    )
-
-    cost = SumOfCosts([NegativeLogLikelihood(),
-                       LpPenalty(variables=[param ** 2 for param in
-                                         model.get_params()],
-                              p=2)])
-
-    algorithm = SGD(
-        learning_rate=0.01,
-        cost=cost, batch_size=10,
-        monitoring_dataset=dataset,
-        termination_criterion=EpochCounter(1)
-    )
-
-    trainer = Train(
-        dataset=dataset,
-        model=model,
-        algorithm=algorithm
-    )
-
-    trainer.main_loop()
-
-
-@raises(Exception)
-def test_symbolic_variables():
-    '''
-    LpPenalty should not handle symbolic variables
-    '''
-    model = MLP(
-        layers=[Linear(dim=100, layer_name='linear', irange=1.0),
-                Softmax(n_classes=10, layer_name='softmax', irange=1.0)],
-        batch_size=10,
-        nvis=50
-    )
-
-    dataset = datasets.random_one_hot_dense_design_matrix(
-        rng=numpy.random.RandomState(1876),
-        num_examples=100,
-        dim=50,
-        num_classes=10
-    )
-
-    cost = SumOfCosts([NegativeLogLikelihood(), LpPenalty(variables=[], p=2)])
-
-    algorithm = SGD(
-        learning_rate=0.01,
-        cost=cost, batch_size=10,
-        monitoring_dataset=dataset,
-        termination_criterion=EpochCounter(1)
-    )
-
-    trainer = Train(
-        dataset=dataset,
-        model=model,
-        algorithm=algorithm
-    )
-
-    trainer.main_loop()
 
 
 if __name__ == '__main__':
-    test_shared_variables()
-    test_symbolic_expressions_of_shared_variables()
-    test_symbolic_variables()
+    test_correctness()
