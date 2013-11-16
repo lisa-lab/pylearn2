@@ -387,12 +387,6 @@ class VariationalCD(BaseCD):
             Contrastive Divergence
     """
 
-    def __init__(self, num_gibbs_steps, supervised=False, toronto_neg=False):
-        super(VariationalCD, self).__init__(num_chains=None,
-                                            num_gibbs_steps=num_gibbs_steps,
-                                            supervised=supervised,
-                                            toronto_neg=toronto_neg)
-
     def _get_positive_phase(self, model, X, Y=None):
         return self._get_variational_pos(model, X, Y), OrderedDict()
 
@@ -403,14 +397,9 @@ class VariationalCD(BaseCD):
                         = (sum_h sum_v - exp(-E(v,h)) d/d theta E(v,h) ) / Z
                         = - sum_h sum_v P(v,h)  d/d theta E(v,h)
         """
-        # Get the batch size in symbolic form
-        space = model.get_input_space()
-        num_examples = space.batch_size(X)
-
-
         layer_to_clamp = OrderedDict([(model.visible_layer, True)])
 
-        layer_to_chains = model.make_layer_to_symbolic_state(num_examples,
+        layer_to_chains = model.make_layer_to_symbolic_state(self.num_chains,
                                                              self.theano_rng)
         # The examples are used to initialize the visible layer's chains
         layer_to_chains[model.visible_layer] = X
@@ -446,7 +435,6 @@ class VariationalCD(BaseCD):
             neg_phase_grads = self._get_standard_neg(model, layer_to_chains)
 
         return neg_phase_grads, OrderedDict()
-
 
     def get_data_specs(self, model):
         if self.supervised:

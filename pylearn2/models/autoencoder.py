@@ -47,6 +47,9 @@ class Autoencoder(Block, Model):
             A value of 0 indicates that this block will be left partially
             initialized until later (e.g., when the dataset is loaded and
             its dimensionality is known)
+
+            Note: There is currently a bug when nvis is set to 0. For now,
+            you should not set nvis to 0.
         nhid : int
             Number of hidden units in this model.
         act_enc : callable or string
@@ -72,7 +75,7 @@ class Autoencoder(Block, Model):
             to initialize the model parameters.
         """
         super(Autoencoder, self).__init__()
-        assert nvis >= 0, "Number of visible units must be non-negative"
+        assert nvis > 0, "Number of visible units must be non-negative"
         assert nhid > 0, "Number of hidden units must be positive"
 
         self.input_space = VectorSpace(nvis)
@@ -96,7 +99,7 @@ class Autoencoder(Block, Model):
 
         seed = int(self.rng.randint(2 ** 30))
         self.s_rng = RandomStreams(seed)
-        if tied_weights:
+        if tied_weights and self.weights is not None:
             self.w_prime = self.weights.T
         else:
             self._initialize_w_prime(nvis)

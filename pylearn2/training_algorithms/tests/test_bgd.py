@@ -248,7 +248,7 @@ def test_fixed_vars():
 
     """
     A very basic test of the the fixed vars interface.
-    Checks that the costs' __call__ and get_gradients methods
+    Checks that the costs' expr and get_gradients methods
     are called with the right parameters and that the updates
     functions are called the right number of times.
     """

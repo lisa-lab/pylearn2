@@ -1,0 +1,132 @@
+.. _metadocumentation:
+
+==================================================
+Documentation Documentation AKA Meta-Documentation
+==================================================
+
+
+How to build documentation
+--------------------------
+
+Let's say you are writing documentation, and want to see the `sphinx
+<http://sphinx.pocoo.org/>`__ output before you push it.
+The documentation will be generated in the ``html`` directory.
+
+.. code-block:: bash
+
+    cd Pylearn2/
+    python ./doc/scripts/docgen.py
+
+If you don't want to generate the pdf, do the following:
+
+.. code-block:: bash
+
+    cd Pylearn2/
+    python ./doc/scripts/docgen.py --nopdf
+
+
+For more details:
+
+.. code-block:: bash
+
+   $ python doc/scripts/docgen.py --help
+   Usage: doc/scripts/docgen.py [OPTIONS]
+     -o <dir>: output the html files in the specified dir
+     --rst: only compile the doc (requires sphinx)
+     --nopdf: do not produce a PDF file from the doc, only HTML
+     --help: this help
+
+Use ReST for documentation
+--------------------------
+
+ * `ReST <http://docutils.sourceforge.net/rst.html>`__ is standardized.
+   epydoc is not. trac wiki-markup is not.
+   This means that ReST can be cut-and-pasted between epydoc, code, other
+   docs, and TRAC.  This is a huge win!
+ * ReST is extensible: we can write our own roles and directives to automatically link to WIKI, for example.
+ * ReST has figure and table directives, and can be converted (using a standard tool) to latex documents.
+ * No text documentation has good support for math rendering, but ReST is closest: it has three renderer-specific solutions (render latex, use latex to build images for html, use itex2mml to generate MathML)
+
+
+How to link to class/function documentations
+--------------------------------------------
+
+Link to the generated doc of a function this way::
+
+    :func:`perform`
+
+For example::
+
+    of the :func:`perform` function.
+
+Link to the generated doc of a class this way::
+
+    :class:`RopLop_checker`
+
+For example::
+
+    The class :class:`RopLop_checker`, give the functions
+
+
+However, if the link target is ambiguous, Sphinx will generate warning or errors.
+
+
+How to add TODO comments in Sphinx documentation
+-------------------------------------------------
+
+To include a TODO comment in Sphinx documentation, use an indented block as
+follows::
+
+    .. TODO: This is a comment.
+    .. You have to put .. at the beginning of every line :(
+    .. These lines should all be indented.
+
+It will not appear in the output generated.
+
+    .. TODO: Check it out, this won't appear.
+    .. Nor will this.
+
+
+How documentation is built on deeplearning.net
+----------------------------------------------
+
+The server that hosts the pylearn2 documentation runs a cron job roughly every
+2 hours that fetches a fresh Pylearn2 install (clone, not just pull) and
+executes the docgen.py script. It then over-writes the previous docs with the
+newly generated ones. 
+
+Note that the server will most definitely use a different version of sphinx
+than yours so formatting could be slightly off, or even wrong. If you're
+getting unxpected results and/or the auto-build of the documentation seems
+broken, please contact pylearn-dev@.
+
+In the future, we might go back to the system of auto-refresh on push (though
+that might increase the load of the server quite significantly).
+
+
+.. _metadocumentation_nightly_build:
+
+The nightly build/tests process
+---------------------------------------
+
+The user ``lisa`` runs a cronjob on the computer ``ceylon``,  this
+happens nightly. (To have the crontab executed, the ``lisa`` user must
+be logged into ``ceylon``, Fred leaves a shell open for that.)
+
+The cronjob executes the scripts
+``~/nightly_build/do_nightly_build_{theano,pylearn,deeplearning}``.
+These scripts perform an update of theano (and pylearn, and
+DeepLearningTutorials too), and executes nose (in various settings).
+
+The output is emailed automatically to the `theano-buildbot`_ mailing list.
+
+.. _theano-buildbot: https://groups.google.com/group/theano-buildbot
+
+
+TO WRITE
+---------------------------------------
+
+*There is other stuff to document here, e.g.:*
+
+ * We also want examples of good documentation, to show people how to write ReST.
+

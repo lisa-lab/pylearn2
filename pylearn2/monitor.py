@@ -20,6 +20,7 @@ import theano.sparse
 from pylearn2.config import yaml_parse
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.space import CompositeSpace, NullSpace
+from pylearn2.space import Space
 from pylearn2.utils import function
 from pylearn2.utils.iteration import is_stochastic
 from pylearn2.utils import sharedX
@@ -87,7 +88,9 @@ class Monitor(object):
         input_spaces = [m_space]
         input_sources = [m_source]
         for channel in self.channels.values():
-            input_spaces.append(channel.data_specs[0])
+            space = channel.data_specs[0]
+            assert isinstance(space, Space)
+            input_spaces.append(space)
             input_sources.append(channel.data_specs[1])
 
         nested_space = CompositeSpace(input_spaces)
@@ -711,7 +714,8 @@ class Monitor(object):
         mapping = DataSpecsMapping((nested_space, nested_sources))
         space_tuple = mapping.flatten(nested_space, return_tuple=True)
         source_tuple = mapping.flatten(nested_sources, return_tuple=True)
-        ipt = tuple(space.make_theano_batch(name='monitor_%s' % source)
+        ipt = tuple(space.make_theano_batch(name='monitor_%s' % source,
+                    batch_size = batch_size)
                     for (space, source) in safe_zip(space_tuple, source_tuple))
 
         # Build a nested tuple from ipt, to dispatch the appropriate parts

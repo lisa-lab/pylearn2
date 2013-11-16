@@ -24,6 +24,8 @@ from pylearn2.monitor import Monitor
 from pylearn2.space import CompositeSpace, NullSpace
 from pylearn2.train_extensions import TrainExtension
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
+from pylearn2.training_algorithms.learning_rule import Momentum
+from pylearn2.training_algorithms.learning_rule import MomentumAdjustor as LRMomentumAdjustor
 from pylearn2.utils.iteration import is_stochastic
 from pylearn2.utils import py_integer_types, py_float_types
 from pylearn2.utils import safe_zip
@@ -48,7 +50,7 @@ class SGD(TrainingAlgorithm):
                  monitoring_batches=None, monitoring_dataset=None,
                  monitor_iteration_mode='sequential',
                  termination_criterion=None, update_callbacks=None,
-                 init_momentum = None, set_batch_size = False,
+                 learning_rule = None, init_momentum = None, set_batch_size = False,
                  train_iteration_mode = None, batches_per_iter=None,
                  theano_function_mode = None, monitoring_costs=None,
                  seed=[2012, 10, 5]):
@@ -63,7 +65,7 @@ class SGD(TrainingAlgorithm):
                   function to be minimized.
                   Optionally, may be None. In this case, SGD will call the model's
                   get_default_cost method to obtain the objective function.
-            init_momentum: if None, does not use momentum
+            init_momentum: **DEPRECATED** if None, does not use momentum
                             otherwise, use momentum and initialize the
                             momentum coefficient to init_momentum.
                             Callbacks can change this over time just like
@@ -76,6 +78,11 @@ class SGD(TrainingAlgorithm):
                             See section 9 of Geoffrey Hinton's "A Practical
                             Guide to Training Restricted Boltzmann Machines"
                             for details.
+            learning_rule: training_algorithms.learning_rule.LearningRule,
+                           a learning rule computes the new parameter values given
+                           old parameters and first-order gradients. If learning_rule
+                           is None, sgd.SGD will update parameters according to
+                           the standard SGD learning rule.
             set_batch_size: if True, and batch_size conflicts with
                             model.force_batch_size, will call
                             model.set_batch_size(batch_size) in an attempt
@@ -97,6 +104,16 @@ class SGD(TrainingAlgorithm):
             raise TypeError("SGD no longer supports using collections of Costs to represent "
                     " a sum of Costs. Use pylearn2.costs.cost.SumOfCosts instead.")
 
+        if init_momentum:
+            warnings.warn("init_momentum interface is deprecated and will "
+            "become officially unsuported as of May 9, 2014. Please use the "
+            "`learning_rule` parameter instead, providing an object of type "
+            "`pylearn2.training_algorithms.learning_rule.Momentum` instead")
+            # Convert to new interface under the hood.
+            self.learning_rule = Momentum(init_momentum)
+        else:
+            self.learning_rule = learning_rule
+
         self.learning_rate = sharedX(learning_rate, 'learning_rate')
         self.cost = cost
         self.batch_size = batch_size
@@ -109,13 +126,6 @@ class SGD(TrainingAlgorithm):
             if monitoring_batches is not None:
                 raise ValueError("Specified an amount of monitoring batches but not a monitoring dataset.")
         self.termination_criterion = termination_criterion
-        self.init_momentum = init_momentum
-        if init_momentum is None:
-            self.momentum = None
-        else:
-            assert init_momentum >= 0.
-            assert init_momentum < 1.
-            self.momentum = sharedX(init_momentum, 'momentum')
         self._register_update_callbacks(update_callbacks)
         if train_iteration_mode is None:
             train_iteration_mode = 'shuffled_sequential'
@@ -126,7 +136,6 @@ class SGD(TrainingAlgorithm):
         self.monitoring_costs = monitoring_costs
 
     def setup(self, model, dataset):
-
         if self.cost is None:
             self.cost = model.get_default_cost()
 
@@ -166,7 +175,7 @@ class SGD(TrainingAlgorithm):
         theano_args = []
         for space, source in safe_zip(space_tuple, source_tuple):
             name = '%s[%s]' % (self.__class__.__name__, source)
-            arg = space.make_theano_batch(name=name)
+            arg = space.make_theano_batch(name=name, batch_size = self.batch_size)
             theano_args.append(arg)
         theano_args = tuple(theano_args)
 
@@ -204,12 +213,11 @@ class SGD(TrainingAlgorithm):
                                      val=learning_rate,
                                      data_specs=(NullSpace(), ''),
                                      dataset=monitoring_dataset)
-            if self.momentum:
-                self.monitor.add_channel(name='momentum',
-                                         ipt=None,
-                                         val=self.momentum,
-                                         data_specs=(NullSpace(), ''),
-                                         dataset=monitoring_dataset)
+
+            if self.learning_rule:
+                self.learning_rule.add_channels_to_monitor(
+                        self.monitor,
+                        monitoring_dataset)
 
         params = list(model.get_params())
         assert len(params) > 0
@@ -246,19 +254,14 @@ class SGD(TrainingAlgorithm):
             lr = learning_rate.get_value() * lr_scalers.get(param,1.)
             log.info('\t' + param_name + ': ' + str(lr))
 
-        if self.momentum is None:
+        if self.learning_rule:
+            updates.update(self.learning_rule.get_updates(
+                learning_rate, grads, lr_scalers))
+        else:
+            # Use standard SGD updates with fixed learning rate.
             updates.update( dict(safe_zip(params, [param - learning_rate * \
                 lr_scalers.get(param, 1.) * grads[param]
                                     for param in params])))
-        else:
-            for param in params:
-                inc = sharedX(param.get_value() * 0.)
-                if param.name is not None:
-                    inc.name = 'inc_'+param.name
-                updated_inc = self.momentum * inc - learning_rate * lr_scalers.get(param, 1.) * grads[param]
-                updates[inc] = updated_inc
-                updates[param] = param + updated_inc
-
 
         for param in params:
             if updates[param].name is None:
@@ -616,8 +619,8 @@ class LinearDecay(object):
     def __call__(self, algorithm):
         if self._count == 0:
             self._base_lr = algorithm.learning_rate.get_value()
-            self.step = (self._base_lr - self._base_lr * self.decay_factor) /\
-                    (self.saturate - self.start + 1)
+            self._step = ((self._base_lr - self._base_lr * self.decay_factor) /
+                          (self.saturate - self.start + 1))
         self._count += 1
         if self._count >= self.start:
             if self._count < self.saturate:
@@ -630,45 +633,13 @@ class LinearDecay(object):
         new_lr = np.cast[config.floatX](new_lr)
         algorithm.learning_rate.set_value(new_lr)
 
-class MomentumAdjustor(TrainExtension):
-    def __init__(self, final_momentum, start, saturate):
-        """
-            final_momentum: the momentum coefficient to use at the end
-                            of learning.
-            start: the epoch on which to start growing the momentum coefficient.
-            saturate: the epoch on which the moment should reach its final value
-        """
 
-        if saturate < start:
-            raise TypeError("Momentum can't saturate at its maximum value before it starts increasing.")
+def MomentumAdjustor(final_momentum, start, saturate):
+    warnings.warn("sgd.MomentumAdjustor interface is deprecated and will "
+    "become officially unsuported as of May 9, 2014. Please use "
+    "`learning_rule.MomentumAdjustor` instead.")
+    return LRMomentumAdjustor(final_momentum, start, saturate)
 
-        self.__dict__.update(locals())
-        del self.self
-        self._initialized = False
-        self._count = 0
-
-    def on_monitor(self, model, dataset, algorithm):
-        if not self._initialized:
-            self._init_momentum = algorithm.momentum.get_value()
-            self._initialized = True
-        self._count += 1
-        algorithm.momentum.set_value( np.cast[config.floatX](self.current_momentum()))
-
-    def current_momentum(self):
-        w = self.saturate - self.start
-
-        if w == 0:
-            # saturate=start, so just jump straight to final momentum
-            if self._count >= self.start:
-                return self.final_momentum
-            return self._init_momentum
-
-        alpha = float(self._count - self.start) / float(w)
-        if alpha < 0.:
-            alpha = 0.
-        if alpha > 1.:
-            alpha = 1.
-        return self._init_momentum * (1.-alpha)+alpha*self.final_momentum
 
 class OneOverEpoch(TrainExtension):
     """
@@ -736,8 +707,8 @@ class LinearDecayOverEpoch(TrainExtension):
     def on_monitor(self, model, dataset, algorithm):
         if not self._initialized:
             self._init_lr = algorithm.learning_rate.get_value()
-            self._step = (self._init_lr - self._init_lr * self.decay_factor) /\
-                    (self.saturate - self.start + 1)
+            self._step = ((self._init_lr - self._init_lr * self.decay_factor) /
+                          (self.saturate - self.start + 1))
             self._initialized = True
         self._count += 1
         algorithm.learning_rate.set_value( np.cast[config.floatX](self.current_lr()))

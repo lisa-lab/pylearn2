@@ -48,6 +48,8 @@ from pylearn2.sandbox.cuda_convnet.convnet_compile import convnet_available
 from pylearn2.sandbox.cuda_convnet.convnet_compile import cuda_convnet_loc
 from pylearn2.utils import py_integer_types
 
+import pylearn2.sandbox.cuda_convnet.pthreads
+from theano import config
 
 class BaseActs(GpuOp):
     """
@@ -68,7 +70,7 @@ class BaseActs(GpuOp):
         self.dense_connectivity = True
 
     def c_header_dirs(self):
-        return [this_dir]
+        return [this_dir, config.pthreads.inc_dir] if config.pthreads.inc_dir else [this_dir]
 
     def c_headers(self):
         return ['nvmatrix.cuh', 'cudaconv2.cuh']
@@ -79,10 +81,10 @@ class BaseActs(GpuOp):
         return ()
 
     def c_lib_dirs(self):
-        return [cuda_convnet_loc]
+        return [cuda_convnet_loc, config.pthreads.lib_dir] if config.pthreads.lib_dir else [cuda_convnet_loc]
 
     def c_libraries(self):
-        return ['cuda_convnet']
+        return ['cuda_convnet', config.pthreads.lib] if config.pthreads.lib else ['cuda_convnet']
 
     def _argument_contiguity_check(self, arg_name):
         return """

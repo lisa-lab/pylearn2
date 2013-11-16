@@ -36,6 +36,7 @@
 #define RND_MULTIPLIERS_FILE ("rnd_multipliers_32bit.txt")
 #endif
 
+#include <pthread.h>
 #include <map>
 #include <cublas.h>
 #include <cuda.h>
@@ -64,8 +65,18 @@
 #define CURAND_CALL(x) do { if((x) != CURAND_STATUS_SUCCESS) { \
                             printf("Error at %s:%d\n",__FILE__,__LINE__);\
                             exit(EXIT_FAILURE);}} while(0)
+							
+#ifdef _WIN32
+#ifdef _NVMATRIX_EXPORT
+#define DllExport   __declspec( dllexport )
+#else
+#define DllExport   __declspec( dllimport )
+#endif
+#else //else _WIN32
+#define DllExport
+#endif
 
-class NVMatrix {
+class DllExport NVMatrix {
 private:
     int _numCols, _numRows;
     int _numElements;

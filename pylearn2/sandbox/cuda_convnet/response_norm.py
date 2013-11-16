@@ -255,7 +255,7 @@ class CrossMapNormUndo(CrossMapNorm):
         add_scale = self._add_scale
         pow_scale = self._pow_scale
         blocked = "true" if self._blocked else "false"
-        inplace = "true" if self._inplace else "false"
+        inplace = "1" if self._inplace else "0"
         scale_targets = int(self._scale_targets)
         scale_outputs = int(self._scale_outputs)
 
@@ -368,7 +368,7 @@ class CrossMapNormUndo(CrossMapNorm):
                    self._blocked, self._inplace))
 
     def c_code_cache_version(self):
-        return (7,)
+        return (8,)
 
 
 @local_optimizer([None])

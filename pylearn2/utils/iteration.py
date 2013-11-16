@@ -277,7 +277,7 @@ _iteration_schemes = {
     'shuffled_sequential': ShuffledSequentialSubsetIterator,
     'random_slice': RandomSliceSubsetIterator,
     'random_uniform': RandomUniformSubsetIterator,
-    'batchwise_shuffled_equential': BatchwiseShuffledSequentialIterator,
+    'batchwise_shuffled_sequential': BatchwiseShuffledSequentialIterator,
 }
 
 
@@ -297,7 +297,7 @@ def resolve_iterator_class(mode):
 class FiniteDatasetIterator(object):
     """A thin wrapper around one of the mode iterators."""
     def __init__(self, dataset, subset_iterator, topo=None, targets=None,
-                 data_specs=None, return_tuple=False):
+                 data_specs=None, return_tuple=False, convert=None):
 
         if topo is not None or targets is not None:
             if data_specs is not None:
@@ -305,6 +305,12 @@ class FiniteDatasetIterator(object):
                         "the `data_specs` argument and deprecated arguments "
                         "`topo` or `targets` were provided.",
                         (data_specs, topo, targets))
+
+            if convert is not None:
+                raise ValueError("In %s, both the `convert` argument and "
+                        "deprecated arguments `topo` or `targets` were "
+                        "provided." % self.__class__.__name__,
+                        (convert, topo, targets))
 
             warnings.warn("Usage of `topo` and `target` arguments are being "
                     "deprecated, and will be removed around November 7th, "
@@ -372,20 +378,34 @@ class FiniteDatasetIterator(object):
                                    for s in source)
             self._source = source
 
-            self._convert = []
+            if convert is None:
+                self._convert = [None for s in source]
+            else:
+                assert len(convert) == len(source)
+                self._convert = convert
 
             for i, (so, sp) in enumerate(safe_zip(source, sub_spaces)):
                 idx = dataset_source.index(so)
                 dspace = dataset_sub_spaces[idx]
 
+                init_fn = self._convert[i]
+                fn = init_fn
                 # Compose the functions
-                fn = None
-                needs_cast = not np.dtype(config.floatX) == \
-                                        self._raw_data[i].dtype
+                needs_cast = not (np.dtype(config.floatX) ==
+                                  self._raw_data[i].dtype)
                 if needs_cast:
-                    fn = lambda batch: numpy.cast[config.floatX](batch)
+                    if fn is None:
+                        fn = lambda batch: numpy.cast[config.floatX](batch)
+                    else:
+                        fn = (lambda batch, fn_=fn:
+                              numpy.cast[config.floatX](fn_(batch)))
 
-                needs_format = not sp == dspace
+                # If there is an init_fn, it is supposed to take
+                # care of the formatting, and it should be an error
+                # if it does not. If there was no init_fn, then
+                # the iterator will try to format using the generic
+                # space-formatting functions.
+                needs_format = not init_fn and not sp == dspace
                 if needs_format:
                     # "dspace" and "sp" have to be passed as parameters
                     # to lambda, in order to capture their current value,
@@ -393,12 +413,12 @@ class FiniteDatasetIterator(object):
                     # of the loop.
                     if fn is None:
                         fn = (lambda batch, dspace=dspace, sp=sp:
-                                dspace.np_format_as(batch, sp))
+                              dspace.np_format_as(batch, sp))
                     else:
                         fn = (lambda batch, dspace=dspace, sp=sp, fn_=fn:
-                                dspace.np_format_as(fn_(batch), sp))
+                              dspace.np_format_as(fn_(batch), sp))
 
-                self._convert.append(fn)
+                self._convert[i] = fn
 
     def __iter__(self):
         return self
