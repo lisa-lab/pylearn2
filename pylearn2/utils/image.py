@@ -5,9 +5,9 @@ import warnings
 try:
     import matplotlib.pyplot as plt
     import matplotlib.axes
-except (RuntimeError, ImportError), e:
+except (RuntimeError, ImportError), matplotlib_exception:
     warnings.warn("Unable to import matplotlib. Some features unavailable. "
-            "Original exception: " + str(e))
+            "Original exception: " + str(matplotlib_exception))
 import os
 
 try:
@@ -28,7 +28,8 @@ def ensure_Image():
     """
     global Image
     if Image is None:
-        raise RuntimeError("You are trying to use PIL-dependent functionality but don't have PIL installed.")
+        raise RuntimeError("You are trying to use PIL-dependent functionality"
+                           " but don't have PIL installed.")
 
 
 def imview(*args, **kwargs):
@@ -103,7 +104,8 @@ def show(image):
         #do some shape checking because PIL just raises a tuple indexing error
         #that doesn't make it very clear what the problem is
         if len(image.shape) < 2 or len(image.shape) > 3:
-            raise ValueError('image must have either 2 or 3 dimensions but its shape is '+str(image.shape))
+            raise ValueError('image must have either 2 or 3 dimensions but its'
+                             ' shape is ' + str(image.shape))
 
         if image.dtype == 'int8':
             image = np.cast['uint8'](image)
@@ -147,9 +149,11 @@ def show(image):
     image.save(name)
     viewer_command = string.preprocess('${PYLEARN2_VIEWER_COMMAND}')
     if os.name == 'nt':
-        subprocess.Popen(viewer_command + ' ' + name +' && del ' + name, shell = True)
+        subprocess.Popen(viewer_command + ' ' + name +' && del ' + name,
+                         shell = True)
     else:
-        subprocess.Popen(viewer_command + ' ' + name +' ; rm ' + name, shell = True)
+        subprocess.Popen(viewer_command + ' ' + name +' ; rm ' + name,
+                         shell = True)
 
 def pil_from_ndarray(ndarray):
     try:
@@ -166,11 +170,11 @@ def pil_from_ndarray(ndarray):
         rval = Image.fromarray(ndarray)
         return rval
     except Exception, e:
-        raise
         print 'original exception: '
         print e
         print 'ndarray.dtype: ', ndarray.dtype
         print 'ndarray.shape: ', ndarray.shape
+        raise
 
     assert False
 
@@ -272,10 +276,10 @@ def make_letterboxed_thumbnail(image, shape):
     return letterboxed
 
 
-def load(filepath, rescale=True, dtype='float64'):
+def load(filepath, rescale_image=True, dtype='float64'):
     assert type(filepath) == str
 
-    if rescale == False and dtype == 'uint8':
+    if rescale_image == False and dtype == 'uint8':
         ensure_Image()
         rval = np.asarray(Image.open(filepath))
         # print 'image.load: ' + str((rval.min(), rval.max()))
@@ -283,7 +287,7 @@ def load(filepath, rescale=True, dtype='float64'):
         return rval
 
     s = 1.0
-    if rescale:
+    if rescale_image:
         s = 255.
     try:
         ensure_Image()
@@ -315,8 +319,9 @@ def load(filepath, rescale=True, dtype='float64'):
 
     if rval.ndim != 3:
         raise AssertionError("Something went wrong opening " +
-                filepath + '. Resulting shape is ' + str(rval.shape) +
-                " (it's meant to have 3 dimensions by now)")
+                             filepath + '. Resulting shape is ' +
+                             str(rval.shape) +
+                             " (it's meant to have 3 dimensions by now)")
 
     return rval
 

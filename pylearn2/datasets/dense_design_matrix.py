@@ -543,7 +543,8 @@ class DenseDesignMatrix(Dataset):
         rows = V.shape[axes.index(0)]
         cols = V.shape[axes.index(1)]
         channels = V.shape[axes.index('c')]
-        self.view_converter = DefaultViewConverter([rows, cols, channels], axes=axes)
+        self.view_converter = DefaultViewConverter([rows, cols, channels],
+                                                   axes=axes)
         self.X = self.view_converter.topo_view_to_design_mat(V)
         # self.X_topo_space stores a "default" topological space that
         # will be used only when self.iterator is called without a
@@ -908,16 +909,21 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         return h5file, gcolumns
 
     @staticmethod
-    def fill_hdf5(file, data_x, data_y = None, node = None, start = 0, batch_size = 5000):
+    def fill_hdf5(file_handle,
+                  data_x,
+                  data_y = None,
+                  node = None,
+                  start = 0,
+                  batch_size = 5000):
         """
         PyTables tends to crash if you write large data on them at once.
-        This function write data on file in batches
+        This function write data on file_handle in batches
 
         start: the start index to write data
         """
 
         if node is None:
-            node = file.getNode('/', 'Data')
+            node = file_handle.getNode('/', 'Data')
 
         data_size = data_x.shape[0]
         last = np.floor(data_size / float(batch_size)) * batch_size
@@ -927,9 +933,9 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
             assert (start + stop) <= (node.X.shape[0])
             node.X[start + i: start + stop, :] = data_x[i:stop, :]
             if data_y is not None:
-                 node.y[start + i: start + stop, :] = data_y[i:stop, :]
+                node.y[start + i: start + stop, :] = data_y[i:stop, :]
 
-            file.flush()
+            file_handle.flush()
 
     def resize(self, h5file, start, stop):
         ensure_tables()
@@ -946,10 +952,18 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         stop = gcolumns.X.nrows if stop is None else stop
 
         atom = tables.Float32Atom() if config.floatX == 'float32' else tables.Float64Atom()
-        x = h5file.createCArray(gcolumns, 'X', atom = atom, shape = ((stop - start, data.X.shape[1])),
-                            title = "Data values", filters = self.filters)
-        y = h5file.createCArray(gcolumns, 'y', atom = atom, shape = ((stop - start, 10)),
-                            title = "Data targets", filters = self.filters)
+        x = h5file.createCArray(gcolumns,
+                                'X',
+                                atom = atom,
+                                shape = ((stop - start, data.X.shape[1])),
+                                title = "Data values",
+                                filters = self.filters)
+        y = h5file.createCArray(gcolumns,
+                                'y',
+                                atom = atom,
+                                shape = ((stop - start, 10)),
+                                title = "Data targets",
+                                filters = self.filters)
         x[:] = data.X[start:stop]
         y[:] = data.y[start:stop]
 
@@ -984,10 +998,14 @@ class DefaultViewConverter(object):
                              ' channels and ' + str(self.pixels_per_channel) +
                              ' pixels per channel asked to convert design'
                              ' matrix with ' + str(X.shape[1]) + ' columns.')
-        start = lambda i: self.pixels_per_channel * i
-        stop = lambda i: self.pixels_per_channel * (i + 1)
-        channels = [X[:, start(i):stop(i)].reshape(*channel_shape).transpose(*dimshuffle_args)
-                    for i in xrange(self.shape[-1])]
+
+        def get_channel(channel_index):
+            start = self.pixels_per_channel * channel_index
+            stop = self.pixels_per_channel * (channel_index + 1)
+            data = X[:, start:stop]
+            return data.reshape(*channel_shape).transpose(*dimshuffle_args)
+        
+        channels = [get_channel(i) for i in xrange(self.shape[-1])]
 
         channel_idx = self.axes.index('c')
         rval = np.concatenate(channels, axis=channel_idx)
@@ -999,14 +1017,16 @@ class DefaultViewConverter(object):
 
         # weights view is always for display
         rval = np.transpose(rval, tuple(self.axes.index(axis)
-            for axis in ('b', 0, 1, 'c')))
+                                        for axis in ('b', 0, 1, 'c')))
 
         return rval
 
     def topo_view_to_design_mat(self, V):
 
-        V = V.transpose(self.axes.index('b'), self.axes.index(0),
-                self.axes.index(1), self.axes.index('c'))
+        V = V.transpose(self.axes.index('b'),
+                        self.axes.index(0),
+                        self.axes.index(1),
+                        self.axes.index('c'))
 
         num_channels = self.shape[-1]
         if N.any(N.asarray(self.shape) != N.asarray(V.shape[1:])):
@@ -1078,11 +1098,17 @@ def from_dataset(dataset, num_examples):
 
     except:
 
-        if isinstance(dataset, DenseDesignMatrix) and dataset.X is None and not control.get_load_data():
-                warnings.warn("from_dataset wasn't able to make subset of dataset, using the whole thing")
-                return DenseDesignMatrix(X = None, view_converter = dataset.view_converter)
-                #This patches a case where control.get_load_data() is false so dataset.X is None
-                #This logic should be removed whenever we implement lazy loading
+        # This patches a case where control.get_load_data() is false so
+        # dataset.X is None This logic should be removed whenever we implement
+        # lazy loading
+
+        if isinstance(dataset, DenseDesignMatrix) \
+               and dataset.X is None\
+               and not control.get_load_data():
+            warnings.warn("from_dataset wasn't able to make subset of dataset, "
+                          "using the whole thing")
+            return DenseDesignMatrix(X = None,
+                                     view_converter = dataset.view_converter)
         raise
 
     rval =  DenseDesignMatrix(topo_view=V, y=y)
@@ -1093,7 +1119,9 @@ def from_dataset(dataset, num_examples):
 def dataset_range(dataset, start, stop):
 
     if dataset.X is None:
-        return DenseDesignMatrix(X = None, y = None, view_converter = dataset.view_converter)
+        return DenseDesignMatrix(X = None,
+                                 y = None,
+                                 view_converter = dataset.view_converter)
     X = dataset.X[start:stop, :].copy()
     if dataset.y is None:
         y = None
