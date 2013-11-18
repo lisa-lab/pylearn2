@@ -70,7 +70,25 @@ on exactly the same platform as I did. Expect small changes if your platform
 is different)
 
 3b) State of the art on CIFAR-10 with data augmentation
-TODO
+
+The ICML paper reports a state of the art result on the test set of 9.38%
+classification error. You can reproduce this result by running:
+
+THEANO_FLAGS="device=gpu, floatX=float32" train.py cifar10.yaml
+
+This should run for 474 epochs. In our tests, it obtained a test set error
+of 9.45%. This slight degradation in the test set error relative to the
+result in the ICML paper is likely due to running the script on a different
+machine than we used for the original experiment.
+
+The number of epochs was obtained by monitoring the error on the validation
+set when running this script:
+
+THEANO_FLAGS="device=gpu,floatX=float32" train.py cifar10_valid.yaml
+
+(valid_y_misclass should bottom out at 0.094499990344 on epoch 474, if you run
+on exactly the same platform as I did. Expect small changes if your platform
+is different)
 
 3c) An older state of the art on CIFAR-10 without data augmentation, using a
 smaller, faster model.
