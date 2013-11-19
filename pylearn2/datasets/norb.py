@@ -173,7 +173,10 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
             def readNums(file_handle, num_type, count):
                 """
-                Reads 4 bytes from file, returns it as a 32-bit integer.
+                Reads an array of numbers from a binary file.
+                :param file_handle: an open file handle to a binary file.
+                :param num_type: the number type name (string).
+                :param count: The number of numbers to read.
                 """
                 num_bytes = count * numpy.dtype(num_type).itemsize
                 string = file_handle.read(num_bytes)
