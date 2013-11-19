@@ -256,6 +256,7 @@ def main():
             plt.plot( x,
                       y,
                       styles[idx % len(styles)],
+                      marker = '.',  # added by mkg; adds point markers to lines
                       label = channel_name)
 
 

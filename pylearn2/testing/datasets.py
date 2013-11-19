@@ -19,11 +19,18 @@ class ArangeDataset(DenseDesignMatrix):
         super(ArangeDataset, self).__init__(X)
 
 
+def random_dense_design_matrix(rng, num_examples, dim, num_classes):
+    X = rng.randn(num_examples, dim)
+
+    Y = rng.randint(0, num_classes, (num_examples,1))
+
+    return DenseDesignMatrix(X=X, y=Y)
+
 def random_one_hot_dense_design_matrix(rng, num_examples, dim, num_classes):
     X = rng.randn(num_examples, dim)
 
 
-    idx = rng.randint(0, dim, (num_examples,))
+    idx = rng.randint(0, num_classes, (num_examples,))
     Y = np.zeros((num_examples,num_classes))
     for i in xrange(num_examples):
         Y[i,idx[i]] = 1

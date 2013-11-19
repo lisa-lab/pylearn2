@@ -59,7 +59,7 @@ class NegativeLogLikelihood(Cost):
         space, sources = self.get_data_specs(model)
         space.validate(data)
         (X, Y) = data
-        return (-Y * T.log(model(X))).sum(axis=1).mean()
+        return (-Y * T.log(model.fprop(X))).sum(axis=1).mean()
 
     def get_data_specs(self, model):
         space = CompositeSpace([model.get_input_space(), model.get_output_space()])
