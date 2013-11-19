@@ -4,12 +4,12 @@ from pylearn2.config import yaml_parse
 from pylearn2.datasets import control
 import numpy as np
 
-def get_weights_report(model_path = None,
-                       model = None,
-                       rescale = 'individual',
-                       border = False,
-                       norm_sort = False,
-                       dataset = None):
+def get_weights_report(model_path=None,
+                       model=None,
+                       rescale='individual',
+                       border=False,
+                       norm_sort=False,
+                       dataset=None):
     """
         Returns a PatchViewer displaying a grid of filter weights
 
@@ -74,7 +74,7 @@ def get_weights_report(model_path = None,
         print 'max norm: ',norms.max()
 
         return patch_viewer.make_viewer(weights,
-                                        is_color = weights.shape[1] % 3 == 0)
+                                        is_color=weights.shape[1] % 3 == 0)
 
     weights_view = None
     W = None
@@ -149,7 +149,7 @@ Original exception: """+str(e))
 
     if norm_sort:
         print 'sorting weights by decreasing norm'
-        idx = sorted( range(h), key = lambda l : - norm_prop[l] )
+        idx = sorted( range(h), key=lambda l : - norm_prop[l] )
     else:
         idx = range(h)
 
@@ -160,7 +160,7 @@ Original exception: """+str(e))
 
     for i in range(0,h):
         patch = weights_view[idx[i],...]
-        pv.add_patch( patch, rescale   = patch_rescale, activation = act)
+        pv.add_patch(patch, rescale=patch_rescale, activation=act)
 
     print 'smallest enc weight magnitude: '+str(np.abs(weights_view).min())
     print 'mean enc weight magnitude: '+str(np.abs(weights_view).mean())
@@ -177,12 +177,12 @@ Original exception: """+str(e))
     return pv
 
 
-def get_binocular_greyscale_weights_report(model_path = None,
-                                           model = None,
-                                           rescale = 'individual',
-                                           border = False,
-                                           norm_sort = False,
-        dataset = None):
+def get_binocular_greyscale_weights_report(model_path=None,
+                                           model=None,
+                                           rescale='individual',
+                                           border=False,
+                                           norm_sort=False,
+                                           dataset=None):
     """
         Returns a PatchViewer displaying a grid of filter weights
 
@@ -236,7 +236,7 @@ def get_binocular_greyscale_weights_report(model_path = None,
         print 'max norm: ',norms.max()
 
         return patch_viewer.make_viewer(weights,
-                                        is_color = weights.shape[1] % 3 == 0)
+                                        is_color=weights.shape[1] % 3 == 0)
 
     weights_view = None
     W = None
@@ -304,14 +304,14 @@ Original exception: """+str(e))
 
     pv = patch_viewer.PatchViewer(grid_shape=(hr, hc * 2),
                                   patch_shape=weights_view.shape[1:3],
-                                  is_color = weights_view.shape[-1] == 3)
+                                  is_color=weights_view.shape[-1] == 3)
 
     if global_rescale:
         weights_view /= np.abs(weights_view).max()
 
     if norm_sort:
         print 'sorting weights by decreasing norm'
-        idx = sorted( range(h), key = lambda l : - norm_prop[l] )
+        idx = sorted(range(h), key=lambda l : - norm_prop[l])
     else:
         idx = range(h)
 
@@ -324,8 +324,8 @@ Original exception: """+str(e))
         patch = weights_view[idx[i],...]
         if patch_rescale:
             patch = patch / np.abs(patch).max()
-        pv.add_patch(patch[:,:,1], rescale = False, activation = act)
-        pv.add_patch(patch[:,:,0], rescale = False, activation = act)
+        pv.add_patch(patch[:,:,1], rescale=False, activation=act)
+        pv.add_patch(patch[:,:,0], rescale=False, activation=act)
 
     print 'smallest enc weight magnitude: '+str(np.abs(weights_view).min())
     print 'mean enc weight magnitude: '+str(np.abs(weights_view).mean())
