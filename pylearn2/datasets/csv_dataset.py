@@ -2,9 +2,9 @@
 a simple general csv dataset wrapper for pylearn2 
 can do automatic one-hot encoding based on labels present in a file
 """
-__authors__ = "Zygmunt Zaj¹c"
-__copyright__ = "Copyright 2013, Zygmunt Zaj¹c"
-__credits__ = ["Zygmunt Zaj¹c"]
+__authors__ = "Zygmunt ZajÄ…c"
+__copyright__ = "Copyright 2013, Zygmunt ZajÄ…c"
+__credits__ = ["Zygmunt ZajÄ…c"]
 __license__ = "3-clause BSD"
 __maintainer__ = "?"
 __email__ = "zygmunt@fastml.com"
