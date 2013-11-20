@@ -30,6 +30,7 @@ class ContextualBanditAlgorithm(Algorithm):
         self.learn_func = agent.get_learn_func()
         agent.reward_record = []
         self.agent = agent
+        self.agent.dataset_yaml_src = environment.dataset.yaml_src
 
     def train(self):
         # TODO: this could all be much more efficient on GPU if s, a, and r
