@@ -1,0 +1,54 @@
+!obj:pylearn2.sandbox.lisa_rl.bandit.simulator.Simulator {
+    environment: !obj:pylearn2.sandbox.lisa_rl.bandit.classifier_bandit.ClassifierBandit {
+        dataset: &train !obj:pylearn2.datasets.mnist.MNIST {
+            which_set: 'train',
+            one_hot: 1,
+            start: 0,
+            stop: 50000
+        },
+        batch_size: 100
+    },
+    agent: !obj:pylearn2.sandbox.lisa_rl.bandit.classifier_agent.ClassifierAgent {
+        mlp: !obj:pylearn2.models.mlp.MLP {
+            layers: [
+                     !obj:pylearn2.models.maxout.Maxout {
+                         layer_name: 'h0',
+                         num_units: 240,
+                         num_pieces: 5,
+                         irange: .005,
+                         max_col_norm: 1.9365,
+                     },
+                     !obj:pylearn2.models.maxout.Maxout {
+                         layer_name: 'h1',
+                         num_units: 240,
+                         num_pieces: 5,
+                         irange: .005,
+                         max_col_norm: 1.9365,
+                     },
+                     !obj:pylearn2.models.mlp.Softmax {
+                         max_col_norm: 1.9365,
+                         layer_name: 'y',
+                         n_classes: 10,
+                         irange: .005
+                     }
+                    ],
+            nvis: 784,
+        },
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+            init_momentum: .5,
+        },
+        init_learning_rate: .1,
+        cost: !obj:pylearn2.costs.mlp.dropout.Dropout {
+            input_include_probs: { 'h0' : .8 },
+            input_scales: { 'h0': 1. }
+        },
+        update_callbacks: [
+        !obj:pylearn2.training_algorithms.sgd.ExponentialDecay {
+            decay_factor: 1.000004,
+            min_lr: .000001
+        }
+        ]
+    },
+    algorithm: !obj:pylearn2.sandbox.lisa_rl.bandit.algorithm.ContextualBanditAlgorithm {},
+    save_path: "experiments/mnist_bandit_001_gpu.pkl"
+}
