@@ -20,6 +20,9 @@ import warnings
 import numpy as np
 import theano
 
+print 'base_compiledir ', theano.config.base_compiledir
+
+import logging
 
 class ClassMap:
     """
@@ -44,25 +47,38 @@ class ClassMap:
         return self._invmap[y]
 
 
-def make_dataset(x,y):
-    """
-    A utility for converting a pair x,y to 
-    a DenseDesignMatrix with one_hot activation function. 
-    """
-    
-    y = np.asarray(y, dtype=np.int)
-    # convert {-1,1} to {0,1} or other odd class sets
-    classmap = ClassMap(y)
-    y = classmap.map(y)
-    ds= DenseDesignMatrix(X=x, y=y )
-    ds.convert_to_one_hot()
-    return ds, classmap
-
+#def make_dataset_(x,y):
+#    """
+#    A utility for converting a pair x,y to 
+#    a DenseDesignMatrix with one_hot activation function. 
+#    """
+#    
+#    y = np.asarray(y, dtype=np.int)
+#    # convert {-1,1} to {0,1} or other odd class sets
+#    classmap = ClassMap(y)
+#    y = classmap.map(y)
+#    ds= DenseDesignMatrix(X=x, y=y )
+#    ds.convert_to_one_hot()
+#    return ds, classmap
+#
+#def make_dataset(x,y):
+#    ds= DenseDesignMatrix(X=x, y=y )
+#    ds.convert_to_one_hot()
+#    return ds
 
 class Classifier:
-          
+        
+    def _make_dataset(self,x,y):
+        y = np.asarray(y, dtype=np.int)
+        if not hasattr( self, "classmap" ):
+            self.classmap = ClassMap(y)
+            
+        ds = DenseDesignMatrix(X=x, y=self.classmap.map(y) )
+        ds.convert_to_one_hot()
+        return ds
+    
     def fit(self, x, y=None ):
-        ds, self.classmap = make_dataset(x, y)
+        ds = self._make_dataset(x, y)
         return self.train( ds )
 
     def train(self, dataset):
@@ -71,8 +87,12 @@ class Classifier:
         x_variable = theano.tensor.matrix()
         y = self.model.fprop(x_variable)
         self.fprop = theano.function([x_variable], y)
-                
-        Train( dataset, self.model, self.algorithm ).main_loop()
+        
+        train = Train( dataset, self.model, self.algorithm )
+        logging.getLogger("pylearn2").setLevel(logging.WARNING)
+        train.main_loop()
+        logging.getLogger("pylearn2").setLevel(logging.INFO)
+    
         return self
     
     def _build_model(self, dataset):
@@ -94,8 +114,7 @@ class Classifier:
         If you already have a valid pylearn2 dataset, you can directly 
         assign the valid_dataset attribute.
         """
-        self.valid_dataset = make_dataset(x, y)[0]
-        
+        self.valid_dataset = self._make_dataset(x, y)
         
 class MaxoutClassifier(Classifier):
     
