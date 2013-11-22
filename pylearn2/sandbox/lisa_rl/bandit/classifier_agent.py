@@ -3,6 +3,7 @@ __author__ = "Ian Goodfellow"
 import time
 
 from theano import function
+from theano.sandbox.rng_mrg import MRG_RandomStreams
 import theano.tensor as T
 
 from pylearn2.sandbox.lisa_rl.bandit.agent import Agent
@@ -27,7 +28,13 @@ class ClassifierAgent(Agent):
     """
 
     def __init__(self, mlp, learning_rule, init_learning_rate, cost,
-            update_callbacks):
+            update_callbacks, stochastic=False, epsilon=None, neg_target=False,
+            ignore_wrong=False, epsilon_stochastic=None):
+        """
+
+            stochastic: if True, samples actions from P(y | x)
+                otherwise, uses argmax_y P(y |x)
+        """
         self.__dict__.update(locals())
         del self.self
 
@@ -44,9 +51,22 @@ class ClassifierAgent(Agent):
         X = T.matrix()
         y_hat = self.mlp.fprop(X)
 
-        mx = T.max(y_hat, axis=1).dimshuffle(0, 'x')
+        theano_rng = MRG_RandomStreams(2013 + 11 + 20)
+        if self.stochastic:
+            a = theano_rng.multinomial(pvals=y_hat, dtype='float32')
+        else:
+            mx = T.max(y_hat, axis=1).dimshuffle(0, 'x')
+            a = T.eq(y_hat, mx)
 
-        a = T.eq(y_hat, mx)
+        if self.epsilon is not None:
+            a = theano_rng.multinomial(pvals = (1. - self.epsilon) * a +
+                    self.epsilon * T.ones_like(y_hat) / y_hat.shape[1],
+                    dtype = 'float32')
+
+        if self.epsilon_stochastic is not None:
+            a = theano_rng.multinomial(pvals = (1. - self.epsilon_stochastic) * a +
+                    self.epsilon_stochastic * y_hat,
+                    dtype = 'float32')
 
         print "Compiling classifier agent learning function"
         t1 = time.time()
@@ -70,11 +90,18 @@ class ClassifierAgent(Agent):
         actions = T.matrix()
         rewards = T.vector()
 
-        correct_actions = actions * rewards.dimshuffle(0, 'x')
-        roads_not_taken = (T.ones_like(actions) - actions) / (T.cast(actions.shape[1], 'float32') - 1.)
-        #from theano.printing import Print
-        #roads_not_taken = Print('roads_not_taken')(roads_not_taken)
-        fake_targets = correct_actions + roads_not_taken * (1 - rewards).dimshuffle(0, 'x')
+        assert sum([self.neg_target, self.ignore_wrong]) <= 1
+        if self.neg_target:
+            signed_rewards = 2. * rewards - 1.
+            fake_targets = actions * signed_rewards.dimshuffle(0, 'x')
+        elif self.ignore_wrong:
+            fake_targets = actions * rewards.dimshuffle(0, 'x')
+        else:
+            correct_actions = actions * rewards.dimshuffle(0, 'x')
+            roads_not_taken = (T.ones_like(actions) - actions) / (T.cast(actions.shape[1], 'float32') - 1.)
+            #from theano.printing import Print
+            #roads_not_taken = Print('roads_not_taken')(roads_not_taken)
+            fake_targets = correct_actions + roads_not_taken * (1 - rewards).dimshuffle(0, 'x')
 
         lr_scalers = self.mlp.get_lr_scalers()
 
