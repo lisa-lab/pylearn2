@@ -7,6 +7,11 @@ __credits__ = ["Alexandre Lacoste","Ian Goodfellow", "David Warde-Farley", "Pasc
 __license__ = "3-clause BSD"
 __maintainer__ = "Alexandre Lacoste"
 
+import os
+import tempfile
+THEANO_FLAGS = os.environ.get('THEANO_FLAGS','')
+base_compiledir = tempfile.mkdtemp( prefix='theano_pid_%d_'% os.getpid() ) 
+os.environ['THEANO_FLAGS'] = THEANO_FLAGS + ',base_compiledir=%s'%base_compiledir
 
 from pylearn2.train import Train
 from pylearn2.models import mlp, maxout
