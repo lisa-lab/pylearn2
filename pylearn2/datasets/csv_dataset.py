@@ -19,16 +19,25 @@ from pylearn2.utils.string_utils import preprocess
 
 class CSVDataset(DenseDesignMatrix):
 
+    """
+    A generic class for accessing CSV files
+    labels, if present, should be in the first column
+    if there's no labels, set expect_labels to False
+    if there's no header line in your file, set expect_headers to False
+    """
+
     def __init__(self, 
             path = 'train.csv',
             one_hot = False,
             expect_labels = True,
-            expect_headers = True):
+            expect_headers = True,
+            delimiter = ','):
 
         self.path = path
         self.one_hot = one_hot
         self.expect_labels = expect_labels
         self.expect_headers = expect_headers
+        self.delimiter = delimiter
         
         self.view_converter = None
 
@@ -44,9 +53,9 @@ class CSVDataset(DenseDesignMatrix):
         assert self.path.endswith('.csv')
     
         if self.expect_headers:
-            data = np.loadtxt(self.path, delimiter = ',', dtype = 'int', skiprows = 1)
+            data = np.loadtxt(self.path, delimiter = self.delimiter, skiprows = 1)
         else:
-            data = np.loadtxt(self.path, delimiter = ',', dtype = 'int')
+            data = np.loadtxt(self.path, delimiter = self.delimiter)
         
         if self.expect_labels:
             y = data[:,0]
@@ -54,7 +63,8 @@ class CSVDataset(DenseDesignMatrix):
             
             # get unique labels and map them to one-hot positions
             labels = np.unique(y)
-            labels = { x: i for i, x in enumerate(labels) }
+            #labels = { x: i for i, x in enumerate(labels) }    # doesn't work in python 2.6
+            labels = dict((x, i) for (i, x) in enumerate(labels))
 
             if self.one_hot:
                 one_hot = np.zeros((y.shape[0], len(labels)), dtype='float32')
