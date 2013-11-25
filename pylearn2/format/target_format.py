@@ -4,7 +4,9 @@ Code for reformatting supervised learning targets.
 
 
 import numpy
+np = numpy
 from theano import tensor, config
+
 
 class OneHotFormatter(object):
     """
@@ -67,3 +69,11 @@ class OneHotFormatter(object):
                                             numpy.cast[self._dtype](1))
         return one_hot_flat.reshape((targets.shape[0],
                                      tensor.constant(self._max_labels)))
+
+
+def convert_to_one_hot(integer_vector):
+    if isinstance(integer_vector, list):
+        integer_vector = np.array(integer_vector)
+    assert min(integer_vector) >= 0
+    num_classes = max(integer_vector) + 1
+    return OneHotFormatter(num_classes, 'float32').format(integer_vector)
