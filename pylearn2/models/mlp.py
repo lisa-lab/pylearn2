@@ -2234,17 +2234,22 @@ class LinearGaussian(Linear):
     def get_params(self):
         return super(LinearGaussian, self).get_params() + [self.beta]
 
+
 def beta_from_design(design, min_var = 1e-6, max_var = 1e6):
     return 1. / np.clip(design.var(axis=0), min_var, max_var)
+
 
 def beta_from_targets(dataset, **kwargs):
     return beta_from_design(dataset.y, **kwargs)
 
+
 def beta_from_features(dataset, **kwargs):
     return beta_from_design(dataset.X, **kwargs)
 
+
 def mean_of_targets(dataset):
     return dataset.y.mean(axis=0)
+
 
 class PretrainedLayer(Layer):
     """
@@ -2280,17 +2285,6 @@ class PretrainedLayer(Layer):
     def fprop(self, state_below):
         return self.layer_content.upward_pass(state_below)
 
-
-
-class RBM_Layer(PretrainedLayer):
-    """An MLP layer whose forward prop is an upward mean field pass through an RBM.
-    Deprecated in favor of direct call to PretrainedLayer.
-    """
-
-    def __init__(self, layer_name, autoencoder, freeze_params=False):
-        warnings.warn("RBM_Layer is deprecated. Use PretrainedLayer instead. RBM_Layer will be removed on or after October 19, 2013", stacklevel=2)
-        PretrainedLayer.__init__(layer_name=layer_name, layer_content=autoencoder,
-                                    freeze_params=freeze_params)
 
 class CompositeLayer(Layer):
     """
