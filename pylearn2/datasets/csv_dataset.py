@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 a simple general csv dataset wrapper for pylearn2 
 can do automatic one-hot encoding based on labels present in a file
