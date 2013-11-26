@@ -1,5 +1,4 @@
-#from pylearn2.datasets.csv_dataset import CSVDataset
-from csv_dataset import CSVDataset
+from pylearn2.datasets.csv_dataset import CSVDataset
 import numpy as np
 
 def test_loading():
