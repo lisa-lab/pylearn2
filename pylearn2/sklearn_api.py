@@ -1,17 +1,15 @@
 """
 Tests for the sklearn_api
 """
+
+
 __authors__ = "Alexandre Lacoste"
 __copyright__ = "Copyright 2013, Universite Laval"
 __credits__ = ["Alexandre Lacoste","Ian Goodfellow", "David Warde-Farley", "Pascal Lamblin" ]
 __license__ = "3-clause BSD"
 __maintainer__ = "Alexandre Lacoste"
 
-import os
-import tempfile
-THEANO_FLAGS = os.environ.get('THEANO_FLAGS','')
-base_compiledir = tempfile.mkdtemp( prefix='theano_pid_%d_'% os.getpid() ) 
-os.environ['THEANO_FLAGS'] = THEANO_FLAGS + ',base_compiledir=%s'%base_compiledir
+
 
 from pylearn2.train import Train
 from pylearn2.models import mlp, maxout
@@ -94,9 +92,9 @@ class Classifier:
         self.fprop = theano.function([x_variable], y)
         
         train = Train( dataset, self.model, self.algorithm )
-        logging.getLogger("pylearn2").setLevel(logging.WARNING)
+#        logging.getLogger("pylearn2").setLevel(logging.WARNING)
         train.main_loop()
-        logging.getLogger("pylearn2").setLevel(logging.INFO)
+#        logging.getLogger("pylearn2").setLevel(logging.INFO)
     
         return self
     
@@ -165,6 +163,10 @@ class MaxoutClassifier(Classifier):
                 max_col_norm= self.max_col_norm,
             ))
             
+            print "layer %d"%i
+            for key, val in layers[-1].__dict__.iteritems():
+                print key, val
+                
 #            print 'layer %d'%i
 #            for key, val in layers[-1].__dict__.items():
 #                print key, val
@@ -190,7 +192,7 @@ class MaxoutClassifier(Classifier):
             monitor = MonitorBased( channel_name= "valid_y_misclass", prop_decrease= 0., N= 100)
             print 'using the valid dataset'
         except AttributeError: 
-            warnings.warn('No valid_dataset. Will optimize for 100 epochs')
+            warnings.warn('No valid_dataset. Will optimize for 1000 epochs')
             monitoring_dataset = None
             monitor = EpochCounter(1000)
         
