@@ -4,8 +4,14 @@ from pylearn2.devtools.list_files import list_files
 
 def test_shebangs():
     # Make sure all scripts that use shebangs use /usr/bin/env
-    # (instead of the non-standard /bin/env or hardcoding the path to the
-    # interpreter)
+    # (instead of the non-standard /bin/env or hardcoding the path to
+    # the interpreter). This test allows any shebang lines that start
+    # with /usr/bin/env. Examples:
+    #   "#!/usr/bin/env python"
+    #   "#! /usr/bin/env python"
+    #   "#!/usr/bin/env ipython"
+    #   "#!/usr/bin/env ipython --pylab --"
+    # etc.
     files = list_files('.py')
     for f in files:
         fd = open(f, 'r')
