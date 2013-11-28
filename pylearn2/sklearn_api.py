@@ -18,6 +18,7 @@ from pylearn2.termination_criteria import MonitorBased, EpochCounter
 from pylearn2.training_algorithms import sgd 
 from pylearn2.costs.mlp.dropout import Dropout as DropoutCost
 from pylearn2.datasets import DenseDesignMatrix
+from pylearn2.training_algorithms.learning_rule import MomentumAdjustor
 
 import warnings
 import numpy as np
@@ -91,10 +92,17 @@ class Classifier:
         y = self.model.fprop(x_variable)
         self.fprop = theano.function([x_variable], y)
         
-        train = Train( dataset, self.model, self.algorithm )
-#        logging.getLogger("pylearn2").setLevel(logging.WARNING)
+        momentum_adjustor = MomentumAdjustor(
+            start= 1,
+            saturate= 250,
+            final_momentum= .7
+        )
+        
+        train = Train( dataset, self.model, 
+            self.algorithm, extensions=[momentum_adjustor] )
+        logging.getLogger("pylearn2").setLevel(logging.WARNING)
         train.main_loop()
-#        logging.getLogger("pylearn2").setLevel(logging.INFO)
+        logging.getLogger("pylearn2").setLevel(logging.INFO)
     
         return self
     
@@ -166,6 +174,7 @@ class MaxoutClassifier(Classifier):
             print "layer %d"%i
             for key, val in layers[-1].__dict__.iteritems():
                 print key, val
+            print
                 
 #            print 'layer %d'%i
 #            for key, val in layers[-1].__dict__.items():
