@@ -1,3 +1,5 @@
+import os
+import pylearn2
 from pylearn2.datasets.csv_dataset import CSVDataset
 import numpy as np
 
