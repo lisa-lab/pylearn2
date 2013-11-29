@@ -7,10 +7,10 @@ import numpy
 setup(
     cmdclass={'build_ext': build_ext},
     ext_modules=[
-        Extension("pylearn2/utils/_window_flip",
+        Extension("pylearn2.utils._window_flip",
                   ["pylearn2/utils/_window_flip.pyx"],
                   include_dirs=[numpy.get_include()]),
-        Extension("pylearn2/utils/_video",
+        Extension("pylearn2.utils._video",
                   ["pylearn2/utils/_video.pyx"],
                   include_dirs=[numpy.get_include()])
     ]
