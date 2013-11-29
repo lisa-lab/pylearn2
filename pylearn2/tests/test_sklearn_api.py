@@ -8,7 +8,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Alexandre Lacoste"
 
 
-from pylearn2.sklearn_api import make_dataset, MaxoutClassifier
+from pylearn2.sklearn_api import MaxoutClassifier
 import numpy as np
 
 def _dummy_ds():
@@ -16,15 +16,11 @@ def _dummy_ds():
     y = np.array( [-1, 1, 1 ] )
     return x,y
 
-def test_make_dataset():
-    x, y = _dummy_ds()
-    _ds, classmap = make_dataset(x, y)
-    assert set(classmap._map) == set([0,1])
-    assert set(classmap._invmap) == set([-1,1])
+
 
 def test_buid_maxout():
     maxout = MaxoutClassifier()
-    ds, _classmap = make_dataset(* _dummy_ds())
+    ds = maxout._make_dataset(* _dummy_ds())
     maxout._build_model(ds)
 
 ## this test is long and may randomly fail in some occasions

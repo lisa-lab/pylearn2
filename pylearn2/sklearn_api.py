@@ -51,24 +51,6 @@ class ClassMap:
         return self._invmap[y]
 
 
-#def make_dataset_(x,y):
-#    """
-#    A utility for converting a pair x,y to 
-#    a DenseDesignMatrix with one_hot activation function. 
-#    """
-#    
-#    y = np.asarray(y, dtype=np.int)
-#    # convert {-1,1} to {0,1} or other odd class sets
-#    classmap = ClassMap(y)
-#    y = classmap.map(y)
-#    ds= DenseDesignMatrix(X=x, y=y )
-#    ds.convert_to_one_hot()
-#    return ds, classmap
-#
-#def make_dataset(x,y):
-#    ds= DenseDesignMatrix(X=x, y=y )
-#    ds.convert_to_one_hot()
-#    return ds
 
 class Classifier:
         
