@@ -6,7 +6,7 @@ from pylearn2.space import CompositeSpace
 from pylearn2.utils import py_integer_types
 
 
-class NCE(Cost):
+class NCE(Cost, DefaultDataSpecsMixin):
     """ Noise-Contrastive Estimation
 
         See "Noise-Contrastive Estimation: A new estimation principle for unnormalized models "
@@ -73,13 +73,8 @@ class NCE(Cost):
         assert isinstance(noise_per_clean, py_integer_types)
         self.noise_per_clean = noise_per_clean
 
-    def get_data_specs(self, model):
-        space = model.get_input_space()
-        source = model.get_input_source()
-        return (space, source)
 
-
-class SM(Cost):
+class SM(Cost, DefaultDataSpecsMixin):
     """ (Regularized) Score Matching
         
         See:
@@ -115,11 +110,8 @@ class SM(Cost):
 
         return rval
 
-    def get_data_specs(self, model):
-        return (model.get_input_space(), model.get_input_source())
 
-
-class SMD(Cost):
+class SMD(Cost, DefaultDataSpecsMixin):
     """ Denoising Score Matching
         See eqn. 4.3 of "A Connection Between Score Matching and Denoising Autoencoders"
         by Pascal Vincent for details
@@ -164,6 +156,3 @@ class SMD(Cost):
         smd.name = 'SMD('+X_name+')'
 
         return smd
-
-    def get_data_specs(self, model):
-        return (model.get_input_space(), model.get_input_source())

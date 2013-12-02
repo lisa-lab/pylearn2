@@ -15,6 +15,23 @@ from pylearn2.utils import safe_union
 from pylearn2.space import CompositeSpace, NullSpace
 from pylearn2.utils.data_specs import DataSpecsMapping
 
+
+class DefaultDataSpecsMixin(object):
+    def get_data_specs(self, model):
+        if self.supervised:
+            space = CompositeSpace([model.get_input_space(),
+                                    model.get_output_space()])
+            sources = (model.get_input_source(), model.get_target_source())
+            return (space, sources)
+        else:
+            return (model.get_input_space(), model.get_input_source())
+
+
+class NullDataSpecsMixin(object):
+    def get_data_specs(self, model):
+        return (NullSpace(), '')
+
+
 class Cost(object):
     """
     Represents a cost that can be called either as a supervised cost or an
@@ -387,7 +404,7 @@ class ScaledCost(Cost):
         return self.cost.get_data_specs(model)
 
 
-class LpPenalty(Cost):
+class LpPenalty(Cost, NullDataSpecsMixin):
     """
     L-p penalty of the tensor variables provided.
     """
@@ -421,12 +438,9 @@ class LpPenalty(Cost):
             penalty = penalty + abs(var ** self.p).sum()
         return penalty
 
-    def get_data_specs(self, model):
-        # This cost does not use any data
-        return (NullSpace(), '')
 
 
-class CrossEntropy(Cost):
+class CrossEntropy(Cost, DefaultDataSpecsMixin):
     """WRITEME"""
     def __init__(self):
         self.supervised = True
@@ -439,12 +453,6 @@ class CrossEntropy(Cost):
         (X, Y) = data
         return (-Y * T.log(model(X)) - \
                 (1 - Y) * T.log(1 - model(X))).sum(axis=1).mean()
-
-    def get_data_specs(self, model):
-        data = CompositeSpace([model.get_input_space(),
-                               model.get_output_space()])
-        sources = (model.get_input_source(), model.get_target_source())
-        return (data, sources)
 
 
 class MethodCost(Cost):

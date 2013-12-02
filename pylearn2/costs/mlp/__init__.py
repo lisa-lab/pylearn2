@@ -3,12 +3,12 @@ __copyright__ = "Copyright 2013, Universite de Montreal"
 
 from theano import tensor as T
 
-from pylearn2.costs.cost import Cost
+from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin, NullDataSpecsMixin
 from pylearn2.costs.mlp.dropout import Dropout
-from pylearn2.space import CompositeSpace, NullSpace
+from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_izip
 
-class Default(Cost):
+class Default(Cost, DefaultDataSpecsMixin):
     """
     The default Cost to use with an MLP.
     It simply calls the MLP's cost_from_X method.
@@ -21,13 +21,8 @@ class Default(Cost):
         space.validate(data)
         return model.cost_from_X(data)
 
-    def get_data_specs(self, model):
-        space = CompositeSpace([model.get_input_space(), model.get_output_space()])
-        sources = (model.get_input_source(), model.get_target_source())
-        return (space, sources)
 
-
-class WeightDecay(Cost):
+class WeightDecay(Cost, NullDataSpecsMixin):
     """
     coeff * sum(sqr(weights))
 
@@ -78,11 +73,8 @@ class WeightDecay(Cost):
 
         return total_cost
 
-    def get_data_specs(self, model):
-        # This cost does not use any data
-        return (NullSpace(), '')
 
-class L1WeightDecay(Cost):
+class L1WeightDecay(Cost, NullDataSpecsMixin):
     """
     coeff * sum(abs(weights))
 
@@ -122,7 +114,3 @@ class L1WeightDecay(Cost):
         total_cost.name = 'l1_penalty'
 
         return total_cost
-
-    def get_data_specs(self, model):
-        # This cost does not use any data
-        return (NullSpace(), '')
