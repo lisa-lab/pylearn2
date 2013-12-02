@@ -76,8 +76,7 @@ class SampledMeanBinaryCrossEntropy(DefaultDataSpecsMixin, Cost):
 
 
 
-class SampledMeanSquaredReconstructionError(DefaultDataSpecsMixin,
-                                            MeanSquaredReconstructionError):
+class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
     """
     mse cost that goes with sparse autoencoder with L1 regularization on activations
 

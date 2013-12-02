@@ -1,7 +1,7 @@
 """ Training costs for unsupervised learning of energy-based models """
 import theano.tensor as T
 from theano import scan
-from pylearn2.costs.cost import Cost
+from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import py_integer_types
 
