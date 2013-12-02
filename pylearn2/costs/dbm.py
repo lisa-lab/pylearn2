@@ -274,7 +274,7 @@ class BaseCD(Cost):
         return gradients
 
 
-class PCD(BaseCD, DefaultDataSpecsMixin):
+class PCD(DefaultDataSpecsMixin, BaseCD):
     """
     An intractable cost representing the negative log likelihood of a DBM.
     The gradient of this bound is computed using a persistent
@@ -313,7 +313,7 @@ class PCD(BaseCD, DefaultDataSpecsMixin):
         return neg_phase_grads, updates
 
 
-class VariationalPCD(BaseCD, DefaultDataSpecsMixin):
+class VariationalPCD(DefaultDataSpecsMixin, BaseCD):
     """
     An intractable cost representing the variational upper bound
     on the negative log likelihood of a DBM.
@@ -368,7 +368,8 @@ class VariationalPCD(BaseCD, DefaultDataSpecsMixin):
         return neg_phase_grads, updates
 
 
-class VariationalCD(BaseCD, DefaultDataSpecsMixin):
+
+class VariationalCD(DefaultDataSpecsMixin, BaseCD):
     """
     An intractable cost representing the negative log likelihood of a DBM.
     The gradient of this bound is computed using a markov chain initialized
@@ -428,7 +429,7 @@ class VariationalCD(BaseCD, DefaultDataSpecsMixin):
         return neg_phase_grads, OrderedDict()
 
 
-class MF_L2_ActCost(Cost, DefaultDataSpecsMixin):
+class MF_L2_ActCost(DefaultDataSpecsMixin, Cost):
     """
         An L2 penalty on the amount that the hidden unit mean field parameters
         deviate from desired target values.
@@ -569,7 +570,7 @@ class TorontoSparsity(Cost):
     def get_data_specs(self, model):
         return self.base_cost.get_data_specs(model)
 
-class WeightDecay(Cost, NullDataSpecsMixin):
+class WeightDecay(NullDataSpecsMixin, Cost):
     """
     coeff * sum(sqr(weights))
 

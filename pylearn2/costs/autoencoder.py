@@ -3,7 +3,7 @@ import theano.sparse
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
 from theano.tensor.shared_randomstreams import RandomStreams
 
-class GSNFriendlyCost(Cost, DefaultDataSpecsMixin):
+class GSNFriendlyCost(DefaultDataSpecsMixin, Cost):
     @staticmethod
     def cost(target, output):
         raise NotImplementedError
@@ -24,7 +24,7 @@ class MeanBinaryCrossEntropy(GSNFriendlyCost):
     def cost(target, output):
         return tensor.nnet.binary_crossentropy(output, target).sum(axis=1).mean()
 
-class SampledMeanBinaryCrossEntropy(Cost, DefaultDataSpecsMixin):
+class SampledMeanBinaryCrossEntropy(DefaultDataSpecsMixin, Cost):
     """
     CE cost that goes with sparse autoencoder with L1 regularization on activations
 
@@ -75,9 +75,9 @@ class SampledMeanBinaryCrossEntropy(Cost, DefaultDataSpecsMixin):
         return cost
 
 
-class SampledMeanSquaredReconstructionError(
-    MeanSquaredReconstructionError,
-    DefaultDataSpecsMixin):
+
+class SampledMeanSquaredReconstructionError(DefaultDataSpecsMixin,
+                                            MeanSquaredReconstructionError):
     """
     mse cost that goes with sparse autoencoder with L1 regularization on activations
 

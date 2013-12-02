@@ -404,7 +404,7 @@ class ScaledCost(Cost):
         return self.cost.get_data_specs(model)
 
 
-class LpPenalty(Cost, NullDataSpecsMixin):
+class LpPenalty(NullDataSpecsMixin, Cost):
     """
     L-p penalty of the tensor variables provided.
     """
@@ -439,8 +439,7 @@ class LpPenalty(Cost, NullDataSpecsMixin):
         return penalty
 
 
-
-class CrossEntropy(Cost, DefaultDataSpecsMixin):
+class CrossEntropy(DefaultDataSpecsMixin, Cost):
     """WRITEME"""
     def __init__(self):
         self.supervised = True

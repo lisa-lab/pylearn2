@@ -3,12 +3,12 @@ __copyright__ = "Copyright 2013, Universite de Montreal"
 
 from theano import tensor as T
 
-from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin, NullDataSpecsMixin
+from pylearn2.costs.cost import DefaultDataSpecsMixin, Cost, NullDataSpecsMixin
 from pylearn2.costs.mlp.dropout import Dropout
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_izip
 
-class Default(Cost, DefaultDataSpecsMixin):
+class Default(DefaultDataSpecsMixin, Cost):
     """
     The default Cost to use with an MLP.
     It simply calls the MLP's cost_from_X method.
@@ -22,7 +22,7 @@ class Default(Cost, DefaultDataSpecsMixin):
         return model.cost_from_X(data)
 
 
-class WeightDecay(Cost, NullDataSpecsMixin):
+class WeightDecay(NullDataSpecsMixin, Cost):
     """
     coeff * sum(sqr(weights))
 
@@ -74,7 +74,7 @@ class WeightDecay(Cost, NullDataSpecsMixin):
         return total_cost
 
 
-class L1WeightDecay(Cost, NullDataSpecsMixin):
+class L1WeightDecay(NullDataSpecsMixin, Cost):
     """
     coeff * sum(abs(weights))
 

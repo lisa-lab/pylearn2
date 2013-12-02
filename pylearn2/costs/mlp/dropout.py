@@ -1,10 +1,10 @@
 __authors__ = 'Ian Goodfellow'
 __copyright__ = "Copyright 2013, Universite de Montreal"
 
-from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
+from pylearn2.costs.cost import DefaultDataSpecsMixin, Cost
 from pylearn2.space import CompositeSpace
 
-class Dropout(Cost, DefaultDataSpecsMixin):
+class Dropout(DefaultDataSpecsMixin, Cost):
     """
     Implements the dropout training technique described in
     "Improving neural networks by preventing co-adaptation of feature
