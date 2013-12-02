@@ -40,9 +40,9 @@ from pylearn2.utils import py_integer_types
 from pylearn2.utils import sharedX
 
 from pylearn2.linear.conv2d_c01b import setup_detector_layer_c01b
+from pylearn2.linear import local_c01b
 if cuda.cuda_available:
     from pylearn2.sandbox.cuda_convnet.pool import max_pool_c01b
-from pylearn2.linear import local_c01b
 from pylearn2.sandbox.cuda_convnet import check_cuda
 
 
