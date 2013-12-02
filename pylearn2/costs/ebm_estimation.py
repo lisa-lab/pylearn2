@@ -16,7 +16,6 @@ class NCE(Cost, DefaultDataSpecsMixin):
     def h(self, X, model):
         return - T.nnet.sigmoid(self.G(X, model))
 
-
     def G(self, X, model):
         return model.log_prob(X) - self.noise.log_prob(X)
 
@@ -76,17 +75,17 @@ class NCE(Cost, DefaultDataSpecsMixin):
 
 class SM(Cost, DefaultDataSpecsMixin):
     """ (Regularized) Score Matching
-        
+
         See:
         - "Regularized estimation of image statistics by Score Matching",
           D. Kingma, Y. LeCun, NIPS 2010
         - eqn. 4 of "On Autoencoders and Score Matching for Energy Based Models"
           Swersky et al 2011
-        
+
         Uses the mean over visible units rather than sum over visible units
         so that hyperparameters won't depend as much on the # of visible units
     """
-    
+
     def __init__(self, lambd = 0):
         assert lambd >= 0
         self.lambd = lambd
