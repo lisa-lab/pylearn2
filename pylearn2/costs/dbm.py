@@ -23,7 +23,6 @@ from pylearn2.costs.cost import (
 )
 from pylearn2.models import dbm
 from pylearn2.models.dbm import flatten
-from pylearn2.space import CompositeSpace
 from pylearn2 import utils
 from pylearn2.utils import make_name
 from pylearn2.utils import safe_izip

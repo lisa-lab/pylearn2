@@ -4,6 +4,9 @@ Currently, these are primarily used to specify
 the objective function for the SGD and BGD
 training algorithms.
 """
+
+# NOTE: As of 2013/12/2 this file is PEP8 compliant. Please keep it that way.
+
 from itertools import izip
 import warnings
 
@@ -55,8 +58,8 @@ class Cost(object):
         is intractable but may be optimized via the get_gradients method.
 
         """
-
-        raise NotImplementedError(str(type(self))+" does not implement expr.")
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                                  "expr.")
 
     def get_gradients(self, model, data, ** kwargs):
         """
@@ -86,22 +89,24 @@ class Cost(object):
 
         try:
             cost = self.expr(model=model, data=data, **kwargs)
-        except TypeError,e:
+        except TypeError, e:
             # If anybody knows how to add type(seslf) to the exception message
             # but still preserve the stack trace, please do so
             # The current code does neither
-            e.message += " while calling "+str(type(self))+".expr"
+            e.message += " while calling " + str(type(self)) + ".expr"
             print str(type(self))
             print e.message
             raise e
 
         if cost is None:
-            raise NotImplementedError(str(type(self))+" represents an intractable "
-                    " cost and does not provide a gradient approximation scheme.")
+            raise NotImplementedError(str(type(self)) +
+                                      " represents an intractable cost and "
+                                      "does not provide a gradient "
+                                      "approximation scheme.")
 
         params = list(model.get_params())
 
-        grads = T.grad(cost, params, disconnected_inputs = 'ignore')
+        grads = T.grad(cost, params, disconnected_inputs='ignore')
 
         gradients = OrderedDict(izip(params, grads))
 
@@ -145,7 +150,7 @@ class Cost(object):
         Returns a composite space, describing the format of the data
         which the cost (and the model) expects.
         """
-        raise NotImplementedError(str(type(self))+" does not implement " +
+        raise NotImplementedError(str(type(self)) + " does not implement " +
                                   "get_data_specs.")
 
 
@@ -178,7 +183,7 @@ class SumOfCosts(Cost):
             self.costs.append(cost)
 
             if not isinstance(cost, Cost):
-                raise ValueError("one of the costs is not " + \
+                raise ValueError("one of the costs is not "
                                  "Cost instance")
 
         # TODO: remove this when it is no longer necessary
@@ -208,7 +213,8 @@ class SumOfCosts(Cost):
         if any([cost is None for cost in costs]):
             sum_of_costs = None
         else:
-            costs = [coeff * cost for coeff, cost in safe_zip(self.coeffs, costs)]
+            costs = [coeff * cost
+                     for coeff, cost in safe_zip(self.coeffs, costs)]
             assert len(costs) > 0
             sum_of_costs = reduce(lambda x, y: x + y, costs)
 
@@ -238,11 +244,11 @@ class SumOfCosts(Cost):
         """
         Build the composite data_specs and a mapping to flatten it, return both
 
-        Build the composite data_specs described in `get_composite_specs`,
-        and build a DataSpecsMapping that can convert between it and a flat
+        Build the composite data_specs described in `get_composite_specs`, and
+        build a DataSpecsMapping that can convert between it and a flat
         equivalent version. In particular, it helps building a flat data_specs
-        to request data, and nesting this data back to the composite data_specs,
-        so it can be dispatched among the different sub-costs.
+        to request data, and nesting this data back to the composite
+        data_specs, so it can be dispatched among the different sub-costs.
 
         This is a helper function used by `get_data_specs` and `get_gradients`,
         and possibly other methods.
@@ -285,7 +291,10 @@ class SumOfCosts(Cost):
             g, u = packed
             for param in g:
                 if param not in params:
-                    raise ValueError("A shared variable ("+str(param)+") that is not a parameter appeared in a cost gradient dictionary.")
+                    raise ValueError("A shared variable (" +
+                                     str(param) +
+                                     ") that is not a parameter appeared "
+                                     "a cost gradient dictionary.")
             for param in g:
                 assert param.ndim == g[param].ndim
                 v = coeff * g[param]
@@ -309,10 +318,13 @@ class SumOfCosts(Cost):
         for i, cost in enumerate(self.costs):
             cost_data = nested_data[i]
             try:
-                rval.update(cost.get_monitoring_channels(model, cost_data, **kwargs))
+                channels = cost.get_monitoring_channels(model, cost_data,
+                                                        **kwargs)
+                rval.update(channels)
             except TypeError:
-                print 'SumOfCosts.get_monitoring_channels encountered TypeError while calling ' \
-                        + str(type(cost))+'.get_monitoring_channels'
+                print ('SumOfCosts.get_monitoring_channels encountered '
+                       'TypeError while calling ' +
+                       str(type(cost)) + '.get_monitoring_channels')
                 raise
 
             value = cost.expr(model, cost_data, ** kwargs)
@@ -320,7 +332,7 @@ class SumOfCosts(Cost):
                 name = ''
                 if hasattr(value, 'name') and value.name is not None:
                     name = '_' + value.name
-                rval['term_'+str(i)+name] = value
+                rval['term_' + str(i) + name] = value
 
         return rval
 
@@ -347,7 +359,7 @@ class SumOfCosts(Cost):
             for key in descr.fixed_vars:
                 if key in rval.fixed_vars:
                     raise ValueError("Cannot combine these FixedVarDescrs, "
-                            "two different ones contain %s" % key)
+                                     "two different ones contain %s" % key)
             rval.fixed_vars.update(descr.fixed_vars)
 
             for on_load in descr.on_load_batch:
@@ -356,8 +368,8 @@ class SumOfCosts(Cost):
                 # Using default argument binds the variables used in the lambda
                 # function to the value they have when the lambda is defined.
                 new_on_load = (lambda batch, mapping=mapping, i=i,
-                                      on_load=on_load:
-                        on_load(mapping.nest(batch)[i]))
+                               on_load=on_load:
+                               on_load(mapping.nest(batch)[i]))
                 rval.on_load_batch.append(new_on_load)
 
         return rval
@@ -366,10 +378,10 @@ class SumOfCosts(Cost):
 class ScaledCost(Cost):
     """
     Represents a given cost scaled by a constant factor.
-    TODO: why would you want to use this? SumOfCosts allows you to scale individual
-        terms, and if this is the only cost, why not just change the learning rate?
-        If there's an obvious use case or rationale we should document it, if not,
-        we should remove it.
+    TODO: why would you want to use this? SumOfCosts allows you to scale
+    individual terms, and if this is the only cost, why not just change the
+    learning rate?  If there's an obvious use case or rationale we should
+    document it, if not, we should remove it.
     """
     def __init__(self, cost, scaling):
         """
@@ -450,7 +462,7 @@ class CrossEntropy(DefaultDataSpecsMixin, Cost):
 
         # unpack data
         (X, Y) = data
-        return (-Y * T.log(model(X)) - \
+        return (-Y * T.log(model(X)) -
                 (1 - Y) * T.log(1 - model(X))).sum(axis=1).mean()
 
 
@@ -468,7 +480,7 @@ class MethodCost(Cost):
                     the model that describe the data specs required by
                     method
         """
-        if supervised != None:
+        if supervised is not None:
             if data_specs is not None:
                 raise TypeError("Deprecated argument 'supervised' and new "
                                 "argument 'data_specs' were both specified.")
@@ -483,7 +495,9 @@ class MethodCost(Cost):
         self.data_specs = data_specs
 
     def expr(self, model, data, *args, **kwargs):
-            """ Patches calls through to a user-specified method of the model """
+            """
+            Patches calls through to a user-specified method of the model
+            """
             self.get_data_specs(model)[0].validate(data)
             fn = getattr(model, self.method)
             return fn(data, *args, **kwargs)
@@ -501,25 +515,28 @@ class MethodCost(Cost):
         else:
             return fn
 
+
 def _no_op(data):
     """
     An on_load_batch callback that does nothing.
     """
 
+
 class FixedVarDescr(object):
     """
-    An object used to describe variables that influence the cost but that should
-    be held fixed for each minibatch, even if the learning algorithm makes multiple
-    changes to the parameters on this minibatch, ie, for a line search, etc.
+    An object used to describe variables that influence the cost but that
+    should be held fixed for each minibatch, even if the learning algorithm
+    makes multiple changes to the parameters on this minibatch, i.e., for a
+    line search, etc.
     """
 
     def __init__(self):
         """
-        fixed_vars: maps string names to shared variables or some sort of data structure
-                    surrounding shared variables.
-                    Any learning algorithm that does multiple updates on the same minibatch
-                    should pass fixed_vars to the cost's expr and get_gradient methods
-                    as keyword arguments.
+        fixed_vars: maps string names to shared variables or some sort of data
+                    structure surrounding shared variables.
+                    Any learning algorithm that does multiple updates on the
+                    same minibatch should pass fixed_vars to the cost's expr
+                    and get_gradient methods as keyword arguments.
         """
         self.fixed_vars = {}
 
@@ -556,7 +573,8 @@ def merge(left, right):
     rval = FixedVarDescr()
     for key in left.fixed_vars:
         if key in right.fixed_vars:
-            raise ValueError("Can't merge these FixedVarDescrs, both contain "+key)
+            raise ValueError("Can't merge these FixedVarDescrs, "
+                             "both contain " + key)
     assert not any([key in left.fixed_vars for key in right.fixed_vars])
     rval.fixed_vars.update(left.fixed_vars)
     rval.fixed_vars.update(right.fixed_vars)
@@ -565,7 +583,8 @@ def merge(left, right):
         # Combining the on_load_batch functions is easy, as they take
         # the same input arguments
         rval.data_specs = left.fixed_vars
-        rval.on_load_batch = safe_union(left.on_load_batch, right.on_load_batch)
+        rval.on_load_batch = safe_union(left.on_load_batch,
+                                        right.on_load_batch)
     else:
         # We would have to build a composite data_specs
         raise NotImplementedError()
