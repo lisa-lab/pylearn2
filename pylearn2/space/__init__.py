@@ -267,11 +267,10 @@ class VectorSpace(Space):
                 rval = T.matrix(name=name, dtype=dtype)
 
         if config.compute_test_value != 'off':
-            if batch_size == 1:
-                n = 1
-            else:
-                # TODO: try to extract constant scalar value from batch_size
+            if batch_size is None:
                 n = 4
+            else:
+                n = batch_size
             rval.tag.test_value = self.get_origin_batch(n=n)
         return rval
 
@@ -340,7 +339,7 @@ class VectorSpace(Space):
         # when it is not available
         if (not self.sparse
                 and not isinstance(batch, np.ndarray)
-                and type(batch) != 'CudaNdarray'):
+                and not 'CudaNdarray' in str(type(batch))):
             raise TypeError("The value of a VectorSpace batch should be a "
                     "numpy.ndarray, or CudaNdarray, but is %s."
                     % str(type(batch)))
@@ -456,11 +455,10 @@ class Conv2DSpace(Space):
                           broadcastable=broadcastable
                          )(name=name)
         if config.compute_test_value != 'off':
-            if batch_size == 1:
-                n = 1
-            else:
-                # TODO: try to extract constant scalar value from batch_size
+            if batch_size is None:
                 n = 4
+            else:
+                n = batch_size
             rval.tag.test_value = self.get_origin_batch(n=n)
         return rval
 
@@ -549,7 +547,7 @@ class Conv2DSpace(Space):
     @functools.wraps(Space.np_validate)
     def np_validate(self, batch):
         if (not isinstance(batch, np.ndarray)
-                and type(batch) != 'CudaNdarray'):
+                and not 'CudaNdarray' in str(type(batch))):
             raise TypeError("The value of a Conv2DSpace batch should be a "
                     "numpy.ndarray, or CudaNdarray, but is %s."
                     % str(type(batch)))
