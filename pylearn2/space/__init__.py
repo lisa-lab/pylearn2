@@ -122,7 +122,8 @@ class Space(object):
         number of columns will be equal to the total dimension.
         """
 
-        raise NotImplementedError(str(type(self))+" does not implement get_total_dimension.")
+        raise NotImplementedError(str(type(self)) +
+                                  " does not implement get_total_dimension.")
 
     def np_format_as(self, batch, space):
         """
@@ -170,22 +171,26 @@ class Space(object):
 
     def _format_as(self, batch, space):
         """
-        Helper method that implements specifics of format_as for a particular subclass.
+        Helper method that implements specifics of format_as for a particular
+        subclass.
         """
 
-        raise NotImplementedError(str(type(self))+" does not implement _format_as.")
+        raise NotImplementedError(str(type(self)) +
+                                  " does not implement _format_as.")
 
     def validate(self, batch):
         """ Raises an exception if batch is not a valid theano batch
         in this space. """
 
-        raise NotImplementedError(str(type(self))+" does not implement validate.")
+        raise NotImplementedError(str(type(self)) +
+                                  " does not implement validate.")
 
     def np_validate(self, batch):
         """ Raises an exception if batch is not a valid value for a batch
         in this space. """
 
-        raise NotImplementedError(str(type(self))+" does not implement np_validate.")
+        raise NotImplementedError(str(type(self)) +
+                                  " does not implement np_validate.")
 
     def batch_size(self, batch):
         """
@@ -299,13 +304,17 @@ class VectorSpace(Space):
             return tuple(pieces)
 
         if isinstance(space, Conv2DSpace):
-            dims = { 'b' : batch.shape[0], 'c' : space.num_channels, 0 : space.shape[0], 1 : space.shape[1] }
+            dims = { 'b' : batch.shape[0],
+                     'c' : space.num_channels,
+                     0 : space.shape[0],
+                     1 : space.shape[1] }
             if space.axes != space.default_axes:
                 # Always use default_axes, so conversions like
                 # Conv2DSpace(c01b) -> VectorSpace -> Conv2DSpace(b01c) work
                 shape = [dims[ax] for ax in space.default_axes]
                 batch = batch.reshape(shape)
-                batch = batch.transpose(*[space.default_axes.index(ax) for ax in space.axes])
+                batch = batch.transpose(*[space.default_axes.index(ax)
+                                          for ax in space.axes])
                 return batch
 
             shape = tuple( [ dims[elem] for elem in space.axes ] )
@@ -314,7 +323,19 @@ class VectorSpace(Space):
 
             return rval
 
-        raise NotImplementedError(str(self)+" doesn't know how to format as "+str(space))
+        if isinstance(space, VectorSpace):
+            if self.dim != space.dim:
+                raise ValueError("Can't convert between VectorSpaces of "
+                                 "different sizes (%d to %d)."
+                                 % (self.dim, space.dim))
+            if self.sparse != space.sparse:
+                raise ValueError("Converting between sparse and non-sparse "
+                                 "VectorSpaces not implemented.")
+            return batch
+            
+        raise NotImplementedError(str(self) +
+                                  " doesn't know how to format as " +
+                                  str(space))
 
     def __eq__(self, other):
         return type(self) == type(other) and self.dim == other.dim
@@ -324,13 +345,18 @@ class VectorSpace(Space):
 
     def validate(self, batch):
         if not isinstance(batch, theano.gof.Variable):
-            raise TypeError("VectorSpace batch should be a theano Variable, got "+str(type(batch)))
-        if not self.sparse and not isinstance(batch.type, (theano.tensor.TensorType, CudaNdarrayType)):
-            raise TypeError("VectorSpace batch should be TensorType or CudaNdarrayType, got "+str(batch.type))
+            raise TypeError("VectorSpace batch should be a theano Variable, "
+                            "got " + str(type(batch)))
+        if not self.sparse and not isinstance(batch.type,
+                                              (theano.tensor.TensorType,
+                                               CudaNdarrayType)):
+            raise TypeError("VectorSpace batch should be TensorType or "
+                            "CudaNdarrayType, got "+str(batch.type))
         if self.sparse and not isinstance(batch.type, theano.sparse.SparseType):
             raise TypeError()
         if batch.ndim != 2:
-            raise ValueError('VectorSpace batches must be 2D, got %d dimensions' % batch.ndim)
+            raise ValueError('VectorSpace batches must be 2D, got %d dimensions'
+                             % batch.ndim)
         for val in get_debug_values(batch):
             self.np_validate(val)
 
@@ -342,16 +368,16 @@ class VectorSpace(Space):
                 and not isinstance(batch, np.ndarray)
                 and type(batch) != 'CudaNdarray'):
             raise TypeError("The value of a VectorSpace batch should be a "
-                    "numpy.ndarray, or CudaNdarray, but is %s."
-                    % str(type(batch)))
+                            "numpy.ndarray, or CudaNdarray, but is %s."
+                            % str(type(batch)))
         if self.sparse:
             if not theano.sparse.enable_sparse:
                 raise TypeError("theano.sparse is not enabled, cannot have "
-                        "a value for a sparse VectorSpace.")
+                                "a value for a sparse VectorSpace.")
             if not scipy.sparse.issparse(batch):
-                raise TypeError("The value of a sparse VectorSpace batch "
-                        "should be a sparse scipy matrix, got %s of type %s."
-                        % (batch, type(batch)))
+                raise TypeError("The value of a sparse VectorSpace batch should"
+                                " be a sparse scipy matrix, got %s of type %s."
+                                % (batch, type(batch)))
         if batch.ndim != 2:
             raise ValueError("The value of a VectorSpace batch must be "
                     "2D, got %d dimensions for %s." % (batch.ndim, batch))
@@ -369,7 +395,11 @@ class Conv2DSpace(Space):
     # default to ('b', 'c', 0, 1) for theano conv2d
     default_axes = ('b', 0, 1, 'c')
 
-    def __init__(self, shape, channels = None, num_channels = None, axes = None):
+    def __init__(self,
+                 shape,
+                 channels = None,
+                 num_channels = None,
+                 axes = None):
         """
         Initialize a Conv2DSpace.
 
@@ -412,7 +442,8 @@ class Conv2DSpace(Space):
         self.axes = tuple(axes)
 
     def __str__(self):
-        return "Conv2DSpace{shape=%s,num_channels=%d}" % (str(self.shape), self.num_channels)
+        return "Conv2DSpace{shape=%s,num_channels=%d}" % (str(self.shape),
+                                                          self.num_channels)
 
     def __eq__(self, other):
         return type(self) == type(other) and \
@@ -435,10 +466,13 @@ class Conv2DSpace(Space):
             dtype = config.floatX
 
         if not isinstance(n, py_integer_types):
-            raise TypeError("Conv2DSpace.get_origin_batch expects an int, got " +
-                    str(n) + " of type " + str(type(n)))
+            raise TypeError("Conv2DSpace.get_origin_batch expects an int, "
+                            "got " + str(n) + " of type " + str(type(n)))
         assert n > 0
-        dims = { 'b' : n, 0: self.shape[0], 1: self.shape[1], 'c' : self.num_channels }
+        dims = { 'b' : n,
+                 0: self.shape[0],
+                 1: self.shape[1],
+                 'c' : self.num_channels }
         shape = [ dims[elem] for elem in self.axes ]
         return np.zeros(shape, dtype = dtype)
 
@@ -538,8 +572,10 @@ class Conv2DSpace(Space):
     @functools.wraps(Space.validate)
     def validate(self, batch):
         if not isinstance(batch, theano.gof.Variable):
-            raise TypeError("Conv2DSpace batches must be theano Variables, got "+str(type(batch)))
-        if not isinstance(batch.type, (theano.tensor.TensorType,CudaNdarrayType)):
+            raise TypeError("Conv2DSpace batches must be theano Variables, "
+                            "got "+str(type(batch)))
+        if not isinstance(batch.type, (theano.tensor.TensorType,
+                                       CudaNdarrayType)):
             raise TypeError()
         if batch.ndim != 4:
             raise ValueError()
@@ -551,17 +587,19 @@ class Conv2DSpace(Space):
         if (not isinstance(batch, np.ndarray)
                 and type(batch) != 'CudaNdarray'):
             raise TypeError("The value of a Conv2DSpace batch should be a "
-                    "numpy.ndarray, or CudaNdarray, but is %s."
-                    % str(type(batch)))
+                            "numpy.ndarray, or CudaNdarray, but is %s."
+                            % str(type(batch)))
         if batch.ndim != 4:
             raise ValueError("The value of a Conv2DSpace batch must be "
-                    "4D, got %d dimensions for %s." % (batch.ndim, batch))
+                             "4D, got %d dimensions for %s." %
+                             (batch.ndim, batch))
 
         d = self.axes.index('c')
         actual_channels = batch.shape[d]
         if actual_channels != self.num_channels:
             raise ValueError("Expected axis %d to be number of channels (%d) "
-                    "but it is %d" % (d, self.num_channels, actual_channels))
+                             "but it is %d" %
+                             (d, self.num_channels, actual_channels))
         assert batch.shape[self.axes.index('c')] == self.num_channels
 
         for coord in [0, 1]:
@@ -570,10 +608,11 @@ class Conv2DSpace(Space):
             expected_shape = self.shape[coord]
             if actual_shape != expected_shape:
                 raise ValueError("Conv2DSpace with shape %s and axes %s "
-                        "expected dimension %s of a batch (%s) to have "
-                        "length %s but it has %s"
-                        % (str(self.shape), str(self.axes), str(d), str(batch),
-                           str(expected_shape), str(actual_shape)))
+                                 "expected dimension %s of a batch (%s) to "
+                                 "have length %s but it has %s"
+                                 % (str(self.shape), str(self.axes), str(d),
+                                    str(batch), str(expected_shape),
+                                    str(actual_shape)))
 
     @functools.wraps(Space.np_format_as)
     def np_format_as(self, batch, space):
@@ -618,7 +657,7 @@ class CompositeSpace(Space):
         for i, component in enumerate(components):
             if not isinstance(component, Space):
                 raise TypeError("component %d is %s of type %s, expected "
-                        "Space instance. " %
+                                "Space instance. " %
                         (i, str(component), str(type(component))))
         self.components = list(components)
 
@@ -638,7 +677,8 @@ class CompositeSpace(Space):
                 components=', '.join([str(c) for c in self.components]))
 
     def restrict(self, subset):
-        """Returns a new Space containing only the components whose indices
+        """
+        Returns a new Space containing only the components whose indices
         are given in subset.
 
         The new space will contain the components in the order given in the
@@ -657,9 +697,11 @@ class CompositeSpace(Space):
         return CompositeSpace([self.components[i] for i in subset])
 
     def restrict_batch(self, batch, subset):
-        """Returns a batch containing only the components whose indices are present
-        in subset. May not be a tuple anymore if there is only one index. Outputs
-        will be ordered in the order that they appear in subset."""
+        """
+        Returns a batch containing only the components whose indices are
+        present in subset. May not be a tuple anymore if there is only one
+        index. Outputs will be ordered in the order that they appear in subset.
+        """
 
         self.validate(batch)
         assert isinstance(subset, (list, tuple))
@@ -682,10 +724,34 @@ class CompositeSpace(Space):
             pieces = []
             for component, input_piece in zip(self.components, batch):
                 width = component.get_total_dimension()
-                pieces.append(component.np_format_as(input_piece, VectorSpace(width)))
+                pieces.append(component.np_format_as(input_piece,
+                                                     VectorSpace(width)))
             return np.concatenate(pieces, axis=1)
 
-        raise NotImplementedError(str(self)+" does not know how to format as "+str(space))
+        if isinstance(space, CompositeSpace):
+            def recursive_np_format_as(orig_space, batch, dest_space):
+                if (isinstance(orig_space, CompositeSpace) != 
+                    isinstance(dest_space, CompositeSpace)):
+                    raise TypeError("Can't convert between CompositeSpaces with"
+                                    " different tree structures")
+
+                # No need to check batch's tree structure; np_validate has
+                # already done that above.
+                
+                if isinstance(orig_space, CompositeSpace):
+                    return tuple(recursive_np_format_as(os, bt, ds)
+                                 for os, bt, ds
+                                 in safe_zip(orig_space.components,
+                                             batch,
+                                             dest_space.components))
+                else:
+                    return orig_space.np_format_as(batch, dest_space)
+
+            return recursive_np_format_as(self, batch, space)
+                                                            
+
+        raise NotImplementedError(str(self)+" does not know how to format as " +
+                                  str(space))
 
     @functools.wraps(Space._format_as)
     def _format_as(self, batch, space):
@@ -693,18 +759,43 @@ class CompositeSpace(Space):
             pieces = []
             for component, input_piece in zip(self.components, batch):
                 width = component.get_total_dimension()
-                pieces.append(component.format_as(input_piece, VectorSpace(width)))
+                pieces.append(component.format_as(input_piece,
+                                                  VectorSpace(width)))
             return T.concatenate(pieces, axis=1)
 
-        raise NotImplementedError(str(self)+" does not know how to format as "+str(space))
+
+        if isinstance(space, CompositeSpace):
+            def recursive_format_as(orig_space, batch, dest_space):
+                if (isinstance(orig_space, CompositeSpace) != 
+                    isinstance(dest_space, CompositeSpace)):
+                    raise TypeError("Can't convert between CompositeSpaces with"
+                                    " different tree structures")
+
+                # No need to check batch's tree structure; validate() has
+                # already done that, in Space.format_as(), which called
+                # CompositeSpace._format_as()
+                
+                if isinstance(orig_space, CompositeSpace):
+                    return tuple(recursive_format_as(os, bt, ds)
+                                 for os, bt, ds
+                                 in safe_zip(orig_space.components,
+                                             batch,
+                                             dest_space.components))
+                else:
+                    return orig_space.format_as(batch, dest_space)
+
+            return recursive_format_as(self, batch, space)
+
+        raise NotImplementedError(str(self)+" does not know how to format as " +
+                                  str(space))
 
     @functools.wraps(Space.validate)
     def validate(self, batch):
         if not isinstance(batch, tuple):
             raise TypeError()
         if len(batch) != self.num_components:
-            raise ValueError("Expected "+str(self.num_components)+" elements in batch, "
-                    "got " + str(len(batch)))
+            raise ValueError("Expected "+str(self.num_components) +
+                             " elements in batch, got " + str(len(batch)))
         for batch_elem, component in zip(batch, self.components):
             component.validate(batch_elem)
 
@@ -712,7 +803,8 @@ class CompositeSpace(Space):
     def np_validate(self, batch):
         if not isinstance(batch, tuple):
             raise TypeError("The value of a CompositeSpace batch should be a "
-                    "tuple, but is %s of type %s." % (batch, type(batch)))
+                            "tuple, but is %s of type %s." %
+                            (batch, type(batch)))
         if len(batch) != self.num_components:
             raise ValueError("Expected %d elements in batch, got %d"
                     % (self.num_components, len(batch)))
@@ -721,7 +813,8 @@ class CompositeSpace(Space):
 
     @functools.wraps(Space.get_origin_batch)
     def get_origin_batch(self, n):
-        return tuple([component.get_origin_batch(n) for component in self.components])
+        return tuple([component.get_origin_batch(n) for
+                      component in self.components])
 
     @functools.wraps(Space.make_theano_batch)
     def make_theano_batch(self, name=None, dtype=None, batch_size=None):
@@ -735,7 +828,9 @@ class CompositeSpace(Space):
         assert isinstance(name, (list, tuple))
         assert isinstance(dtype, (list, tuple))
 
-        rval = tuple([x.make_theano_batch(name=n, dtype=d, batch_size=batch_size)
+        rval = tuple([x.make_theano_batch(name=n,
+                                          dtype=d,
+                                          batch_size=batch_size)
                 for x,n,d in safe_zip(self.components,
                                       name,
                                       dtype)])
@@ -772,9 +867,9 @@ class CompositeSpace(Space):
                     rval = b
                 elif b != rval:
                     raise ValueError("All non-empty components of a "
-                            "CompositeSpace should have the same batch size,"
-                            "but we encountered components with size %d, "
-                            "then %d." % (rval, b))
+                                     "CompositeSpace should have the same batch"
+                                     " size, but we encountered components with"
+                                     " size %d, then %d." % (rval, b))
         return rval
 
 
@@ -805,15 +900,15 @@ class NullSpace(Space):
     def validate(self, batch):
         if batch is not None:
             raise TypeError("NullSpace only accepts 'None' as a "
-                    "place-holder for data, not %s of type %s"
-                    % (batch, type(batch)))
+                            "place-holder for data, not %s of type %s"
+                            % (batch, type(batch)))
 
     @functools.wraps(Space.np_validate)
     def np_validate(self, batch):
         if batch is not None:
             raise TypeError("NullSpace only accepts 'None' as a "
-                    "place-holder for data, not %s of type %s"
-                    % (batch, type(batch)))
+                            "place-holder for data, not %s of type %s"
+                            % (batch, type(batch)))
 
     @functools.wraps(Space.np_format_as)
     def np_format_as(self, batch, space):
