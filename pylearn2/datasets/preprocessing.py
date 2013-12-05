@@ -728,7 +728,8 @@ class Downsample(object):
             parameters
             ----------
             sampling_factor: a list or array with one element for
-                            each topological dimension of the data
+                             each topological dimension of the data
+                             must be integer.
         """
 
         self.sampling_factor = sampling_factor
