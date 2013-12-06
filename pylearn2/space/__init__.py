@@ -722,6 +722,23 @@ class CompositeSpace(Space):
 
     @functools.wraps(Space.np_format_as)
     def np_format_as(self, batch, space):
+        """
+        Supports formatting to a single VectorSpace, or to a CompositeSpace.
+
+        CompositeSpace->VectorSpace:
+          Traverses the nested components in depth-first order, serializing the
+          leaf nodes (i.e. the non-composite subspaces) into the VectorSpace.
+
+        CompositeSpace->CompositeSpace:
+
+          Only works for two CompositeSpaces that have the same nested
+          structure. Traverses both CompositeSpaces' nested components in
+          parallel, converting between corresponding non-composite components
+          in <self> and <space> as:
+
+          self_component.np_format_as(batch_component, space_component)
+
+        """
         self.np_validate(batch)
         if isinstance(space, VectorSpace):
             pieces = []
@@ -758,6 +775,23 @@ class CompositeSpace(Space):
 
     @functools.wraps(Space._format_as)
     def _format_as(self, batch, space):
+        """
+        Supports formatting to a single VectorSpace, or to a CompositeSpace.
+
+        CompositeSpace->VectorSpace:
+          Traverses the nested components in depth-first order, serializing the
+          leaf nodes (i.e. the non-composite subspaces) into the VectorSpace.
+
+        CompositeSpace->CompositeSpace:
+
+          Only works for two CompositeSpaces that have the same nested
+          structure. Traverses both CompositeSpaces' nested components in
+          parallel, converting between corresponding non-composite components
+          in <self> and <space> as:
+
+          self_component.format_as(batch_component, space_component)
+
+        """
         if isinstance(space, VectorSpace):
             pieces = []
             for component, input_piece in zip(self.components, batch):
