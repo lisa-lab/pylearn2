@@ -155,41 +155,31 @@ class MLP(Layer):
     layer of a larger MLP.
     """
 
-    def __init__(self,
-            layers,
-            batch_size=None,
-            input_space=None,
-            nvis=None,
-            seed=None,
-            dropout_include_probs = None,
-            dropout_scales = None,
-            dropout_input_include_prob = None,
-            dropout_input_scale = None,
-            ):
+    def __init__(self, layers, batch_size=None, input_space=None,
+                 nvis=None, seed=None):
         """
-            layers: a list of MLP_Layers. The final layer will specify the
-                    MLP's output space.
-            batch_size: optional. if not None, then should be a positive
-                        integer. Mostly useful if one of your layers
-                        involves a theano op like convolution that requires
-                        a hard-coded batch size.
-            input_space: a Space specifying the kind of input the MLP acts
-                        on. If None, input space is specified by nvis.
-            dropout*: None of these arguments are supported anymore. Use
-                      pylearn2.costs.mlp.dropout.Dropout instead.
+        Instantiate an MLP.
+
+        Parameters
+        ----------
+        layers : list
+            A list of Layer objects. The final layer specifies
+            the output space of this MLP.
+
+        batch_size : int, optional
+            If not specified then must be a positive integer.
+            Mostly useful if one of your layers involves a
+            Theano op like convolution that requires a hard-coded
+            batch size.
+
+        nvis : int, optional
+            Number of "visible units" (input units). Equivalent
+            to specifying `input_space=VectorSpace(dim=nvis)`.
+
+        input_space : Space object, optional
+            A Space specifying the kind of input the MLP accepts.
+            If None, input space is specified by nvis.
         """
-
-        locals_snapshot = locals()
-
-        for arg in locals_snapshot:
-            if arg.find('dropout') != -1 and locals_snapshot[arg] is not None:
-                raise TypeError(arg+ " is no longer supported. Train using "
-                        "an instance of pylearn2.costs.mlp.dropout.Dropout "
-                        "instead of hardcoding the dropout into the model"
-                        " itself. All dropout related arguments and this"
-                        " support message may be removed on or after "
-                        "October 2, 2013. They should be removed from the "
-                        "SoftmaxRegression subclass at the same time.")
 
         if seed is None:
             seed = [2013, 1, 4]
@@ -205,7 +195,7 @@ class MLP(Layer):
             assert layer.get_mlp() is None
             if layer.layer_name in self.layer_names:
                 raise ValueError("MLP.__init__ given two or more layers "
-                        "with same name: " + layer.layer_name)
+                                 "with same name: " + layer.layer_name)
             layer.set_mlp(self)
             self.layer_names.add(layer.layer_name)
 
@@ -2244,17 +2234,22 @@ class LinearGaussian(Linear):
     def get_params(self):
         return super(LinearGaussian, self).get_params() + [self.beta]
 
+
 def beta_from_design(design, min_var = 1e-6, max_var = 1e6):
     return 1. / np.clip(design.var(axis=0), min_var, max_var)
+
 
 def beta_from_targets(dataset, **kwargs):
     return beta_from_design(dataset.y, **kwargs)
 
+
 def beta_from_features(dataset, **kwargs):
     return beta_from_design(dataset.X, **kwargs)
 
+
 def mean_of_targets(dataset):
     return dataset.y.mean(axis=0)
+
 
 class PretrainedLayer(Layer):
     """
@@ -2290,17 +2285,6 @@ class PretrainedLayer(Layer):
     def fprop(self, state_below):
         return self.layer_content.upward_pass(state_below)
 
-
-
-class RBM_Layer(PretrainedLayer):
-    """An MLP layer whose forward prop is an upward mean field pass through an RBM.
-    Deprecated in favor of direct call to PretrainedLayer.
-    """
-
-    def __init__(self, layer_name, autoencoder, freeze_params=False):
-        warnings.warn("RBM_Layer is deprecated. Use PretrainedLayer instead. RBM_Layer will be removed on or after October 19, 2013", stacklevel=2)
-        PretrainedLayer.__init__(layer_name=layer_name, layer_content=autoencoder,
-                                    freeze_params=freeze_params)
 
 class CompositeLayer(Layer):
     """
