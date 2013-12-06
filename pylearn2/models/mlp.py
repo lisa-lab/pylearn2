@@ -114,14 +114,15 @@ class Layer(Model):
 
     def cost(self, Y, Y_hat):
         """
-        The cost of outputting Y_hat when the true output is Y.
-        Y_hat is assumed to be the output of the same layer's fprop, and the implementation
-        may do things like look at the ancestors of Y_hat in the theano graph. This is useful
-        for, e.g., computing numerically stable log probabilities as the cost when Y_hat is
-        the probability.
+        The cost of outputting Y_hat when the true output is Y.  Y_hat is
+        assumed to be the output of the same layer's fprop, and the
+        implementation may do things like look at the ancestors of Y_hat in the
+        theano graph. This is useful for, e.g., computing numerically stable log
+        probabilities as the cost when Y_hat is the probability.
         """
 
-        raise NotImplementedError(str(type(self))+" does not implement mlp.Layer.cost.")
+        raise NotImplementedError(str(type(self)) +
+                                  " does not implement mlp.Layer.cost.")
 
     def cost_from_cost_matrix(self, cost_matrix):
         """
@@ -133,13 +134,16 @@ class Layer(Model):
             cost = model.cost_from_cost_matrix(C)
         """
 
-        raise NotImplementedError(str(type(self))+" does not implement mlp.Layer.cost_from_cost_matrix.")
+        raise NotImplementedError(str(type(self)) +
+                                  " does not implement "
+                                  "mlp.Layer.cost_from_cost_matrix.")
 
     def cost_matrix(self, Y, Y_hat):
         """
         The element wise cost of outputting Y_hat when the true output is Y.
         """
-        raise NotImplementedError(str(type(self))+" does not implement mlp.Layer.cost_matrix")
+        raise NotImplementedError(str(type(self)) +
+                                  " does not implement mlp.Layer.cost_matrix")
 
     def get_weight_decay(self, coeff):
         raise NotImplementedError
@@ -971,8 +975,11 @@ class SoftmaxPool(Layer):
 
 
         if not (self.detector_layer_dim % self.pool_size == 0):
-            raise ValueError("detector_layer_dim = %d, pool_size = %d. Should be divisible but remainder is %d" %
-                             (self.detector_layer_dim, self.pool_size, self.detector_layer_dim % self.pool_size))
+            raise ValueError("detector_layer_dim = %d, pool_size = %d. "
+                             "Should be divisible but remainder is %d" %
+                             (self.detector_layer_dim,
+                              self.pool_size,
+                              self.detector_layer_dim % self.pool_size))
 
         self.h_space = VectorSpace(self.detector_layer_dim)
         self.pool_layer_dim = self.detector_layer_dim / self.pool_size
@@ -1013,7 +1020,10 @@ class SoftmaxPool(Layer):
         if self.mask_weights is not None:
             expected_shape =  (self.input_dim, self.detector_layer_dim)
             if expected_shape != self.mask_weights.shape:
-                raise ValueError("Expected mask with shape "+str(expected_shape)+" but got "+str(self.mask_weights.shape))
+                raise ValueError("Expected mask with shape " +
+                                 str(expected_shape) +
+                                 " but got " +
+                                 str(self.mask_weights.shape))
             self.mask = sharedX(self.mask_weights)
 
     def censor_updates(self, updates):
@@ -1104,8 +1114,10 @@ class SoftmaxPool(Layer):
 
         W = W.T
 
-        W = W.reshape((self.detector_layer_dim, self.input_space.shape[0],
-                       self.input_space.shape[1], self.input_space.num_channels))
+        W = W.reshape((self.detector_layer_dim,
+                       self.input_space.shape[0],
+                       self.input_space.shape[1],
+                       self.input_space.num_channels))
 
         W = Conv2DSpace.convert(W, self.input_space.axes, ('b', 0, 1, 'c'))
 

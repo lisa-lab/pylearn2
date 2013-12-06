@@ -6,7 +6,8 @@ from pylearn2.utils import py_integer_types
 import warnings
 
 
-def make_viewer(mat, grid_shape=None, patch_shape=None, activation=None, pad=None, is_color = False, rescale = True):
+def make_viewer(mat, grid_shape=None, patch_shape=None,
+                activation=None, pad=None, is_color = False, rescale = True):
     """ Given filters in rows, guesses dimensions of patches
         and nice dimensions for the PatchViewer and returns a PatchViewer
         containing visualizations of the filters"""
@@ -25,8 +26,11 @@ def make_viewer(mat, grid_shape=None, patch_shape=None, activation=None, pad=Non
     else:
         if patch_shape is None:
             assert mat.shape[1] % num_channels == 0
-            patch_shape = PatchViewer.pick_shape(mat.shape[1] / num_channels, exact = True)
-            assert patch_shape[0] * patch_shape[1] * num_channels == mat.shape[1]
+            patch_shape = PatchViewer.pick_shape(mat.shape[1] / num_channels,
+                                                 exact = True)
+            assert mat.shape[1] == (patch_shape[0] *
+                                    patch_shape[1] *
+                                    num_channels)
         topo_shape = (patch_shape[0], patch_shape[1], num_channels)
         view_converter = DefaultViewConverter(topo_shape)
         topo_view = view_converter.design_mat_to_topo_view(mat)
@@ -49,7 +53,7 @@ def make_viewer(mat, grid_shape=None, patch_shape=None, activation=None, pad=Non
 
 class PatchViewer(object):
     def __init__(self, grid_shape, patch_shape, is_color=False, pad = None,
-            background = None ):
+                 background = None ):
         if background is None:
             if is_color:
                 background = np.zeros((3,))
@@ -61,14 +65,19 @@ class PatchViewer(object):
         for shape in [grid_shape, patch_shape]:
             for elem in shape:
                 if not isinstance(elem, py_integer_types):
-                    raise ValueError("Expected grid_shape and patch_shape to be pairs of ints, but they are %s and %s respectively." % (str(grid_shape), str(patch_shape)))
+                    raise ValueError("Expected grid_shape and patch_shape to be"
+                                     " pairs of ints, but they are %s and %s"
+                                     " respectively." % (str(grid_shape),
+                                                         str(patch_shape)))
         self.is_color = is_color
         if pad is None:
             self.pad = (5, 5)
         else:
             self.pad = pad
         #these are the colors of the activation shells
-        self.colors = [np.asarray([1, 1, 0]), np.asarray([1, 0, 1]), np.asarray([0,1,0])]
+        self.colors = [np.asarray([1, 1, 0]),
+                       np.asarray([1, 0, 1]),
+                       np.asarray([0, 1, 0])]
 
         height = (self.pad[0] * (1 + grid_shape[0]) + grid_shape[0] *
                   patch_shape[0])
@@ -80,8 +89,10 @@ class PatchViewer(object):
         image_shape = (height, width, 3)
 
         self.image = np.zeros(image_shape)
-        assert self.image.shape[1] == (self.pad[1] * (1 + self.grid_shape[1]) + self.grid_shape[1] *
-                                 self.patch_shape[1])
+        assert self.image.shape[1] == (self.pad[1] *
+                                       (1 + self.grid_shape[1]) +
+                                       self.grid_shape[1] *
+                                       self.patch_shape[1])
         self.cur_pos = (0, 0)
         #needed to render in the background color
         self.clear()
@@ -90,36 +101,43 @@ class PatchViewer(object):
     def clear(self):
         if self.is_color:
             for i in xrange(3):
-                self.image[:,:,i] = self.background[i] * .5 + .5
+                self.image[:, :, i] = self.background[i] * .5 + .5
         else:
             self.image[:] = self.background * .5 + .5
         self.cur_pos = (0, 0)
 
     #0 is perfect gray. If not rescale, assumes images are in [-1,1]
-    def add_patch(self, patch, rescale=True, recenter=True, activation=None, warn_blank_patch = True):
+    def add_patch(self, patch, rescale=True, recenter=True, activation=None,
+                  warn_blank_patch = True):
         """
-        :param recenter: if patch has smaller dimensions than self.patch, recenter will pad the
-        image to the appropriate size before displaying.
+        :param recenter: if patch has smaller dimensions than self.patch,
+        recenter will pad the image to the appropriate size before displaying.
         """
-        if warn_blank_patch and (patch.min() == patch.max()) and (rescale or patch.min() == 0.0):
+        if warn_blank_patch and \
+               (patch.min() == patch.max()) and \
+               (rescale or patch.min() == 0.0):
             warnings.warn("displaying totally blank patch")
 
 
         if self.is_color:
             assert patch.ndim == 3
             if not (patch.shape[-1] == 3):
-                raise ValueError("Expected color image to have shape[-1]=3, but shape[-1] is "+str(patch.shape[-1]))
+                raise ValueError("Expected color image to have shape[-1]=3, but"
+                                 " shape[-1] is " + str(patch.shape[-1]))
         else:
-            assert patch.ndim in [2,3]
+            assert patch.ndim in [2, 3]
             if patch.ndim == 3:
                 if patch.shape[-1] != 1:
-                    raise ValueError("Expected 2D patch or 3D patch with 1 channel, but got patch with shape "+str(patch.shape))
+                    raise ValueError("Expected 2D patch or 3D patch with 1 "
+                                     "channel, but got patch with shape " + \
+                                     str(patch.shape))
 
         if recenter:
             assert patch.shape[0] <= self.patch_shape[0]
             if patch.shape[1] > self.patch_shape[1]:
-                raise ValueError("Given patch of width %d but only patches up to width %d fit" \
-                        % (patch.shape[1],self.patch_shape[1]))
+                raise ValueError("Given patch of width %d but only patches up"
+                                 " to width %d fit" \
+                                 % (patch.shape[1], self.patch_shape[1]))
             rs_pad = (self.patch_shape[0] - patch.shape[0]) / 2
             re_pad = self.patch_shape[0] - rs_pad - patch.shape[0]
             cs_pad = (self.patch_shape[1] - patch.shape[1]) / 2
