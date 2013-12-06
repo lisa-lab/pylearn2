@@ -52,6 +52,10 @@ class Conv2D(LinearTransform):
             output_axes = ('c', 0, 1, 'b'),
         kernel_stride = (1, 1), pad=0,
          message = '', partial_sum=None):
+        """
+        filters: Theano shared variable. 4-tensor of shape (in channels, rows,
+        cols, out channels)
+        """
 
         if len(kernel_stride) != 2:
             raise ValueError("kernel_stride must have length 2")
