@@ -20,10 +20,10 @@ def test_bias_initialization():
     """
     test BoltzmannMachine initialization
     """
-    visible_layer1 = BoltzmannLayer(name='v1', ndim=50)
-    visible_layer2 = BoltzmannLayer(name='v2', ndim=100)
-    hidden_layer1 = BoltzmannLayer(name='h1', ndim=150)
-    hidden_layer2 = BoltzmannLayer(name='h2', ndim=200)
+    visible_layer1 = BoltzmannLayer(name='v1', n_units=50)
+    visible_layer2 = BoltzmannLayer(name='v2', n_units=100)
+    hidden_layer1 = BoltzmannLayer(name='h1', n_units=150)
+    hidden_layer2 = BoltzmannLayer(name='h2', n_units=200)
 
     model = BoltzmannMachine(visible_layers=[visible_layer1, visible_layer2],
                              hidden_layers=[hidden_layer1, hidden_layer2],
@@ -35,13 +35,13 @@ def test_bias_initialization():
 
     # Biases should have the same dimensions as their corresponding layer
     assert model.biases[visible_layer1].get_value().shape == \
-        (visible_layer1.ndim, )
+        (visible_layer1.n_units, )
     assert model.biases[visible_layer2].get_value().shape == \
-        (visible_layer2.ndim, )
+        (visible_layer2.n_units, )
     assert model.biases[hidden_layer1].get_value().shape == \
-        (hidden_layer1.ndim, )
+        (hidden_layer1.n_units, )
     assert model.biases[hidden_layer2].get_value().shape == \
-        (hidden_layer2.ndim, )
+        (hidden_layer2.n_units, )
 
     # Weights should be in
     # {v1_v2_W, v1_h1_W, v1_h2_W, v2_h1_W, v2_h2_W, h1_h2_W}
@@ -50,22 +50,22 @@ def test_bias_initialization():
     # dimensions
     assert model.weights[(visible_layer1,
                           visible_layer2)].get_value().shape == \
-        (visible_layer1.ndim, visible_layer2.ndim)
+        (visible_layer1.n_units, visible_layer2.n_units)
     assert model.weights[(visible_layer1,
                           hidden_layer1)].get_value().shape == \
-        (visible_layer1.ndim, hidden_layer1.ndim)
+        (visible_layer1.n_units, hidden_layer1.n_units)
     assert model.weights[(visible_layer1,
                           hidden_layer2)].get_value().shape == \
-        (visible_layer1.ndim, hidden_layer2.ndim)
+        (visible_layer1.n_units, hidden_layer2.n_units)
     assert model.weights[(visible_layer2,
                           hidden_layer1)].get_value().shape == \
-        (visible_layer2.ndim, hidden_layer1.ndim)
+        (visible_layer2.n_units, hidden_layer1.n_units)
     assert model.weights[(visible_layer2,
                           hidden_layer2)].get_value().shape == \
-        (visible_layer2.ndim, hidden_layer2.ndim)
+        (visible_layer2.n_units, hidden_layer2.n_units)
     assert model.weights[(hidden_layer1,
                           hidden_layer2)].get_value().shape == \
-        (hidden_layer1.ndim, hidden_layer2.ndim)
+        (hidden_layer1.n_units, hidden_layer2.n_units)
     # Weights keys should be organized such that layers are ordered by
     # visible/hidden first, and then by their index in the layer list
     assert (visible_layer2, visible_layer1) not in model.weights
@@ -80,10 +80,10 @@ def test_weight_initialization():
     """
     make sure only connected units have non-zero weight
     """
-    visible_layer1 = BoltzmannLayer(name='v1', ndim=50)
-    visible_layer2 = BoltzmannLayer(name='v2', ndim=50)
-    hidden_layer1 = BoltzmannLayer(name='h1', ndim=50)
-    hidden_layer2 = BoltzmannLayer(name='h2', ndim=50)
+    visible_layer1 = BoltzmannLayer(name='v1', n_units=50)
+    visible_layer2 = BoltzmannLayer(name='v2', n_units=50)
+    hidden_layer1 = BoltzmannLayer(name='h1', n_units=50)
+    hidden_layer2 = BoltzmannLayer(name='h2', n_units=50)
 
     connectivity = {
         (visible_layer1, visible_layer2): numpy.ones((50, 50)),
@@ -115,10 +115,10 @@ def test_none_connectivity():
     """
     test correctness of None-initialized connectivity
     """
-    visible_layer1 = BoltzmannLayer(name='v1', ndim=50)
-    visible_layer2 = BoltzmannLayer(name='v2', ndim=100)
-    hidden_layer1 = BoltzmannLayer(name='h1', ndim=150)
-    hidden_layer2 = BoltzmannLayer(name='h2', ndim=200)
+    visible_layer1 = BoltzmannLayer(name='v1', n_units=50)
+    visible_layer2 = BoltzmannLayer(name='v2', n_units=100)
+    hidden_layer1 = BoltzmannLayer(name='h1', n_units=150)
+    hidden_layer2 = BoltzmannLayer(name='h2', n_units=200)
 
     model = BoltzmannMachine(visible_layers=[visible_layer1, visible_layer2],
                              hidden_layers=[hidden_layer1, hidden_layer2],
@@ -154,10 +154,10 @@ def test_limited_connectivity():
     """
     test correctness of limited connectivity initialization 
     """
-    visible_layer1 = BoltzmannLayer(name='v1', ndim=50)
-    visible_layer2 = BoltzmannLayer(name='v2', ndim=100)
-    hidden_layer1 = BoltzmannLayer(name='h1', ndim=150)
-    hidden_layer2 = BoltzmannLayer(name='h2', ndim=200)
+    visible_layer1 = BoltzmannLayer(name='v1', n_units=50)
+    visible_layer2 = BoltzmannLayer(name='v2', n_units=100)
+    hidden_layer1 = BoltzmannLayer(name='h1', n_units=150)
+    hidden_layer2 = BoltzmannLayer(name='h2', n_units=200)
 
     connectivity = {
         (visible_layer1, visible_layer2): numpy.ones((50, 100)),
@@ -196,10 +196,10 @@ def test_inversed_key():
     """
     test whether inversing layers in a key reverses it correctly
     """
-    visible_layer1 = BoltzmannLayer(name='v1', ndim=50)
-    visible_layer2 = BoltzmannLayer(name='v2', ndim=100)
-    hidden_layer1 = BoltzmannLayer(name='h1', ndim=150)
-    hidden_layer2 = BoltzmannLayer(name='h2', ndim=200)
+    visible_layer1 = BoltzmannLayer(name='v1', n_units=50)
+    visible_layer2 = BoltzmannLayer(name='v2', n_units=100)
+    hidden_layer1 = BoltzmannLayer(name='h1', n_units=150)
+    hidden_layer2 = BoltzmannLayer(name='h2', n_units=200)
 
     connectivity = {
         (visible_layer2, visible_layer1): numpy.ones((100, 50)),
@@ -239,10 +239,10 @@ def test_missing_connectivity_keys_error():
     """
     make sure missing connectivity keys raises an error
     """
-    visible_layer1 = BoltzmannLayer(name='v1', ndim=50)
-    visible_layer2 = BoltzmannLayer(name='v2', ndim=100)
-    hidden_layer1 = BoltzmannLayer(name='h1', ndim=150)
-    hidden_layer2 = BoltzmannLayer(name='h2', ndim=200)
+    visible_layer1 = BoltzmannLayer(name='v1', n_units=50)
+    visible_layer2 = BoltzmannLayer(name='v2', n_units=100)
+    hidden_layer1 = BoltzmannLayer(name='h1', n_units=150)
+    hidden_layer2 = BoltzmannLayer(name='h2', n_units=200)
 
     connectivity = {
         (visible_layer1, visible_layer2): numpy.ones((50, 100)),
@@ -261,10 +261,10 @@ def test_non_binary_error():
     """
     make sure non-binary connectivity raises an error
     """
-    visible_layer1 = BoltzmannLayer(name='v1', ndim=50)
-    visible_layer2 = BoltzmannLayer(name='v2', ndim=100)
-    hidden_layer1 = BoltzmannLayer(name='h1', ndim=150)
-    hidden_layer2 = BoltzmannLayer(name='h2', ndim=200)
+    visible_layer1 = BoltzmannLayer(name='v1', n_units=50)
+    visible_layer2 = BoltzmannLayer(name='v2', n_units=100)
+    hidden_layer1 = BoltzmannLayer(name='h1', n_units=150)
+    hidden_layer2 = BoltzmannLayer(name='h2', n_units=200)
 
     connectivity = {
         (visible_layer1, visible_layer2): numpy.ones((50, 100)),
@@ -286,10 +286,10 @@ def test_two_keys_error():
     """
     two connectivity keys for a pair of layers should raise an error
     """
-    visible_layer1 = BoltzmannLayer(name='v1', ndim=50)
-    visible_layer2 = BoltzmannLayer(name='v2', ndim=100)
-    hidden_layer1 = BoltzmannLayer(name='h1', ndim=150)
-    hidden_layer2 = BoltzmannLayer(name='h2', ndim=200)
+    visible_layer1 = BoltzmannLayer(name='v1', n_units=50)
+    visible_layer2 = BoltzmannLayer(name='v2', n_units=100)
+    hidden_layer1 = BoltzmannLayer(name='h1', n_units=150)
+    hidden_layer2 = BoltzmannLayer(name='h2', n_units=200)
 
     connectivity = {
         (visible_layer1, visible_layer2): numpy.ones((50, 100)),
@@ -312,10 +312,10 @@ def test_wrong_connectivity_shape_error():
     """
     make sure having the wrong connectivity shape raises an error
     """
-    visible_layer1 = BoltzmannLayer(name='v1', ndim=50)
-    visible_layer2 = BoltzmannLayer(name='v2', ndim=100)
-    hidden_layer1 = BoltzmannLayer(name='h1', ndim=150)
-    hidden_layer2 = BoltzmannLayer(name='h2', ndim=200)
+    visible_layer1 = BoltzmannLayer(name='v1', n_units=50)
+    visible_layer2 = BoltzmannLayer(name='v2', n_units=100)
+    hidden_layer1 = BoltzmannLayer(name='h1', n_units=150)
+    hidden_layer2 = BoltzmannLayer(name='h2', n_units=200)
 
     connectivity = {
         (visible_layer1, visible_layer2): numpy.ones((1, 10)),
@@ -336,10 +336,10 @@ def test_energy_function():
     """
     test correctness of BoltzmannMachine.energy
     """
-    visible_layer1 = BoltzmannLayer(name='v1', ndim=50)
-    visible_layer2 = BoltzmannLayer(name='v2', ndim=100)
-    hidden_layer1 = BoltzmannLayer(name='h1', ndim=150)
-    hidden_layer2 = BoltzmannLayer(name='h2', ndim=200)
+    visible_layer1 = BoltzmannLayer(name='v1', n_units=50)
+    visible_layer2 = BoltzmannLayer(name='v2', n_units=100)
+    hidden_layer1 = BoltzmannLayer(name='h1', n_units=150)
+    hidden_layer2 = BoltzmannLayer(name='h2', n_units=200)
 
     model = BoltzmannMachine(visible_layers=[visible_layer1, visible_layer2],
                              hidden_layers=[hidden_layer1, hidden_layer2],
@@ -408,10 +408,10 @@ def test_energy_function_with_limited_connectivity():
     """
     test correctness of BoltzmannMachine.energy when connectivity is limited
     """
-    visible_layer1 = BoltzmannLayer(name='v1', ndim=50)
-    visible_layer2 = BoltzmannLayer(name='v2', ndim=100)
-    hidden_layer1 = BoltzmannLayer(name='h1', ndim=150)
-    hidden_layer2 = BoltzmannLayer(name='h2', ndim=200)
+    visible_layer1 = BoltzmannLayer(name='v1', n_units=50)
+    visible_layer2 = BoltzmannLayer(name='v2', n_units=100)
+    hidden_layer1 = BoltzmannLayer(name='h1', n_units=150)
+    hidden_layer2 = BoltzmannLayer(name='h2', n_units=200)
 
     connectivity = {
         (visible_layer1, visible_layer2): numpy.ones((50, 100)),
