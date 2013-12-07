@@ -597,6 +597,9 @@ class DeepComposedAutoencoder(Autoencoder):
         autoencoders : list
             A list of autoencoder objects.
         """
+        self.fn = None
+        self.cpu_only = False
+
         assert all([autoencoders[i].get_output_space().dim == autoencoders[i+1].get_input_space().dim for i in range(len(autoencoders)-1)])
         self.autoencoders = list(autoencoders)
         self.input_space = autoencoders[0].get_input_space()
@@ -620,6 +623,10 @@ class DeepComposedAutoencoder(Autoencoder):
     def get_params(self):
         return reduce(operator.add,
                       [ae.get_params() for ae in self.autoencoders])
+
+    def censor_updates(self, updates):
+        for autoencoder in self.autoencoders:
+            autoencoder.censor_updates(updates)
 
 
 def build_stacked_ae(nvis, nhids, act_enc, act_dec,
