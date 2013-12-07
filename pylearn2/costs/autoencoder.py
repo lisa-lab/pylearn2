@@ -1,11 +1,9 @@
 from theano import tensor
 import theano.sparse
-import warnings
-from pylearn2.costs.cost import Cost
-import numpy.random
+from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
 from theano.tensor.shared_randomstreams import RandomStreams
 
-class GSNFriendlyCost(Cost):
+class GSNFriendlyCost(DefaultDataSpecsMixin, Cost):
     @staticmethod
     def cost(target, output):
         raise NotImplementedError
@@ -15,8 +13,6 @@ class GSNFriendlyCost(Cost):
         X = data
         return self.cost(X, model.reconstruct(X))
 
-    def get_data_specs(self, model):
-        return (model.get_input_space(), model.get_input_source())
 
 class MeanSquaredReconstructionError(GSNFriendlyCost):
     @staticmethod
@@ -28,7 +24,7 @@ class MeanBinaryCrossEntropy(GSNFriendlyCost):
     def cost(target, output):
         return tensor.nnet.binary_crossentropy(output, target).sum(axis=1).mean()
 
-class SampledMeanBinaryCrossEntropy(Cost):
+class SampledMeanBinaryCrossEntropy(DefaultDataSpecsMixin, Cost):
     """
     CE cost that goes with sparse autoencoder with L1 regularization on activations
 
@@ -78,8 +74,6 @@ class SampledMeanBinaryCrossEntropy(Cost):
 
         return cost
 
-    def get_data_specs(self, model):
-        return (model.get_input_space(), model.get_input_source())
 
 
 class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
@@ -123,8 +117,6 @@ class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
 
         return cost
 
-    def get_data_specs(self, model):
-        return (model.get_input_space(), model.get_input_source())
 
 #class MeanBinaryCrossEntropyTanh(Cost):
 #     def expr(self, model, data):
