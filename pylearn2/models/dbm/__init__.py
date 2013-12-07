@@ -2172,9 +2172,9 @@ class SamplingProcedure(object):
                                   "sample.")
 
 
-class MCMC(SamplingProcedure):
+class GibbsEvenOdd(SamplingProcedure):
     """
-    The specific sampling schedule used is to sample all of the even-idexed
+    The specific sampling schedule used to sample all of the even-idexed
     layers of model.hidden_layers, then the visible layer and all the
     odd-indexed layers.
     """
