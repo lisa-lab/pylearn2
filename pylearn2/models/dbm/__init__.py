@@ -2140,7 +2140,7 @@ class WeightDoubling(InferenceProcedure):
 
 class SamplingProcedure(object):
     """
-    TODO WRITEME
+    Procedure for sampling from a DBM.
     """
     def set_dbm(self, dbm):
         self.dbm = dbm
