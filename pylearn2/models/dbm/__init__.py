@@ -221,7 +221,7 @@ class DBM(Model):
     def setup_sampling_procedure(self):
         if not hasattr(self, 'sampling_procedure') or \
                 self.sampling_procedure is None:
-            self.sampling_procedure = MCMC()
+            self.sampling_procedure = GibbsEvenOdd()
             self.sampling_procedure.set_dbm(self)
 
     def get_output_space(self):
