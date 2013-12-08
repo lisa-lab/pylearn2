@@ -10,6 +10,11 @@ Models Base Class
 .. automodule:: pylearn2.models.model
     :members:
 
+Logistic Regression
+===================
+.. automodule:: pylearn2.classifier
+    :members:
+
 MLP
 ===
 .. automodule:: pylearn2.models.mlp
