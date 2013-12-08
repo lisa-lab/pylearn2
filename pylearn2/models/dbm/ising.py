@@ -475,7 +475,6 @@ class IsingHidden(HiddenLayer):
         return rval
 
     def init_mf_state(self):
-        #raise NotImplementedError("This is just a copy-paste of BVMP")
         # work around theano bug with broadcasted vectors
         z = T.alloc(0., self.dbm.batch_size,
                     self.dim).astype(self.b.dtype) + \
