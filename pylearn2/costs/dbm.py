@@ -17,6 +17,7 @@ from theano.sandbox.rng_mrg import MRG_RandomStreams
 RandomStreams = MRG_RandomStreams
 from theano import tensor as T
 
+import pylearn2
 from pylearn2.costs.cost import Cost
 from pylearn2.costs.cost import FixedVarDescr
 from pylearn2.models import dbm
