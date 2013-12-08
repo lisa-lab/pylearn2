@@ -227,8 +227,11 @@ class BoltzmannMachine(Model):
         biases = OrderedDict()
 
         for layer in self.get_all_layers():
-            biases[layer] = sharedX(value=numpy.zeros((layer.n_units, )),
-                                    name=layer.name + '_b')
+            biases[layer] = sharedX(
+                value=numpy.zeros((layer.n_units, ),
+                                  dtype=theano.config.floatX),
+                name=layer.name + '_b'
+            )
 
         return biases
 
@@ -250,7 +253,8 @@ class BoltzmannMachine(Model):
                     weights[(layer1, layer2)] = sharedX(
                         value=numpy.random.uniform(-self.irange, self.irange,
                                                    (layer1.n_units,
-                                                    layer2.n_units))
+                                                   layer2.n_units),
+                                                   dtype=theano.config.floatX)
                         * self.connectivity[(layer1, layer2)],
                         name=layer1.name + '_to_' + layer2.name + '_W'
                     )
@@ -317,7 +321,8 @@ class BoltzmannMachine(Model):
         layer_to_state = OrderedDict()
 
         for layer in self.get_all_layers():
-            driver = numpy_rng.uniform(0., 1., (batch_size, layer.n_units))
+            driver = numpy_rng.uniform(0., 1., (batch_size, layer.n_units),
+                                       dtype=theano.config.floatX)
             mean = sigmoid_numpy(self.biases[layer].get_value())
             sample = driver < mean
 
