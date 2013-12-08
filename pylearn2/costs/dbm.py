@@ -27,7 +27,6 @@ from pylearn2.utils import make_name
 from pylearn2.utils import safe_izip
 from pylearn2.utils import safe_zip
 from pylearn2.utils import sharedX
-from pylearn2.utils import grad
 
 
 class BaseCD(Cost):
@@ -588,10 +587,12 @@ class TorontoSparsity(Cost):
             real_grads = OrderedDict(safe_zip(fake_components, real_grads))
 
             params = list(layer.get_params())
-            fake_grads = grad(cost=None,
-                              consider_constant=flatten(state_below),
-                              wrt=params,
-                              known_grads=real_grads)
+            fake_grads = pylearn2.utils.grad(
+                cost=None,
+                consider_constant=flatten(state_below),
+                wrt=params,
+                known_grads=real_grads
+            )
 
             for param, grad in safe_zip(params, fake_grads):
                 if param in grads:
