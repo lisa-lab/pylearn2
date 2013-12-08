@@ -251,11 +251,13 @@ class BoltzmannMachine(Model):
             for layer2 in layers[i + 1:]:
                 if self.connectivity[(layer1, layer2)] is not None:
                     weights[(layer1, layer2)] = sharedX(
-                        value=numpy.random.uniform(-self.irange, self.irange,
-                                                   (layer1.n_units,
-                                                   layer2.n_units),
-                                                   dtype=theano.config.floatX)
-                        * self.connectivity[(layer1, layer2)],
+                        value=numpy.asarray(
+                                  numpy.random.uniform(-self.irange,
+                                                       self.irange,
+                                                       (layer1.n_units,
+                                                       layer2.n_units)),
+                                  dtype=theano.config.floatX
+                        ) * self.connectivity[(layer1, layer2)],
                         name=layer1.name + '_to_' + layer2.name + '_W'
                     )
 
