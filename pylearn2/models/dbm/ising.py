@@ -655,11 +655,10 @@ class BoltzmannIsingVisible(VisibleLayer):
 
         self.resample_fn = None
 
-    def set_sampling_space(self):
+    def finalize_initialization(self):
         if self.sampling_b_stdev is not None:
             self.noisy_sampling_b = \
                 sharedX(np.zeros((self.layer_above.dbm.batch_size, self.nvis)))
-            # We take care of layer below if it's a visible layer
 
         updates = OrderedDict()
         updates[self.boltzmann_bias] = self.boltzmann_bias
@@ -965,7 +964,7 @@ class BoltzmannIsingHidden(HiddenLayer):
         self.boltzmann_b = sharedX(np.zeros((self.dim,)) + self.init_bias,
                                    name=self.layer_name + '_b')
 
-    def set_sampling_space(self):
+    def finalize_initialization(self):
         if self.sampling_b_stdev is not None:
             self.noisy_sampling_b = \
                 sharedX(np.zeros((self.dbm.batch_size, self.dim)))

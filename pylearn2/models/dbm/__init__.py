@@ -235,7 +235,7 @@ class DBM(Model):
             hidden_layers[i].set_input_space(hidden_layers[i-1].get_output_space())
 
         for layer in self.get_all_layers():
-            layer.set_sampling_space()
+            layer.finalize_initialization()
 
     def add_layers(self, layers):
         """
@@ -871,11 +871,11 @@ class Layer(Model):
         """
         raise NotImplementedError(str(type(self))+" does not implement expected_energy_term.")
 
-    def set_sampling_space(self):
+    def finalize_initialization(self):
         """
-        .. todo::
-
-            WRITEME
+        Some layers' initialization depends on layer above being initialized,
+        which is why this method is called after `set_input_space` has been
+        called.
         """
         pass
 
