@@ -32,14 +32,15 @@ from pylearn2.utils import sharedX
 
 class BaseCD(Cost):
     def __init__(self, num_chains, num_gibbs_steps, supervised=False,
-                 toronto_neg=False):
+                 toronto_neg=False, theano_rng=None):
         """
             toronto_neg: If True, use a bit of mean field in the negative phase
                         Ruslan Salakhutdinov's matlab code does this.
         """
         self.__dict__.update(locals())
         del self.self
-        self.theano_rng = MRG_RandomStreams(2012 + 10 + 14)
+        if self.theano_rng is None:
+            self.theano_rng = MRG_RandomStreams(2012 + 10 + 14)
         assert supervised in [True, False]
 
     def expr(self, model, data):
