@@ -95,6 +95,7 @@ class DBM(Model):
         assert len(hidden_layers) >= 1
         self.setup_rng()
         self.layer_names = set()
+        self.visible_layer.set_dbm(self)
         for layer in hidden_layers:
             assert layer.get_dbm() is None
             layer.set_dbm(self)
@@ -234,9 +235,13 @@ class DBM(Model):
         """
         visible_layer = self.visible_layer
         hidden_layers = self.hidden_layers
+
         self.hidden_layers[0].set_input_space(visible_layer.space)
         for i in xrange(1,len(hidden_layers)):
             hidden_layers[i].set_input_space(hidden_layers[i-1].get_output_space())
+
+        for layer in self.get_all_layers():
+            layer.finalize_initialization()
 
     def add_layers(self, layers):
         """
@@ -721,6 +726,14 @@ class Layer(Model):
 
         """
         raise NotImplementedError(str(type(self))+" does not implement expected_energy_term.")
+
+    def finalize_initialization(self):
+        """
+        Some layers' initialization depends on layer above being initialized,
+        which is why this method is called after `set_input_space` has been
+        called.
+        """
+        pass
 
 
 class VisibleLayer(Layer):

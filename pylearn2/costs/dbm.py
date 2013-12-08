@@ -17,6 +17,7 @@ from theano.sandbox.rng_mrg import MRG_RandomStreams
 RandomStreams = MRG_RandomStreams
 from theano import tensor as T
 
+import pylearn2
 from pylearn2.costs.cost import Cost
 from pylearn2.costs.cost import (
     FixedVarDescr, DefaultDataSpecsMixin, NullDataSpecsMixin
@@ -556,8 +557,12 @@ class TorontoSparsity(Cost):
             real_grads = OrderedDict(safe_zip(fake_components, real_grads))
 
             params = list(layer.get_params())
-            fake_grads = T.grad(cost=None, consider_constant=flatten(state_below),
-                    wrt=params, known_grads = real_grads)
+            fake_grads = pylearn2.utils.grad(
+                cost=None,
+                consider_constant=flatten(state_below),
+                wrt=params,
+                known_grads=real_grads
+            )
 
             for param, grad in safe_zip(params, fake_grads):
                 if param in grads:
