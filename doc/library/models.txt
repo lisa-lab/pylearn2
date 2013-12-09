@@ -15,6 +15,11 @@ Logistic Regression
 .. automodule:: pylearn2.classifier
     :members:
 
+K-means
+=======
+.. automodule:: pylearn2.kmeans
+    :members:
+
 MLP
 ===
 .. automodule:: pylearn2.models.mlp
