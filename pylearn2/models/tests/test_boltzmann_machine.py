@@ -395,10 +395,14 @@ def test_energy_function():
                                        hidden_sample1, hidden_sample2],
                                outputs=target_energy)
 
-    vs1 = numpy.random.uniform(size=(100, 50))
-    vs2 = numpy.random.uniform(size=(100, 100))
-    hs1 = numpy.random.uniform(size=(100, 150))
-    hs2 = numpy.random.uniform(size=(100, 200))
+    vs1 = numpy.asarray(numpy.random.uniform(size=(100, 50)),
+                        dtype=theano.config.floatX)
+    vs2 = numpy.asarray(numpy.random.uniform(size=(100, 100)),
+                        dtype=theano.config.floatX)
+    hs1 = numpy.asarray(numpy.random.uniform(size=(100, 150)),
+                        dtype=theano.config.floatX)
+    hs2 = numpy.asarray(numpy.random.uniform(size=(100, 200)),
+                        dtype=theano.config.floatX)
 
     assert numpy.equal(model_f(vs1, vs2, hs1, hs2),
                        target_f(vs1, vs2, hs1, hs2)).all()
@@ -475,10 +479,14 @@ def test_energy_function_with_limited_connectivity():
                                        hidden_sample1, hidden_sample2],
                                outputs=target_energy)
 
-    vs1 = numpy.random.uniform(size=(100, 50))
-    vs2 = numpy.random.uniform(size=(100, 100))
-    hs1 = numpy.random.uniform(size=(100, 150))
-    hs2 = numpy.random.uniform(size=(100, 200))
+    vs1 = numpy.asarray(numpy.random.uniform(size=(100, 50)),
+                        dtype=theano.config.floatX)
+    vs2 = numpy.asarray(numpy.random.uniform(size=(100, 100)),
+                        dtype=theano.config.floatX)
+    hs1 = numpy.asarray(numpy.random.uniform(size=(100, 150)),
+                        dtype=theano.config.floatX)
+    hs2 = numpy.asarray(numpy.random.uniform(size=(100, 200)),
+                        dtype=theano.config.floatX)
 
     assert numpy.equal(model_f(vs1, vs2, hs1, hs2),
                        target_f(vs1, vs2, hs1, hs2)).all()
