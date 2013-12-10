@@ -37,6 +37,7 @@ from pylearn2.utils.timing import log_timing
 
 log = logging.getLogger(__name__)
 
+
 class SGD(TrainingAlgorithm):
     """
     Stochastic Gradient Descent
@@ -44,7 +45,6 @@ class SGD(TrainingAlgorithm):
     WRITEME: what is a good reference to read about this algorithm?
 
     A TrainingAlgorithm that does gradient descent on minibatches.
-
     """
     def __init__(self, learning_rate, cost=None, batch_size=None,
                  monitoring_batches=None, monitoring_dataset=None,
@@ -55,54 +55,67 @@ class SGD(TrainingAlgorithm):
                  theano_function_mode = None, monitoring_costs=None,
                  seed=[2012, 10, 5]):
         """
+        Parameters
+        ----------
+        learning_rate : float
+            The learning rate to use. Train object callbacks can change the \
+            learning rate after each epoch. SGD update_callbacks can change \
+            it after each minibatch.
+        cost : pylearn2.costs.cost.Cost
+            Cost object specifying the objective function to be minimized. \
+            Optionally, may be None. In this case, SGD will call the model's \
+            get_default_cost method to obtain the objective function.
+        batch_size : int
             WRITEME
+        monitoring_batches : int
+            WRITEME
+        monitoring_dataset : WRITEME
+        monitor_iteration_mode : str
+            WRITEME
+        termination_criterion : WRITEME
+        update_callbacks : WRITEME
+        learning_rule : training_algorithms.learning_rule.LearningRule
+            A learning rule computes the new parameter values given old \
+            parameters and first-order gradients. If learning_rule is None, \
+            sgd.SGD will update parameters according to the standard SGD \
+            learning rule.
+        init_momentum : float, **DEPRECATED**
+            If None, does not use momentum otherwise, use momentum and \
+            initialize the momentum coefficient to init_momentum. Callbacks \
+            can change this over time just like the learning rate. If the \
+            gradient is the same on every step, then the update taken by the \
+            SGD algorithm is scaled by a factor of 1/(1-momentum). See \
+            section 9 of Geoffrey Hinton's "A Practical Guide to Training \
+            Restricted Boltzmann Machines" for details.
+        set_batch_size : bool
+            If True, and batch_size conflicts with model.force_batch_size, \
+            will call model.set_batch_size(batch_size) in an attempt to \
+            change model.force_batch_size
+        train_iteration_mode : WRITEME
+        batches_per_iter : int
+            WRITEME
+        theano_function_mode : WRITEME
+            The theano mode to compile the updates function with. Note that \
+            pylearn2 includes some wraplinker modes that are not bundled with \
+            theano. See pylearn2.devtools. These extra modes let you do \
+            things like check for NaNs at every step, or record md5 digests \
+            of all computations performed by the update function to help \
+            isolate problems with nondeterminism.
+        monitoring_costs : WRITEME
+        seed : WRiTEME
 
-            learning_rate: The learning rate to use.
-                            Train object callbacks can change the learning
-                            rate after each epoch. SGD update_callbacks
-                            can change it after each minibatch.
-            cost: a pylearn2.costs.cost.Cost object specifying the objective
-                  function to be minimized.
-                  Optionally, may be None. In this case, SGD will call the model's
-                  get_default_cost method to obtain the objective function.
-            init_momentum: **DEPRECATED** if None, does not use momentum
-                            otherwise, use momentum and initialize the
-                            momentum coefficient to init_momentum.
-                            Callbacks can change this over time just like
-                            the learning rate.
-
-                            If the gradient is the same on every step, then
-                            the update taken by the SGD algorithm is scaled
-                            by a factor of 1/(1-momentum).
-
-                            See section 9 of Geoffrey Hinton's "A Practical
-                            Guide to Training Restricted Boltzmann Machines"
-                            for details.
-            learning_rule: training_algorithms.learning_rule.LearningRule,
-                           a learning rule computes the new parameter values given
-                           old parameters and first-order gradients. If learning_rule
-                           is None, sgd.SGD will update parameters according to
-                           the standard SGD learning rule.
-            set_batch_size: if True, and batch_size conflicts with
-                            model.force_batch_size, will call
-                            model.set_batch_size(batch_size) in an attempt
-                            to change model.force_batch_size
-            theano_function_mode: The theano mode to compile the updates function with.
-                            Note that pylearn2 includes some wraplinker modes that are
-                            not bundled with theano. See pylearn2.devtools. These
-                            extra modes let you do things like check for NaNs at every
-                            step, or record md5 digests of all computations performed
-                            by the update function to help isolate problems with nondeterminism.
-
-            Parameters are updated by the formula:
+        Notes
+        -----
+        Parameters are updated by the formula:
 
             inc := momentum * inc - learning_rate * d cost / d param
             param := param + inc
         """
 
         if isinstance(cost, (list, tuple, set)):
-            raise TypeError("SGD no longer supports using collections of Costs to represent "
-                    " a sum of Costs. Use pylearn2.costs.cost.SumOfCosts instead.")
+            raise TypeError("SGD no longer supports using collections of " +
+                            "Costs to represent a sum of Costs. Use " +
+                            "pylearn2.costs.cost.SumOfCosts instead.")
 
         if init_momentum:
             warnings.warn("init_momentum interface is deprecated and will "
@@ -124,7 +137,8 @@ class SGD(TrainingAlgorithm):
         self.monitor_iteration_mode = monitor_iteration_mode
         if monitoring_dataset is None:
             if monitoring_batches is not None:
-                raise ValueError("Specified an amount of monitoring batches but not a monitoring dataset.")
+                raise ValueError("Specified an amount of monitoring batches " +
+                                 "but not a monitoring dataset.")
         self.termination_criterion = termination_criterion
         self._register_update_callbacks(update_callbacks)
         if train_iteration_mode is None:
@@ -136,14 +150,22 @@ class SGD(TrainingAlgorithm):
         self.monitoring_costs = monitoring_costs
 
     def setup(self, model, dataset):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.cost is None:
             self.cost = model.get_default_cost()
 
-        inf_params = [ param for param in model.get_params() if np.any(np.isinf(param.get_value())) ]
+        inf_params = [param for param in model.get_params()
+                      if np.any(np.isinf(param.get_value()))]
         if len(inf_params) > 0:
             raise ValueError("These params are Inf: "+str(inf_params))
-        if any([np.any(np.isnan(param.get_value())) for param in model.get_params()]):
-            nan_params = [ param for param in model.get_params() if np.any(np.isnan(param.get_value())) ]
+        if any([np.any(np.isnan(param.get_value()))
+                for param in model.get_params()]):
+            nan_params = [param for param in model.get_params()
+                          if np.any(np.isnan(param.get_value()))]
             raise ValueError("These params are NaN: "+str(nan_params))
         self.model = model
 
@@ -155,7 +177,9 @@ class SGD(TrainingAlgorithm):
                         if self.set_batch_size:
                             model.set_batch_size(batch_size)
                         else:
-                            raise ValueError("batch_size argument to SGD conflicts with model's force_batch_size attribute")
+                            raise ValueError("batch_size argument to SGD " +
+                                             "conflicts with model's " +
+                                             "force_batch_size attribute")
                 else:
                     self.batch_size = model.force_batch_size
         model._test_batch_size = self.batch_size
@@ -175,7 +199,8 @@ class SGD(TrainingAlgorithm):
         theano_args = []
         for space, source in safe_zip(space_tuple, source_tuple):
             name = '%s[%s]' % (self.__class__.__name__, source)
-            arg = space.make_theano_batch(name=name, batch_size = self.batch_size)
+            arg = space.make_theano_batch(name=name,
+                                          batch_size=self.batch_size)
             theano_args.append(arg)
         theano_args = tuple(theano_args)
 
@@ -228,8 +253,9 @@ class SGD(TrainingAlgorithm):
         grads, updates = self.cost.get_gradients(model, nested_args,
                                                  ** fixed_var_descr.fixed_vars)
         if not isinstance(grads, OrderedDict):
-            raise TypeError(str(type(self.cost)) + ".get_gradients returned something with"
-                    + str(type(grads)) + "as its first member. Expected OrderedDict.")
+            raise TypeError(str(type(self.cost)) + ".get_gradients returned " +
+                            "something with" + str(type(grads)) + "as its " +
+                            "first member. Expected OrderedDict.")
 
         for param in grads:
             assert param in params
@@ -291,6 +317,11 @@ class SGD(TrainingAlgorithm):
         self.params = params
 
     def train(self, dataset):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if not hasattr(self, 'sgd_update'):
             raise Exception("train called without first calling setup")
 
@@ -348,6 +379,11 @@ class SGD(TrainingAlgorithm):
                 raise Exception("NaN in " + param.name)
 
     def continue_learning(self, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.termination_criterion is None:
             return True
         else:
@@ -406,6 +442,11 @@ class MonitorBasedLRAdjuster(TrainExtension):
                  low_trigger=.99, grow_amt=1.01,
                  min_lr = 1e-7, max_lr = 1.,
                  dataset_name=None, channel_name=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.high_trigger = high_trigger
         self.shrink_amt = shrink_amt
         self.low_trigger = low_trigger
@@ -421,6 +462,11 @@ class MonitorBasedLRAdjuster(TrainExtension):
                 self.channel_name = 'objective'
 
     def on_monitor(self, model, dataset, algorithm):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # TODO: more sophisticated error checking here.
         model = algorithm.model
         lr = algorithm.learning_rate
@@ -444,11 +490,13 @@ class MonitorBasedLRAdjuster(TrainExtension):
                         specify a monitoring dataset""")
 
             raise ValueError("""For some reason there are no monitor entries,
-                    yet the MonitorBasedLRAdjuster has been called. This should NEVER happen.
-                    The Train object should call the monitor once on initialization, then
-                    call the callbacks.
-                    It seems you are either calling the callback manually rather than as part of
-                    a training algorithm, or there is a problem with the Train object.""")
+                                yet the MonitorBasedLRAdjuster has been called.
+                                This should NEVER happen. The Train object
+                                should call the monitor once on initialization,
+                                then call the callbacks. It seems you are either
+                                calling the callback manually rather than as
+                                part of a training algorithm, or there is a
+                                problem with the Train object.""")
         if len(v) == 1:
             #only the initial monitoring has happened
             #no learning has happened, so we can't adjust the learning rate yet
@@ -498,8 +546,8 @@ class PatienceBasedTermCrit(object):
         patience_increase : float, optional
             The factor X in the patience = X * n_iter update.
         channel_name : string, optional
-            Name of the channel to examine. If None and the monitor
-            has only one channel, this channel will be used; otherwise, an
+            Name of the channel to examine. If None and the monitor \
+            has only one channel, this channel will be used; otherwise, an \
             error will be raised.
         """
         self._channel_name = channel_name
@@ -517,7 +565,7 @@ class PatienceBasedTermCrit(object):
         Parameters
         ----------
         model : Model
-            The model used in the experiment and from which the monitor used
+            The model used in the experiment and from which the monitor used \
             in the termination criterion will be extracted.
 
         Returns
@@ -558,17 +606,32 @@ class AnnealedLearningRate(object):
     callback if you would prefer 1/t where t is epochs.
     """
     def __init__(self, anneal_start):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self._initialized = False
         self._count = 0
         self._anneal_start = anneal_start
 
     def __call__(self, algorithm):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if not self._initialized:
             self._base = algorithm.learning_rate.get_value()
         self._count += 1
         algorithm.learning_rate.set_value(self.current_learning_rate())
 
     def current_learning_rate(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self._base * min(1, self._anneal_start / self._count)
 
 class ExponentialDecay(object):
@@ -579,6 +642,11 @@ class ExponentialDecay(object):
     min_lr.
     """
     def __init__(self, decay_factor, min_lr):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if isinstance(decay_factor, str):
             decay_factor = float(decay_factor)
         if isinstance(min_lr, str):
@@ -590,6 +658,11 @@ class ExponentialDecay(object):
         self._count = 0
 
     def __call__(self, algorithm):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self._count == 0:
             self._base_lr = algorithm.learning_rate.get_value()
         self._count += 1
@@ -605,6 +678,11 @@ class LinearDecay(object):
     during time start till saturate.
     """
     def __init__(self, start, saturate, decay_factor):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if isinstance(decay_factor, str):
             decay_factor = float(decay_factor)
         if isinstance(start, str):
@@ -621,6 +699,11 @@ class LinearDecay(object):
         self._count = 0
 
     def __call__(self, algorithm):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self._count == 0:
             self._base_lr = algorithm.learning_rate.get_value()
             self._step = ((self._base_lr - self._base_lr * self.decay_factor) /
@@ -639,6 +722,11 @@ class LinearDecay(object):
 
 
 def MomentumAdjustor(final_momentum, start, saturate):
+    """
+    .. todo::
+
+        WRITEME
+    """
     warnings.warn("sgd.MomentumAdjustor interface is deprecated and will "
     "become officially unsuported as of May 9, 2014. Please use "
     "`learning_rule.MomentumAdjustor` instead.")
@@ -651,12 +739,16 @@ class OneOverEpoch(TrainExtension):
     """
     def __init__(self, start, half_life = None, min_lr = 1e-6):
         """
-            start: the epoch on which to start shrinking the learning rate
-            half_life: how many epochs after start it will take for the learning rate
-                       to lose half its value for the first time
-                        (to lose the next half of its value will take twice
-                        as long)
-            min_lr: the minimum value the learning rate can take on
+        Parameters
+        ----------
+        start : int
+            The epoch on which to start shrinking the learning rate
+        half_life : int
+            How many epochs after start it will take for the learning rate \
+            to lose half its value for the first time (to lose the next half \
+            of its value will take twice as long)
+        min_lr : float
+            The minimum value the learning rate can take on
         """
         self.__dict__.update(locals())
         del self.self
@@ -669,15 +761,26 @@ class OneOverEpoch(TrainExtension):
             assert half_life > 0
 
     def on_monitor(self, model, dataset, algorithm):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if not self._initialized:
             self._init_lr = algorithm.learning_rate.get_value()
             if self._init_lr < self.min_lr:
-                raise ValueError("The initial learning rate is smaller than the minimum allowed learning rate.")
+                raise ValueError("The initial learning rate is smaller than " +
+                                 "the minimum allowed learning rate.")
             self._initialized = True
         self._count += 1
         algorithm.learning_rate.set_value( np.cast[config.floatX](self.current_lr()))
 
     def current_lr(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self._count < self.start:
             scale = 1
         else:
@@ -692,10 +795,14 @@ class LinearDecayOverEpoch(TrainExtension):
     """
     def __init__(self, start, saturate, decay_factor):
         """
-            start: the epoch on which to start shrinking the learning rate
-            saturate: the epoch to saturate the shrinkage
-            decay_factor: the final value would be initial learning rate times
-                decay_factor
+        Parameters
+        ----------
+        start : int
+            The epoch on which to start shrinking the learning rate
+        saturate : int
+            The epoch to saturate the shrinkage
+        decay_factor : float
+            The final value would be initial learning rate times decay_factor
         """
         self.__dict__.update(locals())
         del self.self
@@ -709,6 +816,11 @@ class LinearDecayOverEpoch(TrainExtension):
         assert saturate >= start
 
     def on_monitor(self, model, dataset, algorithm):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if not self._initialized:
             self._init_lr = algorithm.learning_rate.get_value()
             self._step = ((self._init_lr - self._init_lr * self.decay_factor) /
@@ -718,6 +830,11 @@ class LinearDecayOverEpoch(TrainExtension):
         algorithm.learning_rate.set_value( np.cast[config.floatX](self.current_lr()))
 
     def current_lr(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self._count >= self.start:
             if self._count < self.saturate:
                 new_lr = self._init_lr - self._step * (self._count - self.start + 1)
@@ -734,6 +851,11 @@ class _PolyakWorker(object):
     Do not use directly.
     """
     def __init__(self, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         avg_updates = OrderedDict()
         t = sharedX(1.)
         self.param_to_mean = OrderedDict()
@@ -746,6 +868,11 @@ class _PolyakWorker(object):
         self.avg = function([], updates = avg_updates)
 
     def __call__(self, algorithm):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.avg()
 
 class PolyakAveraging(TrainExtension):
@@ -784,8 +911,15 @@ class PolyakAveraging(TrainExtension):
 
     def __init__(self, start, save_path = None, save_freq = 1):
         """
-            start: the epoch after which to start averaging
-            (0 = start averaging immediately)
+        Parameters
+        ----------
+        start : int
+            The epoch after which to start averaging (0 = start averaging \
+            immediately)
+        save_path : str
+            WRITEME
+        save_freq : int
+            WRITEME
         """
         self.__dict__.update(locals())
         del self.self
@@ -794,12 +928,18 @@ class PolyakAveraging(TrainExtension):
         assert start >= 0
 
     def on_monitor(self, model, dataset, algorithm):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self._count == self.start:
             self._worker = _PolyakWorker(model)
             algorithm.update_callbacks.append(self._worker)
             #HACK
             try:
-                model.add_polyak_channels(self._worker.param_to_mean, algorithm.monitoring_dataset)
+                model.add_polyak_channels(self._worker.param_to_mean,
+                                          algorithm.monitoring_dataset)
             except AttributeError:
                 pass
         elif self.save_path is not None and self._count > self.start and self._count % self.save_freq == 0:
@@ -811,4 +951,3 @@ class PolyakAveraging(TrainExtension):
             for param in model.get_params():
                 param.set_value(saved_params[param])
         self._count += 1
-
