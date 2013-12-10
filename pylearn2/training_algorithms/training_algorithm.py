@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 from pylearn2.datasets.dataset import Dataset
 
 class TrainingAlgorithm(object):
@@ -6,6 +11,11 @@ class TrainingAlgorithm(object):
     algorithms.
     """
     def _register_update_callbacks(self, update_callbacks):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if update_callbacks is None:
             update_callbacks = []
         # If it's iterable, we're fine. If not, it's a single callback,
@@ -23,10 +33,10 @@ class TrainingAlgorithm(object):
         Parameters
         ----------
         model : object
-            Object that implements the Model interface defined in
+            Object that implements the Model interface defined in \
             `pylearn2.models`.
         dataset : object
-            Object that implements the Dataset interface defined in
+            Object that implements the Dataset interface defined in \
             `pylearn2.datasets`.
 
         Notes
@@ -44,7 +54,7 @@ class TrainingAlgorithm(object):
         Parameters
         ----------
         dataset : object
-            Object implementing the dataset interface defined in
+            Object implementing the dataset interface defined in \
             `pylearn2.datasets.dataset.Dataset`.
 
         Returns
@@ -55,9 +65,13 @@ class TrainingAlgorithm(object):
 
     def _set_monitoring_dataset(self, monitoring_dataset):
         """
-            monitoring_dataset: None for no monitoring, or
-                                Dataset, to monitor on one dataset, or
-                                dict mapping string names to Datasets
+        WRITEME
+
+        Parameters
+        ----------
+        monitoring_dataset : None or Dataset or dict
+            None for no monitoring, or Dataset, to monitor on one dataset, \
+            or dict mapping string names to Datasets
         """
         if isinstance(monitoring_dataset, Dataset):
             self.monitoring_dataset = { '': monitoring_dataset }
@@ -68,8 +82,9 @@ class TrainingAlgorithm(object):
                     assert isinstance(key, str)
                     value = monitoring_dataset[key]
                     if not isinstance(value, Dataset):
-                        raise TypeError("Monitoring dataset with name "+key+" is not a dataset, "
-                                " it is a "+str(type(value)))
+                        raise TypeError("Monitoring dataset with name " + key +
+                                        " is not a dataset, it is a " +
+                                        str(type(value)))
             self.monitoring_dataset = monitoring_dataset
 
     def continue_learning(self, model):
@@ -77,5 +92,10 @@ class TrainingAlgorithm(object):
         Return True to continue learning. Called after the Monitor
         has been run on the latest parameters so the monitor may be used
         to determine convergence.
+
+        Parameters
+        ----------
+        model : WRITEME
         """
-        raise NotImplementedError(str(type(self))+" does not implement continue_learning.")
+        raise NotImplementedError(str(type(self))+" does not implement " +
+                                  "continue_learning.")
