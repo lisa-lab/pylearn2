@@ -588,13 +588,24 @@ class ExponentialDecay(object):
         self.__dict__.update(locals())
         del self.self
         self._count = 0
+        self._min_reached = False
 
     def __call__(self, algorithm):
         if self._count == 0:
             self._base_lr = algorithm.learning_rate.get_value()
         self._count += 1
-        cur_lr = self._base_lr / (self.decay_factor ** self._count)
-        new_lr = max(cur_lr, self.min_lr)
+
+        if not self._min_reached:
+            # If we keep on executing the exponentiation on each mini-batch,
+            # we will eventually get an OverflowError. So make sure we
+            # only do the computation until min_lr is reached.
+            new_lr = self._base_lr / (self.decay_factor ** self._count)
+            if new_lr <= self.min_lr:
+                self._min_reached = True
+                new_lr = self.min_lr
+        else:
+            new_lr = self.min_lr
+
         new_lr = np.cast[config.floatX](new_lr)
         algorithm.learning_rate.set_value(new_lr)
 
