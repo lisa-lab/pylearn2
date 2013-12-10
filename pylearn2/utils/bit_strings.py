@@ -11,8 +11,7 @@ import numpy as np
 
 def all_bit_strings(bits, dtype='uint8'):
     """
-    Create a matrix of all binary strings of a given width
-    as the rows.
+    Create a matrix of all binary strings of a given width as the rows.
 
     Parameters
     ----------
@@ -25,13 +24,13 @@ def all_bit_strings(bits, dtype='uint8'):
     Returns
     -------
     bit_strings : ndarray, shape (2 ** bits, bits)
-        The numbers from 0 to 2 ** bits - 1 as binary
-        numbers, most significant bit first.
+        The numbers from 0 to 2 ** bits - 1 as binary numbers, most \
+        significant bit first.
 
     Notes
     -----
-    Obviously the memory requirements of this are exponential in
-    the first argument, so use with caution.
+    Obviously the memory requirements of this are exponential in the first
+    argument, so use with caution.
     """
     return np.array([map(int, np.binary_repr(i, width=bits))
                      for i in xrange(0, 2 ** bits)], dtype=dtype)
