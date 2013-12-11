@@ -48,6 +48,7 @@ from pylearn2.models.dbm import VisibleLayer
 from pylearn2.space import Conv2DSpace
 from pylearn2.space import VectorSpace
 from pylearn2.utils import sharedX
+from pylearn2.constraints import NormConstraint
 
 
 def init_tanh_bias_from_marginals(dataset, use_y=False):
@@ -294,14 +295,13 @@ class IsingHidden(HiddenLayer):
         assert W.name is not None
 
     def censor_updates(self, updates):
-
         if self.max_col_norm is not None:
             W, = self.transformer.get_params()
             if W in updates:
                 updated_W = updates[W]
-                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
+                normConstraint = NormConstraint()
+                updates[W] = normConstraint.constrain_param(param=updated_W,
+                                                            max_norm_constraint=self.max_col_norm)
 
     def get_total_state_space(self):
         return VectorSpace(self.dim)
@@ -991,9 +991,9 @@ class BoltzmannIsingHidden(HiddenLayer):
             W = self.W
             if W in updates:
                 updated_W = updates[W]
-                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
+                normConstraint = NormConstraint()
+                updates[W] = normConstraint.constrain_param(param=updated_W,
+                                                            max_norm_constraint=self.max_col_norm)
 
         if any(constraint is not None for constraint in [self.min_ising_b,
                                                          self.max_ising_b,

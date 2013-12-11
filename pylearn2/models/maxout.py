@@ -38,6 +38,7 @@ from pylearn2.space import Conv2DSpace
 from pylearn2.space import VectorSpace
 from pylearn2.utils import py_integer_types
 from pylearn2.utils import sharedX
+from pylearn2.constraints import NormConstraint
 
 from pylearn2.linear.conv2d_c01b import setup_detector_layer_c01b
 from pylearn2.linear import local_c01b
@@ -223,7 +224,6 @@ class Maxout(Layer):
             self.mask = sharedX(self.mask_weights)
 
     def censor_updates(self, updates):
-
         # Patch old pickle files
         if not hasattr(self, 'mask_weights'):
             self.mask_weights = None
@@ -235,12 +235,11 @@ class Maxout(Layer):
 
         if self.max_col_norm is not None:
             assert self.max_row_norm is None
-            W ,= self.transformer.get_params()
-            if W in updates:
-                updated_W = updates[W]
-                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
+            W, = self.transformer.get_params()
+            updated_W = updates[W]
+            normConstraint = NormConstraint()
+            updates[W] = normConstraint.constrain_param(param=updated_W,
+                                                        max_norm_constraint=self.max_col_norm)
 
     def get_params(self):
         assert self.b.name is not None
@@ -654,9 +653,11 @@ class MaxoutConvC01B(Layer):
             W ,= self.transformer.get_params()
             if W in updates:
                 updated_W = updates[W]
-                row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=(0,1,2)))
-                desired_norms = T.clip(row_norms, 0, self.max_kernel_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle('x', 'x', 'x', 0)
+                axis = (0, 1, 2)
+                dimshuffle_pattern = ('x', 'x', 'x', 0)
+                kern_row_constraint = NormConstraint(axis=axis, dimshuffle_pattern=dimshuffle_pattern)
+                updates[W] = kern_row_constraint.constrain_param(param=updated_W,
+                                                           max_norm_constraint=self.max_kernel_norm)
 
     def get_params(self):
         assert self.b.name is not None
@@ -1094,14 +1095,18 @@ class MaxoutLocalC01B(Layer):
     def censor_updates(self, updates):
 
         if self.max_filter_norm is not None:
-            W ,= self.transformer.get_params()
+            W, = self.transformer.get_params()
             if W in updates:
                 # TODO:    push some of this into the transformer itself
                 updated_W = updates[W]
-                updated_norms = self.get_filter_norms(updated_W)
-                desired_norms = T.clip(updated_norms, 0, self.max_filter_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + updated_norms)
-                        ).dimshuffle(0, 1, 'x', 'x', 'x', 2, 3)
+                axis = (2, 3, 4)
+                dimshuffle_pattern = (0, 1, 'x', 'x', 'x', 2, 3)
+
+                filter_norm_constraint = NormConstraint(axis=axis,
+                                                        dimshuffle_pattern=dimshuffle_pattern)
+
+                filter_norm_constraint.constrain_param(param=updated_W,
+                                                       max_norm_constraint=self.max_filter_norm)
 
     def get_params(self):
         assert self.b.name is not None
@@ -1135,7 +1140,6 @@ class MaxoutLocalC01B(Layer):
         return self.transformer.get_weights_topo()
 
     def get_filter_norms(self, W = None):
-
         # TODO: push this into the transformer class itself
 
         if W is None:
