@@ -116,9 +116,9 @@ class WindowAndFlipC01B(TrainExtension):
 
         # Do the initial random windowing
         randomize_now = self._randomize + self._randomize_once
-        self._original = dict((data, _zero_pad(data.get_topological_view(),
-                                               self._pad_randomized))
-                for data in randomize_now)
+        self._original = dict((data,
+            _zero_pad(data.get_topological_view().astype('float32'),
+                self._pad_randomized)) for data in randomize_now)
         self.randomize_datasets(randomize_now)
 
     def randomize_datasets(self, datasets):

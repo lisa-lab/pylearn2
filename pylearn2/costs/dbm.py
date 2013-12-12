@@ -17,11 +17,13 @@ from theano.sandbox.rng_mrg import MRG_RandomStreams
 RandomStreams = MRG_RandomStreams
 from theano import tensor as T
 
+import pylearn2
 from pylearn2.costs.cost import Cost
-from pylearn2.costs.cost import FixedVarDescr
+from pylearn2.costs.cost import (
+    FixedVarDescr, DefaultDataSpecsMixin, NullDataSpecsMixin
+)
 from pylearn2.models import dbm
 from pylearn2.models.dbm import flatten
-from pylearn2.space import CompositeSpace, NullSpace
 from pylearn2 import utils
 from pylearn2.utils import make_name
 from pylearn2.utils import safe_izip
@@ -31,14 +33,15 @@ from pylearn2.utils import sharedX
 
 class BaseCD(Cost):
     def __init__(self, num_chains, num_gibbs_steps, supervised=False,
-                 toronto_neg=False):
+                 toronto_neg=False, theano_rng=None):
         """
             toronto_neg: If True, use a bit of mean field in the negative phase
                         Ruslan Salakhutdinov's matlab code does this.
         """
         self.__dict__.update(locals())
         del self.self
-        self.theano_rng = MRG_RandomStreams(2012 + 10 + 14)
+        if self.theano_rng is None:
+            self.theano_rng = MRG_RandomStreams(2012 + 10 + 14)
         assert supervised in [True, False]
 
     def expr(self, model, data):
@@ -272,7 +275,7 @@ class BaseCD(Cost):
         return gradients
 
 
-class PCD(BaseCD):
+class PCD(DefaultDataSpecsMixin, BaseCD):
     """
     An intractable cost representing the negative log likelihood of a DBM.
     The gradient of this bound is computed using a persistent
@@ -310,17 +313,8 @@ class PCD(BaseCD):
 
         return neg_phase_grads, updates
 
-    def get_data_specs(self, model):
-        if self.supervised:
-            space = CompositeSpace([model.get_input_space(),
-                                    model.get_output_space()])
-            sources = (model.get_input_source(), model.get_target_source())
-            return (space, sources)
-        else:
-            return (model.get_input_space(), model.get_input_source())
 
-
-class VariationalPCD(BaseCD):
+class VariationalPCD(DefaultDataSpecsMixin, BaseCD):
     """
     An intractable cost representing the variational upper bound
     on the negative log likelihood of a DBM.
@@ -374,17 +368,9 @@ class VariationalPCD(BaseCD):
 
         return neg_phase_grads, updates
 
-    def get_data_specs(self, model):
-        if self.supervised:
-            space = CompositeSpace([model.get_input_space(),
-                                    model.get_output_space()])
-            sources = (model.get_input_source(), model.get_target_source())
-            return (space, sources)
-        else:
-            return (model.get_input_space(), model.get_input_source())
 
 
-class VariationalCD(BaseCD):
+class VariationalCD(DefaultDataSpecsMixin, BaseCD):
     """
     An intractable cost representing the negative log likelihood of a DBM.
     The gradient of this bound is computed using a markov chain initialized
@@ -443,17 +429,8 @@ class VariationalCD(BaseCD):
 
         return neg_phase_grads, OrderedDict()
 
-    def get_data_specs(self, model):
-        if self.supervised:
-            space = CompositeSpace([model.get_input_space(),
-                                    model.get_output_space()])
-            sources = (model.get_input_source(), model.get_target_source())
-            return (space, sources)
-        else:
-            return (model.get_input_space(), model.get_input_source())
 
-
-class MF_L2_ActCost(Cost):
+class MF_L2_ActCost(DefaultDataSpecsMixin, Cost):
     """
         An L2 penalty on the amount that the hidden unit mean field parameters
         deviate from desired target values.
@@ -507,13 +484,6 @@ class MF_L2_ActCost(Cost):
             return objective, locals()
         return objective
 
-    def get_data_specs(self, model):
-        if self.supervised:
-            space = CompositeSpace([model.get_input_space(), model.get_output_space()])
-            sources = (model.get_input_source(), model.get_target_source())
-            return (space, sources)
-        else:
-            return (model.get_input_space(), model.get_input_source())
 
 def fix(l):
     if isinstance(l, list):
@@ -587,8 +557,12 @@ class TorontoSparsity(Cost):
             real_grads = OrderedDict(safe_zip(fake_components, real_grads))
 
             params = list(layer.get_params())
-            fake_grads = T.grad(cost=None, consider_constant=flatten(state_below),
-                    wrt=params, known_grads = real_grads)
+            fake_grads = pylearn2.utils.grad(
+                cost=None,
+                consider_constant=flatten(state_below),
+                wrt=params,
+                known_grads=real_grads
+            )
 
             for param, grad in safe_zip(params, fake_grads):
                 if param in grads:
@@ -601,7 +575,7 @@ class TorontoSparsity(Cost):
     def get_data_specs(self, model):
         return self.base_cost.get_data_specs(model)
 
-class WeightDecay(Cost):
+class WeightDecay(NullDataSpecsMixin, Cost):
     """
     coeff * sum(sqr(weights))
 
@@ -639,10 +613,6 @@ class WeightDecay(Cost):
         total_cost.name = 'weight_decay'
 
         return total_cost
-
-    def get_data_specs(self, model):
-        # This cost does not use or require data
-        return (NullSpace(), '')
 
 
 class MultiPrediction(Cost):

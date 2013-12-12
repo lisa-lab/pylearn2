@@ -30,6 +30,10 @@ class Conv2D(OrigConv2D):
             output_axes = ('b',0,1,'c'),
         subsample = (1, 1), border_mode = 'valid',
         filters_shape = None, message = ''):
+        """
+        filters: Theano shared variable. 4-tensor of shape (out channels,
+        in channels, rows, cols)
+        """
 
 
         self.input_space = input_space

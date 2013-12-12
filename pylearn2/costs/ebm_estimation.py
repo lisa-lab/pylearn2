@@ -1,12 +1,12 @@
 """ Training costs for unsupervised learning of energy-based models """
 import theano.tensor as T
 from theano import scan
-from pylearn2.costs.cost import Cost
+from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import py_integer_types
 
 
-class NCE(Cost):
+class NCE(DefaultDataSpecsMixin, Cost):
     """ Noise-Contrastive Estimation
 
         See "Noise-Contrastive Estimation: A new estimation principle for unnormalized models "
@@ -15,7 +15,6 @@ class NCE(Cost):
     """
     def h(self, X, model):
         return - T.nnet.sigmoid(self.G(X, model))
-
 
     def G(self, X, model):
         return model.log_prob(X) - self.noise.log_prob(X)
@@ -73,25 +72,20 @@ class NCE(Cost):
         assert isinstance(noise_per_clean, py_integer_types)
         self.noise_per_clean = noise_per_clean
 
-    def get_data_specs(self, model):
-        space = model.get_input_space()
-        source = model.get_input_source()
-        return (space, source)
 
-
-class SM(Cost):
+class SM(DefaultDataSpecsMixin, Cost):
     """ (Regularized) Score Matching
-        
+
         See:
         - "Regularized estimation of image statistics by Score Matching",
           D. Kingma, Y. LeCun, NIPS 2010
         - eqn. 4 of "On Autoencoders and Score Matching for Energy Based Models"
           Swersky et al 2011
-        
+
         Uses the mean over visible units rather than sum over visible units
         so that hyperparameters won't depend as much on the # of visible units
     """
-    
+
     def __init__(self, lambd = 0):
         assert lambd >= 0
         self.lambd = lambd
@@ -115,11 +109,8 @@ class SM(Cost):
 
         return rval
 
-    def get_data_specs(self, model):
-        return (model.get_input_space(), model.get_input_source())
 
-
-class SMD(Cost):
+class SMD(DefaultDataSpecsMixin, Cost):
     """ Denoising Score Matching
         See eqn. 4.3 of "A Connection Between Score Matching and Denoising Autoencoders"
         by Pascal Vincent for details
@@ -164,6 +155,3 @@ class SMD(Cost):
         smd.name = 'SMD('+X_name+')'
 
         return smd
-
-    def get_data_specs(self, model):
-        return (model.get_input_space(), model.get_input_source())

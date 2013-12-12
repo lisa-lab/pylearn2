@@ -13,7 +13,9 @@ def main():
 
     options = parser.parse_args()
 
-    pv = get_weights_report.get_weights_report(model_path = options.path, rescale = options.rescale, border = options.border)
+    pv = get_weights_report.get_weights_report(model_path=options.path,
+                                               rescale=options.rescale,
+                                               border=options.border)
 
     if options.out is None:
         pv.show()

@@ -2,7 +2,8 @@
 Functionality for preprocessing Datasets.
 """
 
-__authors__ = "Ian Goodfellow, David Warde-Farley, Guillaume Desjardins, and Mehdi Mirza"
+__authors__ = "Ian Goodfellow, David Warde-Farley, Guillaume Desjardins, " \
+              "and Mehdi Mirza"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow", "David Warde-Farley", "Guillaume Desjardins",
                "Mehdi Mirza"]
@@ -11,17 +12,12 @@ __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
 
-import copy
-import logging
-import time
-import warnings
-import numpy as np
+import copy, logging, time, warnings, numpy
 try:
     from scipy import linalg
 except ImportError:
     warnings.warn("Could not import scipy.linalg")
-from theano import function
-import theano.tensor as T
+from theano import function, tensor
 
 from pylearn2.base import Block
 from pylearn2.linear.conv2d import Conv2D
@@ -75,16 +71,19 @@ class Preprocessor(object):
                   for a variety of reasons:
                       1) Preprocessors should work on any dataset, and not all
                          datasets will store their data as ndarrays.
-                      2) Preprocessors often need to change a dataset's metadata.
-                         For example, suppose you have a DenseDesignMatrix dataset
-                         of images. If you implement a fovea Preprocessor that
-                         reduces the dimensionality of images by sampling them finely
-                         near the center and coarsely with blurring at the edges,
-                         then your preprocessor will need to change the way that the
-                         dataset converts example vectors to images for visualization.
+                      2) Preprocessors often need to change a dataset's
+                         metadata.  For example, suppose you have a
+                         DenseDesignMatrix dataset of images. If you implement a
+                         fovea Preprocessor that reduces the dimensionality of
+                         images by sampling them finely near the center and
+                         coarsely with blurring at the edges, then your
+                         preprocessor will need to change the way that the
+                         dataset converts example vectors to images for
+                         visualization.
         """
 
-        raise NotImplementedError(str(type(self))+" does not implement an apply method.")
+        raise NotImplementedError(str(type(self)) +
+                                  " does not implement an apply method.")
 
     def invert(self):
         """
@@ -108,7 +107,8 @@ class ExamplewisePreprocessor(Preprocessor):
     """
 
     def as_block(self):
-        raise NotImplementedError(str(type(self))+" does not implement as_block.")
+        raise NotImplementedError(str(type(self)) +
+                                  " does not implement as_block.")
 
 class BlockPreprocessor(ExamplewisePreprocessor):
     """
@@ -182,7 +182,7 @@ class ExtractGridPatches(Preprocessor):
             output_shape.append(dim)
         # number of channels
         output_shape.append(X.shape[-1])
-        output = np.zeros(output_shape, dtype=X.dtype)
+        output = numpy.zeros(output_shape, dtype=X.dtype)
         channel_slice = slice(0, X.shape[-1])
         coords = [0] * (num_topological_dimensions + 1)
         keep_going = True
@@ -212,7 +212,7 @@ class ExtractGridPatches(Preprocessor):
 
         # fix lables
         if dataset.y is not None:
-            dataset.y = np.repeat(dataset.y, num_patches / X.shape[0])
+            dataset.y = numpy.repeat(dataset.y, num_patches / X.shape[0])
 
 
 class ReassembleGridPatches(Preprocessor):
@@ -257,7 +257,7 @@ class ReassembleGridPatches(Preprocessor):
             reassembled_shape.append(dim)
         # number of channels
         reassembled_shape.append(patches.shape[-1])
-        reassembled = np.zeros(reassembled_shape, dtype=patches.dtype)
+        reassembled = numpy.zeros(reassembled_shape, dtype=patches.dtype)
         channel_slice = slice(0, patches.shape[-1])
         coords = [0] * (num_topological_dimensions + 1)
         max_strides = [num_examples - 1]
@@ -314,7 +314,7 @@ class ExtractPatches(Preprocessor):
         if rng != None:
             self.start_rng = copy.copy(rng)
         else:
-            self.start_rng = np.random.RandomState([1, 2, 3])
+            self.start_rng = numpy.random.RandomState([1, 2, 3])
 
     def apply(self, dataset, can_fit=False):
         rng = copy.copy(self.start_rng)
@@ -337,7 +337,7 @@ class ExtractPatches(Preprocessor):
             output_shape.append(dim)
         # number of channels
         output_shape.append(X.shape[-1])
-        output = np.zeros(output_shape, dtype=X.dtype)
+        output = numpy.zeros(output_shape, dtype=X.dtype)
         channel_slice = slice(0, X.shape[-1])
         for i in xrange(self.num_patches):
             args = []
@@ -369,7 +369,7 @@ class ExamplewiseUnitNormBlock(Block):
             self.input_space.validate(batch)
         squared_batch = batch ** 2
         squared_norm = squared_batch.sum(axis=1)
-        norm = T.sqrt(squared_norm)
+        norm = tensor.sqrt(squared_norm)
         return batch / norm
 
     def set_input_space(self, space):
@@ -388,7 +388,7 @@ class ExamplewiseUnitNormBlock(Block):
 class MakeUnitNorm(ExamplewisePreprocessor):
     def apply(self, dataset, can_fit=False):
         X = dataset.get_design_matrix()
-        X_norm = np.sqrt(np.sum(X ** 2, axis=1))
+        X_norm = numpy.sqrt(numpy.sum(X ** 2, axis=1))
         X /= X_norm[:, None]
         dataset.set_design_matrix(X)
 
@@ -423,11 +423,11 @@ class ExamplewiseAddScaleTransform(Block):
         input_space: Space, optional
             The input space describing the data
         """
-        self._add = np.asarray(add)
-        self._multiply = np.asarray(multiply)
+        self._add = numpy.asarray(add)
+        self._multiply = numpy.asarray(multiply)
         # TODO: put the constant somewhere sensible.
         if multiply is not None:
-            self._has_zeros = np.any(abs(multiply) < 1e-14)
+            self._has_zeros = numpy.any(abs(multiply) < 1e-14)
         else:
             self._has_zeros = False
         self._multiply_first = multiply_first
@@ -611,7 +611,7 @@ class RemoveZeroColumns(ExamplewisePreprocessor):
         design_matrix = dataset.get_design_matrix()
         mean = design_matrix.mean(axis=0)
         var = design_matrix.var(axis=0)
-        columns, = np.where((var < self._eps) & (mean < self._eps))
+        columns, = numpy.where((var < self._eps) & (mean < self._eps))
         self._block = ColumnSubsetBlock
 
     def as_block(self):
@@ -626,13 +626,13 @@ class RemapInterval(ExamplewisePreprocessor):
     def __init__(self, map_from, map_to):
         assert map_from[0] < map_from[1] and len(map_from) == 2
         assert map_to[0] < map_to[1] and len(map_to) == 2
-        self.map_from = [np.float(x) for x in map_from]
-        self.map_to = [np.float(x) for x in map_to]
+        self.map_from = [numpy.float(x) for x in map_from]
+        self.map_to = [numpy.float(x) for x in map_to]
 
     def apply(self, dataset, can_fit=False):
         X = dataset.get_design_matrix()
-        X = (X - self.map_from[0]) / np.diff(self.map_from)
-        X = X * np.diff(self.map_to) + self.map_to[0]
+        X = (X - self.map_from[0]) / numpy.diff(self.map_from)
+        X = X * numpy.diff(self.map_to) + self.map_to[0]
         dataset.set_design_matrix(X)
 
 
@@ -681,8 +681,8 @@ class PCA(object):
         # TODO: Is storing these really necessary? This computation
         # can't really be merged since we're basically creating the
         # functions in apply(); I see no reason to keep these around.
-        self._input = T.matrix()
-        self._output = T.matrix()
+        self._input = tensor.matrix()
+        self._output = tensor.matrix()
 
     def apply(self, dataset, can_fit=False):
         if self._pca is None:
@@ -749,13 +749,13 @@ class Downsample(object):
             kernel_shape.append(1)
         kernel_shape.append(X.shape[-1])
         kernel_value = 1. / float(kernel_size)
-        kernel = np.zeros(kernel_shape, dtype=X.dtype)
+        kernel = numpy.zeros(kernel_shape, dtype=X.dtype)
         for i in xrange(X.shape[-1]):
             kernel[i, :, :, :, i] = kernel_value
         from theano.tensor.nnet.Conv3D import conv3D
-        X_var = T.TensorType(broadcastable=[s == 1 for s in X.shape],
+        X_var = tensor.TensorType(broadcastable=[s == 1 for s in X.shape],
                              dtype=X.dtype)()
-        downsampled = conv3D(X_var, kernel, np.zeros(X.shape[-1], X.dtype),
+        downsampled = conv3D(X_var, kernel, numpy.zeros(X.shape[-1], X.dtype),
                              kernel_shape[1:-1])
         f = function([X_var], downsampled)
         X = f(X)
@@ -776,44 +776,68 @@ class GlobalContrastNormalization(Preprocessor):
         Parameters
         ----------
         batch_size : int or None, optional
-            If specified, read, apply and write the transformed
-            data in batches no larger than `batch_size`.
-
-        std_bias is a deprecated alias for sqrt_bias.
-        use_norm is a deprecated argument that controls the same thing as use_std,
-            except that use_norm=True means use_std=False.
-
-        use_std defaults to True and sqrt_bias defaults to 10 if nothing is specified.
-        Both of these defaults will change for consistency with pylearn2.expr.preprocessing
-        sometime after October 12, 2013.
-        The defaults aren't specified as part of the method signature so that we can tell
-        whether the client is using each name for each option.
+                     If specified, read, apply and write the transformed data in
+                     batches no larger than `batch_size`.
+        std_bias : a deprecated alias for sqrt_bias.
+        use_norm : a deprecated argument that controls the same thing as
+                   use_std, except that use_norm=True means use_std=False.
+        use_std : defaults to True and sqrt_bias defaults to 10 if nothing is
+                  specified.
+                  
+        Both of these defaults will change for consistency with
+        pylearn2.expr.preprocessing sometime after October 12, 2013.  The
+        defaults aren't specified as part of the method signature so that we can
+        tell whether the client is using each name for each option.
         """
 
         if std_bias is not None:
-            warnings.warn("std_bias is deprecated, and may be removed after October 12, 2013. Switch to sqrt_bias.", stacklevel=2)
+            warnings.warn("std_bias is deprecated, and may be removed after "
+                          "October 12, 2013. Switch to sqrt_bias.",
+                          stacklevel=2)
             if sqrt_bias is not None:
                 if std_bias == sqrt_bias:
-                    warnings.warn("You're specifying both std_bias and sqrt_bias, which are actually aliases for the same parameter. You're setting them both to the same thing so it's OK, but you probably want to change your script to just specify sqrt_bias.",stacklevel=2)
+                    warnings.warn("You're specifying both std_bias and "
+                                  "sqrt_bias, which are actually aliases for "
+                                  "the same parameter. You're setting them both"
+                                  " to the same thing so it's OK, but you "
+                                  "probably want to change your script to just "
+                                  "specify sqrt_bias.", stacklevel=2)
                 else:
-                    raise ValueError("You specified sqrt_bias and std_bias to different values, but they are aliases of each other. Specify only sqrt_bias. std_bias is a deprecated alias.", stacklevel=2)
+                    raise ValueError("You specified sqrt_bias and std_bias to "
+                                     "different values, but they are aliases of"
+                                     " each other. Specify only sqrt_bias. "
+                                     "std_bias is a deprecated alias.",
+                                     stacklevel=2)
             sqrt_bias = std_bias
 
         if sqrt_bias is None:
-            warnings.warn("You are not specifying a value for sqrt_bias. Note that the default value will change on or after October 12, 2013, to be consistent with pylearn2.expr.preprocessing.")
+            warnings.warn("You are not specifying a value for sqrt_bias. Note "
+                          "that the default value will change on or after "
+                          "October 12, 2013, to be consistent with "
+                          "pylearn2.expr.preprocessing.")
             sqrt_bias = 10.
 
         if use_norm is not None:
-            warnings.warn("use_norm is deprecated, and may be removed after October 12, 2013. Pass the opposite value to use_std.", stacklevel=2)
+            warnings.warn("use_norm is deprecated, and may be removed after "
+                          "October 12, 2013. Pass the opposite value to "
+                          "use_std.", stacklevel=2)
             if use_std is not None:
                 if use_std == (not use_norm):
-                    warnings.warn("You're specifying both use_std and use_norm. You have them set to the opposite of each other, i.e. both are requesting the same behavior, so you're OK, but you probably want to change your script to only specify one.", stacklevel=2)
+                    warnings.warn("You're specifying both use_std and use_norm."
+                                  " You have them set to the opposite of each "
+                                  "other, i.e. both are requesting the same "
+                                  "behavior, so you're OK, but you probably "
+                                  "want to change your script to only specify "
+                                  "one.", stacklevel=2)
                 else:
                     raise ValueError("use_std conflicts with use_norm.")
             use_std = not use_norm
 
         if use_std is None:
-            warnings.warn("You are not specifying a value for use_std. The default of use_std will change on or after October 12, 2013 to be consistent with pylearn2.expr.preprocessing.")
+            warnings.warn("You are not specifying a value for use_std. The "
+                          "default of use_std will change on or after October "
+                          "12, 2013 to be consistent with "
+                          "pylearn2.expr.preprocessing.")
 
             use_std = True
 
@@ -840,11 +864,11 @@ class GlobalContrastNormalization(Preprocessor):
         else:
             X = dataset.get_design_matrix()
             data_size = X.shape[0]
-            last = (np.floor(data_size / float(self._batch_size)) *
+            last = (numpy.floor(data_size / float(self._batch_size)) *
                     self._batch_size)
             for i in xrange(0, data_size, self._batch_size):
                 if i >= last:
-                    stop = i + np.mod(data_size, self._batch_size)
+                    stop = i + numpy.mod(data_size, self._batch_size)
                 else:
                     stop = i + self._batch_size
                 log.info("GCN processing data from %d to %d" % (i, stop))
@@ -853,7 +877,11 @@ class GlobalContrastNormalization(Preprocessor):
 
 
 class GlobalContrastNormalizationPyTables(object):
-    def __init__(self, subtract_mean=True, std_bias=10.0, use_norm=False, batch_size = 5000):
+    def __init__(self,
+                 subtract_mean = True,
+                 std_bias = 10.0,
+                 use_norm = False,
+                 batch_size = 5000):
         """
 
         Optionally subtracts the mean of each example
@@ -890,10 +918,10 @@ class GlobalContrastNormalizationPyTables(object):
             X -= X[:].mean(axis=1)[:, None]
 
         if self.use_norm:
-            scale = np.sqrt(np.square(X).sum(axis=1) + self.std_bias)
+            scale = numpy.sqrt(numpy.square(X).sum(axis=1) + self.std_bias)
         else:
             # use standard deviation
-            scale = np.sqrt(np.square(X).mean(axis=1) + self.std_bias)
+            scale = numpy.sqrt(numpy.square(X).mean(axis=1) + self.std_bias)
         eps = 1e-8
         scale[scale < eps] = 1.
         X /= scale[:, None]
@@ -902,10 +930,11 @@ class GlobalContrastNormalizationPyTables(object):
     def apply(self, dataset, can_fit=False):
         X = dataset.get_design_matrix()
         data_size = X.shape[0]
-        last = np.floor(data_size / float(self._batch_size)) * self._batch_size
+        last = numpy.floor(data_size / float(self._batch_size)) * \
+               self._batch_size
         for i in xrange(0, data_size, self._batch_size):
             if i >= last:
-                stop = i + np.mod(data_size, self._batch_size)
+                stop = i + numpy.mod(data_size, self._batch_size)
             else:
                 stop = i + self._batch_size
             print "GCN processing data from %d to %d" % (i, stop)
@@ -947,22 +976,23 @@ class ZCA(Preprocessor):
 
     def fit(self, X):
         assert X.dtype in ['float32', 'float64']
-        assert not np.any(np.isnan(X))
+        assert not numpy.any(numpy.isnan(X))
         assert len(X.shape) == 2
         n_samples = X.shape[0]
         if self.copy:
             X = X.copy()
         # Center data
-        self.mean_ = np.mean(X, axis=0)
+        self.mean_ = numpy.mean(X, axis=0)
         X -= self.mean_
         # TODO: logging
         print 'computing zca'
         t1 = time.time()
-        eigs, eigv = linalg.eigh(np.dot(X.T, X) / X.shape[0] + self.filter_bias * np.identity(X.shape[1]))
+        eigs, eigv = linalg.eigh(numpy.dot(X.T, X) / X.shape[0] + 
+                                 self.filter_bias * numpy.identity(X.shape[1]))
         t2 = time.time()
         print "cov estimate + eigh took",t2-t1,"seconds"
-        assert not np.any(np.isnan(eigs))
-        assert not np.any(np.isnan(eigv))
+        assert not numpy.any(numpy.isnan(eigs))
+        assert not numpy.any(numpy.isnan(eigv))
         assert eigs.min() > 0
         if self.n_components:
             eigs = eigs[:self.n_components]
@@ -970,11 +1000,11 @@ class ZCA(Preprocessor):
         if self.n_drop_components:
             eigs = eigs[self.n_drop_components:]
             eigv = eigv[:, self.n_drop_components:]
-        self.P_ = np.dot(eigv * np.sqrt(1.0 / eigs),
+        self.P_ = numpy.dot(eigv * numpy.sqrt(1.0 / eigs),
                          eigv.T)
         # print 'zca components'
-        # print np.square(self.P_).sum(axis=0)
-        assert not np.any(np.isnan(self.P_))
+        # print numpy.square(self.P_).sum(axis=0)
+        assert not numpy.any(numpy.isnan(self.P_))
         self.has_fit_ = True
 
     def apply(self, dataset, can_fit=False):
@@ -983,7 +1013,7 @@ class ZCA(Preprocessor):
         if not self.has_fit_:
             assert can_fit
             self.fit(X)
-        new_X = np.dot(X - self.mean_, self.P_)
+        new_X = numpy.dot(X - self.mean_, self.P_)
         dataset.set_design_matrix(new_X)
 
     def invert(self):
@@ -991,11 +1021,11 @@ class ZCA(Preprocessor):
         Do any necessary prep work to be able to support the "inverse" method
         later.
         """
-        self.inv_P_ = np.linalg.inv(self.P_)
+        self.inv_P_ = numpy.linalg.inv(self.P_)
 
     def inverse(self, X):
         assert X.ndim == 2
-        return np.dot(X, self.inv_P_) + self.mean_
+        return numpy.dot(X, self.inv_P_) + self.mean_
 
 class LeCunLCN(ExamplewisePreprocessor):
     """ Yann LeCun local contrast normalization
@@ -1047,9 +1077,11 @@ class LeCunLCN(ExamplewisePreprocessor):
         if self._channels is None:
             self._channels
 
-        last = np.floor(data_size / float(self._batch_size)) * self._batch_size
+        last = numpy.floor(data_size / float(self._batch_size)) * \
+               self._batch_size
         for i in xrange(0, data_size, self._batch_size):
-            stop = i + np.mod(data_size, self._batch_size) if i>= last else i + self._batch_size
+            stop = i + numpy.mod(data_size, self._batch_size) if i>= last else \
+                   i + self._batch_size
             print "LCN processing data from %d to %d" % (i, stop)
             transformed = self.transform(convert_axes(
                                 dataset.get_topological_view(
@@ -1057,11 +1089,15 @@ class LeCunLCN(ExamplewisePreprocessor):
                                 dataset.axes, axes))
             transformed = convert_axes(transformed, axes, dataset.axes)
             if self._batch_size != data_size:
-                if isinstance(dataset.X, np.ndarray):
+                if isinstance(dataset.X, numpy.ndarray):
                     # TODO have a separate class for non pytables datasets
-                    transformed = convert_axes(transformed, dataset.axes, ['b', 0, 1, 'c'])
+                    transformed = convert_axes(transformed,
+                                               dataset.axes,
+                                               ['b', 0, 1, 'c'])
                     transformed = transformed.reshape(transformed.shape[0],
-                                        transformed.shape[1] * transformed.shape[2] * transformed.shape[3])
+                                                      transformed.shape[1] *
+                                                      transformed.shape[2] *
+                                                      transformed.shape[3])
                     dataset.X[i:stop] = transformed
                 else:
                     dataset.set_topological_view(transformed, dataset.axes,
@@ -1131,22 +1167,30 @@ class RGB_YUV(ExamplewisePreprocessor):
 
         X = dataset.X
         data_size = X.shape[0]
-        last = np.floor(data_size / float(self._batch_size)) * self._batch_size
+        last = numpy.floor(data_size / float(self._batch_size)) * \
+               self._batch_size
         for i in xrange(0, data_size, self._batch_size):
-            stop = i + np.mod(data_size, self._batch_size) if i>= last else i + self._batch_size
+            stop = i + numpy.mod(data_size, self._batch_size) if i>= last else \
+                   i + self._batch_size
             print "RGB_YUV processing data from %d to %d" % (i, stop)
             data = dataset.get_topological_view(X[i:stop])
             transformed = self.transform(data, dataset.axes)
 
             # TODO have a separate class for non pytables datasets
             # or add start option to dense_design_matrix
-            if isinstance(dataset.X, np.ndarray):
-                transformed = convert_axes(transformed, dataset.axes, ['b', 0, 1, 'c'])
+            if isinstance(dataset.X, numpy.ndarray):
+                transformed = convert_axes(transformed,
+                                           dataset.axes,
+                                           ['b', 0, 1, 'c'])
                 transformed = transformed.reshape(transformed.shape[0],
-                                    transformed.shape[1] * transformed.shape[2] * transformed.shape[3])
+                                                  transformed.shape[1] *
+                                                  transformed.shape[2] *
+                                                  transformed.shape[3])
                 dataset.X[i:stop] = transformed
             else:
-                dataset.set_topological_view(transformed, dataset.axes, start = i)
+                dataset.set_topological_view(transformed,
+                                             dataset.axes,
+                                             start = i)
 
 class CentralWindow(Preprocessor):
     """
@@ -1167,19 +1211,26 @@ class CentralWindow(Preprocessor):
         try:
             axes = dataset.view_converter.axes
         except AttributeError:
-            raise NotImplementedError("I don't know how to tell what the axes of this kind of dataset are.")
+            raise NotImplementedError("I don't know how to tell what the axes "
+                                      "of this kind of dataset are.")
 
         needs_transpose = not axes[1:3] == (0, 1)
 
         if needs_transpose:
-            arr = np.transpose(arr, (axes.index('c'), axes.index(0), axes.index(1), axes.index('b')))
+            arr = numpy.transpose(arr,
+                                  (axes.index('c'),
+                                   axes.index(0),
+                                   axes.index(1),
+                                   axes.index('b')))
 
         r_off = (arr.shape[1] - w_rows) // 2
         c_off = (arr.shape[2] - w_cols) // 2
         new_arr = arr[:, r_off:r_off + w_rows, c_off:c_off + w_cols, :]
 
         if needs_transpose:
-            new_arr = np.transpose(new_arr, tuple(('c', 0, 1, 'b').index(axis) for axis in axes))
+            index_map = tuple(('c', 0, 1, 'b').index(axis) for axis in axes)
+            new_arr = numpy.transpose(new_arr, index_map)
+                                      
 
         dataset.set_topological_view(new_arr, axes=axes)
 
@@ -1189,7 +1240,7 @@ def lecun_lcn(input, img_shape, kernel_shape, threshold = 1e-4):
     Orginal code in Theano by: Guillaume Desjardins
     """
     input = input.reshape(input.shape[0], input.shape[1], input.shape[2], 1)
-    X = T.matrix(dtype=input.dtype)
+    X = tensor.matrix(dtype=input.dtype)
     X = X.reshape((len(input), img_shape[0], img_shape[1], 1))
 
     filter_shape = (1, 1, kernel_shape, kernel_shape)
@@ -1202,7 +1253,7 @@ def lecun_lcn(input, img_shape, kernel_shape, threshold = 1e-4):
     convout = transformer.lmul(X)
 
     # For each pixel, remove mean of 9x9 neighborhood
-    mid = int(np.floor(kernel_shape/ 2.))
+    mid = int(numpy.floor(kernel_shape/ 2.))
     centered_X = X - convout[:,mid:-mid,mid:-mid,:]
 
     # Scale down norm of 9x9 patch if norm is bigger than 1
@@ -1211,31 +1262,31 @@ def lecun_lcn(input, img_shape, kernel_shape, threshold = 1e-4):
                         border_mode = 'full')
     sum_sqr_XX = transformer.lmul(X**2)
 
-    denom = T.sqrt(sum_sqr_XX[:,mid:-mid,mid:-mid,:])
+    denom = tensor.sqrt(sum_sqr_XX[:,mid:-mid,mid:-mid,:])
     per_img_mean = denom.mean(axis = [1,2])
-    divisor = T.largest(per_img_mean.dimshuffle(0,'x', 'x', 1), denom)
-    divisor = T.maximum(divisor, threshold)
+    divisor = tensor.largest(per_img_mean.dimshuffle(0,'x', 'x', 1), denom)
+    divisor = tensor.maximum(divisor, threshold)
 
     new_X = centered_X / divisor
-    new_X = T.flatten(new_X, outdim=3)
+    new_X = tensor.flatten(new_X, outdim=3)
 
     f = function([X], new_X)
     return f(input)
 
 def gaussian_filter(kernel_shape):
 
-    x = np.zeros((kernel_shape, kernel_shape), dtype='float32')
+    x = numpy.zeros((kernel_shape, kernel_shape), dtype='float32')
 
     def gauss(x, y, sigma=2.0):
-        Z = 2 * np.pi * sigma**2
-        return  1./Z * np.exp(-(x**2 + y**2) / (2. * sigma**2))
+        Z = 2 * numpy.pi * sigma**2
+        return  1./Z * numpy.exp(-(x**2 + y**2) / (2. * sigma**2))
 
-    mid = np.floor(kernel_shape/ 2.)
+    mid = numpy.floor(kernel_shape/ 2.)
     for i in xrange(0,kernel_shape):
         for j in xrange(0,kernel_shape):
             x[i,j] = gauss(i-mid, j-mid)
 
-    return x / np.sum(x)
+    return x / numpy.sum(x)
 
 class CentralWindow(Preprocessor):
     """
@@ -1256,19 +1307,26 @@ class CentralWindow(Preprocessor):
         try:
             axes = dataset.view_converter.axes
         except AttributeError:
-            raise NotImplementedError("I don't know how to tell what the axes of this kind of dataset are.")
+            raise NotImplementedError("I don't know how to tell what the axes"
+                                      " of this kind of dataset are.")
 
         needs_transpose = not axes[1:3] == (0, 1)
 
         if needs_transpose:
-            arr = np.transpose(arr, (axes.index('c'), axes.index(0), axes.index(1), axes.index('b')))
+            arr = numpy.transpose(arr,
+                                  (axes.index('c'),
+                                   axes.index(0),
+                                   axes.index(1),
+                                   axes.index('b')))
 
         r_off = (arr.shape[1] - w_rows) // 2
         c_off = (arr.shape[2] - w_cols) // 2
         new_arr = arr[:, r_off:r_off + w_rows, c_off:c_off + w_cols, :]
 
         if needs_transpose:
-            new_arr = np.transpose(new_arr, tuple(('c', 0, 1, 'b').index(axis) for axis in axes))
+            index_map = tuple(('c', 0, 1, 'b').index(axis) for axis in axes)
+            new_arr = numpy.transpose(new_arr, index_map)
+                                      
 
         dataset.set_topological_view(new_arr, axes=axes)
 
@@ -1291,7 +1349,7 @@ class ShuffleAndSplit(Preprocessor):
     def apply(self, dataset, can_fit=False):
         start = self.start
         stop = self.stop
-        rng = np.random.RandomState(self.seed)
+        rng = numpy.random.RandomState(self.seed)
         X = dataset.X
         y = dataset.y
 

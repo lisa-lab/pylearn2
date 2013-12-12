@@ -22,26 +22,22 @@ class SoftmaxRegression(mlp.MLP):
     """
 
     def __init__(self,
-            n_classes,
-            batch_size=None,
-            input_space=None,
-            irange=None,
-            istdev=None,
-            W_lr_scale=None,
-            b_lr_scale=None,
-            max_row_norm=None,
-            max_col_norm=None,
-            sparse_init=None,
-            dropout_include_probs = None,
-            dropout_scales = None,
-            dropout_input_include_prob = None,
-            dropout_input_scale = None,
-            init_bias_target_marginals = None,
-            nvis=None,
-            seed=None):
+                 n_classes,
+                 batch_size=None,
+                 input_space=None,
+                 irange=None,
+                 istdev=None,
+                 W_lr_scale=None,
+                 b_lr_scale=None,
+                 max_row_norm=None,
+                 max_col_norm=None,
+                 sparse_init=None,
+                 init_bias_target_marginals=None,
+                 nvis=None,
+                 seed=None):
         """
-            layers: a list of MLP_Layers. The final layer will specify the
-                    MLP's output space.
+        TODO: fixup
+
             batch_size: optional. if not None, then should be a positive
                         integer. Mostly useful if one of your layers
                         involves a theano op like convolution that requires
@@ -49,7 +45,6 @@ class SoftmaxRegression(mlp.MLP):
             input_space: a Space specifying the kind of input the MLP acts
                         on. If None, input space is specified by nvis.
 
-            See pylearn2.models.MLP for notes on dropout.
         """
 
         super(SoftmaxRegression, self).__init__(
@@ -60,8 +55,6 @@ class SoftmaxRegression(mlp.MLP):
                     init_bias_target_marginals=init_bias_target_marginals)],
                 batch_size=batch_size,
                 input_space=input_space,
-                dropout_input_include_prob=dropout_input_include_prob,
-                dropout_input_scale=dropout_input_scale,
                 nvis=nvis,
                 seed=seed)
 
