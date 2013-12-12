@@ -38,64 +38,78 @@ def minres(compute_Av,
            Acondlim=constantX(1e16),
            profile=0):
     """
-     minres attempts to find the minimum-length and minimum-residual-norm
-     solution x to the system of linear equations A*x = b or
-     least squares problem min||Ax-b||.  The n-by-n coefficient matrix A
-     must be symmetric (but need not be positive definite or invertible).
-     The right-hand-side column vector b must have length n.
+    Attempts to find the minimum-length and minimum-residual-norm
+    solution :math:`x` to the system of linear equations :math:`A*x = b` or
+    least squares problem :math:`\\min||Ax-b||`.  The n-by-n coefficient matrix
+    A must be symmetric (but need not be positive definite or invertible).
+    The right-hand-side column vector b must have length n.
 
-     Parameters:
+    Parameters
+    ----------
+    compute_Av : callable
+        Callable returing the symbolic expression for \
+        `Av` (the product of matrix A with some vector v). \
+        `v` should be a list of tensors, whre the vector v means \
+        the vector obtain by concatenating and flattening all tensors in v
+    bs : list
+        List of Theano expressions. We are looking to compute `A^-1\dot bs`.
+    rtol : float, optional
+        Specifies the tolerance of the method.  Default is 1e-6.
+    maxit : int, positive, optional
+        Specifies the maximum number of iterations. Default is 20.
+    Ms : list
+        List of theano expression of same shape as `bs`. The method uses \
+        these to precondition with diag(Ms)
+    shift : float, optional
+        Default is 0.  Effectively solve the system (A - shift I) * x = b.
+    maxxnorm : float, positive, optional
+        Maximum bound on NORM(x). Default is 1e14.
+    Acondlim : float, positive, optional
+        Maximum bound on COND(A). Default is 1e15.
+    show : bool
+        If True, show iternations, otherwise suppress outputs. Default is \
+        False.
 
-        compute_Av: callable returing the symbolic expression for
-            `Av` (the product of matrix A with some vector v).
-            `v` should be a list of tensors, whre the vector v means
-            the vector obtain by concatenating and flattening all tensors in
-            v
-        bs: list of Theano expressions. We are looking to compute
-            `A^-1\dot bs`.
-        rtol: Optional, real, specifies the tolerance of the method.
-            Default is 1e-6
-        maxit: Optional, positive integer, specifies the maximum number
-            of iterations. Default is 20
-        Ms: List of theano expression of same shape as `bs`. The
-            method uses these to precondition with diag(Ms)
-        shift: Optional, scalar, real or complex.  Default is 0.
-                   Effectively solve the system (A - shift I) * x = b.
-        maxxnorm   real positive, maximum bound on NORM(x). Default is 1e14.
-        Acondlim   real positive, maximum bound on COND(A). Default is 1e15.
-        show       boolean, 0 to suppress outputs, 1 to show iterations.
-                   Default is 0.
+    Returns
+    -------
+    x : list
+        List of Theano tensor representing the solution
+    flag : tensor_like
+        Theano int scalar - convergence flag
+            0 beta1 = 0.  The exact solution is  x = 0.
+            1 A solution to (poss. singular) Ax = b found, given rtol.
+            2 Pseudoinverse solution for singular LS problem, given rtol.
+            3 A solution to (poss. singular) Ax = b found, given eps.
+            4 Pseudoinverse solution for singular LS problem, given eps.
+            5 x has converged to an eigenvector.
+            6 xnorm has exceeded maxxnorm.
+            7 Acond has exceeded Acondlim.
+            8 The iteration limit was reached.
+            9/10 It is a least squares problem but no converged
+             solution yet.
+    iter : int
+        Iteration number at which x was computed: `0 <= iter <= maxit`.
+    relres : float
+        Real positive, the relative residual is defined as \
+                 NORM(b-A*x)/(NORM(A) * NORM(x) + NORM(b)), \
+        computed recurrently here.  If flag is 1 or 3,  relres <= TOL.
+    relAres : float
+        Real positive, the relative-NORM(Ar) := NORM(Ar) / NORM(A) \
+        computed recurrently here. If flag is 2 or 4, relAres <= TOL.
+    Anorm : float
+        Real positive, estimate of matrix 2-norm of A.
+    Acond : float
+        Real positive, estimate of condition number of A with respect to \
+        2-norm.
+    xnorm : float
+        Non-negative positive, recurrently computed NORM(x)
+    Axnorm : float
+        Non-negative positive, recurrently computed NORM(A * x).
 
-     OUTPUTS:
-        x       list of Theano tensor representing the solution
-        flag    theano int scalar - convergence flag
-                0 beta1 = 0.  The exact solution is  x = 0.
-                1 A solution to (poss. singular) Ax = b found, given rtol.
-                2 Pseudoinverse solution for singular LS problem, given rtol.
-                3 A solution to (poss. singular) Ax = b found, given eps.
-                4 Pseudoinverse solution for singular LS problem, given eps.
-                5 x has converged to an eigenvector.
-                6 xnorm has exceeded maxxnorm.
-                7 Acond has exceeded Acondlim.
-                8 The iteration limit was reached.
-                9/10 It is a least squares problem but no converged
-                 solution yet.
-        iter    integer, iteration number at which x was computed:
-                0 <= iter <= maxit.
-        relres  real positive, the relative residual is defined as
-                     NORM(b-A*x)/(NORM(A) * NORM(x) + NORM(b)),
-                computed recurrently here.  If flag is 1 or 3,  relres <= TOL.
-        relAres real positive, the relative-NORM(Ar) := NORM(Ar) / NORM(A) ---
-                computed recurrently here. If flag is 2 or 4, relAres <= TOL.
-        Anorm   real positive, estimate of matrix 2-norm of A.
-        Acond   real positive, estimate of condition number of A with
-                respect to 2-norm.
-        xnorm   non-negative positive, recurrently computed NORM(x)
-        Axnorm  non-negative positive, recurrently computed NORM(A * x).
-
-     REFERENCES:
-        Sou-Cheng Choi's PhD Dissertation, Stanford University, 2006.
-             http://www.stanford.edu/group/SOL/software.html
+    See Also
+    --------
+    Sou-Cheng Choi's PhD Dissertation, Stanford University, 2006.
+         http://www.stanford.edu/group/SOL/software.html
 
     """
 
@@ -409,5 +423,3 @@ def minres(compute_Av,
             xnorm,
             Axnorm,
             loc_updates)
-
-
