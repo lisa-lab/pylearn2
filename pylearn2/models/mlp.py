@@ -202,6 +202,18 @@ class Layer(Model):
         """
         raise NotImplementedError
 
+    def set_input_space(self, space):
+        """
+        .. todo::
+
+            WRITEME
+
+        Notes
+        -----
+        This usually resets parameters.
+        """
+        raise NotImplementedError
+
 
 class MLP(Layer):
     """
@@ -916,12 +928,9 @@ class Softmax(Layer):
 
         return rval
 
+    @functools.wraps(Layer.set_input_space)
     def set_input_space(self, space):
-        """
-        .. todo::
 
-            WRITEME
-        """
         self.input_space = space
 
         if not isinstance(space, Space):
@@ -1214,16 +1223,8 @@ class SoftmaxPool(Layer):
 
         return rval
 
+    @functools.wraps(Layer.set_input_space)
     def set_input_space(self, space):
-        """
-        .. todo::
-
-            WRITEME
-
-        Notes
-        -----
-        This resets parameters!
-        """
 
         self.input_space = space
 
@@ -1604,16 +1605,8 @@ class Linear(Layer):
 
         return rval
 
+    @functools.wraps(Layer.set_input_space)
     def set_input_space(self, space):
-        """
-        .. todo::
-
-            WRITEME
-
-        Notes
-        -----
-        This resets parameters!
-        """
 
         self.input_space = space
 
@@ -2157,12 +2150,9 @@ class SpaceConverter(Layer):
         del self.self
         self._params = []
 
+    @functools.wraps(Layer.set_input_space)
     def set_input_space(self, space):
-        """
-        .. todo::
 
-            WRITEME
-        """
         self.input_space = space
 
     @functools.wraps(Layer.fprop)
@@ -2269,16 +2259,8 @@ class ConvRectifiedLinear(Layer):
 
         return rval
 
+    @functools.wraps(Layer.set_input_space)
     def set_input_space(self, space):
-        """
-        .. todo::
-
-            WRITEME
-
-        Notes
-        -----
-        This resets parameters!
-        """
 
         self.input_space = space
         rng = self.mlp.rng
@@ -2750,12 +2732,9 @@ class LinearGaussian(Linear):
         del self.self
         del self.kwargs
 
+    @functools.wraps(Layer.set_input_space)
     def set_input_space(self, space):
-        """
-        .. todo::
 
-            WRITEME
-        """
         super(LinearGaussian, self).set_input_space(space)
         assert isinstance(self.output_space, VectorSpace)
         self.beta = sharedX(self.output_space.get_origin() + self.init_beta, 'beta')
@@ -2871,12 +2850,9 @@ class PretrainedLayer(Layer):
         self.__dict__.update(locals())
         del self.self
 
+    @functools.wraps(Layer.set_input_space)
     def set_input_space(self, space):
-        """
-        .. todo::
 
-            WRITEME
-        """
         assert self.get_input_space() == space
 
     def get_params(self):
@@ -2927,12 +2903,8 @@ class CompositeLayer(Layer):
         self.__dict__.update(locals())
         del self.self
 
+    @functools.wraps(Layer.set_input_space)
     def set_input_space(self, space):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         for layer in self.layers:
             layer.set_input_space(space)
@@ -3002,12 +2974,8 @@ class FlattenerLayer(Layer):
         self.layer_name = raw_layer.layer_name
 
 
+    @functools.wraps(Layer.set_input_space)
     def set_input_space(self, space):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         self.raw_layer.set_input_space(space)
 
