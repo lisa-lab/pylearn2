@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 from pylearn2.utils import serial
 from pylearn2.gui import patch_viewer
 from pylearn2.config import yaml_parse
@@ -11,20 +16,27 @@ def get_weights_report(model_path=None,
                        norm_sort=False,
                        dataset=None):
     """
-        Returns a PatchViewer displaying a grid of filter weights
+    Returns a PatchViewer displaying a grid of filter weights
 
-        Parameters:
-            model_path: the filepath of the model to make the report on.
-            rescale: a string specifying how to rescale the filter images
-                        'individual' (default): scale each filter so that it
-                            uses as much as possible of the dynamic range
-                            of the display under the constraint that 0
-                            is gray and no value gets clipped
-                        'global' : scale the whole ensemble of weights
-                        'none' :   don't rescale
-            dataset: a Dataset object to do view conversion for displaying the
-                     weights.  if not provided one will be loaded from the
-                     model's dataset_yaml_src
+    Parameters
+    ----------
+    model_path : str
+        Filepath of the model to make the report on.
+    rescale : str
+        A string specifying how to rescale the filter images: \
+            'individual' (default): scale each filter so that it \
+                uses as much as possible of the dynamic range \
+                of the display under the constraint that 0 \
+                is gray and no value gets clipped \
+            'global' : scale the whole ensemble of weights \
+            'none' :   don't rescale
+    dataset: pylearn2.datasets.dataset.Dataset
+        Dataset object to do view conversion for displaying the weights. If \
+        not provided one will be loaded from the model's dataset_yaml_src.
+
+    Returns
+    -------
+    WRITEME
     """
 
     if model is None:
@@ -184,20 +196,27 @@ def get_binocular_greyscale_weights_report(model_path=None,
                                            norm_sort=False,
                                            dataset=None):
     """
-        Returns a PatchViewer displaying a grid of filter weights
+    Returns a PatchViewer displaying a grid of filter weights
 
-        Parameters:
-            model_path: the filepath of the model to make the report on.
-            rescale: a string specifying how to rescale the filter images
-                        'individual' (default): scale each filter so that it
-                            uses as much as possible of the dynamic range
-                            of the display under the constraint that 0
-                            is gray and no value gets clipped
-                        'global' : scale the whole ensemble of weights
-                        'none' :   don't rescale
-            dataset: a Dataset object to do view conversion for displaying the
-                     weights.  if not provided one will be loaded from the
-                     model's dataset_yaml_src
+    Parameters
+    ----------
+    model_path : str
+        Filepath of the model to make the report on.
+    rescale : str
+        A string specifying how to rescale the filter images: \
+            'individual' (default): scale each filter so that it \
+                uses as much as possible of the dynamic range \
+                of the display under the constraint that 0 \
+                is gray and no value gets clipped \
+            'global' : scale the whole ensemble of weights \
+            'none' :   don't rescale
+    dataset: pylearn2.datasets.dataset.Dataset
+        Dataset object to do view conversion for displaying the weights. If \
+        not provided one will be loaded from the model's dataset_yaml_src.
+
+    Returns
+    -------
+    WRITEME
     """
 
     if model is None:
