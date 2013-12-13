@@ -73,15 +73,23 @@ def make_local_rfs(dataset, nhid, rf_shape, stride, irange = .05, draw_patches =
 
         WRITEME properly
 
-    initializes a weight matrix with local receptive fields
-    param: dataset:
-            the dataset defining the topology of the space (needed to convert
-                2D patches into subsets of pixels in a 1D filter vector)
-           nhid: # of hidden units to make filters for
-           rf_shape: 2 elem list or tuple giving topological shape of a receptive field
-           stride: 2 elem list or tuple giving offset between receptive fields
-           irange: if draw_patches is false, weights are initialized in U(-irange,irange)
-           draw_patches: if true, weights are drawn from random examples
+    Initializes a weight matrix with local receptive fields
+
+    Parameters
+    ----------
+    dataset : pylearn2.datasets.dataset.Dataset
+        Dataset defining the topology of the space (needed to convert 2D \
+        patches into subsets of pixels in a 1D filter vector)
+    nhid : int
+        Number of hidden units to make filters for
+    rf_shape : list or tuple (2 elements)
+        Gives topological shape of a receptive field
+    stride : list or tuple (2 elements)
+        Gives offset between receptive fields
+    irange : float
+        If draw_patches is False, weights are initialized in U(-irange,irange)
+    draw_patches : bool
+        If True, weights are drawn from random examples
     """
     s = dataset.view_shape()
     height, width, channels = s

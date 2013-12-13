@@ -63,25 +63,23 @@ class FilterActs(BaseActs):
 
     Currently, this op must be inserted manually, not by optimizations.
 
+    * images: (input channels, rows, cols, batch_size). Channels must be <=3,
+      or be even. Note: if you want to take the gradient with respect to the
+      weights, channels must be divisible by 4. Must be C contiguous. You can
+      enforce this by calling `theano.sandbox.cuda.basic_ops.gpu_contiguous` on
+      it.
+    * filters: (input channels, filter rows, filter cols, output channels).
+      Rows must be the same as cols output channels must be a multiple of 16.
+      Must be C contiguous. You can enforce this by calling
+      `theano.sandbox.cuda.basic_ops.gpu_contiguous` on it.
+    * output: (output channels, output rows, output cols, batch size)
 
-    images:          (input channels, rows, cols, batch_size)
-                     channels must be <=3, or be even
-                     note: if you want to take the gradient with respect to the weights,
-                           channels must be divisible by 4
-                     Must be C contiguous. You can enforce this by calling
-                     theano.sandbox.cuda.basic_ops.gpu_contiguous on it.
-    filters:         (input channels, filter rows, filter cols, output channels)
-                     rows must be the same as cols
-                     output channels must be a multiple of 16
-                     Must be C contiguous. You can enforce this by calling
-                     theano.sandbox.cuda.basic_ops.gpu_contiguous on it.
-
-    output:         (output channels, output rows, output cols, batch size)
-
-    Note: all of these convolution routines are optimized for the case when
-    the number of images (i.e. the minibatch size) is a multiple of 128.
-    Other batch sizes will work, but Alex made no attempt whatsoever
-    to make them work fast.
+    Notes
+    -----
+    All of these convolution routines are optimized for the case when the
+    number of images (i.e. the minibatch size) is a multiple of 128. Other
+    batch sizes will work, but Alex made no attempt whatsoever to make them
+    work fast.
     """
 
     # __eq__ and __hash__ are defined in BaseActs.

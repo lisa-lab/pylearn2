@@ -316,38 +316,39 @@ def setup_detector_layer_c01b(layer, input_space, rng, irange= "not specified"):
 
         WRITEME properly
 
-    Takes steps to set up an object for use as being some kind of convolutional layer.
-    This function sets up only the detector layer.
+    Takes steps to set up an object for use as being some kind of convolutional
+    layer. This function sets up only the detector layer.
+
+    Does the following:
+    * raises a RuntimeError if cuda is not available
+    * sets layer.input_space to input_space
+    * sets up addition of dummy channels for compatibility with cuda-convnet:
+      - layer.dummy_channels: # of dummy channels that need to be added
+        (You might want to check this and raise an Exception if it's not 0)
+      - layer.dummy_space: The Conv2DSpace representing the input with dummy
+        channels added
+    * sets layer.detector_space to the space for the detector layer
+    * sets layer.transformer to be a Conv2D instance
+    * sets layer.b to the right value
 
     Parameters
     ----------
-    layer: Any python object that allows the modifications described below and has
-        the following attributes:
-            pad: int describing amount of zero padding to add
-            kernel_shape: 2-element tuple or list describing spatial shape of kernel
-            fix_kernel_shape: bool, if true, will shrink the kernel shape to make it
-                feasible, as needed (useful for hyperparameter searchers)
-            detector_channels: The number of channels in the detector layer
-            init_bias: A numeric constant added to a tensor of zeros to initialize the
-                    bias
-            tied_b: If true, biases are shared across all spatial locations
-
-    input_space: A Conv2DSpace to be used as input to the layer
-
-    rng: a numpy RandomState or equivalent
-
-
-    Does the following:
-        raises a RuntimeError if cuda is not available
-        sets layer.input_space to input_space
-        sets up addition of dummy channels for compatibility with cuda-convnet:
-            layer.dummy_channels: # of dummy channels that need to be added
-                (You might want to check this and raise an Exception if it's not 0)
-            layer.dummy_space: The Conv2DSpace representing the input with dummy channels
-                added
-        sets layer.detector_space to the space for the detector layer
-        sets layer.transformer to be a Conv2D instance
-        sets layer.b to the right value
+    layer : object
+        Any python object that allows the modifications described below and \
+        has the following attributes: \
+        * pad: int describing amount of zero padding to add \
+        * kernel_shape: 2-element tuple or list describing spatial shape of \
+          kernel \
+        * fix_kernel_shape: bool, if true, will shrink the kernel shape to \
+          make it feasible, as needed (useful for hyperparameter searchers) \
+        * detector_channels: The number of channels in the detector layer \
+        * init_bias: numeric constant added to a tensor of zeros to \
+          initialize the bias \
+        * tied_b: If true, biases are shared across all spatial locations
+    input_space : WRITEME
+        A Conv2DSpace to be used as input to the layer
+    rng : WRITEME
+        A numpy RandomState or equivalent
     """
 
     if irange != "not specified":
