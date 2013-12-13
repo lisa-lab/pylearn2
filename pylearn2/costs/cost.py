@@ -20,7 +20,17 @@ from pylearn2.utils.data_specs import DataSpecsMapping
 
 
 class DefaultDataSpecsMixin(object):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def get_data_specs(self, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.supervised:
             space = CompositeSpace([model.get_input_space(),
                                     model.get_output_space()])
@@ -31,7 +41,17 @@ class DefaultDataSpecsMixin(object):
 
 
 class NullDataSpecsMixin(object):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def get_data_specs(self, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return (NullSpace(), '')
 
 
@@ -47,6 +67,10 @@ class Cost(object):
 
     def expr(self, model, data, ** kwargs):
         """
+        .. todo::
+
+            WRITEME
+
         Parameters
         ----------
         model: a pylearn2 Model instance
@@ -63,6 +87,10 @@ class Cost(object):
 
     def get_gradients(self, model, data, ** kwargs):
         """
+        .. todo::
+
+            WRITEME
+
         Parameters
         ----------
         model: a pylearn2 Model instance
@@ -116,6 +144,10 @@ class Cost(object):
 
     def get_monitoring_channels(self, model, data, **kwargs):
         """
+        .. todo::
+
+            WRITEME
+
         Returns a dictionary mapping channel names to expressions for
         channel values.
 
@@ -136,6 +168,10 @@ class Cost(object):
 
     def get_fixed_var_descr(self, model, data):
         """
+        .. todo::
+
+            WRITEME
+
         Subclasses should override this if they need variables held
         constant across multiple updates to a minibatch.
 
@@ -147,6 +183,10 @@ class Cost(object):
 
     def get_data_specs(self, model):
         """
+        .. todo::
+
+            WRITEME
+
         Returns a composite space, describing the format of the data
         which the cost (and the model) expects.
         """
@@ -199,7 +239,7 @@ class SumOfCosts(Cost):
         model : pylearn2.models.model.Model
             the model for which we want to calculate the sum of costs
         data : flat tuple of tensor_like variables.
-            data has to follow the format defined by self.get_data_specs(),
+            data has to follow the format defined by self.get_data_specs(), \
             but this format will always be a flat tuple.
         """
         self.get_data_specs(model)[0].validate(data)
@@ -222,6 +262,10 @@ class SumOfCosts(Cost):
 
     def get_composite_data_specs(self, model):
         """
+        .. todo::
+
+            WRITEME
+
         Build and return a composite data_specs of all costs.
 
         The returned space is a CompositeSpace, where the components are
@@ -242,6 +286,10 @@ class SumOfCosts(Cost):
 
     def get_composite_specs_and_mapping(self, model):
         """
+        .. todo::
+
+            WRITEME
+
         Build the composite data_specs and a mapping to flatten it, return both
 
         Build the composite data_specs described in `get_composite_specs`, and
@@ -259,6 +307,10 @@ class SumOfCosts(Cost):
 
     def get_data_specs(self, model):
         """
+        .. todo::
+
+            WRITEME
+
         Get a flat data_specs containing all information for all sub-costs.
 
         This data_specs should be non-redundant. It is built by flattening
@@ -276,6 +328,11 @@ class SumOfCosts(Cost):
         return data_specs
 
     def get_gradients(self, model, data, ** kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         indiv_results = []
         composite_specs, mapping = self.get_composite_specs_and_mapping(model)
         nested_data = mapping.nest(data)
@@ -310,6 +367,11 @@ class SumOfCosts(Cost):
         return grads, updates
 
     def get_monitoring_channels(self, model, data, ** kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_data_specs(model)[0].validate(data)
         rval = OrderedDict()
         composite_specs, mapping = self.get_composite_specs_and_mapping(model)
@@ -337,6 +399,11 @@ class SumOfCosts(Cost):
         return rval
 
     def get_fixed_var_descr(self, model, data):
+        """
+        .. todo::
+
+            WRITEME
+        """
         data_specs = self.get_data_specs(model)
         data_specs[0].validate(data)
         composite_specs, mapping = self.get_composite_specs_and_mapping(model)
@@ -403,16 +470,21 @@ class ScaledCost(Cost):
         Parameters
         ----------
         model : pylearn2.models.model.Model
-            the model for which we want to calculate the scaled cost
+            Model for which we want to calculate the scaled cost
         X : tensor_like
-            input to the model
+            Input to the model
         Y : tensor_like
-            the target, if necessary
+            Target, if necessary
         """
         self.get_data_specs(model)[0].validate(data)
         return self.scaling * self.cost(model, data)
 
     def get_data_specs(self, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.cost.get_data_specs(model)
 
 
@@ -422,20 +494,22 @@ class LpPenalty(NullDataSpecsMixin, Cost):
     """
     def __init__(self, variables, p):
         """
-        Initialize LpPenalty with the variables provided.
-
         Parameters:
         -----------
         variables: list
             list of tensor variables to be regularized
         p: int
-            the p in "L-p penalty"
+            p in "L-p penalty"
         """
         self.variables = variables
         self.p = p
 
     def expr(self, model, data, **kwargs):
         """
+        .. todo::
+
+            WRITEME
+
         Return the L-p penalty term. The optional parameters are never used;
         they're only there to provide an interface that's consistent with
         the Cost superclass.
@@ -452,12 +526,25 @@ class LpPenalty(NullDataSpecsMixin, Cost):
 
 
 class CrossEntropy(DefaultDataSpecsMixin, Cost):
-    """WRITEME"""
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.supervised = True
 
     def expr(self, model, data, ** kwargs):
-        """WRITEME"""
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_data_specs(model)[0].validate(data)
 
         # unpack data
@@ -473,12 +560,16 @@ class MethodCost(Cost):
 
     def __init__(self, method, data_specs=None, supervised=None):
         """
-            method: a string specifying the name of the method of the model
-                    that should be called to generate the objective function.
-            supervised: deprecated argument, ignored
-            data_specs: a string specifying the name of a method/property of
-                    the model that describe the data specs required by
-                    method
+        .. todo::
+
+            WRITEME
+
+        method: a string specifying the name of the method of the model
+                that should be called to generate the objective function.
+        supervised: deprecated argument, ignored
+        data_specs: a string specifying the name of a method/property of
+                the model that describe the data specs required by
+                method
         """
         if supervised is not None:
             if data_specs is not None:
@@ -495,14 +586,23 @@ class MethodCost(Cost):
         self.data_specs = data_specs
 
     def expr(self, model, data, *args, **kwargs):
-            """
-            Patches calls through to a user-specified method of the model
-            """
-            self.get_data_specs(model)[0].validate(data)
-            fn = getattr(model, self.method)
-            return fn(data, *args, **kwargs)
+        """
+        .. todo::
+
+            WRITEME
+
+        Patches calls through to a user-specified method of the model
+        """
+        self.get_data_specs(model)[0].validate(data)
+        fn = getattr(model, self.method)
+        return fn(data, *args, **kwargs)
 
     def get_data_specs(self, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.data_specs is not None:
             fn = getattr(model, self.data_specs)
         else:
@@ -532,6 +632,10 @@ class FixedVarDescr(object):
 
     def __init__(self):
         """
+        .. todo::
+
+            WRITEME
+
         fixed_vars: maps string names to shared variables or some sort of data
                     structure surrounding shared variables.
                     Any learning algorithm that does multiple updates on the
@@ -562,6 +666,10 @@ class FixedVarDescr(object):
 
 def merge(left, right):
     """
+    .. todo::
+
+        WRITEME properly
+    
     Combine two FixedVarDescrs
     """
 
