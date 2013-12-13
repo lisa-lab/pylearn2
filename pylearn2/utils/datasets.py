@@ -117,8 +117,8 @@ def nonzero_features(data, combine=None):
     indices : ndarray object
         Indices of the nonzero features.
 
-    Note
-    ----
+    Notes
+    -----
     I would return a mask (bool array) here, but scipy.sparse doesn't appear to
     fully support advanced indexing.
     """

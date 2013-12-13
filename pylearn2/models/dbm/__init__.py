@@ -126,22 +126,26 @@ class DBM(Model):
 
     def energy(self, V, hidden):
         """
-        .. todo::
+        WRITEME
 
-            WRITEME properly
+        Parameters
+        ----------
+        V : tensor_like
+            Theano batch of visible unit observations (must be SAMPLES, not \
+            mean field parameters)
+        hidden : list
+            List, one element per hidden layer, of batches of samples (must \
+            be SAMPLES, not mean field parameters)
 
-        V: a theano batch of visible unit observations
-            (must be SAMPLES, not mean field parameters)
-        hidden: a list, one element per hidden layer, of
-            batches of samples
-            (must be SAMPLES, not mean field parameters)
+        Returns
+        -------
+        rval : tensor_like
+            Vector containing the energy of each sample
 
-        returns: a vector containing the energy of each
-                sample.
-
-        Applying this function to non-sample theano variables
-        is not guaranteed to give you an expected energy
-        in general, so don't use this that way.
+        Notes
+        -----
+        Applying this function to non-sample theano variables is not guaranteed
+        to give you an expected energy in general, so don't use this that way.
         """
 
         terms = []
@@ -181,26 +185,27 @@ class DBM(Model):
 
     def expected_energy(self, V, mf_hidden):
         """
-        .. todo::
+        WRITEME
 
-            WRITEME properly
+        Parameters
+        ----------
+        V : tensor_like
+            Theano batch of visible unit observations (must be SAMPLES, not \
+            mean field parameters: the random variables in the expectation \
+            are the hiddens only)
+        mf_hidden : list
+            List, one element per hidden layer, of batches of variational \
+            parameters (must be VARIATIONAL PARAMETERS, not samples. Layers \
+            with analytically determined variance parameters for their mean \
+            field parameters will use those to integrate over the variational \
+            distribution, so it's not generally the same thing as measuring \
+            the energy at a point.)
 
-        V: a theano batch of visible unit observations
-            (must be SAMPLES, not mean field parameters:
-                the random variables in the expectation are
-                the hiddens only)
-
-        mf_hidden: a list, one element per hidden layer, of
-                  batches of variational parameters
-            (must be VARIATIONAL PARAMETERS, not samples.
-            Layers with analytically determined variance parameters
-            for their mean field parameters will use those to integrate
-            over the variational distribution, so it's not generally
-            the same thing as measuring the energy at a point.)
-
-        returns: a vector containing the expected energy of
-                each example under the corresponding variational
-                distribution.
+        Returns
+        -------
+        rval : tensor_like
+            Vector containing the expected energy of each example under the \
+            corresponding variational distribution.
         """
 
         self.visible_layer.space.validate(V)
@@ -774,10 +779,10 @@ class Layer(Model):
         see when computing P( layer_above | this_layer).
 
         So far this has two uses:
-        * If this layer consists of a detector sub-layer h that is pooled
-          into a pooling layer p, then total_state = (p,h) but
-          layer_above should only see p.
 
+        * If this layer consists of a detector sub-layer h that is pooled
+          into a pooling layer p, then total_state = (p,h) but layer_above
+          should only see p.
         * If the conditional P( layer_above | this_layer) depends on
           parameters of this_layer, sometimes you can play games with
           the state to avoid needing the layers to communicate. So far
@@ -880,9 +885,10 @@ class Layer(Model):
         Returns a term of the expected energy of the entire model.
         This term should correspond to the expected value of terms
         of the energy function that:
+
         - involve this layer only
-        - if there is a layer below, include terms that
-          involve both this layer and the layer below
+        - if there is a layer below, include terms that involve both this layer
+          and the layer below
 
         Do not include terms that involve the layer below only.
         Do not include any terms that involve the layer above, if it
@@ -892,10 +898,9 @@ class Layer(Model):
         Parameters
         ----------
         state_below : WRITEME
-            the upward state of the layer below.
+            Upward state of the layer below.
         state : WRITEME
-            the total state of this layer
-
+            Total state of this layer
         average_below : bool
             If True, the layer below is one of the variables to integrate \
             over in the expectation, and state_below gives its variational \
@@ -5020,10 +5025,12 @@ class SuperWeightDoubling(WeightDoubling):
 
         If you use this method in your research work, please cite:
 
-            Multi-prediction deep Boltzmann machines. Ian J. Goodfellow, \
+            Multi-prediction deep Boltzmann machines. Ian J. Goodfellow,
             Mehdi Mirza, Aaron Courville, and Yoshua Bengio. NIPS 2013.
 
+
         Comes in two variants, unsupervised and supervised:
+
         * unsupervised: Y and drop_mask_Y are not passed to the method. The
           method produces V_hat, an inpainted version of V.
         * supervised: Y and drop_mask_Y are passed to the method. The method
@@ -5031,22 +5038,34 @@ class SuperWeightDoubling(WeightDoubling):
 
         Parameters
         ----------
-        V : a theano batch in model.input_space
-        Y : a theano batch in model.output_space, ie, in the output
-            space of the last hidden layer
-            (it's not really a hidden layer anymore, but oh well.
-            it's convenient to code it this way because the labels
-            are sort of "on top" of everything else)
-            *** Y is always assumed to be a matrix of one-hot category
-            labels. ***
-        drop_mask : a theano batch in model.input_space
-            Should be all binary, with 1s indicating that the corresponding
-            element of X should be "dropped", ie, hidden from the algorithm
-            and filled in as part of the inpainting process
-        drop_mask_Y: a theano vector
-            Since we assume Y is a one-hot matrix, each row is a single
-            categorical variable. drop_mask_Y is a binary mask specifying
-            which *rows* to drop.
+        V : tensor_like
+            Theano batch in `model.input_space`
+        Y : tensor_like
+            Theano batch in `model.output_space`, i.e. in the output space of \
+            the last hidden layer. (It's not really a hidden layer anymore, \
+            but oh well. It's convenient to code it this way because the \
+            labels are sort of "on top" of everything else.) *** Y is always \
+            assumed to be a matrix of one-hot category labels. ***
+        drop_mask : tensor_like
+            Theano batch in `model.input_space`. Should be all binary, with \
+            1s indicating that the corresponding element of X should be \
+            "dropped", i.e. hidden from the algorithm and filled in as part \
+            of the inpainting process
+        drop_mask_Y : tensor_like
+            Theano vector. Since we assume Y is a one-hot matrix, each row is \
+            a single categorical variable. `drop_mask_Y` is a binary mask \
+            specifying which *rows* to drop.
+        return_history : bool, optional
+            WRITEME
+        noise : bool, optional
+            WRITEME
+        niter : int, optional
+            WRITEME
+        block_grad : WRITEME
+
+        Returns
+        -------
+        WRITEME
         """
 
         dbm = self.dbm
@@ -5289,36 +5308,50 @@ class MoreConsistent2(WeightDoubling):
 
         If you use this method in your research work, please cite:
 
-            Multi-prediction deep Boltzmann machines. Ian J. Goodfellow, Mehdi Mirza,
-            Aaron Courville, and Yoshua Bengio. NIPS 2013.
+            Multi-prediction deep Boltzmann machines. Ian J. Goodfellow,
+            Mehdi Mirza, Aaron Courville, and Yoshua Bengio. NIPS 2013.
+
 
         Gives the mean field expression for units masked out by drop_mask.
         Uses self.niter mean field updates.
 
         Comes in two variants, unsupervised and supervised:
-            unsupervised:
-                Y and drop_mask_Y are not passed to the method.
-                The method produces V_hat, an inpainted version of V
-            supervised:
-                Y and drop_mask_Y are passed to the method.
-                The method produces V_hat and Y_hat
 
-        V: a theano batch in model.input_space
-        Y: a theano batch in model.output_space, ie, in the output
-            space of the last hidden layer
-            (it's not really a hidden layer anymore, but oh well.
-            it's convenient to code it this way because the labels
-            are sort of "on top" of everything else)
-            *** Y is always assumed to be a matrix of one-hot category
-            labels. ***
-        drop_mask: a theano batch in model.input_space
-            Should be all binary, with 1s indicating that the corresponding
-            element of X should be "dropped", ie, hidden from the algorithm
-            and filled in as part of the inpainting process
-        drop_mask_Y: a theano vector
-            Since we assume Y is a one-hot matrix, each row is a single
-            categorical variable. drop_mask_Y is a binary mask specifying
-            which *rows* to drop.
+        * unsupervised: Y and drop_mask_Y are not passed to the method. The
+          method produces V_hat, an inpainted version of V
+        * supervised: Y and drop_mask_Y are passed to the method. The method
+          produces V_hat and Y_hat
+
+        Parameters
+        ----------
+        V : tensor_like
+            Theano batch in `model.input_space`
+        Y : tensor_like
+            Theano batch in `model.output_space`, i.e. in the output space of \
+            the last hidden layer. (It's not really a hidden layer anymore, \
+            but oh well. It's convenient to code it this way because the \
+            labels are sort of "on top" of everything else.) *** Y is always \
+            assumed to be a matrix of one-hot category labels. ***
+        drop_mask : tensor_like
+            Theano batch in `model.input_space`. Should be all binary, with \
+            1s indicating that the corresponding element of X should be \
+            "dropped", i.e. hidden from the algorithm and filled in as part \
+            of the inpainting process
+        drop_mask_Y : tensor_like
+            Theano vector. Since we assume Y is a one-hot matrix, each row is \
+            a single categorical variable. `drop_mask_Y` is a binary mask \
+            specifying which *rows* to drop.
+        return_history : bool, optional
+            WRITEME
+        noise : bool, optional
+            WRITEME
+        niter : int, optional
+            WRITEME
+        block_grad : WRITEME
+
+        Returns
+        -------
+        WRITEME
         """
 
         dbm = self.dbm
@@ -5631,6 +5664,7 @@ class BiasInit(InferenceProcedure):
         Uses self.niter mean field updates.
 
         Comes in two variants, unsupervised and supervised:
+
         * unsupervised: Y and drop_mask_Y are not passed to the method. The
           method produces V_hat, an inpainted version of V.
         * supervised: Y and drop_mask_Y are passed to the method. The method
@@ -5640,6 +5674,7 @@ class BiasInit(InferenceProcedure):
 
             Multi-prediction deep Boltzmann machines. Ian J. Goodfellow,
             Mehdi Mirza, Aaron Courville, and Yoshua Bengio. NIPS 2013.
+
 
         Parameters
         ----------
@@ -5895,38 +5930,41 @@ class UpDown(InferenceProcedure):
 
             WRITEME properly
 
-        If you use this method in your research work, please cite:
-
-            Multi-prediction deep Boltzmann machines. Ian J. Goodfellow, Mehdi Mirza,
-            Aaron Courville, and Yoshua Bengio. NIPS 2013.
-
         Gives the mean field expression for units masked out by drop_mask.
         Uses self.niter mean field updates.
 
         Comes in two variants, unsupervised and supervised:
-            unsupervised:
-                Y and drop_mask_Y are not passed to the method.
-                The method produces V_hat, an inpainted version of V
-            supervised:
-                Y and drop_mask_Y are passed to the method.
-                The method produces V_hat and Y_hat
 
-        V: a theano batch in model.input_space
-        Y: a theano batch in model.output_space, ie, in the output
-            space of the last hidden layer
-            (it's not really a hidden layer anymore, but oh well.
-            it's convenient to code it this way because the labels
-            are sort of "on top" of everything else)
-            *** Y is always assumed to be a matrix of one-hot category
-            labels. ***
-        drop_mask: a theano batch in model.input_space
-            Should be all binary, with 1s indicating that the corresponding
-            element of X should be "dropped", ie, hidden from the algorithm
-            and filled in as part of the inpainting process
-        drop_mask_Y: a theano vector
-            Since we assume Y is a one-hot matrix, each row is a single
-            categorical variable. drop_mask_Y is a binary mask specifying
-            which *rows* to drop.
+        * unsupervised: Y and drop_mask_Y are not passed to the method. The
+          method produces V_hat, an inpainted version of V.
+        * supervised: Y and drop_mask_Y are passed to the method. The method
+          produces V_hat and Y_hat.
+
+        If you use this method in your research work, please cite:
+
+            Multi-prediction deep Boltzmann machines. Ian J. Goodfellow,
+            Mehdi Mirza, Aaron Courville, and Yoshua Bengio. NIPS 2013.
+
+
+        Parameters
+        ----------
+        V : tensor_like
+            Theano batch in `model.input_space`
+        Y : tensor_like
+            Theano batch in model.output_space, ie, in the output space of \
+            the last hidden layer (it's not really a hidden layer anymore, \
+            but oh well. It's convenient to code it this way because the \
+            labels are sort of "on top" of everything else). *** Y is always \
+            assumed to be a matrix of one-hot category labels. ***
+        drop_mask : tensor_like
+            A theano batch in `model.input_space`. Should be all binary, with \
+            1s indicating that the corresponding element of X should be \
+            "dropped", ie, hidden from the algorithm and filled in as part of \
+            the inpainting process
+        drop_mask_Y : tensor_like
+            Theano vector. Since we assume Y is a one-hot matrix, each row is \
+            a single categorical variable. `drop_mask_Y` is a binary mask \
+            specifying which *rows* to drop.
         """
 
         if Y is not None:

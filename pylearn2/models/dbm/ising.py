@@ -785,8 +785,8 @@ class BoltzmannIsingVisible(VisibleLayer):
     """
     An IsingVisible whose parameters are defined in Boltzmann machine space.
 
-    Note
-    ----
+    Notes
+    -----
     All parameter noise/clipping is handled by BoltzmannIsingHidden.
     """
 

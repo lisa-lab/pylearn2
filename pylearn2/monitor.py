@@ -1065,8 +1065,8 @@ def get_channel(model, dataset, channel, cost, batch_size):
     -------
     The value of the requested channel.
 
-    Note
-    ----
+    Notes
+    -----
     This doesn't modify the model (unless some of the channel prereqs do).
     In particular, it does not change model.monitor.
     """

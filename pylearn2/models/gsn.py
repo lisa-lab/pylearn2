@@ -634,8 +634,8 @@ class GSN(StackedBlocks, Model):
         y : list of tensors
             List of activations at time step t (prior to adding postact noise).
 
-        Note
-        ----
+        Notes
+        -----
         The return value is generally not equal to the value of activations at
         the the end of this method. The return value contains all layers
         without sampling/post-activation noise, but the activations value
