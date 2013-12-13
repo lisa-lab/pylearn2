@@ -394,7 +394,7 @@ class MLP(Layer):
         self._validate_layer_names(list(input_include_probs.keys()))
         self._validate_layer_names(list(input_scales.keys()))
 
-        theano_rng = MRG_RandomStreams(self.rng.randint(2 ** 15))
+        theano_rng = MRG_RandomStreams(max(self.rng.randint(2 ** 15), 1))
 
         for layer in self.layers:
             layer_name = layer.layer_name
