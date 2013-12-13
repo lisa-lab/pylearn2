@@ -18,17 +18,17 @@ def load(stream, overrides=None, **kwargs):
     Parameters
     ----------
     stream : str or object
-        Either a string containing valid YAML or a file-like object
+        Either a string containing valid YAML or a file-like object \
         supporting the .read() interface.
     overrides : dict, optional
-        A dictionary containing overrides to apply. The location of
-        the override is specified in the key as a dot-delimited path
+        A dictionary containing overrides to apply. The location of \
+        the override is specified in the key as a dot-delimited path \
         to the desired parameter, e.g. "model.corruptor.corruption_level".
 
     Returns
     -------
     graph : dict or object
-        The dictionary or object (if the top-level element specified an
+        The dictionary or object (if the top-level element specified an \
         Python object to instantiate).
 
     Notes
@@ -63,14 +63,14 @@ def load_path(path, overrides=None, **kwargs):
     path : str
         The path to the file to load on disk.
     overrides : dict, optional
-        A dictionary containing overrides to apply. The location of
-        the override is specified in the key as a dot-delimited path
+        A dictionary containing overrides to apply. The location of \
+        the override is specified in the key as a dot-delimited path \
         to the desired parameter, e.g. "model.corruptor.corruption_level".
 
     Returns
     -------
     graph : dict or object
-        The dictionary or object (if the top-level element specified an
+        The dictionary or object (if the top-level element specified an \
         Python object to instantiate).
 
     Notes
@@ -94,11 +94,11 @@ def handle_overrides(graph, overrides):
     Parameters
     ----------
     graph : dict or object
-        A dictionary (or an ObjectProxy) containing the object graph
+        A dictionary (or an ObjectProxy) containing the object graph \
         loaded from a YAML file.
     overrides : dict
-        A dictionary containing overrides to apply. The location of
-        the override is specified in the key as a dot-delimited path
+        A dictionary containing overrides to apply. The location of \
+        the override is specified in the key as a dot-delimited path \
         to the desired parameter, e.g. "model.corruptor.corruption_level".
     """
     for key in overrides:
@@ -122,7 +122,7 @@ def instantiate_all(graph):
     Parameters
     ----------
     graph : dict or object
-        A dictionary (or an ObjectProxy) containing the object graph
+        A dictionary (or an ObjectProxy) containing the object graph \
         loaded from a YAML file.
 
     Returns
@@ -164,7 +164,9 @@ class ObjectProxy(object):
     """
     def __init__(self, cls, kwds, yaml_src):
         """
+        .. todo::
 
+            WRITEME
         """
         self.cls = cls
         self.kwds = kwds
@@ -172,15 +174,35 @@ class ObjectProxy(object):
         self.instance = None
 
     def __setitem__(self, key, value):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.kwds[key] = value
 
     def __getitem__(self, key):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.kwds[key]
 
     def __iter__(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.kwds.__iter__()
 
     def keys(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return list(self.kwds)
 
     def instantiate(self):
@@ -199,6 +221,11 @@ class ObjectProxy(object):
 
 
 def try_to_import(tag_suffix):
+    """
+    .. todo::
+
+        WRITEME
+    """
     components = tag_suffix.split('.')
     modulename = '.'.join(components[:-1])
     try:
@@ -264,6 +291,10 @@ def try_to_import(tag_suffix):
 
 def multi_constructor(loader, tag_suffix, node):
     """
+    .. todo::
+
+        WRITEME properly
+    
     Constructor function passed to PyYAML telling it how to construct
     objects from argument descriptions. See PyYAML documentation for
     details on the call signature.
@@ -282,6 +313,10 @@ def multi_constructor(loader, tag_suffix, node):
 
 def multi_constructor_pkl(loader, tag_suffix, node):
     """
+    .. todo::
+
+        WRITEME properly
+    
     Constructor function passed to PyYAML telling it how to load
     objects from paths to .pkl files. See PyYAML documentation for
     details on the call signature.
@@ -298,6 +333,11 @@ def multi_constructor_pkl(loader, tag_suffix, node):
 
 
 def multi_constructor_import(loader, tag_suffix, node):
+    """
+    .. todo::
+
+        WRITEME
+    """
     yaml_src = yaml.serialize(node)
     mapping = loader.construct_mapping(node)
     if '.' not in tag_suffix:
