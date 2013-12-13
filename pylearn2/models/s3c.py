@@ -1465,26 +1465,26 @@ class S3C(Model, Block):
 
             WRITEME
         """
-            print ""
-            b = self.bias_hid.get_value(borrow=True)
-            assert not np.any(np.isnan(b))
-            p = 1./(1.+np.exp(-b))
-            print 'p: ',(p.min(),p.mean(),p.max())
-            B = self.B_driver.get_value(borrow=True)
-            assert not np.any(np.isnan(B))
-            print 'B: ',(B.min(),B.mean(),B.max())
-            mu = self.mu.get_value(borrow=True)
-            assert not np.any(np.isnan(mu))
-            print 'mu: ',(mu.min(),mu.mean(),mu.max())
-            alpha = self.alpha.get_value(borrow=True)
-            assert not np.any(np.isnan(alpha))
-            print 'alpha: ',(alpha.min(),alpha.mean(),alpha.max())
-            W = self.W.get_value(borrow=True)
-            assert not np.any(np.isnan(W))
-            assert not np.any(np.isinf(W))
-            print 'W: ',(W.min(),W.mean(),W.max())
-            norms = numpy_norms(W)
-            print 'W norms:',(norms.min(),norms.mean(),norms.max())
+        print ""
+        b = self.bias_hid.get_value(borrow=True)
+        assert not np.any(np.isnan(b))
+        p = 1./(1.+np.exp(-b))
+        print 'p: ',(p.min(),p.mean(),p.max())
+        B = self.B_driver.get_value(borrow=True)
+        assert not np.any(np.isnan(B))
+        print 'B: ',(B.min(),B.mean(),B.max())
+        mu = self.mu.get_value(borrow=True)
+        assert not np.any(np.isnan(mu))
+        print 'mu: ',(mu.min(),mu.mean(),mu.max())
+        alpha = self.alpha.get_value(borrow=True)
+        assert not np.any(np.isnan(alpha))
+        print 'alpha: ',(alpha.min(),alpha.mean(),alpha.max())
+        W = self.W.get_value(borrow=True)
+        assert not np.any(np.isnan(W))
+        assert not np.any(np.isinf(W))
+        print 'W: ',(W.min(),W.mean(),W.max())
+        norms = numpy_norms(W)
+        print 'W norms:',(norms.min(),norms.mean(),norms.max())
 
     def learn_mini_batch(self, X):
         """
@@ -1535,11 +1535,11 @@ class S3C(Model, Block):
         assert False
 
 def reflection_clip(S_hat, new_S_hat, rho = 0.5):
-        """
-        .. todo::
+    """
+    .. todo::
 
-            WRITEME
-        """
+        WRITEME
+    """
     rho = np.cast[config.floatX](rho)
 
     ceiling = full_max(abs(new_S_hat))
@@ -1565,11 +1565,11 @@ def reflection_clip(S_hat, new_S_hat, rho = 0.5):
     return rval
 
 def damp(old, new, new_coeff):
-        """
-        .. todo::
+    """
+    .. todo::
 
-            WRITEME
-        """
+        WRITEME
+    """
 
     if new_coeff == 1.0:
         return new
