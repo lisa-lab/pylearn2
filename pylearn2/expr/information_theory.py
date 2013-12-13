@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import theano.tensor as T
 from theano.gof.op import get_debug_values
 from theano.gof.op import debug_assert
@@ -6,10 +11,14 @@ from theano.tensor.xlogx import xlogx
 
 def entropy_binary_vector(P):
     """
-        if P[i,j] represents the probability
-            of some binary random variable X[i,j] being 1
-        then rval[i] gives the entropy of the random vector
-        X[i,:]
+    .. todo::
+
+        WRITEME properly
+
+    if P[i,j] represents the probability
+        of some binary random variable X[i,j] being 1
+    then rval[i] gives the entropy of the random vector
+    X[i,:]
     """
 
     for Pv in get_debug_values(P):
