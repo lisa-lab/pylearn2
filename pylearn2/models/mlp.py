@@ -10,6 +10,7 @@ __maintainer__ = "Ian Goodfellow"
 import math
 import sys
 import warnings
+import functools
 
 import numpy as np
 from theano import config
@@ -862,12 +863,8 @@ class Softmax(Layer):
 
         return rval
 
+    @functools.wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         if self.no_affine:
             return OrderedDict()
@@ -890,12 +887,8 @@ class Softmax(Layer):
                             ('col_norms_max'  , col_norms.max()),
                             ])
 
+    @functools.wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         mx = state.max(axis=1)
 
@@ -1022,12 +1015,8 @@ class Softmax(Layer):
         """
         return ('v', 'h')
 
+    @functools.wraps(Layer.fprop)
     def fprop(self, state_below):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         self.input_space.validate(state_below)
 
@@ -1060,21 +1049,8 @@ class Softmax(Layer):
 
         return rval
 
+    @functools.wraps(Layer.cost)
     def cost(self, Y, Y_hat):
-        """
-        Y must be one-hot binary. Y_hat is a softmax estimate.
-        of Y. Returns negative log probability of Y under the Y_hat
-        distribution.
-
-        Parameters
-        ----------
-        Y : WRITEME
-        Y_hat : WRITEME
-
-        Returns
-        -------
-        WRITEME
-        """
 
         assert hasattr(Y_hat, 'owner')
         owner = Y_hat.owner
@@ -1099,21 +1075,8 @@ class Softmax(Layer):
 
         return - rval
 
+    @functools.wraps(Layer.cost_matrix)
     def cost_matrix(self, Y, Y_hat):
-        """
-        Y must be one-hot binary. Y_hat is a softmax estimate.
-        of Y. Returns negative log probability of Y under the Y_hat
-        distribution.
-
-        Parameters
-        ----------
-        Y : WRITEME
-        Y_hat : WRITEME
-
-        Returns
-        -------
-        WRITEME
-        """
 
         assert hasattr(Y_hat, 'owner')
         owner = Y_hat.owner
@@ -1135,23 +1098,17 @@ class Softmax(Layer):
 
         return -log_prob_of
 
+    @functools.wraps(Layer.get_weight_decay)
     def get_weight_decay(self, coeff):
-        """
-        .. todo::
 
-            WRITEME
-        """
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         return coeff * T.sqr(self.W).sum()
 
+    @functools.wraps(Layer.get_l1_weight_decay)
     def get_l1_weight_decay(self, coeff):
-        """
-        .. todo::
 
-            WRITEME
-        """
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
@@ -1366,24 +1323,18 @@ class SoftmaxPool(Layer):
         rval.append(self.b)
         return rval
 
+    @functools.wraps(Layer.get_weight_decay)
     def get_weight_decay(self, coeff):
-        """
-        .. todo::
 
-            WRITEME
-        """
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
+    @functools.wraps(Layer.get_l1_weight_decay)
     def get_l1_weight_decay(self, coeff):
-        """
-        .. todo::
 
-            WRITEME
-        """
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
@@ -1478,12 +1429,8 @@ class SoftmaxPool(Layer):
 
         return function([], W)()
 
+    @functools.wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         W ,= self.transformer.get_params()
 
@@ -1504,12 +1451,8 @@ class SoftmaxPool(Layer):
                             ])
 
 
+    @functools.wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         P = state
 
@@ -1550,12 +1493,8 @@ class SoftmaxPool(Layer):
 
         return rval
 
+    @functools.wraps(Layer.fprop)
     def fprop(self, state_below):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         self.input_space.validate(state_below)
 
@@ -1776,24 +1715,18 @@ class Linear(Layer):
             rval.append(self.b)
         return rval
 
+    @functools.wraps(Layer.get_weight_decay)
     def get_weight_decay(self, coeff):
-        """
-        .. todo::
 
-            WRITEME
-        """
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
+    @functools.wraps(Layer.get_l1_weight_decay)
     def get_l1_weight_decay(self, coeff):
-        """
-        .. todo::
 
-            WRITEME
-        """
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
@@ -1877,12 +1810,8 @@ class Linear(Layer):
 
         return function([], W)()
 
+    @functools.wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         W ,= self.transformer.get_params()
 
@@ -1902,12 +1831,9 @@ class Linear(Layer):
                             ('col_norms_max'  , col_norms.max()),
                             ])
 
+    @functools.wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
-        """
-        .. todo::
 
-            WRITEME
-        """
         rval =  OrderedDict()
 
         mx = state.max(axis=0)
@@ -1966,38 +1892,26 @@ class Linear(Layer):
         return z
 
 
+    @functools.wraps(Layer.fprop)
     def fprop(self, state_below):
-        """
-        .. todo::
 
-            WRITEME
-        """
         # TODO: Refactor More Better(tm)
         p = self._linear_part(state_below)
         return p
 
+    @functools.wraps(Layer.cost)
     def cost(self, Y, Y_hat):
-        """
-        .. todo::
 
-            WRITEME
-        """
         return self.cost_from_cost_matrix(self.cost_matrix(Y, Y_hat))
 
+    @functools.wraps(Layer.cost_from_cost_matrix)
     def cost_from_cost_matrix(self, cost_matrix):
-        """
-        .. todo::
 
-            WRITEME
-        """
         return cost_matrix.sum(axis=1).mean()
 
+    @functools.wraps(Layer.cost_matrix)
     def cost_matrix(self, Y, Y_hat):
-        """
-        .. todo::
 
-            WRITEME
-        """
         if(self.use_abs_loss):
             return T.abs_(Y - Y_hat)
         else:
@@ -2010,22 +1924,16 @@ class Tanh(Linear):
     input followed by a hyperbolic tangent elementwise nonlinearity.
     """
 
+    @functools.wraps(Layer.fprop)
     def fprop(self, state_below):
-        """
-        .. todo::
 
-            WRITEME
-        """
         p = self._linear_part(state_below)
         p = T.tanh(p)
         return p
 
+    @functools.wraps(Layer.cost)
     def cost(self, *args, **kwargs):
-        """
-        .. todo::
 
-            WRITEME
-        """
         raise NotImplementedError()
 
 
@@ -2065,12 +1973,9 @@ class Sigmoid(Linear):
         assert monitor_style in ['classification', 'detection']
         self.monitor_style = monitor_style
 
+    @functools.wraps(Layer.fprop)
     def fprop(self, state_below):
-        """
-        .. todo::
 
-            WRITEME
-        """
         p = self._linear_part(state_below)
         p = T.nnet.sigmoid(p)
         return p
@@ -2190,12 +2095,8 @@ class Sigmoid(Linear):
 
         return rval
 
+    @functools.wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         rval = super(Sigmoid, self).get_monitoring_channels_from_state(state, target)
 
@@ -2227,23 +2128,18 @@ class RectifiedLinear(Linear):
         super(RectifiedLinear, self).__init__(**kwargs)
         self.left_slope = left_slope
 
+    @functools.wraps(Layer.fprop)
     def fprop(self, state_below):
-        """
-        .. todo::
 
-            WRITEME
-        """
         p = self._linear_part(state_below)
         p = p * (p > 0.) + self.left_slope * p * (p < 0.)
         return p
 
+    @functools.wraps(Layer.cost)
     def cost(self, *args, **kwargs):
-        """
-        .. todo::
 
-            WRITEME
-        """
         raise NotImplementedError()
+
 
 class SpaceConverter(Layer):
     """
@@ -2270,14 +2166,11 @@ class SpaceConverter(Layer):
         """
         self.input_space = space
 
+    @functools.wraps(Layer.fprop)
     def fprop(self, state_below):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         return self.input_space.format_as(state_below, self.output_space)
+
 
 class ConvRectifiedLinear(Layer):
     """
@@ -2487,24 +2380,18 @@ class ConvRectifiedLinear(Layer):
         rval.append(self.b)
         return rval
 
+    @functools.wraps(Layer.get_weight_decay)
     def get_weight_decay(self, coeff):
-        """
-        .. todo::
 
-            WRITEME
-        """
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
+    @functools.wraps(Layer.get_l1_weight_decay)
     def get_l1_weight_decay(self, coeff):
-        """
-        .. todo::
 
-            WRITEME
-        """
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
@@ -2555,12 +2442,8 @@ class ConvRectifiedLinear(Layer):
 
         return np.transpose(raw, (outp,rows,cols,inp))
 
+    @functools.wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         W ,= self.transformer.get_params()
 
@@ -2576,12 +2459,8 @@ class ConvRectifiedLinear(Layer):
                             ('kernel_norms_max'  , row_norms.max()),
                             ])
 
+    @functools.wraps(Layer.fprop)
     def fprop(self, state_below):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         self.input_space.validate(state_below)
 
@@ -2618,6 +2497,7 @@ class ConvRectifiedLinear(Layer):
             p = self.output_normalization(p)
 
         return p
+
 
 def max_pool(bc01, pool_shape, pool_stride, image_shape):
     """
@@ -2690,6 +2570,7 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape):
 
     return mx
 
+
 def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape):
     """
     .. todo::
@@ -2756,6 +2637,7 @@ def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape):
         assert not np.any(np.isinf(mxv))
 
     return mx
+
 
 def mean_pool(bc01, pool_shape, pool_stride, image_shape):
     """
@@ -2830,6 +2712,7 @@ def mean_pool(bc01, pool_shape, pool_stride, image_shape):
 
     return mx
 
+
 def WeightDecay(*args, **kwargs):
     """
     .. todo::
@@ -2839,6 +2722,7 @@ def WeightDecay(*args, **kwargs):
     warnings.warn("pylearn2.models.mlp.WeightDecay has moved to pylearn2.costs.mlp.WeightDecay")
     from pylearn2.costs.mlp import WeightDecay as WD
     return WD(*args, **kwargs)
+
 
 def L1WeightDecay(*args, **kwargs):
     """
@@ -2877,12 +2761,9 @@ class LinearGaussian(Linear):
         assert isinstance(self.output_space, VectorSpace)
         self.beta = sharedX(self.output_space.get_origin() + self.init_beta, 'beta')
 
+    @functools.wraps(Linear.get_monitoring_channels)
     def get_monitoring_channels(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         rval = super(LinearGaussian, self).get_monitoring_channels()
         assert isinstance(rval, OrderedDict)
         rval['beta_min'] = self.beta.min()
@@ -2890,23 +2771,17 @@ class LinearGaussian(Linear):
         rval['beta_max'] = self.beta.max()
         return rval
 
+    @functools.wraps(Linear.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
-        """
-        .. todo::
 
-            WRITEME
-        """
         rval = super(LinearGaussian, self).get_monitoring_channels()
         if target:
             rval['mse'] = T.sqr(state - target).mean()
         return rval
 
+    @functools.wraps(Linear.cost)
     def cost(self, Y, Y_hat):
-        """
-        .. todo::
 
-            WRITEME
-        """
         return 0.5 * T.dot(T.sqr(Y-Y_hat), self.beta).mean() - 0.5 * T.log(self.beta).sum()
 
     def censor_updates(self, updates):
@@ -3031,12 +2906,9 @@ class PretrainedLayer(Layer):
         """
         return self.layer_content.get_output_space()
 
+    @functools.wraps(Layer.fprop)
     def fprop(self, state_below):
-        """
-        .. todo::
 
-            WRITEME
-        """
         return self.layer_content.upward_pass(state_below)
 
 
@@ -3083,34 +2955,24 @@ class CompositeLayer(Layer):
 
         return rval
 
+    @functools.wraps(Layer.fprop)
     def fprop(self, state_below):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         return tuple(layer.fprop(state_below) for layer in self.layers)
 
+    @functools.wraps(Layer.cost)
     def cost(self, Y, Y_hat):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         return sum(layer.cost(Y_elem, Y_hat_elem) for layer, Y_elem, Y_hat_elem in \
                 safe_zip(self.layers, Y, Y_hat))
 
+    @functools.wraps(Layer.set_mlp)
     def set_mlp(self, mlp):
-        """
-        .. todo::
 
-            WRITEME
-        """
         super(CompositeLayer, self).set_mlp(mlp)
         for layer in self.layers:
             layer.set_mlp(mlp)
+
 
 class FlattenerLayer(Layer):
     """
@@ -3161,24 +3023,16 @@ class FlattenerLayer(Layer):
 
         return self.raw_layer.get_params()
 
+    @functools.wraps(Layer.fprop)
     def fprop(self, state_below):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         raw = self.raw_layer.fprop(state_below)
 
         return self.raw_layer.get_output_space().format_as(raw,
                 self.output_space)
 
+    @functools.wraps(Layer.cost)
     def cost(self, Y, Y_hat):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         raw_space = self.raw_layer.get_output_space()
         target_space = self.output_space
@@ -3202,12 +3056,9 @@ class FlattenerLayer(Layer):
 
         return self.raw_layer.cost(raw_Y, raw_Y_hat)
 
+    @functools.wraps(Layer.set_mlp)
     def set_mlp(self, mlp):
-        """
-        .. todo::
 
-            WRITEME
-        """
         super(FlattenerLayer, self).set_mlp(mlp)
         self.raw_layer.set_mlp(mlp)
 
