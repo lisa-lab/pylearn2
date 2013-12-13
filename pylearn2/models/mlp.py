@@ -178,6 +178,14 @@ class Layer(Model):
         raise NotImplementedError(str(type(self)) +
                                   " does not implement mlp.Layer.cost_matrix")
 
+    def get_weights(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        raise NotImplementedError
+
     def get_weight_decay(self, coeff):
         """
         .. todo::
@@ -972,12 +980,9 @@ class Softmax(Layer):
         rval = Conv2DSpace.convert_numpy(ipt, self.input_space.axes, ('b', 0, 1, 'c'))
         return rval
 
+    @functools.wraps(Layer.get_weights)
     def get_weights(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         if not isinstance(self.input_space, VectorSpace):
             raise NotImplementedError()
 
@@ -1341,12 +1346,9 @@ class SoftmaxPool(Layer):
         W ,= self.transformer.get_params()
         return coeff * abs(W).sum()
 
+    @functools.wraps(Layer.get_weights)
     def get_weights(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         if self.requires_reformat:
             # This is not really an unimplemented case.
             # We actually don't know how to format the weights
@@ -1733,12 +1735,9 @@ class Linear(Layer):
         W ,= self.transformer.get_params()
         return coeff * abs(W).sum()
 
+    @functools.wraps(Layer.get_weights)
     def get_weights(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         if self.requires_reformat:
             # This is not really an unimplemented case.
             # We actually don't know how to format the weights
@@ -3062,12 +3061,9 @@ class FlattenerLayer(Layer):
         super(FlattenerLayer, self).set_mlp(mlp)
         self.raw_layer.set_mlp(mlp)
 
+    @functools.wraps(Layer.get_weights)
     def get_weights(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         return self.raw_layer.get_weights()
 
 
