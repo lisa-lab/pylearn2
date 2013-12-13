@@ -31,14 +31,28 @@ class DenseMulticlassSVM(OneVsRestClassifier):
     """
 
     def __init__(self, C, kernel='rbf', gamma = 1.0, coef0 = 1.0, degree = 3):
+        """
+        .. todo::
+
+            WRITEME
+        """
         estimator = SVC(C=C, kernel=kernel, gamma = gamma, coef0 = coef0, degree = degree)
         super(DenseMulticlassSVM,self).__init__(estimator)
 
     def fit(self, X, y):
+        """
+        .. todo::
+
+            WRITEME
+        """
         super(DenseMulticlassSVM,self).fit(X,y)
 
         return self
 
     def decision_function(self, X):
+        """
+        .. todo::
 
+            WRITEME
+        """
         return np.concatenate( [ estimator.decision_function(X) for estimator in self.estimators_ ], axis = 1)
