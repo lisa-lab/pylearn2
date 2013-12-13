@@ -12,10 +12,19 @@ cuda = None
 import numpy
 np = numpy
 
-def make_name(variable, anon = "anonymous_variable"):
+
+def make_name(variable, anon="anonymous_variable"):
     """
-    If variable has a name, returns that name.
-    Otherwise, returns anon
+    If variable has a name, returns that name. Otherwise, returns anon.
+
+    Parameters
+    ----------
+    variable : tensor_like
+        WRITEME
+
+    Returns
+    -------
+    WRITEME
     """
 
     if hasattr(variable,'name') and variable.name is not None:
@@ -25,16 +34,38 @@ def make_name(variable, anon = "anonymous_variable"):
 
 
 def sharedX(value, name=None, borrow=False):
-    """Transform value into a shared variable of type floatX"""
+    """
+    Transform value into a shared variable of type floatX
+
+    Parameters
+    ----------
+    value : WRITEME
+    name : WRITEME
+    borrow : WRITEME
+
+    Returns
+    -------
+    WRITEME
+    """
     return theano.shared(theano._asarray(value, dtype=theano.config.floatX),
          name=name,
          borrow=borrow)
 
+
 def as_floatX(variable):
-    """Casts a given variable into dtype config.floatX
-    numpy ndarrays will remain numpy ndarrays
-    python floats will become 0-D ndarrays
-    all other types will be treated as theano tensors"""
+    """
+    Casts a given variable into dtype `config.floatX`. Numpy ndarrays will
+    remain numpy ndarrays, python floats will become 0-D ndarrays and
+    all other types will be treated as theano tensors
+
+    Parameters
+    ----------
+    variable : WRITEME
+
+    Returns
+    -------
+    WRITEME
+    """
 
     if isinstance(variable, float):
         return numpy.cast[theano.config.floatX](variable)
@@ -44,22 +75,54 @@ def as_floatX(variable):
 
     return theano.tensor.cast(variable, theano.config.floatX)
 
+
 def constantX(value):
     """
-        Returns a constant of value `value` with floatX dtype
+    Returns a constant of value `value` with floatX dtype
+
+    Parameters
+    ----------
+    variable : WRITEME
+
+    Returns
+    -------
+    WRITEME
     """
     return theano.tensor.constant(numpy.asarray(value,
-                                     dtype=theano.config.floatX))
+                                                dtype=theano.config.floatX))
+
+
 def subdict(d, keys):
-    """ Create a subdictionary of d with the keys in keys """
+    """
+    Create a subdictionary of d with the keys in keys
+
+    Parameters
+    ----------
+    d : WRITEME
+    keys : WRITEME
+
+    Returns
+    -------
+    WRITEME
+    """
     result = {}
     for key in keys:
         if key in d: result[key] = d[key]
     return result
 
+
 def safe_update(dict_to, dict_from):
     """
     Like dict_to.update(dict_from), except don't overwrite any keys.
+
+    Parameters
+    ----------
+    dict_to : WRITEME
+    dict_from : WRITEME
+
+    Returns
+    -------
+    WRITEME
     """
     for key, val in dict(dict_from).iteritems():
         if key in dict_to:
@@ -69,35 +132,70 @@ def safe_update(dict_to, dict_from):
 
 
 class CallbackOp(theano.gof.Op):
-    """A Theano Op that implements the identity transform but
-    also does an arbitrary (user-specified) side effect. """
-
-
+    """
+    A Theano Op that implements the identity transform but also does an
+    arbitrary (user-specified) side effect.
+    """
     view_map = { 0: [0] }
 
     def __init__(self, callback):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.callback = callback
 
     def make_node(self, xin):
+        """
+        .. todo::
+
+            WRITEME
+        """
         xout = xin.type.make_variable()
         return theano.gof.Apply(op=self, inputs=[xin], outputs=[xout])
 
     def perform(self, node, inputs, output_storage):
+        """
+        .. todo::
+
+            WRITEME
+        """
         xin, = inputs
         xout, = output_storage
         xout[0] = xin
         self.callback(xin)
 
     def grad(self, inputs, output_gradients):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return output_gradients
 
     def R_op(self, inputs, eval_points):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return [x for x in eval_points]
 
     def __eq__(self, other):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return type(self) == type(other) and self.callback == other.callback
 
     def hash(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return hash(self.callback)
 
 
@@ -106,6 +204,14 @@ def get_dataless_dataset(model):
     Loads the dataset that model was trained on, without loading data.
     This is useful if you just need the dataset's metadata, like for
     formatting views of the model's weights.
+
+    Parameters
+    ----------
+    model : WRITEME
+
+    Returns
+    -------
+    WRITEME
     """
 
     global yaml_parse
@@ -125,7 +231,9 @@ def get_dataless_dataset(model):
     return rval
 
 def safe_zip(*args):
-    """Like zip, but ensures arguments are of same length"""
+    """
+    Like zip, but ensures arguments are of same length
+    """
     base = len(args[0])
     for i, arg in enumerate(args[1:]):
         if len(arg) != base:
@@ -133,25 +241,45 @@ def safe_zip(*args):
                 " but argument "+str(i+1)+" has length "+str(len(arg)))
     return zip(*args)
 
+# TODO: Is this a duplicate?
 def safe_izip(*args):
-    """Like izip, but ensures arguments are of same length"""
+    """
+    Like izip, but ensures arguments are of same length
+    """
     assert all([len(arg) == len(args[0]) for arg in args])
     return izip(*args)
 
 def gpu_mem_free():
+    """
+    .. todo::
+
+        WRITEME
+    """
     global cuda
     if cuda is None:
         from theano.sandbox import cuda
     return cuda.mem_info()[0]/1024./1024
 
 class _ElemwiseNoGradient(theano.tensor.Elemwise):
+    """
+    .. todo::
 
+        WRITEME
+    """
     def connection_pattern(self, node):
+        """
+        .. todo::
 
+            WRITEME
+        """
         return [ [ False ] ]
 
     def grad(self, inputs, output_gradients):
+        """
+        .. todo::
 
+            WRITEME
+        """
         return [ theano.gradient.DisconnectedType()() ]
 
 # Call this on a theano variable to make a copy of that variable
@@ -165,11 +293,21 @@ block_gradient = _ElemwiseNoGradient(theano.scalar.identity)
 
 def safe_union(a, b):
     """
-    Does the logic of a union operation without the non-deterministic
-    ordering of python sets
+    Does the logic of a union operation without the non-deterministic ordering
+    of python sets.
+
+    Parameters
+    ----------
+    a : WRITEME
+    b : WRITEME
+
+    Returns
+    -------
+    WRITEME
     """
     if not isinstance(a, list):
-        raise TypeError("Expected first argument to be a list, but got "+str(type(a)))
+        raise TypeError("Expected first argument to be a list, but got " +
+                        str(type(a)))
     assert isinstance(b, list)
     c = []
     for x in a + b:
@@ -183,13 +321,10 @@ from theano.printing import hex_digest
 
 def function(*args, **kwargs):
     """
-    A wrapper around theano.function that:
-
-        -Disables the on_unused_input error. Almost no part of
-         pylearn2 can assume that an unused input is an error, so
-         the default from theano is inappropriate for this project.
+    A wrapper around theano.function that disables the on_unused_input error.
+    Almost no part of pylearn2 can assume that an unused input is an error, so
+    the default from theano is inappropriate for this project.
     """
-
     return theano.function(*args, on_unused_input='ignore', **kwargs)
 
 def grad(*args, **kwargs):
@@ -207,11 +342,19 @@ py_complex_types = (complex, np.complex)
 py_number_types = (int, long, float, complex, np.number)
 
 
-def get_choice(choice_to_explanation ):
+def get_choice(choice_to_explanation):
     """
-    choice_to_explanation: a dictionary mapping possible user responses
-    to strings describing what that response will
-    cause the script to do
+    WRITEME
+
+    Parameters
+    ----------
+    choice_to_explanation : dict
+        Dictionary mapping possible user responses to strings describing what \
+        that response will cause the script to do
+
+    Returns
+    -------
+    WRITEME
     """
     d = choice_to_explanation
 
@@ -231,11 +374,23 @@ def get_choice(choice_to_explanation ):
 
 def float32_floatX(f):
     """
-    This function change floatX to float32 for the call to f.
+    This function changes floatX to float32 for the call to f. Useful in GPU
+    tests.
 
-    This is usefull in GPU tests.
+    Parameters
+    ----------
+    f : WRITEME
+
+    Returns
+    -------
+    WRITEME
     """
     def new_f(*args, **kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         old_floatX = theano.config.floatX
         theano.config.floatX = 'float32'
         try:

@@ -1,3 +1,6 @@
+"""
+WRITEME
+"""
 import inspect
 import os
 import StringIO
@@ -17,6 +20,11 @@ _this_dir = os.path.dirname(inspect.getfile(inspect.currentframe()))
 
 # XXX: move to cuda.opt and refactor there
 def any_from_gpu(*vv):
+    """
+    .. todo::
+
+        WRITEME
+    """
     for v in  vv:
         if v.owner and v.owner.op == host_from_gpu:
             return True
@@ -25,6 +33,11 @@ def any_from_gpu(*vv):
 
 # XXX: move to cuda.opt and refactor there
 def any_gpu_client(*vv):
+    """
+    .. todo::
+
+        WRITEME
+    """
     for v in vv:
         for (cl, pos) in v.clients:
             if cl.op == gpu_from_host:
@@ -33,27 +46,54 @@ def any_gpu_client(*vv):
 
 
 class Base(theano.Op):
-    def __init__(self,
-            module_stride,
-            partial_sum,
-            ):
+    """
+    .. todo::
+
+        WRITEME
+    """
+    def __init__(self, module_stride, partial_sum):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.module_stride = module_stride
         self.partial_sum = partial_sum
 
     def _attributes(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return (
                 self.module_stride,
                 self.partial_sum,
                 )
 
     def __eq__(self, other):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return (type(self) == type(other)
                 and self._attributes() == other._attributes())
 
     def __hash__(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return hash((type(self), self._attributes()))
 
     def __str__(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return '%s{module_stride=%i,partial_sum=%i}' % (
                 self.__class__.__name__,
                 self.module_stride,
@@ -63,11 +103,16 @@ class Base(theano.Op):
 
 class GpuFilterActs(Base):
     """
-    XXX
+    .. todo::
 
+        WRITEME
     """
-
     def make_node(self, images, filters):
+        """
+        .. todo::
+
+            WRITEME
+        """
         ibcast = images.broadcastable
         fbcast = filters.broadcastable
         igroups, icolors_per_group, irows, icols, icount = ibcast
@@ -86,13 +131,28 @@ class GpuFilterActs(Base):
                 [htype()])
 
     def c_support_code(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         cufile = open(os.path.join(_this_dir, 'filter_acts.cu'))
         return cufile.read()
 
     def c_code_cache_version(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return ()
 
     def c_code(self, node, nodename, inputs, outputs, sub):
+        """
+        .. todo::
+
+            WRITEME
+        """
         #z_out = alpha * dot(x,y) + beta * z_in
         #inplace version, set set z_out = z_in
         #not inplace version, we copy z_in to z_out.
@@ -227,6 +287,11 @@ class GpuFilterActs(Base):
 @register_opt()
 @local_optimizer([])
 def insert_gpu_filter_acts(node):
+    """
+    .. todo::
+
+        WRITEME
+    """
     if isinstance(node.op, FilterActs):
         images, filters = node.inputs
         if any_from_gpu(images, filters) or any_gpu_client(*node.outputs):
@@ -239,10 +304,16 @@ def insert_gpu_filter_acts(node):
 
 class GpuWeightActs(Base):
     """
-    XXX
-    """
+    .. todo::
 
+        WRITEME
+    """
     def make_node(self, images, hidacts, frows, fcols):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.partial_sum != 1:
             # this corresponds to grad when doing convolution
             raise NotImplementedError('partial sum')
@@ -267,13 +338,28 @@ class GpuWeightActs(Base):
                 [otype()])
 
     def c_support_code(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         cufile = open(os.path.join(_this_dir, 'weight_acts.cu'))
         return cufile.read()
 
     def c_code_cache_version(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return ()
 
     def c_code(self, node, nodename, inames, onames, sub):
+        """
+        .. todo::
+
+            WRITEME
+        """
         images, hidacts, frows, fcols = inames
         dweights, = onames
         fail = sub['fail']
@@ -442,7 +528,17 @@ class GpuWeightActs(Base):
 @register_opt()
 @local_optimizer([])
 def insert_gpu_weight_acts(node):
+    """
+    .. todo::
+
+        WRITEME
+    """
     if isinstance(node.op, WeightActs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         images, hidacts, frows, fcols = node.inputs
         if any_from_gpu(images, hidacts) or any_gpu_client(*node.outputs):
             gpu_weight_acts = GpuWeightActs(
@@ -458,9 +554,16 @@ def insert_gpu_weight_acts(node):
 
 class GpuImgActs(Base):
     """
-    XXX
+    .. todo::
+
+        WRITEME
     """
     def make_node(self, filters, hidacts, irows, icols):
+        """
+        .. todo::
+
+            WRITEME
+        """
         irows = theano.tensor.as_tensor_variable(irows)
         icols = theano.tensor.as_tensor_variable(icols)
         if irows.dtype[:3] not in ('int', 'uin'):
@@ -477,13 +580,28 @@ class GpuImgActs(Base):
 
 
     def c_support_code(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         cufile = open(os.path.join(_this_dir, 'raw_img_acts.cu'))
         return cufile.read()
 
     def c_code_cache_version(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return ()
 
     def c_code(self, node, nodename, inames, onames, sub):
+        """
+        .. todo::
+
+            WRITEME
+        """
         filters, hidacts, irows, icols = inames
         dimages, = onames
         fail = sub['fail']
@@ -653,6 +771,11 @@ class GpuImgActs(Base):
 @register_opt()
 @local_optimizer([])
 def insert_gpu_img_acts(node):
+    """
+    .. todo::
+
+        WRITEME
+    """
     if isinstance(node.op, ImgActs):
         filters, hidacts, irows, icols = node.inputs
         if any_from_gpu(filters, hidacts) or any_gpu_client(*node.outputs):

@@ -37,27 +37,28 @@ class Train(object):
         Parameters
         ----------
         dataset : object
-            Object that implements the Dataset interface defined in
+            Object that implements the Dataset interface defined in \
             `pylearn2.datasets`.
         model : object
-            Object that implements the Model interface defined in
+            Object that implements the Model interface defined in \
             `pylearn2.models`.
         algorithm : object, optional
-            Object that implements the TrainingAlgorithm interface
+            Object that implements the TrainingAlgorithm interface \
             defined in `pylearn2.training_algorithms`.
         save_path : str, optional
             Path  to save the (pickled) model.
         save_freq : int, optional
-            Frequency of saves, in epochs. A frequency of zero disables
-            automatic saving altogether. A frequency of 1 saves every
-            epoch. A frequency of 2 saves every other epoch, etc. (default=0,
-            i.e. never save)
-            Note: when automatic saving is enabled (eg save_freq > 0), the
-            model is always saved after learning, even when the final epoch is
-            not a multiple of save_freq.
+            Frequency of saves, in epochs. A frequency of zero disables \
+            automatic saving altogether. A frequency of 1 saves every \
+            epoch. A frequency of 2 saves every other epoch, etc. \
+            (default=0, i.e. never save). Note: when automatic saving is \
+            enabled (eg save_freq > 0), the model is always saved after \
+            learning, even when the final epoch is not a multiple of save_freq.
         extensions : iterable, optional
-            A collection of TrainExtension objects whose callbacks are
+            A collection of TrainExtension objects whose callbacks are \
             triggered at various points in learning.
+        allow_overwrite : bool
+            WRITEME
         """
         self.allow_overwrite = allow_overwrite
         self.first_save = True
@@ -84,12 +85,18 @@ class Train(object):
         if hasattr(self.dataset,'yaml_src'):
             self.model.dataset_yaml_src = self.dataset.yaml_src
         else:
-            warnings.warn("dataset has no yaml src, model won't know what data it was trained on")
+            warnings.warn("dataset has no yaml src, model won't know what " +
+                          "data it was trained on")
 
         self.extensions = extensions if extensions is not None else []
         self.monitor_time = sharedX(value=0,name='seconds_per_epoch')
 
     def setup_extensions(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         for ext in self.extensions:
             ext.setup(self.model, self.dataset, self.algorithm)
 
@@ -105,7 +112,9 @@ class Train(object):
             while True:
                 rval = self.model.train_all(dataset=self.dataset)
                 if rval is not None:
-                    raise ValueError("Model.train_all should not return anything. Use Model.continue_learning to control whether learning continues.")
+                    raise ValueError("Model.train_all should not return " +
+                                     "anything. Use Model.continue_learning " +
+                                     "to control whether learning continues.")
                 self.model.monitor.report_epoch()
                 if self.save_freq > 0 and self.model.monitor.epochs_seen % self.save_freq == 0:
                     self.save()
@@ -136,7 +145,10 @@ class Train(object):
                                 callbacks=[self.monitor_time.set_value]):
                     rval = self.algorithm.train(dataset=self.dataset)
                 if rval is not None:
-                    raise ValueError("TrainingAlgorithm.train should not return anything. Use TrainingAlgorithm.continue_learning to control whether learning continues.")
+                    raise ValueError("TrainingAlgorithm.train should not " +
+                                     "return anything. Use " +
+                                     "TrainingAlgorithm.continue_learning " +
+                                     "to control whether learning continues.")
                 self.model.monitor.report_epoch()
                 self.run_callbacks_and_monitoring()
                 if self.save_freq > 0 and self.model.monitor._epochs_seen % self.save_freq == 0:
@@ -152,6 +164,11 @@ class Train(object):
             self.save()
 
     def run_callbacks_and_monitoring(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.model.monitor()
         for extension in self.extensions:
             try:
@@ -185,10 +202,21 @@ class Train(object):
 
 
 class SerializationGuard(object):
+    """
+    .. todo::
+
+        WRITEME
+    """
 
     def __getstate__(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise IOError("You tried to serialize something that should not"
-                " be serialized.")
+                      " be serialized.")
+
 
 if __name__ == "__main__":
     print >>sys.stderr, "ERROR: You probably meant to run scripts/train.py"

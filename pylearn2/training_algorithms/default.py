@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 from pylearn2.monitor import Monitor
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 from pylearn2.utils import safe_zip
@@ -6,14 +11,28 @@ import theano.tensor as T
 
 
 class DefaultTrainingAlgorithm(TrainingAlgorithm):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, batch_size=None, batches_per_iter=1000,
                  monitoring_batches=-1, monitoring_dataset=None,
                  termination_criterion=None):
         """
-        if batch_size is None, reverts to the force_batch_size field of the
-        model
-        termination_criterion: if specified, can cause the algorithm to terminate
-                before model.learn_batch says to
+        Parameters
+        ----------
+        batch_size : int
+            If batch_size is None, reverts to the `force_batch_size` field of \
+            the model
+        batches_per_iter : int
+            WRITEME
+        monitoring_batches : int
+            WRITEME
+        monitoring_dataset : WRITEME
+        termination_criterion : WRITEME
+            If specified, can cause the algorithm to terminate before \
+            `model.learn_batch` says to
         """
         self.batch_size, self.batches_per_iter = batch_size, batches_per_iter
         if monitoring_dataset is None:
@@ -32,11 +51,12 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
 
         Parameters
         ----------
-        model: a Python object representing the model to train loosely
-        implementing the interface of models.model.Model.
+        model : object
+            Python object representing the model to train loosely \
+            implementing the interface of models.model.Model.
 
-        dataset: a pylearn2.datasets.dataset.Dataset object used to draw
-        training data
+        dataset : pylearn2.datasets.dataset.Dataset
+            Dataset object used to draw training data
         """
         self.model = model
 
@@ -85,6 +105,11 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
         self.bSetup = True
 
     def train(self, dataset):
+        """
+        .. todo::
+
+            WRITEME
+        """
         assert self.bSetup
         model = self.model
         if self.batch_size is None:
@@ -96,7 +121,8 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
                         model.force_batch_size)
 
         for i in xrange(self.batches_per_iter):
-            # model.train_batch and self.train both return False when training should terminate.
+            # model.train_batch and self.train both return False when training
+            # should terminate.
             learn_more = model.train_batch(dataset, batch_size)
             model.monitor.report_batch(batch_size)
             if not learn_more:
@@ -105,15 +131,19 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
         # Make sure we didn't exit training loop because Model.learn
         # hasn't been updated to new interface yet.
         if learn_more not in [True,False]:
-            msg = ('The learn method of model %s did not return a boolean value.' +
-                   'Please update your model accordingly.')
+            msg = ('The learn method of model %s did not return a boolean ' +
+                   'value. Please update your model accordingly.')
             raise ValueError(msg % str(model))
         self.learn_more = learn_more
 
     def continue_learning(self, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.learn_more:
             if self.termination_criterion is not None:
                 return self.termination_criterion.continue_learning(model)
             return True
         return False
-

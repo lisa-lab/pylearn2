@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import numpy as np
 plt = None
 axes = None
@@ -99,7 +104,7 @@ def show(image):
     Parameters
     ----------
     image : PIL Image object or ndarray
-        If ndarray, integer formats are assumed to use 0-255
+        If ndarray, integer formats are assumed to use 0-255 \
         and float formats are assumed to use 0-1
     """
     if hasattr(image, '__array__'):
@@ -158,6 +163,11 @@ def show(image):
                          shell=True)
 
 def pil_from_ndarray(ndarray):
+    """
+    .. todo::
+
+        WRITEME
+    """
     try:
         if ndarray.dtype == 'float32' or ndarray.dtype == 'float64':
             assert ndarray.min() >= 0.0
@@ -182,7 +192,11 @@ def pil_from_ndarray(ndarray):
 
 
 def ndarray_from_pil(pil, dtype='uint8'):
+    """
+    .. todo::
 
+        WRITEME
+    """
     rval = np.asarray(pil)
 
     if dtype != rval.dtype:
@@ -198,8 +212,19 @@ def ndarray_from_pil(pil, dtype='uint8'):
 
 
 def rescale(image, shape):
-    """ scales image to be no larger than shape
-        PIL might give you unexpected results beyond that"""
+    """
+    Scales image to be no larger than shape. PIL might give you unexpected
+    results beyond that
+
+    Parameters
+    ----------
+    image : WRITEME
+    shape : WRITEME
+
+    Returns
+    -------
+    WRITEME
+    """
 
     assert len(image.shape) == 3  # rows, cols, channels
     assert len(shape) == 2  # rows, cols
@@ -214,9 +239,20 @@ def rescale(image, shape):
     return rval
 resize = rescale
 
+
 def fit_inside(image, shape):
-    """ scales image down to fit inside shape
-        preserves proportions of image"""
+    """
+    Scales image down to fit inside shape preserves proportions of image
+
+    Parameters
+    ----------
+    image : WRITEME
+    shape : WRITEME
+
+    Returns
+    -------
+    WRITEME
+    """
 
     assert len(image.shape) == 3  # rows, cols, channels
     assert len(shape) == 2  # rows, cols
@@ -240,7 +276,18 @@ def fit_inside(image, shape):
 
 
 def letterbox(image, shape):
-    """ pads image with black letterboxing to bring image.shape up to shape """
+    """
+    Pads image with black letterboxing to bring image.shape up to shape
+
+    Parameters
+    ----------
+    image : WRITEME
+    shape : WRITEME
+
+    Returns
+    -------
+    WRITEME
+    """
 
     assert len(image.shape) == 3  # rows, cols, channels
     assert len(shape) == 2  # rows, cols
@@ -265,8 +312,17 @@ def letterbox(image, shape):
 
 def make_letterboxed_thumbnail(image, shape):
     """
-    scales image down to shape
-    preserves proportions of image, introduces black letterboxing if necessary
+    Scales image down to shape. Preserves proportions of image, introduces
+    black letterboxing if necessary.
+
+    Parameters
+    ----------
+    image : WRITEME
+    shape : WRITEME
+
+    Returns
+    -------
+    WRITEME
     """
 
     assert len(image.shape) == 3
@@ -279,6 +335,11 @@ def make_letterboxed_thumbnail(image, shape):
 
 
 def load(filepath, rescale_image=True, dtype='float64'):
+    """
+    .. todo::
+
+        WRITEME
+    """
     assert type(filepath) == str
 
     if rescale_image == False and dtype == 'uint8':
@@ -327,20 +388,36 @@ def load(filepath, rescale_image=True, dtype='float64'):
 
     return rval
 
+
 def save(filepath, ndarray):
+    """
+    .. todo::
+
+        WRITEME
+    """
     pil_from_ndarray(ndarray).save(filepath)
 
+
 def scale_to_unit_interval(ndar, eps=1e-8):
-    """ Scales all values in the ndarray ndar to be between 0 and 1 """
+    """
+    Scales all values in the ndarray ndar to be between 0 and 1
+
+    Parameters
+    ----------
+    ndar : WRITEME
+    eps : WRITEME
+
+    Returns
+    -------
+    WRITEME
+    """
     ndar = ndar.copy()
     ndar -= ndar.min()
     ndar *= 1.0 / (ndar.max() + eps)
     return ndar
 
-def tile_raster_images(X,
-                       img_shape,
-                       tile_shape,
-                       tile_spacing=(0, 0),
+
+def tile_raster_images(X, img_shape, tile_shape, tile_spacing=(0, 0),
                        scale_rows_to_unit_interval=True,
                        output_pixel_vals=True):
     """
@@ -353,12 +430,13 @@ def tile_raster_images(X,
 
     Parameters
     ----------
-    x : 2-d ndarray or 4 tuple of 2-d ndarrays or None for channels
-        2-D array in which every row is a flattened image.
+    x : numpy.ndarray
+        2-d ndarray or 4 tuple of 2-d ndarrays or None for channels, in which \
+        every row is a flattened image.
 
     shape : 2-tuple of ints
-        The first component is the height of each image, the second component is
-        the width.
+        The first component is the height of each image, the second component \
+        is the width.
 
     tile_shape : 2-tuple of ints
         The number of images to tile in (row, columns) form.
@@ -372,8 +450,8 @@ def tile_raster_images(X,
     Returns
     -------
     y : 2d-ndarray
-        The return value has the same dtype as X, and is suitable for viewing as
-        an image with PIL.Image.fromarray.
+        The return value has the same dtype as X, and is suitable for viewing \
+        as an image with PIL.Image.fromarray.
     """
 
     assert len(img_shape) == 2

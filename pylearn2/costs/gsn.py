@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 from theano.compat.python2x import OrderedDict
 
 from pylearn2.costs.cost import Cost
@@ -27,36 +32,32 @@ class GSNCost(Cost):
         Parameters
         ----------
         costs : list of (int, double, GSNFriendlyCost or callable) tuples
-            The int component of each tuple is the index of the layer at which
-            we want to compute this cost.
-            The double component of the tuple is the coefficient to associate
+            The int component of each tuple is the index of the layer at \
+            which we want to compute this cost. \
+            The double component of the tuple is the coefficient to associate \
             to with the cost.
-            The GSNFriendlyCost instance is the cost that will be computed. If
-            that is a callable rather than an instance of GSN friendly cost,
-            it will be called with 2 arguments: the initial value followed by the
-            reconstructed value.
-
-            costs must be of length 1 or 2 (explained in docstring for GSNCost
-            class) and the meaning of the ordering of the costs parameter is
-            explained in the docstring for the mode parameter.
+            The GSNFriendlyCost instance is the cost that will be computed. \
+            If that is a callable rather than an instance of GSN friendly \
+            cost, it will be called with 2 arguments: the initial value \
+            followed by the reconstructed value. \
+            Costs must be of length 1 or 2 (explained in docstring for \
+            GSNCost class) and the meaning of the ordering of the costs \
+            parameter is explained in the docstring for the mode parameter.
         walkback : int
-            how many steps of walkback to perform
+            How many steps of walkback to perform
         mode : str
-            Must be either 'joint', 'supervised', or 'anti_supervised'.
-            The terms "input layer" and "label layer" are used below in the
-            description of the modes. The "input layer" refers to the layer at the
-            index specified in the first tuple in the costs parameter, and the
-            "label layer" refers to the layer at the index specified in the second
-            tuple in the costs parameter.
-
-            'joint' means setting all of the layers and calculating
-            reconstruction costs.
-
-            'supervised' means setting just the input layer and attempting to
-            predict the label layer
-
-            'anti_supervised' is attempting to predict the input layer given the
-            label layer.
+            Must be either 'joint', 'supervised', or 'anti_supervised'. \
+            The terms "input layer" and "label layer" are used below in the \
+            description of the modes. The "input layer" refers to the layer \
+            at the index specified in the first tuple in the costs parameter, \
+            and the "label layer" refers to the layer at the index specified \
+            in the second tuple in the costs parameter.
+            'joint' means setting all of the layers and calculating \
+            reconstruction costs. \
+            'supervised' means setting just the input layer and attempting to \
+            predict the label layer \
+            'anti_supervised' is attempting to predict the input layer given \
+            the label layer.
         """
         super(GSNCost, self).__init__()
         self.walkback = walkback
@@ -89,18 +90,19 @@ class GSNCost(Cost):
         Parameters
         ----------
         idx : int
-            init_data and model_output both contain a subset of the layer
-            activations at each time step. This is the index of the layer we
-            want to evaluate the cost on WITHIN this subset. This is generally
-            equal to the idx of the cost function within the GSNCost.costs
-            list.
+            init_data and model_output both contain a subset of the layer \
+            activations at each time step. This is the index of the layer we \
+            want to evaluate the cost on WITHIN this subset. This is \
+            generally equal to the idx of the cost function within the \
+            GSNCost.costs list.
         costf : callable
-            Function of two variables that computes the cost. The first argument
-            is the target value, and the second argument is the predicted value.
+            Function of two variables that computes the cost. The first \
+            argument is the target value, and the second argument is the \
+            predicted value.
         init_data : list of tensor_likes
-            Although only the element at index "idx" is accessed/needed, this
-            parameter is a list so that is can directly handle the data format
-            from GSN.expr.
+            Although only the element at index "idx" is accessed/needed, this \
+            parameter is a list so that is can directly handle the data \
+            format from GSN.expr.
         model_output : list of list of tensor_likes
             The output of GSN.get_samples as called by GSNCost.expr.
         """
@@ -113,6 +115,10 @@ class GSNCost(Cost):
 
     def _get_samples_from_model(self, model, data):
         """
+        .. todo::
+
+            WRITEME properly
+        
         Handles the different GSNCost modes.
         """
         layer_idxs = [idx for idx, _, _ in self.costs]
@@ -137,9 +143,10 @@ class GSNCost(Cost):
         Parameters
         ----------
         model : GSN object
+            WRITEME
         data : list of tensor_likes
-            data must be a list or tuple of the same length as self.costs. All
-            elements in data must be a tensor_like (cannot be None).
+            Data must be a list or tuple of the same length as self.costs. \
+            All elements in data must be a tensor_like (cannot be None).
 
         Returns
         -------
@@ -161,6 +168,10 @@ class GSNCost(Cost):
 
     def get_monitoring_channels(self, model, data, **kwargs):
         """
+        .. todo::
+
+            WRITEME properly
+        
         Provides monitoring of the individual costs that are being added together.
 
         This is a very useful method to subclass if you need to monitor more
@@ -183,6 +194,11 @@ class GSNCost(Cost):
         return rval
 
     def get_data_specs(self, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # get space for layer i of model
         get_space = lambda i: (model.aes[i].get_input_space() if i==0
                                else model.aes[i - 1].get_output_space())

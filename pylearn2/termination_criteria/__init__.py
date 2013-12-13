@@ -12,21 +12,36 @@ __email__ = "goodfeli@iro"
 import numpy as np
 import warnings
 
+
 class TerminationCriterion(object):
     """
     A callable used to determine if a TrainingAlgorithm should quit
     running.
     """
-
     def continue_learning(self, model):
         """
         Returns True if training should continue, False otherwise
+
+        Parameters
+        ----------
+        model : WRITEME
+
+        Returns
+        -------
+        WRITEME
         """
 
-        raise NotImplementedError(str(type(self))+" does not implement continue_learning.")
+        raise NotImplementedError(str(type(self)) + " does not implement " +
+                                  "continue_learning.")
 
     def __call__(self, model):
-        warnings.warn("TerminationCriterion.__call__ is deprecated, use continue_learning", stacklevel=2)
+        """
+        .. todo::
+
+            WRITEME
+        """
+        warnings.warn("TerminationCriterion.__call__ is deprecated, use " +
+                      "continue_learning", stacklevel=2)
         return self.continue_learning(model)
 
 
@@ -43,13 +58,13 @@ class MonitorBased(TerminationCriterion):
         Parameters
         ----------
         prop_decrease : float
-            The threshold factor by which we expect the channel value to have
+            The threshold factor by which we expect the channel value to have \
             decreased
         N : int
             Number of epochs to look back
         channel_name : string, optional
-            Name of the channel to examine. If None and the monitor
-            has only one channel, this channel will be used; otherwise, an
+            Name of the channel to examine. If None and the monitor \
+            has only one channel, this channel will be used; otherwise, an \
             error will be raised.
         """
         self._channel_name = channel_name
@@ -66,7 +81,7 @@ class MonitorBased(TerminationCriterion):
         Parameters
         ----------
         model : Model
-            The model used in the experiment and from which the monitor used
+            The model used in the experiment and from which the monitor used \
             in the termination criterion will be extracted.
 
         Returns
@@ -103,17 +118,27 @@ class MonitorBased(TerminationCriterion):
 
 class MatchChannel(TerminationCriterion):
     """
-        Stop training when a cost function reaches the same value as a cost
-        function from a previous training run.
-        (Useful for getting training likelihood on entire training set to
-        match validation likelihood from an earlier early stopping run)
+    Stop training when a cost function reaches the same value as a cost
+    function from a previous training run.
+    (Useful for getting training likelihood on entire training set to
+    match validation likelihood from an earlier early stopping run)
     """
 
     def __init__(self, channel_name, prev_channel_name, prev_monitor_name):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.__dict__.update(locals())
         self.target = None
 
     def continue_learning(self, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.target is None:
             prev_monitor = getattr(model, self.prev_monitor_name)
             channels = prev_monitor.channels
@@ -130,14 +155,24 @@ class MatchChannel(TerminationCriterion):
 
 class ChannelTarget(TerminationCriterion):
     """
-        Stop training when a cost function reaches some target value.
+    Stop training when a cost function reaches some target value.
     """
 
     def __init__(self, channel_name, target):
+        """
+        .. todo::
+
+            WRITEME
+        """
         target = float(target)
         self.__dict__.update(locals())
 
     def continue_learning(self, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         monitor = model.monitor
         channels = monitor.channels
         channel = channels[self.channel_name]
@@ -146,6 +181,11 @@ class ChannelTarget(TerminationCriterion):
         return rval
 
 class EpochCounter(TerminationCriterion):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def  __init__(self, max_epochs):
         """
         A termination criterion that uses internal state to
@@ -155,18 +195,28 @@ class EpochCounter(TerminationCriterion):
         Parameters
         ----------
         max_epochs : int
-            Number of epochs (i.e. calls to this object's `__call__`
-           method) after which this termination criterion should
-           return `False`.
+            Number of epochs (i.e. calls to this object's `__call__` \
+            method) after which this termination criterion should \
+            return `False`.
         """
         self._max_epochs = max_epochs
         self._epochs_done = 0
 
     def continue_learning(self, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self._epochs_done += 1
         return self._epochs_done < self._max_epochs
 
 class And(TerminationCriterion):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, criteria):
         """
         Termination criterion representing the logical conjunction
@@ -176,17 +226,28 @@ class And(TerminationCriterion):
         Parameters
         ----------
         criteria : iterable
-            A sequence of callables representing termination criteria,
-            with a return value of True indicating that training
+            A sequence of callables representing termination criteria, \
+            with a return value of True indicating that training \
             should continue.
         """
         self._criteria = list(criteria)
 
     def continue_learning(self, model):
-        return all(criterion.continue_learning(model) for criterion in self._criteria)
+        """
+        .. todo::
+
+            WRITEME
+        """
+        return all(criterion.continue_learning(model)
+                   for criterion in self._criteria)
 
 
 class Or(TerminationCriterion):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, criteria):
         """
         Termination criterion representing the logical disjunction
@@ -196,11 +257,17 @@ class Or(TerminationCriterion):
         Parameters
         ----------
         criteria : iterable
-            A sequence of callables representing termination criteria,
-            with a return value of True indicating that gradient
+            A sequence of callables representing termination criteria, \
+            with a return value of True indicating that gradient \
             descent should continue.
         """
         self._criteria = list(criteria)
 
     def continue_learning(self, model):
-        return any(criterion.continue_learning(model) for criterion in self._criteria)
+        """
+        .. todo::
+
+            WRITEME
+        """
+        return any(criterion.continue_learning(model)
+                   for criterion in self._criteria)

@@ -2,8 +2,8 @@
 Implementation of a densely connected Ising model in the
 pylearn2.models.dbm framework
 
-Note
-----
+Notes
+-----
 If :math:`h` can be -1 or 1, and
 
 .. math::
@@ -51,6 +51,11 @@ from pylearn2.utils import sharedX
 
 
 def init_tanh_bias_from_marginals(dataset, use_y=False):
+    """
+    .. todo::
+
+        WRITEME
+    """
     if use_y:
         X = dataset.y
     else:
@@ -84,13 +89,13 @@ class IsingVisible(VisibleLayer):
         nvis : int
             The dimension of the space
         beta : theano shared variable
-            Shared variable representing a multiplicative factor of the energy
-            function (the inverse temperature)
+            Shared variable representing a multiplicative factor of the \
+            energy function (the inverse temperature)
         learn_beta : boolean, optional
-            Whether or not the inverse temperature should be considered as a
+            Whether or not the inverse temperature should be considered as a \
             learned parameter
         bias_from_marginals : `pylearn2.datasets.dataset.Dataset`, optional
-            A dataset whose marginals are used to initialize the visible
+            A dataset whose marginals are used to initialize the visible \
             biases
         """
         if not isinstance(beta, SharedVariable):
@@ -113,24 +118,49 @@ class IsingVisible(VisibleLayer):
         self.bias = sharedX(init_bias, 'visible_bias')
 
     def get_biases(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.bias.get_value()
 
     def set_biases(self, biases, recenter=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.bias.set_value(biases)
         if recenter:
             assert self.center
             self.offset.set_value(sigmoid_numpy(self.bias.get_value()))
 
     def upward_state(self, total_state):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return total_state
 
     def get_params(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         rval = [self.bias]
         if self.learn_beta:
             rval.append(self.beta)
         return rval
 
     def mf_update(self, state_above, layer_above):
+        """
+        .. todo::
+
+            WRITEME
+        """
         msg = layer_above.downward_message(state_above)
 
         bias = self.bias
@@ -143,6 +173,11 @@ class IsingVisible(VisibleLayer):
 
     def sample(self, state_below=None, state_above=None, layer_above=None,
                theano_rng=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         assert state_below is None
 
@@ -159,6 +194,11 @@ class IsingVisible(VisibleLayer):
         return rval * 2. - 1.
 
     def make_state(self, num_examples, numpy_rng):
+        """
+        .. todo::
+
+            WRITEME
+        """
         driver = numpy_rng.uniform(0., 1., (num_examples, self.nvis))
         on_prob = sigmoid_numpy(2. * self.beta.get_value() *
                                 self.bias.get_value())
@@ -169,6 +209,11 @@ class IsingVisible(VisibleLayer):
         return rval
 
     def make_symbolic_state(self, num_examples, theano_rng):
+        """
+        .. todo::
+
+            WRITEME
+        """
         mean = T.nnet.sigmoid(2. * self.beta * self.b)
         rval = theano_rng.binomial(size=(num_examples, self.nvis), p=mean)
         rval = 2. * (rval) - 1.
@@ -177,6 +222,11 @@ class IsingVisible(VisibleLayer):
 
     def expected_energy_term(self, state, average, state_below=None,
                              average_below=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         assert state_below is None
         assert average_below is None
         assert average in [True, False]
@@ -218,6 +268,10 @@ class IsingHidden(HiddenLayer):
                  b_lr_scale=None,
                  max_col_norm=None):
         """
+        .. todo::
+
+            WRITEME properly
+
         Parameters
         ----------
         include_prob : float, optional
@@ -240,6 +294,11 @@ class IsingHidden(HiddenLayer):
                          name=layer_name + '_b')
 
     def get_lr_scalers(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         if not hasattr(self, 'W_lr_scale'):
             self.W_lr_scale = None
@@ -259,7 +318,15 @@ class IsingHidden(HiddenLayer):
         return rval
 
     def set_input_space(self, space):
-        """ Note: this resets parameters! """
+        """
+        .. todo::
+
+            WRITEME properly
+
+        Notes
+        -----
+        Note: this resets parameters!
+        """
 
         self.input_space = space
 
@@ -294,6 +361,11 @@ class IsingHidden(HiddenLayer):
         assert W.name is not None
 
     def censor_updates(self, updates):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         if self.max_col_norm is not None:
             W, = self.transformer.get_params()
@@ -304,9 +376,19 @@ class IsingHidden(HiddenLayer):
                 updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
     def get_total_state_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return VectorSpace(self.dim)
 
     def get_params(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         assert self.b.name is not None
         W, = self.transformer.get_params()
         assert W.name is not None
@@ -320,6 +402,11 @@ class IsingHidden(HiddenLayer):
         return rval
 
     def get_weight_decay(self, coeff):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
@@ -327,6 +414,11 @@ class IsingHidden(HiddenLayer):
         return coeff * T.sqr(W).sum()
 
     def get_weights(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.requires_reformat:
             # This is not really an unimplemented case.
             # We actually don't know how to format the weights
@@ -337,10 +429,20 @@ class IsingHidden(HiddenLayer):
         return W.get_value()
 
     def set_weights(self, weights):
+        """
+        .. todo::
+
+            WRITEME
+        """
         W, = self.transformer.get_params()
         W.set_value(weights)
 
     def set_biases(self, biases, recenter=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.b.set_value(biases)
         if recenter:
             assert self.center
@@ -349,12 +451,27 @@ class IsingHidden(HiddenLayer):
             self.offset.set_value(sigmoid_numpy(self.b.get_value()))
 
     def get_biases(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.b.get_value()
 
     def get_weights_format(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return ('v', 'h')
 
     def get_weights_topo(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         if not isinstance(self.input_space, Conv2DSpace):
             raise NotImplementedError()
@@ -373,12 +490,27 @@ class IsingHidden(HiddenLayer):
         return function([], W)()
 
     def upward_state(self, total_state):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return total_state
 
     def downward_state(self, total_state):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return total_state
 
     def get_monitoring_channels(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         W, = self.transformer.get_params()
 
@@ -399,6 +531,11 @@ class IsingHidden(HiddenLayer):
         ])
 
     def get_monitoring_channels_from_state(self, state):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         P = state
 
@@ -439,6 +576,11 @@ class IsingHidden(HiddenLayer):
 
     def sample(self, state_below=None, state_above=None, layer_above=None,
                theano_rng=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         if theano_rng is None:
             raise ValueError("theano_rng is required; it just defaults to " +
@@ -467,6 +609,11 @@ class IsingHidden(HiddenLayer):
         return samples
 
     def downward_message(self, downward_state):
+        """
+        .. todo::
+
+            WRITEME
+        """
         rval = self.transformer.lmul_T(downward_state)
 
         if self.requires_reformat:
@@ -475,6 +622,11 @@ class IsingHidden(HiddenLayer):
         return rval
 
     def init_mf_state(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # work around theano bug with broadcasted vectors
         z = T.alloc(0., self.dbm.batch_size,
                     self.dim).astype(self.b.dtype) + \
@@ -483,8 +635,13 @@ class IsingHidden(HiddenLayer):
         return rval
 
     def make_state(self, num_examples, numpy_rng):
-        """ Returns a shared variable containing an actual state
-           (not a mean field state) for this variable.
+        """
+        .. todo::
+
+            WRITEME properly
+
+        Returns a shared variable containing an actual state
+       (not a mean field state) for this variable.
         """
         driver = numpy_rng.uniform(0., 1., (num_examples, self.dim))
         on_prob = sigmoid_numpy(2. * self.beta.get_value() *
@@ -496,6 +653,11 @@ class IsingHidden(HiddenLayer):
         return rval
 
     def make_symbolic_state(self, num_examples, theano_rng):
+        """
+        .. todo::
+
+            WRITEME
+        """
         mean = T.nnet.sigmoid(2. * self.beta * self.b)
         rval = theano_rng.binomial(size=(num_examples, self.nvis), p=mean)
         rval = 2. * (rval) - 1.
@@ -503,6 +665,11 @@ class IsingHidden(HiddenLayer):
         return rval
 
     def expected_energy_term(self, state, average, state_below, average_below):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         # state = Print('h_state', attrs=['min', 'max'])(state)
 
@@ -537,6 +704,10 @@ class IsingHidden(HiddenLayer):
 
     def linear_feed_forward_approximation(self, state_below):
         """
+        .. todo::
+
+            WRITEME properly
+
         Used to implement TorontoSparsity. Unclear exactly what properties of
         it are important or how to implement it for other layers.
 
@@ -566,6 +737,11 @@ class IsingHidden(HiddenLayer):
 
     def mf_update(self, state_below, state_above, layer_above=None,
                   double_weights=False, iter_name=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         self.input_space.validate(state_below)
 
@@ -609,14 +785,18 @@ class BoltzmannIsingVisible(VisibleLayer):
     """
     An IsingVisible whose parameters are defined in Boltzmann machine space.
 
-    Note
-    ----
+    Notes
+    -----
     All parameter noise/clipping is handled by BoltzmannIsingHidden.
     """
 
     def __init__(self, nvis, beta, learn_beta=False, bias_from_marginals=None,
                  sampling_b_stdev=None, min_ising_b=None, max_ising_b=None):
         """
+        .. todo::
+
+            WRITEME properly
+
         Parameters
         ----------
         nvis : int
@@ -655,6 +835,11 @@ class BoltzmannIsingVisible(VisibleLayer):
         self.resample_fn = None
 
     def finalize_initialization(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.sampling_b_stdev is not None:
             self.noisy_sampling_b = \
                 sharedX(np.zeros((self.layer_above.dbm.batch_size, self.nvis)))
@@ -667,6 +852,11 @@ class BoltzmannIsingVisible(VisibleLayer):
         f()
 
     def censor_updates(self, updates):
+        """
+        .. todo::
+
+            WRITEME
+        """
         beta = self.beta
         if beta in updates:
             updated_beta = updates[beta]
@@ -714,6 +904,11 @@ class BoltzmannIsingVisible(VisibleLayer):
             updates[self.noisy_sampling_b] = noisy_sampling_b
 
     def resample_bias_noise(self, batch_size_changed=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if batch_size_changed:
             self.resample_fn = None
 
@@ -743,27 +938,57 @@ class BoltzmannIsingVisible(VisibleLayer):
         self.resample_fn()
 
     def get_biases(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         warnings.warn("BoltzmannIsingVisible.get_biases returns the " +
                       "BOLTZMANN biases, is that what we want?")
         return self.boltzmann_bias.get_value()
 
     def set_biases(self, biases, recenter=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         assert False  # not really sure what this should do for this layer
 
     def ising_bias(self, for_sampling=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if for_sampling and self.layer_above.sampling_b_stdev is not None:
             return self.noisy_sampling_b
         return \
             0.5 * self.boltzmann_bias + 0.25 * self.layer_above.W.sum(axis=1)
 
     def ising_bias_numpy(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return 0.5 * self.boltzmann_bias.get_value() + \
             0.25 * self.layer_above.W.get_value().sum(axis=1)
 
     def upward_state(self, total_state):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return total_state
 
     def get_params(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         rval = [self.boltzmann_bias]
         if self.learn_beta:
             rval.append(self.beta)
@@ -771,6 +996,11 @@ class BoltzmannIsingVisible(VisibleLayer):
 
     def sample(self, state_below=None, state_above=None, layer_above=None,
                theano_rng=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         assert state_below is None
 
@@ -787,6 +1017,11 @@ class BoltzmannIsingVisible(VisibleLayer):
         return rval * 2. - 1.
 
     def make_state(self, num_examples, numpy_rng):
+        """
+        .. todo::
+
+            WRITEME
+        """
         driver = numpy_rng.uniform(0., 1., (num_examples, self.nvis))
         on_prob = sigmoid_numpy(2. * self.beta.get_value() *
                                 self.ising_bias_numpy())
@@ -797,6 +1032,11 @@ class BoltzmannIsingVisible(VisibleLayer):
         return rval
 
     def make_symbolic_state(self, num_examples, theano_rng):
+        """
+        .. todo::
+
+            WRITEME
+        """
         mean = T.nnet.sigmoid(2. * self.beta * self.ising_bias())
         rval = theano_rng.binomial(size=(num_examples, self.nvis), p=mean)
         rval = 2. * (rval) - 1.
@@ -804,6 +1044,11 @@ class BoltzmannIsingVisible(VisibleLayer):
         return rval
 
     def mf_update(self, state_above, layer_above):
+        """
+        .. todo::
+
+            WRITEME
+        """
         msg = layer_above.downward_message(state_above, for_sampling=True)
 
         bias = self.ising_bias(for_sampling=True)
@@ -816,6 +1061,11 @@ class BoltzmannIsingVisible(VisibleLayer):
 
     def expected_energy_term(self, state, average, state_below=None,
                              average_below=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         # state = Print('v_state', attrs=['min', 'max'])(state)
 
@@ -833,6 +1083,11 @@ class BoltzmannIsingVisible(VisibleLayer):
         return rval
 
     def get_monitoring_channels(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         rval = OrderedDict()
 
         ising_b = self.ising_bias()
@@ -875,6 +1130,10 @@ class BoltzmannIsingHidden(HiddenLayer):
                  sampling_W_stdev=None,
                  sampling_b_stdev=None):
         """
+        .. todo::
+
+            WRITEME properly
+
         include_prob: probability of including a weight element in the set
                  of weights initialized to U(-irange, irange). If not
                  included it is initialized to 0.
@@ -905,6 +1164,11 @@ class BoltzmannIsingHidden(HiddenLayer):
         self.resample_fn = None
 
     def get_lr_scalers(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         if not hasattr(self, 'W_lr_scale'):
             self.W_lr_scale = None
@@ -930,7 +1194,13 @@ class BoltzmannIsingHidden(HiddenLayer):
         return rval
 
     def set_input_space(self, space):
-        """ Note: this resets parameters! """
+        """
+        .. todo::
+
+            WRITEME properly
+
+        Note: this resets parameters!
+        """
 
         self.input_space = space
 
@@ -964,6 +1234,11 @@ class BoltzmannIsingHidden(HiddenLayer):
                                    name=self.layer_name + '_b')
 
     def finalize_initialization(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.sampling_b_stdev is not None:
             self.noisy_sampling_b = \
                 sharedX(np.zeros((self.dbm.batch_size, self.dim)))
@@ -982,6 +1257,11 @@ class BoltzmannIsingHidden(HiddenLayer):
         f()
 
     def censor_updates(self, updates):
+        """
+        .. todo::
+
+            WRITEME
+        """
         beta = self.beta
         if beta in updates:
             updated_beta = updates[beta]
@@ -1071,6 +1351,11 @@ class BoltzmannIsingHidden(HiddenLayer):
             updates[self.noisy_sampling_b] = noisy_sampling_b
 
     def resample_bias_noise(self, batch_size_changed=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if batch_size_changed:
             self.resample_fn = None
 
@@ -1104,9 +1389,19 @@ class BoltzmannIsingHidden(HiddenLayer):
         self.resample_fn()
 
     def get_total_state_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return VectorSpace(self.dim)
 
     def get_params(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         assert self.boltzmann_b.name is not None
         W = self.W
         assert W.name is not None
@@ -1120,6 +1415,11 @@ class BoltzmannIsingHidden(HiddenLayer):
         return rval
 
     def ising_weights(self, for_sampling=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if not hasattr(self, 'sampling_W_stdev'):
             self.sampling_W_stdev = None
         if for_sampling and self.sampling_W_stdev is not None:
@@ -1127,6 +1427,11 @@ class BoltzmannIsingHidden(HiddenLayer):
         return 0.25 * self.W
 
     def ising_b(self, for_sampling=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if not hasattr(self, 'sampling_b_stdev'):
             self.sampling_b_stdev = None
         if for_sampling and self.sampling_b_stdev is not None:
@@ -1140,6 +1445,11 @@ class BoltzmannIsingHidden(HiddenLayer):
                 return 0.5 * self.boltzmann_b + 0.25 * self.W.sum(axis=0)
 
     def ising_b_numpy(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.layer_above is not None:
             return 0.5 * self.boltzmann_b.get_value() + \
                 0.25 * self.W.get_value().sum(axis=0) + \
@@ -1149,6 +1459,11 @@ class BoltzmannIsingHidden(HiddenLayer):
                 0.25 * self.W.get_value().sum(axis=0)
 
     def get_weight_decay(self, coeff):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
@@ -1156,30 +1471,60 @@ class BoltzmannIsingHidden(HiddenLayer):
         return coeff * T.sqr(W).sum()
 
     def get_weights(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         warnings.warn("BoltzmannIsingHidden.get_weights returns the " +
                       "BOLTZMANN weights, is that what we want?")
         W = self.W
         return W.get_value()
 
     def set_weights(self, weights):
+        """
+        .. todo::
+
+            WRITEME
+        """
         warnings.warn("BoltzmannIsingHidden.set_weights sets the BOLTZMANN " +
                       "weights, is that what we want?")
         W = self.W
         W.set_value(weights)
 
     def set_biases(self, biases, recenter=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.boltzmann_b.set_value(biases)
         assert not recenter  # not really sure what this should do if True
 
     def get_biases(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         warnings.warn("BoltzmannIsingHidden.get_biases returns the " +
                       "BOLTZMANN biases, is that what we want?")
         return self.boltzmann_b.get_value()
 
     def get_weights_format(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return ('v', 'h')
 
     def get_weights_topo(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         warnings.warn("BoltzmannIsingHidden.get_weights_topo returns the " +
                       "BOLTZMANN weights, is that what we want?")
 
@@ -1198,12 +1543,27 @@ class BoltzmannIsingHidden(HiddenLayer):
         return function([], W)()
 
     def upward_state(self, total_state):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return total_state
 
     def downward_state(self, total_state):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return total_state
 
     def get_monitoring_channels(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         W = self.W
 
@@ -1242,6 +1602,11 @@ class BoltzmannIsingHidden(HiddenLayer):
         return rval
 
     def get_monitoring_channels_from_state(self, state):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         P = state
 
@@ -1282,6 +1647,11 @@ class BoltzmannIsingHidden(HiddenLayer):
 
     def sample(self, state_below=None, state_above=None, layer_above=None,
                theano_rng=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         if theano_rng is None:
             raise ValueError("theano_rng is required; it just defaults to " +
@@ -1311,6 +1681,11 @@ class BoltzmannIsingHidden(HiddenLayer):
         return samples
 
     def downward_message(self, downward_state, for_sampling=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         rval = T.dot(downward_state,
                      self.ising_weights(for_sampling=for_sampling).T)
 
@@ -1320,6 +1695,11 @@ class BoltzmannIsingHidden(HiddenLayer):
         return rval
 
     def init_mf_state(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # work around theano bug with broadcasted vectors
         z = T.alloc(0., self.dbm.batch_size,
                     self.dim).astype(self.boltzmann_b.dtype) + \
@@ -1328,8 +1708,13 @@ class BoltzmannIsingHidden(HiddenLayer):
         return rval
 
     def make_state(self, num_examples, numpy_rng):
-        """ Returns a shared variable containing an actual state
-           (not a mean field state) for this variable.
+        """
+        .. todo::
+
+            WRITEME properly
+
+        Returns a shared variable containing an actual state
+        (not a mean field state) for this variable.
         """
         driver = numpy_rng.uniform(0., 1., (num_examples, self.dim))
         on_prob = sigmoid_numpy(2. * self.beta.get_value() *
@@ -1341,6 +1726,11 @@ class BoltzmannIsingHidden(HiddenLayer):
         return rval
 
     def make_symbolic_state(self, num_examples, theano_rng):
+        """
+        .. todo::
+
+            WRITEME
+        """
         mean = T.nnet.sigmoid(2. * self.beta * self.ising_b())
         rval = theano_rng.binomial(size=(num_examples, self.dim), p=mean)
         rval = 2. * (rval) - 1.
@@ -1348,6 +1738,11 @@ class BoltzmannIsingHidden(HiddenLayer):
         return rval
 
     def expected_energy_term(self, state, average, state_below, average_below):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         # state = Print('h_state', attrs=['min', 'max'])(state)
 
@@ -1383,6 +1778,10 @@ class BoltzmannIsingHidden(HiddenLayer):
 
     def linear_feed_forward_approximation(self, state_below):
         """
+        .. todo::
+
+            WRITEME properly
+
         Used to implement TorontoSparsity. Unclear exactly what properties of
         it are important or how to implement it for other layers.
 
@@ -1407,6 +1806,11 @@ class BoltzmannIsingHidden(HiddenLayer):
 
     def mf_update(self, state_below, state_above, layer_above=None,
                   double_weights=False, iter_name=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         self.input_space.validate(state_below)
 
@@ -1446,6 +1850,11 @@ class BoltzmannIsingHidden(HiddenLayer):
         return h
 
     def get_l2_act_cost(self, state, target, coeff):
+        """
+        .. todo::
+
+            WRITEME
+        """
         avg = state.mean(axis=0)
         diff = avg - target
         return coeff * T.sqr(diff).mean()

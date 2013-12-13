@@ -1,6 +1,17 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 global resolvers
 
+
 def resolve(d):
+    """
+    .. todo::
+
+        WRITEME
+    """
     tag = pylearn2.config.get_tag(d)
 
     if tag != 'dataset':
@@ -17,6 +28,11 @@ def resolve(d):
 
 
 def resolve_avicenna(d):
+    """
+    .. todo::
+
+        WRITEME
+    """
     import pylearn2.datasets.avicenna
     return pylearn2.config.checked_call(pylearn2.datasets.avicenna.Avicenna,d)
 

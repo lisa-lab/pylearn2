@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -21,16 +26,26 @@ from pylearn2.utils import sharedX
 
 
 def norm_sq(s):
+    """
+    .. todo::
+
+        WRITEME
+    """
     return np.square(s.get_value()).sum()
 
 
 def scale(s, a):
+    """
+    .. todo::
+
+        WRITEME
+    """
     s.set_value(s.get_value() * np.cast[config.floatX](a))
 
 
 class BatchGradientDescent:
-    """ A class for minimizing a function via the method of steepest
-    descent.
+    """
+    A class for minimizing a function via the method of steepest descent.
     """
 
     def __init__(self, objective, params, inputs = None,
@@ -42,44 +57,50 @@ class BatchGradientDescent:
             gradient_updates = None, line_search_mode = None,
             accumulate = False, theano_function_mode=None):
         """
-        objective: a theano expression to be minimized
-                       should be a function of params and,
-                       if provided, inputs
-            params: A list of theano shared variables.
-                    These are the optimization variables
-            inputs: (Optional) A list of theano variables
-                    to serve as inputs to the graph.
-            param_constrainers: (Optional) A list of callables
-                    to be called on all updates dictionaries to
-                    be applied to params. This is how you implement
-                    constrained optimization.
-            reset_alpha: If True, reverts to using init_alpha after
-                        each call. If False, the final set of alphas
-                        is used at the start of the next call to minimize.
-            conjugate: If True, tries to pick conjugate gradient directions.
-                       For the directions to be truly conjugate, you must use
-                       line_search_mode = 'exhaustive' and the objective function
-                       must be quadratic.
-                       Using line_search_mode = 'exhaustive' on a non-quadratic objective
-                       function implements nonlinear conjugate gradient descent.
-            reset_conjugate:
-                    has no effect unless conjugate == True
-                    if reset_conjugate == True,
-                        reverts to direction of steepest descent for the first
-                        step in each call to minimize.
-                    otherwise, tries to make the new search direction
-                    conjugate to the last one (even though the objective function
-                    might be totally different on each call to minimize)
-            gradients: if None, compute the gradients of obj using T.grad
-                    otherwise, a dictionary mapping from params to expressions
-                    for their gradients (this allows you to use approximate
-                    gradients computed with something other than T.grad)
-            gradient_updates: a dictionary of shared variable updates to run
-                each time the gradient is computed
+        Parameters
+        ----------
+        objective : tensor_like
+            A theano expression to be minimized should be a function of \
+            params and, if provided, inputs
+        params : list
+            A list of theano shared variables. These are the optimization \
+            variables
+        inputs : list, optional
+            A list of theano variables to serve as inputs to the graph.
+        param_constrainers : list
+            A list of callables to be called on all updates dictionaries to \
+            be applied to params. This is how you implement constrained \
+            optimization.
+        reset_alpha : bool
+            If True, reverts to using init_alpha after each call. If False, \
+            the final set of alphas is used at the start of the next call to \
+            minimize.
+        conjugate : bool
+            If True, tries to pick conjugate gradient directions. For the \
+            directions to be truly conjugate, you must use line_search_mode = \
+            'exhaustive' and the objective function must be quadratic. \
+            Using line_search_mode = 'exhaustive' on a non-quadratic \
+            objective function implements nonlinear conjugate gradient descent.
+        reset_conjugate : bool
+            Has no effect unless conjugate == True. If reset_conjugate == \
+            True, reverts to direction of steepest descent for the first \
+            step in each call to minimize. Otherwise, tries to make the new \
+            search direction conjugate to the last one (even though the \
+            objective function might be totally different on each call to \
+            minimize)
+        gradients : WRITEME
+            If None, compute the gradients of obj using T.grad otherwise, a \
+            dictionary mapping from params to expressions for their gradients \
+            (this allows you to use approximate gradients computed with \
+            something other than T.grad)
+        gradient_updates : dict
+            A dictionary of shared variable updates to run each time the \
+            gradient is computed
 
-            Calling the ``minimize'' method with values for
-            for ``inputs'' will update ``params'' to minimize
-            ``objective''.
+        Notes
+        -----
+        Calling the ``minimize'' method with values for for ``inputs'' will
+        update ``params'' to minimize ``objective''.
         """
 
         self.__dict__.update(locals())
@@ -266,6 +287,11 @@ class BatchGradientDescent:
         self.ave_grad_mult = sharedX(0.)
 
     def minimize(self, * inputs ):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         if self.verbose:
             print 'minimizing'
@@ -516,15 +542,24 @@ class BatchGradientDescent:
 class Accumulator(object):
     def __init__(self, inputs, outputs = None, updates = None):
         """
-            Standin for a theano function with the given inputs, outputs, updates.
-            Here in the __init__ method you give the same expression as usual.
-            However, instead of passing __call__ the input variables directly, you pass it batches,
-            where each batch is a list containing the inputs for that batch.
-            It returns the average value of the function, averaged across batches,
-            taking batch size into account. The average of all updates is also applied.
-            One extra change: if any of the inputs is a shared variable, then this can
-                assign to that variable, while theano.function would refuse to.
-                Those shared variables will be left with the value of the last batch when __call__ returns.
+        Standin for a theano function with the given inputs, outputs, updates.
+        Here in the __init__ method you give the same expression as usual.
+        However, instead of passing __call__ the input variables directly, you
+        pass it batches, where each batch is a list containing the inputs for
+        that batch. It returns the average value of the function, averaged
+        across batches, taking batch size into account. The average of all
+        updates is also applied.
+
+        One extra change: if any of the inputs is a shared variable, then this
+        can assign to that variable, while theano.function would refuse to.
+        Those shared variables will be left with the value of the last batch
+        when __call__ returns.
+
+        Parameters
+        ----------
+        inputs : WRITEME
+        outputs : WRITEME
+        updates : WRITEME
         """
         batch_size = T.cast(inputs[0].shape[0], 'float32')
         total_examples = T.scalar()
@@ -545,17 +580,37 @@ class Accumulator(object):
         self._func = function(true_inputs + [total_examples], outputs=outputs, updates=transformed_updates)
 
     def _true_inputs(self, inputs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return [elem for elem, shared in safe_zip(inputs, self._shared_mask) if not shared ]
 
     def _shared_inputs(self, inputs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return [elem for elem, shared in safe_zip(inputs, self._shared_mask) if shared ]
 
     def _set_shared(self, inputs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         for elem, mask, shared in safe_zip(inputs, self._shared_mask, self._shared):
             if mask:
                 shared.set_value(elem)
 
     def __call__(self, * batches ):
+        """
+        .. todo::
+
+            WRITEME
+        """
         for batch in batches:
             if not isinstance(batch, list):
                 raise TypeError("Expected each argument to be a list, but one argument is " + \
@@ -575,4 +630,3 @@ class Accumulator(object):
         if len(rval) == 1:
             return rval[0]
         return rval
-

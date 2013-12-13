@@ -1,4 +1,6 @@
-"""KMeans as a postprocessing Block subclass."""
+"""
+K-means as a postprocessing Block subclass.
+"""
 
 import numpy
 from pylearn2.base import Block
@@ -20,19 +22,20 @@ class KMeans(Block, Model):
     Block that outputs a vector of probabilities that a sample belong to means
     computed during training.
     """
-    def __init__(self, k, nvis, convergence_th=1e-6, max_iter=None, verbose=False):
+    def __init__(self, k, nvis, convergence_th=1e-6, max_iter=None,
+                 verbose=False):
         """
-        Parameters in conf:
-
-        :type k: int
-        :param k: number of clusters.
-
-        :type convergence_th: float
-        :param convergence_th: threshold of distance to clusters under which
-        kmeans stops iterating.
-
-        :type max_iter: int
-        :param max_iter: maximum number of iterations. Defaults to infinity.
+        Parameters
+        ----------
+        k : int
+            Number of clusters
+        nvis : int
+            Dimension of input
+        convergence_th : float
+            Threshold of distance to clusters under which k-means stops \
+            iterating.
+        max_iter : int
+            Maximum number of iterations. Defaults to infinity.
         """
 
         Block.__init__(self)
@@ -54,6 +57,16 @@ class KMeans(Block, Model):
     def train_all(self, dataset, mu=None):
         """
         Process kmeans algorithm on the input to localize clusters.
+
+        Parameters
+        ----------
+        dataset : WRITEME
+        mu : WRITEME
+
+        Returns
+        -------
+        rval : bool
+            WRITEME
         """
 
         #TODO-- why does this sometimes return X and sometimes return nothing?
@@ -173,6 +186,11 @@ class KMeans(Block, Model):
         return True
 
     def get_params(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         #patch older pkls
         if not hasattr(self.mu, 'get_value'):
             self.mu = sharedX(self.mu)
@@ -186,8 +204,14 @@ class KMeans(Block, Model):
         """
         Compute for each sample its probability to belong to a cluster.
 
-        :type inputs: numpy.ndarray, shape (n, d)
-        :param inputs: matrix of samples
+        Parameters
+        ----------
+        X : numpy.ndarray
+            Matrix of sampless of shape (n, d)
+
+        Returns
+        -------
+        WRITEME
         """
         n, m = X.shape
         k = self.k
@@ -198,9 +222,19 @@ class KMeans(Block, Model):
         return dists / dists.sum(axis=1).reshape(-1, 1)
 
     def get_weights(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.mu
 
     def get_weights_format(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return ['h','v']
 
     # Use version defined in Model, rather than Block (which raises

@@ -1,4 +1,5 @@
-"""Logistic regression.
+"""
+Logistic regression.
 
 Logistic regression is a probabilistic, linear classifier. It is parametrized
 by a weight matrix :math:`W` and a bias vector :math:`b`. Classification is
@@ -8,16 +9,15 @@ which is used to determine a class membership probability.
 Mathematically, this can be written as:
 
 .. math::
-  P(Y=i|x, W,b) &= softmax_i(W x + b) \\
-                &= \frac {e^{W_i x + b_i}} {\sum_j e^{W_j x + b_j}}
-
+  P(Y=i \\mid x, W, b) = \\text{softmax}(W x + b)_i
+                       = \\frac {e^{W_i x + b_i}}{\\sum_j e^{W_j x + b_j}}
 
 The output of the model or prediction is then done by taking the argmax of
-the vector whose i'th element is P(Y=i|x).
+the vector whose i'th element is :math:`P(Y=i \\mid x)`.
 
 .. math::
 
-  y_{pred} = argmax_i P(Y=i|x,W,b)
+  y_{pred} = \\arg\\max_i P(Y=i \\mid x, W, b)
 """
 
 __docformat__ = 'restructedtext en'
@@ -34,27 +34,23 @@ from pylearn2.space import VectorSpace
 from pylearn2.models import Model
 
 class LogisticRegressionLayer(Block, Model):
-    """Multi-class Logistic Regression Class
-
-    The logistic regression is fully described by a weight matrix :math:`W`
-    and bias vector :math:`b`. Classification is done by projecting data
-    points onto a set of hyperplanes, the distance to which is used to
-    determine a class membership probability.
+    """
+    Multi-class Logistic Regression Class
 
     This class contains only the part that computes the output (prediction),
-    not the classification cost, see cost.OneHotCrossEntropy for that.
+    not the classification cost; see `cost.OneHotCrossEntropy` for that.
     """
     def __init__(self, nvis, nclasses):
-        """Initialize the parameters of the logistic regression instance.
+        """
+        Initialize the parameters of the logistic regression instance.
 
         Parameters
         ----------
         nvis : int
-            number of input units, the dimension of the space in which
+            number of input units, the dimension of the space in which \
             the datapoints lie.
-
         nclasses : int
-            number of output units, the dimension of the space in which
+            number of output units, the dimension of the space in which \
             the labels lie.
         """
 
@@ -78,25 +74,24 @@ class LogisticRegressionLayer(Block, Model):
 
     def p_y_given_x(self, inp):
         """
-        Computes :math:`p(y = i | x)` corresponding to the
-        layer's output.
+        Computes :math:`P(Y = i \\mid x)` corresponding to the layer's output.
 
         Parameters
         ----------
         inp : tensor_like
-            The input used to compute p_y_given_x
+            The input used to compute `p_y_given_x`
 
         Returns
         -------
         p_y_given_x : tensor_like
-            Theano symbolic expression for :math:`p(y = i | x)`
+            Theano symbolic expression for :math:`P(Y = i \\mid x)`
         """
         # compute vector of class-membership probabilities in symbolic form
         return tensor.nnet.softmax(tensor.dot(inp, self.W) + self.b)
 
     def predict_y(self, inp):
         """
-        Predicts y given x by choosing :math:`argmax_i P(Y=i|x,W,b)`.
+        Predicts y given x by choosing :math:`\\arg\\max_i P(Y=i \\mid x,W,b)`.
 
         Parameters
         ----------
@@ -130,29 +125,28 @@ class LogisticRegressionLayer(Block, Model):
 class CumulativeProbabilitiesLayer(LogisticRegressionLayer):
     """
     A layer whose output is seen as a discrete cumulative distribution
-    function, i.e. unit i outputs :math:`p(y \\leq i | x)`.
+    function, i.e. unit i outputs :math:`P(Y \\leq i \\mid x)`.
 
     To ensure that the outputs are in ascending order, the weights
-    matrix is shared between all units and the bias b_i are transformed
-    into
+    matrix is shared between all units and the biases :math:`b_i` are
+    transformed into
 
     .. math::
 
-        c_i = c_{i-1} + softplus(b_i), c_0 = b_0,
+        c_i = c_{i-1} + \\text{softplus}(b_i), \\quad c_0 = b_0,
 
-    so that they are in ascending order.
+    so they're in ascending order.
 
-    The outputs are used to compute p_y_given_x as
+    The outputs are used to compute `p_y_given_x` as
 
     .. math::
 
-        p(y = i | x) = p(y <= i | x) - p(y \leq i - 1 | x)
+        P(Y = i \\mid x) = P(Y \\leq i \\mid x) - P(Y \\leq i - 1 \\mid x)
 
-    In the special case where some units are saturated, some
-    :math:`p(y = i | x) = 0` may appear, which can cause problem with
-    regular negative log likelihood. It is recommended that the cost
-    function used for this layer relies instead on
-    :math:`p(y \\leq i | x)`.
+    In the special case in which units are saturated, some
+    :math:`P(Y = i \\mid x) = 0` may appear. This can cause problems with
+    regular negative log-likelihood. It is therefore recommended that the cost
+    function used for this layer relies on :math:`p(Y \\leq i \\mid x)`.
     """
 
     def __init__(self, nvis, nclasses):
@@ -162,11 +156,10 @@ class CumulativeProbabilitiesLayer(LogisticRegressionLayer):
         Parameters
         ----------
         nvis : int
-            number of input units, the dimension of the space in which the
+            number of input units, the dimension of the space in which the \
             datapoints lie.
-
         nclasses : int
-            number of output units, the dimension of the space in which the
+            number of output units, the dimension of the space in which the \
             labels lie.
         """
         super(CumulativeProbabilitiesLayer, self).__init__(nvis, nclasses)
@@ -177,7 +170,7 @@ class CumulativeProbabilitiesLayer(LogisticRegressionLayer):
 
     def p_y_ie_n(self, inp):
         """
-        Computes the :math:`p(y \\leq i | x)` vector given an input.
+        Computes the :math:`P(Y \\leq i \\mid x)` vector given an input.
 
         The implementation of this function relies on transformation
         matrices, which are explained within the code.
@@ -185,12 +178,12 @@ class CumulativeProbabilitiesLayer(LogisticRegressionLayer):
         Parameters
         ----------
         inp : tensor_like
-            The input used to compute p_y_ie_n
+            The input used to compute `p_y_ie_n`
 
         Returns
         -------
         p_y_ie_n : tensor_like
-            Theano symbolic expression for :math:`p(y \\leq i | x)`
+            Theano symbolic expression for :math:`P(Y \\leq i \\mid x)`
         """
         # As explained in the class docstring, to ensure that the outputs
         # are in ascending order, the W weights matrix is shared between
@@ -258,26 +251,26 @@ class CumulativeProbabilitiesLayer(LogisticRegressionLayer):
 
     def p_y_given_x(self, inp):
         """
-        Computes the :math:`p(y = i | x)` vector as
+        Computes the :math:`P(Y = i \\mid x)` vector as
 
         .. math::
 
-            p(y = i | x) = p(y \leq i | x) - p(y \leq i - 1 | x)
+            P(Y = i \\mid x) = P(Y \\leq i \\mid x) - P(Y \\leq i - 1 \\mid x)
 
-        As mentioned in the p_y_ie_n function, the cost function should
-        not rely on p_y_given_x because of the zero probabilities that can
+        As mentioned in the `p_y_ie_n` method, the cost function should
+        not rely on `p_y_given_x` because of the zero probabilities that can
         arise if the output units are saturated. It is instead recommended
-        to use p_y_ie_n in the cost function expression.
+        to use `p_y_ie_n` in the cost function expression.
 
         Parameters
         ----------
         inp : tensor_like
-            The input used to compute p_y_given_x
+            The input used to compute `p_y_given_x`
 
         Returns
         -------
         p_y_given_x : tensor_like
-            Theano symbolic expression for :math:`p(y = i | x)`
+            Theano symbolic expression for :math:`P(Y = i \\mid x)`
         """
         # The expression for p(y = i | x) can be represented in matricial
         # form as

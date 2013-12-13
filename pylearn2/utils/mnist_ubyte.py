@@ -16,13 +16,28 @@ MNIST_LABEL_MAGIC = 2049
 
 
 class open_if_filename(object):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, f, mode='r', buffering=-1):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self._f = f
         self._mode = mode
         self._buffering = buffering
         self._handle = None
 
     def __enter__(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if isinstance(self._f, basestring):
             self._handle = open(self._f, self._mode, self._buffering)
         else:
@@ -30,6 +45,11 @@ class open_if_filename(object):
         return self._handle
 
     def __exit__(self, exc_type, exc_value, traceback):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self._handle is not self._f:
             self._handle.close()
 
@@ -41,19 +61,19 @@ def read_mnist_images(fn, dtype=None):
     Parameters
     ----------
     fn : str or object
-        Filename/path from which to read labels, or an open file
+        Filename/path from which to read labels, or an open file \
         object for the same (will not be closed for you).
 
     dtype : str or object, optional
-        A NumPy dtype or string that can be converted to one.
-        If unspecified, images will be returned in their original
+        A NumPy dtype or string that can be converted to one. \
+        If unspecified, images will be returned in their original \
         unsigned byte format.
 
     Returns
     -------
     images : ndarray, shape (n_images, n_rows, n_cols)
-        An image array, with individual examples indexed along the
-        first axis and the image dimensions along the second and
+        An image array, with individual examples indexed along the \
+        first axis and the image dimensions along the second and \
         third axis.
 
     Notes
@@ -96,13 +116,13 @@ def read_mnist_labels(fn):
     Parameters
     ----------
     fn : str or object
-        Filename/path from which to read labels, or an open file
+        Filename/path from which to read labels, or an open file \
         object for the same (will not be closed for you).
 
     Returns
     -------
     labels : ndarray, shape (nlabels,)
-        A one-dimensional unsigned byte array containing the
+        A one-dimensional unsigned byte array containing the \
         labels as integers.
     """
     with open_if_filename(fn, 'rb') as f:

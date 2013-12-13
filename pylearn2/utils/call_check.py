@@ -15,11 +15,11 @@ def check_call_arguments(to_call, kwargs):
     Parameters
     ----------
     to_call : class or callable
-        Function or class to examine (in the case of classes, the
-        constructor call signature is analyzed)
+        Function or class to examine (in the case of classes, the constructor \
+        call signature is analyzed)
     kwargs : dict
-        Dictionary mapping parameter names (including positional
-        arguments) to proposed values.
+        Dictionary mapping parameter names (including positional arguments) \
+        to proposed values.
     """
     if 'self' in kwargs.keys():
         raise TypeError("Your dictionary includes an entry for 'self', "
@@ -88,11 +88,11 @@ def checked_call(to_call, kwargs):
     Parameters
     ----------
     to_call : class or callable
-        Function or class to examine (in the case of classes, the
-        constructor call signature is analyzed)
+        Function or class to examine (in the case of classes, the constructor \
+        call signature is analyzed)
     kwargs : dict
-        Dictionary mapping parameter names (including positional
-        arguments) to proposed values.
+        Dictionary mapping parameter names (including positional arguments) \
+        to proposed values.
     """
     try:
         return to_call(**kwargs)
@@ -101,8 +101,18 @@ def checked_call(to_call, kwargs):
         raise
 
 def sensible_argument_errors(func):
+    """
+    .. todo::
+
+        WRITEME
+    """
     @functools.wraps(func)
     def wrapped_func(*args, **kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         try:
             func(*args, **kwargs)
         except TypeError:
@@ -125,4 +135,3 @@ def sensible_argument_errors(func):
                                 (str(func.func_name), ', '.join(diff)))
             raise
     return wrapped_func
-

@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import warnings
 warnings.warn("The pylearn2.supervised_cost module is deprecated."
         "Its name was confusing because it did not actually define"
@@ -14,9 +19,19 @@ import theano.tensor as T
 
 
 class CrossEntropy(Cost):
+    """
+    .. todo::
+
+        WRITEME
+    """
     supervised = True
 
     def expr(self, model, data):
+        """
+        .. todo::
+
+            WRITEME
+        """
         space, source = self.get_data_specs(model)
         space.validate(data)
         (X, Y) = data
@@ -24,6 +39,11 @@ class CrossEntropy(Cost):
                 (1 - Y) * T.log(1 - model(X))).sum(axis=1).mean()
 
     def get_data_specs(self, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         space = CompositeSpace([model.get_input_space(), model.get_output_space()])
         sources = (model.get_input_source(), model.get_target_source())
         return (space, sources)
@@ -51,8 +71,7 @@ class NegativeLogLikelihood(Cost):
         Parameters
         ----------
         model : pylearn2.models.model.Model
-            the model for which we want to calculate the negative
-            log-likelihood
+            Model for which we want to calculate the negative log-likelihood
         data : tuple of tensor_like
             (input to the model, one-hot encoded target)
         """
@@ -62,6 +81,11 @@ class NegativeLogLikelihood(Cost):
         return (-Y * T.log(model.fprop(X))).sum(axis=1).mean()
 
     def get_data_specs(self, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         space = CompositeSpace([model.get_input_space(), model.get_output_space()])
         sources = (model.get_input_source(), model.get_target_source())
         return (space, sources)

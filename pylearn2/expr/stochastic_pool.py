@@ -20,6 +20,10 @@ from theano.gof.op import get_debug_values
 
 def stochastic_max_pool_bc01(bc01, pool_shape, pool_stride, image_shape, rng = None):
     """
+    .. todo::
+
+        WRITEME properly
+
     Stochastic max pooling for training as defined in:
 
     Stochastic Pooling for Regularization of Deep Convolutional Neural Networks
@@ -99,6 +103,10 @@ def stochastic_max_pool_bc01(bc01, pool_shape, pool_stride, image_shape, rng = N
 
 def weighted_max_pool_bc01(bc01, pool_shape, pool_stride, image_shape, rng = None):
     """
+    .. todo::
+
+        WRITEME properly
+
     This implements test time probability weighted pooling defined in:
 
     Stochastic Pooling for Regularization of Deep Convolutional Neural Networks

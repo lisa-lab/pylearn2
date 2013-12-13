@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import numpy
 np = numpy
 from pylearn2.train_extensions import TrainExtension
@@ -53,11 +58,11 @@ class KeepBestParams(TrainExtension):
         Parameters
         ----------
         model : pylearn2.models.model.Model
-            not used
+            Not used
         dataset : pylearn2.datasets.dataset.Dataset
-            not used
+            Not used
         algorithm : TrainingAlgorithm
-            not used
+            Not used
         """
         if self.supervised:
             it = self.dataset.iterator('sequential',
@@ -91,8 +96,10 @@ class MonitorBasedSaveBest(TrainExtension):
         """
         Parameters
         ----------
-        channel_name: the name of the channel we want to minimize
-        save_path: the path to save the best model to
+        channel_name : str
+            The name of the channel we want to minimize
+        save_path : str
+            Path to save the best model to
         """
 
         self.__dict__.update(locals())
@@ -112,11 +119,12 @@ class MonitorBasedSaveBest(TrainExtension):
         Parameters
         ----------
         model : pylearn2.models.model.Model
-                model.monitor must contain a channel with name given by self.channel_name
+            model.monitor must contain a channel with name given by \
+            self.channel_name
         dataset : pylearn2.datasets.dataset.Dataset
-            not used
+            Not used
         algorithm : TrainingAlgorithm
-            not used
+            Not used
         """
 
         monitor = model.monitor
@@ -128,4 +136,3 @@ class MonitorBasedSaveBest(TrainExtension):
         if new_cost < self.best_cost:
             self.best_cost = new_cost
             serial.save(self.save_path, model, on_overwrite = 'backup')
-

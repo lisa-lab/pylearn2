@@ -1,31 +1,76 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 from theano import tensor
 import theano.sparse
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
 from theano.tensor.shared_randomstreams import RandomStreams
 
+
 class GSNFriendlyCost(DefaultDataSpecsMixin, Cost):
+    """
+    .. todo::
+
+        WRITEME
+    """
     @staticmethod
     def cost(target, output):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError
 
     def expr(self, model, data, *args, **kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_data_specs(model)[0].validate(data)
         X = data
         return self.cost(X, model.reconstruct(X))
 
 
 class MeanSquaredReconstructionError(GSNFriendlyCost):
+    """
+    .. todo::
+
+        WRITEME
+    """
     @staticmethod
     def cost(a, b):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return ((a - b) ** 2).sum(axis=1).mean()
 
 class MeanBinaryCrossEntropy(GSNFriendlyCost):
+    """
+    .. todo::
+
+        WRITEME
+    """
     @staticmethod
     def cost(target, output):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return tensor.nnet.binary_crossentropy(output, target).sum(axis=1).mean()
 
 class SampledMeanBinaryCrossEntropy(DefaultDataSpecsMixin, Cost):
     """
+    .. todo::
+
+        WRITEME properly
+    
     CE cost that goes with sparse autoencoder with L1 regularization on activations
 
     For theory:
@@ -33,11 +78,21 @@ class SampledMeanBinaryCrossEntropy(DefaultDataSpecsMixin, Cost):
     Large-Scale Learning of Embeddings with Reconstruction Sampling
     """
     def __init__(self, L1, ratio):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.random_stream = RandomStreams(seed=1)
         self.L1 = L1
         self.one_ratio = ratio
 
     def expr(self, model, data, ** kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_data_specs(model)[0].validate(data)
         X = data
         # X is theano sparse
@@ -85,11 +140,21 @@ class SampledMeanSquaredReconstructionError(MeanSquaredReconstructionError):
     Large-Scale Learning of Embeddings with Reconstruction Sampling
     """
     def __init__(self, L1, ratio):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.random_stream = RandomStreams(seed=1)
         self.L1 = L1
         self.ratio = ratio
 
     def expr(self, model, data, ** kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_data_specs(model)[0].validate(data)
         X = data
         # X is theano sparse

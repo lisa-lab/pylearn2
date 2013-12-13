@@ -7,19 +7,34 @@ from pylearn2.utils import py_integer_types
 
 
 class NCE(DefaultDataSpecsMixin, Cost):
-    """ Noise-Contrastive Estimation
+    """
+    Noise-Contrastive Estimation
 
-        See "Noise-Contrastive Estimation: A new estimation principle for unnormalized models "
-        by Gutmann and Hyvarinen
-
+    See "Noise-Contrastive Estimation: A new estimation principle for unnormalized models "
+    by Gutmann and Hyvarinen
     """
     def h(self, X, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return - T.nnet.sigmoid(self.G(X, model))
 
     def G(self, X, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return model.log_prob(X) - self.noise.log_prob(X)
 
     def expr(self, model, data, noisy_data=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # noisy_data is not considered part of the data.
         #If you don't pass it in, it will be generated internally
         #Passing it in lets you keep it constant while doing
@@ -61,6 +76,10 @@ class NCE(DefaultDataSpecsMixin, Cost):
 
     def __init__(self, noise, noise_per_clean):
         """
+        .. todo::
+
+            WRITEME properly
+        
         params
         -------
             noise: a Distribution from which noisy examples are generated
@@ -74,23 +93,34 @@ class NCE(DefaultDataSpecsMixin, Cost):
 
 
 class SM(DefaultDataSpecsMixin, Cost):
-    """ (Regularized) Score Matching
+    """
+    (Regularized) Score Matching
 
-        See:
-        - "Regularized estimation of image statistics by Score Matching",
-          D. Kingma, Y. LeCun, NIPS 2010
-        - eqn. 4 of "On Autoencoders and Score Matching for Energy Based Models"
-          Swersky et al 2011
+    See:
+    - "Regularized estimation of image statistics by Score Matching",
+      D. Kingma, Y. LeCun, NIPS 2010
+    - eqn. 4 of "On Autoencoders and Score Matching for Energy Based Models"
+      Swersky et al 2011
 
-        Uses the mean over visible units rather than sum over visible units
-        so that hyperparameters won't depend as much on the # of visible units
+    Uses the mean over visible units rather than sum over visible units
+    so that hyperparameters won't depend as much on the # of visible units
     """
 
     def __init__(self, lambd = 0):
+        """
+        .. todo::
+
+            WRITEME
+        """
         assert lambd >= 0
         self.lambd = lambd
 
     def expr(self, model, data):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_data_specs(model)[0].validate(data)
         X = data
         X_name = 'X' if X.name is None else X.name
@@ -111,19 +141,30 @@ class SM(DefaultDataSpecsMixin, Cost):
 
 
 class SMD(DefaultDataSpecsMixin, Cost):
-    """ Denoising Score Matching
-        See eqn. 4.3 of "A Connection Between Score Matching and Denoising Autoencoders"
-        by Pascal Vincent for details
+    """
+    Denoising Score Matching
+    See eqn. 4.3 of "A Connection Between Score Matching and Denoising Autoencoders"
+    by Pascal Vincent for details
 
-        Note that instead of using half the squared norm we use the mean squared error,
-        so that hyperparameters don't depend as much on the # of visible units
+    Note that instead of using half the squared norm we use the mean squared error,
+    so that hyperparameters don't depend as much on the # of visible units
     """
 
     def __init__(self, corruptor):
+        """
+        .. todo::
+
+            WRITEME
+        """
         super(SMD, self).__init__()
         self.corruptor = corruptor
 
     def expr(self, model, data):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_data_specs(model)[0].validate(data)
         X = data
         X_name = 'X' if X.name is None else X.name

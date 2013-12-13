@@ -3,14 +3,20 @@
 import theano.tensor as T
 from theano.printing import Print
 
+
 def triangle_code(X, centroids):
-    """ Compute the triangle activation function used
-        in Adam Coates' AISTATS 2011 paper
+    """
+    .. todo::
 
-        X: a design matrix
-        centroids: a k-means dictionary, one centroid in each row
+        WRITEME properly
 
-        Returns a design matrix of triangle code activations
+    Compute the triangle activation function used in Adam Coates' AISTATS 2011
+    paper
+
+    X: a design matrix
+    centroids: a k-means dictionary, one centroid in each row
+
+    Returns a design matrix of triangle code activations
     """
 
     X_sqr = T.sqr(X).sum(axis=1).dimshuffle(0,'x')

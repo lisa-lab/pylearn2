@@ -32,9 +32,18 @@ from pylearn2.utils import sharedX
 
 
 class BaseCD(Cost):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, num_chains, num_gibbs_steps, supervised=False,
                  toronto_neg=False, theano_rng=None):
         """
+        .. todo::
+
+            WRITEME properly
+        
             toronto_neg: If True, use a bit of mean field in the negative phase
                         Ruslan Salakhutdinov's matlab code does this.
         """
@@ -46,6 +55,10 @@ class BaseCD(Cost):
 
     def expr(self, model, data):
         """
+        .. todo::
+
+            WRITEME
+
         The partition function makes this intractable.
         """
         self.get_data_specs(model)[0].validate(data)
@@ -53,6 +66,11 @@ class BaseCD(Cost):
         return None
 
     def get_monitoring_channels(self, model, data):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_data_specs(model)[0].validate(data)
         rval = OrderedDict()
 
@@ -90,6 +108,11 @@ class BaseCD(Cost):
         return rval
 
     def get_gradients(self, model, data):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_data_specs(model)[0].validate(data)
         if self.supervised:
             X, Y = data
@@ -115,6 +138,11 @@ class BaseCD(Cost):
         return gradients, updates
 
     def _get_toronto_neg(self, model, layer_to_chains):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # Ruslan Salakhutdinov's undocumented negative phase from
         # http://www.mit.edu/~rsalakhu/code_DBM/dbm_mf.m
         # IG copied it here without fully understanding it, so it
@@ -158,6 +186,11 @@ class BaseCD(Cost):
         return neg_phase_grads
 
     def _get_standard_neg(self, model, layer_to_chains):
+        """
+        .. todo::
+
+            WRITEME
+        """
         params = list(model.get_params())
 
         warnings.warn("""TODO: reduce variance of negative phase by
@@ -184,6 +217,11 @@ class BaseCD(Cost):
         return neg_phase_grads
 
     def _get_variational_pos(self, model, X, Y):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.supervised:
             assert Y is not None
             # note: if the Y layer changes to something without linear energy,
@@ -230,6 +268,11 @@ class BaseCD(Cost):
         return gradients
 
     def _get_sampling_pos(self, model, X, Y):
+        """
+        .. todo::
+
+            WRITEME
+        """
         layer_to_clamp = OrderedDict([(model.visible_layer, True)])
         layer_to_pos_samples = OrderedDict([(model.visible_layer, X)])
         if self.supervised:
@@ -284,9 +327,19 @@ class PCD(DefaultDataSpecsMixin, BaseCD):
     TODO add citation to Tieleman paper, Younes paper
     """
     def _get_positive_phase(self, model, X, Y=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self._get_sampling_pos(model, X, Y), OrderedDict()
 
     def _get_negative_phase(self, model, X, Y=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         layer_to_chains = model.make_layer_to_state(self.num_chains)
 
         def recurse_check(l):
@@ -326,16 +379,29 @@ class VariationalPCD(DefaultDataSpecsMixin, BaseCD):
 
     def expr(self, model, data):
         """
+        .. todo::
+
+            WRITEME
+
         The partition function makes this intractable.
         """
         self.get_data_specs(model)[0].validate(data)
         return None
 
     def _get_positive_phase(self, model, X, Y=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self._get_variational_pos(model, X, Y), OrderedDict()
 
     def _get_negative_phase(self, model, X, Y=None):
         """
+        .. todo::
+
+            WRITEME
+
         d/d theta log Z = (d/d theta Z) / Z
                         = (d/d theta sum_h sum_v exp(-E(v,h)) ) / Z
                         = (sum_h sum_v - exp(-E(v,h)) d/d theta E(v,h) ) / Z
@@ -381,10 +447,19 @@ class VariationalCD(DefaultDataSpecsMixin, BaseCD):
     """
 
     def _get_positive_phase(self, model, X, Y=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self._get_variational_pos(model, X, Y), OrderedDict()
 
     def _get_negative_phase(self, model, X, Y=None):
         """
+        .. todo::
+
+            WRITEME
+
         d/d theta log Z = (d/d theta Z) / Z
                         = (d/d theta sum_h sum_v exp(-E(v,h)) ) / Z
                         = (sum_h sum_v - exp(-E(v,h)) d/d theta E(v,h) ) / Z
@@ -432,11 +507,16 @@ class VariationalCD(DefaultDataSpecsMixin, BaseCD):
 
 class MF_L2_ActCost(DefaultDataSpecsMixin, Cost):
     """
-        An L2 penalty on the amount that the hidden unit mean field parameters
-        deviate from desired target values.
+    An L2 penalty on the amount that the hidden unit mean field parameters
+    deviate from desired target values.
     """
 
     def __init__(self, targets, coeffs, supervised=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         targets = fix(targets)
         coeffs = fix(coeffs)
@@ -446,6 +526,10 @@ class MF_L2_ActCost(DefaultDataSpecsMixin, Cost):
 
     def expr(self, model, data, return_locals=False, **kwargs):
         """
+        .. todo::
+
+            WRITEME
+
         If returns locals is True, returns (objective, locals())
         Note that this means adding / removing / changing the value of
         local variables is an interface change.
@@ -486,6 +570,11 @@ class MF_L2_ActCost(DefaultDataSpecsMixin, Cost):
 
 
 def fix(l):
+    """
+    .. todo::
+
+        WRITEME
+    """
     if isinstance(l, list):
         return [fix(elem) for elem in l]
     if isinstance(l, str):
@@ -494,10 +583,18 @@ def fix(l):
 
 class TorontoSparsity(Cost):
     """
+    .. todo::
+
+        WRITEME properly
+    
     TODO: add link to Ruslan Salakhutdinov's paper that this is based on
     """
-
     def __init__(self, targets, coeffs, supervised=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.__dict__.update(locals())
         del self.self
 
@@ -505,11 +602,21 @@ class TorontoSparsity(Cost):
                 coeffs=coeffs, supervised=supervised)
 
     def expr(self, model, data, return_locals=False, **kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_data_specs(model)[0].validate(data)
         return self.base_cost.expr(model, data, return_locals=return_locals,
                 **kwargs)
 
     def get_gradients(self, model, data, **kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_data_specs(model)[0].validate(data)
         obj, scratch = self.base_cost.expr(model, data, return_locals=True,
                                            **kwargs)
@@ -573,10 +680,20 @@ class TorontoSparsity(Cost):
         return grads, OrderedDict()
 
     def get_data_specs(self, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.base_cost.get_data_specs(model)
 
 class WeightDecay(NullDataSpecsMixin, Cost):
     """
+    .. todo::
+
+        WRITEME properly
+
+    
     coeff * sum(sqr(weights))
 
     for each set of weights.
@@ -585,6 +702,10 @@ class WeightDecay(NullDataSpecsMixin, Cost):
 
     def __init__(self, coeffs):
         """
+        .. todo::
+
+            WRITEME
+
         coeffs: a list, one element per layer, specifying the coefficient
                 to put on the L1 activation cost for each layer.
                 Each element may in turn be a list, ie, for CompositeLayers.
@@ -593,6 +714,11 @@ class WeightDecay(NullDataSpecsMixin, Cost):
         del self.self
 
     def expr(self, model, data, ** kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_data_specs(model)[0].validate(data)
         layer_costs = [ layer.get_weight_decay(coeff)
             for layer, coeff in safe_izip(model.hidden_layers, self.coeffs) ]
@@ -645,12 +771,22 @@ class MultiPrediction(Cost):
                     monitor_each_step = False,
                     use_sum = False
                     ):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.__dict__.update(locals())
         del self.self
         #assert not (reweight and reweight_correctly)
 
 
     def get_monitoring_channels(self, model, X, Y = None, drop_mask = None, drop_mask_Y = None, **kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         if self.supervised:
             assert Y is not None
@@ -767,6 +903,11 @@ class MultiPrediction(Cost):
 
     def __call__(self, model, X, Y = None, drop_mask = None, drop_mask_Y = None,
             return_locals = False, include_toronto = True, ** kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         if not self.supervised:
             assert drop_mask_Y is None
@@ -864,6 +1005,11 @@ class MultiPrediction(Cost):
         return total_cost
 
     def get_fixed_var_descr(self, model, X, Y):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         assert Y is not None
 
@@ -921,6 +1067,11 @@ class MultiPrediction(Cost):
 
 
     def get_gradients(self, model, X, Y = None, **kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         scratch = self(model, X, Y, include_toronto = False, return_locals=True, **kwargs)
 
@@ -968,6 +1119,11 @@ class MultiPrediction(Cost):
 
     def get_inpaint_cost(self, dbm, X, V_hat_unmasked, drop_mask, state, Y, drop_mask_Y):
         rval = dbm.visible_layer.recons_cost(X, V_hat_unmasked, drop_mask, use_sum=self.use_sum)
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         if self.supervised:
             scale = None # pyflakes is too dumb to see that both branches define this
@@ -985,6 +1141,11 @@ class MultiPrediction(Cost):
 
     def cost_from_states(self, state, new_state, dbm, X, Y, drop_mask, drop_mask_Y,
             new_drop_mask, new_drop_mask_Y, return_locals = False):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         if not self.supervised:
             assert drop_mask_Y is None
@@ -1131,12 +1292,21 @@ class MultiPrediction(Cost):
 default_seed = 20120712
 class MaskGen:
     def __init__(self, drop_prob, balance = False, sync_channels = True, drop_prob_y = None, seed = default_seed):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.__dict__.update(locals())
         del self.self
 
 
     def __call__(self, X, Y = None, X_space=None):
         """
+        .. todo::
+
+            WRITEME
+
         Note that calling this repeatedly will yield the same random numbers each time.
         """
         assert X_space is not None
