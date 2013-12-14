@@ -153,9 +153,9 @@ class Layer(Model):
 
         Examples
         --------
-        C = model.cost_matrix(Y, Y_hat)
-        # Do something with C like setting some values to 0
-        cost = model.cost_from_cost_matrix(C)
+        >>> C = model.cost_matrix(Y, Y_hat)
+        >>> # Do something with C like setting some values to 0
+        >>> cost = model.cost_from_cost_matrix(C)
         """
 
         raise NotImplementedError(str(type(self)) +
@@ -179,6 +179,38 @@ class Layer(Model):
                                   " does not implement mlp.Layer.cost_matrix")
 
     def get_weights(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        raise NotImplementedError
+
+    def set_weights(self, weights):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        raise NotImplementedError
+
+    def get_biases(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        raise NotImplementedError
+
+    def set_biases(self, biases):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        raise NotImplementedError
+
+    def get_weights_format(self):
         """
         .. todo::
 
@@ -861,12 +893,8 @@ class Softmax(Layer):
         else:
             assert init_bias_target_marginals is None
 
+    @functools.wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         rval = OrderedDict()
 
@@ -976,12 +1004,9 @@ class Softmax(Layer):
 
             self._params = [ self.b, self.W ]
 
+    @functools.wraps(Layer.get_weights_topo)
     def get_weights_topo(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         if not isinstance(self.input_space, Conv2DSpace):
             raise NotImplementedError()
         desired = self.W.get_value().T
@@ -997,36 +1022,24 @@ class Softmax(Layer):
 
         return self.W.get_value()
 
+    @functools.wraps(Layer.set_weights)
     def set_weights(self, weights):
-        """
-        .. todo::
 
-            WRITEME
-        """
         self.W.set_value(weights)
 
+    @functools.wraps(Layer.set_biases)
     def set_biases(self, biases):
-        """
-        .. todo::
 
-            WRITEME
-        """
         self.b.set_value(biases)
 
+    @functools.wraps(Layer.get_biases)
     def get_biases(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         return self.b.get_value()
 
+    @functools.wraps(Layer.get_weights_format)
     def get_weights_format(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         return ('v', 'h')
 
     @functools.wraps(Layer.fprop)
@@ -1129,12 +1142,9 @@ class Softmax(Layer):
         W = self.W
         return coeff * abs(W).sum()
 
+    @functools.wraps(Layer.censor_updates)
     def censor_updates(self, updates):
-        """
-        .. todo::
 
-            WRITEME
-        """
         if self.no_affine:
             return
         if self.max_row_norm is not None:
@@ -1199,12 +1209,8 @@ class SoftmaxPool(Layer):
 
         self.b = sharedX( np.zeros((self.detector_layer_dim,)) + init_bias, name = layer_name + '_b')
 
+    @functools.wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         if not hasattr(self, 'W_lr_scale'):
             self.W_lr_scale = None
@@ -1289,12 +1295,8 @@ class SoftmaxPool(Layer):
                                  str(self.mask_weights.shape))
             self.mask = sharedX(self.mask_weights)
 
+    @functools.wraps(Layer.censor_updates)
     def censor_updates(self, updates):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         # Patch old pickle files
         if not hasattr(self, 'mask_weights'):
@@ -1313,12 +1315,9 @@ class SoftmaxPool(Layer):
                 desired_norms = T.clip(col_norms, 0, self.max_col_norm)
                 updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
+    @functools.wraps(Layer.get_params)
     def get_params(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         assert self.b.name is not None
         W ,= self.transformer.get_params()
         assert W.name is not None
@@ -1359,15 +1358,13 @@ class SoftmaxPool(Layer):
         W ,= self.transformer.get_params()
         return W.get_value()
 
+    @functools.wraps(Layer.set_weights)
     def set_weights(self, weights):
-        """
-        .. todo::
 
-            WRITEME
-        """
         W, = self.transformer.get_params()
         W.set_value(weights)
 
+    @functools.wraps(Layer.set_biases)
     def set_biases(self, biases):
         """
         .. todo::
@@ -1376,28 +1373,19 @@ class SoftmaxPool(Layer):
         """
         self.b.set_value(biases)
 
+    @functools.wraps(Layer.get_biases)
     def get_biases(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         return self.b.get_value()
 
+    @functools.wraps(Layer.get_weights_format)
     def get_weights_format(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         return ('v', 'h')
 
+    @functools.wraps(Layer.get_weights_view_shape)
     def get_weights_view_shape(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         total = self.detector_layer_dim
         cols = self.pool_size
         if cols == 1:
@@ -1409,12 +1397,8 @@ class SoftmaxPool(Layer):
         return rows, cols
 
 
+    @functools.wraps(Layer.get_weights_topo)
     def get_weights_topo(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         if not isinstance(self.input_space, Conv2DSpace):
             raise NotImplementedError()
@@ -1581,12 +1565,8 @@ class Linear(Layer):
             assert b_lr_scale is None
             init_bias is None
 
+    @functools.wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         if not hasattr(self, 'W_lr_scale'):
             self.W_lr_scale = None
@@ -1662,12 +1642,8 @@ class Linear(Layer):
                 raise ValueError("Expected mask with shape "+str(expected_shape)+" but got "+str(self.mask_weights.shape))
             self.mask = sharedX(self.mask_weights)
 
+    @functools.wraps(Layer.censor_updates)
     def censor_updates(self, updates):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         if self.mask_weights is not None:
             W ,= self.transformer.get_params()
@@ -1692,12 +1668,9 @@ class Linear(Layer):
                 updates[W] = updated_W * desired_norms / (1e-7 + col_norms)
 
 
+    @functools.wraps(Layer.get_params)
     def get_params(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         assert self.b.name is not None
         W ,= self.transformer.get_params()
         assert W.name is not None
@@ -1748,23 +1721,18 @@ class Linear(Layer):
             return rval
         return W
 
+    @functools.wraps(Layer.set_weights)
     def set_weights(self, weights):
-        """
-        .. todo::
 
-            WRITEME
-        """
         W, = self.transformer.get_params()
         W.set_value(weights)
 
+    @functools.wraps(Layer.set_biases)
     def set_biases(self, biases):
-        """
-        .. todo::
 
-            WRITEME
-        """
         self.b.set_value(biases)
 
+    @functools.wraps(Layer.get_biases)
     def get_biases(self):
         """
         .. todo::
@@ -1773,20 +1741,13 @@ class Linear(Layer):
         """
         return self.b.get_value()
 
+    @functools.wraps(Layer.get_weights_format)
     def get_weights_format(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         return ('v', 'h')
 
+    @functools.wraps(Layer.get_weights_topo)
     def get_weights_topo(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         if not isinstance(self.input_space, Conv2DSpace):
             raise NotImplementedError()
@@ -2014,6 +1975,7 @@ class Sigmoid(Linear):
         return ave
 
 
+    @functools.wraps(Layer.cost)
     def cost(self, Y, Y_hat):
         """
         .. todo::
@@ -2379,37 +2341,25 @@ class ConvRectifiedLinear(Layer):
         W ,= self.transformer.get_params()
         return coeff * abs(W).sum()
 
+    @functools.wraps(Layer.set_weights)
     def set_weights(self, weights):
-        """
-        .. todo::
 
-            WRITEME
-        """
         W, = self.transformer.get_params()
         W.set_value(weights)
 
+    @functools.wraps(Layer.set_biases)
     def set_biases(self, biases):
-        """
-        .. todo::
 
-            WRITEME
-        """
         self.b.set_value(biases)
 
+    @functools.wraps(Layer.get_biases)
     def get_biases(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         return self.b.get_value()
 
+    @functools.wraps(Layer.get_weights_format)
     def get_weights_format(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         return ('v', 'h')
 
     def get_weights_topo(self):
