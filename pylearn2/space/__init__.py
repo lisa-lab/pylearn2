@@ -32,24 +32,57 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
-import functools
+import warnings, functools
 import numpy as np
-import warnings
-
+import theano
+import theano.tensor as T
+import theano.sparse
+from theano.tensor import TensorType
 from theano import config
 from theano.gof.op import get_debug_values
 from theano.sandbox.cuda.type import CudaNdarrayType
-import theano.sparse
-import theano.tensor as T
-from theano.tensor import TensorType
-
-from pylearn2.utils import py_integer_types
-from pylearn2.utils import safe_zip
-from pylearn2.utils import sharedX
+from pylearn2.utils import (py_integer_types, 
+                            safe_zip, 
+                            sharedX)
 
 if theano.sparse.enable_sparse:
     # We know scipy.sparse is available
     import scipy.sparse
+
+
+def _cast(arg, dtype):
+    """
+    Does element-wise casting to dtype.
+
+    If <dtype> is None, returns <arg> untouched.
+
+    Casts numpy arrays to numpy arrays. Returns arg if dtype is unchanged.
+
+    Casts theano tensors to theano tensors. Returns arg if dtype is unchanged.
+
+    Casts (nested) tuples of the above to (nested) tuples of the above. Always
+    returns a new tuple, even if no dtypes were actually changed. The ndarrays
+    or tuples contained therein will be returned unchanged if their dtypes are
+    unchanged.
+    """
+
+    if dtype is None:
+        return arg
+
+    if dtype = 'floatX':
+        dtype = theano.config.floatX  # this'll be 'float32' or 'float64'
+
+    assert dtype in tuple(t.dtype for t in theano.scalar.all_types)
+
+    if isinstance(arg, np.ndarray):
+        return np.asarray(arg, dtype=dtype)
+    elif isinstance(arg, tuple):
+        return tuple(_cast(a, dtype) for a in arg)
+    elif isinstance(arg, (theano.tensor.TensorVariable,
+                          theano.tensor.TensorConstant)):
+        return theano.tensor.cast(arg, dtype)
+    else:
+        raise TypeError("Unsupported arg type '%s'" % str(type(arg)))
 
 
 class Space(object):
@@ -122,18 +155,30 @@ class Space(object):
         """
         raise NotImplementedError()
 
-    def make_shared_batch(self, batch_size, name=None, dtype=None):
+    def make_shared_batch(self,
+                          batch_size,
+                          name=None,
+                          dtype='floatX'):
         """
         .. todo::
 
             WRITEME
         """
-        if dtype is None:
-            return sharedX(self.get_origin_batch(batch_size), name)
-        else:
-            raise NotImplementedError()
+        if dtype == 'floatX':
+            dtype = config.floatX
+        elif dtype is not config.floatX:
+            warnings.warn("Support for dtypes other than theano.config.floatX "
+                          "is in early development. Users are encouraged to "
+                          "stick to theano.config.floatX for now unless they "
+                          "know what they're doing.",
+                          stacklevel=2)
 
-    def make_theano_batch(self, name=None, dtype=None, batch_size=None):
+        return sharedX(self.get_origin_batch(batch_size), name, dtype)
+
+    def make_theano_batch(self,
+                          name=None,
+                          dtype='floatX',
+                          batch_size=None):
         """
         Returns a symbolic variable representing a batch of points
         in this space.
@@ -156,11 +201,8 @@ class Space(object):
         """
         raise NotImplementedError()
 
-    def make_batch_theano(self, name=None, dtype=None, batch_size=None):
-        """ An alias to make_theano_batch """
-
-        return self.make_theano_batch(name=name, dtype=dtype,
-                                      batch_size=batch_size)
+    # An alias to the above method
+    make_batch_theano = make_theano_batch
 
     def get_total_dimension(self):
         """
@@ -410,7 +452,7 @@ class VectorSpace(Space):
     @functools.wraps(Space.get_origin_batch)
     def get_origin_batch(self, n, dtype=None):
         if dtype is None:
-            dtype = config.floatX
+            dtype = self.dtype
         return np.zeros((n, self.dim), dtype=dtype)
 
     @functools.wraps(Space.batch_size)
@@ -424,15 +466,17 @@ class VectorSpace(Space):
         return batch.shape[0]
 
     @functools.wraps(Space.make_theano_batch)
-    def make_theano_batch(self, name=None, dtype=None, batch_size=None):
+    def make_theano_batch(self,
+                          name=None,
+                          dtype=None,
+                          batch_size=None):
         if dtype is None:
-            dtype = config.floatX
-
+            dtype = self.dtype
         if self.sparse:
             if batch_size is not None:
                 raise NotImplementedError("batch_size not implemented "
                                           "for sparse case")
-            rval = theano.sparse.csr_matrix(name=name)
+            rval = theano.sparse.csr_matrix(name=name, dtype=dtype)
         else:
             if batch_size == 1:
                 rval = T.row(name=name, dtype=dtype)
@@ -469,9 +513,9 @@ class VectorSpace(Space):
                 pos += width
                 formatted = VectorSpace(width).format_as(subtensor, component)
                 pieces.append(formatted)
-            return tuple(pieces)
+            result = tuple(pieces)
 
-        if isinstance(space, Conv2DSpace):
+        elif isinstance(space, Conv2DSpace):
             dims = {'b': batch.shape[0],
                     'c': space.num_channels,
                     0: space.shape[0],
@@ -483,15 +527,12 @@ class VectorSpace(Space):
                 batch = batch.reshape(shape)
                 batch = batch.transpose(*[space.default_axes.index(ax)
                                           for ax in space.axes])
-                return batch
+                result = batch
+            else:
+                shape = tuple([dims[elem] for elem in space.axes])
+                result = batch.reshape(shape)
 
-            shape = tuple([dims[elem] for elem in space.axes])
-
-            rval = batch.reshape(shape)
-
-            return rval
-
-        if isinstance(space, VectorSpace):
+        elif isinstance(space, VectorSpace):
             if self.dim != space.dim:
                 raise ValueError("Can't convert between VectorSpaces of "
                                  "different sizes (%d to %d)."
@@ -499,11 +540,14 @@ class VectorSpace(Space):
             if self.sparse != space.sparse:
                 raise ValueError("Converting between sparse and non-sparse "
                                  "VectorSpaces not implemented.")
-            return batch
+            result = batch
+        else:
+            raise NotImplementedError(str(self) +
+                                      " doesn't know how to format as " +
+                                      str(space))
 
-        raise NotImplementedError(str(self) +
-                                  " doesn't know how to format as " +
-                                  str(space))
+        return _cast(result, self.dtype)
+
 
     def __eq__(self, other):
         """
@@ -663,7 +707,7 @@ class Conv2DSpace(Space):
     @functools.wraps(Space.get_origin_batch)
     def get_origin_batch(self, n, dtype=None):
         if dtype is None:
-            dtype = config.floatX
+            dtype = self.dtype
 
         if not isinstance(n, py_integer_types):
             raise TypeError("Conv2DSpace.get_origin_batch expects an int, "
@@ -677,9 +721,12 @@ class Conv2DSpace(Space):
         return np.zeros(shape, dtype=dtype)
 
     @functools.wraps(Space.make_theano_batch)
-    def make_theano_batch(self, name=None, dtype=None, batch_size=None):
+    def make_theano_batch(self,
+                          name=None,
+                          dtype=None,
+                          batch_size=None):
         if dtype is None:
-            dtype = config.floatX
+            dtype = self.dtype
 
         broadcastable = [False] * 4
         broadcastable[self.axes.index('c')] = (self.num_channels == 1)
@@ -835,11 +882,15 @@ class Conv2DSpace(Space):
                 assert self.default_axes[0] == 'b'
                 batch = batch.transpose(*[self.axes.index(axis)
                                           for axis in self.default_axes])
-            return batch.reshape((batch.shape[0], self.get_total_dimension()))
-        if isinstance(space, Conv2DSpace):
-            return Conv2DSpace.convert_numpy(batch, self.axes, space.axes)
-        raise NotImplementedError("%s doesn't know how to format as %s"
-                                  % (str(self), str(space)))
+            result = batch.reshape((batch.shape[0],
+                                    self.get_total_dimension()))
+        elif isinstance(space, Conv2DSpace):
+            result = Conv2DSpace.convert_numpy(batch, self.axes, space.axes)
+        else:
+            raise NotImplementedError("%s doesn't know how to format as %s"
+                                      % (str(self), str(space)))
+
+        return _cast(result, self.dtype)
 
     @functools.wraps(Space._format_as)
     def _format_as(self, batch, space):
@@ -852,11 +903,15 @@ class Conv2DSpace(Space):
                 assert self.default_axes[0] == 'b'
                 batch = batch.transpose(*[self.axes.index(axis)
                                           for axis in self.default_axes])
-            return batch.reshape((batch.shape[0], self.get_total_dimension()))
-        if isinstance(space, Conv2DSpace):
-            return Conv2DSpace.convert(batch, self.axes, space.axes)
-        raise NotImplementedError("%s doesn't know how to format as %s"
-                                  % (str(self), str(space)))
+            result = batch.reshape((batch.shape[0],
+                                    self.get_total_dimension()))
+        elif isinstance(space, Conv2DSpace):
+            result = Conv2DSpace.convert(batch, self.axes, space.axes)
+        else:
+            raise NotImplementedError("%s doesn't know how to format as %s"
+                                      % (str(self), str(space)))
+
+        return _cast(result, self.dtype)
 
 
 class CompositeSpace(Space):
@@ -1108,17 +1163,30 @@ class CompositeSpace(Space):
                       component in self.components])
 
     @functools.wraps(Space.make_theano_batch)
-    def make_theano_batch(self, name=None, dtype=None, batch_size=None):
+    def make_theano_batch(self,
+                          name=None,
+                          dtype=None,
+                          batch_size=None):
         if name is None:
             name = [None] * len(self.components)
         elif not isinstance(name, (list, tuple)):
             name = ['%s[%i]' % (name, i) for i in xrange(len(self.components))]
 
-        if dtype is None:
-            dtype = [None] * len(self.components)
+        assert isinstance(name, (list, tuple))
+        assert dtype is None or isinstance(dtype, (str, list, tuple))
+
+        if isinstance(dtype, str):
+            if dtype == 'floatX':
+                dtype = config.floatX
+            else:  
+                assert dtype in tuple(t.dtype for t in theano.scalar.all_types)
+
+        if dtype is None or isinstance(dtype, str):
+            dtype = [dtype] * len(self.components)
+
         assert isinstance(name, (list, tuple))
         assert isinstance(dtype, (list, tuple))
-
+        
         rval = tuple([x.make_theano_batch(name=n,
                                           dtype=d,
                                           batch_size=batch_size)
