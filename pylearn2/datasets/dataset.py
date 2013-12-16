@@ -4,6 +4,7 @@
     WRITEME
 """
 
+
 class Dataset(object):
     """Abstract interface for Datasets."""
     def get_batch_design(self, batch_size, include_labels=False):
@@ -104,7 +105,7 @@ class Dataset(object):
         .. todo::
 
             WRITEME properly
-        
+
         X: a tensor in the same space as the data
         returns the same tensor shifted and scaled by a transformation
         that maps the data range to [-1, 1] so that it can be displayed

@@ -40,6 +40,7 @@ def ensure_tables():
     if tables is None:
         import tables
 
+
 class DenseDesignMatrix(Dataset):
     """
     A class for representing datasets that can be stored as a dense design
@@ -82,7 +83,7 @@ class DenseDesignMatrix(Dataset):
             self.set_topological_view(topo_view, axes)
         else:
             assert X is not None, ("DenseDesignMatrix needs to be provided "
-                    "with either topo_view, or X")
+                                   "with either topo_view, or X")
             if view_converter is not None:
                 self.view_converter = view_converter
 
@@ -90,8 +91,8 @@ class DenseDesignMatrix(Dataset):
                 # view_converter
                 if not hasattr(view_converter, 'topo_space'):
                     raise NotImplementedError("Not able to get a topo_space "
-                            "from this converter: %s"
-                            % view_converter)
+                                              "from this converter: %s"
+                                              % view_converter)
 
                 # self.X_topo_space stores a "default" topological space that
                 # will be used only when self.iterator is called without a
@@ -147,15 +148,17 @@ class DenseDesignMatrix(Dataset):
 
         if topo is not None or targets is not None:
             if data_specs is not None:
-                raise ValueError("In DenseDesignMatrix.iterator, both "
-                        "the `data_specs` argument and deprecated arguments "
-                        "`topo` or `targets` were provided.",
-                        (data_specs, topo, targets))
+                raise ValueError('In DenseDesignMatrix.iterator, both the '
+                                 '"data_specs" argument and deprecated '
+                                 'arguments "topo" or "targets" were '
+                                 'provided.',
+                                 (data_specs, topo, targets))
 
             warnings.warn("Usage of `topo` and `target` arguments are being "
-                    "deprecated, and will be removed around November 7th, "
-                    "2013. `data_specs` should be used instead.",
-                    stacklevel=2)
+                          "deprecated, and will be removed around November "
+                          "7th, 2013. `data_specs` should be used instead.",
+                          stacklevel=2)
+
             # build data_specs from topo and targets if needed
             if topo is None:
                 topo = getattr(self, '_iter_topo', False)
@@ -226,8 +229,10 @@ class DenseDesignMatrix(Dataset):
         if rng is None and mode.stochastic:
             rng = self.rng
         return FiniteDatasetIterator(self,
-                                     mode(self.X.shape[0], batch_size,
-                                     num_batches, rng),
+                                     mode(self.X.shape[0],
+                                          batch_size,
+                                          num_batches,
+                                          rng),
                                      data_specs=data_specs,
                                      return_tuple=return_tuple,
                                      convert=convert)
@@ -360,8 +365,8 @@ class DenseDesignMatrix(Dataset):
                 # Get the topo_space from the view_converter
                 if not hasattr(view_converter, 'topo_space'):
                     raise NotImplementedError("Not able to get a topo_space "
-                            "from this converter: %s"
-                            % view_converter)
+                                              "from this converter: %s"
+                                              % view_converter)
 
                 # self.X_topo_space stores a "default" topological space that
                 # will be used only when self.iterator is called without a
@@ -392,14 +397,14 @@ class DenseDesignMatrix(Dataset):
 
         train = None
         valid = None
-        if train_size !=0:
+        if train_size != 0:
             batch_size = self.num_examples - train_size
             dataset_iter = self.iterator(mode=_mode,
                                          batch_size=batch_size,
                                          num_batches=2)
             train = dataset_iter.next()
             valid = dataset_iter.next()
-        elif train_prop !=0:
+        elif train_prop != 0:
             size = np.ceil(self.num_examples * train_prop)
             dataset_iter = self.iterator(mode=_mode,
                                          batch_size=(self.num_examples - size))
@@ -626,14 +631,6 @@ class DenseDesignMatrix(Dataset):
             space = X_space
             source = X_source
         else:
-            if self.y.ndim != 2:
-                raise NotImplementedError("It appears the new space / source interface"
-                        " broke the ability to iterate over 1D labels. Please"
-                        " use one-hot rather than integer-valued class labels"
-                        ". Most Pylearn2 Datasets have a one_hot argument you"
-                        " can set to True.")
-
-            # The -1 index in this line assumes y.ndim is 2
             y_space = VectorSpace(dim=self.y.shape[-1])
             y_source = 'targets'
             space = CompositeSpace((X_space, y_space))
@@ -705,8 +702,9 @@ class DenseDesignMatrix(Dataset):
             idx = self.rng.randint(self.X.shape[0] - batch_size + 1)
         except ValueError:
             if batch_size > self.X.shape[0]:
-                raise ValueError("Requested "+str(batch_size)+" examples"
-                    "from a dataset containing only "+str(self.X.shape[0]))
+                raise ValueError("Requested %d examples from a dataset "
+                                 "containing only %d." %
+                                 (batch_size, self.X.shape[0]))
             raise
         rx = self.X[idx:idx + batch_size, :]
         if include_labels:
@@ -717,7 +715,7 @@ class DenseDesignMatrix(Dataset):
         rx = np.cast[config.floatX](rx)
         return rx
 
-    def get_batch_topo(self, batch_size, include_labels = False):
+    def get_batch_topo(self, batch_size, include_labels=False):
         """
         .. todo::
 
@@ -793,24 +791,26 @@ class DenseDesignMatrix(Dataset):
         """
 
         if self.y is None:
-            raise ValueError("Called convert_to_one_hot on a DenseDesignMatrix "
-                             "with no labels.")
+            raise ValueError("Called convert_to_one_hot on a "
+                             "DenseDesignMatrix with no labels.")
 
         if self.y.ndim != 1:
-            raise ValueError("Called convert_to_one_hot on a DenseDesignMatrix "
-                             "whose labels aren't scalar.")
+            raise ValueError("Called convert_to_one_hot on a "
+                             "DenseDesignMatrix whose labels aren't scalar.")
 
         if 'int' not in str(self.y.dtype):
-            raise ValueError("Called convert_to_one_hot on a DenseDesignMatrix "
-                             "whose labels aren't integer-valued.")
+            raise ValueError("Called convert_to_one_hot on a "
+                             "DenseDesignMatrix whose labels aren't "
+                             "integer-valued.")
 
         self.y = self.y - min_class
 
         if self.y.min() < 0:
-            raise ValueError("We do not support negative classes. You can use"
-                    "the min_class argument to remap negative classes to "
-                    "positive values, but we require this to be done"
-                    "explicitly so you are aware of the remapping.")
+            raise ValueError("We do not support negative classes. You can use "
+                             "the min_class argument to remap negative "
+                             "classes to positive values, but we require this "
+                             "to be done explicitly so you are aware of the "
+                             "remapping.")
         # Note: we don't check that the minimum occurring class is exactly 0,
         # since this dataset could be just a small subset of a larger dataset
         # and may not contain all the classes.
@@ -884,8 +884,12 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
 
     _default_seed = (17, 2, 946)
 
-    def __init__(self, X=None, topo_view=None, y=None,
-                 view_converter=None, axes = ('b', 0, 1, 'c'),
+    def __init__(self,
+                 X=None,
+                 topo_view=None,
+                 y=None,
+                 view_converter=None,
+                 axes=('b', 0, 1, 'c'),
                  rng=_default_seed):
         """
         Parameters
@@ -914,17 +918,18 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
             indices into the design matrix when choosing minibatches.
         """
 
-        super(DenseDesignMatrixPyTables, self).__init__(X = X,
-                                            topo_view = topo_view,
-                                            y = y,
-                                            view_converter = view_converter,
-                                            axes = axes,
-                                            rng = rng)
+        super_self = super(DenseDesignMatrixPyTables, self)
+        super_self.__init__(X=X,
+                            topo_view=topo_view,
+                            y=y,
+                            view_converter=view_converter,
+                            axes=axes,
+                            rng=rng)
         ensure_tables()
         if not hasattr(self, 'filters'):
             self.filters = tables.Filters(complib='blosc', complevel=5)
 
-    def set_design_matrix(self, X, start = 0):
+    def set_design_matrix(self, X, start=0):
         """
         .. todo::
 
@@ -932,11 +937,11 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         """
         assert len(X.shape) == 2
         assert not np.any(np.isnan(X))
-        DenseDesignMatrixPyTables.fill_hdf5(file = self.h5file,
-                                            data_x = X,
-                                            start = start)
+        DenseDesignMatrixPyTables.fill_hdf5(file=self.h5file,
+                                            data_x=X,
+                                            start=start)
 
-    def set_topological_view(self, V, axes = ('b', 0, 1, 'c'), start = 0):
+    def set_topological_view(self, V, axes=('b', 0, 1, 'c'), start=0):
         """
         Sets the dataset to represent V, where V is a batch
         of topological views of examples.
@@ -958,12 +963,13 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         rows = V.shape[axes.index(0)]
         cols = V.shape[axes.index(1)]
         channels = V.shape[axes.index('c')]
-        self.view_converter = DefaultViewConverter([rows, cols, channels], axes=axes)
+        self.view_converter = DefaultViewConverter([rows, cols, channels],
+                                                   axes=axes)
         X = self.view_converter.topo_view_to_design_mat(V)
         assert not np.any(np.isnan(X))
-        DenseDesignMatrixPyTables.fill_hdf5(file = self.h5file,
-                                            data_x = X,
-                                            start = start)
+        DenseDesignMatrixPyTables.fill_hdf5(file=self.h5file,
+                                            data_x=X,
+                                            start=start)
 
     def init_hdf5(self, path, shapes):
         """
@@ -977,13 +983,14 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         x_shape, y_shape = shapes
         # make pytables
         ensure_tables()
-        h5file = tables.openFile(path, mode = "w", title = "SVHN Dataset")
+        h5file = tables.openFile(path, mode="w", title="SVHN Dataset")
         gcolumns = h5file.createGroup(h5file.root, "Data", "Data")
-        atom = tables.Float32Atom() if config.floatX == 'float32' else tables.Float64Atom()
-        h5file.createCArray(gcolumns, 'X', atom = atom, shape = x_shape,
-                                title = "Data values", filters = self.filters)
-        h5file.createCArray(gcolumns, 'y', atom = atom, shape = y_shape,
-                                title = "Data targets", filters = self.filters)
+        atom = (tables.Float32Atom() if config.floatX == 'float32'
+                else tables.Float64Atom())
+        h5file.createCArray(gcolumns, 'X', atom=atom, shape=x_shape,
+                            title="Data values", filters=self.filters)
+        h5file.createCArray(gcolumns, 'y', atom=atom, shape=y_shape,
+                            title="Data targets", filters=self.filters)
         return h5file, gcolumns
 
     @staticmethod
@@ -1010,7 +1017,8 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         data_size = data_x.shape[0]
         last = np.floor(data_size / float(batch_size)) * batch_size
         for i in xrange(0, data_size, batch_size):
-            stop = i + np.mod(data_size, batch_size) if i >= last else i + batch_size
+            stop = (i + np.mod(data_size, batch_size) if i >= last
+                    else i + batch_size)
             assert len(range(start + i, start + stop)) == len(range(i, stop))
             assert (start + stop) <= (node.X.shape[0])
             node.X[start + i: start + stop, :] = data_x[i:stop, :]
@@ -1038,7 +1046,8 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         start = 0 if start is None else start
         stop = gcolumns.X.nrows if stop is None else stop
 
-        atom = tables.Float32Atom() if config.floatX == 'float32' else tables.Float64Atom()
+        atom = (tables.Float32Atom() if config.floatX == 'float32'
+                else tables.Float64Atom())
         x = h5file.createCArray(gcolumns,
                                 'X',
                                 atom=atom,
@@ -1058,6 +1067,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         h5file.renameNode('/', "Data", "Data_")
         h5file.flush()
         return h5file, gcolumns
+
 
 class DefaultViewConverter(object):
     """
@@ -1130,7 +1140,7 @@ class DefaultViewConverter(object):
 
             WRITEME
         """
-        rval =  self.design_mat_to_topo_view(X)
+        rval = self.design_mat_to_topo_view(X)
 
         # weights view is always for display
         rval = np.transpose(rval, tuple(self.axes.index(axis)
@@ -1158,7 +1168,7 @@ class DefaultViewConverter(object):
         batch_size = V.shape[0]
 
         rval = np.zeros((batch_size, self.pixels_per_channel * num_channels),
-                       dtype=V.dtype)
+                        dtype=V.dtype)
 
         for i in xrange(num_channels):
             ppc = self.pixels_per_channel
@@ -1243,19 +1253,20 @@ def from_dataset(dataset, num_examples):
         # dataset.X is None This logic should be removed whenever we implement
         # lazy loading
 
-        if isinstance(dataset, DenseDesignMatrix) \
-               and dataset.X is None\
-               and not control.get_load_data():
-            warnings.warn("from_dataset wasn't able to make subset of dataset, "
-                          "using the whole thing")
+        if isinstance(dataset, DenseDesignMatrix) and \
+           dataset.X is None and \
+           not control.get_load_data():
+            warnings.warn("from_dataset wasn't able to make subset of "
+                          "dataset, using the whole thing")
             return DenseDesignMatrix(X=None,
                                      view_converter=dataset.view_converter)
         raise
 
-    rval =  DenseDesignMatrix(topo_view=V, y=y)
+    rval = DenseDesignMatrix(topo_view=V, y=y)
     rval.adjust_for_viewer = dataset.adjust_for_viewer
 
     return rval
+
 
 def dataset_range(dataset, start, stop):
     """
@@ -1273,7 +1284,7 @@ def dataset_range(dataset, start, stop):
         y = None
     else:
         if dataset.y.ndim == 2:
-            y = dataset.y[start:stop,:].copy()
+            y = dataset.y[start:stop, :].copy()
         else:
             y = dataset.y[start:stop].copy()
         assert X.shape[0] == y.shape[0]
@@ -1282,6 +1293,7 @@ def dataset_range(dataset, start, stop):
     rval = DenseDesignMatrix(topo_view=topo, y=y)
     rval.adjust_for_viewer = dataset.adjust_for_viewer
     return rval
+
 
 def convert_to_one_hot(dataset, min_class=0):
     """
@@ -1293,6 +1305,7 @@ def convert_to_one_hot(dataset, min_class=0):
     """
     dataset.convert_to_one_hot(min_class=min_class)
     return dataset
+
 
 def set_axes(dataset, axes):
     """
