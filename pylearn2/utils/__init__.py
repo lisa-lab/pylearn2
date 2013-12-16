@@ -1,4 +1,4 @@
-import os
+import os, warnings
 
 from .general import is_iterable
 import theano
@@ -33,21 +33,37 @@ def make_name(variable, anon="anonymous_variable"):
     return anon
 
 
-def sharedX(value, name=None, borrow=False):
+def sharedX(value, name=None, borrow=False, dtype=theano.config.floatX):
     """
-    Transform value into a shared variable of type floatX
+    Transform value into a shared variable of the specified theano dtype.
 
     Parameters
     ----------
     value : WRITEME
     name : WRITEME
     borrow : WRITEME
+    dtype : a string corresponding to a Theano scalar type. Note that as of
+            this writing (16 Dec 2013), Theano has GPU support only for
+            theano.config.floatX on the GPU. If you use any other dtype,
+            computations using it will get booted off the GPU. You are
+            therefore encouranged not to use other dtypes unless you know what
+            you're doing. See theano.scalar.all_types for a complete list of
+            Theano scalar types.
 
     Returns
     -------
     WRITEME
     """
-    return theano.shared(theano._asarray(value, dtype=theano.config.floatX),
+    assert isinstance(dtype, str)
+    assert dtype in (x.dtype for x in theano.scalar.all_types)
+    if dtype != theano.config.floatX:
+        warnings.warn("Support for data types other than theano.config.floatX "
+                      "is experimental. Users are encouraged to stick to "
+                      "theano.config.floatX unless they know what they're "
+                      "doing.",
+                      stacklevel=2)
+
+    return theano.shared(theano._asarray(value, dtype=dtype),
                          name=name,
                          borrow=borrow)
 
