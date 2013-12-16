@@ -27,7 +27,7 @@ def make_name(variable, anon="anonymous_variable"):
     WRITEME
     """
 
-    if hasattr(variable,'name') and variable.name is not None:
+    if hasattr(variable, 'name') and variable.name is not None:
         return variable.name
 
     return anon
@@ -48,8 +48,8 @@ def sharedX(value, name=None, borrow=False):
     WRITEME
     """
     return theano.shared(theano._asarray(value, dtype=theano.config.floatX),
-         name=name,
-         borrow=borrow)
+                         name=name,
+                         borrow=borrow)
 
 
 def as_floatX(variable):
@@ -107,7 +107,8 @@ def subdict(d, keys):
     """
     result = {}
     for key in keys:
-        if key in d: result[key] = d[key]
+        if key in d:
+            result[key] = d[key]
     return result
 
 
@@ -136,7 +137,7 @@ class CallbackOp(theano.gof.Op):
     A Theano Op that implements the identity transform but also does an
     arbitrary (user-specified) side effect.
     """
-    view_map = { 0: [0] }
+    view_map = {0: [0]}
 
     def __init__(self, callback):
         """
@@ -230,6 +231,7 @@ def get_dataless_dataset(model):
         control.pop_load_data()
     return rval
 
+
 def safe_zip(*args):
     """
     Like zip, but ensures arguments are of same length
@@ -237,9 +239,10 @@ def safe_zip(*args):
     base = len(args[0])
     for i, arg in enumerate(args[1:]):
         if len(arg) != base:
-            raise ValueError("Argument 0 has length "+str(base)+\
-                " but argument "+str(i+1)+" has length "+str(len(arg)))
+            raise ValueError("Argument 0 has length %d but argument %d has "
+                             "length %d" % (base, i+1, len(arg))
     return zip(*args)
+
 
 # TODO: Is this a duplicate?
 def safe_izip(*args):
