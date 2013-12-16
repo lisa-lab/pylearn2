@@ -142,11 +142,17 @@ class Space(object):
             WRITEME
         """
         if dtype is None:
-            return sharedX(self.get_origin_batch(batch_size), name)
-        else:
-            raise NotImplementedError()
+            if hasattr(self, 'dtype'):
+                dtype = self.dtype
+            else:
+                dtype = config.floatX
 
-    def make_theano_batch(self, name=None, dtype=None, batch_size=None):
+        return sharedX(self.get_origin_batch(batch_size), name, dtype)
+
+    def make_theano_batch(self,
+                          name=None,
+                          dtype=None,
+                          batch_size=None):
         """
         Returns a symbolic variable representing a batch of points
         in this space.
@@ -387,8 +393,7 @@ class VectorSpace(Space):
                           dtype=None,
                           batch_size=None):
         if dtype is None:
-            dtype = config.floatX
-
+            dtype = self.dtype
         if self.sparse:
             if batch_size is not None:
                 raise NotImplementedError("batch_size not implemented "
@@ -624,8 +629,8 @@ class Conv2DSpace(Space):
     @functools.wraps(Space.get_origin_batch)
     def get_origin_batch(self, n, dtype=None):
         if dtype is None:
-            dtype = config.floatX
-
+            dtype = self.dtype
+            
         if not isinstance(n, py_integer_types):
             raise TypeError("Conv2DSpace.get_origin_batch expects an int, "
                             "got " + str(n) + " of type " + str(type(n)))
@@ -638,10 +643,10 @@ class Conv2DSpace(Space):
         return np.zeros(shape, dtype=dtype)
 
     @functools.wraps(Space.make_theano_batch)
-    def make_theano_batch(self, name=None, dtype=None, batch_size=None):
-        if dtype is None:
-            dtype = config.floatX
-
+    def make_theano_batch(self,
+                          name=None,
+                          dtype=config.floatX,
+                          batch_size=None):
         broadcastable = [False] * 4
         broadcastable[self.axes.index('c')] = (self.num_channels == 1)
         broadcastable[self.axes.index('b')] = (batch_size == 1)
@@ -1077,14 +1082,14 @@ class CompositeSpace(Space):
                       component in self.components])
 
     @functools.wraps(Space.make_theano_batch)
-    def make_theano_batch(self, name=None, dtype=None, batch_size=None):
+    def make_theano_batch(self,
+                          name=None,
+                          dtype=config.floatX,
+                          batch_size=None):
         if name is None:
             name = [None] * len(self.components)
         elif not isinstance(name, (list, tuple)):
             name = ['%s[%i]' % (name, i) for i in xrange(len(self.components))]
-
-        if dtype is None:
-            dtype = [None] * len(self.components)
 
         if isinstance(dtype, str):
             assert dtype in tuple(t.dtype for t in theano.scalar.all_types)
@@ -1174,7 +1179,7 @@ class NullSpace(Space):
         return hash(type(self))
 
     @functools.wraps(Space.make_theano_batch)
-    def make_theano_batch(self, name=None, dtype=None):
+    def make_theano_batch(self, name=None, dtype=config.floatX):
         return None
 
     @functools.wraps(Space.validate)
