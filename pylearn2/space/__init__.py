@@ -158,15 +158,22 @@ class Space(object):
     def make_shared_batch(self,
                           batch_size,
                           name=None,
-                          dtype='floatX'):
+                          dtype=None):
         """
         .. todo::
 
             WRITEME
         """
+        if dtype is None:
+            if hasattr(self, 'dtype'):
+                dtype = self.dtype
+            else:
+                dtype = config.floatX
+
         if dtype == 'floatX':
             dtype = config.floatX
-        elif dtype is not config.floatX:
+
+        if dtype is not config.floatX:
             warnings.warn("Support for dtypes other than theano.config.floatX "
                           "is in early development. Users are encouraged to "
                           "stick to theano.config.floatX for now unless they "
@@ -177,7 +184,7 @@ class Space(object):
 
     def make_theano_batch(self,
                           name=None,
-                          dtype='floatX',
+                          dtype=None,
                           batch_size=None):
         """
         Returns a symbolic variable representing a batch of points
@@ -453,6 +460,9 @@ class VectorSpace(Space):
     def get_origin_batch(self, n, dtype=None):
         if dtype is None:
             dtype = self.dtype
+        elif dtype == 'floatX':
+            dtype = config.floatX
+
         return np.zeros((n, self.dim), dtype=dtype)
 
     @functools.wraps(Space.batch_size)
@@ -727,6 +737,8 @@ class Conv2DSpace(Space):
                           batch_size=None):
         if dtype is None:
             dtype = self.dtype
+        elif dtype == 'floatX':
+            dtype = config.floatX
 
         broadcastable = [False] * 4
         broadcastable[self.axes.index('c')] = (self.num_channels == 1)
@@ -1172,7 +1184,6 @@ class CompositeSpace(Space):
         elif not isinstance(name, (list, tuple)):
             name = ['%s[%i]' % (name, i) for i in xrange(len(self.components))]
 
-        assert isinstance(name, (list, tuple))
         assert dtype is None or isinstance(dtype, (str, list, tuple))
 
         if isinstance(dtype, str):
@@ -1186,7 +1197,7 @@ class CompositeSpace(Space):
 
         assert isinstance(name, (list, tuple))
         assert isinstance(dtype, (list, tuple))
-        
+
         rval = tuple([x.make_theano_batch(name=n,
                                           dtype=d,
                                           batch_size=batch_size)
