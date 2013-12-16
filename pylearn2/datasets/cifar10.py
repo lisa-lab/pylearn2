@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import os, cPickle, logging
 _logger = logging.getLogger(__name__)
 
@@ -6,10 +11,21 @@ N = np
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.expr.preprocessing import global_contrast_normalize
 
+
 class CIFAR10(dense_design_matrix.DenseDesignMatrix):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, which_set, center = False, rescale = False, gcn = None,
             one_hot = False, start = None, stop = None, axes=('b', 0, 1, 'c'),
             toronto_prepro = False, preprocessor = None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
 
         # note: there is no such thing as the cifar10 validation set;
@@ -126,6 +142,11 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
             preprocessor.apply(self)
 
     def adjust_for_viewer(self, X):
+        """
+        .. todo::
+
+            WRITEME
+        """
         #assumes no preprocessing. need to make preprocessors mark the new ranges
         rval = X.copy()
 
@@ -154,6 +175,11 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         return rval
 
     def adjust_to_be_viewed_with(self, X, orig, per_example = False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # if the scale is set based on the data, display X oring the scale determined
         # by orig
         # assumes no preprocessing. need to make preprocessors mark the new ranges
@@ -188,6 +214,11 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         return rval
 
     def get_test_set(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return CIFAR10(which_set='test', center=self.center, rescale=self.rescale, gcn=self.gcn,
                 one_hot=self.one_hot, toronto_prepro=self.toronto_prepro, axes=self.axes)
 
@@ -195,8 +226,10 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
     @classmethod
     def _unpickle(cls, file):
         """
-        TODO: wtf is this? why not just use serial.load like the CIFAR-100 class?
-        whoever wrote it shows up as "unknown" in git blame
+        .. todo::
+
+            What is this? why not just use serial.load like the CIFAR-100
+            class? Whoever wrote it shows up as "unknown" in git blame.
         """
         from pylearn2.utils import string_utils
         fname = os.path.join(

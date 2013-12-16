@@ -12,16 +12,18 @@ from pylearn2.utils.python26 import cmp_to_key
 
 def preprocess(string):
     """
-    Preprocesses a string, by replacing ${VARNAME} with
-    os.environ['VARNAME']
+    Preprocesses a string, by replacing `${VARNAME}` with
+    `os.environ['VARNAME']`
 
     Parameters
     ----------
-    string: the str object to preprocess
+    string : str
+        String object to preprocess
 
     Returns
     -------
-    the preprocessed string
+    rval : str
+        The preprocessed string
     """
 
     split = string.split('${')
@@ -67,10 +69,19 @@ def preprocess(string):
 
 
 def find_number(s):
-    """ s is a string
-        returns None if there are no numbers in the string
-        otherwise returns the range of characters occupied by the first
-        number in the string """
+    """
+    Returns None if there are no numbers in the string. Otherwise, returns the
+    range of characters occupied by the first number in the string.
+
+    Parameters
+    ----------
+    s : str
+        WRITEME
+
+    Returns
+    -------
+    WRITEME
+    """
 
     r = re.search('-?\d+[.e]?\d*',s)
     if r is not None:
@@ -78,9 +89,19 @@ def find_number(s):
     return None
 
 def tokenize_by_number(s):
-    """ splits a string into a list of tokens
-        each is either a string containing no numbers
-        or a float """
+    """
+    Splits a string into a list of tokens. Each is either a string containing
+    no numbers or a float.
+
+    Parameters
+    ----------
+    s : str
+        WRITEME
+
+    Returns
+    -------
+    WRITEME
+    """
 
     r = find_number(s)
 
@@ -98,11 +119,21 @@ def tokenize_by_number(s):
 
 
 def number_aware_alphabetical_cmp(str1, str2):
-    """ cmp function for sorting a list of strings by alphabetical order, but with
-        numbers sorted numerically.
+    """
+    cmp function for sorting a list of strings by alphabetical order, but with
+    numbers sorted numerically, i.e. `foo1, foo2, foo10, foo11` instead of
+    `foo1, foo10, foo11, foo2`.
 
-        i.e., foo1, foo2, foo10, foo11
-        instead of foo1, foo10
+    Parameters
+    ----------
+    str1 : str
+        WRITEME
+    str2 : str
+        WRITEME
+
+    Returns
+    -------
+    WRITEME
     """
 
     def flatten_tokens(tokens):
@@ -142,16 +173,25 @@ number_aware_alphabetical_key = cmp_to_key(number_aware_alphabetical_cmp)
 
 def match(wrong, candidates):
     """
-        wrong: a mispelling
-        candidates: a set of correct words
+    Returns a guess of which candidate is the right one based on the wrong word
 
-        returns a guess of which candidate is the right one
+    Parameters
+    ----------
+    wrong : str
+        A mispelling
+    candidates : list of str
+        A set of correct words
 
-        This should be used with a small number of candidates and a high potential
-        edit distance.
-        ie, use it to correct a wrong filename in a directory, wrong class name
-        in a module, etc. Don't use it to correct small typos of freeform natural
-        language words.
+    Returns
+    -------
+    WRITEME
+
+    Notes
+    -----
+    This should be used with a small number of candidates and a high potential
+    edit distance (i.e. use it to correct a wrong filename in a directory,
+    wrong class name in a module, etc.) Don't use it to correct small typos of
+    freeform natural language words.
     """
 
     assert len(candidates) > 0

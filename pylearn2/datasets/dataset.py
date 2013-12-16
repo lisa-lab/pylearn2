@@ -1,3 +1,9 @@
+"""
+.. todo::
+
+    WRITEME
+"""
+
 class Dataset(object):
     """Abstract interface for Datasets."""
     def get_batch_design(self, batch_size, include_labels=False):
@@ -23,6 +29,11 @@ class Dataset(object):
         raise NotImplementedError()
 
     def __iter__(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.iterator()
 
     def iterator(self, mode=None, batch_size=None, num_batches=None,
@@ -34,31 +45,31 @@ class Dataset(object):
         Parameters
         ----------
         mode : str or object, optional
-            One of 'sequential', 'random_slice', or 'random_uniform',
-            *or* a class that instantiates an iterator that returns
+            One of 'sequential', 'random_slice', or 'random_uniform', \
+            *or* a class that instantiates an iterator that returns \
             slices or index sequences on every call to next().
         batch_size : int, optional
-            The size of an individual batch. Optional if `mode` is
-            'sequential' and `num_batches` is specified (batch size
+            The size of an individual batch. Optional if `mode` is \
+            'sequential' and `num_batches` is specified (batch size \
             will be calculated based on full dataset size).
         num_batches : int, optional
-            The total number of batches. Unnecessary if `mode` is
-            'sequential' and `batch_size` is specified (number of
+            The total number of batches. Unnecessary if `mode` is \
+            'sequential' and `batch_size` is specified (number of \
             batches will be calculated based on full dataset size).
         topo : boolean, optional
-            Whether batches returned by the iterator should present
-            examples in a topological view or not. Defaults to
+            Whether batches returned by the iterator should present \
+            examples in a topological view or not. Defaults to \
             `False`.
         rng : int, object or array_like, optional
-            Either an instance of `numpy.random.RandomState` (or
-            something with a compatible interface), or a seed value
-            to be passed to the constructor to create a `RandomState`.
-            See the docstring for `numpy.random.RandomState` for
-            details on the accepted seed formats. If unspecified,
-            defaults to using the dataset's own internal random
-            number generator, which persists across iterations
-            through the dataset and may potentially be shared by
-            multiple iterator objects simultaneously (see "Notes"
+            Either an instance of `numpy.random.RandomState` (or \
+            something with a compatible interface), or a seed value \
+            to be passed to the constructor to create a `RandomState`. \
+            See the docstring for `numpy.random.RandomState` for \
+            details on the accepted seed formats. If unspecified, \
+            defaults to using the dataset's own internal random \
+            number generator, which persists across iterations \
+            through the dataset and may potentially be shared by \
+            multiple iterator objects simultaneously (see "Notes" \
             below).
         targets: TODO WRITEME: DWF or LD should fill this in, but
             IG thinks it is just a bool saying whether to include
@@ -67,9 +78,9 @@ class Dataset(object):
         Returns
         -------
         iter_obj : object
-            An iterator object implementing the standard Python
-            iterator protocol (i.e. it has an `__iter__` method that
-            return the object itself, and a `next()` method that
+            An iterator object implementing the standard Python \
+            iterator protocol (i.e. it has an `__iter__` method that \
+            return the object itself, and a `next()` method that \
             returns results until it raises `StopIteration`).
 
         Notes
@@ -90,15 +101,19 @@ class Dataset(object):
 
     def adjust_for_viewer(self, X):
         """
-            X: a tensor in the same space as the data
-            returns the same tensor shifted and scaled by a transformation
-            that maps the data range to [-1, 1] so that it can be displayed
-            with pylearn2.gui.patch_viewer tools
+        .. todo::
 
-            for example, for MNIST X will lie in [0,1] and the return value
-                should be X*2-1
+            WRITEME properly
+        
+        X: a tensor in the same space as the data
+        returns the same tensor shifted and scaled by a transformation
+        that maps the data range to [-1, 1] so that it can be displayed
+        with pylearn2.gui.patch_viewer tools
 
-            Default is to do nothing
+        for example, for MNIST X will lie in [0,1] and the return value
+            should be X*2-1
+
+        Default is to do nothing
         """
 
         return X

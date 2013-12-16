@@ -21,25 +21,22 @@ def log_timing(logger, task, level=logging.INFO, final_msg=None, callbacks=None)
     Parameters
     ----------
     logger : object
-        A Python standard library logger object, or an object
-        that supports the `logger.log(level, message, ...)`
+        A Python standard library logger object, or an object \
+        that supports the `logger.log(level, message, ...)` \
         API it defines.
-
     task : str
-        A string indicating the operation being performed.
-        A '...' will be appended to the initial logged message.
+        A string indicating the operation being performed. \
+        A '...' will be appended to the initial logged message. \
         If `None`, no initial message will be printed.
-
     level : int, optional
         The log level to use. Default `logging.INFO`.
-
     final_msg : str, optional
-        Display this before the reported time instead of
-        '<task> done. Time elapsed:'. A space will be
+        Display this before the reported time instead of \
+        '<task> done. Time elapsed:'. A space will be \
         added between this message and the reported
         time.
     callbacks: list, optional
-        A list of callbacks taking as argument an
+        A list of callbacks taking as argument an \
         integer representing the total number of seconds 
     """
     start = datetime.datetime.now()

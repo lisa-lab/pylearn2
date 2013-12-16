@@ -89,6 +89,11 @@ class FourRegions(DenseDesignMatrix):
     _default_seed = (2013, 05, 17)
 
     def __init__(self, num_examples, one_hot=False, rng=(2013, 05, 17)):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if not hasattr(rng, 'uniform'):
             rng = np.random.RandomState(rng)
         X = rng.uniform(-1, 1, size=(num_examples, 2))

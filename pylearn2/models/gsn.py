@@ -31,6 +31,11 @@ from pylearn2.utils import safe_zip
 
 
 class GSN(StackedBlocks, Model):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, autoencoders, preact_cors=None, postact_cors=None,
                  layer_samplers=None):
         """
@@ -39,40 +44,37 @@ class GSN(StackedBlocks, Model):
         Parameters
         ----------
         autoencoders : list
-            A list of autoencoder objects. As of now, only the functionality
+            A list of autoencoder objects. As of now, only the functionality \
             from the base Autoencoder class is used.
         preact_cors : list
-            A list of length len(autoencoders) + 1 where each element is a
-            callable (which includes Corruptor objects). The callable at index
-            i is called before activating the ith layer. Name stands for
-            "preactivation corruptors".
-            Valid values: None or list of length len(autoencoders) + 1. If the
-            list contains a non-callable corruptor for a layer, then no
-            corruption function is applied for that layer.
+            A list of length len(autoencoders) + 1 where each element is a \
+            callable (which includes Corruptor objects). The callable at \
+            index i is called before activating the ith layer. Name stands \
+            for "preactivation corruptors".
         postact_cors : list
-            A list of length len(autoencoders) + 1 where each element is a
-            callable (which includes Corruptor objects). The callable at index
-            i is called directly after activating the ith layer. Name stands for
-            "postactivation corruptors".
-            The valid values for this parameter are the same as that for
-            preact_cors.
+            A list of length len(autoencoders) + 1 where each element is a \
+            callable (which includes Corruptor objects). The callable at \
+            index i is called directly after activating the ith layer. Name \
+            stands for "postactivation corruptors". The valid values for this \
+            parameter are the same as that for preact_cors.
         layer_samplers: list
-            Describes how to sample from each layer. Sampling occurs directly
-            before the post activation corruption is applied.
-            Valid values for this argument are of the same form as valid parameters
-            for preact_cor and postact_cor (and if an element in the list is None,
-            no sampling will be applied at that layer). Note: as of right now,
-            we've only experimented with sampling at the visible layer.
+            Describes how to sample from each layer. Sampling occurs directly \
+            before the post activation corruption is applied. Valid values \
+            for this argument are of the same form as valid parameters for \
+            preact_cor and postact_cor (and if an element in the list is \
+            None, no sampling will be applied at that layer). Note: as of \
+            right now, we've only experimented with sampling at the visible \
+            layer.
 
         Notes
         -----
-        Most of the time it will be much easier to construct a GSN using GSN.new
-        rather than GSN.__init__. This method exists to make the GSN class very
-        easy to modify.
+        Most of the time it will be much easier to construct a GSN using
+        GSN.new rather than GSN.__init__. This method exists to make the GSN
+        class very easy to modify.
 
-        The activation function for the visible layer is the "act_dec"
-        function on the first autoencoder, and the activation function for the
-        i_th hidden layer is the "act_enc" function on the (i - 1)th autoencoder.
+        The activation function for the visible layer is the "act_dec" function
+        on the first autoencoder, and the activation function for the i_th
+        hidden layer is the "act_enc" function on the (i - 1)th autoencoder.
         """
         super(GSN, self).__init__(autoencoders)
 
@@ -97,6 +99,11 @@ class GSN(StackedBlocks, Model):
 
         # do some type checking and convert None's to identity function
         def _make_callable_list(previous):
+            """
+            .. todo::
+
+                WRITEME
+            """
             if len(previous) != self.nlayers:
                 raise ValueError("Need same number of corruptors/samplers as layers")
 
@@ -113,6 +120,12 @@ class GSN(StackedBlocks, Model):
     def _make_aes(layer_sizes, activation_funcs, tied=True):
         """
         Creates the Autoencoder objects needed by the GSN.
+
+        Parameters
+        ----------
+        layer_sizes : WRITEME
+        activation_funcs : WRITEME
+        tied : WRITEME
         """
         aes = []
         assert len(activation_funcs) == len(layer_sizes)
@@ -142,25 +155,25 @@ class GSN(StackedBlocks, Model):
         Parameters
         ----------
         layer_sizes : list
-            A list of integers. The i_th element in the list is the size of the
-            i_th layer of the network, and the network will have len(layer_sizes)
-            layers.
+            A list of integers. The i_th element in the list is the size of \
+            the i_th layer of the network, and the network will have \
+            len(layer_sizes) layers.
         activation_funcs : list
-            activation_funcs must be a list of the same length as layer_sizes
-            where the i_th element is the activation function for the i_th layer.
-            Each component of the list must refer to an activation function
-            in such a way that the Autoencoder class recognizes the function.
-            Valid values include a callable (which takes a symbolic tensor),
-            a string that refers to a Theano activation function, or None
-            (which gives the identity function).
+            activation_funcs must be a list of the same length as layer_sizes \
+            where the i_th element is the activation function for the i_th \
+            layer. Each component of the list must refer to an activation \
+            function in such a way that the Autoencoder class recognizes the \
+            function. Valid values include a callable (which takes a symbolic \
+            tensor), a string that refers to a Theano activation function, or \
+            None (which gives the identity function).
         preact_corruptors : list
-            preact_corruptors follows exactly the same format as the
+            preact_corruptors follows exactly the same format as the \
             activations_func argument.
         postact_corruptors : list
-            postact_corruptors follows exactly the same format as the
+            postact_corruptors follows exactly the same format as the \
             activations_func argument.
         layer_samplers : list
-            layer_samplers follows exactly the same format as the
+            layer_samplers follows exactly the same format as the \
             activations_func argument.
         tied : bool
             Indicates whether the network should use tied weights.
@@ -174,8 +187,9 @@ class GSN(StackedBlocks, Model):
         -sampling
         -post-activation corruption
 
-        All setting and returning of values occurs after applying the activation
-        function (or clamping if clamping is used) but before applying sampling.
+        All setting and returning of values occurs after applying the
+        activation function (or clamping if clamping is used) but before
+        applying sampling.
         """
         args = [layer_sizes, pre_corruptors, post_corruptors, layer_samplers]
         if not all(isinstance(arg, list) for arg in args):
@@ -194,6 +208,11 @@ class GSN(StackedBlocks, Model):
 
     @functools.wraps(Model.get_params)
     def get_params(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         params = set()
         for ae in self.aes:
             params.update(ae.get_params())
@@ -217,21 +236,21 @@ class GSN(StackedBlocks, Model):
         walkback : int
             How many walkback steps to perform.
         clamped : list of theano tensors or None.
-            clamped must be None or a list of len(minibatch) where each element
-            is a Theano tensor or None. Each Theano tensor should be 1 for
-            indices where the value should be clamped and 0 for where the value
-            should not be clamped.
+            clamped must be None or a list of len(minibatch) where each \
+            element is a Theano tensor or None. Each Theano tensor should be \
+            1 for indices where the value should be clamped and 0 for where \
+            the value should not be clamped.
 
         Returns
         -------
         steps : list of list of tensor_likes
-            A list of the activations at each time step. The activations
-            themselves are lists of tensor_like symbolic variables.
-            A time step consists of a call to the _update function (so updating
-            both the even and odd layers).
-            When there is no walkback, the GSN runs long enough for signal from
-            the bottom layer to propogate to the top layer and then back to the
-            bottom. The walkback parameter adds single steps on top of the default.
+            A list of the activations at each time step. The activations \
+            themselves are lists of tensor_like symbolic variables. \
+            A time step consists of a call to the _update function \
+            (so updating both the even and odd layers). When there is no \
+            walkback, the GSN runs long enough for signal from the bottom \
+            layer to propogate to the top layer and then back to the bottom. \
+            The walkback parameter adds single steps on top of the default.
         """
         # the indices which are being set
         set_idxs = safe_zip(*minibatch)[0]
@@ -284,6 +303,11 @@ class GSN(StackedBlocks, Model):
         """
         Compiles, wraps, and caches Theano functions for non-symbolic calls
         to get_samples.
+
+        Parameters
+        ----------
+        indices : WRITEME
+        clamped : WRITEME
         """
         def compile_f_init():
             mb = T.matrices(len(indices))
@@ -352,39 +376,41 @@ class GSN(StackedBlocks, Model):
         Parameters
         ----------
         minibatch : see parameter description in _set_activations
-            In addition to the description in get_samples, the tensor_likes
+            In addition to the description in get_samples, the tensor_likes \
             in the list should be replaced by numpy matrices if symbolic=False.
         walkback : int
-            How many walkback steps to perform. This is both how many extra
-            samples to take as well as how many extra reconstructed points
-            to train off of. See description in _run.
+            How many walkback steps to perform. This is both how many extra \
+            samples to take as well as how many extra reconstructed points \
+            to train off of. See description in _run. \
             This parameter controls how many samples you get back.
         indices : None or list of ints
-            Indices of the layers that should be returned for each time step.
-            If indices is None, then get_samples returns the values for all of
-            the layers which were initially specified (by minibatch).
+            Indices of the layers that should be returned for each time step. \
+            If indices is None, then get_samples returns the values for all \
+            of the layers which were initially specified (by minibatch).
         symbolic : bool
-            Whether the input (minibatch) contains a Theano (symbolic) tensors
-            or actual (numpy) arrays. This flag is needed because Theano cannot
-            compile the large computational graphs that walkback creates.
+            Whether the input (minibatch) contains a Theano (symbolic) \
+            tensors or actual (numpy) arrays. This flag is needed because \
+            Theano cannot compile the large computational graphs that \
+            walkback creates.
         include_first : bool
-            Whether to include the initial activations (ie just the input) in
-            the output. This is useful for visualization, but can screw up
-            training due to some cost functions failing on perfect reconstruction.
+            Whether to include the initial activations (ie just the input) in \
+            the output. This is useful for visualization, but can screw up \
+            training due to some cost functions failing on perfect \
+            reconstruction.
         clamped : list of tensor_likes
-            See description on _run. Theano symbolics should be replaced by
-            numpy matrices if symbolic=False.
-            Length must be the same as length of minibatch.
+            See description on _run. Theano symbolics should be replaced by \
+            numpy matrices if symbolic=False. Length must be the same as \
+            length of minibatch.
 
         Returns
         -------
         reconstructions : list of tensor_likes
-            A list of length 1 + number of layers + walkback that contains the
-            samples generated by the GSN. The layers returned at each time step
-            is decided by the indices parameter (and defaults to the layers
-            specified in minibatch).
-            If include_first is True, then the list will be
-            1 element longer (inserted at beginning) than specified above.
+            A list of length 1 + number of layers + walkback that contains \
+            the samples generated by the GSN. The layers returned at each \
+            time step is decided by the indices parameter (and defaults to \
+            the layers specified in minibatch). If include_first is True, \
+            then the list will be 1 element longer (inserted at beginning) \
+            than specified above.
         """
         if walkback > 8 and symbolic:
             warnings.warn(("Running GSN in symbolic mode (needed for training) " +
@@ -424,6 +450,11 @@ class GSN(StackedBlocks, Model):
 
     @functools.wraps(Autoencoder.reconstruct)
     def reconstruct(self, minibatch):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # included for compatibility with cost functions for autoencoders,
         # so assumes model is in unsupervised mode
 
@@ -435,6 +466,14 @@ class GSN(StackedBlocks, Model):
         """
         As specified by StackedBlocks, this returns the output representation of
         all layers. This occurs at the final time step.
+
+        Parameters
+        ----------
+        minibatch : WRITEME
+
+        Returns
+        -------
+        WRITEME
         """
         return self._run(minibatch)[-1]
 
@@ -461,17 +500,18 @@ class GSN(StackedBlocks, Model):
         Parameters
         ----------
         minibatch : list of (int, tensor_like)
-            The minibatch parameter must be a list of tuples of form
-            (int, tensor_like), where the int component represents the index of
-            the layer (so 0 for visible, -1 for top/last layer) and the tensor_like
-            represents the activation at that level. Layer indices not included
-            in the minibatch will be set to 0. For tuples included in the
-            minibatch, the tensor_like component can actually be None; this will
-            result in that layer getting set to 0 initially.
+            The minibatch parameter must be a list of tuples of form \
+            (int, tensor_like), where the int component represents the index \
+            of the layer (so 0 for visible, -1 for top/last layer) and the \
+            tensor_like represents the activation at that level. Layer \
+            indices not included in the minibatch will be set to 0. For \
+            tuples included in the minibatch, the tensor_like component can \
+            actually be None; this will result in that layer getting set to 0 \
+            initially.
         set_val : bool
             Determines whether the method sets self.activations.
         corrupt : bool
-            Instructs the method to return both a non-corrupted and corrupted
+            Instructs the method to return both a non-corrupted and corrupted \
             set of activations rather than just non-corrupted.
 
         Notes
@@ -519,13 +559,13 @@ class GSN(StackedBlocks, Model):
         activations : list
             List of symbolic tensors representing the current activations.
         skip_idxs : list
-            List of integers representing which odd indices should not be
-            updated. This parameter exists so that _set_activations can solve
-            the tricky problem of initializing the network when both even and
+            List of integers representing which odd indices should not be \
+            updated. This parameter exists so that _set_activations can solve \
+            the tricky problem of initializing the network when both even and \
             odd layers are being assigned.
         corrupt : bool
-            Whether or not to apply post-activation corruption to the odd
-            layers. This parameter does not alter the return value of this
+            Whether or not to apply post-activation corruption to the odd \
+            layers. This parameter does not alter the return value of this \
             method but does modify the activations parameter in place.
         clamped : list
             See description for _apply_clamping.
@@ -579,27 +619,28 @@ class GSN(StackedBlocks, Model):
         clamped : list
             See description on _apply_clamping
         return_activations : bool
-            If true, then this method returns both the activation values
-            after the activation function has been applied and the values
-            after the sampling + post-activation corruption has been applied.
-            If false, then only return the values after the activation function
-            has been applied (no corrupted version).
-            This parameter is only set to True when compiling the functions
-            needed by get_samples.
-            Regardless of this parameter setting, the sampling/post-activation
-            corruption noise is still added in-place to activations.
+            If true, then this method returns both the activation values \
+            after the activation function has been applied and the values \
+            after the sampling + post-activation corruption has been applied. \
+            If false, then only return the values after the activation \
+            function has been applied (no corrupted version). \
+            This parameter is only set to True when compiling the functions \
+            needed by get_samples. Regardless of this parameter setting, the \
+            sampling/post-activation corruption noise is still added in-place \
+            to activations.
 
         Returns
         -------
         y : list of tensors
             List of activations at time step t (prior to adding postact noise).
 
-        Note
-        ----
-        The return value is generally not equal to the value of activations at the
-        the end of this method. The return value contains all layers without
-        sampling/post-activation noise, but the activations value contains
-        noise on the odd layers (necessary to compute the even layers).
+        Notes
+        -----
+        The return value is generally not equal to the value of activations at
+        the the end of this method. The return value contains all layers
+        without sampling/post-activation noise, but the activations value
+        contains noise on the odd layers (necessary to compute the even
+        layers).
         """
         evens_copy = self._update_evens(activations, clamped=clamped)
         odds_copy = self._update_odds(activations, clamped=clamped)
@@ -627,18 +668,15 @@ class GSN(StackedBlocks, Model):
         activations : list
             List of symbolic tensors representing the current activations.
         clamped : list of (int, matrix, matrix or None) tuples
-            The first component of each tuple is an int representing the index
-            of the layer to clamp.
-
-            The second component is a matrix of the initial values for that
-            layer (ie what we are resetting the values to).
-
-            The third component is a matrix mask indicated which indices in the
-            minibatch to clamp (1 indicates clamping, 0 indicates not). The value
-            of None is equivalent to the 0 matrix (so no clamping).
-
-            If symbolic is true then matrices are Theano tensors, otherwise they
-            should be numpy matrices.
+            The first component of each tuple is an int representing the \
+            index of the layer to clamp. \
+            The second component is a matrix of the initial values for that \
+            layer (ie what we are resetting the values to). \
+            The third component is a matrix mask indicated which indices in \
+            the minibatch to clamp (1 indicates clamping, 0 indicates not). \
+            The value of None is equivalent to the 0 matrix (so no clamping). \
+            If symbolic is true then matrices are Theano tensors, otherwise \
+            they should be numpy matrices.
         symbolic : bool
             Whether to execute with symbolic Theano tensors or numpy matrices.
         """
@@ -668,8 +706,9 @@ class GSN(StackedBlocks, Model):
         corruptors : list of callables
             Generally gsn.postact_cors or gsn.preact_cors
         idx_iter : iterable
-            An iterable of indices into self.activations. The indexes indicate
-            which layers the post activation corruptors should be applied to.
+            An iterable of indices into self.activations. The indexes \
+            indicate which layers the post activation corruptors should be \
+            applied to.
         """
         assert len(corruptors) == len(activations)
         for i in idx_iter:
@@ -677,6 +716,11 @@ class GSN(StackedBlocks, Model):
         return activations
 
     def apply_sampling(self, activations, idx_iter):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # using _apply_corruption to apply samplers
         if self._sample_switch:
             self._apply_corruption(activations, self._layer_samplers,
@@ -684,6 +728,11 @@ class GSN(StackedBlocks, Model):
         return activations
 
     def apply_postact_corruption(self, activations, idx_iter, sample=True):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if sample:
             self.apply_sampling(activations, idx_iter)
         if self._corrupt_switch:
@@ -692,6 +741,11 @@ class GSN(StackedBlocks, Model):
         return activations
 
     def apply_preact_corruption(self, activations, idx_iter):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self._corrupt_switch:
             self._apply_corruption(activations, self._preact_cors,
                                    idx_iter)
@@ -712,8 +766,8 @@ class GSN(StackedBlocks, Model):
             The activations to update (could be self.activations). Updates
             in-place.
         idx_iter : iterable
-            An iterable of indices into self.activations. The indexes indicate
-            which layers should be updated.
+            An iterable of indices into self.activations. The indexes \
+            indicate which layers should be updated. \
             Must be able to iterate over idx_iter multiple times.
         """
         from_above = lambda i: ((self.aes[i].visbias if self._bias_switch else 0) +
@@ -764,12 +818,13 @@ class JointGSN(GSN):
         ----------
         gsn : GSN
         input_idx : int
-            The index of the layer which serves as the "input" to the network.
-            During classification, this layer will be given. Defaults to 0.
+            The index of the layer which serves as the "input" to the \
+            network. During classification, this layer will be given. \
+            Defaults to 0.
         label_idx : int
-            The index of the layer which serves as the "output" of the network.
-            This label is predicted during classification. Defaults to top
-            layer of network.
+            The index of the layer which serves as the "output" of the \
+            network. This label is predicted during classification. \
+            Defaults to top layer of network.
         """
         gsn = copy.copy(gsn)
         gsn.__class__ = cls
@@ -781,6 +836,10 @@ class JointGSN(GSN):
         """
         Utility method that calculates how much walkback is needed to get at
         at least 'trials' samples.
+
+        Parameters
+        ----------
+        trials : WRITEME
         """
         wb = trials - len(self.aes)
         if wb <= 0:
@@ -821,8 +880,11 @@ class JointGSN(GSN):
         Parameters
         ----------
         minibatch : numpy matrix
+            WRITEME
         trials : int
+            WRITEME
         skip : int
+            WRITEME
 
         Notes
         -----
@@ -850,6 +912,11 @@ class JointGSN(GSN):
     def get_samples_from_labels(self, labels, trials=5):
         """
         Clamps labels and generates samples.
+
+        Parameters
+        ----------
+        labels : WRITEME
+        trials : WRITEME
         """
         clamped = np.ones(labels.shape, dtype=np.float32)
         data = self.get_samples([(self.label_idx, labels)],

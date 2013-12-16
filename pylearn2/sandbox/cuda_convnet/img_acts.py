@@ -66,19 +66,20 @@ class ImageActs(BaseActs):
     Currently, this op must be inserted manually, not by optimizations.
 
     Note that below the term "input" refers to the input to FilterActs.
-    This op does the tranpose of that, so its output is sized like FilterActs' input.
+    This op does the tranpose of that, so its output is sized like FilterActs'
+    input.
 
-    hid_acts:        (output channels, rows, cols, batch_size)
-    filters:         (input channels, filter rows, filter cols, output channels)
-                     rows must be the same as cols
-                     output channels must be a multiple of 16
+    * hid_acts: (output channels, rows, cols, batch_size)
+    * filters: (input channels, filter rows, filter cols, output channels).
+      Rows must be the same as cols. Output channels must be a multiple of 16.
+    * output: (input channels, input rows, input cols, batch size)
 
-    output:         (input channels, input rows, input cols, batch size)
-
-    Note: all of these convolution routines are optimized for the case when
-    the number of images (i.e. the minibatch size) is a multiple of 128.
-    Other batch sizes will work, but Alex "made no attempt whatsoever
-    to make them work fast."
+    Notes
+    -----
+    All of these convolution routines are optimized for the case when the
+    number of images (i.e. the minibatch size) is a multiple of 128. Other
+    batch sizes will work, but Alex "made no attempt whatsoever to make them
+    work fast."
     """
 
     # __eq__ and __hash__ are defined in BaseActs.

@@ -1,7 +1,6 @@
 """
-A mostly outdated module that isn't used much anymore.
-See tutorials/*ipynb or scripts/train_example to get
-a quick introduction to the library.
+A mostly outdated module that isn't used much anymore. See tutorials/*ipynb or
+scripts/train_example to get a quick introduction to the library.
 """
 # Standard library imports
 import warnings
@@ -27,30 +26,38 @@ else:
 
 class Block(object):
     """
-    Basic building block that represents a simple transformation.
-    By chaining Blocks together we can represent complex
-    feed-forward transformations.
-
-    TODO: give this input and output spaces to make it different from
-          a theano Op
-          supporting CompositeSpace would allow more complicated structures
-          than just chains
+    Basic building block that represents a simple transformation. By chaining
+    Blocks together we can represent complex feed-forward transformations.
     """
+    # TODO: Give this input and output spaces to make it different from a
+    #       theano Op. Supporting CompositeSpace would allow more complicated
+    #       structures than just chains.
     def __init__(self):
         self.fn = None
         self.cpu_only = False
 
     def __call__(self, inputs):
         """
-        WRITEME: what does this function do?
-        WRITEME: how should inputs be formatted? is it a single tensor, a list
-            of tensors, a tuple of tensors?
+        .. todo::
+
+            WRITEME
+
+        * What does this function do?
+        * How should inputs be formatted? is it a single tensor, a list of
+          tensors, a tuple of tensors?
         """
-        raise NotImplementedError(str(type(self)) + 'does not implement Block.__call__')
+        raise NotImplementedError(str(type(self)) + 'does not implement ' +
+                                  'Block.__call__')
 
     def function(self, name=None):
         """
         Returns a compiled theano function to compute a representation
+
+        Parameters
+        ----------
+        .. todo::
+
+            WRITEME
         """
         inputs = tensor.matrix()
         if self.cpu_only:
@@ -60,22 +67,47 @@ class Block(object):
             return theano.function([inputs], self(inputs), name=name)
 
     def perform(self, X):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.fn is None:
             self.fn = self.function("perform")
         return self.fn(X)
 
     def inverse(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError()
 
     def set_input_space(self, space):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError(
                 "%s does not implement set_input_space yet" % str(type(self)))
 
     def get_input_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError(
                 "%s does not implement get_input_space yet" % str(type(self)))
 
     def get_output_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError(
                 "%s does not implement get_output_space yet" % str(type(self)))
 
@@ -90,9 +122,9 @@ class StackedBlocks(Block):
 
         Parameters
         ----------
-        layers: list of Blocks
-            The layers to be stacked, ordered
-            from bottom (input) to top (output)
+        layers : list of Blocks
+            The layers to be stacked, ordered from bottom (input) to top \
+            (output)
         """
 
         super(StackedBlocks, self).__init__()
@@ -102,9 +134,19 @@ class StackedBlocks(Block):
         self._params = set([p for l in self._layers for p in l._params])
 
     def layers(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return list(self._layers)
 
     def __len__(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return len(self._layers)
 
     def __call__(self, inputs):
@@ -114,15 +156,15 @@ class StackedBlocks(Block):
         Parameters
         ----------
         inputs : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the input
-            minibatch(es) to be encoded. Assumed to be 2-tensors, with the
-            first dimension indexing training examples and the second indexing
-            data dimensions.
+            Theano symbolic (or list thereof) representing the input \
+            minibatch(es) to be encoded. Assumed to be 2-tensors, with the \
+            first dimension indexing training examples and the second \
+            indexing data dimensions.
 
         Returns
         -------
         reconstructed : tensor_like or list of tensor_like
-            A list of theano symbolic (or list thereof), each containing
+            A list of theano symbolic (or list thereof), each containing \
             the representation at one level. The first element is the input.
         """
         # Build the hidden representation at each layer
@@ -140,11 +182,19 @@ class StackedBlocks(Block):
 
         Parameters
         ----------
-        name: string
+        name : string
             name of the function
-        repr_index: int
-            Index of the hidden representation to return.
+        repr_index : int
+            Index of the hidden representation to return. \
             0 means the input, -1 the last output.
+        sparse_input : bool
+            WRITEME
+
+        Returns
+        -------
+        .. todo::
+
+            WRITEME
         """
 
         if sparse_input:
@@ -163,14 +213,20 @@ class StackedBlocks(Block):
 
         Parameters
         ----------
-        name: string
+        name : string
             name of the function
-        start_index: int
-            Index of the hidden representation to start the concatenation.
+        start_index : int
+            Index of the hidden representation to start the concatenation. \
             0 means the input, -1 the last output.
-        end_index: int
-            Index of the hidden representation from which to stop
+        end_index : int
+            Index of the hidden representation from which to stop \
             the concatenation. We must have start_index < end_index.
+
+        Returns
+        -------
+        .. todo::
+
+            WRITEME
         """
         inputs = tensor.matrix()
         return theano.function([inputs],
@@ -180,17 +236,38 @@ class StackedBlocks(Block):
     def append(self, layer):
         """
         Add a new layer on top of the last one
+
+        Parameters
+        ----------
+        .. todo::
+
+            WRITEME
         """
         self._layers.append(layer)
         self._params.update(layer._params)
 
     def get_input_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self._layers[0].get_input_space()
 
     def get_output_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self._layers[-1].get_output_space()
 
     def set_input_space(self, space):
+        """
+        .. todo::
+
+            WRITEME
+        """
         for layer in self._layers:
             layer.set_input_space(space)
             space = layer.get_output_space()

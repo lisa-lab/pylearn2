@@ -1,10 +1,16 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 __authors__ = 'Ian Goodfellow'
 __copyright__ = "Copyright 2013, Universite de Montreal"
 
-from pylearn2.costs.cost import Cost
+from pylearn2.costs.cost import DefaultDataSpecsMixin, Cost
 from pylearn2.space import CompositeSpace
 
-class Dropout(Cost):
+
+class Dropout(DefaultDataSpecsMixin, Cost):
     """
     Implements the dropout training technique described in
     "Improving neural networks by preventing co-adaptation of feature
@@ -28,6 +34,10 @@ class Dropout(Cost):
     def __init__(self, default_input_include_prob=.5, input_include_probs=None,
             default_input_scale=2., input_scales=None, per_example=True):
         """
+        .. todo::
+
+            WRITEME properly
+        
         During training, each input to each layer is randomly included or excluded
         for each example. The probability of inclusion is independent for each input
         and each example. Each layer uses "default_input_include_prob" unless that
@@ -48,6 +58,11 @@ class Dropout(Cost):
         del self.self
 
     def expr(self, model, data, ** kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         space, sources = self.get_data_specs(model)
         space.validate(data)
         (X, Y) = data
@@ -60,8 +75,3 @@ class Dropout(Cost):
             per_example=self.per_example
         )
         return model.cost(Y, Y_hat)
-
-    def get_data_specs(self, model):
-        space = CompositeSpace([model.get_input_space(), model.get_output_space()])
-        sources = (model.get_input_source(), model.get_target_source())
-        return (space, sources)

@@ -20,6 +20,11 @@ log.setLevel(logging.INFO)
 
 def _feature_sign_checkargs(dictionary, signals, sparsity, max_iter,
                             solution):
+    """
+    .. todo::
+
+        WRITEME
+    """
     if solution is not None:
         assert solution.ndim == signals.ndim, (
             "if provided, solutions must be same number of dimensions as "
@@ -58,7 +63,7 @@ def _feature_sign_search_single(dictionary, signal, sparsity, max_iter,
     Parameters
     ----------
     dictionary : array_like, 2-dimensional
-        The dictionary of basis functions from which to form the
+        The dictionary of basis functions from which to form the \
         sparse linear combination.
     signal : array_like, 1-dimensional
         The signal being decomposed as a sparse linear combination
@@ -73,8 +78,8 @@ def _feature_sign_search_single(dictionary, signal, sparsity, max_iter,
     Returns
     -------
     solution : ndarray, 1-dimensional
-        Vector containing the solution. If an array was passed in
-        as the argument `solution`, it will be updated in place
+        Vector containing the solution. If an array was passed in \
+        as the argument `solution`, it will be updated in place \
         and the same object will be returned.
     count : int
         The number of iterations of the algorithm that were run.
@@ -229,30 +234,30 @@ def feature_sign_search(dictionary, signals, sparsity, max_iter=1000,
     Parameters
     ----------
     dictionary : array_like, 2-dimensional
-        The dictionary of basis functions from which to form the
-        sparse linear combination. Each column constitutes a basis
-        vector for the sparse code. There should be as many rows as
+        The dictionary of basis functions from which to form the \
+        sparse linear combination. Each column constitutes a basis \
+        vector for the sparse code. There should be as many rows as \
         input dimensions in the signal.
     signals : array_like, 1- or 2-dimensional
-        The signal(s) to be decomposed as a sparse linear combination
-        of the columns of the dictionary. If 2-dimensional, each
+        The signal(s) to be decomposed as a sparse linear combination \
+        of the columns of the dictionary. If 2-dimensional, each \
         different signal (training case) should be a row of this matrix.
     sparsity : float
         The coefficient on the L1 penalty term of the cost function.
     max_iter : int, optional
-        The maximum number of iterations to run, per code vector, if
-        the optimization has still not converged. Default is 1000.
+        The maximum number of iterations to run, per code vector, if \
+        the optimization has still not converged. Default is 1000. \
     solution : ndarray, 1- or 2-dimensional, optional
-        Pre-allocated vector or matrix used to store the solution(s).
-        If provided, it should have the same rank as `signals`. If
+        Pre-allocated vector or matrix used to store the solution(s). \
+        If provided, it should have the same rank as `signals`. If \
         2-dimensional, it should have as many rows as `signals`.
 
     Returns
     -------
     solution : ndarray, 1- or 2-dimensional
-        Matrix where each row contains the solution corresponding to a
-        row of `signals`. If an array was passed in as the argument
-        `solution`, it  will be updated in place and the same object
+        Matrix where each row contains the solution corresponding to a \
+        row of `signals`. If an array was passed in as the argument \
+        `solution`, it  will be updated in place and the same object \
         will be returned.
 
     Notes

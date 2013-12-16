@@ -1,4 +1,5 @@
-""" Can be run as a script or imported as a module.
+"""
+Can be run as a script or imported as a module.
 
 Module exposes the run_pyflakes method which returns a dictionary.
 
@@ -19,13 +20,18 @@ from pylearn2.devtools.list_files import list_files
 from pylearn2.utils.shell import run_shell_command
 
 def run_pyflakes(no_warnings = False):
-    """ Returns a dictionary mapping pylearn2 .py filepaths
-        to outputs from pyflakes.
+    """
+    .. todo::
 
-        Omits files for which there was no output.
+        WRITEME properly
 
-        If no_warnings = True, omits pyflakes outputs that don't
-        correspond to actual errors.
+    Returns a dictionary mapping pylearn2 .py filepaths
+    to outputs from pyflakes.
+
+    Omits files for which there was no output.
+
+    If no_warnings = True, omits pyflakes outputs that don't
+    correspond to actual errors.
     """
 
     files = list_files(".py")
@@ -52,6 +58,11 @@ def run_pyflakes(no_warnings = False):
     return rval
 
 def _filter(output, no_warnings):
+    """
+    .. todo::
+
+        WRITEME
+    """
     lines = output.split('\n')
 
     lines = [ line for line in lines if line != '' ]

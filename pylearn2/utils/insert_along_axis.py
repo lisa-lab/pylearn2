@@ -18,26 +18,25 @@ from theano.gradient import grad_not_implemented
 
 def index_along_axis(index, ndim, axis):
     """
-    Create a slice tuple for indexing into a NumPy array along
-    a (single) given axis.
+    Create a slice tuple for indexing into a NumPy array along a (single) given
+    axis.
 
     Parameters
     ----------
     index : array_like or slice
         The value you wish to index with along `axis`.
     ndim : int
-        The number of dimensions in the array into which you
-        are indexing (i.e. the value returned in the `.ndim`
-        attribute).
+        The number of dimensions in the array into which you are indexing \
+        (i.e. the value returned in the `.ndim` attribute).
     axis : int
         The axis along which you wish to index.
 
     Returns
     -------
     indices : tuple
-        A slice tuple that can be used to index an array,
-        selecting all elements along every axis except `axis`,
-        for which `index` is used instead.
+        A slice tuple that can be used to index an array, selecting all \
+        elements along every axis except `axis`, for which `index` is used \
+        instead.
 
     Examples
     --------
@@ -71,20 +70,40 @@ class InsertAlongAxis(theano.Op):
     post-processing and need to be re-added later in the pipeline.
     """
     def __init__(self, ndim, axis, fill=0):
+        """
+        .. todo::
+
+            WRITEME
+        """
         assert axis < ndim, "axis >= ndim not allowed (doesn't make sense)"
         self.ndim = ndim
         self.axis = axis
         self.fill = fill
 
     def __eq__(self, other):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return (type(self) == type(other) and self.ndim == other.ndim and
                 self.axis == other.axis and self.fill == other.fill)
 
     def __hash__(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return (hash(type(self)) ^ hash(self.ndim) ^ hash(self.axis) ^
                 hash(self.fill))
 
     def make_node(self, x, new_length, insert_at):
+        """
+        .. todo::
+
+            WRITEME
+        """
         x_ = tensor.as_tensor_variable(x)
         new_length_ = tensor.as_tensor_variable(new_length)
         insert_at_ = tensor.as_tensor_variable(insert_at)
@@ -107,6 +126,11 @@ class InsertAlongAxis(theano.Op):
           outputs=[x_.type()])
 
     def perform(self, node, inputs, output_storage):
+        """
+        .. todo::
+
+            WRITEME
+        """
         x, new_length, nonconstants = inputs
         nonconstant_set = set(nonconstants)
         constant = sorted(set(xrange(new_length)) - nonconstant_set)
@@ -124,6 +148,11 @@ class InsertAlongAxis(theano.Op):
         z[index_along_axis(constant, self.ndim, self.axis)] = self.fill
 
     def grad(self, inputs, gradients):
+        """
+        .. todo::
+
+            WRITEME
+        """
         x, new_length, nonconstants = inputs
         d_out = gradients[0]
         swap = range(self.ndim)
@@ -134,6 +163,11 @@ class InsertAlongAxis(theano.Op):
                 grad_not_implemented(self, 2, nonconstants)]
 
     def __str__(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return "%s{ndim=%d,axis=%d,fill=%s}" % (self.__class__.__name__,
                                                       self.ndim,
                                                       self.axis,

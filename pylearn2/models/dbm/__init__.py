@@ -71,33 +71,36 @@ sys.setrecursionlimit(40000)
 
 class DBM(Model):
     """
-
     A deep Boltzmann machine.
 
     See "Deep Boltzmann Machines" by Ruslan Salakhutdinov and Geoffrey Hinton
     for details.
-
     """
 
-    def __init__(self,
-            batch_size,
-            visible_layer,
-            hidden_layers,
-            niter, inference_procedure=None):
+    def __init__(self, batch_size, visible_layer, hidden_layers, niter,
+                 sampling_procedure=None, inference_procedure=None):
         """
-            batch_size:
-                The batch size the model should use.
-                Some convolutional LinearTransforms require a compile-time
-                hardcoded batch size, otherwise this would not be part of the
-                model specification.
-            visible_layer:
-                The visible layer of the DBM.
+        Parameters
+        ----------
+        batch_size : int
+            The batch size the model should use. Some convolutional \
+            LinearTransforms require a compile-time hardcoded batch size, \
+            otherwise this would not be part of the model specification.
+        visible_layer : WRITEME
+            The visible layer of the DBM.
+        hidden_layers : list
+            WRITEME
+        niter : int
+            WRITEME
+        sampling_procedure : WRITEME
+        inference_procedure : WRITEME
         """
         self.__dict__.update(locals())
         del self.self
         assert len(hidden_layers) >= 1
         self.setup_rng()
         self.layer_names = set()
+        self.visible_layer.set_dbm(self)
         for layer in hidden_layers:
             assert layer.get_dbm() is None
             layer.set_dbm(self)
@@ -109,24 +112,40 @@ class DBM(Model):
         if inference_procedure is None:
             self.setup_inference_procedure()
         self.inference_procedure.set_dbm(self)
+        if sampling_procedure is None:
+            self.setup_sampling_procedure()
+        self.sampling_procedure.set_dbm(self)
 
     def get_all_layers(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return [self.visible_layer] + self.hidden_layers
 
     def energy(self, V, hidden):
         """
-            V: a theano batch of visible unit observations
-                (must be SAMPLES, not mean field parameters)
-            hidden: a list, one element per hidden layer, of
-                batches of samples
-                (must be SAMPLES, not mean field parameters)
+        WRITEME
 
-            returns: a vector containing the energy of each
-                    sample.
+        Parameters
+        ----------
+        V : tensor_like
+            Theano batch of visible unit observations (must be SAMPLES, not \
+            mean field parameters)
+        hidden : list
+            List, one element per hidden layer, of batches of samples (must \
+            be SAMPLES, not mean field parameters)
 
-            Applying this function to non-sample theano variables
-            is not guaranteed to give you an expected energy
-            in general, so don't use this that way.
+        Returns
+        -------
+        rval : tensor_like
+            Vector containing the energy of each sample
+
+        Notes
+        -----
+        Applying this function to non-sample theano variables is not guaranteed
+        to give you an expected energy in general, so don't use this that way.
         """
 
         terms = []
@@ -156,27 +175,37 @@ class DBM(Model):
         return rval
 
     def mf(self, *args, **kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.setup_inference_procedure()
         return self.inference_procedure.mf(*args, **kwargs)
 
     def expected_energy(self, V, mf_hidden):
         """
-            V: a theano batch of visible unit observations
-                (must be SAMPLES, not mean field parameters:
-                    the random variables in the expectation are
-                    the hiddens only)
+        WRITEME
 
-            mf_hidden: a list, one element per hidden layer, of
-                      batches of variational parameters
-                (must be VARIATIONAL PARAMETERS, not samples.
-                Layers with analytically determined variance parameters
-                for their mean field parameters will use those to integrate
-                over the variational distribution, so it's not generally
-                the same thing as measuring the energy at a point.)
+        Parameters
+        ----------
+        V : tensor_like
+            Theano batch of visible unit observations (must be SAMPLES, not \
+            mean field parameters: the random variables in the expectation \
+            are the hiddens only)
+        mf_hidden : list
+            List, one element per hidden layer, of batches of variational \
+            parameters (must be VARIATIONAL PARAMETERS, not samples. Layers \
+            with analytically determined variance parameters for their mean \
+            field parameters will use those to integrate over the variational \
+            distribution, so it's not generally the same thing as measuring \
+            the energy at a point.)
 
-            returns: a vector containing the expected energy of
-                    each example under the corresponding variational
-                    distribution.
+        Returns
+        -------
+        rval : tensor_like
+            Vector containing the expected energy of each example under the \
+            corresponding variational distribution.
         """
 
         self.visible_layer.space.validate(V)
@@ -210,31 +239,68 @@ class DBM(Model):
         return rval
 
     def setup_rng(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.rng = np.random.RandomState([2012, 10, 17])
 
     def setup_inference_procedure(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if not hasattr(self, 'inference_procedure') or \
                 self.inference_procedure is None:
             self.inference_procedure = WeightDoubling()
             self.inference_procedure.set_dbm(self)
 
+    def setup_sampling_procedure(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        if not hasattr(self, 'sampling_procedure') or \
+                self.sampling_procedure is None:
+            self.sampling_procedure = GibbsEvenOdd()
+            self.sampling_procedure.set_dbm(self)
+
     def get_output_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.hidden_layers[-1].get_output_space()
 
     def _update_layer_input_spaces(self):
         """
-            Tells each layer what its input space should be.
-            Note: this usually resets the layer's parameters!
+        Tells each layer what its input space should be.
+
+        Notes
+        -----
+        This usually resets the layer's parameters!
         """
         visible_layer = self.visible_layer
         hidden_layers = self.hidden_layers
+
         self.hidden_layers[0].set_input_space(visible_layer.space)
         for i in xrange(1,len(hidden_layers)):
             hidden_layers[i].set_input_space(hidden_layers[i-1].get_output_space())
 
+        for layer in self.get_all_layers():
+            layer.finalize_initialization()
+
     def add_layers(self, layers):
         """
-            Add new layers on top of the existing hidden layers
+        Add new layers on top of the existing hidden layers
+
+        Parameters
+        ----------
+        layers : WRITEME
         """
 
         # Patch old pickle files
@@ -252,6 +318,11 @@ class DBM(Model):
             self.layer_names.add(layer.layer_name)
 
     def freeze(self, parameter_set):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # patch old pickle files
         if not hasattr(self, 'freeze_set'):
             self.freeze_set = set([])
@@ -259,6 +330,11 @@ class DBM(Model):
         self.freeze_set = self.freeze_set.union(parameter_set)
 
     def get_params(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         rval = []
         for param in self.visible_layer.get_params():
@@ -285,6 +361,11 @@ class DBM(Model):
         return rval
 
     def set_batch_size(self, batch_size):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.batch_size = batch_size
         self.force_batch_size = batch_size
 
@@ -296,14 +377,29 @@ class DBM(Model):
         self.inference_procedure.set_batch_size(batch_size)
 
     def censor_updates(self, updates):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.visible_layer.censor_updates(updates)
         for layer in self.hidden_layers:
             layer.censor_updates(updates)
 
     def get_input_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.visible_layer.space
 
     def get_lr_scalers(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         rval = OrderedDict()
 
         params = self.get_params()
@@ -322,28 +418,53 @@ class DBM(Model):
         return rval
 
     def get_weights(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.hidden_layers[0].get_weights()
 
     def get_weights_view_shape(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.hidden_layers[0].get_weights_view_shape()
 
     def get_weights_format(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.hidden_layers[0].get_weights_format()
 
     def get_weights_topo(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.hidden_layers[0].get_weights_topo()
 
     def make_layer_to_state(self, num_examples, rng=None):
+        """
+        Makes and returns a dictionary mapping layers to states. By states, we
+        mean here a real assignment, not a mean field state. For example, for a
+        layer containing binary random variables, the state will be a shared
+        variable containing values in {0,1}, not [0,1]. The visible layer will
+        be included.
 
-        """ Makes and returns a dictionary mapping layers to states.
-            By states, we mean here a real assignment, not a mean field state.
-            For example, for a layer containing binary random variables, the
-            state will be a shared variable containing values in {0,1}, not
-            [0,1].
-            The visible layer will be included.
-            Uses a dictionary so it is easy to unambiguously index a layer
-            without needing to remember rules like vis layer = 0, hiddens start
-            at 1, etc.
+        Uses a dictionary so it is easy to unambiguously index a layer without
+        needing to remember rules like vis layer = 0, hiddens start at 1, etc.
+
+        Parameters
+        ----------
+        num_examples : int
+            WRITEME
+        rng : WRITEME
         """
 
         # Make a list of all layers
@@ -375,17 +496,25 @@ class DBM(Model):
         return rval
 
     def make_layer_to_symbolic_state(self, num_examples, rng=None):
-
         """
-        Makes and returns a dictionary mapping layers to states.
-        By states, we mean here a real assignment, not a mean field state.
-        For example, for a layer containing binary random variables, the
-        state will be a symbolic variable containing values in {0,1}, not
-        [0,1].
-        The visible layer will be included.
-        Uses a dictionary so it is easy to unambiguously index a layer
-        without needing to remember rules like vis layer = 0, hiddens start
-        at 1, etc.
+        .. todo::
+
+            Explain the difference with `make_layer_to_state`
+
+        Makes and returns a dictionary mapping layers to states. By states, we
+        mean here a real assignment, not a mean field state. For example, for a
+        layer containing binary random variables, the state will be a shared
+        variable containing values in {0,1}, not [0,1]. The visible layer will
+        be included.
+
+        Uses a dictionary so it is easy to unambiguously index a layer without
+        needing to remember rules like vis layer = 0, hiddens start at 1, etc.
+
+        Parameters
+        ----------
+        num_examples : int
+            WRITEME
+        rng : WRITEME
         """
 
         # Make a list of all layers
@@ -401,199 +530,58 @@ class DBM(Model):
 
         return rval
 
-    def mcmc_steps(self, layer_to_state, theano_rng, layer_to_clamp = None,
-            num_steps = 1):
+    def mcmc_steps(self, layer_to_state, theano_rng, layer_to_clamp=None,
+                   num_steps=1):
         """
-            layer_to_state: a dictionary mapping the SuperDBM_Layer instances
-                            contained in self to theano variables representing
-                            batches of samples of them.
-            theano_rng: a MRG_RandomStreams object
-            layer_to_clamp: (optional) a dictionary mapping layers to bools
-                            if a layer is not in the dictionary, defaults to False
-                            True indicates that this layer should be clamped, so
-                            we are sampling from a conditional distribution rather
-                            than the joint
-            returns:
-                layer_to_updated_state
-                    dict mapping layers to theano variables representing the updated
-                    samples
+        .. todo::
 
-            The specific sampling schedule used is to sample all of the even-idexed
-            layers of model.hidden_layers, then the visible layer and all the odd-indexed
-            layers.
+            WRITEME
         """
-
-        # Validate num_steps
-        assert isinstance(num_steps, py_integer_types)
-        assert num_steps > 0
-
-        # Implement the num_steps > 1 case by repeatedly calling the num_steps == 1 case
-        if num_steps != 1:
-            for i in xrange(num_steps):
-                layer_to_state = self.mcmc_steps(layer_to_state, theano_rng, layer_to_clamp,
-                        num_steps = 1)
-            return layer_to_state
-
-        # The rest of the function is the num_steps = 1 case
-
-        assert len(self.hidden_layers) > 0 # current code assumes this, though we could certainly
-                                           # relax this constraint
-
-        # Validate layer_to_clamp / make sure layer_to_clamp is a fully populated dictionary
-        if layer_to_clamp is None:
-            layer_to_clamp = OrderedDict()
-
-        for key in layer_to_clamp:
-            assert key is self.visible_layer or key in self.hidden_layers
-
-        for layer in [self.visible_layer] + self.hidden_layers:
-            if layer not in layer_to_clamp:
-                layer_to_clamp[layer] = False
-
-        #Assemble the return value
-        layer_to_updated = OrderedDict()
-
-        for i, this_layer in list(enumerate(self.hidden_layers))[::2]:
-            # Iteration i does the Gibbs step for hidden_layers[i]
-
-            # Get the sampled state of the layer below so we can condition
-            # on it in our Gibbs update
-            if i == 0:
-                layer_below = self.visible_layer
-            else:
-                layer_below = self.hidden_layers[i-1]
-            state_below = layer_to_state[layer_below]
-            state_below = layer_below.upward_state(state_below)
-
-            # Get the sampled state of the layer above so we can condition
-            # on it in our Gibbs step
-            if i + 1 < len(self.hidden_layers):
-                layer_above = self.hidden_layers[i + 1]
-                state_above = layer_to_state[layer_above]
-                state_above = layer_above.downward_state(state_above)
-            else:
-                state_above = None
-                layer_above = None
-
-            if layer_to_clamp[this_layer]:
-                this_state = layer_to_state[this_layer]
-                this_sample = this_state
-            else:
-                # Compute the Gibbs sampling update
-                # Sample the state of this layer conditioned
-                # on its Markov blanket (the layer above and
-                # layer below)
-                this_sample = this_layer.sample(
-                        state_below = state_below,
-                        state_above = state_above,
-                        layer_above = layer_above,
-                        theano_rng = theano_rng)
-
-            layer_to_updated[this_layer] = this_sample
-
-        #Sample the visible layer
-        vis_state = layer_to_state[self.visible_layer]
-        if layer_to_clamp[self.visible_layer]:
-            vis_sample = vis_state
-        else:
-            first_hid = self.hidden_layers[0]
-            state_above = layer_to_updated[first_hid]
-            state_above = first_hid.downward_state(state_above)
-
-            vis_sample = self.visible_layer.sample(
-                    state_above = state_above,
-                    layer_above = first_hid,
-                    theano_rng = theano_rng)
-        layer_to_updated[self.visible_layer] = vis_sample
-
-        # Sample the odd-numbered layers
-        for i, this_layer in list(enumerate(self.hidden_layers))[1::2]:
-
-            # Get the sampled state of the layer below so we can condition
-            # on it in our Gibbs update
-            layer_below = self.hidden_layers[i-1]
-
-            # We want to sample from each conditional distribution
-            # ***sequentially*** so we must use the updated version
-            # of the state for the layers whose updates we have
-            # calculcated already, in layer_to_updated.
-            # If we used the original value from
-            # layer_to_state
-            # then we would sample from each conditional
-            # ***simultaneously*** which does not implement MCMC
-            # sampling.
-            state_below = layer_to_updated[layer_below]
-
-            state_below = layer_below.upward_state(state_below)
-
-            # Get the sampled state of the layer above so we can condition
-            # on it in our Gibbs step
-            if i + 1 < len(self.hidden_layers):
-                layer_above = self.hidden_layers[i + 1]
-                state_above = layer_to_updated[layer_above]
-                state_above = layer_above.downward_state(state_above)
-            else:
-                state_above = None
-                layer_above = None
-
-            if layer_to_clamp[this_layer]:
-                this_state = layer_to_state[this_layer]
-                this_sample = this_state
-            else:
-                # Compute the Gibbs sampling update
-                # Sample the state of this layer conditioned
-                # on its Markov blanket (the layer above and
-                # layer below)
-                this_sample = this_layer.sample(
-                        state_below = state_below,
-                        state_above = state_above,
-                        layer_above = layer_above,
-                        theano_rng = theano_rng)
-
-            layer_to_updated[this_layer] = this_sample
-
-        # Check that all layers were updated
-        assert all([layer in layer_to_updated for layer in layer_to_state])
-        # Check that we didn't accidentally treat any other object as a layer
-        assert all([layer in layer_to_state for layer in layer_to_updated])
-        # Check that clamping worked
-        assert all([(layer_to_state[layer] is layer_to_updated[layer]) == \
-                layer_to_clamp[layer] for layer in layer_to_state])
-
-        return layer_to_updated
+        warnings.warn("DBM.mcmc_steps is deprecated. You should instead call" +
+                      "DBM.sampling_procedure.sample, which defaults to what" +
+                      "DBM.mcmc_steps used to do.")
+        return self.sampling_procedure.sample(layer_to_state, theano_rng,
+                                              layer_to_clamp, num_steps)
 
     def get_sampling_updates(self, layer_to_state, theano_rng,
-            layer_to_clamp = None, num_steps = 1, return_layer_to_updated = False):
+                             layer_to_clamp=None, num_steps=1,
+                             return_layer_to_updated=False):
         """
-            This method is for getting an updates dictionary for a theano function.
-            It thus implies that the samples are represented as shared variables.
-            If you want an expression for a sampling step applied to arbitrary
-            theano variables, use the 'mcmc_steps' method. This is a wrapper around
-            that method.
+        This method is for getting an updates dictionary for a theano function.
+        It thus implies that the samples are represented as shared variables.
+        If you want an expression for a sampling step applied to arbitrary
+        theano variables, use the 'mcmc_steps' method. This is a wrapper around
+        that method.
 
-            Parameters
-            ----------
-            layer_to_state: a dictionary mapping the SuperDBM_Layer instances
-                            contained in self to shared variables representing
-                            batches of samples of them.
-                            (you can allocate one by calling
-                            self.make_layer_to_state)
-            theano_rng: a MRG_RandomStreams object
-            layer_to_clamp: (optional) a dictionary mapping layers to bools
-                            if a layer is not in the dictionary, defaults to False
-                            True indicates that this layer should be clamped, so
-                            we are sampling from a conditional distribution rather
-                            than the joint
-            returns a dictionary mapping each shared variable to an expression
-                     to update it. Repeatedly applying these updates does MCMC
-                     sampling.
+        Parameters
+        ----------
+        layer_to_state: dict
+            Dictionary mapping the SuperDBM_Layer instances contained in \
+            self to shared variables representing batches of samples of them. \
+            (you can allocate one by calling self.make_layer_to_state)
+        theano_rng: MRG_RandomStreams
+            WRITEME
+        layer_to_clamp: dict, optional
+            Dictionary mapping layers to bools. If a layer is not in the \
+            dictionary, defaults to False. True indicates that this layer \
+            should be clamped, so we are sampling from a conditional \
+            distribution rather than the joint distribution
 
-            The specific sampling schedule used is to sample all of the even-idexed
-            layers of model.hidden_layers, then the visible layer and all the odd-indexed
-            layers.
+        Returns
+        -------
+        rval : dict
+            Dictionary mapping each shared variable to an expression to \
+            update it. Repeatedly applying these updates does MCMC sampling.
+
+        Notes
+        -----
+        The specific sampling schedule used by default is to sample all of the
+        even-idexed layers of model.hidden_layers, then the visible layer and
+        all the odd-indexed layers.
         """
 
-        updated = self.mcmc_steps(layer_to_state, theano_rng, layer_to_clamp, num_steps)
+        updated = self.sampling_procedure.sample(layer_to_state, theano_rng,
+                                                 layer_to_clamp, num_steps)
 
         rval = OrderedDict()
 
@@ -604,7 +592,8 @@ class DBM(Model):
             else:
                 rval[old] = new
 
-        # Validate layer_to_clamp / make sure layer_to_clamp is a fully populated dictionary
+        # Validate layer_to_clamp / make sure layer_to_clamp is a fully
+        # populated dictionary
         if layer_to_clamp is None:
             layer_to_clamp = OrderedDict()
 
@@ -632,6 +621,11 @@ class DBM(Model):
         return rval
 
     def get_monitoring_channels(self, data):
+        """
+        .. todo::
+
+            WRITEME
+        """
         space, source = self.get_monitoring_data_specs()
         space.validate(data)
         X = data
@@ -692,9 +686,19 @@ class DBM(Model):
         return (self.get_input_space(), self.get_input_source())
 
     def get_test_batch_size(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.batch_size
 
     def reconstruct(self, V):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         H = self.mf(V)[0]
 
@@ -737,6 +741,10 @@ class Layer(Model):
     def set_dbm(self, dbm):
         """
         Assigns this layer to a DBM.
+
+        Parameters
+        ----------
+        dbm : WRITEME
         """
         assert self.get_dbm() is None
         self.dbm = dbm
@@ -751,45 +759,65 @@ class Layer(Model):
 
     def get_monitoring_channels(self):
         """
-        TODO WRITME
+        .. todo::
+
+            WRITEME
         """
         return OrderedDict()
 
     def get_monitoring_channels_from_state(self, state):
         """
-        TODO WRITEME
+        .. todo::
+
+            WRITEME
         """
         return OrderedDict()
 
     def upward_state(self, total_state):
         """
-            Takes total_state and turns it into the state that layer_above should
-            see when computing P( layer_above | this_layer).
+        Takes total_state and turns it into the state that layer_above should
+        see when computing P( layer_above | this_layer).
 
-            So far this has two uses:
-                If this layer consists of a detector sub-layer h that is pooled
-                into a pooling layer p, then total_state = (p,h) but
-                layer_above should only see p.
+        So far this has two uses:
 
-                If the conditional P( layer_above | this_layer) depends on
-                parameters of this_layer, sometimes you can play games with
-                the state to avoid needing the layers to communicate. So far
-                the only instance of this usage is when the visible layer
-                is N( Wh, beta). This makes the hidden layer be
-                sigmoid( v beta W + b). Rather than having the hidden layer
-                explicitly know about beta, we can just pass v beta as
-                the upward state.
+        * If this layer consists of a detector sub-layer h that is pooled
+          into a pooling layer p, then total_state = (p,h) but layer_above
+          should only see p.
+        * If the conditional P( layer_above | this_layer) depends on
+          parameters of this_layer, sometimes you can play games with
+          the state to avoid needing the layers to communicate. So far
+          the only instance of this usage is when the visible layer
+          is N( Wh, beta). This makes the hidden layer be
+          sigmoid( v beta W + b). Rather than having the hidden layer
+          explicitly know about beta, we can just pass v beta as
+          the upward state.
 
-            Note: this method should work both for computing sampling updates
-            and for computing mean field updates. So far I haven't encountered
-            a case where it needs to do different things for those two
-            contexts.
+        Parameters
+        ----------
+        total_state : WRITEME
+
+        Notes
+        -----
+        This method should work both for computing sampling updates
+        and for computing mean field updates. So far I haven't encountered
+        a case where it needs to do different things for those two
+        contexts.
         """
         return total_state
 
     def make_state(self, num_examples, numpy_rng):
-        """ Returns a shared variable containing an actual state
-           (not a mean field state) for this variable.
+        """
+        Returns a shared variable containing an actual state (not a mean field
+        state) for this variable.
+
+        Parameters
+        ----------
+        num_examples : WRITEME
+        numpy_rng : WRITEME
+
+        Returns
+        -------
+        WRITEME
         """
 
         raise NotImplementedError("%s doesn't implement make_state" %
@@ -799,6 +827,15 @@ class Layer(Model):
         """
         Returns a theano symbolic variable containing an actual state (not a
         mean field state) for this variable.
+
+        Parameters
+        ----------
+        num_examples : WRITEME
+        numpy_rng : WRITEME
+
+        Returns
+        -------
+        WRITEME
         """
 
         raise NotImplementedError("%s doesn't implement make_symbolic_state" %
@@ -808,21 +845,30 @@ class Layer(Model):
             layer_above = None,
             theano_rng = None):
         """
-            state_below is layer_below.upward_state(full_state_below)
+        Returns an expression for samples of this layer's state, conditioned on
+        the layers above and below Should be valid as an update to the shared
+        variable returned by self.make_state
+
+        Parameters
+        ----------
+        state_below : WRITEME
+            Corresponds to layer_below.upward_state(full_state_below),
             where full_state_below is the same kind of object as you get
             out of layer_below.make_state
+        state_above : WRITEME
+            Corresponds to layer_above.downward_state(full_state_above)
 
-            state_above is layer_above.downward_state(full_state_above)
+        theano_rng : WRITEME
+            An MRG_RandomStreams instance
 
-            theano_rng is an MRG_RandomStreams instance
+        Returns
+        -------
+        WRITEME
 
-            Returns an expression for samples of this layer's state,
-            conditioned on the layers above and below
-            Should be valid as an update to the shared variable returned
-            by self.make_state
-
-            Note: this can return multiple expressions if this layer's
-            total state consists of more than one shared variable
+        Notes
+        -----
+        This can return multiple expressions if this layer's total state
+        consists of more than one shared variable.
         """
 
         if hasattr(self, 'get_sampling_updates'):
@@ -836,35 +882,46 @@ class Layer(Model):
                                    state_below,
                                    average_below):
         """
+        Returns a term of the expected energy of the entire model.
+        This term should correspond to the expected value of terms
+        of the energy function that:
 
-            Returns a term of the expected energy of the entire model.
-            This term should correspond to the expected value of terms
-            of the energy function that:
-                -involve this layer only
-                -if there is a layer below, include terms that
-                 involve both this layer and the layer below
+        - involve this layer only
+        - if there is a layer below, include terms that involve both this layer
+          and the layer below
 
-            Do not include terms that involve the layer below only.
-            Do not include any terms that involve the layer above, if it
-            exists, in any way (the interface doesn't let you see the layer
-            above anyway).
+        Do not include terms that involve the layer below only.
+        Do not include any terms that involve the layer above, if it
+        exists, in any way (the interface doesn't let you see the layer
+        above anyway).
 
-            Parameters
-            ----------
-            state_below: the upward state of the layer below.
-            state: the total state of this layer
+        Parameters
+        ----------
+        state_below : WRITEME
+            Upward state of the layer below.
+        state : WRITEME
+            Total state of this layer
+        average_below : bool
+            If True, the layer below is one of the variables to integrate \
+            over in the expectation, and state_below gives its variational \
+            parameters. If False, that layer is to be held constant and \
+            state_below gives a set of assignments to it average: like \
+            average_below, but for 'state' rather than 'state_below'
 
-            average_below: if True, the layer below is one of the variables to
-                integrate over in the expectation, and state_below gives its
-                variational parameters. if False, that layer is to be held constant
-                and state_below gives a set of assignments to it
-            average: like average_below, but for 'state' rather than 'state_below'
-
-            returns: a 1-d theano tensor giving the expected energy term for each example
-
-
+        Returns
+        -------
+        rval : tensor_like
+            A 1D theano tensor giving the expected energy term for each example
         """
         raise NotImplementedError(str(type(self))+" does not implement expected_energy_term.")
+
+    def finalize_initialization(self):
+        """
+        Some layers' initialization depends on layer above being initialized,
+        which is why this method is called after `set_input_space` has been
+        called.
+        """
+        pass
 
 
 class VisibleLayer(Layer):
@@ -878,6 +935,11 @@ class VisibleLayer(Layer):
     """
 
     def get_total_state_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.get_input_space()
 
 class HiddenLayer(Layer):
@@ -887,18 +949,43 @@ class HiddenLayer(Layer):
     """
 
     def downward_state(self, total_state):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return total_state
 
     def get_stdev_rewards(self, state, coeffs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError(str(type(self))+" does not implement get_stdev_rewards")
 
     def get_range_rewards(self, state, coeffs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError(str(type(self))+" does not implement get_range_rewards")
 
     def get_l1_act_cost(self, state, target, coeff, eps):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError(str(type(self))+" does not implement get_l1_act_cost")
 
     def get_l2_act_cost(self, state, target, coeff):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError(str(type(self))+" does not implement get_l2_act_cost")
 
 def init_sigmoid_bias_from_marginals(dataset, use_y = False):
@@ -907,6 +994,11 @@ def init_sigmoid_bias_from_marginals(dataset, use_y = False):
     data. Assumes dataset contains a design matrix. If use_y is
     true, sigmoid(b) will have the same marginals as the targets,
     rather than the features.
+
+    Parameters
+    ----------
+    dataset : WRITEME
+    use_y : WRITEME
     """
     if use_y:
         X = dataset.y
@@ -915,6 +1007,11 @@ def init_sigmoid_bias_from_marginals(dataset, use_y = False):
     return init_sigmoid_bias_from_array(X)
 
 def init_sigmoid_bias_from_array(arr):
+    """
+    .. todo::
+
+        WRITEME
+    """
     X = arr
     if not (X.max() == 1):
         raise ValueError("Expected design matrix to consist entirely "
@@ -947,9 +1044,16 @@ class BinaryVector(VisibleLayer):
             center = False,
             copies = 1):
         """
-            nvis: the dimension of the space
-            bias_from_marginals: a dataset, whose marginals are used to
-                            initialize the visible biases
+        Parameters
+        ----------
+        nvis : int
+            Dimension of the space
+        bias_from_marginals : pylearn2.datasets.dataset.Dataset
+            Dataset, whose marginals are used to initialize the visible biases
+        center : bool
+            WRITEME
+        copies : int
+            WRITEME
         """
 
         self.__dict__.update(locals())
@@ -973,15 +1077,30 @@ class BinaryVector(VisibleLayer):
             self.offset = sharedX(sigmoid_numpy(init_bias))
 
     def get_biases(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.bias.get_value()
 
     def set_biases(self, biases, recenter=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.bias.set_value(biases)
         if recenter:
             assert self.center
             self.offset.set_value(sigmoid_numpy(self.bias.get_value()))
 
     def upward_state(self, total_state):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         if not hasattr(self, 'center'):
             self.center = False
@@ -998,11 +1117,21 @@ class BinaryVector(VisibleLayer):
 
 
     def get_params(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return [self.bias]
 
     def sample(self, state_below = None, state_above = None,
             layer_above = None,
             theano_rng = None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
 
         assert state_below is None
@@ -1023,6 +1152,11 @@ class BinaryVector(VisibleLayer):
         return rval
 
     def mf_update(self, state_above, layer_above):
+        """
+        .. todo::
+
+            WRITEME
+        """
         msg = layer_above.downward_message(state_above)
         mu = self.bias
 
@@ -1034,6 +1168,11 @@ class BinaryVector(VisibleLayer):
 
 
     def make_state(self, num_examples, numpy_rng):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if not hasattr(self, 'copies'):
             self.copies = 1
         if self.copies != 1:
@@ -1047,6 +1186,11 @@ class BinaryVector(VisibleLayer):
         return rval
 
     def make_symbolic_state(self, num_examples, theano_rng):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if not hasattr(self, 'copies'):
             self.copies = 1
         if self.copies != 1:
@@ -1057,6 +1201,11 @@ class BinaryVector(VisibleLayer):
         return rval
 
     def expected_energy_term(self, state, average, state_below = None, average_below = None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         if self.center:
             state = state - self.offset
@@ -1075,17 +1224,16 @@ class BinaryVector(VisibleLayer):
 
 class BinaryVectorMaxPool(HiddenLayer):
     """
-        A hidden layer that does max-pooling on binary vectors.
-        It has two sublayers, the detector layer and the pooling
-        layer. The detector layer is its downward state and the pooling
-        layer is its upward state.
-
-        TODO: this layer uses (pooled, detector) as its total state,
-              which can be confusing when listing all the states in
-              the network left to right. Change this and
-              pylearn2.expr.probabilistic_max_pooling to use
-              (detector, pooled)
+    A hidden layer that does max-pooling on binary vectors.
+    It has two sublayers, the detector layer and the pooling
+    layer. The detector layer is its downward state and the pooling
+    layer is its upward state.
     """
+    # TODO: this layer uses (pooled, detector) as its total state,
+    #       which can be confusing when listing all the states in
+    #       the network left to right. Change this and
+    #       pylearn2.expr.probabilistic_max_pooling to use
+    #       (detector, pooled)
 
     def __init__(self,
              detector_layer_dim,
@@ -1103,11 +1251,25 @@ class BinaryVectorMaxPool(HiddenLayer):
             max_col_norm = None,
             copies = 1):
         """
-
-            include_prob: probability of including a weight element in the set
-                    of weights initialized to U(-irange, irange). If not included
-                    it is initialized to 0.
-
+        Parameters
+        ----------
+        detector_layer_dim : WRITEME
+        pool_size : WRITEME
+        layer_name : WRITEME
+        irange : WRITEME
+        sparse_init : WRITEME
+        sparse_stdev : WRITEME
+        include_prob : float
+            Probability of including a weight element in the set of weights \
+            initialized to U(-irange, irange). If not included it is \
+            initialized to 0.
+        init_bias : WRITEME
+        W_lr_scale : WRITEME
+        b_lr_scale : WRITEME
+        center : WRITEME
+        mask_weights : WRITEME
+        max_col_norm : WRITEME
+        copies : WRITEME
         """
         self.__dict__.update(locals())
         del self.self
@@ -1120,6 +1282,11 @@ class BinaryVectorMaxPool(HiddenLayer):
             self.offset = sharedX(sigmoid_numpy(self.b.get_value()))
 
     def get_lr_scalers(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         if not hasattr(self, 'W_lr_scale'):
             self.W_lr_scale = None
@@ -1139,7 +1306,15 @@ class BinaryVectorMaxPool(HiddenLayer):
         return rval
 
     def set_input_space(self, space):
-        """ Note: this resets parameters! """
+        """
+        .. todo::
+
+            WRITEME
+
+        Notes
+        -----
+        This resets parameters!
+        """
 
         self.input_space = space
 
@@ -1199,6 +1374,11 @@ class BinaryVectorMaxPool(HiddenLayer):
             self.mask = sharedX(self.mask_weights)
 
     def censor_updates(self, updates):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         # Patch old pickle files
         if not hasattr(self, 'mask_weights'):
@@ -1221,9 +1401,19 @@ class BinaryVectorMaxPool(HiddenLayer):
 
 
     def get_total_state_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return CompositeSpace((self.output_space, self.h_space))
 
     def get_params(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         assert self.b.name is not None
         W ,= self.transformer.get_params()
         assert W.name is not None
@@ -1235,6 +1425,11 @@ class BinaryVectorMaxPool(HiddenLayer):
         return rval
 
     def get_weight_decay(self, coeff):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
@@ -1242,6 +1437,11 @@ class BinaryVectorMaxPool(HiddenLayer):
         return coeff * T.sqr(W).sum()
 
     def get_weights(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.requires_reformat:
             # This is not really an unimplemented case.
             # We actually don't know how to format the weights
@@ -1252,10 +1452,20 @@ class BinaryVectorMaxPool(HiddenLayer):
         return W.get_value()
 
     def set_weights(self, weights):
+        """
+        .. todo::
+
+            WRITEME
+        """
         W, = self.transformer.get_params()
         W.set_value(weights)
 
     def set_biases(self, biases, recenter = False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.b.set_value(biases)
         if recenter:
             assert self.center
@@ -1264,12 +1474,27 @@ class BinaryVectorMaxPool(HiddenLayer):
             self.offset.set_value(sigmoid_numpy(self.b.get_value()))
 
     def get_biases(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.b.get_value()
 
     def get_weights_format(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return ('v', 'h')
 
     def get_weights_view_shape(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         total = self.detector_layer_dim
         cols = self.pool_size
         if cols == 1:
@@ -1282,6 +1507,11 @@ class BinaryVectorMaxPool(HiddenLayer):
 
 
     def get_weights_topo(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         if not isinstance(self.input_space, Conv2DSpace):
             raise NotImplementedError()
@@ -1298,6 +1528,11 @@ class BinaryVectorMaxPool(HiddenLayer):
         return function([], W)()
 
     def upward_state(self, total_state):
+        """
+        .. todo::
+
+            WRITEME
+        """
         p,h = total_state
         self.h_space.validate(h)
         self.output_space.validate(p)
@@ -1314,6 +1549,11 @@ class BinaryVectorMaxPool(HiddenLayer):
         return p * self.copies
 
     def downward_state(self, total_state):
+        """
+        .. todo::
+
+            WRITEME
+        """
         p,h = total_state
 
         if not hasattr(self, 'center'):
@@ -1325,6 +1565,11 @@ class BinaryVectorMaxPool(HiddenLayer):
         return h * self.copies
 
     def get_monitoring_channels(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         W ,= self.transformer.get_params()
 
@@ -1346,6 +1591,11 @@ class BinaryVectorMaxPool(HiddenLayer):
 
 
     def get_monitoring_channels_from_state(self, state):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         P, H = state
 
@@ -1387,6 +1637,11 @@ class BinaryVectorMaxPool(HiddenLayer):
         return rval
 
     def get_stdev_rewards(self, state, coeffs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         rval = 0.
 
         P, H = state
@@ -1418,6 +1673,11 @@ class BinaryVectorMaxPool(HiddenLayer):
 
         return rval
     def get_range_rewards(self, state, coeffs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         rval = 0.
 
         P, H = state
@@ -1454,6 +1714,11 @@ class BinaryVectorMaxPool(HiddenLayer):
         return rval
 
     def get_l1_act_cost(self, state, target, coeff, eps = None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         rval = 0.
 
         P, H = state
@@ -1495,6 +1760,11 @@ class BinaryVectorMaxPool(HiddenLayer):
         return rval
 
     def get_l2_act_cost(self, state, target, coeff):
+        """
+        .. todo::
+
+            WRITEME
+        """
         rval = 0.
 
         P, H = state
@@ -1532,6 +1802,11 @@ class BinaryVectorMaxPool(HiddenLayer):
     def sample(self, state_below = None, state_above = None,
             layer_above = None,
             theano_rng = None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.copies != 1:
             raise NotImplementedError()
 
@@ -1553,6 +1828,11 @@ class BinaryVectorMaxPool(HiddenLayer):
         return p_sample, h_sample
 
     def downward_message(self, downward_state):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.h_space.validate(downward_state)
         rval = self.transformer.lmul_T(downward_state)
 
@@ -1562,6 +1842,11 @@ class BinaryVectorMaxPool(HiddenLayer):
         return rval * self.copies
 
     def init_mf_state(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # work around theano bug with broadcasted vectors
         z = T.alloc(0., self.dbm.batch_size, self.detector_layer_dim).astype(self.b.dtype) + \
                 self.b.dimshuffle('x', 0)
@@ -1570,6 +1855,11 @@ class BinaryVectorMaxPool(HiddenLayer):
         return rval
 
     def make_state(self, num_examples, numpy_rng):
+        """
+        .. todo::
+
+            WRITEME
+        """
         """ Returns a shared variable containing an actual state
            (not a mean field state) for this variable.
         """
@@ -1612,6 +1902,11 @@ class BinaryVectorMaxPool(HiddenLayer):
 
     def make_symbolic_state(self, num_examples, theano_rng):
         """
+        .. todo::
+
+            WRITEME
+        """
+        """
         Returns a theano symbolic variable containing an actual state
         (not a mean field state) for this variable.
         """
@@ -1633,6 +1928,11 @@ class BinaryVectorMaxPool(HiddenLayer):
         return p_sample, h_sample
 
     def expected_energy_term(self, state, average, state_below, average_below):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         # Don't need to do anything special for centering, upward_state / downward state
         # make it all just work
@@ -1666,20 +1966,24 @@ class BinaryVectorMaxPool(HiddenLayer):
 
     def linear_feed_forward_approximation(self, state_below):
         """
-        Used to implement TorontoSparsity. Unclear exactly what properties of it are
-        important or how to implement it for other layers.
+        Used to implement TorontoSparsity. Unclear exactly what properties of
+        it are important or how to implement it for other layers.
 
-        Properties it must have:
-            output is same kind of data structure (ie, tuple of theano 2-tensors)
-            as mf_update
+        Properties it must have: output is same kind of data structure (ie,
+        tuple of theano 2-tensors) as mf_update.
 
-        Properties it probably should have for other layer types:
-            An infinitesimal change in state_below or the parameters should cause the same sign of change
-            in the output of linear_feed_forward_approximation and in mf_update
+        Properties it probably should have for other layer types: an
+        infinitesimal change in state_below or the parameters should cause the
+        same sign of change in the output of linear_feed_forward_approximation
+        and in mf_update
 
-            Should not have any non-linearities that cause the gradient to shrink
+        Should not have any non-linearities that cause the gradient to shrink
 
-            Should disregard top-down feedback
+        Should disregard top-down feedback
+
+        Parameters
+        ----------
+        state_below : WRITEME
         """
 
         z = self.transformer.lmul(state_below) + self.b
@@ -1692,6 +1996,11 @@ class BinaryVectorMaxPool(HiddenLayer):
         return z, z
 
     def mf_update(self, state_below, state_above, layer_above = None, double_weights = False, iter_name = None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         self.input_space.validate(state_below)
 
@@ -1728,6 +2037,11 @@ class BinaryVectorMaxPool(HiddenLayer):
         return p, h
 
 class Softmax(HiddenLayer):
+    """
+    .. todo::
+
+        WRITEME
+    """
 
     presynaptic_name = "presynaptic_Y_hat"
 
@@ -1737,6 +2051,11 @@ class Softmax(HiddenLayer):
                  max_col_norm = None,
                  copies = 1, center = False,
                  learn_init_inpainting_state = True):
+        """
+        .. todo::
+
+            WRITEME
+        """
         """
             copies: We regard the layer as being replicated so that there
                    are <copies> instances of it.
@@ -1761,6 +2080,11 @@ class Softmax(HiddenLayer):
             self.offset = sharedX(np.exp(b) / np.exp(b).sum())
 
     def censor_updates(self, updates):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         if not hasattr(self, 'max_col_norm'):
             self.max_col_norm = None
@@ -1774,6 +2098,11 @@ class Softmax(HiddenLayer):
                 updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
     def get_lr_scalers(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         rval = OrderedDict()
 
@@ -1795,9 +2124,19 @@ class Softmax(HiddenLayer):
         return rval
 
     def get_total_state_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.output_space
 
     def get_monitoring_channels_from_state(self, state):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         mx = state.max(axis=1)
 
@@ -1808,6 +2147,11 @@ class Softmax(HiddenLayer):
         ])
 
     def set_input_space(self, space):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.input_space = space
 
         if not isinstance(space, Space):
@@ -1842,6 +2186,11 @@ class Softmax(HiddenLayer):
         self._params = [ self.b, self.W ]
 
     def get_weights_topo(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if not isinstance(self.input_space, Conv2DSpace):
             raise NotImplementedError()
         desired = self.W.get_value().T
@@ -1850,29 +2199,59 @@ class Softmax(HiddenLayer):
         return rval
 
     def get_weights(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if not isinstance(self.input_space, VectorSpace):
             raise NotImplementedError()
 
         return self.W.get_value()
 
     def set_weights(self, weights):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.W.set_value(weights)
 
     def set_biases(self, biases, recenter=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.b.set_value(biases)
         if recenter:
             assert self.center
             self.offset.set_value( (np.exp(biases) / np.exp(biases).sum()).astype(self.offset.dtype))
 
     def get_biases(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.b.get_value()
 
     def get_weights_format(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return ('v', 'h')
 
     def sample(self, state_below = None, state_above = None,
             layer_above = None,
             theano_rng = None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
 
         if self.copies != 1:
@@ -1906,6 +2285,11 @@ class Softmax(HiddenLayer):
         return h_sample
 
     def mf_update(self, state_below, state_above = None, layer_above = None, double_weights = False, iter_name = None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if state_above is not None:
             raise NotImplementedError()
 
@@ -1943,6 +2327,11 @@ class Softmax(HiddenLayer):
         return rval
 
     def downward_message(self, downward_state):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         if not hasattr(self, 'copies'):
             self.copies = 1
@@ -1954,6 +2343,11 @@ class Softmax(HiddenLayer):
         return rval
 
     def recons_cost(self, Y, Y_hat_unmasked, drop_mask_Y, scale):
+        """
+        .. todo::
+
+            WRITEME
+        """
         """
             scale is because the visible layer also goes into the
             cost. it uses the mean over units and examples, so that
@@ -1991,10 +2385,20 @@ class Softmax(HiddenLayer):
         return - rval
 
     def init_mf_state(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         rval =  T.nnet.softmax(self.b.dimshuffle('x', 0)) + T.alloc(0., self.dbm.batch_size, self.n_classes).astype(config.floatX)
         return rval
 
     def make_state(self, num_examples, numpy_rng):
+        """
+        .. todo::
+
+            WRITEME
+        """
         """ Returns a shared variable containing an actual state
            (not a mean field state) for this variable.
         """
@@ -2042,6 +2446,11 @@ class Softmax(HiddenLayer):
 
     def make_symbolic_state(self, num_examples, theano_rng):
         """
+        .. todo::
+
+            WRITEME
+        """
+        """
         Returns a symbolic variable containing an actual state
         (not a mean field state) for this variable.
         """
@@ -2058,17 +2467,32 @@ class Softmax(HiddenLayer):
         return h_sample
 
     def get_weight_decay(self, coeff):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         return coeff * T.sqr(self.W).sum()
 
     def upward_state(self, state):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.center:
             return state - self.offset
         return state
 
     def downward_state(self, state):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if not hasattr(self, 'center'):
             self.center = False
         if self.center:
@@ -2078,6 +2502,11 @@ class Softmax(HiddenLayer):
         return state
 
     def expected_energy_term(self, state, average, state_below, average_below):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         if self.center:
             state = state - self.offset
@@ -2103,6 +2532,11 @@ class Softmax(HiddenLayer):
         return rval
 
     def init_inpainting_state(self, Y, noise):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if noise:
             theano_rng = MRG_RandomStreams(2012+10+30)
             return T.nnet.softmax(theano_rng.normal(avg=0., size=Y.shape, std=1., dtype='float32'))
@@ -2114,34 +2548,58 @@ class Softmax(HiddenLayer):
         return rval
 
     def install_presynaptic_outputs(self, outputs_dict, batch_size):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         assert self.presynaptic_name not in outputs_dict
         outputs_dict[self.presynaptic_name] = self.output_space.make_shared_batch(batch_size, self.presynaptic_name)
 
 class InferenceProcedure(object):
     """
-    TODO WRITEME
-    """
+    .. todo::
 
+        WRITEME
+    """
     def set_dbm(self, dbm):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.dbm = dbm
 
     def mf(self, V, Y = None, return_history = False, niter = None, block_grad = None):
         """
-        TODO WRITEME
-        """
+        .. todo::
 
+            WRITEME
+        """
         raise NotImplementedError(str(type(self))+" does not implement mf.")
 
     def set_batch_size(self, batch_size):
         """
-        If the inference procedure is dependent on a batch size at all, makes the
-        necessary internal configurations to work with that batch size.
+        If the inference procedure is dependent on a batch size at all, makes
+        the necessary internal configurations to work with that batch size.
         """
+        # TODO : was this supposed to be implemented?
+
 
 class WeightDoubling(InferenceProcedure):
+    """
+    .. todo::
+
+        WRITEME
+    """
 
     def mf(self, V, Y = None, return_history = False, niter = None, block_grad = None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         dbm = self.dbm
 
@@ -2281,17 +2739,220 @@ class WeightDoubling(InferenceProcedure):
             return H_hat
 
 
+class SamplingProcedure(object):
+    """
+    Procedure for sampling from a DBM.
+    """
+    def set_dbm(self, dbm):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        self.dbm = dbm
+
+    def sample(self, layer_to_state, theano_rng, layer_to_clamp=None,
+               num_steps=1):
+        """
+        Samples from self.dbm using `layer_to_state` as starting values.
+
+        Parameters
+        ----------
+        layer_to_state : dict
+            Maps the DBM's Layer instances to theano variables representing \
+            batches of samples of them.
+        theano_rng : theano.sandbox.rng_mrg.MRG_RandomStreams
+            WRITEME
+        layer_to_clamp : dict, optional
+            Maps Layers to bools. If a layer is not in the dictionary, \
+            defaults to False. True indicates that this layer should be \
+            clamped, so we are sampling from a conditional distribution \
+            rather than the joint distribution.
+
+        Returns
+        -------
+        layer_to_updated_state : dict
+            Maps the DBM's Layer instances to theano variables representing \
+            batches of updated samples of them.
+        """
+        raise NotImplementedError(str(type(self))+" does not implement " +
+                                  "sample.")
+
+
+class GibbsEvenOdd(SamplingProcedure):
+    """
+    The specific sampling schedule used to sample all of the even-idexed
+    layers of model.hidden_layers, then the visible layer and all the
+    odd-indexed layers.
+    """
+    def sample(self, layer_to_state, theano_rng, layer_to_clamp=None,
+               num_steps=1):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        # Validate num_steps
+        assert isinstance(num_steps, py_integer_types)
+        assert num_steps > 0
+
+        # Implement the num_steps > 1 case by repeatedly calling the
+        # num_steps == 1 case
+        if num_steps != 1:
+            for i in xrange(num_steps):
+                layer_to_state = self.sample(layer_to_state, theano_rng,
+                                             layer_to_clamp, num_steps=1)
+            return layer_to_state
+
+        # The rest of the function is the num_steps = 1 case
+        # Current code assumes this, though we could certainly relax this
+        # constraint
+        assert len(self.dbm.hidden_layers) > 0
+
+        # Validate layer_to_clamp / make sure layer_to_clamp is a fully
+        # populated dictionary
+        if layer_to_clamp is None:
+            layer_to_clamp = OrderedDict()
+
+        for key in layer_to_clamp:
+            assert (key is self.dbm.visible_layer or
+                    key in self.dbm.hidden_layers)
+
+        for layer in [self.dbm.visible_layer] + self.dbm.hidden_layers:
+            if layer not in layer_to_clamp:
+                layer_to_clamp[layer] = False
+
+        # Assemble the return value
+        layer_to_updated = OrderedDict()
+
+        for i, this_layer in list(enumerate(self.dbm.hidden_layers))[::2]:
+            # Iteration i does the Gibbs step for hidden_layers[i]
+
+            # Get the sampled state of the layer below so we can condition
+            # on it in our Gibbs update
+            if i == 0:
+                layer_below = self.dbm.visible_layer
+            else:
+                layer_below = self.dbm.hidden_layers[i-1]
+            state_below = layer_to_state[layer_below]
+            state_below = layer_below.upward_state(state_below)
+
+            # Get the sampled state of the layer above so we can condition
+            # on it in our Gibbs step
+            if i + 1 < len(self.dbm.hidden_layers):
+                layer_above = self.dbm.hidden_layers[i + 1]
+                state_above = layer_to_state[layer_above]
+                state_above = layer_above.downward_state(state_above)
+            else:
+                state_above = None
+                layer_above = None
+
+            if layer_to_clamp[this_layer]:
+                this_state = layer_to_state[this_layer]
+                this_sample = this_state
+            else:
+                # Compute the Gibbs sampling update
+                # Sample the state of this layer conditioned
+                # on its Markov blanket (the layer above and
+                # layer below)
+                this_sample = this_layer.sample(state_below=state_below,
+                                                state_above=state_above,
+                                                layer_above=layer_above,
+                                                theano_rng=theano_rng)
+
+            layer_to_updated[this_layer] = this_sample
+
+        #Sample the visible layer
+        vis_state = layer_to_state[self.dbm.visible_layer]
+        if layer_to_clamp[self.dbm.visible_layer]:
+            vis_sample = vis_state
+        else:
+            first_hid = self.dbm.hidden_layers[0]
+            state_above = layer_to_updated[first_hid]
+            state_above = first_hid.downward_state(state_above)
+
+            vis_sample = self.dbm.visible_layer.sample(state_above=state_above,
+                                                       layer_above=first_hid,
+                                                       theano_rng=theano_rng)
+        layer_to_updated[self.dbm.visible_layer] = vis_sample
+
+        # Sample the odd-numbered layers
+        for i, this_layer in list(enumerate(self.dbm.hidden_layers))[1::2]:
+
+            # Get the sampled state of the layer below so we can condition
+            # on it in our Gibbs update
+            layer_below = self.dbm.hidden_layers[i-1]
+
+            # We want to sample from each conditional distribution
+            # ***sequentially*** so we must use the updated version
+            # of the state for the layers whose updates we have
+            # calculcated already, in layer_to_updated.
+            # If we used the original value from
+            # layer_to_state
+            # then we would sample from each conditional
+            # ***simultaneously*** which does not implement MCMC
+            # sampling.
+            state_below = layer_to_updated[layer_below]
+
+            state_below = layer_below.upward_state(state_below)
+
+            # Get the sampled state of the layer above so we can condition
+            # on it in our Gibbs step
+            if i + 1 < len(self.dbm.hidden_layers):
+                layer_above = self.dbm.hidden_layers[i + 1]
+                state_above = layer_to_updated[layer_above]
+                state_above = layer_above.downward_state(state_above)
+            else:
+                state_above = None
+                layer_above = None
+
+            if layer_to_clamp[this_layer]:
+                this_state = layer_to_state[this_layer]
+                this_sample = this_state
+            else:
+                # Compute the Gibbs sampling update
+                # Sample the state of this layer conditioned
+                # on its Markov blanket (the layer above and
+                # layer below)
+                this_sample = this_layer.sample(state_below=state_below,
+                                                state_above=state_above,
+                                                layer_above=layer_above,
+                                                theano_rng=theano_rng)
+
+            layer_to_updated[this_layer] = this_sample
+
+        # Check that all layers were updated
+        assert all([layer in layer_to_updated for layer in layer_to_state])
+        # Check that we didn't accidentally treat any other object as a layer
+        assert all([layer in layer_to_state for layer in layer_to_updated])
+        # Check that clamping worked
+        assert all([(layer_to_state[layer] is layer_to_updated[layer]) ==
+                    layer_to_clamp[layer] for layer in layer_to_state])
+
+        return layer_to_updated
+
+
 class DBMSampler(Block):
     """
     A Block used to sample from the last layer of a DBM with one hidden layer.
     """
     def __init__(self, dbm):
+        """
+        .. todo::
+
+            WRITEME
+        """
         super(DBMSampler, self).__init__()
         self.theano_rng = MRG_RandomStreams(2012 + 10 + 14)
         self.dbm = dbm
         assert len(self.dbm.hidden_layers) == 1
 
     def __call__(self, inputs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         space = self.dbm.get_input_space()
         num_examples = space.batch_size(inputs)
 
@@ -2310,6 +2971,22 @@ class DBMSampler(Block):
         rval = last_layer.upward_state(rval)
 
         return rval
+
+    def get_input_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        return self.dbm.get_input_space()
+
+    def get_output_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        return self.dbm.get_output_space()
 
 
 def stitch_rbms(batch_size, rbm_list, niter, inference_procedure=None,
@@ -2376,6 +3053,14 @@ def flatten(l):
     """
     Turns a nested graph of lists/tuples/other objects
     into a list of objects.
+
+    Parameters
+    ----------
+    l : WRITEME
+
+    Returns
+    -------
+    WRITEME
     """
     if isinstance(l, (list, tuple)):
         rval = []
@@ -2389,6 +3074,11 @@ def flatten(l):
     return rval
 
 def block(l):
+    """
+    .. todo::
+
+        WRITEME
+    """
     new = []
     for elem in l:
         if isinstance(elem, (list, tuple)):
@@ -2401,6 +3091,11 @@ def block(l):
 
 
 class GaussianVisLayer(VisibleLayer):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self,
             rows = None,
             cols = None,
@@ -2415,6 +3110,11 @@ class GaussianVisLayer(VisibleLayer):
             bias_from_marginals = None,
             beta_lr_scale = 'by_sharing',
             axes = ('b', 0, 1, 'c')):
+        """
+        .. todo::
+
+            WRITEME
+        """
         """
             Implements a visible layer that is conditionally gaussian with
             diagonal variance. The layer lives in a Conv2DSpace.
@@ -2483,6 +3183,11 @@ class GaussianVisLayer(VisibleLayer):
         assert self.mu.ndim == mu_origin.ndim
 
     def get_monitoring_channels(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         rval = OrderedDict()
 
         rval['beta_min'] = self.beta.min()
@@ -2493,11 +3198,21 @@ class GaussianVisLayer(VisibleLayer):
 
 
     def get_params(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.mu is None:
             return [self.beta]
         return [self.beta, self.mu]
 
     def get_lr_scalers(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         rval = OrderedDict()
 
         if self.nvis is None:
@@ -2524,6 +3239,11 @@ class GaussianVisLayer(VisibleLayer):
         return rval
 
     def censor_updates(self, updates):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.beta in updates:
             updated_beta = updates[self.beta]
             # updated_beta = Print('updating beta',attrs=['min', 'max'])(updated_beta)
@@ -2566,6 +3286,11 @@ class GaussianVisLayer(VisibleLayer):
 
     def broadcast_beta(self, beta):
         """
+        .. todo::
+
+            WRITEME
+        """
+        """
         Returns beta, broadcasted to have the same shape as a batch of data
         """
 
@@ -2590,6 +3315,11 @@ class GaussianVisLayer(VisibleLayer):
         return rval
 
     def init_inpainting_state(self, V, drop_mask, noise = False, return_unmasked = False):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         """for Vv, drop_mask_v in get_debug_values(V, drop_mask):
             assert Vv.ndim == 4
@@ -2633,6 +3363,11 @@ class GaussianVisLayer(VisibleLayer):
 
 
     def expected_energy_term(self, state, average, state_below = None, average_below = None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError("need to support axes")
         raise NotImplementedError("wasn't implemeneted before axes either")
         assert state_below is None
@@ -2652,6 +3387,11 @@ class GaussianVisLayer(VisibleLayer):
 
     def inpaint_update(self, state_above, layer_above, drop_mask = None, V = None,
                         return_unmasked = False):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         msg = layer_above.downward_message(state_above)
         mu = self.broadcasted_mu()
@@ -2675,6 +3415,11 @@ class GaussianVisLayer(VisibleLayer):
     def sample(self, state_below = None, state_above = None,
             layer_above = None,
             theano_rng = None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError("need to support axes")
 
         assert state_below is None
@@ -2689,11 +3434,21 @@ class GaussianVisLayer(VisibleLayer):
         return rval
 
     def recons_cost(self, V, V_hat_unmasked, drop_mask = None, use_sum=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         return self._recons_cost(V=V, V_hat_unmasked=V_hat_unmasked, drop_mask=drop_mask, use_sum=use_sum, beta=self.beta)
 
 
     def _recons_cost(self, V, V_hat_unmasked, beta, drop_mask=None, use_sum=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         V_hat = V_hat_unmasked
 
         assert V.ndim == V_hat.ndim
@@ -2714,6 +3469,11 @@ class GaussianVisLayer(VisibleLayer):
         return masked_cost.mean()
 
     def upward_state(self, total_state):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.nvis is None and total_state.ndim != 4:
             raise ValueError("total_state should have 4 dimensions, has "+str(total_state.ndim))
         assert total_state is not None
@@ -2723,6 +3483,11 @@ class GaussianVisLayer(VisibleLayer):
         return upward_state
 
     def make_state(self, num_examples, numpy_rng):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError("need to support axes")
 
         shape = [num_examples]
@@ -2746,10 +3511,20 @@ class GaussianVisLayer(VisibleLayer):
         return rval
 
     def install_presynaptic_outputs(self, outputs_dict, batch_size):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         outputs_dict['output_V_weighted_pred_sum'] = self.space.make_shared_batch(batch_size)
 
     def ensemble_prediction(self, symbolic, outputs_dict, ensemble):
+        """
+        .. todo::
+
+            WRITEME
+        """
         """
         Output a symbolic expression for V_hat_unmasked based on taking the
         geometric mean over the ensemble and renormalizing.
@@ -2769,6 +3544,11 @@ class GaussianVisLayer(VisibleLayer):
 
     def ensemble_recons_cost(self, V, V_hat_unmasked, drop_mask=None,
             use_sum=False, ensemble=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         beta = sum(ensemble.get_ensemble_variants(self.beta)) / ensemble.num_copies
 
@@ -2791,8 +3571,9 @@ class ConvMaxPool(HiddenLayer):
             border_mode = 'valid',
             output_axes = ('b', 'c', 0, 1)):
         """
+        .. todo::
 
-
+            WRITEME
         """
         self.__dict__.update(locals())
         del self.self
@@ -2803,6 +3584,11 @@ class ConvMaxPool(HiddenLayer):
         assert border_mode in ['full','valid']
 
     def broadcasted_bias(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         assert self.b.ndim == 1
 
@@ -2813,9 +3599,19 @@ class ConvMaxPool(HiddenLayer):
 
 
     def get_total_state_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return CompositeSpace((self.h_space, self.output_space))
 
     def set_input_space(self, space):
+        """
+        .. todo::
+
+            WRITEME
+        """
         """ Note: this resets parameters!"""
         if not isinstance(space, Conv2DSpace):
             raise TypeError("ConvMaxPool can only act on a Conv2DSpace, but received " +
@@ -2877,6 +3673,11 @@ class ConvMaxPool(HiddenLayer):
 
 
     def get_params(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         assert self.b.name is not None
         W ,= self.transformer.get_params()
         assert W.name is not None
@@ -2884,6 +3685,11 @@ class ConvMaxPool(HiddenLayer):
         return [ W, self.b]
 
     def state_to_b01c(self, state):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         if tuple(self.output_axes) == ('b',0,1,'c'):
             return state
@@ -2892,7 +3698,9 @@ class ConvMaxPool(HiddenLayer):
 
     def get_range_rewards(self, state, coeffs):
         """
-        TODO: WRITEME
+        .. todo::
+
+            WRITEME
         """
         rval = 0.
 
@@ -2927,6 +3735,11 @@ class ConvMaxPool(HiddenLayer):
         return rval
 
     def get_l1_act_cost(self, state, target, coeff, eps):
+        """
+        .. todo::
+
+            WRITEME
+        """
         """
 
             target: if pools contain more than one element, should be a list with
@@ -2970,6 +3783,11 @@ class ConvMaxPool(HiddenLayer):
         return rval
 
     def get_lr_scalers(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.scale_by_sharing:
             # scale each learning rate by 1 / # times param is reused
             h_rows, h_cols = self.h_space.shape
@@ -2980,6 +3798,11 @@ class ConvMaxPool(HiddenLayer):
             return OrderedDict()
 
     def upward_state(self, total_state):
+        """
+        .. todo::
+
+            WRITEME
+        """
         p,h = total_state
 
         if not hasattr(self, 'center'):
@@ -2992,6 +3815,11 @@ class ConvMaxPool(HiddenLayer):
         return p
 
     def downward_state(self, total_state):
+        """
+        .. todo::
+
+            WRITEME
+        """
         p,h = total_state
 
         if not hasattr(self, 'center'):
@@ -3004,6 +3832,11 @@ class ConvMaxPool(HiddenLayer):
         return h
 
     def get_monitoring_channels_from_state(self, state):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         P, H = state
 
@@ -3036,12 +3869,22 @@ class ConvMaxPool(HiddenLayer):
         return rval
 
     def get_weight_decay(self, coeffs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         W , = self.transformer.get_params()
         return coeffs * T.sqr(W).sum()
 
 
 
     def mf_update(self, state_below, state_above, layer_above = None, double_weights = False, iter_name = None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         self.input_space.validate(state_below)
 
@@ -3077,6 +3920,11 @@ class ConvMaxPool(HiddenLayer):
     def sample(self, state_below = None, state_above = None,
             layer_above = None,
             theano_rng = None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         if state_above is not None:
             msg = layer_above.downward_message(state_above)
@@ -3094,13 +3942,28 @@ class ConvMaxPool(HiddenLayer):
         return p_sample, h_sample
 
     def downward_message(self, downward_state):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.h_space.validate(downward_state)
         return self.transformer.lmul_T(downward_state)
 
     def set_batch_size(self, batch_size):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.transformer.set_batch_size(batch_size)
 
     def get_weights_topo(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         outp, inp, rows, cols = range(4)
         raw = self.transformer._filters.get_value()
 
@@ -3108,6 +3971,11 @@ class ConvMaxPool(HiddenLayer):
 
 
     def init_mf_state(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         default_z = self.broadcasted_bias()
         shape = {
                 'b': self.dbm.batch_size,
@@ -3126,6 +3994,11 @@ class ConvMaxPool(HiddenLayer):
         return p, h
 
     def make_state(self, num_examples, numpy_rng):
+        """
+        .. todo::
+
+            WRITEME
+        """
         """ Returns a shared variable containing an actual state
            (not a mean field state) for this variable.
         """
@@ -3172,6 +4045,11 @@ class ConvMaxPool(HiddenLayer):
         return p_state, h_state
 
     def expected_energy_term(self, state, average, state_below, average_below):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         self.input_space.validate(state_below)
 
@@ -3192,6 +4070,11 @@ class ConvMaxPool(HiddenLayer):
         return rval
 
 class ConvC01B_MaxPool(HiddenLayer):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self,
              output_channels,
             kernel_shape,
@@ -3206,6 +4089,10 @@ class ConvC01B_MaxPool(HiddenLayer):
             pad = 0,
             partial_sum = 1):
         """
+        .. todo::
+
+            WRITEME properly
+
         Like ConvMaxPool but using cuda convnet for the backend.
 
         kernel_shape: two-element list or tuple of ints specifying
@@ -3223,6 +4110,11 @@ class ConvC01B_MaxPool(HiddenLayer):
         self.tied_b = 1
 
     def broadcasted_bias(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         if self.b.ndim != 1:
             raise NotImplementedError()
@@ -3234,9 +4126,19 @@ class ConvC01B_MaxPool(HiddenLayer):
 
 
     def get_total_state_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return CompositeSpace((self.h_space, self.output_space))
 
     def set_input_space(self, space):
+        """
+        .. todo::
+
+            WRITEME
+        """
         """ Note: this resets parameters!"""
 
         setup_detector_layer_c01b(layer=self,
@@ -3279,6 +4181,11 @@ class ConvC01B_MaxPool(HiddenLayer):
 
 
     def get_params(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         assert self.b.name is not None
         W ,= self.transformer.get_params()
         assert W.name is not None
@@ -3286,6 +4193,11 @@ class ConvC01B_MaxPool(HiddenLayer):
         return [ W, self.b]
 
     def state_to_b01c(self, state):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         if tuple(self.output_axes) == ('b',0,1,'c'):
             return state
@@ -3294,7 +4206,9 @@ class ConvC01B_MaxPool(HiddenLayer):
 
     def get_range_rewards(self, state, coeffs):
         """
-        TODO: WRITEME
+        .. todo::
+
+            WRITEME
         """
         rval = 0.
 
@@ -3330,11 +4244,13 @@ class ConvC01B_MaxPool(HiddenLayer):
 
     def get_l1_act_cost(self, state, target, coeff, eps):
         """
+        .. todo::
 
-            target: if pools contain more than one element, should be a list with
-                    two elements. the first element is for the pooling units and
-                    the second for the detector units.
+            WRITEME properly
 
+        target: if pools contain more than one element, should be a list with
+                two elements. the first element is for the pooling units and
+                the second for the detector units.
         """
         rval = 0.
 
@@ -3372,6 +4288,11 @@ class ConvC01B_MaxPool(HiddenLayer):
         return rval
 
     def get_lr_scalers(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         rval = OrderedDict()
 
@@ -3385,6 +4306,11 @@ class ConvC01B_MaxPool(HiddenLayer):
         return rval
 
     def upward_state(self, total_state):
+        """
+        .. todo::
+
+            WRITEME
+        """
         p,h = total_state
 
         if not hasattr(self, 'center'):
@@ -3397,6 +4323,11 @@ class ConvC01B_MaxPool(HiddenLayer):
         return p
 
     def downward_state(self, total_state):
+        """
+        .. todo::
+
+            WRITEME
+        """
         p,h = total_state
 
         if not hasattr(self, 'center'):
@@ -3409,6 +4340,11 @@ class ConvC01B_MaxPool(HiddenLayer):
         return h
 
     def get_monitoring_channels_from_state(self, state):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         P, H = state
 
@@ -3437,10 +4373,20 @@ class ConvC01B_MaxPool(HiddenLayer):
         return rval
 
     def get_weight_decay(self, coeffs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         W , = self.transformer.get_params()
         return coeffs * T.sqr(W).sum()
 
     def mf_update(self, state_below, state_above, layer_above = None, double_weights = False, iter_name = None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         self.input_space.validate(state_below)
 
@@ -3476,6 +4422,11 @@ class ConvC01B_MaxPool(HiddenLayer):
     def sample(self, state_below = None, state_above = None,
             layer_above = None,
             theano_rng = None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError("Need to update for C01B")
 
         if state_above is not None:
@@ -3494,16 +4445,36 @@ class ConvC01B_MaxPool(HiddenLayer):
         return p_sample, h_sample
 
     def downward_message(self, downward_state):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.h_space.validate(downward_state)
         return self.transformer.lmul_T(downward_state)
 
     def set_batch_size(self, batch_size):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.transformer.set_batch_size(batch_size)
 
     def get_weights_topo(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.transformer.get_weights_topo()
 
     def init_mf_state(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         default_z = self.broadcasted_bias()
         shape = {
                 'b': self.dbm.batch_size,
@@ -3522,8 +4493,13 @@ class ConvC01B_MaxPool(HiddenLayer):
         return p, h
 
     def make_state(self, num_examples, numpy_rng):
-        """ Returns a shared variable containing an actual state
-           (not a mean field state) for this variable.
+        """
+        .. todo::
+
+            WRITEME properly
+
+        Returns a shared variable containing an actual state
+        (not a mean field state) for this variable.
         """
         raise NotImplementedError("Need to update for C01B")
 
@@ -3569,6 +4545,11 @@ class ConvC01B_MaxPool(HiddenLayer):
         return p_state, h_state
 
     def expected_energy_term(self, state, average, state_below, average_below):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         raise NotImplementedError("Need to update for C01B")
         self.input_space.validate(state_below)
@@ -3618,11 +4599,13 @@ class BVMP_Gaussian(BinaryVectorMaxPool):
             max_col_norm = None,
             copies = 1):
         """
+        .. todo::
 
-            include_prob: probability of including a weight element in the set
-                    of weights initialized to U(-irange, irange). If not included
-                    it is initialized to 0.
+            WRITEME properly
 
+        include_prob: probability of including a weight element in the set
+                of weights initialized to U(-irange, irange). If not included
+                it is initialized to 0.
         """
 
         warnings.warn("BVMP_Gaussian math is very faith-based, need to complete gaussian.lyx")
@@ -3635,6 +4618,11 @@ class BVMP_Gaussian(BinaryVectorMaxPool):
         self.input_layer = input_layer
 
     def get_weights(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.requires_reformat:
             # This is not really an unimplemented case.
             # We actually don't know how to format the weights
@@ -3652,11 +4640,21 @@ class BVMP_Gaussian(BinaryVectorMaxPool):
         return W
 
     def set_weights(self, weights):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError("beta would make get_weights for visualization not correspond to set_weights")
         W, = self.transformer.get_params()
         W.set_value(weights)
 
     def set_biases(self, biases, recenter = False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.b.set_value(biases)
         if recenter:
             assert self.center
@@ -3665,12 +4663,22 @@ class BVMP_Gaussian(BinaryVectorMaxPool):
             self.offset.set_value(sigmoid_numpy(self.b.get_value()))
 
     def get_biases(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.b.get_value() - self.beta_bias().eval()
 
 
     def sample(self, state_below = None, state_above = None,
             layer_above = None,
             theano_rng = None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError("need to account for beta")
         if self.copies != 1:
             raise NotImplementedError()
@@ -3693,6 +4701,11 @@ class BVMP_Gaussian(BinaryVectorMaxPool):
         return p_sample, h_sample
 
     def downward_message(self, downward_state):
+        """
+        .. todo::
+
+            WRITEME
+        """
         rval = self.transformer.lmul_T(downward_state)
 
         if self.requires_reformat:
@@ -3701,6 +4714,11 @@ class BVMP_Gaussian(BinaryVectorMaxPool):
         return rval * self.copies
 
     def init_mf_state(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # work around theano bug with broadcasted vectors
         z = T.alloc(0., self.dbm.batch_size, self.detector_layer_dim).astype(self.b.dtype) + \
                 self.b.dimshuffle('x', 0) + self.beta_bias()
@@ -3709,8 +4727,13 @@ class BVMP_Gaussian(BinaryVectorMaxPool):
         return rval
 
     def make_state(self, num_examples, numpy_rng):
-        """ Returns a shared variable containing an actual state
-           (not a mean field state) for this variable.
+        """
+        .. todo::
+
+            WRITEME properly
+
+        Returns a shared variable containing an actual state
+        (not a mean field state) for this variable.
         """
         raise NotImplementedError("need to account for beta")
 
@@ -3751,6 +4774,11 @@ class BVMP_Gaussian(BinaryVectorMaxPool):
         return p_state, h_state
 
     def expected_energy_term(self, state, average, state_below, average_below):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError("need to account for beta, and maybe some oether stuff")
 
         # Don't need to do anything special for centering, upward_state / downward state
@@ -3785,6 +4813,10 @@ class BVMP_Gaussian(BinaryVectorMaxPool):
 
     def linear_feed_forward_approximation(self, state_below):
         """
+        .. todo::
+
+            WRITEME properly
+
         Used to implement TorontoSparsity. Unclear exactly what properties of it are
         important or how to implement it for other layers.
 
@@ -3812,12 +4844,22 @@ class BVMP_Gaussian(BinaryVectorMaxPool):
         return z, z
 
     def beta_bias(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         W, = self.transformer.get_params()
         beta = self.input_layer.beta
         assert beta.ndim == 1
         return - 0.5 * T.dot(beta, T.sqr(W))
 
     def mf_update(self, state_below, state_above, layer_above = None, double_weights = False, iter_name = None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         self.input_space.validate(state_below)
 
@@ -3855,8 +4897,17 @@ class BVMP_Gaussian(BinaryVectorMaxPool):
 
 
 class SuperWeightDoubling(WeightDoubling):
+    """
+    .. todo::
 
+        WRITEME
+    """
     def multi_infer(self, V, return_history = False, niter = None, block_grad = None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         dbm = self.dbm
 
@@ -3965,39 +5016,56 @@ class SuperWeightDoubling(WeightDoubling):
     def do_inpainting(self, V, Y = None, drop_mask = None, drop_mask_Y = None,
             return_history = False, noise = False, niter = None, block_grad = None):
         """
-        If you use this method in your research work, please cite:
+        .. todo::
 
-            Multi-prediction deep Boltzmann machines. Ian J. Goodfellow, Mehdi Mirza,
-            Aaron Courville, and Yoshua Bengio. NIPS 2013.
-
+            WRITEME properly
 
         Gives the mean field expression for units masked out by drop_mask.
         Uses self.niter mean field updates.
 
-        Comes in two variants, unsupervised and supervised:
-            unsupervised:
-                Y and drop_mask_Y are not passed to the method.
-                The method produces V_hat, an inpainted version of V
-            supervised:
-                Y and drop_mask_Y are passed to the method.
-                The method produces V_hat and Y_hat
+        If you use this method in your research work, please cite:
 
-        V: a theano batch in model.input_space
-        Y: a theano batch in model.output_space, ie, in the output
-            space of the last hidden layer
-            (it's not really a hidden layer anymore, but oh well.
-            it's convenient to code it this way because the labels
-            are sort of "on top" of everything else)
-            *** Y is always assumed to be a matrix of one-hot category
-            labels. ***
-        drop_mask: a theano batch in model.input_space
-            Should be all binary, with 1s indicating that the corresponding
-            element of X should be "dropped", ie, hidden from the algorithm
-            and filled in as part of the inpainting process
-        drop_mask_Y: a theano vector
-            Since we assume Y is a one-hot matrix, each row is a single
-            categorical variable. drop_mask_Y is a binary mask specifying
-            which *rows* to drop.
+            Multi-prediction deep Boltzmann machines. Ian J. Goodfellow,
+            Mehdi Mirza, Aaron Courville, and Yoshua Bengio. NIPS 2013.
+
+
+        Comes in two variants, unsupervised and supervised:
+
+        * unsupervised: Y and drop_mask_Y are not passed to the method. The
+          method produces V_hat, an inpainted version of V.
+        * supervised: Y and drop_mask_Y are passed to the method. The method
+          produces V_hat and Y_hat
+
+        Parameters
+        ----------
+        V : tensor_like
+            Theano batch in `model.input_space`
+        Y : tensor_like
+            Theano batch in `model.output_space`, i.e. in the output space of \
+            the last hidden layer. (It's not really a hidden layer anymore, \
+            but oh well. It's convenient to code it this way because the \
+            labels are sort of "on top" of everything else.) *** Y is always \
+            assumed to be a matrix of one-hot category labels. ***
+        drop_mask : tensor_like
+            Theano batch in `model.input_space`. Should be all binary, with \
+            1s indicating that the corresponding element of X should be \
+            "dropped", i.e. hidden from the algorithm and filled in as part \
+            of the inpainting process
+        drop_mask_Y : tensor_like
+            Theano vector. Since we assume Y is a one-hot matrix, each row is \
+            a single categorical variable. `drop_mask_Y` is a binary mask \
+            specifying which *rows* to drop.
+        return_history : bool, optional
+            WRITEME
+        noise : bool, optional
+            WRITEME
+        niter : int, optional
+            WRITEME
+        block_grad : WRITEME
+
+        Returns
+        -------
+        WRITEME
         """
 
         dbm = self.dbm
@@ -4177,6 +5245,11 @@ class MoreConsistent(SuperWeightDoubling):
     """
 
     def mf(self, V, Y = None, return_history = False, niter = None, block_grad = None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         drop_mask = T.zeros_like(V)
 
@@ -4220,42 +5293,65 @@ class MoreConsistent(SuperWeightDoubling):
         return rval
 
 class MoreConsistent2(WeightDoubling):
+    """
+    .. todo::
+
+        WRITEME
+    """
 
     def do_inpainting(self, V, Y = None, drop_mask = None, drop_mask_Y = None,
             return_history = False, noise = False, niter = None, block_grad = None):
         """
+        .. todo::
+
+            WRITEME properly
+
         If you use this method in your research work, please cite:
 
-            Multi-prediction deep Boltzmann machines. Ian J. Goodfellow, Mehdi Mirza,
-            Aaron Courville, and Yoshua Bengio. NIPS 2013.
+            Multi-prediction deep Boltzmann machines. Ian J. Goodfellow,
+            Mehdi Mirza, Aaron Courville, and Yoshua Bengio. NIPS 2013.
+
 
         Gives the mean field expression for units masked out by drop_mask.
         Uses self.niter mean field updates.
 
         Comes in two variants, unsupervised and supervised:
-            unsupervised:
-                Y and drop_mask_Y are not passed to the method.
-                The method produces V_hat, an inpainted version of V
-            supervised:
-                Y and drop_mask_Y are passed to the method.
-                The method produces V_hat and Y_hat
 
-        V: a theano batch in model.input_space
-        Y: a theano batch in model.output_space, ie, in the output
-            space of the last hidden layer
-            (it's not really a hidden layer anymore, but oh well.
-            it's convenient to code it this way because the labels
-            are sort of "on top" of everything else)
-            *** Y is always assumed to be a matrix of one-hot category
-            labels. ***
-        drop_mask: a theano batch in model.input_space
-            Should be all binary, with 1s indicating that the corresponding
-            element of X should be "dropped", ie, hidden from the algorithm
-            and filled in as part of the inpainting process
-        drop_mask_Y: a theano vector
-            Since we assume Y is a one-hot matrix, each row is a single
-            categorical variable. drop_mask_Y is a binary mask specifying
-            which *rows* to drop.
+        * unsupervised: Y and drop_mask_Y are not passed to the method. The
+          method produces V_hat, an inpainted version of V
+        * supervised: Y and drop_mask_Y are passed to the method. The method
+          produces V_hat and Y_hat
+
+        Parameters
+        ----------
+        V : tensor_like
+            Theano batch in `model.input_space`
+        Y : tensor_like
+            Theano batch in `model.output_space`, i.e. in the output space of \
+            the last hidden layer. (It's not really a hidden layer anymore, \
+            but oh well. It's convenient to code it this way because the \
+            labels are sort of "on top" of everything else.) *** Y is always \
+            assumed to be a matrix of one-hot category labels. ***
+        drop_mask : tensor_like
+            Theano batch in `model.input_space`. Should be all binary, with \
+            1s indicating that the corresponding element of X should be \
+            "dropped", i.e. hidden from the algorithm and filled in as part \
+            of the inpainting process
+        drop_mask_Y : tensor_like
+            Theano vector. Since we assume Y is a one-hot matrix, each row is \
+            a single categorical variable. `drop_mask_Y` is a binary mask \
+            specifying which *rows* to drop.
+        return_history : bool, optional
+            WRITEME
+        noise : bool, optional
+            WRITEME
+        niter : int, optional
+            WRITEME
+        block_grad : WRITEME
+
+        Returns
+        -------
+        WRITEME
         """
 
         dbm = self.dbm
@@ -4437,6 +5533,11 @@ class BiasInit(InferenceProcedure):
     """
 
     def mf(self, V, Y = None, return_history = False, niter = None, block_grad = None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         dbm = self.dbm
 
@@ -4555,37 +5656,45 @@ class BiasInit(InferenceProcedure):
     def do_inpainting(self, V, Y = None, drop_mask = None, drop_mask_Y = None,
             return_history = False, noise = False, niter = None, block_grad = None):
         """
-        If you use this method in your research work, please cite:
+        .. todo::
 
-            Multi-prediction deep Boltzmann machines. Ian J. Goodfellow, Mehdi Mirza,
-            Aaron Courville, and Yoshua Bengio. NIPS 2013.
+            WRITEME properly
+
         Gives the mean field expression for units masked out by drop_mask.
         Uses self.niter mean field updates.
 
         Comes in two variants, unsupervised and supervised:
-            unsupervised:
-                Y and drop_mask_Y are not passed to the method.
-                The method produces V_hat, an inpainted version of V
-            supervised:
-                Y and drop_mask_Y are passed to the method.
-                The method produces V_hat and Y_hat
 
-        V: a theano batch in model.input_space
-        Y: a theano batch in model.output_space, ie, in the output
-            space of the last hidden layer
-            (it's not really a hidden layer anymore, but oh well.
-            it's convenient to code it this way because the labels
-            are sort of "on top" of everything else)
-            *** Y is always assumed to be a matrix of one-hot category
-            labels. ***
-        drop_mask: a theano batch in model.input_space
-            Should be all binary, with 1s indicating that the corresponding
-            element of X should be "dropped", ie, hidden from the algorithm
-            and filled in as part of the inpainting process
-        drop_mask_Y: a theano vector
-            Since we assume Y is a one-hot matrix, each row is a single
-            categorical variable. drop_mask_Y is a binary mask specifying
-            which *rows* to drop.
+        * unsupervised: Y and drop_mask_Y are not passed to the method. The
+          method produces V_hat, an inpainted version of V.
+        * supervised: Y and drop_mask_Y are passed to the method. The method
+          produces V_hat and Y_hat.
+
+        If you use this method in your research work, please cite:
+
+            Multi-prediction deep Boltzmann machines. Ian J. Goodfellow,
+            Mehdi Mirza, Aaron Courville, and Yoshua Bengio. NIPS 2013.
+
+
+        Parameters
+        ----------
+        V : tensor_like
+            Theano batch in `model.input_space`
+        Y : tensor_like
+            Theano batch in model.output_space, ie, in the output space of \
+            the last hidden layer (it's not really a hidden layer anymore, \
+            but oh well. It's convenient to code it this way because the \
+            labels are sort of "on top" of everything else). *** Y is always \
+            assumed to be a matrix of one-hot category labels. ***
+        drop_mask : tensor_like
+            A theano batch in `model.input_space`. Should be all binary, with \
+            1s indicating that the corresponding element of X should be \
+            "dropped", ie, hidden from the algorithm and filled in as part of \
+            the inpainting process
+        drop_mask_Y : tensor_like
+            Theano vector. Since we assume Y is a one-hot matrix, each row is \
+            a single categorical variable. `drop_mask_Y` is a binary mask \
+            specifying which *rows* to drop.
         """
 
         dbm = self.dbm
@@ -4719,6 +5828,11 @@ class UpDown(InferenceProcedure):
     """
 
     def mf(self, V, Y = None, return_history = False, niter = None, block_grad = None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         dbm = self.dbm
 
@@ -4812,38 +5926,45 @@ class UpDown(InferenceProcedure):
     def do_inpainting(self, V, Y = None, drop_mask = None, drop_mask_Y = None,
             return_history = False, noise = False, niter = None, block_grad = None):
         """
-        If you use this method in your research work, please cite:
+        .. todo::
 
-            Multi-prediction deep Boltzmann machines. Ian J. Goodfellow, Mehdi Mirza,
-            Aaron Courville, and Yoshua Bengio. NIPS 2013.
+            WRITEME properly
 
         Gives the mean field expression for units masked out by drop_mask.
         Uses self.niter mean field updates.
 
         Comes in two variants, unsupervised and supervised:
-            unsupervised:
-                Y and drop_mask_Y are not passed to the method.
-                The method produces V_hat, an inpainted version of V
-            supervised:
-                Y and drop_mask_Y are passed to the method.
-                The method produces V_hat and Y_hat
 
-        V: a theano batch in model.input_space
-        Y: a theano batch in model.output_space, ie, in the output
-            space of the last hidden layer
-            (it's not really a hidden layer anymore, but oh well.
-            it's convenient to code it this way because the labels
-            are sort of "on top" of everything else)
-            *** Y is always assumed to be a matrix of one-hot category
-            labels. ***
-        drop_mask: a theano batch in model.input_space
-            Should be all binary, with 1s indicating that the corresponding
-            element of X should be "dropped", ie, hidden from the algorithm
-            and filled in as part of the inpainting process
-        drop_mask_Y: a theano vector
-            Since we assume Y is a one-hot matrix, each row is a single
-            categorical variable. drop_mask_Y is a binary mask specifying
-            which *rows* to drop.
+        * unsupervised: Y and drop_mask_Y are not passed to the method. The
+          method produces V_hat, an inpainted version of V.
+        * supervised: Y and drop_mask_Y are passed to the method. The method
+          produces V_hat and Y_hat.
+
+        If you use this method in your research work, please cite:
+
+            Multi-prediction deep Boltzmann machines. Ian J. Goodfellow,
+            Mehdi Mirza, Aaron Courville, and Yoshua Bengio. NIPS 2013.
+
+
+        Parameters
+        ----------
+        V : tensor_like
+            Theano batch in `model.input_space`
+        Y : tensor_like
+            Theano batch in model.output_space, ie, in the output space of \
+            the last hidden layer (it's not really a hidden layer anymore, \
+            but oh well. It's convenient to code it this way because the \
+            labels are sort of "on top" of everything else). *** Y is always \
+            assumed to be a matrix of one-hot category labels. ***
+        drop_mask : tensor_like
+            A theano batch in `model.input_space`. Should be all binary, with \
+            1s indicating that the corresponding element of X should be \
+            "dropped", ie, hidden from the algorithm and filled in as part of \
+            the inpainting process
+        drop_mask_Y : tensor_like
+            Theano vector. Since we assume Y is a one-hot matrix, each row is \
+            a single categorical variable. `drop_mask_Y` is a binary mask \
+            specifying which *rows* to drop.
         """
 
         if Y is not None:

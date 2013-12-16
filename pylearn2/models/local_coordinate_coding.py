@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import warnings
 from theano import function, shared
 from pylearn2.optimization import linear_cg as cg
@@ -7,7 +12,17 @@ import theano.tensor as T
 
 
 class LocalCoordinateCoding(object):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, nvis, nhid, coeff):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.nvis = nvis
         self.nhid = nhid
         self.coeff = float(coeff)
@@ -16,16 +31,36 @@ class LocalCoordinateCoding(object):
         self.redo_everything()
 
     def get_output_channels(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.nhid
 
     def redo_everything(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.W = shared(self.rng.randn(self.nhid, self.nvis), name='W')
         self.W.T.name = 'W.T'
 
     def weights_format(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return ['h', 'v']
 
     def optimize_gamma(self, example):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         #variable names chosen to follow the arguments to l1ls_featuresign
 
@@ -39,6 +74,11 @@ class LocalCoordinateCoding(object):
         return g
 
     def train_batch(self, dataset, batch_size):
+        """
+        .. todo::
+
+            WRITEME
+        """
         #TODO-- this results in compilation happening every time learn is
         # called should cache the compilation results, including those
         # inside cg

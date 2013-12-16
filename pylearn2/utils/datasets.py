@@ -1,5 +1,5 @@
 """
-Several tilities to evaluate an ALC on the dataset, to iterate over
+Several utilities to evaluate an ALC on the dataset, to iterate over
 minibatches from a dataset, or to merge three data with given proportions
 """
 # Standard library imports
@@ -22,7 +22,17 @@ from pylearn2.datasets.utlc import get_constant, sharedX
 ##################################################
 
 def do_3d_scatter(x, y, z, figno=None, title=None):
-    """Just generate a 3D scatterplot figure and optionally give it a title."""
+    """
+    Generate a 3D scatterplot figure and optionally give it a title.
+
+    Parameters
+    ----------
+    x : WRITEME
+    y : WRITEME
+    z : WRITEME
+    figno : WRITEME
+    title : WRITEME
+    """
     fig = pyplot.figure(figno)
     ax = Axes3D(fig)
     ax.scatter(x, y, z)
@@ -32,6 +42,11 @@ def do_3d_scatter(x, y, z, figno=None, title=None):
     pyplot.suptitle(title)
 
 def save_plot(repr, path, name="figure.pdf", title="features"):
+    """
+    .. todo::
+
+        WRITEME
+    """
     # TODO : Maybe run a PCA if shape[1] > 3
     assert repr.get_value(borrow=True).shape[1] == 3
 
@@ -49,7 +64,19 @@ def save_plot(repr, path, name="figure.pdf", title="features"):
 ##################################################
 
 def filter_labels(train, label, classes=None):
-    """ Filter examples of train for which we have labels """
+    """
+    Filter examples of train for which we have labels
+
+    Parameters
+    ----------
+    train : WRITEME
+    label : WRITEME
+    classes : WRITEME
+
+    Returns
+    -------
+    WRITEME
+    """
     if isinstance(train, theano.tensor.sharedvar.SharedVariable):
         train = train.get_value(borrow=True)
     if isinstance(label, theano.tensor.sharedvar.SharedVariable):
@@ -76,22 +103,24 @@ def nonzero_features(data, combine=None):
     """
     Get features for which there are nonzero entries in the data.
 
-    Note: I would return a mask (bool array) here, but scipy.sparse doesn't
-    appear to fully support advanced indexing.
-
     Parameters
     ----------
     data : list of matrices
-        List of data matrices, either in sparse format or not.
-        They must have the same number of features (column number).
+        List of data matrices, either in sparse format or not. They must have \
+        the same number of features (column number).
     combine : function
-        A function to combine elementwise which features to keep
-        Default keeps the intersection of each non-zero columns
+        A function to combine elementwise which features to keep. Default \
+        keeps the intersection of each non-zero columns
 
     Returns
     -------
     indices : ndarray object
         Indices of the nonzero features.
+
+    Notes
+    -----
+    I would return a mask (bool array) here, but scipy.sparse doesn't appear to
+    fully support advanced indexing.
     """
 
     if combine is None:
@@ -104,6 +133,7 @@ def nonzero_features(data, combine=None):
     return nz_feats
 
 
+# TODO: Is this a duplicate?
 def filter_nonzero(data, combine=None):
     """
     Filter non-zero features of data according to a certain combining function
@@ -111,11 +141,16 @@ def filter_nonzero(data, combine=None):
     Parameters
     ----------
     data : list of matrices
-        List of data matrices, either in sparse format or not.
-        They must have the same number of features (column number).
+        List of data matrices, either in sparse format or not. They must have \
+        the same number of features (column number).
     combine : function
-        A function to combine elementwise which features to keep
-        Default keeps the intersection of each non-zero columns
+        A function to combine elementwise which features to keep. Default \
+        keeps the intersection of each non-zero columns
+
+    Returns
+    -------
+    indices : ndarray object
+        Indices of the nonzero features.
     """
 
     nz_feats = nonzero_features(data, combine)
@@ -132,6 +167,11 @@ class BatchIterator(object):
     of a dataset, with respect to the given proportions in conf
     """
     def __init__(self, dataset, set_proba, batch_size, seed=300):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # Local shortcuts for array operations
         flo = numpy.floor
         sub = numpy.subtract
@@ -176,7 +216,9 @@ class BatchIterator(object):
         self.permut = rng.permutation(index_tab)
 
     def __iter__(self):
-        """ Generator function to iterate through all minibatches """
+        """
+        Generator function to iterate through all minibatches
+        """
         counter = [0, 0, 0]
         for chosen in self.permut:
             # Retrieve minibatch from chosen set
@@ -190,11 +232,15 @@ class BatchIterator(object):
             yield minibatch
 
     def __len__(self):
-        """ Return length of the weighted union """
+        """
+        Return length of the weighted union
+        """
         return self.length
 
     def by_index(self):
-        """ Same generator as __iter__, but yield only the chosen indexes """
+        """
+        Same generator as __iter__, but yield only the chosen indexes
+        """
         counter = [0, 0, 0]
         for chosen in self.permut:
             index = counter[chosen]
@@ -209,6 +255,14 @@ class BatchIterator(object):
 def blend(dataset, set_proba, **kwargs):
     """
     Randomized blending of datasets in data according to parameters in conf
+
+    Parameters
+    ----------
+    set_probe : WRITEME
+
+    Returns
+    -------
+    WRITEME
     """
     iterator = BatchIterator(dataset, set_proba, 1, **kwargs)
     nrow = len(iterator)
@@ -229,13 +283,26 @@ def blend(dataset, set_proba, **kwargs):
         return sharedX(array, borrow=True)
 
 def minibatch_map(fn, batch_size, input_data, output_data=None, output_width=None):
-    '''Apply a function on input_data, one minibatch at a time.
+    """
+    Apply a function on input_data, one minibatch at a time.
 
     Storage for the output can be provided. If it is the case, it should have
     appropriate size.
 
     If output_data is not provided, then output_width should be specified.
-    '''
+
+    Parameters
+    ----------
+    fn : WRITEME
+    batch_size : WRITEME
+    input_data : WRITEME
+    output_data : WRITEME
+    output_width : WRITEME
+
+    Returns
+    -------
+    WRITEME
+    """
 
     if output_width is None:
         if output_data is None:

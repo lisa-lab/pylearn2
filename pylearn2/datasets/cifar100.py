@@ -1,13 +1,29 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import numpy as np
 N = np
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils import serial
 
+
 class CIFAR100(dense_design_matrix.DenseDesignMatrix):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, which_set, center = False,
             gcn = None, toronto_prepro = False,
             axes = ('b', 0, 1, 'c'),
             start = None, stop = None, one_hot = False):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         assert which_set in ['train','test']
 
@@ -74,6 +90,11 @@ class CIFAR100(dense_design_matrix.DenseDesignMatrix):
 
 
     def adjust_for_viewer(self, X):
+        """
+        .. todo::
+
+            WRITEME
+        """
         #assumes no preprocessing. need to make preprocessors mark the new ranges
         rval = X.copy()
 
@@ -102,6 +123,11 @@ class CIFAR100(dense_design_matrix.DenseDesignMatrix):
         return rval
 
     def adjust_to_be_viewed_with(self, X, orig, per_example = False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # if the scale is set based on the data, display X oring the scale determined
         # by orig
         # assumes no preprocessing. need to make preprocessors mark the new ranges
@@ -136,6 +162,11 @@ class CIFAR100(dense_design_matrix.DenseDesignMatrix):
         return rval
 
     def get_test_set(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return CIFAR100(which_set='test', center=self.center, rescale=self.rescale, gcn=self.gcn,
                 one_hot=self.one_hot, toronto_prepro=self.toronto_prepro, axes=self.axes)
 

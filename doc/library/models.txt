@@ -10,6 +10,16 @@ Models Base Class
 .. automodule:: pylearn2.models.model
     :members:
 
+Logistic Regression
+===================
+.. automodule:: pylearn2.classifier
+    :members:
+
+K-means
+=======
+.. automodule:: pylearn2.kmeans
+    :members:
+
 MLP
 ===
 .. automodule:: pylearn2.models.mlp
@@ -23,6 +33,11 @@ RBM
 DBM
 ===
 .. automodule:: pylearn2.models.dbm
+    :members:
+
+Ising
+=====
+.. automodule:: pylearn2.models.dbm.ising
     :members:
 
 Auto Encoder

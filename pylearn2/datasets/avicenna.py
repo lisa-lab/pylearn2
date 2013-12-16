@@ -1,9 +1,23 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 from pylearn.datasets import utlc
 import numpy as N
 
 class Avicenna(object):
-    def __init__(self, which_set, standardize):
+    """
+    .. todo::
 
+        WRITEME
+    """
+    def __init__(self, which_set, standardize):
+        """
+        .. todo::
+
+            WRITEME
+        """
         #train, valid, test = N.random.randn(50,50), N.random.randn(50,50), N.random.randn(50,50)
         #print "avicenna hacked to load small random data instead of actual data"
         train, valid, test = utlc.load_ndarray_dataset('avicenna')
@@ -27,4 +41,9 @@ class Avicenna(object):
 
 
     def get_design_matrix(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.X

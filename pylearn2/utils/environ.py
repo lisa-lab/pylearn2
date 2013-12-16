@@ -1,7 +1,17 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 #Utilities for working with environment variables
 import os
 
 def putenv(key, value):
+    """
+    .. todo::
+
+        WRITEME
+    """
     #this makes the change visible to other parts of the code
     #in this same process
     os.environ[key] = value
