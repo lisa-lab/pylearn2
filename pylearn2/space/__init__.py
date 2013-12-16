@@ -133,24 +133,23 @@ class Space(object):
     def make_shared_batch(self,
                           batch_size,
                           name=None,
-                          dtype=config.floatX):
+                          dtype=None):
         """
         .. todo::
 
             WRITEME
         """
-        if dtype is not config.floatX:
-            warnings.warn("Support for dtypes other than theano.config.floatX "
-                          "is in early development. Users are encouraged to "
-                          "stick to theano.config.floatX for now unless they "
-                          "know what they're doing.",
-                          stacklevel=2)
+        if dtype is None:
+            if hasattr(self, 'dtype'):
+                dtype = self.dtype
+            else:
+                dtype = config.floatX
 
         return sharedX(self.get_origin_batch(batch_size), name, dtype)
 
     def make_theano_batch(self,
                           name=None,
-                          dtype=config.floatX,
+                          dtype=None,
                           batch_size=None):
         """
         Returns a symbolic variable representing a batch of points
@@ -362,7 +361,7 @@ class VectorSpace(Space):
         return np.zeros((self.dim,))
 
     @functools.wraps(Space.get_origin_batch)
-    def get_origin_batch(self, n, dtype=config.floatX):
+    def get_origin_batch(self, n, dtype=None):
         if dtype is None:
             dtype = config.floatX
         return np.zeros((n, self.dim), dtype=dtype)
@@ -617,8 +616,10 @@ class Conv2DSpace(Space):
         return np.zeros(shape)
 
     @functools.wraps(Space.get_origin_batch)
-    def get_origin_batch(self, n, dtype=config.floatX):
-
+    def get_origin_batch(self, n, dtype=None):
+        if dtype is None:
+            dtype = self.dtype
+            
         if not isinstance(n, py_integer_types):
             raise TypeError("Conv2DSpace.get_origin_batch expects an int, "
                             "got " + str(n) + " of type " + str(type(n)))

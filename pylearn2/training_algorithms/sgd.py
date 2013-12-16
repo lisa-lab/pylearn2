@@ -222,14 +222,12 @@ class SGD(TrainingAlgorithm):
         # the cost
         learning_rate = self.learning_rate
         if self.monitoring_dataset is not None:
-            self.monitor.setup(
-                    dataset=self.monitoring_dataset,
-                    cost=self.cost,
-                    batch_size=self.batch_size,
-                    num_batches=self.monitoring_batches,
-                    extra_costs=self.monitoring_costs,
-                    mode=self.monitor_iteration_mode
-                    )
+            self.monitor.setup(dataset=self.monitoring_dataset,
+                               cost=self.cost,
+                               batch_size=self.batch_size,
+                               num_batches=self.monitoring_batches,
+                               extra_costs=self.monitoring_costs,
+                               mode=self.monitor_iteration_mode)
             dataset_name = self.monitoring_dataset.keys()[0]
             monitoring_dataset = self.monitoring_dataset[dataset_name]
             #TODO: have Monitor support non-data-dependent channels
