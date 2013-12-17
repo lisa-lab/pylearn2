@@ -712,7 +712,7 @@ class MaxoutConvC01B(Layer):
         .. todo::
 
             WRITEME
-        
+
         Notes
         -----
         This resets parameters!

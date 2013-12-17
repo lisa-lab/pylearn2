@@ -250,7 +250,7 @@ class DenseDesignMatrix(Dataset):
         .. todo::
 
             WRITEME properly
-        
+
         When pickling, save the design matrix to path as a .npy file rather
         than pickling the design matrix along with the rest of the dataset
         object. This avoids pickle's unfortunate behavior of using 2X the RAM
@@ -496,7 +496,7 @@ class DenseDesignMatrix(Dataset):
         .. todo::
 
             WRITEME properly
-        
+
         Return to a state specified by an object returned from
         get_stream_position.
         """
@@ -580,7 +580,7 @@ class DenseDesignMatrix(Dataset):
         .. todo::
 
             WRITEME properly
-        
+
         Return a view of mat in the topology preserving format.  Currently
         the same as get_topological_view.
         """
@@ -758,7 +758,7 @@ class DenseDesignMatrix(Dataset):
         .. todo::
 
             WRITEME properly
-            
+
         Restricts the dataset to include only the examples
         in range(start, stop). Ignored if both arguments are None.
         """
@@ -780,7 +780,7 @@ class DenseDesignMatrix(Dataset):
         .. todo::
 
             WRITEME properly
-        
+
         If y exists and is a vector of ints, converts it to a binary matrix
         Otherwise will raise some exception
         """
@@ -855,7 +855,7 @@ class DenseDesignMatrix(Dataset):
         .. todo::
 
             WRITEME properly
-        
+
         Change the axes of the view_converter, if any.
 
         This function is only useful if you intend to call self.iterator
@@ -1047,7 +1047,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         .. todo::
 
             WRITEME properly
-        
+
         Initialize hdf5 file to be used ba dataset
         """
 
@@ -1074,7 +1074,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         .. todo::
 
             WRITEME properly
-        
+
         PyTables tends to crash if you write large data on them at once.
         This function write data on file_handle in batches
 
@@ -1193,7 +1193,7 @@ class DefaultViewConverter(object):
             stop = self.pixels_per_channel * (channel_index + 1)
             data = X[:, start:stop]
             return data.reshape(*channel_shape).transpose(*dimshuffle_args)
-        
+
         channels = [get_channel(i) for i in xrange(self.shape[-1])]
 
         channel_idx = self.axes.index('c')
@@ -1249,7 +1249,7 @@ class DefaultViewConverter(object):
         .. todo::
 
             WRITEME properly
-        
+
         Reformat batch from the internal storage format into dspace.
         """
         if isinstance(dspace, VectorSpace):
@@ -1365,7 +1365,7 @@ def convert_to_one_hot(dataset, min_class=0):
     .. todo::
 
         WRITEME properly
-    
+
     Convenient way of accessing convert_to_one_hot from a yaml file
     """
     dataset.convert_to_one_hot(min_class=min_class)
