@@ -49,7 +49,7 @@ def log_timing(logger, task, level=logging.INFO, final_msg=None,
     # delta.total_seconds() only defined in python 2.7
     total_seconds = (delta.microseconds +
                      (delta.seconds + delta.days * 24 * 3600) * 10 ** 6
-                     ) / 10 ** 6
+                     ) / float(10 ** 6)
     if total_seconds < 60:
         delta_str = '%f seconds' % total_seconds
     else:
