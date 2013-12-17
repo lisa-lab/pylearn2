@@ -628,7 +628,7 @@ class DenseDesignMatrix(Dataset):
             source = X_source
         else:
             if self.y.ndim != 2:
-                raise ValueError("It appears the new space / source interface"
+                raise NotImplementedError("It appears the new space / source interface"
                         " broke the ability to iterate over 1D labels. Please"
                         " use one-hot rather than integer-valued class labels"
                         ". Most Pylearn2 Datasets have a one_hot argument you"
