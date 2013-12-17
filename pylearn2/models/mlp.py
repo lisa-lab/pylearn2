@@ -783,6 +783,20 @@ class MLP(Layer):
         return (space, source)
 
 
+class OneHotCallback(object):
+    def __call__(batch):
+        if hasattr(batch, 'ndim') and batch.ndim != 2:
+            raise ValueError("batch should have two dimensions. The "
+                    "Pylearn2 Softmax Layer currently expects its targets"
+                    " to be specified as a matrix where each row has a "
+                    "one-hot code for the class, i.e, a matrix that is "
+                    "mostly zeros but has a 1 at position i, j if example"
+                    " i belongs to class j. Most of the time you see this"
+                    " error message it can be fixed by setting the one_hot"
+                    " argument to your Dataset's constructor to True")
+
+one_hot_callback = OneHotCallback
+
 class Softmax(Layer):
     """
     .. todo::
@@ -810,16 +824,6 @@ class Softmax(Layer):
 
         assert isinstance(n_classes, py_integer_types)
 
-        def one_hot_callback(batch):
-            if hasattr(batch, 'ndim') and batch.ndim != 2:
-                raise ValueError("batch should have two dimensions. The "
-                        "Pylearn2 Softmax Layer currently expects its targets"
-                        " to be specified as a matrix where each row has a "
-                        "one-hot code for the class, i.e, a matrix that is "
-                        "mostly zeros but has a 1 at position i, j if example"
-                        " i belongs to class j. Most of the time you see this"
-                        " error message it can be fixed by setting the one_hot"
-                        " argument to your Dataset's constructor to True")
 
         self.output_space = VectorSpace(n_classes, np_validate_callbacks =
                 [one_hot_callback])
