@@ -76,7 +76,6 @@ class Space(object):
             validate_callbacks = []
 
         if np_validate_callbacks is None:
-            assert False
             np_validate_callbacks = []
         if isinstance(self, VectorSpace):
             assert len(np_validate_callbacks) > 0
