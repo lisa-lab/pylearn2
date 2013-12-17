@@ -2133,12 +2133,8 @@ class ConvRectifiedLinear(Layer):
         self.__dict__.update(locals())
         del self.self
 
+    @wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         if not hasattr(self, 'W_lr_scale'):
             self.W_lr_scale = None
@@ -2227,6 +2223,7 @@ class ConvRectifiedLinear(Layer):
 
 
 
+    @wraps(Layer.censor_updates)
     def censor_updates(self, updates):
         """
         .. todo::
@@ -2243,6 +2240,7 @@ class ConvRectifiedLinear(Layer):
                 updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle(0, 'x', 'x', 'x')
 
 
+    @wraps(Layer.get_params)
     def get_params(self):
         """
         .. todo::
@@ -2298,12 +2296,9 @@ class ConvRectifiedLinear(Layer):
 
         return ('v', 'h')
 
+    @wraps(Layer.get_weights_topo)
     def get_weights_topo(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         outp, inp, rows, cols = range(4)
         raw = self.transformer._filters.get_value()
 
@@ -2648,34 +2643,25 @@ class LinearGaussian(Linear):
 
         return 0.5 * T.dot(T.sqr(Y-Y_hat), self.beta).mean() - 0.5 * T.log(self.beta).sum()
 
+    @wraps(Layer.censor_updates)
     def censor_updates(self, updates):
-        """
-        .. todo::
 
-            WRITEME
-        """
         super(LinearGaussian, self).censor_updates(updates)
 
         if self.beta in updates:
             updates[self.beta] = T.clip(updates[self.beta], self.min_beta, self.max_beta)
 
+    @wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         rval = super(LinearGaussian, self).get_lr_scalers()
         if self.beta_lr_scale is not None:
             rval[self.beta] = self.beta_lr_scale
         return rval
 
+    @wraps(Layer.get_params)
     def get_params(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         return super(LinearGaussian, self).get_params() + [self.beta]
 
 
@@ -2741,30 +2727,21 @@ class PretrainedLayer(Layer):
 
         assert self.get_input_space() == space
 
+    @wraps(Layer.get_params)
     def get_params(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         if self.freeze_params:
             return []
         return self.layer_content.get_params()
 
+    @wraps(Layer.get_input_space)
     def get_input_space(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         return self.layer_content.get_input_space()
 
+    @wraps(Layer.get_output_space)
     def get_output_space(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         return self.layer_content.get_output_space()
 
     @wraps(Layer.fprop)
@@ -2798,12 +2775,8 @@ class CompositeLayer(Layer):
         self.output_space = CompositeSpace(tuple(layer.get_output_space()
             for layer in self.layers))
 
+    @wraps(Layer.get_params)
     def get_params(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         rval = []
 
@@ -2867,12 +2840,8 @@ class FlattenerLayer(Layer):
 
         self.output_space = VectorSpace(self.raw_layer.get_output_space().get_total_dimension())
 
+    @wraps(Layer.get_params)
     def get_params(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         return self.raw_layer.get_params()
 
