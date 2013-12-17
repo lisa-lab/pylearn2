@@ -32,14 +32,17 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
-import numpy as np
-import theano.tensor as T
-import theano.sparse
-from theano.tensor import TensorType
-from theano import config
 import functools
+import numpy as np
+import warnings
+
+from theano import config
 from theano.gof.op import get_debug_values
 from theano.sandbox.cuda.type import CudaNdarrayType
+import theano.sparse
+import theano.tensor as T
+from theano.tensor import TensorType
+
 from pylearn2.utils import py_integer_types
 from pylearn2.utils import safe_zip
 from pylearn2.utils import sharedX
