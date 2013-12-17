@@ -669,7 +669,7 @@ def merge(left, right):
     .. todo::
 
         WRITEME properly
-    
+
     Combine two FixedVarDescrs
     """
 

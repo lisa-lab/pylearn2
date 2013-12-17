@@ -1,8 +1,5 @@
 """
 Multilayer Perceptron
-
-Note to developers and code reviewers: when making any changes to this
-module, ensure that the changes do not break pylearn2/scripts/papers/maxout.
 """
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"
@@ -786,6 +783,21 @@ class MLP(Layer):
         return (space, source)
 
 
+class OneHotCallback(object):
+
+    def __call__(self, batch):
+        if hasattr(batch, 'ndim') and batch.ndim != 2:
+            raise ValueError("batch should have two dimensions. The "
+                    "Pylearn2 Softmax Layer currently expects its targets"
+                    " to be specified as a matrix where each row has a "
+                    "one-hot code for the class, i.e, a matrix that is "
+                    "mostly zeros but has a 1 at position i, j if example"
+                    " i belongs to class j. Most of the time you see this"
+                    " error message it can be fixed by setting the one_hot"
+                    " argument to your Dataset's constructor to True")
+
+one_hot_callback = OneHotCallback()
+
 class Softmax(Layer):
     """
     .. todo::
@@ -813,7 +825,9 @@ class Softmax(Layer):
 
         assert isinstance(n_classes, py_integer_types)
 
-        self.output_space = VectorSpace(n_classes)
+
+        self.output_space = VectorSpace(n_classes, np_validate_callbacks =
+                [one_hot_callback])
         if not no_affine:
             self.b = sharedX( np.zeros((n_classes,)), name = 'softmax_b')
             if init_bias_target_marginals:
