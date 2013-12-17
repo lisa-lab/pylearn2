@@ -12,6 +12,10 @@ cuda = None
 import numpy
 np = numpy
 
+from functools import partial
+WRAPPER_ASSIGNMENTS = ('__module__', '__name__')
+WRAPPER_CONCATENATIONS = ('__doc__',)
+WRAPPER_UPDATES = ('__dict__',)
 
 def make_name(variable, anon="anonymous_variable"):
     """
@@ -403,18 +407,85 @@ def float32_floatX(f):
     return new_f
 
 
-class soft_wraps:
+def update_wrapper(wrapper,
+                   wrapped,
+                   assigned = WRAPPER_ASSIGNMENTS,
+                   concatenated = WRAPPER_CONCATENATIONS,
+                   append=False,
+                   updated = WRAPPER_UPDATES):
     """
-    A Python decorator which concatenates two functions' docstrings: one
-    function is defined at initialization and the other one is defined when
-    soft_wraps is called.
+    A Python decorator which acts like `functools.update_wrapper` but also has
+    the ability to concatenate attributes.
+    
+    This can be used to concatenate the wrapper's docstring with the wrapped's
+    docstring and should help reduce the ammount of documentation to write: one
+    can use this decorator on child classes' functions when their
+    implementation is similar to the one of the parent class. Conversely, if a
+    function defined in a child class departs from its parent's implementation,
+    one can simply explain the differences in a 'Notes' section without
+    re-writing the whole docstring.
 
-    This helps reduce the ammount of documentation to write: one can use
-    this decorator on child classes' functions when their implementation is
-    similar to the one of the parent class. Conversely, if a function defined
-    in a child class departs from its parent's implementation, one can simply
-    explain the differences in a 'Notes' section without re-writing the whole
-    docstring.
+    Parameters
+    ----------
+    wrapper : functon
+        Function to be updated
+    wrapped : function
+        Original function
+    assigned : tuple, optional
+        Tuple naming the attributes assigned directly from the wrapped function
+        to the wrapper function. Defaults to `utils.WRAPPER_ASSIGNMENTS`.
+    concatenated : tuple, optional
+        Tuple naming the attributes from the wrapped function concatenated with
+        the ones from the wrapper function. Defaults to
+        `utils.WRAPPER_CONCATENATIONS`.
+    append : bool, optional
+        If True, appends wrapped attributes to wrapper attributes instead of
+        prepending them. Defaults to False.
+    updated : tuple, optional
+        Tuple naming the attributes of the wrapper that are updated with the
+        corresponding attribute from the wrapped function. Defaults to
+        `functools.WRAPPER_UPDATES`.
+
+    Returns
+    -------
+    wrapper : function
+        Updated wrapper function
+    """
+    for attr in assigned:
+        setattr(wrapper, attr, getattr(wrapped, attr))
+    for attr in concatenated:
+        # Make sure attributes are not None
+        if getattr(wrapped, attr) is None:
+            setattr(wrapped, attr, "")
+        if getattr(wrapper, attr) is None:
+            setattr(wrapper, attr, "")
+        if append:
+            setattr(wrapper,
+                    attr,
+                    getattr(wrapped, attr) + getattr(wrapper, attr))
+        else:
+            setattr(wrapper,
+                    attr,
+                    getattr(wrapper, attr) + getattr(wrapped, attr))
+    for attr in updated:
+        getattr(wrapper, attr).update(getattr(wrapped, attr, {}))
+    # Return the wrapper so this can be used as a decorator via partial()
+    return wrapper
+
+
+def wraps(wrapped,
+          assigned = WRAPPER_ASSIGNMENTS,
+          concatenated = WRAPPER_CONCATENATIONS,
+          append=False,
+          updated = WRAPPER_UPDATES):
+    """
+    Decorator factory to apply `update_wrapper()` to a wrapper function
+
+    Returns a decorator that invokes `update_wrapper()` with the decorated
+    function as the wrapper argument and the arguments to `wraps()` as the
+    remaining arguments. Default arguments are as for `update_wrapper()`.
+    This is a convenience function to simplify applying `partial()` to
+    `update_wrapper()`.
 
     Examples
     --------
@@ -467,40 +538,5 @@ class soft_wraps:
         -----
         Also prints the incremented value
     """
-
-    def __init__(self, f, append=False):
-        """
-        Parameters
-        ----------
-        f : function
-            Function whose docstring will be concatenated with the decorated
-            function's docstring
-        prepend : bool, optional
-            If True, appends f's docstring to the decorated function's
-            docstring instead of prepending it. Defaults to False.
-        """
-        self.f = f
-        self.append = append
-
-    def __call__(self, f):
-        """
-        Prepend self.f's docstring to f's docstring (or append it if
-        `self.append == True`).
-
-        Parameters
-        ----------
-        f : function
-            Function to decorate
-
-        Returns
-        -------
-        f : function
-            Function f passed as argument with self.f's docstring
-            {pre,ap}pended to it
-        """
-        if self.append:
-            f.__doc__ +=  + self.f.__doc__
-        else:
-            f.__doc__ = self.f.__doc__ + f.__doc__
-
-        return f
+    return partial(update_wrapper, wrapped=wrapped, assigned=assigned,
+                   append=append,updated=updated)
