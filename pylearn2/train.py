@@ -100,12 +100,16 @@ class Train(object):
                             " Model's output space is %s and %s's space"
                             " is %s" %(model_output_space, ds_name, ds_space))
 
-        model_output_space = model.get_output_space()
-        assert_spaces(self.dataset, model_output_space, "model.dataset")
-        if hasattr(self.algorithm, 'monitoring_dataset'):
-            for key, ds in self.algorithm.monitoring_dataset.viewitems():
-                                assert_spaces(ds, model_output_space,
-                                "monitoring_dataset.%s" %(key))
+        try:
+            model_output_space = model.get_output_space()
+        except AttributeError:
+                model_output_space = None
+        if model_output_space is not None:
+            assert_spaces(self.dataset, model_output_space, "model.dataset")
+            if hasattr(self.algorithm, 'monitoring_dataset'):
+                for key, ds in self.algorithm.monitoring_dataset.viewitems():
+                                    assert_spaces(ds, model_output_space,
+                                    "monitoring_dataset.%s" %(key))
 
         self.extensions = extensions if extensions is not None else []
         self.monitor_time = sharedX(value=0,name='seconds_per_epoch')
