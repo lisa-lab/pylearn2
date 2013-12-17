@@ -1,5 +1,10 @@
 """
 Multilayer Perceptron
+
+Notes
+-----
+Developers and code reviewers: when making any changes to this module, ensure
+that the changes do not break pylearn2/scripts/papers/maxout.
 """
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"
@@ -10,7 +15,6 @@ __maintainer__ = "Ian Goodfellow"
 import math
 import sys
 import warnings
-import functools
 
 import numpy as np
 from theano import config
@@ -35,6 +39,7 @@ from pylearn2.utils import py_integer_types
 from pylearn2.utils import safe_union
 from pylearn2.utils import safe_zip
 from pylearn2.utils import sharedX
+from pylearn2.utils import soft_wraps
 
 warnings.warn("MLP changing the recursion limit.")
 # We need this to be high enough that the big theano graphs we make
@@ -55,16 +60,17 @@ sys.setrecursionlimit(40000)
 
 class Layer(Model):
     """
-    Abstract class.
-    A Layer of an MLP
+    Abstract class. A Layer of an MLP.
+
     May only belong to one MLP.
 
-    Note: this is not currently a Block because as far as I know
-        the Block interface assumes every input is a single matrix.
-        It doesn't support using Spaces to work with composite inputs,
-        stacked multichannel image inputs, etc.
-        If the Block interface were upgraded to be that flexible, then
-        we could make this a block.
+    Notes
+    -----
+    This is not currently a Block because as far as I know the Block interface
+    assumes every input is a single matrix. It doesn't support using Spaces to
+    work with composite inputs, stacked multichannel image inputs, etc. If the
+    Block interface were upgraded to be that flexible, then we could make this
+    a block.
     """
 
     # When applying dropout to a layer's input, use this for masked values.
@@ -250,8 +256,9 @@ class Layer(Model):
 class MLP(Layer):
     """
     A multilayer perceptron.
-    Note that it's possible for an entire MLP to be a single
-    layer of a larger MLP.
+
+    Note that it's possible for an entire MLP to be a single layer of a larger
+    MLP.
     """
 
     def __init__(self, layers, batch_size=None, input_space=None,
@@ -260,22 +267,18 @@ class MLP(Layer):
         Parameters
         ----------
         layers : list
-            A list of Layer objects. The final layer specifies \
-            the output space of this MLP.
-
+            A list of Layer objects. The final layer specifies the output space
+            of this MLP.
         batch_size : int, optional
-            If not specified then must be a positive integer. \
-            Mostly useful if one of your layers involves a \
-            Theano op like convolution that requires a hard-coded \
-            batch size.
-
+            If not specified then must be a positive integer. Mostly useful if
+            one of your layers involves a Theano op like convolution that
+            requires a hard-coded batch size.
         nvis : int, optional
-            Number of "visible units" (input units). Equivalent \
-            to specifying `input_space=VectorSpace(dim=nvis)`.
-
+            Number of "visible units" (input units). Equivalent to specifying
+            `input_space=VectorSpace(dim=nvis)`.
         input_space : Space object, optional
-            A Space specifying the kind of input the MLP accepts. \
-            If None, input space is specified by nvis.
+            A Space specifying the kind of input the MLP accepts. If None,
+            input space is specified by nvis.
         """
 
         if seed is None:
@@ -324,20 +327,14 @@ class MLP(Layer):
         """
         self.rng = np.random.RandomState(self.seed)
 
+    @soft_wraps(Layer.get_default_cost)
     def get_default_cost(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         return Default()
 
+    @soft_wraps(Layer.get_output_space)
     def get_output_space(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         return self.layers[-1].get_output_space()
 
     def _update_layer_input_spaces(self):
@@ -381,15 +378,9 @@ class MLP(Layer):
 
         self.freeze_set = self.freeze_set.union(parameter_set)
 
+    @soft_wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self, data):
-        """
-        WRITEME
 
-        Parameters
-        ----------
-        data : flat tuple
-            Can contain features, targets, or both
-        """
         X, Y = data
         state = X
         rval = OrderedDict()
@@ -410,10 +401,11 @@ class MLP(Layer):
 
         return rval
 
+    @soft_wraps(Layer.get_monitoring_data_specs)
     def get_monitoring_data_specs(self):
         """
-        Return the (space, source) data_specs for self.get_monitoring_channels.
-
+        Notes
+        -----
         In this case, we want the inputs and targets.
         """
         space = CompositeSpace((self.get_input_space(),
@@ -421,12 +413,8 @@ class MLP(Layer):
         source = (self.get_input_source(), self.get_target_source())
         return (space, source)
 
+    @soft_wraps(Layer.get_params)
     def get_params(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         rval = []
         for layer in self.layers:
@@ -445,12 +433,9 @@ class MLP(Layer):
 
         return rval
 
+    @soft_wraps(Model.set_batch_size)
     def set_batch_size(self, batch_size):
-        """
-        .. todo::
 
-            WRITEME
-        """
         self.batch_size = batch_size
         self.force_batch_size = batch_size
 
@@ -458,21 +443,15 @@ class MLP(Layer):
             layer.set_batch_size(batch_size)
 
 
+    @soft_wraps(Layer.censor_updates)
     def censor_updates(self, updates):
-        """
-        .. todo::
 
-            WRITEME
-        """
         for layer in self.layers:
             layer.censor_updates(updates)
 
+    @soft_wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         rval = OrderedDict()
 
         params = self.get_params()
@@ -491,36 +470,24 @@ class MLP(Layer):
 
         return rval
 
+    @soft_wraps(Layer.get_weights)
     def get_weights(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         return self.layers[0].get_weights()
 
+    @soft_wraps(Layer.get_weights_view_shape)
     def get_weights_view_shape(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         return self.layers[0].get_weights_view_shape()
 
+    @soft_wraps(Layer.get_weights_format)
     def get_weights_format(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         return self.layers[0].get_weights_format()
 
+    @soft_wraps(Layer.get_weights_topo)
     def get_weights_topo(self):
-        """
-        .. todo::
 
-            WRITEME
-        """
         return self.layers[0].get_weights_topo()
 
     def dropout_fprop(self, state_below, default_input_include_prob=0.5,
@@ -548,8 +515,8 @@ class MLP(Layer):
         default_input_scale : WRITEME
         input_scales : WRITEME
         per_example : bool, optional
-            Sample a different mask value for every example in a batch. \
-            Default is `True`. If `False`, sample one mask per mini-batch.
+            Sample a different mask value for every example in a batch.
+            Defaults to `True`. If `False`, sample one mask per mini-batch.
         """
 
         warnings.warn("dropout doesn't use fixed_var_descr so it won't work with "
@@ -606,19 +573,18 @@ class MLP(Layer):
         state_below : tensor_like
             The (symbolic) output state of the layer below.
         mask : int
-            An integer indexing possible binary masks. It should be \
-            < 2 ** get_total_input_dimension(masked_input_layers) \
+            An integer indexing possible binary masks. It should be
+            < 2 ** get_total_input_dimension(masked_input_layers)
             and greater than or equal to 0.
         masked_input_layers : list, optional
-            A list of layer names to mask. If `None`, the input to \
-            all layers (including the first hidden layer) is masked.
+            A list of layer names to mask. If `None`, the input to all layers
+            (including the first hidden layer) is masked.
         default_input_scale : float, optional
-            The amount to scale inputs in masked layers that do not \
-            appear in `input_scales`. Defaults to 2.
+            The amount to scale inputs in masked layers that do not appear in
+            `input_scales`. Defaults to 2.
         input_scales : dict, optional
-            A dictionary mapping layer names to floating point \
-            numbers indicating how much to scale input to a given \
-            layer.
+            A dictionary mapping layer names to floating point numbers
+            indicating how much to scale input to a given layer.
 
         Returns
         -------
@@ -722,12 +688,8 @@ class MLP(Layer):
                 total += layer.get_input_space().get_total_dimension()
         return total
 
+    @soft_wraps(Layer.fprop)
     def fprop(self, state_below, return_all = False):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         rval = self.layers[0].fprop(state_below)
 
@@ -755,8 +717,8 @@ class MLP(Layer):
         input_space : WRITEME
         mask_value : WRITEME
         per_example : bool, optional
-            Sample a different mask value for every example in a batch. \
-            Default is `True`. If `False`, sample one mask per mini-batch.
+            Sample a different mask value for every example in a batch.
+            Defaults to `True`. If `False`, sample one mask per mini-batch.
         """
         if include_prob in [None, 1.0, 1]:
             return state
@@ -785,28 +747,19 @@ class MLP(Layer):
         else:
             return T.switch(mask, state * scale, mask_value)
 
+    @soft_wraps(Layer.cost)
     def cost(self, Y, Y_hat):
-        """
-        .. todo::
 
-            WRITEME
-        """
         return self.layers[-1].cost(Y, Y_hat)
 
+    @soft_wraps(Layer.cost_matrix)
     def cost_matrix(self, Y, Y_hat):
-        """
-        .. todo::
 
-            WRITEME
-        """
         return self.layers[-1].cost_matrix(Y, Y_hat)
 
+    @soft_wraps(Layer.cost_from_cost_matrix)
     def cost_from_cost_matrix(self, cost_matrix):
-        """
-        .. todo::
 
-            WRITEME
-        """
         return self.layers[-1].cost_from_cost_matrix(cost_matrix)
 
     def cost_from_X(self, data):
@@ -836,21 +789,6 @@ class MLP(Layer):
         return (space, source)
 
 
-class OneHotCallback(object):
-
-    def __call__(self, batch):
-        if hasattr(batch, 'ndim') and batch.ndim != 2:
-            raise ValueError("batch should have two dimensions. The "
-                    "Pylearn2 Softmax Layer currently expects its targets"
-                    " to be specified as a matrix where each row has a "
-                    "one-hot code for the class, i.e, a matrix that is "
-                    "mostly zeros but has a 1 at position i, j if example"
-                    " i belongs to class j. Most of the time you see this"
-                    " error message it can be fixed by setting the one_hot"
-                    " argument to your Dataset's constructor to True")
-
-one_hot_callback = OneHotCallback()
-
 class Softmax(Layer):
     """
     .. todo::
@@ -878,9 +816,7 @@ class Softmax(Layer):
 
         assert isinstance(n_classes, py_integer_types)
 
-
-        self.output_space = VectorSpace(n_classes, np_validate_callbacks =
-                [one_hot_callback])
+        self.output_space = VectorSpace(n_classes)
         if not no_affine:
             self.b = sharedX( np.zeros((n_classes,)), name = 'softmax_b')
             if init_bias_target_marginals:
@@ -893,7 +829,7 @@ class Softmax(Layer):
         else:
             assert init_bias_target_marginals is None
 
-    @functools.wraps(Layer.get_lr_scalers)
+    @soft_wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
 
         rval = OrderedDict()
@@ -911,7 +847,7 @@ class Softmax(Layer):
 
         return rval
 
-    @functools.wraps(Layer.get_monitoring_channels)
+    @soft_wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
 
         if self.no_affine:
@@ -935,7 +871,7 @@ class Softmax(Layer):
                             ('col_norms_max'  , col_norms.max()),
                             ])
 
-    @functools.wraps(Layer.get_monitoring_channels_from_state)
+    @soft_wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
 
         mx = state.max(axis=1)
@@ -956,7 +892,7 @@ class Softmax(Layer):
 
         return rval
 
-    @functools.wraps(Layer.set_input_space)
+    @soft_wraps(Layer.set_input_space)
     def set_input_space(self, space):
 
         self.input_space = space
@@ -1004,7 +940,7 @@ class Softmax(Layer):
 
             self._params = [ self.b, self.W ]
 
-    @functools.wraps(Layer.get_weights_topo)
+    @soft_wraps(Layer.get_weights_topo)
     def get_weights_topo(self):
 
         if not isinstance(self.input_space, Conv2DSpace):
@@ -1014,7 +950,7 @@ class Softmax(Layer):
         rval = Conv2DSpace.convert_numpy(ipt, self.input_space.axes, ('b', 0, 1, 'c'))
         return rval
 
-    @functools.wraps(Layer.get_weights)
+    @soft_wraps(Layer.get_weights)
     def get_weights(self):
 
         if not isinstance(self.input_space, VectorSpace):
@@ -1022,27 +958,27 @@ class Softmax(Layer):
 
         return self.W.get_value()
 
-    @functools.wraps(Layer.set_weights)
+    @soft_wraps(Layer.set_weights)
     def set_weights(self, weights):
 
         self.W.set_value(weights)
 
-    @functools.wraps(Layer.set_biases)
+    @soft_wraps(Layer.set_biases)
     def set_biases(self, biases):
 
         self.b.set_value(biases)
 
-    @functools.wraps(Layer.get_biases)
+    @soft_wraps(Layer.get_biases)
     def get_biases(self):
 
         return self.b.get_value()
 
-    @functools.wraps(Layer.get_weights_format)
+    @soft_wraps(Layer.get_weights_format)
     def get_weights_format(self):
 
         return ('v', 'h')
 
-    @functools.wraps(Layer.fprop)
+    @soft_wraps(Layer.fprop)
     def fprop(self, state_below):
 
         self.input_space.validate(state_below)
@@ -1076,7 +1012,7 @@ class Softmax(Layer):
 
         return rval
 
-    @functools.wraps(Layer.cost)
+    @soft_wraps(Layer.cost)
     def cost(self, Y, Y_hat):
 
         assert hasattr(Y_hat, 'owner')
@@ -1102,7 +1038,7 @@ class Softmax(Layer):
 
         return - rval
 
-    @functools.wraps(Layer.cost_matrix)
+    @soft_wraps(Layer.cost_matrix)
     def cost_matrix(self, Y, Y_hat):
 
         assert hasattr(Y_hat, 'owner')
@@ -1125,7 +1061,7 @@ class Softmax(Layer):
 
         return -log_prob_of
 
-    @functools.wraps(Layer.get_weight_decay)
+    @soft_wraps(Layer.get_weight_decay)
     def get_weight_decay(self, coeff):
 
         if isinstance(coeff, str):
@@ -1133,7 +1069,7 @@ class Softmax(Layer):
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         return coeff * T.sqr(self.W).sum()
 
-    @functools.wraps(Layer.get_l1_weight_decay)
+    @soft_wraps(Layer.get_l1_weight_decay)
     def get_l1_weight_decay(self, coeff):
 
         if isinstance(coeff, str):
@@ -1142,7 +1078,7 @@ class Softmax(Layer):
         W = self.W
         return coeff * abs(W).sum()
 
-    @functools.wraps(Layer.censor_updates)
+    @soft_wraps(Layer.censor_updates)
     def censor_updates(self, updates):
 
         if self.no_affine:
@@ -1209,7 +1145,7 @@ class SoftmaxPool(Layer):
 
         self.b = sharedX( np.zeros((self.detector_layer_dim,)) + init_bias, name = layer_name + '_b')
 
-    @functools.wraps(Layer.get_lr_scalers)
+    @soft_wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
 
         if not hasattr(self, 'W_lr_scale'):
@@ -1229,7 +1165,7 @@ class SoftmaxPool(Layer):
 
         return rval
 
-    @functools.wraps(Layer.set_input_space)
+    @soft_wraps(Layer.set_input_space)
     def set_input_space(self, space):
 
         self.input_space = space
@@ -1295,7 +1231,7 @@ class SoftmaxPool(Layer):
                                  str(self.mask_weights.shape))
             self.mask = sharedX(self.mask_weights)
 
-    @functools.wraps(Layer.censor_updates)
+    @soft_wraps(Layer.censor_updates)
     def censor_updates(self, updates):
 
         # Patch old pickle files
@@ -1315,7 +1251,7 @@ class SoftmaxPool(Layer):
                 desired_norms = T.clip(col_norms, 0, self.max_col_norm)
                 updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
-    @functools.wraps(Layer.get_params)
+    @soft_wraps(Layer.get_params)
     def get_params(self):
 
         assert self.b.name is not None
@@ -1328,7 +1264,7 @@ class SoftmaxPool(Layer):
         rval.append(self.b)
         return rval
 
-    @functools.wraps(Layer.get_weight_decay)
+    @soft_wraps(Layer.get_weight_decay)
     def get_weight_decay(self, coeff):
 
         if isinstance(coeff, str):
@@ -1337,7 +1273,7 @@ class SoftmaxPool(Layer):
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
-    @functools.wraps(Layer.get_l1_weight_decay)
+    @soft_wraps(Layer.get_l1_weight_decay)
     def get_l1_weight_decay(self, coeff):
 
         if isinstance(coeff, str):
@@ -1346,7 +1282,7 @@ class SoftmaxPool(Layer):
         W ,= self.transformer.get_params()
         return coeff * abs(W).sum()
 
-    @functools.wraps(Layer.get_weights)
+    @soft_wraps(Layer.get_weights)
     def get_weights(self):
 
         if self.requires_reformat:
@@ -1358,13 +1294,13 @@ class SoftmaxPool(Layer):
         W ,= self.transformer.get_params()
         return W.get_value()
 
-    @functools.wraps(Layer.set_weights)
+    @soft_wraps(Layer.set_weights)
     def set_weights(self, weights):
 
         W, = self.transformer.get_params()
         W.set_value(weights)
 
-    @functools.wraps(Layer.set_biases)
+    @soft_wraps(Layer.set_biases)
     def set_biases(self, biases):
         """
         .. todo::
@@ -1373,17 +1309,17 @@ class SoftmaxPool(Layer):
         """
         self.b.set_value(biases)
 
-    @functools.wraps(Layer.get_biases)
+    @soft_wraps(Layer.get_biases)
     def get_biases(self):
 
         return self.b.get_value()
 
-    @functools.wraps(Layer.get_weights_format)
+    @soft_wraps(Layer.get_weights_format)
     def get_weights_format(self):
 
         return ('v', 'h')
 
-    @functools.wraps(Layer.get_weights_view_shape)
+    @soft_wraps(Layer.get_weights_view_shape)
     def get_weights_view_shape(self):
 
         total = self.detector_layer_dim
@@ -1397,7 +1333,7 @@ class SoftmaxPool(Layer):
         return rows, cols
 
 
-    @functools.wraps(Layer.get_weights_topo)
+    @soft_wraps(Layer.get_weights_topo)
     def get_weights_topo(self):
 
         if not isinstance(self.input_space, Conv2DSpace):
@@ -1416,7 +1352,7 @@ class SoftmaxPool(Layer):
 
         return function([], W)()
 
-    @functools.wraps(Layer.get_monitoring_channels)
+    @soft_wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
 
         W ,= self.transformer.get_params()
@@ -1438,7 +1374,7 @@ class SoftmaxPool(Layer):
                             ])
 
 
-    @functools.wraps(Layer.get_monitoring_channels_from_state)
+    @soft_wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state):
 
         P = state
@@ -1480,7 +1416,7 @@ class SoftmaxPool(Layer):
 
         return rval
 
-    @functools.wraps(Layer.fprop)
+    @soft_wraps(Layer.fprop)
     def fprop(self, state_below):
 
         self.input_space.validate(state_below)
@@ -1565,7 +1501,7 @@ class Linear(Layer):
             assert b_lr_scale is None
             init_bias is None
 
-    @functools.wraps(Layer.get_lr_scalers)
+    @soft_wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
 
         if not hasattr(self, 'W_lr_scale'):
@@ -1585,7 +1521,7 @@ class Linear(Layer):
 
         return rval
 
-    @functools.wraps(Layer.set_input_space)
+    @soft_wraps(Layer.set_input_space)
     def set_input_space(self, space):
 
         self.input_space = space
@@ -1642,7 +1578,7 @@ class Linear(Layer):
                 raise ValueError("Expected mask with shape "+str(expected_shape)+" but got "+str(self.mask_weights.shape))
             self.mask = sharedX(self.mask_weights)
 
-    @functools.wraps(Layer.censor_updates)
+    @soft_wraps(Layer.censor_updates)
     def censor_updates(self, updates):
 
         if self.mask_weights is not None:
@@ -1668,7 +1604,7 @@ class Linear(Layer):
                 updates[W] = updated_W * desired_norms / (1e-7 + col_norms)
 
 
-    @functools.wraps(Layer.get_params)
+    @soft_wraps(Layer.get_params)
     def get_params(self):
 
         assert self.b.name is not None
@@ -1683,7 +1619,7 @@ class Linear(Layer):
             rval.append(self.b)
         return rval
 
-    @functools.wraps(Layer.get_weight_decay)
+    @soft_wraps(Layer.get_weight_decay)
     def get_weight_decay(self, coeff):
 
         if isinstance(coeff, str):
@@ -1692,7 +1628,7 @@ class Linear(Layer):
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
-    @functools.wraps(Layer.get_l1_weight_decay)
+    @soft_wraps(Layer.get_l1_weight_decay)
     def get_l1_weight_decay(self, coeff):
 
         if isinstance(coeff, str):
@@ -1701,7 +1637,7 @@ class Linear(Layer):
         W ,= self.transformer.get_params()
         return coeff * abs(W).sum()
 
-    @functools.wraps(Layer.get_weights)
+    @soft_wraps(Layer.get_weights)
     def get_weights(self):
 
         if self.requires_reformat:
@@ -1721,18 +1657,18 @@ class Linear(Layer):
             return rval
         return W
 
-    @functools.wraps(Layer.set_weights)
+    @soft_wraps(Layer.set_weights)
     def set_weights(self, weights):
 
         W, = self.transformer.get_params()
         W.set_value(weights)
 
-    @functools.wraps(Layer.set_biases)
+    @soft_wraps(Layer.set_biases)
     def set_biases(self, biases):
 
         self.b.set_value(biases)
 
-    @functools.wraps(Layer.get_biases)
+    @soft_wraps(Layer.get_biases)
     def get_biases(self):
         """
         .. todo::
@@ -1741,12 +1677,12 @@ class Linear(Layer):
         """
         return self.b.get_value()
 
-    @functools.wraps(Layer.get_weights_format)
+    @soft_wraps(Layer.get_weights_format)
     def get_weights_format(self):
 
         return ('v', 'h')
 
-    @functools.wraps(Layer.get_weights_topo)
+    @soft_wraps(Layer.get_weights_topo)
     def get_weights_topo(self):
 
         if not isinstance(self.input_space, Conv2DSpace):
@@ -1763,7 +1699,7 @@ class Linear(Layer):
 
         return function([], W)()
 
-    @functools.wraps(Layer.get_monitoring_channels)
+    @soft_wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
 
         W ,= self.transformer.get_params()
@@ -1784,7 +1720,7 @@ class Linear(Layer):
                             ('col_norms_max'  , col_norms.max()),
                             ])
 
-    @functools.wraps(Layer.get_monitoring_channels_from_state)
+    @soft_wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
 
         rval =  OrderedDict()
@@ -1845,24 +1781,24 @@ class Linear(Layer):
         return z
 
 
-    @functools.wraps(Layer.fprop)
+    @soft_wraps(Layer.fprop)
     def fprop(self, state_below):
 
         # TODO: Refactor More Better(tm)
         p = self._linear_part(state_below)
         return p
 
-    @functools.wraps(Layer.cost)
+    @soft_wraps(Layer.cost)
     def cost(self, Y, Y_hat):
 
         return self.cost_from_cost_matrix(self.cost_matrix(Y, Y_hat))
 
-    @functools.wraps(Layer.cost_from_cost_matrix)
+    @soft_wraps(Layer.cost_from_cost_matrix)
     def cost_from_cost_matrix(self, cost_matrix):
 
         return cost_matrix.sum(axis=1).mean()
 
-    @functools.wraps(Layer.cost_matrix)
+    @soft_wraps(Layer.cost_matrix)
     def cost_matrix(self, Y, Y_hat):
 
         if(self.use_abs_loss):
@@ -1877,14 +1813,14 @@ class Tanh(Linear):
     input followed by a hyperbolic tangent elementwise nonlinearity.
     """
 
-    @functools.wraps(Layer.fprop)
+    @soft_wraps(Layer.fprop)
     def fprop(self, state_below):
 
         p = self._linear_part(state_below)
         p = T.tanh(p)
         return p
 
-    @functools.wraps(Layer.cost)
+    @soft_wraps(Layer.cost)
     def cost(self, *args, **kwargs):
 
         raise NotImplementedError()
@@ -1926,7 +1862,7 @@ class Sigmoid(Linear):
         assert monitor_style in ['classification', 'detection']
         self.monitor_style = monitor_style
 
-    @functools.wraps(Layer.fprop)
+    @soft_wraps(Layer.fprop)
     def fprop(self, state_below):
 
         p = self._linear_part(state_below)
@@ -1975,7 +1911,7 @@ class Sigmoid(Linear):
         return ave
 
 
-    @functools.wraps(Layer.cost)
+    @soft_wraps(Layer.cost)
     def cost(self, Y, Y_hat):
         """
         .. todo::
@@ -2049,7 +1985,7 @@ class Sigmoid(Linear):
 
         return rval
 
-    @functools.wraps(Layer.get_monitoring_channels_from_state)
+    @soft_wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
 
         rval = super(Sigmoid, self).get_monitoring_channels_from_state(state, target)
@@ -2082,14 +2018,14 @@ class RectifiedLinear(Linear):
         super(RectifiedLinear, self).__init__(**kwargs)
         self.left_slope = left_slope
 
-    @functools.wraps(Layer.fprop)
+    @soft_wraps(Layer.fprop)
     def fprop(self, state_below):
 
         p = self._linear_part(state_below)
         p = p * (p > 0.) + self.left_slope * p * (p < 0.)
         return p
 
-    @functools.wraps(Layer.cost)
+    @soft_wraps(Layer.cost)
     def cost(self, *args, **kwargs):
 
         raise NotImplementedError()
@@ -2112,12 +2048,12 @@ class SpaceConverter(Layer):
         del self.self
         self._params = []
 
-    @functools.wraps(Layer.set_input_space)
+    @soft_wraps(Layer.set_input_space)
     def set_input_space(self, space):
 
         self.input_space = space
 
-    @functools.wraps(Layer.fprop)
+    @soft_wraps(Layer.fprop)
     def fprop(self, state_below):
 
         return self.input_space.format_as(state_below, self.output_space)
@@ -2221,7 +2157,7 @@ class ConvRectifiedLinear(Layer):
 
         return rval
 
-    @functools.wraps(Layer.set_input_space)
+    @soft_wraps(Layer.set_input_space)
     def set_input_space(self, space):
 
         self.input_space = space
@@ -2323,7 +2259,7 @@ class ConvRectifiedLinear(Layer):
         rval.append(self.b)
         return rval
 
-    @functools.wraps(Layer.get_weight_decay)
+    @soft_wraps(Layer.get_weight_decay)
     def get_weight_decay(self, coeff):
 
         if isinstance(coeff, str):
@@ -2332,7 +2268,7 @@ class ConvRectifiedLinear(Layer):
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
-    @functools.wraps(Layer.get_l1_weight_decay)
+    @soft_wraps(Layer.get_l1_weight_decay)
     def get_l1_weight_decay(self, coeff):
 
         if isinstance(coeff, str):
@@ -2341,23 +2277,23 @@ class ConvRectifiedLinear(Layer):
         W ,= self.transformer.get_params()
         return coeff * abs(W).sum()
 
-    @functools.wraps(Layer.set_weights)
+    @soft_wraps(Layer.set_weights)
     def set_weights(self, weights):
 
         W, = self.transformer.get_params()
         W.set_value(weights)
 
-    @functools.wraps(Layer.set_biases)
+    @soft_wraps(Layer.set_biases)
     def set_biases(self, biases):
 
         self.b.set_value(biases)
 
-    @functools.wraps(Layer.get_biases)
+    @soft_wraps(Layer.get_biases)
     def get_biases(self):
 
         return self.b.get_value()
 
-    @functools.wraps(Layer.get_weights_format)
+    @soft_wraps(Layer.get_weights_format)
     def get_weights_format(self):
 
         return ('v', 'h')
@@ -2373,7 +2309,7 @@ class ConvRectifiedLinear(Layer):
 
         return np.transpose(raw, (outp,rows,cols,inp))
 
-    @functools.wraps(Layer.get_monitoring_channels)
+    @soft_wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
 
         W ,= self.transformer.get_params()
@@ -2390,7 +2326,7 @@ class ConvRectifiedLinear(Layer):
                             ('kernel_norms_max'  , row_norms.max()),
                             ])
 
-    @functools.wraps(Layer.fprop)
+    @soft_wraps(Layer.fprop)
     def fprop(self, state_below):
 
         self.input_space.validate(state_below)
@@ -2682,14 +2618,14 @@ class LinearGaussian(Linear):
         del self.self
         del self.kwargs
 
-    @functools.wraps(Layer.set_input_space)
+    @soft_wraps(Layer.set_input_space)
     def set_input_space(self, space):
 
         super(LinearGaussian, self).set_input_space(space)
         assert isinstance(self.output_space, VectorSpace)
         self.beta = sharedX(self.output_space.get_origin() + self.init_beta, 'beta')
 
-    @functools.wraps(Linear.get_monitoring_channels)
+    @soft_wraps(Linear.get_monitoring_channels)
     def get_monitoring_channels(self):
 
         rval = super(LinearGaussian, self).get_monitoring_channels()
@@ -2699,7 +2635,7 @@ class LinearGaussian(Linear):
         rval['beta_max'] = self.beta.max()
         return rval
 
-    @functools.wraps(Linear.get_monitoring_channels_from_state)
+    @soft_wraps(Linear.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
 
         rval = super(LinearGaussian, self).get_monitoring_channels()
@@ -2707,7 +2643,7 @@ class LinearGaussian(Linear):
             rval['mse'] = T.sqr(state - target).mean()
         return rval
 
-    @functools.wraps(Linear.cost)
+    @soft_wraps(Linear.cost)
     def cost(self, Y, Y_hat):
 
         return 0.5 * T.dot(T.sqr(Y-Y_hat), self.beta).mean() - 0.5 * T.log(self.beta).sum()
@@ -2800,7 +2736,7 @@ class PretrainedLayer(Layer):
         self.__dict__.update(locals())
         del self.self
 
-    @functools.wraps(Layer.set_input_space)
+    @soft_wraps(Layer.set_input_space)
     def set_input_space(self, space):
 
         assert self.get_input_space() == space
@@ -2831,7 +2767,7 @@ class PretrainedLayer(Layer):
         """
         return self.layer_content.get_output_space()
 
-    @functools.wraps(Layer.fprop)
+    @soft_wraps(Layer.fprop)
     def fprop(self, state_below):
 
         return self.layer_content.upward_pass(state_below)
@@ -2853,7 +2789,7 @@ class CompositeLayer(Layer):
         self.__dict__.update(locals())
         del self.self
 
-    @functools.wraps(Layer.set_input_space)
+    @soft_wraps(Layer.set_input_space)
     def set_input_space(self, space):
 
         for layer in self.layers:
@@ -2876,18 +2812,18 @@ class CompositeLayer(Layer):
 
         return rval
 
-    @functools.wraps(Layer.fprop)
+    @soft_wraps(Layer.fprop)
     def fprop(self, state_below):
 
         return tuple(layer.fprop(state_below) for layer in self.layers)
 
-    @functools.wraps(Layer.cost)
+    @soft_wraps(Layer.cost)
     def cost(self, Y, Y_hat):
 
         return sum(layer.cost(Y_elem, Y_hat_elem) for layer, Y_elem, Y_hat_elem in \
                 safe_zip(self.layers, Y, Y_hat))
 
-    @functools.wraps(Layer.set_mlp)
+    @soft_wraps(Layer.set_mlp)
     def set_mlp(self, mlp):
 
         super(CompositeLayer, self).set_mlp(mlp)
@@ -2924,7 +2860,7 @@ class FlattenerLayer(Layer):
         self.layer_name = raw_layer.layer_name
 
 
-    @functools.wraps(Layer.set_input_space)
+    @soft_wraps(Layer.set_input_space)
     def set_input_space(self, space):
 
         self.raw_layer.set_input_space(space)
@@ -2940,7 +2876,7 @@ class FlattenerLayer(Layer):
 
         return self.raw_layer.get_params()
 
-    @functools.wraps(Layer.fprop)
+    @soft_wraps(Layer.fprop)
     def fprop(self, state_below):
 
         raw = self.raw_layer.fprop(state_below)
@@ -2948,7 +2884,7 @@ class FlattenerLayer(Layer):
         return self.raw_layer.get_output_space().format_as(raw,
                 self.output_space)
 
-    @functools.wraps(Layer.cost)
+    @soft_wraps(Layer.cost)
     def cost(self, Y, Y_hat):
 
         raw_space = self.raw_layer.get_output_space()
@@ -2973,13 +2909,13 @@ class FlattenerLayer(Layer):
 
         return self.raw_layer.cost(raw_Y, raw_Y_hat)
 
-    @functools.wraps(Layer.set_mlp)
+    @soft_wraps(Layer.set_mlp)
     def set_mlp(self, mlp):
 
         super(FlattenerLayer, self).set_mlp(mlp)
         self.raw_layer.set_mlp(mlp)
 
-    @functools.wraps(Layer.get_weights)
+    @soft_wraps(Layer.get_weights)
     def get_weights(self):
 
         return self.raw_layer.get_weights()
