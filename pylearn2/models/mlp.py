@@ -159,9 +159,9 @@ class Layer(Model):
 
         Examples
         --------
-        >>> C = model.cost_matrix(Y, Y_hat)
+        >>> # C = model.cost_matrix(Y, Y_hat)
         >>> # Do something with C like setting some values to 0
-        >>> cost = model.cost_from_cost_matrix(C)
+        >>> # cost = model.cost_from_cost_matrix(C)
         """
 
         raise NotImplementedError(str(type(self)) +
