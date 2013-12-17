@@ -784,7 +784,8 @@ class MLP(Layer):
 
 
 class OneHotCallback(object):
-    def __call__(batch):
+
+    def __call__(self, batch):
         if hasattr(batch, 'ndim') and batch.ndim != 2:
             raise ValueError("batch should have two dimensions. The "
                     "Pylearn2 Softmax Layer currently expects its targets"
@@ -795,7 +796,7 @@ class OneHotCallback(object):
                     " error message it can be fixed by setting the one_hot"
                     " argument to your Dataset's constructor to True")
 
-one_hot_callback = OneHotCallback
+one_hot_callback = OneHotCallback()
 
 class Softmax(Layer):
     """
