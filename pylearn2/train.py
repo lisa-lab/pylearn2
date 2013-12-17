@@ -13,7 +13,7 @@ from pylearn2.utils import serial
 import logging
 import warnings
 from pylearn2.monitor import Monitor
-from pylearn2.space import NullSpace
+from pylearn2.space import NullSpace, CompositeSpace
 from pylearn2.utils.timing import log_timing
 from pylearn2.utils import sharedX
 import theano.tensor as T
@@ -89,19 +89,23 @@ class Train(object):
                           "data it was trained on")
 
         # assert datasets' output_space == model.output_space
-        def assert_spaces(ds, model_output_space):
-            ds_space = ds.data_specs[0].components[ds.data_specs[1].\
+        def assert_spaces(ds, model_output_space, ds_name):
+            if isinstance(ds.data_specs[0], CompositeSpace):
+                if 'targets' in ds.data_specs[1]:
+                    ds_space = ds.data_specs[0].components[ds.data_specs[1].\
                                                 index('targets')]
-            if model_output_space != ds_space:
-                raise ValueError("Model's output space should be same"
-                        " as dataset's target space."
-                        " Model's output space is %s and dataset's space is"
-                        " %s" %(model_output_space, ds_space))
+                    if model_output_space != ds_space:
+                        raise ValueError("Model's output space should be same"
+                            " as dataset's target space."
+                            " Model's output space is %s and %s's space"
+                            " is %s" %(model_output_space, ds_name, ds_space))
 
         model_output_space = model.get_output_space()
-        assert_spaces(self.dataset, model_output_space)
-        for ds in self.algorithm.monitoring_dataset.values():
-            assert_spaces(ds, model_output_space)
+        assert_spaces(self.dataset, model_output_space, "model.dataset")
+        if hasattr(self.algorithm, 'monitoring_dataset'):
+            for key, ds in self.algorithm.monitoring_dataset.viewitems():
+                                assert_spaces(ds, model_output_space,
+                                "monitoring_dataset.%s" %(key))
 
         self.extensions = extensions if extensions is not None else []
         self.monitor_time = sharedX(value=0,name='seconds_per_epoch')
