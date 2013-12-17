@@ -77,8 +77,6 @@ class Space(object):
 
         if np_validate_callbacks is None:
             np_validate_callbacks = []
-        if isinstance(self, VectorSpace):
-            assert len(np_validate_callbacks) > 0
 
         self.__dict__.update(locals())
         del self.self
