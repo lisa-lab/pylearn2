@@ -88,6 +88,21 @@ class Train(object):
             warnings.warn("dataset has no yaml src, model won't know what " +
                           "data it was trained on")
 
+        # assert datasets' output_space == model.output_space
+        def assert_spaces(ds, model_output_space):
+            ds_space = ds.data_specs[0].components[ds.data_specs[1].\
+                                                index('targets')]
+            if model_output_space != ds_space:
+                raise ValueError("Model's output space should be same"
+                        " as dataset's target space."
+                        " Model's output space is %s and dataset's space is"
+                        " %s" %(model_output_space, ds_space))
+
+        model_output_space = model.get_output_space()
+        assert_spaces(self.dataset, model_output_space)
+        for ds in self.algorithm.monitoring_dataset.values():
+            assert_spaces(ds, model_output_space)
+
         self.extensions = extensions if extensions is not None else []
         self.monitor_time = sharedX(value=0,name='seconds_per_epoch')
 
