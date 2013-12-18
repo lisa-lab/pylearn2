@@ -173,6 +173,12 @@ class Train(object):
         .. todo::
 
             WRITEME
+
+        Returns
+        -------
+        continue_learning: bool
+            If `False`, signals that at least one train
+            extension wants to stop learning.
         """
         self.model.monitor()
         continue_learning = True
@@ -182,6 +188,9 @@ class Train(object):
             except TypeError, e:
                 logging.warning('Failure during callback ' + str(extension))
                 raise
+            # We catch an exception here instead of relying on return
+            # values for backward compatibility. Lots of extensions
+            # exist that don't return anything, currently.
             except StopIteration:
                 log.info("Extension requested training halt.")
                 continue_learning = False
