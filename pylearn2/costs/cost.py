@@ -118,7 +118,7 @@ class Cost(object):
         try:
             cost = self.expr(model=model, data=data, **kwargs)
         except TypeError, e:
-            # If anybody knows how to add type(seslf) to the exception message
+            # If anybody knows how to add type(self) to the exception message
             # but still preserve the stack trace, please do so
             # The current code does neither
             e.message += " while calling " + str(type(self)) + ".expr"
