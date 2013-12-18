@@ -116,9 +116,11 @@ class Train(object):
                                      "anything. Use Model.continue_learning " +
                                      "to control whether learning continues.")
                 self.model.monitor.report_epoch()
+                extension_continue = self.run_callbacks_and_monitoring()
                 if self.save_freq > 0 and self.model.monitor.epochs_seen % self.save_freq == 0:
                     self.save()
-                continue_learning = self.model.continue_learning()
+                continue_learning = (self.model.continue_learning() and
+                                     extension_continue)
                 assert continue_learning in [True, False, 0, 1]
                 if not continue_learning:
                     break
@@ -150,10 +152,13 @@ class Train(object):
                                      "TrainingAlgorithm.continue_learning " +
                                      "to control whether learning continues.")
                 self.model.monitor.report_epoch()
-                self.run_callbacks_and_monitoring()
+                extension_continue = self.run_callbacks_and_monitoring()
                 if self.save_freq > 0 and self.model.monitor._epochs_seen % self.save_freq == 0:
                     self.save()
-                continue_learning =  self.algorithm.continue_learning(self.model)
+                continue_learning = (
+                    self.algorithm.continue_learning(self.model) and
+                    extension_continue
+                )
                 assert continue_learning in [True, False, 0, 1]
                 if not continue_learning:
                     break
@@ -168,14 +173,28 @@ class Train(object):
         .. todo::
 
             WRITEME
+
+        Returns
+        -------
+        continue_learning: bool
+            If `False`, signals that at least one train
+            extension wants to stop learning.
         """
         self.model.monitor()
+        continue_learning = True
         for extension in self.extensions:
             try:
                 extension.on_monitor(self.model, self.dataset, self.algorithm)
             except TypeError, e:
                 logging.warning('Failure during callback ' + str(extension))
                 raise
+            # We catch an exception here instead of relying on return
+            # values for backward compatibility. Lots of extensions
+            # exist that don't return anything, currently.
+            except StopIteration:
+                log.info("Extension requested training halt.")
+                continue_learning = False
+        return continue_learning
 
     def save(self):
         """Saves the model."""
