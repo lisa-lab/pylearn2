@@ -475,7 +475,7 @@ def test_no_data():
             data_specs = (model.input_space, 'features'),
             val = 0.)
     except ValueError, e:
-        assert e.message == _err_no_data
+        assert exc_message(e) == _err_no_data
         return
     assert False
 
@@ -509,7 +509,7 @@ def test_ambig_data():
             val = 0.,
             data_specs=(model.get_input_space(), model.get_input_source()))
     except ValueError, e:
-        assert e.message == _err_ambig_data
+        assert exc_message(e) == _err_ambig_data
         return
     assert False
 
