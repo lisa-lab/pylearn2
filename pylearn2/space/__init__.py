@@ -69,7 +69,7 @@ def _cast(arg, dtype):
     if dtype is None:
         return arg
 
-    if dtype = 'floatX':
+    if dtype == 'floatX':
         dtype = theano.config.floatX  # this'll be 'float32' or 'float64'
 
     assert dtype in tuple(t.dtype for t in theano.scalar.all_types)
