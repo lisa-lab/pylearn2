@@ -6,8 +6,8 @@ import numpy as np
 class TestMNIST(unittest.TestCase):
     def setUp(self):
         skip_if_no_data()
-        self.train = MNIST(which_set = 'train')
-        self.test = MNIST(which_set = 'test')
+        self.train = MNIST(which_set = 'train', one_hot=True)
+        self.test = MNIST(which_set = 'test', one_hot=True)
 
     def test_range(self):
         """Tests that the data spans [0,1]"""
