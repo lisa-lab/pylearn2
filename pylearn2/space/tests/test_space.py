@@ -1,19 +1,18 @@
 """Tests for space utilities."""
 import numpy as np
-
+from nose.tools import assert_raises
 import theano
-from theano import config
-from theano import tensor
-from theano.sandbox.cuda import CudaNdarrayType
+#from theano import config
+#from theano import tensor
+#from theano.sandbox.cuda import CudaNdarrayType
 
 from pylearn2.space import Conv2DSpace
 from pylearn2.space import CompositeSpace
 from pylearn2.space import VectorSpace
-from pylearn2.space import Space
 from pylearn2.utils import function
 
 
-def test_np_format_as_vector2conv2D():
+def test_np_format_as_vector2conv2d():
     vector_space = VectorSpace(dim=8*8*3, sparse=False)
     conv2d_space = Conv2DSpace(shape=(8, 8), num_channels=3,
                                axes=('b', 'c', 0, 1))
@@ -30,7 +29,7 @@ def test_np_format_as_vector2conv2D():
     assert np.all(rval == nval)
 
 
-def test_np_format_as_conv2D2vector():
+def test_np_format_as_conv2d2vector():
     vector_space = VectorSpace(dim=8*8*3, sparse=False)
     conv2d_space = Conv2DSpace(shape=(8, 8), num_channels=3,
                                axes=('b', 'c', 0, 1))
@@ -52,7 +51,7 @@ def test_np_format_as_conv2D2vector():
     assert np.all(rval == nval)
 
 
-def test_np_format_as_conv2D2conv2D():
+def test_np_format_as_conv2d2conv2d():
     conv2d_space1 = Conv2DSpace(shape=(8, 8), num_channels=3,
                                 axes=('c', 'b', 1, 0))
     conv2d_space0 = Conv2DSpace(shape=(8, 8), num_channels=3,
@@ -63,7 +62,7 @@ def test_np_format_as_conv2D2conv2D():
     assert np.all(rval == nval)
 
 
-def test_np_format_as_conv2D_vector_conv2D():
+def test_np_format_as_conv2d_vector_conv2d():
     conv2d_space1 = Conv2DSpace(shape=(8, 8), num_channels=3,
                                 axes=('c', 'b', 1, 0))
     vector_space = VectorSpace(dim=8*8*3, sparse=False)
@@ -81,8 +80,15 @@ def test_np_format_as_conv2D_vector_conv2D():
 
 
 def test_np_format_as_composite_composite():
+    """
+    Test using CompositeSpace.np_format_as() to convert between composite
+    spaces that have the same tree structure, but different leaf spaces.
+    """
 
     def make_composite_space(image_space):
+        """
+        Returns a compsite space with a particular tree structure.
+        """
         return CompositeSpace((CompositeSpace((image_space,)*2),
                                VectorSpace(dim=1)))
 
@@ -94,16 +100,25 @@ def test_np_format_as_composite_composite():
                                                       num_channels=channels))
     composite_flat = make_composite_space(VectorSpace(dim=datum_size))
 
-    def make_flat_data(batch_size, space):
+    def make_vector_data(batch_size, space):
+        """
+        Returns a batch of synthetic data appropriate to the provided space.
+        Supports VectorSpaces, and CompositeSpaces of VectorSpaces.
+        synthetic data.
+        """
         if isinstance(space, CompositeSpace):
-            return tuple(make_flat_data(batch_size, subspace)
+            return tuple(make_vector_data(batch_size, subspace)
                          for subspace in space.components)
         else:
             assert isinstance(space, VectorSpace)
-            return np.random.rand(batch_size, space.dim)
+            result = np.random.rand(batch_size, space.dim)
+            if space.dtype is not None:
+                return np.asarray(result, dtype=space.dtype)
+            else:
+                return result
 
     batch_size = 5
-    flat_data = make_flat_data(batch_size, composite_flat)
+    flat_data = make_vector_data(batch_size, composite_flat)
     composite_flat.np_validate(flat_data)
 
     topo_data = composite_flat.np_format_as(flat_data, composite_topo)
@@ -111,21 +126,33 @@ def test_np_format_as_composite_composite():
     new_flat_data = composite_topo.np_format_as(topo_data, composite_flat)
 
     def get_shape(batch):
+        """
+        Returns the (nested) shape(s) of a (nested) batch.
+        """
         if isinstance(batch, np.ndarray):
             return batch.shape
         else:
             return tuple(get_shape(b) for b in batch)
 
     def batch_equals(batch_0, batch_1):
+        """
+        Returns true if all corresponding elements of two batches are equal.
+        Supports composite data (i.e. nested tuples of data).
+        """
         assert type(batch_0) == type(batch_1)
         if isinstance(batch_0, tuple):
             if len(batch_0) != len(batch_1):
+                print "returning with length mismatch"
                 return False
 
             return np.all(tuple(batch_equals(b0, b1)
                                 for b0, b1 in zip(batch_0, batch_1)))
         else:
             assert isinstance(batch_0, np.ndarray)
+            print "returning np.all"
+            print "batch0.shape, batch1.shape: ", batch_0.shape, batch_1.shape
+            print "batch_0, batch_1", batch_0, batch_1
+            print "max diff:", np.abs(batch_0 - batch_1).max()
             return np.all(batch_0 == batch_1)
 
     assert batch_equals(new_flat_data, flat_data)
@@ -189,29 +216,52 @@ def test_dtypes():
     # these batch-making methods.
     def test_get_origin_batch(from_space, to_type):
         assert not isinstance(from_space, CompositeSpace), \
-               "CompositeSpace.get_origin_batch doesn't support dtype " \
+               "CompositeSpace.get_origin_batch() doesn't have a dtype " \
                "argument. This shouldn't have happened; fix this unit test."
 
-        batch = from_space.get_origin_batch(dtype=to_type,
-                                            batch_size=batch_size)
+        if from_space.dtype is None and to_type is None:
+            with assert_raises(RuntimeError) as context:
+                from_space.get_origin_batch(batch_size, dtype=to_type)
+                expected_msg = ("self.dtype is None, so you must "
+                                "provide a non-None dtype argument "
+                                "to this method.")
+                assert str(context.exception).find(expected_msg) >= 0
+
+            return
+
+        batch = from_space.get_origin_batch(batch_size, dtype=to_type)
+
 
         if to_type is None:
             to_type = from_space.dtype
-        if to_type is 'floatX':
+        if to_type == 'floatX':
             to_type = theano.config.floatX
 
-        assert str(batch.dtype) == to_type
+        assert str(batch.dtype) == to_type, \
+               ("batch.dtype not equal to to_type (%s vs %s)" %
+                (batch.dtype, to_type))
 
     def test_make_shared_batch(from_space, to_type):
+        if from_space.dtype is None and to_type is None:
+            with assert_raises(RuntimeError) as context:
+                from_space.get_origin_batch(batch_size, dtype=to_type)
+                expected_msg = ("self.dtype is None, so you must "
+                                "provide a non-None dtype argument "
+                                "to this method.")
+                assert str(context.exception).find(expected_msg) >= 0
+
+            return
+
         batch = from_space.make_shared_batch(batch_size=batch_size,
                                              name='batch',
                                              dtype=to_type)
         if to_type is None:
             to_type = from_space.dtype
-        if to_type is 'floatX':
+        if to_type == 'floatX':
             to_type = theano.config.floatX
 
-        assert batch.dtype == to_type
+        assert batch.dtype == to_type, ("batch.dtype = %s, to_type = %s" %
+                                        (batch.dtype, to_type))
 
     def test_make_theano_batch(from_space, to_type):
         kwargs = {'name': 'batch',
@@ -221,35 +271,54 @@ def test_dtypes():
         if not (isinstance(from_space, VectorSpace) and from_space.sparse):
             kwargs['batch_size'] = batch_size
 
+        if from_space.dtype is None and to_type is None:
+            with assert_raises(RuntimeError) as context:
+                from_space.get_origin_batch(batch_size, dtype=to_type)
+                expected_msg = ("self.dtype is None, so you must "
+                                "provide a non-None dtype argument "
+                                "to this method.")
+                assert str(context.exception).find(expected_msg) >= 0
+
+            return
+
         batch = from_space.make_theano_batch(**kwargs)
 
         if to_type is None:
             to_type = from_space.dtype
-        if to_type is 'floatX':
+        if to_type == 'floatX':
             to_type = theano.config.floatX
 
-        assert batch.dtype == to_type
+        assert batch.dtype == to_type, ("batch.dtype = %s, to_type = %s" %
+                                        (batch.dtype, to_type))
 
+    # get format
     def test_format(from_space, to_space):
-        args = {'name': 'from',
-                'dtype': None}
+        kwargs = {'name': 'from',
+                  'dtype': None}
         if isinstance(from_space, (VectorSpace, Conv2DSpace)):
-            args['dtype'] = from_space.dtype
+            kwargs['dtype'] = from_space.dtype
 
         # Sparse VectorSpaces throw an exception if batch_size is specified.
         if not (isinstance(from_space, VectorSpace) and from_space.sparse):
-            args['batch_size'] = batch_size
+            kwargs['batch_size'] = batch_size
 
-        from_batch = from_space.make_theano_batch(*args)
+        from_batch = from_space.make_theano_batch(**kwargs)
         to_batch = from_space.format_as(from_batch, to_space)
-        assert to_batch.dtype == to_space.dtype
+
+        assert to_batch.dtype == to_space.dtype, \
+               ("to_batch.dtype = %s, to_space.dtype = %s" %
+                (to_batch.dtype, to_space.dtype))
 
     def test_np_format(from_space, to_space):
         from_batch = from_space.get_origin_batch(batch_size)
         to_batch = from_space.np_format_as(from_batch, to_space)
-        assert(str(to_batch.dtype) == to_space.dtype)
+        assert str(to_batch.dtype) == to_space.dtype, \
+               ("to_batch.dtype = %s, to_space.dtype = %s" %
+                (str(to_batch.dtype), to_space.dtype))
 
-    shape = N.array([2, 3, 4], dtype='int')
+    shape = np.array([2, 3, 4], dtype='int')
+    assert len(shape) == 3  # This test depends on this being true
+
     dtypes = ('floatX', None) + tuple(t.dtype for t in theano.scalar.all_types)
 
     #
@@ -258,29 +327,42 @@ def test_dtypes():
 
     vector_spaces = tuple(VectorSpace(dim=shape.prod(), dtype=dt, sparse=s)
                           for dt in dtypes for s in (True, False))
-    conv2d_spaces = tuple(Conv2DSpace(shape=shape, dtype=dt, sparse=s),
-                          for dt in dtypes for s in (True, False))
+    conv2d_spaces = tuple(Conv2DSpace(shape=shape[:2],
+                                      dtype=dt,
+                                      num_channels=shape[2])
+                          for dt in dtypes)
 
     # no need to make CompositeSpaces with components spanning all possible
     # dtypes. Just try 2 dtype combos. No need to try different sparsities
     # either. That will be tested by the non-composite space conversions.
     n_dtypes = 2
-    composite_spaces = tuple(CompositeSpace((VectorSpace(dim=shape[1:].prod()),
-                                             Conv2DSpace(shape=shape[1:])))
-                             for dt0, dt1 in zip(dtypes[:n_dtypes],
-                                                 dtypes[-n_dtypes:]))
+    old_nchannels = shape[2]
+    shape[2] = old_nchannels / 2
+    assert shape[2] * 2 == old_nchannels, \
+           ("test code is broken: # of channels should start as an even "
+            "number, not %d." % old_nchannels)
+
+    def make_composite_space(dtype0, dtype1):
+        return CompositeSpace((VectorSpace(dim=shape.prod(), dtype=dtype0),
+                               Conv2DSpace(shape=shape[:2],
+                                           dtype=dtype1,
+                                           num_channels=shape[2])))
+
+    composite_spaces = tuple(make_composite_space(dtype0, dtype1)
+                             for dtype0, dtype1 in zip(dtypes[:n_dtypes],
+                                                       dtypes[-n_dtypes:]))
     del n_dtypes
 
     # CompositeSpace.get_origin_batch doesn't have a dtype argument.
     # Only test_get_origin_batch with non-composite spaces.
     for from_space in vector_spaces + conv2d_spaces:
         for to_dtype in dtypes:
-            test_get_origin_batch(from_space, to_type)
+            test_get_origin_batch(from_space, to_dtype)
 
     for from_space in vector_spaces + conv2d_spaces + composite_spaces:
         for to_dtype in dtypes:
-            test_make_shared_batch(from_space, to_type)
-            test_make_theano_batch(from_space, to_type)
+            test_make_shared_batch(from_space, to_dtype)
+            test_make_theano_batch(from_space, to_dtype)
 
         # Chooses different spaces to convert to, depending on from_space.
         if isinstance(from_space, VectorSpace):
@@ -294,5 +376,5 @@ def test_dtypes():
             to_spaces = vector_spaces + composite_spaces
 
         for to_space in to_spaces:
-            test_format(from_space, from_type, to_space, to_type)
-            test_np_format(from_space, from_type, to_space, to_type)
+            test_format(from_space, to_space)
+            test_np_format(from_space, to_space)
