@@ -104,9 +104,8 @@ def test_np_format_as_composite_composite():
     def make_vector_data(batch_size, space):
         """
         Returns a batch of synthetic data appropriate to the provided space.
-        Supports VectorSpaces, and CompositeSpaces of VectorSpaces.  synthetic
-        data.
-
+        Supports VectorSpaces, and CompositeSpaces of VectorSpaces.
+        Synthetic data.
         """
         if isinstance(space, CompositeSpace):
             return tuple(make_vector_data(batch_size, subspace)
