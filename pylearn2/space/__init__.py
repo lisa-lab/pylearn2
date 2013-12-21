@@ -35,10 +35,9 @@ __email__ = "goodfeli@iro"
 import warnings, functools
 import numpy as np
 import theano
-import theano.tensor as T
 import theano.sparse
+from theano import tensor
 from theano.tensor import TensorType
-from theano import config
 from theano.gof.op import get_debug_values
 from theano.sandbox.cuda.type import CudaNdarrayType
 from pylearn2.utils import (py_integer_types, 
@@ -472,9 +471,7 @@ class VectorSpace(TypedSpace):
             Sparse vector or not
         kwargs: passed on to superclass constructor
         """
-
-        super(VectorSpace, self).__init__(**kwargs)
-
+        super(VectorSpace, self).__init__(dtype=dtype, **kwargs)
         self.dim = dim
         self.sparse = sparse
 
@@ -520,11 +517,11 @@ class VectorSpace(TypedSpace):
             rval = theano.sparse.csr_matrix(name=name, dtype=dtype)
         else:
             if batch_size == 1:
-                rval = T.row(name=name, dtype=dtype)
+                rval = tensor.row(name=name, dtype=dtype)
             else:
-                rval = T.matrix(name=name, dtype=dtype)
+                rval = tensor.matrix(name=name, dtype=dtype)
 
-        if config.compute_test_value != 'off':
+        if theano.config.compute_test_value != 'off':
             if batch_size == 1:
                 n = 1
             else:
@@ -588,7 +585,6 @@ class VectorSpace(TypedSpace):
                                       str(space))
 
         return _cast(result, self.dtype)
-
 
     def __eq__(self, other):
         """
@@ -781,7 +777,7 @@ class Conv2DSpace(TypedSpace):
         rval = TensorType(dtype=dtype,
                           broadcastable=broadcastable
                           )(name=name)
-        if config.compute_test_value != 'off':
+        if theano.config.compute_test_value != 'off':
             if batch_size == 1:
                 n = 1
             else:
@@ -1152,7 +1148,7 @@ class CompositeSpace(Space):
                 width = component.get_total_dimension()
                 pieces.append(component.format_as(input_piece,
                                                   VectorSpace(width)))
-            return T.concatenate(pieces, axis=1)
+            return tensor.concatenate(pieces, axis=1)
 
         if isinstance(space, CompositeSpace):
             def recursive_format_as(orig_space, batch, dest_space):
@@ -1293,7 +1289,6 @@ class CompositeSpace(Space):
                                      "components with size %d, then %d." %
                                      (rval, b))
         return rval
-
 
     def _check_dtype_arg(self, dtype):
         """
