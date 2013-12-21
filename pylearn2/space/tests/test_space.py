@@ -292,8 +292,8 @@ def test_dtypes():
     # these batch-making methods.
     def test_get_origin_batch(from_space, to_type):
         assert not isinstance(from_space, CompositeSpace), \
-               "CompositeSpace.get_origin_batch() doesn't have a dtype " \
-               "argument. This shouldn't have happened; fix this unit test."
+            ("CompositeSpace.get_origin_batch() doesn't have a dtype "
+             "argument. This shouldn't have happened; fix this unit test.")
 
         if from_space.dtype is None and to_type is None:
             with assert_raises(RuntimeError) as context:
@@ -307,15 +307,14 @@ def test_dtypes():
 
         batch = from_space.get_origin_batch(batch_size, dtype=to_type)
 
-
         if to_type is None:
             to_type = from_space.dtype
         if to_type == 'floatX':
             to_type = theano.config.floatX
 
         assert str(batch.dtype) == to_type, \
-               ("batch.dtype not equal to to_type (%s vs %s)" %
-                (batch.dtype, to_type))
+            ("batch.dtype not equal to to_type (%s vs %s)" %
+             (batch.dtype, to_type))
 
     def test_make_shared_batch(from_space, to_type):
         if from_space.dtype is None and to_type is None:
@@ -382,15 +381,27 @@ def test_dtypes():
         to_batch = from_space.format_as(from_batch, to_space)
 
         assert to_batch.dtype == to_space.dtype, \
-               ("to_batch.dtype = %s, to_space.dtype = %s" %
-                (to_batch.dtype, to_space.dtype))
+            ("to_batch.dtype = %s, to_space.dtype = %s" %
+             (to_batch.dtype, to_space.dtype))
 
     def test_np_format(from_space, to_space):
         from_batch = from_space.get_origin_batch(batch_size)
+
+        def is_sparse(space):
+            return isinstance(space, VectorSpace) and space.sparse
+
+        # Expect a TypeError when converting betw. sparse & non-sparse
+        if is_sparse(from_space) != is_sparse(to_space):
+            with assert_raises(TypeError) as context:
+                from_space.np_format_as(from_batch, to_space)
+                assert str(context.exception).find("sparse") >= 0
+
+            return
+
         to_batch = from_space.np_format_as(from_batch, to_space)
         assert str(to_batch.dtype) == to_space.dtype, \
-               ("to_batch.dtype = %s, to_space.dtype = %s" %
-                (str(to_batch.dtype), to_space.dtype))
+            ("to_batch.dtype = %s, to_space.dtype = %s" %
+             (str(to_batch.dtype), to_space.dtype))
 
     shape = np.array([2, 3, 4], dtype='int')
     assert len(shape) == 3  # This test depends on this being true
@@ -415,8 +426,8 @@ def test_dtypes():
     old_nchannels = shape[2]
     shape[2] = old_nchannels / 2
     assert shape[2] * 2 == old_nchannels, \
-           ("test code is broken: # of channels should start as an even "
-            "number, not %d." % old_nchannels)
+        ("test code is broken: # of channels should start as an even "
+         "number, not %d." % old_nchannels)
 
     def make_composite_space(dtype0, dtype1):
         return CompositeSpace((VectorSpace(dim=shape.prod(), dtype=dtype0),
