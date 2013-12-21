@@ -508,7 +508,7 @@ def wraps(wrapped,
     ...        return rval
     ...
     >>> class Child(Parent):
-    ...     @soft_wraps(Parent.f)
+    ...     @wraps(Parent.f)
     ...     def f(x):
     ...        '''
     ...        Notes
