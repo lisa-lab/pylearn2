@@ -1,0 +1,15 @@
+#!/usr/bin/env python
+__author__ = "Ian Goodfellow"
+
+import sys
+
+from pylearn2.utils import serial
+
+def num_parameters(model):
+    params = model.get_params()
+    return sum(map(lambda x: x.get_value().size, params))
+
+if __name__ == '__main__':
+    _, model_path = sys.argv
+    model = serial.load(model_path)
+    print num_parameters(model)
