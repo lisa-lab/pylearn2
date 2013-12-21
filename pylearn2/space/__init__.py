@@ -130,27 +130,25 @@ class Space(object):
         """
         raise NotImplementedError()
 
-    def make_shared_batch(self,
-                          batch_size,
-                          name=None,
-                          dtype=None):
+    def make_shared_batch(self, batch_size, name=None, dtype=None):
         """
         .. todo::
 
             WRITEME
         """
-        if dtype is None:
-            if hasattr(self, 'dtype'):
-                dtype = self.dtype
+        if dtype is None and hasattr(self, 'dtype'):
+            if self.dtype is None:
+                raise TypeError("self.dtype is None, so you must "
+                                "provide a non-None dtype argument to "
+                                "make_shared_batch().")
             else:
-                dtype = config.floatX
+                dtype = self.dtype  # pylint: disable-msg=E1101
+        else:
+            dtype = self._check_dtype_arg(dtype)
 
-        return sharedX(self.get_origin_batch(batch_size), name, dtype)
+        return sharedX(self.get_origin_batch(batch_size), name, dtype=dtype)
 
-    def make_theano_batch(self,
-                          name=None,
-                          dtype=None,
-                          batch_size=None):
+    def make_theano_batch(self, name=None, dtype=None, batch_size=None):
         """
         Returns a symbolic variable representing a batch of points
         in this space.
@@ -173,8 +171,12 @@ class Space(object):
         """
         raise NotImplementedError()
 
-    # An alias to the above method
-    make_batch_theano = make_theano_batch
+    def make_batch_theano(self, name=None, dtype=None, batch_size=None):
+        """An alias for make_theano_batch()"""
+
+        return self.make_theano_batch(name=name,
+                                      dtype=dtype,
+                                      batch_size=batch_size)
 
     def get_total_dimension(self):
         """
@@ -328,10 +330,53 @@ class Space(object):
         raise NotImplementedError(str(type(self)) + " does not implement " +
                                   "get_batch")
 
+    def _check_dtype_arg(self, dtype):
+        """
+        Checks dtype argument for validity, and returns it if it is. If dtype
+        is 'floatX', returns the theano.config.floatX dtype (this will either
+        be 'float32' or 'float64'.
+        """
 
-class VectorSpace(Space):
+        if dtype == 'floatX':
+            return theano.config.floatX
+
+        if dtype not in ((None, ) +
+                         tuple(x.dtype for x in theano.scalar.all_types)):
+            raise TypeError('Unrecognized value "%s" for dtype arg' %
+                            str(dtype))
+
+        return dtype
+
+
+class TypedSpace(Space):
+    """
+    A space with a single dtype, like VectorSpace or Conv2DSpace, and unlike
+    CompositeSpace.
+    """
+
+    def __init__(self, dtype=None):
+        super(TypedSpace, self).__init__()
+        self.dtype = super(TypedSpace, self)._check_dtype_arg(dtype)
+
+    def _check_dtype_arg(self, dtype):
+        """
+        if dtype is None, returns self.dtype.
+        Otherwise, same as superclass' implementation.
+        """
+
+        if dtype is None:
+            if self.dtype is None:
+                raise RuntimeError("self.dtype is None, so you must provide a "
+                                   "non-None dtype argument to this method.")
+            return self.dtype
+        else:
+            return super(TypedSpace, self)._check_dtype_arg(dtype)
+
+
+class VectorSpace(TypedSpace):
     """A space whose points are defined as fixed-length vectors."""
-    def __init__(self, dim, sparse=False):
+
+    def __init__(self, dim, sparse=False, dtype=theano.config.floatX):
         """
         Initialize a VectorSpace.
 
@@ -342,8 +387,10 @@ class VectorSpace(Space):
         sparse: bool
             Sparse vector or not
         """
+        super(VectorSpace, self).__init__(dtype)
         self.dim = dim
         self.sparse = sparse
+
 
     def __str__(self):
         """
@@ -362,8 +409,8 @@ class VectorSpace(Space):
 
     @functools.wraps(Space.get_origin_batch)
     def get_origin_batch(self, n, dtype=None):
-        if dtype is None:
-            dtype = config.floatX
+        dtype = self._check_dtype_arg(dtype)
+
         return np.zeros((n, self.dim), dtype=dtype)
 
     @functools.wraps(Space.batch_size)
@@ -376,13 +423,12 @@ class VectorSpace(Space):
         self.np_validate(batch)
         return batch.shape[0]
 
+
+
     @functools.wraps(Space.make_theano_batch)
-    def make_theano_batch(self,
-                          name=None,
-                          dtype=None,
-                          batch_size=None):
-        if dtype is None:
-            dtype = self.dtype
+    def make_theano_batch(self, name=None, dtype=None, batch_size=None):
+        dtype = self._check_dtype_arg(dtype)
+
         if self.sparse:
             if batch_size is not None:
                 raise NotImplementedError("batch_size not implemented "
@@ -400,7 +446,7 @@ class VectorSpace(Space):
             else:
                 # TODO: try to extract constant scalar value from batch_size
                 n = 4
-            rval.tag.test_value = self.get_origin_batch(n=n)
+            rval.tag.test_value = self.get_origin_batch(n=n, dtype=dtype)
         return rval
 
     @functools.wraps(Space.get_total_dimension)
@@ -527,7 +573,7 @@ class VectorSpace(Space):
                              "%s and dim = %d." % (str(batch.shape), self.dim))
 
 
-class Conv2DSpace(Space):
+class Conv2DSpace(TypedSpace):
     """A space whose points are defined as (multi-channel) images."""
 
     # Assume pylearn2's get_topological_view format, since this is how
@@ -535,11 +581,13 @@ class Conv2DSpace(Space):
     # default to ('b', 'c', 0, 1) for theano conv2d
     default_axes = ('b', 0, 1, 'c')
 
+
     def __init__(self,
                  shape,
                  channels=None,
                  num_channels=None,
-                 axes=None):
+                 axes=None,
+                 dtype=theano.config.floatX):
         """
         Initialize a Conv2DSpace.
 
@@ -561,14 +609,22 @@ class Conv2DSpace(Space):
                 theano's conv2d operator uses ('b', 'c', 0, 1) images.
         """
 
+        super(Conv2DSpace, self).__init__(dtype)
+
         assert (channels is None) + (num_channels is None) == 1
         if num_channels is None:
             num_channels = channels
 
         assert isinstance(num_channels, py_integer_types)
 
-        if not hasattr(shape, '__len__') or len(shape) != 2:
-            raise ValueError("shape argument to Conv2DSpace must be length 2")
+        if not hasattr(shape, '__len__'):
+            raise ValueError("shape argument for Conv2DSpace must have a "
+                             "length. Got %s." % str(shape))
+
+        if len(shape) != 2:
+            raise ValueError("shape argument to Conv2DSpace must be length 2, "
+                             "not %d" % len(shape))
+
         assert all(isinstance(elem, py_integer_types) for elem in shape)
         assert all(elem > 0 for elem in shape)
         assert isinstance(num_channels, py_integer_types)
@@ -617,8 +673,7 @@ class Conv2DSpace(Space):
 
     @functools.wraps(Space.get_origin_batch)
     def get_origin_batch(self, n, dtype=None):
-        if dtype is None:
-            dtype = self.dtype
+        dtype = self._check_dtype_arg(dtype)
 
         if not isinstance(n, py_integer_types):
             raise TypeError("Conv2DSpace.get_origin_batch expects an int, "
@@ -632,10 +687,9 @@ class Conv2DSpace(Space):
         return np.zeros(shape, dtype=dtype)
 
     @functools.wraps(Space.make_theano_batch)
-    def make_theano_batch(self,
-                          name=None,
-                          dtype=config.floatX,
-                          batch_size=None):
+    def make_theano_batch(self, name=None, dtype=None, batch_size=None):
+        dtype = self._check_dtype_arg(dtype)
+
         broadcastable = [False] * 4
         broadcastable[self.axes.index('c')] = (self.num_channels == 1)
         broadcastable[self.axes.index('b')] = (batch_size == 1)
@@ -650,7 +704,7 @@ class Conv2DSpace(Space):
             else:
                 # TODO: try to extract constant scalar value from batch_size
                 n = 4
-            rval.tag.test_value = self.get_origin_batch(n=n)
+            rval.tag.test_value = self.get_origin_batch(n=n, dtype=dtype)
         return rval
 
     @functools.wraps(Space.batch_size)
@@ -1066,23 +1120,48 @@ class CompositeSpace(Space):
             component.np_validate(batch_elem)
 
     @functools.wraps(Space.get_origin_batch)
-    def get_origin_batch(self, n):
-        return tuple([component.get_origin_batch(n) for
-                      component in self.components])
+    def get_origin_batch(self, n, dtype=None):
+        """
+        Calls get_origin_batch on all subspaces, and returns a (nested)
+        tuple containing their return values.
+
+        n: batch size.
+
+        dtype: the dtype to use for all the get_origin_batch() calls on
+               subspaces. If dtype is None, or a single dtype string, that will
+               be used for all calls. If dtype is a (nested) tuple, it must
+               mirror the tree structure of this CompositeSpace.
+        """
+
+        dtype = self._check_dtype_arg(dtype)
+
+        return tuple([component.get_origin_batch(n, dt) for
+                      component, dt in safe_zip(self.components, dtype)])
 
     @functools.wraps(Space.make_theano_batch)
     def make_theano_batch(self,
                           name=None,
-                          dtype=config.floatX,
+                          dtype=None,
                           batch_size=None):
+        """
+        Calls make_theano_batch on all subspaces, and returns a (nested)
+        tuple containing their return values.
+
+        n: batch size.
+
+        dtype: the dtype to use for all the make_theano_batch() calls on
+               subspaces. If dtype is None, or a single dtype string, that will
+               be used for all calls. If dtype is a (nested) tuple, it must
+               mirror the tree structure of this CompositeSpace.
+
+        """
+
         if name is None:
             name = [None] * len(self.components)
         elif not isinstance(name, (list, tuple)):
             name = ['%s[%i]' % (name, i) for i in xrange(len(self.components))]
 
-        if isinstance(dtype, str):
-            assert dtype in tuple(t.dtype for t in theano.scalar.all_types)
-            dtype = [dtype] * len(self.components)
+        dtype = self._check_dtype_arg(dtype)
 
         assert isinstance(name, (list, tuple))
         assert isinstance(dtype, (list, tuple))
@@ -1131,6 +1210,51 @@ class CompositeSpace(Space):
                                      "components with size %d, then %d." %
                                      (rval, b))
         return rval
+
+
+    def _check_dtype_arg(self, dtype):
+        """
+        If dtype is None or a string, this returns a nested tuple that mirrors
+        the tree structure of this CompositeSpace, with dtype at the leaves.
+
+        If dtype is a nested tuple, this checks that it has the same tree
+        structure as this CompositeSpace.
+        """
+        super_self = super(CompositeSpace, self)
+
+        def make_dtype_tree(dtype, space):
+            """
+            Creates a nested tuple tree that mirrors the tree structure of
+            <space>, populating the leaves with <dtype>.
+            """
+            if isinstance(space, CompositeSpace):
+                return tuple(make_dtype_tree(dtype, component)
+                             for component in space.components)
+            else:
+                return super_self._check_dtype_arg(dtype)
+
+        def check_dtype_tree(dtype, space):
+            """
+            Verifies that a dtype tree mirrors the tree structure of <space>,
+            calling Space._check_dtype_arg on the leaves.
+            """
+            if isinstance(space, CompositeSpace):
+                if not isinstance(dtype, tuple):
+                    raise TypeError("Tree structure mismatch.")
+
+                return tuple(check_dtype_tree(dt, c)
+                             for dt, c in safe_zip(dtype, space.components))
+            else:
+                if not (dtype is None or isinstance(dtype, str)):
+                    raise TypeError("Tree structure mismatch.")
+
+                return super_self._check_dtype_arg(dtype)
+
+        if dtype is None or isinstance(dtype, str):
+            dtype = super_self._check_dtype_arg(dtype)
+            return make_dtype_tree(dtype, self)
+        else:
+            return check_dtype_tree(dtype, self)
 
 
 class NullSpace(Space):

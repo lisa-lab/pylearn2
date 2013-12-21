@@ -1,16 +1,15 @@
-import os, warnings
+import os, warnings, numpy
 
 from .general import is_iterable
 import theano
 # Delay import of pylearn2.config.yaml_parse and pylearn2.datasets.control
 # to avoid circular imports
+# pylint: disable-msgs=C0103
 yaml_parse = None
 control = None
 from itertools import izip
 cuda = None
 
-import numpy
-np = numpy
 
 
 def make_name(variable, anon="anonymous_variable"):
@@ -55,7 +54,8 @@ def sharedX(value, name=None, borrow=False, dtype=theano.config.floatX):
     WRITEME
     """
     assert isinstance(dtype, str)
-    assert dtype in (x.dtype for x in theano.scalar.all_types)
+    assert dtype in (x.dtype for x in theano.scalar.all_types), \
+           'Unrecognized dtype "%s"' % str(dtype)
     if dtype != theano.config.floatX:
         warnings.warn("Support for data types other than theano.config.floatX "
                       "is experimental. Users are encouraged to stick to "
@@ -256,7 +256,7 @@ def safe_zip(*args):
     for i, arg in enumerate(args[1:]):
         if len(arg) != base:
             raise ValueError("Argument 0 has length %d but argument %d has "
-                             "length %d" % (base, i+1, len(arg))
+                             "length %d" % (base, i+1, len(arg)))
     return zip(*args)
 
 
@@ -268,6 +268,7 @@ def safe_izip(*args):
     assert all([len(arg) == len(args[0]) for arg in args])
     return izip(*args)
 
+
 def gpu_mem_free():
     """
     .. todo::
@@ -278,6 +279,7 @@ def gpu_mem_free():
     if cuda is None:
         from theano.sandbox import cuda
     return cuda.mem_info()[0]/1024./1024
+
 
 class _ElemwiseNoGradient(theano.tensor.Elemwise):
     """
@@ -291,7 +293,7 @@ class _ElemwiseNoGradient(theano.tensor.Elemwise):
 
             WRITEME
         """
-        return [ [ False ] ]
+        return [[False]]
 
     def grad(self, inputs, output_gradients):
         """
@@ -299,7 +301,7 @@ class _ElemwiseNoGradient(theano.tensor.Elemwise):
 
             WRITEME
         """
-        return [ theano.gradient.DisconnectedType()() ]
+        return [theano.gradient.DisconnectedType()()]
 
 # Call this on a theano variable to make a copy of that variable
 # No gradient passes through the copying operation
@@ -338,6 +340,7 @@ def safe_union(a, b):
 # old imports
 from theano.printing import hex_digest
 
+
 def function(*args, **kwargs):
     """
     A wrapper around theano.function that disables the on_unused_input error.
@@ -345,6 +348,7 @@ def function(*args, **kwargs):
     the default from theano is inappropriate for this project.
     """
     return theano.function(*args, on_unused_input='ignore', **kwargs)
+
 
 def grad(*args, **kwargs):
     """
@@ -354,11 +358,12 @@ def grad(*args, **kwargs):
     """
     return theano.gradient.grad(*args, disconnected_inputs='ignore', **kwargs)
 
+
 # Groups of Python types that are often used together in `isinstance`
-py_integer_types = (int, long, np.integer)
-py_float_types = (float, np.floating)
-py_complex_types = (complex, np.complex)
-py_number_types = (int, long, float, complex, np.number)
+py_integer_types = (int, long, numpy.integer)
+py_float_types = (float, numpy.floating)
+py_complex_types = (complex, numpy.complex)
+py_number_types = (int, long, float, complex, numpy.number)
 
 
 def get_choice(choice_to_explanation):
