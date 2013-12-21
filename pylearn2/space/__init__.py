@@ -698,7 +698,9 @@ class VectorSpace(SimplyTypedSpace):
                dtype, or None for a dtype-agnostic space.
         kwargs: passed on to superclass constructor
         """
-        super(VectorSpace, self).__init__(dtype, **kwargs)
+
+        super(VectorSpace, self).__init__(**kwargs)
+
         self.dim = dim
         self.sparse = sparse
 
