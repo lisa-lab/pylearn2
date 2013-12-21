@@ -33,18 +33,15 @@ __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
 import warnings
+import functools
 import numpy as np
 import theano
-import theano.tensor as T
 import theano.sparse
+from theano import tensor
 from theano.tensor import TensorType
-from theano import config
-import functools
 from theano.gof.op import get_debug_values
 from theano.sandbox.cuda.type import CudaNdarrayType
-from pylearn2.utils import py_integer_types
-from pylearn2.utils import safe_zip
-from pylearn2.utils import sharedX
+from pylearn2.utils import py_integer_types, safe_zip, sharedX
 
 if theano.sparse.enable_sparse:
     # We know scipy.sparse is available
@@ -391,7 +388,6 @@ class VectorSpace(TypedSpace):
         self.dim = dim
         self.sparse = sparse
 
-
     def __str__(self):
         """
         .. todo::
@@ -423,8 +419,6 @@ class VectorSpace(TypedSpace):
         self.np_validate(batch)
         return batch.shape[0]
 
-
-
     @functools.wraps(Space.make_theano_batch)
     def make_theano_batch(self, name=None, dtype=None, batch_size=None):
         dtype = self._check_dtype_arg(dtype)
@@ -436,11 +430,11 @@ class VectorSpace(TypedSpace):
             rval = theano.sparse.csr_matrix(name=name, dtype=dtype)
         else:
             if batch_size == 1:
-                rval = T.row(name=name, dtype=dtype)
+                rval = tensor.row(name=name, dtype=dtype)
             else:
-                rval = T.matrix(name=name, dtype=dtype)
+                rval = tensor.matrix(name=name, dtype=dtype)
 
-        if config.compute_test_value != 'off':
+        if theano.config.compute_test_value != 'off':
             if batch_size == 1:
                 n = 1
             else:
@@ -504,7 +498,6 @@ class VectorSpace(TypedSpace):
                                       str(space))
 
         return _cast(result, self.dtype)
-
 
     def __eq__(self, other):
         """
@@ -580,7 +573,6 @@ class Conv2DSpace(TypedSpace):
     # data is currently served up. If we make better iterators change
     # default to ('b', 'c', 0, 1) for theano conv2d
     default_axes = ('b', 0, 1, 'c')
-
 
     def __init__(self,
                  shape,
@@ -698,7 +690,7 @@ class Conv2DSpace(TypedSpace):
         rval = TensorType(dtype=dtype,
                           broadcastable=broadcastable
                           )(name=name)
-        if config.compute_test_value != 'off':
+        if theano.config.compute_test_value != 'off':
             if batch_size == 1:
                 n = 1
             else:
@@ -1069,7 +1061,7 @@ class CompositeSpace(Space):
                 width = component.get_total_dimension()
                 pieces.append(component.format_as(input_piece,
                                                   VectorSpace(width)))
-            return T.concatenate(pieces, axis=1)
+            return tensor.concatenate(pieces, axis=1)
 
         if isinstance(space, CompositeSpace):
             def recursive_format_as(orig_space, batch, dest_space):
@@ -1211,7 +1203,6 @@ class CompositeSpace(Space):
                                      (rval, b))
         return rval
 
-
     def _check_dtype_arg(self, dtype):
         """
         If dtype is None or a string, this returns a nested tuple that mirrors
@@ -1292,7 +1283,7 @@ class NullSpace(Space):
         return hash(type(self))
 
     @functools.wraps(Space.make_theano_batch)
-    def make_theano_batch(self, name=None, dtype=config.floatX):
+    def make_theano_batch(self, name=None, dtype=theano.config.floatX):
         return None
 
     @functools.wraps(Space.validate)

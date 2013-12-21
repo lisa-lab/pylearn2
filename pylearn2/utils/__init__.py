@@ -57,12 +57,13 @@ def sharedX(value, name=None, borrow=False, dtype=theano.config.floatX):
     assert dtype in (x.dtype for x in theano.scalar.all_types), \
            'Unrecognized dtype "%s"' % str(dtype)
     if dtype != theano.config.floatX:
-        warnings.warn("Support for data types other than theano.config.floatX "
-                      "is experimental. Users are encouraged to stick to "
-                      "theano.config.floatX unless they know what they're "
-                      "doing.",
-                      stacklevel=2)
-
+        warnings.warn("""
+        As of this writing (21 Dec 2013), Theano only supports floats
+        of type theano.config.floatX on the GPU. Any calculations using other
+        types will therefore be booted off the GPU. Users are encouraged to
+        stick to theano.config.floatX unless they know what they're doing.""",
+        stacklevel=2)
+        
     return theano.shared(theano._asarray(value, dtype=dtype),
                          name=name,
                          borrow=borrow)
