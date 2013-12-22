@@ -409,10 +409,10 @@ def float32_floatX(f):
 
 def update_wrapper(wrapper,
                    wrapped,
-                   assigned = WRAPPER_ASSIGNMENTS,
-                   concatenated = WRAPPER_CONCATENATIONS,
+                   assigned=WRAPPER_ASSIGNMENTS,
+                   concatenated=WRAPPER_CONCATENATIONS,
                    append=False,
-                   updated = WRAPPER_UPDATES):
+                   updated=WRAPPER_UPDATES):
     """
     A Python decorator which acts like `functools.update_wrapper` but also has
     the ability to concatenate attributes.
