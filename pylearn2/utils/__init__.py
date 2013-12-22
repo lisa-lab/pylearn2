@@ -476,10 +476,10 @@ def update_wrapper(wrapper,
 
 
 def wraps(wrapped,
-          assigned = WRAPPER_ASSIGNMENTS,
-          concatenated = WRAPPER_CONCATENATIONS,
+          assigned=WRAPPER_ASSIGNMENTS,
+          concatenated=WRAPPER_CONCATENATIONS,
           append=False,
-          updated = WRAPPER_UPDATES):
+          updated=WRAPPER_UPDATES):
     """
     Decorator factory to apply `update_wrapper()` to a wrapper function
 
