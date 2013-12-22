@@ -416,14 +416,6 @@ def update_wrapper(wrapper,
     """
     A Python decorator which acts like `functools.update_wrapper` but also has
     the ability to concatenate attributes.
-    
-    This can be used to concatenate the wrapper's docstring with the wrapped's
-    docstring and should help reduce the ammount of documentation to write: one
-    can use this decorator on child classes' functions when their
-    implementation is similar to the one of the parent class. Conversely, if a
-    function defined in a child class departs from its parent's implementation,
-    one can simply explain the differences in a 'Notes' section without
-    re-writing the whole docstring.
 
     Parameters
     ----------
@@ -450,6 +442,16 @@ def update_wrapper(wrapper,
     -------
     wrapper : function
         Updated wrapper function
+
+    Notes
+    -----
+    This can be used to concatenate the wrapper's docstring with the wrapped's
+    docstring and should help reduce the ammount of documentation to write: one
+    can use this decorator on child classes' functions when their
+    implementation is similar to the one of the parent class. Conversely, if a
+    function defined in a child class departs from its parent's implementation,
+    one can simply explain the differences in a 'Notes' section without
+    re-writing the whole docstring.
     """
     for attr in assigned:
         setattr(wrapper, attr, getattr(wrapped, attr))
