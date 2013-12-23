@@ -1,14 +1,18 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 __authors__ = 'Vincent Archambault-Bouffard, Ian Goodfellow'
 __copyright__ = "Copyright 2013, Universite de Montreal"
 
 from theano import tensor as T
 
-from pylearn2.costs.cost import Cost
-from pylearn2.costs.mlp.dropout import Dropout
-from pylearn2.space import CompositeSpace, NullSpace
+from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin, NullDataSpecsMixin
 from pylearn2.utils import safe_izip
 
-class Default(Cost):
+
+class Default(DefaultDataSpecsMixin, Cost):
     """
     The default Cost to use with an MLP.
     It simply calls the MLP's cost_from_X method.
@@ -17,17 +21,17 @@ class Default(Cost):
     supervised = True
 
     def expr(self, model, data, **kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         space, sources = self.get_data_specs(model)
         space.validate(data)
         return model.cost_from_X(data)
 
-    def get_data_specs(self, model):
-        space = CompositeSpace([model.get_input_space(), model.get_output_space()])
-        sources = (model.get_input_source(), model.get_target_source())
-        return (space, sources)
 
-
-class WeightDecay(Cost):
+class WeightDecay(NullDataSpecsMixin, Cost):
     """
     coeff * sum(sqr(weights))
 
@@ -37,6 +41,10 @@ class WeightDecay(Cost):
 
     def __init__(self, coeffs):
         """
+        .. todo::
+
+            WRITEME properly
+        
         coeffs: a list, one element per layer, specifying the coefficient
                 to multiply with the cost defined by the squared L2 norm of the weights
                 for each layer.
@@ -47,6 +55,11 @@ class WeightDecay(Cost):
         del self.self
 
     def expr(self, model, data, ** kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_data_specs(model)[0].validate(data)
 
         def wrapped_layer_cost(layer, coef):
@@ -78,11 +91,8 @@ class WeightDecay(Cost):
 
         return total_cost
 
-    def get_data_specs(self, model):
-        # This cost does not use any data
-        return (NullSpace(), '')
 
-class L1WeightDecay(Cost):
+class L1WeightDecay(NullDataSpecsMixin, Cost):
     """
     coeff * sum(abs(weights))
 
@@ -92,6 +102,10 @@ class L1WeightDecay(Cost):
 
     def __init__(self, coeffs):
         """
+        .. todo::
+
+            WRITEME properly
+        
         coeffs: a list, one element per layer, specifying the coefficient
                 to multiply with the cost defined by the L1 norm of the
                 weights(lasso) for each layer.
@@ -102,6 +116,11 @@ class L1WeightDecay(Cost):
         del self.self
 
     def expr(self, model, data, ** kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_data_specs(model)[0].validate(data)
         layer_costs = [ layer.get_l1_weight_decay(coeff)
             for layer, coeff in safe_izip(model.layers, self.coeffs) ]
@@ -122,7 +141,3 @@ class L1WeightDecay(Cost):
         total_cost.name = 'l1_penalty'
 
         return total_cost
-
-    def get_data_specs(self, model):
-        # This cost does not use any data
-        return (NullSpace(), '')

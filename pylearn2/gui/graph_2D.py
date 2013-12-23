@@ -1,8 +1,24 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import numpy as N
 from theano import config
 
+
 class Graph2D:
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, shape, xlim, ycenter):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.xmin = 0.
         self.xmax = 0.
         self.set_shape(shape)
@@ -12,12 +28,22 @@ class Graph2D:
         self.components = []
 
     def set_shape(self, shape):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.rows = shape[0]
         self.cols = shape[1]
 
 
 
     def set_xlim(self, xlim):
+        """
+        .. todo::
+
+            WRITEME
+        """
         #x coordinate of center of leftmost pixel
         self.xmin = xlim[0]
         #x coordinate of center of rightmost pixel
@@ -25,11 +51,21 @@ class Graph2D:
         self.delta_x = (self.xmax-self.xmin)/float(self.cols-1)
 
     def set_ycenter(self, ycenter):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.delta_y = self.delta_x
         self.ymin = ycenter - (self.rows / 2) * self.delta_y
         self.ymax = self.ymin + (self.rows -1) * self.delta_y
 
     def render(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         rval = N.zeros((self.rows, self.cols, 3))
 
         for component in self.components:
@@ -39,6 +75,11 @@ class Graph2D:
         return rval
 
     def get_coords_for_col(self, i):
+        """
+        .. todo::
+
+            WRITEME
+        """
         X = N.zeros((self.rows,2),dtype=config.floatX)
         X[:,0] = self.xmin + float(i) * self.delta_x
         X[:,1] = self.ymin + N.cast[config.floatX](N.asarray(range(self.rows-1,-1,-1))) * self.delta_y
@@ -47,7 +88,17 @@ class Graph2D:
         return X
 
 class HeatMap:
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, f, normalizer, render_mode = 'o'):
+        """
+        .. todo::
+
+            WRITEME
+        """
         """
             f:
                 A callable that takes a design matrix of 2D coordinates
@@ -65,6 +116,11 @@ class HeatMap:
         self.render_mode = render_mode
 
     def render(self, prev_layer, parent):
+        """
+        .. todo::
+
+            WRITEME
+        """
         my_img = prev_layer * 0.0
 
         for i in xrange(prev_layer.shape[1]):

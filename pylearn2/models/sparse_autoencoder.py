@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 __authors__ = "Li Yao"
 
 import theano
@@ -17,26 +22,48 @@ else:
     RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
 
 class Linear(object):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __call__(self, X_before_activation):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # X_before_activation is linear inputs of hidden units, dense
         return X_before_activation
 
 class Rectify(object):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __call__(self, X_before_activation):
         # X_before_activation is linear inputs of hidden units, dense
         return X_before_activation * (X_before_activation > 0)
 
 class SparseDenoisingAutoencoder(DenoisingAutoencoder):
     """
-    denoising autoencoder working with only sparse inputs and efficient reconstruction sampling
+    Denoising autoencoder working with only sparse inputs and efficient
+    reconstruction sampling
 
-    Based on:
-    Y. Dauphin, X. Glorot, Y. Bengio.
-    Large-Scale Learning of Embeddings with Reconstruction Sampling.
-    In Proceedings of the 28th International Conference on Machine Learning (ICML 2011).
+    References
+    ----------
+    Y. Dauphin, X. Glorot, Y. Bengio. Large-Scale Learning of Embeddings with
+    Reconstruction Sampling. In Proceedings of the 28th International
+    Conference on Machine Learning (ICML 2011).
     """
     def __init__(self, corruptor, nvis, nhid, act_enc, act_dec,
                  tied_weights=False, irange=1e-3, rng=9001):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         # sampling dot only supports tied weights
         assert tied_weights == True
@@ -54,12 +81,22 @@ class SparseDenoisingAutoencoder(DenoisingAutoencoder):
         self.input_space = VectorSpace(nvis, sparse=True)
 
     def get_params(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # this is needed because sgd complains when not w_prime is not used in grad
         # so delete w_prime from the params list
         params = super(SparseDenoisingAutoencoder, self).get_params()
         return params[0:3]
 
     def encode(self, inputs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if (isinstance(inputs, theano.sparse.basic.SparseVariable)):
             return self._hidden_activation(inputs)
         else:
@@ -73,19 +110,18 @@ class SparseDenoisingAutoencoder(DenoisingAutoencoder):
         Parameters
         ----------
         hiddens : tensor_like or list of tensor_likes
-        Theano symbolic (or list thereof) representing the input
-        minibatch(es) to be encoded. Assumed to be 2-tensors, with the
-        first dimension indexing training examples and the second indexing
-        data dimensions.
-
+            Theano symbolic (or list thereof) representing the input \
+            minibatch(es) to be encoded. Assumed to be 2-tensors, with the \
+            first dimension indexing training examples and the second \
+            indexing data dimensions.
         pattern: dense matrix, the same shape of the minibatch inputs
-        0/1 like matrix specifying how to reconstruct inputs.
+            0/1 like matrix specifying how to reconstruct inputs.
 
         Returns
         -------
         decoded : tensor_like or list of tensor_like
-        Theano symbolic (or list thereof) representing the corresponding
-        minibatch(es) after decoding.
+            Theano symbolic (or list thereof) representing the corresponding \
+            minibatch(es) after decoding.
         """
         if self.act_dec is None:
             act_dec = lambda x: x
@@ -113,6 +149,11 @@ class SparseDenoisingAutoencoder(DenoisingAutoencoder):
         return self.decode(self.encode(inputs), pattern)
 
     def reconstruct_without_dec_acti(self, inputs, pattern):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # return results before applying the decoding activation function
         inputs_dense = theano.sparse.dense_from_sparse(inputs)
         corrupted = self.corruptor(inputs_dense)
@@ -126,18 +167,18 @@ class SparseDenoisingAutoencoder(DenoisingAutoencoder):
 
     def _hidden_input(self, x):
         """
-        Given a single minibatch, computes the input to the
-        activation nonlinearity without applying it.
+        Given a single minibatch, computes the input to the activation
+        nonlinearity without applying it.
 
         Parameters
         ----------
         x : theano sparse variable
-        Theano symbolic representing the corrupted input minibatch.
+            Theano symbolic representing the corrupted input minibatch.
 
         Returns
         -------
         y : tensor_like
-        (Symbolic) input flowing into the hidden layer nonlinearity.
+            (Symbolic) input flowing into the hidden layer nonlinearity.
         """
 
         return self.hidbias + theano.sparse.dot(x, self.weights)
@@ -156,4 +197,3 @@ class SparseDenoisingAutoencoder(DenoisingAutoencoder):
                 'bias_vis_mean' : tensor.mean(vb),
                 'bias_vis_max': tensor.max(vb),
         }
-

@@ -1,9 +1,19 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import sys
 import numpy
 from pylearn2.utils.image import Image, ensure_Image
 
 
 def scale_to_unit_interval(ndar,eps=1e-8):
+    """
+    .. todo::
+
+        WRITEME
+    """
     ndar = ndar.copy()
     ndar -= ndar.min()
     ndar *= 1.0 / max(ndar.max(),eps)
@@ -17,27 +27,31 @@ def tile_raster_images(X, img_shape,
         min_dynamic_range=1e-4,
         ):
     """
-    Transform an array with one flattened image per row, into an array in which images are
-    reshaped and layed out like tiles on a floor.
+    Transform an array with one flattened image per row, into an array in which
+    images are reshaped and layed out like tiles on a floor.
 
-    This function is useful for visualizing datasets whose rows are images, and also columns of
-    matrices for transforming those rows (such as the first layer of a neural net).
+    This function is useful for visualizing datasets whose rows are images, and
+    also columns of matrices for transforming those rows (such as the first
+    layer of a neural net).
 
-    :type X: a 2-D ndarray or a tuple of 4 channels, elements of which can be 2-D ndarrays or None
-    :param X: a 2-D array in which every row is a flattened image.
-    :type img_shape: tuple; (height, width)
-    :param img_shape: the original shape of each image
-    :type tile_shape: tuple; (rows, cols)
-    :param tile_shape: the number of images to tile (rows, cols) (Defaults to a square-ish
-        shape with the right area for the number of images)
-    :type min_dynamic_range: positive float
-    :param min_dynamic_range: the dynamic range of each image is used in scaling to the unit
-        interval, but images with less dynamic range than this will be scaled as if this were
-        the dynamic range.
+    Parameters
+    ----------
+    X : numpy.ndarray or tuple of 4 channels or None
+        A 2-D array in which every row is a flattened image.
+    img_shape : tuple
+        The original shape of each image
+    tile_shape: tuple
+        The number of images to tile (rows, cols). Defaults to a square-ish \
+        shape with the right area for the number of images.
+    min_dynamic_range: float, positive
+        Dynamic range of each image is used in scaling to the unit interval, \
+        but images with less dynamic range than this will be scaled as if \
+        this were the dynamic range.
 
-    :returns: array suitable for viewing as an image.  (See:`PIL.Image.fromarray`.)
-    :rtype: a 2-d array with same dtype as X.
-
+    Returns
+    -------
+    out_array : 2D array with same dtype as X
+        Array suitable for viewing as an image (See:`PIL.Image.fromarray`).
     """
     # This is premature when tile_slices_to_image is not documented at all yet,
     # but ultimately true:
@@ -129,7 +143,17 @@ def tile_raster_images(X, img_shape,
 
 
 def most_square_shape(N):
-    """rectangle (height, width) with area N that is closest to sqaure
+    """
+    Return a rectangle (height, width) with area N that is closest to square.
+
+    Parameters
+    ----------
+    N : int
+        WRITEME
+
+    Returns
+    -------
+    WRITEME
     """
     for i in xrange(int(numpy.sqrt(N)),0, -1):
         if 0 == N % i:
@@ -137,9 +161,13 @@ def most_square_shape(N):
 
 
 def save_tiled_raster_images(tiled_img, filename):
-    """Save a a return value from `tile_raster_images` to `filename`.
+    """
+    Save a a return value from `tile_raster_images` to `filename`.
 
-    Returns the PIL image that was saved
+    Returns
+    -------
+    img : WRITEME
+        The PIL image that was saved
     """
     if tiled_img.ndim==2:
         ensure_Image()
@@ -155,6 +183,11 @@ def save_tiled_raster_images(tiled_img, filename):
 
 
 def tile_slices_to_image_uint8(X, tile_shape=None):
+    """
+    .. todo::
+
+        WRITEME
+    """
     if str(X.dtype) != 'uint8':
         raise TypeError(X)
     if tile_shape is None:
@@ -187,6 +220,11 @@ def tile_slices_to_image(X,
         tile_shape=None,
         scale_each=True,
         min_dynamic_range=1e-4):
+    """
+    .. todo::
+
+        WRITEME
+    """
     #always returns an RGB image
     def scale_0_255(x):
         xmin = x.min()

@@ -43,35 +43,33 @@ class Autoencoder(Block, Model):
         Parameters
         ----------
         nvis : int
-            Number of visible units (input dimensions) in this model.
-            A value of 0 indicates that this block will be left partially
-            initialized until later (e.g., when the dataset is loaded and
-            its dimensionality is known)
-
-            Note: There is currently a bug when nvis is set to 0. For now,
-            you should not set nvis to 0.
+            Number of visible units (input dimensions) in this model. \
+            A value of 0 indicates that this block will be left partially \
+            initialized until later (e.g., when the dataset is loaded and \
+            its dimensionality is known).  Note: There is currently a bug \
+            when nvis is set to 0. For now, you should not set nvis to 0.
         nhid : int
             Number of hidden units in this model.
         act_enc : callable or string
-            Activation function (elementwise nonlinearity) to use for the
-            encoder. Strings (e.g. 'tanh' or 'sigmoid') will be looked up as
-            functions in `theano.tensor.nnet` and `theano.tensor`. Use `None`
+            Activation function (elementwise nonlinearity) to use for the \
+            encoder. Strings (e.g. 'tanh' or 'sigmoid') will be looked up as \
+            functions in `theano.tensor.nnet` and `theano.tensor`. Use `None` \
             for linear units.
         act_dec : callable or string
-            Activation function (elementwise nonlinearity) to use for the
-            decoder. Strings (e.g. 'tanh' or 'sigmoid') will be looked up as
-            functions in `theano.tensor.nnet` and `theano.tensor`. Use `None`
+            Activation function (elementwise nonlinearity) to use for the \
+            decoder. Strings (e.g. 'tanh' or 'sigmoid') will be looked up as \
+            functions in `theano.tensor.nnet` and `theano.tensor`. Use `None` \
             for linear units.
         tied_weights : bool, optional
-            If `False` (default), a separate set of weights will be allocated
-            (and learned) for the encoder and the decoder function. If `True`,
-            the decoder weight matrix will be constrained to be equal to the
-            transpose of the encoder weight matrix.
+            If `False` (default), a separate set of weights will be allocated \
+            (and learned) for the encoder and the decoder function. If \
+            `True`, the decoder weight matrix will be constrained to be equal \
+            to the transpose of the encoder weight matrix.
         irange : float, optional
-            Width of the initial range around 0 from which to sample initial
+            Width of the initial range around 0 from which to sample initial \
             values for the weights.
         rng : RandomState object or seed
-            NumPy random number generator object (or seed to create one) used
+            NumPy random number generator object (or seed to create one) used \
             to initialize the model parameters.
         """
         super(Autoencoder, self).__init__()
@@ -105,6 +103,11 @@ class Autoencoder(Block, Model):
             self._initialize_w_prime(nvis)
 
         def _resolve_callable(conf, conf_attr):
+            """
+            .. todo::
+
+                WRITEME
+            """
             if conf[conf_attr] is None or conf[conf_attr] == "linear":
                 return None
             # If it's a callable, use it directly.
@@ -132,6 +135,11 @@ class Autoencoder(Block, Model):
             self._params.append(self.w_prime)
 
     def _initialize_weights(self, nvis, rng=None, irange=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if rng is None:
             rng = self.rng
         if irange is None:
@@ -144,6 +152,11 @@ class Autoencoder(Block, Model):
         )
 
     def _initialize_hidbias(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.hidbias = sharedX(
             numpy.zeros(self.nhid),
             name='hb',
@@ -151,6 +164,11 @@ class Autoencoder(Block, Model):
         )
 
     def _initialize_visbias(self, nvis):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.visbias = sharedX(
             numpy.zeros(nvis),
             name='vb',
@@ -158,6 +176,11 @@ class Autoencoder(Block, Model):
         )
 
     def _initialize_w_prime(self, nvis, rng=None, irange=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         assert not self.tied_weights, (
             "Can't initialize w_prime in tied weights model; "
             "this method shouldn't have been called"
@@ -182,8 +205,8 @@ class Autoencoder(Block, Model):
         nvis : int
             Number of visible units for the model.
         rng : RandomState object or seed, optional
-            NumPy random number generator object (or seed to create one) used
-            to initialize the model parameters. If not provided, the stored
+            NumPy random number generator object (or seed to create one) used \
+            to initialize the model parameters. If not provided, the stored \
             rng object (from the time of construction) will be used.
         """
         if self.weights is not None:
@@ -240,6 +263,14 @@ class Autoencoder(Block, Model):
         """
         Wrapper to Autoencoder encode function. Called when autoencoder
         is accessed by mlp.PretrainedLayer
+
+        Parameters
+        ----------
+        inputs : WRITEME
+
+        Returns
+        -------
+        WRITEME
         """
         return self.encode(inputs)
 
@@ -250,15 +281,15 @@ class Autoencoder(Block, Model):
         Parameters
         ----------
         inputs : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the input
-            minibatch(es) to be encoded. Assumed to be 2-tensors, with the
-            first dimension indexing training examples and the second indexing
-            data dimensions.
+            Theano symbolic (or list thereof) representing the input \
+            minibatch(es) to be encoded. Assumed to be 2-tensors, with the \
+            first dimension indexing training examples and the second \
+            indexing data dimensions.
 
         Returns
         -------
         encoded : tensor_like or list of tensor_like
-            Theano symbolic (or list thereof) representing the corresponding
+            Theano symbolic (or list thereof) representing the corresponding \
             minibatch(es) after encoding.
         """
         if isinstance(inputs, tensor.Variable):
@@ -273,15 +304,15 @@ class Autoencoder(Block, Model):
         Parameters
         ----------
         hiddens : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the input
-            minibatch(es) to be encoded. Assumed to be 2-tensors, with the
-            first dimension indexing training examples and the second indexing
-            data dimensions.
+            Theano symbolic (or list thereof) representing the input \
+            minibatch(es) to be encoded. Assumed to be 2-tensors, with the \
+            first dimension indexing training examples and the second \
+            indexing data dimensions.
 
         Returns
         -------
         decoded : tensor_like or list of tensor_like
-            Theano symbolic (or list thereof) representing the corresponding
+            Theano symbolic (or list thereof) representing the corresponding \
             minibatch(es) after decoding.
         """
         if self.act_dec is None:
@@ -300,15 +331,15 @@ class Autoencoder(Block, Model):
         Parameters
         ----------
         inputs : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the input
-            minibatch(es) to be encoded and reconstructed. Assumed to be
-            2-tensors, with the first dimension indexing training examples and
-            the second indexing data dimensions.
+            Theano symbolic (or list thereof) representing the input \
+            minibatch(es) to be encoded and reconstructed. Assumed to be \
+            2-tensors, with the first dimension indexing training examples \
+            and the second indexing data dimensions.
 
         Returns
         -------
         reconstructed : tensor_like or list of tensor_like
-            Theano symbolic (or list thereof) representing the corresponding
+            Theano symbolic (or list thereof) representing the corresponding \
             reconstructed minibatch(es) after encoding/decoding.
         """
         return self.decode(self.encode(inputs))
@@ -324,10 +355,20 @@ class Autoencoder(Block, Model):
         return self.encode(inputs)
 
     def get_weights(self, borrow=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         return self.weights.get_value(borrow = borrow)
 
     def get_weights_format(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         return ['v', 'h']
 
@@ -350,8 +391,18 @@ class DenoisingAutoencoder(Autoencoder):
         Parameters
         ----------
         corruptor : object
-            Instance of a corruptor object to use for corrupting the
+            Instance of a corruptor object to use for corrupting the \
             input.
+        nvis : int
+            WRITEME
+        nhid : int
+            WRITEME
+        act_enc : WRITEME
+        act_dec : WRITEME
+        tied_weights : bool
+            WRITEME
+        irange : WRITEME
+        rng : WRITEME
 
         Notes
         -----
@@ -378,15 +429,15 @@ class DenoisingAutoencoder(Autoencoder):
         Parameters
         ----------
         inputs : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the input
-            minibatch(es) to be corrupted and reconstructed. Assumed to be
-            2-tensors, with the first dimension indexing training examples and
-            the second indexing data dimensions.
+            Theano symbolic (or list thereof) representing the input \
+            minibatch(es) to be corrupted and reconstructed. Assumed to be \
+            2-tensors, with the first dimension indexing training examples \
+            and the second indexing data dimensions.
 
         Returns
         -------
         reconstructed : tensor_like or list of tensor_like
-            Theano symbolic (or list thereof) representing the corresponding
+            Theano symbolic (or list thereof) representing the corresponding \
             reconstructed minibatch(es) after corruption and encoding/decoding.
         """
         corrupted = self.corruptor(inputs)
@@ -400,6 +451,11 @@ class ContractiveAutoencoder(Autoencoder):
     """
     @functools.wraps(Autoencoder.__init__)
     def __init__(self, *args, **kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         super(ContractiveAutoencoder, self).__init__(*args, **kwargs)
         dummyinput = tensor.matrix()
         if not is_pure_elemwise(self.act_enc(dummyinput), [dummyinput]):
@@ -413,18 +469,19 @@ class ContractiveAutoencoder(Autoencoder):
         Parameters
         ----------
         inputs : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the input
-            minibatch(es) on which the penalty is calculated. Assumed to be
-            2-tensors, with the first dimension indexing training examples and
-            the second indexing data dimensions.
+            Theano symbolic (or list thereof) representing the input \
+            minibatch(es) on which the penalty is calculated. Assumed to be \
+            2-tensors, with the first dimension indexing training examples \
+            and the second indexing data dimensions.
 
         Returns
         -------
         act_grad : tensor_like
-            2-dimensional tensor representing, dh/da for every pre/postsynaptic pair,
-            which we can easily do by taking the gradient of the sum of the
-            hidden units activations w.r.t the presynaptic activity,
-            since the gradient of hiddens.sum() with respect to hiddens is a matrix of ones!
+            2-dimensional tensor representing, dh/da for every \
+            pre/postsynaptic pair, which we can easily do by taking the \
+            gradient of the sum of the hidden units activations w.r.t the \
+            presynaptic activity, since the gradient of hiddens.sum() with \
+            respect to hiddens is a matrix of ones!
 
         Notes
         -----
@@ -458,19 +515,18 @@ class ContractiveAutoencoder(Autoencoder):
         Parameters
         ----------
         inputs : tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the input
-            minibatch(es) on which the penalty is calculated. Assumed to be
-            2-tensors, with the first dimension indexing training examples and
-            the second indexing data dimensions.
+            Theano symbolic (or list thereof) representing the input \
+            minibatch(es) on which the penalty is calculated. Assumed to be \
+            2-tensors, with the first dimension indexing training examples \
+            and the second indexing data dimensions.
 
         Returns
         -------
         jacobian : tensor_like
-            3-dimensional tensor representing, for each mini-batch
-            example, the Jacobian matrix of the encoder
-            transformation.
-            You can then apply the penalty you want on it,
-            or use the contraction_penalty method to have a default one.
+            3-dimensional tensor representing, for each mini-batch example, \
+            the Jacobian matrix of the encoder transformation. You can then \
+            apply the penalty you want on it, or use the contraction_penalty \
+            method to have a default one.
         """
         # As long as act_enc is an elementwise operator, the Jacobian
         # of a act_enc(Wx + b) hidden layer has a Jacobian of the
@@ -486,19 +542,17 @@ class ContractiveAutoencoder(Autoencoder):
         Parameters
         ----------
         data : tuple containing one tensor_like or list of tensor_likes
-            Theano symbolic (or list thereof) representing the input
-            minibatch(es) on which the penalty is calculated. Assumed to be
-            2-tensors, with the first dimension indexing training examples and
-            the second indexing data dimensions.
+            Theano symbolic (or list thereof) representing the input \
+            minibatch(es) on which the penalty is calculated. Assumed to be \
+            2-tensors, with the first dimension indexing training examples \
+            and the second indexing data dimensions.
 
         Returns
         -------
         jacobian : tensor_like
-            1-dimensional tensor representing, for each mini-batch
-            example, the penalty of the encoder transformation.
-
-            Add this to the output of a Cost object, such as
-            SquaredError, to penalize it.
+            1-dimensional tensor representing, for each mini-batch \
+            example, the penalty of the encoder transformation. Add this to \
+            the output of a Cost object, such as SquaredError, to penalize it.
         """
         X = data
         act_grad = self._activation_grad(X)
@@ -507,32 +561,42 @@ class ContractiveAutoencoder(Autoencoder):
         return tensor.cast(contract_penalty, X .dtype)
 
     def contraction_penalty_data_specs(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return (self.get_input_space(), self.get_input_source())
 
 
 class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
-    """Higher order contractive autoencoder.
-    Adds higher orders regularization
+    """
+    Higher order contractive autoencoder. Adds higher orders regularization
     """
     def __init__(self, corruptor, num_corruptions, nvis, nhid, act_enc,
                     act_dec, tied_weights=False, irange=1e-3, rng=9001):
         """
-        Allocate a higher order contractive autoencoder object.
-
         Parameters
         ----------
         corruptor : object
-        Instance of a corruptor object to use for corrupting the
-        input.
-
+            Instance of a corruptor object to use for corrupting the input.
         num_corruptions : integer
-        number of corrupted inputs to use
+            number of corrupted inputs to use
+        nvis : int
+            WRITEME
+        nhid : int
+            WRITEME
+        act_enc : WRITEME
+        act_dec : WRITEME
+        tied_weights : WRITEME
+        irange : WRITEME
+        rng : WRITEME
 
         Notes
         -----
         The remaining parameters are identical to those of the constructor
-        for the Autoencoder class; see the `ContractiveAutoEncoder.__init__` docstring
-        for details.
+        for the Autoencoder class; see the `ContractiveAutoEncoder.__init__`
+        docstring for details.
         """
         super(HigherOrderContractiveAutoencoder, self).__init__(
             nvis,
@@ -550,6 +614,14 @@ class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
     def higher_order_penalty(self, data):
         """
         Stochastic approximation of Hessian Frobenius norm
+
+        Parameters
+        ----------
+        data : WRITEME
+
+        Returns
+        -------
+        WRITEME
         """
         X = data
 
@@ -563,11 +635,26 @@ class HigherOrderContractiveAutoencoder(ContractiveAutoencoder):
         return (hessian ** 2).mean()
 
     def higher_order_penalty_data_specs(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return (self.get_input_space(), self.get_input_source())
 
 
 class UntiedAutoencoder(Autoencoder):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, base):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if not base.tied_weights:
             raise ValueError("%s is not a tied-weights autoencoder" %
                              str(base))
@@ -589,14 +676,16 @@ class DeepComposedAutoencoder(Autoencoder):
     """
     def __init__(self, autoencoders):
         """
-        Construct a deep autoencoder from several single layer
-        autoencoders.
+        Construct a deep autoencoder from several single layer autoencoders.
 
         Parameters
         ----------
         autoencoders : list
             A list of autoencoder objects.
         """
+        self.fn = None
+        self.cpu_only = False
+
         assert all([autoencoders[i].get_output_space().dim == autoencoders[i+1].get_input_space().dim for i in range(len(autoencoders)-1)])
         self.autoencoders = list(autoencoders)
         self.input_space = autoencoders[0].get_input_space()
@@ -604,6 +693,11 @@ class DeepComposedAutoencoder(Autoencoder):
 
     @functools.wraps(Autoencoder.encode)
     def encode(self, inputs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         current = inputs
         for encoder in self.autoencoders:
             current = encoder.encode(current)
@@ -611,6 +705,11 @@ class DeepComposedAutoencoder(Autoencoder):
 
     @functools.wraps(Autoencoder.decode)
     def decode(self, hiddens):
+        """
+        .. todo::
+
+            WRITEME
+        """
         current = hiddens
         for decoder in self.autoencoders[::-1]:
             current = decoder.decode(current)
@@ -618,14 +717,33 @@ class DeepComposedAutoencoder(Autoencoder):
 
     @functools.wraps(Model.get_params)
     def get_params(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return reduce(operator.add,
                       [ae.get_params() for ae in self.autoencoders])
+
+    def censor_updates(self, updates):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        for autoencoder in self.autoencoders:
+            autoencoder.censor_updates(updates)
 
 
 def build_stacked_ae(nvis, nhids, act_enc, act_dec,
                      tied_weights=False, irange=1e-3, rng=None,
                      corruptor=None, contracting=False):
-    """Allocate a stack of autoencoders."""
+    """
+    .. todo::
+
+        WRITEME properly
+
+    Allocate a stack of autoencoders."""
     if not hasattr(rng, 'randn'):
         rng = numpy.random.RandomState(rng)
     layers = []

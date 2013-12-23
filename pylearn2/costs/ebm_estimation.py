@@ -1,26 +1,40 @@
 """ Training costs for unsupervised learning of energy-based models """
 import theano.tensor as T
 from theano import scan
-from pylearn2.costs.cost import Cost
+from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import py_integer_types
 
 
-class NCE(Cost):
-    """ Noise-Contrastive Estimation
+class NCE(DefaultDataSpecsMixin, Cost):
+    """
+    Noise-Contrastive Estimation
 
-        See "Noise-Contrastive Estimation: A new estimation principle for unnormalized models "
-        by Gutmann and Hyvarinen
-
+    See "Noise-Contrastive Estimation: A new estimation principle for unnormalized models "
+    by Gutmann and Hyvarinen
     """
     def h(self, X, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return - T.nnet.sigmoid(self.G(X, model))
 
-
     def G(self, X, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return model.log_prob(X) - self.noise.log_prob(X)
 
     def expr(self, model, data, noisy_data=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # noisy_data is not considered part of the data.
         #If you don't pass it in, it will be generated internally
         #Passing it in lets you keep it constant while doing
@@ -62,6 +76,10 @@ class NCE(Cost):
 
     def __init__(self, noise, noise_per_clean):
         """
+        .. todo::
+
+            WRITEME properly
+        
         params
         -------
             noise: a Distribution from which noisy examples are generated
@@ -73,30 +91,36 @@ class NCE(Cost):
         assert isinstance(noise_per_clean, py_integer_types)
         self.noise_per_clean = noise_per_clean
 
-    def get_data_specs(self, model):
-        space = model.get_input_space()
-        source = model.get_input_source()
-        return (space, source)
 
-
-class SM(Cost):
-    """ (Regularized) Score Matching
-        
-        See:
-        - "Regularized estimation of image statistics by Score Matching",
-          D. Kingma, Y. LeCun, NIPS 2010
-        - eqn. 4 of "On Autoencoders and Score Matching for Energy Based Models"
-          Swersky et al 2011
-        
-        Uses the mean over visible units rather than sum over visible units
-        so that hyperparameters won't depend as much on the # of visible units
+class SM(DefaultDataSpecsMixin, Cost):
     """
-    
+    (Regularized) Score Matching
+
+    See:
+    - "Regularized estimation of image statistics by Score Matching",
+      D. Kingma, Y. LeCun, NIPS 2010
+    - eqn. 4 of "On Autoencoders and Score Matching for Energy Based Models"
+      Swersky et al 2011
+
+    Uses the mean over visible units rather than sum over visible units
+    so that hyperparameters won't depend as much on the # of visible units
+    """
+
     def __init__(self, lambd = 0):
+        """
+        .. todo::
+
+            WRITEME
+        """
         assert lambd >= 0
         self.lambd = lambd
 
     def expr(self, model, data):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_data_specs(model)[0].validate(data)
         X = data
         X_name = 'X' if X.name is None else X.name
@@ -115,24 +139,32 @@ class SM(Cost):
 
         return rval
 
-    def get_data_specs(self, model):
-        return (model.get_input_space(), model.get_input_source())
 
+class SMD(DefaultDataSpecsMixin, Cost):
+    """
+    Denoising Score Matching
+    See eqn. 4.3 of "A Connection Between Score Matching and Denoising Autoencoders"
+    by Pascal Vincent for details
 
-class SMD(Cost):
-    """ Denoising Score Matching
-        See eqn. 4.3 of "A Connection Between Score Matching and Denoising Autoencoders"
-        by Pascal Vincent for details
-
-        Note that instead of using half the squared norm we use the mean squared error,
-        so that hyperparameters don't depend as much on the # of visible units
+    Note that instead of using half the squared norm we use the mean squared error,
+    so that hyperparameters don't depend as much on the # of visible units
     """
 
     def __init__(self, corruptor):
+        """
+        .. todo::
+
+            WRITEME
+        """
         super(SMD, self).__init__()
         self.corruptor = corruptor
 
     def expr(self, model, data):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_data_specs(model)[0].validate(data)
         X = data
         X_name = 'X' if X.name is None else X.name
@@ -164,6 +196,3 @@ class SMD(Cost):
         smd.name = 'SMD('+X_name+')'
 
         return smd
-
-    def get_data_specs(self, model):
-        return (model.get_input_space(), model.get_input_source())

@@ -1,5 +1,7 @@
-# An implementation of the model described in
-# "Differentiable Sparse Coding" by Bradley and Bagnell
+"""
+An implementation of the model described in "Differentiable Sparse Coding" by
+Bradley and Bagnell
+"""
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -14,10 +16,21 @@ import theano
 from theano import function, shared, config
 floatX = config.floatX
 
+
 class DifferentiableSparseCoding(object):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, nvis, nhid,
             init_lambda,
             init_p, init_alpha, learning_rate):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.nvis = int(nvis)
         self.nhid = int(nhid)
         self.init_lambda = float(init_lambda)
@@ -40,17 +53,37 @@ class DifferentiableSparseCoding(object):
         self.redo_everything()
 
     def get_output_dim(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.nhid
 
     def get_output_channels(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.nhid
 
     def normalize_W(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         W = self.W.get_value(borrow=True)
         norms = N.sqrt(N.square(W).sum(axis=0))
         self.W.set_value(W/norms, borrow=True)
 
     def redo_everything(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.W = shared(N.cast[floatX](self.rng.randn(self.nvis,self.nhid)), name='W')
 
         self.pred_W = shared(self.W.get_value(borrow=False),name='pred_W')
@@ -75,50 +108,83 @@ class DifferentiableSparseCoding(object):
         self.batches_seen = 0
 
         self.redo_theano()
-    #
 
     def recons_error(self, v, h):
+        """
+        .. todo::
+
+            WRITEME
+        """
         recons = T.dot(self.W,h)
         diffs = recons - v
         rval = T.dot(diffs,diffs) / N.cast[floatX](self.nvis)
         return rval
-    #
 
     def recons_error_batch(self, V, H):
+        """
+        .. todo::
+
+            WRITEME
+        """
         recons = T.dot(H,self.W.T)
         diffs = recons - V
         rval = T.mean(T.sqr(diffs))
         return rval
-    #
 
     def sparsity_penalty(self, v, h):
+        """
+        .. todo::
+
+            WRITEME
+        """
         sparsity_measure = h * T.log(h) - h * T.log(self.p) - h + self.p
         rval = T.dot(self.lamda, sparsity_measure) / N.cast[floatX](self.nhid)
         return rval
-    #
 
     def sparsity_penalty_batch(self, V, H):
+        """
+        .. todo::
+
+            WRITEME
+        """
         sparsity_measure = H * T.log(H) - H * T.log(self.p) - H + self.p
         sparsity_measure_exp = T.mean(sparsity_measure, axis=0)
         rval = T.dot(self.lamda, sparsity_measure_exp) / N.cast[floatX](self.nhid)
         return rval
-    #
 
 
     def coding_obj(self, v, h):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.recons_error(v,h) + self.sparsity_penalty(v,h)
-    #
 
     def coding_obj_batch(self, V, H):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.recons_error_batch(V,H) + self.sparsity_penalty_batch(V,H)
-    #
 
     def predict(self, V):
+        """
+        .. todo::
+
+            WRITEME
+        """
         rval =  T.nnet.sigmoid(T.dot(V,self.pred_W)+self.pred_b)*self.pred_g
         assert rval.type.dtype == V.type.dtype
         return rval
 
     def redo_theano(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         self.h = shared(N.zeros(self.nhid, dtype=floatX), name='h')
         self.v = shared(N.zeros(self.nvis, dtype=floatX), name='v')
@@ -184,9 +250,19 @@ class DifferentiableSparseCoding(object):
         self.train_predictor = function([V,H,alpha] , updates = predictor_updates )
 
     def weights_format(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return ['v','h']
 
     def error_func(self, x):
+        """
+        .. todo::
+
+            WRITEME
+        """
         batch_size = x.shape[0]
 
         H = N.zeros((batch_size,self.nhid),dtype=floatX)
@@ -195,11 +271,15 @@ class DifferentiableSparseCoding(object):
             assert self.alpha > 9e-8
             H[i,:] = self.optimize_h(x[i,:])
             assert self.alpha > 9e-8
-        #
 
         return self.code_learning_obj(x,H)
 
     def record_monitoring_error(self, dataset, batch_size, batches):
+        """
+        .. todo::
+
+            WRITEME
+        """
         print 'running on monitoring set'
         assert self.error_record_mode == self.ERROR_RECORD_MODE_MONITORING
 
@@ -217,8 +297,6 @@ class DifferentiableSparseCoding(object):
             errors.append( error )
             if self.instrumented:
                 self.update_instruments(x)
-            #
-        #
 
 
         self.error_record.append( (self.examples_seen, self.batches_seen, N.asarray(errors).mean() ) )
@@ -229,14 +307,22 @@ class DifferentiableSparseCoding(object):
             self.make_instrument_report()
             self.instrument_record.end_report()
             self.clear_instruments()
-        #
         print 'monitoring set done'
-    #
 
     def infer_h(self, v):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.optimize_h(v)
 
     def optimize_h(self, v):
+        """
+        .. todo::
+
+            WRITEME
+        """
         assert self.alpha > 9e-8
 
         self.init_h_v(v)
@@ -274,7 +360,6 @@ class DifferentiableSparseCoding(object):
             elif self.failure_rate < .3:
                 self.alpha *= 1.1
                 #print '**********************grew alpha to ',self.alpha
-            #
 
             assert self.alpha > 9e-8
 
@@ -285,24 +370,31 @@ class DifferentiableSparseCoding(object):
                     self.accept_h()
                     #print 'failing final obj ',new_obj
                     return self.get_h()
-                #
 
                 new_obj = self.try_step(cur_alpha, grad)
 
                 assert not N.isnan(new_obj)
-            #
 
             self.accept_h()
-        #
 
         #print 'final obj ',new_obj
         return self.get_h()
 
     def train_batch(self, dataset, batch_size):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.learn_mini_batch(dataset.get_batch_design(batch_size))
         return True
 
     def learn_mini_batch(self, x):
+        """
+        .. todo::
+
+            WRITEME
+        """
         assert self.alpha > 9e-8
 
         batch_size = x.shape[0]
@@ -313,7 +405,6 @@ class DifferentiableSparseCoding(object):
             assert self.alpha > 9e-8
             H[i,:] = self.optimize_h(x[i,:])
             assert self.alpha > 9e-8
-        #
 
         self.code_learning_step(x,H,self.learning_rate)
         self.normalize_W()
@@ -322,5 +413,3 @@ class DifferentiableSparseCoding(object):
 
         self.examples_seen += x.shape[0]
         self.batches_seen += 1
-    #
-#

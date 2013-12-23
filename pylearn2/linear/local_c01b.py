@@ -40,6 +40,11 @@ class Local(LinearTransform, LocalDot):
             output_axes = ('c', 0, 1, 'b'),
          kernel_stride=(1, 1), pad=0,
          message = '', partial_sum=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         self.input_groups = input_groups
 
@@ -55,6 +60,11 @@ class Local(LinearTransform, LocalDot):
 
 
     def lmul(self, x):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         reshaped = x.reshape(( self.input_groups, x.shape[0] / self.input_groups, x.shape[1], x.shape[2], x.shape[3]))
 
@@ -63,6 +73,11 @@ class Local(LinearTransform, LocalDot):
         return out.reshape((out.shape[0] * out.shape[1], out.shape[2], out.shape[3], out.shape[4]))
 
     def get_params(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return [self._filters]
 
 
@@ -73,7 +88,12 @@ def make_random_local(irange, input_channels, input_axes, input_groups,
         kernel_shape,
         kernel_stride = (1,1), pad=0, message = "", rng = None,
         partial_sum = None):
-    """ Creates a Local with random weights.
+    """
+    .. todo::
+
+        WRITEME properly
+
+    Creates a Local with random weights.
     """
 
     if rng is None:
@@ -107,6 +127,11 @@ def make_random_local(irange, input_channels, input_axes, input_groups,
 def make_sparse_random_local(num_nonzero, input_space, output_space,
         kernel_shape, batch_size, \
         kernel_stride = (1,1), border_mode = 'valid', message = "", rng=None):
+    """
+    .. todo::
+
+        WRITEME
+    """
     raise NotImplementedError("Not yet modified after copy-paste from "
             "pylearn2.linear.conv2d_c01b")
     """ Creates a Conv2D with random kernels, where the randomly initialized

@@ -22,6 +22,11 @@ false = TT.constant(numpy.asarray(0, dtype='int8'))
 
 
 def lazy_or(name='none', *args):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def apply_me(args):
         if len(args) == 1:
             return args[0]
@@ -33,6 +38,11 @@ def lazy_or(name='none', *args):
 
 
 def lazy_and(name='node', *args):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def apply_me(args):
         if len(args) == 1:
             return args[0]
@@ -44,13 +54,28 @@ def lazy_and(name='node', *args):
 
 
 def my_not(arg):
+    """
+    .. todo::
+
+        WRITEME
+    """
     return TT.eq(arg, zero)
 
 def constant(value):
+    """
+    .. todo::
+
+        WRITEME
+    """
     return TT.constant(numpy.asarray(value, dtype=theano.config.floatX))
 
 def scalar_armijo_search(phi, phi0, derphi0, c1=constant(1e-4),
                          n_iters=10, profile=0):
+    """
+    .. todo::
+
+        WRITEME
+    """
     alpha0 = one
     phi_a0 = phi(alpha0)
     alpha1 = -(derphi0) * alpha0 ** 2 / 2.0 /\
@@ -118,7 +143,8 @@ def scalar_search_wolfe2(phi,
                          c1=1e-4,
                          c2=0.9,
                         profile=False):
-    """Find alpha that satisfies strong Wolfe conditions.
+    """
+    Find alpha that satisfies strong Wolfe conditions.
 
     alpha > 0 is assumed to be a descent direction.
 
@@ -126,7 +152,6 @@ def scalar_search_wolfe2(phi,
     ----------
         phi : callable f(x)
             Objective scalar function.
-
         derphi : callable f'(x)
             Objective function derivative (can be None)
         phi0 : float, optional
@@ -294,6 +319,19 @@ def _cubicmin(a, fa, fpa, b, fb, c, fc):
 
     If no minimizer can be found return None
 
+    Parameters
+    ----------
+    a : WRITEME
+    fa : WRITEME
+    fpa : WRITEME
+    b : WRITEME
+    fb : WRITEME
+    c : WRITEME
+    fc : WRITEME
+
+    Returns
+    -------
+    WRITEME
     """
     # f(x) = A *(x-a)^3 + B*(x-a)^2 + C*(x-a) + D
     a.name = 'a'
@@ -346,8 +384,19 @@ def _cubicmin(a, fa, fpa, b, fb, c, fc):
 def _quadmin(a, fa, fpa, b, fb):
     """
     Finds the minimizer for a quadratic polynomial that goes through
-    the points (a,fa), (b,fb) with derivative at a of fpa,
+    the points (a,fa), (b,fb) with derivative at a of fpa.
+    
+    Parameters
+    ----------
+    a : WRITEME
+    fa : WRITEME
+    fpa : WRITEME
+    b : WRITEME
+    fb : WRITEME
 
+    Returns
+    -------
+    WRITEME
     """
     # f(x) = B*(x-a)^2 + C*(x-a) + D
     D = fa
@@ -371,21 +420,36 @@ def _zoom(a_lo, a_hi, phi_lo, phi_hi, derphi_lo,
           n_iters=10,
           profile=False):
     """
-    TODO: re-write me
+    WRITEME
 
     Part of the optimization algorithm in `scalar_search_wolfe2`.
-    a_lo : scalar (step size)
-    a_hi : scalar (step size)
-    phi_lo : scalar (value of f at a_lo)
-    phi_hi : scalar ( value of f at a_hi)
-    derphi_lo : scalar ( value of derivative at a_lo)
-    phi : callable -> generates computational graph
-    derphi: callable -> generates computational graph
-    phi0 : scalar ( value of f at 0)
-    derphi0 : scalar (value of the derivative at 0)
-    c1 : scalar  (wolfe parameter)
-    c2 : scalar  (wolfe parameter)
-    profile: if you want printouts of profiling information
+
+    Parameters
+    ----------
+    a_lo : float
+        Step size
+    a_hi : float
+        Step size
+    phi_lo : float
+        Value of f at a_lo
+    phi_hi : float
+        Value of f at a_hi
+    derphi_lo : float
+        Value of derivative at a_lo
+    phi : callable
+        Generates computational graph
+    derphi : callable
+        Generates computational graph
+    phi0 : float
+        Value of f at 0
+    derphi0 : float
+        Value of the derivative at 0
+    c1 : float
+        Wolfe parameter
+    c2 : float
+        Wolfe parameter
+    profile : bool
+        True if you want printouts of profiling information
     """
     # Function reprensenting the computations of one step of the while loop
     def while_zoom(phi_rec, a_rec, a_lo, a_hi, phi_hi,

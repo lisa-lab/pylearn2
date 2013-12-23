@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import numpy as np
 plt = None
 axes = None
@@ -5,9 +10,9 @@ import warnings
 try:
     import matplotlib.pyplot as plt
     import matplotlib.axes
-except (RuntimeError, ImportError), e:
+except (RuntimeError, ImportError), matplotlib_exception:
     warnings.warn("Unable to import matplotlib. Some features unavailable. "
-            "Original exception: " + str(e))
+            "Original exception: " + str(matplotlib_exception))
 import os
 
 try:
@@ -28,7 +33,8 @@ def ensure_Image():
     """
     global Image
     if Image is None:
-        raise RuntimeError("You are trying to use PIL-dependent functionality but don't have PIL installed.")
+        raise RuntimeError("You are trying to use PIL-dependent functionality"
+                           " but don't have PIL installed.")
 
 
 def imview(*args, **kwargs):
@@ -55,8 +61,10 @@ def imview(*args, **kwargs):
         f = plt.figure()
     else:
         f = kwargs['figure']
-    new_ax = matplotlib.axes.Axes(f, [0, 0, 1, 1],
-                                  xticks=[], yticks=[],
+    new_ax = matplotlib.axes.Axes(f,
+                                  [0, 0, 1, 1],
+                                  xticks=[],
+                                  yticks=[],
                                   frame_on=False)
     f.delaxes(f.gca())
     f.add_axes(new_ax)
@@ -96,14 +104,15 @@ def show(image):
     Parameters
     ----------
     image : PIL Image object or ndarray
-        If ndarray, integer formats are assumed to use 0-255
+        If ndarray, integer formats are assumed to use 0-255 \
         and float formats are assumed to use 0-1
     """
     if hasattr(image, '__array__'):
         #do some shape checking because PIL just raises a tuple indexing error
         #that doesn't make it very clear what the problem is
         if len(image.shape) < 2 or len(image.shape) > 3:
-            raise ValueError('image must have either 2 or 3 dimensions but its shape is '+str(image.shape))
+            raise ValueError('image must have either 2 or 3 dimensions but its'
+                             ' shape is ' + str(image.shape))
 
         if image.dtype == 'int8':
             image = np.cast['uint8'](image)
@@ -147,11 +156,18 @@ def show(image):
     image.save(name)
     viewer_command = string.preprocess('${PYLEARN2_VIEWER_COMMAND}')
     if os.name == 'nt':
-        subprocess.Popen(viewer_command + ' ' + name +' && del ' + name, shell = True)
+        subprocess.Popen(viewer_command + ' ' + name +' && del ' + name,
+                         shell=True)
     else:
-        subprocess.Popen(viewer_command + ' ' + name +' ; rm ' + name, shell = True)
+        subprocess.Popen(viewer_command + ' ' + name +' ; rm ' + name,
+                         shell=True)
 
 def pil_from_ndarray(ndarray):
+    """
+    .. todo::
+
+        WRITEME
+    """
     try:
         if ndarray.dtype == 'float32' or ndarray.dtype == 'float64':
             assert ndarray.min() >= 0.0
@@ -166,17 +182,21 @@ def pil_from_ndarray(ndarray):
         rval = Image.fromarray(ndarray)
         return rval
     except Exception, e:
-        raise
         print 'original exception: '
         print e
         print 'ndarray.dtype: ', ndarray.dtype
         print 'ndarray.shape: ', ndarray.shape
+        raise
 
     assert False
 
 
 def ndarray_from_pil(pil, dtype='uint8'):
+    """
+    .. todo::
 
+        WRITEME
+    """
     rval = np.asarray(pil)
 
     if dtype != rval.dtype:
@@ -192,8 +212,19 @@ def ndarray_from_pil(pil, dtype='uint8'):
 
 
 def rescale(image, shape):
-    """ scales image to be no larger than shape
-        PIL might give you unexpected results beyond that"""
+    """
+    Scales image to be no larger than shape. PIL might give you unexpected
+    results beyond that
+
+    Parameters
+    ----------
+    image : WRITEME
+    shape : WRITEME
+
+    Returns
+    -------
+    WRITEME
+    """
 
     assert len(image.shape) == 3  # rows, cols, channels
     assert len(shape) == 2  # rows, cols
@@ -208,9 +239,20 @@ def rescale(image, shape):
     return rval
 resize = rescale
 
+
 def fit_inside(image, shape):
-    """ scales image down to fit inside shape
-        preserves proportions of image"""
+    """
+    Scales image down to fit inside shape preserves proportions of image
+
+    Parameters
+    ----------
+    image : WRITEME
+    shape : WRITEME
+
+    Returns
+    -------
+    WRITEME
+    """
 
     assert len(image.shape) == 3  # rows, cols, channels
     assert len(shape) == 2  # rows, cols
@@ -234,7 +276,18 @@ def fit_inside(image, shape):
 
 
 def letterbox(image, shape):
-    """ pads image with black letterboxing to bring image.shape up to shape """
+    """
+    Pads image with black letterboxing to bring image.shape up to shape
+
+    Parameters
+    ----------
+    image : WRITEME
+    shape : WRITEME
+
+    Returns
+    -------
+    WRITEME
+    """
 
     assert len(image.shape) == 3  # rows, cols, channels
     assert len(shape) == 2  # rows, cols
@@ -259,8 +312,17 @@ def letterbox(image, shape):
 
 def make_letterboxed_thumbnail(image, shape):
     """
-    scales image down to shape
-    preserves proportions of image, introduces black letterboxing if necessary
+    Scales image down to shape. Preserves proportions of image, introduces
+    black letterboxing if necessary.
+
+    Parameters
+    ----------
+    image : WRITEME
+    shape : WRITEME
+
+    Returns
+    -------
+    WRITEME
     """
 
     assert len(image.shape) == 3
@@ -272,10 +334,15 @@ def make_letterboxed_thumbnail(image, shape):
     return letterboxed
 
 
-def load(filepath, rescale=True, dtype='float64'):
+def load(filepath, rescale_image=True, dtype='float64'):
+    """
+    .. todo::
+
+        WRITEME
+    """
     assert type(filepath) == str
 
-    if rescale == False and dtype == 'uint8':
+    if rescale_image == False and dtype == 'uint8':
         ensure_Image()
         rval = np.asarray(Image.open(filepath))
         # print 'image.load: ' + str((rval.min(), rval.max()))
@@ -283,7 +350,7 @@ def load(filepath, rescale=True, dtype='float64'):
         return rval
 
     s = 1.0
-    if rescale:
+    if rescale_image:
         s = 255.
     try:
         ensure_Image()
@@ -315,20 +382,40 @@ def load(filepath, rescale=True, dtype='float64'):
 
     if rval.ndim != 3:
         raise AssertionError("Something went wrong opening " +
-                filepath + '. Resulting shape is ' + str(rval.shape) +
-                " (it's meant to have 3 dimensions by now)")
+                             filepath + '. Resulting shape is ' +
+                             str(rval.shape) +
+                             " (it's meant to have 3 dimensions by now)")
 
     return rval
 
+
 def save(filepath, ndarray):
+    """
+    .. todo::
+
+        WRITEME
+    """
     pil_from_ndarray(ndarray).save(filepath)
 
+
 def scale_to_unit_interval(ndar, eps=1e-8):
-    """ Scales all values in the ndarray ndar to be between 0 and 1 """
+    """
+    Scales all values in the ndarray ndar to be between 0 and 1
+
+    Parameters
+    ----------
+    ndar : WRITEME
+    eps : WRITEME
+
+    Returns
+    -------
+    WRITEME
+    """
     ndar = ndar.copy()
     ndar -= ndar.min()
     ndar *= 1.0 / (ndar.max() + eps)
     return ndar
+
 
 def tile_raster_images(X, img_shape, tile_shape, tile_spacing=(0, 0),
                        scale_rows_to_unit_interval=True,
@@ -343,12 +430,13 @@ def tile_raster_images(X, img_shape, tile_shape, tile_spacing=(0, 0),
 
     Parameters
     ----------
-    x : 2-d ndarray or 4 tuple of 2-d ndarrays or None for channels
-        2-D array in which every row is a flattened image.
+    x : numpy.ndarray
+        2-d ndarray or 4 tuple of 2-d ndarrays or None for channels, in which \
+        every row is a flattened image.
 
     shape : 2-tuple of ints
-        The first component is the height of each image, the second component is
-        the width.
+        The first component is the height of each image, the second component \
+        is the width.
 
     tile_shape : 2-tuple of ints
         The number of images to tile in (row, columns) form.
@@ -362,8 +450,8 @@ def tile_raster_images(X, img_shape, tile_shape, tile_spacing=(0, 0),
     Returns
     -------
     y : 2d-ndarray
-        The return value has the same dtype as X, and is suitable for viewing as
-        an image with PIL.Image.fromarray.
+        The return value has the same dtype as X, and is suitable for viewing \
+        as an image with PIL.Image.fromarray.
     """
 
     assert len(img_shape) == 2
@@ -379,17 +467,17 @@ def tile_raster_images(X, img_shape, tile_shape, tile_spacing=(0, 0),
     # out_shape[1] = (img_shape[1]+tile_spacing[1])*tile_shape[1] -
     #                tile_spacing[1]
     out_shape = [(ishp + tsp) * tshp - tsp for ishp, tshp, tsp
-                        in zip(img_shape, tile_shape, tile_spacing)]
+                 in zip(img_shape, tile_shape, tile_spacing)]
 
     if isinstance(X, tuple):
         assert len(X) == 4
         # Create an output np ndarray to store the image
         if output_pixel_vals:
             out_array = np.zeros((out_shape[0], out_shape[1], 4),
-                                    dtype='uint8')
+                                 dtype='uint8')
         else:
             out_array = np.zeros((out_shape[0], out_shape[1], 4),
-                                    dtype=X.dtype)
+                                 dtype=X.dtype)
 
         #colors default to 0, alpha defaults to 1 (opaque)
         if output_pixel_vals:
@@ -404,8 +492,8 @@ def tile_raster_images(X, img_shape, tile_shape, tile_spacing=(0, 0),
                 dt = out_array.dtype
                 if output_pixel_vals:
                     dt = 'uint8'
-                out_array[:, :, i] = np.zeros(out_shape,
-                        dtype=dt) + channel_defaults[i]
+                out_array[:, :, i] = np.zeros(out_shape, dtype=dt) + \
+                                     channel_defaults[i]
             else:
                 # use a recurrent call to compute the channel and store it
                 # in the output

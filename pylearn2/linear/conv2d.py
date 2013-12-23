@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -17,11 +22,14 @@ from pylearn2.packaged_dependencies.theano_linear.conv2d import Conv2d as OrigCo
 from pylearn2.linear.linear_transform import LinearTransform as P2LT
 from pylearn2.utils import sharedX
 
+
 class Conv2D(OrigConv2D):
-    """ Extend the TheanoLinear Conv2d class to support everything
+    """
+    Extend the TheanoLinear Conv2d class to support everything
     needed for a pylearn2 linear operator.
 
-    Also extend it to handle different axis semantics."""
+    Also extend it to handle different axis semantics.
+    """
 
     def __init__(self,
             filters,
@@ -30,6 +38,14 @@ class Conv2D(OrigConv2D):
             output_axes = ('b',0,1,'c'),
         subsample = (1, 1), border_mode = 'valid',
         filters_shape = None, message = ''):
+        """
+        .. todo::
+
+            WRITEME properly
+
+        filters: Theano shared variable. 4-tensor of shape (out channels,
+        in channels, rows, cols)
+        """
 
 
         self.input_space = input_space
@@ -45,13 +61,28 @@ class Conv2D(OrigConv2D):
 
     @functools.wraps(P2LT.get_params)
     def get_params(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return [ self._filters ]
 
     @functools.wraps(P2LT.get_weights_topo)
     def get_weights_topo(self,borrow):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return np.transpose(self._filters.get_value(borrow = borrow),(0,2,3,1))
 
     def lmul(self, x):
+        """
+        .. todo::
+
+            WRITEME
+        """
         """
         dot(x, A)
 
@@ -95,7 +126,12 @@ class Conv2D(OrigConv2D):
         return rval
 
     def lmul_T(self, x):
-        """ override the original Conv2D lmul_T to make it work
+        """
+        .. todo::
+
+            WRITEME properly
+
+        Override the original Conv2D lmul_T to make it work
         with pylearn format of topological data using dimshuffles """
         assert x.dtype == self._filters.dtype
 
@@ -144,7 +180,12 @@ class Conv2D(OrigConv2D):
         return rval
 
     def lmul_sq_T(self, x):
-        """ Kind of a stupid hacky method used to support convolutional score matching.
+        """
+        .. todo::
+
+            WRITEME properly
+
+        Kind of a stupid hacky method used to support convolutional score matching.
         Ought to find a way to make _filters symbolic rather than shared.
         """
         assert x.dtype == self._filters.dtype
@@ -183,17 +224,33 @@ class Conv2D(OrigConv2D):
         return rval
 
     def set_batch_size(self, batch_size):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self._img_shape = tuple([ batch_size ] + list(self._img_shape[1:]))
 
 
 def default_rng():
+    """
+    .. todo::
+
+        WRITEME
+    """
     return np.random.RandomState([2012, 11, 6, 9])
 
 
 def make_random_conv2D(irange, input_space, output_space,
         kernel_shape, batch_size, \
         subsample = (1,1), border_mode = 'valid', message = "", rng = None):
-    """ Creates a Conv2D with random kernels """
+    """
+    .. todo::
+
+        WRITEME properly
+
+    Creates a Conv2D with random kernels
+    """
 
     if rng is None:
         rng = default_rng()
@@ -210,13 +267,24 @@ def make_random_conv2D(irange, input_space, output_space,
 
 
 def default_sparse_rng():
+    """
+    .. todo::
+
+        WRITEME
+    """
     return np.random.RandomState([2012, 11, 6])
 
 def make_sparse_random_conv2D(num_nonzero, input_space, output_space,
         kernel_shape, batch_size, \
         subsample = (1,1), border_mode = 'valid', message = "", rng=None):
-    """ Creates a Conv2D with random kernels, where the randomly initialized
-    values are sparse"""
+    """
+    .. todo::
+
+        WRITEME properly
+
+    Creates a Conv2D with random kernels, where the randomly initialized
+    values are sparse
+    """
 
     raise AssertionError("TODO: I think this is a bug--num_nonzero "
             "determines the "

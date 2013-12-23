@@ -14,7 +14,17 @@ from pylearn2.datasets import dense_design_matrix
 from pylearn.datasets import icml07
 
 class MNIST_rotated_background(dense_design_matrix.DenseDesignMatrix):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, which_set, center = False):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         orig = icml07.MNIST_rotated_background(n_train=10000,n_valid=2000,n_test=10000)
 
@@ -44,6 +54,11 @@ class Convex(dense_design_matrix.DenseDesignMatrix):
     Test: 50000
     """
     def __init__(self, which_set, one_hot = False):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         assert which_set in ['train', 'valid', 'test']
 
@@ -90,6 +105,11 @@ class Rectangles(dense_design_matrix.DenseDesignMatrix):
     Test: 50000
     """
     def __init__(self, which_set, one_hot = False):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         assert which_set in ['train', 'valid', 'test']
 
@@ -123,6 +143,11 @@ class Rectangles(dense_design_matrix.DenseDesignMatrix):
         assert not numpy.any(numpy.isnan(self.X))
 
     def get_test_set(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return Rectangles('test', self.one_hot)
 
 class RectanglesImage(dense_design_matrix.DenseDesignMatrix):
@@ -136,6 +161,11 @@ class RectanglesImage(dense_design_matrix.DenseDesignMatrix):
     Test: 50000
     """
     def __init__(self, which_set, one_hot = False):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         assert which_set in ['train', 'valid', 'test']
 
@@ -169,4 +199,9 @@ class RectanglesImage(dense_design_matrix.DenseDesignMatrix):
         assert not numpy.any(numpy.isnan(self.X))
 
     def get_test_set(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return RectanglesImage('test', self.one_hot)

@@ -42,7 +42,6 @@ class Conv2D(LinearTransform):
     """
     A pylearn2 linear operator based on 2D convolution,
     implemented using Alex Krizhevsky's cuda-convnet library.
-
     """
 
     def __init__(self,
@@ -52,6 +51,14 @@ class Conv2D(LinearTransform):
             output_axes = ('c', 0, 1, 'b'),
         kernel_stride = (1, 1), pad=0,
          message = '', partial_sum=None):
+        """
+        .. todo::
+
+            WRITEME properly
+
+        filters: Theano shared variable. 4-tensor of shape (in channels, rows,
+        cols, out channels)
+        """
 
         if len(kernel_stride) != 2:
             raise ValueError("kernel_stride must have length 2")
@@ -81,19 +88,32 @@ class Conv2D(LinearTransform):
 
     @functools.wraps(LinearTransform.get_params)
     def get_params(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return [self._filters]
 
     @functools.wraps(LinearTransform.get_weights_topo)
     def get_weights_topo(self, borrow=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         inp, rows, cols, outp = range(4)
         raw = self._filters.get_value(borrow=borrow)
         return np.transpose(raw, (outp, rows, cols, inp))
 
     def lmul(self, x):
         """
+        .. todo::
+
+            WRITEME properly
+
         dot(x, A)
         aka, do convolution with input image x
-
         """
 
         check_cuda(str(type(self)) + ".lmul")
@@ -137,6 +157,11 @@ class Conv2D(LinearTransform):
         return rval
 
     def lmul_T(self, x):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         check_cuda(str(type(self)) + ".lmul_T")
 
@@ -165,6 +190,11 @@ class Conv2D(LinearTransform):
         return rval
 
     def lmul_sq_T(self, x):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError("This method is not yet modified since copy-pasting from pylearn2.linear.conv2d")
         """ Kind of a stupid hacky method used to support convolutional score matching.
         Ought to find a way to make _filters symbolic rather than shared.
@@ -205,6 +235,11 @@ class Conv2D(LinearTransform):
         return rval
 
     def set_batch_size(self, batch_size):
+        """
+        .. todo::
+
+            WRITEME
+        """
         pass
 
 
@@ -213,9 +248,14 @@ def make_random_conv2D(irange, input_channels, input_axes, output_axes,
         kernel_shape,
         kernel_stride = (1,1), pad=0, message = "", rng = None,
         partial_sum = None, sparse_init = None):
-    """ Creates a Conv2D with random kernels.
-        Should be functionally equivalent to
-        pylearn2.linear.conv2d.make_random_conv2D
+    """
+    .. todo::
+
+        WRITEME properly
+
+    Creates a Conv2D with random kernels.
+    Should be functionally equivalent to
+    pylearn2.linear.conv2d.make_random_conv2D
     """
 
     if rng is None:
@@ -236,8 +276,14 @@ def make_sparse_random_conv2D(num_nonzero, input_space, output_space,
                 pad = 0,
         kernel_stride = (1,1), border_mode = 'valid', message = "", rng=None,
         partial_sum = None):
-    """ Creates a Conv2D with random kernels, where the randomly initialized
-    values are sparse"""
+    """
+    .. todo::
+
+        WRITEME properly
+
+    Creates a Conv2D with random kernels, where the randomly initialized
+    values are sparse
+    """
 
     if rng is None:
         rng = default_sparse_rng()
@@ -266,38 +312,46 @@ def make_sparse_random_conv2D(num_nonzero, input_space, output_space,
 
 def setup_detector_layer_c01b(layer, input_space, rng, irange= "not specified"):
     """
-    Takes steps to set up an object for use as being some kind of convolutional layer.
-    This function sets up only the detector layer.
+    .. todo::
+
+        WRITEME properly
+
+    Takes steps to set up an object for use as being some kind of convolutional
+    layer. This function sets up only the detector layer.
+
+    Does the following:
+
+    * raises a RuntimeError if cuda is not available
+    * sets layer.input_space to input_space
+    * sets up addition of dummy channels for compatibility with cuda-convnet:
+
+      - layer.dummy_channels: # of dummy channels that need to be added
+        (You might want to check this and raise an Exception if it's not 0)
+      - layer.dummy_space: The Conv2DSpace representing the input with dummy
+        channels added
+
+    * sets layer.detector_space to the space for the detector layer
+    * sets layer.transformer to be a Conv2D instance
+    * sets layer.b to the right value
 
     Parameters
     ----------
-    layer: Any python object that allows the modifications described below and has
-        the following attributes:
-            pad: int describing amount of zero padding to add
-            kernel_shape: 2-element tuple or list describing spatial shape of kernel
-            fix_kernel_shape: bool, if true, will shrink the kernel shape to make it
-                feasible, as needed (useful for hyperparameter searchers)
-            detector_channels: The number of channels in the detector layer
-            init_bias: A numeric constant added to a tensor of zeros to initialize the
-                    bias
-            tied_b: If true, biases are shared across all spatial locations
-
-    input_space: A Conv2DSpace to be used as input to the layer
-
-    rng: a numpy RandomState or equivalent
-
-
-    Does the following:
-        raises a RuntimeError if cuda is not available
-        sets layer.input_space to input_space
-        sets up addition of dummy channels for compatibility with cuda-convnet:
-            layer.dummy_channels: # of dummy channels that need to be added
-                (You might want to check this and raise an Exception if it's not 0)
-            layer.dummy_space: The Conv2DSpace representing the input with dummy channels
-                added
-        sets layer.detector_space to the space for the detector layer
-        sets layer.transformer to be a Conv2D instance
-        sets layer.b to the right value
+    layer : object
+        Any python object that allows the modifications described below and \
+        has the following attributes: \
+        * pad: int describing amount of zero padding to add \
+        * kernel_shape: 2-element tuple or list describing spatial shape of \
+          kernel \
+        * fix_kernel_shape: bool, if true, will shrink the kernel shape to \
+          make it feasible, as needed (useful for hyperparameter searchers) \
+        * detector_channels: The number of channels in the detector layer \
+        * init_bias: numeric constant added to a tensor of zeros to \
+          initialize the bias \
+        * tied_b: If true, biases are shared across all spatial locations
+    input_space : WRITEME
+        A Conv2DSpace to be used as input to the layer
+    rng : WRITEME
+        A numpy RandomState or equivalent
     """
 
     if irange != "not specified":

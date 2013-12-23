@@ -14,33 +14,65 @@ import theano.tensor as T
 from pylearn2.base import Block
 from pylearn2.utils import as_floatX, constantX
 
+
 def numpy_norms(W):
-    """ returns a vector containing the L2 norm of each
-column of W, where W and the return value are
-numpy ndarrays """
+    """
+    .. todo::
+
+        WRITEME properly
+
+    returns a vector containing the L2 norm of each
+    column of W, where W and the return value are
+    numpy ndarrays
+    """
     return np.sqrt(1e-8+np.square(W).sum(axis=0))
 
+
 def theano_norms(W):
-    """ returns a vector containing the L2 norm of each
-column of W, where W and the return value are symbolic
-theano variables """
+    """
+    .. todo::
+
+        WRITEME properly
+
+    returns a vector containing the L2 norm of each
+    column of W, where W and the return value are symbolic
+    theano variables
+    """
     return T.sqrt(as_floatX(1e-8)+T.sqr(W).sum(axis=0))
 
+
 def full_min(var):
-    """ returns a symbolic expression for the value of the minimal
+    """
+    .. todo::
+
+        WRITEME properly
+
+    returns a symbolic expression for the value of the minimal
     element of symbolic tensor. T.min does something else as of
-    the time of this writing. """
+    the time of this writing.
+    """
     return var.min(axis=range(0,len(var.type.broadcastable)))
 
+
 def full_max(var):
-    """ returns a symbolic expression for the value of the maximal
-        element of a symbolic tensor. T.max does something else as of the
-        time of this writing. """
+    """
+    .. todo::
+
+        WRITEME properly
+
+    returns a symbolic expression for the value of the maximal
+    element of a symbolic tensor. T.max does something else as of the
+    time of this writing.
+    """
     return var.max(axis=range(0,len(var.type.broadcastable)))
 
 
 def multiple_switch(*args):
     """
+    .. todo::
+
+        WRITEME properly
+
     Applies a cascade of ifelse. The output will be a Theano expression
     which evaluates:
         if args0:
@@ -61,6 +93,10 @@ def multiple_switch(*args):
 
 def symGivens2(a, b):
     """
+    .. todo::
+
+        WRITEME properly
+    
     Stable Symmetric Givens rotation plus reflection
 
     Parameters
@@ -134,17 +170,21 @@ def symGivens2(a, b):
 
 def sqrt_inner_product(xs, ys=None):
     """
-        Compute the square root of the inner product between `xs` and `ys`.
-        If `ys` is not provided, computes the norm between `xs` and `xs`.
-        Since `xs` and `ys` are list of tensor, think of it as the norm
-        between the vector obtain by concatenating and flattening all
-        tenors in `xs` and the similar vector obtain from `ys`. Note that
-        `ys` should match `xs`.
+    .. todo::
 
-        Parameters:
+        WRITEME properly
+    
+    Compute the square root of the inner product between `xs` and `ys`.
+    If `ys` is not provided, computes the norm between `xs` and `xs`.
+    Since `xs` and `ys` are list of tensor, think of it as the norm
+    between the vector obtain by concatenating and flattening all
+    tenors in `xs` and the similar vector obtain from `ys`. Note that
+    `ys` should match `xs`.
 
-            xs : list of theano expressions
-            ys : None or list of theano expressions
+    Parameters:
+
+        xs : list of theano expressions
+        ys : None or list of theano expressions
     """
     if ys is None:
         ys = [x for x in xs]
@@ -153,23 +193,33 @@ def sqrt_inner_product(xs, ys=None):
 
 def inner_product(xs, ys=None):
     """
-        Compute the inner product between `xs` and `ys`. If ys is not provided,
-        computes the square norm between `xs` and `xs`.
-        Since `xs` and `ys` are list of tensor, think of it as the inner
-        product between the vector obtain by concatenating and flattening all
-        tenors in `xs` and the similar vector obtain from `ys`. Note that
-        `ys` should match `xs`.
+    .. todo::
 
-        Parameters:
+        WRITEME properly
+    
+    Compute the inner product between `xs` and `ys`. If ys is not provided,
+    computes the square norm between `xs` and `xs`.
+    Since `xs` and `ys` are list of tensor, think of it as the inner
+    product between the vector obtain by concatenating and flattening all
+    tenors in `xs` and the similar vector obtain from `ys`. Note that
+    `ys` should match `xs`.
 
-            xs : list of theano expressions
-            ys : None or list of theano expressions
+    Parameters:
+
+        xs : list of theano expressions
+        ys : None or list of theano expressions
     """
     if ys is None:
         ys = [x for x in xs]
     return sum((x * y).sum() for x, y in zip(xs, ys))
 
+
 def is_binary(x):
+    """
+    .. todo::
+
+        WRITEME
+    """
     return np.all( (x == 0) + (x == 1))
 
 class Identity(Block):
@@ -178,22 +228,47 @@ class Identity(Block):
     placeholder.
     """
     def __init__(self, input_space=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         super(Identity, self).__init__()
         self.input_space = input_space
 
     def __call__(self, inputs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.input_space:
             self.input_space.validate(inputs)
         return inputs
 
     def set_input_space(self, space):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.input_space = space
 
     def get_input_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.input_space is not None:
             return self.input_space
         raise ValueError("No input space was specified for this Block (%s). "
                 "You can call set_input_space to correct that." % str(self))
 
     def get_output_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.get_input_space()

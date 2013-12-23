@@ -1,4 +1,8 @@
-"""TODO: module level docstring."""
+"""
+.. todo::
+
+    WRITEME
+"""
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -9,11 +13,25 @@ import theano.tensor as T
 
 
 class EnergyFunction(object):
-    """TODO: class level docstring."""
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         pass
 
     def score(self, X):
+        """
+        .. todo::
+
+            WRITEME
+        """
         assert X.dtype.find('int') == -1
 
         X_name = 'X' if X.name is None else X.name
@@ -29,12 +47,27 @@ class EnergyFunction(object):
         return rval
 
     def free_energy(self, X):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError(str(type(self)) +
                                   ' has not implemented free_energy(self,X)')
 
     def energy(self, varlist):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError(str(type(self)) +
                                   ' has not implemented energy(self,varlist)')
 
     def __call__(self, varlist):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.energy(varlist)

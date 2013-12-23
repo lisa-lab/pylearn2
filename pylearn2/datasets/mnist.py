@@ -113,7 +113,8 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
                     self.y = self.y[start:stop]
                 assert self.y.shape[0] == stop - start
         else:
-            #data loading is disabled, just make something that defines the right topology
+            # data loading is disabled, just make something that defines the
+            # right topology
             topo = dimshuffle(np.zeros((1,28,28,1)))
             super(MNIST,self).__init__(topo_view = topo, axes=axes)
             self.X = None
@@ -125,7 +126,7 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
             preprocessor.apply(self, fit_preprocessor)
 
     def adjust_for_viewer(self, X):
-        return N.clip(X*2.-1.,-1.,1.)
+        return N.clip(X * 2. - 1., -1., 1.)
 
     def adjust_to_be_viewed_with(self, X, other, per_example = False):
         return self.adjust_for_viewer(X)

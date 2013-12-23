@@ -47,11 +47,26 @@ except ImportError:
     warnings.warn("Could not import scipy")
 
 class Sampler:
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, theano_rng, kind = 'binomial'):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.theano_rng = theano_rng
         self.kind = kind
 
     def __call__(self, P):
+        """
+        .. todo::
+
+            WRITEME
+        """
         kind = self.kind
         if kind == 'binomial':
             return self.theano_rng.binomial(size = P.shape, n = 1, p = P, dtype = P.dtype)
@@ -61,7 +76,11 @@ class Sampler:
             raise ValueError("Unrecognized sampling kind: "+kind)
 
 class DBM(Model):
+    """
+    .. todo::
 
+        WRITEME
+    """
     def __init__(self, rbms,
                     use_cd = False,
                         negative_chains = 0,
@@ -73,22 +92,26 @@ class DBM(Model):
                        min_beta = None,
                        print_interval = 10000):
         """
-            rbms: list of rbms to stack
-                    all rbms must be of type pylearn2.models.rbm, and not a subclass
-                    first entry is the visible rbm
-                    DBM may destroy these rbms-- it won't delete them,
-                    but it may do terrible things to them
+        .. todo::
 
-                    the DBM parameters will be constructed by taking the visible biases
-                    and weights from each RBM. only the topmost RBM will additionally
-                    donate its hidden biases.
-            negative_chains: the number of negative chains to simulate
-            inference_procedure: a pylearn2.models.dbm.InferenceProcedure object
-                (if None, assumes the model is not meant to run on its own)
-            print_interval: every print_interval examples, print out a status summary
-            num_classes: if > 0, makes an extra visible layer attached to the deepest
-                        hidden layer. this layer is one-hot and driven by the labels
-                        from the data
+            WRITEME properly
+
+        rbms: list of rbms to stack
+                all rbms must be of type pylearn2.models.rbm, and not a subclass
+                first entry is the visible rbm
+                DBM may destroy these rbms-- it won't delete them,
+                but it may do terrible things to them
+
+                the DBM parameters will be constructed by taking the visible biases
+                and weights from each RBM. only the topmost RBM will additionally
+                donate its hidden biases.
+        negative_chains: the number of negative chains to simulate
+        inference_procedure: a pylearn2.models.dbm.InferenceProcedure object
+            (if None, assumes the model is not meant to run on its own)
+        print_interval: every print_interval examples, print out a status summary
+        num_classes: if > 0, makes an extra visible layer attached to the deepest
+                    hidden layer. this layer is one-hot and driven by the labels
+                    from the data
         """
 
         self.init_beta = init_beta
@@ -158,6 +181,11 @@ class DBM(Model):
 
 
     def get_weights(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         x = raw_input('which weights?')
         assert x in ['0','1']
         if x == '0':
@@ -165,19 +193,39 @@ class DBM(Model):
         return np.dot(self.W[0].get_value(),self.W[1].get_value())
 
     def get_input_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.rbms[0].get_input_space()
 
     def get_output_space(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return VectorSpace(self.num_classes)
 
     def reset_rng(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.rng = np.random.RandomState([1,2,3])
 
     def redo_everything(self):
-        """ compiles learn_func if necessary
-            makes new negative chains
-            does not reset weights or biases
-            TODO: figure out how to make the semantics of this cleaner / more in line with other models
+        """
+        .. todo::
+
+            WRITEME properly
+
+        compiles learn_func if necessary
+        makes new negative chains
+        does not reset weights or biases
+        TODO: figure out how to make the semantics of this cleaner / more in line with other models
         """
 
         #compile learn_func if necessary
@@ -208,12 +256,17 @@ class DBM(Model):
 
 
     def make_chains(self, bias):
-        """ make the shared variable representing a layer of
-            the network for all negative chains
+        """
+        .. todo::
 
-            for now units are initialized randomly based on their
-            biases only
-            """
+            WRITEME properly
+
+        Make the shared variable representing a layer of
+        the network for all negative chains
+
+        for now units are initialized randomly based on their
+        biases only
+        """
 
         assert not self.use_cd
 
@@ -232,9 +285,19 @@ class DBM(Model):
         return sharedX(value)
 
     def set_monitoring_channel_prefix(self, prefix):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.monitoring_channel_prefix = prefix
 
     def get_monitoring_channels(self, data):
+        """
+        .. todo::
+
+            WRITEME
+        """
         space, source = self.get_monitoring_data_specs()
         space.validate(data)
         V = data
@@ -280,16 +343,27 @@ class DBM(Model):
         return (self.get_input_space(), self.get_input_source())
 
     def compile_mode(self):
-        """ If any shared variables need to have batch-size dependent sizes,
-        sets them all to the sizes used for interactive debugging during graph construction """
+        """
+        If any shared variables need to have batch-size dependent sizes, sets
+        them all to the sizes used for interactive debugging during graph
+        construction
+        """
         pass
 
     def deploy_mode(self):
-        """ If any shared variables need to have batch-size dependent sizes, sets them all to their runtime sizes """
+        """
+        If any shared variables need to have batch-size dependent sizes, sets
+        them all to their runtime sizes
+        """
         pass
 
 
     def print_status(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         print ""
         bv = self.bias_vis.get_value(borrow=True)
         print "bias_vis: ",(bv.min(),bv.mean(),bv.max())
@@ -310,6 +384,11 @@ class DBM(Model):
 
 
     def get_sampling_updates(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         assert not self.use_cd
 
@@ -383,8 +462,14 @@ class DBM(Model):
         return rval
 
     def rao_blackwellize(self, V_sample, H_samples, Y_sample = None):
-        """ Returns a new H_samples list with the the even-numbered
-        layers of hidden samples replaced by activation probabilities """
+        """
+        .. todo::
+
+            WRITEME properly
+
+        Returns a new H_samples list with the the even-numbered
+        layers of hidden samples replaced by activation probabilities
+        """
 
 
         #TODO: update this so user can control whether
@@ -439,6 +524,11 @@ class DBM(Model):
         return rval_H, rval_Y
 
     def get_cd_neg_phase_grads(self, V, H_hat, Y = None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         assert self.use_cd
         assert not hasattr(self, 'V_chains')
@@ -480,8 +570,10 @@ class DBM(Model):
         return self.get_neg_phase_grads_from_samples(V_sample, H_samples, Y_sample)
 
     def get_neg_phase_grads(self):
-        """ returns a dictionary mapping from parameters to negative phase gradients
-            (assuming you're doing gradient ascent on negative variational free energy)
+        """
+        Returns a dictionary mapping from parameters to negative phase gradients
+        (assuming you're doing gradient ascent on negative variational free
+        energy)
         """
 
         assert not self.use_cd
@@ -489,6 +581,11 @@ class DBM(Model):
         return self.get_neg_phase_grads_from_samples(self.V_chains, self.H_chains, self.Y_chains)
 
     def get_neg_phase_grads_from_samples(self, V_sample, H_samples, Y_sample = None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         if hasattr(self, 'V_chains'):
             # theta must be updated using samples that were generated using gibbs sampling
@@ -521,6 +618,11 @@ class DBM(Model):
 
 
     def get_params(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         rval = set([self.bias_vis])
         if self.bias_vis.name is None:
             warnings.warn('whoa, for some reason bias_vis was unnamed')
@@ -547,6 +649,10 @@ class DBM(Model):
 
     def make_learn_func(self, V):
         """
+        .. todo::
+
+            WRITEME properly
+
         V: a symbolic design matrix
         """
 
@@ -579,6 +685,11 @@ class DBM(Model):
         """
 
     def censor_updates(self, updates):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         for rbm in self.rbms:
             rbm.censor_updates(updates)
@@ -591,17 +702,27 @@ class DBM(Model):
             updates[self.beta] = T.clip(updates[self.beta],min_beta,1e6)
 
     def random_design_matrix(self, batch_size, theano_rng):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError()
 
         #return V_sample
 
     def expected_energy(self, V_hat, H_hat, Y_hat = None, no_v_bias = False):
-        """ expected energy of the model under the mean field distribution
-            defined by V_hat and H_hat
-            alternately, could be expectation of the energy function across
-            a batch of examples, where every element of V_hat and H_hat is
-            a binary observation
-            if no_v_bias is True, ignores the contribution from biases on visible units
+        """
+        .. todo::
+
+            WRITEME properly
+
+        expected energy of the model under the mean field distribution
+        defined by V_hat and H_hat
+        alternately, could be expectation of the energy function across
+        a batch of examples, where every element of V_hat and H_hat is
+        a binary observation
+        if no_v_bias is True, ignores the contribution from biases on visible units
         """
 
         assert (Y_hat is None) == (self.num_classes == 0)
@@ -751,8 +872,14 @@ class DBM(Model):
 
 
     def entropy_h(self, H_hat):
-        """ entropy of the hidden layers under the mean field distribution
-        defined by H_hat """
+        """
+        .. todo::
+
+            WRITEME properly
+
+        entropy of the hidden layers under the mean field distribution
+        defined by H_hat
+        """
 
         for Hv in get_debug_values(H_hat[0]):
             assert Hv.min() >= 0.0
@@ -771,6 +898,11 @@ class DBM(Model):
         return total
 
     def redo_theano(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError("Not yet supported-- current project does not require DBM to learn on its own")
         try:
             self.compile_mode()
@@ -788,6 +920,11 @@ class DBM(Model):
             self.deploy_mode()
 
     def train_batch(self, dataset, batch_size):
+        """
+        .. todo::
+
+            WRITEME
+        """
         #TODO [for IG, not LY]: always uses exhaustive iteration, regardless of how the dataset is configured.
         #clean this up a bit
 
@@ -827,6 +964,11 @@ class DBM(Model):
         return True
 
     def learn_mini_batch(self, X):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError("Not yet supported-- current project does not require DBM to learn on its own")
 
         self.learn_func(X)
@@ -836,33 +978,56 @@ class DBM(Model):
 
 
     def get_weights_format(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.rbms[0].get_weights_format()
 
 class InferenceProcedure:
     """
-
-        Variational inference
-
+    Variational inference
     """
 
     def get_monitoring_channels(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError()
 
     def __init__(self, layer_schedule = None, monitor_kl = False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.autonomous = False
         self.model = None
         self.monitor_kl = monitor_kl
         self.layer_schedule = layer_schedule
 
     def register_model(self, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.model = model
 
     def truncated_KL(self, V, obs, Y = None, no_v_bias = False):
-        """ KL divergence between variation and true posterior, dropping terms that don't
-            depend on the variational parameters
+        """
+        .. todo::
 
-            if no_v_bias is True, ignores the contribution of the visible biases to the expected energy
-            """
+            WRITEME properly
+
+        KL divergence between variation and true posterior, dropping terms that don't
+        depend on the variational parameters
+
+        if no_v_bias is True, ignores the contribution of the visible biases to the expected energy
+        """
 
         """
             D_KL ( Q(h ) || P(h | v) ) =  - sum_h Q(h) log P(h | v) + sum_h Q(h) log Q(h)
@@ -890,6 +1055,11 @@ class InferenceProcedure:
         return KL
 
     def infer_H_hat_two_sided(self, H_hat_below, W_below, H_hat_above, W_above, b):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         bottom_up = T.dot(H_hat_below, W_below)
         top_down =  T.dot(H_hat_above, W_above.T)
@@ -900,6 +1070,11 @@ class InferenceProcedure:
         return H_hat
 
     def infer_H_hat_one_sided(self, other_H_hat, W, b):
+        """
+        .. todo::
+
+            WRITEME
+        """
         """ W should be arranged such that other_H_hat.shape[1] == W.shape[0] """
 
         if W is self.model.W[-1]:
@@ -915,6 +1090,11 @@ class InferenceProcedure:
         return H_hat
 
     def infer_Y_hat(self, H_hat):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         dot = T.dot(H_hat, self.model.W_class)
         presoftmax = dot + self.model.bias_class
@@ -925,15 +1105,18 @@ class InferenceProcedure:
 
     def infer(self, V, return_history = False):
         """
+        .. todo::
 
-            return_history: if True:
-                                returns a list of dictionaries with
-                                showing the history of the variational
-                                parameters
-                                throughout fixed point updates
-                            if False:
-                                returns a dictionary containing the final
-                                variational parameters
+            WRITEME properly
+
+        return_history: if True:
+                            returns a list of dictionaries with
+                            showing the history of the variational
+                            parameters
+                            throughout fixed point updates
+                        if False:
+                            returns a dictionary containing the final
+                            variational parameters
         """
 
         if self.model.num_classes > 0:
@@ -1001,9 +1184,15 @@ class InferenceProcedure:
             return history[-1]
 
     def init_H_hat(self, V):
-        """ Returns a list of matrices of hidden units, with same batch size as V
-            For now hidden unit values are initialized by taking the sigmoid of their
-            bias """
+        """
+        .. todo::
+
+            WRITEME properly
+
+        Returns a list of matrices of hidden units, with same batch size as V
+        For now hidden unit values are initialized by taking the sigmoid of their
+        bias
+        """
 
         H_hat = []
 
@@ -1017,14 +1206,25 @@ class InferenceProcedure:
         return H_hat
 
     def init_Y_hat(self, V):
+        """
+        .. todo::
+
+            WRITEME
+        """
         value = T.nnet.sigmoid(self.model.bias_class)
         mat = T.alloc(value, V.shape[0], value.shape[0])
 
         return mat
 
 def load_matlab_dbm(path, num_chains = 1):
-    """ Loads a two layer DBM stored in the format used by Ruslan Salakhutdinov's
-    matlab demo"""
+    """
+    .. todo::
+
+        WRITEME properly
+
+    Loads a two layer DBM stored in the format used by Ruslan Salakhutdinov's
+    matlab demo
+    """
 
     d = io.loadmat(path)
 
