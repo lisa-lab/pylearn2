@@ -1473,6 +1473,10 @@ class Linear(Layer):
 
             state_below = self.input_space.format_as(state_below, self.desired_space)
 
+        # Support old pickle files
+        if not hasattr(self, 'softmax_columns'):
+            self.softmax_columns = False
+
         if self.softmax_columns:
             W, = self.transformer.get_params()
             W = W.T
