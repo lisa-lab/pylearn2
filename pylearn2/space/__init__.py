@@ -49,6 +49,21 @@ if theano.sparse.enable_sparse:
     import scipy.sparse
 
 
+def _reshape(arg, shape):
+    if isinstance(arg, (np.ndarray, theano.tensor.TensorVariable)):
+        return arg.reshape(shape)
+    elif isinstance(arg, theano.sparse.SparseVariable):
+        dense = theano.sparse.dense_from_sparse(arg)
+        dense = dense.reshape(shape)
+        if arg.format == 'csr':
+            return theano.sparse.csr_from_dense(dense)
+        elif arg.format == 'csc':
+            return theano.sparse.csc_from_dense(dense)
+        else:
+            raise ValueError('Unexpected sparse format "%s".' % arg.format)
+    else:
+        raise TypeError('Unexpected batch type "%s"' % str(type(arg)))
+
 def _cast(arg, dtype):
     """
     Does element-wise casting to dtype.
@@ -568,7 +583,10 @@ class VectorSpace(TypedSpace):
         elif isinstance(space, Conv2DSpace):
             if isinstance(batch, theano.sparse.SparseVariable):
                 raise TypeError("Formatting a SparseVariable to a Conv2DSpace "
-                                "not supported (can't reshape)")
+                                "not supported, since Theano has no sparse "
+                                "tensors with more than 2 dimensions. We need "
+                                "4 dimensions to represent a Conv2DSpace "
+                                "batch")
 
             dims = {'b': batch.shape[0],
                     'c': space.num_channels,
@@ -578,13 +596,13 @@ class VectorSpace(TypedSpace):
                 # Always use default_axes, so conversions like
                 # Conv2DSpace(c01b) -> VectorSpace -> Conv2DSpace(b01c) work
                 shape = [dims[ax] for ax in space.default_axes]
-                batch = batch.reshape(shape)
+                batch = _reshape(batch, shape)
                 batch = batch.transpose(*[space.default_axes.index(ax)
                                           for ax in space.axes])
                 result = batch
             else:
                 shape = tuple([dims[elem] for elem in space.axes])
-                result = batch.reshape(shape)
+                result = _reshape(batch, shape)
 
             to_type = space.dtype
 
@@ -945,9 +963,9 @@ class Conv2DSpace(TypedSpace):
         self.np_validate(batch)
         if isinstance(space, VectorSpace):
 
-            if isinstance(batch, theano.sparse.SparseVariable):
-                raise TypeError("Formatting a SparseVariable to a VectorSpace "
-                                "not supported (can't reshape)")
+            # if isinstance(batch, theano.sparse.SparseVariable):
+            #     raise TypeError("Formatting a SparseVariable to a VectorSpace "
+            #                     "not supported (can't reshape)")
 
             # We need to ensure that the resulting batch will always be
             # the same in `space`, no matter what the axes of `self` are.
