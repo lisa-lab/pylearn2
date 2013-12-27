@@ -1,5 +1,7 @@
 """Tests for space utilities."""
 import numpy as np
+import scipy
+
 from nose.tools import assert_raises
 import theano
 #from theano import config
@@ -25,7 +27,8 @@ def test_np_format_as_vector2conv2d():
     new_shape = tuple([axis_to_shape[ax] for ax in new_axes])
     nval = data.reshape(new_shape)
     # Then transpose
-    nval = nval.transpose(*[new_axes.index(ax) for ax in conv2d_space.axes])
+    nval = nval.transpose(*[new_axes.index(ax)
+                            for ax in conv2d_space.axes])
     assert np.all(rval == nval)
 
 
@@ -81,8 +84,9 @@ def test_np_format_as_conv2d_vector_conv2d():
 
 def test_np_format_as_composite_composite():
     """
-    Test using CompositeSpace.np_format_as() to convert between composite
-    spaces that have the same tree structure, but different leaf spaces.
+    Test using CompositeSpace.np_format_as() to convert between
+    composite spaces that have the same tree structure, but different
+    leaf spaces.
     """
 
     def make_composite_space(image_space):
@@ -103,8 +107,9 @@ def test_np_format_as_composite_composite():
     def make_vector_data(batch_size, space):
         """
         Returns a batch of synthetic data appropriate to the provided space.
-        Supports VectorSpaces, and CompositeSpaces of VectorSpaces.
-        synthetic data.
+        Supports VectorSpaces, and CompositeSpaces of VectorSpaces.  synthetic
+        data.
+
         """
         if isinstance(space, CompositeSpace):
             return tuple(make_vector_data(batch_size, subspace)
@@ -123,7 +128,8 @@ def test_np_format_as_composite_composite():
 
     topo_data = composite_flat.np_format_as(flat_data, composite_topo)
     composite_topo.np_validate(topo_data)
-    new_flat_data = composite_topo.np_format_as(topo_data, composite_flat)
+    new_flat_data = composite_topo.np_format_as(topo_data,
+                                                composite_flat)
 
     def get_shape(batch):
         """
@@ -136,8 +142,8 @@ def test_np_format_as_composite_composite():
 
     def batch_equals(batch_0, batch_1):
         """
-        Returns true if all corresponding elements of two batches are equal.
-        Supports composite data (i.e. nested tuples of data).
+        Returns true if all corresponding elements of two batches are
+        equal.  Supports composite data (i.e. nested tuples of data).
         """
         assert type(batch_0) == type(batch_1)
         if isinstance(batch_0, tuple):
@@ -212,20 +218,33 @@ def test_dtypes():
 
     batch_size = 2
 
-    # remove these *_batch tests if we end up removing the dtype argumetn from
-    # these batch-making methods.
+    dtype_is_none_msg = ("self.dtype is None, so you must provide a "
+                         "non-None dtype argument to this method.")
+
+    def sparse_not_implemented_msg(method_name):
+        return ("%s() not yet implemented for sparse VectorSpaces. (Should "
+                "return some type of sparse matrix from scipy.sparse)" %
+                method_name)
+
     def test_get_origin_batch(from_space, to_type):
         assert not isinstance(from_space, CompositeSpace), \
             ("CompositeSpace.get_origin_batch() doesn't have a dtype "
              "argument. This shouldn't have happened; fix this unit test.")
 
+        # Expect failure if from_space is sparse
+        if hasattr(from_space, "sparse") and from_space.sparse:
+            with assert_raises(TypeError) as context:
+                from_space.get_origin_batch(batch_size, dtype=to_type)
+                expected_msg = sparse_not_implemented_msg("get_origin_batch")
+                assert str(context.exception).find(expected_msg) >= 0
+
+            return
+
+        # Expect failure if neither we nor the from_space specifies a dtype
         if from_space.dtype is None and to_type is None:
             with assert_raises(RuntimeError) as context:
                 from_space.get_origin_batch(batch_size, dtype=to_type)
-                expected_msg = ("self.dtype is None, so you must "
-                                "provide a non-None dtype argument "
-                                "to this method.")
-                assert str(context.exception).find(expected_msg) >= 0
+                assert str(context.exception).find(dtype_is_none_msg) >= 0
 
             return
 
@@ -241,13 +260,19 @@ def test_dtypes():
              (batch.dtype, to_type))
 
     def test_make_shared_batch(from_space, to_type):
+        # Expect failure if from_space is sparse
+        if hasattr(from_space, "sparse") and from_space.sparse:
+            with assert_raises(TypeError) as context:
+                from_space.make_shared_batch(batch_size, dtype=to_type)
+                expected_msg = sparse_not_implemented_msg("make_shared_batch")
+                assert str(context.exception).find(expected_msg) >= 0
+
+            return
+
         if from_space.dtype is None and to_type is None:
             with assert_raises(RuntimeError) as context:
-                from_space.get_origin_batch(batch_size, dtype=to_type)
-                expected_msg = ("self.dtype is None, so you must "
-                                "provide a non-None dtype argument "
-                                "to this method.")
-                assert str(context.exception).find(expected_msg) >= 0
+                from_space.make_shared_batch(batch_size, dtype=to_type)
+                assert str(context.exception).find(dtype_is_none_msg) >= 0
 
             return
 
@@ -272,11 +297,8 @@ def test_dtypes():
 
         if from_space.dtype is None and to_type is None:
             with assert_raises(RuntimeError) as context:
-                from_space.get_origin_batch(batch_size, dtype=to_type)
-                expected_msg = ("self.dtype is None, so you must "
-                                "provide a non-None dtype argument "
-                                "to this method.")
-                assert str(context.exception).find(expected_msg) >= 0
+                from_space.make_theano_batch(**kwargs)
+                assert str(context.exception).find(dtype_is_none_msg) >= 0
 
             return
 
@@ -292,35 +314,80 @@ def test_dtypes():
 
     # get format
     def test_format(from_space, to_space):
-        kwargs = {'name': 'from',
-                  'dtype': None}
-        if isinstance(from_space, (VectorSpace, Conv2DSpace)):
-            kwargs['dtype'] = from_space.dtype
+        def make_theano_batch(from_space):
+            kwargs = {'name': 'from',
+                      'dtype': None}
+            if isinstance(from_space, (VectorSpace, Conv2DSpace)):
+                kwargs['dtype'] = from_space.dtype
 
-        # Sparse VectorSpaces throw an exception if batch_size is specified.
-        if not (isinstance(from_space, VectorSpace) and from_space.sparse):
-            kwargs['batch_size'] = batch_size
+            # Only specify batch_size if from_space is not a sparse
+            # VectorSpace.  Those throw an exception if batch_size is
+            # specified.
+            if not (isinstance(from_space, VectorSpace) and from_space.sparse):
+                kwargs['batch_size'] = batch_size
 
-        from_batch = from_space.make_theano_batch(**kwargs)
+            # print ("from_space.make_theano_batch() with from_space = %s, "
+            #        "args: %s" % (from_space, str(kwargs)))
+
+            return from_space.make_theano_batch(**kwargs)
+
+        from_batch = make_theano_batch(from_space)
+
+        # if (instanceof(from_batch, theano.sparse.SparseVariable) and
+        #     instanceof(to_space, Conv2DSpace)):
+        #     with assert_raises(TypeError) as context:
+        #         from_space.format_as(from_batch, to_space)
+        #         expected_msg = ("Formatting a SparseVariable to a Conv2DSpace "
+        #                         "not supported (can't reshape)")
+        #         assert str(context.exception).find(expected_msg) >= 0
+
         to_batch = from_space.format_as(from_batch, to_space)
 
-        assert to_batch.dtype == to_space.dtype, \
-            ("to_batch.dtype = %s, to_space.dtype = %s" %
-             (to_batch.dtype, to_space.dtype))
+        if to_space.dtype is None:
+            assert to_batch.dtype == from_batch.dtype
+        else:
+            assert str(to_batch.dtype) == to_space.dtype, \
+                ("\n"
+                 "\tfrom_space = %s\n"
+                 "\tto_space = %s\n"
+                 "\tto_batch.dtype = %s\n" %
+                 (from_space, to_space, to_batch.dtype))
 
-    def test_np_format(from_space, to_space):
-        from_batch = from_space.get_origin_batch(batch_size)
-
-        def is_sparse(space):
-            return isinstance(space, VectorSpace) and space.sparse
-
-        # Expect a TypeError when converting betw. sparse & non-sparse
-        if is_sparse(from_space) != is_sparse(to_space):
-            with assert_raises(TypeError) as context:
-                from_space.np_format_as(from_batch, to_space)
-                assert str(context.exception).find("sparse") >= 0
+    def expect_error_if_no_dtype(from_space, to_type, method):
+        """
+        Tests for expected failure from space.method(from_space, to_type) when
+        both from_space.dtype and to_type are None.
+        """
+        if from_space.dtype is None and to_type is None:
+            with assert_raises(RuntimeError) as context:
+                method(batch_size, dtype=to_type)
+                expected_msg = ("self.dtype is None, so you must "
+                                "provide a non-None dtype argument "
+                                "to this method.")
+                assert str(context.exception).find(expected_msg) >= 0
 
             return
+
+    def test_np_format(from_space, to_space):
+        # Expect failure if from_space is sparse
+        if hasattr(from_space, "sparse") and from_space.sparse:
+            with assert_raises(TypeError) as context:
+                from_space.get_origin_batch(batch_size)
+                expected_msg = sparse_not_implemented_msg("get_origin_batch")
+                assert str(context.exception).find(expected_msg) >= 0
+
+            return
+
+        # Expect failure if neither we nor the from_space specifies a dtype
+        if from_space.dtype is None:
+            with assert_raises(RuntimeError) as context:
+                from_space.get_origin_batch(batch_size)
+                assert str(context.exception).find(dtype_is_none_msg) >= 0
+
+            return
+
+
+        from_batch = from_space.get_origin_batch(batch_size)
 
         to_batch = from_space.np_format_as(from_batch, to_space)
         assert str(to_batch.dtype) == to_space.dtype, \
