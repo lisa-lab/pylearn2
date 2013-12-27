@@ -409,13 +409,18 @@ def test_dtypes():
 
         from_batch = make_theano_batch(from_space)
 
-        # if (instanceof(from_batch, theano.sparse.SparseVariable) and
-        #     instanceof(to_space, Conv2DSpace)):
-        #     with assert_raises(TypeError) as context:
-        #         from_space.format_as(from_batch, to_space)
-        #         expected_msg = ("Formatting a SparseVariable to a Conv2DSpace "
-        #                         "not supported (can't reshape)")
-        #         assert str(context.exception).find(expected_msg) >= 0
+        if (isinstance(from_batch, theano.sparse.SparseVariable) and
+            isinstance(to_space, Conv2DSpace)):
+            with assert_raises(TypeError) as context:
+                from_space.format_as(from_batch, to_space)
+                expected_msg = ("Formatting a SparseVariable to a Conv2DSpace "
+                                "not supported, since Theano has no sparse "
+                                "tensors with more than 2 dimensions. We need "
+                                "4 dimensions to represent a Conv2DSpace "
+                                "batch")
+                assert str(context.exception).find(expected_msg) >= 0
+
+            return
 
         to_batch = from_space.format_as(from_batch, to_space)
 
