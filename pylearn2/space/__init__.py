@@ -68,9 +68,6 @@ def _cast(arg, dtype):
     if dtype is None:
         return arg
 
-    if dtype == 'floatX':
-        dtype = theano.config.floatX  # this'll be 'float32' or 'float64'
-
     assert dtype in tuple(t.dtype for t in theano.scalar.all_types)
 
     if isinstance(arg, np.ndarray):
@@ -80,6 +77,8 @@ def _cast(arg, dtype):
     elif isinstance(arg, (theano.tensor.TensorVariable,
                           theano.tensor.TensorConstant)):
         return theano.tensor.cast(arg, dtype)
+    elif isinstance(arg, theano.sparse.SparseVariable):
+        return theano.sparse.cast(arg, dtype)
     else:
         raise TypeError("Unsupported arg type '%s'" % str(type(arg)))
 
@@ -469,6 +468,8 @@ class VectorSpace(TypedSpace):
             Dimensionality of a vector in this space.
         sparse: bool
             Sparse vector or not
+        dtype: str
+            numpy dtype string, e.g. 'float32'.
         kwargs: passed on to superclass constructor
         """
         super(VectorSpace, self).__init__(dtype=dtype, **kwargs)
@@ -481,10 +482,11 @@ class VectorSpace(TypedSpace):
 
             WRITEME
         """
-        return '%(classname)s(dim=%(dim)s%(sparse)s)' % \
-               dict(classname=self.__class__.__name__,
-                    dim=self.dim,
-                    sparse=(', sparse' if self.sparse else ''))
+        return ('%s(dim=%d%s, dtype=%s)' %
+                (self.__class__.__name__,
+                self.dim,
+                ', sparse' if self.sparse else '',
+                self.dtype))
 
     @functools.wraps(Space.get_origin)
     def get_origin(self):
@@ -492,6 +494,11 @@ class VectorSpace(TypedSpace):
 
     @functools.wraps(Space.get_origin_batch)
     def get_origin_batch(self, n, dtype=None):
+        if self.sparse:
+            raise TypeError("get_origin_batch() not yet implemented for "
+                            "sparse VectorSpaces. (Should return some type of "
+                            "sparse matrix from scipy.sparse)")
+
         dtype = self._check_dtype_arg(dtype)
 
         return np.zeros((n, self.dim), dtype=dtype)
@@ -536,11 +543,16 @@ class VectorSpace(TypedSpace):
 
     @functools.wraps(Space.np_format_as)
     def np_format_as(self, batch, space):
+        if hasattr(space, 'sparse') and self.sparse != space.sparse:
+            raise ValueError("Converting between sparse and non-sparse "
+                             "VectorSpaces not implemented.")
+
         self.np_validate(batch)
         return self._format_as(batch, space)
 
     @functools.wraps(Space._format_as)
     def _format_as(self, batch, space):
+        to_type = None
 
         if isinstance(space, CompositeSpace):
             pos = 0
@@ -554,6 +566,10 @@ class VectorSpace(TypedSpace):
             result = tuple(pieces)
 
         elif isinstance(space, Conv2DSpace):
+            if isinstance(batch, theano.sparse.SparseVariable):
+                raise TypeError("Formatting a SparseVariable to a Conv2DSpace "
+                                "not supported (can't reshape)")
+
             dims = {'b': batch.shape[0],
                     'c': space.num_channels,
                     0: space.shape[0],
@@ -570,21 +586,25 @@ class VectorSpace(TypedSpace):
                 shape = tuple([dims[elem] for elem in space.axes])
                 result = batch.reshape(shape)
 
+            to_type = space.dtype
+
         elif isinstance(space, VectorSpace):
             if self.dim != space.dim:
                 raise ValueError("Can't convert between VectorSpaces of "
                                  "different sizes (%d to %d)."
                                  % (self.dim, space.dim))
-            if self.sparse != space.sparse:
-                raise ValueError("Converting between sparse and non-sparse "
-                                 "VectorSpaces not implemented.")
+            # if self.sparse != space.sparse:
+            #     raise ValueError("Converting between sparse and non-sparse "
+            #                      "VectorSpaces not implemented.")
+            to_type = space.dtype
+
             result = batch
         else:
             raise NotImplementedError(str(self) +
                                       " doesn't know how to format as " +
                                       str(space))
 
-        return _cast(result, self.dtype)
+        return _cast(result, dtype=to_type)
 
     def __eq__(self, other):
         """
@@ -592,7 +612,10 @@ class VectorSpace(TypedSpace):
 
             WRITEME
         """
-        return type(self) == type(other) and self.dim == other.dim
+        return (type(self) == type(other) and
+                self.dim == other.dim and
+                self.sparse == other.sparse and
+                self.dtype == other.dtype)
 
     def __hash__(self):
         """
@@ -600,7 +623,7 @@ class VectorSpace(TypedSpace):
 
             WRITEME
         """
-        return hash((type(self), self.dim))
+        return hash((type(self), self.dim, self.sparse, self.dtype))
 
     def _validate(self, batch):
         """
@@ -733,8 +756,9 @@ class Conv2DSpace(TypedSpace):
         """
         return (type(self) == type(other) and
                 self.shape == other.shape and
-                self.num_channels == other.num_channels
-                and tuple(self.axes) == tuple(other.axes))
+                self.num_channels == other.num_channels and
+                tuple(self.axes) == tuple(other.axes) and
+                self.dtype == other.dtype)
 
     def __hash__(self):
         """
@@ -742,13 +766,17 @@ class Conv2DSpace(TypedSpace):
 
             WRITEME
         """
-        return hash((type(self), self.shape, self.num_channels, self.axes))
+        return hash((type(self),
+                     self.shape,
+                     self.num_channels,
+                     self.axes,
+                     self.dtype))
 
     @functools.wraps(Space.get_origin)
     def get_origin(self):
         dims = {0: self.shape[0], 1: self.shape[1], 'c': self.num_channels}
         shape = [dims[elem] for elem in self.axes if elem != 'b']
-        return np.zeros(shape)
+        return np.zeros(shape, dtype=self.dtype)
 
     @functools.wraps(Space.get_origin_batch)
     def get_origin_batch(self, n, dtype=None):
@@ -916,6 +944,11 @@ class Conv2DSpace(TypedSpace):
     def np_format_as(self, batch, space):
         self.np_validate(batch)
         if isinstance(space, VectorSpace):
+
+            if isinstance(batch, theano.sparse.SparseVariable):
+                raise TypeError("Formatting a SparseVariable to a VectorSpace "
+                                "not supported (can't reshape)")
+
             # We need to ensure that the resulting batch will always be
             # the same in `space`, no matter what the axes of `self` are.
             if self.axes != self.default_axes:
