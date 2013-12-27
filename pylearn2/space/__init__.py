@@ -488,7 +488,8 @@ class VectorSpace(TypedSpace):
                 width = component.get_total_dimension()
                 subtensor = batch[:, pos:pos+width]
                 pos += width
-                formatted = VectorSpace(width).format_as(subtensor, component)
+                vector_subspace = VectorSpace(dim=width, dtype=self.dtype)
+                formatted = vector_subspace.format_as(subtensor, component)
                 pieces.append(formatted)
             result = tuple(pieces)
 
