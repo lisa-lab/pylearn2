@@ -12,22 +12,14 @@ Script to obtain version of Python modules as a string.
 e.g. numpy:1.6.1 | pylearn:a6e634b83d | pylearn2:57a156beb0
 """
 
-
 import argparse
 import copy
-import datetime
+import importlib
 import os
+import platform
 import socket
 import subprocess
 import sys
-import time
-
-import jobman
-import numpy
-import pylearn
-import pylearn2
-import scipy
-import theano
 
 
 class LibVersion(object):
@@ -42,34 +34,84 @@ class LibVersion(object):
         """
         self.versions = {}
         self.str_versions = ''
+        self.exp_env_info = {}
         self._get_lib_versions()
+        self._get_exp_env_info()
+        
+    def _get_exp_env_info(self):
+	"""
+	Get information about the experimental environment.
+	"""
+	self.exp_env_info['host'] = socket.gethostname()
+	self.exp_env_info['cpu'] = platform.processor()
+	self.exp_env_info['os'] = platform.platform()
+	if 'theano' in sys.modules:
+	    self.exp_env_info['theano_config'] = sys.modules['theano'].config
+	else:
+	    self.exp_env_info['theano_config'] = None
 
     def _get_lib_versions(self):
         """
         Get version of Python packages.
         """
+        
+        repos = os.getenv('PYLEARN2_TRACK_MODULES', None)
+        if repos is not None:
+            repos = repos.split(':')
+            for repo in repos:
+	        try:
+		    importlib.import_module(repo)
+		    self.versions[repo] = self._get_git_version(self._get_module_parent_path(sys.modules[repo]))
+	        except ImportError:
+		    self.versions[repo] = None
+        
         # pylearn.
-        self.versions['pylearn'] = self._get_hg_version(self._get_module_parent_path(pylearn))
+        try:
+	    import pylearn
+	    self.versions['pylearn'] = self._get_hg_version(self._get_module_parent_path(pylearn))
+	except ImportError:
+	    self.versions['pylearn'] = None
 
         # pylearn2.
-        self.versions['pylearn2'] = self._get_git_version(self._get_module_parent_path(pylearn2))
+        try:
+	    import pylearn2
+	    self.versions['pylearn2'] = self._get_git_version(self._get_module_parent_path(pylearn2))
+	except ImportError:
+	    self.versions['pylearn2'] = None
 
         # Theano.
-        v = theano.__version__
-        if v == 'unknown':
-            v = self._get_git_version(self._get_module_parent_path(theano))
-        self.versions['theano'] = v
+        try:
+	    import theano
+	    v = theano.__version__
+	    if v == 'unknown':
+		v = self._get_git_version(self._get_module_parent_path(theano))
+	    self.versions['theano'] = v
+	except ImportError:
+	    self.versions['theano'] = None
 
         # Jobman: will only work with old assembla version (there is no version
         # number currently available when running setup.py).
-        self.versions['jobman'] = self._get_hg_version(self._get_module_parent_path(jobman))
-
+        try:
+	    import jobman
+	    self.versions['jobman'] = self._get_hg_version(self._get_module_parent_path(jobman))
+	except ImportError:
+	    self.versions['jobman'] = None
+	
         # Numpy.
-        self.versions['numpy'] = numpy.__version__
+        try:
+	    import numpy
+	    self.versions['numpy'] = numpy.__version__
+	except ImportError:
+	    self.versions['numpy'] = None
 
         # Scipy.
-        self.versions['scipy'] = scipy.__version__
-        known = copy.copy(self.versions)
+        try:
+	    import scipy
+	    self.versions['scipy'] = scipy.__version__
+	except ImportError:
+	    self.versions['scipy'] = None
+	    
+	known = copy.copy(self.versions)
         # Put together all modules with unknown versions.
         unknown = []
         for k, v in known.items():
@@ -151,6 +193,20 @@ class LibVersion(object):
         e.g. numpy:1.6.1 | pylearn:a6e634b83d | pylearn2:57a156beb0
         """
         return self.__str__()
+        
+    def get_exp_env_info(self, print_theano_config=False):
+	"""
+        Return basic information about the experiment setup such as the hostname
+        of the machine the experiment was run on, the operating system installed
+        on the machine.
+        If the switch print_theano_config is set to True, then information about
+        the theano configuration will be displayed.
+        """
+	print 'HOST: ', self.exp_env_info['host']
+	print 'CPU: ', self.exp_env_info['cpu']
+	print 'OS: ', self.exp_env_info['os']	
+	if print_theano_config:
+	    print self.exp_env_info['theano_config']
 
 
 def main():
@@ -164,6 +220,7 @@ def main():
     # Obtain versions of the various Python packages.
     libv = LibVersion()
     print libv.get_versions()
+    print libv.get_exp_env_info()
 
     return 0
 
