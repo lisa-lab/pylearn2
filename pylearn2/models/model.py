@@ -20,6 +20,7 @@ class Model(object):
     """
     A class representing a model with learnable parameters.
     """
+
     __metaclass__ = MetaLibVersion
     _test_batch_size = 2
     
@@ -424,6 +425,17 @@ class Model(object):
         size or to keep the memory usage of testing under control.)
         """
         return self._test_batch_size
+
+    def print_versions(self, print_theano_config=False):
+        """
+        Print version of the various Python packages and basic information
+        about the experiment setup (e.g. cpu, os)
+        e.g. numpy:1.6.1 | pylearn:a6e634b83d | pylearn2:57a156beb0
+             CPU: x86_64
+             OS: Linux-2.6.35.14-106.fc14.x86_64-x86_64-with-fedora-14-Laughlin
+        """
+        self.libv.print_versions()
+        self.libv.print_exp_env_info()
 
     def register_names_to_del(self, names):
         """
