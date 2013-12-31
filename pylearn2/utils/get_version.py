@@ -31,11 +31,11 @@ import subprocess
 import sys
 
 
-class MetaClass(type):
+class MetaLibVersion(type):
     def __init__(cls, name, bases, dict):
         """
         Constructor that will be called everytime another's class constructor
-        is called (if the "__metaclass__ = MetaClass" line is present in the
+        is called (if the "__metaclass__ = MetaLibVersion" line is present in the
         other class definition).
         """
         type.__init__(cls, name, bases, dict)
