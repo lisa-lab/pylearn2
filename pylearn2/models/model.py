@@ -435,7 +435,7 @@ class Model(object):
              OS: Linux-2.6.35.14-106.fc14.x86_64-x86_64-with-fedora-14-Laughlin
         """
         self.libv.print_versions()
-        self.libv.print_exp_env_info()
+        self.libv.print_exp_env_info(print_theano_config)
 
     def register_names_to_del(self, names):
         """
