@@ -18,7 +18,7 @@ e.g. numpy:1.6.1 | pylearn:a6e634b83d | pylearn2:57a156beb0
 import argparse
 import sys
 
-from pylearn2.utils.get_version import LibVersion
+from pylearn2.utils.track_version import LibVersion
 
 
 def main():
