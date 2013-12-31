@@ -13,15 +13,14 @@ from theano import tensor as T
 
 from pylearn2.space import NullSpace
 from pylearn2.utils import function
-from pylearn2.utils.get_version import MetaClass
+from pylearn2.utils.get_version import MetaLibVersion
 
 
 class Model(object):
     """
     A class representing a model with learnable parameters.
     """
-
-    __metaclass__ = MetaClass
+    __metaclass__ = MetaLibVersion
     _test_batch_size = 2
     
     def get_default_cost(self):
