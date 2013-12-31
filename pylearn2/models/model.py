@@ -15,13 +15,14 @@ from theano import tensor as T
 from theano import shared
 
 from pylearn2.space import NullSpace
-from pylearn2.scripts.get_version import LibVersion
+from pylearn2.utils.get_version import MetaClass
 
 
 class Model(object):
     """
     A class representing a model with learnable parameters.
     """
+    __metaclass__ = MetaClass
 
     def get_default_cost(self):
         """
@@ -346,14 +347,16 @@ class Model(object):
         self.names_to_del = set()
         self._test_batch_size = 2
    
-    def get_versions(self):
+    def print_versions(self, print_theano_config=False):
         """
-        Obtain version of the various Python packages as a string.
+        Print version of the various Python packages and basic information
+        about the experiment setup (e.g. cpu, os)
         e.g. numpy:1.6.1 | pylearn:a6e634b83d | pylearn2:57a156beb0
+             CPU: x86_64
+             OS: Linux-2.6.35.14-106.fc14.x86_64-x86_64-with-fedora-14-Laughlin
         """
-        if not hasattr(self, 'libv'):
-            self.libv = LibVersion()
-        return self.libv.get_versions()
+        self.libv.print_versions()
+        self.libv.print_exp_env_info()
 
     def get_test_batch_size(self):
         """ Batches of examples used to initialize
