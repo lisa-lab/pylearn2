@@ -15,7 +15,7 @@ from theano import tensor as T
 from theano import shared
 
 from pylearn2.space import NullSpace
-from pylearn2.utils.get_version import MetaLibVersion
+from pylearn2.utils.track_version import MetaLibVersion
 
 
 class Model(object):
