@@ -40,14 +40,14 @@ from theano import tensor
 from theano.tensor import TensorType
 from theano.gof.op import get_debug_values
 from theano.sandbox.cuda.type import CudaNdarrayType
-from pylearn2.utils import (py_integer_types, 
-                            safe_zip, 
-                            sharedX)
+from pylearn2.utils import py_integer_types, safe_zip, sharedX
 
 if theano.sparse.enable_sparse:
     # We know scipy.sparse is available
     import scipy.sparse
 
+def _ndarray_to_sparse(batch):
+    return scipy.sparse.csr_from_dense(batch)
 
 def _reshape(arg, shape):
     if isinstance(arg, (np.ndarray, theano.tensor.TensorVariable)):
@@ -85,12 +85,17 @@ def _cast(arg, dtype):
 
     assert dtype in tuple(t.dtype for t in theano.scalar.all_types)
 
-    if isinstance(arg, np.ndarray):
-        return np.asarray(arg, dtype=dtype)
-    elif isinstance(arg, tuple):
-        return tuple(_cast(a, dtype) for a in arg)
-    elif isinstance(arg, (theano.tensor.TensorVariable,
-                          theano.tensor.TensorConstant)):
+    if isinstance(arg, tuple):
+        if isinstance(dtype, tuple):
+            return tuple(_cast(a, d) for a, d in safe_zip(arg, dtype)
+        else:
+            return tuple(_cast(a, dtype) for a in arg)
+    elif isinstance(arg, np.ndarray):
+        # theano._asarray is a safer drop-in replacement to numpy.asarray.
+        return theano._asarray(arg, dtype=dtype)
+    elif scipy.sparse.issparse(arg):
+        return arg.astype(dtype)
+    elif isinstance(arg, theano.tensor.TensorVariable):
         return theano.tensor.cast(arg, dtype)
     elif isinstance(arg, theano.sparse.SparseVariable):
         return theano.sparse.cast(arg, dtype)
@@ -102,7 +107,7 @@ class Space(object):
     """A vector space that can be transformed by a linear operator."""
 
     def __init__(self, validate_callbacks = None,
-            np_validate_callbacks = None):
+                 np_validate_callbacks = None):
         """
         Initialize a Space.
 
@@ -168,10 +173,7 @@ class Space(object):
         """
         raise NotImplementedError()
 
-    def make_shared_batch(self,
-                          batch_size,
-                          name=None,
-                          dtype=None):
+    def make_shared_batch(self, batch_size, name=None, dtype=None):
         """
         .. todo::
 
@@ -189,10 +191,7 @@ class Space(object):
 
         return sharedX(self.get_origin_batch(batch_size), name, dtype=dtype)
 
-    def make_theano_batch(self,
-                          name=None,
-                          dtype=None,
-                          batch_size=None):
+    def make_theano_batch(self, name=None, dtype=None, batch_size=None):
         """
         Returns a symbolic variable representing a batch of points
         in this space.
@@ -509,14 +508,18 @@ class VectorSpace(TypedSpace):
 
     @functools.wraps(Space.get_origin_batch)
     def get_origin_batch(self, n, dtype=None):
-        if self.sparse:
-            raise TypeError("get_origin_batch() not yet implemented for "
-                            "sparse VectorSpaces. (Should return some type of "
-                            "sparse matrix from scipy.sparse)")
-
         dtype = self._check_dtype_arg(dtype)
 
-        return np.zeros((n, self.dim), dtype=dtype)
+        if self.sparse:
+            # print "making a %d x %d sparse scipy matrix with dtype %s" % (n, self.dim, dtype)
+            result = scipy.sparse.csr_matrix((n, self.dim), dtype=dtype)
+            # print "result.shape, result.type = ", str(result.shape), type(result)
+            return result
+            # raise TypeError("get_origin_batch() not yet implemented for "
+            #                 "sparse VectorSpaces. (Should return some type of "
+            #                 "sparse matrix from scipy.sparse)")
+        else:
+            return np.zeros((n, self.dim), dtype=dtype)
 
     @functools.wraps(Space.batch_size)
     def batch_size(self, batch):
@@ -558,9 +561,9 @@ class VectorSpace(TypedSpace):
 
     @functools.wraps(Space.np_format_as)
     def np_format_as(self, batch, space):
-        if hasattr(space, 'sparse') and self.sparse != space.sparse:
-            raise ValueError("Converting between sparse and non-sparse "
-                             "VectorSpaces not implemented.")
+        # if hasattr(space, 'sparse') and self.sparse != space.sparse:
+        #     raise ValueError("Converting between sparse and non-sparse "
+        #                      "VectorSpaces not implemented.")
 
         self.np_validate(batch)
         return self._format_as(batch, space)
@@ -570,24 +573,34 @@ class VectorSpace(TypedSpace):
         to_type = None
 
         if isinstance(space, CompositeSpace):
+            if isinstance(batch, theano.sparse.SparseVariable):
+                warnings.warn('As of this writing (27 Dec 2013), Theano does '
+                              'not yet have a gradient operation for slicing '
+                              'SparseVariables (e.g. '
+                              '"my_matrix[r:R, c:C]"). If autodifferentiation '
+                              'is reporting an error, this may be why.')
             pos = 0
             pieces = []
             for component in space.components:
                 width = component.get_total_dimension()
                 subtensor = batch[:, pos:pos+width]
                 pos += width
-                vector_subspace = VectorSpace(dim=width, dtype=self.dtype)
+                vector_subspace = VectorSpace(dim=width,
+                                              dtype=self.dtype,
+                                              sparse=self.sparse)
                 formatted = vector_subspace.format_as(subtensor, component)
                 pieces.append(formatted)
+
             result = tuple(pieces)
 
         elif isinstance(space, Conv2DSpace):
-            if isinstance(batch, theano.sparse.SparseVariable):
+            if (isinstance(batch, theano.sparse.SparseVariable) or
+                scipy.sparse.issparse(batch)):
                 raise TypeError("Formatting a SparseVariable to a Conv2DSpace "
-                                "not supported, since Theano has no sparse "
-                                "tensors with more than 2 dimensions. We need "
-                                "4 dimensions to represent a Conv2DSpace "
-                                "batch")
+                                "is not supported, since neither scipy nor "
+                                "Theano has sparse tensors with more than 2 "
+                                "dimensions. We need 4 dimensions to "
+                                "represent a Conv2DSpace batch")
 
             dims = {'b': batch.shape[0],
                     'c': space.num_channels,
@@ -618,10 +631,10 @@ class VectorSpace(TypedSpace):
             to_type = space.dtype
 
             result = batch
+            to_type = space.dtype
         else:
-            raise NotImplementedError(str(self) +
-                                      " doesn't know how to format as " +
-                                      str(space))
+            raise NotImplementedError("%s doesn't know how to format as %s" %
+                                      (self, space))
 
         return _cast(result, dtype=to_type)
 
@@ -650,17 +663,21 @@ class VectorSpace(TypedSpace):
 
             WRITEME
         """
+
         if not isinstance(batch, theano.gof.Variable):
             raise TypeError("VectorSpace batch should be a theano Variable, "
                             "got " + str(type(batch)))
-        if not self.sparse and not isinstance(batch.type,
-                                              (theano.tensor.TensorType,
-                                               CudaNdarrayType)):
+
+        if self.sparse:
+            if not isinstance(batch.type, theano.sparse.SparseType):
+                raise TypeError('This VectorSpace is%s sparse, but the '
+                                'provided batch is not. (batch type: "%s")' %
+                                ('' if self.sparse else ' not', type(batch)))
+        elif not isinstance(batch.type, (theano.tensor.TensorType,
+                                         CudaNdarrayType)):
             raise TypeError("VectorSpace batch should be TensorType or "
                             "CudaNdarrayType, got "+str(batch.type))
-        if self.sparse and not isinstance(batch.type,
-                                          theano.sparse.SparseType):
-            raise TypeError()
+
         if batch.ndim != 2:
             raise ValueError('VectorSpace batches must be 2D, got %d '
                              'dimensions' % batch.ndim)
@@ -916,24 +933,41 @@ class Conv2DSpace(TypedSpace):
 
     @functools.wraps(Space._validate)
     def _validate(self, batch):
+        if isinstance(batch, theano.sparse.SparseVariable):
+            raise TypeError("Conv2DSpace cannot use SparseVariables, since as "
+                            "of this writing (28 Dec 2013), there is not yet "
+                            "a SparseVariable type with 4 dimensions")
+
         if not isinstance(batch, theano.gof.Variable):
             raise TypeError("Conv2DSpace batches must be theano Variables, "
                             "got "+str(type(batch)))
+
         if not isinstance(batch.type, (theano.tensor.TensorType,
                                        CudaNdarrayType)):
-            raise TypeError()
+            raise TypeError('Expected TensorType or CudaNdArrayType, got "%s"'
+                            % type(batch.type))
+
         if batch.ndim != 4:
-            raise ValueError()
+            raise ValueError("The value of a Conv2DSpace batch must be "
+                             "4D, got %d dimensions for %s." %
+                             (batch.ndim, batch))
+
         for val in get_debug_values(batch):
             self.np_validate(val)
 
     @functools.wraps(Space._np_validate)
     def _np_validate(self, batch):
+        if scipy.sparse.issparse(batch):
+            raise TypeError("Conv2DSpace cannot use sparse batches, since "
+                            "scipy.sparse does not support 4 dimensional "
+                            "tensors currently (28 Dec 2013).")
+
         if (not isinstance(batch, np.ndarray)
                 and type(batch) != 'CudaNdarray'):
             raise TypeError("The value of a Conv2DSpace batch should be a "
                             "numpy.ndarray, or CudaNdarray, but is %s."
                             % str(type(batch)))
+
         if batch.ndim != 4:
             raise ValueError("The value of a Conv2DSpace batch must be "
                              "4D, got %d dimensions for %s." %
@@ -963,11 +997,6 @@ class Conv2DSpace(TypedSpace):
     def np_format_as(self, batch, space):
         self.np_validate(batch)
         if isinstance(space, VectorSpace):
-
-            # if isinstance(batch, theano.sparse.SparseVariable):
-            #     raise TypeError("Formatting a SparseVariable to a VectorSpace "
-            #                     "not supported (can't reshape)")
-
             # We need to ensure that the resulting batch will always be
             # the same in `space`, no matter what the axes of `self` are.
             if self.axes != self.default_axes:
@@ -977,6 +1006,9 @@ class Conv2DSpace(TypedSpace):
                                           for axis in self.default_axes])
             result = batch.reshape((batch.shape[0],
                                     self.get_total_dimension()))
+            if space.sparse:
+                result = _ndarray_to_sparse(batch)
+
         elif isinstance(space, Conv2DSpace):
             result = Conv2DSpace.convert_numpy(batch, self.axes, space.axes)
         else:
@@ -998,6 +1030,10 @@ class Conv2DSpace(TypedSpace):
                                           for axis in self.default_axes])
             result = batch.reshape((batch.shape[0],
                                     self.get_total_dimension()))
+            if space.sparse:
+                #result = _ndarray_to_sparse(result)
+                result = theano.sparse.csr_from_dense(result)
+
         elif isinstance(space, Conv2DSpace):
             result = Conv2DSpace.convert(batch, self.axes, space.axes)
         else:
@@ -1137,10 +1173,15 @@ class CompositeSpace(Space):
         if isinstance(space, VectorSpace):
             pieces = []
             for component, input_piece in zip(self.components, batch):
-                width = component.get_total_dimension()
-                pieces.append(component.np_format_as(input_piece,
-                                                     VectorSpace(width)))
-            return np.concatenate(pieces, axis=1)
+                subspace = VectorSpace(dim=component.get_total_dimension(),
+                                       dtype=space.dtype,
+                                       sparse=space.sparse)
+                pieces.append(component.np_format_as(input_piece, subspace))
+
+            if space.sparse:
+                return scipy.sparse.hstack(pieces)
+            else:
+                return np.concatenate(pieces, axis=1)
 
         if isinstance(space, CompositeSpace):
             def recursive_np_format_as(orig_space, batch, dest_space):
@@ -1197,10 +1238,15 @@ class CompositeSpace(Space):
         if isinstance(space, VectorSpace):
             pieces = []
             for component, input_piece in zip(self.components, batch):
-                width = component.get_total_dimension()
-                pieces.append(component.format_as(input_piece,
-                                                  VectorSpace(width)))
-            return tensor.concatenate(pieces, axis=1)
+                subspace = VectorSpace(dim=component.get_total_dimension(),
+                                       dtype=space.dtype,
+                                       sparse=space.sparse)
+                pieces.append(component.format_as(input_piece, subspace))
+
+            if space.sparse:
+                return theano.sparse.hstack(pieces)
+            else:
+                return tensor.concatenate(pieces, axis=1)
 
         if isinstance(space, CompositeSpace):
             def recursive_format_as(orig_space, batch, dest_space):
