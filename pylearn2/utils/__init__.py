@@ -1,7 +1,7 @@
 import os, warnings, numpy
 
 from .general import is_iterable
-import theano
+import theano, scipy
 # Delay import of pylearn2.config.yaml_parse and pylearn2.datasets.control
 # to avoid circular imports
 # pylint: disable-msgs=C0103
@@ -63,8 +63,14 @@ def sharedX(value, name=None, borrow=False, dtype=theano.config.floatX):
         types will therefore be booted off the GPU. Users are encouraged to
         stick to theano.config.floatX unless they know what they're doing.""",
         stacklevel=2)
-        
-    return theano.shared(theano._asarray(value, dtype=dtype),
+
+    if scipy.sparse.issparse(value):
+        value = value.astype(dtype)
+    else:
+        # a safer but equivalent alternative to numpy.asarray()
+        value = theano._asarray(value, dtype=dtype)
+
+    return theano.shared(value,
                          name=name,
                          borrow=borrow)
 
