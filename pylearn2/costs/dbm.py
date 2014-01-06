@@ -692,12 +692,9 @@ class WeightDecay(NullDataSpecsMixin, Cost):
     .. todo::
 
         WRITEME properly
-
     
     coeff * sum(sqr(weights))
-
     for each set of weights.
-
     """
 
     def __init__(self, coeffs):
