@@ -6,6 +6,8 @@ import numpy as np
 class TestMNIST(unittest.TestCase):
     def setUp(self):
         skip_if_no_data()
+        # TODO: the one_hot=True is only necessary because one_hot=False is
+        # broken, remove it after one_hot=False is fixed.
         self.train = MNIST(which_set = 'train', one_hot=True)
         self.test = MNIST(which_set = 'test', one_hot=True)
 
