@@ -346,7 +346,14 @@ class MLP(Layer):
         This usually resets the layer's parameters!
         """
         layers = self.layers
-        layers[0].set_input_space(self.input_space)
+        try:
+            layers[0].set_input_space(self.input_space)
+        except BadInputSpaceError, e:
+            raise TypeError("Layer 0 (" + str(layers[0]) + " of type " +
+                    str(type(layers[0])) + ") does not support the MLP's "
+                    + "specified input space (" + str(self.input_space) +
+                    " of type " + str(type(self.input_space)) + "). Original "
+                    "exception: " + str(e))
         for i in xrange(1,len(layers)):
             layers[i].set_input_space(layers[i-1].get_output_space())
 
@@ -2157,6 +2164,12 @@ class ConvRectifiedLinear(Layer):
     def set_input_space(self, space):
 
         self.input_space = space
+
+        if not isinstance(space, Conv2DSpace):
+            raise BadInputSpaceError("ConvRectifiedLinear.set_input_space expected "
+                    "a Conv2DSpace, got " + str(space) + " of type " +
+                    str(type(space)))
+
         rng = self.mlp.rng
 
         if self.border_mode == 'valid':
@@ -3117,3 +3130,9 @@ def geometric_mean_prediction(forward_props):
         presoftmax.append(out.owner.inputs[0])
     average = reduce(lambda x, y: x + y, presoftmax) / float(len(presoftmax))
     return T.nnet.softmax(average)
+
+class BadInputSpaceError(TypeError):
+    """
+    An error raised by an MLP layer when set_input_space is given an
+    object that is not one of the Spaces that layer supports.
+    """
