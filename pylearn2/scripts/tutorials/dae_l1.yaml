@@ -1,6 +1,7 @@
 !obj:pylearn2.train.Train {
     dataset: &train !obj:pylearn2.datasets.mnist.MNIST {
         which_set: 'train',
+        one_hot: 1,
         start: 0,
         stop: %(train_stop)i
     },

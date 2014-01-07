@@ -2,6 +2,7 @@
     dataset: &train !obj:pylearn2.datasets.transformer_dataset.TransformerDataset {
         raw: !obj:pylearn2.datasets.mnist.MNIST {
             which_set: 'train',
+            one_hot: 1,
             start: 0,
             stop: %(train_stop)i
         },
