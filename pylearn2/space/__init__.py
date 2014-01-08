@@ -50,7 +50,32 @@ def _is_theano_batch(batch):
     """
     Returns true if batch is a symbolic variable.
     """
-    return isinstance(batch, theano.gof.Variable)
+
+    assert not isinstance(batch, list)
+
+    if isinstance(batch, tuple):
+        # Return True if tuple is empty. Justification: we'd like
+        # is_theano_batch(space.make_theano_batch()) to always be True, even if
+        # space is an empty CompositeSpace.
+        if len(batch) == 0:
+            return True
+
+        subbatch_results = tuple(_is_theano_batch(b) for b in batch)
+        result = all(subbatch_results)
+
+        # The subbatch_results must be all true, or all false, not a mix.
+        assert result == any(subbatch_results), ("composite batch had a "
+                                                 "mixture of numeric and "
+                                                 "symbolic subbatches. This "
+                                                 "should never happen.")
+        return result
+    else:
+
+        result = isinstance(batch, theano.gof.Variable)
+        # if not result:
+        #     print "returning False for ", batch
+        return result
+
 
 # def _ndarray_to_sparse(batch):
 #     return
@@ -104,10 +129,7 @@ def _cast(arg, dtype):
         return tuple(_cast(a, dtype) for a in arg)
     elif isinstance(arg, np.ndarray):
         # theano._asarray is a safer drop-in replacement to numpy.asarray.
-        result = theano._asarray(arg, dtype=dtype)
-        print "casting np.ndarray from %s to %s, got %s" % (arg.dtype, dtype, result.dtype)
-
-        return result
+        return theano._asarray(arg, dtype=dtype)
     elif scipy.sparse.issparse(arg):
         return arg.astype(dtype)
     elif isinstance(arg, theano.tensor.TensorVariable):
@@ -199,7 +221,10 @@ class Space(object):
         # else:
         #     origin_batch = self.get_origin_batch(batch_size)
 
-        return sharedX(origin_batch, name, dtype=dtype)
+        # return sharedX(origin_batch, name, dtype=dtype)
+
+        #  dtype is None, to preserve origin_batch's dtype
+        return sharedX(origin_batch, name, dtype=None)
 
     def make_theano_batch(self, name=None, dtype=None, batch_size=None):
         """
@@ -416,8 +441,8 @@ class Space(object):
 
         if dtype not in ((None, ) +
                          tuple(x.dtype for x in theano.scalar.all_types)):
-            raise TypeError('Unrecognized value "%s" for dtype arg' %
-                            str(dtype))
+            raise TypeError('Unrecognized value "%s" (type %s) for dtype arg' %
+                            (dtype, type(dtype)))
 
         return dtype
 
@@ -630,7 +655,6 @@ class VectorSpace(TypedSpace):
             raise NotImplementedError("%s doesn't know how to format as %s" %
                                       (self, space))
 
-        print "_cast'ing %s to %s" % (result, to_type)
         return _cast(result, dtype=to_type)
 
     def __eq__(self, other):
@@ -1054,8 +1078,13 @@ class Conv2DSpace(TypedSpace):
         else:
             raise NotImplementedError("%s doesn't know how to format as %s"
                                       % (str(self), str(space)))
-
-        return _cast(result, self.dtype)
+        # print ("In Conv2DSpace.format_as,\n"
+        #        "from_space: %s\n"
+        #        "to_space: %s\n"
+        #        "batch:%s)" % (self, space, type(batch)))
+        result = _cast(result, space.dtype)
+        # print "got result of cast: ", type(result)
+        return result
 
 
 class CompositeSpace(Space):
@@ -1104,6 +1133,28 @@ class CompositeSpace(Space):
         return '%(classname)s(%(components)s)' % \
                dict(classname=self.__class__.__name__,
                     components=', '.join([str(c) for c in self.components]))
+
+    # def breadth_first_preorder_iter(self):
+    #     """
+    #     Returns an iterator that traverses the component tree in breadth-first
+    #     preorder.
+    #     """
+    #     yield self
+    #     for component in self.components:
+    #         if isinstance(component, CompositeSpace):
+    #             for descendant in component.breadth_first_iter():
+    #                 yield descendant
+    #         else:
+    #             yield component
+
+    # def breadth_first_leaf_iter(self):
+    #     """
+    #     Returns an iterator that traverses the leaves in breadth-first
+    #     preorder.
+    #     """
+    #     return itertools.ifilter(self.breadth_first_preorder_iter(),
+    #                              lambda x: not isinstance(x, CompositeSpace))
+
 
     def restrict(self, subset):
         """
@@ -1156,6 +1207,19 @@ class CompositeSpace(Space):
     def get_total_dimension(self):
         return sum([component.get_total_dimension() for component in
                     self.components])
+
+    @functools.wraps(Space.make_shared_batch)
+    def make_shared_batch(self, batch_size, name=None, dtype=None):
+        dtype = self._check_dtype_arg(dtype)
+        batch = self.get_origin_batch(batch_size, dtype)
+
+        def recursive_sharedX(batch):
+            if isinstance(batch, tuple):
+                return tuple(recursive_sharedX(b) for b in batch)
+            else:
+                return sharedX(batch, name, dtype=None)
+
+        return recursive_sharedX(batch)
 
     # @functools.wraps(Space.np_format_as)
     # def np_format_as(self, batch, space):
@@ -1259,7 +1323,25 @@ class CompositeSpace(Space):
                                        sparse=space.sparse)
                 pieces.append(component.format_as(input_piece, subspace))
 
-            if _is_theano_batch(tensor):
+            # Pieces should all have the same dtype, before we concatenate them
+            if len(pieces) > 0:
+                for piece in pieces[1:]:
+                    if pieces[0].dtype != piece.dtype:
+                        assert space.dtype is None
+                        raise TypeError("Tried to format components with "
+                                        "differing dtypes into a VectorSpace "
+                                        "with no dtype of its own. "
+                                        "dtypes: %s" %
+                                        str(tuple(str(p.dtype)
+                                                  for p in pieces)))
+
+            # print "batch type: ", type(batch)
+            # print "_is_theano_batch(batch): ", _is_theano_batch(batch)
+            # print "pieces: ", pieces
+            # print "_is_theano_batch(pieces): ", _is_theano_batch(tuple(pieces))
+            # print "pieces' dtypes: ", [d.dtype for d in pieces]
+
+            if _is_theano_batch(batch):
                 if space.sparse:
                     return theano.sparse.hstack(pieces)
                 else:
