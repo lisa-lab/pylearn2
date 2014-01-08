@@ -45,10 +45,13 @@ def sharedX(value, name=None, borrow=False, dtype=theano.config.floatX):
     value : WRITEME
     name : WRITEME
     borrow : WRITEME
-    dtype : a string corresponding to a Theano scalar type. Note that as of
-            this writing (16 Dec 2013), Theano has GPU support only for
-            theano.config.floatX on the GPU. If you use any other dtype,
-            computations using it will get booted off the GPU. You are
+    dtype : If None, does nothing.
+            If a string representing a theano scalar type, (e.g. 'float32'),
+            the return value will be cast to this type.
+
+            Note that as of this writing (16 Dec 2013), Theano has GPU support
+            only for theano.config.floatX on the GPU. If you use any other
+            dtype, computations using it will get booted off the GPU. You are
             therefore encouranged not to use other dtypes unless you know what
             you're doing. See theano.scalar.all_types for a complete list of
             Theano scalar types.
@@ -57,22 +60,25 @@ def sharedX(value, name=None, borrow=False, dtype=theano.config.floatX):
     -------
     WRITEME
     """
-    assert isinstance(dtype, str)
-    assert dtype in (x.dtype for x in theano.scalar.all_types), \
-           'Unrecognized dtype "%s"' % str(dtype)
+
+    all_dtypes = tuple(x.dtype for x in theano.scalar.all_types)
+    assert dtype is None or dtype in all_dtypes, ('Unrecognized dtype "%s"' %
+                                                  dtype)
     if dtype != theano.config.floatX:
         warnings.warn("""
         As of this writing (21 Dec 2013), Theano only supports floats
         of type theano.config.floatX on the GPU. Any calculations using other
         types will therefore be booted off the GPU. Users are encouraged to
         stick to theano.config.floatX unless they know what they're doing.""",
-        stacklevel=2)
+                      stacklevel=2)
 
-    if scipy.sparse.issparse(value):
-        value = value.astype(dtype)
-    else:
-        # a safer but equivalent alternative to numpy.asarray()
-        value = theano._asarray(value, dtype=dtype)
+    # Casts value to dtype, if one is provided:
+    if dtype is not None:
+        if scipy.sparse.issparse(value):
+            value = value.astype(dtype)
+        else:
+            # a safer but equivalent alternative to numpy.asarray()
+            value = theano._asarray(value, dtype=dtype)
 
     return theano.shared(value,
                          name=name,
@@ -436,140 +442,3 @@ def float32_floatX(f):
     # If we don't do that, tests function won't be run.
     new_f.func_name = f.func_name
     return new_f
-
-
-def update_wrapper(wrapper,
-                   wrapped,
-                   assigned=WRAPPER_ASSIGNMENTS,
-                   concatenated=WRAPPER_CONCATENATIONS,
-                   append=False,
-                   updated=WRAPPER_UPDATES):
-    """
-    A Python decorator which acts like `functools.update_wrapper` but also has
-    the ability to concatenate attributes.
-
-    Parameters
-    ----------
-    wrapper : functon
-        Function to be updated
-    wrapped : function
-        Original function
-    assigned : tuple, optional
-        Tuple naming the attributes assigned directly from the wrapped function
-        to the wrapper function. Defaults to `utils.WRAPPER_ASSIGNMENTS`.
-    concatenated : tuple, optional
-        Tuple naming the attributes from the wrapped function concatenated with
-        the ones from the wrapper function. Defaults to
-        `utils.WRAPPER_CONCATENATIONS`.
-    append : bool, optional
-        If True, appends wrapped attributes to wrapper attributes instead of
-        prepending them. Defaults to False.
-    updated : tuple, optional
-        Tuple naming the attributes of the wrapper that are updated with the
-        corresponding attribute from the wrapped function. Defaults to
-        `functools.WRAPPER_UPDATES`.
-
-    Returns
-    -------
-    wrapper : function
-        Updated wrapper function
-
-    Notes
-    -----
-    This can be used to concatenate the wrapper's docstring with the wrapped's
-    docstring and should help reduce the ammount of documentation to write: one
-    can use this decorator on child classes' functions when their
-    implementation is similar to the one of the parent class. Conversely, if a
-    function defined in a child class departs from its parent's implementation,
-    one can simply explain the differences in a 'Notes' section without
-    re-writing the whole docstring.
-    """
-    for attr in assigned:
-        setattr(wrapper, attr, getattr(wrapped, attr))
-    for attr in concatenated:
-        # Make sure attributes are not None
-        if getattr(wrapped, attr) is None:
-            setattr(wrapped, attr, "")
-        if getattr(wrapper, attr) is None:
-            setattr(wrapper, attr, "")
-        if append:
-            setattr(wrapper,
-                    attr,
-                    getattr(wrapped, attr) + getattr(wrapper, attr))
-        else:
-            setattr(wrapper,
-                    attr,
-                    getattr(wrapper, attr) + getattr(wrapped, attr))
-    for attr in updated:
-        getattr(wrapper, attr).update(getattr(wrapped, attr, {}))
-    # Return the wrapper so this can be used as a decorator via partial()
-    return wrapper
-
-
-def wraps(wrapped,
-          assigned=WRAPPER_ASSIGNMENTS,
-          concatenated=WRAPPER_CONCATENATIONS,
-          append=False,
-          updated=WRAPPER_UPDATES):
-    """
-    Decorator factory to apply `update_wrapper()` to a wrapper function
-
-    Returns a decorator that invokes `update_wrapper()` with the decorated
-    function as the wrapper argument and the arguments to `wraps()` as the
-    remaining arguments. Default arguments are as for `update_wrapper()`.
-    This is a convenience function to simplify applying `partial()` to
-    `update_wrapper()`.
-
-    Examples
-    --------
-    >>> class Parent(object):
-    ...     def f(x):
-    ...        '''
-    ...        Adds 1 to x
-    ...        
-    ...        Parameters
-    ...        ----------
-    ...        x : int
-    ...            Variable to increment by 1
-    ...
-    ...        Returns
-    ...        -------
-    ...        rval : int
-    ...            x incremented by 1
-    ...        '''
-    ...        rval = x + 1
-    ...        return rval
-    ...
-    >>> class Child(Parent):
-    ...     @wraps(Parent.f)
-    ...     def f(x):
-    ...        '''
-    ...        Notes
-    ...        -----
-    ...        Also prints the incremented value
-    ...        '''
-    ...        rval = x + 1
-    ...        print rval
-    ...        return rval
-    ...
-    >>> c = Child()
-    >>> print c.f.__doc__
-
-        Adds 1 to x
-        
-        Parameters
-        ----------
-        x : int
-            Variable to increment by 1
-    
-        Returns
-        -------
-        rval : int
-           x incremented by 1
-    
-        Notes
-        -----
-        Also prints the incremented value
-    """
-    return partial(update_wrapper, wrapped=wrapped, assigned=assigned,
-                   append=append,updated=updated)
