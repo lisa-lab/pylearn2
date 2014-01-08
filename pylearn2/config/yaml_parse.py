@@ -82,7 +82,8 @@ def load_path(path, overrides=None, **kwargs):
     f.close()
 
     if not isinstance(content, str):
-        raise AssertionError("Expected content to be of type str but it is "+str(type(content)))
+        raise AssertionError("Expected content to be of type str, got " +
+                             str(type(content)))
 
     return load(content, **kwargs)
 
@@ -132,8 +133,8 @@ def instantiate_all(graph):
     """
 
     def should_instantiate(obj):
-        classes = [ObjectProxy, dict, list]
-        return True in [isinstance(obj, cls) for cls in classes]
+        classes = (ObjectProxy, dict, list)
+        return isinstance(obj, classes)
 
     if not isinstance(graph, list):
         for key in graph:
@@ -258,13 +259,11 @@ def try_to_import(tag_suffix):
                 except:
                     base_msg = 'Could not import %s' % modulename
                     if j > 1:
-                        modulename = '.'.join(pcomponents[:j-1])
+                        modulename = '.'.join(pcomponents[:j - 1])
                         base_msg += ' but could import %s' % modulename
-                    raise ImportError(base_msg + '. Original exception: '+str(e))
+                    raise ImportError(base_msg + '. Original exception: '
+                                      + str(e))
                 j += 1
-
-
-
     try:
         obj = eval(tag_suffix)
     except AttributeError, e:
@@ -277,15 +276,15 @@ def try_to_import(tag_suffix):
             field = pieces[-1]
             candidates = dir(eval(module))
 
-            msg = ('Could not evaluate %s. ' % tag_suffix) + \
-            'Did you mean ' + match(field, candidates) +'? '+ \
-            'Original error was '+str(e)
+            msg = ('Could not evaluate %s. ' % tag_suffix +
+                   'Did you mean ' + match(field, candidates) + '? ' +
+                   'Original error was ' + str(e))
 
         except:
             warnings.warn("Attempt to decipher AttributeError failed")
-            raise AttributeError( ('Could not evaluate %s. ' % tag_suffix) +
-                'Original error was '+str(e))
-        raise AttributeError( msg )
+            raise AttributeError('Could not evaluate %s. ' % tag_suffix +
+                                 'Original error was ' + str(e))
+        raise AttributeError(msg)
     return obj
 
 
@@ -294,7 +293,7 @@ def multi_constructor(loader, tag_suffix, node):
     .. todo::
 
         WRITEME properly
-    
+
     Constructor function passed to PyYAML telling it how to construct
     objects from argument descriptions. See PyYAML documentation for
     details on the call signature.
@@ -316,7 +315,7 @@ def multi_constructor_pkl(loader, tag_suffix, node):
     .. todo::
 
         WRITEME properly
-    
+
     Constructor function passed to PyYAML telling it how to load
     objects from paths to .pkl files. See PyYAML documentation for
     details on the call signature.
@@ -324,7 +323,8 @@ def multi_constructor_pkl(loader, tag_suffix, node):
 
     mapping = loader.construct_yaml_str(node)
     if tag_suffix != "" and tag_suffix != u"":
-        raise AssertionError('Expected tag_suffix to be "" but it is "'+tag_suffix+'"')
+        raise AssertionError('Expected tag_suffix to be "" but it is "' +
+                             tag_suffix + '"')
 
     rval = ObjectProxy(None, {}, yaml.serialize(node))
     rval.instance = serial.load(mapping)
@@ -338,8 +338,8 @@ def multi_constructor_import(loader, tag_suffix, node):
 
         WRITEME
     """
-    yaml_src = yaml.serialize(node)
-    mapping = loader.construct_mapping(node)
+    yaml.serialize(node)
+    loader.construct_mapping(node)
     if '.' not in tag_suffix:
         raise yaml.YAMLError("import tag suffix contains no '.'")
     else:
