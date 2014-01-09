@@ -31,53 +31,22 @@ def make_name(variable, anon="anonymous_variable"):
     return anon
 
 
-def sharedX(value, name=None, borrow=False, dtype=theano.config.floatX):
+def sharedX(value, name=None, borrow=False):
     """
-    Transform value into a shared variable of the specified theano dtype.
+    Transform value into a shared variable.
 
     Parameters
     ----------
     value : WRITEME
     name : WRITEME
     borrow : WRITEME
-    dtype : If None, does nothing.
-            If a string representing a theano scalar type, (e.g. 'float32'),
-            the return value will be cast to this type.
-
-            Note that as of this writing (16 Dec 2013), Theano has GPU support
-            only for theano.config.floatX on the GPU. If you use any other
-            dtype, computations using it will get booted off the GPU. You are
-            therefore encouranged not to use other dtypes unless you know what
-            you're doing. See theano.scalar.all_types for a complete list of
-            Theano scalar types.
 
     Returns
     -------
     WRITEME
     """
 
-    all_dtypes = tuple(x.dtype for x in theano.scalar.all_types)
-    assert dtype is None or dtype in all_dtypes, ('Unrecognized dtype "%s"' %
-                                                  dtype)
-    if dtype != theano.config.floatX:
-        warnings.warn("""
-        As of this writing (21 Dec 2013), Theano only supports floats
-        of type theano.config.floatX on the GPU. Any calculations using other
-        types will therefore be booted off the GPU. Users are encouraged to
-        stick to theano.config.floatX unless they know what they're doing.""",
-                      stacklevel=2)
-
-    # Casts value to dtype, if one is provided:
-    if dtype is not None:
-        if scipy.sparse.issparse(value):
-            value = value.astype(dtype)
-        else:
-            # a safer but equivalent alternative to numpy.asarray()
-            value = theano._asarray(value, dtype=dtype)
-
-    return theano.shared(value,
-                         name=name,
-                         borrow=borrow)
+    return theano.shared(value, name=name, borrow=borrow)
 
 
 def as_floatX(variable):
