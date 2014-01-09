@@ -81,14 +81,14 @@ class Train(object):
                 self.save_path = '.'.join(tokens)
         self.save_freq = save_freq
 
-        if hasattr(self.dataset,'yaml_src'):
+        if hasattr(self.dataset, 'yaml_src'):
             self.model.dataset_yaml_src = self.dataset.yaml_src
         else:
             warnings.warn("dataset has no yaml src, model won't know what " +
                           "data it was trained on")
 
         self.extensions = extensions if extensions is not None else []
-        self.monitor_time = sharedX(value=0,name='seconds_per_epoch')
+        self.monitor_time = sharedX(value=0, name='seconds_per_epoch')
 
     def setup_extensions(self):
         """
@@ -116,7 +116,8 @@ class Train(object):
                                      "to control whether learning continues.")
                 self.model.monitor.report_epoch()
                 extension_continue = self.run_callbacks_and_monitoring()
-                if self.save_freq > 0 and self.model.monitor.epochs_seen % self.save_freq == 0:
+                freq = self.save_freq
+                if freq > 0 and self.model.monitor.epochs_seen % freq == 0:
                     self.save()
                 continue_learning = (self.model.continue_learning() and
                                      extension_continue)
@@ -131,7 +132,7 @@ class Train(object):
                 # to prevent an AttributeError later, but I think we could
                 # rewrite to avoid the AttributeError
                 raise RuntimeError("The algorithm is responsible for setting"
-                        " up the Monitor, but failed to.")
+                                   " up the Monitor, but failed to.")
             if len(self.model.monitor._datasets)>0:
                 # This monitoring channel keeps track of a shared variable,
                 # which does not need inputs nor data.
