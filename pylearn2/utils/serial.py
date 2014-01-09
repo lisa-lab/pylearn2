@@ -412,6 +412,7 @@ lush_magic = {
             507333715 : 'float64'
         }
 
+
 def read_bin_lush_matrix(filepath):
     """
     .. todo::
@@ -452,6 +453,7 @@ def read_bin_lush_matrix(filepath):
     f.close()
 
     return rval
+
 
 def load_train_file(config_file_path):
     """
