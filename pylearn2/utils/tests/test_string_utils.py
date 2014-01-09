@@ -9,7 +9,7 @@ from pylearn2.utils.string_utils import number_aware_alphabetical_key
 
 def test_preprocess():
     try:
-        keys = [str(uuid.uuid1()) for _ in xrange(3)]
+        keys = ["PYLEARN2_" + str(uuid.uuid1())[:8] for _ in xrange(3)]
         strs = ["${%s}" % k for k in keys]
         os.environ[keys[0]] = keys[1]
         # Test with os.environ only.
