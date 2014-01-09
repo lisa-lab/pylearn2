@@ -17,12 +17,19 @@ def preprocess(string, environ=None):
     ----------
     string : str
         String object to preprocess
+    environ : dict, optional
+        If supplied, preferentially accept values from
+        this dictionary as well as `os.environ`. That is,
+        if a key appears in both, this dictionary takes
+        precedence.
 
     Returns
     -------
     rval : str
         The preprocessed string
     """
+    if environ is None:
+        environ = {}
 
     split = string.split('${')
 
@@ -37,7 +44,8 @@ def preprocess(string, environ=None):
 
         varname = subsplit[0]
         try:
-            val = os.environ[varname]
+            val = (environ[varname] if varname in environ
+                   else os.environ[varname])
         except KeyError:
             if varname == 'PYLEARN2_DATA_PATH':
                 raise NoDataPathError()

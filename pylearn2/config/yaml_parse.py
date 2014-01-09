@@ -11,7 +11,7 @@ import warnings
 is_initialized = False
 
 
-def load(stream, overrides=None, **kwargs):
+def load(stream, overrides=None, environ=None, **kwargs):
     """
     Loads a YAML configuration from a string or file-like object.
 
@@ -20,16 +20,20 @@ def load(stream, overrides=None, **kwargs):
     stream : str or object
         Either a string containing valid YAML or a file-like object \
         supporting the .read() interface.
-    overrides : dict, optional
+    overrides : dict, optional [DEPRECATED]
         A dictionary containing overrides to apply. The location of \
         the override is specified in the key as a dot-delimited path \
         to the desired parameter, e.g. "model.corruptor.corruption_level".
+    environ : dict, optional
+        A dictionary used for ${FOO} substitutions in addition to
+        environment variables. If a key appears both in `os.environ`
+        and this dictionary, the value in this dictionary is used.
 
     Returns
     -------
     graph : dict or object
-        The dictionary or object (if the top-level element specified an \
-        Python object to instantiate).
+        The dictionary or object (if the top-level element specified
+        a Python object to instantiate).
 
     Notes
     -----
@@ -44,12 +48,14 @@ def load(stream, overrides=None, **kwargs):
     else:
         string = '\n'.join(stream.readlines())
 
-    processed_string = preprocess(string)
+    processed_string = preprocess(string, environ=environ)
 
     proxy_graph = yaml.load(processed_string, **kwargs)
 
     #import pdb; pdb.set_trace()
     if overrides is not None:
+        warnings.warn("The 'overrides' keyword is deprecated and will "
+                      "be removed on or after June 8, 2014.")
         handle_overrides(proxy_graph, overrides)
     return instantiate_all(proxy_graph)
 
