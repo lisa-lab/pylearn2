@@ -478,8 +478,7 @@ def load_train_file(config_file_path):
     else:
         config_file_full_stem = config_file_path
 
-    for varname in ["PYLEARN2_TRAIN_FILE_NAME", #this one is deprecated
-            "PYLEARN2_TRAIN_FILE_FULL_STEM"]: #this is the new, accepted name
+    for varname in ["PYLEARN2_TRAIN_FILE_FULL_STEM"]:
         environ.putenv(varname, config_file_full_stem)
 
     directory = config_file_path.split('/')[:-1]
