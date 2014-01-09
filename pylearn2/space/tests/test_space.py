@@ -18,6 +18,27 @@ from pylearn2.space import (Conv2DSpace,
 from pylearn2.utils import function, safe_zip
 
 
+def get_batch_dtype(batch):
+    """
+    Returns the dtype of a batch, as a string, or nested tuple of strings.
+
+    For simple batches such as ndarray, this returns str(batch.dtype).
+
+    For the None batches "used" by NullSpace, this returns a special string
+    "NullSpace dtype".
+
+    For composite batches, this returns (nested) tuples of dtypes.
+    """
+
+    if isinstance(batch, tuple):
+        return tuple(get_batch_dtype(b) for b in batch)
+    elif batch is None:
+        return "NullSpace dtype"
+    else:
+        return batch.dtype
+
+
+
 def tree_iter(arg, *args):
     """
     When called with a single argument:
@@ -155,30 +176,61 @@ def tree_iter(arg, *args):
     #             yield descendant
 
 
-def get_dtype(arg):
-    """
-    Returns the dtype of a batch or a space. Returns a nested tuple of dtype
-    strings if batch is a nested tuple of batches. Otherwise, this returns a
-    single dtype string.
-    """
 
-    if isinstance(arg, CompositeSpace):
-       return tuple(get_dtype(subspace) for subspace in arg.components)
-    elif isinstance(arg, tuple):
-        return tuple(get_dtype(subbatch) for subbatch in arg)
-    else:
-        return arg.dtype
+    # def _get_dtype(batch):
+    #     """
+    #     Returns a dtype string, or False if batch contains no data. We use
+    #     False instead of None to avoid confusion, because in other contexts
+    #     None is a valid dtype.
+    #     """
+
+    #     fake_dtype = "fake dtype for dataless Space"
+
+    #     if isinstance(batch, tuple):
+    #         dtypes = tuple(_get_dtype(b) for b in batch)
+    #         valid_dtypes = filter(lambda x: x != fake_dtype, batch)
+
+    #         if len(valid_dtypes) == 0:
+    #             return fake_dtype
+    #         # If there's only one kind of valid dtype, return it alone.
+    #         elif all(d == valid_dtypes[0] for d in valid_dtypes[1:]):
+    #             return valid_dtypes[0]
+    #         # If there's a mixture of valid dtypes, return all dtypes.
+    #         else:
+    #             return dtypes
+
+    #     if batch is None:  # e.g. a batch from NullSpace.get_origin_batch()
+    #         return False
+
+    #     if not hasattr(batch, 'dtype'):
+    #         raise TypeError("Expected all batches to be either tuple, "
+    #                         "None, or some data-carrying type that has a"
+    #                         ".dtype field. Instead got a %s." % type(batch))
+
+    #     return batch.dtype
+
+    # result = _get_dtype(batch)
+    # if result is False:
+    #     raise ValueError("Batch contained no data:\n"
+    #                      "%s" % str(batch))
+
+    # return result
 
 
-def specifies_all_dtypes(space):
-    """
-    Returns True iff space has a completely specified dtype.
-    """
-    if isinstance(space, CompositeSpace):
-        return all(specifies_all_dtypes(subspace)
-                   for subspace in space.components)
-    else:
-        return space.dtype is not None
+# def get_dtype(arg):
+#     """
+#     Returns the dtype of a batch or a space. Returns a nested tuple of dtype
+#     strings if batch is a nested tuple of batches. Otherwise, this returns a
+#     single dtype string.
+#     """
+
+#     if isinstance(arg, CompositeSpace):
+#        return tuple(get_dtype(subspace) for subspace in arg.components)
+#     elif isinstance(arg, tuple):
+#         return tuple(get_dtype(subbatch) for subbatch in arg)
+#     else:
+#         return arg.dtype
+
 
 
 # def is_theano_batch(batch):
@@ -492,13 +544,17 @@ def test_dtypes():
         """
         if isinstance(from_space, CompositeSpace):
             if not isinstance(to_dtype, tuple):
-                to_dtype = (to_dtype, ) * len(from_space.components)
-
-            return any(underspecifies_dtypes(s, d)
-                       for s, d
-                       in safe_zip(from_space.components, to_dtype))
+                return any(underspecifies_dtypes(s, to_dtype)
+                           for s in from_space.components)
+            else:
+                return any(underspecifies_dtypes(s, d)
+                           for s, d
+                           in safe_zip(from_space.components, to_dtype))
         else:
-            assert not isinstance(to_dtype, tuple)
+            assert not isinstance(to_dtype, tuple), ("Tree structure "
+                                                     "mismatch between "
+                                                     "from_space and "
+                                                     "to_dtype.")
             return from_space.dtype is None and to_dtype is None
 
     def get_expected_batch_dtype(from_space, to_dtype):
@@ -526,7 +582,7 @@ def test_dtypes():
 
         # Expect failure if neither we nor the from_space specifies a dtype
         if underspecifies_dtypes(from_space, to_type):
-            with assert_raises(RuntimeError) as context:
+            with assert_raises(TypeError) as context:
                 from_space.get_origin_batch(batch_size, dtype=to_type)
                 assert str(context.exception).find(dtype_is_none_msg) >= 0
 
@@ -539,7 +595,8 @@ def test_dtypes():
         #     to_type = from_space.dtype
         # if to_type == 'floatX':
         #     to_type = theano.config.floatX
-        assert get_dtype(batch) == get_expected_batch_dtype(from_space, to_type)
+        assert get_batch_dtype(batch) == get_expected_batch_dtype(from_space,
+                                                                  to_type)
 
         # assert str(batch.dtype) == to_type, \
         #     ("batch.dtype not equal to to_type (%s vs %s)" %
@@ -548,7 +605,7 @@ def test_dtypes():
     def test_make_shared_batch(from_space, to_type):
 
         if underspecifies_dtypes(from_space, to_type):
-            with assert_raises(RuntimeError) as context:
+            with assert_raises(TypeError) as context:
                 from_space.make_shared_batch(batch_size, dtype=to_type)
                 assert str(context.exception).find(dtype_is_none_msg) >= 0
 
@@ -559,10 +616,12 @@ def test_dtypes():
                                              dtype=to_type)
 
 
-        assert get_dtype(batch) == get_expected_batch_dtype(from_space, to_type), \
-               ("\nget_dtype(batch): %s\n"
+        assert get_batch_dtype(batch) == get_expected_batch_dtype(from_space,
+                                                                  to_type), \
+                ("\nget_batch_dtype(batch): %s\n"
                 "get_expected_batch_dtype(from_space, to_type): %s" %
-                (get_dtype(batch), get_expected_batch_dtype(from_space, to_type)))
+                (get_batch_dtype(batch),
+                 get_expected_batch_dtype(from_space, to_type)))
 
     def test_make_theano_batch(from_space, to_type):
         kwargs = {'name': 'batch',
@@ -573,14 +632,14 @@ def test_dtypes():
             kwargs['batch_size'] = batch_size
 
         if underspecifies_dtypes(from_space, to_type):
-            with assert_raises(RuntimeError) as context:
+            with assert_raises(TypeError) as context:
                 from_space.make_theano_batch(**kwargs)
                 assert str(context.exception).find(dtype_is_none_msg) >= 0
 
             return
 
         batch = from_space.make_theano_batch(**kwargs)
-        assert get_dtype(batch) == get_expected_batch_dtype(from_space, to_type)
+        assert get_batch_dtype(batch) == get_expected_batch_dtype(from_space, to_type)
 
         # if to_type is None:
         #     to_type = from_space.dtype
@@ -680,7 +739,7 @@ def test_dtypes():
     #     both from_space.dtype and to_type are None.
     #     """
     #     if from_space.dtype is None and to_type is None:
-    #         with assert_raises(RuntimeError) as context:
+    #         with assert_raises(TypeError) as context:
     #             method(batch_size, dtype=to_type)
     #             expected_msg = ("self.dtype is None, so you must "
     #                             "provide a non-None dtype argument "
@@ -710,6 +769,16 @@ def test_dtypes():
             Uses a fallback dtype if the space itself doesn't have one.
             """
 
+            def specifies_all_dtypes(space):
+                """
+                Returns True iff space has a completely specified dtype.
+                """
+                if isinstance(space, CompositeSpace):
+                    return all(specifies_all_dtypes(subspace)
+                               for subspace in space.components)
+                else:
+                    return space.dtype is not None
+
             def replace_none_dtypes(dtype, fallback_dtype):
                 """
                 Returns dtype, with any Nones replaced by fallback_dtype.
@@ -727,7 +796,7 @@ def test_dtypes():
             fallback_dtype = theano.config.floatX
 
             if not specifies_all_dtypes(space):
-                kwargs["dtype"] = replace_none_dtypes(get_dtype(space),
+                kwargs["dtype"] = replace_none_dtypes(space.dtype,
                                                       fallback_dtype)
 
             if using_numeric_batch:
@@ -746,128 +815,125 @@ def test_dtypes():
             from_space.np_format_as(batch, to_space). Returns None if no error
             should be expected.
             """
+
+            def contains_different_dtypes(space):
+                """
+                Returns true if space contains different dtypes. None is
+                considered distinct from all actual dtypes.
+                """
+
+                assert isinstance(space, CompositeSpace)
+
+                def get_shared_dtype_if_any(space):
+                    """
+                    Returns space's dtype. If space is composite, returns the dtype
+                    used by all of its subcomponents. Returns False if the
+                    subcomponents use different dtypes.
+                    """
+                    if isinstance(space, CompositeSpace):
+                        dtypes = tuple(get_shared_dtype_if_any(c)
+                                       for c in space.components)
+                        assert(len(dtypes) > 0)
+                        if any(d != dtypes[0] for d in dtypes[1:]):
+                            return False
+
+                        return dtypes[0]  # could be False, but that's fine
+                    else:
+                        return space.dtype
+
+                return get_shared_dtype_if_any(space) != False
+
+                # def has_dtype(space):
+                #     return not isinstance(space, (CompositeSpace,
+                #                                   NullSpace))
+                #     # return (not isinstance(space, (CompositeSpace,
+                #     #                                NullSpace)) and
+                #     #         space.dtype is not None)
+
+                # previous_dtype = None
+                # for subspace in ifilter(has_dtype, tree_iter(space)):
+                #     if previous_dtype is None:
+                #         previous_dtype = subspace.dtype
+                #     elif previous_dtype != subspace.dtype:
+                #         return True
+
+                # return False
+
+            assert (isinstance(from_space, CompositeSpace) ==
+                    isinstance(from_batch, tuple))
+
+            # composite -> composite
+            if isinstance(from_space, CompositeSpace) and \
+               isinstance(to_space, CompositeSpace):
+                for fs, fb, ts in safe_zip(from_space.components,
+                                           from_batch,
+                                           to_space.components):
+                    error, message = get_expected_error(fs, fb, ts)
+                    if error is not None:
+                        return error, message
+
+                return None, None
+
+
+            # composite -> simple
+            if isinstance(from_space, CompositeSpace):
+                if isinstance(to_space, Conv2DSpace):
+                    return (NotImplementedError,
+                            "CompositeSpace does not know how to format as "
+                            "Conv2DSpace")
+
+                for fs, fb in safe_zip(from_space.components, from_batch):
+                    error, message = get_expected_error(fs, fb, to_space)
+                    if error is not None:
+                        return error, message
+
+                if isinstance(to_space, VectorSpace) and \
+                   contains_different_dtypes(from_space) and \
+                   to_space.dtype is None:
+                    return (TypeError,
+                            "Tried to format components with differing dtypes "
+                            "into a VectorSpace with no dtype of its own. "
+                            "dtypes: ")
+
+                return None, None
+
+            # simple -> composite
+            if isinstance(to_space, CompositeSpace):
+                if isinstance(from_space, Conv2DSpace):
+                    return (NotImplementedError,
+                            "Conv2DSpace does not know how to format as "
+                            "CompositeSpace")
+
+                for ts in to_space.components:
+                    error, message = get_expected_error(from_space,
+                                                        from_batch,
+                                                        ts)
+                    if error is not None:
+                        return error, message
+
+                return None, None
+
             def is_sparse(space):
                 return isinstance(space, VectorSpace) and space.sparse
 
-            def composite_any(space, predicate):
-                """
-                Given a CompositeSpace space, this returns true if
-                predicate(x) is True for any component x.
-                """
-                if isinstance(space, CompositeSpace):
-                    return any(composite_any(subspace, predicate)
-                               for subspace in space.components)
-                else:
-                    return predicate(space)
-
-            def contains_conv2d(space):
-                return composite_any(space,
-                                     lambda x: isinstance(x, Conv2DSpace))
-
-            def throws_complex_to_real_error(from_space, batch, to_space):
-                """
-                Returns True iff from_space.format_as(batch, to_space)
-                involves converting complex numbers to real ones.
-                """
-                if isinstance(from_space, CompositeSpace) and \
-                   isinstance(to_space, CompositeSpace):
-                    return any(throws_complex_to_real_error(fs, batch, ts)
-                               for fs, ts
-                               in safe_zip(from_space.components,
-                                           to_space.components))
-                elif isinstance(from_space, CompositeSpace):
-                    return any(throws_complex_to_real_error(fs,
-                                                            batch,
-                                                            to_space)
-                               for fs in from_space.components)
-                elif isinstance(to_space, CompositeSpace):
-                    return any(throws_complex_to_real_error(from_space,
-                                                            batch,
-                                                            ts)
-                               for ts in to_space.components)
-                else:
-                    def is_complex(subspace):
-                        return (subspace.dtype is not None and
-                                subspace.dtype.startswith('complex'))
-
-                    def is_real(subspace):
-                        return (subspace.dtype is not None and
-                                not subspace.dtype.startswith('complex'))
-
-                    return (is_complex(from_space) and
-                            is_real(to_space) and
-                            _is_theano_batch(batch) and
-                            not is_sparse(to_space))
-
-            def contains_different_dtypes(space):
-                def has_dtype(space):
-                    return (not isinstance(space, (CompositeSpace,
-                                                   NullSpace)) and
-                            space.dtype is not None)
-
-                previous_dtype = None
-                for subspace in ifilter(has_dtype, tree_iter(space)):
-                    if previous_dtype is None:
-                        previous_dtype = subspace.dtype
-                    elif previous_dtype != subspace.dtype:
-                        return True
-
-                return False
-
-            if (isinstance(from_space, CompositeSpace) and
-                isinstance(to_space, CompositeSpace)):
-                for from_c, from_b, to_c in safe_zip(from_space.components,
-                                                     from_batch,
-                                                     to_space.components):
-                    error_type, message = get_expected_error(from_c,
-                                                             from_b,
-                                                             to_c)
-                    if error_type is not None:
-                        return error_type, message
-
-
-            if throws_complex_to_real_error(from_space, from_batch, to_space):
-                # print "from_space: ", from_space
-                # print "from_batch: ", from_batch
-                # print "to_space: ", to_space
-                # print "to_space is NOT sparse?: ", not is_sparse(to_space)
-                # print "from_batch is theano?: ", _is_theano_batch(from_batch)
-                return (TypeError, "Casting from complex to real is ambiguous")
-
-            elif (isinstance(from_space, CompositeSpace) and
-                  isinstance(to_space, Conv2DSpace)):
-                return (NotImplementedError,
-                        "Conv2DSpace does not know how to format as "
-                        "CompositeSpace")
-            elif (isinstance(from_space, CompositeSpace) and
-                  contains_different_dtypes(from_space) and
-                  isinstance(to_space, VectorSpace) and
-                  to_space.dtype is None):
-                return (TypeError,
-                        "Tried to format components with differing dtypes "
-                        "into a VectorSpace with no dtype of its own. "
-                        "dtypes: ")
-            elif (isinstance(from_space, Conv2DSpace) and
-                  isinstance(to_space, CompositeSpace)):
-                return (NotImplementedError,
-                        "CompositeSpace does not know how to format as "
-                        "Conv2DSpace")
-            elif is_sparse(from_space) and contains_conv2d(to_space):
+            # simple -> simple
+            if is_sparse(from_space) and isinstance(to_space, Conv2DSpace):
                 return (TypeError,
                         "Formatting a SparseVariable to a Conv2DSpace "
                         "is not supported, since neither scipy nor "
                         "Theano has sparse tensors with more than 2 "
                         "dimensions. We need 4 dimensions to "
                         "represent a Conv2DSpace batch")
-            else:
-                # print "\n\n"
-                # print "throws_complex_to_real_error(from_space, to_space)", throws_complex_to_real_error(from_space, to_space)
-                # print "_is_theano_batch(from_batch):", _is_theano_batch(from_batch)
-                # print "not is_sparse(to_space): ", not is_sparse(to_space)
-                # print "\n\n"
-                return (None, None)
 
-            assert False, "This line should not be reached. There is a bug."
+            if str(from_batch.dtype).startswith('complex') and \
+               to_space.dtype is not None and \
+               not to_space.dtype.startswith('complex') and \
+               _is_theano_batch(from_batch):
+                return (TypeError, "Casting from complex to real is ambiguous")
+
+            return None, None
+
+
 
         def get_expected_formatted_dtype(from_batch, to_space):
             """
@@ -885,11 +951,10 @@ def test_dtypes():
                 if isinstance(batch, tuple):
                     assert len(batch) > 0
                     child_dtypes = tuple(get_single_dtype(b) for b in batch)
-                    for dt in child_dtypes[1:]:
-                        assert dt == child_dtypes[0], \
-                               "dt: %s, child_dtypes[0]: %s" % \
-                               (dt, child_dtypes[0])
-                    return child_dtypes[0]
+                    if any(c != child_dtypes[0] for c in child_dtypes[1:]):
+                        return False
+
+                    return child_dtypes[0]  # may be False, but that's correct.
                 else:
                     return batch.dtype
 
@@ -904,12 +969,18 @@ def test_dtypes():
                 if to_space.dtype is not None:
                     return to_space.dtype
                 else:
-                    try:
-                        return get_single_dtype(from_batch)
-                    except AssertionError, ae:
-                        print "\nfrom_batch doesn't have a single dtype: %s" % str(get_dtype(from_batch))
+                    result = get_batch_dtype(from_batch)
+                    if result == False:
+                        raise TypeError("From_batch doesn't have a single "
+                                        "dtype: %s" %
+                                        str(get_batch_dtype(from_batch)))
+                    return result
+                    # try:
+                    #     return get_single_dtype(from_batch)
+                    # except AssertionError, ae:
+                    #     print
 
-                        raise ae
+                    #     raise ae
             # simple -> composite
             elif isinstance(to_space, CompositeSpace):
                 return tuple(get_expected_formatted_dtype(from_batch, s)
@@ -968,7 +1039,7 @@ def test_dtypes():
         #     raise e
 
         expected_dtypes = get_expected_formatted_dtype(from_batch, to_space)
-        actual_dtypes = get_dtype(to_batch)
+        actual_dtypes = get_batch_dtype(to_batch)
 
         # if expected_dtypes != actual_dtypes:
         #     print ("\nexpected_dtypes: %s,\n"
@@ -990,7 +1061,7 @@ def test_dtypes():
                 "to_space: %s" % (expected_dtypes,
                                   actual_dtypes,
                                   from_space,
-                                  get_dtype(from_batch),
+                                  get_batch_dtype(from_batch),
                                   _is_theano_batch(from_batch),
                                   to_space))
 

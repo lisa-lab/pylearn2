@@ -46,6 +46,7 @@ if theano.sparse.enable_sparse:
     # We know scipy.sparse is available
     import scipy.sparse
 
+
 def _is_theano_batch(batch):
     """
     Returns true if batch is a symbolic variable.
@@ -77,8 +78,6 @@ def _is_theano_batch(batch):
         return result
 
 
-# def _ndarray_to_sparse(batch):
-#     return
 
 def _dense_to_sparse(batch):
     if _is_theano_batch(batch):
@@ -168,6 +167,19 @@ class Space(object):
         """
         return str(self)
 
+    @property
+    def dtype(self):
+        raise NotImplementedError()
+
+    @dtype.setter
+    def dtype(self):
+        raise NotImplementedError()
+
+    @dtype.deleter
+    def dtype(self):
+        raise RuntimeError("You may not delete the dtype of a space, "
+                           "though you can set it to None.")
+
     def get_origin(self):
         """
         Returns the origin in this space.
@@ -202,29 +214,9 @@ class Space(object):
             WRITEME
         """
 
-        dtype = self._check_dtype_arg(dtype)
-
+        dtype = self._clean_dtype_arg(dtype)
         origin_batch = self.get_origin_batch(batch_size, dtype)
-        # if dtype is None and hasattr(self, 'dtype'):
-        #     if self.dtype is None:
-        #         raise TypeError("self.dtype is None, so you must "
-        #                         "provide a non-None dtype argument to "
-        #                         "make_shared_batch().")
-        #     else:
-        #         dtype = self.dtype  # pylint: disable-msg=E1101
-        # else:
-        #     dtype = self._check_dtype_arg(dtype)
-
-
-        # if hasattr(self, 'dtype'):
-        #     origin_batch = self.get_origin_batch(batch_size, dtype=dtype)
-        # else:
-        #     origin_batch = self.get_origin_batch(batch_size)
-
-        # return sharedX(origin_batch, name, dtype=dtype)
-
-        #  dtype is None, to preserve origin_batch's dtype
-        return sharedX(origin_batch, name, dtype=None)
+        return sharedX(origin_batch, name)
 
     def make_theano_batch(self, name=None, dtype=None, batch_size=None):
         """
@@ -234,15 +226,16 @@ class Space(object):
         Parameters
         ----------
         name : str
-            WRITEME
+            Variable name for the returned batch.
         dtype : str
-            WRITEME
+            Data type for the returned batch. If omitted (None), the space's
+            own dtype will be used.
         batch_size : int
-            WRITEME
+            Number of examples in the returned batch.
 
         Returns
         -------
-        batch : TensorVariable
+        batch : TensorVariable or SparseVariable
             A batch with the appropriate number of dimensions and \
             appropriate broadcast flags to represent a batch of \
             points in this space.
@@ -429,50 +422,59 @@ class Space(object):
         raise NotImplementedError(str(type(self)) + " does not implement " +
                                   "get_batch")
 
-    def _check_dtype_arg(self, dtype):
+    def _clean_dtype_arg(self, dtype):
         """
         Checks dtype argument for validity, and returns it if it is. If dtype
         is 'floatX', returns the theano.config.floatX dtype (this will either
         be 'float32' or 'float64'.
         """
 
+        # print "Space._clean_dtype_arg called with %s" % dtype
+
         if dtype == 'floatX':
             return theano.config.floatX
 
-        if dtype not in ((None, ) +
-                         tuple(x.dtype for x in theano.scalar.all_types)):
-            raise TypeError('Unrecognized value "%s" (type %s) for dtype arg' %
-                            (dtype, type(dtype)))
+        if dtype is None or \
+           dtype in tuple(x.dtype for x in theano.scalar.all_types):
+            return dtype
 
-        return dtype
+        raise TypeError('Unrecognized value "%s" (type %s) for dtype arg' %
+                        (dtype, type(dtype)))
 
 
-class TypedSpace(Space):
+class SimpleTypedSpace(Space):
     """
-    A space with a single dtype, like VectorSpace or Conv2DSpace, and unlike
-    CompositeSpace.
+    A non-composite space with a .dtype property.
     """
 
-    def __init__(self, dtype=None):
-        super(TypedSpace, self).__init__()
-        self.dtype = super(TypedSpace, self)._check_dtype_arg(dtype)
+    def __init__(self, dtype=theano.config.floatX):
+        super(SimpleTypedSpace, self).__init__()
+        self._dtype = super(SimpleTypedSpace, self)._clean_dtype_arg(dtype)
 
-    def _check_dtype_arg(self, dtype):
+    def _clean_dtype_arg(self, dtype):
         """
-        if dtype is None, returns self.dtype.
+        if dtype is None, checks that self.dtype is not None.
         Otherwise, same as superclass' implementation.
         """
 
         if dtype is None:
             if self.dtype is None:
-                raise RuntimeError("self.dtype is None, so you must provide a "
-                                   "non-None dtype argument to this method.")
+                raise TypeError("self.dtype is None, so you must provide a "
+                                "non-None dtype argument to this method.")
             return self.dtype
-        else:
-            return super(TypedSpace, self)._check_dtype_arg(dtype)
+
+        return super(SimpleTypedSpace, self)._clean_dtype_arg(dtype)
+
+    @property
+    def dtype(self):
+        return self._dtype
+
+    @dtype.setter
+    def dtype(self, new_dtype):
+        self._dtype = super(SimpleTypedSpace, self)._clean_dtype_arg(dtype)
 
 
-class VectorSpace(TypedSpace):
+class VectorSpace(SimpleTypedSpace):
     """A space whose points are defined as fixed-length vectors."""
 
     def __init__(self, dim, sparse=False, dtype=theano.config.floatX):
@@ -510,7 +512,7 @@ class VectorSpace(TypedSpace):
 
     @functools.wraps(Space.get_origin_batch)
     def get_origin_batch(self, batch_size, dtype=None):
-        dtype = self._check_dtype_arg(dtype)
+        dtype = self._clean_dtype_arg(dtype)
 
         if self.sparse:
             return scipy.sparse.csr_matrix((batch_size, self.dim), dtype=dtype)
@@ -522,14 +524,9 @@ class VectorSpace(TypedSpace):
         self.validate(batch)
         return batch.shape[0]
 
-    # @functools.wraps(Space.np_batch_size)
-    # def np_batch_size(self, batch):
-    #     self.np_validate(batch)
-    #     return batch.shape[0]
-
     @functools.wraps(Space.make_theano_batch)
     def make_theano_batch(self, name=None, dtype=None, batch_size=None):
-        dtype = self._check_dtype_arg(dtype)
+        dtype = self._clean_dtype_arg(dtype)
 
         if self.sparse:
             if batch_size is not None:
@@ -552,17 +549,9 @@ class VectorSpace(TypedSpace):
                                                         dtype=dtype)
         return rval
 
-
     @functools.wraps(Space.get_total_dimension)
     def get_total_dimension(self):
         return self.dim
-
-
-    # @functools.wraps(Space.np_format_as)
-    # def np_format_as(self, batch, space):
-    #     self.np_validate(batch)
-    #     return self._format_as(batch, space)
-
 
     @functools.wraps(Space._format_as)
     def _format_as(self, batch, space):
@@ -624,9 +613,6 @@ class VectorSpace(TypedSpace):
                 raise ValueError("Can't convert between VectorSpaces of "
                                  "different sizes (%d to %d)."
                                  % (self.dim, space.dim))
-            # if self.sparse != space.sparse:
-            #     raise ValueError("Converting between sparse and non-sparse "
-            #                      "VectorSpaces not implemented.")
 
             def is_sparse(batch):
                 return (isinstance(batch, theano.sparse.SparseVariable) or
@@ -635,11 +621,6 @@ class VectorSpace(TypedSpace):
             if space.sparse != is_sparse(batch):
                 if space.sparse:
                     batch = _dense_to_sparse(batch)
-
-                    # print "batch type, batch: ", type(batch), repr(batch)
-                    # print "self: ", self
-                    # print "space: ", space
-                    # assert isinstance(batch, np.ndarray), "batch type: %s, batch repr: %s" % (type(batch), str(repr(batch)))
 
                 elif isinstance(batch, theano.sparse.SparseVariable):
                     batch = theano.sparse.dense_from_sparse(batch)
@@ -737,7 +718,7 @@ class VectorSpace(TypedSpace):
     # def np_validate(self, batch):
 
 
-class Conv2DSpace(TypedSpace):
+class Conv2DSpace(SimpleTypedSpace):
     """A space whose points are defined as (multi-channel) images."""
 
     # Assume pylearn2's get_topological_view format, since this is how
@@ -844,7 +825,7 @@ class Conv2DSpace(TypedSpace):
 
     @functools.wraps(Space.get_origin_batch)
     def get_origin_batch(self, batch_size, dtype=None):
-        dtype = self._check_dtype_arg(dtype)
+        dtype = self._clean_dtype_arg(dtype)
 
         if not isinstance(batch_size, py_integer_types):
             raise TypeError("Conv2DSpace.get_origin_batch expects an int, "
@@ -860,8 +841,7 @@ class Conv2DSpace(TypedSpace):
 
     @functools.wraps(Space.make_theano_batch)
     def make_theano_batch(self, name=None, dtype=None, batch_size=None):
-        dtype = self._check_dtype_arg(dtype)
-
+        dtype = self._clean_dtype_arg(dtype)
         broadcastable = [False] * 4
         broadcastable[self.axes.index('c')] = (self.num_channels == 1)
         broadcastable[self.axes.index('b')] = (batch_size == 1)
@@ -1134,27 +1114,39 @@ class CompositeSpace(Space):
                dict(classname=self.__class__.__name__,
                     components=', '.join([str(c) for c in self.components]))
 
-    # def breadth_first_preorder_iter(self):
-    #     """
-    #     Returns an iterator that traverses the component tree in breadth-first
-    #     preorder.
-    #     """
-    #     yield self
-    #     for component in self.components:
-    #         if isinstance(component, CompositeSpace):
-    #             for descendant in component.breadth_first_iter():
-    #                 yield descendant
-    #         else:
-    #             yield component
+    @property
+    def dtype(self):
+        """
+        Returns a nested tuple of dtypes. NullSpaces will yield a bogus dtype
+        string (see NullSpace.dtype).
+        """
 
-    # def breadth_first_leaf_iter(self):
-    #     """
-    #     Returns an iterator that traverses the leaves in breadth-first
-    #     preorder.
-    #     """
-    #     return itertools.ifilter(self.breadth_first_preorder_iter(),
-    #                              lambda x: not isinstance(x, CompositeSpace))
+        def get_space_dtype(space):
+            if isinstance(space, CompositeSpace):
+                return tuple(get_space_dtype(c) for c in space.components)
+            elif isinstance(NoneType):
+                return NoneType().dtype
+            else:
+                return batch.dtype
 
+        return get_space_dtype(self)
+
+    @dtype.setter
+    def dtype(self, new_dtype):
+        """
+        If new_dtype is None or a string, it will be applied to all components
+        (except any NullSpaces).
+
+        If new_dtype is a (nested) tuple, its elements will be applied to
+        corresponding components.
+        """
+        if isinstance(new_dtype, tuple):
+            for component, new_dt in safe_zip(self.components, new_dtypes):
+                component.dtype = new_dt
+        elif isinstance(new_dtype, (str, None)):
+            for component in self.components:
+                if not isinstance(component, NullSpace):
+                    component.dtype = new_dtype
 
     def restrict(self, subset):
         """
@@ -1210,14 +1202,14 @@ class CompositeSpace(Space):
 
     @functools.wraps(Space.make_shared_batch)
     def make_shared_batch(self, batch_size, name=None, dtype=None):
-        dtype = self._check_dtype_arg(dtype)
+        dtype = self._clean_dtype_arg(dtype)
         batch = self.get_origin_batch(batch_size, dtype)
 
         def recursive_sharedX(batch):
             if isinstance(batch, tuple):
                 return tuple(recursive_sharedX(b) for b in batch)
             else:
-                return sharedX(batch, name, dtype=None)
+                return sharedX(batch, name)
 
         return recursive_sharedX(batch)
 
@@ -1287,6 +1279,8 @@ class CompositeSpace(Space):
     #                               " does not know how to format as " +
     #                               str(space))
 
+
+
     @functools.wraps(Space._format_as)
     def _format_as(self, batch, space):
         """
@@ -1352,7 +1346,6 @@ class CompositeSpace(Space):
                 else:
                     return np.concatenate(pieces, axis=1)
 
-
         if isinstance(space, CompositeSpace):
             def recursive_format_as(orig_space, batch, dest_space):
                 if not (isinstance(orig_space, CompositeSpace) ==
@@ -1417,7 +1410,7 @@ class CompositeSpace(Space):
                mirror the tree structure of this CompositeSpace.
         """
 
-        dtype = self._check_dtype_arg(dtype)
+        dtype = self._clean_dtype_arg(dtype)
 
         return tuple(component.get_origin_batch(batch_size, dt)
                      for component, dt
@@ -1446,7 +1439,7 @@ class CompositeSpace(Space):
         elif not isinstance(name, (list, tuple)):
             name = ['%s[%i]' % (name, i) for i in xrange(len(self.components))]
 
-        dtype = self._check_dtype_arg(dtype)
+        dtype = self._clean_dtype_arg(dtype)
 
         assert isinstance(name, (list, tuple))
         assert isinstance(dtype, (list, tuple))
@@ -1525,7 +1518,7 @@ class CompositeSpace(Space):
     #                                  (rval, b))
     #     return rval
 
-    def _check_dtype_arg(self, dtype):
+    def _clean_dtype_arg(self, dtype):
         """
         If dtype is None or a string, this returns a nested tuple that mirrors
         the tree structure of this CompositeSpace, with dtype at the leaves.
@@ -1544,12 +1537,12 @@ class CompositeSpace(Space):
                 return tuple(make_dtype_tree(dtype, component)
                              for component in space.components)
             else:
-                return super_self._check_dtype_arg(dtype)
+                return super_self._clean_dtype_arg(dtype)
 
         def check_dtype_tree(dtype, space):
             """
             Verifies that a dtype tree mirrors the tree structure of <space>,
-            calling Space._check_dtype_arg on the leaves.
+            calling Space._clean_dtype_arg on the leaves.
             """
             if isinstance(space, CompositeSpace):
                 if not isinstance(dtype, tuple):
@@ -1561,10 +1554,10 @@ class CompositeSpace(Space):
                 if not (dtype is None or isinstance(dtype, str)):
                     raise TypeError("Tree structure mismatch.")
 
-                return super_self._check_dtype_arg(dtype)
+                return super_self._clean_dtype_arg(dtype)
 
         if dtype is None or isinstance(dtype, str):
-            dtype = super_self._check_dtype_arg(dtype)
+            dtype = super_self._clean_dtype_arg(dtype)
             return make_dtype_tree(dtype, self)
         else:
             return check_dtype_tree(dtype, self)
@@ -1603,6 +1596,19 @@ class NullSpace(Space):
             WRITEME
         """
         return hash(type(self))
+
+    @property
+    def dtype(self):
+        return "%s dtype" % self.__class__.__name__
+
+    @dtype.setter
+    def dtype(self, new_dtype):
+        if new_dtype != self.dtype:
+            raise TypeError('%s can only take the bogus dtype "%s"',
+                            (self.__class__.__name__,
+                             self.dtype))
+
+        # otherwise, do nothing
 
     @functools.wraps(Space.make_theano_batch)
     def make_theano_batch(self, name=None, dtype=theano.config.floatX):
