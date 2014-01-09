@@ -16,7 +16,6 @@ from pylearn2.monitor import Monitor
 from pylearn2.space import NullSpace
 from pylearn2.utils.timing import log_timing
 from pylearn2.utils import sharedX
-import theano.tensor as T
 
 
 log = logging.getLogger(__name__)
@@ -75,10 +74,10 @@ class Train(object):
                 phase_variable = 'PYLEARN2_TRAIN_PHASE'
                 if phase_variable in os.environ:
                     phase = 'phase%d' % os.environ[phase_variable]
-                    tokens = [os.environ['PYLEARN2_TRAIN_FILE_NAME'],
+                    tokens = [os.environ['PYLEARN2_TRAIN_FILE_FULL_STEM'],
                               phase, 'pkl']
                 else:
-                    tokens = os.environ['PYLEARN2_TRAIN_FILE_NAME'], 'pkl'
+                    tokens = os.environ['PYLEARN2_TRAIN_FILE_FULL_STEM'], 'pkl'
                 self.save_path = '.'.join(tokens)
         self.save_freq = save_freq
 
