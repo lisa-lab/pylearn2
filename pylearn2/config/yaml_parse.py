@@ -60,7 +60,7 @@ def load(stream, overrides=None, environ=None, **kwargs):
     return instantiate_all(proxy_graph)
 
 
-def load_path(path, overrides=None, **kwargs):
+def load_path(path, overrides=None, environ=None, **kwargs):
     """
     Convenience function for loading a YAML configuration from a file.
 
@@ -72,6 +72,10 @@ def load_path(path, overrides=None, **kwargs):
         A dictionary containing overrides to apply. The location of \
         the override is specified in the key as a dot-delimited path \
         to the desired parameter, e.g. "model.corruptor.corruption_level".
+    environ : dict, optional
+        A dictionary used for ${FOO} substitutions in addition to
+        environment variables. If a key appears both in `os.environ`
+        and this dictionary, the value in this dictionary is used.
 
     Returns
     -------
@@ -91,7 +95,7 @@ def load_path(path, overrides=None, **kwargs):
         raise AssertionError("Expected content to be of type str, got " +
                              str(type(content)))
 
-    return load(content, **kwargs)
+    return load(content, environ=environ, **kwargs)
 
 
 def handle_overrides(graph, overrides):

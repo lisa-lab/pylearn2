@@ -455,7 +455,7 @@ def read_bin_lush_matrix(filepath):
     return rval
 
 
-def load_train_file(config_file_path):
+def load_train_file(config_file_path, environ=None):
     """
     Loads and parses a yaml file for a Train object.
     Publishes the relevant training environment variables
@@ -489,4 +489,4 @@ def load_train_file(config_file_path):
     environ.putenv("PYLEARN2_TRAIN_BASE_NAME", config_file_path.split('/')[-1] )
     environ.putenv("PYLEARN2_TRAIN_FILE_STEM", config_file_full_stem.split('/')[-1] )
 
-    return yaml_parse.load_path(config_file_path)
+    return yaml_parse.load_path(config_file_path, environ=environ)
