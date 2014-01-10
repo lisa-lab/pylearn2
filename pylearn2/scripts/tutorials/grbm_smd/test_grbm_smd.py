@@ -9,8 +9,6 @@ from theano import config
 def test_train_example():
     """ tests that the grbm_smd example script runs correctly """
     assert config.mode != "DEBUG_MODE"
-    if 'TRAVIS' in os.environ and os.environ['TRAVIS'] == '1':
-        raise SkipTest()
     path = pylearn2.__path__[0]
     train_example_path = path + '/scripts/tutorials/grbm_smd'
     cwd = os.getcwd()

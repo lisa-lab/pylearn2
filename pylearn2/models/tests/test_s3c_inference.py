@@ -10,10 +10,6 @@ from theano import config
 import warnings
 
 
-if config.floatX != 'float64':
-    config.floatX = 'float64'
-    warnings.warn("Changed config.floatX to float64. s3c inference tests currently fail due to numerical issues for float32")
-
 def broadcast(mat, shape_0):
     rval = mat
     if mat.shape[0] != shape_0:
@@ -28,50 +24,66 @@ def broadcast(mat, shape_0):
 
 
 class Test_S3C_Inference:
+    def setUp(self):
+        # Temporarily change config.floatX to float64, as s3c inference
+        # tests currently fail due to numerical issues for float32.
+        self.prev_floatX = config.floatX
+        config.floatX = 'float64'
+
+    def tearDown(self):
+        # Restore previous value of floatX
+        config.floatX = self.prev_floatX
+
     def __init__(self):
         """ gets a small batch of data
             sets up an S3C model
         """
+        # We also have to change the value of config.floatX in __init__.
+        self.prev_floatX = config.floatX
+        config.floatX = 'float64'
 
-        self.tol = 1e-5
+        try:
+            self.tol = 1e-5
 
-        #dataset = serial.load('${PYLEARN2_DATA_PATH}/stl10/stl10_patches/data.pkl')
+            #dataset = serial.load('${PYLEARN2_DATA_PATH}/stl10/stl10_patches/data.pkl')
 
-        #X = dataset.get_batch_design(1000)
-        #X = X[:,0:5]
+            #X = dataset.get_batch_design(1000)
+            #X = X[:,0:5]
 
-        X = np.random.RandomState([1,2,3]).randn(1000,5)
+            X = np.random.RandomState([1,2,3]).randn(1000,5)
 
-        X -= X.mean()
-        X /= X.std()
-        m, D = X.shape
-        N = 5
+            X -= X.mean()
+            X /= X.std()
+            m, D = X.shape
+            N = 5
 
-        #don't give the model an e_step or learning rate so it won't spend years compiling a learn_func
-        self.model = S3C(nvis = D,
-                         nhid = N,
-                         irange = .1,
-                         init_bias_hid = 0.,
-                         init_B = 3.,
-                         min_B = 1e-8,
-                         max_B = 1000.,
-                         init_alpha = 1., min_alpha = 1e-8, max_alpha = 1000.,
-                         init_mu = 1., e_step = None,
-                         m_step = Grad_M_Step(),
-                         min_bias_hid = -1e30, max_bias_hid = 1e30,
-                        )
+            #don't give the model an e_step or learning rate so it won't spend years compiling a learn_func
+            self.model = S3C(nvis = D,
+                             nhid = N,
+                             irange = .1,
+                             init_bias_hid = 0.,
+                             init_B = 3.,
+                             min_B = 1e-8,
+                             max_B = 1000.,
+                             init_alpha = 1., min_alpha = 1e-8, max_alpha = 1000.,
+                             init_mu = 1., e_step = None,
+                             m_step = Grad_M_Step(),
+                             min_bias_hid = -1e30, max_bias_hid = 1e30,
+                            )
 
-        self.model.make_pseudoparams()
+            self.model.make_pseudoparams()
 
-        self.h_new_coeff_schedule = [.1, .2, .3, .4, .5, .6, .7, .8, .9, 1. ]
+            self.h_new_coeff_schedule = [.1, .2, .3, .4, .5, .6, .7, .8, .9, 1. ]
 
-        self.e_step = E_Step_Scan(h_new_coeff_schedule = self.h_new_coeff_schedule)
-        self.e_step.register_model(self.model)
+            self.e_step = E_Step_Scan(h_new_coeff_schedule = self.h_new_coeff_schedule)
+            self.e_step.register_model(self.model)
 
-        self.X = X
-        self.N = N
-        self.m = m
+            self.X = X
+            self.N = N
+            self.m = m
 
+        finally:
+            config.floatX = self.prev_floatX
 
     def test_match_unrolled(self):
         """ tests that inference with scan matches result using unrolled loops """
