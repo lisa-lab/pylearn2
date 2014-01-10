@@ -1123,10 +1123,10 @@ class CompositeSpace(Space):
         def get_space_dtype(space):
             if isinstance(space, CompositeSpace):
                 return tuple(get_space_dtype(c) for c in space.components)
-            elif isinstance(NoneType):
-                return NoneType().dtype
+            elif isinstance(space, NullSpace):
+                return NullSpace().dtype
             else:
-                return batch.dtype
+                return space.dtype
 
         return get_space_dtype(self)
 
