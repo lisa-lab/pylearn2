@@ -1,6 +1,6 @@
 """Tests for space utilities."""
 import numpy as np
-import scipy, os
+import scipy, sys, warnings
 # from itertools import ifilter
 from nose.tools import assert_raises
 import theano
@@ -806,6 +806,58 @@ def test_dtypes():
                 kwargs["name"] = "space-generated batch"
                 return space.make_theano_batch(**kwargs)
 
+        def get_expected_warning(from_space, from_batch, to_space):
+
+            # composite -> composite
+            if isinstance(from_space, CompositeSpace) and \
+               isinstance(to_space, CompositeSpace):
+                for fs, fb, ts in safe_zip(from_space.components,
+                                           from_batch,
+                                           to_space.components):
+                    warning, message = get_expected_warning(fs, fb, ts)
+                    if warning is not None:
+                        return warning, message
+
+                return None, None
+
+            # composite -> simple
+            if isinstance(from_space, CompositeSpace):
+                for fs, fb in safe_zip(from_space.components, from_batch):
+                    warning, message = get_expected_warning(fs, fb, to_space)
+                    if warning is not None:
+                        return warning, message
+
+                return None, None
+
+            # simple -> composite
+            if isinstance(to_space, CompositeSpace):
+                if isinstance(from_space, VectorSpace) and \
+                   isinstance(from_batch, theano.sparse.SparseVariable):
+                    assert from_space.sparse
+                    return (UserWarning,
+                            'Formatting from a sparse VectorSpace to a '
+                            'CompositeSpace is currently (2 Jan 2014) a '
+                            'non-differentiable action. This is because it '
+                            'calls slicing operations on a sparse batch '
+                            '(e.g. "my_matrix[r:R, c:C]", which Theano does '
+                            'not yet have a gradient operator for. If '
+                            'autodifferentiation is reporting an error, '
+                            'this may be why.')
+
+
+                for ts in to_space.components:
+                    warning, message = get_expected_warning(from_space,
+                                                            from_batch,
+                                                            ts)
+                    if warning is not None:
+                        return warning, message
+
+                return None, None
+
+            # simple -> simple
+            return None, None
+
+
         def get_expected_error(from_space, from_batch, to_space):
             """Returns the type of error to be expected when calling
             from_space.np_format_as(batch, to_space). Returns None if no error
@@ -822,9 +874,9 @@ def test_dtypes():
 
                 def get_shared_dtype_if_any(space):
                     """
-                    Returns space's dtype. If space is composite, returns the dtype
-                    used by all of its subcomponents. Returns False if the
-                    subcomponents use different dtypes.
+                    Returns space's dtype. If space is composite, returns the
+                    dtype used by all of its subcomponents. Returns False if
+                    the subcomponents use different dtypes.
                     """
                     if isinstance(space, CompositeSpace):
                         dtypes = tuple(get_shared_dtype_if_any(c)
@@ -879,6 +931,7 @@ def test_dtypes():
 
             # simple -> composite
             if isinstance(to_space, CompositeSpace):
+
                 if isinstance(from_space, Conv2DSpace):
                     return (NotImplementedError,
                             "Conv2DSpace does not know how to format as "
@@ -975,7 +1028,7 @@ def test_dtypes():
                                                                 from_batch,
                                                                 to_space)
 
-        # log = open('/tmp/test_space_output.txt', 'a')
+        log = open('/tmp/test_space_output.txt', 'a')
 
         # For some reason, the "with assert_raises(expected_error) as context:"
         # idiom isn't catching all the expceted_errors. Use this instead:
@@ -1011,7 +1064,29 @@ def test_dtypes():
 
 
 
-        assert expected_error is None
+        #assert expected_error is None
+        if (isinstance(from_space, VectorSpace) and
+            isinstance(to_space, CompositeSpace) and
+            (from_space.sparse or
+             isinstance(from_batch, theano.sparse.SparseVariable))):
+            log.write("We should expect to get a UserWarning\n")
+
+        expected_warning, expected_warning_msg = get_expected_warning(from_space, from_batch, to_space)
+
+        if expected_warning is not None:
+            log.write("Got expected_warning '%s'\n" % expected_warning)
+
+        if expected_warning is UserWarning:
+            with warnings.catch_warnings(True) as warning_context:
+                # Ensure that no warnings are ignored
+                warnings.simplefilter("always")
+                to_batch = from_space.format_as(from_batch, to_space)
+                assert len(warning_context) == 1, "warning_context: %s" % warning_context
+                assert issubclass(warning_context[-1].category,
+                                  expected_warning)
+                assert expected_warning_msg in str(warning_context[-1].message)
+                log.write("Caught the UserWarning, yay!")
+
 
         to_batch = from_space.format_as(from_batch, to_space)
         expected_dtypes = get_expected_formatted_dtype(from_batch, to_space)
@@ -1061,15 +1136,22 @@ def test_dtypes():
         ("test code is broken: # of channels should start as an even "
          "number, not %d." % old_nchannels)
 
-    def make_composite_space(dtype0, dtype1):
-        return CompositeSpace((VectorSpace(dim=shape.prod(), dtype=dtype0),
-                               Conv2DSpace(shape=shape[:2],
-                                           dtype=dtype1,
-                                           num_channels=shape[2])))
+    def make_composite_space(dtype0, dtype1, use_conv2d):
+        if use_conv2d:
+            second_space = Conv2DSpace(shape=shape[:2],
+                                       dtype=dtype1,
+                                       num_channels=shape[2])
+        else:
+            second_space = VectorSpace(dim=np.prod(shape),
+                                       dtype=dtype1)
 
-    composite_spaces = tuple(make_composite_space(dtype0, dtype1)
+        return CompositeSpace((VectorSpace(dim=shape.prod(), dtype=dtype0),
+                               second_space))
+
+
+    composite_spaces = tuple(make_composite_space(dtype0, dtype1, use_conv2d)
                              for dtype0, dtype1 in zip(dtypes[:n_dtypes],
-                                                       dtypes[-n_dtypes:]))
+                                                       dtypes[-n_dtypes:]) for use_conv2d in [True, False])
     del n_dtypes
 
     # A few composite dtypes to try throwing at CompositeSpace's batch-making
@@ -1084,23 +1166,13 @@ def test_dtypes():
             test_make_shared_batch(from_space, to_dtype)
             test_make_theano_batch(from_space, to_dtype)
 
-    for from_space in vector_spaces + conv2d_spaces + composite_spaces:
+    all_spaces = vector_spaces + conv2d_spaces + composite_spaces
+    for from_space in all_spaces:
         for to_dtype in dtypes:
             test_get_origin_batch(from_space, to_dtype)
             test_make_shared_batch(from_space, to_dtype)
             test_make_theano_batch(from_space, to_dtype)
 
-        # Chooses different spaces to convert to, depending on from_space.
-        if isinstance(from_space, VectorSpace):
-            # VectorSpace can be converted to anything
-            to_spaces = vector_spaces + conv2d_spaces + composite_spaces
-        elif isinstance(from_space, Conv2DSpace):
-            # Conv2DSpace can't be converted to CompositeSpace
-            to_spaces = vector_spaces + conv2d_spaces
-        elif isinstance(from_space, CompositeSpace):
-            # CompositeSpace can't be converted to Conv2DSpace
-            to_spaces = vector_spaces + composite_spaces
-
-        for to_space in to_spaces:
+        for to_space in all_spaces:
             for is_numeric in (True, False):
                 test_format(from_space, to_space, is_numeric)
