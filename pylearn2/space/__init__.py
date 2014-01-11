@@ -566,7 +566,8 @@ class VectorSpace(SimpleTypedSpace):
                               '(e.g. "my_matrix[r:R, c:C]", which Theano does '
                               'not yet have a gradient operator for. If '
                               'autodifferentiation is reporting an error, '
-                              'this may be why.')
+                              'this may be why. Formatting batch type %s '
+                              'from space %s to space %s' % (type(batch), self, space))
             pos = 0
             pieces = []
             for component in space.components:
