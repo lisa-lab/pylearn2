@@ -856,6 +856,19 @@ def test_dtypes():
             # simple -> composite
             if isinstance(to_space, CompositeSpace):
 
+                if isinstance(from_space, VectorSpace) and \
+                   isinstance(from_batch, theano.sparse.SparseVariable):
+                    assert from_space.sparse
+                    return (UserWarning,
+                            'Formatting from a sparse VectorSpace to a '
+                            'CompositeSpace is currently (2 Jan 2014) a '
+                            'non-differentiable action. This is because it '
+                            'calls slicing operations on a sparse batch '
+                            '(e.g. "my_matrix[r:R, c:C]", which Theano does '
+                            'not yet have a gradient operator for. If '
+                            'autodifferentiation is reporting an error, '
+                            'this may be why.')
+
                 if isinstance(from_space, Conv2DSpace):
                     return (NotImplementedError,
                             "Conv2DSpace does not know how to format as "
@@ -884,10 +897,14 @@ def test_dtypes():
 
             if str(from_batch.dtype).startswith('complex') and \
                to_space.dtype is not None and \
-               not to_space.dtype.startswith('complex') and \
-               _is_theano_batch(from_batch):
-                print "waaaa"
-                return (TypeError, "Casting from complex to real is ambiguous")
+               not to_space.dtype.startswith('complex'):
+                if _is_theano_batch(from_batch):
+                    return (TypeError,
+                            "Casting from complex to real is ambiguous")
+                if scipy.sparse.issparse(from_batch):
+                    return (np.ComplexWarning,
+                            "Casting complex values to real discards the "
+                            "imaginary part")
 
             return None, None
 
@@ -958,6 +975,7 @@ def test_dtypes():
         # idiom isn't catching all the expceted_errors. Use this instead:
         if expected_error is not None:
             try:
+                warnings.simplefilter("error")  # upgrade warnings to exceptions
                 from_space.format_as(from_batch, to_space)
             except expected_error, ex:
                 assert str(ex).find(expected_error_msg) >= 0
@@ -989,27 +1007,27 @@ def test_dtypes():
 
 
         #assert expected_error is None
-        if (isinstance(from_space, VectorSpace) and
-            isinstance(to_space, CompositeSpace) and
-            (from_space.sparse or
-             isinstance(from_batch, theano.sparse.SparseVariable))):
-            log.write("We should expect to get a UserWarning\n")
+        # if (isinstance(from_space, VectorSpace) and
+        #     isinstance(to_space, CompositeSpace) and
+        #     (from_space.sparse or
+        #      isinstance(from_batch, theano.sparse.SparseVariable))):
+        #     log.write("We should expect to get a UserWarning\n")
 
-        expected_warning, expected_warning_msg = get_expected_warning(from_space, from_batch, to_space)
+        # expected_warning, expected_warning_msg = get_expected_warning(from_space, from_batch, to_space)
 
-        if expected_warning is not None:
-            log.write("Got expected_warning '%s'\n" % expected_warning)
+        # if expected_warning is not None:
+        #     log.write("Got expected_warning '%s'\n" % expected_warning)
 
-        if expected_warning is UserWarning:
-            with warnings.catch_warnings(True) as warning_context:
-                # Ensure that no warnings are ignored
-                warnings.simplefilter("always")
-                to_batch = from_space.format_as(from_batch, to_space)
-                assert len(warning_context) == 1, "warning_context: %s" % warning_context
-                assert issubclass(warning_context[-1].category,
-                                  expected_warning)
-                assert expected_warning_msg in str(warning_context[-1].message)
-                log.write("Caught the UserWarning, yay!")
+        # if expected_warning is UserWarning:
+        #     with warnings.catch_warnings(True) as warning_context:
+        #         # Ensure that no warnings are ignored
+        #         warnings.simplefilter("always")
+        #         to_batch = from_space.format_as(from_batch, to_space)
+        #         assert len(warning_context) == 1, "warning_context: %s" % warning_context
+        #         assert issubclass(warning_context[-1].category,
+        #                           expected_warning)
+        #         assert expected_warning_msg in str(warning_context[-1].message)
+        #         log.write("Caught the UserWarning, yay!")
 
 
         to_batch = from_space.format_as(from_batch, to_space)
