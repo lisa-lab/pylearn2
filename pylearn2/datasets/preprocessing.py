@@ -1087,13 +1087,13 @@ class LeCunLCN(ExamplewisePreprocessor):
             transformed = self.transform(convert_axes(
                                 dataset.get_topological_view(
                                 dataset.X[i:stop, :]),
-                                dataset.axes, axes))
-            transformed = convert_axes(transformed, axes, dataset.axes)
+                                dataset.view_converter.axes, axes))
+            transformed = convert_axes(transformed, axes, dataset.view_converter.axes)
             if self._batch_size != data_size:
                 if isinstance(dataset.X, numpy.ndarray):
                     # TODO have a separate class for non pytables datasets
                     transformed = convert_axes(transformed,
-                                               dataset.axes,
+                                               dataset.view_converter.axes,
                                                ['b', 0, 1, 'c'])
                     transformed = transformed.reshape(transformed.shape[0],
                                                       transformed.shape[1] *
@@ -1101,11 +1101,11 @@ class LeCunLCN(ExamplewisePreprocessor):
                                                       transformed.shape[3])
                     dataset.X[i:stop] = transformed
                 else:
-                    dataset.set_topological_view(transformed, dataset.axes,
+                    dataset.set_topological_view(transformed, dataset.view_converter.axes,
                                             start = i)
 
         if self._batch_size == data_size:
-            dataset.set_topological_view(transformed, dataset.axes)
+            dataset.set_topological_view(transformed, dataset.view_converter.axes)
 
 class RGB_YUV(ExamplewisePreprocessor):
 
@@ -1175,13 +1175,13 @@ class RGB_YUV(ExamplewisePreprocessor):
                    i + self._batch_size
             print "RGB_YUV processing data from %d to %d" % (i, stop)
             data = dataset.get_topological_view(X[i:stop])
-            transformed = self.transform(data, dataset.axes)
+            transformed = self.transform(data, dataset.view_converter.axes)
 
             # TODO have a separate class for non pytables datasets
             # or add start option to dense_design_matrix
             if isinstance(dataset.X, numpy.ndarray):
                 transformed = convert_axes(transformed,
-                                           dataset.axes,
+                                           dataset.view_converter.axes,
                                            ['b', 0, 1, 'c'])
                 transformed = transformed.reshape(transformed.shape[0],
                                                   transformed.shape[1] *
@@ -1190,7 +1190,7 @@ class RGB_YUV(ExamplewisePreprocessor):
                 dataset.X[i:stop] = transformed
             else:
                 dataset.set_topological_view(transformed,
-                                             dataset.axes,
+                                             dataset.view_converter.axes,
                                              start = i)
 
 class CentralWindow(Preprocessor):
