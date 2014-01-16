@@ -482,6 +482,25 @@ class MaxPoolRop(GpuOp):
         return super(MaxPoolRop, self).make_thunk(
                 node, storage_map, storage_map, no_recycling)
 
+    def R_op(self, inp, evals):
+        img, old_ev_img = inp
+        ev_img, new_ev_img = inp
+        if new_ev_img is not None:
+            new_ev_img = gpu_contiguous(new_ev_img)
+            return [self(img, new_ev_img)]
+        else:
+            return [None]
+
+    def grad(self, inp, grads):
+        img, ev_img = inp
+        gz, = grads
+        gz = gpu_contiguous(gz)
+        maxout = MaxPool(self.ds, self.stride, self.start)(img)
+        return [DisconnectedType(),
+                MaxPoolGrad(self.ds, self.stride, self.start)(img, maxout,
+                                                              gz)]
+
+
 
 class MaxPoolGrad(GpuOp):
     def __init__(self, ds, stride, start):
@@ -740,9 +759,8 @@ class MaxPoolGrad(GpuOp):
         imgs, maxout, gz = inp
         ev_imgs, ev_maxout, ev_gz = evals
         ## What Computation is this op doing ?
-        rval0 = None
-        rval1 = None
         if ev_gz is not None:
+            ev_gz = gpu_contiguous(ev_gz)
             return [self(imgs, maxout, ev_gz)]
         else:
             return [None]
