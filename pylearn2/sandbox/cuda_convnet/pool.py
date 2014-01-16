@@ -742,17 +742,24 @@ class MaxPoolGrad(GpuOp):
         rval0 = None
         rval1 = None
         if ev_gz is not None:
-            rval0 = self(imgs, maxout, ev_gz)
-        if ev_imgs is not None and ev_maxout is not None:
-            rval1 = self(ev_imgs, ev_maxout, gz)
-
-        if rval0 is not None and rval1 is not None:
-            return [rval0 + rval1]
-        elif rval0 is not None:
-            return [rval0]
-        elif rval1 is not None:
-            return [rval1]
+            return [self(imgs, maxout, ev_gz)]
         else:
             return [None]
+
+        ##
+        ## NB: output is not continous with the change in imgs or maxout
+        ## hence the gradient wrt to them has to be 0
+        ## Code below ignored this
+
+        #if ev_imgs is not None and ev_maxout is not None:
+        #    rval1 = self(ev_imgs, ev_maxout, gz)
+        #if rval0 is not None and rval1 is not None:
+        #    return [rval0 + rval1]
+        #elif rval0 is not None:
+        #    return [rval0]
+        #elif rval1 is not None:
+        #    return [rval1]
+        #else:
+        #    return [None]
 
 
