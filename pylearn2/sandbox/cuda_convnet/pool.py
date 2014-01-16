@@ -14,6 +14,7 @@ from pylearn2.sandbox.cuda_convnet.shared_code import this_dir
 
 import pylearn2.sandbox.cuda_convnet.pthreads
 from theano import config
+from theano.gradient import grad_undefined, DisconnectedType
 
 def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape = None,  start=0):
     assert pool_shape[0] == pool_shape[1]
@@ -761,5 +762,12 @@ class MaxPoolGrad(GpuOp):
         #    return [rval1]
         #else:
         #    return [None]
+
+    def grad(self, inp, grads):
+        imgs, maxout, gz = inp
+        g_out, = grads
+        return [DisconnectedType(),
+                DisconnectedType(),
+                g_out]
 
 
