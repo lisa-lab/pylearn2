@@ -47,6 +47,11 @@ from theano.gof import Apply
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
 from pylearn2.sandbox.cuda_convnet.base_acts import UnimplementedError
 
+from pylearn2.sandbox.cuda_convnet.filter_acts import FilterActs
+from pylearn2.sandbox.cuda_convnet.img_acts import ImageActs
+
+from theano.ifelse import ifelse
+import theano.tensor as TT
 
 class WeightActs(BaseActs):
     """
@@ -382,3 +387,61 @@ class WeightActs(BaseActs):
 
     def c_code_cache_version(self):
         return (7,)
+
+    def grad(self, inp, grads):
+        images, hids = inp
+
+        if 'Cuda' not in str(type(images)):
+            raise TypeError("inputs must be cuda")
+        if 'Cuda' not in str(type(hids)):
+            raise TypeError("filters must be cuda")
+
+        dout0, dout1 = grads
+        dout0 = gpu_contiguous(dout0)
+        dout1 = gpu_contiguous(dout1)
+
+        if 'Cuda' not in str(type(dout0)):
+            raise TypeError("output gradients must be cuda")
+
+        if 'Cuda' not in str(type(dout1)):
+            raise TypeError("output gradients must be cuda")
+        numModules = hids.shape[1] * hids.shape[2]
+        #if self.partial_sum is None:
+        #    dout = dout0
+        #else:
+        #    # Annoying ...
+        #    dout = ifelse(TT.eq(numModules, self.partial_sum), dout0, dout1)
+
+        dout = dout0
+
+        # Filter acts
+        d_hids = FilterActs(self.pad, self.partial_sum, self.stride)(images,
+                                                                    dout)
+        # Img acts
+        ishape = images.shape[1:3]
+        d_images = ImageActs(self.pad, self.partial_sum, self.stride)(
+            images, dout, ishape)
+
+        return [d_hids, d_images]
+
+    def R_op(self, inp, evals):
+        img, hid_grads, output_shape = inp
+        ev_img, ev_hid_grads, ev_output_shape = evals
+
+        rval0 = None
+        rval1 = None
+        if ev_img is not None:
+            ev_img = gpu_contiguous(ev_img)
+            rval0 = self(ev_img, hid_grads, output_shape)
+        if ev_hid_grads is not None:
+            ev_hid_grads = gpu_contiguous(ev_hid_grads)
+            rval1 = self(img, ev_hid_grads, output_shape)
+
+        if rval0 is not None and rval1 is not None:
+            return [rval0[0] + rval1[0], rval0[1]+rval1[1] ]
+        elif rval0 is not None:
+            return rval0
+        elif rval1 is not None:
+            return rval1
+        else:
+            return [None, None]

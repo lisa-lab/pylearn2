@@ -49,6 +49,9 @@ from theano.sandbox.cuda.basic_ops import as_cuda_ndarray_variable
 from pylearn2.sandbox.cuda_convnet.base_acts import BaseActs
 from pylearn2.sandbox.cuda_convnet.base_acts import UnimplementedError
 
+from pylearn2.sandbox.cuda_convnet.weight_acts import WeightActs
+from pylearn2.sandbox.cuda_convnet.filter_acts import FilterActs
+
 # Must delay import to avoid circular import problem
 FilterActs = None
 WeightActs = None
@@ -368,3 +371,47 @@ class ImageActs(BaseActs):
 
     def c_code_cache_version(self):
         return (9,)
+
+    def R_op(self, inp, evals):
+        hid_acts, filters, output_shape = inp
+        ev_hid_acts, ev_filters, ev_output_shape = evals
+
+        rval0 = None
+        rval1 = None
+        if ev_hid_acts is not None:
+            ev_hid_acts = gpu_contiguous(ev_hid_acts)
+            rval0 = self(ev_hid_acts, filters, output_shape)
+        if ev_filters is not None:
+            ev_filters = gpu_contiguous(ev_filters)
+            rval1 = self(hid_acts, ev_filters, output_shape)
+
+        if rval0 is not None and rval1 is not None:
+            return [rval0 + rval1]
+        elif rval0 is not None:
+            return [rval0]
+        elif rval1 is not None:
+            return [rval1]
+        else:
+            return [None]
+
+
+    def grad(self, inp, grads):
+        hids, filters = inp
+
+        if 'Cuda' not in str(type(filters)):
+            raise TypeError("inputs must be cuda")
+        if 'Cuda' not in str(type(hids)):
+            raise TypeError("filters must be cuda")
+
+        dout, = grads
+        dout = gpu_contiguous(dout)
+
+        if 'Cuda' not in str(type(dout)):
+            raise TypeError("output gradients must be cuda")
+
+        d_hids = FilterActs(self.pad, self.partial_sum, self.stride)(dout,
+                                                                    filters)
+        fshape = filters.shape[1:3]
+        d_filters = WeightActs(self.pad, self.partial_sum, self.stride)(
+            images, dout, fshape)[0]
+        return [d_hids, d_filters]
