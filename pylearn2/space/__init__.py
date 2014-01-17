@@ -142,6 +142,33 @@ def _cast(arg, dtype):
 class Space(object):
     """A vector space that can be transformed by a linear operator."""
 
+
+    def __init__(self, validate_callbacks=None,
+                 np_validate_callbacks=None):
+        """
+        Initialize a Space.
+
+        Parameters
+        ----------
+        validate_callbacks:
+            Callbacks that are run at the start of a call to validate.
+            Each should be a callable with the same signature as validate.
+            An example use case is installing an instance-specific error
+            handler that provides extra instructions for how to correct an
+            input that is in a bad space.
+        np_validate_callacks:
+            similar to validate_callbacks, but run on calls to np_validate
+        """
+
+        if validate_callbacks is None:
+            validate_callbacks = []
+
+        if np_validate_callbacks is None:
+            np_validate_callbacks = []
+
+        self.__dict__.update(locals())
+        del self.self
+
     # Forces subclasses to implement __eq__.
     def __eq__(self, other):
         """
@@ -149,7 +176,6 @@ class Space(object):
         space.format_as(batch, other) return the same formatted batch.
         """
         raise NotImplementedError("__eq__ not implemented")
-
 
     def __ne__(self, other):
         """
@@ -349,13 +375,56 @@ class Space(object):
         raise NotImplementedError(str(type(self)) +
                                   " does not implement _format_as.")
 
-    def validate(self, batch):
+    def _meta_validate(self, batch, callbacks_name, validate):
         """
-        Raises an exception if batch is not formatted to belong to this space.
+        Runs callbacks and validate on batch. Used to implement both
+        validate and np_validate.
 
         Parameters
         ----------
-        batch : WRITEME
+        batch : any object, results in exception unless the object is a
+                theano variable representing a batch of data in this
+                Space.
+        callbacks_name: name of field containing the callbacks
+        validate: validate method to run
+        """
+
+        if not hasattr(self, callbacks_name):
+            warnings.warn("It looks like the " + str(type(self)) +
+                    "subclass of Space does not call the superclass __init__ "
+                    "method. Currently this is a warning. It will become an "
+                    "error on or after 2014-06-17.")
+        else:
+            callbacks = getattr(self, callbacks_name)
+            for callback in callbacks:
+                callback(batch)
+        validate(batch)
+
+    def validate(self, batch):
+        """
+        Runs all validate_callbacks.
+        Raises an exception if batch is not a valid theano batch
+        in this space.
+
+        Parameters
+        ----------
+        batch : any object, results in exception unless the object is a
+                theano variable representing a batch of data in this
+                Space.
+        """
+
+        self._meta_validate(batch, 'validate_callbacks', self._validate)
+
+    def _validate(self, batch):
+        """
+        Raises an exception if batch is not a valid theano batch
+        in this space.
+
+        Parameters
+        ----------
+        batch : any object, results in exception unless the object is a
+                theano variable representing a batch of data in this
+                Space.
         """
 
         # if is_theano_batch(batch):
@@ -368,9 +437,24 @@ class Space(object):
         #     raise TypeError('Unexpected batch type: "%s".' % type(batch))
 
         raise NotImplementedError(str(type(self)) +
-                                  " does not implement validate.")
+                                  " does not implement _validate.")
 
     def np_validate(self, batch):
+        """
+        Runs all np_validate_callbacks.
+        Raises an exception if batch is not a valid value for a batch in this
+        space.
+
+        Parameters
+        ----------
+        batch : any object, results in exception unless the object is a
+                numpy representation of a batch of data in this
+                Space.
+        """
+
+        self._meta_validate(batch, 'np_validate_callbacks', self._np_validate)
+
+    def _np_validate(self, batch):
         """
         Raises an exception if batch is not a valid value for a batch in this
         space.
@@ -380,8 +464,13 @@ class Space(object):
         batch : WRITEME
         """
 
+<<<<<<< HEAD
         assert not _is_theano_batch(batch)
         self.validate(batch)
+=======
+        raise NotImplementedError(str(type(self)) +
+                                  " does not implement _np_validate.")
+>>>>>>> master
 
     def batch_size(self, batch):
         """
@@ -477,7 +566,11 @@ class SimpleTypedSpace(Space):
 class VectorSpace(SimpleTypedSpace):
     """A space whose points are defined as fixed-length vectors."""
 
-    def __init__(self, dim, sparse=False, dtype=theano.config.floatX):
+    def __init__(self,
+                 dim,
+                 sparse=False,
+                 dtype=theano.config.floatX,
+                 **kwargs):
         """
         Initialize a VectorSpace.
 
@@ -489,8 +582,9 @@ class VectorSpace(SimpleTypedSpace):
             Sparse vector or not
         dtype: str
             numpy dtype string, e.g. 'float32'.
+        kwargs: passed on to superclass constructor
         """
-        super(VectorSpace, self).__init__(dtype)
+        super(VectorSpace, self).__init__(dtype, kwargs)
         self.dim = dim
         self.sparse = sparse
 
@@ -658,18 +752,15 @@ class VectorSpace(SimpleTypedSpace):
         """
         return hash((type(self), self.dim, self.sparse, self.dtype))
 
-    def validate(self, batch):
+    def _validate(self, batch):
         """
         .. todo::
 
             WRITEME
         """
+<<<<<<< HEAD
 
-        if _is_theano_batch(batch):
-            if not isinstance(batch, theano.gof.Variable):
-                raise TypeError("VectorSpace batch should be a theano "
-                                "Variable, got " + str(type(batch)))
-
+        if isinstance(batch, theano.gof.Variable):
             if self.sparse:
                 if not isinstance(batch.type, theano.sparse.SparseType):
                     raise TypeError('This VectorSpace is%s sparse, but the '
@@ -720,6 +811,54 @@ class VectorSpace(SimpleTypedSpace):
 
 
 class Conv2DSpace(SimpleTypedSpace):
+=======
+        if not isinstance(batch, theano.gof.Variable):
+            raise TypeError("VectorSpace batch should be a theano Variable, "
+                            "got " + str(type(batch)))
+        if not self.sparse and not isinstance(batch.type,
+                                              (theano.tensor.TensorType,
+                                               CudaNdarrayType)):
+            raise TypeError("VectorSpace batch should be TensorType or "
+                            "CudaNdarrayType, got "+str(batch.type))
+        if self.sparse and not isinstance(batch.type,
+                                          theano.sparse.SparseType):
+            raise TypeError()
+        if batch.ndim != 2:
+            raise ValueError('VectorSpace batches must be 2D, got %d '
+                             'dimensions' % batch.ndim)
+        for val in get_debug_values(batch):
+            self.np_validate(val)
+
+    @functools.wraps(Space._np_validate)
+    def _np_validate(self, batch):
+        # Use the 'CudaNdarray' string to avoid importing theano.sandbox.cuda
+        # when it is not available
+        if (not self.sparse
+                and not isinstance(batch, np.ndarray)
+                and type(batch) != 'CudaNdarray'):
+            raise TypeError("The value of a VectorSpace batch should be a "
+                            "numpy.ndarray, or CudaNdarray, but is %s."
+                            % str(type(batch)))
+        if self.sparse:
+            if not theano.sparse.enable_sparse:
+                raise TypeError("theano.sparse is not enabled, cannot have "
+                                "a value for a sparse VectorSpace.")
+            if not scipy.sparse.issparse(batch):
+                raise TypeError("The value of a sparse VectorSpace batch "
+                                "should be a sparse scipy matrix, got %s of "
+                                "type %s." % (batch, type(batch)))
+        if batch.ndim != 2:
+            raise ValueError("The value of a VectorSpace batch must be "
+                             "2D, got %d dimensions for %s." % (batch.ndim,
+                                                                batch))
+        if batch.shape[1] != self.dim:
+            raise ValueError("The width of a VectorSpace batch must match "
+                             "with the space's dimension, but batch has shape "
+                             "%s and dim = %d." % (str(batch.shape), self.dim))
+
+
+class Conv2DSpace(Space):
+>>>>>>> master
     """A space whose points are defined as (multi-channel) images."""
 
     # Assume pylearn2's get_topological_view format, since this is how
@@ -945,6 +1084,7 @@ class Conv2DSpace(SimpleTypedSpace):
 
         return self.shape[0] * self.shape[1] * self.num_channels
 
+# <<<<<<< HEAD
     @functools.wraps(Space.validate)
     def validate(self, batch):
         if isinstance(batch, theano.gof.Variable):
@@ -976,8 +1116,8 @@ class Conv2DSpace(SimpleTypedSpace):
                                 "scipy.sparse does not support 4 dimensional "
                                 "tensors currently (28 Dec 2013).")
 
-            if (not isinstance(batch, np.ndarray)
-                    and type(batch) != 'CudaNdarray'):
+            if (not isinstance(batch, np.ndarray)) \
+               and type(batch) != 'CudaNdarray'):
                 raise TypeError("The value of a Conv2DSpace batch should be a "
                                 "numpy.ndarray, or CudaNdarray, but is %s."
                                 % str(type(batch)))
@@ -1037,6 +1177,69 @@ class Conv2DSpace(SimpleTypedSpace):
 
     #     return _cast(result, self.dtype)
 
+# =======
+#     @functools.wraps(Space._validate)
+#     def _validate(self, batch):
+#         if not isinstance(batch, theano.gof.Variable):
+#             raise TypeError("Conv2DSpace batches must be theano Variables, "
+#                             "got "+str(type(batch)))
+#         if not isinstance(batch.type, (theano.tensor.TensorType,
+#                                        CudaNdarrayType)):
+#             raise TypeError()
+#         if batch.ndim != 4:
+#             raise ValueError()
+#         for val in get_debug_values(batch):
+#             self.np_validate(val)
+
+#     @functools.wraps(Space._np_validate)
+#     def _np_validate(self, batch):
+#         if (not isinstance(batch, np.ndarray)
+#                 and type(batch) != 'CudaNdarray'):
+#             raise TypeError("The value of a Conv2DSpace batch should be a "
+#                             "numpy.ndarray, or CudaNdarray, but is %s."
+#                             % str(type(batch)))
+#         if batch.ndim != 4:
+#             raise ValueError("The value of a Conv2DSpace batch must be "
+#                              "4D, got %d dimensions for %s." %
+#                              (batch.ndim, batch))
+
+#         d = self.axes.index('c')
+#         actual_channels = batch.shape[d]
+#         if actual_channels != self.num_channels:
+#             raise ValueError("Expected axis %d to be number of channels (%d) "
+#                              "but it is %d" %
+#                              (d, self.num_channels, actual_channels))
+#         assert batch.shape[self.axes.index('c')] == self.num_channels
+
+#         for coord in [0, 1]:
+#             d = self.axes.index(coord)
+#             actual_shape = batch.shape[d]
+#             expected_shape = self.shape[coord]
+#             if actual_shape != expected_shape:
+#                 raise ValueError("Conv2DSpace with shape %s and axes %s "
+#                                  "expected dimension %s of a batch (%s) to "
+#                                  "have length %s but it has %s"
+#                                  % (str(self.shape), str(self.axes), str(d),
+#                                     str(batch), str(expected_shape),
+#                                     str(actual_shape)))
+
+#     @functools.wraps(Space.np_format_as)
+#     def np_format_as(self, batch, space):
+#         self.np_validate(batch)
+#         if isinstance(space, VectorSpace):
+#             # We need to ensure that the resulting batch will always be
+#             # the same in `space`, no matter what the axes of `self` are.
+#             if self.axes != self.default_axes:
+#                 # The batch index goes on the first axis
+#                 assert self.default_axes[0] == 'b'
+#                 batch = batch.transpose(*[self.axes.index(axis)
+#                                           for axis in self.default_axes])
+#             return batch.reshape((batch.shape[0], self.get_total_dimension()))
+#         if isinstance(space, Conv2DSpace):
+#             return Conv2DSpace.convert_numpy(batch, self.axes, space.axes)
+#         raise NotImplementedError("%s doesn't know how to format as %s"
+#                                   % (str(self), str(space)))
+# >>>>>>> master
 
     @functools.wraps(Space._format_as)
     def _format_as(self, batch, space):
@@ -1373,8 +1576,8 @@ class CompositeSpace(Space):
                                   " does not know how to format as " +
                                   str(space))
 
-    @functools.wraps(Space.validate)
-    def validate(self, batch):
+    @functools.wraps(Space._validate)
+    def _validate(self, batch):
         if not isinstance(batch, tuple):
             raise TypeError("The value of a CompositeSpace batch should be a "
                             "tuple, but is %s of type %s." %
@@ -1615,8 +1818,8 @@ class NullSpace(Space):
     def make_theano_batch(self, name=None, dtype=theano.config.floatX):
         return None
 
-    @functools.wraps(Space.validate)
-    def validate(self, batch):
+    @functools.wraps(Space._validate)
+    def _validate(self, batch):
         if batch is not None:
             raise TypeError("NullSpace only accepts 'None' as a "
                             "place-holder for data, not %s of type %s"

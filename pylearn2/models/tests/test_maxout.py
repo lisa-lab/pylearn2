@@ -9,16 +9,39 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
+import numpy as np
 import unittest
 
 
 # Skip test if cuda_ndarray is not available.
 from nose.plugins.skip import SkipTest
 from theano import config
+from theano import function
 from theano.sandbox import cuda
+from theano import tensor as T
 
 from pylearn2.config import yaml_parse
 from pylearn2.datasets.exc import NoDataPathError
+from pylearn2.models.mlp import MLP
+from pylearn2.models.maxout import Maxout
+from pylearn2.space import VectorSpace
+
+def test_min_zero():
+    """
+    This test guards against a bug where the size of the zero buffer used with
+    the min_zero flag was specified to have the wrong size. The bug only
+    manifested when compiled with optimizations off, because the optimizations
+    discard information about the size of the zero buffer.
+    """
+    mlp = MLP(input_space=VectorSpace(1),
+            layers= [Maxout(layer_name="test_layer", num_units=1, num_pieces = 2,
+            irange=.05, min_zero=True)])
+    X = T.matrix()
+    output = mlp.fprop(X)
+    # Compile in debug mode so we don't optimize out the size of the buffer
+    # of zeros
+    f = function([X], output, mode="DEBUG_MODE")
+    f(np.zeros((1, 1)).astype(X.dtype))
 
 
 def test_maxout_basic():

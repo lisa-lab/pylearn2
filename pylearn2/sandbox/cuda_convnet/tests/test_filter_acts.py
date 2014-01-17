@@ -268,7 +268,7 @@ def test_grad():
         print 'theano value range: ', (images_conv2d_grad.min(),
                                        images_conv2d_grad.max())
         assert False
-    if np.abs(filters_grad - filters_conv2d_grad).max() > 1e-5:
+    if np.abs(filters_grad - filters_conv2d_grad).max() > 1.15e-5:
         print "=== FILTERS GRADIENT ==="
         assert type(filters_grad) == type(filters_conv2d_grad)
         assert filters_grad.dtype == filters_conv2d_grad.dtype

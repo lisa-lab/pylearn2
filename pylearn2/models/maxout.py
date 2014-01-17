@@ -506,7 +506,7 @@ class Maxout(Layer):
             self.min_zero = False
 
         if self.min_zero:
-            p = T.zeros_like(z)
+            p = 0.
         else:
             p = None
 
@@ -555,7 +555,7 @@ class Maxout(Layer):
             self.min_zero = False
 
         if self.min_zero:
-            p = T.zeros_like(z)
+            p = 0.
         else:
             p = None
 
@@ -712,7 +712,7 @@ class MaxoutConvC01B(Layer):
         .. todo::
 
             WRITEME
-        
+
         Notes
         -----
         This resets parameters!

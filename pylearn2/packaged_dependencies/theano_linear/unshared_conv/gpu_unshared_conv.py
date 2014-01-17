@@ -285,7 +285,7 @@ class GpuFilterActs(Base):
 
 
 @register_opt()
-@local_optimizer([])
+@local_optimizer([FilterActs])
 def insert_gpu_filter_acts(node):
     """
     .. todo::
@@ -526,7 +526,7 @@ class GpuWeightActs(Base):
 
 
 @register_opt()
-@local_optimizer([])
+@local_optimizer([WeightActs])
 def insert_gpu_weight_acts(node):
     """
     .. todo::
@@ -769,7 +769,7 @@ class GpuImgActs(Base):
 
 
 @register_opt()
-@local_optimizer([])
+@local_optimizer([ImgActs])
 def insert_gpu_img_acts(node):
     """
     .. todo::

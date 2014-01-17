@@ -632,6 +632,14 @@ class DenseDesignMatrix(Dataset):
             space = X_space
             source = X_source
         else:
+            if self.y.ndim != 2:
+                raise NotImplementedError("It appears the new space / source interface"
+                        " broke the ability to iterate over 1D labels. Please"
+                        " use one-hot rather than integer-valued class labels"
+                        ". Most Pylearn2 Datasets have a one_hot argument you"
+                        " can set to True.")
+
+            # The -1 index in this line assumes y.ndim is 2
             y_space = VectorSpace(dim=self.y.shape[-1])
             y_source = 'targets'
             space = CompositeSpace((X_space, y_space))

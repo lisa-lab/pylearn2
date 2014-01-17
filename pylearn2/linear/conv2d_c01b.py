@@ -23,7 +23,7 @@ from theano.compat.python2x import OrderedDict
 from theano.sandbox import cuda
 import theano.tensor as T
 
-if cuda.cuda_enabled:
+if cuda.cuda_available:
     from theano.sandbox.cuda.basic_ops import gpu_contiguous
     from theano.sandbox.cuda import gpu_from_host
     from theano.sandbox.cuda import host_from_gpu
