@@ -78,7 +78,6 @@ def _is_theano_batch(batch):
         return result
 
 
-
 def _dense_to_sparse(batch):
     if _is_theano_batch(batch):
         assert isinstance(batch, theano.tensor.TensorVariable)
@@ -102,6 +101,7 @@ def _reshape(arg, shape):
             raise ValueError('Unexpected sparse format "%s".' % arg.format)
     else:
         raise TypeError('Unexpected batch type "%s"' % str(type(arg)))
+
 
 def _cast(arg, dtype):
     """
@@ -142,7 +142,34 @@ def _cast(arg, dtype):
 class Space(object):
     """A vector space that can be transformed by a linear operator."""
 
+    def __init__(self, validate_callbacks=None,
+                 np_validate_callbacks=None):
+        """
+        Initialize a Space.
+
+        Parameters
+        ----------
+        validate_callbacks:
+            Callbacks that are run at the start of a call to validate.
+            Each should be a callable with the same signature as validate.
+            An example use case is installing an instance-specific error
+            handler that provides extra instructions for how to correct an
+            input that is in a bad space.
+        np_validate_callacks:
+            similar to validate_callbacks, but run on calls to np_validate
+        """
+
+        if validate_callbacks is None:
+            validate_callbacks = []
+
+        if np_validate_callbacks is None:
+            np_validate_callbacks = []
+
+        self.validate_callbacks = validate_callbacks
+        self.np_validate_callbacks = np_validate_callbacks
+
     # Forces subclasses to implement __eq__.
+    # This is necessary for _format_as to work correctly.
     def __eq__(self, other):
         """
         Returns true if space.format_as(batch, self) and
@@ -172,7 +199,7 @@ class Space(object):
         raise NotImplementedError()
 
     @dtype.setter
-    def dtype(self):
+    def dtype(self, new_value):
         raise NotImplementedError()
 
     @dtype.deleter
@@ -267,34 +294,37 @@ class Space(object):
         Returns a non-Theano batch (e.g. a numpy.ndarray or scipy.sparse sparse
         array), formatted to lie in this space.
 
-        This is just a wrapper around self.format_as, that checks that the
-        batch is not a Theano symbol. It is included for
-        backwards-compatibility with older code where np_format_as and
-        format_as were more distinct.
+        This is just a wrapper around self._format_as, with an extra check
+        to throw an exception if <batch> is symbolic.
 
         Should be invertible, i.e. batch should equal
         `space.format_as(self.format_as(batch, space), self)`
 
         Parameters
         ----------
-        batch : numpy.ndarray
-            Array which lies in the space represented by self
+        batch : numpy.ndarray, or one of the scipy.sparse matrices.
+            Array which lies in this space.
         space : Space
-            WRITEME
+            Target space to format batch to.
 
         Returns
         -------
-        WRITEME
+        The formatted batch.
 
         """
 
-        assert not _is_theano_batch(batch)
-        return self.format_as(batch, space)
-
+        self.check_is_numeric(batch)
+        return self._format_as(batch, space)
 
     def format_as(self, batch, space):
+        self.check_is_symbolic(batch)
+        return self._format_as(batch, space)
+
+    def _format_as(self, batch, space):
         """
-        Returns batch formatted to lie in this space.
+        The shared implementation of format_as() and np_format_as().
+        Agnostic to whether batch is symbolic or numeric, which avoids
+        duplicating a lot of code between format_as() and np_format_as().
 
         Should be invertible, i.e. batch should equal
         `space.format_as(self.format_as(batch, space), self)`
@@ -310,7 +340,7 @@ class Space(object):
         WRITEME
         """
 
-        self.validate(batch)
+        self._validate(batch)
 
         my_dimension = self.get_total_dimension()
         other_dimension = space.get_total_dimension()
@@ -325,63 +355,107 @@ class Space(object):
         if self == space:
             rval = batch
         else:
-            rval = self._format_as(batch, space)
+            rval = self._format_as_impl(batch, space)
 
         return rval
 
-    def _format_as(self, batch, space):
+    def _format_as_impl(self, batch, target_space):
         """
-        Helper method that implements specifics of format_as for a particular
-        subclass.
+        Actual implementation of format_as/np_format_as. Formats batch to
+        target_space.
 
         Parameters
         ----------
-        batch : numpy.ndarray
-            Array which lies in the space represented by self
-        space : Space
-            WRITEME
+
+        batch : a numpy.ndarray, scipy.sparse matrix, theano symbol, or a
+                nested tuple thereof. Implementations of this method may assume
+                that batch lies in this space (i.e. that it passed
+                self._validate(batch) without throwing an exception).
+
+        target_space : A Space subclass. The space to transform batch into.
 
         Returns
         -------
-        WRITEME
+        The batch, converted to the target_space.
         """
 
-        raise NotImplementedError(str(type(self)) +
-                                  " does not implement _format_as.")
+        raise NotImplementedError("%s does not implement _format_as_impl()." %
+                                  type(self))
 
     def validate(self, batch):
         """
-        Raises an exception if batch is not formatted to belong to this space.
+        Runs all validate_callbacks.
+        Raises an exception if batch is not a valid theano batch
+        in this space.
 
         Parameters
         ----------
-        batch : WRITEME
+        batch : a theano variable representing a batch of data in this
+                Space.
         """
-
-        # if is_theano_batch(batch):
-        #     return _validate_theano_batch(batch)
-        # elif is_sparse_batch(batch):
-        #     return _validate_sparse_batch(batch)
-        # elif isinstance(batch, np.ndarray):
-        #     return _validate_ndarray_batch(batch)
-        # else:
-        #     raise TypeError('Unexpected batch type: "%s".' % type(batch))
-
-        raise NotImplementedError(str(type(self)) +
-                                  " does not implement validate.")
+        self.check_is_symbolic(batch)
+        self._validate(batch)
 
     def np_validate(self, batch):
         """
-        Raises an exception if batch is not a valid value for a batch in this
-        space.
+        Runs all np_validate_callbacks.
+        Raises an exception if batch is not a valid numeric batch
+        in this space.
 
         Parameters
         ----------
-        batch : WRITEME
+
+        batch : a numpy.ndarray or scipy.sparse matrix, of a shape and type
+                appropriate to this space.
+        """
+        self.check_is_numeric(batch)
+        self._validate(batch)
+
+    def _validate(self, batch):
+        """
+        Shared implementation of validate() and np_validate().
+        Calls validate_callbacks or np_validate_callbacks as appropriate,
+        then calls self._validate_impl(batch) to verify that batch belongs
+        to this space.
+
+        Parameters
+        ----------
+        batch : a theano variable, numpy ndarray, scipy.sparse matrix,
+                or a nested tuple thereof, representing a batch belonging
+                to this space.
         """
 
-        assert not _is_theano_batch(batch)
-        self.validate(batch)
+        if _is_theano_batch(batch):
+            callbacks_name = "validate_callbacks"
+        else:
+            callbacks_name = "np_validate_callbacks"
+
+        if not hasattr(self, callbacks_name):
+            warnings.warn("It looks like the " + str(type(self)) +
+                          "subclass of Space does not call the superclass "
+                          "__init__ method. Currently this is a warning. It "
+                          "will become an error on or after 2014-06-17.")
+        else:
+            callbacks = getattr(self, callbacks_name)
+            for callback in callbacks:
+                callback(batch)
+
+        self._validate_impl(batch)
+
+    def _validate_impl(self, batch):
+        """
+        Subclasses must override this method so that it throws an
+        exception if the batch is the wrong shape or dtype for this Space.
+
+        Parameters
+        ----------
+
+        batch : A numpy ndarray, scipy.sparse matrix, theano variable, or a
+                nested tuple thereof. Must be a valid batch belonging to this
+                space.
+        """
+        raise NotImplementedError('Class "%s" does not implement '
+                                  '_validate_impl()' % type(self))
 
     def batch_size(self, batch):
         """
@@ -391,8 +465,8 @@ class Space(object):
         ----------
         batch : WRITEME
         """
-        raise NotImplementedError(str(type(self)) + " does not implement " +
-                                  "batch_size")
+        self.check_is_symbolic(batch)
+        return self._batch_size(batch)
 
     def np_batch_size(self, batch):
         """
@@ -405,9 +479,23 @@ class Space(object):
         ----------
         batch : WRITEME
         """
-        assert not _is_theano_batch(batch)
-        return self.batch_size(batch)
+        self.check_is_numeric(batch)
+        return self._batch_size(batch)
 
+    def _batch_size(self, batch):
+        self._validate(batch)
+        return self._batch_size_impl(batch)
+
+    def _batch_size_impl(self, batch):
+        """
+        Returns the batch size of a batch.
+
+        Parameters
+        ----------
+        batch : WRITEME
+        """
+        raise NotImplementedError("%s does not implement batch_size" %
+                                  type(self))
 
     def get_batch(self, data, start, end):
         """
@@ -421,6 +509,18 @@ class Space(object):
         """
         raise NotImplementedError(str(type(self)) + " does not implement " +
                                   "get_batch")
+
+    @staticmethod
+    def _check_is_numeric(batch):
+        if _is_theano_batch(batch):
+            raise TypeError('Expected batch to be a numeric variable, but '
+                            'instead it was of type "%s"' % type(batch))
+
+    @staticmethod
+    def _check_is_symbolic(batch):
+        if not _is_theano_batch(batch):
+            raise TypeError('Expected batch to be a symbolic variable, but '
+                            'instead it was of type "%s"' % type(batch))
 
     def _clean_dtype_arg(self, dtype):
         """
@@ -442,14 +542,14 @@ class Space(object):
                         (dtype, type(dtype)))
 
 
-class SimpleTypedSpace(Space):
+class SimplyTypedSpace(Space):
     """
-    A non-composite space with a .dtype property.
+    A space that uses a numpy/theano dtype string for its .dtype property.
     """
 
     def __init__(self, dtype=theano.config.floatX):
-        super(SimpleTypedSpace, self).__init__()
-        self._dtype = super(SimpleTypedSpace, self)._clean_dtype_arg(dtype)
+        super(SimplyTypedSpace, self).__init__()
+        self._dtype = super(SimplyTypedSpace, self)._clean_dtype_arg(dtype)
 
     def _clean_dtype_arg(self, dtype):
         """
@@ -463,7 +563,7 @@ class SimpleTypedSpace(Space):
                                 "non-None dtype argument to this method.")
             return self.dtype
 
-        return super(SimpleTypedSpace, self)._clean_dtype_arg(dtype)
+        return super(SimplyTypedSpace, self)._clean_dtype_arg(dtype)
 
     @property
     def dtype(self):
@@ -471,13 +571,17 @@ class SimpleTypedSpace(Space):
 
     @dtype.setter
     def dtype(self, new_dtype):
-        self._dtype = super(SimpleTypedSpace, self)._clean_dtype_arg(dtype)
+        self._dtype = super(SimplyTypedSpace, self)._clean_dtype_arg(dtype)
 
 
-class VectorSpace(SimpleTypedSpace):
+class VectorSpace(SimplyTypedSpace):
     """A space whose points are defined as fixed-length vectors."""
 
-    def __init__(self, dim, sparse=False, dtype=theano.config.floatX):
+    def __init__(self,
+                 dim,
+                 sparse=False,
+                 dtype=theano.config.floatX,
+                 **kwargs):
         """
         Initialize a VectorSpace.
 
@@ -489,8 +593,9 @@ class VectorSpace(SimpleTypedSpace):
             Sparse vector or not
         dtype: str
             numpy dtype string, e.g. 'float32'.
+        kwargs: passed on to superclass constructor
         """
-        super(VectorSpace, self).__init__(dtype)
+        super(VectorSpace, self).__init__(dtype, kwargs)
         self.dim = dim
         self.sparse = sparse
 
@@ -519,9 +624,8 @@ class VectorSpace(SimpleTypedSpace):
         else:
             return np.zeros((batch_size, self.dim), dtype=dtype)
 
-    @functools.wraps(Space.batch_size)
-    def batch_size(self, batch):
-        self.validate(batch)
+    @functools.wraps(Space._batch_size_impl)
+    def _batch_size_impl(self, batch):
         return batch.shape[0]
 
     @functools.wraps(Space.make_theano_batch)
@@ -553,8 +657,8 @@ class VectorSpace(SimpleTypedSpace):
     def get_total_dimension(self):
         return self.dim
 
-    @functools.wraps(Space._format_as)
-    def _format_as(self, batch, space):
+    @functools.wraps(Space._format_as_impl)
+    def _format_as_impl(self, batch, space):
         to_type = None
 
         if isinstance(space, CompositeSpace):
@@ -577,7 +681,7 @@ class VectorSpace(SimpleTypedSpace):
                 vector_subspace = VectorSpace(dim=width,
                                               dtype=self.dtype,
                                               sparse=self.sparse)
-                formatted = vector_subspace.format_as(subtensor, component)
+                formatted = vector_subspace._format_as(subtensor, component)
                 pieces.append(formatted)
 
             result = tuple(pieces)
@@ -658,18 +762,14 @@ class VectorSpace(SimpleTypedSpace):
         """
         return hash((type(self), self.dim, self.sparse, self.dtype))
 
-    def validate(self, batch):
+    @functools.wraps(Space._validate_impl)
+    def _validate_impl(self, batch):
         """
         .. todo::
 
             WRITEME
         """
-
-        if _is_theano_batch(batch):
-            if not isinstance(batch, theano.gof.Variable):
-                raise TypeError("VectorSpace batch should be a theano "
-                                "Variable, got " + str(type(batch)))
-
+        if isinstance(batch, theano.gof.Variable):
             if self.sparse:
                 if not isinstance(batch.type, theano.sparse.SparseType):
                     raise TypeError('This VectorSpace is%s sparse, but the '
@@ -685,7 +785,7 @@ class VectorSpace(SimpleTypedSpace):
                 raise ValueError('VectorSpace batches must be 2D, got %d '
                                  'dimensions' % batch.ndim)
             for val in get_debug_values(batch):
-                self.validate(val)
+                self.validate(val)  # sic; should be validate, not _validate
         else:
             # Use the 'CudaNdarray' string to avoid importing
             # theano.sandbox.cuda when it is not available
@@ -714,13 +814,11 @@ class VectorSpace(SimpleTypedSpace):
                                  (str(batch.shape), self.dim))
 
 
-
-    # @functools.wraps(Space.np_validate)
-    # def np_validate(self, batch):
-
-
-class Conv2DSpace(SimpleTypedSpace):
-    """A space whose points are defined as (multi-channel) images."""
+class Conv2DSpace(SimplyTypedSpace):
+    """
+    A space whose points are 3-D tensors representing (potentially
+    multi-channel) images.
+    """
 
     # Assume pylearn2's get_topological_view format, since this is how
     # data is currently served up. If we make better iterators change
@@ -857,12 +955,12 @@ class Conv2DSpace(SimpleTypedSpace):
             else:
                 # TODO: try to extract constant scalar value from batch_size
                 n = 4
-            rval.tag.test_value = self.get_origin_batch(batch_size=n, dtype=dtype)
+            rval.tag.test_value = self.get_origin_batch(batch_size=n,
+                                                        dtype=dtype)
         return rval
 
-    @functools.wraps(Space.batch_size)
-    def batch_size(self, batch):
-        self.validate(batch)
+    @functools.wraps(Space._batch_size_impl)
+    def _batch_size_impl(self, batch):
         return batch.shape[self.axes.index('b')]
 
     # @functools.wraps(Space.np_batch_size)
@@ -945,8 +1043,8 @@ class Conv2DSpace(SimpleTypedSpace):
 
         return self.shape[0] * self.shape[1] * self.num_channels
 
-    @functools.wraps(Space.validate)
-    def validate(self, batch):
+    @functools.wraps(Space._validate_impl)
+    def _validate_impl(self, batch):
         if isinstance(batch, theano.gof.Variable):
             if isinstance(batch, theano.sparse.SparseVariable):
                 raise TypeError("Conv2DSpace cannot use SparseVariables, "
@@ -976,8 +1074,8 @@ class Conv2DSpace(SimpleTypedSpace):
                                 "scipy.sparse does not support 4 dimensional "
                                 "tensors currently (28 Dec 2013).")
 
-            if (not isinstance(batch, np.ndarray)
-                    and type(batch) != 'CudaNdarray'):
+            if (not isinstance(batch, np.ndarray)) \
+               and type(batch) != 'CudaNdarray':
                 raise TypeError("The value of a Conv2DSpace batch should be a "
                                 "numpy.ndarray, or CudaNdarray, but is %s."
                                 % str(type(batch)))
@@ -1010,37 +1108,8 @@ class Conv2DSpace(SimpleTypedSpace):
                                         str(expected_shape),
                                         str(actual_shape)))
 
-    # @functools.wraps(Space.np_validate)
-    # def np_validate(self, batch):
-
-    # @functools.wraps(Space.np_format_as)
-    # def np_format_as(self, batch, space):
-    #     self.np_validate(batch)
-    #     if isinstance(space, VectorSpace):
-    #         # We need to ensure that the resulting batch will always be
-    #         # the same in `space`, no matter what the axes of `self` are.
-    #         if self.axes != self.default_axes:
-    #             # The batch index goes on the first axis
-    #             assert self.default_axes[0] == 'b'
-    #             batch = batch.transpose(*[self.axes.index(axis)
-    #                                       for axis in self.default_axes])
-    #         result = batch.reshape((batch.shape[0],
-    #                                 self.get_total_dimension()))
-    #         if space.sparse:
-    #             result = _ndarray_to_sparse(batch)
-
-    #     elif isinstance(space, Conv2DSpace):
-    #         result = Conv2DSpace.convert_numpy(batch, self.axes, space.axes)
-    #     else:
-    #         raise NotImplementedError("%s doesn't know how to format as %s"
-    #                                   % (str(self), str(space)))
-
-    #     return _cast(result, self.dtype)
-
-
-    @functools.wraps(Space._format_as)
-    def _format_as(self, batch, space):
-        self.validate(batch)
+    @functools.wraps(Space._format_as_impl)
+    def _format_as_impl(self, batch, space):
         if isinstance(space, VectorSpace):
             # We need to ensure that the resulting batch will always be
             # the same in `space`, no matter what the axes of `self` are.
@@ -1122,15 +1191,15 @@ class CompositeSpace(Space):
         string (see NullSpace.dtype).
         """
 
-        def get_space_dtype(space):
+        def get_dtype_of_space(space):
             if isinstance(space, CompositeSpace):
-                return tuple(get_space_dtype(c) for c in space.components)
+                return tuple(get_dtype_of_space(c) for c in space.components)
             elif isinstance(space, NullSpace):
                 return NullSpace().dtype
             else:
                 return space.dtype
 
-        return get_space_dtype(self)
+        return get_dtype_of_space(self)
 
     @dtype.setter
     def dtype(self, new_dtype):
@@ -1142,7 +1211,7 @@ class CompositeSpace(Space):
         corresponding components.
         """
         if isinstance(new_dtype, tuple):
-            for component, new_dt in safe_zip(self.components, new_dtypes):
+            for component, new_dt in safe_zip(self.components, new_dtype):
                 component.dtype = new_dt
         elif isinstance(new_dtype, (str, None)):
             for component in self.components:
@@ -1187,7 +1256,7 @@ class CompositeSpace(Space):
         subset : WRITEME
         """
 
-        self.validate(batch)
+        self._validate(batch)
         assert isinstance(subset, (list, tuple))
 
         if len(subset) == 1:
@@ -1214,76 +1283,8 @@ class CompositeSpace(Space):
 
         return recursive_sharedX(batch)
 
-    # @functools.wraps(Space.np_format_as)
-    # def np_format_as(self, batch, space):
-    #     """
-    #     Supports formatting to a single VectorSpace, or to a CompositeSpace.
-
-    #     CompositeSpace->VectorSpace:
-    #       Traverses the nested components in depth-first order, serializing the
-    #       leaf nodes (i.e. the non-composite subspaces) into the VectorSpace.
-
-    #     CompositeSpace->CompositeSpace:
-
-    #       Only works for two CompositeSpaces that have the same nested
-    #       structure. Traverses both CompositeSpaces' nested components in
-    #       parallel, converting between corresponding non-composite components
-    #       in <self> and <space> as:
-
-    #           `self_component.np_format_as(batch_component, space_component)`
-
-    #     Parameters
-    #     ----------
-    #     batch : WRITEME
-    #     space : WRITEME
-
-    #     Returns
-    #     -------
-    #     WRITEME
-    #     """
-    #     self.np_validate(batch)
-    #     if isinstance(space, VectorSpace):
-    #         pieces = []
-    #         for component, input_piece in zip(self.components, batch):
-    #             subspace = VectorSpace(dim=component.get_total_dimension(),
-    #                                    dtype=space.dtype,
-    #                                    sparse=space.sparse)
-    #             pieces.append(component.np_format_as(input_piece, subspace))
-
-    #         if space.sparse:
-    #             return scipy.sparse.hstack(pieces)
-    #         else:
-    #             return np.concatenate(pieces, axis=1)
-
-    #     if isinstance(space, CompositeSpace):
-    #         def recursive_np_format_as(orig_space, batch, dest_space):
-    #             if not (isinstance(orig_space, CompositeSpace) ==
-    #                     isinstance(dest_space, CompositeSpace)):
-    #                 raise TypeError("Can't convert between CompositeSpaces "
-    #                                 "with different tree structures")
-
-    #             # No need to check batch's tree structure; np_validate has
-    #             # already done that above.
-
-    #             if isinstance(orig_space, CompositeSpace):
-    #                 return tuple(recursive_np_format_as(os, bt, ds)
-    #                              for os, bt, ds
-    #                              in safe_zip(orig_space.components,
-    #                                          batch,
-    #                                          dest_space.components))
-    #             else:
-    #                 return orig_space.np_format_as(batch, dest_space)
-
-    #         return recursive_np_format_as(self, batch, space)
-
-    #     raise NotImplementedError(str(self) +
-    #                               " does not know how to format as " +
-    #                               str(space))
-
-
-
-    @functools.wraps(Space._format_as)
-    def _format_as(self, batch, space):
+    @functools.wraps(Space._format_as_impl)
+    def _format_as_impl(self, batch, space):
         """
         Supports formatting to a single VectorSpace, or to a CompositeSpace.
 
@@ -1298,7 +1299,7 @@ class CompositeSpace(Space):
           parallel, converting between corresponding non-composite components
           in <self> and <space> as:
 
-              `self_component.format_as(batch_component, space_component)`
+              `self_component._format_as(batch_component, space_component)`
 
         Parameters
         ----------
@@ -1316,7 +1317,7 @@ class CompositeSpace(Space):
                 subspace = VectorSpace(dim=component.get_total_dimension(),
                                        dtype=space.dtype,
                                        sparse=space.sparse)
-                pieces.append(component.format_as(input_piece, subspace))
+                pieces.append(component._format_as(input_piece, subspace))
 
             # Pieces should all have the same dtype, before we concatenate them
             if len(pieces) > 0:
@@ -1354,8 +1355,8 @@ class CompositeSpace(Space):
                     raise TypeError("Can't convert between CompositeSpaces "
                                     "with different tree structures")
 
-                # No need to check batch's tree structure. Space.format_as()
-                # already did that by calling validate(), before calling this
+                # No need to check batch's tree structure. Space._format_as()
+                # already did that by calling _validate(), before calling this
                 # method.
 
                 if isinstance(orig_space, CompositeSpace):
@@ -1365,7 +1366,7 @@ class CompositeSpace(Space):
                                              batch,
                                              dest_space.components))
                 else:
-                    return orig_space.format_as(batch, dest_space)
+                    return orig_space._format_as(batch, dest_space)
 
             return recursive_format_as(self, batch, space)
 
@@ -1373,8 +1374,8 @@ class CompositeSpace(Space):
                                   " does not know how to format as " +
                                   str(space))
 
-    @functools.wraps(Space.validate)
-    def validate(self, batch):
+    @functools.wraps(Space._validate_impl)
+    def _validate_impl(self, batch):
         if not isinstance(batch, tuple):
             raise TypeError("The value of a CompositeSpace batch should be a "
                             "tuple, but is %s of type %s." %
@@ -1383,19 +1384,7 @@ class CompositeSpace(Space):
             raise ValueError("Expected %d elements in batch, got %d"
                              % (len(self.components), len(batch)))
         for batch_elem, component in zip(batch, self.components):
-            component.validate(batch_elem)
-
-    # @functools.wraps(Space.np_validate)
-    # def np_validate(self, batch):
-    #     if not isinstance(batch, tuple):
-    #         raise TypeError("The value of a CompositeSpace batch should be a "
-    #                         "tuple, but is %s of type %s." %
-    #                         (batch, type(batch)))
-    #     if len(batch) != self.num_components:
-    #         raise ValueError("Expected %d elements in batch, got %d"
-    #                          % (self.num_components, len(batch)))
-    #     for batch_elem, component in zip(batch, self.components):
-    #         component.np_validate(batch_elem)
+            component._validate(batch_elem)
 
     @functools.wraps(Space.get_origin_batch)
     def get_origin_batch(self, batch_size, dtype=None):
@@ -1453,10 +1442,8 @@ class CompositeSpace(Space):
                                               dtype)])
         return rval
 
-    @functools.wraps(Space.batch_size)
-    def batch_size(self, batch):
-        self.validate(batch)
-
+    @functools.wraps(Space._batch_size_impl)
+    def _batch_size_impl(self, batch):
         if len(self.components) == 0:
             return 0
 
@@ -1480,44 +1467,6 @@ class CompositeSpace(Space):
                                  "size %d, then %d." % (result, batch_size))
 
         return result
-
-
-    # @functools.wraps(Space.batch_size)
-    # def batch_size(self, batch):
-    #     # All components should have the same effective batch size,
-    #     # with the exeption of NullSpace, and CompositeSpace with
-    #     # 0 components, which will return 0, because they do not
-    #     # represent any data.
-    #     self.validate(batch)
-
-    #     for c, d in safe_zip(self.components, batch):
-    #         b = c.batch_size(d)
-
-    #         if b != 0:
-    #             # We assume they are all equal to b
-    #             return b
-
-    #     # All components are empty
-    #     return 0
-
-    # @functools.wraps(Space.np_batch_size)
-    # def np_batch_size(self, batch):
-    #     self.np_validate(batch)
-    #     # We actually check that all non-zero batch sizes are equal
-    #     rval = 0
-    #     for c, d in safe_zip(self.components, batch):
-    #         b = c.np_batch_size(d)
-    #         if b != 0:
-    #             if rval == 0:
-    #                 # First non-zero value we encounter, this is our candidate
-    #                 rval = b
-    #             elif b != rval:
-    #                 raise ValueError("All non-empty components of a "
-    #                                  "CompositeSpace should have the same "
-    #                                  "batch size, but we encountered "
-    #                                  "components with size %d, then %d." %
-    #                                  (rval, b))
-    #     return rval
 
     def _clean_dtype_arg(self, dtype):
         """
@@ -1615,42 +1564,21 @@ class NullSpace(Space):
     def make_theano_batch(self, name=None, dtype=theano.config.floatX):
         return None
 
-    @functools.wraps(Space.validate)
-    def validate(self, batch):
+    @functools.wraps(Space._validate_impl)
+    def _validate_impl(self, batch):
         if batch is not None:
-            raise TypeError("NullSpace only accepts 'None' as a "
-                            "place-holder for data, not %s of type %s"
+            raise TypeError('NullSpace only accepts None, as a dummy data '
+                            'batch. Instead, got %s of type %s'
                             % (batch, type(batch)))
 
-    # @functools.wraps(Space.np_validate)
-    # def np_validate(self, batch):
-    #     if batch is not None:
-    #         raise TypeError("NullSpace only accepts 'None' as a "
-    #                         "place-holder for data, not %s of type %s"
-    #                         % (batch, type(batch)))
-
-    # @functools.wraps(Space.np_format_as)
-    # def np_format_as(self, batch, space):
-    #     self.np_validate(batch)
-    #     assert isinstance(space, NullSpace)
-    #     return None
-
-    @functools.wraps(Space._format_as)
-    def _format_as(self, batch, space):
-        self.validate(batch)
+    @functools.wraps(Space._format_as_impl)
+    def _format_as_impl(self, batch, space):
         assert isinstance(space, NullSpace)
         return None
 
-    @functools.wraps(Space.batch_size)
-    def batch_size(self, batch):
+    @functools.wraps(Space._batch_size_impl)
+    def _batch_size_impl(self, batch):
         # There is no way to know how many examples would actually
         # have been in the batch, since it is empty. We return 0.
-        self.validate(batch)
+        self._validate(batch)
         return 0
-
-    # @functools.wraps(Space.np_batch_size)
-    # def np_batch_size(self, batch):
-    #     # There is no way to know how many examples would actually
-    #     # have been in the batch, since it is empty. We return 0.
-    #     self.np_validate(batch)
-    #     return 0
