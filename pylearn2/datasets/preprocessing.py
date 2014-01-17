@@ -980,8 +980,21 @@ class ZCA(Preprocessor):
         self.copy = True
         self.filter_bias = filter_bias
         self.has_fit_ = False
+        self.P_ = None  # set by fit()
+        self.inv_P_ = None  # optionally set by fit()
 
-    def fit(self, X):
+    def fit(self, X, compute_inverse=True):
+        """
+        Fits this ZCA to a design matrix X. Stores result as self.P_.
+
+        X: a matrix where each row is a datum.
+
+        compute_inverese: Computes the inverse of P_, storing it as inv_P_.
+                          This is not always necessary, but ZCA_Dataset
+                          requires inv_P_. If it's not computed here,
+                          ZCA_Dataset will compute it much less efficiently in
+                          its constructor.
+        """
         assert X.dtype in ['float32', 'float64']
         assert not numpy.any(numpy.isnan(X))
         assert len(X.shape) == 2
@@ -997,7 +1010,7 @@ class ZCA(Preprocessor):
         eigs, eigv = linalg.eigh(numpy.dot(X.T, X) / X.shape[0] +
                                  self.filter_bias * numpy.identity(X.shape[1]))
         t2 = time.time()
-        print "cov estimate + eigh took %d seconds" % (t2-t1)
+        print "cov estimate + eigh took %g seconds" % (t2 - t1)
         assert not numpy.any(numpy.isnan(eigs))
         assert not numpy.any(numpy.isnan(eigv))
         assert eigs.min() > 0
@@ -1014,6 +1027,16 @@ class ZCA(Preprocessor):
         assert not numpy.any(numpy.isnan(self.P_))
         self.has_fit_ = True
 
+        if compute_inverse:
+            print "Computing ZCA.P_'s inverse."
+            t1 = time.time()
+            self.inv_P_ = numpy.dot(eigv * numpy.sqrt(eigs),
+                                    eigv.T)
+            t2 = time.time()
+            print "Inverting ZCA.P_ took %g seconds" % (t2 - t1)
+        else:
+            self.inv_P_ = None
+
     def apply(self, dataset, can_fit=False):
         X = dataset.get_design_matrix()
         assert X.dtype in ['float32', 'float64']
@@ -1022,13 +1045,6 @@ class ZCA(Preprocessor):
             self.fit(X)
         new_X = numpy.dot(X - self.mean_, self.P_)
         dataset.set_design_matrix(new_X)
-
-    def invert(self):
-        """
-        Do any necessary prep work to be able to support the "inverse" method
-        later.
-        """
-        self.inv_P_ = numpy.linalg.inv(self.P_)
 
     def inverse(self, X):
         assert X.ndim == 2
