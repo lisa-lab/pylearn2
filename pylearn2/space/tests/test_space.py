@@ -658,10 +658,10 @@ def test_dtypes():
         # idiom isn't catching all the expceted_errors. Use this instead:
         if expected_error is not None:
             try:
-                # upgrades warnings to exceptions
-                warnings.simplefilter("error")
-
-                from_space._format_as(from_batch, to_space)
+                # temporarily upgrades warnings to exceptions within this block
+                with warnings.catch_warnings():
+                    warnings.simplefilter("error")
+                    from_space._format_as(from_batch, to_space)
             except expected_error, ex:
                 assert str(ex).find(expected_error_msg) >= 0
             except Exception, unknown_ex:
