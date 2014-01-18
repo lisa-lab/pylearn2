@@ -640,12 +640,11 @@ def test_dtypes():
                         "This space only supports simple dtypes, but received "
                         "a composite batch.")
 
-            if is_complex(from_space) != is_complex(from_batch):
+            if is_complex(from_batch) and not is_complex(from_space):
                 return (TypeError,
-                        "The batch's dtype (%s) and this space's dtype "
-                        "(%s) must either both be complex, or both be "
-                        "non-complex." %
-                        (from_batch.dtype, from_space.dtype))
+                        "This space has a non-complex dtype (%s), and "
+                        "thus cannot support complex batches of type %s." %
+                        (self.dtype, batch.dtype))
 
             if from_space.dtype is not None and \
                from_space.dtype != from_batch.dtype:

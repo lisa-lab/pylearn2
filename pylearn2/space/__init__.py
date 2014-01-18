@@ -583,10 +583,11 @@ class SimplyTypedSpace(Space):
             return str(dtype).startswith('complex')
 
         if self.dtype is not None and \
-           is_complex(self.dtype) != is_complex(batch.dtype):
-            raise TypeError("The batch's dtype (%s) and this space's dtype "
-                            "(%s) must either both be complex, or both be "
-                            "non-complex." % (batch.dtype, self.dtype))
+           is_complex(batch.dtype) and \
+           not is_complex(self.dtype):
+            raise TypeError("This space has a non-complex dtype (%s), and "
+                            "thus cannot support complex batches of type %s."
+                            % (self.dtype, batch.dtype))
 
     @property
     def dtype(self):
