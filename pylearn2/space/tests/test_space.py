@@ -10,7 +10,7 @@ from pylearn2.space import (Conv2DSpace,
                             CompositeSpace,
                             VectorSpace,
                             NullSpace,
-                            _is_theano_batch)
+                            is_symbolic_batch)
 from pylearn2.utils import function, safe_zip
 
 
@@ -895,13 +895,15 @@ def test_dtypes():
                         "dimensions. We need 4 dimensions to "
                         "represent a Conv2DSpace batch")
 
-            if str(from_batch.dtype).startswith('complex') and \
-               to_space.dtype is not None and \
-               not to_space.dtype.startswith('complex'):
-                if _is_theano_batch(from_batch):
+            def is_complex(space):
+                return space.dtype is not None and \
+                       space.dtype.startswith('complex')
+
+            if is_complex(from_space) and not is_complex(to_space):
+                if is_symbolic_batch(from_batch):
                     return (TypeError,
                             "Casting from complex to real is ambiguous")
-                if scipy.sparse.issparse(from_batch):
+                else:
                     return (np.ComplexWarning,
                             "Casting complex values to real discards the "
                             "imaginary part")
@@ -976,9 +978,13 @@ def test_dtypes():
         if expected_error is not None:
             try:
                 warnings.simplefilter("error")  # upgrade warnings to exceptions
-                from_space.format_as(from_batch, to_space)
+                from_space._format_as(from_batch, to_space)
             except expected_error, ex:
                 assert str(ex).find(expected_error_msg) >= 0
+            except Exception, unknown_ex:
+                print "Expected exception of type %s, got %s." % \
+                      (expected_error.__name__, type(unknown_ex))
+                raise unknown_ex
             finally:
                 return
 
@@ -1029,8 +1035,11 @@ def test_dtypes():
         #         assert expected_warning_msg in str(warning_context[-1].message)
         #         log.write("Caught the UserWarning, yay!")
 
-
-        to_batch = from_space.format_as(from_batch, to_space)
+        # print "formatting from:"
+        # print str(from_space)
+        # print "to:"
+        # print str(to_space)
+        to_batch = from_space._format_as(from_batch, to_space)
         expected_dtypes = get_expected_formatted_dtype(from_batch, to_space)
         actual_dtypes = get_batch_dtype(to_batch)
 
@@ -1044,7 +1053,7 @@ def test_dtypes():
                                   actual_dtypes,
                                   from_space,
                                   get_batch_dtype(from_batch),
-                                  _is_theano_batch(from_batch),
+                                  is_symbolic_batch(from_batch),
                                   to_space))
 
 
