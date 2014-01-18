@@ -621,10 +621,39 @@ def test_dtypes():
 
                 return None, None
 
+            #
+            # simple -> simple
+            #
+
             def is_sparse(space):
                 return isinstance(space, VectorSpace) and space.sparse
 
-            # simple -> simple
+            def is_complex(arg):
+                """
+                Returns whether a space or a batch has a complex dtype.
+                """
+                return (arg.dtype is not None and
+                        str(arg.dtype).startswith('complex'))
+
+            if isinstance(from_batch, tuple):
+                return (TypeError,
+                        "This space only supports simple dtypes, but received "
+                        "a composite batch.")
+
+            if is_complex(from_space) != is_complex(from_batch):
+                return (TypeError,
+                        "The batch's dtype (%s) and this space's dtype "
+                        "(%s) must either both be complex, or both be "
+                        "non-complex." %
+                        (from_batch.dtype, from_space.dtype))
+
+            if from_space.dtype is not None and \
+               from_space.dtype != from_batch.dtype:
+                return (TypeError,
+                        "This space is for dtype %s, but recieved a "
+                        "batch of dtype %s." %
+                        (from_space.dtype, from_batch.dtype))
+
             if is_sparse(from_space) and isinstance(to_space, Conv2DSpace):
                 return (TypeError,
                         "Formatting a SparseVariable to a Conv2DSpace "
@@ -632,10 +661,6 @@ def test_dtypes():
                         "Theano has sparse tensors with more than 2 "
                         "dimensions. We need 4 dimensions to "
                         "represent a Conv2DSpace batch")
-
-            def is_complex(space):
-                return (space.dtype is not None and
-                        space.dtype.startswith('complex'))
 
             if is_complex(from_space) and not is_complex(to_space):
                 if is_symbolic_batch(from_batch):
