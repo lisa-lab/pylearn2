@@ -2,8 +2,6 @@
 import numpy as np
 import scipy, sys, warnings, theano
 from nose.tools import assert_raises
-
-
 from pylearn2.space import (SimplyTypedSpace,
                             VectorSpace,
                             Conv2DSpace,
@@ -11,110 +9,6 @@ from pylearn2.space import (SimplyTypedSpace,
                             NullSpace,
                             is_symbolic_batch)
 from pylearn2.utils import function, safe_zip
-
-
-def get_batch_dtype(batch):
-    """
-    Returns the dtype of a batch, as a string, or nested tuple of strings.
-
-    For simple batches such as ndarray, this returns str(batch.dtype).
-
-    For the None batches "used" by NullSpace, this returns a special string
-    "NullSpace dtype".
-
-    For composite batches, this returns (nested) tuples of dtypes.
-    """
-
-    if isinstance(batch, tuple):
-        return tuple(get_batch_dtype(b) for b in batch)
-    elif batch is None:
-        return "NullSpace dtype"
-    else:
-        return batch.dtype
-
-
-def tree_iter(arg, *args):
-    """
-    When called with a single argument:
-
-      Returns an iterator that performs a breadth-first traversal of the
-      argument's subtree. CompositeSpaces and (nested) tuples are treated as
-      inner nodes of a tree, while other types are treated as leaf nodes.
-      Lists will cause a type error, to prevent people from using lists in
-      place of tuples.
-
-    When called with mulitple arguments:
-
-      Returns an iterator that traverses the arguments' trees in parallel. At
-      each iteration, it yields a tuple that contains the current element of
-      each tree.
-
-      All trees must have the same tree structure, or else a ValueError is
-      raised. One exception is that missing subtrees are OK.
-
-      For example, let iter = tree_iter(A, B, C). It yields triples of nodes as
-      it traverses trees A, B, and C in parallel. If for some node x, A.x and
-      B.x have children but C.x does not, iter will continue to iterate into
-      A.x and B.x's subtrees, while repeating the node C.x until those subtrees
-      are done.
-    """
-
-    nodes = (arg, ) + args
-
-    if len(nodes) == 1:
-        yield nodes[0]
-    else:
-        yield nodes
-
-    def get_shared_num_children(nodes):
-        """
-        Each node in <nodes> will either have zero or N children. This returns
-        N.
-
-        Raises a ValueError if different nodes have different nonzero
-        child counts.
-        """
-        def get_num_children(node):
-            if isinstance(node, CompositeSpace):
-                return len(node.components)
-            elif isinstance(node, tuple):
-                return len(node)
-            else:
-                return 0
-
-        children_counts = np.array(list(get_num_children(n) for n in nodes))
-        result = children_counts.max()
-        assert np.logical_or(children_counts == 0,
-                             children_counts == result).all()
-        return result
-
-    num_children = get_shared_num_children(nodes)
-
-    def get_children(node, num_children):
-        """
-        Returns a tuple containing the node's children. If the node has no
-        children, returns a tuple with <num_children> copies of the node
-        itself.
-        """
-        if isinstance(node, CompositeSpace):
-            result = tuple(node.components)
-        elif isinstance(node, tuple):
-            result = node
-        else:
-            result = (node, ) * num_children
-
-        assert len(result) == num_children, ("len(result) = %d, "
-                                             "num_children = %d" %
-                                             (len(result), num_children))
-        return result
-
-    tuples_of_children = tuple(get_children(n, num_children) for n in nodes)
-
-    for children_slice in safe_zip(*tuples_of_children):
-        for tuple_of_descendants in tree_iter(*children_slice):
-            # If we're only traversing a single tree, tuple_of_descendants will
-            # actually just be a single node, not a tuple.
-            yield tuple_of_descendants
 
 
 def test_np_format_as_vector2conv2d():
@@ -367,6 +261,22 @@ def test_dtypes():
         else:
             assert not (from_space.dtype is None and to_dtype is None)
             return from_space.dtype if to_dtype is None else to_dtype
+
+    def get_batch_dtype(batch):
+        """
+        Returns the dtype of a batch, as a string, or nested tuple of strings.
+        For simple batches such as ndarray, this returns str(batch.dtype).
+        For the None batches "used" by NullSpace, this returns a special string
+        "NullSpace dtype".
+        For composite batches, this returns (nested) tuples of dtypes.
+        """
+
+        if isinstance(batch, tuple):
+            return tuple(get_batch_dtype(b) for b in batch)
+        elif batch is None:
+            return "NullSpace dtype"
+        else:
+            return batch.dtype
 
     def test_get_origin_batch(from_space, to_type):
 
