@@ -71,14 +71,14 @@ def is_symbolic_batch(batch):
                                                  "should never happen.")
         return result
     else:
-
-        result = isinstance(batch, theano.gof.Variable)
-        # if not result:
-        #     print "returning False for ", batch
-        return result
+        return isinstance(batch, theano.gof.Variable)
 
 
 def _dense_to_sparse(batch):
+    """
+    Casts dense batches to sparse batches. Supports both symbolic and numeric
+    variables.
+    """
     if is_symbolic_batch(batch):
         assert isinstance(batch, theano.tensor.TensorVariable)
         return theano.sparse.csr_from_dense(batch)
@@ -88,6 +88,10 @@ def _dense_to_sparse(batch):
 
 
 def _reshape(arg, shape):
+    """
+    Reshapes a tensor. Supports both symbolic and numeric variables.
+    """
+
     if isinstance(arg, (np.ndarray, theano.tensor.TensorVariable)):
         return arg.reshape(shape)
     elif isinstance(arg, theano.sparse.SparseVariable):
@@ -106,17 +110,14 @@ def _reshape(arg, shape):
 def _cast(arg, dtype):
     """
     Does element-wise casting to dtype.
+    Supports symbolic, numeric, simple, and composite batches.
 
-    If <dtype> is None, returns <arg> untouched.
+    Returns <arg> untouched if <dtype> is None, or dtype is unchanged
+    (i.e. casting a float32 batch to float32).
 
-    Casts numpy arrays to numpy arrays. Returns arg if dtype is unchanged.
-
-    Casts theano tensors to theano tensors. Returns arg if dtype is unchanged.
-
-    Casts (nested) tuples of the above to (nested) tuples of the above. Always
-    returns a new tuple, even if no dtypes were actually changed. The ndarrays
-    or tuples contained therein will be returned unchanged if their dtypes are
-    unchanged.
+       (One exception: composite batches are never returned as-is. A new tuple
+        will always be returned. However, any components with unchanged dtypes
+        will be returned untouched.)
     """
 
     if dtype is None:
@@ -172,7 +173,8 @@ class Space(object):
     # This is necessary for _format_as to work correctly.
     def __eq__(self, other):
         """
-        Returns true if space.format_as(batch, self) and
+        Returns true iff
+        space.format_as(batch, self) and
         space.format_as(batch, other) return the same formatted batch.
         """
         raise NotImplementedError("__eq__ not implemented")
@@ -196,6 +198,16 @@ class Space(object):
 
     @property
     def dtype(self):
+        """
+        An object representing the data type used by this space.
+
+        For simple spaces, this will be a dtype string, as used by numpy,
+        scipy, and theano (e.g. 'float32').
+
+        For data-less spaces like NoneType, this will be some other string.
+
+        For composite spaces, this will be a nested tuple of such strings.
+        """
         raise NotImplementedError()
 
     @dtype.setter
@@ -214,7 +226,7 @@ class Space(object):
         Returns
         -------
         origin : ndarray
-            An NumPy array, the shape of a single points in this \
+            An NumPy array, the shape of a single points in this
             space, representing the origin.
         """
         raise NotImplementedError()
@@ -230,7 +242,7 @@ class Space(object):
             this space (with points being indexed along the first axis),
             each `batch[i]` being a copy of the origin.
         dtype : The dtype of the batch to be returned. Default = None.
-                If None, return a batch in this space's default dtype.
+                If None, use self.dtype.
         """
         raise NotImplementedError()
 
@@ -255,8 +267,8 @@ class Space(object):
         name : str
             Variable name for the returned batch.
         dtype : str
-            Data type for the returned batch. If omitted (None), the space's
-            own dtype will be used.
+            Data type for the returned batch.
+            If omitted (None), self.dtype is used.
         batch_size : int
             Number of examples in the returned batch.
 
@@ -291,7 +303,7 @@ class Space(object):
 
     def np_format_as(self, batch, space):
         """
-        Returns a non-Theano batch (e.g. a numpy.ndarray or scipy.sparse sparse
+        Returns a numeric batch (e.g. a numpy.ndarray or scipy.sparse sparse
         array), formatted to lie in this space.
 
         This is just a wrapper around self._format_as, with an extra check
@@ -310,7 +322,6 @@ class Space(object):
         Returns
         -------
         The formatted batch.
-
         """
 
         self._check_is_numeric(batch)
@@ -326,8 +337,7 @@ class Space(object):
         Agnostic to whether batch is symbolic or numeric, which avoids
         duplicating a lot of code between format_as() and np_format_as().
 
-        Should be invertible, i.e. batch should equal
-        `space.format_as(self.format_as(batch, space), self)`
+        Calls the appropriate callbacks, then calls self._format_as_impl().
 
         Parameters
         ----------
@@ -364,6 +374,9 @@ class Space(object):
         Actual implementation of format_as/np_format_as. Formats batch to
         target_space.
 
+        Should be invertible, i.e. batch should equal
+        `space.format_as(self.format_as(batch, space), self)`
+
         Parameters
         ----------
 
@@ -384,29 +397,27 @@ class Space(object):
 
     def validate(self, batch):
         """
-        Runs all validate_callbacks.
-        Raises an exception if batch is not a valid theano batch
-        in this space.
+        Runs all validate_callbacks, then checks that batch lies in this space.
+        Raises an exception if the batch isn't symbolic, or if any of these
+        checks fails.
 
         Parameters
         ----------
-        batch : a theano variable representing a batch of data in this
-                Space.
+        batch : a symbolic (Theano) variable that lies in this space.
         """
         self._check_is_symbolic(batch)
         self._validate(batch)
 
     def np_validate(self, batch):
         """
-        Runs all np_validate_callbacks.
-        Raises an exception if batch is not a valid numeric batch
-        in this space.
+        Runs all np_validate_callbacks, then checks that batch lies in this
+        space. Raises an exception if the batch isn't numeric, or if any of
+        these checks fails.
 
         Parameters
         ----------
-
-        batch : a numpy.ndarray or scipy.sparse matrix, of a shape and type
-                appropriate to this space.
+        batch : a numeric (numpy/scipy.sparse) variable that lies in this
+        space.
         """
         self._check_is_numeric(batch)
         self._validate(batch)
@@ -459,7 +470,7 @@ class Space(object):
 
     def batch_size(self, batch):
         """
-        Returns the batch size of a batch.
+        Returns the batch size of a symbolic batch.
 
         Parameters
         ----------
@@ -470,10 +481,7 @@ class Space(object):
 
     def np_batch_size(self, batch):
         """
-        Returns the batch size from a non-symbolic (i.e. a NumPy/scipy) batch.
-        Just a wrapper around self.batch_size that checks teh batch's type,
-        included for backwards-compatibility with code from when batch_size and
-        np_batch_size were more distinct.
+        Returns the batch size of a numeric (numpy/scipy.sparse) batch.
 
         Parameters
         ----------
@@ -524,9 +532,10 @@ class Space(object):
 
     def _clean_dtype_arg(self, dtype):
         """
-        Checks dtype argument for validity, and returns it if it is. If dtype
-        is 'floatX', returns the theano.config.floatX dtype (this will either
-        be 'float32' or 'float64'.
+        Checks dtype string for validity, and returns it if it is.
+
+        If dtype is 'floatX', returns the theano.config.floatX dtype (this will
+        either be 'float32' or 'float64'.
         """
 
         # print "Space._clean_dtype_arg called with %s" % dtype
@@ -591,8 +600,8 @@ class VectorSpace(SimplyTypedSpace):
             Dimensionality of a vector in this space.
         sparse: bool
             Sparse vector or not
-        dtype: str
-            numpy dtype string, e.g. 'float32'.
+        dtype: A numpy dtype string (e.g. 'float32') indicating this space's
+               dtype, or None for a dtype-agnostic space.
         kwargs: passed on to superclass constructor
         """
         super(VectorSpace, self).__init__(dtype, **kwargs)
@@ -671,7 +680,8 @@ class VectorSpace(SimplyTypedSpace):
                               'not yet have a gradient operator for. If '
                               'autodifferentiation is reporting an error, '
                               'this may be why. Formatting batch type %s '
-                              'from space %s to space %s' % (type(batch), self, space))
+                              'from space %s to space %s' %
+                              (type(batch), self, space))
             pos = 0
             pieces = []
             for component in space.components:
@@ -687,8 +697,8 @@ class VectorSpace(SimplyTypedSpace):
             result = tuple(pieces)
 
         elif isinstance(space, Conv2DSpace):
-            if (isinstance(batch, theano.sparse.SparseVariable) or
-                scipy.sparse.issparse(batch)):
+            if isinstance(batch, theano.sparse.SparseVariable) or \
+               scipy.sparse.issparse(batch):
                 raise TypeError("Formatting a SparseVariable to a Conv2DSpace "
                                 "is not supported, since neither scipy nor "
                                 "Theano has sparse tensors with more than 2 "
@@ -844,13 +854,16 @@ class Conv2DSpace(SimplyTypedSpace):
         axes: A tuple indicating the semantics of each axis.
                 'b' : this axis is the batch index of a minibatch.
                 'c' : this axis the channel index of a minibatch.
-                <i> : this is topological axis i (i.e., 0 for rows, 1 for \
-                cols) \
-                \
-                For example, a PIL image has axes (0, 1, 'c') or (0, 1). \
-                The pylearn2 image displaying functionality uses \
-                    ('b', 0, 1, 'c') for batches and (0, 1, 'c') for images. \
+                <i> : this is topological axis i (i.e., 0 for rows, 1 for
+                      cols)
+
+                For example, a PIL image has axes (0, 1, 'c') or (0, 1).
+                The pylearn2 image displaying functionality uses
+                    ('b', 0, 1, 'c') for batches and (0, 1, 'c') for images.
                 theano's conv2d operator uses ('b', 'c', 0, 1) images.
+        dtype: A numpy dtype string (e.g. 'float32') indicating this space's
+               dtype, or None for a dtype-agnostic space.
+        kwargs: passed on to superclass constructor
         """
 
         super(Conv2DSpace, self).__init__(dtype, **kwargs)
@@ -873,7 +886,7 @@ class Conv2DSpace(SimplyTypedSpace):
         assert all(elem > 0 for elem in shape)
         assert isinstance(num_channels, py_integer_types)
         assert num_channels > 0
-        # Convert shape to a tuple, so it can be hashable, and self can be too
+        # Converts shape to a tuple, so it can be hashable, and self can be too
         self.shape = tuple(shape)
         self.num_channels = num_channels
         if axes is None:
@@ -964,11 +977,6 @@ class Conv2DSpace(SimplyTypedSpace):
     def _batch_size_impl(self, batch):
         return batch.shape[self.axes.index('b')]
 
-    # @functools.wraps(Space.np_batch_size)
-    # def np_batch_size(self, batch):
-    #     self.np_validate(batch)
-    #     return batch.shape[self.axes.index('b')]
-
     @staticmethod
     def convert(tensor, src_axes, dst_axes):
         """
@@ -1002,38 +1010,6 @@ class Conv2DSpace(SimplyTypedSpace):
             return tensor.dimshuffle(*shuffle)
         else:
             return tensor.transpose(*shuffle)
-
-
-    # @staticmethod
-    # def convert_numpy(tensor, src_axes, dst_axes):
-    #     """
-    #     Returns a view of tensor using the axis semantics defined
-    #     by dst_axes. (If src_axes matches dst_axes, returns
-    #     tensor itself)
-
-    #     Useful for transferring tensors between different
-    #     Conv2DSpaces.
-
-    #     Parameters
-    #     ----------
-    #     tensor : numpy.ndarray
-    #         A 4-tensor representing a batch of images
-    #     src_axes : WRITEME
-    #         Axis semantics of tensor
-    #     dst_axes : WRITEME
-    #         WRITEME
-    #     """
-    #     src_axes = tuple(src_axes)
-    #     dst_axes = tuple(dst_axes)
-    #     assert len(src_axes) == 4
-    #     assert len(dst_axes) == 4
-
-    #     if src_axes == dst_axes:
-    #         return tensor
-
-    #     shuffle = [src_axes.index(elem) for elem in dst_axes]
-
-    #     return tensor.transpose(*shuffle)
 
     @functools.wraps(Space.get_total_dimension)
     def get_total_dimension(self):
@@ -1129,17 +1105,15 @@ class Conv2DSpace(SimplyTypedSpace):
         else:
             raise NotImplementedError("%s doesn't know how to format as %s"
                                       % (str(self), str(space)))
-        # print ("In Conv2DSpace.format_as,\n"
-        #        "from_space: %s\n"
-        #        "to_space: %s\n"
-        #        "batch:%s)" % (self, space, type(batch)))
-        result = _cast(result, space.dtype)
-        # print "got result of cast: ", type(result)
-        return result
+
+        return _cast(result, space.dtype)
 
 
 class CompositeSpace(Space):
-    """A Space whose points are tuples of points in other spaces """
+    """
+    A Space whose points are tuples of points in other spaces.
+    May be nested, in which case the points are nested tuples.
+    """
     def __init__(self, components, **kwargs):
         """
         .. todo::
@@ -1150,7 +1124,6 @@ class CompositeSpace(Space):
 
         assert isinstance(components, (list, tuple))
 
-        # self.num_components = len(components)
         for i, component in enumerate(components):
             if not isinstance(component, Space):
                 raise TypeError("component %d is %s of type %s, expected "
@@ -1191,8 +1164,8 @@ class CompositeSpace(Space):
     @property
     def dtype(self):
         """
-        Returns a nested tuple of dtypes. NullSpaces will yield a bogus dtype
-        string (see NullSpace.dtype).
+        Returns a nested tuple of dtype strings. NullSpaces will yield a bogus
+        dtype string (see NullSpace.dtype).
         """
 
         def get_dtype_of_space(space):
@@ -1335,12 +1308,6 @@ class CompositeSpace(Space):
                                         str(tuple(str(p.dtype)
                                                   for p in pieces)))
 
-            # print "batch type: ", type(batch)
-            # print "is_symbolic_batch(batch): ", is_symbolic_batch(batch)
-            # print "pieces: ", pieces
-            # print "is_symbolic_batch(pieces): ", is_symbolic_batch(tuple(pieces))
-            # print "pieces' dtypes: ", [d.dtype for d in pieces]
-
             if is_symbolic_batch(batch):
                 if space.sparse:
                     return theano.sparse.hstack(pieces)
@@ -1421,11 +1388,11 @@ class CompositeSpace(Space):
 
         n: batch size.
 
-        dtype: the dtype to use for all the make_theano_batch() calls on
-               subspaces. If dtype is None, or a single dtype string, that will
-               be used for all calls. If dtype is a (nested) tuple, it must
-               mirror the tree structure of this CompositeSpace.
-
+        dtype: The dtype of the returned batch.
+               If dtype is a string, it will be applied to all components.
+               If dtype is None, C.dtype will be used for each component C.
+               If dtype is a nested tuple, its elements will be applied to
+               corresponding elements in the components.
         """
 
         if name is None:
@@ -1519,12 +1486,11 @@ class CompositeSpace(Space):
 
 class NullSpace(Space):
     """
-    A space that contains no data.
+    A space that contains no data. As such, it has the following quirks:
 
-    When symbolic or numerical data for that space actually has to be
-    represented, None is used as a placeholder.
-
-    The source associated to that Space is the empty string ('').
+    * Its validate()/np_validate() methods only accept None.
+    * Its dtype string is "Nullspace's dtype".
+    * The source name associated to this Space is the empty string ('').
     """
 
     # NullSpaces don't support validation callbacks, since they only take None
@@ -1558,7 +1524,7 @@ class NullSpace(Space):
 
     @property
     def dtype(self):
-        return "%s dtype" % self.__class__.__name__
+        return "%s's dtype" % self.__class__.__name__
 
     @dtype.setter
     def dtype(self, new_dtype):
