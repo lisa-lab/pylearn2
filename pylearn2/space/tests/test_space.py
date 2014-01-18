@@ -4,9 +4,10 @@ import scipy, sys, warnings, theano
 from nose.tools import assert_raises
 
 
-from pylearn2.space import (Conv2DSpace,
-                            CompositeSpace,
+from pylearn2.space import (SimplyTypedSpace,
                             VectorSpace,
+                            Conv2DSpace,
+                            CompositeSpace,
                             NullSpace,
                             is_symbolic_batch)
 from pylearn2.utils import function, safe_zip
@@ -321,6 +322,9 @@ def test_dtypes():
     batch_size = 2
     dtype_is_none_msg = ("self.dtype is None, so you must provide a "
                          "non-None dtype argument to this method.")
+
+    all_scalar_dtypes = tuple(t.dtype
+                              for t in theano.scalar.all_types)
 
     def underspecifies_dtypes(from_space, to_dtype):
         """
@@ -751,13 +755,132 @@ def test_dtypes():
                                   to_space))
 
     #
-    # End of def test_format(), back to top-level test (test_dtypes).
     #
+    # End of test_format() function.
+
+    def test_dtype_getter(space):
+        """
+        Tests the getter method of space's dtype property.
+        """
+
+        def assert_composite_dtype_eq(space, dtype):
+            """
+            Asserts that dtype is a nested tuple with exactly the same tree
+            structure as space, and that the dtypes of space's components and
+            their corresponding elements in <dtype> are equal.
+            """
+            assert (isinstance(space, CompositeSpace) ==
+                    isinstance(dtype, tuple))
+
+            if isinstance(space, CompositeSpace):
+                for s, d in safe_zip(space.components, dtype):
+                    assert_composite_dtype_eq(s, d)
+            else:
+                assert space.dtype == dtype
+
+        if isinstance(space, SimplyTypedSpace):
+            assert space.dtype == space._dtype
+        elif isinstance(space, NullSpace):
+            assert space.dtype == "NullSpace's dtype"
+        elif isinstance(space, CompositeSpace):
+            composite_dtype = space.dtype
+            assert_composite_dtype_eq(space, space.dtype)
+
+    def test_dtype_setter(space, dtype):
+        """
+        Tests the setter method of space's dtype property.
+        """
+        old_dtype = space.dtype
+
+        def get_expected_error(space, dtype):
+            """
+            If calling space.dtype = dtype is expected to throw an exception,
+            this returns (exception_class, exception_message).
+
+            If no exception is to be expected, this returns (None, None).
+            """
+            if isinstance(space, CompositeSpace):
+                if isinstance(dtype, tuple):
+                    if len(space.components) != len(dtype):
+                        return ValueError, "Argument 0 has length "
+
+                    for s, d in safe_zip(space.components, dtype):
+                        error, message = get_expected_error(s, d)
+                        if error is not None:
+                            return error, message
+                else:
+                    for s in space.components:
+                        error, message = get_expected_error(s, dtype)
+                        if error is not None:
+                            return error, message
+
+                return None, None
+
+            if isinstance(space, SimplyTypedSpace):
+                if not any((dtype is None,
+                            dtype == 'floatX',
+                            dtype in all_scalar_dtypes)):
+                    return (TypeError,
+                            'Unrecognized value "%s" (type %s) for dtype arg' %
+                            (dtype, type(dtype)))
+
+                return None, None
+
+            if isinstance(space, NullSpace):
+                nullspace_dtype = NullSpace().dtype
+                if dtype != nullspace_dtype:
+                    return (TypeError,
+                            'NullSpace can only take the bogus dtype "%s"' %
+                            nullspace_dtype)
+
+                return None, None
+
+            raise NotImplementedError("%s not yet supported by this test" %
+                                      type(space))
+
+        def assert_dtype_equiv(space, dtype):
+            """
+            Asserts that space.dtype and dtype are equivalent.
+            """
+
+            if isinstance(space, CompositeSpace):
+                if isinstance(dtype, tuple):
+                    for s, d in safe_zip(space.components, dtype):
+                        assert_dtype_equiv(s, d)
+                else:
+                    for s in space.components:
+                        assert_dtype_equiv(s, dtype)
+            else:
+                assert not isinstance(dtype, tuple)
+                if dtype == 'floatX':
+                    dtype = theano.config.floatX
+
+                assert space.dtype == dtype, ("%s not equal to %s" %
+                                              (space.dtype, dtype))
+
+        expected_error, expected_message = get_expected_error(space, dtype)
+        if expected_error is not None:
+            try:
+                space.dtype = dtype
+            except expected_error, ex:
+                assert expected_message in str(ex)
+            except Exception, unexpected_ex:
+                print "Expected exception of type %s, got %s instead." % \
+                      (expected_error.__name__, type(ex))
+                raise ex
+            return
+        else:
+            space.dtype = dtype
+            assert_dtype_equiv(space, dtype)
+
+    #
+    #
+    # End of test_dtype_setter() function
 
     shape = np.array([2, 3, 4], dtype='int')
     assert len(shape) == 3  # This test depends on this being true
 
-    dtypes = ('floatX', None) + tuple(t.dtype for t in theano.scalar.all_types)
+    dtypes = ('floatX', None) + all_scalar_dtypes
 
     #
     # spaces with the same number of elements
@@ -803,20 +926,28 @@ def test_dtypes():
     composite_dtypes = ((None, 'int8'),
                         ('complex128', theano.config.floatX))
 
-    # Tests CompositeSpace's batch-making methods with composite dtypes
+    # Tests CompositeSpace's batch-making methods and dtype setter
+    # with composite dtypes
     for from_space in composite_spaces:
         for to_dtype in composite_dtypes:
             test_get_origin_batch(from_space, to_dtype)
             test_make_shared_batch(from_space, to_dtype)
             test_make_theano_batch(from_space, to_dtype)
+            test_dtype_setter(from_space, to_dtype)
 
     all_spaces = vector_spaces + conv2d_spaces + composite_spaces
     for from_space in all_spaces:
+        test_dtype_getter(from_space)
+
+        # Tests batch-making and dtype setting methods with non-composite
+        # dtypes.
         for to_dtype in dtypes:
             test_get_origin_batch(from_space, to_dtype)
             test_make_shared_batch(from_space, to_dtype)
             test_make_theano_batch(from_space, to_dtype)
+            test_dtype_setter(from_space, to_dtype)
 
+        # Tests _format_as
         for to_space in all_spaces:
             for is_numeric in (True, False):
                 test_format(from_space, to_space, is_numeric)
