@@ -51,7 +51,7 @@ def sharedX(value, name=None, borrow=False):
     WRITEME
     """
 
-    return theano.shared(value, name=name, borrow=borrow)
+    return theano.shared(theano._asarray(value), name=name, borrow=borrow)
 
 
 def as_floatX(variable):
