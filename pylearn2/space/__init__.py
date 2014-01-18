@@ -580,7 +580,7 @@ class SimplyTypedSpace(Space):
 
     @dtype.setter
     def dtype(self, new_dtype):
-        self._dtype = super(SimplyTypedSpace, self)._clean_dtype_arg(dtype)
+        self._dtype = super(SimplyTypedSpace, self)._clean_dtype_arg(new_dtype)
 
 
 class VectorSpace(SimplyTypedSpace):
@@ -1190,7 +1190,7 @@ class CompositeSpace(Space):
         if isinstance(new_dtype, tuple):
             for component, new_dt in safe_zip(self.components, new_dtype):
                 component.dtype = new_dt
-        elif isinstance(new_dtype, (str, None)):
+        elif new_dtype is None or isinstance(new_dtype, str):
             for component in self.components:
                 if not isinstance(component, NullSpace):
                     component.dtype = new_dtype
@@ -1529,7 +1529,7 @@ class NullSpace(Space):
     @dtype.setter
     def dtype(self, new_dtype):
         if new_dtype != self.dtype:
-            raise TypeError('%s can only take the bogus dtype "%s"',
+            raise TypeError('%s can only take the bogus dtype "%s"' %
                             (self.__class__.__name__,
                              self.dtype))
 
