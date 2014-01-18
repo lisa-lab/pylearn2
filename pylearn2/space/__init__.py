@@ -573,6 +573,20 @@ class SimplyTypedSpace(Space):
 
         return super(SimplyTypedSpace, self)._clean_dtype_arg(dtype)
 
+    def _validate_impl(self, batch):
+        if isinstance(batch, tuple):
+            raise TypeError("This space only supports simple dtypes, but "
+                            "received a composite batch.")
+
+        def is_complex(dtype):
+            return str(dtype).startswith('complex')
+
+        if self.dtype is not None and \
+           is_complex(self.dtype) != is_complex(batch.dtype):
+            raise TypeError("The batch's dtype (%s) and this space's dtype "
+                            "(%s) must either both be complex, or both be "
+                            "non-complex." % (batch.dtype, self.dtype))
+
     @property
     def dtype(self):
         return self._dtype
@@ -778,6 +792,10 @@ class VectorSpace(SimplyTypedSpace):
 
             WRITEME
         """
+
+        # checks batch.type against self.dtype
+        super(VectorSpace, self)._validate_impl(batch)
+
         if isinstance(batch, theano.gof.Variable):
             if self.sparse:
                 if not isinstance(batch.type, theano.sparse.SparseType):
@@ -1021,6 +1039,9 @@ class Conv2DSpace(SimplyTypedSpace):
 
     @functools.wraps(Space._validate_impl)
     def _validate_impl(self, batch):
+        # checks batch.type against self.dtype
+        super(Conv2DSpace, self)._validate_impl(batch)
+
         if isinstance(batch, theano.gof.Variable):
             if isinstance(batch, theano.sparse.SparseVariable):
                 raise TypeError("Conv2DSpace cannot use SparseVariables, "
