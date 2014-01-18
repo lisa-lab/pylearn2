@@ -17,6 +17,7 @@ WRAPPER_ASSIGNMENTS = ('__module__', '__name__')
 WRAPPER_CONCATENATIONS = ('__doc__',)
 WRAPPER_UPDATES = ('__dict__',)
 
+
 def make_name(variable, anon="anonymous_variable"):
     """
     If variable has a name, returns that name. Otherwise, returns anon.
