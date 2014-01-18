@@ -405,6 +405,13 @@ class Space(object):
         ----------
         batch : a symbolic (Theano) variable that lies in this space.
         """
+
+        # This is necessary because some code passes None as a batch, when
+        # batch is not important.
+        # For example: costs/tests/test_lp_penalty_cost.py
+        if batch is None:
+            return
+
         self._check_is_symbolic(batch)
         self._validate(batch)
 
@@ -1029,6 +1036,10 @@ class Conv2DSpace(SimplyTypedSpace):
             return tensor.dimshuffle(*shuffle)
         else:
             return tensor.transpose(*shuffle)
+
+    @staticmethod
+    def convert_numpy(tensor, src_axes, dst_axes):
+        return self.convert(tensor, src_axes, dst_axes)
 
     @functools.wraps(Space.get_total_dimension)
     def get_total_dimension(self):
