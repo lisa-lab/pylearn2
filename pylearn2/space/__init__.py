@@ -47,7 +47,7 @@ if theano.sparse.enable_sparse:
     import scipy.sparse
 
 
-def _is_theano_batch(batch):
+def is_symbolic_batch(batch):
     """
     Returns true if batch is a symbolic variable.
     """
@@ -61,7 +61,7 @@ def _is_theano_batch(batch):
         if len(batch) == 0:
             return True
 
-        subbatch_results = tuple(_is_theano_batch(b) for b in batch)
+        subbatch_results = tuple(is_symbolic_batch(b) for b in batch)
         result = all(subbatch_results)
 
         # The subbatch_results must be all true, or all false, not a mix.
@@ -79,7 +79,7 @@ def _is_theano_batch(batch):
 
 
 def _dense_to_sparse(batch):
-    if _is_theano_batch(batch):
+    if is_symbolic_batch(batch):
         assert isinstance(batch, theano.tensor.TensorVariable)
         return theano.sparse.csr_from_dense(batch)
     else:
@@ -312,11 +312,11 @@ class Space(object):
 
         """
 
-        self.check_is_numeric(batch)
+        self._check_is_numeric(batch)
         return self._format_as(batch, space)
 
     def format_as(self, batch, space):
-        self.check_is_symbolic(batch)
+        self._check_is_symbolic(batch)
         return self._format_as(batch, space)
 
     def _format_as(self, batch, space):
@@ -392,7 +392,7 @@ class Space(object):
         batch : a theano variable representing a batch of data in this
                 Space.
         """
-        self.check_is_symbolic(batch)
+        self._check_is_symbolic(batch)
         self._validate(batch)
 
     def np_validate(self, batch):
@@ -407,7 +407,7 @@ class Space(object):
         batch : a numpy.ndarray or scipy.sparse matrix, of a shape and type
                 appropriate to this space.
         """
-        self.check_is_numeric(batch)
+        self._check_is_numeric(batch)
         self._validate(batch)
 
     def _validate(self, batch):
@@ -424,7 +424,7 @@ class Space(object):
                 to this space.
         """
 
-        if _is_theano_batch(batch):
+        if is_symbolic_batch(batch):
             callbacks_name = "validate_callbacks"
         else:
             callbacks_name = "np_validate_callbacks"
@@ -464,7 +464,7 @@ class Space(object):
         ----------
         batch : WRITEME
         """
-        self.check_is_symbolic(batch)
+        self._check_is_symbolic(batch)
         return self._batch_size(batch)
 
     def np_batch_size(self, batch):
@@ -478,7 +478,7 @@ class Space(object):
         ----------
         batch : WRITEME
         """
-        self.check_is_numeric(batch)
+        self._check_is_numeric(batch)
         return self._batch_size(batch)
 
     def _batch_size(self, batch):
@@ -511,13 +511,13 @@ class Space(object):
 
     @staticmethod
     def _check_is_numeric(batch):
-        if _is_theano_batch(batch):
+        if is_symbolic_batch(batch):
             raise TypeError('Expected batch to be a numeric variable, but '
                             'instead it was of type "%s"' % type(batch))
 
     @staticmethod
     def _check_is_symbolic(batch):
-        if not _is_theano_batch(batch):
+        if not is_symbolic_batch(batch):
             raise TypeError('Expected batch to be a symbolic variable, but '
                             'instead it was of type "%s"' % type(batch))
 
@@ -546,8 +546,8 @@ class SimplyTypedSpace(Space):
     A space that uses a numpy/theano dtype string for its .dtype property.
     """
 
-    def __init__(self, dtype=theano.config.floatX):
-        super(SimplyTypedSpace, self).__init__()
+    def __init__(self, dtype=theano.config.floatX, **kwargs):
+        super(SimplyTypedSpace, self).__init__(**kwargs)
         self._dtype = super(SimplyTypedSpace, self)._clean_dtype_arg(dtype)
 
     def _clean_dtype_arg(self, dtype):
@@ -594,7 +594,7 @@ class VectorSpace(SimplyTypedSpace):
             numpy dtype string, e.g. 'float32'.
         kwargs: passed on to superclass constructor
         """
-        super(VectorSpace, self).__init__(dtype, kwargs)
+        super(VectorSpace, self).__init__(dtype, **kwargs)
         self.dim = dim
         self.sparse = sparse
 
@@ -829,7 +829,8 @@ class Conv2DSpace(SimplyTypedSpace):
                  channels=None,
                  num_channels=None,
                  axes=None,
-                 dtype=theano.config.floatX):
+                 dtype=theano.config.floatX,
+                 **kwargs):
         """
         Initialize a Conv2DSpace.
 
@@ -851,7 +852,7 @@ class Conv2DSpace(SimplyTypedSpace):
                 theano's conv2d operator uses ('b', 'c', 0, 1) images.
         """
 
-        super(Conv2DSpace, self).__init__(dtype)
+        super(Conv2DSpace, self).__init__(dtype, **kwargs)
 
         assert (channels is None) + (num_channels is None) == 1
         if num_channels is None:
@@ -996,7 +997,7 @@ class Conv2DSpace(SimplyTypedSpace):
 
         shuffle = [src_axes.index(elem) for elem in dst_axes]
 
-        if _is_theano_batch(tensor):
+        if is_symbolic_batch(tensor):
             return tensor.dimshuffle(*shuffle)
         else:
             return tensor.transpose(*shuffle)
@@ -1138,13 +1139,16 @@ class Conv2DSpace(SimplyTypedSpace):
 
 class CompositeSpace(Space):
     """A Space whose points are tuples of points in other spaces """
-    def __init__(self, components):
+    def __init__(self, components, **kwargs):
         """
         .. todo::
 
             WRITEME
         """
+        super(CompositeSpace, self).__init__(**kwargs)
+
         assert isinstance(components, (list, tuple))
+
         # self.num_components = len(components)
         for i, component in enumerate(components):
             if not isinstance(component, Space):
@@ -1331,12 +1335,12 @@ class CompositeSpace(Space):
                                                   for p in pieces)))
 
             # print "batch type: ", type(batch)
-            # print "_is_theano_batch(batch): ", _is_theano_batch(batch)
+            # print "is_symbolic_batch(batch): ", is_symbolic_batch(batch)
             # print "pieces: ", pieces
-            # print "_is_theano_batch(pieces): ", _is_theano_batch(tuple(pieces))
+            # print "is_symbolic_batch(pieces): ", is_symbolic_batch(tuple(pieces))
             # print "pieces' dtypes: ", [d.dtype for d in pieces]
 
-            if _is_theano_batch(batch):
+            if is_symbolic_batch(batch):
                 if space.sparse:
                     return theano.sparse.hstack(pieces)
                 else:
@@ -1521,6 +1525,11 @@ class NullSpace(Space):
 
     The source associated to that Space is the empty string ('').
     """
+
+    # NullSpaces don't support validation callbacks, since they only take None
+    # as data batches.
+    def __init__(self):
+        super(NullSpace, self).__init__()
 
     def __str__(self):
         """
