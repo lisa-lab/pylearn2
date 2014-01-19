@@ -562,7 +562,7 @@ class SimplyTypedSpace(Space):
     A space that uses a numpy/theano dtype string for its .dtype property.
     """
 
-    def __init__(self, dtype=theano.config.floatX, **kwargs):
+    def __init__(self, dtype='floatX', **kwargs):
         super(SimplyTypedSpace, self).__init__(**kwargs)
         self._dtype = super(SimplyTypedSpace, self)._clean_dtype_arg(dtype)
 
@@ -610,7 +610,7 @@ class VectorSpace(SimplyTypedSpace):
     def __init__(self,
                  dim,
                  sparse=False,
-                 dtype=theano.config.floatX,
+                 dtype='floatX',
                  **kwargs):
         """
         Initialize a VectorSpace.
@@ -865,7 +865,7 @@ class Conv2DSpace(SimplyTypedSpace):
                  channels=None,
                  num_channels=None,
                  axes=None,
-                 dtype=theano.config.floatX,
+                 dtype='floatX',
                  **kwargs):
         """
         Initialize a Conv2DSpace.
@@ -1037,7 +1037,7 @@ class Conv2DSpace(SimplyTypedSpace):
             return tensor.transpose(*shuffle)
 
     @staticmethod
-    def convert_numpy(tensor, src_axes, dst_axes):
+    def convert_numpy(self, tensor, src_axes, dst_axes):
         return self.convert(tensor, src_axes, dst_axes)
 
     @functools.wraps(Space.get_total_dimension)
@@ -1577,7 +1577,7 @@ class NullSpace(Space):
         # otherwise, do nothing
 
     @functools.wraps(Space.make_theano_batch)
-    def make_theano_batch(self, name=None, dtype=theano.config.floatX):
+    def make_theano_batch(self, name=None, dtype=None):
         return None
 
     @functools.wraps(Space._validate_impl)
