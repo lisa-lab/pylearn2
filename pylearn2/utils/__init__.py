@@ -54,7 +54,10 @@ def sharedX(value, name=None, borrow=False):
     WRITEME
     """
 
-    return theano.shared(theano._asarray(value), name=name, borrow=borrow)
+    value = numpy.asarray(value)  # turns scalars into scalar arrays
+    return theano.shared(theano._asarray(value, dtype=value.dtype),
+                         name=name,
+                         borrow=borrow)
 
 
 def as_floatX(variable):
