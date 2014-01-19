@@ -51,10 +51,6 @@ def sharedX(value, name=None, borrow=False):
     WRITEME
     """
 
-    if not numpy.isscalar(value) and not isinstance(value, numpy.ndarray):
-        raise TypeError('Expected <value> to be a scalar or numpy array, '
-                        'not %s' % type(value))
-
     return theano.shared(theano._asarray(value, dtype=theano.config.floatX),
                          name=name,
                          borrow=borrow)
