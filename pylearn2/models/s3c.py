@@ -479,6 +479,7 @@ class S3C(Model, Block):
             W /= norms
 
         self.W = sharedX(W, name = 'W')
+
         self.bias_hid = sharedX(np.zeros(self.nhid)+self.init_bias_hid, name='bias_hid')
         self.alpha = sharedX(np.zeros(self.nhid)+self.init_alpha, name = 'alpha')
         self.mu = sharedX(np.zeros(self.nhid)+self.init_mu, name='mu')
@@ -1903,7 +1904,9 @@ class E_Step(object):
         mean_term.name = 'infer_S_hat:mean_term'
 
         assert V.dtype == config.floatX
-        assert BW.dtype == config.floatX
+        print "B, W, V = ", B.dtype, W.dtype, V.dtype
+        assert BW.dtype == config.floatX, \
+            "Expected %s, got %s" % (config.floatX, BW.dtype)
         data_term = T.dot(V, BW)
         data_term.name = 'infer_S_hat:data_term'
 
