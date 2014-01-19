@@ -106,7 +106,6 @@ def _reshape(arg, shape):
     else:
         raise TypeError('Unexpected batch type "%s"' % str(type(arg)))
 
-
 def _cast(arg, dtype):
     """
     Does element-wise casting to dtype.
@@ -255,7 +254,7 @@ class Space(object):
 
         dtype = self._clean_dtype_arg(dtype)
         origin_batch = self.get_origin_batch(batch_size, dtype)
-        return sharedX(origin_batch, name=name, dtype=None)
+        return theano.shared(origin_batch, name=name)
 
     def make_theano_batch(self, name=None, dtype=None, batch_size=None):
         """
@@ -544,8 +543,6 @@ class Space(object):
         If dtype is 'floatX', returns the theano.config.floatX dtype (this will
         either be 'float32' or 'float64'.
         """
-
-        # print "Space._clean_dtype_arg called with %s" % dtype
 
         if dtype == 'floatX':
             return theano.config.floatX
@@ -1285,13 +1282,13 @@ class CompositeSpace(Space):
         dtype = self._clean_dtype_arg(dtype)
         batch = self.get_origin_batch(batch_size, dtype)
 
-        def recursive_sharedX(batch):
+        def recursive_shared(batch):
             if isinstance(batch, tuple):
-                return tuple(recursive_sharedX(b) for b in batch)
+                return tuple(recursive_shared(b) for b in batch)
             else:
-                return sharedX(batch, name=name, dtype=None)
+                return theano.shared(batch, name=name)
 
-        return recursive_sharedX(batch)
+        return recursive_shared(batch)
 
     @functools.wraps(Space._format_as_impl)
     def _format_as_impl(self, batch, space):

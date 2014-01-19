@@ -1,7 +1,7 @@
 """Tests for space utilities."""
 import numpy as np
 import scipy, sys, warnings, theano
-from nose.tools import assert_raises
+#from nose.tools import assert_raises  # only introduced in python 2.7
 from pylearn2.space import (SimplyTypedSpace,
                             VectorSpace,
                             Conv2DSpace,
@@ -358,11 +358,19 @@ def test_dtypes():
 
         # Expect failure if neither we nor the from_space specifies a dtype
         if underspecifies_dtypes(from_space, to_type):
-            with assert_raises(TypeError) as context:
+            try:
                 from_space.get_origin_batch(batch_size, dtype=to_type)
-                assert str(context.exception).find(dtype_is_none_msg) >= 0
-
-            return
+            except TypeError, ex:
+                assert dtype_is_none_msg in str(ex)
+            except Exception, unexpected_ex:
+                print ("Expected an exception of type TypeError with message "
+                       "%s, got a %s instead with message %s." %
+                       (dtype_is_none_message,
+                        type(unexpected_ex),
+                        str(unexpected_ex)))
+                raise unexpected_ex
+            finally:
+                return
 
         batch = from_space.get_origin_batch(batch_size, dtype=to_type)
         assert get_batch_dtype(batch) == get_expected_batch_dtype(from_space,
@@ -371,11 +379,19 @@ def test_dtypes():
     def test_make_shared_batch(from_space, to_type):
 
         if underspecifies_dtypes(from_space, to_type):
-            with assert_raises(TypeError) as context:
+            try:
                 from_space.make_shared_batch(batch_size, dtype=to_type)
-                assert str(context.exception).find(dtype_is_none_msg) >= 0
-
-            return
+            except TypeError, ex:
+                assert dtype_is_none_msg in str(ex)
+            except Exception, unexpected_ex:
+                print ("Expected an exception of type TypeError with message "
+                       "%s, got a %s instead with message %s." %
+                       (dtype_is_none_message,
+                        type(unexpected_ex),
+                        str(unexpected_ex)))
+                raise unexpected_ex
+            finally:
+                return
 
         batch = from_space.make_shared_batch(batch_size=batch_size,
                                              name='batch',
@@ -397,11 +413,19 @@ def test_dtypes():
             kwargs['batch_size'] = batch_size
 
         if underspecifies_dtypes(from_space, to_type):
-            with assert_raises(TypeError) as context:
+            try:
                 from_space.make_theano_batch(**kwargs)
-                assert str(context.exception).find(dtype_is_none_msg) >= 0
-
-            return
+            except TypeError, ex:
+                assert dtype_is_none_msg in str(ex)
+            except Exception, unexpected_ex:
+                print ("Expected an exception of type TypeError with message "
+                       "%s, got a %s instead with message %s." %
+                       (dtype_is_none_message,
+                        type(unexpected_ex),
+                        str(unexpected_ex)))
+                raise unexpected_ex
+            finally:
+                return
 
         batch = from_space.make_theano_batch(**kwargs)
         assert get_batch_dtype(batch) == get_expected_batch_dtype(from_space,
@@ -644,7 +668,7 @@ def test_dtypes():
                 return (TypeError,
                         "This space has a non-complex dtype (%s), and "
                         "thus cannot support complex batches of type %s." %
-                        (self.dtype, batch.dtype))
+                        (from_space.dtype, from_batch.dtype))
 
             if from_space.dtype is not None and \
                from_space.dtype != from_batch.dtype:
