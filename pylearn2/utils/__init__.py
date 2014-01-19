@@ -39,7 +39,7 @@ def make_name(variable, anon="anonymous_variable"):
     return anon
 
 
-def sharedX(value, name=None, borrow=False, dtype=theano.config.floatX):
+def sharedX(value, name=None, borrow=False, dtype='floatX'):
     """
     Transform value into a shared variable.
 
@@ -55,7 +55,9 @@ def sharedX(value, name=None, borrow=False, dtype=theano.config.floatX):
     WRITEME
     """
 
-    if dtype is None:
+    if dtype == 'floatX':
+        dtype = theano.config.floatX
+    elif dtype is None:
         if numpy.isscalar(value):
             dtype = numpy.dtype(type(value))
         else:
