@@ -39,7 +39,7 @@ def make_name(variable, anon="anonymous_variable"):
     return anon
 
 
-def sharedX(value, name=None, borrow=False, dtype='floatX'):
+def sharedX(value, name=None, borrow=False):
     """
     Transform value into a shared variable.
 
@@ -48,22 +48,17 @@ def sharedX(value, name=None, borrow=False, dtype='floatX'):
     value : WRITEME
     name : WRITEME
     borrow : WRITEME
-    dtype: The dtype to cast to. Use None to keep value's dtype.
 
     Returns
     -------
     WRITEME
     """
 
-    if dtype == 'floatX':
-        dtype = theano.config.floatX
-    elif dtype is None:
-        if numpy.isscalar(value):
-            dtype = numpy.dtype(type(value))
-        else:
-            dtype = value.dtype
+    if not numpy.isscalar(value) and not isinstance(value, numpy.ndarray):
+        raise TypeError('Expected <value> to be a scalar or numpy array, '
+                        'not %s' % type(value))
 
-    return theano.shared(theano._asarray(value, dtype=dtype),
+    return theano.shared(theano._asarray(value, dtype=theano.config.floatX),
                          name=name,
                          borrow=borrow)
 
