@@ -136,12 +136,6 @@ def test():
                                  derphi0,
                                  profile=0)
 
-    warnings.warn("Theano is broken; this test causes an optimization"
-            " failure. Skipping the test so as not to break the "
-            "pylearn2 buildbot.")
-
-    return
-
     f2 = theano.function([],
                          rvals,
                          profile=0,

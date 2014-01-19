@@ -10,15 +10,21 @@ import numpy as np
 import theano.tensor as T
 
 class DiagonalMND(Model):
-    """A model based on the multivariate normal distribution
-    This variant is constrained to have diagonal covariance
-    TODO: unify this with distribution.mnd"""
-
+    """
+    A model based on the multivariate normal distribution. This variant is
+    constrained to have diagonal covariance.
+    """
+    # TODO: unify this with distribution.mnd
     def __init__(self, nvis,
             init_beta,
             init_mu,
             min_beta,
             max_beta):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         #copy all arguments to the object
         self.__dict__.update( locals() )
@@ -30,6 +36,11 @@ class DiagonalMND(Model):
         self.redo_everything()
 
     def redo_everything(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         self.beta = sharedX(np.ones((self.nvis,))*self.init_beta,'beta')
         self.mu = sharedX(np.ones((self.nvis,))*self.init_mu,'mu')
@@ -37,6 +48,11 @@ class DiagonalMND(Model):
 
 
     def free_energy(self, X):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         diff = X-self.mu
         sq = T.sqr(diff)
@@ -45,10 +61,20 @@ class DiagonalMND(Model):
 
 
     def log_prob(self, X):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         return -self.free_energy(X) - self.log_partition_function()
 
     def log_partition_function(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # Z^-1 = (2pi)^{-nvis/2} det( beta^-1 )^{-1/2}
         # Z = (2pi)^(nvis/2) sqrt( det( beta^-1) )
         # log Z = (nvis/2) log 2pi - (1/2) sum(log(beta))
@@ -56,6 +82,11 @@ class DiagonalMND(Model):
         return float(self.nvis)/2. * np.log(2*np.pi) - 0.5 * T.sum(T.log(self.beta))
 
     def redo_theano(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         init_names = dir(self)
 
@@ -69,6 +100,11 @@ class DiagonalMND(Model):
 
 
     def censor_updates(self, updates):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         if self.beta in updates and updates[self.beta] not in self.censored_updates[self.beta]:
             updates[self.beta] = T.clip(updates[self.beta], self.min_beta, self.max_beta )
@@ -79,10 +115,20 @@ class DiagonalMND(Model):
                 self.censored_updates[param] = self.censored_updates[param].union(set([updates[param]]))
 
     def get_params(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return [self.mu, self.beta ]
 
 
 def kl_divergence(q,p):
+    """
+    .. todo::
+
+        WRITEME
+    """
     #KL divergence of two DiagonalMNDs
     #http://en.wikipedia.org/wiki/Kullback%E2%80%93Leibler_divergence#KL_divergence_for_Normal_Distributions
     #D_KL(q||p) = 0.5 ( beta_q^T beta_p^-1 + beta_p^T sq(mu_p - mu_q) - log(det Siga_q / det Sigma_p) - k)

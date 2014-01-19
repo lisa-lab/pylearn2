@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import numpy as N
 from theano import config, shared
 __authors__ = "Ian Goodfellow"
@@ -15,6 +20,11 @@ class NormalizedEBM(object):
     can be learned through methods such as noise-contrastive estimation.
     """
     def __init__(self, ebm, init_logZ, learn_logZ, logZ_lr_scale=1.0):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.ebm = ebm
         self.logZ_driver = shared(N.cast[config.floatX](
             init_logZ / logZ_lr_scale
@@ -26,26 +36,61 @@ class NormalizedEBM(object):
         self.examples_seen = 0
 
     def log_prob(self, X):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return -self.ebm.free_energy(X) - self.logZ_driver * self.logZ_lr_scale
 
     def free_energy(self, X):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.ebm.free_energy(X)
 
     def get_params(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         params = self.ebm.get_params()
         if self.learn_logZ:
             params.append(self.logZ_driver)
         return params
 
     def censor_updates(self, updates):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.ebm.censor_updates(updates)
 
     def redo_theano(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.ebm.redo_theano()
         self.E_X_batch_func = self.ebm.E_X_batch_func
 
     def get_weights(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.ebm.get_weights()
 
     def get_weights_format(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.ebm.get_weights_format()

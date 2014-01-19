@@ -371,7 +371,7 @@ class CrossMapNormUndo(CrossMapNorm):
         return (8,)
 
 
-@local_optimizer([None])
+@local_optimizer([CrossMapNormUndo])
 def local_crossmapnormundo_inplace(node):
     if isinstance(node.op, CrossMapNormUndo) and not node.op.inplace:
         new_op = node.op.as_inplace()

@@ -1,16 +1,21 @@
 """
 Code for reformatting supervised learning targets.
 """
-
-
 import numpy
+np = numpy
 from theano import tensor, config
+
 
 class OneHotFormatter(object):
     """
     A target formatter that transforms labels from integer
     """
     def __init__(self, max_labels, dtype=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         try:
             numpy.empty(max_labels)
         except (ValueError, TypeError):
@@ -28,6 +33,11 @@ class OneHotFormatter(object):
             self._dtype = dtype
 
     def format(self, targets):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if 'int' not in str(targets.dtype):
             raise TypeError("need an integer array for targets")
         one_hot = numpy.zeros((targets.shape[0], self._max_labels),
@@ -42,14 +52,14 @@ class OneHotFormatter(object):
         Parameters
         ----------
         targets : tensor_like, 1-dimensional, integer dtype
-            A symbolic tensor representing labels as integers
-            between 0 and `max_labels` - 1, `max_labels` supplied
+            A symbolic tensor representing labels as integers \
+            between 0 and `max_labels` - 1, `max_labels` supplied \
             at formatter construction.
 
         Returns
         -------
         one_hot : TensorVariable, 2-dimensional
-            A symbolic tensor representing a 1-hot encoding of the
+            A symbolic tensor representing a 1-hot encoding of the \
             supplied labels.
         """
         # Create a flat zero vector with the right number of elements, do
@@ -67,3 +77,16 @@ class OneHotFormatter(object):
                                             numpy.cast[self._dtype](1))
         return one_hot_flat.reshape((targets.shape[0],
                                      tensor.constant(self._max_labels)))
+
+
+def convert_to_one_hot(integer_vector):
+    """
+    .. todo::
+
+        WRITEME
+    """
+    if isinstance(integer_vector, list):
+        integer_vector = np.array(integer_vector)
+    assert min(integer_vector) >= 0
+    num_classes = max(integer_vector) + 1
+    return OneHotFormatter(num_classes, 'float32').format(integer_vector)

@@ -29,15 +29,30 @@ from pylearn2.utils.data_specs import is_flat_specs
 class SubsetIterator(object):
     def __init__(self, dataset_size, batch_size, num_batches, rng=None):
         """
-            rng: either a seed value for a numpy RandomState or
-            numpy RandomState workalike
+        Parameters
+        ----------
+        dataset_size : WRITEME
+        batch_size : WRITEME
+        num_batches : WRITEME
+        rng : int or numpy RandomState
+            WRITEME
         """
         raise NotImplementedError()
 
     def next(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError()
 
     def __iter__(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self
 
     # Class-level attributes that might hint the behaviour of
@@ -52,23 +67,53 @@ class SubsetIterator(object):
 
     @property
     def batch_size(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self._batch_size
 
     @property
     def num_batches(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self._num_batches
 
     @property
     def num_examples(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.batch_size * self.num_batches
 
     @property
     def uneven(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return False
 
 
 class SequentialSubsetIterator(SubsetIterator):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, dataset_size, batch_size, num_batches, rng=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if rng is not None:
             raise ValueError("non-None rng argument not supported for "
                              "sequential batch iteration")
@@ -98,6 +143,11 @@ class SequentialSubsetIterator(SubsetIterator):
         self._batch = 0
 
     def next(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self._batch >= self.num_batches or self._idx >= self._dataset_size:
             raise StopIteration()
 
@@ -118,20 +168,39 @@ class SequentialSubsetIterator(SubsetIterator):
 
     @property
     def num_examples(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         product = self.batch_size * self.num_batches
         return min(product, self._dataset_size)
 
     @property
     def uneven(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.batch_size * self.num_batches > self._dataset_size
 
 
 class ShuffledSequentialSubsetIterator(SequentialSubsetIterator):
+    """
+    .. todo::
 
+        WRITEME
+    """
     stochastic = True
     fancy = True
 
     def __init__(self, dataset_size, batch_size, num_batches, rng=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         super(ShuffledSequentialSubsetIterator, self).__init__(
             dataset_size,
             batch_size,
@@ -146,6 +215,11 @@ class ShuffledSequentialSubsetIterator(SequentialSubsetIterator):
         self._rng.shuffle(self._shuffled)
 
     def next(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self._batch >= self.num_batches or self._idx >= self._dataset_size:
             raise StopIteration()
 
@@ -162,7 +236,17 @@ class ShuffledSequentialSubsetIterator(SequentialSubsetIterator):
 
 
 class RandomUniformSubsetIterator(SubsetIterator):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, dataset_size, batch_size, num_batches, rng=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if rng is not None and hasattr(rng, 'random_integers'):
             self._rng = rng
         else:
@@ -179,6 +263,11 @@ class RandomUniformSubsetIterator(SubsetIterator):
         self._next_batch_no = 0
 
     def next(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self._next_batch_no >= self._num_batches:
             raise StopIteration()
         else:
@@ -193,7 +282,17 @@ class RandomUniformSubsetIterator(SubsetIterator):
 
 
 class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, dataset_size, batch_size, num_batches, rng=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if batch_size is None:
             raise ValueError("batch_size cannot be None for random slice "
                              "iteration")
@@ -209,6 +308,11 @@ class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
                              "random slice iteration")
 
     def next(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self._next_batch_no >= self._num_batches:
             raise StopIteration()
         else:
@@ -221,9 +325,16 @@ class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
     stochastic = True
 
 class BatchwiseShuffledSequentialIterator(SequentialSubsetIterator):
-    """ Returns minibatches randomly, but sequential inside each minibatch"""
+    """
+    Returns minibatches randomly, but sequential inside each minibatch
+    """
 
     def __init__(self, dataset_size, batch_size, num_batches = None, rng=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if rng is not None and hasattr(rng, 'random_integers'):
             self._rng = rng
         else:
@@ -257,6 +368,11 @@ class BatchwiseShuffledSequentialIterator(SequentialSubsetIterator):
         self._rng.shuffle(self._batch_order)
 
     def next(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self._next_batch_no >= self._num_batches:
             raise StopIteration()
         else:
@@ -282,9 +398,19 @@ _iteration_schemes = {
 
 
 def is_stochastic(mode):
+    """
+    .. todo::
+
+        WRITEME
+    """
     return resolve_iterator_class(mode).stochastic
 
 def resolve_iterator_class(mode):
+    """
+    .. todo::
+
+        WRITEME
+    """
     if isinstance(mode, basestring) and mode not in _iteration_schemes:
         raise ValueError("unknown iteration mode string: %s" % mode)
     elif mode in _iteration_schemes:
@@ -295,10 +421,16 @@ def resolve_iterator_class(mode):
 
 
 class FiniteDatasetIterator(object):
-    """A thin wrapper around one of the mode iterators."""
+    """
+    A thin wrapper around one of the mode iterators.
+    """
     def __init__(self, dataset, subset_iterator, topo=None, targets=None,
                  data_specs=None, return_tuple=False, convert=None):
+        """
+        .. todo::
 
+            WRITEME
+        """
         if topo is not None or targets is not None:
             if data_specs is not None:
                 raise ValueError("In FiniteDatasetIterator, both "
@@ -421,9 +553,19 @@ class FiniteDatasetIterator(object):
                 self._convert[i] = fn
 
     def __iter__(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self
 
     def next(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         next_index = self._subset_iterator.next()
         # TODO: handle fancy-index copies by allocating a buffer and
         # using numpy.take()
@@ -455,26 +597,61 @@ class FiniteDatasetIterator(object):
 
     @property
     def batch_size(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self._subset_iterator.batch_size
 
     @property
     def num_batches(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self._subset_iterator.num_batches
 
     @property
     def num_examples(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self._subset_iterator.num_examples
 
     @property
     def uneven(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self._subset_iterator.uneven
 
     @property
     def stochastic(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self._subset_iterator.stochastic
 
 class FiniteDatasetIteratorPyTables(FiniteDatasetIterator):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def next(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         warnings.warn("This class is obselete with the new interface change, "
                     "and will be removed around November 7th",
                     stacklevel=2)
@@ -508,5 +685,3 @@ class FiniteDatasetIteratorPyTables(FiniteDatasetIterator):
             if not self._return_tuple and len(rval) == 1:
                 rval, = rval
             return rval
-
-

@@ -22,34 +22,41 @@ class SoftmaxRegression(mlp.MLP):
     """
 
     def __init__(self,
-            n_classes,
-            batch_size=None,
-            input_space=None,
-            irange=None,
-            istdev=None,
-            W_lr_scale=None,
-            b_lr_scale=None,
-            max_row_norm=None,
-            max_col_norm=None,
-            sparse_init=None,
-            dropout_include_probs = None,
-            dropout_scales = None,
-            dropout_input_include_prob = None,
-            dropout_input_scale = None,
-            init_bias_target_marginals = None,
-            nvis=None,
-            seed=None):
+                 n_classes,
+                 batch_size=None,
+                 input_space=None,
+                 irange=None,
+                 istdev=None,
+                 W_lr_scale=None,
+                 b_lr_scale=None,
+                 max_row_norm=None,
+                 max_col_norm=None,
+                 sparse_init=None,
+                 init_bias_target_marginals=None,
+                 nvis=None,
+                 seed=None):
         """
-            layers: a list of MLP_Layers. The final layer will specify the
-                    MLP's output space.
-            batch_size: optional. if not None, then should be a positive
-                        integer. Mostly useful if one of your layers
-                        involves a theano op like convolution that requires
-                        a hard-coded batch size.
-            input_space: a Space specifying the kind of input the MLP acts
-                        on. If None, input space is specified by nvis.
-
-            See pylearn2.models.MLP for notes on dropout.
+        Parameters
+        ----------
+        n_classes : int
+            WRITEME
+        batch_size : int, optional
+            If not None, then should be a positive integer. Mostly useful if \
+            one of your layers involves a theano op like convolution that \
+            requires a hard-coded batch size.
+        input_space : pylearn2.space.Space, optional
+            A Space specifying the kind of input the MLP acts on. If None, \
+            input space is specified by nvis.
+        irange : WRITEME
+        istdev : WRITEME
+        W_lr_scale : WRITEME
+        b_lr_scale : WRITEME
+        max_row_norm : WRITEME
+        max_col_norm : WRITEME
+        sparse_init : WRITEME
+        init_bias_target_marginals : WRITEME
+        nvis : WRITEME
+        seed : WRITEME
         """
 
         super(SoftmaxRegression, self).__init__(
@@ -60,8 +67,5 @@ class SoftmaxRegression(mlp.MLP):
                     init_bias_target_marginals=init_bias_target_marginals)],
                 batch_size=batch_size,
                 input_space=input_space,
-                dropout_input_include_prob=dropout_input_include_prob,
-                dropout_input_scale=dropout_input_scale,
                 nvis=nvis,
                 seed=seed)
-

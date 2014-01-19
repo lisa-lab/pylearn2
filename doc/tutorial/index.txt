@@ -4,13 +4,13 @@
 Quick-start example
 ===================
 
-The directory pylearn2/scripts/tutorials/grbm_smd/ contains an example of
+The directory ``pylearn2/scripts/tutorials/grbm_smd/`` contains an example of
 how to train a model using pylearn2.
 
 There are three steps.
 First, we create a preprocessed dataset and save it
 to the filesystem. Then we train a model on that dataset using
-the train.py script. Finally we can inspect the model to see
+the ``train.py`` script. Finally we can inspect the model to see
 how the learning experiment went.
 
 
@@ -18,28 +18,32 @@ Step 1: Create the dataset
 ----------------------------
 From the grbm_smd directory, run
 
-python make_dataset.py
+.. code-block:: bash
+
+    python make_dataset.py
 
 This will take a while.
 
-You should read through make_dataset.py to understand what it is doing.
+You should read through ``make_dataset.py`` to understand what it is doing.
 The file is heavily commented and is basically a small tutorial on
 pylearn2 datasets.
 
 As a brief summary, this script will load the CIFAR10 database of
 32x32 color images. It will extract 8x8 pixel patches from them,
 run a regularized version of contrast normalization and whitening
-on them, then save them to cifar10_preprocessed_train.pkl.
+on them, then save them to ``cifar10_preprocessed_train.pkl``.
 
 
 Step 2: Train the model
 -----------------------
-You should have pylearn2/scripts in your PATH enviroment variable.
-pylearn2/scripts/train.py should have executable permissions.
+You should have ``pylearn2/scripts`` in your PATH enviroment variable.
+``pylearn2/scripts/train.py`` should have executable permissions.
 
-From the grbm_smd directory, run
+From the ``grbm_smd`` directory, run
 
-train.py cifar_grbm_smd.yaml
+.. code-block:: bash
+
+    train.py cifar_grbm_smd.yaml
 
 This will also take a while.
 
@@ -48,7 +52,7 @@ commented and is basically a tutorial on yaml files and training
 models.
 
 As a high level summary, it will create a file called
-cifar_grbm_smd.pkl. This file will contain a gaussian binary
+``cifar_grbm_smd.pkl``. This file will contain a gaussian binary
 RBM trained using denoising score matching.
 
 
@@ -56,13 +60,15 @@ RBM trained using denoising score matching.
 Step 3: Inspect the model
 -------------------------
 
-pylearn2/scripts/show_weights.py and pylearn2/scripts/plot_monitor.py
+``pylearn2/scripts/show_weights.py`` and ``pylearn2/scripts/plot_monitor.py``
 should have executable permissions.
 
 
-From the grbm_smd directory, run
+From the ``grbm_smd`` directory, run
 
-show_weights.py cifar_grbm_smd.pkl
+.. code-block:: bash
+
+    show_weights.py cifar_grbm_smd.pkl
 
 A window containing the filters learned by the RBM will appear.
 They should mostly be colorless gabor filters, though some
@@ -70,16 +76,18 @@ will be color patches.
 
 Note that the filters are still a bit grainy. This is because
 the example script doesn't train for very long. You can modify
-cifar_grbm_smd.yaml to train for longer if you would like to
+``cifar_grbm_smd.yaml`` to train for longer if you would like to
 see prettier filters.
 
-Now close that window.
+Now close that window and run
 
-Run
+.. code-block:: bash
 
-plot_monitor.py cifar_grbm_smd.pkl
+    plot_monitor.py cifar_grbm_smd.pkl
 
-This will display a plot of the objective function over time, so you
-can see what happened during training.
-
-
+This will bring up a simple interface that allows us to visualize
+different quantities that were tracked over the course of
+training. Try typing ``b,L,M`` and pushing enter to display a plot of
+the objective function and reconstruction error over time (with time
+on the x-axis indexed by batch number).  When you're finished, close
+the figure and enter ``q`` to quit.

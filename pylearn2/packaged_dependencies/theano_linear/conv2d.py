@@ -8,6 +8,18 @@ from theano import tensor
 def tile_conv_weights(w, flip=False, scale_each=False):
     """
     Return something that can be rendered as an image to visualize the filters.
+
+    Parameters
+    ----------
+    w : WRITEME
+    scale_each : bool
+        WRITEME
+    flip : bool
+        WRITEME
+
+    Returns
+    -------
+    WRITEME
     """
     if w.shape[1] != 3:
         raise NotImplementedError('not rgb', w.shape)
@@ -40,11 +52,17 @@ def tile_conv_weights(w, flip=False, scale_each=False):
 
 class Conv2d(LinearTransform):
     """
-    XXX
-    """
+    .. todo::
 
+        WRITEME
+    """
     def __init__(self, filters, img_shape, subsample=(1,1), border_mode='valid',
             filters_shape=None, message=""):
+        """
+        .. todo::
+
+            WRITEME
+        """
         super(Conv2d, self).__init__([filters])
         self._filters = filters
         if filters_shape is None:
@@ -64,6 +82,11 @@ class Conv2d(LinearTransform):
             raise TypeError('need 4-tuple shape', self._filters_shape)
 
     def lmul(self, x):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # dot(x, A)
         return conv2d(
                 x, self._filters,
@@ -74,6 +97,11 @@ class Conv2d(LinearTransform):
                 )
 
     def lmul_T(self, x):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # dot(x, A.T)
         dummy_v = tensor.tensor4()
         z_hs = conv2d(dummy_v, self._filters,
@@ -86,9 +114,19 @@ class Conv2d(LinearTransform):
         return xfilters
 
     def row_shape(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self._img_shape[1:]
 
     def col_shape(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         rows_cols = ConvOp.getOutputShape(
                 self._img_shape[2:],
                 self._filters_shape[2:],
@@ -98,14 +136,23 @@ class Conv2d(LinearTransform):
         return rval
 
     def tile_columns(self, scale_each=True, **kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return tile_slices_to_image(
                 self._filters.get_value()[:,:,::-1,::-1].transpose(0,2,3,1),
                 scale_each=scale_each,
                 **kwargs)
 
     def print_status(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError('TODO fix broken method')
         #print ndarray_status(
         #        self._filters.get_value(borrow=True),
         #        msg='Conv2d{%s}'%self._message)
-

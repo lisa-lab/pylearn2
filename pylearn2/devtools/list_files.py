@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import pylearn2
 import os
 __authors__ = "Ian Goodfellow"
@@ -9,8 +14,14 @@ __email__ = "goodfeli@iro"
 
 
 def list_files(suffix=""):
-    """ Lists all files in pylearn2 whose filepath
-    ends with suffix """
+    """
+    .. todo::
+
+        WRITEME properly
+
+    Lists all files in pylearn2 whose filepath
+    ends with suffix
+    """
 
     pl2_path, = pylearn2.__path__
 
@@ -18,6 +29,11 @@ def list_files(suffix=""):
 
 
 def _list_files(path, suffix=""):
+    """
+    .. todo::
+
+        WRITEME
+    """
     if os.path.isdir(path):
         incomplete = os.listdir(path)
         complete = [os.path.join(path, entry) for entry in incomplete]

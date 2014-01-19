@@ -22,6 +22,10 @@ class MND(object):
     """A Multivariate Normal Distribution"""
     def __init__(self, sigma, mu, seed=42):
         """
+        .. todo::
+
+            WRITEME properly
+        
         Parameters
         -----------
         sigma: a numpy ndarray of shape (n,n)
@@ -47,15 +51,30 @@ class MND(object):
         self.logZ = 0.5 * (k * N.log(2. * N.pi) + N.log(det(sigma)))
 
     def free_energy(self, X):
+        """
+        .. todo::
+
+            WRITEME
+        """
         #design matrix format
         return .5 * T.sum(T.dot(X - self.mu,
                                 T.dot(self.sigma_inv,
                                       T.transpose(X - self.mu))))
 
     def log_prob(self, X):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return - self.free_energy(X) - self.logZ
 
     def random_design_matrix(self, m):
+        """
+        .. todo::
+
+            WRITEME
+        """
         Z = self.s_rng.normal(size=(m, self.mu.shape[0]),
                               avg=0., std=1., dtype=config.floatX)
         return self.mu + T.dot(Z, self.L.T)
@@ -63,6 +82,10 @@ class MND(object):
 
 def fit(dataset, n_samples=None):
     """
+    .. todo::
+
+        WRITEME properly
+    
     Returns an MND fit to n_samples drawn from dataset.
 
     Not a class method because we currently don't have a means
@@ -76,9 +99,18 @@ def fit(dataset, n_samples=None):
 
 
 class AdditiveDiagonalMND:
+    """
+    .. todo::
 
+        WRITEME
+    """
     def __init__(self, init_beta, nvis):
-        """ A conditional distribution that adds
+        """
+        .. todo::
+
+            WRITEME properly
+
+        A conditional distribution that adds
         gaussian noise with diagonal precision
         matrix beta to another variable that it
         conditions on
@@ -93,14 +125,24 @@ class AdditiveDiagonalMND:
         self.s_rng = RandomStreams(17)
 
     def random_design_matrix(self, X):
-        """ X: a theano variable containing a design matrix
+        """
+        .. todo::
+
+            WRITEME properly
+
+        X: a theano variable containing a design matrix
         of observations of the random vector to condition on."""
         Z = self.s_rng.normal(size=X.shape,
                               avg=X, std=1./T.sqrt(self.beta), dtype=config.floatX)
         return Z
 
     def is_symmetric(self):
-        """ A property of conditional distributions
+        """
+        .. todo::
+
+            WRITEME properly
+
+        A property of conditional distributions
         P(Y|X)
         Return true if P(y|x) = P(x|y) for all x,y
         """

@@ -44,7 +44,7 @@ columns)``) can be represented in different ways, for instance:
   axes=('c', 0, 1, 'b'))``.
 
 Spaces can be either elementary, representing one mini-batch from one
-source of data, such as ``VectorSpace`` and ``Conv2DSpace`` mentionned
+source of data, such as ``VectorSpace`` and ``Conv2DSpace`` mentioned
 above, or *composite* (:class:`.space.CompositeSpace`), representing
 the aggregation of several sources of data (some of these may in
 turn be aggregations of sources). A mini-batch for an elementary

@@ -10,7 +10,7 @@ For more thorough tutorials on different models you can look at the ipython note
 How to Run
 ==========
 
-`Here <http://ipython.org/ipython-doc/stable/interactive/htmlnotebook.html>`_ is a tutorial on iptyhon notebooks. But basically you can move to the tutorial folder and 
+`Here <http://ipython.org/ipython-doc/stable/interactive/htmlnotebook.html>`_ is a tutorial on ipython notebooks. But basically you can move to the tutorial folder and 
 start the ipython notebook engine as follow::
 
     $ ipython notebook

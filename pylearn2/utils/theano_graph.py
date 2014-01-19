@@ -17,9 +17,9 @@ def is_pure_elemwise(graph, inputs):
     Returns
     -------
     elemwise_or_not : bool
-        Returns `True` if a) everything in the graph is an Elemwise or
-        a DimShuffle (DimShuffles are only acceptable to broadcast
-        up constants), and b) all nodes without an owner appear in `inputs`
+        Returns `True` if a) everything in the graph is an Elemwise or \
+        a DimShuffle (DimShuffles are only acceptable to broadcast \
+        up constants), and b) all nodes without an owner appear in `inputs` \
         or are constants. Returns `False` otherwise.
     """
     allowed_ops = tensor.basic.DimShuffle, tensor.basic.Elemwise

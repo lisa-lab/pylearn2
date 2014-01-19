@@ -46,7 +46,7 @@ print "Learning the preprocessor and preprocessing the unsupervised train data..
 preprocessor = preprocessing.ZCA()
 train.apply_preprocessor(preprocessor = preprocessor, can_fit = True)
 
-print 'Saving the unsupervised data'
+print 'Saving the training data'
 train.use_design_loc(output_dir+'/train.npy')
 serial.save(output_dir + '/train.pkl', train)
 

@@ -35,6 +35,11 @@ class CustomFormatter(Formatter):
     the log level is WARNING or greater.
     """
     def __init__(self, prefix='', only_from=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         Formatter.__init__(self)
         self._info_fmt = prefix + "%(message)s"
         self._fmt = prefix + "%(levelname)s (%(name)s): %(message)s"
@@ -102,33 +107,31 @@ class CustomStreamHandler(Handler):
     formatted, to one of two streams. DEBUG and INFO messages
     get written to the provided `stdout`, all other messages to
     `stderr`.
-
-    Note that sys.stdout and sys.stderr
-
-    Parameters
-    ----------
-    stdout : file-like object, optional
-        Stream to which DEBUG and INFO messages should be written.
-        If `None`, `sys.stdout` will be used.
-    stderr : file-like object, optional
-        Stream to which WARNING, ERROR, CRITICAL messages will be
-        written. If `None`, `sys.stderr` will be used.
-    formatter : `logging.Formatter` object, optional
-        Assigned to `self.formatter`, used to format outgoing
-        log messages.
-
-    Notes
-    -----
-    N.B. it is **not** recommended to pass `sys.stdout` or
-    `sys.stderr` as constructor arguments explicitly, as certain
-    things (like nosetests) can reassign these during code
-    execution! Instead, simply pass `None`.
     """
     def __init__(self, stdout=None, stderr=None, formatter=None):
         """
         Initialize the handler.
 
         If stream is not specified, sys.stderr is used.
+
+        Parameters
+        ----------
+        stdout : file-like object, optional
+            Stream to which DEBUG and INFO messages should be written. \
+            If `None`, `sys.stdout` will be used.
+        stderr : file-like object, optional
+            Stream to which WARNING, ERROR, CRITICAL messages will be \
+            written. If `None`, `sys.stderr` will be used.
+        formatter : `logging.Formatter` object, optional
+            Assigned to `self.formatter`, used to format outgoing \
+            log messages.
+
+        Notes
+        -----
+        N.B. it is **not** recommended to pass `sys.stdout` or
+        `sys.stderr` as constructor arguments explicitly, as certain
+        things (like nosetests) can reassign these during code
+        execution! Instead, simply pass `None`.
         """
         Handler.__init__(self)
         self._stdout = stdout
@@ -137,10 +140,20 @@ class CustomStreamHandler(Handler):
 
     @property
     def stdout(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return sys.stdout if self._stdout is None else self._stdout
 
     @property
     def stderr(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return sys.stderr if self._stderr is None else self._stderr
 
     def flush(self):
@@ -160,6 +173,10 @@ class CustomStreamHandler(Handler):
         traceback.print_exception and appended to the stream.  If the stream
         has an 'encoding' attribute, it is used to determine how to do the
         output to the stream.
+
+        Parameters
+        ----------
+        record : WRITEME
         """
         try:
             msg = self.format(record)
@@ -208,13 +225,13 @@ def configure_custom(debug=False, stdout=None, stderr=None):
     Parameters
     ----------
     debug : boolean
-        If `True`, display DEBUG messages on `stdout` along with
+        If `True`, display DEBUG messages on `stdout` along with \
         INFO-level messages.
     stdout : file-like object, optional
-        Stream to which DEBUG and INFO messages should be written.
+        Stream to which DEBUG and INFO messages should be written. \
         If `None`, `sys.stdout` will be used.
     stderr : file-like object, optional
-        Stream to which WARNING, ERROR, CRITICAL messages will be
+        Stream to which WARNING, ERROR, CRITICAL messages will be \
         written. If `None`, `sys.stderr` will be used.
 
     Notes

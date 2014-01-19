@@ -577,7 +577,7 @@ __global__ void kLocalSotchasticMaxPool(float* imgs, float* target, const int im
     const int loopEndX = MIN(imgSize, startImgPxX + subsX);
     const int regionSize = (loopEndY - loopStartY) * (loopEndX - loopStartX);
     const int regionX = (loopEndX - loopStartX);
-    const int regionY = (loopEndY - loopStartX);
+    const int regionY = (loopEndY - loopStartY);
     // TODO: Maybe can allocate this in the shared memory?
     float* window = (float *)malloc(regionSize * sizeof(float));
     float* pxl_value = (float *)malloc(regionSize * sizeof(float));
@@ -638,7 +638,7 @@ __global__ void kLocalWeightedPool(float* imgs, float* target, const int imgSize
     const int loopEndX = MIN(imgSize, startImgPxX + subsX);
     const int regionSize = (loopEndY - loopStartY) * (loopEndX - loopStartX);
     const int regionX = (loopEndX - loopStartX);
-    const int regionY = (loopEndY - loopStartX);
+    const int regionY = (loopEndY - loopStartY);
     // TODO: Maybe can allocate this in the shared memory?
     float* window = (float *)malloc(regionSize * sizeof(float));
     float* pxl_value = (float *)malloc(regionSize * sizeof(float));
@@ -993,7 +993,7 @@ void convLocalStochasticMaxPool(NVMatrix& images, NVMatrix& target, int numFilte
     int numImages = images.getNumCols();
     int imgPixels = images.getNumRows() / numFilters;
     assert(images.getNumRows() == numFilters * imgPixels);
-    int imgSize = int(sqrt(imgPixels));
+    int imgSize = int(sqrt((double)imgPixels));
     assert(imgSize * imgSize == imgPixels);
     assert(!images.isTrans());
     assert(!target.isTrans());
@@ -1099,7 +1099,7 @@ void convLocalWeightedPool(NVMatrix& images, NVMatrix& target, int numFilters,
     int numImages = images.getNumCols();
     int imgPixels = images.getNumRows() / numFilters;
     assert(images.getNumRows() == numFilters * imgPixels);
-    int imgSize = int(sqrt(imgPixels));
+    int imgSize = int(sqrt((double)imgPixels));
     assert(imgSize * imgSize == imgPixels);
     assert(!images.isTrans());
     assert(!target.isTrans());

@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 __author__ = "Ian Goodfellow"
 
 # TODO: add citation
@@ -8,8 +13,17 @@ import numpy as np
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 
 class Hepatitis(DenseDesignMatrix):
+    """
+    .. todo::
 
+        WRITEME
+    """
     def __init__(self, preprocessor=None, start=None, stop=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         self.class_names = ['DIE', 'LIVE']
         lines = hepatitis_data.split('\n')
@@ -61,6 +75,11 @@ class Hepatitis(DenseDesignMatrix):
         self.restrict(start, stop)
 
 def neg_missing(s):
+    """
+    .. todo::
+
+        WRITEME
+    """
     if s == "?":
         return "-1"
     return s

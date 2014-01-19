@@ -38,28 +38,80 @@ THEANO_FLAGS="device=gpu,floatX=float32" python compute_test_err.py mnist_contin
 
 The final command should print out some progress messages followed by "0.0045"
 
-3) CIFAR-10 result
+3) CIFAR-10 results
 
-The paper reports a test set error of 12.93% on the CIFAR-10 dataset,
-which is the state of the art without data augmentation. To reproduce
-this result, you must first have prepared a version of the CIFAR-10
-dataset with global contrast normalization and whitening. To do so,
-run pylearn2/scripts/datasets/make_cifar10_gcn_whitened.py. (If you
-are in the LISA lab, don't do this. It has already been made for you)
+There are several maxout results on the CIFAR-10 dataset. To reproduce these
+results, you must first have prepared a version of the CIFAR-10 dataset with
+global contrast normalization and whitening. To do so, run
+pylearn2/scripts/datasets/make_cifar10_gcn_whitened.py.
+(If you are in the LISA lab, don't do this. It has already been made for you)
 
-After running make_cifar10_gcn_whitened, you can train the maxout model
-by running
+You may then proceed to reproducing the various results described below:
 
-THEANO_FLAGS="device=gpu,floatX=float32" train.py cifar10.yaml
+3a) State of the art on CIFAR-10 without data augmentation
+
+The ICML paper reports a state of the art result on the test set of 11.68%
+classification error. You can reproduce this result by running:
+
+THEANO_FLAGS="device=gpu,floatX=float32" train.py cifar10_no_aug.yaml
+
+This should run for 785 epochs. In our tests, it obtained a test set error
+of 11.62%. This slight improvement in the test set error relative to the
+result in the ICML paper is likely due to running the script on a different
+machine than we used for the original experiment.
+
+The number of epochs was obtained by monitoring the error on the validation
+set when running this script:
+
+THEANO_FLAGS="device=gpu,floatX=float32" train.py cifar10_no_aug_valid.yaml
+
+(valid_y_misclass should bottom out at 0.12009999156 on epoch 785, if you run
+on exactly the same platform as I did. Expect small changes if your platform
+is different)
+
+3b) State of the art on CIFAR-10 with data augmentation
+
+The ICML paper reports a state of the art result on the test set of 9.38%
+classification error. You can reproduce this result by running:
+
+THEANO_FLAGS="device=gpu, floatX=float32" train.py cifar10.yaml
+
+This should run for 474 epochs. In our tests, it obtained a test set error
+of 9.45%. This slight degradation in the test set error relative to the
+result in the ICML paper is likely due to running the script on a different
+machine than we used for the original experiment.
+
+The number of epochs was obtained by monitoring the error on the validation
+set when running this script:
+
+THEANO_FLAGS="device=gpu,floatX=float32" train.py cifar10_valid.yaml
+
+(valid_y_misclass should bottom out at 0.094499990344 on epoch 474, if you run
+on exactly the same platform as I did. Expect small changes if your platform
+is different)
+
+3c) An older state of the art on CIFAR-10 without data augmentation, using a
+smaller, faster model.
+
+The February 2013 version of the paper that we originally posted on
+arXiv reports a test set error of 12.93% on the CIFAR-10 dataset,
+which was the state of the art without data augmentation. This result has since
+been beaten by the model described in section 3a, but you may still be interested
+in running the older model because it was smaller and cheaper to run.
+
+THEANO_FLAGS="device=gpu,floatX=float32" train.py cifar10_old_small.yaml
 
 At this point, the model has only been trained on the first 40k examples.
 Run
 THEANO_FLAGS="device=gpu,floatX=float32" python compute_test_err.py cifar10_best.pkl
 
-It should report a test error of 0.1405 at this point.
+It should report a test error of around 0.1405 at this point.
 
-In the days ahead, we will provide our yaml config files for training on the
-remaining 10k training examples, which reduces the test error to 0.1293.
+If you continue training on the remaining 10k training examples, the test error
+should decrease to around 0.1293.
+
+We have upgraded the ZCA code since these results were obtained, and we haven't
+re-run this yaml file, so the numbers may have changed somewhat.
 
 4) CIFAR-100 result
 

@@ -1,23 +1,25 @@
+import numpy as np
 import warnings
 
+from theano.compat import exc_message
+from theano import shared
+from theano import tensor as T
+
+from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
+from pylearn2.models.model import Model
+from pylearn2.models.s3c import S3C, E_Step, Grad_M_Step
+from pylearn2.monitor import _err_ambig_data
+from pylearn2.monitor import _err_no_data
 from pylearn2.monitor import Monitor
 from pylearn2.space import VectorSpace
-from pylearn2.models.model import Model
-from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
-from pylearn2.training_algorithms.default import DefaultTrainingAlgorithm
-import numpy as np
-from theano import tensor as T
-from pylearn2.models.s3c import S3C, E_Step, Grad_M_Step
-from pylearn2.utils import py_integer_types
-from pylearn2.utils import sharedX
-from pylearn2.utils.serial import to_string
-from pylearn2.utils.serial import from_string
-from pylearn2.utils.iteration import _iteration_schemes
-from theano import shared
-from pylearn2.testing.prereqs import ReadVerifyPrereq
-from pylearn2.monitor import _err_no_data
-from pylearn2.monitor import _err_ambig_data
 from pylearn2.testing.datasets import ArangeDataset
+from pylearn2.training_algorithms.default import DefaultTrainingAlgorithm
+from pylearn2.utils.iteration import _iteration_schemes
+from pylearn2.utils import py_integer_types
+from pylearn2.utils.serial import from_string
+from pylearn2.utils.serial import to_string
+from pylearn2.utils import sharedX
+from pylearn2.testing.prereqs import ReadVerifyPrereq
 
 
 class DummyModel(Model):
@@ -473,7 +475,7 @@ def test_no_data():
             data_specs = (model.input_space, 'features'),
             val = 0.)
     except ValueError, e:
-        assert e.message == _err_no_data
+        assert exc_message(e) == _err_no_data
         return
     assert False
 
@@ -507,7 +509,7 @@ def test_ambig_data():
             val = 0.,
             data_specs=(model.get_input_space(), model.get_input_source()))
     except ValueError, e:
-        assert e.message == _err_ambig_data
+        assert exc_message(e) == _err_ambig_data
         return
     assert False
 

@@ -13,4 +13,12 @@ numpy and python provided by EPD 7.1.2
 Operating system: Fedora Core 14
 This was on the machine barney0 at the lisa lab.
 
+cifar-10 no data augmentation:
+pylearn2 bc25998da3693ca6d9776c0d8e6644bf00bea1a3
+theano 11781d77c479f1e2438b722ac896d2b9a54e4702
+machine: eos4 at the lisa lab
+numpy and python provided by EPD 7.1.2
+Operating system: Fedora Core 14
 
+with data augmentation, it was on eos6, and probably
+a slightly newer version of theano and pylearn2.

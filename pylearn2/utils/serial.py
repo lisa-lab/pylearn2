@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import cPickle
 import pickle
 import numpy as np
@@ -15,6 +20,11 @@ from pylearn2.utils.string_utils import match
 import shutil
 
 def raise_cannot_open(path):
+    """
+    .. todo::
+
+        WRITEME
+    """
     pieces = path.split('/')
     for i in xrange(1,len(pieces)+1):
         so_far = '/'.join(pieces[0:i])
@@ -46,7 +56,11 @@ def raise_cannot_open(path):
     assert False
 
 def load(filepath, recurse_depth=0, retry = True):
+    """
+    .. todo::
 
+        WRITEME
+    """
     try:
         import joblib
         joblib_available = True
@@ -165,26 +179,24 @@ def save(filepath, obj, on_overwrite = 'ignore'):
     Parameters
     ----------
     filepath : str
-        A filename. If the suffix is `.joblib` and joblib can be
-        imported, `joblib.dump` is used in place of the regular
-        pickling mechanisms; this results in much faster saves by
-        saving arrays as separate .npy files on disk. If the file
-        suffix is `.npy` than `numpy.save` is attempted on `obj`.
+        A filename. If the suffix is `.joblib` and joblib can be \
+        imported, `joblib.dump` is used in place of the regular \
+        pickling mechanisms; this results in much faster saves by \
+        saving arrays as separate .npy files on disk. If the file \
+        suffix is `.npy` than `numpy.save` is attempted on `obj`. \
         Otherwise, (c)pickle is used.
 
     obj : object
         A Python object to be serialized.
 
-    on_overwrite: A string specifying what to do if the file already
-                exists.
+    on_overwrite: str
+        A string specifying what to do if the file already exists.
                 ignore: just overwrite it
                 backup: make a copy of the file (<filepath>.bak) and
                         delete it when done saving the new copy.
                         this allows recovery of the old version of
                         the file if saving the new one fails
     """
-
-
     filepath = preprocess(filepath)
 
     if os.path.exists(filepath):
@@ -249,6 +261,11 @@ def get_pickle_protocol():
     return int(protocol_str)
 
 def _save(filepath, obj):
+    """
+    .. todo::
+
+        WRITEME
+    """
     try:
         import joblib
         joblib_available = True
@@ -326,14 +343,29 @@ def _save(filepath, obj):
 
 
 def clone_via_serialize(obj):
+    """
+    .. todo::
+
+        WRITEME
+    """
     s = cPickle.dumps(obj, get_pickle_protocol())
     return cPickle.loads(s)
 
 
 def to_string(obj):
+    """
+    .. todo::
+
+        WRITEME
+    """
     return cPickle.dumps(obj, get_pickle_protocol())
 
 def from_string(s):
+    """
+    .. todo::
+
+        WRITEME
+    """
     return cPickle.loads(s)
 
 
@@ -343,6 +375,10 @@ def mkdir(filepath):
     directory and nest subdirectories to do so. Raises an error if the
     directory can't be made. Does not raise an error if the directory
     already exists.
+
+    Parameters
+    ----------
+    filepath : WRITEME
     """
     try:
         os.makedirs(filepath)
@@ -351,6 +387,11 @@ def mkdir(filepath):
             raise
 
 def read_int( fin, n = 1):
+    """
+    .. todo::
+
+        WRITEME
+    """
     if n == 1:
         s = fin.read(4)
         if len(s) != 4:
@@ -372,6 +413,11 @@ lush_magic = {
         }
 
 def read_bin_lush_matrix(filepath):
+    """
+    .. todo::
+
+        WRITEME
+    """
     f = open(filepath,'rb')
     try:
         magic = read_int(f)
@@ -408,8 +454,18 @@ def read_bin_lush_matrix(filepath):
     return rval
 
 def load_train_file(config_file_path):
-    """Loads and parses a yaml file for a Train object.
-    Publishes the relevant training environment variables"""
+    """
+    Loads and parses a yaml file for a Train object.
+    Publishes the relevant training environment variables
+
+    Parameters
+    ----------
+    config_file_path : WRITEME
+
+    Returns
+    -------
+    WRITEME
+    """
     from pylearn2.config import yaml_parse
 
     suffix_to_strip = '.yaml'

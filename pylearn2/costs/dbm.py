@@ -8,34 +8,57 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
+import numpy as np
 import warnings
 
 from theano.compat.python2x import OrderedDict
+from theano import config
 from theano.sandbox.rng_mrg import MRG_RandomStreams
+RandomStreams = MRG_RandomStreams
 from theano import tensor as T
 
+import pylearn2
 from pylearn2.costs.cost import Cost
+from pylearn2.costs.cost import (
+    FixedVarDescr, DefaultDataSpecsMixin, NullDataSpecsMixin
+)
 from pylearn2.models import dbm
 from pylearn2.models.dbm import flatten
-from pylearn2.space import CompositeSpace, NullSpace
+from pylearn2 import utils
+from pylearn2.utils import make_name
 from pylearn2.utils import safe_izip
 from pylearn2.utils import safe_zip
+from pylearn2.utils import sharedX
 
 
 class BaseCD(Cost):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, num_chains, num_gibbs_steps, supervised=False,
-                 toronto_neg=False):
+                 toronto_neg=False, theano_rng=None):
         """
+        .. todo::
+
+            WRITEME properly
+        
             toronto_neg: If True, use a bit of mean field in the negative phase
                         Ruslan Salakhutdinov's matlab code does this.
         """
         self.__dict__.update(locals())
         del self.self
-        self.theano_rng = MRG_RandomStreams(2012 + 10 + 14)
+        if self.theano_rng is None:
+            self.theano_rng = MRG_RandomStreams(2012 + 10 + 14)
         assert supervised in [True, False]
 
     def expr(self, model, data):
         """
+        .. todo::
+
+            WRITEME
+
         The partition function makes this intractable.
         """
         self.get_data_specs(model)[0].validate(data)
@@ -43,6 +66,11 @@ class BaseCD(Cost):
         return None
 
     def get_monitoring_channels(self, model, data):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_data_specs(model)[0].validate(data)
         rval = OrderedDict()
 
@@ -80,6 +108,11 @@ class BaseCD(Cost):
         return rval
 
     def get_gradients(self, model, data):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_data_specs(model)[0].validate(data)
         if self.supervised:
             X, Y = data
@@ -105,6 +138,11 @@ class BaseCD(Cost):
         return gradients, updates
 
     def _get_toronto_neg(self, model, layer_to_chains):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # Ruslan Salakhutdinov's undocumented negative phase from
         # http://www.mit.edu/~rsalakhu/code_DBM/dbm_mf.m
         # IG copied it here without fully understanding it, so it
@@ -148,6 +186,11 @@ class BaseCD(Cost):
         return neg_phase_grads
 
     def _get_standard_neg(self, model, layer_to_chains):
+        """
+        .. todo::
+
+            WRITEME
+        """
         params = list(model.get_params())
 
         warnings.warn("""TODO: reduce variance of negative phase by
@@ -174,6 +217,11 @@ class BaseCD(Cost):
         return neg_phase_grads
 
     def _get_variational_pos(self, model, X, Y):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.supervised:
             assert Y is not None
             # note: if the Y layer changes to something without linear energy,
@@ -220,6 +268,11 @@ class BaseCD(Cost):
         return gradients
 
     def _get_sampling_pos(self, model, X, Y):
+        """
+        .. todo::
+
+            WRITEME
+        """
         layer_to_clamp = OrderedDict([(model.visible_layer, True)])
         layer_to_pos_samples = OrderedDict([(model.visible_layer, X)])
         if self.supervised:
@@ -265,7 +318,7 @@ class BaseCD(Cost):
         return gradients
 
 
-class PCD(BaseCD):
+class PCD(DefaultDataSpecsMixin, BaseCD):
     """
     An intractable cost representing the negative log likelihood of a DBM.
     The gradient of this bound is computed using a persistent
@@ -274,9 +327,19 @@ class PCD(BaseCD):
     TODO add citation to Tieleman paper, Younes paper
     """
     def _get_positive_phase(self, model, X, Y=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self._get_sampling_pos(model, X, Y), OrderedDict()
 
     def _get_negative_phase(self, model, X, Y=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         layer_to_chains = model.make_layer_to_state(self.num_chains)
 
         def recurse_check(l):
@@ -303,17 +366,8 @@ class PCD(BaseCD):
 
         return neg_phase_grads, updates
 
-    def get_data_specs(self, model):
-        if self.supervised:
-            space = CompositeSpace([model.get_input_space(),
-                                    model.get_output_space()])
-            sources = (model.get_input_source(), model.get_target_source())
-            return (space, sources)
-        else:
-            return (model.get_input_space(), model.get_input_source())
 
-
-class VariationalPCD(BaseCD):
+class VariationalPCD(DefaultDataSpecsMixin, BaseCD):
     """
     An intractable cost representing the variational upper bound
     on the negative log likelihood of a DBM.
@@ -325,16 +379,29 @@ class VariationalPCD(BaseCD):
 
     def expr(self, model, data):
         """
+        .. todo::
+
+            WRITEME
+
         The partition function makes this intractable.
         """
         self.get_data_specs(model)[0].validate(data)
         return None
 
     def _get_positive_phase(self, model, X, Y=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self._get_variational_pos(model, X, Y), OrderedDict()
 
     def _get_negative_phase(self, model, X, Y=None):
         """
+        .. todo::
+
+            WRITEME
+
         d/d theta log Z = (d/d theta Z) / Z
                         = (d/d theta sum_h sum_v exp(-E(v,h)) ) / Z
                         = (sum_h sum_v - exp(-E(v,h)) d/d theta E(v,h) ) / Z
@@ -367,17 +434,9 @@ class VariationalPCD(BaseCD):
 
         return neg_phase_grads, updates
 
-    def get_data_specs(self, model):
-        if self.supervised:
-            space = CompositeSpace([model.get_input_space(),
-                                    model.get_output_space()])
-            sources = (model.get_input_source(), model.get_target_source())
-            return (space, sources)
-        else:
-            return (model.get_input_space(), model.get_input_source())
 
 
-class VariationalCD(BaseCD):
+class VariationalCD(DefaultDataSpecsMixin, BaseCD):
     """
     An intractable cost representing the negative log likelihood of a DBM.
     The gradient of this bound is computed using a markov chain initialized
@@ -388,10 +447,19 @@ class VariationalCD(BaseCD):
     """
 
     def _get_positive_phase(self, model, X, Y=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self._get_variational_pos(model, X, Y), OrderedDict()
 
     def _get_negative_phase(self, model, X, Y=None):
         """
+        .. todo::
+
+            WRITEME
+
         d/d theta log Z = (d/d theta Z) / Z
                         = (d/d theta sum_h sum_v exp(-E(v,h)) ) / Z
                         = (sum_h sum_v - exp(-E(v,h)) d/d theta E(v,h) ) / Z
@@ -436,23 +504,19 @@ class VariationalCD(BaseCD):
 
         return neg_phase_grads, OrderedDict()
 
-    def get_data_specs(self, model):
-        if self.supervised:
-            space = CompositeSpace([model.get_input_space(),
-                                    model.get_output_space()])
-            sources = (model.get_input_source(), model.get_target_source())
-            return (space, sources)
-        else:
-            return (model.get_input_space(), model.get_input_source())
 
-
-class MF_L2_ActCost(Cost):
+class MF_L2_ActCost(DefaultDataSpecsMixin, Cost):
     """
-        An L2 penalty on the amount that the hidden unit mean field parameters
-        deviate from desired target values.
+    An L2 penalty on the amount that the hidden unit mean field parameters
+    deviate from desired target values.
     """
 
     def __init__(self, targets, coeffs, supervised=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         targets = fix(targets)
         coeffs = fix(coeffs)
@@ -462,6 +526,10 @@ class MF_L2_ActCost(Cost):
 
     def expr(self, model, data, return_locals=False, **kwargs):
         """
+        .. todo::
+
+            WRITEME
+
         If returns locals is True, returns (objective, locals())
         Note that this means adding / removing / changing the value of
         local variables is an interface change.
@@ -500,15 +568,13 @@ class MF_L2_ActCost(Cost):
             return objective, locals()
         return objective
 
-    def get_data_specs(self, model):
-        if self.supervised:
-            space = CompositeSpace([model.get_input_space(), model.get_output_space()])
-            sources = (model.get_input_source(), model.get_target_source())
-            return (space, sources)
-        else:
-            return (model.get_input_space(), model.get_input_source())
 
 def fix(l):
+    """
+    .. todo::
+
+        WRITEME
+    """
     if isinstance(l, list):
         return [fix(elem) for elem in l]
     if isinstance(l, str):
@@ -517,10 +583,18 @@ def fix(l):
 
 class TorontoSparsity(Cost):
     """
+    .. todo::
+
+        WRITEME properly
+    
     TODO: add link to Ruslan Salakhutdinov's paper that this is based on
     """
-
     def __init__(self, targets, coeffs, supervised=False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.__dict__.update(locals())
         del self.self
 
@@ -528,11 +602,21 @@ class TorontoSparsity(Cost):
                 coeffs=coeffs, supervised=supervised)
 
     def expr(self, model, data, return_locals=False, **kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_data_specs(model)[0].validate(data)
         return self.base_cost.expr(model, data, return_locals=return_locals,
                 **kwargs)
 
     def get_gradients(self, model, data, **kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_data_specs(model)[0].validate(data)
         obj, scratch = self.base_cost.expr(model, data, return_locals=True,
                                            **kwargs)
@@ -580,8 +664,12 @@ class TorontoSparsity(Cost):
             real_grads = OrderedDict(safe_zip(fake_components, real_grads))
 
             params = list(layer.get_params())
-            fake_grads = T.grad(cost=None, consider_constant=flatten(state_below),
-                    wrt=params, known_grads = real_grads)
+            fake_grads = pylearn2.utils.grad(
+                cost=None,
+                consider_constant=flatten(state_below),
+                wrt=params,
+                known_grads=real_grads
+            )
 
             for param, grad in safe_zip(params, fake_grads):
                 if param in grads:
@@ -592,19 +680,29 @@ class TorontoSparsity(Cost):
         return grads, OrderedDict()
 
     def get_data_specs(self, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.base_cost.get_data_specs(model)
 
-
-class WeightDecay(Cost):
+class WeightDecay(NullDataSpecsMixin, Cost):
     """
+    .. todo::
+
+        WRITEME properly
+    
     coeff * sum(sqr(weights))
-
     for each set of weights.
-
     """
 
     def __init__(self, coeffs):
         """
+        .. todo::
+
+            WRITEME
+
         coeffs: a list, one element per layer, specifying the coefficient
                 to put on the L1 activation cost for each layer.
                 Each element may in turn be a list, ie, for CompositeLayers.
@@ -613,6 +711,11 @@ class WeightDecay(Cost):
         del self.self
 
     def expr(self, model, data, ** kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_data_specs(model)[0].validate(data)
         layer_costs = [ layer.get_weight_decay(coeff)
             for layer, coeff in safe_izip(model.hidden_layers, self.coeffs) ]
@@ -634,6 +737,644 @@ class WeightDecay(Cost):
 
         return total_cost
 
-    def get_data_specs(self, model):
-        # This cost does not use or require data
-        return (NullSpace(), '')
+
+class MultiPrediction(Cost):
+    """
+    If you use this class in your research work, please cite:
+
+    Multi-prediction deep Boltzmann machines. Ian J. Goodfellow, Mehdi Mirza,
+    Aaron Courville, and Yoshua Bengio. NIPS 2013.
+    """
+    def __init__(self,
+            monitor_multi_inference = False,
+                    mask_gen = None,
+                    noise = False,
+                    both_directions = False,
+                    l1_act_coeffs = None,
+                    l1_act_targets = None,
+                    l1_act_eps = None,
+                    range_rewards = None,
+                    stdev_rewards = None,
+                    robustness = None,
+                    supervised = False,
+                    niter = None,
+                    block_grad = None,
+                    vis_presynaptic_cost = None,
+                    hid_presynaptic_cost = None,
+                    reweighted_act_coeffs = None,
+                    reweighted_act_targets = None,
+                    toronto_act_targets = None,
+                    toronto_act_coeffs = None,
+                    monitor_each_step = False,
+                    use_sum = False
+                    ):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        self.__dict__.update(locals())
+        del self.self
+        #assert not (reweight and reweight_correctly)
+
+
+    def get_monitoring_channels(self, model, X, Y = None, drop_mask = None, drop_mask_Y = None, **kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
+
+        if self.supervised:
+            assert Y is not None
+
+        rval = OrderedDict()
+
+        # TODO: shouldn't self() handle this?
+        if drop_mask is not None and drop_mask.ndim < X.ndim:
+            if self.mask_gen is not None:
+                assert self.mask_gen.sync_channels
+            if X.ndim != 4:
+                raise NotImplementedError()
+            drop_mask = drop_mask.dimshuffle(0,1,2,'x')
+
+        scratch = self(model, X, Y, drop_mask = drop_mask, drop_mask_Y = drop_mask_Y,
+                return_locals = True)
+
+        history = scratch['history']
+        new_history = scratch['new_history']
+        new_drop_mask = scratch['new_drop_mask']
+        new_drop_mask_Y = None
+        drop_mask = scratch['drop_mask']
+        if self.supervised:
+            drop_mask_Y = scratch['drop_mask_Y']
+            new_drop_mask_Y = scratch['new_drop_mask_Y']
+
+        ii = 0
+        for name in ['inpaint_cost', 'l1_act_cost', 'toronto_act_cost',
+                'reweighted_act_cost']:
+            var = scratch[name]
+            if var is not None:
+                rval['total_inpaint_cost_term_'+str(ii)+'_'+name] = var
+                ii = ii + 1
+
+        if self.monitor_each_step:
+            for ii, packed in enumerate(safe_izip(history, new_history)):
+                state, new_state = packed
+                rval['all_inpaint_costs_after_' + str(ii)] = self.cost_from_states(state,
+                        new_state,
+                        model, X, Y, drop_mask, drop_mask_Y,
+                        new_drop_mask, new_drop_mask_Y)
+
+                if ii > 0:
+                    prev_state = history[ii-1]
+                    V_hat = state['V_hat']
+                    prev_V_hat = prev_state['V_hat']
+                    rval['max_pixel_diff[%d]'%ii] = abs(V_hat-prev_V_hat).max()
+
+        final_state = history[-1]
+
+        #empirical beta code--should be moved to gaussian visible layer, should support topo data
+        #V_hat = final_state['V_hat']
+        #err = X - V_hat
+        #masked_err = err * drop_mask
+        #sum_sqr_err = T.sqr(masked_err).sum(axis=0)
+        #recons_count = T.cast(drop_mask.sum(axis=0), 'float32')
+
+        # empirical_beta = recons_count / sum_sqr_err
+        # assert empirical_beta.ndim == 1
+
+
+        #rval['empirical_beta_min'] = empirical_beta.min()
+        #rval['empirical_beta_mean'] = empirical_beta.mean()
+        #rval['empirical_beta_max'] = empirical_beta.max()
+
+        layers = model.get_all_layers()
+        states = [ final_state['V_hat'] ] + final_state['H_hat']
+
+        for layer, state in safe_izip(layers, states):
+            d = layer.get_monitoring_channels_from_state(state)
+            for key in d:
+                mod_key = 'final_inpaint_' + layer.layer_name + '_' + key
+                assert mod_key not in rval
+                rval[mod_key] = d[key]
+
+        if self.supervised:
+            inpaint_Y_hat = history[-1]['H_hat'][-1]
+            err = T.neq(T.argmax(inpaint_Y_hat, axis=1), T.argmax(Y, axis=1))
+            assert err.ndim == 1
+            assert drop_mask_Y.ndim == 1
+            err =  T.dot(err, drop_mask_Y) / drop_mask_Y.sum()
+            if err.dtype != inpaint_Y_hat.dtype:
+                err = T.cast(err, inpaint_Y_hat.dtype)
+
+            rval['inpaint_err'] = err
+
+            Y_hat = model.mf(X)[-1]
+
+            Y = T.argmax(Y, axis=1)
+            Y = T.cast(Y, Y_hat.dtype)
+
+            argmax = T.argmax(Y_hat,axis=1)
+            if argmax.dtype != Y_hat.dtype:
+                argmax = T.cast(argmax, Y_hat.dtype)
+            err = T.neq(Y , argmax).mean()
+            if err.dtype != Y_hat.dtype:
+                err = T.cast(err, Y_hat.dtype)
+
+            rval['err'] = err
+
+            if self.monitor_multi_inference:
+                Y_hat = model.inference_procedure.multi_infer(X)
+
+                argmax = T.argmax(Y_hat,axis=1)
+                if argmax.dtype != Y_hat.dtype:
+                    argmax = T.cast(argmax, Y_hat.dtype)
+                err = T.neq(Y , argmax).mean()
+                if err.dtype != Y_hat.dtype:
+                    err = T.cast(err, Y_hat.dtype)
+
+                rval['multi_err'] = err
+
+        return rval
+
+    def __call__(self, model, X, Y = None, drop_mask = None, drop_mask_Y = None,
+            return_locals = False, include_toronto = True, ** kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
+
+        if not self.supervised:
+            assert drop_mask_Y is None
+            Y = None # ignore Y if some other cost is supervised and has made it get passed in
+        if self.supervised:
+            assert Y is not None
+            if drop_mask is not None:
+                assert drop_mask_Y is not None
+
+        if not hasattr(model,'cost'):
+            model.cost = self
+        if not hasattr(model,'mask_gen'):
+            model.mask_gen = self.mask_gen
+
+        dbm = model
+
+        X_space = model.get_input_space()
+
+        if drop_mask is None:
+            if self.supervised:
+                drop_mask, drop_mask_Y = self.mask_gen(X, Y, X_space=X_space)
+            else:
+                drop_mask = self.mask_gen(X, X_space=X_space)
+
+        if drop_mask_Y is not None:
+            assert drop_mask_Y.ndim == 1
+
+        if drop_mask.ndim < X.ndim:
+            if self.mask_gen is not None:
+                assert self.mask_gen.sync_channels
+            if X.ndim != 4:
+                raise NotImplementedError()
+            drop_mask = drop_mask.dimshuffle(0,1,2,'x')
+
+        if not hasattr(self,'noise'):
+            self.noise = False
+
+        history = dbm.do_inpainting(X, Y = Y, drop_mask = drop_mask,
+                drop_mask_Y = drop_mask_Y, return_history = True, noise = self.noise,
+                niter = self.niter, block_grad = self.block_grad)
+        final_state = history[-1]
+
+        new_drop_mask = None
+        new_drop_mask_Y = None
+        new_history = [ None for state in history ]
+
+        if not hasattr(self, 'both_directions'):
+            self.both_directions = False
+        if self.both_directions:
+            new_drop_mask = 1. - drop_mask
+            if self.supervised:
+                new_drop_mask_Y = 1. - drop_mask_Y
+            new_history = dbm.do_inpainting(X, Y = Y, drop_mask = new_drop_mask,
+                    drop_mask_Y = new_drop_mask_Y, return_history = True, noise = self.noise,
+                    niter = self.niter, block_grad = self.block_grad)
+
+        new_final_state = new_history[-1]
+
+        total_cost, sublocals = self.cost_from_states(final_state, new_final_state, dbm, X, Y, drop_mask, drop_mask_Y, new_drop_mask, new_drop_mask_Y,
+                return_locals=True)
+        l1_act_cost = sublocals['l1_act_cost']
+        inpaint_cost = sublocals['inpaint_cost']
+        reweighted_act_cost = sublocals['reweighted_act_cost']
+
+        if not hasattr(self, 'robustness'):
+            self.robustness = None
+        if self.robustness is not None:
+            inpainting_H_hat = history[-1]['H_hat']
+            mf_H_hat = dbm.mf(X, Y=Y)
+            if self.supervised:
+                inpainting_H_hat = inpainting_H_hat[:-1]
+                mf_H_hat = mf_H_hat[:-1]
+                for ihh, mhh in safe_izip(flatten(inpainting_H_hat), flatten(mf_H_hat)):
+                    total_cost += self.robustness * T.sqr(mhh-ihh).sum()
+
+        if not hasattr(self, 'toronto_act_targets'):
+            self.toronto_act_targets = None
+        toronto_act_cost = None
+        if self.toronto_act_targets is not None and include_toronto:
+            toronto_act_cost = 0.
+            H_hat = history[-1]['H_hat']
+            for s, c, t in zip(H_hat, self.toronto_act_coeffs, self.toronto_act_targets):
+                if c == 0.:
+                    continue
+                s, _ = s
+                m = s.mean(axis=0)
+                toronto_act_cost += c * T.sqr(m-t).mean()
+            total_cost += toronto_act_cost
+
+        if return_locals:
+            return locals()
+
+        total_cost.name = 'total_inpaint_cost'
+
+        return total_cost
+
+    def get_fixed_var_descr(self, model, X, Y):
+        """
+        .. todo::
+
+            WRITEME
+        """
+
+        assert Y is not None
+
+        batch_size = model.batch_size
+
+        drop_mask_X = sharedX(model.get_input_space().get_origin_batch(batch_size))
+        drop_mask_X.name = 'drop_mask'
+
+        X_space = model.get_input_space()
+
+        updates = OrderedDict()
+        rval = FixedVarDescr()
+        inputs=[X, Y]
+
+        if not self.supervised:
+            update_X = self.mask_gen(X, X_space = X_space)
+        else:
+            drop_mask_Y = sharedX(np.ones(batch_size,))
+            drop_mask_Y.name = 'drop_mask_Y'
+            update_X, update_Y = self.mask_gen(X, Y, X_space)
+            updates[drop_mask_Y] = update_Y
+            rval.fixed_vars['drop_mask_Y'] =  drop_mask_Y
+        if self.mask_gen.sync_channels:
+            n = update_X.ndim
+            assert n == drop_mask_X.ndim - 1
+            update_X.name = 'raw_update_X'
+            zeros_like_X = T.zeros_like(X)
+            zeros_like_X.name = 'zeros_like_X'
+            update_X = zeros_like_X + update_X.dimshuffle(0,1,2,'x')
+            update_X.name = 'update_X'
+        updates[drop_mask_X] = update_X
+
+        rval.fixed_vars['drop_mask'] = drop_mask_X
+
+        if hasattr(model.inference_procedure, 'V_dropout'):
+            include_prob = model.inference_procedure.include_prob
+            include_prob_V = model.inference_procedure.include_prob_V
+            include_prob_Y = model.inference_procedure.include_prob_Y
+
+            theano_rng = MRG_RandomStreams(2012+11+20)
+            for elem in flatten([model.inference_procedure.V_dropout]):
+                updates[elem] = theano_rng.binomial(p=include_prob_V, size=elem.shape, dtype=elem.dtype, n=1) / include_prob_V
+            if "Softmax" in str(type(model.hidden_layers[-1])):
+                hid = model.inference_procedure.H_dropout[:-1]
+                y = model.inference_procedure.H_dropout[-1]
+                updates[y] = theano_rng.binomial(p=include_prob_Y, size=y.shape, dtype=y.dtype, n=1) / include_prob_Y
+            else:
+                hid = model.inference_procedure.H_dropout
+            for elem in flatten(hid):
+                updates[elem] =  theano_rng.binomial(p=include_prob, size=elem.shape, dtype=elem.dtype, n=1) / include_prob
+
+        rval.on_load_batch = [utils.function(inputs, updates=updates)]
+
+        return rval
+
+
+    def get_gradients(self, model, X, Y = None, **kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
+
+        scratch = self(model, X, Y, include_toronto = False, return_locals=True, **kwargs)
+
+        total_cost = scratch['total_cost']
+
+        params = list(model.get_params())
+        grads = dict(safe_zip(params, T.grad(total_cost, params, disconnected_inputs='ignore')))
+
+        if self.toronto_act_targets is not None:
+            H_hat = scratch['history'][-1]['H_hat']
+            for i, packed in enumerate(safe_zip(H_hat, self.toronto_act_coeffs, self.toronto_act_targets)):
+                s, c, t = packed
+                if c == 0.:
+                    continue
+                s, _ = s
+                m = s.mean(axis=0)
+                m_cost = c * T.sqr(m-t).mean()
+                real_grads = T.grad(m_cost, s)
+                if i == 0:
+                    below = X
+                else:
+                    below = H_hat[i-1][0]
+                W, = model.hidden_layers[i].transformer.get_params()
+                assert W in grads
+                b = model.hidden_layers[i].b
+
+                ancestor = T.scalar()
+                hack_W = W + ancestor
+                hack_b = b + ancestor
+
+                fake_s = T.dot(below, hack_W) + hack_b
+                if fake_s.ndim != real_grads.ndim:
+                    print fake_s.ndim
+                    print real_grads.ndim
+                    assert False
+                sources = [ (fake_s, real_grads) ]
+
+                fake_grads = T.grad(cost=None, known_grads=dict(sources), wrt=[below, ancestor, hack_W, hack_b])
+
+                grads[W] = grads[W] + fake_grads[2]
+                grads[b] = grads[b] + fake_grads[3]
+
+
+        return grads, OrderedDict()
+
+    def get_inpaint_cost(self, dbm, X, V_hat_unmasked, drop_mask, state, Y, drop_mask_Y):
+        rval = dbm.visible_layer.recons_cost(X, V_hat_unmasked, drop_mask, use_sum=self.use_sum)
+        """
+        .. todo::
+
+            WRITEME
+        """
+
+        if self.supervised:
+            scale = None # pyflakes is too dumb to see that both branches define this
+            if self.use_sum:
+                scale = 1.
+            else:
+                scale = 1. / float(dbm.get_input_space().get_total_dimension())
+            Y_hat_unmasked = state['Y_hat_unmasked']
+            rval = rval + \
+                    dbm.hidden_layers[-1].recons_cost(Y, Y_hat_unmasked, drop_mask_Y, scale)
+
+        return rval
+
+
+
+    def cost_from_states(self, state, new_state, dbm, X, Y, drop_mask, drop_mask_Y,
+            new_drop_mask, new_drop_mask_Y, return_locals = False):
+        """
+        .. todo::
+
+            WRITEME
+        """
+
+        if not self.supervised:
+            assert drop_mask_Y is None
+            assert new_drop_mask_Y is None
+        if self.supervised:
+            assert drop_mask_Y is not None
+            if self.both_directions:
+                assert new_drop_mask_Y is not None
+            assert Y is not None
+
+        V_hat_unmasked = state['V_hat_unmasked']
+        assert V_hat_unmasked.ndim == X.ndim
+
+        if not hasattr(self, 'use_sum'):
+            self.use_sum = False
+
+        inpaint_cost = self.get_inpaint_cost(dbm, X, V_hat_unmasked, drop_mask, state, Y, drop_mask_Y)
+
+        if not hasattr(self, 'both_directions'):
+            self.both_directions = False
+
+        assert self.both_directions == (new_state is not None)
+
+        if new_state is not None:
+
+            new_V_hat_unmasked = new_state['V_hat_unmasked']
+
+            new_inpaint_cost = dbm.visible_layer.recons_cost(X, new_V_hat_unmasked, new_drop_mask)
+            if self.supervised:
+                new_Y_hat_unmasked = new_state['Y_hat_unmasked']
+                scale = None
+                raise NotImplementedError("This branch appears to be broken, needs to define scale.")
+                new_inpaint_cost = new_inpaint_cost + \
+                        dbm.hidden_layers[-1].recons_cost(Y, new_Y_hat_unmasked, new_drop_mask_Y, scale)
+            # end if include_Y
+            inpaint_cost = 0.5 * inpaint_cost + 0.5 * new_inpaint_cost
+        # end if both directions
+
+        total_cost = inpaint_cost
+
+        if not hasattr(self, 'range_rewards'):
+            self.range_rewards = None
+        if self.range_rewards is not None:
+            for layer, mf_state, coeffs in safe_izip(
+                    dbm.hidden_layers,
+                    state['H_hat'],
+                    self.range_rewards):
+                try:
+                    layer_cost = layer.get_range_rewards(mf_state, coeffs)
+                except NotImplementedError:
+                    if coeffs == 0.:
+                        layer_cost = 0.
+                    else:
+                        raise
+                if layer_cost != 0.:
+                    total_cost += layer_cost
+
+        if not hasattr(self, 'stdev_rewards'):
+            self.stdev_rewards = None
+        if self.stdev_rewards is not None:
+            assert False # not monitored yet
+            for layer, mf_state, coeffs in safe_izip(
+                    dbm.hidden_layers,
+                    state['H_hat'],
+                    self.stdev_rewards):
+                try:
+                    layer_cost = layer.get_stdev_rewards(mf_state, coeffs)
+                except NotImplementedError:
+                    if coeffs == 0.:
+                        layer_cost = 0.
+                    else:
+                        raise
+                if layer_cost != 0.:
+                    total_cost += layer_cost
+
+        l1_act_cost = None
+        if self.l1_act_targets is not None:
+            l1_act_cost = 0.
+            if self.l1_act_eps is None:
+                self.l1_act_eps = [ None ] * len(self.l1_act_targets)
+            for layer, mf_state, targets, coeffs, eps in \
+                    safe_izip(dbm.hidden_layers, state['H_hat'] , self.l1_act_targets, self.l1_act_coeffs, self.l1_act_eps):
+
+                assert not isinstance(targets, str)
+
+                try:
+                    layer_cost = layer.get_l1_act_cost(mf_state, targets, coeffs, eps)
+                except NotImplementedError:
+                    if coeffs == 0.:
+                        layer_cost = 0.
+                    else:
+                        raise
+                if layer_cost != 0.:
+                    l1_act_cost += layer_cost
+                # end for substates
+            # end for layers
+            total_cost += l1_act_cost
+        # end if act penalty
+
+        if not hasattr(self, 'hid_presynaptic_cost'):
+            self.hid_presynaptic_cost = None
+        if self.hid_presynaptic_cost is not None:
+            assert False # not monitored yet
+            for c, s, in safe_izip(self.hid_presynaptic_cost, state['H_hat']):
+                if c == 0.:
+                    continue
+                s = s[1]
+                assert hasattr(s, 'owner')
+                owner = s.owner
+                assert owner is not None
+                op = owner.op
+
+                if not hasattr(op, 'scalar_op'):
+                    raise ValueError("Expected V_hat_unmasked to be generated by an Elemwise op, got "+str(op)+" of type "+str(type(op)))
+                assert isinstance(op.scalar_op, T.nnet.sigm.ScalarSigmoid)
+                z ,= owner.inputs
+
+                total_cost += c * T.sqr(z).mean()
+
+        if not hasattr(self, 'reweighted_act_targets'):
+            self.reweighted_act_targets = None
+        reweighted_act_cost = None
+        if self.reweighted_act_targets is not None:
+            reweighted_act_cost = 0.
+            warnings.warn("reweighted_act_cost is hardcoded for sigmoid layers and doesn't check that this is "
+                    "what we get.")
+            for c, t, s in safe_izip(self.reweighted_act_coeffs, self.reweighted_act_targets, state['H_hat']):
+                if c == 0:
+                    continue
+                s, _ = s
+                m = s.mean(axis=0)
+                d = T.sqr(m-t)
+                weight = 1./(1e-7+s*(1-s))
+                reweighted_act_cost += c * (weight * d).mean()
+            total_cost += reweighted_act_cost
+
+        total_cost.name = 'total_cost(V_hat_unmasked = %s)' % V_hat_unmasked.name
+
+        if return_locals:
+            return total_cost, locals()
+
+        return total_cost
+
+default_seed = 20120712
+class MaskGen:
+    def __init__(self, drop_prob, balance = False, sync_channels = True, drop_prob_y = None, seed = default_seed):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        self.__dict__.update(locals())
+        del self.self
+
+
+    def __call__(self, X, Y = None, X_space=None):
+        """
+        .. todo::
+
+            WRITEME
+
+        Note that calling this repeatedly will yield the same random numbers each time.
+        """
+        assert X_space is not None
+        self.called = True
+        assert X.dtype == config.floatX
+        if not hasattr(self, 'seed'):
+            self.seed = default_seed
+        theano_rng = RandomStreams(self.seed)
+
+        if X.ndim == 2 and self.sync_channels:
+            raise NotImplementedError()
+
+        p = self.drop_prob
+
+        if not hasattr(self, 'drop_prob_y') or self.drop_prob_y is None:
+            yp = p
+        else:
+            yp = self.drop_prob_y
+
+        batch_size = X_space.batch_size(X)
+
+        if self.balance:
+            flip = theano_rng.binomial(
+                    size = (batch_size,),
+                    p = 0.5,
+                    n = 1,
+                    dtype = X.dtype)
+
+            yp = flip * (1-p) + (1-flip) * p
+
+            dimshuffle_args = ['x'] * X.ndim
+
+            if X.ndim == 2:
+                dimshuffle_args[0] = 0
+                assert not self.sync_channels
+            else:
+                dimshuffle_args[X_space.axes.index('b')] = 0
+                if self.sync_channels:
+                    del dimshuffle_args[X_space.axes.index('c')]
+
+            flip = flip.dimshuffle(*dimshuffle_args)
+
+            p = flip * (1-p) + (1-flip) * p
+
+        #size needs to have a fixed length at compile time or the
+        #theano random number generator will be angry
+        size = tuple([ X.shape[i] for i in xrange(X.ndim) ])
+        if self.sync_channels:
+            del size[X_space.axes.index('c')]
+
+        drop_mask = theano_rng.binomial(
+                    size = size,
+                    p = p,
+                    n = 1,
+                    dtype = X.dtype)
+
+        X_name = make_name(X, 'anon_X')
+        drop_mask.name = 'drop_mask(%s)' % X_name
+
+        if Y is not None:
+            assert isinstance(yp, float) or yp.ndim < 2
+            drop_mask_Y = theano_rng.binomial(
+                    size = (batch_size, ),
+                    p = yp,
+                    n = 1,
+                    dtype = X.dtype)
+            assert drop_mask_Y.ndim == 1
+            Y_name = make_name(Y, 'anon_Y')
+            drop_mask_Y.name = 'drop_mask_Y(%s)' % Y_name
+            #drop_mask = Print('drop_mask',attrs=['sum'])(drop_mask)
+            #drop_mask_Y = Print('drop_mask_Y',attrs=['sum'])(drop_mask_Y)
+            return drop_mask, drop_mask_Y
+
+        return drop_mask
