@@ -254,7 +254,7 @@ class Space(object):
 
         dtype = self._clean_dtype_arg(dtype)
         origin_batch = self.get_origin_batch(batch_size, dtype)
-        return sharedX(origin_batch, name)
+        return sharedX(origin_batch, name=name, dtype=None)
 
     def make_theano_batch(self, name=None, dtype=None, batch_size=None):
         """
@@ -1288,7 +1288,7 @@ class CompositeSpace(Space):
             if isinstance(batch, tuple):
                 return tuple(recursive_sharedX(b) for b in batch)
             else:
-                return sharedX(batch, name)
+                return sharedX(batch, name=name, dtype=None)
 
         return recursive_sharedX(batch)
 
@@ -1447,29 +1447,38 @@ class CompositeSpace(Space):
 
     @functools.wraps(Space._batch_size_impl)
     def _batch_size_impl(self, batch):
-        if len(self.components) == 0:
-            return 0
 
-        batch_sizes = np.array(c.batch_size(b)
-                               for c, b in safe_zip(self.components, batch))
-        result = batch_sizes.max()
+        def has_no_data(space):
+            """
+            Returns True if space can contain no data.
+            """
+            return (isinstance(subspace, NullSpace) or
+                    (isinstance(subspace, CompositeSpace) and
+                     len(subspace.components) == 0))
 
-        # All components should have the same effective batch size,
-        # with the exeption of NullSpace, and CompositeSpace with
-        # 0 components, which will return 0, because they do not
-        # represent any data.
-        for batch_size, component in safe_zip(batch_sizes, self.components):
-            if (isinstance(component, NullSpace) or
-                (isinstance(component, CompositeSpace) and
-                 len(component.components) == 0)):
-                assert batch_size == 0
-            elif batch_size != result:
-                raise ValueError("All non-empty components of a "
-                                 "CompositeSpace should have the same batch "
-                                 "size, but we encountered components with "
-                                 "size %d, then %d." % (result, batch_size))
+        if is_symbolic_batch(batch):
+            for subspace, subbatch in safe_zip(self.components, batch):
+                if not has_no_data(subspace):
+                    return subspace._batch_size(subbatch)
 
-        return result
+            return 0  # TODO: shouldn't this line return a Theano object?
+        else:
+            result = None
+            for subspace, subbatch in safe_zip(self.components, batch):
+                batch_size = subspace._batch_size(subbatch)
+                if has_no_data(subspace):
+                    assert batch_size == 0
+                else:
+                    if result is None:
+                        result = batch_size
+                    elif batch_size != result:
+                        raise ValueError("All non-empty components of a "
+                                         "CompositeSpace should have the same "
+                                         "batch size, but we encountered "
+                                         "components with size %s, then %s." %
+                                         (result, batch_size))
+
+            return 0 if result is None else result
 
     def _clean_dtype_arg(self, dtype):
         """
