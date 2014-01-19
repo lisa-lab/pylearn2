@@ -1038,8 +1038,8 @@ class Conv2DSpace(SimplyTypedSpace):
             return tensor.transpose(*shuffle)
 
     @staticmethod
-    def convert_numpy(self, tensor, src_axes, dst_axes):
-        return self.convert(tensor, src_axes, dst_axes)
+    def convert_numpy(tensor, src_axes, dst_axes):
+        return Conv2DSpace.convert(tensor, src_axes, dst_axes)
 
     @functools.wraps(Space.get_total_dimension)
     def get_total_dimension(self):
