@@ -784,7 +784,7 @@ class GlobalContrastNormalization(Preprocessor):
                    use_std, except that use_norm=True means use_std=False.
         use_std : defaults to True and sqrt_bias defaults to 10 if nothing is
                   specified.
-                  
+
         Both of these defaults will change for consistency with
         pylearn2.expr.preprocessing sometime after October 12, 2013.  The
         defaults aren't specified as part of the method signature so that we can
@@ -988,7 +988,7 @@ class ZCA(Preprocessor):
         # TODO: logging
         print 'computing zca'
         t1 = time.time()
-        eigs, eigv = linalg.eigh(numpy.dot(X.T, X) / X.shape[0] + 
+        eigs, eigv = linalg.eigh(numpy.dot(X.T, X) / X.shape[0] +
                                  self.filter_bias * numpy.identity(X.shape[1]))
         t2 = time.time()
         print "cov estimate + eigh took",t2-t1,"seconds"
@@ -1231,7 +1231,7 @@ class CentralWindow(Preprocessor):
         if needs_transpose:
             index_map = tuple(('c', 0, 1, 'b').index(axis) for axis in axes)
             new_arr = numpy.transpose(new_arr, index_map)
-                                      
+
 
         dataset.set_topological_view(new_arr, axes=axes)
 
@@ -1327,7 +1327,7 @@ class CentralWindow(Preprocessor):
         if needs_transpose:
             index_map = tuple(('c', 0, 1, 'b').index(axis) for axis in axes)
             new_arr = numpy.transpose(new_arr, index_map)
-                                      
+
 
         dataset.set_topological_view(new_arr, axes=axes)
 
@@ -1374,7 +1374,3 @@ class ShuffleAndSplit(Preprocessor):
         dataset.X = X[start:stop, :]
         if y is not None:
             dataset.y = y[start:stop, :]
-
-
-
-

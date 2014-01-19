@@ -1,8 +1,10 @@
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
-from pylearn2.datasets.preprocessing import GlobalContrastNormalization
-from pylearn2.datasets.preprocessing import ExtractGridPatches, ReassembleGridPatches
-from pylearn2.datasets.preprocessing import LeCunLCN, RGB_YUV
+from pylearn2.datasets.preprocessing import (GlobalContrastNormalization,
+                                             ExtractGridPatches,
+                                             ReassembleGridPatches,
+                                             LeCunLCN,
+                                             RGB_YUV)
 from pylearn2.utils import as_floatX
 import numpy as np
 
@@ -14,6 +16,9 @@ class testGlobalContrastNormalization:
             a divide by 0 """
 
         dataset      = DenseDesignMatrix(X = as_floatX(np.zeros((1,1))))
+
+
+
 
         #the settings of subtract_mean and use_norm are not relevant to
         #the test
@@ -177,4 +182,3 @@ def test_rgb_yuv():
 
     assert not np.any(np.isnan(result))
     assert not np.any(np.isinf(result))
-
