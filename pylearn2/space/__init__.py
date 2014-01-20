@@ -46,22 +46,24 @@ if theano.sparse.enable_sparse:
     # We know scipy.sparse is available
     import scipy.sparse
 
-
-def is_symbolic_batch(batch):
+def _is_batch_all(batch, predicate):
     """
-    Returns true if batch is a symbolic variable.
-    """
+    Implementation of is_symbolic_batch() and is_numeric_batch().  Returns True
+    iff predicate() returns True for all components of (possibly coposite)
+    batch.
 
+    """
     assert not isinstance(batch, list)
 
     if isinstance(batch, tuple):
         # Return True if tuple is empty. Justification: we'd like
-        # is_theano_batch(space.make_theano_batch()) to always be True, even if
-        # space is an empty CompositeSpace.
+        # is_symbolic_batch(space.make_theano_batch()) to always be True, even
+        # if space is an empty CompositeSpace.
         if len(batch) == 0:
             return True
 
-        subbatch_results = tuple(is_symbolic_batch(b) for b in batch)
+        subbatch_results = tuple(_is_batch_all(b, predicate)
+                                 for b in batch)
         result = all(subbatch_results)
 
         # The subbatch_results must be all true, or all false, not a mix.
@@ -71,14 +73,36 @@ def is_symbolic_batch(batch):
                                                  "should never happen.")
         return result
     else:
-        return isinstance(batch, theano.gof.Variable)
+        return predicate(batch)
+
+def is_symbolic_batch(batch):
+    """
+    Returns True if batch is a symbolic variable.
+    Note that an empty tuple is both a valid symbolic batch and numeric batch.
+    """
+    return _is_batch_all(batch, lambda x : isinstance(x, theano.gof.Variable))
+
+def is_numeric_batch(batch):
+    """
+    Returns True if batch is a numeric variable.
+    Note that an empty tuple is both a valid symbolic batch and numeric batch.
+    """
+    def is_numeric(batch):
+        return isinstance(batch, np.ndarray) or scipy.sparse.issparse(batch)
+
+    return _is_batch_all(batch, is_numeric)
 
 
 def _dense_to_sparse(batch):
     """
-    Casts dense batches to sparse batches. Supports both symbolic and numeric
-    variables.
+    Casts dense batches to sparse batches (non-composite). Supports both
+    symbolic and numeric variables.
     """
+    if isinstance(batch, tuple):
+        raise TypeError("Composite batches not supported.")
+
+    assert not isinstance(batch, list)
+
     if is_symbolic_batch(batch):
         assert isinstance(batch, theano.tensor.TensorVariable)
         return theano.sparse.csr_from_dense(batch)
@@ -91,6 +115,11 @@ def _reshape(arg, shape):
     """
     Reshapes a tensor. Supports both symbolic and numeric variables.
     """
+
+    if isinstance(arg, tuple):
+        raise TypeError("Composite batches not supported.")
+
+    assert not isinstance(arg, list)
 
     if isinstance(arg, (np.ndarray, theano.tensor.TensorVariable)):
         return arg.reshape(shape)
@@ -176,7 +205,8 @@ class Space(object):
         space.format_as(batch, self) and
         space.format_as(batch, other) return the same formatted batch.
         """
-        raise NotImplementedError("__eq__ not implemented")
+        raise NotImplementedError("__eq__ not implemented in class %s." %
+                                  type(self))
 
     def __ne__(self, other):
         """
@@ -525,7 +555,7 @@ class Space(object):
 
     @staticmethod
     def _check_is_numeric(batch):
-        if is_symbolic_batch(batch):
+        if not is_numeric_batch(batch):
             raise TypeError('Expected batch to be a numeric variable, but '
                             'instead it was of type "%s"' % type(batch))
 
