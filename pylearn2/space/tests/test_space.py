@@ -685,7 +685,9 @@ def test_dtypes():
                 # temporarily upgrades warnings to exceptions within this block
                 with warnings.catch_warnings():
                     warnings.simplefilter("error")
-                    from_space._format_as(from_batch, to_space)
+                    from_space._format_as(using_numeric_batch,
+                                          from_batch,
+                                          to_space)
             except expected_error, ex:
                 assert str(ex).find(expected_error_msg) >= 0
             except Exception, unknown_ex:
@@ -695,7 +697,9 @@ def test_dtypes():
             finally:
                 return
 
-        to_batch = from_space._format_as(from_batch, to_space)
+        to_batch = from_space._format_as(using_numeric_batch,
+                                         from_batch,
+                                         to_space)
         expected_dtypes = get_expected_formatted_dtype(from_batch, to_space)
         actual_dtypes = get_batch_dtype(to_batch)
 
