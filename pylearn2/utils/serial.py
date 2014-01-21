@@ -412,6 +412,7 @@ lush_magic = {
             507333715 : 'float64'
         }
 
+
 def read_bin_lush_matrix(filepath):
     """
     .. todo::
@@ -453,7 +454,8 @@ def read_bin_lush_matrix(filepath):
 
     return rval
 
-def load_train_file(config_file_path):
+
+def load_train_file(config_file_path, environ=None):
     """
     Loads and parses a yaml file for a Train object.
     Publishes the relevant training environment variables
@@ -476,8 +478,7 @@ def load_train_file(config_file_path):
     else:
         config_file_full_stem = config_file_path
 
-    for varname in ["PYLEARN2_TRAIN_FILE_NAME", #this one is deprecated
-            "PYLEARN2_TRAIN_FILE_FULL_STEM"]: #this is the new, accepted name
+    for varname in ["PYLEARN2_TRAIN_FILE_FULL_STEM"]:
         environ.putenv(varname, config_file_full_stem)
 
     directory = config_file_path.split('/')[:-1]
@@ -488,4 +489,4 @@ def load_train_file(config_file_path):
     environ.putenv("PYLEARN2_TRAIN_BASE_NAME", config_file_path.split('/')[-1] )
     environ.putenv("PYLEARN2_TRAIN_FILE_STEM", config_file_full_stem.split('/')[-1] )
 
-    return yaml_parse.load_path(config_file_path)
+    return yaml_parse.load_path(config_file_path, environ=environ)
