@@ -954,13 +954,17 @@ class ZCA(Preprocessor):
     TODO: add reference
     """
     def __init__(self, n_components=None, n_drop_components=None,
-                 filter_bias=0.1):
+                 filter_bias=0.1, store_inverse=True):
         """
         n_components: TODO: WRITEME
         n_drop_components: TODO: WRITEME
         filter_bias: Filters are scaled by 1/sqrt(filter_bias + variance)
                     TODO: verify that default of 0.1 is what was used in the
                           Coates and Ng paper, add reference
+        store_inverse: When self.apply(dataset, can_fit=True) store not just
+                       the preprocessing matrix, but its inverse. This is
+                       necessary when using this preprocessor to instantiate a
+                       ZCA_Dataset.
         """
         warnings.warn("This ZCA preprocessor class is known to yield very "
                       "different results on different platforms. If you plan "
@@ -980,12 +984,14 @@ class ZCA(Preprocessor):
         self.copy = True
         self.filter_bias = filter_bias
         self.has_fit_ = False
+        self.store_inverse = store_inverse
         self.P_ = None  # set by fit()
-        self.inv_P_ = None  # optionally set by fit()
+        self.inv_P_ = None  # set by fit(), if self.store_inverse is True
 
-    def fit(self, X, compute_inverse=True):
+    def fit(self, X):
         """
         Fits this ZCA to a design matrix X. Stores result as self.P_.
+        If self.store_inverse is true, this also computes self.inv_P_.
 
         X: a matrix where each row is a datum.
 
@@ -1027,7 +1033,7 @@ class ZCA(Preprocessor):
         assert not numpy.any(numpy.isnan(self.P_))
         self.has_fit_ = True
 
-        if compute_inverse:
+        if self.store_inverse:
             print "Computing ZCA.P_'s inverse."
             t1 = time.time()
             self.inv_P_ = numpy.dot(eigv * numpy.sqrt(eigs),
