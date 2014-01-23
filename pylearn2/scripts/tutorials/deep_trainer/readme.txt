@@ -6,8 +6,7 @@ deep model formed by stacking shallow models.
 
 This is not the best-supported tutorial in pylearn2, in part because most of
 the active pylearn2 developers are no longer researching stacked layerwise
-pretraining. However, if you're interested in doing layerwise pretraining,
-this is the best pylearn2 tutorial available.
+pretraining.
 
 The recommended usage of pylearn2 is to write YAML configuration files
 describing experiments and pass them to the train.py script. This method is
@@ -17,6 +16,10 @@ the experiment in your own .py file and using exclusively python interfaces
 everywhere. This method is not quite as well supported, and this tutorial
 shows you how to make sure the proper steps are taken to make sure datasets
 get their correct YAML description when using this method.
+
+You can also read stacked_autoencoders.ipynb, a tutorial on how to do
+layerwise pretraining using YAML files. That tutorial only covers autoencoder
+pretraining but demonstrates how to use the recommended YAML interface.
 
 usage:
 
