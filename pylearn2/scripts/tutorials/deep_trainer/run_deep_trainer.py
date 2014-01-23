@@ -248,7 +248,7 @@ def main(args=None):
     layers.append(get_logistic_regressor(structure[3]))
 
 
-    #construct training sets for different layers
+    # construct training sets for different layers
     trainset = [ trainset ,
                 TransformerDataset( raw = trainset, transformer = layers[0] ),
                 TransformerDataset( raw = trainset, transformer = StackedBlocks( layers[0:2] )),
@@ -261,7 +261,7 @@ def main(args=None):
     layer_trainers.append(get_layer_trainer_sgd_autoencoder(layers[2], trainset[2]))
     layer_trainers.append(get_layer_trainer_logistic(layers[3], trainset[3]))
 
-    #unsupervised pretraining
+    # unsupervised pretraining
     for i, layer_trainer in enumerate(layer_trainers[0:3]):
         print '-----------------------------------'
         print ' Unsupervised training layer %d, %s'%(i, layers[i].__class__)
@@ -275,7 +275,7 @@ def main(args=None):
     print '------------------------------------------------------'
     print '\n'
 
-    #supervised training
+    # supervised training
     layer_trainers[-1].main_loop()
 
 
