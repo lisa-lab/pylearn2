@@ -12,11 +12,12 @@ __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
 
-import copy, logging, time, warnings, numpy
+import copy, logging, time, warnings, os, numpy, scipy
 try:
     from scipy import linalg
 except ImportError:
     warnings.warn("Could not import scipy.linalg")
+import theano
 from theano import function, tensor
 
 from pylearn2.base import Block
@@ -30,6 +31,7 @@ from pylearn2.utils import sharedX
 log = logging.getLogger(__name__)
 
 convert_axes = Conv2DSpace.convert_numpy
+
 
 
 class Preprocessor(object):
@@ -982,11 +984,133 @@ class ZCA(Preprocessor):
         self.n_components = n_components
         self.n_drop_components = n_drop_components
         self.copy = True
-        self.filter_bias = filter_bias
+        self.filter_bias = numpy.cast[theano.config.floatX](filter_bias)
         self.has_fit_ = False
         self.store_inverse = store_inverse
         self.P_ = None  # set by fit()
         self.inv_P_ = None  # set by fit(), if self.store_inverse is True
+        self.matrix_save_path = None  # set by set_matrix_save_path()
+
+        # Analogous to DenseDesignMatrix.design_loc. If not None, the big
+        # matrices P_ and inv_P_ will be saved together in <save_path>
+        # (or <save_path>.npz, if the suffix is omitted).
+        self.matrices_save_path = None
+
+
+    @staticmethod
+    def _gpu_matrix_dot(matrix_a, matrix_b, matrix_c=None):
+        """
+        Performs matrix multiplication.
+
+        Attempts to use the GPU if it's available. If the matrix multiplication
+        is too big to fit on the GPU, this falls back to the CPU after throwing
+        a warning.
+        """
+        if not hasattr(ZCA._gpu_matrix_dot, 'theano_func'):
+            ma, mb = theano.tensor.matrices('A', 'B')
+            mc = theano.tensor.dot(ma, mb)
+            ZCA._gpu_matrix_dot.theano_func = theano.function([ma, mb], mc)
+
+        theano_func = ZCA._gpu_matrix_dot.theano_func
+
+        try:
+            if matrix_c is None:
+                return theano_func(matrix_a, matrix_b)
+            else:
+                matrix_c[...] = theano_func(matrix_a, matrix_b)
+                return matrix_c
+        except MemoryError, me:
+            warnings.warn('Matrix multiplication too big to fit on GPU. '
+                          'Re-doing with CPU. Consider using '
+                          'THEANO_FLAGS="device=cpu" for your next '
+                          'preprocessor run')
+            return numpy.dot(matrix_a, matrix_b, matrix_c)
+
+
+    @staticmethod
+    def _gpu_mdmt(mat, diags):
+        """
+        Performs the matrix multiplication A * D * A^T.
+
+        First tries to do this on the GPU. If this throws a MemoryError, it
+        falls back to the CPU, with a warning message.
+        """
+
+        if not hasattr(ZCA._gpu_mdmt, 'theano_func'):
+            t_mat = theano.tensor.matrix('A')
+            t_diags = theano.tensor.vector('D')
+            result = theano.tensor.dot(t_mat * t_diags, t_mat.T)
+            ZCA._gpu_mdmt.theano_func = theano.function([t_mat, t_diags],
+                                                        result)
+
+        try:
+            return ZCA._gpu_mdmt.theano_func(mat, diags)
+        except MemoryError:
+            warnings.warn('M * D * M^T was too big to fit on GPU. '
+                          'Re-doing with CPU. Consider using '
+                          'THEANO_FLAGS="device=cpu" for your next '
+                          'preprocessor run')
+            return numpy.dot(mat * diags, mat.T)
+
+
+    def set_matrix_save_path(self, matrix_save_path):
+        if matrix_save_path is not None:
+            assert isinstance(matrix_save_path, str)
+            matrix_save_path = os.path.abspath(matrix_save_path)
+
+            if os.path.isdir(matrix_save_path):
+                raise IOError('Matrix save path "%s" must not be an existing '
+                              'directory.')
+
+            assert matrix_save_path[-1] not in ('/', '\\')
+            if not os.path.isdir(os.path.split(matrix_save_path)[0]):
+                raise IOError('Couldn\'t find parent directory:\n'
+                              '\t"%s"\n'
+                              '\t of matrix path\n'
+                              '\t"%s"')
+
+        self.matrix_save_path = matrix_save_path
+
+    def __getstate__(self):
+        """
+        Used by pickle.  Returns a dictionary to pickle in place of
+        self.__dict__.
+
+        If self.matrices_save_path is set, this saves the matrices P_ and
+        inv_P_ separately in matrices_save_path as a .npz archive, which uses
+        much less space & memory than letting pickle handle them.
+        """
+        result = copy.copy(self.__dict__)  # shallow copy
+        if self.matrices_save_path is not None:
+            matrices = {'P_': self.P_}
+            if self.inv_P_ is not None:
+                matrices['inv_P_'] = self.inv_P_
+
+            numpy.savez(self.matrices_save_path, **matrices)
+
+            # Removes the matrices from the dictionary to be pickled.
+            for key, matrix in matrices.items():
+                del result[key]
+
+        return result
+
+    def __setstate__(self, state):
+        """
+        Used to unpickle.
+
+        state: The dictionary created by __setstate__, presumably unpickled
+        from disk.
+        """
+
+        if state['matrices_save_path'] is not None:
+            matrices = numpy.load(state['matrices_save_path'])
+
+            # puts matrices' items into state, overriding any colliding keys in
+            # state.
+            state = dict(state.items() + matrices.items())
+            del matrices
+
+        self.__dict__.update(state)
 
     def fit(self, X):
         """
@@ -1011,45 +1135,71 @@ class ZCA(Preprocessor):
         self.mean_ = numpy.mean(X, axis=0)
         X -= self.mean_
         # TODO: logging
-        print 'computing zca'
+        print 'computing zca of a %s matrix' % str(X.shape)
         t1 = time.time()
-        eigs, eigv = linalg.eigh(numpy.dot(X.T, X) / X.shape[0] +
-                                 self.filter_bias * numpy.identity(X.shape[1]))
+
+        bias = self.filter_bias * scipy.sparse.identity(X.shape[1],
+                                                        theano.config.floatX)
+
+        covariance = ZCA._gpu_matrix_dot(X.T, X) / X.shape[0] + bias
         t2 = time.time()
-        print "cov estimate + eigh took %g seconds" % (t2 - t1)
+        print "cov estimate took %g seconds" % (t2-t1)
+
+        t1 = time.time()
+        eigs, eigv = linalg.eigh(covariance)
+        t2 = time.time()
+        print "eigh() took %g seconds" % (t2 - t1)
         assert not numpy.any(numpy.isnan(eigs))
         assert not numpy.any(numpy.isnan(eigv))
         assert eigs.min() > 0
         if self.n_components:
             eigs = eigs[:self.n_components]
             eigv = eigv[:, :self.n_components]
+
         if self.n_drop_components:
             eigs = eigs[self.n_drop_components:]
             eigv = eigv[:, self.n_drop_components:]
-        self.P_ = numpy.dot(eigv * numpy.sqrt(1.0 / eigs),
-                            eigv.T)
-        # print 'zca components'
-        # print numpy.square(self.P_).sum(axis=0)
+
+        t1 = time.time()
+
+        sqrt_eigs = numpy.sqrt(eigs)
+        try:
+            self.P_ = ZCA._gpu_mdmt(eigv, 1.0/sqrt_eigs)
+        except MemoryError:
+            warnings.warn()
+            self.P_ = numpy.dot(eigv * (1.0 / sqrt_eigs), eigv.T)
+
+        self.P_ = ZCA._gpu_mdmt(eigv, 1.0/sqrt_eigs)
+        t2 = time.time()
         assert not numpy.any(numpy.isnan(self.P_))
         self.has_fit_ = True
 
         if self.store_inverse:
-            print "Computing ZCA.P_'s inverse."
-            t1 = time.time()
-            self.inv_P_ = numpy.dot(eigv * numpy.sqrt(eigs),
-                                    eigv.T)
-            t2 = time.time()
-            print "Inverting ZCA.P_ took %g seconds" % (t2 - t1)
+            self.inv_P_ = ZCA._gpu_mdmt(eigv, sqrt_eigs)
         else:
             self.inv_P_ = None
 
     def apply(self, dataset, can_fit=False):
+
+        # Compiles apply.x_minus_mean_times_p(), a numeric Theano function that
+        # evauates dot(X - mean, P)
+        if not hasattr(ZCA, '_x_minus_mean_times_p'):
+            x_symbol = tensor.matrix('X')
+            mean_symbol = tensor.vector('mean')
+            p_symbol = tensor.matrix('P_')
+            new_x_symbol = tensor.dot(x_symbol - mean_symbol, p_symbol)
+            ZCA._x_minus_mean_times_p = theano.function([x_symbol,
+                                                         mean_symbol,
+                                                         p_symbol],
+                                                        new_x_symbol)
+
         X = dataset.get_design_matrix()
         assert X.dtype in ['float32', 'float64']
         if not self.has_fit_:
             assert can_fit
             self.fit(X)
-        new_X = numpy.dot(X - self.mean_, self.P_)
+
+        new_X = ZCA._gpu_matrix_dot(X - self.mean_, self.P_)
         dataset.set_design_matrix(new_X)
 
     def inverse(self, X):
