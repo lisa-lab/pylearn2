@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 __author__ = "Ian Goodfellow"
 """
-Usage: summarize_mlp.py <pickle file containing an MLP>
-Prints out summary info about a saved MLP.
-Feel free to add more printouts.
+Usage: print_model.py <pickle file containing a model>
+Prints out a saved model.
 """
 
 import sys
