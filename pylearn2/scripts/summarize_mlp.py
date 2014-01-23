@@ -14,8 +14,4 @@ _, model_path = sys.argv
 
 model = serial.load(model_path)
 
-for layer in model.layers:
-    print layer.layer_name
-    input_space = layer.get_input_space()
-    print '\tInput space: ', input_space
-    print '\tTotal input dimension: ', input_space.get_total_dimension()
+print model
