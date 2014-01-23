@@ -1,3 +1,5 @@
+pylearn2 tutorial example: "deep_trainer" by Li Yao
+
 This directory contains a simple example to give you a feeling of how you can
 play with pylearn2 by writing your own python scripts to train a deep model.
 
