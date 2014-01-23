@@ -33,7 +33,6 @@ log = logging.getLogger(__name__)
 convert_axes = Conv2DSpace.convert_numpy
 
 
-
 class Preprocessor(object):
     """
         Abstract class.
@@ -989,13 +988,11 @@ class ZCA(Preprocessor):
         self.store_inverse = store_inverse
         self.P_ = None  # set by fit()
         self.inv_P_ = None  # set by fit(), if self.store_inverse is True
-        self.matrix_save_path = None  # set by set_matrix_save_path()
 
-        # Analogous to DenseDesignMatrix.design_loc. If not None, the big
+        # Analogous to DenseDesignMatrix.design_loc. If not None, the
         # matrices P_ and inv_P_ will be saved together in <save_path>
         # (or <save_path>.npz, if the suffix is omitted).
         self.matrices_save_path = None
-
 
     @staticmethod
     def _gpu_matrix_dot(matrix_a, matrix_b, matrix_c=None):
@@ -1026,7 +1023,6 @@ class ZCA(Preprocessor):
                           'preprocessor run')
             return numpy.dot(matrix_a, matrix_b, matrix_c)
 
-
     @staticmethod
     def _gpu_mdmt(mat, diags):
         """
@@ -1052,24 +1048,31 @@ class ZCA(Preprocessor):
                           'preprocessor run')
             return numpy.dot(mat * diags, mat.T)
 
+    def set_matrices_save_path(self, matrices_save_path):
+        """
+        Analogous to DenseDesignMatrix.use_design_loc().
 
-    def set_matrix_save_path(self, matrix_save_path):
-        if matrix_save_path is not None:
-            assert isinstance(matrix_save_path, str)
-            matrix_save_path = os.path.abspath(matrix_save_path)
+        If a matrices_save_path is set, when this ZCA is pickled, the P_ and
+        P_inv_ matrices will be saved separately to matrices_save_path, as a
+        numpy .npz archive. This uses half the memory that a normal pickling
+        does.
+        """
+        if matrices_save_path is not None:
+            assert isinstance(matrices_save_path, str)
+            matrices_save_path = os.path.abspath(matrices_save_path)
 
-            if os.path.isdir(matrix_save_path):
+            if os.path.isdir(matrices_save_path):
                 raise IOError('Matrix save path "%s" must not be an existing '
                               'directory.')
 
-            assert matrix_save_path[-1] not in ('/', '\\')
-            if not os.path.isdir(os.path.split(matrix_save_path)[0]):
+            assert matrices_save_path[-1] not in ('/', '\\')
+            if not os.path.isdir(os.path.split(matrices_save_path)[0]):
                 raise IOError('Couldn\'t find parent directory:\n'
                               '\t"%s"\n'
                               '\t of matrix path\n'
                               '\t"%s"')
 
-        self.matrix_save_path = matrix_save_path
+        self.matrices_save_path = matrices_save_path
 
     def __getstate__(self):
         """
