@@ -118,8 +118,16 @@ def load(filepath, recurse_depth=0, retry = True):
                 if os.path.exists(filepath) and not os.path.isdir(filepath):
                     raise
                 raise_cannot_open(filepath)
-
-
+    except MemoryError, e:
+        # We want to explicitly catch this exception because for MemoryError
+        # __str__ returns the empty string, so some of our default printouts
+        # below don't make a lot of sense.
+        # Also, a lot of users assume any exception is a bug in the library,
+        # so we can cut down on mail to pylearn-users by adding a message
+        # that makes it clear this exception is caused by their machine not
+        # meeting requirements.
+        raise MemoryError("You do not have enough memory to open " +
+                filepath)
     except BadPickleGet, e:
         print ('Failed to open ' + str(filepath) +
                ' due to BadPickleGet with exception string ' + str(e))
