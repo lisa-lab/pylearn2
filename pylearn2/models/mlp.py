@@ -795,6 +795,21 @@ class MLP(Layer):
         source = (self.get_input_source(), self.get_target_source())
         return (space, source)
 
+    def __str__(self):
+        """
+        Summarizes the MLP by printing the size and format of the input to all
+        layers. Feel free to add reasonably concise info as needed.
+        """
+        rval = []
+        for layer in self.layers:
+            rval.append(layer.layer_name)
+            input_space = layer.get_input_space()
+            rval.append('\tInput space: ' + str(input_space))
+            rval.append('\tTotal input dimension: ' +
+                    str(input_space.get_total_dimension()))
+        rval = '\n'.join(rval)
+        return rval
+
 
 class Softmax(Layer):
     """
