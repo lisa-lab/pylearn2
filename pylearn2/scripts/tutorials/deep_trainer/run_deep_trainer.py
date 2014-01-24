@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+__author__ = "Li Yao"
 """
 See readme.txt
 
@@ -9,6 +10,7 @@ to train models layer by layer.
 MAX_EPOCHS_UNSUPERVISED = 1
 MAX_EPOCHS_SUPERVISED = 2
 
+from pylearn2.config import yaml_parse
 from pylearn2.corruption import BinomialCorruptor
 from pylearn2.corruption import GaussianCorruptor
 from pylearn2.costs.mlp import Default
@@ -18,7 +20,6 @@ from pylearn2.models.softmax_regression import SoftmaxRegression
 from pylearn2.training_algorithms.sgd import SGD
 from pylearn2.costs.autoencoder import MeanSquaredReconstructionError
 from pylearn2.termination_criteria import EpochCounter
-from pylearn2.datasets import cifar10
 from pylearn2.datasets import mnist
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.energy_functions.rbm_energy import GRBM_Type_1
@@ -60,51 +61,47 @@ def get_dataset_toy():
 
 def get_dataset_cifar10():
 
-    train_path = 'cifar10_train.pkl'
-    test_path = 'cifar10_test.pkl'
+    print 'loading CIFAR-10 dataset...'
 
-    if os.path.exists(train_path) and \
-            os.path.exists(test_path):
-        print 'loading preprocessed data'
-        trainset = serial.load(train_path)
-        testset = serial.load(test_path)
+    # We create the dataset by parsing YAML strings describing the dataset.
+    # The yaml parser will automatically tag trainset and testset with a
+    # yaml_src field containing the YAML string that was used to specify them.
+    # This is useful because later the training algorithm can store this YAML
+    # string in the saved model to efficiently describe exactly what data it
+    # was trained on.
+    template = \
+"""!obj:pylearn2.datasets.cifar10.CIFAR10 {
+which_set: %s,
+center: 1,
+rescale: 1,
+one_hot: 1
+}"""
+    trainset = yaml_parse.load(template % "train")
+    testset = yaml_parse.load(template % "test")
 
-    else:
-        print 'loading raw data...'
-        trainset = cifar10.CIFAR10(which_set="train", one_hot=True)
-        testset =  cifar10.CIFAR10(which_set="test", one_hot=True)
-
-        serial.save('cifar10_train.pkl', trainset)
-        serial.save('cifar10_test.pkl', testset)
-
-        # this path will be used for visualizing weights after training is done
-        trainset.yaml_src = '!pkl: "%s"' % train_path
-        testset.yaml_src = '!pkl: "%s"' % test_path
+    print '...done loading CIFAR-10.'
 
     return trainset, testset
 
 def get_dataset_mnist():
 
-    train_path = 'mnist_train.pkl'
-    test_path = 'mnist_test.pkl'
+    print 'loading MNIST dataset...'
 
-    if os.path.exists(train_path) and \
-            os.path.exists(test_path):
-        print 'loading preprocessed data'
-        trainset = serial.load(train_path)
-        testset = serial.load(test_path)
+    # We create the dataset by parsing YAML strings describing the dataset.
+    # The yaml parser will automatically tag trainset and testset with a
+    # yaml_src field containing the YAML string that was used to specify them.
+    # This is useful because later the training algorithm can store this YAML
+    # string in the saved model to efficiently describe exactly what data it
+    # was trained on.
+    template = \
+"""!obj:pylearn2.datasets.mnist.MNIST {
+which_set: %s,
+one_hot: 1
+}"""
+    trainset = yaml_parse.load(template % "train")
+    testset = yaml_parse.load(template % "test")
 
-    else:
-        print 'loading raw data...'
-        trainset = mnist.MNIST(which_set="train", one_hot=True)
-        testset =  mnist.MNIST(which_set="test", one_hot=True)
-
-        serial.save('mnist_train.pkl', trainset)
-        serial.save('mnist_test.pkl', testset)
-
-        # this path will be used for visualizing weights after training is done
-        trainset.yaml_src = '!pkl: "%s"' % train_path
-        testset.yaml_src = '!pkl: "%s"' % test_path
+    print '...done loading MNIST.'
 
     return trainset, testset
 
@@ -251,7 +248,7 @@ def main(args=None):
     layers.append(get_logistic_regressor(structure[3]))
 
 
-    #construct training sets for different layers
+    # construct training sets for different layers
     trainset = [ trainset ,
                 TransformerDataset( raw = trainset, transformer = layers[0] ),
                 TransformerDataset( raw = trainset, transformer = StackedBlocks( layers[0:2] )),
@@ -264,7 +261,7 @@ def main(args=None):
     layer_trainers.append(get_layer_trainer_sgd_autoencoder(layers[2], trainset[2]))
     layer_trainers.append(get_layer_trainer_logistic(layers[3], trainset[3]))
 
-    #unsupervised pretraining
+    # unsupervised pretraining
     for i, layer_trainer in enumerate(layer_trainers[0:3]):
         print '-----------------------------------'
         print ' Unsupervised training layer %d, %s'%(i, layers[i].__class__)
@@ -278,7 +275,7 @@ def main(args=None):
     print '------------------------------------------------------'
     print '\n'
 
-    #supervised training
+    # supervised training
     layer_trainers[-1].main_loop()
 
 
