@@ -1614,7 +1614,6 @@ class Linear(Layer):
     @wraps(Layer.get_params)
     def get_params(self):
 
-        assert self.b.name is not None
         W ,= self.transformer.get_params()
         assert W.name is not None
         rval = self.transformer.get_params()
@@ -1778,9 +1777,13 @@ class Linear(Layer):
             W = W.T
             W = T.nnet.softmax(W)
             W = W.T
-            z = T.dot(state_below, W) + self.b
+            z = T.dot(state_below, W)
+            if self.use_bias:
+                z += self.b
         else:
-            z = self.transformer.lmul(state_below) + self.b
+            z = self.transformer.lmul(state_below)
+            if self.use_bias:
+                z += self.b
         if self.layer_name is not None:
             z.name = self.layer_name + '_z'
         if self.copy_input:
