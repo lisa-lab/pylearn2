@@ -1604,8 +1604,8 @@ class Linear(Layer):
                 updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle(0, 'x')
 
         if self.max_col_norm is not None or self.min_col_norm is not None:
+            assert self.max_row_norm is None
             if self.max_col_norm is not None:
-                assert self.max_row_norm is None
                 max_col_norm = self.max_col_norm
             if self.min_col_norm is None:
                 self.min_col_norm = 0
