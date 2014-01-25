@@ -202,7 +202,7 @@ class ChannelInf(TerminationCriterion):
         channels = monitor.channels
         channel = channels[self.channel_name]
 
-        rval = np.abs(channel.val_record[-1]) == np.inf
+        rval = np.isinf(channel.val_record[-1])
         return rval
 
 class EpochCounter(TerminationCriterion):
