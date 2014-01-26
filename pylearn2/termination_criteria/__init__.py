@@ -44,7 +44,6 @@ class TerminationCriterion(object):
                       "continue_learning", stacklevel=2)
         return self.continue_learning(model)
 
-
 class MonitorBased(TerminationCriterion):
     """
     A termination criterion that pulls out the specified channel in
@@ -180,6 +179,32 @@ class ChannelTarget(TerminationCriterion):
         rval =  channel.val_record[-1] > self.target
         return rval
 
+class ChannelInf(TerminationCriterion):
+    """
+    Stop training when a channel value reaches Inf or -inf.
+    """
+
+    def __init__(self, channel_name):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        self.__dict__.update(locals())
+
+    def continue_learning(self, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        monitor = model.monitor
+        channels = monitor.channels
+        channel = channels[self.channel_name]
+
+        rval = np.isinf(channel.val_record[-1])
+        return rval
+
 class EpochCounter(TerminationCriterion):
     """
     .. todo::
@@ -240,7 +265,6 @@ class And(TerminationCriterion):
         """
         return all(criterion.continue_learning(model)
                    for criterion in self._criteria)
-
 
 class Or(TerminationCriterion):
     """
