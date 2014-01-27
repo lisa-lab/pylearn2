@@ -795,6 +795,21 @@ class MLP(Layer):
         source = (self.get_input_source(), self.get_target_source())
         return (space, source)
 
+    def __str__(self):
+        """
+        Summarizes the MLP by printing the size and format of the input to all
+        layers. Feel free to add reasonably concise info as needed.
+        """
+        rval = []
+        for layer in self.layers:
+            rval.append(layer.layer_name)
+            input_space = layer.get_input_space()
+            rval.append('\tInput space: ' + str(input_space))
+            rval.append('\tTotal input dimension: ' +
+                    str(input_space.get_total_dimension()))
+        rval = '\n'.join(rval)
+        return rval
+
 
 class Softmax(Layer):
     """
@@ -1467,6 +1482,7 @@ class Linear(Layer):
                  mask_weights = None,
                  max_row_norm = None,
                  max_col_norm = None,
+                 min_col_norm = None,
                  softmax_columns = False,
                  copy_input = 0,
                  use_abs_loss = False,
@@ -1490,6 +1506,7 @@ class Linear(Layer):
         mask_weights : WRITEME
         max_row_norm : WRITEME
         max_col_norm : WRITEME
+        min_col_norm : WRITEME
         softmax_columns : WRITEME
         copy_input : WRITEME
         use_abs_loss : WRITEME
@@ -1601,20 +1618,25 @@ class Linear(Layer):
                 desired_norms = T.clip(row_norms, 0, self.max_row_norm)
                 updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle(0, 'x')
 
-        if self.max_col_norm is not None:
+        if self.max_col_norm is not None or self.min_col_norm is not None:
             assert self.max_row_norm is None
+            if self.max_col_norm is not None:
+                max_col_norm = self.max_col_norm
+            if self.min_col_norm is None:
+                self.min_col_norm = 0
             W ,= self.transformer.get_params()
             if W in updates:
                 updated_W = updates[W]
                 col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
+                if self.max_col_norm is None:
+                    max_col_norm = col_norms.max()
+                desired_norms = T.clip(col_norms, self.min_col_norm, max_col_norm)
                 updates[W] = updated_W * desired_norms / (1e-7 + col_norms)
 
 
     @wraps(Layer.get_params)
     def get_params(self):
 
-        assert self.b.name is not None
         W ,= self.transformer.get_params()
         assert W.name is not None
         rval = self.transformer.get_params()
@@ -1778,9 +1800,13 @@ class Linear(Layer):
             W = W.T
             W = T.nnet.softmax(W)
             W = W.T
-            z = T.dot(state_below, W) + self.b
+            z = T.dot(state_below, W)
+            if self.use_bias:
+                z += self.b
         else:
-            z = self.transformer.lmul(state_below) + self.b
+            z = self.transformer.lmul(state_below)
+            if self.use_bias:
+                z += self.b
         if self.layer_name is not None:
             z.name = self.layer_name + '_z'
         if self.copy_input:

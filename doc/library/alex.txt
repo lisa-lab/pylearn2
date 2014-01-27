@@ -35,7 +35,7 @@ Pool
 .. automodule:: pylearn2.sandbox.cuda_convnet.stochastic_pool
     :members:
 
-Resoponse Normalization
+Response Normalization
 =======================
 .. automodule:: pylearn2.sandbox.cuda_convnet.response_norm
     :members:

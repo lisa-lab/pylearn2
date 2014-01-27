@@ -15,7 +15,7 @@ from cPickle import BadPickleGet
 io = None
 hdf_reader = None
 import struct
-from pylearn2.utils import environ
+from pylearn2.utils.environ import putenv
 from pylearn2.utils.string_utils import match
 import shutil
 
@@ -118,8 +118,16 @@ def load(filepath, recurse_depth=0, retry = True):
                 if os.path.exists(filepath) and not os.path.isdir(filepath):
                     raise
                 raise_cannot_open(filepath)
-
-
+    except MemoryError, e:
+        # We want to explicitly catch this exception because for MemoryError
+        # __str__ returns the empty string, so some of our default printouts
+        # below don't make a lot of sense.
+        # Also, a lot of users assume any exception is a bug in the library,
+        # so we can cut down on mail to pylearn-users by adding a message
+        # that makes it clear this exception is caused by their machine not
+        # meeting requirements.
+        raise MemoryError("You do not have enough memory to open " +
+                filepath)
     except BadPickleGet, e:
         print ('Failed to open ' + str(filepath) +
                ' due to BadPickleGet with exception string ' + str(e))
@@ -412,6 +420,7 @@ lush_magic = {
             507333715 : 'float64'
         }
 
+
 def read_bin_lush_matrix(filepath):
     """
     .. todo::
@@ -453,7 +462,8 @@ def read_bin_lush_matrix(filepath):
 
     return rval
 
-def load_train_file(config_file_path):
+
+def load_train_file(config_file_path, environ=None):
     """
     Loads and parses a yaml file for a Train object.
     Publishes the relevant training environment variables
@@ -476,16 +486,15 @@ def load_train_file(config_file_path):
     else:
         config_file_full_stem = config_file_path
 
-    for varname in ["PYLEARN2_TRAIN_FILE_NAME", #this one is deprecated
-            "PYLEARN2_TRAIN_FILE_FULL_STEM"]: #this is the new, accepted name
-        environ.putenv(varname, config_file_full_stem)
+    for varname in ["PYLEARN2_TRAIN_FILE_FULL_STEM"]:
+        putenv(varname, config_file_full_stem)
 
     directory = config_file_path.split('/')[:-1]
     directory = '/'.join(directory)
     if directory != '':
         directory += '/'
-    environ.putenv("PYLEARN2_TRAIN_DIR", directory)
-    environ.putenv("PYLEARN2_TRAIN_BASE_NAME", config_file_path.split('/')[-1] )
-    environ.putenv("PYLEARN2_TRAIN_FILE_STEM", config_file_full_stem.split('/')[-1] )
+    putenv("PYLEARN2_TRAIN_DIR", directory)
+    putenv("PYLEARN2_TRAIN_BASE_NAME", config_file_path.split('/')[-1] )
+    putenv("PYLEARN2_TRAIN_FILE_STEM", config_file_full_stem.split('/')[-1] )
 
-    return yaml_parse.load_path(config_file_path)
+    return yaml_parse.load_path(config_file_path, environ=environ)
