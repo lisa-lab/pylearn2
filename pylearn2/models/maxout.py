@@ -770,8 +770,6 @@ class MaxoutConvC01B(Layer):
                                   input_space=space,
                                   rng=self.mlp.rng)
 
-        rng = self.mlp.rng
-
         detector_shape = self.detector_space.shape
 
         def handle_pool_shape(idx):
