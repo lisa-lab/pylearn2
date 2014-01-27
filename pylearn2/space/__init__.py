@@ -46,6 +46,7 @@ if theano.sparse.enable_sparse:
     # We know scipy.sparse is available
     import scipy.sparse
 
+
 def _is_batch_all(batch, predicate):
     """
     Implementation of is_symbolic_batch() and is_numeric_batch().  Returns True
@@ -53,15 +54,19 @@ def _is_batch_all(batch, predicate):
     batch.
 
     """
+    # Catch any accidental use of list in place of tuple.
     assert not isinstance(batch, list)
 
-    if isinstance(batch, tuple):
-        # Return True if tuple is empty. Justification: we'd like
-        # is_symbolic_batch(space.make_theano_batch()) to always be True, even
-        # if space is an empty CompositeSpace.
-        if len(batch) == 0:
-            return True
+    # Data-less batches such as None or () are valid numeric and symbolic
+    # batches.
+    #
+    # Justification: we'd like
+    # is_symbolic_batch(space.make_theano_batch()) to always be True, even if
+    # space is an empty CompositeSpace.
+    if batch is None or (isinstance(batch, tuple) and len(batch) == 0):
+        return True
 
+    if isinstance(batch, tuple):
         subbatch_results = tuple(_is_batch_all(b, predicate)
                                  for b in batch)
         result = all(subbatch_results)
@@ -75,12 +80,15 @@ def _is_batch_all(batch, predicate):
     else:
         return predicate(batch)
 
+
 def is_symbolic_batch(batch):
     """
     Returns True if batch is a symbolic variable.
     Note that an empty tuple is both a valid symbolic batch and numeric batch.
     """
+
     return _is_batch_all(batch, lambda x : isinstance(x, theano.gof.Variable))
+
 
 def is_numeric_batch(batch):
     """
@@ -135,6 +143,7 @@ def _reshape(arg, shape):
     else:
         raise TypeError('Unexpected batch type "%s"' % str(type(arg)))
 
+
 def _cast(arg, dtype):
     """
     Does element-wise casting to dtype.
@@ -169,7 +178,21 @@ def _cast(arg, dtype):
 
 
 class Space(object):
-    """A vector space that can be transformed by a linear operator."""
+    """
+    A vector space that can be transformed by a linear operator.
+
+    Space and its subclasses are used to transform a data batch's geometry
+    (e.g. vectors <--> matrices) and optionally, its dtype (e.g. float <-->
+    int).
+
+    Batches may be one of the following types:
+
+      numpy.ndarray
+      scipy.sparse.csr_matrix
+      theano.gof.Variable
+      None (for NullSpace)
+      A (nested) tuple of the above, possibly empty (for CompositeSpace).
+    """
 
     def __init__(self, validate_callbacks=None,
                  np_validate_callbacks=None):
@@ -446,13 +469,6 @@ class Space(object):
         ----------
         batch : a symbolic (Theano) variable that lies in this space.
         """
-
-        # This is necessary because some code passes None as a batch, when
-        # batch is not important.
-        # For example: costs/tests/test_lp_penalty_cost.py
-        if batch is None:
-            return
-
         self._check_is_symbolic(batch)
         self._validate(is_numeric=False, batch=batch)
 
@@ -483,7 +499,8 @@ class Space(object):
                      False to call validate_callbacks. Necessary because
                      it can be impossible to tell from the batch whether
                      it should be treated as a numeric of symbolic batch,
-                     for example when the batch is the empty tuple ().
+                     for example when the batch is the empty tuple (),
+                     or NullSpace batch None.
 
         batch : a theano variable, numpy ndarray, scipy.sparse matrix,
                 or a nested tuple thereof, representing a batch belonging
