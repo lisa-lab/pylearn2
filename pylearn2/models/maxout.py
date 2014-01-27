@@ -225,30 +225,35 @@ class Maxout(Layer):
         self.output_space = VectorSpace(self.pool_layer_dim)
 
         rng = self.mlp.rng
-        if self.irange is not None:
-            assert self.sparse_init is None
-            W = rng.uniform(-self.irange,
-                            self.irange,
-                            (self.input_dim, self.detector_layer_dim)) * \
-                (rng.uniform(0., 1., (self.input_dim, self.detector_layer_dim))
-                 < self.include_prob)
-        else:
-            assert self.sparse_init is not None
-            W = np.zeros((self.input_dim, self.detector_layer_dim))
+        if self.weights_init is None:
+            if self.irange is not None:
+                assert self.sparse_init is None
+                W = rng.uniform(-self.irange,
+                                self.irange,
+                                (self.input_dim, self.detector_layer_dim)) * \
+                    (rng.uniform(0.,1., (self.input_dim, self.detector_layer_dim))
+                    < self.include_prob)
+            else:
+                assert self.sparse_init is not None
+                W = np.zeros((self.input_dim, self.detector_layer_dim))
 
-            def mask_rejects(idx, i):
-                if self.mask_weights is None:
-                    return False
-                return self.mask_weights[idx, i] == 0.
+                def mask_rejects(idx, i):
+                    if self.mask_weights is None:
+                        return False
+                    return self.mask_weights[idx, i] == 0.
 
-            for i in xrange(self.detector_layer_dim):
-                assert self.sparse_init <= self.input_dim
-                for j in xrange(self.sparse_init):
-                    idx = rng.randint(0, self.input_dim)
-                    while W[idx, i] != 0 or mask_rejects(idx, i):
+                for i in xrange(self.detector_layer_dim):
+                    assert self.sparse_init <= self.input_dim
+                    for j in xrange(self.sparse_init):
                         idx = rng.randint(0, self.input_dim)
-                    W[idx, i] = rng.randn()
-            W *= self.sparse_stdev
+                        while W[idx, i] != 0 or mask_rejects(idx, i):
+                            idx = rng.randint(0, self.input_dim)
+                        W[idx, i] = rng.randn()
+                W *= self.sparse_stdev
+        else:
+            assert (self.irange is None and self.sparse_init is None)
+            W = np.nan * np.empty((self.input_dim, self.detector_layer_dim),
+                                  dtype=config.floatX)
 
         W = sharedX(W)
         W.name = self.layer_name + '_W'
