@@ -2129,7 +2129,9 @@ class Linear(Layer):
                  softmax_columns=None,
                  copy_input=None,
                  use_abs_loss=False,
-                 use_bias=True):
+                 use_bias=True,
+                 bias_init=None,
+                 weights_init=None):
 
         if copy_input is not None:
             raise AssertionError("The copy_input option had a bug and has "
@@ -2141,20 +2143,29 @@ class Linear(Layer):
             softmax_columns = False
         else:
             warnings.warn("The softmax_columns argument is deprecated, and "
-                    "will be removed on or after 2014-08-27.", stacklevel=2)
+                          "will be removed on or after 2014-08-27.", stacklevel=2)
 
-        if use_bias and init_bias is None:
-            init_bias = 0.
+        if use_bias:
+            if bias_init is None:  # object
+                if init_bias is None:  # scalar
+                    init_bias = 0.
+            else:
+                # don't try and use old and new together
+                assert init_bias is None
 
         self.__dict__.update(locals())
         del self.self
 
         if use_bias:
-            self.b = sharedX(np.zeros((self.dim,)) + init_bias,
-                             name=(layer_name + '_b'))
+            b = np.zeros((self.dim,))
+            if bias_init is None:
+                b += init_bias
+            self.b = sharedX(b, name=layer_name + '_b')
         else:
             assert b_lr_scale is None
-            init_bias is None
+            assert init_bias is None
+            assert bias_init is None
+        self._initializers = [weights_init, bias_init]
 
     @wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
@@ -2192,35 +2203,37 @@ class Linear(Layer):
         self.output_space = VectorSpace(self.dim)
 
         rng = self.mlp.rng
-        if self.irange is not None:
-            assert self.istdev is None
-            assert self.sparse_init is None
-            W = rng.uniform(-self.irange,
-                            self.irange,
-                            (self.input_dim, self.dim)) * \
-                (rng.uniform(0., 1., (self.input_dim, self.dim))
-                 < self.include_prob)
-        elif self.istdev is not None:
-            assert self.sparse_init is None
-            W = rng.randn(self.input_dim, self.dim) * self.istdev
-        else:
-            assert self.sparse_init is not None
-            W = np.zeros((self.input_dim, self.dim))
-
-            def mask_rejects(idx, i):
-                if self.mask_weights is None:
-                    return False
-                return self.mask_weights[idx, i] == 0.
-
-            for i in xrange(self.dim):
-                assert self.sparse_init <= self.input_dim
-                for j in xrange(self.sparse_init):
-                    idx = rng.randint(0, self.input_dim)
-                    while W[idx, i] != 0 or mask_rejects(idx, i):
+        if self.weights_init is None:
+            if self.irange is not None:
+                assert self.istdev is None
+                assert self.sparse_init is None
+                W = rng.uniform(-self.irange,
+                                self.irange,
+                                (self.input_dim, self.dim)) * \
+                    (rng.uniform(0.,1., (self.input_dim, self.dim))
+                    < self.include_prob)
+            elif self.istdev is not None:
+                assert self.sparse_init is None
+                W = rng.randn(self.input_dim, self.dim) * self.istdev
+            else:
+                assert self.sparse_init is not None
+                W = np.zeros((self.input_dim, self.dim))
+                def mask_rejects(idx, i):
+                    if self.mask_weights is None:
+                        return False
+                    return self.mask_weights[idx, i] == 0.
+                for i in xrange(self.dim):
+                    assert self.sparse_init <= self.input_dim
+                    for j in xrange(self.sparse_init):
                         idx = rng.randint(0, self.input_dim)
-                    W[idx, i] = rng.randn()
-            W *= self.sparse_stdev
-
+                        while W[idx, i] != 0 or mask_rejects(idx, i):
+                            idx = rng.randint(0, self.input_dim)
+                        W[idx, i] = rng.randn()
+                W *= self.sparse_stdev
+        else:
+            W = np.nan * np.empty((self.input_dim, self.dim))
+            assert (self.irange is None and self.istdev is None
+                    and self.sparse_init is None)
         W = sharedX(W)
         W.name = self.layer_name + '_W'
 
