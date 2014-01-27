@@ -2808,6 +2808,8 @@ class CompositeLayer(Layer):
     @wraps(Layer.set_input_space)
     def set_input_space(self, space):
 
+        self.input_space = space
+
         for layer in self.layers:
             layer.set_input_space(space)
 
