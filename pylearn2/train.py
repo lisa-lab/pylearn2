@@ -209,7 +209,7 @@ class Train(object):
         for extension in self.extensions:
             try:
                 extension.on_monitor(self.model, self.dataset, self.algorithm)
-            except TypeError, e:
+            except TypeError:
                 logging.warning('Failure during callback ' + str(extension))
                 raise
             # We catch an exception here instead of relying on return
