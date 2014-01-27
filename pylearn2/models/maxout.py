@@ -31,6 +31,7 @@ from theano.compat.python2x import OrderedDict
 from theano.gof.op import get_debug_values
 from theano.sandbox import cuda
 from theano import tensor as T
+from theano import config
 
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.models.mlp import Layer
@@ -80,7 +81,9 @@ class Maxout(Layer):
                  max_col_norm = None,
                  max_row_norm = None,
                  mask_weights = None,
-                 min_zero = False
+                 min_zero = False,
+                 bias_init=None,
+                 weights_init=None
         ):
         """
         .. todo::
@@ -123,6 +126,12 @@ class Maxout(Layer):
         min_zero: If true, includes a zero in the set we take a max over
                 for each maxout unit. This is equivalent to pooling over
                 rectified linear units.
+        bias_init : object, optional
+            The Initialization object that governs how the biases
+            will be initialized.
+        weights_init : object, optional
+            The Initialization object that governs how the weights
+            will be initialized.
         """
 
         detector_layer_dim = num_units * num_pieces
@@ -139,6 +148,9 @@ class Maxout(Layer):
 
         if max_row_norm is not None:
             raise NotImplementedError()
+
+        # Must match order in get_params().
+        self._initializers = [weights_init, bias_init]
 
     def get_lr_scalers(self):
         """
@@ -227,7 +239,6 @@ class Maxout(Layer):
 
         W = sharedX(W)
         W.name = self.layer_name + '_W'
-
         self.transformer = MatrixMul(W)
 
         W ,= self.transformer.get_params()
