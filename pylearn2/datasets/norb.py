@@ -118,9 +118,9 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
         # TODO: let labels be accessible by key, like y.category, y.elevation,
         # etc.
-        super(SmallNORB,self).__init__(X=X,
-                                       y=y,
-                                       view_converter=view_converter)
+        super(SmallNORB, self).__init__(X=X,
+                                        y=y,
+                                        view_converter=view_converter)
 
     @classmethod
     def load(cls, which_set, filetype):
@@ -130,7 +130,6 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
         assert which_set in ['train', 'test']
         assert filetype in ['dat', 'cat', 'info']
-
 
         def getPath(which_set):
             dirname = os.path.join(os.getenv('PYLEARN2_DATA_PATH'),
@@ -144,7 +143,6 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
                 (instance_list, which_set + 'ing', filetype)
 
             return os.path.join(dirname, filename)
-
 
         def parseNORBFile(file_handle, subtensor=None, debug=False):
             """
@@ -226,7 +224,6 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
                 return elem_type, elem_size, shape
 
-
             elem_type, elem_size, shape = readHeader(file_handle, debug)
             beginning = file_handle.tell()
 
@@ -259,7 +256,6 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
                                           subtensor)
 
             return result
-
 
         file_handle = open(getPath(which_set))
         return parseNORBFile(file_handle)
