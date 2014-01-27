@@ -7,9 +7,11 @@ __credits__ = ["Ian Goodfellow", "David Warde-Farley"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
+import logging
 import math
 import sys
 import warnings
+from itertools import izip
 
 import numpy as np
 from theano import config
@@ -53,6 +55,9 @@ warnings.warn("MLP changing the recursion limit.")
 sys.setrecursionlimit(40000)
 
 
+log = logging.getLogger(__name__)
+
+
 class Layer(Model):
     """
     Abstract class. A Layer of an MLP.
@@ -72,6 +77,8 @@ class Layer(Model):
     # Usually this will be 0, but certain kinds of layers may want to override
     # this behaviour.
     dropout_input_mask_value = 0.
+
+    _initializers = ()
 
     def get_mlp(self):
         """
@@ -247,6 +254,24 @@ class Layer(Model):
         """
         raise NotImplementedError
 
+    def _initialize_params(self, rng):
+        """Note that this a private method, and the interface may change.
+
+        Parameters
+        ----------
+        rng : numpy.random.RandomState
+            The random number generator to use.
+        """
+        assert (len(self._initializers) == 0 or
+                len(self._initializers) == len(self.get_params()))
+        for param, init in izip(self.get_params(), self._initializers):
+            shape = param.get_value(borrow=True).shape
+            # XXX: missing atom_axis, etc.
+            if init is not None:
+                log.info("Initializing %s, shape = %s:", param.name, shape)
+                log.info("    %s", init)
+                param.set_value(init.initialize(rng, shape))
+
 
 class MLP(Layer):
     """
@@ -307,6 +332,8 @@ class MLP(Layer):
 
         self._update_layer_input_spaces()
 
+        self._initialize_params(self.rng)
+
         self.freeze_set = set([])
 
         def f(x):
@@ -353,6 +380,13 @@ class MLP(Layer):
                             "). Original exception: " + str(e))
         for i in xrange(1, len(layers)):
             layers[i].set_input_space(layers[i-1].get_output_space())
+
+    def _initialize_params(self, rng):
+        """Note that this a private method, and the interface may change."""
+        for layer in self.layers:
+            # TODO: Needs lots of hints from the input space (and input space
+            # of next layer) for this to be fully general.
+            layer._initialize_params(rng)
 
     def add_layers(self, layers):
         """
@@ -817,15 +851,23 @@ class Softmax(Layer):
         WRITEME
     """
     def __init__(self, n_classes, layer_name, irange=None,
-                 istdev=None,
-                 sparse_init=None, W_lr_scale=None,
-                 b_lr_scale=None, max_row_norm=None,
-                 no_affine=False,
-                 max_col_norm=None, init_bias_target_marginals=None):
+                 istdev=None, sparse_init=None, W_lr_scale=None,
+                 b_lr_scale=None, max_row_norm=None, no_affine=False,
+                 max_col_norm=None, init_bias_target_marginals=None,
+                 bias_init=None, weights_init=None):
         """
         .. todo::
 
             WRITEME
+
+        Parameters
+        ----------
+        bias_init : object
+            The (new-interface) Initialization object to use for
+            initializing the biases.
+        weights_init : object
+            The (new-interface) Initialization object to use for
+            initializing the weights.
         """
 
         if isinstance(W_lr_scale, str):
@@ -840,15 +882,20 @@ class Softmax(Layer):
         self.output_space = VectorSpace(n_classes)
         if not no_affine:
             self.b = sharedX(np.zeros((n_classes,)), name='softmax_b')
-            if init_bias_target_marginals:
-                marginals = init_bias_target_marginals.y.mean(axis=0)
-                assert marginals.ndim == 1
-                b = pseudoinverse_softmax_numpy(marginals).astype(self.b.dtype)
-                assert b.ndim == 1
-                assert b.dtype == self.b.dtype
-                self.b.set_value(b)
+            if self.bias_init is None:
+                # XXX: error message for assertion
+                if init_bias_target_marginals:
+                    marginals = init_bias_target_marginals.y.mean(axis=0)
+                    assert marginals.ndim == 1
+                    b = pseudoinverse_softmax_numpy(marginals).astype(self.b.dtype)
+                    assert b.ndim == 1
+                    assert b.dtype == self.b.dtype
+                    self.b.set_value(b)
         else:
             assert init_bias_target_marginals is None
+        if self.weights_init is not None:
+            # XXX: error message for assertion
+            assert istdev is None and sparse_init is None and irange is None
 
     @wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
@@ -936,28 +983,35 @@ class Softmax(Layer):
         if self.no_affine:
             self._params = []
         else:
-            if self.irange is not None:
-                assert self.istdev is None
-                assert self.sparse_init is None
-                W = rng.uniform(-self.irange,
-                                self.irange,
-                                (self.input_dim, self.n_classes))
-            elif self.istdev is not None:
-                assert self.sparse_init is None
-                W = rng.randn(self.input_dim, self.n_classes) * self.istdev
-            else:
-                assert self.sparse_init is not None
-                W = np.zeros((self.input_dim, self.n_classes))
-                for i in xrange(self.n_classes):
-                    for j in xrange(self.sparse_init):
-                        idx = rng.randint(0, self.input_dim)
-                        while W[idx, i] != 0.:
+            if self.weights_init is None:
+                if self.irange is not None:
+                    assert self.istdev is None
+                    assert self.sparse_init is None
+                    W = rng.uniform(-self.irange, self.irange,
+                                    (self.input_dim, self.n_classes))
+                elif self.istdev is not None:
+                    assert self.sparse_init is None
+                    W = rng.randn(self.input_dim, self.n_classes) * self.istdev
+                else:
+                    assert self.sparse_init is not None
+                    W = np.zeros((self.input_dim, self.n_classes))
+                    for i in xrange(self.n_classes):
+                        for j in xrange(self.sparse_init):
                             idx = rng.randint(0, self.input_dim)
-                        W[idx, i] = rng.randn()
+                            while W[idx, i] != 0.:
+                                idx = rng.randint(0, self.input_dim)
+                            W[idx, i] = rng.randn()
+            else:
+                W = np.nan * np.empty((self.input_dim, self.n_classes),
+                                      dtype=config.floatX)
+                assert (self.irange is None and self.istdev is None
+                        and self.sparse_init is None)
 
             self.W = sharedX(W,  'softmax_W')
 
+            # N.B. These two must match.
             self._params = [self.b, self.W]
+            self._initializers = [self.bias_init, self.weights_init]
 
     @wraps(Layer.get_weights_topo)
     def get_weights_topo(self):
