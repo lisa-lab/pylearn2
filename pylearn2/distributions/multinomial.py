@@ -1,4 +1,8 @@
-"""TODO: document me."""
+"""
+.. todo::
+
+    WRITEME
+"""
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -9,9 +13,17 @@ import numpy as N
 
 
 class Multinomial(object):
-    """TODO: document me."""
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, rng, pi, renormalize=False):
-        """TODO: document me."""
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.pi = pi
         assert self.pi.min() >= 0.0
         self.rng = rng
@@ -21,6 +33,11 @@ class Multinomial(object):
             assert abs(1.0 - self.pi.sum()) < 1e-10
 
     def sample_integer(self, m):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return N.nonzero(
             self.rng.multinomial(pvals=self.pi, n=1, size=(m,))
         )[1]

@@ -9,6 +9,7 @@ Library Documentation
 
    datasets
    models
+   corruption
    train
    costs
    monitor

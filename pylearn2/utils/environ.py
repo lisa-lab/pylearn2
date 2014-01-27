@@ -1,10 +1,22 @@
-#Utilities for working with environment variables
+"""
+.. todo::
+
+    WRITEME
+
+    Utilities for working with environment variables
+"""
 import os
 
 def putenv(key, value):
-    #this makes the change visible to other parts of the code
-    #in this same process
+    """
+        Sets environment variables and ensures that the 
+        changes are visible for both the current process
+        and for it's children.
+    """
+
+    # Make changes visible in this process
     os.environ[key] = value
-    # this makes it available to any subprocesses we launch
+
+    # Make changes visible to childs forked later
     os.putenv(key, value)
 

@@ -1,7 +1,13 @@
 """ Mathematical expressions related to image processing. """
 
+
 def color_to_gray(color):
-    """ Standard conversion from color to luma
+    """
+    .. todo::
+
+        WRITEME properly
+
+    Standard conversion from color to luma
 
     Y' = W_R * red_channel + W_G * green_channel + W_B * blue_channel
 

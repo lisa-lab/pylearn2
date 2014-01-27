@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import numpy as np
 
 from theano import config
@@ -21,23 +26,30 @@ class LearningRule():
         Method called by the training algorithm, which allows LearningRules to
         add monitoring channels.
 
-        monitor: a pylearn2.monitor.Monitor object, to which the rule
-        should register additional monitoring channels.
-        monitoring_dataset: a Dataset instance of dictionary whose values
-        are Dataset objects.
+        Parameters
+        ----------
+        monitor : pylearn2.monitor.Monitor
+            Monitor object, to which the rule should register additional \
+            monitoring channels.
+        monitoring_dataset : pylearn2.datasets.dataset.Dataset or dict
+            Dataset instance or dictionary whose values are Dataset objects.
         """
         raise NotImplementedError()
 
     def get_updates(self, learning_rate, grads, lr_scalers=None):
         """
+        WRITEME
 
         Parameters
         ----------
-        learning_rate: float, learning rate coefficient.
-        grads: a dictionary mapping from the model's parameters
-        to their gradients.
-        lr_scalers: dictionary mapping from the model's parameters
-        to a learning rate multiplier.
+        learning_rate : float
+            Learning rate coefficient
+        grads : dict
+            A dictionary mapping from the model's parameters to their \
+            gradients.
+        lr_scalers : dict
+            A dictionary mapping from the model's parameters to a learning \
+            rate multiplier.
 
         Returns
         -------
@@ -70,15 +82,23 @@ class Momentum(LearningRule):
 
     def __init__(self, init_momentum):
         """
-        init_momentum: initial value for the momentum coefficient. It remains
-        fixed during training unless used with a
-        training_algorithms.sgd.MomentumAdjustor extension.
+        Parameters
+        ----------
+        init_momentum : float
+            Initial value for the momentum coefficient. It remains fixed \
+            during training unless used with a \
+            training_algorithms.sgd.MomentumAdjustor extension.
         """
         assert init_momentum >= 0.
         assert init_momentum < 1.
         self.momentum = sharedX(init_momentum, 'momentum')
 
     def add_channels_to_monitor(self, monitor, monitoring_dataset):
+        """
+        .. todo::
+
+            WRITEME
+        """
         monitor.add_channel(
             name='momentum',
             ipt=None,
@@ -87,6 +107,11 @@ class Momentum(LearningRule):
             dataset=monitoring_dataset)
 
     def get_updates(self, learning_rate, grads, lr_scalers=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         updates = OrderedDict()
 
@@ -106,17 +131,26 @@ class Momentum(LearningRule):
 
 
 class MomentumAdjustor(TrainExtension):
+    """
+    .. todo::
 
+        WRITEME
+    """
     def __init__(self, final_momentum, start, saturate):
         """
-            final_momentum: the momentum coefficient to use at the end
-                            of learning.
-            start: the epoch on which to start growing the momentum coefficient.
-            saturate: the epoch on which the moment should reach its final value
+        Parameters
+        ----------
+        final_momentum : float
+            The momentum coefficient to use at the end of learning.
+        start : int
+            The epoch on which to start growing the momentum coefficient.
+        saturate : int
+            The epoch on which the moment should reach its final value
         """
 
         if saturate < start:
-            raise TypeError("Momentum can't saturate at its maximum value before it starts increasing.")
+            raise TypeError("Momentum can't saturate at its maximum value " +
+                            "before it starts increasing.")
 
         self.__dict__.update(locals())
         del self.self
@@ -124,6 +158,11 @@ class MomentumAdjustor(TrainExtension):
         self._count = 0
 
     def on_monitor(self, model, dataset, algorithm):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if hasattr(algorithm, 'learning_rule'):
             momentum = algorithm.learning_rule.momentum
         else:
@@ -138,6 +177,11 @@ class MomentumAdjustor(TrainExtension):
         momentum.set_value( np.cast[config.floatX](self.current_momentum()))
 
     def current_momentum(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         w = self.saturate - self.start
 
         if w == 0:
@@ -164,19 +208,29 @@ class AdaDelta(LearningRule):
         """
         Parameters
         ----------
-        decay: float
-            decay rate \rho in Algorithm 1 of the afore-mentioned paper.
+        decay : float
+            Decay rate :math:`\\rho` in Algorithm 1 of the afore-mentioned \
+            paper.
         """
         assert decay >= 0.
         assert decay < 1.
         self.decay = decay
 
     def add_channels_to_monitor(self, monitor, monitoring_dataset):
-        """ TODO: add channels worth monitoring """
+        """
+        .. todo::
+
+            WRITEME
+        """
+        # TODO: add channels worth monitoring
         return
 
     def get_updates(self, learning_rate, grads, lr_scalers=None):
+        """
+        .. todo::
 
+            WRITEME
+        """
         updates = OrderedDict()
 
         for param in grads.keys():

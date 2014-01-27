@@ -40,11 +40,8 @@ class Model(object):
 
         Parameters
         ----------
-        dataset: The pylearn2.datasets.dataset.Dataset object to draw training
-                data from
-
-        Return value:
-            None
+        dataset: pylearn2.datasets.dataset.Dataset
+            Dataset object to draw training data from
         """
         raise NotImplementedError(str(type(self))+" does not implement train_all.")
 
@@ -54,7 +51,10 @@ class Model(object):
         when the training process has converged. This method is called after the
         monitor has been run on the latest parameters.
 
-        Returns: True/False. True indicates training should continue.
+        Returns
+        -------
+        rval : bool
+            True if training should continue
         """
 
         raise NotImplementedError(str(type(self))+" does not implement continue_learning.")
@@ -68,16 +68,23 @@ class Model(object):
         ----------
         dataset: pylearn2.datasets.dataset.Dataset
                 The object to draw training data from.
-        batch_size: integer
+        batch_size: int
                 Size of the minibatch to draw from dataset.
 
-        Return value:
-            True if the method should be called again for another update.
+        Returns
+        -------
+        rval : bool
+            True if the method should be called again for another update. \
             False if convergence has been reached.
         """
         raise NotImplementedError()
 
     def get_weights_view_shape(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError(str(type(self))+" does not implement get_weights_view_shape (perhaps by design)")
 
     def get_monitoring_channels(self, data):
@@ -87,14 +94,14 @@ class Model(object):
         Parameters
         ----------
         data: tensor_like, or (possibly nested) tuple of tensor_likes,
-            as described by `self.get_monitoring_data_specs()`.
-            This is data on which the monitoring quantities will be
-            calculated (e.g., a validation set).
+            This is data on which the monitoring quantities will be \
+            calculated (e.g., a validation set). See \
+            `self.get_monitoring_data_specs()`.
 
         Returns
         -------
         channels : dict
-            A dictionary with strings as keys, mapping channel names to
+            A dictionary with strings as keys, mapping channel names to \
             symbolic values that depend on the variables in `data`.
 
         Notes
@@ -121,13 +128,28 @@ class Model(object):
         return (NullSpace(), '')
 
     def set_batch_size(self, batch_size):
+        """
+        .. todo::
+
+            WRITEME
+        """
         pass
 
     def get_weights(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         raise NotImplementedError(str(type(self))+" does not implement get_weights (perhaps by design)")
 
     def get_weights_topo(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         raise NotImplementedError(str(type(self))+" does not implement get_weights_topo (perhaps by design)")
 
@@ -140,15 +162,15 @@ class Model(object):
         Parameters
         ----------
         V : tensor_like, 2-dimensional
-            A batch of i.i.d. examples with examples indexed along the
-            first axis and features along the second. This is data on which
-            the monitoring quantities will be calculated (e.g., a validation
+            A batch of i.i.d. examples with examples indexed along the \
+            first axis and features along the second. This is data on which \
+            the monitoring quantities will be calculated (e.g., a validation \
             set).
 
         Returns
         -------
         score : tensor_like
-            The gradient of the negative log probability of the model
+            The gradient of the negative log probability of the model \
             on the given datal.
 
         Notes
@@ -161,13 +183,15 @@ class Model(object):
         return T.grad(-self.free_energy(V).sum(), V)
 
     def get_lr_scalers(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return OrderedDict()
 
     def censor_updates(self, updates):
         """
-        updates: a dictionary mapping shared variables to symbolic values
-                they will be updated to
-
         This method should check all updates that act on shared variables
         held by the model and make sure they are valid. For example, if
         a given hyperparameter is not meant to be learned, censor_updates
@@ -180,32 +204,50 @@ class Model(object):
 
         This is the main mechanism used to make sure that generic training
         algorithms such as those found in pylearn2.training_algorithms
-        respect the specific properties of the models passed to them."""
+        respect the specific properties of the models passed to them.
+
+        Parameters
+        ----------
+        updates : dict
+            A dictionary mapping shared variables to symbolic values they \
+            will be updated to
+
+        Returns
+        -------
+        WRITEME
+        """
+
         pass
 
     def get_input_space(self):
-        """ Returns an instance of pylearn2.space.Space describing
-        the format of the vector space that the model operates on
-        (this is a generalization of get_input_dim) """
+        """
+        Returns an instance of pylearn2.space.Space describing the format of
+        the vector space that the model operates on (this is a generalization
+        of get_input_dim)
+        """
 
         return self.input_space
 
     def get_output_space(self):
-        """ Returns an instance of pylearn2.space.Space describing
-        the format of the vector space that the model outputs
-        (this is a generalization of get_output_dim) """
+        """
+        Returns an instance of pylearn2.space.Space describing the format of
+        the vector space that the model outputs (this is a generalization
+        of get_output_dim)
+        """
 
         return self.output_space
 
     def get_input_source(self):
-        """ Returns a string, stating the source for the input. By default
-        the input source (when is the only one) is called 'features'
+        """
+        Returns a string, stating the source for the input. By default the
+        input source (when is the only one) is called 'features'.
         """
         return 'features'
 
     def get_target_source(self):
-        """ Returns a string, stating the source for the output. By default
-        the output source (when is the only one) is called 'targets'
+        """
+        Returns a string, stating the source for the output. By default the
+        output source (when is the only one) is called 'targets'.
         """
         return 'targets'
 
@@ -217,15 +259,15 @@ class Model(object):
         Parameters
         ----------
         V : tensor_like, 2-dimensional
-            A batch of i.i.d. examples with examples indexed along the
-            first axis and features along the second. This is data on which
-            the monitoring quantities will be calculated (e.g., a validation
+            A batch of i.i.d. examples with examples indexed along the \
+            first axis and features along the second. This is data on which \
+            the monitoring quantities will be calculated (e.g., a validation \
             set).
 
         Returns
         -------
         free_energy : tensor, 1-dimensional
-            A (symbolic) vector of free energies for each data example in
+            A (symbolic) vector of free energies for each data example in \
             `V`, i.e.  `free_energy[i] = F(V[i])`.
         """
         raise NotImplementedError()
@@ -265,13 +307,13 @@ class Model(object):
         Parameters
         ----------
         borrow : bool
-            Flag to be passed to the `.get_value()` method of the
+            Flag to be passed to the `.get_value()` method of the \
             shared variable. If `False`, a copy will always be returned.
 
         Returns
         -------
         params : list
-            A list of `numpy.ndarray` objects containing the current
+            A list of `numpy.ndarray` objects containing the current \
             parameters of the model.
 
         Notes
@@ -293,6 +335,10 @@ class Model(object):
 
     def set_param_values(self, values, borrow=False):
         """
+        .. todo::
+
+            WRITEME properly
+
         Sets the values of the parameters that define the model
         """
         for param, value in zip(self.get_params(), values):
@@ -343,9 +389,19 @@ class Model(object):
         return d
 
     def __setstate__(self, d):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.__dict__.update(d)
 
     def __init__(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.names_to_del = set()
         self._test_batch_size = 2
 
@@ -365,7 +421,7 @@ class Model(object):
         Parameters
         ----------
         names : iterable
-            A collection of strings indicating names of fields on this
+            A collection of strings indicating names of fields on this \
             object that should not be pickled.
 
         Notes
@@ -390,6 +446,7 @@ class Model(object):
         ----------
         dtype : object or str
             A NumPy dtype object, or string representing a known dtype.
+        parent_name : WRITEME
         """
 
         warnings.warn("""This method is not safe.

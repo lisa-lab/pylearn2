@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 uthors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -13,7 +18,17 @@ from scipy.special import gammaln
 
 
 class UniformHypersphere(object):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, dim, radius):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.dim = dim
         self.radius = radius
         self.s_rng = RandomStreams(42)
@@ -25,6 +40,10 @@ class UniformHypersphere(object):
 
     def free_energy(self, X):
         """
+        .. todo::
+
+            WRITEME properly
+        
         Parameters:
             X: Must contain only examples that lie on the hypersphere
         """
@@ -33,9 +52,19 @@ class UniformHypersphere(object):
         return T.zeros_like(X[:, 0])
 
     def log_prob(self, X):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return - self.free_energy(X) - self.logZ
 
     def random_design_matrix(self, m):
+        """
+        .. todo::
+
+            WRITEME
+        """
         Z = self.s_rng.normal(size=(m, self.dim),
                               avg=0., std=1., dtype=config.floatX)
         Z.name = 'UH.rdm.Z'

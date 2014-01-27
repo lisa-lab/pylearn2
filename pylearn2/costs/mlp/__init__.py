@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 __authors__ = 'Vincent Archambault-Bouffard, Ian Goodfellow'
 __copyright__ = "Copyright 2013, Universite de Montreal"
 
@@ -5,6 +10,7 @@ from theano import tensor as T
 
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin, NullDataSpecsMixin
 from pylearn2.utils import safe_izip
+
 
 class Default(DefaultDataSpecsMixin, Cost):
     """
@@ -15,6 +21,11 @@ class Default(DefaultDataSpecsMixin, Cost):
     supervised = True
 
     def expr(self, model, data, **kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         space, sources = self.get_data_specs(model)
         space.validate(data)
         return model.cost_from_X(data)
@@ -30,6 +41,10 @@ class WeightDecay(NullDataSpecsMixin, Cost):
 
     def __init__(self, coeffs):
         """
+        .. todo::
+
+            WRITEME properly
+        
         coeffs: a list, one element per layer, specifying the coefficient
                 to multiply with the cost defined by the squared L2 norm of the weights
                 for each layer.
@@ -40,6 +55,11 @@ class WeightDecay(NullDataSpecsMixin, Cost):
         del self.self
 
     def expr(self, model, data, ** kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_data_specs(model)[0].validate(data)
 
         def wrapped_layer_cost(layer, coef):
@@ -82,6 +102,10 @@ class L1WeightDecay(NullDataSpecsMixin, Cost):
 
     def __init__(self, coeffs):
         """
+        .. todo::
+
+            WRITEME properly
+        
         coeffs: a list, one element per layer, specifying the coefficient
                 to multiply with the cost defined by the L1 norm of the
                 weights(lasso) for each layer.
@@ -92,6 +116,11 @@ class L1WeightDecay(NullDataSpecsMixin, Cost):
         del self.self
 
     def expr(self, model, data, ** kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_data_specs(model)[0].validate(data)
         layer_costs = [ layer.get_l1_weight_decay(coeff)
             for layer, coeff in safe_izip(model.layers, self.coeffs) ]

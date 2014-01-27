@@ -22,6 +22,11 @@ __email__ = "wardefar@iro"
 
 
 def _zero_pad(array, amount, axes=(1, 2)):
+    """
+    .. todo::
+
+        WRITEME
+    """
     if amount == 0:
         return array
     new_shape = []
@@ -41,6 +46,11 @@ def _zero_pad(array, amount, axes=(1, 2)):
 
 
 class WindowAndFlipC01B(TrainExtension):
+    """
+    .. todo::
+
+        WRITEME
+    """
     # Immutable class-level attribute. This should not be a list, as then
     # mutating self.axes will cause the class-level attribute to change.
     # self.axes can be safely assigned to, however.
@@ -55,31 +65,31 @@ class WindowAndFlipC01B(TrainExtension):
         Parameters
         ----------
         randomize : list, optional
-            If specified, a list of Datasets to randomly window and
+            If specified, a list of Datasets to randomly window and \
             flip at each epoch.
 
         randomize_once : list, optional
-            If specified, a list of Dataasets to randomly window and
+            If specified, a list of Dataasets to randomly window and \
             flip once at the start of training.
 
         center : list, optional
-            If specified, a list of Datasets to centrally window
+            If specified, a list of Datasets to centrally window \
             once at the start of training.
 
         rng : numpy.random.RandomState object or seed, optional
-            A random number generator or seed used to create one.
+            A random number generator or seed used to create one. \
             Seeded deterministically by default.
 
         pad_randomized : int, optional
-            Amount of padding to add to each side of the images
-            in `randomize` and `randomize_once`. Useful if you
-            want to do zero-padded windowing with `window_shape`
-            the actual size of the dataset, and validate/test on
-            full-size images instead of central patches. Default
+            Amount of padding to add to each side of the images \
+            in `randomize` and `randomize_once`. Useful if you \
+            want to do zero-padded windowing with `window_shape` \
+            the actual size of the dataset, and validate/test on \
+            full-size images instead of central patches. Default \
             is 0.
 
         flip : bool, optional
-            Reflect images on the horizontal axis with probability
+            Reflect images on the horizontal axis with probability \
             0.5. `True` by default.
         """
         self._window_shape = tuple(window_shape)
@@ -103,7 +113,13 @@ class WindowAndFlipC01B(TrainExtension):
 
     def setup(self, model, dataset, algorithm):
         """
-        Note: dataset argument is ignored.
+        .. todo::
+
+            WRITEME
+
+        Notes
+        -----
+        `dataset` argument is ignored
         """
         dataset = None
 
@@ -124,6 +140,10 @@ class WindowAndFlipC01B(TrainExtension):
     def randomize_datasets(self, datasets):
         """
         Applies random translations and flips to the selected datasets.
+
+        Parameters
+        ----------
+        dataset : WRITEME
         """
         for dataset in datasets:
             assert tuple(dataset.view_converter.axes) == self.axes
@@ -134,7 +154,13 @@ class WindowAndFlipC01B(TrainExtension):
 
     def on_monitor(self, model, dataset, algorithm):
         """
-        Note: all arguments are ignored.
+        .. todo::
+
+            WRITEME
+
+        Notes
+        -----
+        All arguments are ignored.
         """
         model = None
         dataset = None

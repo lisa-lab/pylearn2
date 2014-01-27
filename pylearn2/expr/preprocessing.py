@@ -23,25 +23,25 @@ def global_contrast_normalize(X, scale=1., subtract_mean=True, use_std=False,
     Parameters
     ----------
     X : ndarray, 2-dimensional
-        Design matrix with examples indexed on the first axis and
+        Design matrix with examples indexed on the first axis and \
         features indexed on the second.
 
     scale : float, optional
         Multiply features by this const.
 
     subtract_mean : bool, optional
-        Remove the mean across features/pixels before normalizing.
+        Remove the mean across features/pixels before normalizing. \
         Defaults to `True`.
 
     use_std : bool, optional
-        Normalize by the per-example standard deviation across features
+        Normalize by the per-example standard deviation across features \
         instead of the vector norm. Defaults to `False`.
 
     sqrt_bias : float, optional
         Fudge factor added inside the square root. Defaults to 0.
 
     min_divisor : float, optional
-        If the divisor for an example is less than this value,
+        If the divisor for an example is less than this value, \
         do not apply it. Defaults to `1e-8`.
 
     Returns

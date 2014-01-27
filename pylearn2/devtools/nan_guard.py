@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -11,8 +16,17 @@ import numpy as np
 from pylearn2.models.dbm import flatten
 
 class NanGuardMode(Mode):
-    def __init__(self, nan_is_error, inf_is_error):
+    """
+    .. todo::
 
+        WRITEME
+    """
+    def __init__(self, nan_is_error, inf_is_error):
+        """
+        .. todo::
+
+            WRITEME
+        """
         def do_check_on(var, nd, f, is_input):
             error = False
             if nan_is_error:

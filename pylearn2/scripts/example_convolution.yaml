@@ -54,7 +54,7 @@
                 "max_lr" : .01 
                 } ],
 
-    "save_path": "${PYLEARN2_TRAIN_FILE_NAME}.pkl",
+    "save_path": "${PYLEARN2_TRAIN_FILE_FULL_STEM}.pkl",
     "save_freq": 1
 }
 

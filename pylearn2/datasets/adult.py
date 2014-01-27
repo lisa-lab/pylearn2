@@ -1,9 +1,8 @@
-__author__ = "Ian Goodfellow"
-
 """
 Wrapper for the Adult UCI dataset:
 http://archive.ics.uci.edu/ml/datasets/Adult
 """
+__author__ = "Ian Goodfellow"
 
 import numpy as np
 import os
@@ -12,8 +11,13 @@ from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.format.target_format import convert_to_one_hot
 from pylearn2.utils.string_utils import preprocess
 
+
 def adult(which_set):
     """
+    .. todo::
+
+        WRITEME properly
+    
     Returns a DenseDesignMatrix containing the Adult dataset.
     Note: this discards all examples with missing features. It would be trivial
     to modify this code to not do so, provided with a convention for how to treat

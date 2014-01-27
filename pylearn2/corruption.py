@@ -21,6 +21,11 @@ else:
 from pylearn2.expr.activations import identity, rescaled_softmax
 
 class Corruptor(object):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, corruption_level, rng=2001):
         """
         Allocate a corruptor object.
@@ -28,10 +33,10 @@ class Corruptor(object):
         Parameters
         ----------
         corruption_level : float
-            Some measure of the amount of corruption to do. What this
-            means will be implementation specific.
+            Some measure of the amount of corruption to do. What this means \
+            will be implementation specific.
         rng : RandomState object or seed
-            NumPy random number generator object (or seed for creating one)
+            NumPy random number generator object (or seed for creating one) \
             used to initialize a RandomStreams.
         """
         # The default rng should be build in a deterministic way
@@ -48,8 +53,8 @@ class Corruptor(object):
         Parameters
         ----------
         inputs : tensor_like, or list of tensor_likes
-            Theano symbolic(s) representing a (list of) (mini)batch of inputs
-            to be corrupted, with the first dimension indexing training
+            Theano symbolic(s) representing a (list of) (mini)batch of inputs \
+            to be corrupted, with the first dimension indexing training \
             examples and the second indexing data dimensions.
 
         Returns
@@ -69,9 +74,9 @@ class Corruptor(object):
         Parameters
         ----------
         x : tensor_like
-            Theano symbolic representing a (mini)batch of inputs
-            to be corrupted, with the first dimension indexing training
-            examples and the second indexing data dimensions.
+            Theano symbolic representing a (mini)batch of inputs to be \
+            corrupted, with the first dimension indexing training examples \
+            and the second indexing data dimensions.
 
         Returns
         -------
@@ -86,37 +91,50 @@ class Corruptor(object):
         raise NotImplementedError()
 
     def corruption_free_energy(self, corrupted_X, X):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError()
 
 
 class DummyCorruptor(Corruptor):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __call__(self, inputs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return inputs
 
 
 class BinomialCorruptor(Corruptor):
     """
-    A binomial corruptor sets inputs to 0 with probability
+    A binomial corruptor that sets inputs to 0 with probability
     0 < `corruption_level` < 1.
     """
 
     def _corrupt(self, x):
         """
-        (Symbolically) corrupt the input with a binomial (masking) noise.
+        Corrupts a single tensor_like object.
 
         Parameters
         ----------
         x : tensor_like
-            Theano symbolic representing a (mini)batch to be corrupted,
-            with the first dimension indexing training examples and the second
-            indexing data dimensions.
+            Theano symbolic representing a (mini)batch of inputs to be \
+            corrupted, with the first dimension indexing training examples \
+            and the second indexing data dimensions.
 
         Returns
         -------
         corrupted : tensor_like
-            Theano symbolic representing the corresponding corrupted input,
-            where the input has been masked with independent
-            probability equal to `self.corruption_level`.
+            Theano symbolic representing the corresponding corrupted input.
         """
         return self.s_rng.binomial(
             size=x.shape,
@@ -133,6 +151,21 @@ class DropoutCorruptor(BinomialCorruptor):
     """
 
     def _corrupt(self, x):
+        """
+        Corrupts a single tensor_like object.
+
+        Parameters
+        ----------
+        x : tensor_like
+            Theano symbolic representing a (mini)batch of inputs to be \
+            corrupted, with the first dimension indexing training examples \
+            and the second indexing data dimensions.
+
+        Returns
+        -------
+        corrupted : tensor_like
+            Theano symbolic representing the corresponding corrupted input.
+        """
         # for stability
         if self.corruption_level < 1e-5:
             return x
@@ -143,30 +176,34 @@ class DropoutCorruptor(BinomialCorruptor):
 
 class GaussianCorruptor(Corruptor):
     """
-    A Gaussian corruptor transforms inputs by adding zero
-    mean isotropic Gaussian noise.
+    A Gaussian corruptor transforms inputs by adding zero mean isotropic
+    Gaussian noise.
     """
 
     def __init__(self, stdev, rng=2001):
-        super(GaussianCorruptor, self).__init__(corruption_level=stdev, rng=rng)
+        """
+        .. todo::
+
+            WRITEME
+        """
+        super(GaussianCorruptor, self).__init__(corruption_level=stdev,
+                                                rng=rng)
 
     def _corrupt(self, x):
         """
-        (Symbolically) corrupt the input with Gaussian noise.
+        Corrupts a single tensor_like object.
 
         Parameters
         ----------
         x : tensor_like
-            Theano symbolic representing a (mini)batch to be corrupted
-            to be corrupted, with the first dimension indexing training
-            examples and the second indexing data dimensions.
+            Theano symbolic representing a (mini)batch of inputs to be \
+            corrupted, with the first dimension indexing training examples \
+            and the second indexing data dimensions.
 
         Returns
         -------
         corrupted : tensor_like
-            Theano symbolic representing the corresponding corrupted input,
-            where the input has been corrupted by zero mean Gaussian
-            noise with standard deviation equal to `self.corruption_level`.
+            Theano symbolic representing the corresponding corrupted input.
         """
         noise = self.s_rng.normal(
             size=x.shape,
@@ -178,6 +215,11 @@ class GaussianCorruptor(Corruptor):
         return noise + x
 
     def corruption_free_energy(self, corrupted_X, X):
+        """
+        .. todo::
+
+            WRITEME
+        """
         axis = range(1, len(X.type.broadcastable))
 
         rval = (T.sum(T.sqr(corrupted_X - X), axis=axis) /
@@ -194,6 +236,21 @@ class SaltPepperCorruptor(Corruptor):
     on binary valued matrices.
     """
     def _corrupt(self, x):
+        """
+        Corrupts a single tensor_like object.
+
+        Parameters
+        ----------
+        x : tensor_like
+            Theano symbolic representing a (mini)batch of inputs to be \
+            corrupted, with the first dimension indexing training examples \
+            and the second indexing data dimensions.
+
+        Returns
+        -------
+        corrupted : tensor_like
+            Theano symbolic representing the corresponding corrupted input.
+        """
         a = self.s_rng.binomial(
             size=x.shape,
             p=(1 - self.corruption_level),
@@ -216,16 +273,19 @@ class OneHotCorruptor(Corruptor):
     """
     def _corrupt(self, x):
         """
+        Corrupts a single tensor_like object.
+
         Parameters
         ----------
         x : tensor_like
-            Each row of x must be a one-hot vector.
+            Theano symbolic representing a (mini)batch of inputs to be \
+            corrupted, with the first dimension indexing training examples \
+            and the second indexing data dimensions.
 
         Returns
         -------
-        y : tensor_like
-            There is a probability corruption_level that row i of y is a random
-            one-hot vector.
+        corrupted : tensor_like
+            Theano symbolic representing the corresponding corrupted input.
         """
         num_examples = x.shape[0]
         num_classes = x.shape[1]
@@ -249,10 +309,24 @@ class SmoothOneHotCorruptor(Corruptor):
     """
     Corrupts a one-hot vector in a way that preserves some information.
 
-    This add Gaussian noise to a vector and then computes the softmax.
+    This adds Gaussian noise to a vector and then computes the softmax.
     """
     def _corrupt(self, x):
+        """
+        Corrupts a single tensor_like object.
 
+        Parameters
+        ----------
+        x : tensor_like
+            Theano symbolic representing a (mini)batch of inputs to be \
+            corrupted, with the first dimension indexing training examples \
+            and the second indexing data dimensions.
+
+        Returns
+        -------
+        corrupted : tensor_like
+            Theano symbolic representing the corresponding corrupted input.
+        """
         noise = self.s_rng.normal(
             size=x.shape,
             avg=0.,
@@ -264,30 +338,52 @@ class SmoothOneHotCorruptor(Corruptor):
 
 
 class BinomialSampler(Corruptor):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, *args, **kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # pass up a 0 because corruption_level is not relevant here
         super(BinomialSampler, self).__init__(0, *args, **kwargs)
 
     def _corrupt(self, x):
         """
-        Treats each element in matrix as probability for Bernoulli trial.
+        Corrupts a single tensor_like object.
 
         Parameters
         ----------
         x : tensor_like
-            A tensor like with all values between 0 and 1 (inclusive).
+            Theano symbolic representing a (mini)batch of inputs to be \
+            corrupted, with the first dimension indexing training examples \
+            and the second indexing data dimensions.
 
         Returns
         -------
-        y : tensor_like
-            y_i,j is 1 with probability x_i,j.
+        corrupted : tensor_like
+            Theano symbolic representing the corresponding corrupted input.
         """
         return self.s_rng.binomial(size=x.shape, p=x,
                                    dtype=theano.config.floatX)
 
 
 class MultinomialSampler(Corruptor):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, *args, **kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # corruption_level isn't relevant here
         super(MultinomialSampler, self).__init__(0, *args, **kwargs)
 
@@ -312,14 +408,19 @@ class MultinomialSampler(Corruptor):
 
 
 class ComposedCorruptor(Corruptor):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, *corruptors):
         """
         Parameters
         ----------
         corruptors : list of Corruptor objects
-            The corruptors are applied in reverse order. This matches the typical
-            function application notation. Thus ComposedCorruptor(a, b)._corrupt(X)
-            is the same as a(b(X))
+            The corruptors are applied in reverse order. This matches the \
+            typical function application notation. Thus \
+            `ComposedCorruptor(a, b)._corrupt(X)` is the same as `a(b(X))`.
 
         Notes
         -----
@@ -331,6 +432,21 @@ class ComposedCorruptor(Corruptor):
         self._corruptors = corruptors
 
     def _corrupt(self, x):
+        """
+        Corrupts a single tensor_like object.
+
+        Parameters
+        ----------
+        x : tensor_like
+            Theano symbolic representing a (mini)batch of inputs to be \
+            corrupted, with the first dimension indexing training examples \
+            and the second indexing data dimensions.
+
+        Returns
+        -------
+        corrupted : tensor_like
+            Theano symbolic representing the corresponding corrupted input.
+        """
         result = x
         for c in reversed(self._corruptors):
             result = c(result)

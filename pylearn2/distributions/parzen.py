@@ -1,8 +1,19 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import numpy
 import theano
 T = theano.tensor
 
+
 def log_mean_exp(a):
+    """
+    .. todo::
+
+        WRITEME
+    """
     max_ = a.max(1)
     return max_ + T.log(T.exp(a - max_.dimshuffle(0, 'x')).mean(1))
 
@@ -17,7 +28,7 @@ def make_lpdf(mu, sigma):
     mu : numpy matrix
         Contains the data points over which this distribution is based.
     sigma : scalar
-        The standard deviation of the normal distribution around each data
+        The standard deviation of the normal distribution around each data \
         point.
 
     Returns
@@ -36,7 +47,13 @@ def make_lpdf(mu, sigma):
 
     return theano.function([x], E - Z)
 
+
 class ParzenWindows(object):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, samples, sigma):
         """
         Create a ParzenWindows estimator for samples.
@@ -62,7 +79,8 @@ class ParzenWindows(object):
         Parameters
         ----------
         x : numpy matrix
-             The set of points for which you want to evaluate the log likelihood.
+            The set of points for which you want to evaluate the log \
+            likelihood.
         """
         inds = range(x.shape[0])
         n_batches = int(numpy.ceil(float(len(inds)) / batch_size))

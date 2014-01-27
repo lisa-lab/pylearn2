@@ -1,8 +1,10 @@
 """
 Multilayer Perceptron
 
-Note to developers and code reviewers: when making any changes to this
-module, ensure that the changes do not break pylearn2/scripts/papers/maxout.
+Notes
+-----
+Developers and code reviewers: when making any changes to this module, ensure
+that the changes do not break pylearn2/scripts/papers/maxout.
 """
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"
@@ -37,6 +39,7 @@ from pylearn2.utils import py_integer_types
 from pylearn2.utils import safe_union
 from pylearn2.utils import safe_zip
 from pylearn2.utils import sharedX
+from pylearn2.utils import wraps
 
 warnings.warn("MLP changing the recursion limit.")
 # We need this to be high enough that the big theano graphs we make
@@ -57,16 +60,17 @@ sys.setrecursionlimit(40000)
 
 class Layer(Model):
     """
-    Abstract class.
-    A Layer of an MLP
+    Abstract class. A Layer of an MLP.
+
     May only belong to one MLP.
 
-    Note: this is not currently a Block because as far as I know
-        the Block interface assumes every input is a single matrix.
-        It doesn't support using Spaces to work with composite inputs,
-        stacked multichannel image inputs, etc.
-        If the Block interface were upgraded to be that flexible, then
-        we could make this a block.
+    Notes
+    -----
+    This is not currently a Block because as far as I know the Block interface
+    assumes every input is a single matrix. It doesn't support using Spaces to
+    work with composite inputs, stacked multichannel image inputs, etc. If the
+    Block interface were upgraded to be that flexible, then we could make this
+    a block.
     """
 
     # When applying dropout to a layer's input, use this for masked values.
@@ -88,19 +92,27 @@ class Layer(Model):
     def set_mlp(self, mlp):
         """
         Assigns this layer to an MLP.
+
+        Parameters
+        ----------
+        mlp : WRITEME
         """
         assert self.get_mlp() is None
         self.mlp = mlp
 
     def get_monitoring_channels(self):
         """
-        TODO WRITEME
+        .. todo::
+
+            WRITEME
         """
         return OrderedDict()
 
     def get_monitoring_channels_from_state(self, state, target=None):
         """
-        TODO WRITEME
+        .. todo::
+
+            WRITEME
         """
         return OrderedDict()
 
@@ -108,6 +120,10 @@ class Layer(Model):
         """
         Does the forward prop transformation for this layer.
         state_below is a minibatch of states for the previous layer.
+
+        Parameters
+        ----------
+        state_below : WRITEME
         """
 
         raise NotImplementedError(str(type(self))+" does not implement fprop.")
@@ -119,6 +135,15 @@ class Layer(Model):
         implementation may do things like look at the ancestors of Y_hat in the
         theano graph. This is useful for, e.g., computing numerically stable log
         probabilities as the cost when Y_hat is the probability.
+
+        Parameters
+        ----------
+        Y : WRITEME
+        Y_hat : WRITEME
+
+        Returns
+        -------
+        WRITEME
         """
 
         raise NotImplementedError(str(type(self)) +
@@ -128,10 +153,15 @@ class Layer(Model):
         """
         The cost final scalar cost computed from the cost matrix
 
-        A possible usage of this function is :
-            C = model.cost_matrix(Y, Y_hat)
-            # Do something with C like setting some values to 0
-            cost = model.cost_from_cost_matrix(C)
+        Parameters
+        ----------
+        cost_matrix : WRITEME
+
+        Examples
+        --------
+        >>> # C = model.cost_matrix(Y, Y_hat)
+        >>> # Do something with C like setting some values to 0
+        >>> # cost = model.cost_from_cost_matrix(C)
         """
 
         raise NotImplementedError(str(type(self)) +
@@ -141,48 +171,114 @@ class Layer(Model):
     def cost_matrix(self, Y, Y_hat):
         """
         The element wise cost of outputting Y_hat when the true output is Y.
+
+        Parameters
+        ----------
+        Y : WRITEME
+        Y_hat : WRITEME
+
+        Returns
+        -------
+        WRITEME
         """
         raise NotImplementedError(str(type(self)) +
                                   " does not implement mlp.Layer.cost_matrix")
 
+    def get_weights(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        raise NotImplementedError
+
+    def set_weights(self, weights):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        raise NotImplementedError
+
+    def get_biases(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        raise NotImplementedError
+
+    def set_biases(self, biases):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        raise NotImplementedError
+
+    def get_weights_format(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        raise NotImplementedError
+
     def get_weight_decay(self, coeff):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError
 
     def get_l1_weight_decay(self, coeff):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        raise NotImplementedError
+
+    def set_input_space(self, space):
+        """
+        .. todo::
+
+            WRITEME
+
+        Notes
+        -----
+        This usually resets parameters.
+        """
         raise NotImplementedError
 
 
 class MLP(Layer):
     """
     A multilayer perceptron.
-    Note that it's possible for an entire MLP to be a single
-    layer of a larger MLP.
+
+    Note that it's possible for an entire MLP to be a single layer of a larger
+    MLP.
     """
 
     def __init__(self, layers, batch_size=None, input_space=None,
                  nvis=None, seed=None):
         """
-        Instantiate an MLP.
-
         Parameters
         ----------
         layers : list
-            A list of Layer objects. The final layer specifies
-            the output space of this MLP.
-
+            A list of Layer objects. The final layer specifies the output space
+            of this MLP.
         batch_size : int, optional
-            If not specified then must be a positive integer.
-            Mostly useful if one of your layers involves a
-            Theano op like convolution that requires a hard-coded
-            batch size.
-
+            If not specified then must be a positive integer. Mostly useful if
+            one of your layers involves a Theano op like convolution that
+            requires a hard-coded batch size.
         nvis : int, optional
-            Number of "visible units" (input units). Equivalent
-            to specifying `input_space=VectorSpace(dim=nvis)`.
-
+            Number of "visible units" (input units). Equivalent to specifying
+            `input_space=VectorSpace(dim=nvis)`.
         input_space : Space object, optional
-            A Space specifying the kind of input the MLP accepts.
-            If None, input space is specified by nvis.
+            A Space specifying the kind of input the MLP accepts. If None,
+            input space is specified by nvis.
         """
 
         if seed is None:
@@ -224,27 +320,50 @@ class MLP(Layer):
             return 1. / x
 
     def setup_rng(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.rng = np.random.RandomState(self.seed)
 
+    @wraps(Layer.get_default_cost)
     def get_default_cost(self):
+
         return Default()
 
+    @wraps(Layer.get_output_space)
     def get_output_space(self):
+
         return self.layers[-1].get_output_space()
 
     def _update_layer_input_spaces(self):
         """
-            Tells each layer what its input space should be.
-            Note: this usually resets the layer's parameters!
+        Tells each layer what its input space should be.
+
+        Notes
+        -----
+        This usually resets the layer's parameters!
         """
         layers = self.layers
-        layers[0].set_input_space(self.input_space)
+        try:
+            layers[0].set_input_space(self.input_space)
+        except BadInputSpaceError, e:
+            raise TypeError("Layer 0 (" + str(layers[0]) + " of type " +
+                    str(type(layers[0])) + ") does not support the MLP's "
+                    + "specified input space (" + str(self.input_space) +
+                    " of type " + str(type(self.input_space)) + "). Original "
+                    "exception: " + str(e))
         for i in xrange(1,len(layers)):
             layers[i].set_input_space(layers[i-1].get_output_space())
 
     def add_layers(self, layers):
         """
-            Add new layers on top of the existing hidden layers
+        Add new layers on top of the existing hidden layers
+
+        Parameters
+        ----------
+        layers : WRITEME
         """
 
         existing_layers = self.layers
@@ -258,13 +377,17 @@ class MLP(Layer):
             self.layer_names.add(layer.layer_name)
 
     def freeze(self, parameter_set):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         self.freeze_set = self.freeze_set.union(parameter_set)
 
+    @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self, data):
-        """
-        data is a flat tuple, and can contain features, targets, or both
-        """
+
         X, Y = data
         state = X
         rval = OrderedDict()
@@ -285,10 +408,11 @@ class MLP(Layer):
 
         return rval
 
+    @wraps(Layer.get_monitoring_data_specs)
     def get_monitoring_data_specs(self):
         """
-        Return the (space, source) data_specs for self.get_monitoring_channels.
-
+        Notes
+        -----
         In this case, we want the inputs and targets.
         """
         space = CompositeSpace((self.get_input_space(),
@@ -296,6 +420,7 @@ class MLP(Layer):
         source = (self.get_input_source(), self.get_target_source())
         return (space, source)
 
+    @wraps(Layer.get_params)
     def get_params(self):
 
         rval = []
@@ -315,7 +440,9 @@ class MLP(Layer):
 
         return rval
 
+    @wraps(Model.set_batch_size)
     def set_batch_size(self, batch_size):
+
         self.batch_size = batch_size
         self.force_batch_size = batch_size
 
@@ -323,11 +450,15 @@ class MLP(Layer):
             layer.set_batch_size(batch_size)
 
 
+    @wraps(Layer.censor_updates)
     def censor_updates(self, updates):
+
         for layer in self.layers:
             layer.censor_updates(updates)
 
+    @wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
+
         rval = OrderedDict()
 
         params = self.get_params()
@@ -346,38 +477,53 @@ class MLP(Layer):
 
         return rval
 
+    @wraps(Layer.get_weights)
     def get_weights(self):
+
         return self.layers[0].get_weights()
 
+    @wraps(Layer.get_weights_view_shape)
     def get_weights_view_shape(self):
+
         return self.layers[0].get_weights_view_shape()
 
+    @wraps(Layer.get_weights_format)
     def get_weights_format(self):
+
         return self.layers[0].get_weights_format()
 
+    @wraps(Layer.get_weights_topo)
     def get_weights_topo(self):
+
         return self.layers[0].get_weights_topo()
 
     def dropout_fprop(self, state_below, default_input_include_prob=0.5,
                       input_include_probs=None, default_input_scale=2.,
                       input_scales=None, per_example=True):
         """
-        state_below: The input to the MLP
+        Returns the output of the MLP, when applying dropout to the input and
+        intermediate layers. Each input to each layer is randomly included or
+        excluded for each example. The probability of inclusion is independent
+        for each input and each example. Each layer uses
+        `default_input_include_prob` unless that layer's name appears as a key
+        in input_include_probs, in which case the input inclusion probability
+        is given by the corresponding value.
 
-        Returns the output of the MLP, when applying dropout to the input and intermediate layers.
-        Each input to each layer is randomly included or excluded
-        for each example. The probability of inclusion is independent for each input
-        and each example. Each layer uses "default_input_include_prob" unless that
-        layer's name appears as a key in input_include_probs, in which case the input
-        inclusion probability is given by the corresponding value.
+        Each feature is also multiplied by a scale factor. The scale factor for
+        each layer's input scale is determined by the same scheme as the input
+        probabilities.
 
-        Each feature is also multiplied by a scale factor. The scale factor for each
-        layer's input scale is determined by the same scheme as the input probabilities.
-
+        Parameters
+        ----------
+        state_below : WRITEME
+            The input to the MLP
+        default_input_include_prob : WRITEME
+        input_include_probs : WRITEME
+        default_input_scale : WRITEME
+        input_scales : WRITEME
         per_example : bool, optional
-            Sample a different mask value for every example in
-            a batch. Default is `True`. If `False`, sample one
-            mask per mini-batch.
+            Sample a different mask value for every example in a batch.
+            Defaults to `True`. If `False`, sample one mask per mini-batch.
         """
 
         warnings.warn("dropout doesn't use fixed_var_descr so it won't work with "
@@ -394,7 +540,7 @@ class MLP(Layer):
         self._validate_layer_names(list(input_include_probs.keys()))
         self._validate_layer_names(list(input_scales.keys()))
 
-        theano_rng = MRG_RandomStreams(self.rng.randint(2 ** 15))
+        theano_rng = MRG_RandomStreams(max(self.rng.randint(2 ** 15), 1))
 
         for layer in self.layers:
             layer_name = layer.layer_name
@@ -433,30 +579,24 @@ class MLP(Layer):
         ----------
         state_below : tensor_like
             The (symbolic) output state of the layer below.
-
         mask : int
             An integer indexing possible binary masks. It should be
             < 2 ** get_total_input_dimension(masked_input_layers)
             and greater than or equal to 0.
-
         masked_input_layers : list, optional
-            A list of layer names to mask. If `None`, the input to
-            all layers (including the first hidden layer) is masked.
-
+            A list of layer names to mask. If `None`, the input to all layers
+            (including the first hidden layer) is masked.
         default_input_scale : float, optional
-            The amount to scale inputs in masked layers that do not
-            appear in `input_scales`. Defaults to 2.
-
+            The amount to scale inputs in masked layers that do not appear in
+            `input_scales`. Defaults to 2.
         input_scales : dict, optional
-            A dictionary mapping layer names to floating point
-            numbers indicating how much to scale input to a given
-            layer.
+            A dictionary mapping layer names to floating point numbers
+            indicating how much to scale input to a given layer.
 
         Returns
         -------
         masked_output : tensor_like
-            The output of the forward propagation of the masked
-            network.
+            The output of the forward propagation of the masked network.
         """
         if input_scales is not None:
             self._validate_layer_names(input_scales)
@@ -482,6 +622,15 @@ class MLP(Layer):
             """
             Create the binary representation of an integer `x`, padded to
             `length`, with dtype `dtype`.
+
+            Parameters
+            ----------
+            length : WRITEME
+            dtype : WRITEME
+
+            Returns
+            -------
+            WRITEME
             """
             s = np.empty(length, dtype=dtype)
             for i in range(length - 1, -1, -1):
@@ -514,6 +663,11 @@ class MLP(Layer):
         return state_below
 
     def _validate_layer_names(self, layers):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if any(layer not in self.layer_names for layer in layers):
             unknown_names = [layer for layer in layers
                                 if layer not in self.layer_names]
@@ -525,6 +679,14 @@ class MLP(Layer):
         Get the total number of inputs to the layers whose
         names are listed in `layers`. Used for computing the
         total number of dropout masks.
+
+        Parameters
+        ----------
+        layers : WRITEME
+
+        Returns
+        -------
+        WRITEME
         """
         self._validate_layer_names(layers)
         total = 0
@@ -533,6 +695,7 @@ class MLP(Layer):
                 total += layer.get_input_space().get_total_dimension()
         return total
 
+    @wraps(Layer.fprop)
     def fprop(self, state_below, return_all = False):
 
         rval = self.layers[0].fprop(state_below)
@@ -549,16 +712,20 @@ class MLP(Layer):
 
     def apply_dropout(self, state, include_prob, scale, theano_rng,
                       input_space, mask_value=0, per_example=True):
-
         """
+        WRITEME
+
         Parameters
         ----------
-        ...
-
+        state: WRITEME
+        include_prob : WRITEME
+        scale : WRITEME
+        theano_rng : WRITEME
+        input_space : WRITEME
+        mask_value : WRITEME
         per_example : bool, optional
-            Sample a different mask value for every example in
-            a batch. Default is `True`. If `False`, sample one
-            mask per mini-batch.
+            Sample a different mask value for every example in a batch.
+            Defaults to `True`. If `False`, sample one mask per mini-batch.
         """
         if include_prob in [None, 1.0, 1]:
             return state
@@ -587,13 +754,19 @@ class MLP(Layer):
         else:
             return T.switch(mask, state * scale, mask_value)
 
+    @wraps(Layer.cost)
     def cost(self, Y, Y_hat):
+
         return self.layers[-1].cost(Y, Y_hat)
 
+    @wraps(Layer.cost_matrix)
     def cost_matrix(self, Y, Y_hat):
+
         return self.layers[-1].cost_matrix(Y, Y_hat)
 
+    @wraps(Layer.cost_from_cost_matrix)
     def cost_from_cost_matrix(self, cost_matrix):
+
         return self.layers[-1].cost_from_cost_matrix(cost_matrix)
 
     def cost_from_X(self, data):
@@ -601,6 +774,10 @@ class MLP(Layer):
         Computes self.cost, but takes data=(X, Y) rather than Y_hat as an argument.
         This is just a wrapper around self.cost that computes Y_hat by
         calling Y_hat = self.fprop(X)
+
+        Parameters
+        ----------
+        data : WRITEME
         """
         self.cost_from_X_data_specs()[0].validate(data)
         X, Y = data
@@ -618,9 +795,28 @@ class MLP(Layer):
         source = (self.get_input_source(), self.get_target_source())
         return (space, source)
 
+    def __str__(self):
+        """
+        Summarizes the MLP by printing the size and format of the input to all
+        layers. Feel free to add reasonably concise info as needed.
+        """
+        rval = []
+        for layer in self.layers:
+            rval.append(layer.layer_name)
+            input_space = layer.get_input_space()
+            rval.append('\tInput space: ' + str(input_space))
+            rval.append('\tTotal input dimension: ' +
+                    str(input_space.get_total_dimension()))
+        rval = '\n'.join(rval)
+        return rval
+
 
 class Softmax(Layer):
+    """
+    .. todo::
 
+        WRITEME
+    """
     def __init__(self, n_classes, layer_name, irange = None,
             istdev = None,
                  sparse_init = None, W_lr_scale = None,
@@ -628,6 +824,9 @@ class Softmax(Layer):
                  no_affine = False,
                  max_col_norm = None, init_bias_target_marginals= None):
         """
+        .. todo::
+
+            WRITEME
         """
 
         if isinstance(W_lr_scale, str):
@@ -652,6 +851,7 @@ class Softmax(Layer):
         else:
             assert init_bias_target_marginals is None
 
+    @wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
 
         rval = OrderedDict()
@@ -669,6 +869,7 @@ class Softmax(Layer):
 
         return rval
 
+    @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
 
         if self.no_affine:
@@ -692,6 +893,7 @@ class Softmax(Layer):
                             ('col_norms_max'  , col_norms.max()),
                             ])
 
+    @wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
 
         mx = state.max(axis=1)
@@ -712,7 +914,9 @@ class Softmax(Layer):
 
         return rval
 
+    @wraps(Layer.set_input_space)
     def set_input_space(self, space):
+
         self.input_space = space
 
         if not isinstance(space, Space):
@@ -758,7 +962,9 @@ class Softmax(Layer):
 
             self._params = [ self.b, self.W ]
 
+    @wraps(Layer.get_weights_topo)
     def get_weights_topo(self):
+
         if not isinstance(self.input_space, Conv2DSpace):
             raise NotImplementedError()
         desired = self.W.get_value().T
@@ -766,24 +972,35 @@ class Softmax(Layer):
         rval = Conv2DSpace.convert_numpy(ipt, self.input_space.axes, ('b', 0, 1, 'c'))
         return rval
 
+    @wraps(Layer.get_weights)
     def get_weights(self):
+
         if not isinstance(self.input_space, VectorSpace):
             raise NotImplementedError()
 
         return self.W.get_value()
 
+    @wraps(Layer.set_weights)
     def set_weights(self, weights):
+
         self.W.set_value(weights)
 
+    @wraps(Layer.set_biases)
     def set_biases(self, biases):
+
         self.b.set_value(biases)
 
+    @wraps(Layer.get_biases)
     def get_biases(self):
+
         return self.b.get_value()
 
+    @wraps(Layer.get_weights_format)
     def get_weights_format(self):
+
         return ('v', 'h')
 
+    @wraps(Layer.fprop)
     def fprop(self, state_below):
 
         self.input_space.validate(state_below)
@@ -817,12 +1034,8 @@ class Softmax(Layer):
 
         return rval
 
+    @wraps(Layer.cost)
     def cost(self, Y, Y_hat):
-        """
-        Y must be one-hot binary. Y_hat is a softmax estimate.
-        of Y. Returns negative log probability of Y under the Y_hat
-        distribution.
-        """
 
         assert hasattr(Y_hat, 'owner')
         owner = Y_hat.owner
@@ -847,12 +1060,8 @@ class Softmax(Layer):
 
         return - rval
 
+    @wraps(Layer.cost_matrix)
     def cost_matrix(self, Y, Y_hat):
-        """
-        Y must be one-hot binary. Y_hat is a softmax estimate.
-        of Y. Returns negative log probability of Y under the Y_hat
-        distribution.
-        """
 
         assert hasattr(Y_hat, 'owner')
         owner = Y_hat.owner
@@ -874,20 +1083,26 @@ class Softmax(Layer):
 
         return -log_prob_of
 
+    @wraps(Layer.get_weight_decay)
     def get_weight_decay(self, coeff):
+
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         return coeff * T.sqr(self.W).sum()
 
+    @wraps(Layer.get_l1_weight_decay)
     def get_l1_weight_decay(self, coeff):
+
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W = self.W
         return coeff * abs(W).sum()
 
+    @wraps(Layer.censor_updates)
     def censor_updates(self, updates):
+
         if self.no_affine:
             return
         if self.max_row_norm is not None:
@@ -909,11 +1124,10 @@ class Softmax(Layer):
 
 class SoftmaxPool(Layer):
     """
-        A hidden layer that uses the softmax function to do
-        max pooling over groups of units.
-        When the pooling size is 1, this reduces to a standard
-        sigmoidal MLP layer.
-        """
+    A hidden layer that uses the softmax function to do max pooling over groups
+    of units. When the pooling size is 1, this reduces to a standard sigmoidal
+    MLP layer.
+    """
 
     def __init__(self,
                  detector_layer_dim,
@@ -930,17 +1144,30 @@ class SoftmaxPool(Layer):
                  max_col_norm = None
         ):
         """
-
-            include_prob: probability of including a weight element in the set
-            of weights initialized to U(-irange, irange). If not included
-            it is initialized to 0.
-
-            """
+        Parameters
+        ----------
+        detector_layer_dim : WRITEME
+        layer_name : WRITEME
+        pool_size : WRITEME
+        irange : WRITEME
+        sparse_init : WRITEME
+        sparse_stdev : WRITEME
+        include_prob : float
+            Probability of including a weight element in the set of weights \
+            initialized to U(-irange, irange). If not included it is \
+            initialized to 0.
+        init_bias : WRITEME
+        W_lr_scale : WRITEME
+        b_lr_scale : WRITEME
+        mask_weights : WRITEME
+        max_col_norm : WRITEME
+        """
         self.__dict__.update(locals())
         del self.self
 
         self.b = sharedX( np.zeros((self.detector_layer_dim,)) + init_bias, name = layer_name + '_b')
 
+    @wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
 
         if not hasattr(self, 'W_lr_scale'):
@@ -960,8 +1187,8 @@ class SoftmaxPool(Layer):
 
         return rval
 
+    @wraps(Layer.set_input_space)
     def set_input_space(self, space):
-        """ Note: this resets parameters! """
 
         self.input_space = space
 
@@ -1026,6 +1253,7 @@ class SoftmaxPool(Layer):
                                  str(self.mask_weights.shape))
             self.mask = sharedX(self.mask_weights)
 
+    @wraps(Layer.censor_updates)
     def censor_updates(self, updates):
 
         # Patch old pickle files
@@ -1045,7 +1273,9 @@ class SoftmaxPool(Layer):
                 desired_norms = T.clip(col_norms, 0, self.max_col_norm)
                 updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
+    @wraps(Layer.get_params)
     def get_params(self):
+
         assert self.b.name is not None
         W ,= self.transformer.get_params()
         assert W.name is not None
@@ -1056,21 +1286,27 @@ class SoftmaxPool(Layer):
         rval.append(self.b)
         return rval
 
+    @wraps(Layer.get_weight_decay)
     def get_weight_decay(self, coeff):
+
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
+    @wraps(Layer.get_l1_weight_decay)
     def get_l1_weight_decay(self, coeff):
+
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W ,= self.transformer.get_params()
         return coeff * abs(W).sum()
 
+    @wraps(Layer.get_weights)
     def get_weights(self):
+
         if self.requires_reformat:
             # This is not really an unimplemented case.
             # We actually don't know how to format the weights
@@ -1080,20 +1316,34 @@ class SoftmaxPool(Layer):
         W ,= self.transformer.get_params()
         return W.get_value()
 
+    @wraps(Layer.set_weights)
     def set_weights(self, weights):
+
         W, = self.transformer.get_params()
         W.set_value(weights)
 
+    @wraps(Layer.set_biases)
     def set_biases(self, biases):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.b.set_value(biases)
 
+    @wraps(Layer.get_biases)
     def get_biases(self):
+
         return self.b.get_value()
 
+    @wraps(Layer.get_weights_format)
     def get_weights_format(self):
+
         return ('v', 'h')
 
+    @wraps(Layer.get_weights_view_shape)
     def get_weights_view_shape(self):
+
         total = self.detector_layer_dim
         cols = self.pool_size
         if cols == 1:
@@ -1105,6 +1355,7 @@ class SoftmaxPool(Layer):
         return rows, cols
 
 
+    @wraps(Layer.get_weights_topo)
     def get_weights_topo(self):
 
         if not isinstance(self.input_space, Conv2DSpace):
@@ -1123,6 +1374,7 @@ class SoftmaxPool(Layer):
 
         return function([], W)()
 
+    @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
 
         W ,= self.transformer.get_params()
@@ -1144,6 +1396,7 @@ class SoftmaxPool(Layer):
                             ])
 
 
+    @wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state):
 
         P = state
@@ -1185,6 +1438,7 @@ class SoftmaxPool(Layer):
 
         return rval
 
+    @wraps(Layer.fprop)
     def fprop(self, state_below):
 
         self.input_space.validate(state_below)
@@ -1210,9 +1464,10 @@ class SoftmaxPool(Layer):
 
 class Linear(Layer):
     """
+    .. todo::
+
         WRITEME
     """
-
     def __init__(self,
                  dim,
                  layer_name,
@@ -1227,16 +1482,35 @@ class Linear(Layer):
                  mask_weights = None,
                  max_row_norm = None,
                  max_col_norm = None,
+                 min_col_norm = None,
                  softmax_columns = False,
                  copy_input = 0,
                  use_abs_loss = False,
                  use_bias = True):
         """
-
-        include_prob: probability of including a weight element in the set
-        of weights initialized to U(-irange, irange). If not included
-        it is initialized to 0.
-
+        Parameters
+        ----------
+        dim : WRITEME
+        layer_name : WRITEME
+        irange : WRITEME
+        istdev : WRITEME
+        sparse_init : WRITEME
+        sparse_stdev : WRITEME
+        include_prob : float
+            Probability of including a weight element in the set of weights \
+            initialized to U(-irange, irange). If not included it is \
+            initialized to 0.
+        init_bias : WRITEME
+        W_lr_scale : WRITEME
+        b_lr_scale : WRITEME
+        mask_weights : WRITEME
+        max_row_norm : WRITEME
+        max_col_norm : WRITEME
+        min_col_norm : WRITEME
+        softmax_columns : WRITEME
+        copy_input : WRITEME
+        use_abs_loss : WRITEME
+        use_bias : WRITEME
         """
 
         if use_bias and init_bias is None:
@@ -1251,6 +1525,7 @@ class Linear(Layer):
             assert b_lr_scale is None
             init_bias is None
 
+    @wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
 
         if not hasattr(self, 'W_lr_scale'):
@@ -1270,8 +1545,8 @@ class Linear(Layer):
 
         return rval
 
+    @wraps(Layer.set_input_space)
     def set_input_space(self, space):
-        """ Note: this resets parameters! """
 
         self.input_space = space
 
@@ -1327,6 +1602,7 @@ class Linear(Layer):
                 raise ValueError("Expected mask with shape "+str(expected_shape)+" but got "+str(self.mask_weights.shape))
             self.mask = sharedX(self.mask_weights)
 
+    @wraps(Layer.censor_updates)
     def censor_updates(self, updates):
 
         if self.mask_weights is not None:
@@ -1342,18 +1618,25 @@ class Linear(Layer):
                 desired_norms = T.clip(row_norms, 0, self.max_row_norm)
                 updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle(0, 'x')
 
-        if self.max_col_norm is not None:
+        if self.max_col_norm is not None or self.min_col_norm is not None:
             assert self.max_row_norm is None
+            if self.max_col_norm is not None:
+                max_col_norm = self.max_col_norm
+            if self.min_col_norm is None:
+                self.min_col_norm = 0
             W ,= self.transformer.get_params()
             if W in updates:
                 updated_W = updates[W]
                 col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
+                if self.max_col_norm is None:
+                    max_col_norm = col_norms.max()
+                desired_norms = T.clip(col_norms, self.min_col_norm, max_col_norm)
                 updates[W] = updated_W * desired_norms / (1e-7 + col_norms)
 
 
+    @wraps(Layer.get_params)
     def get_params(self):
-        assert self.b.name is not None
+
         W ,= self.transformer.get_params()
         assert W.name is not None
         rval = self.transformer.get_params()
@@ -1365,21 +1648,27 @@ class Linear(Layer):
             rval.append(self.b)
         return rval
 
+    @wraps(Layer.get_weight_decay)
     def get_weight_decay(self, coeff):
+
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
+    @wraps(Layer.get_l1_weight_decay)
     def get_l1_weight_decay(self, coeff):
+
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W ,= self.transformer.get_params()
         return coeff * abs(W).sum()
 
+    @wraps(Layer.get_weights)
     def get_weights(self):
+
         if self.requires_reformat:
             # This is not really an unimplemented case.
             # We actually don't know how to format the weights
@@ -1397,19 +1686,32 @@ class Linear(Layer):
             return rval
         return W
 
+    @wraps(Layer.set_weights)
     def set_weights(self, weights):
+
         W, = self.transformer.get_params()
         W.set_value(weights)
 
+    @wraps(Layer.set_biases)
     def set_biases(self, biases):
+
         self.b.set_value(biases)
 
+    @wraps(Layer.get_biases)
     def get_biases(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return self.b.get_value()
 
+    @wraps(Layer.get_weights_format)
     def get_weights_format(self):
+
         return ('v', 'h')
 
+    @wraps(Layer.get_weights_topo)
     def get_weights_topo(self):
 
         if not isinstance(self.input_space, Conv2DSpace):
@@ -1426,6 +1728,7 @@ class Linear(Layer):
 
         return function([], W)()
 
+    @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
 
         W ,= self.transformer.get_params()
@@ -1446,7 +1749,9 @@ class Linear(Layer):
                             ('col_norms_max'  , col_norms.max()),
                             ])
 
+    @wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
+
         rval =  OrderedDict()
 
         mx = state.max(axis=0)
@@ -1473,6 +1778,11 @@ class Linear(Layer):
         return rval
 
     def _linear_part(self, state_below):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # TODO: Refactor More Better(tm)
         self.input_space.validate(state_below)
 
@@ -1490,9 +1800,13 @@ class Linear(Layer):
             W = W.T
             W = T.nnet.softmax(W)
             W = W.T
-            z = T.dot(state_below, W) + self.b
+            z = T.dot(state_below, W)
+            if self.use_bias:
+                z += self.b
         else:
-            z = self.transformer.lmul(state_below) + self.b
+            z = self.transformer.lmul(state_below)
+            if self.use_bias:
+                z += self.b
         if self.layer_name is not None:
             z.name = self.layer_name + '_z'
         if self.copy_input:
@@ -1500,18 +1814,26 @@ class Linear(Layer):
         return z
 
 
+    @wraps(Layer.fprop)
     def fprop(self, state_below):
+
         # TODO: Refactor More Better(tm)
         p = self._linear_part(state_below)
         return p
 
+    @wraps(Layer.cost)
     def cost(self, Y, Y_hat):
+
         return self.cost_from_cost_matrix(self.cost_matrix(Y, Y_hat))
 
+    @wraps(Layer.cost_from_cost_matrix)
     def cost_from_cost_matrix(self, cost_matrix):
+
         return cost_matrix.sum(axis=1).mean()
 
+    @wraps(Layer.cost_matrix)
     def cost_matrix(self, Y, Y_hat):
+
         if(self.use_abs_loss):
             return T.abs_(Y - Y_hat)
         else:
@@ -1524,12 +1846,16 @@ class Tanh(Linear):
     input followed by a hyperbolic tangent elementwise nonlinearity.
     """
 
+    @wraps(Layer.fprop)
     def fprop(self, state_below):
+
         p = self._linear_part(state_below)
         p = T.tanh(p)
         return p
 
+    @wraps(Layer.cost)
     def cost(self, *args, **kwargs):
+
         raise NotImplementedError()
 
 
@@ -1541,37 +1867,47 @@ class Sigmoid(Linear):
 
     def __init__(self, monitor_style='detection', **kwargs):
         """
-            monitor_style: a string, either 'detection' or 'classification'
-                           'detection' by default
+        .. todo::
 
-                           if 'detection':
-                               get_monitor_from_state makes no assumptions about
-                               target, reports info about how good model is at
-                               detecting positive bits.
-                               This will monitor precision, recall, and F1 score
-                               based on a detection threshold of 0.5. Note that
-                               these quantities are computed *per-minibatch* and
-                               averaged together. Unless your entire monitoring
-                               dataset fits in one minibatch, this is not the same
-                               as the true F1 score, etc., and will usually
-                               seriously overestimate your performance.
-                            if 'classification':
-                                get_monitor_from_state assumes target is one-hot
-                                class indicator, even though you're training the model
-                                as k independent sigmoids. gives info on how good
-                                the argmax is as a classifier
+            WRITEME properly
+
+        monitor_style: a string, either 'detection' or 'classification'
+                       'detection' by default
+
+                       if 'detection':
+                           get_monitor_from_state makes no assumptions about
+                           target, reports info about how good model is at
+                           detecting positive bits.
+                           This will monitor precision, recall, and F1 score
+                           based on a detection threshold of 0.5. Note that
+                           these quantities are computed *per-minibatch* and
+                           averaged together. Unless your entire monitoring
+                           dataset fits in one minibatch, this is not the same
+                           as the true F1 score, etc., and will usually
+                           seriously overestimate your performance.
+                        if 'classification':
+                            get_monitor_from_state assumes target is one-hot
+                            class indicator, even though you're training the model
+                            as k independent sigmoids. gives info on how good
+                            the argmax is as a classifier
         """
         super(Sigmoid, self).__init__(**kwargs)
         assert monitor_style in ['classification', 'detection']
         self.monitor_style = monitor_style
 
+    @wraps(Layer.fprop)
     def fprop(self, state_below):
+
         p = self._linear_part(state_below)
         p = T.nnet.sigmoid(p)
         return p
 
     def kl(self, Y, Y_hat):
         """
+        .. todo::
+
+            WRITEME properly
+
         Returns a batch (vector) of
         mean across units of KL divergence for each example
         KL(P || Q) where P is defined by Y and Q is defined by Y_hat
@@ -1608,8 +1944,13 @@ class Sigmoid(Linear):
         return ave
 
 
+    @wraps(Layer.cost)
     def cost(self, Y, Y_hat):
         """
+        .. todo::
+
+            WRITEME properly
+
         mean across units, mean across batch of KL divergence
         KL(P || Q) where P is defined by Y and Q is defined by Y_hat
         Currently Y must be purely binary. If it's not, you'll still
@@ -1632,6 +1973,11 @@ class Sigmoid(Linear):
         return ave
 
     def get_detection_channels_from_state(self, state, target):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         rval = OrderedDict()
         y_hat = state > 0.5
@@ -1672,6 +2018,7 @@ class Sigmoid(Linear):
 
         return rval
 
+    @wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
 
         rval = super(Sigmoid, self).get_monitoring_channels_from_state(state, target)
@@ -1696,36 +2043,61 @@ class RectifiedLinear(Linear):
     """
 
     def __init__(self, left_slope = 0.0, **kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         super(RectifiedLinear, self).__init__(**kwargs)
         self.left_slope = left_slope
 
+    @wraps(Layer.fprop)
     def fprop(self, state_below):
+
         p = self._linear_part(state_below)
         p = p * (p > 0.) + self.left_slope * p * (p < 0.)
         return p
 
+    @wraps(Layer.cost)
     def cost(self, *args, **kwargs):
+
         raise NotImplementedError()
 
+
 class SpaceConverter(Layer):
+    """
+    .. todo::
+
+        WRITEME
+    """
 
     def __init__(self, layer_name, output_space):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.__dict__.update(locals())
         del self.self
         self._params = []
 
+    @wraps(Layer.set_input_space)
     def set_input_space(self, space):
+
         self.input_space = space
 
+    @wraps(Layer.fprop)
     def fprop(self, state_below):
 
         return self.input_space.format_as(state_below, self.output_space)
 
+
 class ConvRectifiedLinear(Layer):
     """
+    .. todo::
+
         WRITEME
     """
-
     def __init__(self,
                  output_channels,
                  kernel_shape,
@@ -1746,40 +2118,44 @@ class ConvRectifiedLinear(Layer):
                  output_normalization = None,
                  kernel_stride=(1, 1)):
         """
-                 output_channels: The number of output channels the layer should have.
-                 kernel_shape: The shape of the convolution kernel.
-                 pool_shape: The shape of the spatial max pooling. A two-tuple of ints.
-                 pool_stride: The stride of the spatial max pooling. Also must be square.
-                 layer_name: A name for this layer that will be prepended to
-                 monitoring channels related to this layer.
-                 irange: if specified, initializes each weight randomly in
-                 U(-irange, irange)
-                 border_mode:A string indicating the size of the output:
-                    full - The output is the full discrete linear convolution of the inputs.
-                    valid - The output consists only of those elements that do not rely
-                    on the zero-padding.(Default)
-                 include_prob: probability of including a weight element in the set
-            of weights initialized to U(-irange, irange). If not included
-            it is initialized to 0.
-                 init_bias: All biases are initialized to this number
-                 W_lr_scale:The learning rate on the weights for this layer is
-                 multiplied by this scaling factor
-                 b_lr_scale: The learning rate on the biases for this layer is
-                 multiplied by this scaling factor
-                 left_slope: **TODO**
-                 max_kernel_norm: If specifed, each kernel is constrained to have at most this
-                 norm.
-                 pool_type: The type of the pooling operation performed the the convolution.
-                 Default pooling type is max-pooling.
-                 detector_normalization, output_normalization:
-                      if specified, should be a callable object. the state of the network is
-                      optionally
-                      replaced with normalization(state) at each of the 3 points in processing:
-                          detector: the maxout units can be normalized prior to the spatial
-                          pooling
-                          output: the output of the layer, after sptial pooling, can be normalized
-                          as well
-                 kernel_stride: The stride of the convolution kernel. A two-tuple of ints.
+        .. todo::
+
+            WRITEME properly
+
+         output_channels: The number of output channels the layer should have.
+         kernel_shape: The shape of the convolution kernel.
+         pool_shape: The shape of the spatial max pooling. A two-tuple of ints.
+         pool_stride: The stride of the spatial max pooling. Also must be square.
+         layer_name: A name for this layer that will be prepended to
+         monitoring channels related to this layer.
+         irange: if specified, initializes each weight randomly in
+         U(-irange, irange)
+         border_mode:A string indicating the size of the output:
+            full - The output is the full discrete linear convolution of the inputs.
+            valid - The output consists only of those elements that do not rely
+            on the zero-padding.(Default)
+         include_prob: probability of including a weight element in the set
+    of weights initialized to U(-irange, irange). If not included
+    it is initialized to 0.
+         init_bias: All biases are initialized to this number
+         W_lr_scale:The learning rate on the weights for this layer is
+         multiplied by this scaling factor
+         b_lr_scale: The learning rate on the biases for this layer is
+         multiplied by this scaling factor
+         left_slope: **TODO**
+         max_kernel_norm: If specifed, each kernel is constrained to have at most this
+         norm.
+         pool_type: The type of the pooling operation performed the the convolution.
+         Default pooling type is max-pooling.
+         detector_normalization, output_normalization:
+              if specified, should be a callable object. the state of the network is
+              optionally
+              replaced with normalization(state) at each of the 3 points in processing:
+                  detector: the maxout units can be normalized prior to the spatial
+                  pooling
+                  output: the output of the layer, after sptial pooling, can be normalized
+                  as well
+         kernel_stride: The stride of the convolution kernel. A two-tuple of ints.
         """
 
         if (irange is None) and (sparse_init is None):
@@ -1790,6 +2166,7 @@ class ConvRectifiedLinear(Layer):
         self.__dict__.update(locals())
         del self.self
 
+    @wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
 
         if not hasattr(self, 'W_lr_scale'):
@@ -1809,10 +2186,16 @@ class ConvRectifiedLinear(Layer):
 
         return rval
 
+    @wraps(Layer.set_input_space)
     def set_input_space(self, space):
-        """ Note: this resets parameters! """
 
         self.input_space = space
+
+        if not isinstance(space, Conv2DSpace):
+            raise BadInputSpaceError("ConvRectifiedLinear.set_input_space expected "
+                    "a Conv2DSpace, got " + str(space) + " of type " +
+                    str(type(space)))
+
         rng = self.mlp.rng
 
         if self.border_mode == 'valid':
@@ -1879,7 +2262,13 @@ class ConvRectifiedLinear(Layer):
 
 
 
+    @wraps(Layer.censor_updates)
     def censor_updates(self, updates):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         if self.max_kernel_norm is not None:
             W ,= self.transformer.get_params()
@@ -1890,7 +2279,13 @@ class ConvRectifiedLinear(Layer):
                 updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle(0, 'x', 'x', 'x')
 
 
+    @wraps(Layer.get_params)
     def get_params(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         assert self.b.name is not None
         W ,= self.transformer.get_params()
         assert W.name is not None
@@ -1901,39 +2296,54 @@ class ConvRectifiedLinear(Layer):
         rval.append(self.b)
         return rval
 
+    @wraps(Layer.get_weight_decay)
     def get_weight_decay(self, coeff):
+
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
+    @wraps(Layer.get_l1_weight_decay)
     def get_l1_weight_decay(self, coeff):
+
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W ,= self.transformer.get_params()
         return coeff * abs(W).sum()
 
+    @wraps(Layer.set_weights)
     def set_weights(self, weights):
+
         W, = self.transformer.get_params()
         W.set_value(weights)
 
+    @wraps(Layer.set_biases)
     def set_biases(self, biases):
+
         self.b.set_value(biases)
 
+    @wraps(Layer.get_biases)
     def get_biases(self):
+
         return self.b.get_value()
 
+    @wraps(Layer.get_weights_format)
     def get_weights_format(self):
+
         return ('v', 'h')
 
+    @wraps(Layer.get_weights_topo)
     def get_weights_topo(self):
+
         outp, inp, rows, cols = range(4)
         raw = self.transformer._filters.get_value()
 
         return np.transpose(raw, (outp,rows,cols,inp))
 
+    @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
 
         W ,= self.transformer.get_params()
@@ -1950,6 +2360,7 @@ class ConvRectifiedLinear(Layer):
                             ('kernel_norms_max'  , row_norms.max()),
                             ])
 
+    @wraps(Layer.fprop)
     def fprop(self, state_below):
 
         self.input_space.validate(state_below)
@@ -1988,8 +2399,13 @@ class ConvRectifiedLinear(Layer):
 
         return p
 
+
 def max_pool(bc01, pool_shape, pool_stride, image_shape):
     """
+    .. todo::
+
+        WRITEME properly
+
     Theano's max pooling op only support pool_stride = pool_shape
     so here we have a graph that does max pooling with strides
 
@@ -2055,8 +2471,13 @@ def max_pool(bc01, pool_shape, pool_stride, image_shape):
 
     return mx
 
+
 def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape):
     """
+    .. todo::
+
+        WRITEME properly
+
     Like max_pool but with input using axes ('c', 0, 1, 'b')
       (Alex Krizhevsky format)
     """
@@ -2118,8 +2539,13 @@ def max_pool_c01b(c01b, pool_shape, pool_stride, image_shape):
 
     return mx
 
+
 def mean_pool(bc01, pool_shape, pool_stride, image_shape):
     """
+    .. todo::
+
+        WRITEME properly
+
     bc01: minibatch in format (batch size, channels, rows, cols)
     pool_shape: shape of the pool region (rows, cols)
     pool_stride: strides between pooling regions (row stride, col stride)
@@ -2187,12 +2613,24 @@ def mean_pool(bc01, pool_shape, pool_stride, image_shape):
 
     return mx
 
+
 def WeightDecay(*args, **kwargs):
+    """
+    .. todo::
+
+        WRITEME
+    """
     warnings.warn("pylearn2.models.mlp.WeightDecay has moved to pylearn2.costs.mlp.WeightDecay")
     from pylearn2.costs.mlp import WeightDecay as WD
     return WD(*args, **kwargs)
 
+
 def L1WeightDecay(*args, **kwargs):
+    """
+    .. todo::
+
+        WRITEME
+    """
     warnings.warn("pylearn2.models.mlp.L1WeightDecay has moved to pylearn2.costs.mlp.WeightDecay")
     from pylearn2.costs.mlp import L1WeightDecay as L1WD
     return L1WD(*args, **kwargs)
@@ -2204,17 +2642,26 @@ class LinearGaussian(Linear):
     """
 
     def __init__(self, init_beta, min_beta, max_beta, beta_lr_scale, ** kwargs):
+        """
+        .. todo::
+
+            WRITEME
+        """
         super(LinearGaussian, self).__init__(**kwargs)
         self.__dict__.update(locals())
         del self.self
         del self.kwargs
 
+    @wraps(Layer.set_input_space)
     def set_input_space(self, space):
+
         super(LinearGaussian, self).set_input_space(space)
         assert isinstance(self.output_space, VectorSpace)
         self.beta = sharedX(self.output_space.get_origin() + self.init_beta, 'beta')
 
+    @wraps(Linear.get_monitoring_channels)
     def get_monitoring_channels(self):
+
         rval = super(LinearGaussian, self).get_monitoring_channels()
         assert isinstance(rval, OrderedDict)
         rval['beta_min'] = self.beta.min()
@@ -2222,44 +2669,74 @@ class LinearGaussian(Linear):
         rval['beta_max'] = self.beta.max()
         return rval
 
+    @wraps(Linear.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
+
         rval = super(LinearGaussian, self).get_monitoring_channels()
         if target:
             rval['mse'] = T.sqr(state - target).mean()
         return rval
 
+    @wraps(Linear.cost)
     def cost(self, Y, Y_hat):
+
         return 0.5 * T.dot(T.sqr(Y-Y_hat), self.beta).mean() - 0.5 * T.log(self.beta).sum()
 
+    @wraps(Layer.censor_updates)
     def censor_updates(self, updates):
+
         super(LinearGaussian, self).censor_updates(updates)
 
         if self.beta in updates:
             updates[self.beta] = T.clip(updates[self.beta], self.min_beta, self.max_beta)
 
+    @wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
+
         rval = super(LinearGaussian, self).get_lr_scalers()
         if self.beta_lr_scale is not None:
             rval[self.beta] = self.beta_lr_scale
         return rval
 
+    @wraps(Layer.get_params)
     def get_params(self):
+
         return super(LinearGaussian, self).get_params() + [self.beta]
 
 
 def beta_from_design(design, min_var = 1e-6, max_var = 1e6):
+    """
+    .. todo::
+
+        WRITEME
+    """
     return 1. / np.clip(design.var(axis=0), min_var, max_var)
 
 
 def beta_from_targets(dataset, **kwargs):
+    """
+    .. todo::
+
+        WRITEME
+    """
     return beta_from_design(dataset.y, **kwargs)
 
 
 def beta_from_features(dataset, **kwargs):
+    """
+    .. todo::
+
+        WRITEME
+    """
     return beta_from_design(dataset.X, **kwargs)
 
 
 def mean_of_targets(dataset):
+    """
+    .. todo::
+
+        WRITEME
+    """
     return dataset.y.mean(axis=0)
 
 
@@ -2271,6 +2748,10 @@ class PretrainedLayer(Layer):
 
     def __init__(self, layer_name, layer_content, freeze_params=False):
         """
+        .. todo::
+
+            WRITEME properly
+
         layer_content: A Model that implements "upward_pass", such as an
             RBM or an Autoencoder
         freeze_params: If True, regard layer_conent's parameters as fixed
@@ -2280,21 +2761,31 @@ class PretrainedLayer(Layer):
         self.__dict__.update(locals())
         del self.self
 
+    @wraps(Layer.set_input_space)
     def set_input_space(self, space):
+
         assert self.get_input_space() == space
 
+    @wraps(Layer.get_params)
     def get_params(self):
+
         if self.freeze_params:
             return []
         return self.layer_content.get_params()
 
+    @wraps(Layer.get_input_space)
     def get_input_space(self):
+
         return self.layer_content.get_input_space()
 
+    @wraps(Layer.get_output_space)
     def get_output_space(self):
+
         return self.layer_content.get_output_space()
 
+    @wraps(Layer.fprop)
     def fprop(self, state_below):
+
         return self.layer_content.upward_pass(state_below)
 
 
@@ -2305,11 +2796,16 @@ class CompositeLayer(Layer):
 
     def __init__(self, layer_name, layers):
         """
+        .. todo::
+
+            WRITEME properly
+
         layers: a list or tuple of Layers.
         """
         self.__dict__.update(locals())
         del self.self
 
+    @wraps(Layer.set_input_space)
     def set_input_space(self, space):
 
         for layer in self.layers:
@@ -2318,6 +2814,7 @@ class CompositeLayer(Layer):
         self.output_space = CompositeSpace(tuple(layer.get_output_space()
             for layer in self.layers))
 
+    @wraps(Layer.get_params)
     def get_params(self):
 
         rval = []
@@ -2327,19 +2824,24 @@ class CompositeLayer(Layer):
 
         return rval
 
+    @wraps(Layer.fprop)
     def fprop(self, state_below):
 
         return tuple(layer.fprop(state_below) for layer in self.layers)
 
+    @wraps(Layer.cost)
     def cost(self, Y, Y_hat):
 
         return sum(layer.cost(Y_elem, Y_hat_elem) for layer, Y_elem, Y_hat_elem in \
                 safe_zip(self.layers, Y, Y_hat))
 
+    @wraps(Layer.set_mlp)
     def set_mlp(self, mlp):
+
         super(CompositeLayer, self).set_mlp(mlp)
         for layer in self.layers:
             layer.set_mlp(mlp)
+
 
 class FlattenerLayer(Layer):
     """
@@ -2360,21 +2862,29 @@ class FlattenerLayer(Layer):
     """
 
     def __init__(self, raw_layer):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.__dict__.update(locals())
         del self.self
         self.layer_name = raw_layer.layer_name
 
 
+    @wraps(Layer.set_input_space)
     def set_input_space(self, space):
 
         self.raw_layer.set_input_space(space)
 
         self.output_space = VectorSpace(self.raw_layer.get_output_space().get_total_dimension())
 
+    @wraps(Layer.get_params)
     def get_params(self):
 
         return self.raw_layer.get_params()
 
+    @wraps(Layer.fprop)
     def fprop(self, state_below):
 
         raw = self.raw_layer.fprop(state_below)
@@ -2382,6 +2892,7 @@ class FlattenerLayer(Layer):
         return self.raw_layer.get_output_space().format_as(raw,
                 self.output_space)
 
+    @wraps(Layer.cost)
     def cost(self, Y, Y_hat):
 
         raw_space = self.raw_layer.get_output_space()
@@ -2406,11 +2917,15 @@ class FlattenerLayer(Layer):
 
         return self.raw_layer.cost(raw_Y, raw_Y_hat)
 
+    @wraps(Layer.set_mlp)
     def set_mlp(self, mlp):
+
         super(FlattenerLayer, self).set_mlp(mlp)
         self.raw_layer.set_mlp(mlp)
 
+    @wraps(Layer.get_weights)
     def get_weights(self):
+
         return self.raw_layer.get_weights()
 
 
@@ -2426,25 +2941,25 @@ def generate_dropout_mask(mlp, default_include_prob=0.5,
         An MLP object.
 
     default_include_prob : float, optional
-        The probability of including an input to a hidden
-        layer, for layers not listed in `input_include_probs`.
+        The probability of including an input to a hidden \
+        layer, for layers not listed in `input_include_probs`. \
         Default is 0.5.
 
     input_include_probs : dict, optional
-        A dictionary  mapping layer names to probabilities
-        of input inclusion for that layer. Default is `None`,
-        in which `default_include_prob` is used for all
+        A dictionary  mapping layer names to probabilities \
+        of input inclusion for that layer. Default is `None`, \
+        in which `default_include_prob` is used for all \
         layers.
 
     rng : RandomState object or seed, optional
-        A `numpy.random.RandomState` object or a seed used to
+        A `numpy.random.RandomState` object or a seed used to \
         create one.
 
     Returns
     -------
     mask : int
-        An integer indexing a dropout mask for the network,
-        drawn with the appropriate probability given the
+        An integer indexing a dropout mask for the network, \
+        drawn with the appropriate probability given the \
         inclusion probabilities.
     """
     if input_include_probs is None:
@@ -2481,20 +2996,20 @@ def sampled_dropout_average(mlp, inputs, num_masks,
         An MLP object.
 
     inputs : tensor_like
-        A Theano variable representing a minibatch appropriate
+        A Theano variable representing a minibatch appropriate \
         for fpropping through the MLP.
 
     num_masks : int
         The number of masks to sample.
 
     default_input_include_prob : float, optional
-        The probability of including an input to a hidden
-        layer, for layers not listed in `input_include_probs`.
+        The probability of including an input to a hidden \
+        layer, for layers not listed in `input_include_probs`. \
         Default is 0.5.
 
     input_include_probs : dict, optional
-        A dictionary  mapping layer names to probabilities
-        of input inclusion for that layer. Default is `None`,
+        A dictionary  mapping layer names to probabilities \
+        of input inclusion for that layer. Default is `None`, \
         in which `default_include_prob` is used for all
         layers.
 
@@ -2502,23 +3017,23 @@ def sampled_dropout_average(mlp, inputs, num_masks,
         The amount to scale input in dropped out layers.
 
     input_scales : dict, optional
-        A dictionary  mapping layer names to constants by
+        A dictionary  mapping layer names to constants by \
         which to scale the input.
 
     rng : RandomState object or seed, optional
-        A `numpy.random.RandomState` object or a seed used to
+        A `numpy.random.RandomState` object or a seed used to \
         create one.
 
     per_example : boolean, optional
-        If `True`, generate a different mask for every single
-        test example, so you have `num_masks` per example
-        instead of `num_mask` networks total. If `False`,
+        If `True`, generate a different mask for every single \
+        test example, so you have `num_masks` per example \
+        instead of `num_mask` networks total. If `False`, \
         `num_masks` masks are fixed in the graph.
 
     Returns
     -------
     geo_mean : tensor_like
-        A symbolic graph for the geometric mean prediction of
+        A symbolic graph for the geometric mean prediction of \
         all the networks.
     """
     if input_include_probs is None:
@@ -2564,25 +3079,25 @@ def exhaustive_dropout_average(mlp, inputs, masked_input_layers=None,
         An MLP object.
 
     inputs : tensor_like
-        A Theano variable representing a minibatch appropriate
+        A Theano variable representing a minibatch appropriate \
         for fpropping through the MLP.
 
     masked_input_layers : list, optional
-        A list of layer names whose input should be masked.
-        Default is all layers (including the first hidden
+        A list of layer names whose input should be masked. \
+        Default is all layers (including the first hidden \
         layer, i.e. mask the input).
 
     default_input_scale : float, optional
         The amount to scale input in dropped out layers.
 
     input_scales : dict, optional
-        A dictionary  mapping layer names to constants by
+        A dictionary  mapping layer names to constants by \
         which to scale the input.
 
     Returns
     -------
     geo_mean : tensor_like
-        A symbolic graph for the geometric mean prediction
+        A symbolic graph for the geometric mean prediction \
         of all exponentially many masked subnetworks.
 
     Notes
@@ -2619,14 +3134,14 @@ def geometric_mean_prediction(forward_props):
     Parameters
     ----------
     forward_props : list
-        A list of Theano graphs corresponding to forward
-        propagations through the network with different
+        A list of Theano graphs corresponding to forward \
+        propagations through the network with different \
         dropout masks.
 
     Returns
     -------
     geo_mean : tensor_like
-        A symbolic graph for the geometric mean prediction
+        A symbolic graph for the geometric mean prediction \
         of all exponentially many masked subnetworks.
 
     Notes
@@ -2641,3 +3156,9 @@ def geometric_mean_prediction(forward_props):
         presoftmax.append(out.owner.inputs[0])
     average = reduce(lambda x, y: x + y, presoftmax) / float(len(presoftmax))
     return T.nnet.softmax(average)
+
+class BadInputSpaceError(TypeError):
+    """
+    An error raised by an MLP layer when set_input_space is given an
+    object that is not one of the Spaces that layer supports.
+    """

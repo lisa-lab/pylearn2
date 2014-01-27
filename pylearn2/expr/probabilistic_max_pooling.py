@@ -1,5 +1,4 @@
 """
-
 An implementation of probabilistic max-pooling, based on
 
 "Convolutional Deep Belief Networks for Scalable
@@ -14,7 +13,6 @@ more like a DBM than a DBN but it is trained like a DBN). Here
 we define probabilistic max pooling as a general layer for
 use in an energy-based model regardless of how the rest of the
 model is assembled.
-
 """
 
 __authors__ = "Ian Goodfellow"
@@ -37,79 +35,83 @@ import warnings
 
 def max_pool(z, pool_shape, top_down = None, theano_rng = None):
     """
-        z : a theano 4-tensor representing input from below
-        pool_shape: tuple of ints. the shape of regions to be pooled
-        top_down: (optional) a theano 4-tensor representing input from above
-                    if None, assumes top-down input is 0
-        theano_rng: (optional) a MRG_RandomStreams instance
+    .. todo::
 
-        returns:
-            a theano 4-tensor for the expected value of the detector layer h
-            a theano 4-tensor for the expected value of the pooling layer p
-            if theano_rng is not None, also returns:
-                a theano 4-tensor of samples of the detector layer
-                a theano 4-tensor of samples of the pooling layer
+        WRITEME properly
 
-        all 4-tensors are formatted with axes ('b', 'c', 0, 1).
-        This is for maximum speed when using theano's conv2d
-        to generate z and top_down, or when using it to infer conditionals of other layers
-        using the return values.
+    z : a theano 4-tensor representing input from below
+    pool_shape: tuple of ints. the shape of regions to be pooled
+    top_down: (optional) a theano 4-tensor representing input from above
+                if None, assumes top-down input is 0
+    theano_rng: (optional) a MRG_RandomStreams instance
 
-        Detailed description:
+    returns:
+        a theano 4-tensor for the expected value of the detector layer h
+        a theano 4-tensor for the expected value of the pooling layer p
+        if theano_rng is not None, also returns:
+            a theano 4-tensor of samples of the detector layer
+            a theano 4-tensor of samples of the pooling layer
 
-        Suppose you have a variable h that lives in a Conv2DSpace h_space and you want to
-        pool it down to a variable p that lives in a smaller Conv2DSpace p.
+    all 4-tensors are formatted with axes ('b', 'c', 0, 1).
+    This is for maximum speed when using theano's conv2d
+    to generate z and top_down, or when using it to infer conditionals of other layers
+    using the return values.
 
-        This function does that, using non-overlapping pools.
+    Detailed description:
 
-        Specifically, consider one channel of h. h must have a height that is a multiple of
-        pool_shape[0] and a width that is a multiple of pool_shape[1]. A channel of h can
-        thus be broken down into non-overlapping rectangles of shape pool_shape.
+    Suppose you have a variable h that lives in a Conv2DSpace h_space and you want to
+    pool it down to a variable p that lives in a smaller Conv2DSpace p.
 
-        Now consider one rectangular pooled region within one channel of h.
-        I now use 'h' to refer just to this rectangle, and 'p' to refer to just the one pooling
-        unit associated with that rectangle.
-        We assume that the space that h and p live in is constrained such that h and p are
-        both binary and p = max(h). To reduce the state-space in order to make probabilistic
-        computations cheaper we also constrain sum(h) <= 1.
-        Suppose h contains k different units. Suppose that the only term in the model's energy
-        function involving h is -(z*h).sum() (elemwise multiplication) and the only term in
-        the model's energy function involving p is -(top_down*p).sum().
+    This function does that, using non-overlapping pools.
 
-        Then P(h[i] = 1) = softmax( [ z[1], z[2], ..., z[k], -top_down] )[i]
-        and P(p = 1) = 1-softmax( [z[1], z[2], ..., z[k], -top_down])[k]
+    Specifically, consider one channel of h. h must have a height that is a multiple of
+    pool_shape[0] and a width that is a multiple of pool_shape[1]. A channel of h can
+    thus be broken down into non-overlapping rectangles of shape pool_shape.
+
+    Now consider one rectangular pooled region within one channel of h.
+    I now use 'h' to refer just to this rectangle, and 'p' to refer to just the one pooling
+    unit associated with that rectangle.
+    We assume that the space that h and p live in is constrained such that h and p are
+    both binary and p = max(h). To reduce the state-space in order to make probabilistic
+    computations cheaper we also constrain sum(h) <= 1.
+    Suppose h contains k different units. Suppose that the only term in the model's energy
+    function involving h is -(z*h).sum() (elemwise multiplication) and the only term in
+    the model's energy function involving p is -(top_down*p).sum().
+
+    Then P(h[i] = 1) = softmax( [ z[1], z[2], ..., z[k], -top_down] )[i]
+    and P(p = 1) = 1-softmax( [z[1], z[2], ..., z[k], -top_down])[k]
 
 
-        This variation of the function assumes that z, top_down, and all return values use
-        Conv2D axes ('b', 'c', 0, 1).
-        This variation of the function implements the softmax using a theano graph of exp,
-        maximum, sub, and div operations.
+    This variation of the function assumes that z, top_down, and all return values use
+    Conv2D axes ('b', 'c', 0, 1).
+    This variation of the function implements the softmax using a theano graph of exp,
+    maximum, sub, and div operations.
 
     Performance notes:
-        It might be possible to make a faster implementation with different theano ops.
-        rather than using set_subtensor, it might be possible to use the stuff in
-        theano.sandbox.neighbours. Probably not possible, or at least nasty, because
-        that code isn't written with multiple channels in mind, and I don't think
-        just a reshape can fix it. Some work on this in galatea.cond.neighbs.py
-        At some point images2neighbs' gradient was broken so check that it has been fixed
-        before sinking too much time into this.
+    It might be possible to make a faster implementation with different theano ops.
+    rather than using set_subtensor, it might be possible to use the stuff in
+    theano.sandbox.neighbours. Probably not possible, or at least nasty, because
+    that code isn't written with multiple channels in mind, and I don't think
+    just a reshape can fix it. Some work on this in galatea.cond.neighbs.py
+    At some point images2neighbs' gradient was broken so check that it has been fixed
+    before sinking too much time into this.
 
-        Stabilizing the softmax is also another source of slowness. Here it is stabilized
-        with several calls to maximum and sub. It might also be possible to stabilize it
-        with T.maximum(-top_down,T.signal.downsample.max_pool(z)). Don't know if that would
-        be faster or slower.
+    Stabilizing the softmax is also another source of slowness. Here it is stabilized
+    with several calls to maximum and sub. It might also be possible to stabilize it
+    with T.maximum(-top_down,T.signal.downsample.max_pool(z)). Don't know if that would
+    be faster or slower.
 
-        Elsewhere in this file I implemented the softmax with a reshape and call to Softmax /
-        SoftmaxWithBias. This is slower, even though Softmax is faster on the GPU than the
-        equivalent max/sub/exp/div graph. Maybe the reshape is too expensive.
+    Elsewhere in this file I implemented the softmax with a reshape and call to Softmax /
+    SoftmaxWithBias. This is slower, even though Softmax is faster on the GPU than the
+    equivalent max/sub/exp/div graph. Maybe the reshape is too expensive.
 
-        Benchmarks show that most of the time is spent in GpuIncSubtensor when running on
-        gpu. So it is mostly that which needs a faster implementation.
-        One other way to implement this would be with a linear.Conv2D.lmul_T, where the
-        convolution stride is equal to the pool width, and the thing to multiply with is
-        the hparts stacked along the channel axis. Unfortunately, conv2D doesn't work right
-        with stride > 2 and is pretty slow for stride 2. Conv3D is used to mitigat some
-        of this, but only has CPU code.
+    Benchmarks show that most of the time is spent in GpuIncSubtensor when running on
+    gpu. So it is mostly that which needs a faster implementation.
+    One other way to implement this would be with a linear.Conv2D.lmul_T, where the
+    convolution stride is equal to the pool width, and the thing to multiply with is
+    the hparts stacked along the channel axis. Unfortunately, conv2D doesn't work right
+    with stride > 2 and is pretty slow for stride 2. Conv3D is used to mitigat some
+    of this, but only has CPU code.
     """
 
     z_name = z.name
@@ -234,22 +236,26 @@ def max_pool(z, pool_shape, top_down = None, theano_rng = None):
 
 def max_pool_c01b(z, pool_shape, top_down = None, theano_rng = None):
     """
-        Like max_pool but with all 4-tensors formatted with axes ('c', 0, 1, 'b').
-        This is for maximum speed when using-cuda convnet.
+    .. todo::
+
+        WRITEME properly
+
+    Like max_pool but with all 4-tensors formatted with axes ('c', 0, 1, 'b').
+    This is for maximum speed when using-cuda convnet.
 
     Performance notes:
-        Stabilizing the softmax is one source slowness. Here it is stabilized
-        with several calls to maximum and sub. It might also be possible to stabilize it
-        with T.maximum(-top_down,<cuda convnet max pooling>). Don't know if that would
-        be faster or slower.
+    Stabilizing the softmax is one source slowness. Here it is stabilized
+    with several calls to maximum and sub. It might also be possible to stabilize it
+    with T.maximum(-top_down,<cuda convnet max pooling>). Don't know if that would
+    be faster or slower.
 
-        Benchmarks show that most of the time is spent in GpuIncSubtensor when running on
-        gpu. So it is mostly that which needs a faster implementation.
-        One other way to implement this would be with cuda convnet convolution, where the
-        convolution stride is equal to the pool width, and the thing to multiply with is
-        the hparts stacked along the channel axis. This isn't a feasible solution for
-        max_pool because of theano convolution's poor support for strides, but for cuda
-        convnet it could give a speedup.
+    Benchmarks show that most of the time is spent in GpuIncSubtensor when running on
+    gpu. So it is mostly that which needs a faster implementation.
+    One other way to implement this would be with cuda convnet convolution, where the
+    convolution stride is equal to the pool width, and the thing to multiply with is
+    the hparts stacked along the channel axis. This isn't a feasible solution for
+    max_pool because of theano convolution's poor support for strides, but for cuda
+    convnet it could give a speedup.
     """
 
     z_name = z.name
@@ -374,25 +380,28 @@ def max_pool_c01b(z, pool_shape, top_down = None, theano_rng = None):
 
 def max_pool_channels(z, pool_size, top_down = None, theano_rng = None):
     """
-        Unlike Honglak's convolutional max pooling, which pools over spatial
-        locations within each channels, this does max pooling in a densely
-        connected model. Here we pool groups of channels together.
+    .. todo::
 
-        z : a theano matrix representing a batch of input from below
-        pool_size: int. the number of features to combine into one pooled unit
-        top_down: (optional) a theano matrix representing input from above
-                    if None, assumes top-down input is 0
-        theano_rng: (optional) a MRG_RandomStreams instance
+        WRITEME properly
 
-        returns:
-            a theano matrix for the expected value of the detector layer h
-            a theano matrix for the expected value of the pooling layer p
-            if theano_rng is not None, also returns:
-                a theano matrix of samples of the detector layer
-                a theano matrix of samples of the pooling layer
+    Unlike Honglak's convolutional max pooling, which pools over spatial
+    locations within each channels, this does max pooling in a densely
+    connected model. Here we pool groups of channels together.
 
-        all matrices are formatted as (num_example, num_features)
+    z : a theano matrix representing a batch of input from below
+    pool_size: int. the number of features to combine into one pooled unit
+    top_down: (optional) a theano matrix representing input from above
+                if None, assumes top-down input is 0
+    theano_rng: (optional) a MRG_RandomStreams instance
 
+    returns:
+        a theano matrix for the expected value of the detector layer h
+        a theano matrix for the expected value of the pooling layer p
+        if theano_rng is not None, also returns:
+            a theano matrix of samples of the detector layer
+            a theano matrix of samples of the pooling layer
+
+    all matrices are formatted as (num_example, num_features)
     """
 
     z_name = z.name
@@ -530,6 +539,10 @@ def max_pool_channels(z, pool_size, top_down = None, theano_rng = None):
 
 def max_pool_python(z, pool_shape, top_down = None):
     """
+    .. todo::
+
+        WRITEME properly
+
     Slow python implementation of max_pool
     for unit tests.
     Also, this uses the ('b', 0, 1, 'c') format.
@@ -562,6 +575,10 @@ def max_pool_python(z, pool_shape, top_down = None):
 
 def max_pool_channels_python(z, pool_size, top_down = None):
     """
+    .. todo::
+
+        WRITEME properly
+
     Slow python implementation of max_pool_channels
     for unit tests.
     Also, this uses the ('b', 0, 1, 'c') format.
@@ -590,6 +607,10 @@ def max_pool_channels_python(z, pool_size, top_down = None):
 
 def max_pool_unstable(z, pool_shape):
     """
+    .. todo::
+
+        WRITEME properly
+
     A version of max_pool that does not numerically stabilize the softmax.
     This is faster, but prone to both overflow and underflow in the intermediate
     computations.
@@ -636,6 +657,10 @@ def max_pool_unstable(z, pool_shape):
 
 def max_pool_b01c(z, pool_shape, top_down = None, theano_rng = None):
     """
+    .. todo::
+
+        WRITEME properly
+
     An implementation of max_pool but where all 4-tensors use the
     ('b', 0, 1, 'c') format.
     """
@@ -750,6 +775,10 @@ def max_pool_b01c(z, pool_shape, top_down = None, theano_rng = None):
 
 def max_pool_softmax_with_bias_op(z, pool_shape):
     """
+    .. todo::
+
+        WRITEME properly
+
     An implementation of max_pool that uses the SoftmaxWithBias op.
     Mostly kept around for comparison benchmarking purposes.
     Also, this uses the ('b', 0, 1, 'c') format.
@@ -803,6 +832,10 @@ def max_pool_softmax_with_bias_op(z, pool_shape):
 
 def max_pool_softmax_op(z, pool_shape):
     """
+    .. todo::
+
+        WRITEME properly
+
     An implementation of max_pool that uses the SoftmaxWithBias op.
     Mostly kept around for comparison benchmarking purposes.
     Also, this uses the ('b', 0, 1, 'c') format.
@@ -855,6 +888,11 @@ def max_pool_softmax_op(z, pool_shape):
 
 
 def profile(f):
+    """
+    .. todo::
+
+        WRITEME
+    """
     print 'profiling ',f
     rng = np.random.RandomState([2012,7,19])
     batch_size = 80
@@ -891,6 +929,11 @@ def profile(f):
     print 'final: ',sum(results)/float(trials)
 
 def profile_bc01(f):
+    """
+    .. todo::
+
+        WRITEME
+    """
     print 'profiling ',f
     rng = np.random.RandomState([2012,7,19])
     batch_size = 80
@@ -927,6 +970,11 @@ def profile_bc01(f):
     print 'final: ',sum(results)/float(trials)
 
 def profile_samples(f):
+    """
+    .. todo::
+
+        WRITEME
+    """
     print 'profiling samples',f
     rng = np.random.RandomState([2012,7,19])
     theano_rng = MRG_RandomStreams(rng.randint(2147462579))
@@ -964,6 +1012,11 @@ def profile_samples(f):
     print 'final: ',sum(results)/float(trials)
 
 def profile_grad(f):
+    """
+    .. todo::
+
+        WRITEME
+    """
     print 'profiling gradient of ',f
     rng = np.random.RandomState([2012,7,19])
     batch_size = 80
@@ -999,6 +1052,11 @@ def profile_grad(f):
     print 'final: ',sum(results)/float(trials)
 
 def profile_grad_bc01(f):
+    """
+    .. todo::
+
+        WRITEME
+    """
     print 'profiling gradient of ',f
     rng = np.random.RandomState([2012,7,19])
     batch_size = 80

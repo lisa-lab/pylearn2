@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import numpy as np
 from pylearn2.datasets.dense_design_matrix import DefaultViewConverter
 from pylearn2.utils.image import Image, ensure_Image
@@ -8,9 +13,15 @@ import warnings
 
 def make_viewer(mat, grid_shape=None, patch_shape=None,
                 activation=None, pad=None, is_color = False, rescale = True):
-    """ Given filters in rows, guesses dimensions of patches
-        and nice dimensions for the PatchViewer and returns a PatchViewer
-        containing visualizations of the filters"""
+    """
+    .. todo::
+
+        WRITEME properly
+
+    Given filters in rows, guesses dimensions of patches
+    and nice dimensions for the PatchViewer and returns a PatchViewer
+    containing visualizations of the filters
+    """
 
     num_channels = 1
     if is_color:
@@ -52,8 +63,18 @@ def make_viewer(mat, grid_shape=None, patch_shape=None,
 
 
 class PatchViewer(object):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, grid_shape, patch_shape, is_color=False, pad = None,
                  background = None ):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if background is None:
             if is_color:
                 background = np.zeros((3,))
@@ -99,6 +120,11 @@ class PatchViewer(object):
 
 
     def clear(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.is_color:
             for i in xrange(3):
                 self.image[:, :, i] = self.background[i] * .5 + .5
@@ -110,6 +136,10 @@ class PatchViewer(object):
     def add_patch(self, patch, rescale=True, recenter=True, activation=None,
                   warn_blank_patch = True):
         """
+        .. todo::
+
+            WRITEME properly
+
         :param recenter: if patch has smaller dimensions than self.patch,
         recenter will pad the image to the appropriate size before displaying.
         """
@@ -227,6 +257,11 @@ class PatchViewer(object):
 
     def addVid(self, vid, rescale=False, subtract_mean=False, recenter=False):
         myvid = vid.copy()
+        """
+        .. todo::
+
+            WRITEME
+        """
         if subtract_mean:
             myvid -= vid.mean()
         if rescale:
@@ -238,10 +273,20 @@ class PatchViewer(object):
             self.add_patch(myvid[:, :, i], rescale=False, recenter=recenter)
 
     def show(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         #image.imview_async(self.image)
         show(self.image)
 
     def get_img(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         #print 'image range '+str((self.image.min(), self.image.max()))
         x = np.cast['uint8'](self.image * 255.0)
         if x.shape[2] == 1:
@@ -251,12 +296,20 @@ class PatchViewer(object):
         return img
 
     def save(self, path):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.get_img().save(path)
 
     def pick_shape(n, exact = False):
         """
-        Returns a shape that fits n elements.
-        If exact, fits exactly n elements
+        .. todo::
+
+            WRITEME properly
+
+        Returns a shape that fits n elements. If exact, fits exactly n elements
         """
 
         if not isinstance(n, py_integer_types):
