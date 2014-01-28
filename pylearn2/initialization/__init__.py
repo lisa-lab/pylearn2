@@ -97,6 +97,12 @@ class Constant(object):
         dest[...] = self._constant
         return dest
 
+    def __str__(self):
+        param = str(self._constant)
+        if len(param) > 20:
+            param = "...<str too long>..."
+        return "Constant(%s)" % param
+
 
 class IsotropicGaussian(NdarrayInitialization):
     """
@@ -118,6 +124,10 @@ class IsotropicGaussian(NdarrayInitialization):
     def initialize(self, rng, shape, *args, **kwargs):
         m = rng.normal(self._mean, self._std, size=shape)
         return m.astype(theano.config.floatX)
+
+    def __str__(self):
+        return ("IsotropicGaussian(mean=%s, std=%s)" %
+                (self._mean, self._std))
 
 
 class Uniform(NdarrayInitialization):
@@ -151,8 +161,10 @@ class Uniform(NdarrayInitialization):
         if std is not None:
             # Variance of a uniform is 1/12 * width^2
             self._width = np.sqrt(12) * std
+            self._std = std  # For display purposes.
         else:
             self._width = width
+            self._std = None  # For display purposes.
         self._mean = mean
 
     @wraps(NdarrayInitialization.initialize)
@@ -160,6 +172,17 @@ class Uniform(NdarrayInitialization):
         w = self._width / 2
         m = rng.uniform(self._mean - w, self._mean + w, size=shape)
         return m.astype(theano.config.floatX)
+
+    def __str__(self):
+        pairs = []
+        if self._mean != 0:
+            pairs.append(('mean', '%s' % (self._mean,)))
+        if self._std is not None:
+            pairs.append(('std', '%s' % (self._std,)))
+        else:
+            pairs.append(('width', '%s' % (self._width,)))
+        class_name = self.__class__.__name__
+        return '%s(%s)' % (class_name, ', '.join('='.join(p) for p in pairs))
 
 
 class SparseInitialization(NdarrayInitialization):
@@ -236,3 +259,12 @@ class SparseInitialization(NdarrayInitialization):
             # Undo the swapping and the reshape.
             values.reshape(vshape).swapaxes(atom_axis, 0)
         return values
+
+    def __str__(self):
+        base = str(self._base)
+        arg_str = ('prob_nonzero' if self._prob_nonzero is not None
+                   else 'num_nonzero')
+        arg = (('%s' % self._prob_nonzero) if self._prob_nonzero is not None
+               else ('%d' % self._num_nonzero))
+        class_name = self.__class__.__name__
+        return '%s(base=%s, %s=%s)' % (class_name, base, arg_str, arg)
