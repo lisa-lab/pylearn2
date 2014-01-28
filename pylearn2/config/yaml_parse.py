@@ -298,15 +298,34 @@ def try_to_import(tag_suffix):
     return obj
 
 
-def multi_constructor(loader, tag_suffix, node):
+def initialize():
     """
-    .. todo::
+    Initialize the configuration system by installing YAML handlers.
+    Automatically done on first call to load() specified in this file.
+    """
+    global is_initialized
 
-        WRITEME properly
+    # Add the custom multi-constructor
+    yaml.add_multi_constructor('!obj:', multi_constructor_obj)
+    yaml.add_multi_constructor('!pkl:', multi_constructor_pkl)
+    yaml.add_multi_constructor('!import:', multi_constructor_import)
 
-    Constructor function passed to PyYAML telling it how to construct
-    objects from argument descriptions. See PyYAML documentation for
-    details on the call signature.
+    yaml.add_constructor('!import', constructor_import)
+    yaml.add_implicit_resolver(
+        '!import',
+        re.compile(r'(?:[a-zA-Z_][\w_]+\.)+[a-zA-Z_][\w_]+')
+    )
+    is_initialized = True
+
+
+################################################################################3
+# Callbacks used by PyYAML 
+
+def multi_constructor_obj(loader, tag_suffix, node):
+    """
+    Callback used by PyYAML when a "!obj:" tag is encountered.
+
+    See PyYAML documentation for details on the call signature.
     """
     yaml_src = yaml.serialize(node)
     mapping = loader.construct_mapping(node)
@@ -319,65 +338,44 @@ def multi_constructor(loader, tag_suffix, node):
 
     return rval
 
-
 def multi_constructor_pkl(loader, tag_suffix, node):
     """
-    .. todo::
-
-        WRITEME properly
-
-    Constructor function passed to PyYAML telling it how to load
-    objects from paths to .pkl files. See PyYAML documentation for
-    details on the call signature.
+    Callback used by PyYAML when a "!pkl:" tag is encountered.
     """
+    print "-- Found !pkl ---"
+    print node
 
     mapping = loader.construct_yaml_str(node)
+    print mapping
     if tag_suffix != "" and tag_suffix != u"":
-        raise AssertionError('Expected tag_suffix to be "" but it is "' +
-                             tag_suffix + '"')
+        raise AssertionError('Expected tag_suffix to be "" but it is "' + tag_suffix +
+                    '": Put space between !pkl: and the filename.')
 
     rval = ObjectProxy(None, {}, yaml.serialize(node))
     rval.instance = serial.load(mapping)
 
     return rval
 
-
 def multi_constructor_import(loader, tag_suffix, node):
     """
-    .. todo::
-
-        WRITEME
+    Callback used by PyYAML when a "!import:" tag is encountered.
     """
-    yaml.serialize(node)
-    loader.construct_mapping(node)
     if '.' not in tag_suffix:
+        raise yaml.YAMLError("!import: tag suffix contains no '.'")
+    return try_to_import(tag_suffix)
+
+def constructor_import(loader, node):
+    """
+    Callback used by PyYAML when a "!import <str>" tag is encountered. 
+    This tag exects a (quoted) string as argument.
+    """
+    value = loader.construct_scalar(node)
+    if '.' not in value:
         raise yaml.YAMLError("import tag suffix contains no '.'")
-    else:
-        rval = try_to_import(tag_suffix)
-    return rval
+    return try_to_import(value)
 
 
-def initialize():
-    """
-    Initialize the configuration system by installing YAML handlers.
-    Automatically done on first call to load() specified in this file.
-    """
-    global is_initialized
-    # Add the custom multi-constructor
-    yaml.add_multi_constructor('!obj:', multi_constructor)
-    yaml.add_multi_constructor('!pkl:', multi_constructor_pkl)
-    yaml.add_multi_constructor('!import:', multi_constructor_import)
 
-    def import_constructor(loader, node):
-        value = loader.construct_scalar(node)
-        return try_to_import(value)
-
-    yaml.add_constructor('!import', import_constructor)
-    yaml.add_implicit_resolver(
-        '!import',
-        re.compile(r'(?:[a-zA-Z_][\w_]+\.)+[a-zA-Z_][\w_]+')
-    )
-    is_initialized = True
 
 if __name__ == "__main__":
     initialize()
