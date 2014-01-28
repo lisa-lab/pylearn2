@@ -20,3 +20,6 @@
 
 #Don't track Pycharm .idea folder
 .idea
+
+#Don't track anybody's pylintrc file
+pylintrc
