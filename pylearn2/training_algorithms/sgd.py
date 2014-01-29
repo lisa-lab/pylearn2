@@ -13,6 +13,7 @@ __email__ = "goodfeli@iro"
 import logging
 import warnings
 import numpy as np
+import re
 
 from theano import config
 from theano import function
@@ -459,7 +460,7 @@ class MonitorBasedLRAdjuster(TrainExtension):
             if dataset_name is not None:
                 self.channel_name = dataset_name + '_objective'
             else:
-                self.channel_name = 'objective'
+                self.channel_name = None
 
     def on_monitor(self, model, dataset, algorithm):
         """
@@ -474,6 +475,19 @@ class MonitorBasedLRAdjuster(TrainExtension):
         assert hasattr(model, 'monitor'), ("no monitor associated with " +
                                            str(model))
         monitor = model.monitor
+
+        if self.channel_name is None:
+            channels = [elem for elem in monitor.channels if elem.endswith("_objective")]
+            if len(channels) < 1:
+                raise ValueError("""There are no channels that end with \"_objective\". Please specify either channel_name or dataset_name.""")
+            elif len(channels) > 1:
+                datasets = [re.sub('_objective', '', elem) for elem in channels]
+                raise ValueError('There are multiple channels that ends with \"_objective\". The list of corresponding datasets are: ' + \
+                                datasets + ' . Please either specify channel_name or dataset_name to disambiguate.')
+            else:
+                self.channel_name = channels[0]
+                warnings.warn('The channel that has been chosen for monitoring is: ' + \
+                              self.channel_name + '.')
 
         try:
             v = monitor.channels[self.channel_name].val_record
