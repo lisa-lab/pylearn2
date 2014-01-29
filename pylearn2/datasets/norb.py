@@ -11,7 +11,7 @@ NORB dataset(s) by Fu Jie Huang and Yann LeCun.
 """
 
 __authors__ = "Matthew Koichi Grimes and Guillaume Desjardins"
-__copyright__ = "Copyright 2010-2014, Universite de Motreal"
+__copyright__ = "Copyright 2010-2014, Universite de Montreal"
 __credits__ = __authors__.split(" and ")
 __license__ = "3-clause BSD"
 __maintainer__ = "Matthew Koichi Grimes"
@@ -19,6 +19,8 @@ __email__ = "mkg alum mit edu (@..)"
 
 # Mostly repackaged code from Pylearn 1's datasets/norb_small.py and
 # io/filetensor.py, as well as Pylearn2's original datasets/norb_small.py
+#
+# Currently only supports the SmallNORB dataset.
 
 import os, gzip, bz2
 import numpy, theano
@@ -45,6 +47,10 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
       category = SmallNORB.get_category(label[0])
       elevation = SmallNORB.get_elevation_degrees(label[2])
     """
+
+    # Actual image shape may change, e.g. after being preprocessed by
+    # datasets.preprocessing.Downsample
+    original_image_shape = (96, 96)
 
     _categories = ['animal',  # four-legged animal
                    'human',  # human figure
@@ -130,8 +136,7 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
         datum_shape = (2, 96, 96, 1)  # stereo_image, row, column, channel
         axes = ('b', 's', 0, 1, 'c')
-        view_converter = dense_design_matrix.DefaultViewConverter(datum_shape,
-                                                                  axes=axes)
+        view_converter = StereoViewConverter(datum_shape, axes)
 
         # TODO: let labels be accessible by key, like y.category, y.elevation,
         # etc.
@@ -206,7 +211,7 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
                 key_to_type = {0x1E3D4C51: ('float32', 4),
                                # what is a packed matrix?
-                               # 0x1E3D4C52 : ('packed matrix', 0),
+                               # 0x1E3D4C52: ('packed matrix', 0),
                                0x1E3D4C53: ('float64', 8),
                                0x1E3D4C54: ('int32', 4),
                                0x1E3D4C55: ('uint8', 1),
@@ -237,6 +242,7 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
                     print 'Tensor shape, as listed in header:', shape
 
                 return elem_type, elem_size, shape
+
 
             elem_type, elem_size, shape = readHeader(file_handle, debug)
             beginning = file_handle.tell()
@@ -271,6 +277,7 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
             return result
 
+
         file_handle = open(getPath(which_set))
         return parseNORBFile(file_handle)
 
@@ -293,25 +300,36 @@ class StereoViewConverter(object):
           1    image axis 1 (column)
           'c'  channel axis
         """
-        shape = numpy.array(shape, dtype='int')
+        shape = tuple(shape)
+
+        if not all(isinstance(s, int) for s in shape):
+            raise TypeError("Shape must be a tuple/list of ints")
+
         if len(shape) != 4:
             raise ValueError("Shape array needs to be of length 4, got %s." %
                              shape)
-        if shape[axes.index['s']] != 2:
+
+        datum_axes = list(axes)
+        datum_axes.remove('b')
+        if shape[datum_axes.index('s')] != 2:
             raise ValueError("Expected 's' axis to have size 2, got %d.\n"
-                             "  axes:  %s\n"
-                             "  shape: %s" % (shape[axes.index['s']],
-                                              axes,
-                                              shape))
+                             "  axes:       %s\n"
+                             "  shape:      %s" %
+                             (shape[datum_axes.index('s')],
+                              axes,
+                              shape))
         self.shape = shape
         self.set_axes(axes)
 
         def make_conv2d_space(shape, axes):
-            image_shape = tuple(shape[axes.index(axis)] for axis in (0, 1))
+            shape_axes = list(axes)
+            shape_axes.remove('b')
+            image_shape = tuple(shape[shape_axes.index(axis)]
+                                for axis in (0, 1))
             conv2d_axes = list(axes)
             conv2d_axes.remove('s')
             return Conv2DSpace(shape=image_shape,
-                               num_channels=shape[axes.index['c']],
+                               num_channels=shape[shape_axes.index('c')],
                                axes=conv2d_axes)
 
         conv2d_space = make_conv2d_space(shape, axes)
@@ -360,12 +378,17 @@ class StereoViewConverter(object):
             raise ValueError("The 'b' axis must come first (axes = %s)." %
                              str(axes))
 
-        if hasattr(self, 'axes'):
-            assert hasattr(self, 'shape')
-            new_shape = numpy.zeros(self.shape.shape, dtype='int')
-            for a, axis in enumerate(axes):
-                new_shape[a] = self.shape[self.axes.index(axis)]
+        def get_batchless_axes(axes):
+            axes = list(axes)
+            axes.remove('b')
+            return tuple(axes)
 
+        if hasattr(self, 'axes'):
+            # Reorders the shape vector to match the new axis ordering.
+            assert hasattr(self, 'shape')
+            old_axes = get_batchless_axes(self.axes)
+            new_axes = get_batchless_axes(axes)
+            new_shape = tuple(self.shape[old_axes.index(a)] for a in new_axes)
             self.shape = new_shape
 
         self.axes = axes

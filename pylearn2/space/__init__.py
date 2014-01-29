@@ -467,7 +467,7 @@ class VectorSpace(Space):
                 width = component.get_total_dimension()
                 subtensor = batch[:, pos:pos+width]
                 pos += width
-                formatted = VectorSpace(width).format_as(subtensor, component)
+                formatted = VectorSpace(width)._format_as(subtensor, component)
                 pieces.append(formatted)
             return tuple(pieces)
 
