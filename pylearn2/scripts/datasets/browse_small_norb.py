@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, argparse
+import sys, argparse, pickle
 import numpy
 from matplotlib import pyplot
 from pylearn2.datasets import norb
@@ -13,22 +13,48 @@ def main():
 
         parser.add_argument('--which_set',
                             default='train',
-                            help="'train' or 'test'")
+                            help="'train', 'test', or the path to a .pkl file")
+
+        parser.add_argument('--zca',
+                            default=None,
+                            help=("if --which_set points to a .pkl "
+                                  "file storing a ZCA-preprocessed "
+                                  "NORB dataset, you can optionally "
+                                  "enter the preprocessor's .pkl "
+                                  "file path here to undo the "
+                                  "ZCA'ing for visualization "
+                                  "purposes."))
 
         return parser.parse_args()
 
-    def get_data(which_set):
-        dataset = norb.SmallNORB(which_set, True)
-        num_examples = dataset.get_data()[0].shape[0]
-        iterator = dataset.iterator(mode='sequential',
-                                    batch_size=num_examples,
-                                    topo=True,
-                                    targets=True)
-        values, labels = iterator.next()
-        return values, numpy.array(labels, 'int')
+    def get_data(args):
+        if args.which_set in ('train', 'test'):
+            dataset = norb.SmallNORB(args.which_set, True)
+        else:
+            with open(args.which_set) as norb_file:
+                dataset = pickle.load(norb_file)
+                if len(dataset.y.shape) < 2 or dataset.y.shape[1] == 1:
+                    print("This viewer does not support NORB datasets that "
+                          "only have classification labels.")
+                    sys.exit(1)
+
+            if args.zca is not None:
+                with open(args.zca) as zca_file:
+                    zca = pickle.load(zca_file)
+                    dataset.X = zca.inverse(dataset.X)
+
+        num_examples = dataset.X.shape[0]
+
+        topo_shape = ((num_examples, ) +
+                      tuple(dataset.view_converter.shape))
+        assert topo_shape[-1] == 1
+        topo_shape = topo_shape[:-1]
+        values = dataset.X.reshape(topo_shape)
+        labels = numpy.array(dataset.y, 'int')
+        return values, labels, dataset.which_set
 
     args = parse_args()
-    values, labels = get_data(args.which_set)
+    values, labels, which_set = get_data(args)
 
     # For programming convenience, internally remap the instance labels to be
     # 0-4, and the azimuth labels to be 0-17. The user will still only see the
@@ -59,7 +85,7 @@ def main():
 
         return new_to_old_instance
 
-    new_to_old_instance = remap_instances(args.which_set, labels)
+    new_to_old_instance = remap_instances(which_set, labels)
 
     def get_new_azimuth_degrees(scalar_label):
         return 20 * scalar_label
@@ -79,7 +105,7 @@ def main():
     figure, axes = pyplot.subplots(1, 2, squeeze=True)
 
     figure.canvas.set_window_title('Small NORB dataset (%sing set)' %
-                                   args.which_set)
+                                   which_set)
 
     # shift subplots down to make more room for the text
     figure.subplots_adjust(bottom=0.05)
