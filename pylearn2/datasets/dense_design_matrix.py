@@ -886,7 +886,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
     _default_seed = (17, 2, 946)
 
     def __init__(self, X=None, topo_view=None, y=None,
-                 view_converter=None, axes = ('b', 0, 1, 'c'),
+                 view_converter=None, axes=('b', 0, 1, 'c'),
                  rng=_default_seed):
         """
         Parameters
@@ -915,17 +915,18 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
             indices into the design matrix when choosing minibatches.
         """
 
-        super(DenseDesignMatrixPyTables, self).__init__(X = X,
-                                            topo_view = topo_view,
-                                            y = y,
-                                            view_converter = view_converter,
-                                            axes = axes,
-                                            rng = rng)
+        super_self = super(DenseDesignMatrixPyTables, self)
+        super_self.__init__(X=X,
+                            topo_view=topo_view,
+                            y=y,
+                            view_converter=view_converter,
+                            axes=axes,
+                            rng=rng)
         ensure_tables()
         if not hasattr(self, 'filters'):
             self.filters = tables.Filters(complib='blosc', complevel=5)
 
-    def set_design_matrix(self, X, start = 0):
+    def set_design_matrix(self, X, start=0):
         """
         .. todo::
 
@@ -933,11 +934,11 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         """
         assert len(X.shape) == 2
         assert not np.any(np.isnan(X))
-        DenseDesignMatrixPyTables.fill_hdf5(file = self.h5file,
-                                            data_x = X,
-                                            start = start)
+        DenseDesignMatrixPyTables.fill_hdf5(file=self.h5file,
+                                            data_x=X,
+                                            start=start)
 
-    def set_topological_view(self, V, axes = ('b', 0, 1, 'c'), start = 0):
+    def set_topological_view(self, V, axes=('b', 0, 1, 'c'), start=0):
         """
         Sets the dataset to represent V, where V is a batch
         of topological views of examples.
@@ -959,12 +960,13 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         rows = V.shape[axes.index(0)]
         cols = V.shape[axes.index(1)]
         channels = V.shape[axes.index('c')]
-        self.view_converter = DefaultViewConverter([rows, cols, channels], axes=axes)
+        self.view_converter = DefaultViewConverter([rows, cols, channels],
+                                                   axes=axes)
         X = self.view_converter.topo_view_to_design_mat(V)
         assert not np.any(np.isnan(X))
-        DenseDesignMatrixPyTables.fill_hdf5(file = self.h5file,
-                                            data_x = X,
-                                            start = start)
+        DenseDesignMatrixPyTables.fill_hdf5(file=self.h5file,
+                                            data_x=X,
+                                            start=start)
 
     @functools.wraps(Dataset.iterator)
     def iterator(self, mode=None, batch_size=None, num_batches=None,
@@ -977,20 +979,21 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         """
 
         warnings.warn("Overloading this method is not necessary with the new "
-                     "interface change and this will be removed around November "
-                     "7th 2013", stacklevel=2)
+                      "interface change and this will be removed around "
+                      "November 7th 2013", stacklevel=2)
 
         if topo is not None or targets is not None:
             if data_specs is not None:
                 raise ValueError("In DenseDesignMatrix.iterator, both "
-                        "the `data_specs` argument and deprecated arguments "
-                        "`topo` or `targets` were provided.",
-                        (data_specs, topo, targets))
+                                 "the `data_specs` argument and deprecated "
+                                 "arguments `topo` or `targets` were "
+                                 "provided.", (data_specs, topo, targets))
 
             warnings.warn("Usage of `topo` and `target` arguments are being "
-                    "deprecated, and will be removed around November 7th, "
-                    "2013. `data_specs` should be used instead.",
-                    stacklevel=2)
+                          "deprecated, and will be removed around "
+                          "November 7th, 2013. `data_specs` should be used "
+                          "instead.", stacklevel=2)
+
             # build data_specs from topo and targets if needed
             if topo is None:
                 topo = getattr(self, '_iter_topo', False)
@@ -1039,16 +1042,20 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
             data_specs = self._iter_data_specs
         if _deprecated_interface:
             return FiniteDatasetIteratorPyTables(self,
-                                     mode(self.X.shape[0], batch_size,
-                                     num_batches, rng),
-                                     data_specs=data_specs,
-                                     return_tuple=return_tuple)
+                                                 mode(self.X.shape[0],
+                                                      batch_size,
+                                                      num_batches,
+                                                      rng),
+                                                 data_specs=data_specs,
+                                                 return_tuple=return_tuple)
         else:
             return FiniteDatasetIterator(self,
-                                     mode(self.X.shape[0], batch_size,
-                                     num_batches, rng),
-                                     data_specs=data_specs,
-                                     return_tuple=return_tuple)
+                                         mode(self.X.shape[0],
+                                              batch_size,
+                                              num_batches,
+                                              rng),
+                                         data_specs=data_specs,
+                                         return_tuple=return_tuple)
 
     def init_hdf5(self, path, shapes):
         """
@@ -1062,13 +1069,14 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         x_shape, y_shape = shapes
         # make pytables
         ensure_tables()
-        h5file = tables.openFile(path, mode = "w", title = "SVHN Dataset")
+        h5file = tables.openFile(path, mode="w", title="SVHN Dataset")
         gcolumns = h5file.createGroup(h5file.root, "Data", "Data")
-        atom = tables.Float32Atom() if config.floatX == 'float32' else tables.Float64Atom()
-        h5file.createCArray(gcolumns, 'X', atom = atom, shape = x_shape,
-                                title = "Data values", filters = self.filters)
-        h5file.createCArray(gcolumns, 'y', atom = atom, shape = y_shape,
-                                title = "Data targets", filters = self.filters)
+        atom = (tables.Float32Atom() if config.floatX == 'float32'
+                else tables.Float64Atom())
+        h5file.createCArray(gcolumns, 'X', atom=atom, shape=x_shape,
+                            title="Data values", filters=self.filters)
+        h5file.createCArray(gcolumns, 'y', atom=atom, shape=y_shape,
+                            title="Data targets", filters=self.filters)
         return h5file, gcolumns
 
     @staticmethod
@@ -1095,7 +1103,8 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         data_size = data_x.shape[0]
         last = np.floor(data_size / float(batch_size)) * batch_size
         for i in xrange(0, data_size, batch_size):
-            stop = i + np.mod(data_size, batch_size) if i >= last else i + batch_size
+            stop = (i + np.mod(data_size, batch_size) if i >= last
+                    else i + batch_size)
             assert len(range(start + i, start + stop)) == len(range(i, stop))
             assert (start + stop) <= (node.X.shape[0])
             node.X[start + i: start + stop, :] = data_x[i:stop, :]
@@ -1123,7 +1132,8 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         start = 0 if start is None else start
         stop = gcolumns.X.nrows if stop is None else stop
 
-        atom = tables.Float32Atom() if config.floatX == 'float32' else tables.Float64Atom()
+        atom = (tables.Float32Atom() if config.floatX == 'float32'
+                else tables.Float64Atom())
         x = h5file.createCArray(gcolumns,
                                 'X',
                                 atom=atom,
@@ -1143,6 +1153,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         h5file.renameNode('/', "Data", "Data_")
         h5file.flush()
         return h5file, gcolumns
+
 
 class DefaultViewConverter(object):
     """
@@ -1215,7 +1226,7 @@ class DefaultViewConverter(object):
 
             WRITEME
         """
-        rval =  self.design_mat_to_topo_view(X)
+        rval = self.design_mat_to_topo_view(X)
 
         # weights view is always for display
         rval = np.transpose(rval, tuple(self.axes.index(axis)
@@ -1243,7 +1254,7 @@ class DefaultViewConverter(object):
         batch_size = V.shape[0]
 
         rval = np.zeros((batch_size, self.pixels_per_channel * num_channels),
-                       dtype=V.dtype)
+                        dtype=V.dtype)
 
         for i in xrange(num_channels):
             ppc = self.pixels_per_channel
@@ -1329,18 +1340,19 @@ def from_dataset(dataset, num_examples):
         # lazy loading
 
         if isinstance(dataset, DenseDesignMatrix) \
-               and dataset.X is None\
-               and not control.get_load_data():
-            warnings.warn("from_dataset wasn't able to make subset of dataset, "
-                          "using the whole thing")
+           and dataset.X is None \
+           and not control.get_load_data():
+            warnings.warn("from_dataset wasn't able to make subset of "
+                          "dataset, using the whole thing")
             return DenseDesignMatrix(X=None,
                                      view_converter=dataset.view_converter)
         raise
 
-    rval =  DenseDesignMatrix(topo_view=V, y=y)
+    rval = DenseDesignMatrix(topo_view=V, y=y)
     rval.adjust_for_viewer = dataset.adjust_for_viewer
 
     return rval
+
 
 def dataset_range(dataset, start, stop):
     """
@@ -1358,7 +1370,7 @@ def dataset_range(dataset, start, stop):
         y = None
     else:
         if dataset.y.ndim == 2:
-            y = dataset.y[start:stop,:].copy()
+            y = dataset.y[start:stop, :].copy()
         else:
             y = dataset.y[start:stop].copy()
         assert X.shape[0] == y.shape[0]
@@ -1367,6 +1379,7 @@ def dataset_range(dataset, start, stop):
     rval = DenseDesignMatrix(topo_view=topo, y=y)
     rval.adjust_for_viewer = dataset.adjust_for_viewer
     return rval
+
 
 def convert_to_one_hot(dataset, min_class=0):
     """
@@ -1378,6 +1391,7 @@ def convert_to_one_hot(dataset, min_class=0):
     """
     dataset.convert_to_one_hot(min_class=min_class)
     return dataset
+
 
 def set_axes(dataset, axes):
     """

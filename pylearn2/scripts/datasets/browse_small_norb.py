@@ -11,20 +11,19 @@ def main():
         parser = argparse.ArgumentParser(
             description="Browser for SmallNORB dataset.")
 
-        parser.add_argument('--which_set', 
+        parser.add_argument('--which_set',
                             default='train',
                             help="'train' or 'test'")
 
         return parser.parse_args()
 
-
     def get_data(which_set):
         dataset = norb.SmallNORB(which_set, True)
         num_examples = dataset.get_data()[0].shape[0]
-        iterator = dataset.iterator(mode = 'sequential', 
-                                    batch_size = num_examples,
-                                    topo = True, 
-                                    targets = True)
+        iterator = dataset.iterator(mode='sequential',
+                                    batch_size=num_examples,
+                                    topo=True,
+                                    targets=True)
         values, labels = iterator.next()
         return values, numpy.array(labels, 'int')
 
@@ -63,8 +62,8 @@ def main():
     new_to_old_instance = remap_instances(args.which_set, labels)
 
     def get_new_azimuth_degrees(scalar_label):
-        return 20 * scalar_label;
-    
+        return 20 * scalar_label
+
     # Maps a label vector to the corresponding index in <values>
     num_labels_by_type = numpy.array(norb.SmallNORB.num_labels_by_type, 'int')
     num_labels_by_type[instance_index] = len(new_to_old_instance)
@@ -77,9 +76,9 @@ def main():
 
     assert not numpy.any(label_to_index == -1)  # all elements have been set
 
-    figure, axes = pyplot.subplots(1,2, squeeze=True)
+    figure, axes = pyplot.subplots(1, 2, squeeze=True)
 
-    figure.canvas.set_window_title('Small NORB dataset (%sing set)' % 
+    figure.canvas.set_window_title('Small NORB dataset (%sing set)' %
                                    args.which_set)
 
     # shift subplots down to make more room for the text
@@ -87,11 +86,11 @@ def main():
 
     num_label_types = len(norb.SmallNORB.num_labels_by_type)
     current_labels = numpy.zeros(num_label_types, 'int')
-    current_label_type = [0,]
+    current_label_type = [0, ]
 
     label_text = figure.suptitle("title text",
-                                 x= .1, 
-                                 horizontalalignment = "left")
+                                 x=0.1,
+                                 horizontalalignment="left")
 
     def redraw(redraw_text, redraw_images):
         if redraw_text:
@@ -107,7 +106,7 @@ def main():
             lt = current_label_type[0]
             lines[lt] = '==> ' + lines[lt]
             text = ('Up/down arrows choose label, left/right arrows change it'
-                    '\n\n' + 
+                    '\n\n' +
                     '\n'.join(lines))
             label_text.set_text(text)
 
@@ -120,7 +119,6 @@ def main():
 
         figure.canvas.draw()
 
-
     def on_key_press(event):
 
         def add_mod(arg, step, size):
@@ -130,14 +128,14 @@ def main():
             current_label_type[0] = add_mod(current_label_type[0],
                                             step,
                                             num_label_types)
+
         def incr_label(step):
             lt = current_label_type[0]
             num_labels = num_labels_by_type[lt]
             current_labels[lt] = add_mod(current_labels[lt], step, num_labels)
 
-            
         if event.key == 'up':
-            incr_label_type(-1);
+            incr_label_type(-1)
             redraw(True, False)
         elif event.key == 'down':
             incr_label_type(1)
@@ -151,10 +149,9 @@ def main():
         elif event.key == 'q':
             sys.exit(0)
 
-
     figure.canvas.mpl_connect('key_press_event', on_key_press)
     redraw(True, True)
-    
+
     pyplot.show()
 
 

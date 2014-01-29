@@ -10,13 +10,20 @@ http://www.cs.nyu.edu/~ylclab/data/norb-v1.0-small/
 NORB dataset(s) by Fu Jie Huang and Yann LeCun.
 """
 
+__authors__ = "Matthew Koichi Grimes and Guillaume Desjardins"
+__copyright__ = "Copyright 2010-2014, Universite de Motreal"
+__credits__ = __authors__.split(" and ")
+__license__ = "3-clause BSD"
+__maintainer__ = "Matthew Koichi Grimes"
+__email__ = "mkg alum mit edu (@..)"
+
 # Mostly repackaged code from Pylearn 1's datasets/norb_small.py and
 # io/filetensor.py, as well as Pylearn2's original datasets/norb_small.py
 
 import os, gzip, bz2
 import numpy, theano
 from pylearn2.datasets import dense_design_matrix
-
+from pylearn2.space import VectorSpace, Conv2DSpace, CompositeSpace
 
 class SmallNORB(dense_design_matrix.DenseDesignMatrix):
     """
@@ -81,7 +88,6 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
                           18,  # azimuths
                           6)   # lighting
 
-
     # [mkg] Dropped support for the 'center' argument for now. In Pylearn 1, it
     # shifted the pixel values from [0:255] by subtracting 127.5. Seems like a
     # form of preprocessing, which might be better implemented separately using
@@ -108,6 +114,9 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
         # Casts to the GPU-supported float type, using theano._asarray(), a
         # safer alternative to numpy.asarray().
+        #
+        # TODO: move the dtype-casting to the view_converter's output space,
+        #       once dtypes-for-spaces is merged into master.
         X = theano._asarray(X, theano.config.floatX)
 
         # Formats data as rows in a matrix, for DenseDesignMatrix
@@ -139,7 +148,6 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
         assert which_set in ['train', 'test']
         assert filetype in ['dat', 'cat', 'info']
 
-
         def getPath(which_set):
             dirname = os.path.join(os.getenv('PYLEARN2_DATA_PATH'),
                                    'norb_small/original')
@@ -152,7 +160,6 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
                 (instance_list, which_set + 'ing', filetype)
 
             return os.path.join(dirname, filename)
-
 
         def parseNORBFile(file_handle, subtensor=None, debug=False):
             """
@@ -264,6 +271,101 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
             return result
 
-
         file_handle = open(getPath(which_set))
         return parseNORBFile(file_handle)
+
+
+class StereoViewConverter(object):
+    """
+    Converts stereo image data between two formats:
+      A) A dense design matrix, one stereo pair per row (VectorSpace)
+      B) An image pair (CompositeSpace of two Conv2DSpaces)
+    """
+    def __init__(self, shape, axes=None):
+        """
+        The arguments describe how the data is laid out in the design matrix.
+
+        shape: tuple of 4 ints, describing the shape of each datum.
+        axes: tuple of the following elements in any order:
+          'b'  batch axis)
+          's'  stereo axis)
+          0    image axis 0 (row)
+          1    image axis 1 (column)
+          'c'  channel axis
+        """
+        shape = numpy.array(shape, dtype='int')
+        if len(shape) != 4:
+            raise ValueError("Shape array needs to be of length 4, got %s." %
+                             shape)
+        if shape[axes.index['s']] != 2:
+            raise ValueError("Expected 's' axis to have size 2, got %d.\n"
+                             "  axes:  %s\n"
+                             "  shape: %s" % (shape[axes.index['s']],
+                                              axes,
+                                              shape))
+        self.shape = shape
+        self.set_axes(axes)
+
+        def make_conv2d_space(shape, axes):
+            image_shape = tuple(shape[axes.index(axis)] for axis in (0, 1))
+            conv2d_axes = list(axes)
+            conv2d_axes.remove('s')
+            return Conv2DSpace(shape=image_shape,
+                               num_channels=shape[axes.index['c']],
+                               axes=conv2d_axes)
+
+        conv2d_space = make_conv2d_space(shape, axes)
+        self.topo_space = CompositeSpace((conv2d_space, conv2d_space))
+        self.storage_space = VectorSpace(dim=numpy.prod(shape))
+
+    def get_formatted_batch(self, batch, space):
+        return self.storage_space.np_format_as(batch, space)
+
+    def design_mat_to_topo_view(self, design_mat):
+        """
+        Called by DenseDesignMatrix.get_formatted_view(), get_batch_topo()
+        """
+        return self.storage_space.np_format_as(design_mat, self.topo_space)
+
+    def design_mat_to_weights_view(self, design_mat):
+        """
+        Called by DenseDesignMatrix.get_weights_view()
+        """
+        return self.design_mat_to_topo_view(design_mat)
+
+    def topo_view_to_design_mat(self, topo_batch):
+        """
+        Used by DenseDesignMatrix.set_topological_view(), .get_design_mat()
+        """
+        return self.topo_space.np_format_as(topo_batch, self.storage_space)
+
+    def view_shape(self):
+        return self.shape
+
+    def weights_view_shape(self):
+        return self.view_shape()
+
+    def set_axes(self, axes):
+        axes = tuple(axes)
+
+        if len(axes) != 5:
+            raise ValueError("Axes must have 5 elements; got %s" % str(axes))
+
+        for required_axis in ('b', 's', 0, 1, 'c'):
+            if required_axis not in axes:
+                raise ValueError("Axes must contain 'b', 's', 0, 1, and 'c'. "
+                                 "Got %s." % str(axes))
+
+        if axes.index('b') != 0:
+            raise ValueError("The 'b' axis must come first (axes = %s)." %
+                             str(axes))
+
+        if hasattr(self, 'axes'):
+            assert hasattr(self, 'shape')
+            new_shape = numpy.zeros(self.shape.shape, dtype='int')
+            for a, axis in enumerate(axes):
+                new_shape[a] = self.shape[self.axes.index(axis)]
+
+            self.shape = new_shape
+
+        self.axes = axes
