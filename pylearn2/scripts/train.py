@@ -128,7 +128,6 @@ if __name__ == "__main__":
             phase_variable = 'PYLEARN2_TRAIN_PHASE'
             phase_value = 'phase%d' % (number + 1)
             os.environ[phase_variable] = phase_value
-            os.putenv(phase_variable, phase_value)
 
             # Execute this training phase.
             subobj.main_loop()
