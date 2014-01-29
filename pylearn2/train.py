@@ -7,6 +7,7 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
+from datetime import datetime
 import os
 import sys
 from pylearn2.utils import serial
@@ -14,7 +15,7 @@ import logging
 import warnings
 from pylearn2.monitor import Monitor
 from pylearn2.space import NullSpace
-from pylearn2.utils.timing import log_timing
+from pylearn2.utils.timing import log_timing, total_seconds
 from pylearn2.utils import sharedX
 
 
@@ -99,16 +100,37 @@ class Train(object):
         for ext in self.extensions:
             ext.setup(self.model, self.dataset, self.algorithm)
 
-    def main_loop(self):
+    def exceeded_time_budget(self, t0, time_budget):
+        dt = total_seconds(datetime.now() - t0)
+        if time_budget is not None and dt >= time_budget:
+            log.warning("Time budget exceeded (%.3f/%d seconds).",
+                        dt, time_budget)
+            self.model.monitor.time_budget_exceeded = True
+            return True
+        else:
+            return False
+
+    def main_loop(self, time_budget=None):
         """
         Repeatedly runs an epoch of the training algorithm, runs any
         epoch-level callbacks, and saves the model.
+
+        Parameters
+        ----------
+        time_budget : int, optional
+            The maximum number of seconds before interrupting
+            training. Default is `None`, no time limit.
         """
+        t0 = datetime.now()
         if self.algorithm is None:
             self.model.monitor = Monitor.get_monitor(self.model)
+            self.model.monitor.time_budget_exceeded = False
             self.setup_extensions()
             self.run_callbacks_and_monitoring()
             while True:
+                if self.exceeded_time_budget(t0, time_budget):
+                    break
+
                 rval = self.model.train_all(dataset=self.dataset)
                 if rval is not None:
                     raise ValueError("Model.train_all should not return " +
@@ -143,6 +165,8 @@ class Train(object):
                                                dataset=self.model.monitor._datasets[0])
             self.run_callbacks_and_monitoring()
             while True:
+                if self.exceeded_time_budget(t0, time_budget):
+                    break
                 with log_timing(log, None, final_msg='Time this epoch:',
                                 callbacks=[self.monitor_time.set_value]):
                     rval = self.algorithm.train(dataset=self.dataset)
@@ -185,7 +209,7 @@ class Train(object):
         for extension in self.extensions:
             try:
                 extension.on_monitor(self.model, self.dataset, self.algorithm)
-            except TypeError, e:
+            except TypeError:
                 logging.warning('Failure during callback ' + str(extension))
                 raise
             # We catch an exception here instead of relying on return
