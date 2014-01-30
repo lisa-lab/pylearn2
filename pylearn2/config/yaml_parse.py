@@ -48,7 +48,7 @@ def load(stream, overrides=None, environ=None, **kwargs):
     else:
         string = '\n'.join(stream.readlines())
 
-    processed_string = preprocess(string, environ=environ)
+    processed_string = preprocess(string, environ=environ, early_process=True)
 
     proxy_graph = yaml.load(processed_string, **kwargs)
 
@@ -342,12 +342,11 @@ def multi_constructor_pkl(loader, tag_suffix, node):
     """
     Callback used by PyYAML when a "!pkl:" tag is encountered.
     """
-
-    mapping = loader.construct_yaml_str(node)
     if tag_suffix != "" and tag_suffix != u"":
         raise AssertionError('Expected tag_suffix to be "" but it is "' + tag_suffix +
                     '": Put space between !pkl: and the filename.')
 
+    mapping = loader.construct_yaml_str(node)
     rval = ObjectProxy(None, {}, yaml.serialize(node))
     rval.instance = serial.load(mapping)
 

@@ -8,10 +8,11 @@ from pylearn2.utils.exc import EnvironmentVariableError
 from pylearn2.utils.python26 import cmp_to_key
 
 
-def preprocess(string, environ=None):
+def preprocess(string, environ=None, early_process=False):
     """
-    Preprocesses a string, by replacing `${VARNAME}` with
-    `os.environ['VARNAME']`
+    Preprocesses a string, by replacing `${VARNAME}` and 
+    `$(VARNAME)` with `os.environ['VARNAME']`. 
+    If early_process is True, only `${VARNAME}` will be replaced.
 
     Parameters
     ----------
@@ -22,6 +23,8 @@ def preprocess(string, environ=None):
         this dictionary as well as `os.environ`. That is,
         if a key appears in both, this dictionary takes
         precedence.
+    early_process : bool, optional 
+        If True, Substitute only `${VARNAME}` 
 
     Returns
     -------
@@ -31,38 +34,42 @@ def preprocess(string, environ=None):
     if environ is None:
         environ = {}
 
-    split = string.split('${')
+    if early_process:
+        split_tokens = [('${', '}')]
+    else:
+        split_tokens = [('${', '}'), ('$(', ')')]
 
-    rval = [split[0]]
 
-    for candidate in split[1:]:
-        subsplit = candidate.split('}')
-
-        if len(subsplit) < 2:
-            raise ValueError('Open ${ not followed by } before '
-                             'end of string or next ${ in "' + string + '"')
-
-        varname = subsplit[0]
-        try:
-            val = (environ[varname] if varname in environ
-                   else os.environ[varname])
-        except KeyError:
-            if varname == 'PYLEARN2_DATA_PATH':
-                raise NoDataPathError()
-            if varname == 'PYLEARN2_VIEWER_COMMAND':
-                raise EnvironmentVariableError(environment_variable_essay)
-
-            raise ValueError('Unrecognized environment variable "' +
-                             varname + '". Did you mean ' +
-                             match(varname, os.environ.keys()) + '?')
-
-        rval.append(val)
-
-        rval.append('}'.join(subsplit[1:]))
-
-    rval = ''.join(rval)
-
-    return rval
+    for begin_token, end_token in split_tokens:
+        split = string.split(begin_token)
+    
+        rval = [split[0]]
+        for candidate in split[1:]:
+            subsplit = candidate.split(end_token)
+    
+            if len(subsplit) < 2:
+                raise ValueError('Open ${ not followed by } before '
+                                 'end of string or next ${ in "' + string + '"')
+    
+            varname = subsplit[0]
+            try:
+                val = (environ[varname] if varname in environ
+                       else os.environ[varname])
+            except KeyError:
+                if varname == 'PYLEARN2_DATA_PATH':
+                    raise NoDataPathError()
+                if varname == 'PYLEARN2_VIEWER_COMMAND':
+                    raise EnvironmentVariableError(environment_variable_essay)
+    
+                raise ValueError('Unrecognized environment variable "' +
+                                 varname + '". Did you mean ' +
+                                 match(varname, os.environ.keys()) + '?')
+    
+            rval.append(val)
+            rval.append('}'.join(subsplit[1:]))
+        string = ''.join(rval)
+    
+    return string
 
 
 def find_number(s):
