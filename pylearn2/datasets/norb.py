@@ -19,13 +19,12 @@ __email__ = "mkg alum mit edu (@..)"
 
 # Mostly repackaged code from Pylearn 1's datasets/norb_small.py and
 # io/filetensor.py, as well as Pylearn2's original datasets/norb_small.py
-#
-# Currently only supports the SmallNORB dataset.
 
 import os, gzip, bz2
 import numpy, theano
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.space import VectorSpace, Conv2DSpace, CompositeSpace
+
 
 class SmallNORB(dense_design_matrix.DenseDesignMatrix):
     """
@@ -143,6 +142,64 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
         super(SmallNORB, self).__init__(X=X,
                                         y=y,
                                         view_converter=view_converter)
+
+    # def get_stereo_data_specs(self, topo, targets=True, flatten=True):
+    #     """
+    #     Returns a (space, sources) pair, where space is a CompositeSpace
+    #     of two spaces; one for the left stereo image, one for the right.
+    #     The corresponding sources will be 'features 0' and 'features 1'.
+
+    #     topo: If True, return topological spaces.
+    #           Otherwise return vector spaces.
+    #     targets: If True, include the labels.
+    #     """
+
+    #     if topo:
+    #         space = self.view_converter.topo_space
+    #     else:
+    #         conv2d_space = self.view_converter.topo_space.components[0]
+    #         vector_space = VectorSpace(dim=self.X.shape[1]/2)
+    #         assert vector_space.dim * 2 == self.X.shape[1], \
+    #                ("Somehow, X.shape[1] was odd, despite storing a pair of "
+    #                 "equally-sized images")
+
+    #         space = CompositeSpace((vector_space, vector_space))
+
+    #     sources = ('features 0', 'features 1')
+
+    #     if targets:
+    #         space = CompositeSpace((space, VectorSpace(dim=self.y.shape[1])))
+    #         sources = (sources, 'targets')
+
+    #     if flatten:
+    #         def get_components(space):
+    #             """
+    #             Returns a flat tuple of the space's components.
+    #             """
+    #             if isinstance(space, CompositeSpace):
+    #                 result = ()
+    #                 for component in space.components:
+    #                     result = result + get_components(component)
+    #                 return result
+    #             else:
+    #                 return (space, )
+
+    #         def flatten_sources(sources):
+    #             if isinstance(sources, tuple):
+    #                 result = ()
+    #                 for subsource in sources:
+    #                     result = result + flatten_sources(subsource)
+
+    #                 return result
+    #             else:
+    #                 return (sources, )
+
+    #         space = CompositeSpace(get_components(space))
+    #         sources = flatten_sources(sources)
+
+    #     return (space, sources)
+
+
 
     @classmethod
     def load(cls, which_set, filetype):
