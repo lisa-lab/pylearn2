@@ -15,7 +15,6 @@ from cPickle import BadPickleGet
 io = None
 hdf_reader = None
 import struct
-from pylearn2.utils.environ import putenv
 from pylearn2.utils.string_utils import match
 import shutil
 
@@ -480,14 +479,14 @@ def load_train_file(config_file_path, environ=None):
         config_file_full_stem = config_file_path
 
     for varname in ["PYLEARN2_TRAIN_FILE_FULL_STEM"]:
-        putenv(varname, config_file_full_stem)
+        os.environ[varname] = config_file_full_stem
 
     directory = config_file_path.split('/')[:-1]
     directory = '/'.join(directory)
     if directory != '':
         directory += '/'
-    putenv("PYLEARN2_TRAIN_DIR", directory)
-    putenv("PYLEARN2_TRAIN_BASE_NAME", config_file_path.split('/')[-1] )
-    putenv("PYLEARN2_TRAIN_FILE_STEM", config_file_full_stem.split('/')[-1] )
+    os.environ["PYLEARN2_TRAIN_DIR"] = directory
+    os.environ["PYLEARN2_TRAIN_BASE_NAME"] = config_file_path.split('/')[-1]
+    os.environ["PYLEARN2_TRAIN_FILE_STEM"] = config_file_full_stem.split('/')[-1]
 
     return yaml_parse.load_path(config_file_path, environ=environ)
