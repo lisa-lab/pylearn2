@@ -69,7 +69,7 @@ def load(filepath, recurse_depth=0, retry = True):
     if recurse_depth == 0:
         filepath = preprocess(filepath)
 
-    if filepath.endswith('.npy'):
+    if filepath.endswith('.npy') or filepath.endswith('.npz'):
         return np.load(filepath)
 
     if filepath.endswith('.mat'):
@@ -179,7 +179,6 @@ def load(filepath, recurse_depth=0, retry = True):
 
     return obj
 
-
 def save(filepath, obj, on_overwrite = 'ignore'):
     """
     Serialize `object` to a file denoted by `filepath`.
@@ -247,7 +246,6 @@ def save(filepath, obj, on_overwrite = 'ignore'):
                 _save(filepath, obj)
             finally:
                 sys.setrecursionlimit(old_limit)
-
 
 def get_pickle_protocol():
     """
@@ -349,7 +347,6 @@ def _save(filepath, obj):
                + str(e) +
                ' (perhaps your object is really big?)')
 
-
 def clone_via_serialize(obj):
     """
     .. todo::
@@ -358,7 +355,6 @@ def clone_via_serialize(obj):
     """
     s = cPickle.dumps(obj, get_pickle_protocol())
     return cPickle.loads(s)
-
 
 def to_string(obj):
     """
@@ -375,7 +371,6 @@ def from_string(s):
         WRITEME
     """
     return cPickle.loads(s)
-
 
 def mkdir(filepath):
     """
@@ -420,7 +415,6 @@ lush_magic = {
             507333715 : 'float64'
         }
 
-
 def read_bin_lush_matrix(filepath):
     """
     .. todo::
@@ -461,7 +455,6 @@ def read_bin_lush_matrix(filepath):
     f.close()
 
     return rval
-
 
 def load_train_file(config_file_path, environ=None):
     """
