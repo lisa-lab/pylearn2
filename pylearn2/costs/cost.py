@@ -442,51 +442,34 @@ class SumOfCosts(Cost):
         return rval
 
 
-class ScaledCost(Cost):
+def scaled_cost(cost, scaling):
     """
     Represents a given cost scaled by a constant factor.
-    TODO: why would you want to use this? SumOfCosts allows you to scale
-    individual terms, and if this is the only cost, why not just change the
-    learning rate?  If there's an obvious use case or rationale we should
-    document it, if not, we should remove it.
+
+    TODO: why would you want to use this? SumOfCosts allows you to scale individual
+        terms, and if this is the only cost, why not just change the learning rate?
+        If there's an obvious use case or rationale we should document it, if not,
+        we should remove it.
+
+    Parameters
+    ----------
+    cost: Cost
+        cost to be scaled
+    scaling : float
+        scaling of the cost
     """
-    def __init__(self, cost, scaling):
-        """
-        Parameters
-        ----------
-        cost: Cost
-            cost to be scaled
-        scaling : float
-            scaling of the cost
-        """
-        self.cost = cost
-        self.supervised = cost.supervised
-        self.scaling = scaling
+    return SumOfCosts([[scaling,cost]])
 
-    def expr(self, model, data):
-        """
-        Returns cost scaled by its scaling factor.
+def ScaledCost(cost, scaling):
+    """
+    Represents a given cost scaled by a constant factor.
 
-        Parameters
-        ----------
-        model : pylearn2.models.model.Model
-            Model for which we want to calculate the scaled cost
-        X : tensor_like
-            Input to the model
-        Y : tensor_like
-            Target, if necessary
-        """
-        self.get_data_specs(model)[0].validate(data)
-        return self.scaling * self.cost(model, data)
+    Deprecated in favor of scaled_cost.
+    """
 
-    def get_data_specs(self, model):
-        """
-        .. todo::
+    warnings.warn("ScaledCost is deprecated. Use scaled_cost instead. ScaledCost will be removed on or after December 4, 2013", stacklevel=2)
 
-            WRITEME
-        """
-        return self.cost.get_data_specs(model)
-
+    return SumOfCosts([[scaling,cost]])
 
 class LpPenalty(NullDataSpecsMixin, Cost):
     """
