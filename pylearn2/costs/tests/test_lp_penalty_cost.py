@@ -40,6 +40,5 @@ def test_correctness():
     assert numpy.allclose(p, actual_p)
 
 
-
 if __name__ == '__main__':
     test_correctness()
