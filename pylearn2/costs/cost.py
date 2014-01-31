@@ -445,7 +445,6 @@ class SumOfCosts(Cost):
 def scaled_cost(cost, scaling):
     """
     Represents a given cost scaled by a constant factor.
-<<<<<<< HEAD
 
     TODO: why would you want to use this? SumOfCosts allows you to scale individual
         terms, and if this is the only cost, why not just change the learning rate?
@@ -458,12 +457,6 @@ def scaled_cost(cost, scaling):
         cost to be scaled
     scaling : float
         scaling of the cost
-=======
-    TODO: why would you want to use this? SumOfCosts allows you to scale
-    individual terms, and if this is the only cost, why not just change the
-    learning rate?  If there's an obvious use case or rationale we should
-    document it, if not, we should remove it.
->>>>>>> upstream/master
     """
     return SumOfCosts([[scaling,cost]])
 
@@ -471,32 +464,10 @@ def ScaledCost(cost, scaling):
     """
     Represents a given cost scaled by a constant factor.
 
-<<<<<<< HEAD
     Deprecated in favor of scaled_cost.
     """
 
     warnings.warn("ScaledCost is deprecated. Use scaled_cost instead. ScaledCost will be removed on or after December 4, 2013", stacklevel=2)
-=======
-        Parameters
-        ----------
-        model : pylearn2.models.model.Model
-            Model for which we want to calculate the scaled cost
-        X : tensor_like
-            Input to the model
-        Y : tensor_like
-            Target, if necessary
-        """
-        self.get_data_specs(model)[0].validate(data)
-        return self.scaling * self.cost(model, data)
-
-    def get_data_specs(self, model):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        return self.cost.get_data_specs(model)
->>>>>>> upstream/master
 
     return SumOfCosts([[scaling,cost]])
 
