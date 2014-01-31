@@ -59,10 +59,17 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
     @classmethod
     def get_category(cls, scalar_label):
+        """
+        Returns the category string corresponding to an integer category label.
+        """
         return cls._categories[int(scalar_label)]
 
     @classmethod
     def get_elevation_degrees(cls, scalar_label):
+        """
+        Returns the elevation, in degrees, corresponding to an integer
+        elevation label.
+        """
         scalar_label = int(scalar_label)
         assert scalar_label >= 0
         assert scalar_label < 9
@@ -70,6 +77,10 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
     @classmethod
     def get_azimuth_degrees(cls, scalar_label):
+        """
+        Returns the azimuth, in degrees, corresponding to an integer
+        label.
+        """
         scalar_label = int(scalar_label)
         assert scalar_label >= 0
         assert scalar_label <= 34
@@ -143,61 +154,61 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
                                         y=y,
                                         view_converter=view_converter)
 
-    # def get_stereo_data_specs(self, topo, targets=True, flatten=True):
-    #     """
-    #     Returns a (space, sources) pair, where space is a CompositeSpace
-    #     of two spaces; one for the left stereo image, one for the right.
-    #     The corresponding sources will be 'features 0' and 'features 1'.
+    def get_stereo_data_specs(self, topo, targets=True, flatten=True):
+        """
+        Returns a (space, sources) pair, where space is a CompositeSpace
+        of two spaces; one for the left stereo image, one for the right.
+        The corresponding sources will be 'features 0' and 'features 1'.
 
-    #     topo: If True, return topological spaces.
-    #           Otherwise return vector spaces.
-    #     targets: If True, include the labels.
-    #     """
+        topo: If True, return topological spaces.
+              Otherwise return vector spaces.
+        targets: If True, include the labels.
+        """
 
-    #     if topo:
-    #         space = self.view_converter.topo_space
-    #     else:
-    #         conv2d_space = self.view_converter.topo_space.components[0]
-    #         vector_space = VectorSpace(dim=self.X.shape[1]/2)
-    #         assert vector_space.dim * 2 == self.X.shape[1], \
-    #                ("Somehow, X.shape[1] was odd, despite storing a pair of "
-    #                 "equally-sized images")
+        if topo:
+            space = self.view_converter.topo_space
+        else:
+            conv2d_space = self.view_converter.topo_space.components[0]
+            vector_space = VectorSpace(dim=self.X.shape[1]/2)
+            assert vector_space.dim * 2 == self.X.shape[1], \
+                   ("Somehow, X.shape[1] was odd, despite storing a pair of "
+                    "equally-sized images")
 
-    #         space = CompositeSpace((vector_space, vector_space))
+            space = CompositeSpace((vector_space, vector_space))
 
-    #     sources = ('features 0', 'features 1')
+        sources = ('features 0', 'features 1')
 
-    #     if targets:
-    #         space = CompositeSpace((space, VectorSpace(dim=self.y.shape[1])))
-    #         sources = (sources, 'targets')
+        if targets:
+            space = CompositeSpace((space, VectorSpace(dim=self.y.shape[1])))
+            sources = (sources, 'targets')
 
-    #     if flatten:
-    #         def get_components(space):
-    #             """
-    #             Returns a flat tuple of the space's components.
-    #             """
-    #             if isinstance(space, CompositeSpace):
-    #                 result = ()
-    #                 for component in space.components:
-    #                     result = result + get_components(component)
-    #                 return result
-    #             else:
-    #                 return (space, )
+        if flatten:
+            def get_components(space):
+                """
+                Returns a flat tuple of the space's components.
+                """
+                if isinstance(space, CompositeSpace):
+                    result = ()
+                    for component in space.components:
+                        result = result + get_components(component)
+                    return result
+                else:
+                    return (space, )
 
-    #         def flatten_sources(sources):
-    #             if isinstance(sources, tuple):
-    #                 result = ()
-    #                 for subsource in sources:
-    #                     result = result + flatten_sources(subsource)
+            def flatten_sources(sources):
+                if isinstance(sources, tuple):
+                    result = ()
+                    for subsource in sources:
+                        result = result + flatten_sources(subsource)
 
-    #                 return result
-    #             else:
-    #                 return (sources, )
+                    return result
+                else:
+                    return (sources, )
 
-    #         space = CompositeSpace(get_components(space))
-    #         sources = flatten_sources(sources)
+            space = CompositeSpace(get_components(space))
+            sources = flatten_sources(sources)
 
-    #     return (space, sources)
+        return (space, sources)
 
 
 
