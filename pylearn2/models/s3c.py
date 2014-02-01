@@ -880,17 +880,6 @@ class S3C(Model, Block):
 
         return rval
 
-    def get_hidden_obs(self, V, return_history = False):
-        """
-        .. todo::
-
-            WRITEME
-        """
-
-        warnings.warn("get_hidden_obs is deprecated, renamed infer")
-
-        return self.e_step.infer(V, return_history)
-
     def infer(self, V, return_history=False):
         """
         .. todo::
