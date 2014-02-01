@@ -52,7 +52,6 @@ def load(stream, overrides=None, environ=None, **kwargs):
 
     proxy_graph = yaml.load(processed_string, **kwargs)
 
-    #import pdb; pdb.set_trace()
     if overrides is not None:
         warnings.warn("The 'overrides' keyword is deprecated and will "
                       "be removed on or after June 8, 2014.")
