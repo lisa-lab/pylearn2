@@ -54,11 +54,6 @@ def test_preproc_pkl():
     del environ['TEST_VAR']
 
 def test_late_preproc_pkl():
-
-    class TestClass:
-        def __init__(self, a):
-            self.a = a
-
     fd, fname = tempfile.mkstemp()
     with os.fdopen(fd, 'wb') as f:
         array = np.arange(10)

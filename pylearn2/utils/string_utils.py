@@ -48,8 +48,8 @@ def preprocess(string, environ=None, early_process=False):
             subsplit = candidate.split(end_token)
     
             if len(subsplit) < 2:
-                raise ValueError('Open ${ not followed by } before '
-                                 'end of string or next ${ in "' + string + '"')
+                raise ValueError('Open %s not followed by %s before end of string '
+                    ' or next %s in "%s"' % (begin_token, end_token, begin_token, string))
     
             varname = subsplit[0]
             try:
@@ -66,7 +66,7 @@ def preprocess(string, environ=None, early_process=False):
                                  match(varname, os.environ.keys()) + '?')
     
             rval.append(val)
-            rval.append('}'.join(subsplit[1:]))
+            rval.append(end_token.join(subsplit[1:]))
         string = ''.join(rval)
     
     return string
