@@ -5,8 +5,6 @@ the objective function for the SGD and BGD
 training algorithms.
 """
 
-# NOTE: As of 2013/12/2 this file is PEP8 compliant. Please keep it that way.
-
 from itertools import izip
 import warnings
 
