@@ -52,7 +52,6 @@ def load(stream, overrides=None, environ=None, **kwargs):
 
     proxy_graph = yaml.load(processed_string, **kwargs)
 
-    #import pdb; pdb.set_trace()
     if overrides is not None:
         warnings.warn("The 'overrides' keyword is deprecated and will "
                       "be removed on or after June 8, 2014.")
@@ -319,7 +318,7 @@ def initialize():
 
 
 ################################################################################3
-# Callbacks used by PyYAML 
+# Callbacks used by PyYAML
 
 def multi_constructor_obj(loader, tag_suffix, node):
     """
@@ -363,7 +362,7 @@ def multi_constructor_import(loader, tag_suffix, node):
 
 def constructor_import(loader, node):
     """
-    Callback used by PyYAML when a "!import <str>" tag is encountered. 
+    Callback used by PyYAML when a "!import <str>" tag is encountered.
     This tag exects a (quoted) string as argument.
     """
     value = loader.construct_scalar(node)

@@ -460,17 +460,6 @@ def scaled_cost(cost, scaling):
     """
     return SumOfCosts([[scaling,cost]])
 
-def ScaledCost(cost, scaling):
-    """
-    Represents a given cost scaled by a constant factor.
-
-    Deprecated in favor of scaled_cost.
-    """
-
-    warnings.warn("ScaledCost is deprecated. Use scaled_cost instead. ScaledCost will be removed on or after December 4, 2013", stacklevel=2)
-
-    return SumOfCosts([[scaling,cost]])
-
 class LpPenalty(NullDataSpecsMixin, Cost):
     """
     L-p penalty of the tensor variables provided.
