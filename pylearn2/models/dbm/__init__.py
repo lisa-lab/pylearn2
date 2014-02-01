@@ -537,9 +537,10 @@ class DBM(Model):
 
             WRITEME
         """
-        warnings.warn("DBM.mcmc_steps is deprecated. You should instead call" +
-                      "DBM.sampling_procedure.sample, which defaults to what" +
-                      "DBM.mcmc_steps used to do.")
+        warnings.warn("DBM.mcmc_steps is deprecated. You should instead " +
+                      "call DBM.sampling_procedure.sample, which defaults " +
+                      "to what DBM.mcmc_steps used to do. This method will " +
+                      "be removed on or after July 31, 2014.")
         return self.sampling_procedure.sample(layer_to_state, theano_rng,
                                               layer_to_clamp, num_steps)
 
