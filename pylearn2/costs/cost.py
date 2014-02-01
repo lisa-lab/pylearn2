@@ -5,8 +5,8 @@ the objective function for the SGD and BGD
 training algorithms.
 """
 
+import functools
 from itertools import izip
-import warnings
 
 import theano.tensor as T
 from theano.compat.python2x import OrderedDict
