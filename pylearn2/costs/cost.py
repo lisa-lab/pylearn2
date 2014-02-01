@@ -528,38 +528,22 @@ class MethodCost(Cost):
     A cost specified via the string name of a method of the model.
     """
 
-    def __init__(self, method, data_specs=None, supervised=None):
+    def __init__(self, method, data_specs=None):
         """
-        .. todo::
-
-            WRITEME
-
+        Parameters
+        ----------
         method: a string specifying the name of the method of the model
                 that should be called to generate the objective function.
-        supervised: deprecated argument, ignored
         data_specs: a string specifying the name of a method/property of
                 the model that describe the data specs required by
                 method
         """
-        if supervised is not None:
-            if data_specs is not None:
-                raise TypeError("Deprecated argument 'supervised' and new "
-                                "argument 'data_specs' were both specified.")
-            warnings.warn("Usage of 'supervised' argument of MethodCost "
-                          "is deprecated. Use 'data_specs' to provide the "
-                          "name of a method or property of the model "
-                          "that describes the data specs required by method "
-                          "%s. %s will be used by default."
-                          % (method, method + '_data_specs'),
-                          stacklevel=2)
         self.method = method
         self.data_specs = data_specs
 
     def expr(self, model, data, *args, **kwargs):
         """
-        .. todo::
-
-            WRITEME
+        See Cost.expr for parameter specifications.
 
         Patches calls through to a user-specified method of the model
         """
@@ -567,12 +551,8 @@ class MethodCost(Cost):
         fn = getattr(model, self.method)
         return fn(data, *args, **kwargs)
 
+    @functools.wraps(Cost.get_data_specs)
     def get_data_specs(self, model):
-        """
-        .. todo::
-
-            WRITEME
-        """
         if self.data_specs is not None:
             fn = getattr(model, self.data_specs)
         else:
