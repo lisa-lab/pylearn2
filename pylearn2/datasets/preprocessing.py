@@ -1080,7 +1080,7 @@ class ZCA(Preprocessor):
 
     def inverse(self, X):
         assert X.ndim == 2
-        return numpy.dot(X, self.inv_P_) + self.mean_
+        return self._gpu_matrix_dot(X, self.inv_P_) + self.mean_
 
 
 class LeCunLCN(ExamplewisePreprocessor):
