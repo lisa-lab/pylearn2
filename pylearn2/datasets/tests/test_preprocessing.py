@@ -1,12 +1,19 @@
+"""
+Unit tests for ./preprocessing.py
+"""
+
+import numpy as np
+import theano
+from pylearn2.utils import as_floatX
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.datasets.preprocessing import (GlobalContrastNormalization,
                                              ExtractGridPatches,
                                              ReassembleGridPatches,
                                              LeCunLCN,
-                                             RGB_YUV)
-from pylearn2.utils import as_floatX
-import numpy as np
+                                             RGB_YUV,
+                                             ZCA)
+
 
 class testGlobalContrastNormalization:
     """Tests for the GlobalContrastNormalization class """
@@ -15,18 +22,15 @@ class testGlobalContrastNormalization:
         """ Test that passing in the zero vector does not result in
             a divide by 0 """
 
-        dataset      = DenseDesignMatrix(X = as_floatX(np.zeros((1,1))))
-
-
-
+        dataset = DenseDesignMatrix(X=as_floatX(np.zeros((1, 1))))
 
         #the settings of subtract_mean and use_norm are not relevant to
         #the test
         #std_bias = 0.0 is the only value for which there should be a risk
         #of failure occurring
-        preprocessor = GlobalContrastNormalization( subtract_mean = True,
-                                                    sqrt_bias = 0.0,
-                                                    use_std = True)
+        preprocessor = GlobalContrastNormalization(subtract_mean=True,
+                                                   sqrt_bias=0.0,
+                                                   use_std=True)
 
         dataset.apply_preprocessor(preprocessor)
 
@@ -44,17 +48,17 @@ class testGlobalContrastNormalization:
         num_examples = 5
         num_features = 10
 
-        rng = np.random.RandomState([1,2,3])
+        rng = np.random.RandomState([1, 2, 3])
 
-        X = as_floatX(rng.randn(5,10))
+        X = as_floatX(rng.randn(num_examples, num_features))
 
-        dataset = DenseDesignMatrix( X = X )
+        dataset = DenseDesignMatrix(X=X)
 
         #the setting of subtract_mean is not relevant to the test
         #the test only applies when std_bias = 0.0 and use_std = False
-        preprocessor = GlobalContrastNormalization( subtract_mean = False,
-                                                    sqrt_bias = 0.0,
-                                                    use_std = False)
+        preprocessor = GlobalContrastNormalization(subtract_mean=False,
+                                                   sqrt_bias=0.0,
+                                                   use_std=False)
 
         dataset.apply_preprocessor(preprocessor)
 
@@ -68,20 +72,22 @@ class testGlobalContrastNormalization:
 
         assert max_norm_error < tol
 
+
 def test_extract_reassemble():
     """ Tests that ExtractGridPatches and ReassembleGridPatches are
     inverse of each other """
 
-    rng = np.random.RandomState([1,3,7])
+    rng = np.random.RandomState([1, 3, 7])
 
-    topo = rng.randn(4,3*5,3*7,2)
+    topo = rng.randn(4, 3*5, 3*7, 2)
 
-    dataset = DenseDesignMatrix(topo_view = topo)
+    dataset = DenseDesignMatrix(topo_view=topo)
 
-    patch_shape = (3,7)
+    patch_shape = (3, 7)
 
     extractor = ExtractGridPatches(patch_shape, patch_shape)
-    reassemblor = ReassembleGridPatches(patch_shape = patch_shape, orig_shape = topo.shape[1:3])
+    reassemblor = ReassembleGridPatches(patch_shape=patch_shape,
+                                        orig_shape=topo.shape[1:3])
 
     dataset.apply_preprocessor(extractor)
     dataset.apply_preprocessor(reassemblor)
@@ -106,15 +112,15 @@ class testLeCunLCN:
 
         """
 
-        rng = np.random.RandomState([1,2,3])
-        X = as_floatX(rng.randn(5,32*32*3))
+        rng = np.random.RandomState([1, 2, 3])
+        X = as_floatX(rng.randn(5, 32*32*3))
 
         axes = ['b', 0, 1, 'c']
         view_converter = dense_design_matrix.DefaultViewConverter((32, 32, 3),
-                                                                    axes)
-        dataset = DenseDesignMatrix(X = X, view_converter = view_converter)
+                                                                  axes)
+        dataset = DenseDesignMatrix(X=X, view_converter=view_converter)
         dataset.axes = axes
-        preprocessor = LeCunLCN(img_shape=[32,32])
+        preprocessor = LeCunLCN(img_shape=[32, 32])
         dataset.apply_preprocessor(preprocessor)
         result = dataset.get_design_matrix()
 
@@ -126,14 +132,14 @@ class testLeCunLCN:
         Test on zero-value image if cause any division by zero
         """
 
-        X = as_floatX(np.zeros((5,32*32*3)))
+        X = as_floatX(np.zeros((5, 32*32*3)))
 
         axes = ['b', 0, 1, 'c']
         view_converter = dense_design_matrix.DefaultViewConverter((32, 32, 3),
-                                                                    axes)
-        dataset = DenseDesignMatrix(X = X, view_converter = view_converter)
+                                                                  axes)
+        dataset = DenseDesignMatrix(X=X, view_converter=view_converter)
         dataset.axes = axes
-        preprocessor = LeCunLCN(img_shape=[32,32])
+        preprocessor = LeCunLCN(img_shape=[32, 32])
         dataset.apply_preprocessor(preprocessor)
         result = dataset.get_design_matrix()
 
@@ -145,15 +151,15 @@ class testLeCunLCN:
         Test if works fine withe different number of channel as argument
         """
 
-        rng = np.random.RandomState([1,2,3])
-        X = as_floatX(rng.randn(5,32*32*3))
+        rng = np.random.RandomState([1, 2, 3])
+        X = as_floatX(rng.randn(5, 32*32*3))
 
         axes = ['b', 0, 1, 'c']
         view_converter = dense_design_matrix.DefaultViewConverter((32, 32, 3),
-                                                                    axes)
-        dataset = DenseDesignMatrix(X = X, view_converter = view_converter)
+                                                                  axes)
+        dataset = DenseDesignMatrix(X=X, view_converter=view_converter)
         dataset.axes = axes
-        preprocessor = LeCunLCN(img_shape=[32,32], channels = [1, 2])
+        preprocessor = LeCunLCN(img_shape=[32, 32], channels=[1, 2])
         dataset.apply_preprocessor(preprocessor)
         result = dataset.get_design_matrix()
 
@@ -168,13 +174,13 @@ def test_rgb_yuv():
 
     """
 
-    rng = np.random.RandomState([1,2,3])
-    X = as_floatX(rng.randn(5,32*32*3))
+    rng = np.random.RandomState([1, 2, 3])
+    X = as_floatX(rng.randn(5, 32*32*3))
 
     axes = ['b', 0, 1, 'c']
     view_converter = dense_design_matrix.DefaultViewConverter((32, 32, 3),
-                                                                axes)
-    dataset = DenseDesignMatrix(X = X, view_converter = view_converter)
+                                                              axes)
+    dataset = DenseDesignMatrix(X=X, view_converter=view_converter)
     dataset.axes = axes
     preprocessor = RGB_YUV()
     dataset.apply_preprocessor(preprocessor)
@@ -182,3 +188,4 @@ def test_rgb_yuv():
 
     assert not np.any(np.isnan(result))
     assert not np.any(np.isinf(result))
+

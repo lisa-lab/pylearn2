@@ -41,7 +41,7 @@ class FeatureDump(object):
         self.batch_size = batch_size
         self.topo = topo
 
-    def main_loop(self):
+    def main_loop(self, **kwargs):
         if self.batch_size is None:
             if self.topo:
                 data = self.dataset.get_topological_view()
@@ -73,6 +73,10 @@ def make_argument_parser():
                         action='store_true',
                         help='Display human-readable timestamps for '
                              'each logged message')
+    parser.add_argument('--time-budget', '-t', type=int,
+                        help='Time budget in seconds. Stop training at '
+                             'the end of an epoch if more than this '
+                             'number of seconds has elapsed.')
     parser.add_argument('--verbose-logging', '-V',
                         action='store_true',
                         help='Display timestamp, log level and source '
@@ -128,14 +132,13 @@ if __name__ == "__main__":
             phase_variable = 'PYLEARN2_TRAIN_PHASE'
             phase_value = 'phase%d' % (number + 1)
             os.environ[phase_variable] = phase_value
-            os.putenv(phase_variable, phase_value)
 
             # Execute this training phase.
-            subobj.main_loop()
+            subobj.main_loop(time_budget=args.time_budget)
 
             # Clean up, in case there's a lot of memory used that's
             # necessary for the next phase.
             del subobj
             gc.collect()
     else:
-        train_obj.main_loop()
+        train_obj.main_loop(time_budget=args.time_budget)

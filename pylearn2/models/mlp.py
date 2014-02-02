@@ -1,10 +1,5 @@
 """
 Multilayer Perceptron
-
-Notes
------
-Developers and code reviewers: when making any changes to this module, ensure
-that the changes do not break pylearn2/scripts/papers/maxout.
 """
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"
@@ -2203,7 +2198,7 @@ class ConvRectifiedLinear(Layer):
                 (self.input_space.shape[1] - self.kernel_shape[1]) / self.kernel_stride[1] + 1]
         elif self.border_mode == 'full':
             output_shape = [(self.input_space.shape[0] +  self.kernel_shape[0]) / self.kernel_stride[0] - 1,
-                    (self.input_space.shape[1] + self.kernel_shape[1]) / self.kernel_stride_stride[1] - 1]
+                    (self.input_space.shape[1] + self.kernel_shape[1]) / self.kernel_stride[1] - 1]
 
         self.detector_space = Conv2DSpace(shape=output_shape,
                 num_channels = self.output_channels,
@@ -2807,6 +2802,8 @@ class CompositeLayer(Layer):
 
     @wraps(Layer.set_input_space)
     def set_input_space(self, space):
+
+        self.input_space = space
 
         for layer in self.layers:
             layer.set_input_space(space)

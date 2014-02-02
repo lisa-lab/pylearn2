@@ -15,7 +15,6 @@ from cPickle import BadPickleGet
 io = None
 hdf_reader = None
 import struct
-from pylearn2.utils.environ import putenv
 from pylearn2.utils.string_utils import match
 import shutil
 
@@ -69,7 +68,7 @@ def load(filepath, recurse_depth=0, retry = True):
     if recurse_depth == 0:
         filepath = preprocess(filepath)
 
-    if filepath.endswith('.npy'):
+    if filepath.endswith('.npy') or filepath.endswith('.npz'):
         return np.load(filepath)
 
     if filepath.endswith('.mat'):
@@ -179,7 +178,6 @@ def load(filepath, recurse_depth=0, retry = True):
 
     return obj
 
-
 def save(filepath, obj, on_overwrite = 'ignore'):
     """
     Serialize `object` to a file denoted by `filepath`.
@@ -247,7 +245,6 @@ def save(filepath, obj, on_overwrite = 'ignore'):
                 _save(filepath, obj)
             finally:
                 sys.setrecursionlimit(old_limit)
-
 
 def get_pickle_protocol():
     """
@@ -349,7 +346,6 @@ def _save(filepath, obj):
                + str(e) +
                ' (perhaps your object is really big?)')
 
-
 def clone_via_serialize(obj):
     """
     .. todo::
@@ -358,7 +354,6 @@ def clone_via_serialize(obj):
     """
     s = cPickle.dumps(obj, get_pickle_protocol())
     return cPickle.loads(s)
-
 
 def to_string(obj):
     """
@@ -375,7 +370,6 @@ def from_string(s):
         WRITEME
     """
     return cPickle.loads(s)
-
 
 def mkdir(filepath):
     """
@@ -420,7 +414,6 @@ lush_magic = {
             507333715 : 'float64'
         }
 
-
 def read_bin_lush_matrix(filepath):
     """
     .. todo::
@@ -462,7 +455,6 @@ def read_bin_lush_matrix(filepath):
 
     return rval
 
-
 def load_train_file(config_file_path, environ=None):
     """
     Loads and parses a yaml file for a Train object.
@@ -487,14 +479,14 @@ def load_train_file(config_file_path, environ=None):
         config_file_full_stem = config_file_path
 
     for varname in ["PYLEARN2_TRAIN_FILE_FULL_STEM"]:
-        putenv(varname, config_file_full_stem)
+        os.environ[varname] = config_file_full_stem
 
     directory = config_file_path.split('/')[:-1]
     directory = '/'.join(directory)
     if directory != '':
         directory += '/'
-    putenv("PYLEARN2_TRAIN_DIR", directory)
-    putenv("PYLEARN2_TRAIN_BASE_NAME", config_file_path.split('/')[-1] )
-    putenv("PYLEARN2_TRAIN_FILE_STEM", config_file_full_stem.split('/')[-1] )
+    os.environ["PYLEARN2_TRAIN_DIR"] = directory
+    os.environ["PYLEARN2_TRAIN_BASE_NAME"] = config_file_path.split('/')[-1]
+    os.environ["PYLEARN2_TRAIN_FILE_STEM"] = config_file_full_stem.split('/')[-1]
 
     return yaml_parse.load_path(config_file_path, environ=environ)
