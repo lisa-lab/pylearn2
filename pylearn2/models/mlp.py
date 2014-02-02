@@ -2073,7 +2073,7 @@ class Softplus(Linear):
         Initializes an MLP layer using the softplus nonlinearity
         h = log(1 + exp(Wx + b))
         """
-        super(RectifiedLinear, self).__init__(**kwargs)
+        super(Softplus, self).__init__(**kwargs)
 
     @wraps(Layer.fprop)
     def fprop(self, state_below):
