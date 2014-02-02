@@ -2063,6 +2063,31 @@ class RectifiedLinear(Linear):
         raise NotImplementedError()
 
 
+class Softplus(Linear):
+    """
+    Rectified linear MLP layer (Glorot and Bengio 2011).
+    """
+
+    def __init__(self, **kwargs):
+        """
+        Initializes an MLP layer using the softplus nonlinearity
+        h = log(1 + exp(Wx + b))
+        """
+        super(RectifiedLinear, self).__init__(**kwargs)
+
+    @wraps(Layer.fprop)
+    def fprop(self, state_below):
+
+        p = self._linear_part(state_below)
+        p = T.nnet.softplus(p)
+        return p
+
+    @wraps(Layer.cost)
+    def cost(self, *args, **kwargs):
+
+        raise NotImplementedError()
+
+
 class SpaceConverter(Layer):
     """
     .. todo::
