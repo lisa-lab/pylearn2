@@ -2065,7 +2065,7 @@ class RectifiedLinear(Linear):
 
 class Softplus(Linear):
     """
-    Rectified linear MLP layer (Glorot and Bengio 2011).
+    Softplus MLP layer
     """
 
     def __init__(self, **kwargs):
