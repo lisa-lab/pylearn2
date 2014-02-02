@@ -84,7 +84,9 @@ def _is_batch_all(batch, predicate):
 def is_symbolic_batch(batch):
     """
     Returns True if batch is a symbolic variable.
-    Note that an empty tuple is both a valid symbolic batch and numeric batch.
+
+    Note that a batch may be both a symbolic and numeric variable (e.g. () for
+    empty CompositeSpaces, None for NullSpaces).
     """
 
     return _is_batch_all(batch, lambda x : isinstance(x, theano.gof.Variable))
@@ -93,7 +95,9 @@ def is_symbolic_batch(batch):
 def is_numeric_batch(batch):
     """
     Returns True if batch is a numeric variable.
-    Note that an empty tuple is both a valid symbolic batch and numeric batch.
+
+    Note that a batch may be both a symbolic and numeric variable (e.g. () for
+    empty CompositeSpaces, None for NullSpaces).
     """
     def is_numeric(batch):
         return isinstance(batch, np.ndarray) or scipy.sparse.issparse(batch)
