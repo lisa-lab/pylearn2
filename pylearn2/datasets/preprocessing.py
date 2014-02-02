@@ -815,11 +815,11 @@ class GlobalContrastNormalization(Preprocessor):
                 log.info("GCN processing data from %d to %d" % (i, stop))
                 X = data[i:stop]
                 X = global_contrast_normalize(X,
-                                          scale=self._scale,
-                                          subtract_mean=self._subtract_mean,
-                                          use_std=self._use_std,
-                                          sqrt_bias=self._sqrt_bias,
-                                          min_divisor=self._min_divisor)
+                                              scale=self._scale,
+                                              subtract_mean=self._subtract_mean,
+                                              use_std=self._use_std,
+                                              sqrt_bias=self._sqrt_bias,
+                                              min_divisor=self._min_divisor)
                 dataset.set_design_matrix(X, start=i)
 
 
