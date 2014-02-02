@@ -787,68 +787,11 @@ class GlobalContrastNormalization(Preprocessor):
                      in batches no larger than `batch_size`.
         use_std : defaults to False and sqrt_bias defaults to 0 if nothing is
                   specified.
-                  
-        Both of these defaults will change for consistency with
-        pylearn2.expr.preprocessing sometime after October 12, 2013.  The
-        defaults aren't specified as part of the method signature so that we can
-        tell whether the client is using each name for each option.
         """
-
-        if std_bias is not None:
-            warnings.warn("std_bias is deprecated, and may be removed after "
-                          "October 12, 2013. Switch to sqrt_bias.",
-                          stacklevel=2)
-            if sqrt_bias is not None:
-                if std_bias == sqrt_bias:
-                    warnings.warn("You're specifying both std_bias and "
-                                  "sqrt_bias, which are actually aliases for "
-                                  "the same parameter. You're setting them both"
-                                  " to the same thing so it's OK, but you "
-                                  "probably want to change your script to just "
-                                  "specify sqrt_bias.", stacklevel=2)
-                else:
-                    raise ValueError("You specified sqrt_bias and std_bias to "
-                                     "different values, but they are aliases of"
-                                     " each other. Specify only sqrt_bias. "
-                                     "std_bias is a deprecated alias.",
-                                     stacklevel=2)
-            sqrt_bias = std_bias
-
-        if sqrt_bias is None:
-            warnings.warn("You are not specifying a value for sqrt_bias. Note "
-                          "that the default value will change on or after "
-                          "October 12, 2013, to be consistent with "
-                          "pylearn2.expr.preprocessing.")
-            sqrt_bias = 10.
-
-        if use_norm is not None:
-            warnings.warn("use_norm is deprecated, and may be removed after "
-                          "October 12, 2013. Pass the opposite value to "
-                          "use_std.", stacklevel=2)
-            if use_std is not None:
-                if use_std == (not use_norm):
-                    warnings.warn("You're specifying both use_std and use_norm."
-                                  " You have them set to the opposite of each "
-                                  "other, i.e. both are requesting the same "
-                                  "behavior, so you're OK, but you probably "
-                                  "want to change your script to only specify "
-                                  "one.", stacklevel=2)
-                else:
-                    raise ValueError("use_std conflicts with use_norm.")
-            use_std = not use_norm
-
-        if use_std is None:
-            warnings.warn("You are not specifying a value for use_std. The "
-                          "default of use_std will change on or after October "
-                          "12, 2013 to be consistent with "
-                          "pylearn2.expr.preprocessing.")
-
-            use_std = True
 
         self._subtract_mean = subtract_mean
         self._use_std = use_std
         self._sqrt_bias = sqrt_bias
-        # These were not parameters of the old preprocessor.
         self._scale = scale
         self._min_divisor = min_divisor
         if batch_size is not None:
@@ -879,71 +822,6 @@ class GlobalContrastNormalization(Preprocessor):
                 data = self.transform(X[i:stop])
                 dataset.set_design_matrix(data, start=i)
 
-
-class GlobalContrastNormalizationPyTables(object):
-    def __init__(self,
-                 subtract_mean = True,
-                 std_bias = 10.0,
-                 use_norm = False,
-                 batch_size = 5000):
-        """
-
-        Optionally subtracts the mean of each example
-        Then divides each example either by the standard deviation of the
-        pixels contained in that example or by the norm of that example
-
-        Parameters:
-
-            subtract_mean: boolean, if True subtract the mean of each example
-            std_bias: Add this amount inside the square root when computing
-                      the standard deviation or the norm
-            use_norm: If True uses the norm instead of the standard deviation
-
-
-            The default parameters of subtract_mean = True, std_bias = 10.0,
-            use_norm = False are used in replicating one step of the
-            preprocessing used by Coates, Lee and Ng on CIFAR10 in their paper
-            "An Analysis of Single Layer Networks in Unsupervised Feature
-            Learning"
-        """
-
-        self.subtract_mean = subtract_mean
-        self.std_bias = std_bias
-        self.use_norm = use_norm
-        self._batch_size = batch_size
-        warnings.warn("GlobalContrastNormalizationPyTables has been rolled "
-                      "into GlobalContrastNormalization. This class will "
-                      "disappear after October 12, 2013.")
-
-    def transform(self, X):
-        assert X.dtype == 'float32' or X.dtype == 'float64'
-
-        if self.subtract_mean:
-            X -= X[:].mean(axis=1)[:, None]
-
-        if self.use_norm:
-            scale = numpy.sqrt(numpy.square(X).sum(axis=1) + self.std_bias)
-        else:
-            # use standard deviation
-            scale = numpy.sqrt(numpy.square(X).mean(axis=1) + self.std_bias)
-        eps = 1e-8
-        scale[scale < eps] = 1.
-        X /= scale[:, None]
-        return X
-
-    def apply(self, dataset, can_fit=False):
-        X = dataset.get_design_matrix()
-        data_size = X.shape[0]
-        last = numpy.floor(data_size / float(self._batch_size)) * \
-               self._batch_size
-        for i in xrange(0, data_size, self._batch_size):
-            if i >= last:
-                stop = i + numpy.mod(data_size, self._batch_size)
-            else:
-                stop = i + self._batch_size
-            print "GCN processing data from %d to %d" % (i, stop)
-            data = self.transform(X[i:stop])
-            dataset.set_design_matrix(data, start = i)
 
 class ZCA(Preprocessor):
     """
@@ -1191,7 +1069,7 @@ class ZCA(Preprocessor):
 
     def inverse(self, X):
         assert X.ndim == 2
-        return numpy.dot(X, self.inv_P_) + self.mean_
+        return self._gpu_matrix_dot(X, self.inv_P_) + self.mean_
 
 
 class LeCunLCN(ExamplewisePreprocessor):
@@ -1405,7 +1283,6 @@ class CentralWindow(Preprocessor):
         if needs_transpose:
             index_map = tuple(('c', 0, 1, 'b').index(axis) for axis in axes)
             new_arr = numpy.transpose(new_arr, index_map)
-                                      
 
         dataset.set_topological_view(new_arr, axes=axes)
 
@@ -1466,47 +1343,6 @@ def gaussian_filter(kernel_shape):
 
     return x / numpy.sum(x)
 
-class CentralWindow(Preprocessor):
-    """
-    Preprocesses an image dataset to contain only the central window.
-    """
-
-    def __init__(self, window_shape):
-
-        self.__dict__.update(locals())
-        del self.self
-
-    def apply(self, dataset, can_fit=False):
-
-        w_rows, w_cols = self.window_shape
-
-        arr = dataset.get_topological_view()
-
-        try:
-            axes = dataset.view_converter.axes
-        except AttributeError:
-            raise NotImplementedError("I don't know how to tell what the axes"
-                                      " of this kind of dataset are.")
-
-        needs_transpose = not axes[1:3] == (0, 1)
-
-        if needs_transpose:
-            arr = numpy.transpose(arr,
-                                  (axes.index('c'),
-                                   axes.index(0),
-                                   axes.index(1),
-                                   axes.index('b')))
-
-        r_off = (arr.shape[1] - w_rows) // 2
-        c_off = (arr.shape[2] - w_cols) // 2
-        new_arr = arr[:, r_off:r_off + w_rows, c_off:c_off + w_cols, :]
-
-        if needs_transpose:
-            index_map = tuple(('c', 0, 1, 'b').index(axis) for axis in axes)
-            new_arr = numpy.transpose(new_arr, index_map)
-                                      
-
-        dataset.set_topological_view(new_arr, axes=axes)
 
 class ShuffleAndSplit(Preprocessor):
 
@@ -1551,7 +1387,3 @@ class ShuffleAndSplit(Preprocessor):
         dataset.X = X[start:stop, :]
         if y is not None:
             dataset.y = y[start:stop, :]
-
-
-
-
