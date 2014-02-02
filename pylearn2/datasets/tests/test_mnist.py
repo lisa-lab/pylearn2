@@ -6,8 +6,10 @@ import numpy as np
 class TestMNIST(unittest.TestCase):
     def setUp(self):
         skip_if_no_data()
-        self.train = MNIST(which_set = 'train')
-        self.test = MNIST(which_set = 'test')
+        # TODO: the one_hot=True is only necessary because one_hot=False is
+        # broken, remove it after one_hot=False is fixed.
+        self.train = MNIST(which_set = 'train', one_hot=True)
+        self.test = MNIST(which_set = 'test', one_hot=True)
 
     def test_range(self):
         """Tests that the data spans [0,1]"""
@@ -27,7 +29,10 @@ class TestMNIST(unittest.TestCase):
         format.
         """
         batch_size = 100
-        c01b_test = MNIST(which_set='test', axes=('c', 0, 1, 'b'))
+        # TODO: the one_hot=True is only necessary because one_hot=False is
+        # broken, remove it after one_hot=False is fixed.
+        c01b_test = MNIST(which_set='test', axes=('c', 0, 1, 'b'),
+                          one_hot=True)
         c01b_X = c01b_test.X[0:batch_size,:]
         c01b = c01b_test.get_topological_view(c01b_X)
         assert c01b.shape == (1, 28, 28, batch_size)

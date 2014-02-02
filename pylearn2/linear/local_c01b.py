@@ -54,7 +54,7 @@ class Local(LinearTransform, LocalDot):
             filters=filters,
             irows=image_shape[0],
             icols=image_shape[1],
-            kernel_stride=kernel_stride,
+            subsample=kernel_stride,
             padding_start=pad,
             message='')
 

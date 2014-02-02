@@ -11,7 +11,7 @@ import warnings
 is_initialized = False
 
 
-def load(stream, overrides=None, **kwargs):
+def load(stream, overrides=None, environ=None, **kwargs):
     """
     Loads a YAML configuration from a string or file-like object.
 
@@ -20,16 +20,20 @@ def load(stream, overrides=None, **kwargs):
     stream : str or object
         Either a string containing valid YAML or a file-like object \
         supporting the .read() interface.
-    overrides : dict, optional
+    overrides : dict, optional [DEPRECATED]
         A dictionary containing overrides to apply. The location of \
         the override is specified in the key as a dot-delimited path \
         to the desired parameter, e.g. "model.corruptor.corruption_level".
+    environ : dict, optional
+        A dictionary used for ${FOO} substitutions in addition to
+        environment variables. If a key appears both in `os.environ`
+        and this dictionary, the value in this dictionary is used.
 
     Returns
     -------
     graph : dict or object
-        The dictionary or object (if the top-level element specified an \
-        Python object to instantiate).
+        The dictionary or object (if the top-level element specified
+        a Python object to instantiate).
 
     Notes
     -----
@@ -44,17 +48,18 @@ def load(stream, overrides=None, **kwargs):
     else:
         string = '\n'.join(stream.readlines())
 
-    processed_string = preprocess(string)
+    processed_string = preprocess(string, environ=environ)
 
     proxy_graph = yaml.load(processed_string, **kwargs)
 
-    #import pdb; pdb.set_trace()
     if overrides is not None:
+        warnings.warn("The 'overrides' keyword is deprecated and will "
+                      "be removed on or after June 8, 2014.")
         handle_overrides(proxy_graph, overrides)
     return instantiate_all(proxy_graph)
 
 
-def load_path(path, overrides=None, **kwargs):
+def load_path(path, overrides=None, environ=None, **kwargs):
     """
     Convenience function for loading a YAML configuration from a file.
 
@@ -66,6 +71,10 @@ def load_path(path, overrides=None, **kwargs):
         A dictionary containing overrides to apply. The location of \
         the override is specified in the key as a dot-delimited path \
         to the desired parameter, e.g. "model.corruptor.corruption_level".
+    environ : dict, optional
+        A dictionary used for ${FOO} substitutions in addition to
+        environment variables. If a key appears both in `os.environ`
+        and this dictionary, the value in this dictionary is used.
 
     Returns
     -------
@@ -82,9 +91,10 @@ def load_path(path, overrides=None, **kwargs):
     f.close()
 
     if not isinstance(content, str):
-        raise AssertionError("Expected content to be of type str but it is "+str(type(content)))
+        raise AssertionError("Expected content to be of type str, got " +
+                             str(type(content)))
 
-    return load(content, **kwargs)
+    return load(content, environ=environ, **kwargs)
 
 
 def handle_overrides(graph, overrides):
@@ -132,8 +142,8 @@ def instantiate_all(graph):
     """
 
     def should_instantiate(obj):
-        classes = [ObjectProxy, dict, list]
-        return True in [isinstance(obj, cls) for cls in classes]
+        classes = (ObjectProxy, dict, list)
+        return isinstance(obj, classes)
 
     if not isinstance(graph, list):
         for key in graph:
@@ -258,13 +268,11 @@ def try_to_import(tag_suffix):
                 except:
                     base_msg = 'Could not import %s' % modulename
                     if j > 1:
-                        modulename = '.'.join(pcomponents[:j-1])
+                        modulename = '.'.join(pcomponents[:j - 1])
                         base_msg += ' but could import %s' % modulename
-                    raise ImportError(base_msg + '. Original exception: '+str(e))
+                    raise ImportError(base_msg + '. Original exception: '
+                                      + str(e))
                 j += 1
-
-
-
     try:
         obj = eval(tag_suffix)
     except AttributeError, e:
@@ -277,27 +285,46 @@ def try_to_import(tag_suffix):
             field = pieces[-1]
             candidates = dir(eval(module))
 
-            msg = ('Could not evaluate %s. ' % tag_suffix) + \
-            'Did you mean ' + match(field, candidates) +'? '+ \
-            'Original error was '+str(e)
+            msg = ('Could not evaluate %s. ' % tag_suffix +
+                   'Did you mean ' + match(field, candidates) + '? ' +
+                   'Original error was ' + str(e))
 
         except:
             warnings.warn("Attempt to decipher AttributeError failed")
-            raise AttributeError( ('Could not evaluate %s. ' % tag_suffix) +
-                'Original error was '+str(e))
-        raise AttributeError( msg )
+            raise AttributeError('Could not evaluate %s. ' % tag_suffix +
+                                 'Original error was ' + str(e))
+        raise AttributeError(msg)
     return obj
 
 
-def multi_constructor(loader, tag_suffix, node):
+def initialize():
     """
-    .. todo::
+    Initialize the configuration system by installing YAML handlers.
+    Automatically done on first call to load() specified in this file.
+    """
+    global is_initialized
 
-        WRITEME properly
-    
-    Constructor function passed to PyYAML telling it how to construct
-    objects from argument descriptions. See PyYAML documentation for
-    details on the call signature.
+    # Add the custom multi-constructor
+    yaml.add_multi_constructor('!obj:', multi_constructor_obj)
+    yaml.add_multi_constructor('!pkl:', multi_constructor_pkl)
+    yaml.add_multi_constructor('!import:', multi_constructor_import)
+
+    yaml.add_constructor('!import', constructor_import)
+    yaml.add_implicit_resolver(
+        '!import',
+        re.compile(r'(?:[a-zA-Z_][\w_]+\.)+[a-zA-Z_][\w_]+')
+    )
+    is_initialized = True
+
+
+################################################################################3
+# Callbacks used by PyYAML
+
+def multi_constructor_obj(loader, tag_suffix, node):
+    """
+    Callback used by PyYAML when a "!obj:" tag is encountered.
+
+    See PyYAML documentation for details on the call signature.
     """
     yaml_src = yaml.serialize(node)
     mapping = loader.construct_mapping(node)
@@ -310,64 +337,41 @@ def multi_constructor(loader, tag_suffix, node):
 
     return rval
 
-
 def multi_constructor_pkl(loader, tag_suffix, node):
     """
-    .. todo::
-
-        WRITEME properly
-    
-    Constructor function passed to PyYAML telling it how to load
-    objects from paths to .pkl files. See PyYAML documentation for
-    details on the call signature.
+    Callback used by PyYAML when a "!pkl:" tag is encountered.
     """
 
     mapping = loader.construct_yaml_str(node)
     if tag_suffix != "" and tag_suffix != u"":
-        raise AssertionError('Expected tag_suffix to be "" but it is "'+tag_suffix+'"')
+        raise AssertionError('Expected tag_suffix to be "" but it is "' + tag_suffix +
+                    '": Put space between !pkl: and the filename.')
 
     rval = ObjectProxy(None, {}, yaml.serialize(node))
     rval.instance = serial.load(mapping)
 
     return rval
 
-
 def multi_constructor_import(loader, tag_suffix, node):
     """
-    .. todo::
-
-        WRITEME
+    Callback used by PyYAML when a "!import:" tag is encountered.
     """
-    yaml_src = yaml.serialize(node)
-    mapping = loader.construct_mapping(node)
     if '.' not in tag_suffix:
+        raise yaml.YAMLError("!import: tag suffix contains no '.'")
+    return try_to_import(tag_suffix)
+
+def constructor_import(loader, node):
+    """
+    Callback used by PyYAML when a "!import <str>" tag is encountered.
+    This tag exects a (quoted) string as argument.
+    """
+    value = loader.construct_scalar(node)
+    if '.' not in value:
         raise yaml.YAMLError("import tag suffix contains no '.'")
-    else:
-        rval = try_to_import(tag_suffix)
-    return rval
+    return try_to_import(value)
 
 
-def initialize():
-    """
-    Initialize the configuration system by installing YAML handlers.
-    Automatically done on first call to load() specified in this file.
-    """
-    global is_initialized
-    # Add the custom multi-constructor
-    yaml.add_multi_constructor('!obj:', multi_constructor)
-    yaml.add_multi_constructor('!pkl:', multi_constructor_pkl)
-    yaml.add_multi_constructor('!import:', multi_constructor_import)
 
-    def import_constructor(loader, node):
-        value = loader.construct_scalar(node)
-        return try_to_import(value)
-
-    yaml.add_constructor('!import', import_constructor)
-    yaml.add_implicit_resolver(
-        '!import',
-        re.compile(r'(?:[a-zA-Z_][\w_]+\.)+[a-zA-Z_][\w_]+')
-    )
-    is_initialized = True
 
 if __name__ == "__main__":
     initialize()

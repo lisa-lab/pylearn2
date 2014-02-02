@@ -20,8 +20,10 @@ def test_ais():
     Russ's code's output for the same parameters.
     """
     try:
-        trainset = MNIST(which_set='train')
-        testset = MNIST(which_set='test')
+        # TODO: the one_hot=True is only necessary because one_hot=False is
+        # broken, remove it after one_hot=False is fixed.
+        trainset = MNIST(which_set='train', one_hot=True)
+        testset = MNIST(which_set='test', one_hot=True)
     except NoDataPathError:
         raise SkipTest("PYLEARN2_DATA_PATH environment variable not defined")
 

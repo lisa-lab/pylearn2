@@ -15,6 +15,7 @@
         # the sampling probabilities should be MNIST.
         raw: &raw_train !obj:pylearn2.datasets.mnist.MNIST {
             which_set: "train",
+            one_hot: 1
         }
     },
     model: !obj:pylearn2.models.dbm.DBM {

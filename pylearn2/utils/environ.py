@@ -1,20 +1,25 @@
 """
-.. todo::
+    Utilities for working with environment variables.
 
-    WRITEME
+    DEPRECATED -- This file can be removed.
 """
-#Utilities for working with environment variables
 import os
+import warnings
 
 def putenv(key, value):
     """
-    .. todo::
+    DEPRECATED
 
-        WRITEME
+    Sets environment variables and ensures that the 
+    changes are visible for both the current process
+    and for it's children.
+
+    Use os.environ['VAR'] = 'VALUE' instead; it is exactly equivalent.
     """
-    #this makes the change visible to other parts of the code
-    #in this same process
+    warnings.warn("pylearn.utils.environ.putenv is deprecated.\n" +
+        "Use os.environ['SOME_VAR'] = 'VALUE'; it is exactly equivalent.\n" +
+        "Avoid os.putenv(..), it will set the environment for childs only.")
+
+    # Make changes visible in this process and to subprocesses
     os.environ[key] = value
-    # this makes it available to any subprocesses we launch
-    os.putenv(key, value)
 
