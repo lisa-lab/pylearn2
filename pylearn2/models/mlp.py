@@ -265,9 +265,20 @@ class Layer(Model):
         """
         assert (len(self._initializers) == 0 or
                 len(self._initializers) == len(self.get_params()))
+        # TODO: When all layers support new-style initialization
+        # (i.e. NdarrayInitialization objects) this should be changed
+        # to safe_izip, and the class-level _initializers in Layer
+        # removed. The current state of things is a stop-gap to make
+        # this loop a no-op in case a Layer class has not been updated.
         for param, init in izip(self.get_params(), self._initializers):
             shape = param.get_value(borrow=True).shape
-            # TODO: missing atom_axis, etc.
+            # TODO: this method should be improved to provide metadata
+            # needed by certain kinds of initializations, e.g. a Glorot
+            # & Bengio (2010) style initializer will need fan-in and
+            # fan-out. atom_axis also needs to be passed explicitly
+            # (based on input spaces/the Transformer object/etc.) as it
+            # currently it assumes the last axis indexes hidden units
+            # or filters or whatever.
             if init is not None:
                 log.info("Initializing %s, shape = %s:", param.name, shape)
                 log.info("    %s", init)
