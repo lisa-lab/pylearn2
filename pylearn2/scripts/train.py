@@ -32,7 +32,11 @@ for use within the YAML file:
 These environment variables are especially useful for setting the save
 path. For example, to make sure that foo/bar.yaml saves to foo/bar.pkl,
 use
+
+.. code-block:: none
+
     save_path: "${PYLEARN2_TRAIN_FILE_FULL_STEM}.pkl"
+
 This way, if you copy foo/bar.yaml to foo/bar2.yaml, the output of
 foo/bar2.yaml won't overwrite foo/bar.pkl, but will automatically save
 to foo/bar2.pkl.
