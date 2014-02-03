@@ -467,7 +467,7 @@ def ScaledCost(cost, scaling):
     Deprecated in favor of scaled_cost.
     """
 
-    warnings.warn("ScaledCost is deprecated. Use scaled_cost instead. ScaledCost will be removed on or after December 4, 2013", stacklevel=2)
+    warnings.warn("ScaledCost is deprecated. Use scaled_cost instead. ScaledCost will be removed on or after December 4, 2014", stacklevel=2)
 
     return SumOfCosts([[scaling,cost]])
 
@@ -520,6 +520,7 @@ class CrossEntropy(DefaultDataSpecsMixin, Cost):
 
             WRITEME
         """
+        warnings.warn("CrossEntropy is deprecated. You should use a model-specific cross entropy cost function. CrossEntropy will be removed on or after August 3, 2014", stacklevel=2)
         self.supervised = True
 
     def expr(self, model, data, ** kwargs):
@@ -529,6 +530,7 @@ class CrossEntropy(DefaultDataSpecsMixin, Cost):
             WRITEME
         """
         self.get_data_specs(model)[0].validate(data)
+        print "expr", type(data)
 
         # unpack data
         (X, Y) = data
