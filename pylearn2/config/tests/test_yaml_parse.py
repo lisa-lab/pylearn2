@@ -33,13 +33,13 @@ def test_import_colon():
 
 def test_preproc_rhs():
     environ['TEST_VAR'] = '10'
-    loaded = load("a: ${TEST_VAR}")
+    loaded = load("a: $(TEST_VAR)")
     assert_(loaded['a'] == 10)
     del environ['TEST_VAR']
 
 def test_preproc_lhs():
     environ['TEST_VAR'] = 'a'
-    loaded = load("${TEST_VAR}: 42")
+    loaded = load("$(TEST_VAR): 42")
     assert_(loaded['a'] == 42)
     del environ['TEST_VAR']
 
@@ -59,10 +59,9 @@ def test_late_preproc_pkl():
         array = np.arange(10)
         np.save(f, array)
     environ['TEST_VAR'] = fname
-    loaded = load("a: !obj:pylearn2.datasets.npy_npz.NpyDataset { file: $(TEST_VAR) }\n")
-    assert_( loaded['a'].yaml_src.find("$(TEST_VAR)") != -1 )   # Assert the unsubstituted TEST_VAR is in yaml_src
+    loaded = load('a: !obj:pylearn2.datasets.npy_npz.NpyDataset { file: "${TEST_VAR}" }\n')
+    assert_( loaded['a'].yaml_src.find("${TEST_VAR}") != -1 )   # Assert the unsubstituted TEST_VAR is in yaml_src
     del environ['TEST_VAR']
-
 
 def test_unpickle():
     fd, fname = tempfile.mkstemp()
