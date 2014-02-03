@@ -1663,10 +1663,12 @@ class Linear(Layer):
             else:
                 assert self.sparse_init is not None
                 W = np.zeros((self.input_dim, self.dim))
+
                 def mask_rejects(idx, i):
                     if self.mask_weights is None:
                         return False
                     return self.mask_weights[idx, i] == 0.
+
                 for i in xrange(self.dim):
                     assert self.sparse_init <= self.input_dim
                     for j in xrange(self.sparse_init):
