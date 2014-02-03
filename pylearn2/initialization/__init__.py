@@ -13,7 +13,7 @@ import theano
 from pylearn2.utils import wraps
 
 
-# XXX: To add --
+# TODO: To add --
 #  - object representing initialization from dataset marginals
 #  - a GlorotBengio object implementing Glorot & Bengio (2010)'s strategy
 #    for tanh nets.
@@ -244,7 +244,7 @@ class SparseInitialization(NdarrayInitialization):
             mask = np.zeros((shape[atom_axis], other_axes_elems),
                             dtype=np.int8)
             indices = np.arange(shape[atom_axis])
-            # XXX: use something else to generate this structured random
+            # TODO: use something else to generate this structured random
             # matrix. There's got to be a cleverer algorithm for this but
             # I'm not seeing it.
             for i in xrange(shape[atom_axis]):
