@@ -9,7 +9,6 @@ Basic usage:
     train.py yaml_file.yaml
 
 The YAML file should contain a pylearn2 YAML description of a
-
 pylearn2.train.Train object (or optionally, a list of Train objects to
 run sequentially).
 
