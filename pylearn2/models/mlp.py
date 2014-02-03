@@ -2638,28 +2638,6 @@ def mean_pool(bc01, pool_shape, pool_stride, image_shape):
     return mx
 
 
-def WeightDecay(*args, **kwargs):
-    """
-    .. todo::
-
-        WRITEME
-    """
-    warnings.warn("pylearn2.models.mlp.WeightDecay has moved to pylearn2.costs.mlp.WeightDecay")
-    from pylearn2.costs.mlp import WeightDecay as WD
-    return WD(*args, **kwargs)
-
-
-def L1WeightDecay(*args, **kwargs):
-    """
-    .. todo::
-
-        WRITEME
-    """
-    warnings.warn("pylearn2.models.mlp.L1WeightDecay has moved to pylearn2.costs.mlp.WeightDecay")
-    from pylearn2.costs.mlp import L1WeightDecay as L1WD
-    return L1WD(*args, **kwargs)
-
-
 class LinearGaussian(Linear):
     """
     A Linear layer augmented with a precision vector, for modeling conditionally Gaussian data
