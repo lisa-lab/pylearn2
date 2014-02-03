@@ -266,7 +266,7 @@ class Layer(Model):
                 len(self._initializers) == len(self.get_params()))
         for param, init in izip(self.get_params(), self._initializers):
             shape = param.get_value(borrow=True).shape
-            # XXX: missing atom_axis, etc.
+            # TODO: missing atom_axis, etc.
             if init is not None:
                 log.info("Initializing %s, shape = %s:", param.name, shape)
                 log.info("    %s", init)
@@ -883,7 +883,7 @@ class Softmax(Layer):
         if not no_affine:
             self.b = sharedX(np.zeros((n_classes,)), name='softmax_b')
             if self.bias_init is None:
-                # XXX: error message for assertion
+                # TODO: error message for assertion
                 if init_bias_target_marginals:
                     marginals = init_bias_target_marginals.y.mean(axis=0)
                     assert marginals.ndim == 1
@@ -894,7 +894,7 @@ class Softmax(Layer):
         else:
             assert init_bias_target_marginals is None
         if self.weights_init is not None:
-            # XXX: error message for assertion
+            # TODO: error message for assertion
             assert istdev is None and sparse_init is None and irange is None
 
     @wraps(Layer.get_lr_scalers)
