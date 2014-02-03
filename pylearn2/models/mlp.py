@@ -883,6 +883,8 @@ class Softmax(Layer):
         if not no_affine:
             self.b = sharedX(np.zeros((n_classes,)), name='softmax_b')
             if self.bias_init is None:
+                # TODO: add deprecation warning here when bias_init
+                # is more widely supported among layers.
                 # TODO: error message for assertion
                 if init_bias_target_marginals:
                     marginals = init_bias_target_marginals.y.mean(axis=0)
@@ -1581,6 +1583,8 @@ class Linear(Layer):
 
         if use_bias:
             if bias_init is None:  # object
+                # TODO: add deprecation warning here when bias_init
+                # is more widely supported among layers.
                 if init_bias is None:  # scalar
                     init_bias = 0.
             else:
@@ -1593,6 +1597,8 @@ class Linear(Layer):
         if use_bias:
             b = np.zeros((self.dim,))
             if bias_init is None:
+                # TODO: add deprecation warning here when bias_init
+                # is more widely supported among layers.
                 b += init_bias
             self.b = sharedX(b, name=layer_name + '_b')
         else:
@@ -1639,6 +1645,8 @@ class Linear(Layer):
 
         rng = self.mlp.rng
         if self.weights_init is None:
+            # TODO: add deprecation warning here when weights_init
+            # is more widely supported among layers.
             if self.irange is not None:
                 assert self.istdev is None
                 assert self.sparse_init is None
