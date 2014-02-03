@@ -12,7 +12,7 @@ def preprocess(string, environ=None, early_process=False):
     """
     Preprocesses a string, by replacing `${VARNAME}` and 
     `$(VARNAME)` with `os.environ['VARNAME']`. 
-    If early_process is True, only `${VARNAME}` will be replaced.
+    If early_process is True, only `$(VARNAME)` will be replaced.
 
     Parameters
     ----------
@@ -24,7 +24,7 @@ def preprocess(string, environ=None, early_process=False):
         if a key appears in both, this dictionary takes
         precedence.
     early_process : bool, optional 
-        If True, Substitute only `${VARNAME}` 
+        If True, Substitute only `$(VARNAME)` 
 
     Returns
     -------
@@ -35,7 +35,7 @@ def preprocess(string, environ=None, early_process=False):
         environ = {}
 
     if early_process:
-        split_tokens = [('${', '}')]
+        split_tokens = [('$(', ')')]
     else:
         split_tokens = [('${', '}'), ('$(', ')')]
 
