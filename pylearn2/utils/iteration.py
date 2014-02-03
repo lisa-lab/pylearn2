@@ -437,12 +437,6 @@ class FiniteDatasetIterator(object):
         self._subset_iterator = subset_iterator
         self._return_tuple = return_tuple
 
-        # It's unclear whether the following comment applies to the
-        # current interface or only to a block of code supporting
-        # an older interface that has since been removed:
-        # TODO: More thought about how to handle things where this
-        # fails (gigantic HDF5 files, etc.)
-
         # Keep only the needed sources in self._raw_data.
         # Remember what source they correspond to in self._source
         assert is_flat_specs(data_specs)
@@ -540,11 +534,6 @@ class FiniteDatasetIterator(object):
         # TODO: handle fancy-index copies by allocating a buffer and
         # using numpy.take()
 
-        # It's unclear whether this comment applies to the current code,
-        # or only to a block of deprecated code that was removed:
-        # This saves us some memory (and time spent allocating it)
-        # when the dataset dtype matches floatX and next_index is not a
-        # fancy-index.
         rval = tuple(
                 fn(data[next_index]) if fn else data[next_index]
                 for data, fn in safe_zip(self._raw_data, self._convert))
