@@ -1790,6 +1790,10 @@ class Linear(Layer):
 
             state_below = self.input_space.format_as(state_below, self.desired_space)
 
+        # Support old pickle files
+        if not hasattr(self, 'softmax_columns'):
+            self.softmax_columns = False
+
         if self.softmax_columns:
             W, = self.transformer.get_params()
             W = W.T
@@ -2051,6 +2055,31 @@ class RectifiedLinear(Linear):
 
         p = self._linear_part(state_below)
         p = p * (p > 0.) + self.left_slope * p * (p < 0.)
+        return p
+
+    @wraps(Layer.cost)
+    def cost(self, *args, **kwargs):
+
+        raise NotImplementedError()
+
+
+class Softplus(Linear):
+    """
+    Softplus MLP layer
+    """
+
+    def __init__(self, **kwargs):
+        """
+        Initializes an MLP layer using the softplus nonlinearity
+        h = log(1 + exp(Wx + b))
+        """
+        super(Softplus, self).__init__(**kwargs)
+
+    @wraps(Layer.fprop)
+    def fprop(self, state_below):
+
+        p = self._linear_part(state_below)
+        p = T.nnet.softplus(p)
         return p
 
     @wraps(Layer.cost)
