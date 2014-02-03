@@ -1019,7 +1019,9 @@ def push_monitor(model, name, transfer_experience = False):
 
     Returns
     -------
-    WRITEME
+    model:
+        Returns the model itself so you can use an !obj:push_monitor call as the
+        definition of a model in a YAML file.
     """
 
     assert hasattr(model, 'monitor')
