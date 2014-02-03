@@ -169,8 +169,10 @@ class Maxout(Layer):
         self.__dict__.update(locals())
         del self.self
 
+        # TODO: add deprecation warning here when bias_init
+        # is more widely supported among layers.
         self.b = sharedX(np.zeros((self.detector_layer_dim,)) + init_bias,
-                         name=(layer_name + '_b'))
+                         name=layer_name + '_b')
 
         if max_row_norm is not None:
             raise NotImplementedError()
@@ -238,6 +240,8 @@ class Maxout(Layer):
 
         rng = self.mlp.rng
         if self.weights_init is None:
+            # TODO: add deprecation warning here when weights_init
+            # is more widely supported among layers.
             if self.irange is not None:
                 assert self.sparse_init is None
                 W = rng.uniform(-self.irange,
