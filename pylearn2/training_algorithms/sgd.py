@@ -477,23 +477,23 @@ class MonitorBasedLRAdjuster(TrainExtension):
         monitor = model.monitor
 
         if self.channel_name is None:
-            channels = [elem for elem in monitor.channels if elem.endswith("_objective")]
+            channels = [elem for elem in monitor.channels if elem.endswith("objective")]
             if len(channels) < 1:
-                raise ValueError("""There are no channels that end with \"_objective\". Please specify either channel_name or dataset_name.""")
+                raise ValueError("""There are no channels that end with \"objective\". Please specify either channel_name or dataset_name.""")
             elif len(channels) > 1:
                 datasets = [re.sub('_objective', '', elem) for elem in channels]
-                raise ValueError('There are multiple channels that ends with \"_objective\". The list of corresponding datasets are: ' + \
+                raise ValueError('There are multiple channels that ends with \"_objective\". The list of available datasets are: ' + \
                                 datasets + ' . Please either specify channel_name or dataset_name to disambiguate.')
             else:
                 self.channel_name = channels[0]
                 warnings.warn('The channel that has been chosen for monitoring is: ' + \
-                              self.channel_name + '.')
+                              str(self.channel_name) + '.')
 
         try:
             v = monitor.channels[self.channel_name].val_record
         except KeyError:
             raise KeyError('There is no monitoring channel named ' + \
-                    self.channel_name + '. You probably need to specify '
+                    str(self.channel_name) + '. You probably need to specify '
                     'dataset_name in the MonitorBasedLRAdjuster constructor.')
 
         if len(v) < 1:
