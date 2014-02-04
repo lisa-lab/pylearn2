@@ -34,7 +34,7 @@ def check_dtype(data):
         config.floatX = str(data.X.dtype)
 
 # Load train data
-train = SVHN('splitted_train', path = local_path)
+train = SVHN('splitted_train', path=local_path)
 check_dtype(train)
 
 # prepare preprocessing
