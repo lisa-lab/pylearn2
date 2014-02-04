@@ -932,7 +932,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         """
         assert len(X.shape) == 2
         assert not np.any(np.isnan(X))
-        DenseDesignMatrixPyTables.fill_hdf5(file = self.h5file,
+        DenseDesignMatrixPyTables.fill_hdf5(file_handle = self.h5file,
                                             data_x = X,
                                             start = start)
 
@@ -961,7 +961,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         self.view_converter = DefaultViewConverter([rows, cols, channels], axes=axes)
         X = self.view_converter.topo_view_to_design_mat(V)
         assert not np.any(np.isnan(X))
-        DenseDesignMatrixPyTables.fill_hdf5(file = self.h5file,
+        DenseDesignMatrixPyTables.fill_hdf5(file_handle = self.h5file,
                                             data_x = X,
                                             start = start)
 
