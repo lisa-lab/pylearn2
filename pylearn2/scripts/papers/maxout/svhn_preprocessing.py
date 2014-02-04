@@ -19,7 +19,7 @@ test_name = 'h5/test_32x32.h5'
 
 # copy data if don't exist
 if not os.path.isdir(os.path.join(local_path, 'h5')):
-    os.mkdir(os.path.join(local_path, 'h5'))
+    os.makedirs(os.path.join(local_path, 'h5'))
 
 for d_set in [train_name, valid_name, test_name]:
     if not os.path.isfile(os.path.join(local_path, d_set)):
@@ -27,7 +27,7 @@ for d_set in [train_name, valid_name, test_name]:
         shutil.copyfile(os.path.join(orig_path, d_set),
                     os.path.join(local_path, d_set))
 
-def check_type(data):
+def check_dtype(data):
     if str(data.X.dtype) != config.floatX:
         logging.warning("The dataset is saved as {}, changing theano's floatX "\
                 "to the same dtype".format(data.X.dtype))
@@ -35,25 +35,25 @@ def check_type(data):
 
 # Load train data
 train = SVHN('splitted_train', path = local_path)
-check_type(train)
+check_dtype(train)
 
 # prepare preprocessing
 pipeline = preprocessing.Pipeline()
 # without batch_size there is a high chance that you might encounter memory error
-# or pytbales crashes
-pipeline.items.append(preprocessing.GlobalContrastNormalization(batch_size = 5000))
+# or pytables crashes
+pipeline.items.append(preprocessing.GlobalContrastNormalization(batch_size=5000))
 pipeline.items.append(preprocessing.LeCunLCN((32,32)))
 
 # apply the preprocessings to train
-train.apply_preprocessor(pipeline, can_fit = True)
+train.apply_preprocessor(pipeline, can_fit=True)
 del train
 
 # load and preprocess valid
-valid = SVHN('valid', path = local_path)
-check_type(valid)
-valid.apply_preprocessor(pipeline, can_fit = False)
+valid = SVHN('valid', path=local_path)
+check_dtype(valid)
+valid.apply_preprocessor(pipeline, can_fit=False)
 
 # load and preprocess test
-test = SVHN('test', path = local_path)
-check_type(test)
-test.apply_preprocessor(pipeline, can_fit = False)
+test = SVHN('test', path=local_path)
+check_dtype(test)
+test.apply_preprocessor(pipeline, can_fit=False)

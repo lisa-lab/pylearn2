@@ -813,10 +813,7 @@ class GlobalContrastNormalization(Preprocessor):
             last = (numpy.floor(data_size / float(self._batch_size)) *
                     self._batch_size)
             for i in xrange(0, data_size, self._batch_size):
-                if i >= last:
-                    stop = i + numpy.mod(data_size, self._batch_size)
-                else:
-                    stop = i + self._batch_size
+                stop = i + self._batch_size
                 log.info("GCN processing data from %d to %d" % (i, stop))
                 X = data[i:stop]
                 X = global_contrast_normalize(X,
@@ -1348,7 +1345,7 @@ def lecun_lcn(input, img_shape, kernel_shape, threshold=1e-4):
 def gaussian_filter(kernel_shape):
 
     x = numpy.zeros((kernel_shape, kernel_shape),
-                    dtype = theano.config.floatX)
+                    dtype=theano.config.floatX)
 
     def gauss(x, y, sigma=2.0):
         Z = 2 * numpy.pi * sigma**2
