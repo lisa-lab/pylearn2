@@ -1,6 +1,8 @@
+"""
+Retina-inspired preprocessing as described in
+"Deep Boltzmann Machines" by Salakhutdinov and Hinton
+"""
 from dense_design_matrix import DefaultViewConverter
-from dense_design_matrix import DenseDesignMatrix
-from pylearn2.datasets.dataset import Dataset
 import numpy
 
 def foveate_channel(img, rings, output, start_idx):
