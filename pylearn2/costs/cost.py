@@ -444,10 +444,10 @@ def scaled_cost(cost, scaling):
     """
     Represents a given cost scaled by a constant factor.
 
-    TODO: why would you want to use this? SumOfCosts allows you to scale individual
-        terms, and if this is the only cost, why not just change the learning rate?
-        If there's an obvious use case or rationale we should document it, if not,
-        we should remove it.
+    TODO: why would you want to use this? SumOfCosts allows you to scale
+          individual terms, and if this is the only cost, why not just change
+          the learning rate?  If there's an obvious use case or rationale we
+          should document it, if not, we should remove it.
 
     Parameters
     ----------
@@ -456,7 +456,8 @@ def scaled_cost(cost, scaling):
     scaling : float
         scaling of the cost
     """
-    return SumOfCosts([[scaling,cost]])
+    return SumOfCosts([[scaling, cost]])
+
 
 class LpPenalty(NullDataSpecsMixin, Cost):
     """
