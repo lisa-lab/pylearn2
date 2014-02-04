@@ -1114,7 +1114,8 @@ class Softmax(Layer):
                 updated_W = updates[W]
                 row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=1))
                 desired_norms = T.clip(row_norms, 0, self.max_row_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle(0, 'x')
+                scales = desired_norms / (1e-7 + row_norms)
+                updates[W] = updated_W * scales.dimshuffle(0, 'x')
         if self.max_col_norm is not None:
             assert self.max_row_norm is None
             W = self.W
@@ -1625,7 +1626,8 @@ class Linear(Layer):
                 updated_W = updates[W]
                 row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=1))
                 desired_norms = T.clip(row_norms, 0, self.max_row_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle(0, 'x')
+                scales = desired_norms / (1e-7 + row_norms)
+                updates[W] = updated_W * scales.dimshuffle(0, 'x')
 
         if self.max_col_norm is not None or self.min_col_norm is not None:
             assert self.max_row_norm is None
@@ -2333,7 +2335,8 @@ class ConvRectifiedLinear(Layer):
                 updated_W = updates[W]
                 row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=(1, 2, 3)))
                 desired_norms = T.clip(row_norms, 0, self.max_kernel_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle(0, 'x', 'x', 'x')
+                scales = desired_norms / (1e-7 + row_norms)
+                updates[W] = updated_W * scales.dimshuffle(0, 'x', 'x', 'x')
 
     @wraps(Layer.get_params)
     def get_params(self):
