@@ -507,6 +507,7 @@ class CrossEntropy(DefaultDataSpecsMixin, Cost):
 
             WRITEME
         """
+        warnings.warn("CrossEntropy is deprecated. You should use a model-specific cross entropy cost function. CrossEntropy will be removed on or after August 3, 2014", stacklevel=2)
         self.supervised = True
 
     def expr(self, model, data, ** kwargs):
