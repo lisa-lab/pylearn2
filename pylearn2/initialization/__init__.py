@@ -230,20 +230,23 @@ class SparseInitialization(NdarrayInitialization):
 
     @wraps(NdarrayInitialization.initialize)
     def initialize(self, rng, shape, atom_axis=-1, *args, **kwargs):
+        if atom_axis < 0:
+            atom_axis += len(shape)
         values = self._base.initialize(rng, shape, atom_axis, *args, **kwargs)
         if self._prob_nonzero is not None:
             values *= (rng.uniform(size=shape) < self._prob_nonzero)
         elif self._num_nonzero is not None:
             nnz = self._num_nonzero
-            if nnz > shape[atom_axis]:
-                raise ValueError("Requested %d non-zero elements on axis "
-                                 "%d for parameter array of shape %s; "
-                                 "shape[%d] < %d" %
-                                 (nnz, atom_axis, str(shape), atom_axis, nnz))
-            other_axes_elems = values.size // shape[atom_axis]
-            mask = np.zeros((shape[atom_axis], other_axes_elems),
+            per_atom = values.size // shape[atom_axis]
+            if nnz > per_atom:
+                raise ValueError("%d non-zero elements per atom requested "
+                                 "but only %d parameters per atom: shape %s, "
+                                 "atom_axis=%d" % (nnz, per_atom, shape,
+                                                   atom_axis))
+
+            mask = np.zeros((shape[atom_axis], per_atom),
                             dtype=np.int8)
-            indices = np.arange(shape[atom_axis])
+            indices = np.arange(per_atom)
             # TODO: use something else to generate this structured random
             # matrix. There's got to be a cleverer algorithm for this but
             # I'm not seeing it.
@@ -257,7 +260,7 @@ class SparseInitialization(NdarrayInitialization):
             values = values.reshape((values.shape[0], -1))
             values *= mask
             # Undo the swapping and the reshape.
-            values.reshape(vshape).swapaxes(atom_axis, 0)
+            values = values.reshape(vshape).swapaxes(atom_axis, 0)
         return values
 
     def __str__(self):

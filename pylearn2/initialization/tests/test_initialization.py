@@ -61,13 +61,29 @@ def test_sparse_init():
 
     def check_sparse_init(rng, base, num_nonzero, prob_nonzero,
                           atom_axis, shape):
+        if atom_axis < 0:
+            atom_axis += len(shape)
         sp = SparseInitialization(base, num_nonzero=num_nonzero,
                                   prob_nonzero=prob_nonzero)
-        x = sp.initialize(rng, shape)
+        x = sp.initialize(rng, shape, atom_axis=atom_axis)
         if num_nonzero is not None:
-            x_ = (x != 0).sum(axis=atom_axis)
+            x_ = (x != 0)
+            x_ = x_.swapaxes(0, atom_axis)
+            x_ = x_.reshape((x_.shape[0], -1)).sum(axis=1)
+
             assert_allclose(num_nonzero * np.ones_like(x_), x_)
         else:
-            assert_allclose(prob_nonzero, (x == 0).mean(), atol=1e-2)
+            assert_allclose(prob_nonzero, (x != 0).mean(), atol=5e-2)
 
-    yield check_sparse_init, rng, IsotropicGaussian(), 4, None, -1, (5, 5)
+    # num_nonzero tests.
+    yield check_sparse_init, rng, Constant(1), 4, None, -1, (6, 5)
+    yield check_sparse_init, rng, Constant(1), 2, None, -1, (5, 6)
+    yield check_sparse_init, rng, Constant(1), 1, None, -1, (5,)
+    yield check_sparse_init, rng, Constant(1), 1, None, 0, (7, 5)
+    yield check_sparse_init, rng, Constant(1), 12, None, 0, (6, 9, 5)
+    # prob_nonzero tests.
+    yield check_sparse_init, rng, Constant(1), None, 0.1, -1, (12, 10)
+    yield check_sparse_init, rng, Constant(1), None, 0.5, -1, (5, 6)
+    yield check_sparse_init, rng, Constant(1), None, 0.8, -1, (20,)
+    yield check_sparse_init, rng, Constant(1), None, 0.2, 0, (28, 20)
+    yield check_sparse_init, rng, Constant(1), None, 0.4, 0, (6, 9, 5)
