@@ -241,6 +241,23 @@ initialized with ``iscale=1.0``.
         mean std(weights) = 1.00
 
 
+Environment variables and preprocessing
+=======================================
+
+You can use ``${VAR_NAME}`` and ``$(VAR_NAME)`` to refer to environment variables in your YAML
+file. These strings are substituted with their respective values which can be set in 
+your operating system, e.g. using ``export VAR_NAME=VALUE``. Such substitutions are particulary 
+useful when specifying potentially changing file paths like ``$(PYLEARN2_DATA_PATH)``.
+
+Variables of the form ``$(VAR_NAME)$`` are substituted before parsing and thus 
+work everywhere in the YAML file. Variables of the form ``${VAR_NAME}`` are interpreted
+later and only work for file paths and module names; for example with ``!obj:``, ``!pkl`` and
+``!import`` tokens. The late substitution ensures that these variables take their current
+value even after loading a previously trained and saved model using, e.g., ``pickle``.
+
+General rule of thumb: Always use ``${VAR_NAME)`` with file and directory paths; use 
+``$(VAR_NAME)`` everywhere else.
+
 Putting it all Together
 =======================
 

@@ -10,9 +10,10 @@ __email__ = "goodfeli@iro"
 from datetime import datetime
 import os
 import sys
-from pylearn2.utils import serial
 import logging
 import warnings
+from pylearn2.utils import serial
+from pylearn2.utils.string_utils import preprocess
 from pylearn2.monitor import Monitor
 from pylearn2.space import NullSpace
 from pylearn2.utils.timing import log_timing, total_seconds
@@ -69,7 +70,7 @@ class Train(object):
             if save_freq == 0:
                 warnings.warn('save_path specified but save_freq is 0 '
                               '(never save). Is this intentional?')
-            self.save_path = save_path
+            self.save_path = preprocess(save_path)
         else:
             if save_freq > 0:
                 phase_variable = 'PYLEARN2_TRAIN_PHASE'
