@@ -503,7 +503,7 @@ class MonitorBasedLRAdjuster(TrainExtension):
                 else:
                     err_input = 'The channel_name ' + str(self.channel_name) + ' is not valid.'
             err_message = 'There is no monitoring channel named ' + \
-                    str(self.channel_name) + '. You probably need to specify a valid monitor channel by using either'
+                    str(self.channel_name) + '. You probably need to specify a valid monitor channel by using either' + \
                     'dataset_name or channel_name in the MonitorBasedLRAdjuster constructor. ' + err_input
             raise KeyError(err_message)
 
