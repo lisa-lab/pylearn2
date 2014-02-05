@@ -6,6 +6,7 @@ training algorithms.
 """
 
 import functools
+import warnings
 from itertools import izip
 
 import theano.tensor as T
