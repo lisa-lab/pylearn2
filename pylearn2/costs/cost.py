@@ -443,12 +443,7 @@ class SumOfCosts(Cost):
 
 def scaled_cost(cost, scaling):
     """
-    Represents a given cost scaled by a constant factor.
-
-    TODO: why would you want to use this? SumOfCosts allows you to scale
-          individual terms, and if this is the only cost, why not just change
-          the learning rate?  If there's an obvious use case or rationale we
-          should document it, if not, we should remove it.
+    Deprecated. Switch to SumOfCosts([[scaling, cost]]), or just quit using it.
 
     Parameters
     ----------
@@ -457,6 +452,12 @@ def scaled_cost(cost, scaling):
     scaling : float
         scaling of the cost
     """
+
+    warnings.warn("""\
+scaled_cost is deprecated and may be removed on or after 2014-08-05.
+SumOfCosts allows you to scale individual terms, and if this is the only cost,
+you may as well just change the learning rate.""")
+
     return SumOfCosts([[scaling, cost]])
 
 
