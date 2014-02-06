@@ -1067,7 +1067,7 @@ class ZCA(Preprocessor):
             ZCA._x_minus_mean_times_p = theano.function([x_symbol,
                                                          mean_symbol,
                                                          p_symbol],
-                                                        new_x_symbol)
+                                                         new_x_symbol)
 
         X = dataset.get_design_matrix()
         assert X.dtype in ['float32', 'float64']

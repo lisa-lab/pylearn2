@@ -2,7 +2,7 @@
 # See README before reading this file
 #
 #
-# This script creates a preprocessed version of a dataset using pylearn2.#
+# This script creates a preprocessed version of a dataset using pylearn2.
 # It's not necessary to save preprocessed versions of your dataset to
 # disk but this is an instructive example, because later we can show
 # how to load your custom dataset in a yaml file.
