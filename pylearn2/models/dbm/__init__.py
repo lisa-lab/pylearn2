@@ -770,9 +770,13 @@ class Layer(Model):
 
     def apply_constraints(self, updates):
         """
-            This function applies the max column norm constraint.
-            TODO this function can be made more generic, see: mlp
-            apply_constraints function.
+        This function applies the max column norm constraint.
+        TODO this function can be made more generic, see: mlp
+        apply_constraints function.
+
+        Parameters
+        ---------
+        updates: a dictionary of parameter and their update values.
         """
         if not hasattr(self, "max_col_norm"):
             max_col_norm = None
@@ -783,7 +787,7 @@ class Layer(Model):
                 updated_W = updates[W]
                 norm_constraint = NormConstraint()
                 updates[W] = norm_constraint.constrain_param(param=updated_W,
-                                                        max_norm_constraint=self.max_col_norm)
+                                                             max_norm_constraint=self.max_col_norm)
 
     def get_monitoring_channels_from_state(self, state):
         """
@@ -3251,9 +3255,6 @@ class GaussianVisLayer(VisibleLayer):
             # updated_beta = Print('updating beta',attrs=['min', 'max'])(updated_beta)
             updates[self.beta] = T.clip(updated_beta,
                     self.min_beta,1e6)
-
-
-
 
     def broadcasted_mu(self):
         """

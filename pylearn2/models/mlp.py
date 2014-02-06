@@ -266,13 +266,13 @@ class Layer(Model):
         if self.__class__ in (SoftmaxPool, Maxout):
             W, = self.transformer.get_params()
             constraint = NormConstraint()
-            constraint_params = {
-                                  "constrain_on": W,
-                                  "max_constraint": self.max_col_norm,
-                                  "updates": updates
-                                }
+            constraint_args = {
+                               "constrain_on": W,
+                               "max_constraint": self.max_col_norm,
+                               "updates": updates
+                              }
             constraints.add_constraint(constraint)
-            constraints.apply_constraints([constraint_params])
+            constraints.apply_constraints([constraint_args])
         elif self.__class__ in (Linear, Sigmoid, Tanh, RectifiedLinear, Softmax):
             if self.__class__ == Softmax:
                 W = self.W
@@ -281,28 +281,28 @@ class Layer(Model):
 
             if self.max_row_norm:
                 constraint = NormConstraint(axes=(1,), dimshuffle_pattern=(0, 'x'))
-                constraint_params = {
-                                        "constrain_on": W,
-                                        "max_constraint": self.max_row_norm,
-                                        "updates": updates
-                                    }
+                constraint_args = {
+                                   "constrain_on": W,
+                                   "max_constraint": self.max_row_norm,
+                                   "updates": updates
+                                  }
                 constraints.add_constraint(constraint)
-                constraints.apply_constraints([constraint_params])
+                constraints.apply_constraints([constraint_args])
 
             elif self.max_col_norm or self.min_col_norm:
-                constraint_params = {
-                                        "constrain_on": W,
-                                        "updates": updates
-                                    }
+                constraint_args = {
+                                   "constrain_on": W,
+                                   "updates": updates
+                                  }
 
                 if self.max_col_norm:
-                    constraint_params["max_constraint"] = self.max_col_norm
+                    constraint_args["max_constraint"] = self.max_col_norm
                 elif self.min_col_norm:
-                    constraint_params["min_constraint"] = self.min_col_norm
+                    constraint_args["min_constraint"] = self.min_col_norm
 
                 constraint = NormConstraint()
                 constraints.add_constraint(constraint)
-                constraints.apply_constraints([constraint_params])
+                constraints.apply_constraints([constraint_args])
 
         elif self.__class__ in (ConvRectifiedLinear, MaxoutConvC01B):
             W, = self.transformer.get_params()
@@ -310,14 +310,15 @@ class Layer(Model):
             dimshuffle_pattern = (0, 'x', 'x', 'x')
             kernel_norm_constraint = NormConstraint(axes=axes,
                                                     dimshuffle_pattern=dimshuffle_pattern)
-            constraint_params = {
-                                        "constrain_on": W,
-                                        "max_constraint": self.max_kernel_norm,
-                                        "updates": updates
-                                }
+
+            constraint_args = {
+                               "constrain_on": W,
+                               "max_constraint": self.max_kernel_norm,
+                               "updates": updates
+                              }
 
             constraints.add_constraint(kernel_norm_constraint)
-            constraints.apply_constraints([constraint_params])
+            constraints.apply_constraints([constraint_args])
 
         elif self.__class__ == MaxoutLocalC01B:
             W, = self.transformer.get_params()
@@ -325,16 +326,18 @@ class Layer(Model):
             dimshuffle_pattern = (0, 1, 'x', 'x', 'x', 2, 3)
             filter_norm_constraint = NormConstraint(axes=axes,
                                                     dimshuffle_pattern=dimshuffle_pattern)
-            constraint_params = {
-                                        "constrain_on": W,
-                                        "max_constraint": self.max_filter_norm,
-                                        "updates": updates
-                                }
+
+            constraint_args = {
+                               "constrain_on": W,
+                               "max_constraint": self.max_filter_norm,
+                               "updates": updates
+                              }
 
             constraints.add_constraint(filter_norm_constraint)
-            constraints.apply_constraints([constraint_params])
+            constraints.apply_constraints([constraint_args])
         else:
             raise Exception("Unknown layer class to apply a constraint on.")
+
 
 class MLP(Layer):
     """
@@ -601,6 +604,7 @@ class MLP(Layer):
         Each feature is also multiplied by a scale factor. The scale factor for
         each layer's input scale is determined by the same scheme as the input
         probabilities.
+
 
         Parameters
         ----------
@@ -1204,6 +1208,7 @@ class Softmax(Layer):
 
         if self.no_affine:
             return
+
 
 class SoftmaxPool(Layer):
     """
