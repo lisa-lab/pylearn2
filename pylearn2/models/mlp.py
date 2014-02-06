@@ -254,6 +254,11 @@ class Layer(Model):
         This function apply constraints for the layer.
         !!!WARNING!!!
         This function assumes that constraints are applied on weights and use transformer object.
+
+        Parameters
+        ----------
+        updates: dictionary
+            updates dictionary for the training function.
         """
         if not hasattr(self, "constraints"):
             constraints = Constraints()
