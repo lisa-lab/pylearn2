@@ -1,15 +1,15 @@
 from optparse import OptionParser
 import warnings
 try:
-    from scikits.learn.metrics import classification_report
+    from sklearn.metrics import classification_report
 except ImportError:
     classification_report = None
-    warnings.warn("couldn't find scikits.learn.metrics.classification_report")
+    warnings.warn("couldn't find sklearn.metrics.classification_report")
 try:
-    from scikits.learn.metrics import confusion_matrix
+    from sklearn.metrics import confusion_matrix
 except ImportError:
     confusion_matrix = None
-    warnings.warn("couldn't find scikts.learn.metrics.confusion_matrix")
+    warnings.warn("couldn't find sklearn.metrics.metrics.confusion_matrix")
 from galatea.s3c.feature_loading import get_features
 from pylearn2.utils import serial
 from pylearn2.datasets.cifar10 import CIFAR10
