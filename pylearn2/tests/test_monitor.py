@@ -11,6 +11,7 @@ from pylearn2.models.s3c import S3C, E_Step, Grad_M_Step
 from pylearn2.monitor import _err_ambig_data
 from pylearn2.monitor import _err_no_data
 from pylearn2.monitor import Monitor
+from pylearn2.monitor import push_monitor
 from pylearn2.space import VectorSpace
 from pylearn2.testing.datasets import ArangeDataset
 from pylearn2.training_algorithms.default import DefaultTrainingAlgorithm
@@ -512,6 +513,24 @@ def test_ambig_data():
         assert exc_message(e) == _err_ambig_data
         return
     assert False
+
+def test_transfer_experience():
+
+    # Makes sure the transfer_experience flag of push_monitor works
+
+    model = DummyModel(num_features = 3)
+    monitor = Monitor.get_monitor(model)
+    monitor.report_batch(2)
+    monitor.report_batch(3)
+    monitor.report_epoch()
+    model = push_monitor(model, "old_monitor", transfer_experience=True)
+    assert model.old_monitor is monitor
+    monitor = model.monitor
+    assert monitor.get_epochs_seen() == 1
+    assert monitor.get_batches_seen() == 2
+    assert monitor.get_epochs_seen() == 1
+
+
 
 
 if __name__ == '__main__':
