@@ -1,7 +1,6 @@
 import pylearn2
 from pylearn2.utils.serial import load_train_file
 import os
-from nose.plugins.skip import SkipTest
 from pylearn2.testing import no_debug_mode
 from theano import config
 
