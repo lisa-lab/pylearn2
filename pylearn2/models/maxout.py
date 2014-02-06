@@ -38,11 +38,13 @@ from pylearn2.space import Conv2DSpace
 from pylearn2.space import VectorSpace
 from pylearn2.utils import py_integer_types
 from pylearn2.utils import sharedX
+from pylearn2.constraints import NormConstraint
 
 from pylearn2.linear.conv2d_c01b import setup_detector_layer_c01b
 from pylearn2.linear import local_c01b
 if cuda.cuda_available:
     from pylearn2.sandbox.cuda_convnet.pool import max_pool_c01b
+
 from pylearn2.sandbox.cuda_convnet import check_cuda
 
 
@@ -250,7 +252,6 @@ class Maxout(Layer):
 
             WRITEME
         """
-
         # Patch old pickle files
         if not hasattr(self, 'mask_weights'):
             self.mask_weights = None
@@ -259,15 +260,6 @@ class Maxout(Layer):
             W ,= self.transformer.get_params()
             if W in updates:
                 updates[W] = updates[W] * self.mask
-
-        if self.max_col_norm is not None:
-            assert self.max_row_norm is None
-            W ,= self.transformer.get_params()
-            if W in updates:
-                updated_W = updates[W]
-                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
     def get_params(self):
         """
@@ -761,21 +753,6 @@ class MaxoutConvC01B(Layer):
                                         num_channels = self.num_channels, axes = ('c', 0, 1, 'b') )
 
         print 'Output space: ', self.output_space.shape
-
-    def censor_updates(self, updates):
-        """
-        .. todo::
-
-            WRITEME
-        """
-
-        if self.max_kernel_norm is not None:
-            W ,= self.transformer.get_params()
-            if W in updates:
-                updated_W = updates[W]
-                row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=(0,1,2)))
-                desired_norms = T.clip(row_norms, 0, self.max_kernel_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle('x', 'x', 'x', 0)
 
     def get_params(self):
         """
@@ -1276,23 +1253,6 @@ class MaxoutLocalC01B(Layer):
 
         print 'Output space: ', self.output_space.shape
 
-    def censor_updates(self, updates):
-        """
-        .. todo::
-
-            WRITEME
-        """
-
-        if self.max_filter_norm is not None:
-            W ,= self.transformer.get_params()
-            if W in updates:
-                # TODO:    push some of this into the transformer itself
-                updated_W = updates[W]
-                updated_norms = self.get_filter_norms(updated_W)
-                desired_norms = T.clip(updated_norms, 0, self.max_filter_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + updated_norms)
-                        ).dimshuffle(0, 1, 'x', 'x', 'x', 2, 3)
-
     def get_params(self):
         """
         .. todo::
@@ -1360,7 +1320,6 @@ class MaxoutLocalC01B(Layer):
 
             WRITEME
         """
-
         # TODO: push this into the transformer class itself
 
         if W is None:
