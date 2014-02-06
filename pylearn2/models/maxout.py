@@ -379,7 +379,6 @@ class Maxout(Layer):
             rows = rows + 1
         return rows, cols
 
-
     def get_weights_topo(self):
         """
         .. todo::
