@@ -10,6 +10,8 @@
 # This is also a common use case because often you will want to preprocess
 # your data once and then train several models on the preprocessed data.
 
+import os.path
+
 # We'll need the serial module to save the dataset
 from pylearn2.utils import serial
 
@@ -59,5 +61,9 @@ if __name__ == "__main__":
     # when re-loading (Pickle files, in general, use double their actual size
     # in the process of being re-loaded into a running process).
     # The dataset object itself is stored as a pickle file.
-    train.use_design_loc('train_design.npy')
-    serial.save('cifar10_preprocessed_train.pkl', train)
+    path = pylearn2.__path__[0]
+    train_example_path = os.path.join(path, 'scripts', 'tutorials', 'grbm_smd')
+    train.use_design_loc(train_example_path, 'train_design.npy')
+    
+    train_yaml_path = os.path.join(train_example_path, 'cifar_grbm_smd.yaml')
+    serial.save(train_yaml_path, train)
