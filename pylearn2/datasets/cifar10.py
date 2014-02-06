@@ -22,6 +22,14 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
             one_hot = False, start = None, stop = None, axes=('b', 0, 1, 'c'),
             toronto_prepro = False, preprocessor = None):
         """
+        Parameters
+        ----------
+        which_set : str
+            One of 'train', 'test'
+        gcn : float, optional
+            Multiplicative constant to use for global contrast normalization.
+            No glocal constrast normalization is applied, if None
+
         .. todo::
 
             WRITEME
