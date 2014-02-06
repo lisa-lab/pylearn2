@@ -18,7 +18,7 @@
         "monitoring_batches" : 5,
         "monitoring_dataset" : *dataset,
         "cost" : !obj:pylearn2.costs.autoencoder.MeanSquaredReconstructionError {},
-        "termination_criterion" : !obj:pylearn2.termination_criteria.sgd.EpochCounter {
+        "termination_criterion" : !obj:pylearn2.termination_criteria.EpochCounter {
             "max_epochs": 50,
         },
     },
