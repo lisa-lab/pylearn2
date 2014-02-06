@@ -216,7 +216,9 @@ class NormConstraint(Constraint):
             sorted_params = sorted(params.iteritems())
         else:
             if not isinstance(params, OrderedDict):
-                warnings.warn("Parameters is not an ordered dictionary, this may cause inconsistent results.")
+                warnings.warn("Parameters to %s.constrain_updates function is not an ordered
+                dictionary, \
+                        this may cause inconsistent results." % (self.__class__.__name__)
 
         for key, param in sorted_params:
             updates = self.constrain_update(param,
@@ -247,6 +249,7 @@ class NormConstraint(Constraint):
         """
 
         assert param is not None, "params parameter input to constrain_params function should not be empty."
+
         clipped_param = self._clip_norms(param,
                                          max_norm,
                                          min_norm,
