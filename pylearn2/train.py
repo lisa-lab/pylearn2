@@ -97,7 +97,9 @@ class Train(object):
 
     def exceeded_time_budget(self, t0, time_budget):
         """
-        TODO: WRITEME
+        .. todo::
+
+            WRITEME
         """
         dt = total_seconds(datetime.now() - t0)
         if time_budget is not None and dt >= time_budget:
