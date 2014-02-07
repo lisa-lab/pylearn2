@@ -17,18 +17,18 @@ See doc/yaml_tutorial for a description of how to write the YAML syntax.
 The following environment variables will be locally defined and available
 for use within the YAML file:
 
-    PYLEARN2_TRAIN_BASE_NAME: the name of the file within the directory
-        (foo/bar.yaml -> bar.yaml)
-    PYLEARN2_TRAIN_DIR: the directory containing the YAML file
-        (foo/bar.yaml -> foo)
-    PYLEARN2_TRAIN_FILE_FULL_STEM: the filepath with the file extension
-        stripped off.
-        (foo/bar.yaml -> foo/bar)
-    PYLEARN2_TRAIN_FILE_STEM: the step of PYLEARN2_TRAIN_BASE_NAME
-        (foo/bar.yaml -> bar)
-    PYLEARN2_TRAIN_PHASE : set to phase0, phase1, etc. during iteration
-        through a list of Train objects. Not defined for a single train
-        object.
+- `PYLEARN2_TRAIN_BASE_NAME`: the name of the file within the directory
+  (`foo/bar.yaml` -> `bar.yaml`)
+- `PYLEARN2_TRAIN_DIR`: the directory containing the YAML file
+  (`foo/bar.yaml` -> `foo`)
+- `PYLEARN2_TRAIN_FILE_FULL_STEM`: the filepath with the file extension
+  stripped off.
+  `foo/bar.yaml` -> `foo/bar`)
+- `PYLEARN2_TRAIN_FILE_STEM`: the stem of `PYLEARN2_TRAIN_BASE_NAME`
+  (`foo/bar.yaml` -> `bar`)
+- `PYLEARN2_TRAIN_PHASE` : set to `phase0`, `phase1`, etc. during iteration
+  through a list of Train objects. Not defined for a single train object.
+
 These environment variables are especially useful for setting the save
 path. For example, to make sure that foo/bar.yaml saves to foo/bar.pkl,
 use
