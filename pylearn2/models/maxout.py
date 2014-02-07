@@ -414,8 +414,13 @@ class Maxout(Layer):
         row_norms = T.sqrt(sq_W.sum(axis=1))
         col_norms = T.sqrt(sq_W.sum(axis=0))
 
+        row_norms_min = row_norms.min()
+        row_norms_min.__doc__ = "The smallest norm of any row of the " + \
+        "weight matrix W. This is a measure of the least influence any " + \
+        "visible unit has."
+
         return OrderedDict([
-                            ('row_norms_min'  , row_norms.min()),
+                            ('row_norms_min'  , row_norms_min),
                             ('row_norms_mean' , row_norms.mean()),
                             ('row_norms_max'  , row_norms.max()),
                             ('col_norms_min'  , col_norms.min()),
