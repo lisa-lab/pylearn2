@@ -43,9 +43,9 @@ to foo/bar2.pkl.
 
 For example configuration files that are consumable by this script, see
 
-    pylearn2/scripts/tutorials/grbm_smd
-    pylearn2/scripts/tutorials/dbm_demo
-    pylearn2/scripts/papers/maxout
+- pylearn2/scripts/tutorials/grbm_smd
+- pylearn2/scripts/tutorials/dbm_demo
+- pylearn2/scripts/papers/maxout
 
 Use train.py -h to see an auto-generated description of advanced options.
 """
