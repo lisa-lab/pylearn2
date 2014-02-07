@@ -1045,7 +1045,6 @@ class ZCA(Preprocessor):
             warnings.warn()
             self.P_ = numpy.dot(eigv * (1.0 / sqrt_eigs), eigv.T)
 
-        self.P_ = ZCA._gpu_mdmt(eigv, 1.0/sqrt_eigs)
         t2 = time.time()
         assert not numpy.any(numpy.isnan(self.P_))
         self.has_fit_ = True
