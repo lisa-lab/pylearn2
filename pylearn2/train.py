@@ -36,9 +36,9 @@ class Train(object):
 
         Parameters
         ----------
-        dataset : An instance of pylearn2.datasets.dataset.Dataset
-        model : An instance of pylearn2.models.model.Model
-        algorithm : <Optional> An instance of
+        dataset : pylearn2.datasets.dataset.Dataset
+        model : pylearn2.models.model.Model
+        algorithm : <Optional>
         pylearn2.training_algorithms.training_algorithm.TrainingAlgorithm
         save_path : <Optional> str
             Path to save (with pickle / joblib) the model.
