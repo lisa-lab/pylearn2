@@ -73,7 +73,9 @@ from pylearn2.utils.logger import (
 
 class FeatureDump(object):
     """
-    TODO: WRITEME
+    .. todo::
+
+        WRITEME
     """
     def __init__(self, encoder, dataset, path, batch_size=None, topo=False):
         """
