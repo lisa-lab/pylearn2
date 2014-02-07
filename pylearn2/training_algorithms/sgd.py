@@ -487,7 +487,7 @@ class MonitorBasedLRAdjuster(TrainExtension):
             elif len(channels) > 1:
                 datasets = [re.sub('_objective', '', elem) for elem in channels]
                 raise ValueError('There are multiple monitoring channels that ends with \"_objective\". The list of available datasets are: ' + \
-                                str(datasets) + ' . Please specify either channel_name or dataset_name to disambiguate.')
+                                str(datasets) + ' . Please specify either channel_name or dataset_name in the MonitorBasedLRAdjuster constructor to disambiguate.')
             else:
                 self.channel_name = channels[0]
                 warnings.warn('The channel that has been chosen for monitoring is: ' + \
@@ -499,11 +499,11 @@ class MonitorBasedLRAdjuster(TrainExtension):
             err_input = ''
             if(monitor_channel_specified):
                 if(self.dataset_name):
-                    err_input = 'The dataset_name ' + str(self.dataset_name) + ' is not valid.'
+                    err_input = 'The dataset_name \'' + str(self.dataset_name) + '\' is not valid.'
                 else:
-                    err_input = 'The channel_name ' + str(self.channel_name) + ' is not valid.'
-            err_message = 'There is no monitoring channel named ' + \
-                    str(self.channel_name) + '. You probably need to specify a valid monitor channel by using either' + \
+                    err_input = 'The channel_name \'' + str(self.channel_name) + '\' is not valid.'
+            err_message = 'There is no monitoring channel named \'' + \
+                    str(self.channel_name) + '\'. You probably need to specify a valid monitor channel by using either' + \
                     'dataset_name or channel_name in the MonitorBasedLRAdjuster constructor. ' + err_input
             raise KeyError(err_message)
 
@@ -529,6 +529,8 @@ class MonitorBasedLRAdjuster(TrainExtension):
             return
 
         rval = current_learning_rate
+
+        print "monitoring channel is %s" %self.channel_name
 
         if v[-1] > self.high_trigger * v[-2]:
             rval *= self.shrink_amt
