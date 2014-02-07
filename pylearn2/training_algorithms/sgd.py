@@ -659,7 +659,7 @@ class AnnealedLearningRate(object):
         """
         Parameters
         ----------
-        anneal_start:
+        anneal_start : int
             The epoch on which to begin annealing
         """
         self._initialized = False
@@ -740,9 +740,12 @@ class LinearDecay(object):
         """
         Parameters
         ----------
-        start: The step at which to start decreasing the learning rate
-        saturate: The step at which to stop decreating the learning rate
-        decay_factor: final learning rate = decay_factor * initial learning rate
+        start : int
+            The step at which to start decreasing the learning rate
+        saturate : int
+            The step at which to stop decreating the learning rate
+            decay_factor: final learning rate = decay_factor * initial learning
+            rate
         """
         if isinstance(decay_factor, str):
             decay_factor = float(decay_factor)
