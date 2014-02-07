@@ -24,9 +24,10 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
+import functools
+import numpy as np
 import warnings
 
-import numpy as np
 from theano.compat.python2x import OrderedDict
 from theano.gof.op import get_debug_values
 from theano.sandbox import cuda
@@ -401,12 +402,8 @@ class Maxout(Layer):
         # There was an implementation of this, but it was broken
         raise NotImplementedError()
 
+    @functools.wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         W ,= self.transformer.get_params()
 
