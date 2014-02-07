@@ -420,7 +420,7 @@ class SGD(TrainingAlgorithm):
 
     def continue_learning(self, model):
         """
-        model: a Model instance
+        model : a Model instance
         Returns True if the algorithm should continue running, or False if it
         has reached convergence / started overfitting and should stop.
         """
