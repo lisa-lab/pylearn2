@@ -356,8 +356,11 @@ class SGD(TrainingAlgorithm):
 
     def train(self, dataset):
         """
-        dataset: a Dataset instance
         Runs one epoch of SGD training on the specified dataset.
+
+        Parameters
+        ----------
+        dataset : Dataset
         """
         if not hasattr(self, 'sgd_update'):
             raise Exception("train called without first calling setup")
@@ -482,17 +485,17 @@ class MonitorBasedLRAdjuster(TrainExtension):
         """
         Parameters
         ----------
-        high_trigger: see class-level docstring
-        low_trigger: see class-level docstring
-        grow_amt: see class-level docstring
-        min_lr: All updates to the learning rate are clipped to be at least
+        high_trigger : see class-level docstring
+        low_trigger : see class-level docstring
+        grow_amt : see class-level docstring
+        min_lr : All updates to the learning rate are clipped to be at least
         this value.
-        max_lr: All updates to the learning rate are clipped to be at most
+        max_lr : All updates to the learning rate are clipped to be at most
         this value.
-        dataset_name: optional, str
+        dataset_name : optional, str
             If specified, use dataset_name + "_objective" as the channel
             to guide the learning rate adaptation.
-        channel_name: optional, str
+        channel_name : optional, str
             If specified, use channel_name as the channel to guide the
             learning rate adaptation. Conflicts with dataset_name.
 
@@ -915,7 +918,7 @@ class _PolyakWorker(object):
         """
         Parameters
         ----------
-        model: An instance of Model
+        model : a Model
             The model whose parameters we want to train with Polyak averaging
         """
         avg_updates = OrderedDict()
