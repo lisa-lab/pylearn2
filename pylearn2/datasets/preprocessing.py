@@ -905,6 +905,7 @@ class ZCA(Preprocessor):
         falls back to the CPU, with a warning message.
         """
 
+        # compile theano function
         if not hasattr(ZCA._gpu_mdmt, 'theano_func'):
             t_mat = theano.tensor.matrix('A')
             t_diags = theano.tensor.vector('D')
@@ -913,8 +914,23 @@ class ZCA(Preprocessor):
                                                         result)
 
         try:
-            return ZCA._gpu_mdmt.theano_func(mat, diags)
+            # convert data to have theano.config.floatX
+            if mat.dtype != theano.config.floatX:
+                warnings.warn('Converting mat from dtype=%s to floatX=%s for gpu' % (mat.dtype, theano.config.floatX))
+                gpu_mat = mat.astype(theano.config.floatX)
+            else:
+                gpu_mat = mat
+            
+            if diags.dtype != theano.config.floatX:
+                warnings.warn('Converting diag from dtype=%s to floatX=%s for gpu' % (diags.dtype, theano.config.floatX))
+                gpu_diags = diags.astype(theano.config.floatX)
+            else:
+                gpu_diags = diags
+                
+            return ZCA._gpu_mdmt.theano_func(gpu_mat, gpu_diags)
+            
         except MemoryError:
+            # fall back to cpu
             warnings.warn('M * D * M^T was too big to fit on GPU. '
                           'Re-doing with CPU. Consider using '
                           'THEANO_FLAGS="device=cpu" for your next '
