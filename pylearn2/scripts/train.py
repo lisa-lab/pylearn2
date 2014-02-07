@@ -79,7 +79,9 @@ class FeatureDump(object):
     """
     def __init__(self, encoder, dataset, path, batch_size=None, topo=False):
         """
-        TODO: WRITEME
+        .. todo::
+
+            WRITEME
         """
         self.encoder = encoder
         self.dataset = dataset
@@ -89,7 +91,9 @@ class FeatureDump(object):
 
     def main_loop(self, **kwargs):
         """
-        TODO: WRITEME
+        .. todo::
+
+            WRITEME
         """
         if self.batch_size is None:
             if self.topo:
