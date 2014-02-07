@@ -6,13 +6,16 @@ This is a "driver" that we recommend using for all but the most unusual
 training experiments.
 
 Basic usage:
+
+.. code-block:: none
+
     train.py yaml_file.yaml
 
 The YAML file should contain a pylearn2 YAML description of a
-pylearn2.train.Train object (or optionally, a list of Train objects to
+`pylearn2.train.Train` object (or optionally, a list of Train objects to
 run sequentially).
 
-See doc/yaml_tutorial for a description of how to write the YAML syntax.
+See `doc/yaml_tutorial` for a description of how to write the YAML syntax.
 
 The following environment variables will be locally defined and available
 for use within the YAML file:
@@ -30,24 +33,24 @@ for use within the YAML file:
   through a list of Train objects. Not defined for a single train object.
 
 These environment variables are especially useful for setting the save
-path. For example, to make sure that foo/bar.yaml saves to foo/bar.pkl,
+path. For example, to make sure that `foo/bar.yaml` saves to `foo/bar.pkl`,
 use
 
 .. code-block:: none
 
     save_path: "${PYLEARN2_TRAIN_FILE_FULL_STEM}.pkl"
 
-This way, if you copy foo/bar.yaml to foo/bar2.yaml, the output of
-foo/bar2.yaml won't overwrite foo/bar.pkl, but will automatically save
+This way, if you copy `foo/bar.yaml` to `foo/bar2.yaml`, the output of
+`foo/bar2.yaml` won't overwrite `foo/bar.pkl`, but will automatically save
 to foo/bar2.pkl.
 
 For example configuration files that are consumable by this script, see
 
-- pylearn2/scripts/tutorials/grbm_smd
-- pylearn2/scripts/tutorials/dbm_demo
-- pylearn2/scripts/papers/maxout
+- `pylearn2/scripts/tutorials/grbm_smd`
+- `pylearn2/scripts/tutorials/dbm_demo`
+- `pylearn2/scripts/papers/maxout`
 
-Use train.py -h to see an auto-generated description of advanced options.
+Use `train.py -h` to see an auto-generated description of advanced options.
 """
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
