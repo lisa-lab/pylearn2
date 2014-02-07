@@ -26,8 +26,8 @@ class Train(object):
     """
     A class representing the main loop of the training script.  Trains the
     specified model using the specified algorithm on the specified dataset.
-    After each call to the training algorithm, the model is saved to save_path.
-    May be enhanced with TrainExtension plugins.
+    After each call to the training algorithm, the model is saved to
+    `save_path`. May be enhanced with `TrainExtension` plugins.
     """
     def __init__(self, dataset, model, algorithm=None, save_path=None,
                  save_freq=0, extensions=None, allow_overwrite=True):
@@ -36,10 +36,10 @@ class Train(object):
 
         Parameters
         ----------
-        dataset : pylearn2.datasets.dataset.Dataset
-        model : pylearn2.models.model.Model
+        dataset : `pylearn2.datasets.dataset.Dataset`
+        model : `pylearn2.models.model.Model`
         algorithm : <Optional>
-        pylearn2.training_algorithms.training_algorithm.TrainingAlgorithm
+        `pylearn2.training_algorithms.training_algorithm.TrainingAlgorithm`
         save_path : <Optional> str
             Path to save (with pickle / joblib) the model.
         save_freq : <Optional> int
@@ -48,13 +48,14 @@ class Train(object):
             epoch. A frequency of 2 saves every other epoch, etc.
             (default=0, i.e. never save). Note: when automatic saving is
             enabled (eg save_freq > 0), the model is always saved after
-            learning, even when the final epoch is not a multiple of save_freq.
+            learning, even when the final epoch is not a multiple of
+            `save_freq`.
         extensions : <Optional> iterable
-            A collection of TrainExtension objects whose callbacks are
+            A collection of `TrainExtension` objects whose callbacks are
             triggered at various points in learning.
         allow_overwrite : <Optional> bool
-            If true, will save the model to save_path even if there is already
-            something there. Otherwise, will raise an error if the save_path
+            If `True`, will save the model to save_path even if there is already
+            something there. Otherwise, will raise an error if the `save_path`
             is already occupied.
         """
         self.allow_overwrite = allow_overwrite
