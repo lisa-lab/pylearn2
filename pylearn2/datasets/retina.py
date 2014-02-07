@@ -1,6 +1,7 @@
 """
 Retina-inspired preprocessing as described in
-"Deep Boltzmann Machines" by Salakhutdinov and Hinton
+    Salakhutdinov, R. and Hinton, G. Deep Boltzmann machines.
+    In *AISTATS* 2009.
 """
 from dense_design_matrix import DefaultViewConverter
 import numpy
