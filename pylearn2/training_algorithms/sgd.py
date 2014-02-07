@@ -693,9 +693,11 @@ class ExponentialDecay(object):
         """
         Parameters
         ---------
-        decay_factor: The learning rate at step t is given by
+        decay_factor : float
+            The learning rate at step t is given by
             init_learning_rate / (decay_factor ** t)
-        min_lr: The learning rate will be clipped to be at least this value
+        min_lr :
+            The learning rate will be clipped to be at least this value
         """
         if isinstance(decay_factor, str):
             decay_factor = float(decay_factor)
@@ -711,6 +713,11 @@ class ExponentialDecay(object):
     def __call__(self, algorithm):
         """
         Updates the learning rate according to the exponential decay schedule.
+
+        Parameters
+        ----------
+        algorithm : SGD
+            The SGD instance whose `learning_rate` field should be modified.
         """
         if self._count == 0:
             self._base_lr = algorithm.learning_rate.get_value()
