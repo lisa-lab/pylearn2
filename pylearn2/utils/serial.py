@@ -462,24 +462,30 @@ def load_train_file(config_file_path, environ=None):
 
     Parameters
     ----------
-    config_file_path : WRITEME
+    config_file_path : Path to a config file containing a YAML string
+    describing a pylearn2.train.Train object
+    environ : dict, optional
+        A dictionary used for ${FOO} substitutions in addition to
+        environment variables when parsing the YAML file. If a key appears
+        both in `os.environ` and this dictionary, the value in this
+        dictionary is used.
+
 
     Returns
     -------
-    WRITEME
+    Object described by the YAML string stored in the config file
     """
     from pylearn2.config import yaml_parse
 
     suffix_to_strip = '.yaml'
 
-    # publish environment variables related to file name
+    # Publish environment variables related to file name
     if config_file_path.endswith(suffix_to_strip):
         config_file_full_stem = config_file_path[0:-len(suffix_to_strip)]
     else:
         config_file_full_stem = config_file_path
 
-    for varname in ["PYLEARN2_TRAIN_FILE_FULL_STEM"]:
-        os.environ[varname] = config_file_full_stem
+    os.environ["PYLEARN2_TRAIN_FILE_FULL_STEM"] = config_file_full_stem
 
     directory = config_file_path.split('/')[:-1]
     directory = '/'.join(directory)
