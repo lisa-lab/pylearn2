@@ -972,8 +972,15 @@ class MonitorChannel(object):
         monitoring after a crash. For now, to make sure no one erroneously
         depends on these bad values, I exclude them from the pickle.
         """
+
+        doc = None
+
+        if self.val.__doc__ is not self.val.__class__.__doc__:
+            doc = self.val.__doc__
+
         return {
-            'example_record': self.example_record,
+            'doc' : doc,
+            'example_record' : self.example_record,
             'batch_record' : self.batch_record,
             'time_record' : self.time_record,
             'epoch_record' : self.epoch_record,
