@@ -128,12 +128,12 @@ class MatchChannel(TerminationCriterion):
         """
         Parameters
         ----------
-        channel_name: str
+        channel_name : str
             The name of the new channel that we want to match the final value
             from the previous training run
-        prev_channel_name: str
+        prev_channel_name : str
             The name of the channel from the previous run that we want to match
-        prev_monitor_name: str
+        prev_monitor_name : str
             The name of the field of the model instance containing the monitor
             from the previous training run
         """
@@ -163,9 +163,12 @@ class ChannelTarget(TerminationCriterion):
 
     def __init__(self, channel_name, target):
         """
-        .. todo::
-
-            WRITEME
+        Parameters
+        ----------
+        channel_name : str
+            The name of the channel to track
+        target : float
+            Quit training after the channel is below this value
         """
         target = float(target)
         self.__dict__.update(locals())
@@ -186,9 +189,9 @@ class ChannelInf(TerminationCriterion):
 
     def __init__(self, channel_name):
         """
-        .. todo::
-
-            WRITEME
+        Parameters
+        ----------
+        channel_name : The channel to track.
         """
         self.__dict__.update(locals())
 
