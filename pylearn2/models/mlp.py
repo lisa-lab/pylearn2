@@ -544,7 +544,6 @@ class MLP(Layer):
 
     @wraps(Layer.censor_updates)
     def censor_updates(self, updates):
-
         for layer in self.layers:
             if hasattr(layer, "apply_constraints"):
                 layer.apply_constraints(updates)
@@ -1234,7 +1233,8 @@ class SoftmaxPool(Layer):
                  W_lr_scale=None,
                  b_lr_scale=None,
                  mask_weights=None,
-                 max_col_norm=None):
+                 max_col_norm=None,
+                 weight_constraints=None):
         """
         Parameters
         ----------
@@ -1253,9 +1253,19 @@ class SoftmaxPool(Layer):
         b_lr_scale : WRITEME
         mask_weights : WRITEME
         max_col_norm : WRITEME
+        weight_constraints: WRITEME
         """
         self.__dict__.update(locals())
         del self.self
+
+        if weight_constraints is not None:
+            self.weight_constraints = Constraints(weight_constraints)
+        else:
+            self.weight_constraints = Constraints([])
+
+        if self.max_col_norm is not None:
+            warnings.warn("%s.max_col_norm is deprecated. Please use, weight_constraints instead.\
+                    max_col_norm argument will be removed on or after 07.07.2014.")
 
         self.b = sharedX(np.zeros((self.detector_layer_dim,)) + init_bias,
                          name=(layer_name + '_b'))
