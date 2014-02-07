@@ -91,26 +91,27 @@ class Cost(object):
 
         Parameters
         ----------
-        model: a pylearn2 Model instance
+        model : a pylearn2 Model instance
         data : a batch in cost.get_data_specs() form
 
-        returns: gradients, updates
-            gradients:
-                a dictionary mapping from the model's parameters
-                         to their gradients
-                The default implementation is to compute the gradients
-                using T.grad applied to the value returned by expr.
-                However, subclasses may return other values for the gradient.
-                For example, an intractable cost may return a sampling-based
-                approximation to its gradient.
-            updates:
-                a dictionary mapping shared variables to updates that must
-                be applied to them each time these gradients are computed.
-                This is to facilitate computation of sampling-based approximate
-                gradients.
-                The parameters should never appear in the updates dictionary.
-                This would imply that computing their gradient changes
-                their value, thus making the gradient value outdated.
+        Returns
+        -------
+        gradients: OrderedDict
+            a dictionary mapping from the model's parameters
+            to their gradients
+            The default implementation is to compute the gradients
+            using T.grad applied to the value returned by expr.
+            However, subclasses may return other values for the gradient.
+            For example, an intractable cost may return a sampling-based
+            approximation to its gradient.
+        updates: OrderedDict
+            a dictionary mapping shared variables to updates that must
+            be applied to them each time these gradients are computed.
+            This is to facilitate computation of sampling-based approximate
+            gradients.
+            The parameters should never appear in the updates dictionary.
+            This would imply that computing their gradient changes
+            their value, thus making the gradient value outdated.
         """
 
         try:
