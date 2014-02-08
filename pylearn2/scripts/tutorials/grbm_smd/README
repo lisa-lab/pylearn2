@@ -10,8 +10,11 @@ Be sure to follow the "Download and Installation" instructions at
 http://deeplearning.net/software/pylearn2/ to set up your
 PYLEARN2_DATA_PATH directory.
 
+
 Step 0: Download the CIFAR-10 dataset
 ------------------------------------
+People working from the LISA lab can skip this step.
+
 To download the CIFAR-10 dataset and put it in the right place, you can call
 
 pylearn2/scripts/download_cifar10.sh
