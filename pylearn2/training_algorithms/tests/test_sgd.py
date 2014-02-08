@@ -501,7 +501,6 @@ def test_monitor_based_lr():
 
 def test_bad_monitoring_input_in_monitor_based_lr():
     # tests that the class MonitorBasedLRAdjuster in sgd.py avoids wrong settings of channel_name or dataset_name in the constructor.
-    # It runs for 2 iterations, checking for one case in each iteration. 
 
     dim = 3
     m = 10
@@ -529,34 +528,46 @@ def test_bad_monitoring_input_in_monitor_based_lr():
     termination_criterion = EpochCounter(epoch_num)
 
     algorithm = SGD(learning_rate, cost, batch_size=5,
-             monitoring_batches=3, monitoring_dataset= monitoring_dataset,
+             monitoring_batches=2, monitoring_dataset= monitoring_dataset,
              termination_criterion=termination_criterion, update_callbacks=None,
              init_momentum = None, set_batch_size = False)
 
-    for i in xrange(2):
-        if (i == 1):
-            monitor_lr = MonitorBasedLRAdjuster(dataset_name='void')
+    #testing for bad dataset_name input
+    dummy = 'void'
 
-            train = Train(dataset, model, algorithm, save_path=None,
-                     save_freq=0, extensions=[monitor_lr])
-            try:
-                train.main_loop()
-            except ValueError:
-                pass
-            except:
-                raise AssertionError("MonitorBasedLRAdjuster takes dataset_name that is invalid ")
-        else:
-            monitor_lr = MonitorBasedLRAdjuster(channel_name='void')
+    monitor_lr = MonitorBasedLRAdjuster(dataset_name=dummy)
 
-            train = Train(dataset, model, algorithm, save_path=None,
-                     save_freq=0, extensions=[monitor_lr])
+    train = Train(dataset, model, algorithm, save_path=None,
+             save_freq=0, extensions=[monitor_lr])
+    try:
+        train.main_loop()
+    except ValueError as e:
+        err_input = 'The dataset_name \'' + dummy + '\' is not valid.'
+        channel_name = dummy + '_objective'
+        err_message = 'There is no monitoring channel named \'' + channel_name + \
+            '\'. You probably need to specify a valid monitoring channel by using either ' + \
+            'dataset_name or channel_name in the MonitorBasedLRAdjuster constructor. ' + err_input
+        assert err_message == str(e)
+    except:
+        raise AssertionError("MonitorBasedLRAdjuster takes dataset_name that is invalid ")
 
-            try:
-                train.main_loop()
-            except ValueError:
-                pass
-            except:
-                raise AssertionError("MonitorBasedLRAdjuster takes channel_name that is invalid ")
+    #testing for bad channel_name input
+    monitor_lr2 = MonitorBasedLRAdjuster(channel_name=dummy)
+
+    model2 = SoftmaxModel(dim)
+    train2 = Train(dataset, model2, algorithm, save_path=None,
+             save_freq=0, extensions=[monitor_lr2])
+
+    try:
+        train2.main_loop()
+    except ValueError as e:
+        err_input = 'The channel_name \'' + dummy + '\' is not valid.'
+        err_message = 'There is no monitoring channel named \'' + dummy + \
+            '\'. You probably need to specify a valid monitoring channel by using either ' + \
+            'dataset_name or channel_name in the MonitorBasedLRAdjuster constructor. ' + err_input
+        assert err_message == str(e)
+    except:
+        raise AssertionError("MonitorBasedLRAdjuster takes channel_name that is invalid ")
 
     return
 

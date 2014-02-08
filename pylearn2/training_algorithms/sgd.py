@@ -497,15 +497,15 @@ class MonitorBasedLRAdjuster(TrainExtension):
             v = monitor.channels[self.channel_name].val_record
         except KeyError:
             err_input = ''
-            if(monitor_channel_specified):
-                if(self.dataset_name):
+            if monitor_channel_specified:
+                if self.dataset_name:
                     err_input = 'The dataset_name \'' + str(self.dataset_name) + '\' is not valid.'
                 else:
                     err_input = 'The channel_name \'' + str(self.channel_name) + '\' is not valid.'
             err_message = 'There is no monitoring channel named \'' + \
-                    str(self.channel_name) + '\'. You probably need to specify a valid monitor channel by using either' + \
+                    str(self.channel_name) + '\'. You probably need to specify a valid monitoring channel by using either ' + \
                     'dataset_name or channel_name in the MonitorBasedLRAdjuster constructor. ' + err_input
-            raise KeyError(err_message)
+            raise ValueError(err_message)
 
         if len(v) < 1:
             if monitor.dataset is None:
