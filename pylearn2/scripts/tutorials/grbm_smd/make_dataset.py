@@ -64,7 +64,7 @@ if __name__ == "__main__":
     # The dataset object itself is stored as a pickle file.
     path = pylearn2.__path__[0]
     train_example_path = os.path.join(path, 'scripts', 'tutorials', 'grbm_smd')
-    train.use_design_loc(train_example_path, 'train_design.npy')
+    train.use_design_loc(os.path.join(train_example_path, 'train_design.npy'))
     
     train_yaml_path = os.path.join(train_example_path, 'cifar_grbm_smd.yaml')
     serial.save(train_yaml_path, train)
