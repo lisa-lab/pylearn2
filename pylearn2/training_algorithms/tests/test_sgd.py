@@ -617,7 +617,7 @@ def testing_multiple_datasets_in_monitor_based_lr():
     except ValueError:
         return
         
-    raise AssertionError("MonitorBasedLRAdjuster takes multiple dataset names in which more than one \"objective\" channel exist and the user has not specified " + \
+    raise AssertionError("MonitorBasedLRAdjuster takes multiple dataset names in which more than one \"objective\" channel exist and the user has not specified " + 
         "either channel_name or database_name in the constructor to disambiguate.")
 
 def testing_multiple_datasets_with_specified_dataset_in_monitor_based_lr():

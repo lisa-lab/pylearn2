@@ -474,8 +474,7 @@ class MonitorBasedLRAdjuster(TrainExtension):
         model = algorithm.model
         lr = algorithm.learning_rate
         current_learning_rate = lr.get_value()
-        assert hasattr(model, 'monitor'), ("no monitor associated with " +
-                                           str(model))
+        assert hasattr(model, 'monitor'), ("no monitor associated with " + str(model))
         monitor = model.monitor
         monitor_channel_specified = True
 
@@ -486,11 +485,11 @@ class MonitorBasedLRAdjuster(TrainExtension):
                 raise ValueError("""There are no monitoring channels that end with \"objective\". Please specify either channel_name or dataset_name.""")
             elif len(channels) > 1:
                 datasets = [re.sub('_objective', '', elem) for elem in channels]
-                raise ValueError('There are multiple monitoring channels that ends with \"_objective\". The list of available datasets are: ' + \
+                raise ValueError('There are multiple monitoring channels that ends with \"_objective\". The list of available datasets are: ' + 
                                 str(datasets) + ' . Please specify either channel_name or dataset_name in the MonitorBasedLRAdjuster constructor to disambiguate.')
             else:
                 self.channel_name = channels[0]
-                warnings.warn('The channel that has been chosen for monitoring is: ' + \
+                warnings.warn('The channel that has been chosen for monitoring is: ' + 
                               str(self.channel_name) + '.')
 
         try:
