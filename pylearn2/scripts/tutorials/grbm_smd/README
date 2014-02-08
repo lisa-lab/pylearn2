@@ -14,11 +14,12 @@ Step 0: Download the CIFAR-10 dataset
 ------------------------------------
 To download the CIFAR-10 dataset and put it in the right place, you can call
 
-download_dataset.sh
+pylearn2/scripts/download_cifar10.sh
 
-in from this directory. It will get the python dataset from
+from this directory. It will get the python dataset from
 http://www.cs.utoronto.ca/~kriz/cifar.html and extract it into
 ${PYLEARN2_DATA_PATH}/cifar10/cifar-10-batches-py
+
 
 Once you have the data, there are three steps to do in pylearn2.
 
@@ -70,7 +71,6 @@ RBM trained using denoising score matching.
 
 Step 3: Inspect the model
 -------------------------
-
 pylearn2/scripts/show_weights.py and pylearn2/scripts/plot_monitor.py
 should have executable permissions.
 
