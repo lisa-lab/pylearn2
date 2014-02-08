@@ -30,7 +30,7 @@ install:
 # So we test with 0.9. Our internal buildbot have 0.7.2.
 # We install it later only for the PART that need it.
   - "pip install -q nose==1.0.0 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
-  - "pip install -q PIL --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "pip install -q PIL --use-mirrors --allow-external PIL --allow-unverified PIL || (cat /home/travis/.pip/pip.log; false)" 
 #numexpr 2.0 need NumPy 1.6 or above. As we support NumPy 1.5,
 #we need an older numexpr version. numexpr is needed for pytables
   - "pip install -q numexpr==1.4.2 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
