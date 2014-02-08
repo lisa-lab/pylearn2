@@ -28,7 +28,7 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
             One of 'train', 'test'
         gcn : float, optional
             Multiplicative constant to use for global contrast normalization.
-            No glocal constrast normalization is applied, if None
+            No global contrast normalization is applied, if None
 
         .. todo::
 
