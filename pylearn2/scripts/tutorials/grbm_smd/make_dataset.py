@@ -11,6 +11,7 @@
 # your data once and then train several models on the preprocessed data.
 
 import os.path
+import pylearn2
 
 # We'll need the serial module to save the dataset
 from pylearn2.utils import serial
