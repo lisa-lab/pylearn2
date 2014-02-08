@@ -911,23 +911,17 @@ class ZCA(Preprocessor):
             t_diags = theano.tensor.vector('D')
             result = theano.tensor.dot(t_mat * t_diags, t_mat.T)
             ZCA._gpu_mdmt.theano_func = theano.function([t_mat, t_diags],
-                                                        result)
+                                                        result,
+                                                        allow_input_downcast=True)
 
         try:
-            # convert data to have theano.config.floatX
-            if mat.dtype != theano.config.floatX:
-                warnings.warn('Converting mat from dtype=%s to floatX=%s for gpu' % (mat.dtype, theano.config.floatX))
-                gpu_mat = mat.astype(theano.config.floatX)
-            else:
-                gpu_mat = mat
-            
-            if diags.dtype != theano.config.floatX:
-                warnings.warn('Converting diag from dtype=%s to floatX=%s for gpu' % (diags.dtype, theano.config.floatX))
-                gpu_diags = diags.astype(theano.config.floatX)
-            else:
-                gpu_diags = diags
-                
-            return ZCA._gpu_mdmt.theano_func(gpu_mat, gpu_diags)
+            # function()-call above had to downcast the data. Emit warnings.
+            if mat.dtype != numpy.float32:
+                warnings.warn('Implicitly converting mat from dtype=%s to float32 for gpu' % mat.dtype)
+            if diags.dtype != numpy.float32:
+                warnings.warn('Implicitly converting diag from dtype=%s to float32 for gpu' % diags.dtype)
+
+            return ZCA._gpu_mdmt.theano_func(mat, diags)
             
         except MemoryError:
             # fall back to cpu
