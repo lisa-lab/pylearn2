@@ -372,6 +372,102 @@ class Space(object):
                                   "get_batch")
 
 
+class IndexSpace(Space):
+    """
+    A space representing indices, for example MNIST labels (0-10) or the
+    indices of words in a dictionary for NLP tasks. A single space can
+    contain multiple indices, for example the word indices of an n-gram as
+    input.
+    """
+    def __init__(self, nclasses, dim, **kwargs):
+        """
+        Initialize an IndexSpace.
+
+        Parameters
+        ----------
+        nclasses : int
+            The number of possible classes.
+        dim : int
+            The number of indices in one space.
+        kwargs: passes on to superclass constructor
+        """
+
+        super(IndexSpace, self).__init__(**kwargs)
+
+        self.nclasses = nclasses
+        self.dim = dim
+
+    def __str__(self):
+        """
+        Return a string representation.
+        """
+        return '%(classname)s(dim=%(dim)s, nclasses=%(nclasses)s' % \
+               dict(classname=self.__class__.__name__,
+                    dim=self.dim,
+                    nclasses=self.nclasses)
+
+    @functools.wraps(Space.get_total_dimension)
+    def get_total_dimension(self):
+        return self.nclasses
+
+    @functools.wraps(Space.np_format_as)
+    def np_format_as(self, batch, space):
+        if space.sparse:
+            raise ValueError("Not implemented yet")
+        else:
+            rval = np.zeros((batch.shape[0], self.nclasses), dtype=config.floatX)
+            rval[np.arange(batch.shape[0], dtype='int32'), batch.T.astype('int32')] = 1
+        return rval
+
+    @functools.wraps(Space._format_as)
+    def _format_as(self, batch, space):
+        """
+        Supports formatting to a VectorSpace where indices are represented
+        by ones in a binary vector.
+        """
+        if isinstance(space, VectorSpace):
+            if space.sparse:
+                if self.nclasses == space.dim:
+                    rval = theano.sparse.CSR(
+                        T.ones_like(batch).flatten(), batch.flatten(),
+                        T.arange(batch.shape[0] + 1) * self.nclasses,
+                        T.stack(batch.shape[0], space.dim)
+                    )
+                elif self.dim * self.nclasses == space.dim:
+                    rval = theano.sparse.CSR(
+                        T.ones_like(batch).flatten(),
+                        batch.flatten() + T.arange(batch.size)
+                        % self.nclasses * self.dim,
+                        T.arange(batch.shape[0] + 1) * self.nclasses,
+                        T.stack(batch.shape[0], space.dim)
+                    )
+                else:
+                    raise ValueError("Can't convert IndexSpace to Vectorspace"
+                                     "(%d labels to %d dimensions)."
+                                     % (self.dim, space.dim))
+            else:
+                if self.nclasses == space.dim:
+                    rval = T.alloc(0, *(batch.shape[0], self.nclasses))
+                    rval = T.set_subtensor(rval[T.arange(batch.size) %
+                                                batch.shape[0],
+                                                batch.T.flatten()], 1)
+                elif self.dim * self.nclasses == space.dim:
+                    rval = T.alloc(0, *(batch.shape[0] * self.dim,
+                                        self.nclasses))
+                    rval = T.set_subtensor(rval[T.arange(batch.size),
+                                                batch.flatten()], 1)
+                    rval = rval.reshape((batch.shape[0],
+                                         self.dim * self.nclasses))
+                else:
+                    raise ValueError("Can't convert IndexSpace to Vectorspace"
+                                     "(%d labels to %d dimensions)."
+                                     % (self.dim, space.dim))
+            return rval
+        else:
+            raise ValueError("Can't convert IndexSpace to %(space)s"
+                             % (space.__class__.__name__))
+
+
 class VectorSpace(Space):
     """A space whose points are defined as fixed-length vectors."""
     def __init__(self, dim, sparse=False, **kwargs):
