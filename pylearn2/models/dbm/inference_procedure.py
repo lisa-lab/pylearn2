@@ -1,5 +1,6 @@
 import warnings
-from theano import gof, tensor
+from theano import gof
+import theano.tensor as T
 import theano
 from theano.gof.op import get_debug_values
 from pylearn2.models.dbm import block, flatten, Softmax
