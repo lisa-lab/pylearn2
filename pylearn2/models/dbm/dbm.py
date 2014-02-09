@@ -3,8 +3,9 @@ import numpy as np
 from theano import tensor as T, config
 from theano.compat import OrderedDict
 from pylearn2.models import Model
-from pylearn2.models.dbm import GibbsEvenOdd, flatten
+from pylearn2.models.dbm import flatten
 from pylearn2.models.dbm.inference_procedure import WeightDoubling
+from pylearn2.models.dbm.sampling_procedure import GibbsEvenOdd
 from pylearn2.utils import safe_zip, safe_izip
 
 __authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
