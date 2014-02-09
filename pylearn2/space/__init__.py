@@ -412,12 +412,24 @@ class IndexSpace(Space):
 
     @functools.wraps(Space.np_format_as)
     def np_format_as(self, batch, space):
-        if space.sparse:
-            raise ValueError("Not implemented yet")
-        else:
-            rval = np.zeros((batch.shape[0], self.nclasses), dtype=config.floatX)
-            rval[np.arange(batch.shape[0], dtype='int32'), batch.T.astype('int32')] = 1
-        return rval
+        if isinstance(space, VectorSpace):
+            if space.sparse:
+                raise ValueError("Not implemented yet")
+            else:
+                if self.nclasses == space.dim:
+                    rval = np.zeros((batch.shape[0], space.dim), dtype='int32')
+                    rval[np.arange(batch.shape[0], dtype='int32'),
+                         batch.T.astype('int32')] = 1
+                elif self.dim * self.nclasses == space.dim:
+                    rval = np.zeros((batch.shape[0] * self.dim, self.nclasses),
+                                    dtype='int32')
+                    rval[np.arange(batch.size), batch.flatten()] = 1
+                    rval = rval.reshape((batch.shape[0], space.dim))
+                else:
+                    raise ValueError("Can't convert IndexSpace to Vectorspace"
+                                     "(%d labels to %d dimensions)."
+                                     % (self.dim, space.dim))
+            return rval
 
     @functools.wraps(Space._format_as)
     def _format_as(self, batch, space):
