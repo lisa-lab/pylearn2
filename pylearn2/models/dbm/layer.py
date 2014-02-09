@@ -17,7 +17,11 @@ from pylearn2.models.dbm import init_sigmoid_bias_from_marginals
 from pylearn2.space import VectorSpace, CompositeSpace, Conv2DSpace, Space
 from pylearn2.utils import sharedX, safe_zip, py_integer_types, block_gradient
 
-__author__ = 'mroth'
+__authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
+__copyright__ = "Copyright 2012-2013, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
 
 
 class Layer(Model):

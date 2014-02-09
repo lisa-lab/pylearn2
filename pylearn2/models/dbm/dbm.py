@@ -6,7 +6,11 @@ from pylearn2.models import Model
 from pylearn2.models.dbm import WeightDoubling, GibbsEvenOdd, flatten
 from pylearn2.utils import safe_zip, safe_izip
 
-__author__ = 'mroth'
+__authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
+__copyright__ = "Copyright 2012-2013, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
 
 
 class DBM(Model):
