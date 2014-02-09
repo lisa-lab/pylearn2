@@ -417,12 +417,13 @@ class IndexSpace(Space):
                 raise ValueError("Not implemented yet")
             else:
                 if self.nclasses == space.dim:
-                    rval = np.zeros((batch.shape[0], space.dim), dtype='int32')
+                    rval = np.zeros((batch.shape[0], space.dim),
+                                    dtype=config.floatX)
                     rval[np.arange(batch.shape[0], dtype='int32'),
                          batch.T.astype('int32')] = 1
                 elif self.dim * self.nclasses == space.dim:
                     rval = np.zeros((batch.shape[0] * self.dim, self.nclasses),
-                                    dtype='int32')
+                                    dtype=config.floatX)
                     rval[np.arange(batch.size), batch.flatten()] = 1
                     rval = rval.reshape((batch.shape[0], space.dim))
                 else:
