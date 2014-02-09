@@ -1,4 +1,5 @@
 from pylearn2.models.dbm.dbm import DBM
+from pylearn2.models.dbm.layer import BinaryVector, BinaryVectorMaxPool, Softmax
 
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2012, Universite de Montreal"
@@ -16,9 +17,6 @@ from theano import tensor as T
 
 from pylearn2.expr.basic import is_binary
 from pylearn2.expr.nnet import inverse_sigmoid_numpy
-from pylearn2.models.dbm import BinaryVector
-from pylearn2.models.dbm import BinaryVectorMaxPool
-from pylearn2.models.dbm import Softmax
 from pylearn2.costs.dbm import VariationalCD
 import pylearn2.testing.datasets as datasets
 from pylearn2.space import VectorSpace

@@ -22,6 +22,8 @@ and the probability that :math:`h` is 1 is given by
 
     \sigma(2T \dot z)
 """
+from pylearn2.models.dbm.layer import VisibleLayer, HiddenLayer
+
 __authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
 __copyright__ = "Copyright 2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -41,9 +43,7 @@ import warnings
 
 from pylearn2.expr.nnet import sigmoid_numpy
 from pylearn2.linear.matrixmul import MatrixMul
-from pylearn2.models.dbm import HiddenLayer
 from pylearn2.models.dbm import init_sigmoid_bias_from_array
-from pylearn2.models.dbm import VisibleLayer
 from pylearn2.space import Conv2DSpace
 from pylearn2.space import VectorSpace
 from pylearn2.utils import sharedX
