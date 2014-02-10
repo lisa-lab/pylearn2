@@ -15,7 +15,7 @@ import logging
 import warnings
 from pylearn2.monitor import Monitor
 from pylearn2.space import NullSpace
-from pylearn2.utils.timing import log_timing, total_seconds
+from pylearn2.utils.timing import timing, log_timing, total_seconds
 from pylearn2.utils import sharedX
 
 
@@ -89,7 +89,8 @@ class Train(object):
                           "data it was trained on")
 
         self.extensions = extensions if extensions is not None else []
-        self.monitor_time = sharedX(value=0, name='seconds_per_epoch')
+        self.training_seconds = sharedX(value=0, name='training_seconds_this_epoch')
+        self.total_seconds = sharedX(value=0, name='total_seconds_last_epoch')
 
     def setup_extensions(self):
         """
@@ -158,27 +159,34 @@ class Train(object):
             if len(self.model.monitor._datasets)>0:
                 # This monitoring channel keeps track of a shared variable,
                 # which does not need inputs nor data.
-                self.model.monitor.add_channel(name="monitor_seconds_per_epoch",
+                self.model.monitor.add_channel(name="training_seconds_this_epoch",
                                                ipt=None,
-                                               val=self.monitor_time,
+                                               val=self.training_seconds,
+                                               data_specs=(NullSpace(), ''),
+                                               dataset=self.model.monitor._datasets[0])
+                self.model.monitor.add_channel(name="total_seconds_last_epoch",
+                                               ipt=None,
+                                               val=self.total_seconds,
                                                data_specs=(NullSpace(), ''),
                                                dataset=self.model.monitor._datasets[0])
             self.run_callbacks_and_monitoring()
             while True:
                 if self.exceeded_time_budget(t0, time_budget):
                     break
-                with log_timing(log, None, final_msg='Time this epoch:',
-                                callbacks=[self.monitor_time.set_value]):
-                    rval = self.algorithm.train(dataset=self.dataset)
-                if rval is not None:
-                    raise ValueError("TrainingAlgorithm.train should not " +
-                                     "return anything. Use " +
-                                     "TrainingAlgorithm.continue_learning " +
-                                     "to control whether learning continues.")
-                self.model.monitor.report_epoch()
-                extension_continue = self.run_callbacks_and_monitoring()
-                if self.save_freq > 0 and self.model.monitor._epochs_seen % self.save_freq == 0:
-                    self.save()
+                
+                with timing([self.total_seconds.set_value]):
+                    with log_timing(log, None, final_msg='Time this epoch:',
+                                    callbacks=[self.training_seconds.set_value]):
+                        rval = self.algorithm.train(dataset=self.dataset)
+                    if rval is not None:
+                        raise ValueError("TrainingAlgorithm.train should not " +
+                                         "return anything. Use " +
+                                         "TrainingAlgorithm.continue_learning " +
+                                         "to control whether learning continues.")
+                    self.model.monitor.report_epoch()
+                    extension_continue = self.run_callbacks_and_monitoring()
+                    if self.save_freq > 0 and self.model.monitor._epochs_seen % self.save_freq == 0:
+                        self.save()
                 continue_learning = (
                     self.algorithm.continue_learning(self.model) and
                     extension_continue
