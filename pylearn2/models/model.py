@@ -6,13 +6,8 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
-import warnings
-
-import numpy as np
-
 from theano.compat.python2x import OrderedDict
 from theano import tensor as T
-from theano import shared
 
 from pylearn2.space import NullSpace
 
