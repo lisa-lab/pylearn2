@@ -905,10 +905,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
             are not quite nailed down for this yet.
         view_converter : object, optional
             An object for converting between design matrices and \
-            topological views. Currently DefaultViewConverter is \
-            the only type available but later we may want to add \
-            one that uses the retina encoding that the U of T group \
-            uses.
+            topological views.
         rng : object, optional
             A random number generator used for picking random \
             indices into the design matrix when choosing minibatches.
