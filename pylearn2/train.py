@@ -15,7 +15,7 @@ import logging
 import warnings
 from pylearn2.monitor import Monitor
 from pylearn2.space import NullSpace
-from pylearn2.utils.timing import timing, log_timing, total_seconds
+from pylearn2.utils.timing import log_timing, total_seconds
 from pylearn2.utils import sharedX
 
 
@@ -173,8 +173,9 @@ class Train(object):
             while True:
                 if self.exceeded_time_budget(t0, time_budget):
                     break
-                
-                with timing([self.total_seconds.set_value]):
+
+                with log_timing(log, None, level=logging.DEBUG,
+                                callbacks=[self.total_seconds.set_value]):
                     with log_timing(log, None, final_msg='Time this epoch:',
                                     callbacks=[self.training_seconds.set_value]):
                         rval = self.algorithm.train(dataset=self.dataset)

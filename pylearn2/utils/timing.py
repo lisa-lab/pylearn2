@@ -36,27 +36,6 @@ def total_seconds(delta):
                 ) / float(10 ** 6)
 
 @contextmanager
-def timing(callbacks):
-    """
-    Context manager that compute time execution of an operation
-    and run callbacks on it
-
-    Parameters
-    ----------
-    callbacks: list
-        A list of callbacks taking as argument an
-        integer representing the total number of seconds.
-    """
-    start = datetime.datetime.now()
-    yield
-    end = datetime.datetime.now()
-    delta = end - start
-    total = total_seconds(delta)
-    if callbacks is not None:
-        for callback in callbacks:
-            callback(total)
-
-@contextmanager
 def log_timing(logger, task, level=logging.INFO, final_msg=None,
                callbacks=None):
     """
@@ -84,23 +63,21 @@ def log_timing(logger, task, level=logging.INFO, final_msg=None,
         A list of callbacks taking as argument an
         integer representing the total number of seconds.
     """
-    if callbacks is None:
-        callbacks = []
-
-    def log_time(total):
-        if total < 60:
-            delta_str = '%f seconds' % total
-        else:
-            delta_str = str(delta)
-        if final_msg is None:
-            logger.log(level, str(task) + ' done. Time elapsed: %s' % delta_str)
-        else:
-            logger.log(level, ' '.join((final_msg, delta_str)))
-
-    callbacks.append(log_time)
-
+    start = datetime.datetime.now()
     if task is not None:
         logger.log(level, str(task) + '...')
-
-    with timing(callbacks):
-        yield
+    yield
+    end = datetime.datetime.now()
+    delta = end - start
+    total = total_seconds(delta)
+    if total < 60:
+        delta_str = '%f seconds' % total
+    else:
+        delta_str = str(delta)
+    if final_msg is None:
+        logger.log(level, str(task) + ' done. Time elapsed: %s' % delta_str)
+    else:
+        logger.log(level, ' '.join((final_msg, delta_str)))
+    if callbacks is not None:
+        for callback in callbacks:
+            callback(total)
