@@ -10,7 +10,6 @@ __maintainer__ = "Ian Goodfellow"
 import math
 import sys
 import warnings
-import ipdb
 
 import numpy as np
 from theano import config
@@ -30,7 +29,6 @@ from pylearn2.space import CompositeSpace
 from pylearn2.space import Conv2DSpace
 from pylearn2.space import Space
 from pylearn2.space import VectorSpace
-from pylearn2.space import IndexSpace
 from pylearn2.utils import function
 from pylearn2.utils import py_integer_types
 from pylearn2.utils import safe_union
@@ -783,7 +781,6 @@ class MLP(Layer):
         self.cost_from_X_data_specs()[0].validate(data)
         X, Y = data
         Y_hat = self.fprop(X)
-        ipdb.set_trace()
         return self.cost(Y, Y_hat)
 
     def cost_from_X_data_specs(self):
@@ -1042,7 +1039,7 @@ class Softmax(Layer):
 
     @wraps(Layer.cost)
     def cost(self, Y, Y_hat):
-        ipdb.set_trace()
+
         assert hasattr(Y_hat, 'owner')
         owner = Y_hat.owner
         assert owner is not None
@@ -2953,62 +2950,6 @@ class CompositeLayer(Layer):
         super(CompositeLayer, self).set_mlp(mlp)
         for layer in self.layers:
             layer.set_mlp(mlp)
-
-
-class ProjectionLayer(Layer):
-    def __init__(self, dim,
-                 layer_name,
-                 irange=None,
-                 istdev=None,
-                 sparse_init=None,
-                 sparse_stdev=1.,
-                 include_prob=1.0):
-        self.__dict__.update(locals())
-        del self.self
-
-    @wraps(Layer.cost)
-    def cost(self, *args, **kwargs):
-        raise NotImplementedError()
-
-    @wraps(Layer.set_input_space)
-    def set_input_space(self, space):
-
-        self.input_space = space
-
-        if isinstance(space, IndexSpace):
-            self.requires_reformat = False
-            self.input_dim = space.nclasses
-        else:
-            raise ValueError("Need IndexSpace as input")
-
-        self.output_space = VectorSpace(self.input_dim * space.dim)
-
-        rng = self.mlp.rng
-        if self.irange is not None:
-            assert self.istdev is None
-            assert self.sparse_init is None
-            W = rng.uniform(-self.irange,
-                            self.irange,
-                            (self.input_dim, self.dim)) * \
-                (rng.uniform(0., 1., (self.input_dim, self.dim))
-                 < self.include_prob)
-        elif self.istdev is not None:
-            assert self.sparse_init is None
-            W = rng.randn(self.input_dim, self.dim) * self.istdev
-        else:
-            raise ValueError("Need istdev or irange to initialize")
-
-        W = sharedX(W)
-        W.name = self.layer_name + '_W'
-
-        self.transformer = MatrixMul(W)
-
-        W, = self.transformer.get_params()
-        assert W.name is not None
-
-    def fprop(self, state_below):
-        z = self.transformer.project(state_below)
-        return z
 
 
 class FlattenerLayer(Layer):
