@@ -249,6 +249,26 @@ class Layer(Model):
         """
         raise NotImplementedError
 
+    def get_output_axes_def(self):
+        """
+
+        Returns
+        -------
+        This function returns the axes of the output space for constraints.
+        """
+
+        return (1,)
+
+    def get_input_axes_def(self):
+        """
+
+        Returns
+        -------
+        This function returns the axes of the input space for constraints.
+        """
+
+        return (0,)
+
     def apply_constraints(self, updates):
         """
         This function apply constraints for the layer.
@@ -267,81 +287,56 @@ class Layer(Model):
             Because of this function there is a circular import (Maxout imports mlp and mlp
             imports maxout)  which can lead to some subtle bugs.
         """
-        from maxout import Maxout, MaxoutConvC01B, MaxoutLocalC01B
-        if self.__class__ in (SoftmaxPool, Maxout):
-            W, = self.transformer.get_params()
-            constraint = NormConstraint()
-            constraint_args = {
-                               "constrain_on": W,
-                               "max_constraint": self.max_col_norm,
-                               "updates": updates
-                              }
-            constraints.add_constraint(constraint)
-            constraints.apply_constraints([constraint_args])
-        elif self.__class__ in (Linear, Sigmoid, Tanh, RectifiedLinear, Softmax):
-            if self.__class__ == Softmax:
-                W = self.W
-            else:
-                W, = self.transformer.get_params()
 
-            if self.max_row_norm:
-                constraint = NormConstraint(axes=(1,), dimshuffle_pattern=(0, 'x'))
-                constraint_args = {
-                                   "constrain_on": W,
-                                   "max_constraint": self.max_row_norm,
-                                   "updates": updates
-                                  }
-                constraints.add_constraint(constraint)
-                constraints.apply_constraints([constraint_args])
-
-            elif self.max_col_norm or self.min_col_norm:
-                constraint_args = {
-                                   "constrain_on": W,
-                                   "updates": updates
-                                  }
-
-                if self.max_col_norm:
-                    constraint_args["max_constraint"] = self.max_col_norm
-                elif self.min_col_norm:
-                    constraint_args["min_constraint"] = self.min_col_norm
-
-                constraint = NormConstraint()
-                constraints.add_constraint(constraint)
-                constraints.apply_constraints([constraint_args])
-
-        elif self.__class__ in (ConvRectifiedLinear, MaxoutConvC01B):
-            W, = self.transformer.get_params()
-            axes = (1, 2, 3)
-            dimshuffle_pattern = (0, 'x', 'x', 'x')
-            kernel_norm_constraint = NormConstraint(axes=axes,
-                                                    dimshuffle_pattern=dimshuffle_pattern)
-
-            constraint_args = {
-                               "constrain_on": W,
-                               "max_constraint": self.max_kernel_norm,
-                               "updates": updates
-                              }
-
-            constraints.add_constraint(kernel_norm_constraint)
-            constraints.apply_constraints([constraint_args])
-
-        elif self.__class__ == MaxoutLocalC01B:
-            W, = self.transformer.get_params()
-            axes = (2, 3, 4)
-            dimshuffle_pattern = (0, 1, 'x', 'x', 'x', 2, 3)
-            filter_norm_constraint = NormConstraint(axes=axes,
-                                                    dimshuffle_pattern=dimshuffle_pattern)
-
-            constraint_args = {
-                               "constrain_on": W,
-                               "max_constraint": self.max_filter_norm,
-                               "updates": updates
-                              }
-
-            constraints.add_constraint(filter_norm_constraint)
-            constraints.apply_constraints([constraint_args])
+        if self.weight_constraints is not None:
+            weight_constraints = Constraints(self.weight_constraints)
         else:
-            raise Exception("Unknown layer class to apply a constraint on.")
+            weight_constraints = Constraints([])
+
+        if hasattr(self, "max_col_norm"):
+            if self.max_col_norm is not None:
+                constraint = NormConstraint(max_norm=self.max_col_norm)
+                constraints.add_constraint(constraint)
+                warnings.warn("%s.max_col_norm is deprecated. Please use, weight_constraints instead. max_col_norm argument will be removed on or after 11.08.2014.")
+
+        if hasattr(self, "min_col_norm"):
+            if self.min_col_norm is not None:
+                constraint = NormConstraint(min_norm=self.min_col_norm)
+                constraints.add_constraint(constraint)
+
+                warnings.warn("%s.min_col_norm is deprecated. Please use, weight_constraints instead. min_col_norm argument will be removed on or after 11.08.2014.")
+
+        if hasattr(self, "max_kernel_norm"):
+            if self.max_kernel_norm is not None:
+                constraint = NormConstraint(max_norm=self.max_kernel_norm)
+                constraints.add_constraint(constraint)
+                warnings.warn("%s.max_kernel_norm is deprecated. Please use, weight_constraints instead. max_kernel_norm argument will be removed on or after 11.08.2014.")
+
+        if hasattr(self, "max_row_norm"):
+            if self.max_row_norm is not None:
+                constraint = NormConstraint(max_norm=self.max_row_norm, is_input_axes=False)
+                constraints.add_constraint(constraint)
+                warnings.warn("%s.max_row_norm is deprecated. Please use, weight_constraints instead. max_row_norm argument will be removed on or after 11.08.2014.")
+
+        if hasattr(self, "max_filter_norm"):
+            if self.max_filter_norm is not None:
+                constraint = NormConstraint(max_norm=self.max_filter_norm)
+                constraints.add_constraint(constraint)
+                warnings.warn("%s.max_filter_norm is deprecated. Please use, weight_constraints instead. max_filter_norm argument will be removed on or after 11.08.2014.")
+
+        if self.__class__ == Softmax:
+            W = self.W
+        else:
+            W, = self.transformer.get_params()
+
+        constraint_args = {
+                           "constrain_on": W,
+                           "updates": updates
+                          }
+
+        input_axes = self.get_input_axes_def()
+        output_axes = self.get_output_axes_def()
+        constraints.apply_constraints([constraint_args], input_axes, output_axes)
 
 
 class MLP(Layer):
@@ -447,6 +442,7 @@ class MLP(Layer):
                             str(self.input_space) +
                             " of type " + str(type(self.input_space)) +
                             "). Original exception: " + str(e))
+
         for i in xrange(1, len(layers)):
             layers[i].set_input_space(layers[i-1].get_output_space())
 
@@ -925,7 +921,8 @@ class Softmax(Layer):
                  sparse_init=None, W_lr_scale=None,
                  b_lr_scale=None, max_row_norm=None,
                  no_affine=False,
-                 max_col_norm=None, init_bias_target_marginals=None):
+                 max_col_norm=None, weight_constraints=None,
+                 init_bias_target_marginals=None):
         """
         .. todo::
 
@@ -940,6 +937,7 @@ class Softmax(Layer):
         del self.init_bias_target_marginals
 
         assert isinstance(n_classes, py_integer_types)
+        self.axes_defs = ()
 
         self.output_space = VectorSpace(n_classes)
         if not no_affine:
@@ -1258,15 +1256,6 @@ class SoftmaxPool(Layer):
         self.__dict__.update(locals())
         del self.self
 
-        if weight_constraints is not None:
-            self.weight_constraints = Constraints(weight_constraints)
-        else:
-            self.weight_constraints = Constraints([])
-
-        if self.max_col_norm is not None:
-            warnings.warn("%s.max_col_norm is deprecated. Please use, weight_constraints instead.\
-                    max_col_norm argument will be removed on or after 07.07.2014.")
-
         self.b = sharedX(np.zeros((self.detector_layer_dim,)) + init_bias,
                          name=(layer_name + '_b'))
 
@@ -1581,6 +1570,7 @@ class Linear(Layer):
                  softmax_columns=False,
                  copy_input=0,
                  use_abs_loss=False,
+                 weight_constraints=None,
                  use_bias=True):
         """
         Parameters
@@ -2224,6 +2214,7 @@ class ConvRectifiedLinear(Layer):
                  b_lr_scale=None,
                  left_slope=0.0,
                  max_kernel_norm=None,
+                 weight_constraints=None,
                  pool_type='max',
                  detector_normalization=None,
                  output_normalization=None,
@@ -2280,6 +2271,9 @@ class ConvRectifiedLinear(Layer):
             raise AssertionError("You should specify either irange or "
                                  "sparse_init when calling the constructor of "
                                  "ConvRectifiedLinear and not both.")
+
+        self.input_axes_def = ()
+        self.output_axes_def = ()
 
         self.__dict__.update(locals())
         del self.self
@@ -2353,6 +2347,7 @@ class ConvRectifiedLinear(Layer):
                 subsample=self.kernel_stride,
                 border_mode=self.border_mode,
                 rng=rng)
+
         W, = self.transformer.get_params()
         W.name = 'W'
 
@@ -2369,6 +2364,7 @@ class ConvRectifiedLinear(Layer):
             dummy_batch_size = 2
         dummy_detector = sharedX(
             self.detector_space.get_origin_batch(dummy_batch_size))
+
         if self.pool_type == 'max':
             dummy_p = max_pool(bc01=dummy_detector,
                                pool_shape=self.pool_shape,
@@ -2450,6 +2446,28 @@ class ConvRectifiedLinear(Layer):
         raw = self.transformer._filters.get_value()
 
         return np.transpose(raw, (outp, rows, cols, inp))
+
+    @wraps(Layer.get_output_axes_def)
+    def get_output_axes_def(self):
+        """
+
+        Returns
+        -------
+        This function returns the output axes.
+        """
+
+        return (0,)
+
+    @wraps(Layer.get_input_axes_def)
+    def get_input_axes_def(self):
+        """
+
+        Returns
+        -------
+        This function returns the input axes.
+        """
+
+        return (1, 2, 3)
 
     @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):

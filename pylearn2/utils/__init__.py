@@ -114,6 +114,38 @@ def subdict(d, keys):
         if key in d: result[key] = d[key]
     return result
 
+def get_dimshuffle_pattern(axes, ndim):
+    """
+    Create the dimshuffle pattern based on the axes and the
+    number of dimensions for constraints.
+    Parameters
+    ----------
+    axes : tuple
+    WRITEME
+    ndim : int
+    WRITEME
+
+    Returns
+    -------
+    dimshuffle_pattern : tuple
+    """
+
+    assert axes is not None, "axes should not be empty."
+    assert type(axes) == tuple, "the type of axes should be a tuple."
+
+    shf_dim_count = 0
+    diff_dims = ndim - len(axes)
+    dims = range(diff_dims)
+    dimshuffle_pattern = []
+
+    for i in xrange(ndim):
+        if i in axes:
+            dimshuffle_pattern.append('x')
+        else:
+            dimshuffle_pattern.append(shf_dim_count)
+            shf_dim_count += 1
+
+    return dimshuffle_pattern
 
 def safe_update(dict_to, dict_from):
     """
@@ -495,7 +527,7 @@ def wraps(wrapped,
     ...     def f(x):
     ...        '''
     ...        Adds 1 to x
-    ...        
+    ...
     ...        Parameters
     ...        ----------
     ...        x : int
@@ -525,17 +557,17 @@ def wraps(wrapped,
     >>> print c.f.__doc__
 
         Adds 1 to x
-        
+
         Parameters
         ----------
         x : int
             Variable to increment by 1
-    
+
         Returns
         -------
         rval : int
            x incremented by 1
-    
+
         Notes
         -----
         Also prints the incremented value

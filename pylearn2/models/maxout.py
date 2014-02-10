@@ -38,6 +38,8 @@ from pylearn2.space import Conv2DSpace
 from pylearn2.space import VectorSpace
 from pylearn2.utils import py_integer_types
 from pylearn2.utils import sharedX
+from pylearn2.utils import wraps
+
 from pylearn2.constraints import NormConstraint
 
 from pylearn2.linear.conv2d_c01b import setup_detector_layer_c01b
@@ -82,6 +84,7 @@ class Maxout(Layer):
                  max_col_norm = None,
                  max_row_norm = None,
                  mask_weights = None,
+                 weight_constraints=None,
                  min_zero = False
         ):
         """
@@ -120,6 +123,7 @@ class Maxout(Layer):
             constraint. Constraint is enforced by re-projection (if
             necessary) at the end of each update.
         max_row_norm: Like max_col_norm, but applied to the rows.
+        weight_constraints : WRITEME
         mask_weights: A binary matrix multiplied by the weights after each
                      update, allowing you to restrict their connectivity.
         min_zero: If true, includes a zero in the set we take a max over
@@ -604,6 +608,7 @@ class MaxoutConvC01B(Layer):
                  partial_sum = 1,
                  tied_b = False,
                  max_kernel_norm = None,
+                 weight_constraints = None,
                  input_normalization = None,
                  detector_normalization = None,
                  min_zero = False,
@@ -658,6 +663,7 @@ class MaxoutConvC01B(Layer):
         tied_b: If true, all biases in the same channel are constrained to be the same
                 as each other. Otherwise, each bias at each location is learned independently.
         max_kernel_norm: If specifed, each kernel is constrained to have at most this norm.
+        weight_constraints: WRITEME
         input_normalization, detector_normalization, output_normalization:
             if specified, should be a callable object. the state of the network is optionally
             replaced with normalization(state) at each of the 3 points in processing:
@@ -813,6 +819,27 @@ class MaxoutConvC01B(Layer):
             WRITEME
         """
         return self.transformer.get_weights_topo()
+
+    @wraps(Layer.get_output_axes_def)
+    def get_output_axes_def(self):
+        """
+
+        Returns
+        -------
+        This function returns the output axes.
+        """
+
+        return (3,)
+
+    @wraps(Layer.get_input_axes_def)
+    def get_input_axes_def(self):
+        """
+
+        Returns
+        -------
+        This function returns the input axes.
+        """
+        return (0, 1, 2)
 
     def get_monitoring_channels(self):
         """
@@ -1034,6 +1061,7 @@ class MaxoutLocalC01B(Layer):
                  detector_normalization = None,
                  min_zero = False,
                  output_normalization = None,
+                 weight_constraints = None,
                  input_groups = 1,
                  kernel_stride=(1, 1)):
         """
@@ -1077,7 +1105,7 @@ class MaxoutLocalC01B(Layer):
         fix_kernel_shape: if True, will modify self.kernel_shape to avoid
         having the kernel shape bigger than the implicitly
         zero padded input layer
-
+        weight_constraints : WRITEME
         partial_sum: a parameter that controls whether to prefer runtime savings
                     or memory savings when computing the gradient with respect to
                     the kernels. See pylearn2.sandbox.cuda_convnet.weight_acts.py
@@ -1331,6 +1359,26 @@ class MaxoutLocalC01B(Layer):
         norms = T.sqrt(sq_W.sum(axis=(2, 3, 4)))
 
         return norms
+
+    @wraps(Layer.get_output_axes_def)
+    def get_output_axes_def(self):
+        """
+
+        Returns
+        -------
+        This function returns the output axes.
+        """
+        return (0, 1, 5, 6)
+
+    @wraps(Layer.get_input_axes_def)
+    def get_input_axes_def(self):
+        """
+
+        Returns
+        -------
+        This function returns the input axes.
+        """
+        return (2, 3, 4)
 
     def get_monitoring_channels(self):
         """
