@@ -6,12 +6,15 @@ Training
 .. contents::
    :depth: 3
 
-################
-Training Scripts
-################
+#################
+pylearn2.train.py
+#################
+.. automodule:: pylearn2.train
+    :members:
 
-Train
-=====
+#########################
+pylearn2.scripts.train.py
+#########################
 .. automodule:: pylearn2.scripts.train
     :members:
 
