@@ -627,8 +627,7 @@ class DenseDesignMatrix(Dataset):
             source = X_source
         else:
             if self.y.ndim != 2:
-                assert self.nclasses
-                y_space = IndexSpace(nclasses=self.nclasses, dim=1)
+                y_space = IndexSpace(nclasses=10, dim=1)
                 y_source = 'targets'
             else:
                 y_space = VectorSpace(dim=self.y.shape[-1])
