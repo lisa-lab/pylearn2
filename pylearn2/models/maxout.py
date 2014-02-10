@@ -836,7 +836,7 @@ class MaxoutConvC01B(Layer):
         This function returns the output axes.
         """
 
-        return (3,)
+        return self._output_axes_def
 
     @wraps(Layer.get_input_axes_def)
     def get_input_axes_def(self):
@@ -846,7 +846,7 @@ class MaxoutConvC01B(Layer):
         -------
         This function returns the input axes.
         """
-        return (0, 1, 2)
+        return self._input_axes_def
 
     def get_monitoring_channels(self):
         """
@@ -1378,7 +1378,7 @@ class MaxoutLocalC01B(Layer):
         -------
         This function returns the output axes.
         """
-        return (0, 1, 5, 6)
+        return self._output_axes_def
 
     @wraps(Layer.get_input_axes_def)
     def get_input_axes_def(self):
@@ -1388,7 +1388,7 @@ class MaxoutLocalC01B(Layer):
         -------
         This function returns the input axes.
         """
-        return (2, 3, 4)
+        return self._input_axes_def
 
     def get_monitoring_channels(self):
         """
