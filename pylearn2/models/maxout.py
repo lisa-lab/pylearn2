@@ -134,6 +134,9 @@ class Maxout(Layer):
         detector_layer_dim = num_units * num_pieces
         pool_size = num_pieces
 
+        self._input_axes_def = (0,)
+        self._output_axes_def = (1,)
+
         if pool_stride is None:
             pool_stride = pool_size
 
@@ -680,6 +683,10 @@ class MaxoutConvC01B(Layer):
         self.__dict__.update(locals())
         del self.self
 
+        self._input_axes_def = (0, 1, 2)
+        self._output_axes_def = (3,)
+
+
     def get_lr_scalers(self):
         """
         .. todo::
@@ -1129,6 +1136,9 @@ class MaxoutLocalC01B(Layer):
 
         self.__dict__.update(locals())
         del self.self
+
+        self._input_axes_def = (0, 1, 5, 6)
+        self._output_axes_def = (2, 3, 4)
 
     def get_lr_scalers(self):
         """

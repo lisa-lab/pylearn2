@@ -25,7 +25,8 @@ from pylearn2.linear import conv2d
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.models.model import Model
 from pylearn2.expr.nnet import pseudoinverse_softmax_numpy
-from pylearn2.constraints import NormConstraint, Constraints
+from pylearn2.constraints import NormConstraint
+from pylearn2.constraints import Constraints
 
 from pylearn2.space import CompositeSpace
 from pylearn2.space import Conv2DSpace
@@ -257,7 +258,7 @@ class Layer(Model):
         This function returns the axes of the output space for constraints.
         """
 
-        return (1,)
+        return self._output_axes_def
 
     def get_input_axes_def(self):
         """
@@ -267,7 +268,7 @@ class Layer(Model):
         This function returns the axes of the input space for constraints.
         """
 
-        return (0,)
+        return self._input_axes_def
 
     def apply_constraints(self, updates):
         """
@@ -936,6 +937,9 @@ class Softmax(Layer):
         del self.self
         del self.init_bias_target_marginals
 
+        self._input_axes_def = (0,)
+        self._output_axes_def = (1,)
+
         assert isinstance(n_classes, py_integer_types)
         self.axes_defs = ()
 
@@ -1255,6 +1259,8 @@ class SoftmaxPool(Layer):
         """
         self.__dict__.update(locals())
         del self.self
+        self._input_axes_def = (0,)
+        self._output_axes_def = (1,)
 
         self.b = sharedX(np.zeros((self.detector_layer_dim,)) + init_bias,
                          name=(layer_name + '_b'))
@@ -1603,6 +1609,9 @@ class Linear(Layer):
 
         self.__dict__.update(locals())
         del self.self
+
+        self._input_axes_def = (0,)
+        self._output_axes_def = (1,)
 
         if use_bias:
             self.b = sharedX(np.zeros((self.dim,)) + init_bias,
@@ -2272,8 +2281,8 @@ class ConvRectifiedLinear(Layer):
                                  "sparse_init when calling the constructor of "
                                  "ConvRectifiedLinear and not both.")
 
-        self.input_axes_def = ()
-        self.output_axes_def = ()
+        self._input_axes_def = (1, 2, 3)
+        self._output_axes_def = (0,)
 
         self.__dict__.update(locals())
         del self.self
@@ -2456,7 +2465,7 @@ class ConvRectifiedLinear(Layer):
         This function returns the output axes.
         """
 
-        return (0,)
+        return self._output_axes_def
 
     @wraps(Layer.get_input_axes_def)
     def get_input_axes_def(self):
@@ -2467,7 +2476,7 @@ class ConvRectifiedLinear(Layer):
         This function returns the input axes.
         """
 
-        return (1, 2, 3)
+        return self._input_axes_def
 
     @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
