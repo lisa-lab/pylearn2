@@ -282,11 +282,6 @@ class Layer(Model):
         """
         if not hasattr(self, "constraints"):
             constraints = Constraints()
-        """
-            Consider putting, layer class a separate file?
-            Because of this function there is a circular import (Maxout imports mlp and mlp
-            imports maxout)  which can lead to some subtle bugs.
-        """
 
         if self.weight_constraints is not None:
             weight_constraints = Constraints(self.weight_constraints)
@@ -297,32 +292,37 @@ class Layer(Model):
             if self.max_col_norm is not None:
                 constraint = NormConstraint(max_norm=self.max_col_norm)
                 constraints.add_constraint(constraint)
-                warnings.warn("%s.max_col_norm is deprecated. Please use, weight_constraints instead. max_col_norm argument will be removed on or after 11.08.2014.")
+                warnings.warn("%s.max_col_norm is deprecated. Please use, weight_constraints \
+                        instead. max_col_norm argument will be removed on or after 11.08.2014." % self.__class__.__name__)
 
         if hasattr(self, "min_col_norm"):
             if self.min_col_norm is not None:
                 constraint = NormConstraint(min_norm=self.min_col_norm)
                 constraints.add_constraint(constraint)
 
-                warnings.warn("%s.min_col_norm is deprecated. Please use, weight_constraints instead. min_col_norm argument will be removed on or after 11.08.2014.")
+                warnings.warn("%s.min_col_norm is deprecated. Please use, weight_constraints instead.\
+                        min_col_norm argument will be removed on or after 11.08.2014." % self.__class__.__name__)
 
         if hasattr(self, "max_kernel_norm"):
             if self.max_kernel_norm is not None:
                 constraint = NormConstraint(max_norm=self.max_kernel_norm)
                 constraints.add_constraint(constraint)
-                warnings.warn("%s.max_kernel_norm is deprecated. Please use, weight_constraints instead. max_kernel_norm argument will be removed on or after 11.08.2014.")
+                warnings.warn("%s.max_kernel_norm is deprecated. Please use, weight_constraints instead. \
+                        max_kernel_norm argument will be removed on or after 11.08.2014." % self.__class__.__name__)
 
         if hasattr(self, "max_row_norm"):
             if self.max_row_norm is not None:
                 constraint = NormConstraint(max_norm=self.max_row_norm, is_input_axes=False)
                 constraints.add_constraint(constraint)
-                warnings.warn("%s.max_row_norm is deprecated. Please use, weight_constraints instead. max_row_norm argument will be removed on or after 11.08.2014.")
+                warnings.warn("%s.max_row_norm is deprecated. Please use, weight_constraints instead. \
+                                max_row_norm argument will be removed on or after 11.08.2014." % self.__class__.__name__)
 
         if hasattr(self, "max_filter_norm"):
             if self.max_filter_norm is not None:
                 constraint = NormConstraint(max_norm=self.max_filter_norm)
                 constraints.add_constraint(constraint)
-                warnings.warn("%s.max_filter_norm is deprecated. Please use, weight_constraints instead. max_filter_norm argument will be removed on or after 11.08.2014.")
+                warnings.warn("%s.max_filter_norm is deprecated. Please use, weight_constraints instead. \
+                        max_filter_norm argument will be removed on or after 11.08.2014." % self.__class__.__name__)
 
         if self.__class__ == Softmax:
             W = self.W
