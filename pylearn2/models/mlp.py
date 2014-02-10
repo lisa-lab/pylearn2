@@ -10,6 +10,7 @@ __maintainer__ = "Ian Goodfellow"
 import math
 import sys
 import warnings
+import ipdb
 
 import numpy as np
 from theano import config
@@ -782,6 +783,7 @@ class MLP(Layer):
         self.cost_from_X_data_specs()[0].validate(data)
         X, Y = data
         Y_hat = self.fprop(X)
+        ipdb.set_trace()
         return self.cost(Y, Y_hat)
 
     def cost_from_X_data_specs(self):
@@ -1040,6 +1042,7 @@ class Softmax(Layer):
 
     @wraps(Layer.cost)
     def cost(self, Y, Y_hat):
+        ipdb.set_trace()
         assert hasattr(Y_hat, 'owner')
         owner = Y_hat.owner
         assert owner is not None
