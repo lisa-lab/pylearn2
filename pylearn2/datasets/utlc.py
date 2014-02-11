@@ -19,31 +19,42 @@ from pylearn2.utils.string_utils import preprocess
 def load_ndarray_dataset(name, normalize=True, transfer=False,
                          normalize_on_the_fly=False, randomize_valid=False,
                          randomize_test=False):
-    """ Load the train,valid,test data for the dataset `name`
-        and return it in ndarray format.
+    """ Load the train,valid,test data for the dataset `name` and return it in ndarray format.
 
-        We suppose the data was created with ift6266h11/pretraitement/to_npy.py that
-        shuffle the train. So the train should already be shuffled.
+    We suppose the data was created with ift6266h11/pretraitement/to_npy.py that
+    shuffle the train. So the train should already be shuffled.
 
-    :param normalize: If True, we normalize the train dataset
-                      before returning it
-    :param transfer: If True also return the transfer labels
-    :param normalize_on_the_fly: If True, we return a Theano Variable that will give
-                                 as output the normalized value. If the user only
-                                 take a subtensor of that variable, Theano optimization
-                                 should make that we will only have in memory the subtensor
-                                 portion that is computed in normalized form. We store
-                                 the original data in shared memory in its original dtype.
+    Parameters
+    ----------
 
-                                 This is usefull to have the original data in its original
-                                 dtype in memory to same memory. Especialy usefull to
-                                 be able to use rita and harry with 1G per jobs.
-    :param randomize_valid: Do we randomize the order of the valid set?
-                            We always use the same random order
-                            If False, return in the same order as downloaded on the web
-    :param randomize_test: Do we randomize the order of the test set?
-                           We always use the same random order
-                           If False, return in the same order as downloaded on the web
+    name : 'avicenna', 'harry', 'rita', 'sylvester' or 'ule'
+        Which dataset to load
+    normalize : bool
+        If True, we normalize the train dataset before returning it
+    transfer : bool
+        If True also return the transfer labels
+    normalize_on_the_fly : bool
+        If True, we return a Theano Variable that will give as output the normalized 
+        value. If the user only take a subtensor of that variable, Theano optimization
+        should make that we will only have in memory the subtensor portion that is 
+        computed in normalized form. We store the original data in shared memory in 
+        its original dtype. This is usefull to have the original data in its original
+        dtype in memory to same memory. Especialy usefull to be able to use rita and
+        harry with 1G per jobs.
+    randomize_valid : bool
+        Do we randomize the order of the valid set?  We always use the same random order
+        If False, return in the same order as downloaded on the web
+    randomize_test : bool
+        Do we randomize the order of the test set?  We always use the same random order
+        If False, return in the same order as downloaded on the web
+
+    Returns
+    -------
+    train, valid, test: ndarrays
+        Datasets returned if ransfer = Flase
+    train, valid, test, transfer: ndarrays
+        Datasets returned if ransfer = Flase
+    
     """
     assert not (normalize and normalize_on_the_fly), "Can't normalize in 2 way at the same time!"
 
@@ -116,18 +127,30 @@ def load_ndarray_dataset(name, normalize=True, transfer=False,
 def load_sparse_dataset(name, normalize=True, transfer=False,
                         randomize_valid=False,
                         randomize_test=False):
-    """ Load the train,valid,test data for the dataset `name`
-        and return it in sparse format.
+    """ Load the train,valid,test data for the dataset `name` and return it in sparse format.
 
-        We suppose the data was created with ift6266h11/pretraitement/to_npy.py that
-        shuffle the train. So the train should already be shuffled.
+    We suppose the data was created with ift6266h11/pretraitement/to_npy.py that
+    shuffle the train. So the train should already be shuffled.
 
-    :param normalize: If True, we normalize the train dataset
-                      before returning it
-    :param transfer: If True also return the transfer label
-    :param randomize_valid: see same option for load_ndarray_dataset
-    :param randomize_test: see same option for load_ndarray_dataset
+    name : 'avicenna', 'harry', 'rita', 'sylvester' or 'ule'
+        Which dataset to load
+    normalize : bool
+        If True, we normalize the train dataset before returning it
+    transfer : 
+        If True also return the transfer label
+    randomize_valid : bool
+        Do we randomize the order of the valid set?  We always use the same random order
+        If False, return in the same order as downloaded on the web
+    randomize_test : bool
+        Do we randomize the order of the test set?  We always use the same random order
+        If False, return in the same order as downloaded on the web
 
+    Returns
+    -------
+    train, valid, test: ndarrays
+        Datasets returned if ransfer = Flase
+    train, valid, test, transfer: ndarrays
+        Datasets returned if ransfer = Flase
     """
     assert name in ['harry','terry','ule']
     common = os.path.join(preprocess('${PYLEARN2_DATA_PATH}'),'UTLC','sparse',name+'_')
@@ -180,8 +203,16 @@ def load_sparse_dataset(name, normalize=True, transfer=False,
 def load_ndarray_transfer(name):
     """
     Load the transfer labels for the training set of data set `name`.
+        
+    Parameters
+    ----------
+    name : 'avicenna', 'harry', 'rita', 'sylvester' or 'ule'
+        Which dataset to load
 
-    It will be returned in ndarray format.
+    Returns
+    -------
+    transfe : ndarray
+        Transfer dataset loaded
     """
     assert name in ['avicenna','harry','rita','sylvester','terry','ule']
     
@@ -190,10 +221,18 @@ def load_ndarray_transfer(name):
     return transfer
 
 def load_ndarray_label(name):
-    """ Load the train,valid,test data for the dataset `name`
-        and return it in ndarray format.
-
+    """ Load the train,valid,test label data for the dataset `name` and return it in ndarray format.
         This is only available for the toy dataset ule.
+
+    Parameters
+    ----------
+    name : 'ule'
+        Must be 'ule'
+
+    Returns
+    -------
+    train_l. valid_l, test_l : ndarray
+        Label data loaded
     """
     assert name in ['ule']
 
@@ -237,13 +276,4 @@ def load_sparse(fname):
         if f:
             f.close()
     return d
-
-#class UTLCDataset(DenseDesignMatrix):
-#    """ Represent one of from the datasets from the UTLC 
-#        (unsupervised transfer learning) challenge.
-#    """
-#    def __init__(self, name, which_set):
-#        """
-#        """
-#        assert name in ['avicenna','harry','rita','sylvester','terry','ule']
 

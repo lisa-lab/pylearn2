@@ -52,13 +52,16 @@ def _read_int32(f):
 
 def _read_header(f, debug=False, fromgzip=None):
     """
-    :param f: an open file handle. 
-    :type f: a file or gzip.GzipFile object
+    Parameters
+    ----------
+    f : file or gzip.GzipFile
+        An open file handle. 
+    fromgzip: bool or None
+        If None determine the type of file handle.
 
-    :param fromgzip: bool or None
-    :type fromgzip: if None determine the type of file handle.
-
-    :returns: data type, element size, rank, shape, size
+    Returns
+    -------
+    data type, element size, rank, shape, size
     """
     if fromgzip is None:
         fromgzip = isinstance(f, (gzip.GzipFile, bz2.BZ2File))
@@ -89,20 +92,16 @@ def _read_header(f, debug=False, fromgzip=None):
     return magic_t, elsize, ndim, dim, dim_size
 
 class arraylike(object):
-    """Provide an array-like interface to the filetensor in f.
+    """ Provide an array-like interface to the filetensor in f.
 
     The rank parameter to __init__ controls how this object interprets the underlying tensor.
     Its behaviour should be clear from the following example.
     Suppose the underlying tensor is MxNxK.
 
     - If rank is 0, self[i] will be a scalar and len(self) == M*N*K.
-
     - If rank is 1, self[i] is a vector of length K, and len(self) == M*N.
-
     - If rank is 3, self[i] is a 3D tensor of size MxNxK, and len(self)==1.
-
     - If rank is 5, self[i] is a 5D tensor of size 1x1xMxNxK, and len(self) == 1.
-
 
     :note: Objects of this class generally require exclusive use of the underlying file handle, because
     they call seek() every time you access an element.
@@ -177,22 +176,27 @@ class arraylike(object):
 #  - allocating an output matrix at the beginning
 #  - seeking through the file, reading subtensors from multiple places
 def read(f, subtensor=None, debug=False):
-    """ Load all or part of file 'f' into a numpy ndarray
+    """ Load all or part of file tensorfile 'f' into a numpy ndarray
 
-    @param f: file from which to read
-              file can be opended with open(), gzip.open() and bz2.BZ2File()
-    @type f: file-like object. Can be a gzip open file.
+    Parameters
+    ----------
+    f : file, gzip.Gzip or bz2.BZ2File like object
+        Open file descriptor to read data from 
+    subtensor : None or a slice argument accepted __getitem__
+        If subtensor is not None, it should be like the argument to
+        numpy.ndarray.__getitem__.  The following two expressions should return
+        equivalent ndarray objects, but the one on the left may be faster and more
+        memory efficient if the underlying file f is big.
 
-    If subtensor is not None, it should be like the argument to
-    numpy.ndarray.__getitem__.  The following two expressions should return
-    equivalent ndarray objects, but the one on the left may be faster and more
-    memory efficient if the underlying file f is big.
-
-        read(f, subtensor) <===> read(f)[*subtensor]
+            read(f, subtensor) <===> read(f)[*subtensor]
     
-    Support for subtensors is currently spotty, so check the code to see if your
-    particular type of subtensor is supported.
+        Support for subtensors is currently spotty, so check the code to see if your
+        particular type of subtensor is supported.
 
+    Returns
+    -------
+    y : ndarray
+        Data read from disk
     """
     magic_t, elsize, ndim, dim, dim_size = _read_header(f,debug)
     f_start = f.tell()
@@ -219,14 +223,14 @@ def read(f, subtensor=None, debug=False):
     return rval
 
 def write(f, mat):
-    """ Write a numpy.ndarray to file.
+    """ Write a ndarray to tensorfile.
 
-    @param f: file into which to write
-    @type f: file-like object
-
-    @param mat: array to write to file
-    @type mat: numpy ndarray or compatible
-
+    Parameters
+    ----------
+    f : file
+        Open file to write into
+    mat : ndarray 
+        Array to save
     """
     def _write_int32(f, i):
         i_array = numpy.asarray(i, dtype='int32')
