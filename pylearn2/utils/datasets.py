@@ -15,7 +15,7 @@ from matplotlib import pyplot
 from mpl_toolkits.mplot3d import Axes3D
 
 # Local imports
-from pylearn2.datasets.utlc import get_constant, sharedX
+from pylearn2.utils import sharedX
 
 ##################################################
 # 3D Visualization
@@ -137,7 +137,7 @@ def nonzero_features(data, combine=None):
 def filter_nonzero(data, combine=None):
     """
     Filter non-zero features of data according to a certain combining function
-    
+
     Parameters
     ----------
     data : list of matrices
@@ -266,7 +266,7 @@ def blend(dataset, set_proba, **kwargs):
     """
     iterator = BatchIterator(dataset, set_proba, 1, **kwargs)
     nrow = len(iterator)
-    ncol = get_constant(dataset[0].shape[1])
+    ncol = dataset[0].shape[1].get_value()
     if (scipy.sparse.issparse(dataset[0])):
         # Special case: the dataset is sparse
         blocks = [[batch] for batch in iterator]
@@ -282,7 +282,8 @@ def blend(dataset, set_proba, **kwargs):
 
         return sharedX(array, borrow=True)
 
-def minibatch_map(fn, batch_size, input_data, output_data=None, output_width=None):
+def minibatch_map(fn, batch_size, input_data, output_data=None,
+                  output_width=None):
     """
     Apply a function on input_data, one minibatch at a time.
 
