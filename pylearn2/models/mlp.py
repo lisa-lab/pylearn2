@@ -276,6 +276,8 @@ class MLP(Layer):
             input space is specified by nvis.
         """
 
+        super(MLP, self).__init__()
+
         if seed is None:
             seed = [2013, 1, 4]
 
@@ -828,6 +830,8 @@ class Softmax(Layer):
             WRITEME
         """
 
+        super(Softmax, self).__init__()
+
         if isinstance(W_lr_scale, str):
             W_lr_scale = float(W_lr_scale)
 
@@ -1165,6 +1169,9 @@ class SoftmaxPool(Layer):
         mask_weights : WRITEME
         max_col_norm : WRITEME
         """
+
+        super(SoftmaxPool, self).__init__()
+
         self.__dict__.update(locals())
         del self.self
 
@@ -1516,6 +1523,8 @@ class Linear(Layer):
         use_abs_loss : WRITEME
         use_bias : WRITEME
         """
+
+        super(Linear, self).__init__()
 
         if use_bias and init_bias is None:
             init_bias = 0.
@@ -2122,6 +2131,7 @@ class SpaceConverter(Layer):
 
             WRITEME
         """
+        super(SpaceConverter, self).__init__()
         self.__dict__.update(locals())
         del self.self
         self._params = []
@@ -2205,6 +2215,8 @@ class ConvRectifiedLinear(Layer):
          kernel_stride: The stride of the convolution kernel. A two-tuple of
                         ints.
         """
+
+        super(ConvRectifiedLinear, self).__init__()
 
         if (irange is None) and (sparse_init is None):
             raise AssertionError("You should specify either irange or "
@@ -2864,6 +2876,7 @@ class PretrainedLayer(Layer):
             If False, they become parameters of this layer and can be
             fine-tuned to optimize the MLP's cost function.
         """
+        super(PretrainedLayer, self).__init__()
         self.__dict__.update(locals())
         del self.self
 
@@ -2908,6 +2921,7 @@ class CompositeLayer(Layer):
 
         layers: a list or tuple of Layers.
         """
+        super(CompositeLayer, self).__init__()
         self.__dict__.update(locals())
         del self.self
 
@@ -2977,6 +2991,7 @@ class FlattenerLayer(Layer):
 
             WRITEME
         """
+        super(FlattenerLayer, self).__init__()
         self.__dict__.update(locals())
         del self.self
         self.layer_name = raw_layer.layer_name
