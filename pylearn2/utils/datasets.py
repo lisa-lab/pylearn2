@@ -266,7 +266,10 @@ def blend(dataset, set_proba, **kwargs):
     """
     iterator = BatchIterator(dataset, set_proba, 1, **kwargs)
     nrow = len(iterator)
-    ncol = dataset[0].shape[1].get_value()
+    if (isinstance(dataset[0], theano.Variable)):
+        ncol = dataset[0].get_value().shape[1]
+    else:
+        ncol = dataset[0].shape[1]
     if (scipy.sparse.issparse(dataset[0])):
         # Special case: the dataset is sparse
         blocks = [[batch] for batch in iterator]
