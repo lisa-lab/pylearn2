@@ -3,7 +3,7 @@
 """
 A script for sequentially stepping through SmallNORB, viewing each image and
 its label. Intended as a demonstration of how to iterate through NORB images,
-and as a way of testing SmallNORB's iterator().
+and as a way of testing SmallNORB's StereoViewConverter.
 """
 
 __author__ = "Matthew Koichi Grimes"
@@ -13,12 +13,12 @@ __license__ = "3-clause BSD"
 __maintainer__ = __author__
 __email__ = "mkg alum mit edu (@..)"
 
-import argparse, pickle, sys
-import numpy as np
 
+import argparse, pickle, sys
+from matplotlib import pyplot
 from pylearn2.datasets.norb import SmallNORB
-from pylearn2.gui.patch_viewer import PatchViewer
-# from pylearn2.utils import get_choice
+from pylearn2.utils import safe_zip
+
 
 def main():
 
@@ -31,7 +31,7 @@ def main():
                             required=True,
                             help=("'train', 'test', or the path to a "
                                   "SmallNORB .pkl file"))
-        return parser.parse_args(sys.argv[1:])
+        return parser.parse_args()
 
     def load_norb(args):
         if args.which_set in ('test', 'train'):
@@ -42,66 +42,53 @@ def main():
 
     args = parse_args()
     norb = load_norb(args)
-    topo_space = norb.get_stereo_data_specs(topo=True, flatten=False)[0]
-    topo_images_space = topo_space.components[0]
-    vec_images_space = norb.get_data_specs()[0].components[0]
+    topo_space = norb.view_converter.topo_space  # does not include label space
+    vec_space = norb.get_data_specs()[0].components[0]
 
-    for datum in norb.iterator(mode='sequential',
-                               batch_size=1,
-                               data_specs=norb.get_data_specs()):
-        vec_stereo_pair, labels = datum
-        topo_stereo_pair = vec_images_space.np_format_as(vec_stereo_pair,
-                                                         topo_images_space)
+    figure, axes = pyplot.subplots(1, 2, squeeze=True)
+    figure.suptitle("Press space to step through, or 'q' to quit.")
 
-        print "img shapes: %s, %s, labels: %s" % (topo_stereo_pair[0].shape,
-                                                  topo_stereo_pair[1].shape,
-                                                  labels)
-        sys.exit(0)
+    def draw_and_increment(iterator):
+        """
+        Draws the image pair currently pointed at by the iterator,
+        then increments the iterator.
+        """
 
+        def draw(batch_pair):
+            for axis, image_batch in safe_zip(axes, batch_pair):
+                assert image_batch.shape[0] == 1
+                grayscale_image = image_batch[0, :, :, 0]
+                axis.imshow(grayscale_image, cmap='gray')
 
-# print 'Use test set?'
-# choices = {'y': 'test', 'n': 'train'}
-# which_set = choices[get_choice(choices)]
+            figure.canvas.draw()
 
-# dataset = FoveatedNORB(which_set=which_set, center=True)
+        def get_values_and_increment(iterator):
+            try:
+                vec_stereo_pair, labels = norb_iter.next()
+            except StopIteration:
+                return (None, None)
 
-# topo = dataset.get_topological_view()
+            topo_stereo_pair = vec_space.np_format_as(vec_stereo_pair,
+                                                      topo_space)
+            return topo_stereo_pair, labels
 
-# b, r, c, ch = topo.shape
+        batch_pair, labels = get_values_and_increment(norb_iter)
+        draw(batch_pair)
 
-# assert ch == 2
+    norb_iter = norb.iterator(mode='sequential',
+                              batch_size=1,
+                              data_specs=norb.get_data_specs())
 
-# pv = PatchViewer((1, 2), (r, c), is_color=False)
+    def on_key_press(event):
+        if event.key == ' ':
+            draw_and_increment(norb_iter)
+        if event.key == 'q':
+            sys.exit(0)
 
-# i = 0
-# while True:
-#     patch = topo[i, :, :, :]
-#     patch = patch / np.abs(patch).max()
+    figure.canvas.mpl_connect('key_press_event', on_key_press)
+    draw_and_increment(norb_iter)
+    pyplot.show()
 
-#     pv.add_patch(patch[:,:,1], rescale=False)
-#     pv.add_patch(patch[:,:,0], rescale=False)
-
-#     pv.show()
-
-#     print dataset.y[i]
-
-#     choices = {'g': 'goto image', 'q': 'quit'}
-
-#     if i + 1 < b:
-#         choices['n'] = 'next image'
-
-#     choice = get_choice(choices)
-
-#     if choice == 'q':
-#         quit()
-
-#     if choice == 'n':
-#         i += 1
-
-#     if choice == 'g':
-#         i = int(raw_input('index: '))
 
 if __name__ == "__main__":
     main()
-
-
