@@ -1169,9 +1169,7 @@ class SoftmaxPool(Layer):
         mask_weights : WRITEME
         max_col_norm : WRITEME
         """
-
         super(SoftmaxPool, self).__init__()
-
         self.__dict__.update(locals())
         del self.self
 
