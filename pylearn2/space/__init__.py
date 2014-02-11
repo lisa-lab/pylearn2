@@ -34,6 +34,8 @@ __email__ = "goodfeli@iro"
 
 import functools
 import numpy as np
+import scipy as sp
+import scipy.sparse
 import warnings
 
 from theano import config
@@ -376,53 +378,79 @@ class IndexSpace(Space):
     """
     A space representing indices, for example MNIST labels (0-10) or the
     indices of words in a dictionary for NLP tasks. A single space can
-    contain multiple indices, for example the word indices of an n-gram as
-    input.
+    contain multiple indices, for example the word indices of an n-gram.
+
+    IndexSpaces can be converted to VectorSpaces in two ways: Either the
+    labels are converted into one-hot vectors which are then concatenated,
+    or they are converted into a single vector where 1s indicate labels
+    present i.e. for 4 possible labels we have [0, 2] -> [1 0 1 0] or
+    [0, 2] -> [1 0 0 0 0 0 1 0].
     """
-    def __init__(self, nclasses, dim, **kwargs):
+    def __init__(self, num_classes, dim, **kwargs):
         """
         Initialize an IndexSpace.
 
         Parameters
         ----------
-        nclasses : int
-            The number of possible classes.
+        num_classes : int
+            The number of possible classes/labels. This means that
+            all labels should be < num_classes. Example: For MNIST
+            there are 10 numbers and hence num_classes = 10.
         dim : int
-            The number of indices in one space.
+            The number of indices in one space e.g. for MNIST there is
+            one target label and hence dim = 1. If we have an n-gram
+            of word indices as input to a neurel net language model, dim = n.
         kwargs: passes on to superclass constructor
         """
 
         super(IndexSpace, self).__init__(**kwargs)
 
-        self.nclasses = nclasses
+        self.num_classes = num_classes
         self.dim = dim
 
     def __str__(self):
         """
         Return a string representation.
         """
-        return '%(classname)s(dim=%(dim)s, nclasses=%(nclasses)s' % \
+        return '%(classname)s(dim=%(dim)s, num_classes=%(num_classes)s' % \
                dict(classname=self.__class__.__name__,
                     dim=self.dim,
-                    nclasses=self.nclasses)
+                    num_classes=self.num_classes)
 
     @functools.wraps(Space.get_total_dimension)
     def get_total_dimension(self):
-        return self.nclasses
+        return self.dim
 
     @functools.wraps(Space.np_format_as)
     def np_format_as(self, batch, space):
         if isinstance(space, VectorSpace):
             if space.sparse:
-                raise ValueError("Not implemented yet")
+                if self.num_classes == space.dim:
+                    rval = sp.sparse.csr_matrix(
+                        np.ones_like(batch).flatten(), batch.flatten(),
+                        np.arange(batch.shape[0] + 1) * self.num_classes,
+                        (batch.shape[0], space.dim)
+                    )
+                elif self.dim * self.num_classes == space.dim:
+                    rval = sp.sparse.csr_matrix(
+                        np.ones_like(batch).flatten(),
+                        batch.flatten() + np.arange(batch.size)
+                        % self.num_classes * self.dim,
+                        np.arange(batch.shape[0] + 1) * self.num_classes,
+                        (batch.shape[0], space.dim)
+                    )
+                else:
+                    raise ValueError("Can't convert IndexSpace to sparse"
+                                     "VectorSpace (%d labels to %d dimensions)"
+                                     % (self.dim, space.dim))
             else:
-                if self.nclasses == space.dim:
+                if self.num_classes == space.dim:
                     rval = np.zeros((batch.shape[0], space.dim), dtype='int32')
                     rval[np.arange(batch.shape[0], dtype='int32'),
                          batch.T.astype('int32')] = 1
-                elif self.dim * self.nclasses == space.dim:
-                    rval = np.zeros((batch.shape[0] * self.dim, self.nclasses),
-                                    dtype='int32')
+                elif self.dim * self.num_classes == space.dim:
+                    rval = np.zeros((batch.shape[0] * self.dim,
+                                     self.num_classes), dtype='int32')
                     rval[np.arange(batch.size), batch.flatten()] = 1
                     rval = rval.reshape((batch.shape[0], space.dim))
                 else:
@@ -439,18 +467,18 @@ class IndexSpace(Space):
         """
         if isinstance(space, VectorSpace):
             if space.sparse:
-                if self.nclasses == space.dim:
+                if self.num_classes == space.dim:
                     rval = theano.sparse.CSR(
                         T.ones_like(batch).flatten(), batch.flatten(),
-                        T.arange(batch.shape[0] + 1) * self.nclasses,
+                        T.arange(batch.shape[0] + 1) * self.num_classes,
                         T.stack(batch.shape[0], space.dim)
                     )
-                elif self.dim * self.nclasses == space.dim:
+                elif self.dim * self.num_classes == space.dim:
                     rval = theano.sparse.CSR(
                         T.ones_like(batch).flatten(),
                         batch.flatten() + T.arange(batch.size)
-                        % self.nclasses * self.dim,
-                        T.arange(batch.shape[0] + 1) * self.nclasses,
+                        % self.num_classes * self.dim,
+                        T.arange(batch.shape[0] + 1) * self.num_classes,
                         T.stack(batch.shape[0], space.dim)
                     )
                 else:
@@ -458,18 +486,18 @@ class IndexSpace(Space):
                                      "(%d labels to %d dimensions)."
                                      % (self.dim, space.dim))
             else:
-                if self.nclasses == space.dim:
-                    rval = T.alloc(0, *(batch.shape[0], self.nclasses))
+                if self.num_classes == space.dim:
+                    rval = T.alloc(0, *(batch.shape[0], self.num_classes))
                     rval = T.set_subtensor(rval[T.arange(batch.size) %
                                                 batch.shape[0],
                                                 batch.T.flatten()], 1)
-                elif self.dim * self.nclasses == space.dim:
+                elif self.dim * self.num_classes == space.dim:
                     rval = T.alloc(0, *(batch.shape[0] * self.dim,
-                                        self.nclasses))
+                                        self.num_classes))
                     rval = T.set_subtensor(rval[T.arange(batch.size),
                                                 batch.flatten()], 1)
                     rval = rval.reshape((batch.shape[0],
-                                         self.dim * self.nclasses))
+                                         self.dim * self.num_classes))
                 else:
                     raise ValueError("Can't convert IndexSpace to Vectorspace"
                                      "(%d labels to %d dimensions)."

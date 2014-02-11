@@ -49,7 +49,8 @@ class DenseDesignMatrix(Dataset):
 
     def __init__(self, X=None, topo_view=None, y=None,
                  view_converter=None, axes=('b', 0, 1, 'c'),
-                 rng=_default_seed, preprocessor=None, fit_preprocessor=False):
+                 rng=_default_seed, preprocessor=None, fit_preprocessor=False,
+                 num_classes=None):
         """
         Parameters
         ----------
@@ -73,9 +74,18 @@ class DenseDesignMatrix(Dataset):
         rng : object, optional
             A random number generator used for picking random \
             indices into the design matrix when choosing minibatches.
+        num_classes : int, optional
+            If y contains labels than num_classes must be passed \
+            the number of possible labels i.e. the size of the \
+            output layer.
         """
         self.X = X
         self.y = y
+        self.num_classes = num_classes
+
+        if num_classes is not None:
+            assert y is not None
+            assert np.all(y < num_classes)
 
         if topo_view is not None:
             assert view_converter is None
