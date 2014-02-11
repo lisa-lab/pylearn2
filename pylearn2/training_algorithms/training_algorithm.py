@@ -1,7 +1,5 @@
 """
-.. todo::
-
-    WRITEME
+Module defining the interface for training algorithms.
 """
 from pylearn2.datasets.dataset import Dataset
 

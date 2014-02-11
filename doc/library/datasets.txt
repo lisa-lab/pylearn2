@@ -64,3 +64,12 @@ STL 10
     :members:
 
 
+#######################
+Other view converters
+#######################
+
+
+Retina
+====================
+.. automodule:: pylearn2.datasets.retina
+    :members:

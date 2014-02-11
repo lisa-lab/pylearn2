@@ -10,7 +10,7 @@ This script computes both an estimate of the partition function of the provided
 DBM model and an estimate of the log-likelihood on the given training and test
 sets.
 
-This is garanteed to work only for DBMs with a BinaryVector visible layer and
+This is guaranteed to work only for DBMs with a BinaryVector visible layer and
 BinaryVectorMaxPool hidden layers with pool sizes of 1.
 
 It uses annealed importance sampling (AIS) to estimate Z, the partition

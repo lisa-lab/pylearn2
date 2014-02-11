@@ -1,7 +1,8 @@
 """
-.. todo::
-
-    WRITEME
+Module for performing batch gradient methods.
+Technically, SGD and BGD both work with any batch size, but SGD has no line
+search functionality and is thus best suited to small batches, while BGD
+supports line searches and thuse works best with large batches.
 """
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
@@ -13,7 +14,6 @@ __email__ = "goodfeli@iro"
 import numpy as np
 from theano import config
 from theano.compat.python2x import OrderedDict
-import theano.tensor as T
 
 from pylearn2.monitor import Monitor
 from pylearn2.optimization.batch_gradient_descent import BatchGradientDescent
@@ -23,9 +23,8 @@ from pylearn2.utils import safe_zip
 from pylearn2.train_extensions import TrainExtension
 from pylearn2.termination_criteria import TerminationCriterion
 from pylearn2.utils import sharedX
-from pylearn2.space import CompositeSpace, NullSpace, Space
+from pylearn2.space import CompositeSpace, NullSpace
 from pylearn2.utils.data_specs import DataSpecsMapping
-from theano import config
 
 
 class BGD(TrainingAlgorithm):
