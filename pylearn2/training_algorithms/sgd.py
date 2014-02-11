@@ -13,7 +13,6 @@ __email__ = "goodfeli@iro"
 import logging
 import warnings
 import numpy as np
-import re
 
 from theano import config
 from theano import function
@@ -484,7 +483,7 @@ class MonitorBasedLRAdjuster(TrainExtension):
             if len(channels) < 1:
                 raise ValueError("""There are no monitoring channels that end with \"objective\". Please specify either channel_name or dataset_name.""")
             elif len(channels) > 1:
-                datasets = [re.sub('_objective', '', elem) for elem in channels]
+                datasets = algorithm.monitoring_dataset.keys()
                 raise ValueError('There are multiple monitoring channels that ends with \"_objective\". The list of available datasets are: ' + 
                                 str(datasets) + ' . Please specify either channel_name or dataset_name in the MonitorBasedLRAdjuster constructor to disambiguate.')
             else:
