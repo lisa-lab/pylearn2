@@ -550,7 +550,7 @@ class VectorSpace(Space):
         # when it is not available
         if (not self.sparse
                 and not isinstance(batch, np.ndarray)
-                and type(batch) != 'CudaNdarray'):
+                and str(type(batch)) != "<type 'CudaNdarray'>"):
             raise TypeError("The value of a VectorSpace batch should be a "
                             "numpy.ndarray, or CudaNdarray, but is %s."
                             % str(type(batch)))
@@ -795,7 +795,7 @@ class Conv2DSpace(Space):
     @functools.wraps(Space._np_validate)
     def _np_validate(self, batch):
         if (not isinstance(batch, np.ndarray)
-                and type(batch) != 'CudaNdarray'):
+                and str(type(batch)) != "<type 'CudaNdarray'>"):
             raise TypeError("The value of a Conv2DSpace batch should be a "
                             "numpy.ndarray, or CudaNdarray, but is %s."
                             % str(type(batch)))
