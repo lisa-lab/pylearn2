@@ -23,7 +23,6 @@ By default, the following modules are tracked: pylearn2, theano, numpy, scipy
 """
 
 import copy
-import importlib
 import os
 import platform
 import socket
@@ -80,7 +79,7 @@ class LibVersion(object):
             repos = repos.split(':')
             for repo in repos:
 	        try:
-		    importlib.import_module(repo)
+		    __import__(repo)
 		    self.versions[repo] = self._get_git_version(self._get_module_parent_path(sys.modules[repo]))
 	        except ImportError:
 		    self.versions[repo] = None
