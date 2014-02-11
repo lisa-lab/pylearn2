@@ -34,8 +34,6 @@ __email__ = "goodfeli@iro"
 
 import functools
 import numpy as np
-import scipy as sp
-import scipy.sparse
 import warnings
 
 from theano import config
@@ -426,13 +424,13 @@ class IndexSpace(Space):
         if isinstance(space, VectorSpace):
             if space.sparse:
                 if self.num_classes == space.dim:
-                    rval = sp.sparse.csr_matrix(
+                    rval = scipy.sparse.csr_matrix(
                         np.ones_like(batch).flatten(), batch.flatten(),
                         np.arange(batch.shape[0] + 1) * self.num_classes,
                         (batch.shape[0], space.dim)
                     )
                 elif self.dim * self.num_classes == space.dim:
-                    rval = sp.sparse.csr_matrix(
+                    rval = scipy.sparse.csr_matrix(
                         np.ones_like(batch).flatten(),
                         batch.flatten() + np.arange(batch.size)
                         % self.num_classes * self.dim,
