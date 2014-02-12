@@ -141,13 +141,10 @@ class NormConstraint(Constraint):
 
         min_norm_constr = min_norm if min_norm is not None else 0
 
-        param_ndim = init_param.ndim
-
         sqr_param = T.sqr(init_param)
         norm = T.sqrt(T.sum(sqr_param, axis=axes, keepdims=True))
         desired_norm = T.clip(norm, min_norm_constr, max_norm)
         desired_norm_ratio = desired_norm / (eps + norm)
-
         clipped_param = init_param * desired_norm_ratio
         return clipped_param
 
@@ -187,7 +184,7 @@ class NormConstraint(Constraint):
 
         update_param = updates[param]
         clipped_param = self._clip_norms(update_param, axes,
-                                         max_norm, min_norm,
+                                         min_norm, max_norm,
                                          eps)
 
         updates[param] = clipped_param
@@ -217,7 +214,7 @@ class NormConstraint(Constraint):
         assert param is not None, "params parameter input to constrain_params function should not be empty."
 
         clipped_param = self._clip_norms(param, axes,
-                                         max_norm, min_norm,
+                                         min_norm, max_norm,
                                          eps)
         return clipped_param
 
