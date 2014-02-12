@@ -22,6 +22,7 @@ import hashlib
 import glob
 import pdb
 import numpy as np
+import logging
 
 import theano
 
@@ -31,31 +32,40 @@ from pylearn2.expr.preprocessing import global_contrast_normalize
 from pylearn2.utils import image, string_utils, serial
 from pylearn2.space import CompositeSpace, Conv2DSpace, VectorSpace
 
+log = logging.getLogger(__name__)
 
 
-class WiskottVideoConfig(object):
-    '''This is just a container for specifications for a WiskottVideo
-    dataset. This allows one to easily create train/valid/test datasets
-    with identical configuration using anchors in YAML files.
+
+def validate_config_dict(config_dict):
     '''
+    When creating a WiskottVideo2 instance, certain configuration
+    info is needed. This info is passed as a config_dict rather than
+    as constructor arguments to WiskottVideo2 to allow one to easily
+    create train/valid/test datasets with identical configuration
+    using anchors in YAML files. Config dicts are validated by this
+    function, and any optional parameters are initialized with default
+    values.
+    '''
+    
+    cd = config_dict
 
-    def __init__(self, is_fish, axes = ('c', 0, 1, 'b'),
-                 num_frames = 3,
-                 #height = 32, width = 32,
-                 num_channels = 1,
-                 trim = 0):
-        # Arbitrary choice: we do the validation here, not in WiskottVideo
-        assert isinstance(is_fish, bool), 'is_fish must be a bool'
-        self.is_fish = is_fish
-        assert isinstance(axes, tuple), 'axes must be a tuple'
-        self.axes = axes
+    # Check that required parameters are provided
+    assert 'is_fish' in cd, 'Must specify bool is_fish in config_dict'
+    
+    # Fill in default values for optional parameters
+    cd.setdefault('axes', ('c', 0, 1, 'b'))
+    cd.setdefault('num_frames', 3)
+    cd.setdefault('num_channels', 1)
+    cd.setdefault('trim', 0)
 
-        assert num_frames > 0, 'num_frames must be positive'
-        self.num_frames = num_frames
-        assert num_channels == 1, 'only 1 channel is supported for now'
-        self.num_channels = num_channels
-        assert trim >= 0, 'trim must be non-negative'
-        self.trim = trim
+    # Validate
+    assert isinstance(cd['is_fish'], bool), 'is_fish must be a bool'
+    assert isinstance(cd['axes'], tuple), 'axes must be a tuple'
+    assert cd['num_frames'] > 0, 'num_frames must be positive'
+    assert cd['num_channels'] == 1, 'only 1 channel is supported for now'
+    assert cd['trim'] >= 0, 'trim must be non-negative'
+
+    return cd
 
 
 
@@ -93,22 +103,23 @@ class WiskottVideo2(Dataset):
                            ' Check that your PYLEARN2_DATA_PATH environment '
                            'variable is set correctly.')
 
-    def __init__(self, which_set, config, quick = False):
-        '''Create a WiskottVideo instance'''
+    def __init__(self, which_set, config_dict, quick = False):
+        '''Create a WiskottVideo2 instance'''
 
         assert which_set in ('train', 'valid', 'test')
         self.which_set = which_set
         assert isinstance(quick, bool), 'quick must be a bool'
         self.quick = quick
         if self.quick:
-            print 'WARNING: quick mode, loading only a few data files instead of the complete dataset.'
+            log.warn('WARNING: quick mode, loading only a few data files instead of the complete dataset.')
 
-        # Copy main config from provided config
-        self.axes            = config.axes
-        self.num_frames      = config.num_frames
-        self.num_channels    = config.num_channels
-        self.is_fish         = config.is_fish
-        self.trim            = config.trim
+        # Copy config from provided dict
+        config = validate_config_dict(config_dict)
+        self.is_fish       = config['is_fish']
+        self.axes          = config['axes']
+        self.num_frames    = config['num_frames']
+        self.num_channels  = config['num_channels']
+        self.trim          = config['trim']
 
         self.video_size = tuple([dd-2*self.trim for dd in self.raw_video_size])
         for dd in self.video_size:
@@ -137,10 +148,10 @@ class WiskottVideo2(Dataset):
         assert len(self._feature_matrices) == len(self._label_matrices)
         self._n_matrices = len(self._feature_matrices)
 
-        print 'Memory used for features/labels: %.3fG/%.3fG' % (
+        log.info('Memory used for WiskottVideo2 features/labels: %.3fG/%.3fG' % (
             sum([mat.nbytes for mat in self._feature_matrices]) / 1.0e9,
             sum([mat.nbytes for mat in self._label_matrices]) / 1.0e9
-            )
+            ))
 
         if self.is_fish:
             #label_space = VectorSpace(dim = 29)
@@ -199,7 +210,7 @@ class WiskottVideo2(Dataset):
 
         if self.quick:
             filenames = filenames[:3]
-        print 'Loading data from %d files:      ' % len(filenames),
+        log.info('Loading data from %d files:      ' % len(filenames))
         
         matrices = []
         n_files = len(filenames)
@@ -216,10 +227,8 @@ class WiskottVideo2(Dataset):
                 # Add dimension for channels
                 mat = np.reshape(mat, mat.shape + (1,))        # e.g. (201,156,156,1)
                 matrices.append(mat)
-            if (ii+1) % 10 == 0 or ii == (n_files-1):
-                print '\b\b\b\b\b\b%5d' % (ii+1),
-                sys.stdout.flush()
-        print
+            if (ii+1) % 100 == 0 or ii == (n_files-1):
+                log.info('%5d' % (ii+1))
         return matrices
 
 
@@ -279,7 +288,7 @@ class MultiplexingMatrixIterator(object):
     together without adding an extra dimension. Supports 'features' and
     'targets'.
 
-    This class is somewhat hardcoded to work with the WiskottVideo
+    This class is somewhat hardcoded to work with the WiskottVideo2
     dataset above by requiring list_features, list_targets_1, and
     list_targets_2 arguments. TODO: decouple this.
     '''
@@ -522,15 +531,14 @@ def hashof(obj):
 def demo():
     from fish.util import imagesc
     
-    config = WiskottVideoConfig(
-        is_fish = True,
-        num_frames = 5,
-        )
-
-    wisk = WiskottVideo('train', config, quick = True)
+    config = {}
+    config['is_fish'] = True
+    config['num_frames'] = 5
+    
+    wisk = WiskottVideo2('train', config, quick = True)
 
     feature_space = Conv2DSpace((156,156), num_channels = 1, axes = ('c', 0, 1, 'b'))
-    if config.is_fish:
+    if config['is_fish']:
         space = CompositeSpace((
             feature_space,
             VectorSpace(dim = 25),
