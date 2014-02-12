@@ -157,8 +157,20 @@ class OneHotFormatter(object):
         squeeze_required = False
         if targets.ndim != 2:
             if targets.ndim == 1:
-                squeeze_required = True
-                targets = targets.dimshuffle('x', 0)
+                if not sparse and mode == 'stack':
+                    one_hot_flat = tensor.zeros((targets.shape[0] * self._max_labels,),
+                                                 dtype=self._dtype)
+                    row_offsets = tensor.arange(0, self._max_labels * targets.shape[0],
+                                                self._max_labels)
+                    indices = row_offsets + targets
+                    one_hot_flat = tensor.set_subtensor(one_hot_flat[indices],
+                                                        np.cast[self._dtype](1))
+                    one_hot = one_hot_flat.reshape((targets.shape[0],
+                                                    tensor.constant(self._max_labels)))
+                    return one_hot
+                else:
+                    squeeze_required = True
+                    targets = targets.dimshuffle('x', 0)
             else:
                 raise ValueError("targets tensor must be 1 or 2-dimensional")
         if 'int' not in str(targets.dtype):
@@ -195,6 +207,7 @@ class OneHotFormatter(object):
                         one_hot[tensor.arange(targets.size) % targets.shape[0],
                                 targets.T.flatten()], 1)
             else:
+
                 raise NotImplementedError()
             if squeeze_required:
                 one_hot = one_hot.reshape((one_hot.shape[1],))
