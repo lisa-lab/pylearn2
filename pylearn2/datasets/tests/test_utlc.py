@@ -3,9 +3,11 @@ import unittest
 import numpy
 import scipy.sparse
 
+from pylearn2.testing.skip import skip_if_no_data
 import pylearn2.datasets.utlc as utlc
 
 def test_ule():
+    skip_if_no_data()
     # Test loading of transfer data
     train, valid, test, transfer = utlc.load_ndarray_dataset("ule", normalize=True, transfer=True)
     assert train.shape[0]==transfer.shape[0]
@@ -13,6 +15,7 @@ def test_ule():
 
 #@unittest.skip("Slow and needs >8 GB of RAM")
 def test_all_utlc():
+    skip_if_no_data()
     for name in ['avicenna','harry','ule']:   # not testing rita, because it requires a lot of memorz and is slow
         print "Loading ", name
         train, valid, test = utlc.load_ndarray_dataset(name, normalize=True)
@@ -24,11 +27,13 @@ def test_all_utlc():
         assert train.shape[1]==test.shape[1]==valid.shape[1], "shapes of datasets does not match for %s" % name
 
 def test_sparse_ule():
+    skip_if_no_data()
     # Test loading of transfer data
     train, valid, test, transfer = utlc.load_sparse_dataset("ule", normalize=True, transfer=True)
     assert train.shape[0]==transfer.shape[0]
 
 def test_all_sparse_utlc():
+    skip_if_no_data()
     for name in ['harry','terry','ule']:
         print "Loading sparse ", name
         train, valid, test = utlc.load_sparse_dataset(name, normalize=True)
