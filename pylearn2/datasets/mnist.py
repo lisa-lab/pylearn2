@@ -67,9 +67,9 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
                 for i in xrange(y.shape[0]):
                     one_hot[i, y[i]] = 1.
                 y = one_hot
-                num_classes = None
+                max_labels = None
             else:
-                num_classes = 10
+                max_labels = 10
 
             m, r, c = topo_view.shape
             assert r == 28
@@ -100,7 +100,7 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
                     y[j] = tmp
 
             super(MNIST, self).__init__(topo_view=dimshuffle(topo_view), y=y,
-                                        axes=axes, num_classes=num_classes)
+                                        axes=axes, max_labels=max_labels)
 
             assert not N.any(N.isnan(self.X))
 
