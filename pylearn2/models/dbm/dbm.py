@@ -1,3 +1,9 @@
+__authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
+__copyright__ = "Copyright 2012-2013, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
+
 import warnings
 import numpy as np
 from theano import tensor as T, config
@@ -7,12 +13,6 @@ from pylearn2.models.dbm import flatten
 from pylearn2.models.dbm.inference_procedure import WeightDoubling
 from pylearn2.models.dbm.sampling_procedure import GibbsEvenOdd
 from pylearn2.utils import safe_zip, safe_izip
-
-__authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
-__copyright__ = "Copyright 2012-2013, Universite de Montreal"
-__credits__ = ["Ian Goodfellow"]
-__license__ = "3-clause BSD"
-__maintainer__ = "Ian Goodfellow"
 
 
 class DBM(Model):

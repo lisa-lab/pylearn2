@@ -1,16 +1,17 @@
-import warnings
-from theano import gof
-import theano.tensor as T
-import theano
-from theano.gof.op import get_debug_values
-from pylearn2.models.dbm import block, flatten, Softmax
-from pylearn2.utils import safe_izip, block_gradient, safe_zip
-
 __authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
+
+import warnings
+from theano import gof
+import theano.tensor as T
+import theano
+from theano.gof.op import get_debug_values
+from pylearn2.models.dbm import block, flatten
+from pylearn2.models.dbm.layer import Softmax
+from pylearn2.utils import safe_izip, block_gradient, safe_zip
 
 
 class InferenceProcedure(object):

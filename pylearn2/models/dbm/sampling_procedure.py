@@ -1,11 +1,11 @@
-from theano.compat import OrderedDict
-from pylearn2.utils import py_integer_types
-
 __authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
 __copyright__ = "Copyright 2012-2013, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
+
+from theano.compat import OrderedDict
+from pylearn2.utils import py_integer_types
 
 
 class SamplingProcedure(object):

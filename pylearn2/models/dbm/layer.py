@@ -1,12 +1,20 @@
+__authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
+__copyright__ = "Copyright 2012-2013, Universite de Montreal"
+__credits__ = ["Ian Goodfellow"]
+__license__ = "3-clause BSD"
+__maintainer__ = "Ian Goodfellow"
+
 import time
 import warnings
 import numpy as np
+
 from theano import tensor as T, tensor, function, config
 import theano
 from theano.compat import OrderedDict
 from theano.gof.op import get_debug_values
 from theano.printing import Print
 from theano.sandbox.rng_mrg import MRG_RandomStreams
+
 from pylearn2.expr.nnet import sigmoid_numpy
 from pylearn2.expr.probabilistic_max_pooling import max_pool_channels, max_pool_b01c, max_pool, max_pool_c01b
 from pylearn2.linear.conv2d import make_random_conv2D, make_sparse_random_conv2D
@@ -16,12 +24,6 @@ from pylearn2.models import Model
 from pylearn2.models.dbm import init_sigmoid_bias_from_marginals
 from pylearn2.space import VectorSpace, CompositeSpace, Conv2DSpace, Space
 from pylearn2.utils import sharedX, safe_zip, py_integer_types, block_gradient
-
-__authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
-__copyright__ = "Copyright 2012-2013, Universite de Montreal"
-__credits__ = ["Ian Goodfellow"]
-__license__ = "3-clause BSD"
-__maintainer__ = "Ian Goodfellow"
 
 
 class Layer(Model):
