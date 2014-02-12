@@ -207,7 +207,6 @@ class OneHotFormatter(object):
                         one_hot[tensor.arange(targets.size) % targets.shape[0],
                                 targets.T.flatten()], 1)
             else:
-
                 raise NotImplementedError()
             if squeeze_required:
                 one_hot = one_hot.reshape((one_hot.shape[1],))
