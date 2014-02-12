@@ -24,6 +24,7 @@ from pylearn2.expr.probabilistic_max_pooling import max_pool_channels
 from pylearn2.linear import conv2d
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.models.model import Model
+from pylearn2.monitor import get_monitor_doc
 from pylearn2.expr.nnet import pseudoinverse_softmax_numpy
 from pylearn2.space import CompositeSpace
 from pylearn2.space import Conv2DSpace
@@ -392,7 +393,16 @@ class MLP(Layer):
         for layer in self.layers:
             ch = layer.get_monitoring_channels()
             for key in ch:
-                rval[layer.layer_name+'_'+key] = ch[key]
+                value = ch[key]
+                doc = get_monitor_doc(value)
+                if doc is None:
+                    doc = str(type(layer)) + ".get_monitoring_channels did" + \
+                            " not provide any further documentation for" + \
+                            " this channel."
+                doc = 'This channel came from a layer called "' + \
+                        layer.layer_name + '" of an MLP.\n' + doc
+                value.__doc__ = doc
+                rval[layer.layer_name+'_'+key] = value
             state = layer.fprop(state)
             args = [state]
             if layer is self.layers[-1]:
@@ -401,7 +411,17 @@ class MLP(Layer):
             if not isinstance(ch, OrderedDict):
                 raise TypeError(str((type(ch), layer.layer_name)))
             for key in ch:
-                rval[layer.layer_name+'_'+key] = ch[key]
+                value = ch[key]
+                doc = get_monitor_doc(value)
+                if doc is None:
+                    doc = str(type(layer)) + \
+                            ".get_monitoring_channels_from_state did" + \
+                            " not provide any further documentation for" + \
+                            " this channel."
+                doc = 'This channel came from a layer called "' + \
+                        layer.layer_name + '" of an MLP.\n' + doc
+                value.__doc__ = doc
+                rval[layer.layer_name+'_'+key] = value
 
         return rval
 
