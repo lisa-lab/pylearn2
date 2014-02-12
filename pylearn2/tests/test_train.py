@@ -13,6 +13,9 @@ from pylearn2.space import VectorSpace
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 
 class DummyModel(Model):
+
+    _params = []
+
     def  __init__(self, num_features):
         self.input_space = VectorSpace(num_features)
 
