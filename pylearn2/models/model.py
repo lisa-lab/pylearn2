@@ -10,6 +10,7 @@ from theano.compat.python2x import OrderedDict
 from theano import tensor as T
 
 from pylearn2.space import NullSpace
+from pylearn2.utils import function
 
 
 class Model(object):
@@ -433,3 +434,12 @@ class Model(object):
             raise ValueError('Invalid names argument')
         self.names_to_del = self.names_to_del.union(names)
 
+    def enforce_constraints(self):
+        """
+        Enforces all constraints encoded by self.censor_updates.
+        """
+        params = self.get_params()
+        updates = OrderedDict(zip(params, params))
+        self.censor_updates(updates)
+        f = function([], updates=updates)
+        f()
