@@ -26,10 +26,8 @@ import logging
 
 import theano
 
-from pylearn2.datasets import dense_design_matrix, Dataset
-from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix, DefaultViewConverter
-from pylearn2.expr.preprocessing import global_contrast_normalize
-from pylearn2.utils import image, string_utils, serial
+from pylearn2.datasets import Dataset
+from pylearn2.utils import string_utils, serial
 from pylearn2.space import CompositeSpace, Conv2DSpace, VectorSpace
 
 log = logging.getLogger(__name__)
