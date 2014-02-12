@@ -349,23 +349,14 @@ def max_pool_c01b(z, pool_shape, top_down = None, theano_rng = None):
 
         stacked_events = T.concatenate( events, axis = 4)
 
-        rows = zr // pool_shape[0]
-        cols = zc // pool_shape[1]
-        outcomes = pool_shape[0] * pool_shape[1] + 1
-        assert stacked_events.ndim == 5
-        for se, bs, r, c, chv in get_debug_values(stacked_events, batch_size, rows, cols, ch):
-            assert se.shape[0] == chv
-            assert se.shape[1] == r
-            assert se.shape[2] == c
-            assert se.shape[3] == bs
-            assert se.shape[4] == outcomes
-        reshaped_events = stacked_events.reshape((rows * cols * ch * batch_size, outcomes))
+        ch, rows, cols, batch_size, outcomes = stacked_events.shape
+        reshaped_events = stacked_events.reshape((ch * rows * cols * batch_size, outcomes))
 
         multinomial = theano_rng.multinomial(pvals = reshaped_events, dtype = p.dtype)
 
         reshaped_multinomial = multinomial.reshape((ch, rows, cols, batch_size, outcomes))
 
-        h_sample = T.alloc(0., ch, zr, zc, rows, cols, batch_size, outcomes)
+        h_sample = T.alloc(0., ch, zr, zc, batch_size)
 
         idx = 0
         for i in xrange(r):
@@ -885,7 +876,6 @@ def max_pool_softmax_op(z, pool_shape):
     h.name = 'h(%s)' % z_name
 
     return p, h
-
 
 def profile(f):
     """
