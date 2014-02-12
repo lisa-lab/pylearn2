@@ -46,6 +46,7 @@ from theano.tensor import TensorType
 from pylearn2.utils import py_integer_types
 from pylearn2.utils import safe_zip
 from pylearn2.utils import sharedX
+from pylearn2.format.target_format import OneHotFormatter
 
 if theano.sparse.enable_sparse:
     # We know scipy.sparse is available
@@ -384,16 +385,16 @@ class IndexSpace(Space):
     present i.e. for 4 possible labels we have [0, 2] -> [1 0 1 0] or
     [0, 2] -> [1 0 0 0 0 0 1 0].
     """
-    def __init__(self, num_classes, dim, **kwargs):
+    def __init__(self, max_labels, dim, **kwargs):
         """
         Initialize an IndexSpace.
 
         Parameters
         ----------
-        num_classes : int
+        max_labels : int
             The number of possible classes/labels. This means that
-            all labels should be < num_classes. Example: For MNIST
-            there are 10 numbers and hence num_classes = 10.
+            all labels should be < max_labels. Example: For MNIST
+            there are 10 numbers and hence max_labels = 10.
         dim : int
             The number of indices in one space e.g. for MNIST there is
             one target label and hence dim = 1. If we have an n-gram
@@ -403,17 +404,18 @@ class IndexSpace(Space):
 
         super(IndexSpace, self).__init__(**kwargs)
 
-        self.num_classes = num_classes
+        self.max_labels = max_labels
         self.dim = dim
+        self.formatter = OneHotFormatter(self.max_labels)
 
     def __str__(self):
         """
         Return a string representation.
         """
-        return '%(classname)s(dim=%(dim)s, num_classes=%(num_classes)s' % \
+        return '%(classname)s(dim=%(dim)s, max_labels=%(max_labels)s' % \
                dict(classname=self.__class__.__name__,
                     dim=self.dim,
-                    num_classes=self.num_classes)
+                    max_labels=self.max_labels)
 
     @functools.wraps(Space.get_total_dimension)
     def get_total_dimension(self):
@@ -422,40 +424,20 @@ class IndexSpace(Space):
     @functools.wraps(Space.np_format_as)
     def np_format_as(self, batch, space):
         if isinstance(space, VectorSpace):
-            if space.sparse:
-                if self.num_classes == space.dim:
-                    rval = scipy.sparse.csr_matrix(
-                        np.ones_like(batch).flatten(), batch.flatten(),
-                        np.arange(batch.shape[0] + 1) * self.num_classes,
-                        (batch.shape[0], space.dim)
-                    )
-                elif self.dim * self.num_classes == space.dim:
-                    rval = scipy.sparse.csr_matrix(
-                        np.ones_like(batch).flatten(),
-                        batch.flatten() + np.arange(batch.size)
-                        % self.num_classes * self.dim,
-                        np.arange(batch.shape[0] + 1) * self.num_classes,
-                        (batch.shape[0], space.dim)
-                    )
-                else:
-                    raise ValueError("Can't convert IndexSpace to sparse"
-                                     "VectorSpace (%d labels to %d dimensions)"
-                                     % (self.dim, space.dim))
+            if self.max_labels == space.dim:
+                rval = self.formatter.format(batch, sparse=space.sparse,
+                                             mode='merge')
+            elif self.dim * self.max_labels == space.dim:
+                rval = self.formatter.format(batch, sparse=space.sparse,
+                                             mode='concatenate')
             else:
-                if self.num_classes == space.dim:
-                    rval = np.zeros((batch.shape[0], space.dim), dtype='int32')
-                    rval[np.arange(batch.shape[0], dtype='int32'),
-                         batch.T.astype('int32')] = 1
-                elif self.dim * self.num_classes == space.dim:
-                    rval = np.zeros((batch.shape[0] * self.dim,
-                                     self.num_classes), dtype='int32')
-                    rval[np.arange(batch.size), batch.flatten()] = 1
-                    rval = rval.reshape((batch.shape[0], space.dim))
-                else:
-                    raise ValueError("Can't convert IndexSpace to Vectorspace"
-                                     "(%d labels to %d dimensions)."
-                                     % (self.dim, space.dim))
+                raise ValueError("Can't convert IndexSpace to"
+                                 "VectorSpace (%d labels to %d dimensions)"
+                                 % (self.dim, space.dim))
             return rval
+        else:
+            raise ValueError("Can't convert IndexSpace to %(space)s"
+                             % (space.__class__.__name__))
 
     @functools.wraps(Space._format_as)
     def _format_as(self, batch, space):
@@ -464,42 +446,16 @@ class IndexSpace(Space):
         by ones in a binary vector.
         """
         if isinstance(space, VectorSpace):
-            if space.sparse:
-                if self.num_classes == space.dim:
-                    rval = theano.sparse.CSR(
-                        T.ones_like(batch).flatten(), batch.flatten(),
-                        T.arange(batch.shape[0] + 1) * self.num_classes,
-                        T.stack(batch.shape[0], space.dim)
-                    )
-                elif self.dim * self.num_classes == space.dim:
-                    rval = theano.sparse.CSR(
-                        T.ones_like(batch).flatten(),
-                        batch.flatten() + T.arange(batch.size)
-                        % self.num_classes * self.dim,
-                        T.arange(batch.shape[0] + 1) * self.num_classes,
-                        T.stack(batch.shape[0], space.dim)
-                    )
-                else:
-                    raise ValueError("Can't convert IndexSpace to Vectorspace"
-                                     "(%d labels to %d dimensions)."
-                                     % (self.dim, space.dim))
+            if self.max_labels == space.dim:
+                rval = self.formatter.theano_expr(batch, sparse=space.sparse,
+                                                  mode='merge')
+            elif self.dim * self.max_labels == space.dim:
+                rval = self.formatter.theano.expr(batch, sparse=space.sparse,
+                                                  mode='concatenate')
             else:
-                if self.num_classes == space.dim:
-                    rval = T.alloc(0, *(batch.shape[0], self.num_classes))
-                    rval = T.set_subtensor(rval[T.arange(batch.size) %
-                                                batch.shape[0],
-                                                batch.T.flatten()], 1)
-                elif self.dim * self.num_classes == space.dim:
-                    rval = T.alloc(0, *(batch.shape[0] * self.dim,
-                                        self.num_classes))
-                    rval = T.set_subtensor(rval[T.arange(batch.size),
-                                                batch.flatten()], 1)
-                    rval = rval.reshape((batch.shape[0],
-                                         self.dim * self.num_classes))
-                else:
-                    raise ValueError("Can't convert IndexSpace to Vectorspace"
-                                     "(%d labels to %d dimensions)."
-                                     % (self.dim, space.dim))
+                raise ValueError("Can't convert IndexSpace to"
+                                 "VectorSpace (%d labels to %d dimensions)"
+                                 % (self.dim, space.dim))
             return rval
         else:
             raise ValueError("Can't convert IndexSpace to %(space)s"
