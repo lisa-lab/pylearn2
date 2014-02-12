@@ -29,7 +29,8 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
             WRITEME
         monitoring_batches : int
             WRITEME
-        monitoring_dataset : WRITEME
+        monitoring_dataset: Dataset or dict
+            A Dataset or a dictionary mapping string dataset names to Datasets
         termination_criterion : WRITEME
             If specified, can cause the algorithm to terminate before \
             `model.learn_batch` says to
@@ -37,7 +38,8 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
         self.batch_size, self.batches_per_iter = batch_size, batches_per_iter
         if monitoring_dataset is None:
             assert monitoring_batches == -1
-        self.monitoring_dataset = monitoring_dataset
+
+        self._set_monitoring_dataset(monitoring_dataset)
         self.monitoring_batches = monitoring_batches
         self.bSetup = False
         self.termination_criterion = termination_criterion
@@ -79,28 +81,38 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
             # monitoring channels of the model
             nested_ipt = mapping.nest(ipt)
 
-            self.monitor.add_dataset(dataset=self.monitoring_dataset,
-                                mode="sequential",
-                                batch_size=self.batch_size,
-                                num_batches=self.monitoring_batches)
 
             channels = model.get_monitoring_channels(nested_ipt)
             if not isinstance(channels, dict):
                 raise TypeError("model.get_monitoring_channels must return a "
                                 "dictionary, but it returned " + str(channels))
-            for name in channels:
-                J = channels[name]
-                if isinstance(J, tuple):
-                    assert len(J) == 2
-                    J, prereqs = J
-                else:
-                    prereqs = None
 
-                self.monitor.add_channel(name=name,
-                                         ipt=nested_ipt,
-                                         val=J,
-                                         prereqs=prereqs,
-                                         data_specs=(space, source))
+            for dataset_name in self.monitoring_dataset:
+                if dataset_name == '':
+                    prefix = ''
+                else:
+                    prefix = dataset_name + '_'
+                monitoring_dataset = self.monitoring_dataset[dataset_name]
+
+                self.monitor.add_dataset(dataset=monitoring_dataset,
+                                    mode="sequential",
+                                    batch_size=self.batch_size)
+
+                for name in channels:
+                    J = channels[name]
+                    if isinstance(J, tuple):
+                        assert len(J) == 2
+                        J, prereqs = J
+                    else:
+                        prereqs = None
+
+                    self.monitor.add_channel(name= prefix + name,
+                                             ipt=nested_ipt,
+                                             val=J,
+                                             dataset=monitoring_dataset,
+                                             prereqs=prereqs,
+                                             data_specs=(space, source))
+
         self.first = True
         self.bSetup = True
 
