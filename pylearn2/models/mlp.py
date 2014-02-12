@@ -338,7 +338,7 @@ class Layer(Model):
 
         input_axes = self.get_input_axes_def()
         output_axes = self.get_output_axes_def()
-        constraints.apply_constraints([constraint_args], input_axes, output_axes)
+        constraints.apply([constraint_args], input_axes, output_axes)
 
 
 class MLP(Layer):

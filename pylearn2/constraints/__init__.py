@@ -30,14 +30,14 @@ class Constraints(object):
         """
         self.constraints.append(constraint)
 
-    def get_constraints(self):
+    def get(self):
         """
         .. todo::
             WRITEME
         """
         return self.constraints
 
-    def apply_constraints(self, constraint_args, input_axes=None, output_axes=None):
+    def apply(self, constraint_args, input_axes=None, output_axes=None):
         """
         Function that applies the constraints with the specified parameters for each constraint.
 
