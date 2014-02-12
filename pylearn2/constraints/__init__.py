@@ -49,7 +49,7 @@ class Constraints(object):
         """
         assert constraint_args is not None, "constraint parameters list should not be empty."
         for constraint_arg, constraint in zip(constraint_args, self.constraints):
-            if constraint.is_input_axes:
+            if constraint.is_input_axis:
                 constraint_arg["axes"] = input_axes
             else:
                 constraint_arg["axes"] = output_axes
@@ -103,7 +103,7 @@ class NormConstraint(Constraint):
         detectors." arXiv preprint arXiv:1207.0580 (2012).
     """
     def __init__(self, min_norm=None, max_norm=None,
-                 is_input_axes=True):
+                 is_input_axis=True):
         """
         This class applies the norm constraint on the parameters. For feedforward layers, norm constraint are
         usually applied on weights, but for convolutional neural networks constraint is being
@@ -120,11 +120,11 @@ class NormConstraint(Constraint):
             The minimum norm of the parameters.
         max_norm : float, optional
             The maximum norm of the parameters.
-        is_input_axes: bool, optional
+        is_input_axis: bool, optional
             This determines whether to perform the dimshuffle along is input axes or output
             axes. By default this has been set to True.
         """
-        self.is_input_axes = is_input_axes
+        self.is_input_axis = is_input_axis
         self.min_norm = min_norm
         self.max_norm = max_norm
 
@@ -142,7 +142,7 @@ class NormConstraint(Constraint):
             Minimum norm constraint.
         eps : float
             Epsilon, a small value to be added to norm for numerical stability to ensure that
-        denominator never becomes 0.
+            denominator never becomes 0.
         """
         assert max_norm is not None or min_norm  is not None, "%s._clip_norms function expects either min_norm or max_norm argument to be provided." % (self.__class__.__name__)
         assert axes is not None, "%s._clip_norms function expects axes argument to be provided." % (self.__class__.__name__)

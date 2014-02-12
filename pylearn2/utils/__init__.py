@@ -116,8 +116,11 @@ def subdict(d, keys):
 
 def get_dimshuffle_pattern(axes, ndim):
     """
-    Create the dimshuffle pattern based on the axes and the
-    number of dimensions for constraints.
+    For given axes and number of dimensions arguments of a parameter matrix or tensor
+    that we want to apply a norm constraint on. This function creates a dimshuffle pattern
+    in order to perform the dimshuffling over the scale variable to do elemwise product
+    with the parameter matrix/matrix that we want to apply the constraint on.
+
     Parameters
     ----------
     axes : tuple
@@ -134,8 +137,6 @@ def get_dimshuffle_pattern(axes, ndim):
     assert type(axes) == tuple, "the type of axes should be a tuple."
 
     shf_dim_count = 0
-    diff_dims = ndim - len(axes)
-    dims = range(diff_dims)
     dimshuffle_pattern = []
 
     for i in xrange(ndim):
