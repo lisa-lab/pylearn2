@@ -314,7 +314,7 @@ class Layer(Model):
 
         if hasattr(self, "max_row_norm"):
             if self.max_row_norm is not None:
-                constraint = NormConstraint(max_norm=self.max_row_norm, is_input_axes=False)
+                constraint = NormConstraint(max_norm=self.max_row_norm, is_input_axis=False)
                 constraints.add_constraint(constraint)
                 warnings.warn("%s.max_row_norm is deprecated. Please use, weight_constraints instead." % self.__class__.__name__ +
                                "max_row_norm argument will be removed on or after 11.08.2014.")
