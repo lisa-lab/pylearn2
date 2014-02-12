@@ -39,11 +39,15 @@ from pylearn2.space import Conv2DSpace
 from pylearn2.space import VectorSpace
 from pylearn2.utils import py_integer_types
 from pylearn2.utils import sharedX
+from pylearn2.utils import wraps
+
+from pylearn2.constraints import NormConstraint
 
 from pylearn2.linear.conv2d_c01b import setup_detector_layer_c01b
 from pylearn2.linear import local_c01b
 if cuda.cuda_available:
     from pylearn2.sandbox.cuda_convnet.pool import max_pool_c01b
+
 from pylearn2.sandbox.cuda_convnet import check_cuda
 
 
@@ -81,6 +85,7 @@ class Maxout(Layer):
                  max_col_norm = None,
                  max_row_norm = None,
                  mask_weights = None,
+                 weight_constraints=None,
                  min_zero = False
         ):
         """
@@ -119,6 +124,7 @@ class Maxout(Layer):
             constraint. Constraint is enforced by re-projection (if
             necessary) at the end of each update.
         max_row_norm: Like max_col_norm, but applied to the rows.
+        weight_constraints : WRITEME
         mask_weights: A binary matrix multiplied by the weights after each
                      update, allowing you to restrict their connectivity.
         min_zero: If true, includes a zero in the set we take a max over
@@ -128,6 +134,9 @@ class Maxout(Layer):
 
         detector_layer_dim = num_units * num_pieces
         pool_size = num_pieces
+
+        self._input_axes_def = (0,)
+        self._output_axes_def = (1,)
 
         if pool_stride is None:
             pool_stride = pool_size
@@ -251,7 +260,6 @@ class Maxout(Layer):
 
             WRITEME
         """
-
         # Patch old pickle files
         if not hasattr(self, 'mask_weights'):
             self.mask_weights = None
@@ -260,15 +268,6 @@ class Maxout(Layer):
             W ,= self.transformer.get_params()
             if W in updates:
                 updates[W] = updates[W] * self.mask
-
-        if self.max_col_norm is not None:
-            assert self.max_row_norm is None
-            W ,= self.transformer.get_params()
-            if W in updates:
-                updated_W = updates[W]
-                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
     def get_params(self):
         """
@@ -387,7 +386,6 @@ class Maxout(Layer):
         if rows * cols < total:
             rows = rows + 1
         return rows, cols
-
 
     def get_weights_topo(self):
         """
@@ -615,6 +613,7 @@ class MaxoutConvC01B(Layer):
                  partial_sum = 1,
                  tied_b = False,
                  max_kernel_norm = None,
+                 weight_constraints = None,
                  input_normalization = None,
                  detector_normalization = None,
                  min_zero = False,
@@ -669,6 +668,7 @@ class MaxoutConvC01B(Layer):
         tied_b: If true, all biases in the same channel are constrained to be the same
                 as each other. Otherwise, each bias at each location is learned independently.
         max_kernel_norm: If specifed, each kernel is constrained to have at most this norm.
+        weight_constraints: WRITEME
         input_normalization, detector_normalization, output_normalization:
             if specified, should be a callable object. the state of the network is optionally
             replaced with normalization(state) at each of the 3 points in processing:
@@ -684,6 +684,10 @@ class MaxoutConvC01B(Layer):
 
         self.__dict__.update(locals())
         del self.self
+
+        self._input_axes_def = (0, 1, 2)
+        self._output_axes_def = (3,)
+
 
     def get_lr_scalers(self):
         """
@@ -764,21 +768,6 @@ class MaxoutConvC01B(Layer):
 
         print 'Output space: ', self.output_space.shape
 
-    def censor_updates(self, updates):
-        """
-        .. todo::
-
-            WRITEME
-        """
-
-        if self.max_kernel_norm is not None:
-            W ,= self.transformer.get_params()
-            if W in updates:
-                updated_W = updates[W]
-                row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=(0,1,2)))
-                desired_norms = T.clip(row_norms, 0, self.max_kernel_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle('x', 'x', 'x', 0)
-
     def get_params(self):
         """
         .. todo::
@@ -839,6 +828,27 @@ class MaxoutConvC01B(Layer):
             WRITEME
         """
         return self.transformer.get_weights_topo()
+
+    @wraps(Layer.get_output_axes_def)
+    def get_output_axes_def(self):
+        """
+
+        Returns
+        -------
+        This function returns the output axes.
+        """
+
+        return self._output_axes_def
+
+    @wraps(Layer.get_input_axes_def)
+    def get_input_axes_def(self):
+        """
+
+        Returns
+        -------
+        This function returns the input axes.
+        """
+        return self._input_axes_def
 
     def get_monitoring_channels(self):
         """
@@ -1060,6 +1070,7 @@ class MaxoutLocalC01B(Layer):
                  detector_normalization = None,
                  min_zero = False,
                  output_normalization = None,
+                 weight_constraints = None,
                  input_groups = 1,
                  kernel_stride=(1, 1)):
         """
@@ -1103,7 +1114,7 @@ class MaxoutLocalC01B(Layer):
         fix_kernel_shape: if True, will modify self.kernel_shape to avoid
         having the kernel shape bigger than the implicitly
         zero padded input layer
-
+        weight_constraints : WRITEME
         partial_sum: a parameter that controls whether to prefer runtime savings
                     or memory savings when computing the gradient with respect to
                     the kernels. See pylearn2.sandbox.cuda_convnet.weight_acts.py
@@ -1127,6 +1138,9 @@ class MaxoutLocalC01B(Layer):
 
         self.__dict__.update(locals())
         del self.self
+
+        self._input_axes_def = (0, 1, 5, 6)
+        self._output_axes_def = (2, 3, 4)
 
     def get_lr_scalers(self):
         """
@@ -1278,23 +1292,6 @@ class MaxoutLocalC01B(Layer):
 
         print 'Output space: ', self.output_space.shape
 
-    def censor_updates(self, updates):
-        """
-        .. todo::
-
-            WRITEME
-        """
-
-        if self.max_filter_norm is not None:
-            W ,= self.transformer.get_params()
-            if W in updates:
-                # TODO:    push some of this into the transformer itself
-                updated_W = updates[W]
-                updated_norms = self.get_filter_norms(updated_W)
-                desired_norms = T.clip(updated_norms, 0, self.max_filter_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + updated_norms)
-                        ).dimshuffle(0, 1, 'x', 'x', 'x', 2, 3)
-
     def get_params(self):
         """
         .. todo::
@@ -1362,7 +1359,6 @@ class MaxoutLocalC01B(Layer):
 
             WRITEME
         """
-
         # TODO: push this into the transformer class itself
 
         if W is None:
@@ -1375,6 +1371,26 @@ class MaxoutLocalC01B(Layer):
         norms = T.sqrt(sq_W.sum(axis=(2, 3, 4)))
 
         return norms
+
+    @wraps(Layer.get_output_axes_def)
+    def get_output_axes_def(self):
+        """
+
+        Returns
+        -------
+        This function returns the output axes.
+        """
+        return self._output_axes_def
+
+    @wraps(Layer.get_input_axes_def)
+    def get_input_axes_def(self):
+        """
+
+        Returns
+        -------
+        This function returns the input axes.
+        """
+        return self._input_axes_def
 
     def get_monitoring_channels(self):
         """

@@ -25,6 +25,9 @@ from pylearn2.linear import conv2d
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.models.model import Model
 from pylearn2.expr.nnet import pseudoinverse_softmax_numpy
+from pylearn2.constraints import NormConstraint
+from pylearn2.constraints import Constraints
+
 from pylearn2.space import CompositeSpace
 from pylearn2.space import Conv2DSpace
 from pylearn2.space import Space
@@ -247,6 +250,96 @@ class Layer(Model):
         """
         raise NotImplementedError
 
+    def get_output_axes_def(self):
+        """
+
+        Returns
+        -------
+        This function returns the axes of the output space for constraints.
+        """
+
+        return self._output_axes_def
+
+    def get_input_axes_def(self):
+        """
+
+        Returns
+        -------
+        This function returns the axes of the input space for constraints.
+        """
+
+        return self._input_axes_def
+
+    def apply_constraints(self, updates):
+        """
+        This function apply constraints for the layer.
+        !!!WARNING!!!
+        This function assumes that constraints are applied on weights and use transformer object.
+
+        Parameters
+        ----------
+        updates: dictionary
+            updates dictionary for the training function.
+        """
+
+        if not hasattr(self, "constraints"):
+            constraints = Constraints()
+
+        if self.weight_constraints is not None:
+            weight_constraints = Constraints(self.weight_constraints)
+        else:
+            weight_constraints = Constraints([])
+
+        if hasattr(self, "max_col_norm"):
+            if self.max_col_norm is not None:
+                constraint = NormConstraint(max_norm=self.max_col_norm)
+                constraints.add_constraint(constraint)
+                warnings.warn("%s.max_col_norm is deprecated. Please use, weight_constraints " % self.__class__.__name__ +
+                        "instead. max_col_norm argument will be removed on or after 11.08.2014.")
+
+        if hasattr(self, "min_col_norm"):
+            if self.min_col_norm is not None:
+                constraint = NormConstraint(min_norm=self.min_col_norm)
+                constraints.add_constraint(constraint)
+
+                warnings.warn("%s.min_col_norm is deprecated. Please use, weight_constraints instead." % self.__class__.__name__
+                        + "min_col_norm argument will be removed on or after 11.08.2014.")
+
+        if hasattr(self, "max_kernel_norm"):
+            if self.max_kernel_norm is not None:
+                constraint = NormConstraint(max_norm=self.max_kernel_norm)
+                constraints.add_constraint(constraint)
+                warnings.warn("%s.max_kernel_norm is deprecated. Please use, weight_constraints instead." % self.__class__.__name__ +
+                        "max_kernel_norm argument will be removed on or after 11.08.2014.")
+
+        if hasattr(self, "max_row_norm"):
+            if self.max_row_norm is not None:
+                constraint = NormConstraint(max_norm=self.max_row_norm, is_input_axis=False)
+                constraints.add_constraint(constraint)
+                warnings.warn("%s.max_row_norm is deprecated. Please use, weight_constraints instead." % self.__class__.__name__ +
+                               "max_row_norm argument will be removed on or after 11.08.2014.")
+
+        if hasattr(self, "max_filter_norm"):
+            if self.max_filter_norm is not None:
+                constraint = NormConstraint(max_norm=self.max_filter_norm)
+                constraints.add_constraint(constraint)
+                warnings.warn("%s.max_filter_norm is deprecated. Please use, weight_constraints instead." % self.__class__.__name__ +
+                        "max_filter_norm argument will be removed on or after 11.08.2014.")
+
+        if self.__class__ == Softmax:
+            W = self.W
+        else:
+            W, = self.transformer.get_params()
+
+        constraint_args = {
+                           "constrain_on": W,
+                           "updates": updates
+                          }
+
+        input_axes = self.get_input_axes_def()
+        output_axes = self.get_output_axes_def()
+        constraints.apply([constraint_args], input_axes, output_axes)
+
 
 class MLP(Layer):
     """
@@ -351,6 +444,7 @@ class MLP(Layer):
                             str(self.input_space) +
                             " of type " + str(type(self.input_space)) +
                             "). Original exception: " + str(e))
+
         for i in xrange(1, len(layers)):
             layers[i].set_input_space(layers[i-1].get_output_space())
 
@@ -448,9 +542,12 @@ class MLP(Layer):
 
     @wraps(Layer.censor_updates)
     def censor_updates(self, updates):
-
         for layer in self.layers:
-            layer.censor_updates(updates)
+            if hasattr(layer, "apply_constraints"):
+                layer.apply_constraints(updates)
+
+            if hasattr(layer, "censor_updates"):
+                layer.censor_updates(updates)
 
     @wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
@@ -508,6 +605,7 @@ class MLP(Layer):
         Each feature is also multiplied by a scale factor. The scale factor for
         each layer's input scale is determined by the same scheme as the input
         probabilities.
+
 
         Parameters
         ----------
@@ -741,11 +839,14 @@ class MLP(Layer):
                                        dtype=state.dtype)
         else:
             batch = input_space.get_origin_batch(1)
-            mask = theano_rng.binomial(p=include_prob, size=batch.shape,
+            mask = theano_rng.binomial(p=include_prob,
+                                       size=batch.shape,
                                        dtype=state.dtype)
+
             rebroadcast = T.Rebroadcast(*zip(xrange(batch.ndim),
                                              [s == 1 for s in batch.shape]))
             mask = rebroadcast(mask)
+
         if mask_value == 0:
             return state * mask * scale
         else:
@@ -821,7 +922,8 @@ class Softmax(Layer):
                  sparse_init=None, W_lr_scale=None,
                  b_lr_scale=None, max_row_norm=None,
                  no_affine=False,
-                 max_col_norm=None, init_bias_target_marginals=None):
+                 max_col_norm=None, weight_constraints=None,
+                 init_bias_target_marginals=None):
         """
         .. todo::
 
@@ -835,7 +937,11 @@ class Softmax(Layer):
         del self.self
         del self.init_bias_target_marginals
 
+        self._input_axes_def = (0,)
+        self._output_axes_def = (1,)
+
         assert isinstance(n_classes, py_integer_types)
+        self.axes_defs = ()
 
         self.output_space = VectorSpace(n_classes)
         if not no_affine:
@@ -1108,22 +1214,6 @@ class Softmax(Layer):
 
         if self.no_affine:
             return
-        if self.max_row_norm is not None:
-            W = self.W
-            if W in updates:
-                updated_W = updates[W]
-                row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=1))
-                desired_norms = T.clip(row_norms, 0, self.max_row_norm)
-                scales = desired_norms / (1e-7 + row_norms)
-                updates[W] = updated_W * scales.dimshuffle(0, 'x')
-        if self.max_col_norm is not None:
-            assert self.max_row_norm is None
-            W = self.W
-            if W in updates:
-                updated_W = updates[W]
-                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
 
 class SoftmaxPool(Layer):
@@ -1145,7 +1235,8 @@ class SoftmaxPool(Layer):
                  W_lr_scale=None,
                  b_lr_scale=None,
                  mask_weights=None,
-                 max_col_norm=None):
+                 max_col_norm=None,
+                 weight_constraints=None):
         """
         Parameters
         ----------
@@ -1164,9 +1255,12 @@ class SoftmaxPool(Layer):
         b_lr_scale : WRITEME
         mask_weights : WRITEME
         max_col_norm : WRITEME
+        weight_constraints: WRITEME
         """
         self.__dict__.update(locals())
         del self.self
+        self._input_axes_def = (0,)
+        self._output_axes_def = (1,)
 
         self.b = sharedX(np.zeros((self.detector_layer_dim,)) + init_bias,
                          name=(layer_name + '_b'))
@@ -1269,14 +1363,6 @@ class SoftmaxPool(Layer):
             W, = self.transformer.get_params()
             if W in updates:
                 updates[W] = updates[W] * self.mask
-
-        if self.max_col_norm is not None:
-            W, = self.transformer.get_params()
-            if W in updates:
-                updated_W = updates[W]
-                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
     @wraps(Layer.get_params)
     def get_params(self):
@@ -1490,6 +1576,7 @@ class Linear(Layer):
                  softmax_columns=False,
                  copy_input=0,
                  use_abs_loss=False,
+                 weight_constraints=None,
                  use_bias=True):
         """
         Parameters
@@ -1522,6 +1609,9 @@ class Linear(Layer):
 
         self.__dict__.update(locals())
         del self.self
+
+        self._input_axes_def = (0,)
+        self._output_axes_def = (1,)
 
         if use_bias:
             self.b = sharedX(np.zeros((self.dim,)) + init_bias,
@@ -1620,32 +1710,6 @@ class Linear(Layer):
             if W in updates:
                 updates[W] = updates[W] * self.mask
 
-        if self.max_row_norm is not None:
-            W, = self.transformer.get_params()
-            if W in updates:
-                updated_W = updates[W]
-                row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=1))
-                desired_norms = T.clip(row_norms, 0, self.max_row_norm)
-                scales = desired_norms / (1e-7 + row_norms)
-                updates[W] = updated_W * scales.dimshuffle(0, 'x')
-
-        if self.max_col_norm is not None or self.min_col_norm is not None:
-            assert self.max_row_norm is None
-            if self.max_col_norm is not None:
-                max_col_norm = self.max_col_norm
-            if self.min_col_norm is None:
-                self.min_col_norm = 0
-            W, = self.transformer.get_params()
-            if W in updates:
-                updated_W = updates[W]
-                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                if self.max_col_norm is None:
-                    max_col_norm = col_norms.max()
-                desired_norms = T.clip(col_norms,
-                                       self.min_col_norm,
-                                       max_col_norm)
-                updates[W] = updated_W * desired_norms / (1e-7 + col_norms)
-
     @wraps(Layer.get_params)
     def get_params(self):
 
@@ -1665,6 +1729,7 @@ class Linear(Layer):
 
         if isinstance(coeff, str):
             coeff = float(coeff)
+
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W, = self.transformer.get_params()
         return coeff * T.sqr(W).sum()
@@ -2158,6 +2223,7 @@ class ConvRectifiedLinear(Layer):
                  b_lr_scale=None,
                  left_slope=0.0,
                  max_kernel_norm=None,
+                 weight_constraints=None,
                  pool_type='max',
                  detector_normalization=None,
                  output_normalization=None,
@@ -2214,6 +2280,9 @@ class ConvRectifiedLinear(Layer):
             raise AssertionError("You should specify either irange or "
                                  "sparse_init when calling the constructor of "
                                  "ConvRectifiedLinear and not both.")
+
+        self._input_axes_def = (1, 2, 3)
+        self._output_axes_def = (0,)
 
         self.__dict__.update(locals())
         del self.self
@@ -2287,6 +2356,7 @@ class ConvRectifiedLinear(Layer):
                 subsample=self.kernel_stride,
                 border_mode=self.border_mode,
                 rng=rng)
+
         W, = self.transformer.get_params()
         W.name = 'W'
 
@@ -2303,6 +2373,7 @@ class ConvRectifiedLinear(Layer):
             dummy_batch_size = 2
         dummy_detector = sharedX(
             self.detector_space.get_origin_batch(dummy_batch_size))
+
         if self.pool_type == 'max':
             dummy_p = max_pool(bc01=dummy_detector,
                                pool_shape=self.pool_shape,
@@ -2320,23 +2391,6 @@ class ConvRectifiedLinear(Layer):
                                         axes=('b', 'c', 0, 1))
 
         print 'Output space: ', self.output_space.shape
-
-    @wraps(Layer.censor_updates)
-    def censor_updates(self, updates):
-        """
-        .. todo::
-
-            WRITEME
-        """
-
-        if self.max_kernel_norm is not None:
-            W, = self.transformer.get_params()
-            if W in updates:
-                updated_W = updates[W]
-                row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=(1, 2, 3)))
-                desired_norms = T.clip(row_norms, 0, self.max_kernel_norm)
-                scales = desired_norms / (1e-7 + row_norms)
-                updates[W] = updated_W * scales.dimshuffle(0, 'x', 'x', 'x')
 
     @wraps(Layer.get_params)
     def get_params(self):
@@ -2401,6 +2455,28 @@ class ConvRectifiedLinear(Layer):
         raw = self.transformer._filters.get_value()
 
         return np.transpose(raw, (outp, rows, cols, inp))
+
+    @wraps(Layer.get_output_axes_def)
+    def get_output_axes_def(self):
+        """
+
+        Returns
+        -------
+        This function returns the output axes.
+        """
+
+        return self._output_axes_def
+
+    @wraps(Layer.get_input_axes_def)
+    def get_input_axes_def(self):
+        """
+
+        Returns
+        -------
+        This function returns the input axes.
+        """
+
+        return self._input_axes_def
 
     @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
@@ -2777,8 +2853,10 @@ class LinearGaussian(Linear):
     def get_monitoring_channels_from_state(self, state, target=None):
 
         rval = super(LinearGaussian, self).get_monitoring_channels()
+
         if target:
             rval['mse'] = T.sqr(state - target).mean()
+
         return rval
 
     @wraps(Linear.cost)

@@ -51,6 +51,7 @@ from pylearn2.utils import py_integer_types
 from pylearn2.utils import safe_zip
 from pylearn2.utils import safe_izip
 from pylearn2.utils import sharedX
+from pylearn2.constraints import NormConstraint
 
 warnings.warn("DBM changing the recursion limit.")
 # We need this to be high enough that the big theano graphs we make
@@ -76,7 +77,6 @@ class DBM(Model):
     See "Deep Boltzmann Machines" by Ruslan Salakhutdinov and Geoffrey Hinton
     for details.
     """
-
     def __init__(self, batch_size, visible_layer, hidden_layers, niter,
                  sampling_procedure=None, inference_procedure=None):
         """
@@ -384,6 +384,7 @@ class DBM(Model):
         """
         self.visible_layer.censor_updates(updates)
         for layer in self.hidden_layers:
+            layer.apply_constraints(updates)
             layer.censor_updates(updates)
 
     def get_input_space(self):
@@ -466,7 +467,6 @@ class DBM(Model):
             WRITEME
         rng : WRITEME
         """
-
         # Make a list of all layers
         layers = [self.visible_layer] + self.hidden_layers
 
@@ -765,6 +765,27 @@ class Layer(Model):
             WRITEME
         """
         return OrderedDict()
+
+    def apply_constraints(self, updates):
+        """
+        This function applies the max column norm constraint.
+        TODO this function can be made more generic, see: mlp
+        apply_constraints function.
+
+        Parameters
+        ---------
+        updates: a dictionary of parameter and their update values.
+        """
+        if not hasattr(self, "max_col_norm"):
+            max_col_norm = None
+
+        if self.max_col_norm is not None:
+            W, = self.transformer.get_params()
+            if W in updates:
+                updated_W = updates[W]
+                norm_constraint = NormConstraint()
+                updates[W] = norm_constraint.constrain_param(param=updated_W,
+                                                             max_norm_constraint=self.max_col_norm)
 
     def get_monitoring_channels_from_state(self, state):
         """
@@ -1391,15 +1412,6 @@ class BinaryVectorMaxPool(HiddenLayer):
             W ,= self.transformer.get_params()
             if W in updates:
                 updates[W] = updates[W] * self.mask
-
-        if self.max_col_norm is not None:
-            W, = self.transformer.get_params()
-            if W in updates:
-                updated_W = updates[W]
-                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
-
 
     def get_total_state_space(self):
         """
@@ -2086,17 +2098,8 @@ class Softmax(HiddenLayer):
 
             WRITEME
         """
-
         if not hasattr(self, 'max_col_norm'):
             self.max_col_norm = None
-
-        if self.max_col_norm is not None:
-            W = self.W
-            if W in updates:
-                updated_W = updates[W]
-                col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
-                desired_norms = T.clip(col_norms, 0, self.max_col_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
     def get_lr_scalers(self):
         """
@@ -3250,9 +3253,6 @@ class GaussianVisLayer(VisibleLayer):
             # updated_beta = Print('updating beta',attrs=['min', 'max'])(updated_beta)
             updates[self.beta] = T.clip(updated_beta,
                     self.min_beta,1e6)
-
-
-
 
     def broadcasted_mu(self):
         """

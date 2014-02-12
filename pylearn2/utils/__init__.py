@@ -114,6 +114,39 @@ def subdict(d, keys):
         if key in d: result[key] = d[key]
     return result
 
+def get_dimshuffle_pattern(axes, ndim):
+    """
+    For given axes and number of dimensions arguments of a parameter matrix or tensor
+    that we want to apply a norm constraint on. This function creates a dimshuffle pattern
+    in order to perform the dimshuffling over the scale variable to do elemwise product
+    with the parameter matrix/matrix that we want to apply the constraint on.
+
+    Parameters
+    ----------
+    axes : tuple
+    WRITEME
+    ndim : int
+    WRITEME
+
+    Returns
+    -------
+    dimshuffle_pattern : tuple
+    """
+
+    assert axes is not None, "axes should not be empty."
+    assert type(axes) == tuple, "the type of axes should be a tuple."
+
+    shf_dim_count = 0
+    dimshuffle_pattern = []
+
+    for i in xrange(ndim):
+        if i in axes:
+            dimshuffle_pattern.append('x')
+        else:
+            dimshuffle_pattern.append(shf_dim_count)
+            shf_dim_count += 1
+
+    return dimshuffle_pattern
 
 def safe_update(dict_to, dict_from):
     """
@@ -495,7 +528,7 @@ def wraps(wrapped,
     ...     def f(x):
     ...        '''
     ...        Adds 1 to x
-    ...        
+    ...
     ...        Parameters
     ...        ----------
     ...        x : int
@@ -525,17 +558,17 @@ def wraps(wrapped,
     >>> print c.f.__doc__
 
         Adds 1 to x
-        
+
         Parameters
         ----------
         x : int
             Variable to increment by 1
-    
+
         Returns
         -------
         rval : int
            x incremented by 1
-    
+
         Notes
         -----
         Also prints the incremented value
