@@ -461,6 +461,62 @@ class IndexSpace(Space):
             raise ValueError("Can't convert IndexSpace to %(space)s"
                              % (space.__class__.__name__))
 
+    @functools.wraps(Space.make_theano_batch)
+    def make_theano_batch(self, name=None, dtype=None, batch_size=None):
+        if batch_size == 1:
+            rval = T.lrow(name=name)
+        else:
+            rval = T.lmatrix(name=name)
+        return rval
+
+    @functools.wraps(Space.batch_size)
+    def batch_size(self, batch):
+        self.validate(batch)
+        return batch.shape[0]
+
+    @functools.wraps(Space.np_batch_size)
+    def np_batch_size(self, batch):
+        self.np_validate(batch)
+        return batch.shape[0]
+
+    @functools.wraps(Space._validate)
+    def _validate(self, batch):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        if not isinstance(batch, theano.gof.Variable):
+            raise TypeError("IndexSpace batch should be a theano Variable, "
+                            "got " + str(type(batch)))
+        if not isinstance(batch.type, (theano.tensor.TensorType,
+                                       CudaNdarrayType)):
+            raise TypeError("VectorSpace batch should be TensorType or "
+                            "CudaNdarrayType, got "+str(batch.type))
+        if batch.ndim != 2:
+            raise ValueError('IndexSpace batches must be 2D, got %d '
+                             'dimensions' % batch.ndim)
+        for val in get_debug_values(batch):
+            self.np_validate(val)
+
+    @functools.wraps(Space._np_validate)
+    def _np_validate(self, batch):
+        # Use the 'CudaNdarray' string to avoid importing theano.sandbox.cuda
+        # when it is not available
+        if (not isinstance(batch, np.ndarray)
+            and str(type(batch)) != "<type 'CudaNdarray'>"):
+            raise TypeError("The value of a IndexSpace batch should be a "
+                            "numpy.ndarray, or CudaNdarray, but is %s."
+                            % str(type(batch)))
+        if batch.ndim != 2:
+            raise ValueError("The value of a IndexSpace batch must be "
+                             "2D, got %d dimensions for %s." % (batch.ndim,
+                                                                batch))
+        if batch.shape[1] != self.dim:
+            raise ValueError("The width of a IndexSpace batch must match "
+                             "with the space's dimension, but batch has shape "
+                             "%s and dim = %d." % (str(batch.shape), self.dim))
+
 
 class VectorSpace(Space):
     """A space whose points are defined as fixed-length vectors."""
