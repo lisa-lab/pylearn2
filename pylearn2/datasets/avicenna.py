@@ -3,7 +3,7 @@
 
     WRITEME
 """
-from pylearn.datasets import utlc
+from pylearn2.datasets import utlc
 import numpy as N
 
 class Avicenna(object):
@@ -18,8 +18,6 @@ class Avicenna(object):
 
             WRITEME
         """
-        #train, valid, test = N.random.randn(50,50), N.random.randn(50,50), N.random.randn(50,50)
-        #print "avicenna hacked to load small random data instead of actual data"
         train, valid, test = utlc.load_ndarray_dataset('avicenna')
 
         if which_set == 'train':
@@ -38,8 +36,6 @@ class Avicenna(object):
             std[std < 1e-3] = 1e-3
             self.X /= std
 
-
-
     def get_design_matrix(self):
         """
         .. todo::
@@ -47,3 +43,4 @@ class Avicenna(object):
             WRITEME
         """
         return self.X
+
