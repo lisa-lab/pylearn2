@@ -157,20 +157,8 @@ class OneHotFormatter(object):
         squeeze_required = False
         if targets.ndim != 2:
             if targets.ndim == 1:
-                if not sparse and mode == 'stack':
-                    one_hot_flat = tensor.zeros((targets.shape[0] * self._max_labels,),
-                                                 dtype=self._dtype)
-                    row_offsets = tensor.arange(0, self._max_labels * targets.shape[0],
-                                                self._max_labels)
-                    indices = row_offsets + targets
-                    one_hot_flat = tensor.set_subtensor(one_hot_flat[indices],
-                                                        np.cast[self._dtype](1))
-                    one_hot = one_hot_flat.reshape((targets.shape[0],
-                                                    tensor.constant(self._max_labels)))
-                    return one_hot
-                else:
-                    squeeze_required = True
-                    targets = targets.dimshuffle('x', 0)
+                squeeze_required = True
+                targets = targets.dimshuffle('x', 0)
             else:
                 raise ValueError("targets tensor must be 1 or 2-dimensional")
         if 'int' not in str(targets.dtype):
@@ -204,23 +192,41 @@ class OneHotFormatter(object):
             elif mode == 'merge':
                 one_hot = tensor.zeros((targets.shape[0], self._max_labels))
                 one_hot = tensor.set_subtensor(
-                        one_hot[tensor.arange(targets.size) % targets.shape[0],
-                                targets.T.flatten()], 1)
+                    one_hot[tensor.arange(targets.size) % targets.shape[0],
+                            targets.T.flatten()], 1)
             else:
-                raise NotImplementedError()
+                one_hot = tensor.zeros((targets.shape[0], targets.shape[1],
+                                        self._max_labels))
+                one_hot = tensor.set_subtensor(one_hot[
+                    tensor.arange(targets.shape[0]).reshape((targets.shape[0],
+                                                             1)),
+                    tensor.arange(targets.shape[1]),
+                    targets
+                ], 1)
             if squeeze_required:
-                one_hot = one_hot.reshape((one_hot.shape[1],))
+                if one_hot.ndim == 2:
+                    one_hot = one_hot.reshape((one_hot.shape[1],))
+                if one_hot.ndim == 3:
+                    one_hot = one_hot.reshape((one_hot.shape[1],
+                                               one_hot.shape[2]))
         return one_hot
 
 
-def convert_to_one_hot(integer_vector):
+def convert_to_one_hot(integer_vector, dtype=None, max_labels=None,
+                       mode='stack', sparse=False):
     """
     .. todo::
 
         WRITEME
     """
+    if dtype is None:
+        dtype = config.floatX
     if isinstance(integer_vector, list):
         integer_vector = np.array(integer_vector)
     assert min(integer_vector) >= 0
-    num_classes = max(integer_vector) + 1
-    return OneHotFormatter(num_classes, 'float32').format(integer_vector)
+    assert integer_vector.ndim <= 2
+    if max_labels is None:
+        max_labels = max(integer_vector) + 1
+    return OneHotFormatter(max_labels, dtype=dtype).format(
+        integer_vector, mode=mode, sparse=sparse
+    )
