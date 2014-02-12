@@ -1,5 +1,19 @@
 #! /usr/bin/env python
 
+'''This is a loader for the dataset from Franzius, Wilbert, and
+Wiskott, 2008, "Invariant object recognition with slow feature
+analysis".
+
+    @incollection{franzius2008invariant,
+      title={Invariant object recognition with slow feature analysis},
+      author={Franzius, Mathias and Wilbert, Niko and Wiskott, Laurenz},
+      booktitle={Artificial Neural Networks-ICANN 2008},
+      pages={961--970},
+      year={2008},
+      publisher={Springer}
+    }
+'''
+
 import functools
 import warnings
 import sys
@@ -45,7 +59,7 @@ class WiskottVideoConfig(object):
 
 
 
-class WiskottVideo(Dataset):
+class WiskottVideo2(Dataset):
     '''Dataset from Franzius, Wilbert, and Wiskott, 2008, "Invariant
     object recognition with slow feature analysis".
 
