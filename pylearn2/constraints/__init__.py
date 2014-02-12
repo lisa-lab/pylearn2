@@ -3,7 +3,9 @@ import warnings
 import theano.tensor as T
 from theano.compat.python2x import OrderedDict
 
-from pylearn2.utils import wraps, get_dimshuffle_pattern
+from pylearn2.utils import wraps
+
+from itertools import izip
 
 class Constraints(object):
     """
@@ -48,23 +50,13 @@ class Constraints(object):
         output_axes: WRITEME
         """
         assert constraint_args is not None, "constraint parameters list should not be empty."
-        for constraint_arg, constraint in zip(constraint_args, self.constraints):
+        for constraint_arg, constraint in izip(constraint_args, self.constraints):
             if constraint.is_input_axis:
                 constraint_arg["axes"] = input_axes
             else:
                 constraint_arg["axes"] = output_axes
             constraint.apply_constraint(**constraint_arg)
 
-
-    def is_empty(self):
-        """
-        .. todo::
-            WRITEME
-        """
-        if self.constraints is None:
-            return False
-        else:
-            return len(self.constraints) == 0
 
 class Constraint(object):
     """
@@ -129,8 +121,8 @@ class NormConstraint(Constraint):
         self.max_norm = max_norm
 
     def _clip_norms(self, init_param, axes,
-                    max_norm, min_norm,
-                    eps):
+                    min_norm, max_norm,
+                    eps=1e-7):
         """
         Parameters
         ----------
@@ -142,7 +134,7 @@ class NormConstraint(Constraint):
             Minimum norm constraint.
         eps : float
             Epsilon, a small value to be added to norm for numerical stability to ensure that
-            denominator never becomes 0.
+            denominator never becomes 0 (default = 1e-7).
         """
         assert max_norm is not None or min_norm  is not None, "%s._clip_norms function expects either min_norm or max_norm argument to be provided." % (self.__class__.__name__)
         assert axes is not None, "%s._clip_norms function expects axes argument to be provided." % (self.__class__.__name__)
@@ -150,15 +142,11 @@ class NormConstraint(Constraint):
         min_norm_constr = min_norm if min_norm is not None else 0
 
         param_ndim = init_param.ndim
-        dimshuffle_pattern = get_dimshuffle_pattern(axes, param_ndim)
 
         sqr_param = T.sqr(init_param)
-        norm = T.sqrt(T.sum(sqr_param, axis=axes))
+        norm = T.sqrt(T.sum(sqr_param, axis=axes, keepdims=True))
         desired_norm = T.clip(norm, min_norm_constr, max_norm)
         desired_norm_ratio = desired_norm / (eps + norm)
-
-        if dimshuffle_pattern is not None:
-            desired_norm_ratio = desired_norm_ratio.dimshuffle(dimshuffle_pattern)
 
         clipped_param = init_param * desired_norm_ratio
         return clipped_param
@@ -182,7 +170,7 @@ class NormConstraint(Constraint):
         max_norm : float, optional
             Maximum value for the norm constraint.
         eps : float, optional
-            Epsilon value for the numerical stability.
+            Epsilon value for the numerical stability (default = 1e-7).
         """
         assert param is not None, "param parameter input to constrain_update function should not be empty."
         assert updates is not None, "updates parameter input to constrain_update function should not be empty."
@@ -205,45 +193,6 @@ class NormConstraint(Constraint):
         updates[param] = clipped_param
         return updates
 
-    def constrain_updates(self, params, axes, updates,
-                          min_norm=None, max_norm=None,
-                          sort_params=True, eps=1e-7):
-        """
-        Apply the constraint on the updates dictionary of the model. This function applies the constraint
-        on all the parameters in an ordered params dictionary.
-
-        Parameters
-        ----------
-        params : dictionary
-            A dictionary of the name of parameters that the constraint is going to be applied.
-        axes : tuple
-            The axes to apply the norm constraint over. axes are determined by the layer.
-        updates : dictionary
-            Updates that we are going to update our parameters at.
-        min_norm : float
-            Minimum value for the norm constraint.
-        max_norm : float
-            Maximum value for the norm constraint.
-        sort_params : bool
-            Whether to sort the parameters of the model or not.
-        eps : float
-            Epsilon value for the numerical stability.
-        """
-        assert params is not None, "params parameter input to constrain_params function should not be empty."
-        assert updates is not None, "updates parameter input to constrain_params function should not be empty."
-        if sort_params:
-            sorted_params = sorted(params.iteritems())
-        else:
-            if not isinstance(params, OrderedDict):
-                warnings.warn("Parameters to %s.constrain_updates function is not an ordered\
-                        dictionary,this may cause inconsistent results." % (self.__class__.__name__))
-            sorted_params = params.iteritems()
-
-        for key, param in sorted_params:
-            updates = self.constrain_update(param, updates, axes,
-                                            min_norm, max_norm,
-                                            eps)
-        return updates
 
     def constrain_param(self, param, axes,
                         min_norm=None, max_norm=None,
@@ -262,7 +211,7 @@ class NormConstraint(Constraint):
         max_norm : float, optional
             Maximum value for the norm constraint.
         eps : float, optional
-            Epsilon value for the numerical stability.
+            Epsilon value for the numerical stability (default=1e-7).
         """
 
         assert param is not None, "params parameter input to constrain_params function should not be empty."

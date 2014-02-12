@@ -546,7 +546,6 @@ class MLP(Layer):
             if hasattr(layer, "apply_constraints"):
                 layer.apply_constraints(updates)
 
-        for layer in self.layers:
             if hasattr(layer, "censor_updates"):
                 layer.censor_updates(updates)
 
