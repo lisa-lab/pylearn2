@@ -10,57 +10,6 @@ from theano.compat.python2x import OrderedDict
 from pylearn2.utils import wraps
 
 
-class Constraints(object):
-    """
-    A plug and play style class to contain different types of constraints.
-    !!!IMPORTANT!!!
-    Order of the constraints added to that class is important.
-    Because the constrain_params are passed into the function in a specific order.
-    """
-    def __init__(self, constraints=None):
-        """
-        .. todo::
-            WRITEME
-        """
-        if constraints is None:
-            self.constraints = []
-        else:
-            self.constraints = constraints
-
-    def add_constraint(self, constraint):
-        """
-        .. todo::
-        """
-        self.constraints.append(constraint)
-
-    def get(self):
-        """
-        .. todo::
-            WRITEME
-        """
-        return self.constraints
-
-    def apply(self, constraint_args, input_axes=None, output_axes=None):
-        """
-        Function that applies the constraints with the specified parameters for each constraint.
-
-        Parameters
-        ----------
-        constraint_args: list of dictionaries.
-            A list of function arguments(in a dictionary) to pass to apply_constraints function
-            of each constraint.
-        input_axes: WRITEME
-        output_axes: WRITEME
-        """
-        assert constraint_args is not None, "constraint parameters list should not be empty."
-        for constraint_arg, constraint in izip(constraint_args, self.constraints):
-            if constraint.is_input_axis:
-                constraint_arg["axes"] = input_axes
-            else:
-                constraint_arg["axes"] = output_axes
-            constraint.apply_constraint(**constraint_arg)
-
-
 class Constraint(object):
     """
     Base class for implementing different types of constraints.
@@ -131,6 +80,29 @@ class NormConstraint(Constraint):
         self.eps = eps
         assert norm is not None, "%s's constructor expects " % (self.__class__.__name__) + \
                 "norm argument to be provided."
+
+    def _clip_norms(self, constrain_on, axes,
+                    eps=1e-7):
+        """
+        Parameters
+        ----------
+        init_param : Theano shared variable.
+            The parameter that we are going to apply the constraint on.
+        """
+        assert axes is not None, "%s._clip_norms function expects" % (self.__class__.__name__) + \
+            "axes argument to be provided."
+        min_constraint = 0.0
+        max_constraint = np.inf
+        if self.is_max_constraint:
+            max_constraint = self.norm
+        else:
+            min_constraint = self.norm
+        sqr_param = T.sqr(constrain_on)
+        norm = T.sqrt(T.sum(sqr_param, axis=axes, keepdims=True))
+        desired_norm = T.clip(norm, min_constraint, max_constraint)
+        desired_norm_ratio = desired_norm / (self.eps + norm)
+        clipped_param = init_param * desired_norm_ratio
+        return clipped_param
 
     @wraps(Constraint.apply_constraint)
     def apply_constraint(self, constrain_on, axes,
