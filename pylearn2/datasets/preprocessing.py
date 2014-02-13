@@ -905,16 +905,26 @@ class ZCA(Preprocessor):
         falls back to the CPU, with a warning message.
         """
 
+        # compile theano function
         if not hasattr(ZCA._gpu_mdmt, 'theano_func'):
             t_mat = theano.tensor.matrix('A')
             t_diags = theano.tensor.vector('D')
             result = theano.tensor.dot(t_mat * t_diags, t_mat.T)
             ZCA._gpu_mdmt.theano_func = theano.function([t_mat, t_diags],
-                                                        result)
+                                                        result,
+                                                        allow_input_downcast=True)
 
         try:
+            # function()-call above had to downcast the data. Emit warnings.
+            if mat.dtype != numpy.float32:
+                warnings.warn('Implicitly converting mat from dtype=%s to float32 for gpu' % mat.dtype)
+            if diags.dtype != numpy.float32:
+                warnings.warn('Implicitly converting diag from dtype=%s to float32 for gpu' % diags.dtype)
+
             return ZCA._gpu_mdmt.theano_func(mat, diags)
+            
         except MemoryError:
+            # fall back to cpu
             warnings.warn('M * D * M^T was too big to fit on GPU. '
                           'Re-doing with CPU. Consider using '
                           'THEANO_FLAGS="device=cpu" for your next '
@@ -1045,7 +1055,6 @@ class ZCA(Preprocessor):
             warnings.warn()
             self.P_ = numpy.dot(eigv * (1.0 / sqrt_eigs), eigv.T)
 
-        self.P_ = ZCA._gpu_mdmt(eigv, 1.0/sqrt_eigs)
         t2 = time.time()
         assert not numpy.any(numpy.isnan(self.P_))
         self.has_fit_ = True
@@ -1067,7 +1076,7 @@ class ZCA(Preprocessor):
             ZCA._x_minus_mean_times_p = theano.function([x_symbol,
                                                          mean_symbol,
                                                          p_symbol],
-                                                        new_x_symbol)
+                                                         new_x_symbol)
 
         X = dataset.get_design_matrix()
         assert X.dtype in ['float32', 'float64']
