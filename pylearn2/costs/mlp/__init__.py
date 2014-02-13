@@ -50,7 +50,7 @@ class WeightDecay(NullDataSpecsMixin, Cost):
         """
         Parameters
         ----------
-        coeffs :    list
+        coeffs : list
             One element per layer, specifying the coefficient to multiply
             with the cost defined by the squared L2 norm of the weights for
             each layer.
@@ -119,7 +119,7 @@ class L1WeightDecay(NullDataSpecsMixin, Cost):
         """
         Parameters
         ----------
-        coeffs :    list
+        coeffs : list
             One element per layer, specifying the coefficient to multiply
             with the cost defined by the L1 norm of the weights for each
             layer.
