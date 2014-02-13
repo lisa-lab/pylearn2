@@ -65,6 +65,9 @@ class OneHotFormatter(object):
             merge :       merges the one-hot vectors together to
                           form a vector where the elements are
                           the result of an indicator function
+                          NB: As the result of an indicator function
+                          the result is the same in case a label
+                          is duplicated in the input.
         sparse : bool
             If true then the return value is sparse matrix. Note that
             if sparse is True, then mode cannot be 'stack' because
@@ -136,6 +139,9 @@ class OneHotFormatter(object):
             merge :       merges the one-hot vectors together to
                           form a vector where the elements are
                           the result of an indicator function
+                          NB: As the result of an indicator function
+                          the result is the same in case a label
+                          is duplicated in the input.
         sparse : bool
             If true then the return value is sparse matrix. Note that
             if sparse is True, then mode cannot be 'stack' because
