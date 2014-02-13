@@ -450,7 +450,7 @@ class IndexSpace(Space):
                 rval = self.formatter.theano_expr(batch, sparse=space.sparse,
                                                   mode='merge')
             elif self.dim * self.max_labels == space.dim:
-                rval = self.formatter.theano.expr(batch, sparse=space.sparse,
+                rval = self.formatter.theano_expr(batch, sparse=space.sparse,
                                                   mode='concatenate')
             else:
                 raise ValueError("Can't convert IndexSpace to"

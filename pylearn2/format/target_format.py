@@ -47,7 +47,8 @@ class OneHotFormatter(object):
     def format(self, targets, mode='stack', sparse=False):
         """
         Formats a given array of target labels into a one-hot
-        vector.
+        vector. If labels appear multiple times, their value
+        in the one-hot vector is incremented.
 
         Parameters
         ----------
@@ -116,6 +117,8 @@ class OneHotFormatter(object):
     def theano_expr(self, targets, mode='stack', sparse=False):
         """
         Return the one-hot transformation as a symbolic expression.
+         If labels appear multiple times, their value in the one-hot
+         vector is incremented.
 
         Parameters
         ----------
@@ -187,7 +190,7 @@ class OneHotFormatter(object):
                                            targets.shape[1] * self._max_labels))
             elif mode == 'merge':
                 one_hot = tensor.zeros((targets.shape[0], self._max_labels))
-                one_hot = tensor.set_subtensor(
+                one_hot = tensor.inc_subtensor(
                     one_hot[tensor.arange(targets.size) % targets.shape[0],
                             targets.T.flatten()], 1)
             else:
