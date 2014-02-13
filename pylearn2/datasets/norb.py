@@ -10,7 +10,7 @@ http://www.cs.nyu.edu/~ylclab/data/norb-v1.0-small/
 NORB dataset(s) by Fu Jie Huang and Yann LeCun.
 """
 
-__authors__ = "Matthew Koichi Grimes and Guillaume Desjardins"
+__authors__ = "Guillaume Desjardins and Matthew Koichi Grimes"
 __copyright__ = "Copyright 2010-2014, Universite de Montreal"
 __credits__ = __authors__.split(" and ")
 __license__ = "3-clause BSD"
