@@ -60,8 +60,7 @@ class OneHotFormatter(object):
             concatenate : concatenates the one-hot vectors from
                           multiple labels
             stack :       returns a matrix where each row is the
-                          one-hot vector of a label, only supported
-                          for NumPy arrays, not for Theano expressions!
+                          one-hot vector of a label
             merge :       merges the one-hot vectors together to
                           form a vector where the elements are
                           the result of an indicator function
@@ -120,9 +119,9 @@ class OneHotFormatter(object):
 
         Parameters
         ----------
-        targets : tensor_like, 1-dimensional, integer dtype
-            A symbolic tensor representing labels as integers \
-            between 0 and `max_labels` - 1, `max_labels` supplied \
+        targets : tensor_like, 1- or 2-dimensional, integer dtype
+            A symbolic tensor representing labels as integers
+            between 0 and `max_labels` - 1, `max_labels` supplied
             at formatter construction.
         mode : string
             The way in which to convert the labels to arrays. Takes
@@ -130,8 +129,7 @@ class OneHotFormatter(object):
             concatenate : concatenates the one-hot vectors from
                           multiple labels
             stack :       returns a matrix where each row is the
-                          one-hot vector of a label, only supported
-                          for NumPy arrays, not for Theano expressions!
+                          one-hot vector of a label
             merge :       merges the one-hot vectors together to
                           form a vector where the elements are
                           the result of an indicator function
@@ -142,12 +140,10 @@ class OneHotFormatter(object):
 
         Returns
         -------
-        one_hot : TensorVariable, 2-dimensional
+        one_hot : TensorVariable, 1, 2 or 3-dimensional, sparse or dense
             A symbolic tensor representing a one-hot encoding of the \
             supplied labels.
         """
-        # Create a flat zero vector with the right number of elements, do
-        # some index math to get the non-zero positions, and then reshape.
         if mode not in ('concatenate', 'stack', 'merge'):
             raise ValueError("%s got bad mode argument '%s'" %
                             (self.__class__.__name__, str(self._max_labels)))
@@ -215,9 +211,43 @@ class OneHotFormatter(object):
 def convert_to_one_hot(integer_vector, dtype=None, max_labels=None,
                        mode='stack', sparse=False):
     """
-    .. todo::
+    Formats a given array of target labels into a one-hot
+    vector.
 
-        WRITEME
+    Parameters
+    ----------
+    max_labels : int, optional
+        The number of possible classes/labels. This means that
+        all labels should be < max_labels. Example: For MNIST
+        there are 10 numbers and hence max_labels = 10. If not
+        given it defaults to max(integer_vector) + 1.
+    dtype : dtype, optional
+        The desired dtype for the converted one-hot vectors.
+        Defaults to config.floatX if not given.
+    integer_vector : ndarray
+        A 1D array of targets, or a batch (2D array) where
+        each row is a list of targets.
+    mode : string
+        The way in which to convert the labels to arrays. Takes
+        three different options:
+        concatenate : concatenates the one-hot vectors from
+                      multiple labels
+        stack :       returns a matrix where each row is the
+                      one-hot vector of a label
+        merge :       merges the one-hot vectors together to
+                      form a vector where the elements are
+                      the result of an indicator function
+    sparse : bool
+        If true then the return value is sparse matrix. Note that
+        if sparse is True, then mode cannot be 'stack' because
+        sparse matrices need to be 2D
+
+    Returns
+    -------
+    one_hot : a NumPy array (can be 1D-3D depending on settings) where
+              normally the first axis are the different batch items,
+              the second axis the labels, the third axis the one_hot
+              vectors. Can be dense or sparse.
     """
     if dtype is None:
         dtype = config.floatX
