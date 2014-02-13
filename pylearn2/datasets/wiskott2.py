@@ -85,7 +85,8 @@ class WiskottVideo2(Dataset):
     dirs_test = ['fish_test_25_standard',
                  'spheres_test_10_standard']
 
-    too_few_files_error = ('Too few data files found. We looked for data in '
+    too_few_files_error = ('Too few data files found (expected: %(expected)d, '
+                           'actual: %(actual)d). We looked for data in '
                            '%(root_dir)s but found either too few data files or no '
                            'data files (for example, we looked for files matching '
                            'the regex %(example)s). Is the data at that path?'
@@ -200,8 +201,8 @@ class WiskottVideo2(Dataset):
         self._n_matrices = len(self._feature_matrices)
 
         log.info('Memory used for WiskottVideo2 features/labels: %.3fG/%.3fG' % (
-            sum([mat.nbytes for mat in self._feature_matrices]) / 1.0e9,
-            sum([mat.nbytes for mat in self._label_matrices]) / 1.0e9
+            sum([mat.nbytes for mat in self._feature_matrices]) / 1024. ** 3,
+            sum([mat.nbytes for mat in self._label_matrices])   / 1024. ** 3
             ))
 
         if self.is_fish:
@@ -241,6 +242,13 @@ class WiskottVideo2(Dataset):
                                        file_regex)
             example_file_filter = file_filter
             filenames.extend(sorted(glob.glob(file_filter)))
+        
+        expected_files = 1250 if self.which_set in ('train', 'valid') else 500
+        assert len(filenames) == expected_files, (
+            self.too_few_files_error % {'expected': expected_files,
+                                        'actual': len(filenames),
+                                        'root_dir': root_dir,
+                                        'example': example_file_filter})
 
         # Here we split the training directories into train and valid
         # sets and choose the appropriate set. The test set is separate.
@@ -250,10 +258,8 @@ class WiskottVideo2(Dataset):
             idx_train = int(len(filenames) * .8)  # 80% train, 20% valid
             train_filenames = filenames[:idx_train]
             valid_filenames = filenames[idx_train:]
-            assert len(train_filenames) > 10, (
-                self.too_few_files_error % {'root_dir': root_dir, 'example': example_file_filter})
-            assert len(valid_filenames) > 10, (
-                self.too_few_files_error % {'root_dir': root_dir, 'example': example_file_filter})
+            assert len(train_filenames) > 0, 'too few files'
+            assert len(valid_filenames) > 0, 'too few files'
             if self.which_set == 'train':
                 filenames = train_filenames
             else:
