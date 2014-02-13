@@ -75,9 +75,12 @@ class DenseDesignMatrix(Dataset):
             A random number generator used for picking random \
             indices into the design matrix when choosing minibatches.
         max_labels : int, optional
-            If y contains labels than max_labels must be passed \
-            the number of possible labels i.e. the size of the \
-            output layer.
+            If y contains labels (usually an IndexSpace) then max_labels \
+            must be passed to indicate the total number of possible labels \
+            e.g. 10 for MNIST, or the size of your target vocabulary in a \
+            language model. Note that this is the same as the size of the \
+            output layer in the case the target labels are formatted as \
+            one-hot vectors (in a VectorSpace).
         """
         self.X = X
         self.y = y
