@@ -1,11 +1,14 @@
 import warnings
 
+from itertools import izip
+
+import numpy as np
+
 import theano.tensor as T
 from theano.compat.python2x import OrderedDict
 
 from pylearn2.utils import wraps
 
-from itertools import izip
 
 class Constraints(object):
     """
@@ -63,8 +66,8 @@ class Constraint(object):
     Base class for implementing different types of constraints.
     """
     def apply_constraint(self,
-                         constrain_on, axes, updates,
-                         min_constraint=None, max_constraint=None):
+                         constrain_on, axes,
+                         updates=None):
         """
         A function that applies the constraint. This function is implemented with weight norm
         constraint in mind. We should make the interface more generic for other types of constraints.
@@ -94,8 +97,10 @@ class NormConstraint(Constraint):
         Hinton, Geoffrey E., et al. "Improving neural networks by preventing co-adaptation of feature
         detectors." arXiv preprint arXiv:1207.0580 (2012).
     """
-    def __init__(self, min_norm=None, max_norm=None,
-                 is_input_axis=True):
+    def __init__(self, norm=None,
+                 is_input_axis=True,
+                 is_max_constraint=True,
+                 eps=1e-7):
         """
         This class applies the norm constraint on the parameters. For feedforward layers, norm constraint are
         usually applied on weights, but for convolutional neural networks constraint is being
@@ -108,119 +113,28 @@ class NormConstraint(Constraint):
 
         Parameters
         ----------
-        min_norm : float, optional
-            The minimum norm of the parameters.
-        max_norm : float, optional
+        norm : float, optional
             The maximum norm of the parameters.
-        is_input_axis: bool, optional
+        is_input_axis : bool, optional
             This determines whether to perform the dimshuffle along is input axes or output
             axes. By default this has been set to True.
-        """
-        self.is_input_axis = is_input_axis
-        self.min_norm = min_norm
-        self.max_norm = max_norm
-
-    def _clip_norms(self, init_param, axes,
-                    min_norm, max_norm,
-                    eps=1e-7):
-        """
-        Parameters
-        ----------
-        init_param : Theano shared variable.
-            The parameter that we are going to apply the constraint on.
-        max_norm : float
-            Maximum norm constraint.
-        min_norm : float
-            Minimum norm constraint.
+        is_max_constraint : bool, optional
+            is_max_constraint is a flag that determines whether to apply constraint as a max norm
+            constraint or min norm constraint. By default this is True.
         eps : float
             Epsilon, a small value to be added to norm for numerical stability to ensure that
             denominator never becomes 0 (default = 1e-7).
         """
-        assert max_norm is not None or min_norm  is not None, "%s._clip_norms function expects either min_norm or max_norm argument to be provided." % (self.__class__.__name__)
-        assert axes is not None, "%s._clip_norms function expects axes argument to be provided." % (self.__class__.__name__)
-
-        min_norm_constr = min_norm if min_norm is not None else 0
-
-        sqr_param = T.sqr(init_param)
-        norm = T.sqrt(T.sum(sqr_param, axis=axes, keepdims=True))
-        desired_norm = T.clip(norm, min_norm_constr, max_norm)
-        desired_norm_ratio = desired_norm / (eps + norm)
-        clipped_param = init_param * desired_norm_ratio
-        return clipped_param
-
-    def constrain_update(self, param, axes, updates,
-                         min_norm=None, max_norm=None,
-                         eps=1e-7):
-        """
-        Apply the constraint on the updates of the model.
-
-        Parameters
-        ----------
-        param : Theano shared variable
-            Weight parameter that the constraint is going to be applied.
-        axes : tuple
-            The axes to apply the norm constraint over. axes are determined by the layer.
-        updates : dictionary
-            Updates that we are going to update our parameter at.
-        min_norm : float, optional
-            Minimum value for the norm constraint.
-        max_norm : float, optional
-            Maximum value for the norm constraint.
-        eps : float, optional
-            Epsilon value for the numerical stability (default = 1e-7).
-        """
-        assert param is not None, "param parameter input to constrain_update function should not be empty."
-        assert updates is not None, "updates parameter input to constrain_update function should not be empty."
-
-        if min_norm is None:
-            min_norm = self.min_norm
-        else:
-            self.min_norm = self.min_norm
-
-        if max_norm is None:
-            max_norm = self.max_norm
-        else:
-            self.max_norm = max_norm
-
-        update_param = updates[param]
-        clipped_param = self._clip_norms(update_param, axes,
-                                         min_norm, max_norm,
-                                         eps)
-
-        updates[param] = clipped_param
-        return updates
-
-
-    def constrain_param(self, param, axes,
-                        min_norm=None, max_norm=None,
-                        eps=1e-7):
-        """
-        Apply the constraint directly on a specific parameter of the model.
-
-        Parameters
-        ----------
-        params : dictionary
-            A dictionary of the name of parameters that the constraint is going to be applied.
-        axes : tuple
-            The axes to apply the norm constraint over. axes are determined by the layer.
-        min_norm : float, optional
-            Minimum value for the norm constraint.
-        max_norm : float, optional
-            Maximum value for the norm constraint.
-        eps : float, optional
-            Epsilon value for the numerical stability (default=1e-7).
-        """
-
-        assert param is not None, "params parameter input to constrain_params function should not be empty."
-
-        clipped_param = self._clip_norms(param, axes,
-                                         min_norm, max_norm,
-                                         eps)
-        return clipped_param
+        self.is_input_axis = is_input_axis
+        self.is_max_constraint = is_max_constraint
+        self.norm = norm
+        self.eps = eps
+        assert norm is not None, "%s's constructor expects " % (self.__class__.__name__) + \
+                "norm argument to be provided."
 
     @wraps(Constraint.apply_constraint)
-    def apply_constraint(self, constrain_on, axes, updates=None,
-                         min_constraint=None, max_constraint=None):
+    def apply_constraint(self, constrain_on, axes,
+                         updates=None):
         """
         The function that applies the constraints using the functions by using the constrain_param
         and the constrain_updates functions.
@@ -233,12 +147,13 @@ class NormConstraint(Constraint):
             Axes to apply the norm constraint over. axes are determined by the layer.
         updates : dictionary, optional
             update dictionary that is being passed to the train function.
-        min_constraint : float, optional
-            minimum value that the constraint should satisfy
-        max_constraint : float, optional
-            maximum value that the constraint should satisfy
         """
         if updates is None:
-            return self.constrain_param(constrain_on, axes, min_constraint, max_constraint)
+            clipped_param = self._clip_norms(constrain_on, axes)
+            return self.constrain_param(constrain_on, axes)
         else:
-            return self.constrain_update(constrain_on, axes, updates, min_constraint, max_constraint)
+            update_param = updates[constrain_on]
+            clipped_param = self._clip_norms(update_param, axes, updates)
+            updates[constrain_on] = clipped_param
+            return updates
+

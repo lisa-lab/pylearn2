@@ -39,7 +39,7 @@ def test_maxout_basic():
                          irange: .005,
                          weight_constraints: [
                             !obj:pylearn2.constraints.NormConstraint {
-                                max_norm: 1.9365
+                                norm: 1.9365
                             },
                         ],
                      },
@@ -50,7 +50,7 @@ def test_maxout_basic():
                          irange: .005,
                          weight_constraints: [
                             !obj:pylearn2.constraints.NormConstraint {
-                                max_norm: 1.9365
+                                norm: 1.9365
                             },
                          ]
                      },
@@ -58,7 +58,7 @@ def test_maxout_basic():
                          layer_name: 'y',
                          weight_constraints: [
                             !obj:pylearn2.constraints.NormConstraint {
-                                max_norm: 1.9365
+                                norm: 1.9365
                             }
                          ],
                          n_classes: 10,
@@ -125,7 +125,7 @@ yaml_string_maxout_conv_c01b_basic = """
                          irange: .005,
                          weight_constraints: [
                             !obj:pylearn2.constraints.NormConstraint {
-                                max_norm: 1.9365
+                                norm: 1.9365
                              }
                          ],
                      },
@@ -160,7 +160,7 @@ yaml_string_maxout_conv_c01b_basic = """
                      !obj:pylearn2.models.mlp.Softmax {
                          weight_constraints: [
                             !obj:pylearn2.constraints.NormConstraint {
-                                max_norm: 1.9365
+                                norm: 1.9365
                             }
                          ],
                          layer_name: 'y',
@@ -236,7 +236,8 @@ yaml_string_maxout_conv_c01b_cifar10 = """
                          tied_b: True,
                          weight_constraints: [
                              !obj:pylearn2.constraints.NormConstraint {
-                                max_norm: 9.9
+                                norm: 9.9,
+                                is_max_constraint: False,
                              }
                          ],
                      },
@@ -248,7 +249,7 @@ yaml_string_maxout_conv_c01b_cifar10 = """
                          b_lr_scale: 2.,
                          weight_constraints: [
                             !obj:pylearn2.constraints.NormConstraint {
-                                max_norm: 9.9365
+                                norm: 9.9365
                             }
                          ],
                      }

@@ -253,12 +253,9 @@ class Maxout(Layer):
                 raise ValueError("Expected mask with shape "+str(expected_shape)+" but got "+str(self.mask_weights.shape))
             self.mask = sharedX(self.mask_weights)
 
+    @wraps(Layer.censor_updates)
     def censor_updates(self, updates):
-        """
-        .. todo::
-
-            WRITEME
-        """
+        super(Maxout, self).__init__()
         # Patch old pickle files
         if not hasattr(self, 'mask_weights'):
             self.mask_weights = None
