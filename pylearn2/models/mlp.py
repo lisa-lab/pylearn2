@@ -35,6 +35,7 @@ from pylearn2.utils import function
 from pylearn2.utils import py_integer_types
 from pylearn2.utils import safe_union
 from pylearn2.utils import safe_zip
+from pylearn2.utils import safe_izip
 from pylearn2.utils import sharedX
 from pylearn2.utils import wraps
 
@@ -273,20 +274,20 @@ class Layer(Model):
     def censor_updates(self, updates):
         self._apply_constraints(updates)
 
-    def _perform_constraints(self, constraint_args, input_axes=None, output_axes=None):
+    def _perform_constraints(self, args_list, input_axes=None, output_axes=None):
         """
         Function that applies the constraints with the specified parameters for each constraint.
 
         Parameters
         ----------
-        constraint_args: list of dictionaries.
+        args_list : list of dictionaries.
             A list of function arguments(in a dictionary) to pass to apply_constraints function
             of each constraint.
-        input_axes: WRITEME
-        output_axes: WRITEME
+        input_axes : WRITEME
+        output_axes : WRITEME
         """
-        assert constraint_args is not None, "constraint parameters list should not be empty."
-        for constraint_arg, constraint in safe_zip(constraint_args, self.weight_constraints):
+        assert args_list is not None, "constraint parameters list should not be empty."
+        for constraint_arg, constraint in safe_izip(args_list, self.weight_constraints):
             if constraint.is_input_axis:
                 constraint_arg["axes"] = input_axes
             else:
@@ -309,40 +310,35 @@ class Layer(Model):
             self.weight_constraints = []
 
         if getattr(self, "max_col_norm", None) is not None:
-            if self.max_col_norm is not None:
-                constraint = NormConstraint(max_norm=self.max_col_norm)
-                constraints.add_constraint(constraint)
-                warnings.warn("%s.max_col_norm is deprecated. Please use, weight_constraints " % self.__class__.__name__ +
-                        "instead. max_col_norm argument will be removed on or after 11.08.2014.")
+            constraint = NormConstraint(norm=self.max_col_norm)
+            self.weight_constraints.append(constraint)
+            warnings.warn("%s.max_col_norm is deprecated. Please use, weight_constraints " % self.__class__.__name__ +
+                    "instead. max_col_norm argument will be removed on or after 11.08.2014.")
 
         if getattr(self, "min_col_norm", None) is not None:
-            if self.min_col_norm is not None:
-                constraint = NormConstraint(min_norm=self.min_col_norm)
-                constraints.add_constraint(constraint)
+            constraint = NormConstraint(norm=self.min_col_norm)
+            self.weight_constraints.append(constraint)
 
-                warnings.warn("%s.min_col_norm is deprecated. Please use, weight_constraints instead." % self.__class__.__name__
-                        + "min_col_norm argument will be removed on or after 11.08.2014.")
+            warnings.warn("%s.min_col_norm is deprecated. Please use, weight_constraints instead." % self.__class__.__name__ +
+                     "min_col_norm argument will be removed on or after 11.08.2014.")
 
         if getattr(self, "max_kernel_norm", None) is not None:
-            if self.max_kernel_norm is not None:
-                constraint = NormConstraint(max_norm=self.max_kernel_norm)
-                constraints.add_constraint(constraint)
-                warnings.warn("%s.max_kernel_norm is deprecated. Please use, weight_constraints instead." % self.__class__.__name__ +
-                        "max_kernel_norm argument will be removed on or after 11.08.2014.")
+            constraint = NormConstraint(norm=self.max_kernel_norm)
+            self.weight_constraints.append(constraint)
+            warnings.warn("%s.max_kernel_norm is deprecated. Please use, weight_constraints instead." % self.__class__.__name__ +
+                    "max_kernel_norm argument will be removed on or after 11.08.2014.")
 
         if getattr(self, "max_row_norm", None) is not None:
-            if self.max_row_norm is not None:
-                constraint = NormConstraint(max_norm=self.max_row_norm, is_input_axis=False)
-                constraints.add_constraint(constraint)
-                warnings.warn("%s.max_row_norm is deprecated. Please use, weight_constraints instead." % self.__class__.__name__ +
-                               "max_row_norm argument will be removed on or after 11.08.2014.")
+            constraint = NormConstraint(norm=self.max_row_norm, is_input_axis=False)
+            self.weight_constraints.append(constraint)
+            warnings.warn("%s.max_row_norm is deprecated. Please use, weight_constraints instead." % self.__class__.__name__ +
+                    "max_row_norm argument will be removed on or after 11.08.2014.")
 
         if getattr(self, "max_filter_norm", None) is not None:
-            if self.max_filter_norm is not None:
-                constraint = NormConstraint(max_norm=self.max_filter_norm)
-                constraints.add_constraint(constraint)
-                warnings.warn("%s.max_filter_norm is deprecated. Please use, weight_constraints instead." % self.__class__.__name__ +
-                        "max_filter_norm argument will be removed on or after 11.08.2014.")
+            constraint = NormConstraint(norm=self.max_filter_norm)
+            self.weight_constraints.append(constraint)
+            warnings.warn("%s.max_filter_norm is deprecated. Please use, weight_constraints instead." % self.__class__.__name__ +
+                    "max_filter_norm argument will be removed on or after 11.08.2014.")
 
         if self.__class__ == Softmax:
             W = self.W

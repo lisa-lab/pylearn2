@@ -105,8 +105,8 @@ class NormConstraint(Constraint):
         return clipped_param
 
     @wraps(Constraint.apply_constraint)
-    def apply_constraint(self, constrain_on, axes,
-                         updates=None):
+    def apply_constraint(self, constrain_on,
+                        axes=(0,), updates=None):
         """
         The function that applies the constraints using the functions by using the constrain_param
         and the constrain_updates functions.
@@ -115,15 +115,20 @@ class NormConstraint(Constraint):
         ----------
         constrain_on : theano shared variable.
             Theano shared variable that the constraint is going to be applied on.
-        axes : tuple
-            Axes to apply the norm constraint over. axes are determined by the layer.
+        axes : tuple, optional
+            Axes to apply the norm constraint over. axes are determined by the layer. Default
+            value of this function is (0,).
         updates : dictionary, optional
             update dictionary that is being passed to the train function.
         """
+
         if updates is None:
             clipped_param = self._clip_norms(constrain_on, axes)
             return self.constrain_param(constrain_on, axes)
         else:
+            assert constrain_on in updates, "%s.apply_constraint function expects" % (self.__class__.__name__) + \
+                    "constrain_on argument to be in provided updates dictionary."
+
             update_param = updates[constrain_on]
             clipped_param = self._clip_norms(update_param, axes, updates)
             updates[constrain_on] = clipped_param

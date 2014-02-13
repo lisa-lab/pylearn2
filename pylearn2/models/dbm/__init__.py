@@ -51,6 +51,7 @@ from pylearn2.utils import py_integer_types
 from pylearn2.utils import safe_zip
 from pylearn2.utils import safe_izip
 from pylearn2.utils import sharedX
+from pylearn2.utils import wraps
 from pylearn2.constraints import NormConstraint
 
 warnings.warn("DBM changing the recursion limit.")
@@ -766,7 +767,11 @@ class Layer(Model):
         """
         return OrderedDict()
 
-    def apply_constraints(self, updates):
+    @wraps(Model.censor_updates)
+    def censor_updates(self, updates):
+        self._apply_constraints(updates)
+
+    def _apply_constraints(self, updates):
         """
         This function applies the max column norm constraint.
         TODO this function can be made more generic, see: mlp
@@ -776,16 +781,17 @@ class Layer(Model):
         ---------
         updates: a dictionary of parameter and their update values.
         """
-        if not hasattr(self, "max_col_norm"):
-            max_col_norm = None
+        if getattr(self, 'weight_constraints', None) is not None:
+            self.weight_constraints = []
 
-        if self.max_col_norm is not None:
-            W, = self.transformer.get_params()
-            if W in updates:
-                updated_W = updates[W]
-                norm_constraint = NormConstraint()
-                updates[W] = norm_constraint.constrain_param(param=updated_W,
-                                                             max_norm_constraint=self.max_col_norm)
+        if getattr(self, "max_col_norm", None) is not None:
+            constraint = NormConstraint(norm=self.max_col_norm)
+            self.weight_constraints.append(constraint)
+
+        W, = self.transformer.get_params()
+
+        for constraint in self.weight_constraints:
+            constraint.apply_constraint(constrain_on=W, updates=update)
 
     def get_monitoring_channels_from_state(self, state):
         """
@@ -1271,6 +1277,7 @@ class BinaryVectorMaxPool(HiddenLayer):
             center = False,
             mask_weights = None,
             max_col_norm = None,
+            weight_constraints=None,
             copies = 1):
         """
         Parameters
@@ -1291,6 +1298,7 @@ class BinaryVectorMaxPool(HiddenLayer):
         center : WRITEME
         mask_weights : WRITEME
         max_col_norm : WRITEME
+        weight_constraints : WRITEME
         copies : WRITEME
         """
         self.__dict__.update(locals())
@@ -2062,6 +2070,7 @@ class Softmax(HiddenLayer):
                  sparse_init = None, sparse_istdev = 1., W_lr_scale = None,
                  b_lr_scale = None,
                  max_col_norm = None,
+                 weight_constraints = None,
                  copies = 1, center = False,
                  learn_init_inpainting_state = True):
         """
@@ -4598,6 +4607,7 @@ class BVMP_Gaussian(BinaryVectorMaxPool):
             center = False,
             mask_weights = None,
             max_col_norm = None,
+            weight_constraints = None,
             copies = 1):
         """
         .. todo::
