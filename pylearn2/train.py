@@ -127,6 +127,10 @@ class Train(object):
             self.model.monitor = Monitor.get_monitor(self.model)
             self.model.monitor.time_budget_exceeded = False
             self.setup_extensions()
+            # Model.censor_updates is used by the training algorithm to
+            # enforce constraints after each step of learning. Here we
+            # make sure the constraints are enforced from the start.
+            self.model.enforce_constraints()
             self.run_callbacks_and_monitoring()
             while True:
                 if self.exceeded_time_budget(t0, time_budget):
@@ -150,6 +154,10 @@ class Train(object):
         else:
             self.algorithm.setup(model=self.model, dataset=self.dataset)
             self.setup_extensions()
+            # Model.censor_updates is used by the training algorithm to
+            # enforce constraints after each step of learning. Here we
+            # make sure the constraints are enforced from the start.
+            self.model.enforce_constraints()
             if not hasattr(self.model, 'monitor'):
                 # TODO: is this really necessary? I just put this error here
                 # to prevent an AttributeError later, but I think we could
