@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-'''This is a loader for the dataset from Franzius, Wilbert, and
+"""This is a loader for the dataset from Franzius, Wilbert, and
 Wiskott, 2008, "Invariant object recognition with slow feature
 analysis".
 
@@ -14,7 +14,7 @@ analysis".
     }
 
 For more dataset information, see documentation under WiskottVideo2.__init__.
-'''
+"""
 
 import functools
 import warnings
@@ -37,7 +37,7 @@ log = logging.getLogger(__name__)
 
 
 def validate_config_dict(config_dict):
-    '''
+    """
     When creating a WiskottVideo2 instance, certain configuration
     info is needed. This info is passed as a config_dict rather than
     as constructor arguments to WiskottVideo2 to allow one to easily
@@ -45,7 +45,7 @@ def validate_config_dict(config_dict):
     using anchors in YAML files. Config dicts are validated by this
     function, and any optional parameters are initialized with default
     values.
-    '''
+    """
     
     cd = config_dict
 
@@ -70,8 +70,8 @@ def validate_config_dict(config_dict):
 
 
 class WiskottVideo2(Dataset):
-    '''Dataset from Franzius, Wilbert, and Wiskott, 2008, "Invariant
-    object recognition with slow feature analysis".'''
+    """Dataset from Franzius, Wilbert, and Wiskott, 2008, "Invariant
+    object recognition with slow feature analysis"."""
 
     raw_video_size = (156,156)
 
@@ -94,7 +94,7 @@ class WiskottVideo2(Dataset):
                            'variable is set correctly.')
 
     def __init__(self, which_set, config_dict, quick = False):
-        '''Create a WiskottVideo2 instance.
+        """Create a WiskottVideo2 instance.
 
         Parameters
         ----------
@@ -156,7 +156,7 @@ class WiskottVideo2(Dataset):
             quick mode is enabled, only 3 files are loaded insetad of
             1000. This mode should never be used for training, only
             for debugging.
-        '''
+        """
 
         assert which_set in ('train', 'valid', 'test')
         self.which_set = which_set
@@ -338,33 +338,60 @@ class WiskottVideo2(Dataset):
 
 
 class MultiplexingMatrixIterator(object):
-    '''An iterator that creates samples by randomly drawing contiguous blocks
-    of data from a number of lists, where the probability of drawing
-    from a list is proportional to the length of the list less the slice
-    length. The blocks are returned "unrolled", meaning they are stacked
-    together without adding an extra dimension. Supports 'features' and
-    'targets'.
+    """An iterator that creates samples by randomly drawing contiguous
+    blocks of data from a number of lists, where the probability of
+    drawing from a list is proportional to the length of the list less
+    the slice length. The blocks are returned "unrolled", meaning they
+    are stacked together without adding an extra dimension. Supports
+    'features' and 'targets'.
 
     This class is somewhat hardcoded to work with the WiskottVideo2
     dataset above by requiring list_features, list_targets_1, and
     list_targets_2 arguments. TODO: decouple this.
-    '''
+    """
 
     def __init__(self, list_features, list_targets_1, list_targets_2,
                  num_slices, slice_length, num_batches,
                  data_specs, incoming_axes, cast_to_floatX,
                  trim, video_size,
                  rng = None, descrip = ''):
-        '''
-        num_slices: number of slices to take. Each slice is from a different
-        randomly selected matrix (with replacement).
+        """Create a MultiplexingMatrixIterator.
         
-        slice_length: how long each slice is within a list.
+        Parameters
+        ----------
+        list_features : list of numpy arrays
+            Each array contains data that is to be campled contiguously.
+
+        list_targets_1 : list of numpy arrays
+        list_targets_2 : list of numpy arrays
+            Similar to above.
+                
+        num_slices : int
+            Number of slices to take. Each slice is from a different
+            randomly selected matrix (with replacement).
         
-        For example, with num_slices = 5 and slice_length = 3, we would randomly
-        choose 5 matrices and concatenate a slice of length 3 from each matrix for a
-        total returned length of 15.
-        '''
+        slice_length : int
+            How long each slice is within a list.  For example, with
+            num_slices = 5 and slice_length = 3, we would randomly
+            choose 5 matrices and concatenate a slice of length 3 from
+            each matrix for a total returned length of 15.
+
+        data_specs : standard tuple of data specs
+        
+        incoming_axes : tuple
+            The axes of the provided data in list_features. Currently
+            only ('c', 0, 1, 'b') and ('b', 0, 1, 'c') are supported.
+
+        cast_to_floatX : bool
+            Whether or not to cast the data to floatX before returning.
+
+        trim : int
+            How much to trim off each video frame from list_features
+            (as in WiskottVideo2).
+
+        video_size : tuple
+            The size of the incoming video in list_features.
+        """
         
         self.list_features = list_features
         self.list_targets_1 = list_targets_1
@@ -512,11 +539,20 @@ class MultiplexingMatrixIterator(object):
 
 
 def load_labels(path, is_fish):
-    '''
-    path to a numpy file containing the labels
-    is_fish: bool, True=fish, False=spheres
+    """
+    Load id, x, y, and angle information from a seq_*.zip.labels.npy file.
+    
+    Parameters
+    ----------
+    path : str
+        Path to a numpy file containing the labels
+    
+    is_fish : bool
+        True if file is for images of fish, False for images of spheres.
 
-    numpy file has this format:
+    Notes
+    ----------
+    The numpy file has this format:
         x
         y
         one-hot encoding of label (25 elements for fish, 10 for spheres)
@@ -538,7 +574,7 @@ def load_labels(path, is_fish):
     cos(phi_y)
     sin(phi_z)
     cos(phi_z)
-    '''
+    """
 
     raw = np.load(path)
 
@@ -578,7 +614,7 @@ def load_labels(path, is_fish):
 
 
 def hashof(obj):
-    '''Compute digest of object. Just for debugging.'''
+    """Compute digest of object. Just for debugging."""
     hashAlg = hashlib.sha1()
     hashAlg.update(obj)
     return hashAlg.hexdigest()
