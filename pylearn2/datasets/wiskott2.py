@@ -12,6 +12,8 @@ analysis".
       year={2008},
       publisher={Springer}
     }
+
+For more dataset information, see documentation under WiskottVideo2.__init__.
 '''
 
 import functools
@@ -69,18 +71,7 @@ def validate_config_dict(config_dict):
 
 class WiskottVideo2(Dataset):
     '''Dataset from Franzius, Wilbert, and Wiskott, 2008, "Invariant
-    object recognition with slow feature analysis".
-
-    If you use this dataset, you should probably cite the paper:
-      @incollection{franzius2008invariant,
-        title={Invariant object recognition with slow feature analysis},
-        author={Franzius, Mathias and Wilbert, Niko and Wiskott, Laurenz},
-        booktitle={Artificial Neural Networks-ICANN 2008},
-        pages={961--970},
-        year={2008},
-        publisher={Springer}
-      }
-    '''
+    object recognition with slow feature analysis".'''
 
     raw_video_size = (156,156)
 
@@ -102,7 +93,69 @@ class WiskottVideo2(Dataset):
                            'variable is set correctly.')
 
     def __init__(self, which_set, config_dict, quick = False):
-        '''Create a WiskottVideo2 instance'''
+        '''Create a WiskottVideo2 instance.
+
+        Parameters
+        ----------
+        which_set : str
+            One of 'train', 'valid', 'test'. The test set files are in
+            a separate set of directories from train and valid (see
+            WiskottVideo2.dirs_train and WiskottVideo2.dirs_test). The
+            train and valid sets are created by loading the 1000 data
+            files, shuffling them, and then taking the first 80% to be
+            the training set.
+        
+        config_dict : dict
+            Most configuration parameters are passed in via the
+            config_dict. This is used instead of using constructor
+            arguments to allow one to easily create train/valid/test
+            datasets with identical configuration using anchors in
+            YAML files. The required and optional keys in this dict are:
+
+            'is_fish' : bool, required
+                If True, the dataset produces examples of synthetic
+                fish as in Fig 1 b. of Franzius et al., 2008. If
+                False, it produces examples of synthetic spheres, as
+                in Fig 1 a. of the same paper.
+
+            'axes' : tuple, optional (default: ('c', 0, 1, 'b'))
+                The axes ordering that should be returned by the
+                dataset. Currently only ('c', 0, 1, 'b') and ('b', 0,
+                1, 'c') are supported.
+        
+            'num_frames' : int, optional (default: 3)
+                The number of consecutive frames to use when creating
+                batches. For example, for num_frames = 3, when an
+                iterator is created with batch_size = 30, the batch
+                will contain 10 segments of 3 frames each. This really
+                should be done using a Conv3DSpace, but as of the time
+                this dataset is being implemented, Conv3DSpace is not
+                yet in the master branch. Further, returning an
+                unrolled Conv2DSpace instead, though requiring a
+                little extra bookkeeping, allows more straightforward
+                use of fast Conv2D routines. NOTE: when creating
+                iterators, it is an error to request a batch_size not
+                a multiple of num_frames.
+        
+            'num_channels' : int, optional (default: 1)
+                Only 1 is currently supported, as the fish and sphere
+                data is grayscale.
+        
+            'trim' : int, optional (default: 0)
+                How many pixels to trim off of each edge of the
+                (156,156) video frames before returning (e.g. trim = 3
+                results in (150,150) frames). Useful when tweaking
+                numbers of pixels in convnets.
+        
+        quick : bool, optional (default: False)
+            The entire training dataset of 1000 files takes about one
+            minute to load from a local drive (potentially much longer
+            via NFS) into memory, where it occupies 5GB. For
+            debugging, this one minute delay can be annoying, thus if
+            quick mode is enabled, only 3 files are loaded insetad of
+            1000. This mode should never be used for training, only
+            for debugging.
+        '''
 
         assert which_set in ('train', 'valid', 'test')
         self.which_set = which_set
