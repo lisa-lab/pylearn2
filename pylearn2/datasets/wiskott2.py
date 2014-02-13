@@ -36,6 +36,25 @@ log = logging.getLogger(__name__)
 
 
 
+# Constants and magic numbers
+FISH_NUM_CLASSES = 25
+FISH_NUM_LABELS = 4
+FISH_LABELS_IN = 77
+SPHERES_NUM_CLASSES = 10
+SPHERES_NUM_LABELS = 6
+SPHERES_LABELS_IN = 52
+
+TRAIN_VALID_RATIO = .8     # 80% train, 20% valid
+QUICK_CROP_SIZE = 3        # How many files to load for quick mode
+DEFAULT_BLOCKS_PER_BATCH = 10 # Number of blocks in a batch
+DEFAULT_NUM_FRAMES = 3     # Number of consecutive frames in a block
+DEFAULT_NUM_BATCHES = 20   # Number of batches per iterator
+IDX_RAW_START = 2
+NUM_TRAIN_FILES = 1250
+NUM_TEST_FILES = 500
+
+
+
 def validate_config_dict(config_dict):
     """
     When creating a WiskottVideo2 instance, certain configuration
@@ -54,7 +73,7 @@ def validate_config_dict(config_dict):
     
     # Fill in default values for optional parameters
     cd.setdefault('axes', ('c', 0, 1, 'b'))
-    cd.setdefault('num_frames', 3)
+    cd.setdefault('num_frames', DEFAULT_NUM_FRAMES)
     cd.setdefault('num_channels', 1)
     cd.setdefault('trim', 0)
 
@@ -93,7 +112,7 @@ class WiskottVideo2(Dataset):
                            ' Check that your PYLEARN2_DATA_PATH environment '
                            'variable is set correctly.')
 
-    def __init__(self, which_set, config_dict, quick = False):
+    def __init__(self, which_set, config_dict, quick=False):
         """Create a WiskottVideo2 instance.
 
         Parameters
@@ -191,11 +210,11 @@ class WiskottVideo2(Dataset):
         self._label_matrices = self._load_data(dirs, label_regex, is_labels=True)
 
         if self.is_fish:
-            self._target_1_matrices = [np.array(lm[:,:25]) for lm in self._label_matrices]
-            self._target_2_matrices = [np.array(lm[:,25:29]) for lm in self._label_matrices]
+            self._target_1_matrices = [np.array(lm[:,:FISH_NUM_CLASSES]) for lm in self._label_matrices]
+            self._target_2_matrices = [np.array(lm[:,FISH_NUM_CLASSES:(FISH_NUM_CLASSES+FISH_NUM_LABELS)]) for lm in self._label_matrices]
         else:
-            self._target_1_matrices = [np.array(lm[:,:10]) for lm in self._label_matrices]
-            self._target_2_matrices = [np.array(lm[:,10:16]) for lm in self._label_matrices]
+            self._target_1_matrices = [np.array(lm[:,:SPHERES_NUM_CLASSES]) for lm in self._label_matrices]
+            self._target_2_matrices = [np.array(lm[:,SPHERES_NUM_CLASSES:(SPHERES_NUM_CLASSES+SPHERES_NUM_LABELS)]) for lm in self._label_matrices]
         
         assert len(self._feature_matrices) == len(self._label_matrices)
         self._n_matrices = len(self._feature_matrices)
@@ -208,19 +227,19 @@ class WiskottVideo2(Dataset):
         if self.is_fish:
             #label_space = VectorSpace(dim = 29)
             label_space = CompositeSpace((
-                VectorSpace(dim = 25),
-                VectorSpace(dim = 4),
+                VectorSpace(dim=FISH_NUM_CLASSES),
+                VectorSpace(dim=FISH_NUM_LABELS),
             ))
         else:
             # spheres
             #label_space = VectorSpace(dim = 16)
             label_space = CompositeSpace((
-                VectorSpace(dim = 10),
-                VectorSpace(dim = 6),
+                VectorSpace(dim=SPHERES_NUM_CLASSES),
+                VectorSpace(dim=SPHERES_NUM_LABELS),
             ))
 
         self.space = CompositeSpace((
-            Conv2DSpace(self.video_size, num_channels = 1, axes = ('b', 0, 1, 'c')),
+            Conv2DSpace(self.video_size, num_channels=1, axes=('b', 0, 1, 'c')),
             label_space))
         #self.source = ('features', 'targets')
         self.source = ('features', ('targets1', 'targets2'))
@@ -243,7 +262,7 @@ class WiskottVideo2(Dataset):
             example_file_filter = file_filter
             filenames.extend(sorted(glob.glob(file_filter)))
         
-        expected_files = 1250 if self.which_set in ('train', 'valid') else 500
+        expected_files = NUM_TRAIN_FILES if self.which_set in ('train', 'valid') else NUM_TEST_FILES
         assert len(filenames) == expected_files, (
             self.too_few_files_error % {'expected': expected_files,
                                         'actual': len(filenames),
@@ -255,7 +274,7 @@ class WiskottVideo2(Dataset):
         if self.which_set in ('train', 'valid'):
             rng = np.random.RandomState(self._default_seed)
             rng.shuffle(filenames)
-            idx_train = int(len(filenames) * .8)  # 80% train, 20% valid
+            idx_train = int(len(filenames) * TRAIN_VALID_RATIO)
             train_filenames = filenames[:idx_train]
             valid_filenames = filenames[idx_train:]
             assert len(train_filenames) > 0, 'too few files'
@@ -266,7 +285,7 @@ class WiskottVideo2(Dataset):
                 filenames = valid_filenames
 
         if self.quick:
-            filenames = filenames[:3]
+            filenames = filenames[:QUICK_CROP_SIZE]
         log.info('Loading data from %d files:      ' % len(filenames))
         
         matrices = []
@@ -302,8 +321,8 @@ class WiskottVideo2(Dataset):
             rng = np.random.RandomState(self._default_seed)
 
         # The batch_size contains the "unrolled" size, since we're returning a Conv2DSpace.
-        if batch_size is None: batch_size = 10 * self.num_frames
-        if num_batches is None: num_batches = 20
+        if batch_size is None: batch_size = DEFAULT_BLOCKS_PER_BATCH * self.num_frames
+        if num_batches is None: num_batches = DEFAULT_NUM_BATCHES
         assert batch_size > 0
         assert batch_size % self.num_frames == 0, (
             'Iterator must be created with batch_size = num_frames * an integer'
@@ -323,16 +342,16 @@ class WiskottVideo2(Dataset):
             self._feature_matrices,
             self._target_1_matrices,
             self._target_2_matrices,
-            incoming_axes = ('b', 0, 1, 'c'),
-            data_specs = data_specs,
-            num_batches = num_batches,
-            num_slices = slices_per_batch,
-            slice_length = self.num_frames,
-            cast_to_floatX = True,
-            trim = self.trim,
-            video_size = self.video_size,
-            rng = rng,
-            descrip = '%s set' % self.which_set,
+            incoming_axes=('b', 0, 1, 'c'),
+            data_specs=data_specs,
+            num_batches=num_batches,
+            num_slices=slices_per_batch,
+            slice_length=self.num_frames,
+            cast_to_floatX=True,
+            trim=self.trim,
+            video_size=self.video_size,
+            rng=rng,
+            descrip='%s set' % self.which_set,
             )
 
 
@@ -354,7 +373,7 @@ class MultiplexingMatrixIterator(object):
                  num_slices, slice_length, num_batches,
                  data_specs, incoming_axes, cast_to_floatX,
                  trim, video_size,
-                 rng = None, descrip = ''):
+                 rng=None, descrip=''):
         """Create a MultiplexingMatrixIterator.
         
         Parameters
@@ -579,21 +598,19 @@ def load_labels(path, is_fish):
     raw = np.load(path)
 
     if is_fish:
-        assert raw.shape[1] == 77
+        assert raw.shape[1] == FISH_LABELS_IN       # 77
+        num_feat = FISH_NUM_CLASSES + FISH_NUM_LABELS   # 29
+        num_id = FISH_NUM_CLASSES                   # 25
     else:
-        assert raw.shape[1] == 52
-
-    num_feat = 16
-    num_id = 10
-    if is_fish:
-        num_feat = 29
-        num_id = 25
+        assert raw.shape[1] == SPHERES_LABELS_IN    # 52
+        num_feat = SPHERES_NUM_CLASSES + SPHERES_NUM_LABELS  # 16
+        num_id = SPHERES_NUM_CLASSES                # 10
 
     batch_size = raw.shape[0]
 
     rval = np.zeros((batch_size, num_feat), dtype=raw.dtype)
 
-    raw_start = 2
+    raw_start = IDX_RAW_START            # 2
     ids = raw[:, raw_start:raw_start + num_id]
     raw_start += num_id
     rval[:, 0:num_id] = ids                            # IDs
@@ -622,32 +639,30 @@ def hashof(obj):
 
 
 def demo():
-    from fish.util import imagesc
-    
     config = {}
     config['is_fish'] = True
     config['num_frames'] = 5
     
-    wisk = WiskottVideo2('train', config, quick = True)
+    wisk = WiskottVideo2('train', config, quick=True)
 
-    feature_space = Conv2DSpace((156,156), num_channels = 1, axes = ('c', 0, 1, 'b'))
+    feature_space = Conv2DSpace((156,156), num_channels=1, axes=('c', 0, 1, 'b'))
     if config['is_fish']:
         space = CompositeSpace((
             feature_space,
-            VectorSpace(dim = 25),
-            VectorSpace(dim = 4)
+            VectorSpace(dim=FISH_NUM_CLASSES),
+            VectorSpace(dim=FISH_NUM_LABELS)
             ))
     else:
         space = CompositeSpace((
             feature_space,
-            VectorSpace(dim = 10),
-            VectorSpace(dim = 6)
+            VectorSpace(dim=SPHERES_NUM_CLASSES),
+            VectorSpace(dim=SPHERES_NUM_LABELS)
             ))
     source = ('features', 'targets1', 'targets2')
     data_specs = (space, source)
 
-    it = wisk.iterator(rng=0, data_specs = data_specs,
-                       batch_size = 500)
+    it = wisk.iterator(rng=0, data_specs=data_specs,
+                       batch_size=500)
 
     example = it.next()
     dat,ids,xy = example
