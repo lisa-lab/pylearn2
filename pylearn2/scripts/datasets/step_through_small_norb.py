@@ -2,8 +2,14 @@
 
 """
 A script for sequentially stepping through SmallNORB, viewing each image and
-its label. Intended as a demonstration of how to iterate through NORB images,
+its label.
+
+Intended as a demonstration of how to iterate through NORB images,
 and as a way of testing SmallNORB's StereoViewConverter.
+
+If you just want an image viewer, consider
+pylearn2/scripts/show_binocular_grayscale_images.py,
+which is not specific to SmallNORB.
 """
 
 __author__ = "Matthew Koichi Grimes"
