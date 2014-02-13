@@ -20,6 +20,8 @@ class Model(object):
     A class representing a model with learnable parameters.
     """
 
+    _test_batch_size = 2
+    
     def get_default_cost(self):
         """
         Returns the default cost to use with this model.
@@ -401,7 +403,6 @@ class Model(object):
             WRITEME
         """
         self.names_to_del = set()
-        self._test_batch_size = 2
 
     def get_test_batch_size(self):
         """
@@ -434,6 +435,9 @@ class Model(object):
             assert all(isinstance(n, basestring) for n in iter(names))
         except (TypeError, AssertionError):
             raise ValueError('Invalid names argument')
+        # Quick check in case __init__ was never called, e.g. by a derived class.
+        if not hasattr(self, 'names_to_del'):
+            self.names_to_del = set()
         self.names_to_del = self.names_to_del.union(names)
 
     def enforce_constraints(self):
