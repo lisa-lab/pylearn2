@@ -2,6 +2,8 @@
 This module contains cost functions to use with deep Boltzmann machines
 (pylearn2.models.dbm).
 """
+from pylearn2.models.dbm.layer import BinaryVector, BinaryVectorMaxPool, Softmax
+
 __authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
 __copyright__ = "Copyright 2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -149,12 +151,12 @@ class BaseCD(Cost):
         # only applies to exactly the same model structure as
         # in that code.
 
-        assert isinstance(model.visible_layer, dbm.BinaryVector)
-        assert isinstance(model.hidden_layers[0], dbm.BinaryVectorMaxPool)
+        assert isinstance(model.visible_layer, BinaryVector)
+        assert isinstance(model.hidden_layers[0], BinaryVectorMaxPool)
         assert model.hidden_layers[0].pool_size == 1
-        assert isinstance(model.hidden_layers[1], dbm.BinaryVectorMaxPool)
+        assert isinstance(model.hidden_layers[1], BinaryVectorMaxPool)
         assert model.hidden_layers[1].pool_size == 1
-        assert isinstance(model.hidden_layers[2], dbm.Softmax)
+        assert isinstance(model.hidden_layers[2], Softmax)
         assert len(model.hidden_layers) == 3
 
         params = list(model.get_params())
@@ -227,7 +229,7 @@ class BaseCD(Cost):
             # note: if the Y layer changes to something without linear energy,
             # we'll need to make the expected energy clamp Y in the positive
             # phase
-            assert isinstance(model.hidden_layers[-1], dbm.Softmax)
+            assert isinstance(model.hidden_layers[-1], Softmax)
 
         q = model.mf(X, Y)
 
@@ -279,7 +281,7 @@ class BaseCD(Cost):
             # note: if the Y layer changes to something without linear energy,
             #       we'll need to make the expected energy clamp Y in the
             #       positive phase
-            assert isinstance(model.hidden_layers[-1], dbm.Softmax)
+            assert isinstance(model.hidden_layers[-1], Softmax)
             layer_to_clamp[model.hidden_layers[-1]] = True
             layer_to_pos_samples[model.hidden_layers[-1]] = Y
             hid = model.hidden_layers[:-1]
@@ -478,7 +480,7 @@ class VariationalCD(DefaultDataSpecsMixin, BaseCD):
             # note: if the Y layer changes to something without linear energy,
             # we'll need to make the expected energy clamp Y in the positive
             # phase
-            assert isinstance(model.hidden_layers[-1], dbm.Softmax)
+            assert isinstance(model.hidden_layers[-1], Softmax)
             layer_to_clamp[model.hidden_layers[-1]] = True
             layer_to_chains[model.hidden_layers[-1]] = Y
 

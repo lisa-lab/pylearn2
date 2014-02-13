@@ -8,7 +8,7 @@ __authors__ = "Li Yao"
 import theano
 import theano.sparse
 from theano import tensor
-from pylearn2.autoencoder import DenoisingAutoencoder
+from pylearn2.models.autoencoder import DenoisingAutoencoder
 from pylearn2.space import VectorSpace
 from theano.sparse.sandbox.sp2 import sampling_dot
 

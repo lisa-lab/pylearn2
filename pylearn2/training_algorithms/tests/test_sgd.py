@@ -505,6 +505,173 @@ def test_monitor_based_lr():
             lr_monitor = min(max_lr, lr_monitor)
             assert np.allclose(lr_monitor, lr[i])
 
+def test_bad_monitoring_input_in_monitor_based_lr():
+    # tests that the class MonitorBasedLRAdjuster in sgd.py avoids wrong settings of channel_name or dataset_name in the constructor.
+
+    dim = 3
+    m = 10
+
+    rng = np.random.RandomState([06,02,2014])
+
+    X = rng.randn(m, dim)
+
+    learning_rate = 1e-2
+    batch_size = 5
+
+    # We need to include this so the test actually stops running at some point
+    epoch_num = 2
+
+    dataset = DenseDesignMatrix(X=X)
+
+    # including a monitoring datasets lets us test that
+    # the monitor works with supervised data
+    monitoring_dataset = DenseDesignMatrix(X=X)
+
+    cost = DummyCost()
+
+    model = SoftmaxModel(dim)
+
+    termination_criterion = EpochCounter(epoch_num)
+
+    algorithm = SGD(learning_rate, cost, batch_size=5,
+             monitoring_batches=2, monitoring_dataset= monitoring_dataset,
+             termination_criterion=termination_criterion, update_callbacks=None,
+             init_momentum = None, set_batch_size = False)
+
+    #testing for bad dataset_name input
+    dummy = 'void'
+
+    monitor_lr = MonitorBasedLRAdjuster(dataset_name=dummy)
+
+    train = Train(dataset, model, algorithm, save_path=None,
+             save_freq=0, extensions=[monitor_lr])
+    try:
+        train.main_loop()
+    except ValueError as e:
+        err_input = 'The dataset_name \'' + dummy + '\' is not valid.'
+        channel_name = dummy + '_objective'
+        err_message = 'There is no monitoring channel named \'' + channel_name + \
+            '\'. You probably need to specify a valid monitoring channel by using either ' + \
+            'dataset_name or channel_name in the MonitorBasedLRAdjuster constructor. ' + err_input
+        assert err_message == str(e)
+    except:
+        raise AssertionError("MonitorBasedLRAdjuster takes dataset_name that is invalid ")
+
+    #testing for bad channel_name input
+    monitor_lr2 = MonitorBasedLRAdjuster(channel_name=dummy)
+
+    model2 = SoftmaxModel(dim)
+    train2 = Train(dataset, model2, algorithm, save_path=None,
+             save_freq=0, extensions=[monitor_lr2])
+
+    try:
+        train2.main_loop()
+    except ValueError as e:
+        err_input = 'The channel_name \'' + dummy + '\' is not valid.'
+        err_message = 'There is no monitoring channel named \'' + dummy + \
+            '\'. You probably need to specify a valid monitoring channel by using either ' + \
+            'dataset_name or channel_name in the MonitorBasedLRAdjuster constructor. ' + err_input
+        assert err_message == str(e)
+    except:
+        raise AssertionError("MonitorBasedLRAdjuster takes channel_name that is invalid ")
+
+    return
+
+def testing_multiple_datasets_in_monitor_based_lr():
+    # tests that the class MonitorBasedLRAdjuster in sgd.py does not take multiple datasets in which multiple channels ending in '_objectives' exist. 
+    # This case happens when the user has not specified either channel_name or dataset_name in the constructor
+
+    dim = 3
+    m = 10
+
+    rng = np.random.RandomState([06,02,2014])
+
+    X = rng.randn(m, dim)
+    Y = rng.randn(m, dim)
+
+    learning_rate = 1e-2
+    batch_size = 5
+
+    # We need to include this so the test actually stops running at some point
+    epoch_num = 1
+
+    # including a monitoring datasets lets us test that
+    # the monitor works with supervised data
+    monitoring_train = DenseDesignMatrix(X=X)
+    monitoring_test = DenseDesignMatrix(X=Y)
+
+    cost = DummyCost()
+
+    model = SoftmaxModel(dim)
+
+    dataset = DenseDesignMatrix(X=X)
+
+    termination_criterion = EpochCounter(epoch_num)
+
+    algorithm = SGD(learning_rate, cost, batch_size=5,
+             monitoring_batches=2, monitoring_dataset= {'train': monitoring_train, 'test' : monitoring_test},
+             termination_criterion=termination_criterion, update_callbacks=None,
+             init_momentum = None, set_batch_size = False)
+
+    monitor_lr = MonitorBasedLRAdjuster()
+
+    train = Train(dataset, model, algorithm, save_path=None,
+             save_freq=0, extensions=[monitor_lr])
+
+    try:
+        train.main_loop()
+    except ValueError:
+        return
+        
+    raise AssertionError("MonitorBasedLRAdjuster takes multiple dataset names in which more than one \"objective\" channel exist and the user has not specified " + 
+        "either channel_name or database_name in the constructor to disambiguate.")
+
+def testing_multiple_datasets_with_specified_dataset_in_monitor_based_lr():
+    # tests that the class MonitorBasedLRAdjuster in sgd.py can properly use the spcified dataset_name in the constructor when 
+    # multiple datasets exist. 
+
+    dim = 3
+    m = 10
+
+    rng = np.random.RandomState([06,02,2014])
+
+    X = rng.randn(m, dim)
+    Y = rng.randn(m, dim)
+
+    learning_rate = 1e-2
+    batch_size = 5
+
+    # We need to include this so the test actually stops running at some point
+    epoch_num = 1
+
+    # including a monitoring datasets lets us test that
+    # the monitor works with supervised data
+    monitoring_train = DenseDesignMatrix(X=X)
+    monitoring_test = DenseDesignMatrix(X=Y)
+
+    cost = DummyCost()
+
+    model = SoftmaxModel(dim)
+
+    dataset = DenseDesignMatrix(X=X)
+
+    termination_criterion = EpochCounter(epoch_num)
+
+    monitoring_dataset= {'train': monitoring_train, 'test' : monitoring_test}
+
+    algorithm = SGD(learning_rate, cost, batch_size=5,
+             monitoring_batches=2, monitoring_dataset= monitoring_dataset,
+             termination_criterion=termination_criterion, update_callbacks=None,
+             init_momentum = None, set_batch_size = False)
+
+    dataset_name = monitoring_dataset.keys()[0]
+    monitor_lr = MonitorBasedLRAdjuster(dataset_name=dataset_name)
+
+    train = Train(dataset, model, algorithm, save_path=None,
+             save_freq=0, extensions=[monitor_lr])
+
+    train.main_loop()
+
 def test_sgd_topo():
     # tests that we can run the sgd algorithm
     # on data with topology
