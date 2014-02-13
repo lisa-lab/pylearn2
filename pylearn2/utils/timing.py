@@ -35,6 +35,7 @@ def total_seconds(delta):
                 (delta.seconds + delta.days * 24 * 3600) * 10 ** 6
                 ) / float(10 ** 6)
 
+
 @contextmanager
 def log_timing(logger, task, level=logging.INFO, final_msg=None,
                callbacks=None):
