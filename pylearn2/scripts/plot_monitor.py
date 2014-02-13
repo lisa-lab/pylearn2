@@ -192,38 +192,23 @@ def main():
         else:
             final_codes ,= set(codebook.keys())
 
-        plt.figure()
-        #Make 2 subplots so the legend gets a plot to itself and won't cover up the plot
-        ax = plt.subplot(1,2,1)
-
-        # Grow current axis' width by 30%
-        box = ax.get_position()
-
-        try:
-            x0 = box.x0
-            y0 = box.y0
-            width = box.width
-            height = box.height
-        except:
-            x0, width, y0, height = box
-
-
-        ax.set_position([x0, y0, width * 1.3, height])
-
-        ax.ticklabel_format( scilimits = (-3,3), axis = 'both')
-
-        plt.xlabel('# '+x_axis+'s')
-
-
         colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
         styles = list(colors)
         styles += [color+'--' for color in colors]
         styles += [color+':' for color in colors]
 
+        plt.figure()
+        plt.xlabel('# '+x_axis+'s')
+
+        biggest_channel_name_length = 0
+
         #plot the requested channels
         for idx, code in enumerate(sorted(final_codes)):
 
             channel_name= codebook[code]
+
+            if len(channel_name) > biggest_channel_name_length:
+                biggest_channel_name_length = len(channel_name)
 
             channel = channels[channel_name]
 
@@ -260,8 +245,24 @@ def main():
                       label = channel_name)
 
 
-        plt.legend(bbox_to_anchor=(1.05, 1),  loc=2, borderaxespad=0.)
+        # One subplot needed, will be resized for the legend
+        ax = plt.subplot(1,1,1)
 
+        box = ax.get_position()
+
+        try:
+            x0 = box.x0
+            y0 = box.y0
+            width = box.width
+            height = box.height
+        except:
+            x0, width, y0, height = box
+
+        # Set axis width in function of the longest channel name
+        ax.set_position([x0, y0, width - (0.01 * biggest_channel_name_length + 0.1), height])
+
+        ax.ticklabel_format( scilimits = (-3,3), axis = 'both')
+        plt.legend(bbox_to_anchor=(1.05, 1),  loc=2, borderaxespad=0.)
 
         if options.out is None:
           plt.show()
