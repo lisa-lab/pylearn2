@@ -110,7 +110,7 @@ class OneHotFormatter(object):
                 one_hot = one_hot.reshape((targets.shape[0],
                                            self._max_labels * targets.shape[1]))
             elif mode == 'merge':
-                one_hot = one_hot.sum(axis=1)
+                one_hot = np.minimum(one_hot.sum(axis=1), 1)
             one_hot = one_hot.squeeze()
         return one_hot
 
@@ -190,7 +190,7 @@ class OneHotFormatter(object):
                                            targets.shape[1] * self._max_labels))
             elif mode == 'merge':
                 one_hot = tensor.zeros((targets.shape[0], self._max_labels))
-                one_hot = tensor.inc_subtensor(
+                one_hot = tensor.set_subtensor(
                     one_hot[tensor.arange(targets.size) % targets.shape[0],
                             targets.T.flatten()], 1)
             else:
