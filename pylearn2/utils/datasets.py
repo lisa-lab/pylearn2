@@ -6,6 +6,7 @@ minibatches from a dataset, or to merge three data with given proportions
 import os
 import functools
 from itertools import repeat
+import warnings
 
 # Third-party imports
 import numpy
@@ -264,6 +265,9 @@ def blend(dataset, set_proba, **kwargs):
     -------
     WRITEME
     """
+    warnings.warn("pylearn2.utils.datasets.blend is deprecated"
+                  "and will be removed on or after 13 August 2014.",
+                  stacklevel=2)
     iterator = BatchIterator(dataset, set_proba, 1, **kwargs)
     nrow = len(iterator)
     if (isinstance(dataset[0], theano.Variable)):
