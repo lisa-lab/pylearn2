@@ -270,11 +270,15 @@ class Layer(Model):
 
         return self._input_axes_def
 
-    def apply_constraints(self, updates):
+    @wraps(Model.censor_updates)
+    def censor_updates(self, updates):
+        self._apply_constraints(updates)
+
+    def _apply_constraints(self, updates):
         """
         This function apply constraints for the layer.
         !!!WARNING!!!
-        This function assumes that constraints are applied on weights and use transformer object.
+        This function assumes that constraints are applied on weights and it uses transformer object.
 
         Parameters
         ----------
@@ -543,11 +547,7 @@ class MLP(Layer):
     @wraps(Layer.censor_updates)
     def censor_updates(self, updates):
         for layer in self.layers:
-            if hasattr(layer, "apply_constraints"):
-                layer.apply_constraints(updates)
-
-            if hasattr(layer, "censor_updates"):
-                layer.censor_updates(updates)
+            layer.censor_updates(updates)
 
     @wraps(Layer.get_lr_scalers)
     def get_lr_scalers(self):
@@ -1211,6 +1211,7 @@ class Softmax(Layer):
 
     @wraps(Layer.censor_updates)
     def censor_updates(self, updates):
+        super(Softmax, self).censor_updates(updates)
 
         if self.no_affine:
             return
@@ -1354,6 +1355,7 @@ class SoftmaxPool(Layer):
 
     @wraps(Layer.censor_updates)
     def censor_updates(self, updates):
+        super(SoftmaxPool, self).censor_updates(updates)
 
         # Patch old pickle files
         if not hasattr(self, 'mask_weights'):
@@ -1704,6 +1706,7 @@ class Linear(Layer):
 
     @wraps(Layer.censor_updates)
     def censor_updates(self, updates):
+        super(Linear, self).censor_updates(updates)
 
         if self.mask_weights is not None:
             W, = self.transformer.get_params()
@@ -2866,7 +2869,6 @@ class LinearGaussian(Linear):
 
     @wraps(Layer.censor_updates)
     def censor_updates(self, updates):
-
         super(LinearGaussian, self).censor_updates(updates)
 
         if self.beta in updates:
