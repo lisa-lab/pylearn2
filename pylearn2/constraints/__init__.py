@@ -86,7 +86,7 @@ class NormConstraint(Constraint):
         """
         Parameters
         ----------
-        init_param : Theano shared variable.
+        constrain_on : Theano shared variable.
             The parameter that we are going to apply the constraint on.
         """
         assert axes is not None, "%s._clip_norms function expects" % (self.__class__.__name__) + \
@@ -101,7 +101,7 @@ class NormConstraint(Constraint):
         norm = T.sqrt(T.sum(sqr_param, axis=axes, keepdims=True))
         desired_norm = T.clip(norm, min_constraint, max_constraint)
         desired_norm_ratio = desired_norm / (self.eps + norm)
-        clipped_param = init_param * desired_norm_ratio
+        clipped_param = constrain_on * desired_norm_ratio
         return clipped_param
 
     @wraps(Constraint.apply_constraint)

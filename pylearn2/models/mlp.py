@@ -26,7 +26,6 @@ from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.models.model import Model
 from pylearn2.expr.nnet import pseudoinverse_softmax_numpy
 from pylearn2.constraints import NormConstraint
-from pylearn2.constraints import Constraints
 
 from pylearn2.space import CompositeSpace
 from pylearn2.space import Conv2DSpace
@@ -274,6 +273,26 @@ class Layer(Model):
     def censor_updates(self, updates):
         self._apply_constraints(updates)
 
+    def _perform_constraints(self, constraint_args, input_axes=None, output_axes=None):
+        """
+        Function that applies the constraints with the specified parameters for each constraint.
+
+        Parameters
+        ----------
+        constraint_args: list of dictionaries.
+            A list of function arguments(in a dictionary) to pass to apply_constraints function
+            of each constraint.
+        input_axes: WRITEME
+        output_axes: WRITEME
+        """
+        assert constraint_args is not None, "constraint parameters list should not be empty."
+        for constraint_arg, constraint in safe_zip(constraint_args, self.weight_constraints):
+            if constraint.is_input_axis:
+                constraint_arg["axes"] = input_axes
+            else:
+                constraint_arg["axes"] = output_axes
+            constraint.apply_constraint(**constraint_arg)
+
     def _apply_constraints(self, updates):
         """
         This function apply constraints for the layer.
@@ -286,22 +305,17 @@ class Layer(Model):
             updates dictionary for the training function.
         """
 
-        if not hasattr(self, "constraints"):
-            constraints = Constraints()
+        if self.weight_constraints is None:
+            self.weight_constraints = []
 
-        if self.weight_constraints is not None:
-            weight_constraints = Constraints(self.weight_constraints)
-        else:
-            weight_constraints = Constraints([])
-
-        if hasattr(self, "max_col_norm"):
+        if getattr(self, "max_col_norm", None) is not None:
             if self.max_col_norm is not None:
                 constraint = NormConstraint(max_norm=self.max_col_norm)
                 constraints.add_constraint(constraint)
                 warnings.warn("%s.max_col_norm is deprecated. Please use, weight_constraints " % self.__class__.__name__ +
                         "instead. max_col_norm argument will be removed on or after 11.08.2014.")
 
-        if hasattr(self, "min_col_norm"):
+        if getattr(self, "min_col_norm", None) is not None:
             if self.min_col_norm is not None:
                 constraint = NormConstraint(min_norm=self.min_col_norm)
                 constraints.add_constraint(constraint)
@@ -309,21 +323,21 @@ class Layer(Model):
                 warnings.warn("%s.min_col_norm is deprecated. Please use, weight_constraints instead." % self.__class__.__name__
                         + "min_col_norm argument will be removed on or after 11.08.2014.")
 
-        if hasattr(self, "max_kernel_norm"):
+        if getattr(self, "max_kernel_norm", None) is not None:
             if self.max_kernel_norm is not None:
                 constraint = NormConstraint(max_norm=self.max_kernel_norm)
                 constraints.add_constraint(constraint)
                 warnings.warn("%s.max_kernel_norm is deprecated. Please use, weight_constraints instead." % self.__class__.__name__ +
                         "max_kernel_norm argument will be removed on or after 11.08.2014.")
 
-        if hasattr(self, "max_row_norm"):
+        if getattr(self, "max_row_norm", None) is not None:
             if self.max_row_norm is not None:
                 constraint = NormConstraint(max_norm=self.max_row_norm, is_input_axis=False)
                 constraints.add_constraint(constraint)
                 warnings.warn("%s.max_row_norm is deprecated. Please use, weight_constraints instead." % self.__class__.__name__ +
                                "max_row_norm argument will be removed on or after 11.08.2014.")
 
-        if hasattr(self, "max_filter_norm"):
+        if getattr(self, "max_filter_norm", None) is not None:
             if self.max_filter_norm is not None:
                 constraint = NormConstraint(max_norm=self.max_filter_norm)
                 constraints.add_constraint(constraint)
@@ -342,8 +356,12 @@ class Layer(Model):
 
         input_axes = self.get_input_axes_def()
         output_axes = self.get_output_axes_def()
-        constraints.apply([constraint_args], input_axes, output_axes)
+        args_list = []
 
+        for weight_constraint in self.weight_constraints:
+            args_list.append(constraint_args)
+
+        self._perform_constraints(args_list, input_axes, output_axes)
 
 class MLP(Layer):
     """
