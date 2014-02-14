@@ -432,35 +432,7 @@ class SumOfCosts(Cost):
         descrs = [cost.get_fixed_var_descr(model, cost_data)
                   for cost, cost_data in safe_zip(self.costs, nested_data)]
 
-        rval = FixedVarDescr()
-        rval.data_specs = data_specs
-        rval.on_load_batch = []
-        # To avoid calling the same function more than once
-        on_load_batch_seen = []
-
-        for i, descr in enumerate(descrs):
-            # We assume aliasing is a bug
-            assert descr.fixed_vars is not rval.fixed_vars
-            assert descr.on_load_batch is not rval.on_load_batch
-
-            for key in descr.fixed_vars:
-                if key in rval.fixed_vars:
-                    raise ValueError("Cannot combine these FixedVarDescrs, "
-                                     "two different ones contain %s" % key)
-            rval.fixed_vars.update(descr.fixed_vars)
-
-            for on_load in descr.on_load_batch:
-                if on_load in on_load_batch_seen:
-                    continue
-                # Using default argument binds the variables used in the lambda
-                # function to the value they have when the lambda is defined.
-                new_on_load = (lambda batch, mapping=mapping, i=i,
-                               on_load=on_load:
-                               on_load(mapping.nest(batch)[i]))
-                rval.on_load_batch.append(new_on_load)
-
-        return rval
-
+        return reduce(merge, descrs)
 
 def scaled_cost(cost, scaling):
     """
