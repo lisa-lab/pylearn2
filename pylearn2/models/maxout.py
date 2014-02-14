@@ -485,12 +485,6 @@ class Maxout(Layer):
         self.input_space.validate(state_below)
 
         if self.requires_reformat:
-            if not isinstance(state_below, tuple):
-                for sb in get_debug_values(state_below):
-                    if sb.shape[0] != self.dbm.batch_size:
-                        raise ValueError("self.dbm.batch_size is %d but got shape of %d" % (self.dbm.batch_size, sb.shape[0]))
-                    assert reduce(lambda x,y: x * y, sb.shape[1:]) == self.input_dim
-
             state_below = self.input_space.format_as(state_below, self.desired_space)
 
         z = self.transformer.lmul(state_below) + self.b
@@ -534,12 +528,6 @@ class Maxout(Layer):
         self.input_space.validate(state_below)
 
         if self.requires_reformat:
-            if not isinstance(state_below, tuple):
-                for sb in get_debug_values(state_below):
-                    if sb.shape[0] != self.dbm.batch_size:
-                        raise ValueError("self.dbm.batch_size is %d but got shape of %d" % (self.dbm.batch_size, sb.shape[0]))
-                    assert reduce(lambda x,y: x * y, sb.shape[1:]) == self.input_dim
-
             state_below = self.input_space.format_as(state_below, self.desired_space)
 
         z = self.transformer.lmul(state_below) + self.b
