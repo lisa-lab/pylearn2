@@ -1007,12 +1007,22 @@ class Conv2DSpace(Space):
 
 class CompositeSpace(Space):
     """A Space whose points are tuples of points in other spaces """
-    def __init__(self, components):
+    def __init__(self, components, validate_callbacks = None,
+            np_validate_callbacks = None):
         """
-        .. todo::
+        Members of this space should be tuples, with tuple element i being a
+        valid member of components[i].
 
-            WRITEME
+        Parameters
+        ----------
+        components : list
+            A list of Spaces.
+        validate_callbacks : list
+            see Space.__init__
+        np_validate_callbacks : list
+            see Space.__init__
         """
+        Space.__init__(self, validate_callbacks, np_validate_callbacks)
         assert isinstance(components, (list, tuple))
         self.num_components = len(components)
         for i, component in enumerate(components):
