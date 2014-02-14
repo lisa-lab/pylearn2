@@ -417,9 +417,12 @@ class SumOfCosts(Cost):
 
     def get_fixed_var_descr(self, model, data):
         """
-        .. todo::
-
-            WRITEME
+        Parameters
+        ----------
+        model : Model
+        data : theano.gof.Variable or tuple
+            A valid member of the Space defined by
+            self.get_data_specs(model)[0]
         """
         data_specs = self.get_data_specs(model)
         data_specs[0].validate(data)
