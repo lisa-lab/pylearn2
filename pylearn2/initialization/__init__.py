@@ -23,8 +23,7 @@ class NdarrayInitialization(object):
     """
     Base class specifying the interface for these objects.
     """
-    def initialize(self, rng, shape, atom_axis=-1, fan_in=None, fan_out=None,
-                   *args, **kwargs):
+    def initialize(self, rng, shape, model=None):
         """
         Generate an initial set of parameters from a given
         distribution. This should generally be called by the model,
@@ -36,26 +35,11 @@ class NdarrayInitialization(object):
             A `numpy.random.RandomState`.
         shape : tuple
             A shape tuple for the requested parameter array shape.
-        atom_axis : int, optional
-            The axis of `shape` corresponding to the number
-            hidden units/dictionary elements/etc. By default, use -1
-            (i.e. the last axis).
-        fan_in : int, optional
-            The number of units in a neural network with output that
-            feeds into each unit in this layer. Certain kinds of
-            initialization strategies use this to calculate properties
-            of the distribution used for random generation. By default
-            it can be calculated as the product of all elements of
-            `shape` except the one in the position corresponding to
-            `atom_axis`.
-        fan_out : int, optional
-            The number of units in a neural network which take input
-            from each unit in this layer. Certain kinds of initialization
-            strategies use this to calculate properties of the
-            distribution used for random generation. As it is not
-            possible to infer this quantity from `shape`, it must be
-            provided by the model if using an initialization strategy
-            which requires it.
+        model : object, optional
+            A `Model` (or `Model` subclass, like `Layer`) instance.
+            Only necessary for initialization strategies that
+            require additional information from the model, e.g.
+            the fan-in, fan-out, the atom axis.
 
         Returns
         -------
@@ -86,7 +70,7 @@ class Constant(object):
         self._constant = np.asarray(constant)
 
     @wraps(NdarrayInitialization.initialize)
-    def initialize(self, rng, shape, *args, **kwargs):
+    def initialize(self, rng, shape, model=None):
         dest = np.empty(shape, dtype=theano.config.floatX)
         try:
             np.broadcast(dest, self._constant)
@@ -121,7 +105,7 @@ class IsotropicGaussian(NdarrayInitialization):
         self._std = std
 
     @wraps(NdarrayInitialization.initialize)
-    def initialize(self, rng, shape, *args, **kwargs):
+    def initialize(self, rng, shape, model=None):
         m = rng.normal(self._mean, self._std, size=shape)
         return m.astype(theano.config.floatX)
 
@@ -168,7 +152,7 @@ class Uniform(NdarrayInitialization):
         self._mean = mean
 
     @wraps(NdarrayInitialization.initialize)
-    def initialize(self, rng, shape, *args, **kwargs):
+    def initialize(self, rng, shape, model=None):
         w = self._width / 2
         m = rng.uniform(self._mean - w, self._mean + w, size=shape)
         return m.astype(theano.config.floatX)
@@ -229,10 +213,11 @@ class SparseInitialization(NdarrayInitialization):
         self._base = base_initialization
 
     @wraps(NdarrayInitialization.initialize)
-    def initialize(self, rng, shape, atom_axis=-1, *args, **kwargs):
+    def initialize(self, rng, shape, model):
+        atom_axis = model.get_atom_axis()
         if atom_axis < 0:
             atom_axis += len(shape)
-        values = self._base.initialize(rng, shape, atom_axis, *args, **kwargs)
+        values = self._base.initialize(rng, shape, model)
         if self._prob_nonzero is not None:
             values *= (rng.uniform(size=shape) < self._prob_nonzero)
         elif self._num_nonzero is not None:

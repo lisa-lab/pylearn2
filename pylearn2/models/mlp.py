@@ -272,17 +272,11 @@ class Layer(Model):
         # this loop a no-op in case a Layer class has not been updated.
         for param, init in izip(self.get_params(), self._initializers):
             shape = param.get_value(borrow=True).shape
-            # TODO: this method should be improved to provide metadata
-            # needed by certain kinds of initializations, e.g. a Glorot
-            # & Bengio (2010) style initializer will need fan-in and
-            # fan-out. atom_axis also needs to be passed explicitly
-            # (based on input spaces/the Transformer object/etc.) as it
-            # currently it assumes the last axis indexes hidden units
-            # or filters or whatever.
             if init is not None:
                 log.info("Initializing %s, shape = %s:", param.name, shape)
                 log.info("    %s", init)
                 param.set_value(init.initialize(rng, shape))
+
 
 
 class MLP(Layer):
@@ -396,8 +390,6 @@ class MLP(Layer):
     def _initialize_params(self, rng):
         """Note that this a private method, and the interface may change."""
         for layer in self.layers:
-            # TODO: Needs lots of hints from the input space (and input space
-            # of next layer) for this to be fully general.
             layer._initialize_params(rng)
 
     def add_layers(self, layers):

@@ -6,6 +6,14 @@ from pylearn2.initialization import Constant, IsotropicGaussian, Uniform
 from pylearn2.initialization import SparseInitialization
 
 
+class DummyModel(object):
+    def __init__(self, atom_axis):
+        self.atom_axis = atom_axis
+
+    def get_atom_axis(self):
+        return self.atom_axis
+
+
 def test_constant():
     def check_constant(const, shape, ground_truth):
         # rng unused, so pass None.
@@ -65,7 +73,7 @@ def test_sparse_init():
             atom_axis += len(shape)
         sp = SparseInitialization(base, num_nonzero=num_nonzero,
                                   prob_nonzero=prob_nonzero)
-        x = sp.initialize(rng, shape, atom_axis=atom_axis)
+        x = sp.initialize(rng, shape, DummyModel(atom_axis))
         if num_nonzero is not None:
             x_ = (x != 0)
             x_ = x_.swapaxes(0, atom_axis)
