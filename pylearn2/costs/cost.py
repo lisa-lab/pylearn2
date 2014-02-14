@@ -593,6 +593,8 @@ def _no_op(data):
     An on_load_batch callback that does nothing.
     """
 
+class FixedVarDescrDataSpecsError(TypeError):
+    pass
 
 class FixedVarDescr(object):
     """
@@ -617,30 +619,26 @@ class FixedVarDescr(object):
 
         on_load_batch : list
             A list of callable objects that the learning algorithm should
-            call with input data (formatted as self.data_specs) as appropriate
-            whenever a new batch of data is loaded.
+            call with input data (formatted as self.get_data_specs(model) as
+            appropriate whenever a new batch of data is loaded.
             This will update the shared variables mapped to by fixed_vars.
-
-        data_specs : tuple
-            A (space, source) pair describing the inputs of every function
-            in self.on_load_batch.
-            TODO: it seems likely that this field doesn't work, it looks
-            likely that Pascal broke FixedVarDescr when he moved to the
-            (space, source) setup. The above doc doesn't make a lot of sense,
-            because to give spaces for multiple functions it should be a list
-            of tuples. Below Pascal has made it a single tuple, as documented
-            here, but in `merge` he has made it a dictionary.
         """
 
         self.fixed_vars = {}
+        self.on_load_batch = []
 
-        # TODO: figure out why on_load_batch uses _no_op instead of an
-        #    empty list--either there is a reason and it should be
-        #    documented, or there is not reason and it should just be
-        #    an empty list.
-        self.on_load_batch = [_no_op]
+    def _data_specs_err(self):
+        raise FixedVarDescrDataSpecsError("The data_specs field of "
+                "FixedVarDescr has been "
+                "removed. While this field existed and was documented at "
+                " one time, no TrainingAlgorithm respected it. The "
+                "data_specs of all members of on_load_batch must match "
+                "those of the cost.")
 
-        self.data_specs = (NullSpace(), '')
+    def _data_specs_err_set(self, x):
+        self._data_specs_err()
+
+    data_specs = property(_data_specs_err, _data_specs_err_set)
 
 
 def merge(left, right):
@@ -658,8 +656,8 @@ def merge(left, right):
         described by `left` and `right`
     """
 
-    assert left is not right
     # We assume aliasing is a bug
+    assert left is not right
     assert left.fixed_vars is not right.fixed_vars
     assert left.on_load_batch is not right.on_load_batch
 
@@ -675,7 +673,6 @@ def merge(left, right):
     if left.data_specs == right.data_specs:
         # Combining the on_load_batch functions is easy, as they take
         # the same input arguments
-        merged.data_specs = left.fixed_vars
         merged.on_load_batch = safe_union(left.on_load_batch,
                                         right.on_load_batch)
     else:
