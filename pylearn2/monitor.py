@@ -972,8 +972,17 @@ class MonitorChannel(object):
         depends on these bad values, I exclude them from the pickle.
         """
 
+        if hasattr(self, 'val'):
+            doc = get_monitor_doc(self.val)
+        else:
+            # Hack to deal with Theano expressions not being serializable.
+            # If this is channel that has been serialized and then
+            # deserialized, the expression is gone, but we should have
+            # stored the doc
+            doc = self.doc
+
         return {
-            'doc' : get_monitor_doc(self.val),
+            'doc' : doc,
             'example_record' : self.example_record,
             'batch_record' : self.batch_record,
             'time_record' : self.time_record,
