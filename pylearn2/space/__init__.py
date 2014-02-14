@@ -63,13 +63,13 @@ class Space(object):
 
         Parameters
         ----------
-        validate_callbacks:
+        validate_callbacks : list
             Callbacks that are run at the start of a call to validate.
             Each should be a callable with the same signature as validate.
             An example use case is installing an instance-specific error
             handler that provides extra instructions for how to correct an
             input that is in a bad space.
-        np_validate_callacks:
+        np_validate_callacks : list
             similar to validate_callbacks, but run on calls to np_validate
         """
 
