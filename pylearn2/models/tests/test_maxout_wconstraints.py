@@ -237,7 +237,6 @@ yaml_string_maxout_conv_c01b_cifar10 = """
                          weight_constraints: [
                              !obj:pylearn2.constraints.NormConstraint {
                                 norm: 9.9,
-                                is_max_constraint: False,
                              }
                          ],
                      },

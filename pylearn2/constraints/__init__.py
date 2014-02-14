@@ -18,7 +18,7 @@ class Constraint(object):
                          constrain_on, axes,
                          updates=None):
         """
-        A function that applies the constraint. This function is implemented with weight norm
+        This is a function that applies the constraint. This function is implemented with weight norm
         constraint in mind. We should make the interface more generic for other types of constraints.
 
         Parameters
@@ -34,15 +34,15 @@ class Constraint(object):
 
 class NormConstraint(Constraint):
     """
-    A class implementing norm constraints. This class can be used to implement max/min norm
-    constraints on a matrix, vector or a tensor such that if the norm constraint is not
-    satisfied the values are rescaled along the given axes.
+    This class is implementing norm constraints. It can be used to implement max/min norm
+    constraints on a matrix, vector or on a tensor such that if the norm constraint computed
+    across specific axis is not satisfied the values are rescaled along those axes.
 
     Applying norm constraint on the parameters was first proposed in the following paper:
         Srebro, Nathan, and Adi Shraibman. "Rank, trace-norm and max-norm." Learning Theory.
         Springer Berlin Heidelberg, 2005. 545-560.
 
-    But it is further popularized in neural networks with drop-out in the following publication:
+    But its use is further popularized in neural networks literature with drop-out in the following publication:
         Hinton, Geoffrey E., et al. "Improving neural networks by preventing co-adaptation of feature
         detectors." arXiv preprint arXiv:1207.0580 (2012).
     """
@@ -53,12 +53,9 @@ class NormConstraint(Constraint):
         """
         This class applies the norm constraint on the parameters. For feedforward layers, norm constraint are
         usually applied on weights, but for convolutional neural networks constraint is being
-        applied on filters(usually a tensor) along specific axes. For scaling the parameters to satisfy the specific
-        constraint we have to multiply the parameters $\theta$ with a scale $\alpha$. $\alpha$ is
-        collapsed along the axes of '''axes''' argument. In order to make elementwise
-        multiplication valid, $\alpha$ should be dimshuffled along the dimshuffle_pattern axes.
-        TODO
-        Automatically generate dimshuffle_pattern instead of relying on user's input.
+        applied on filters(usually a tensor) along specific axes(usually input). For scaling the parameters
+        to satisfy the specific constraint we have to multiply the parameters $\theta$ with a scale $\alpha$.
+        $\alpha$ is collapsed along the axes of '''axes''' argument.
 
         Parameters
         ----------
@@ -81,13 +78,14 @@ class NormConstraint(Constraint):
         assert norm is not None, "%s's constructor expects " % (self.__class__.__name__) + \
                 "norm argument to be provided."
 
-    def _clip_norms(self, constrain_on, axes,
+    def _clip_norms(self,
+                    constrain_on, axes,
                     eps=1e-7):
         """
         Parameters
         ----------
         constrain_on : Theano shared variable.
-            The parameter that we are going to apply the constraint on.
+            Matrix/tensor that we are going to apply the constraint on.
         """
         assert axes is not None, "%s._clip_norms function expects" % (self.__class__.__name__) + \
             "axes argument to be provided."
@@ -105,11 +103,12 @@ class NormConstraint(Constraint):
         return clipped_param
 
     @wraps(Constraint.apply_constraint)
-    def apply_constraint(self, constrain_on,
-                        axes=(0,), updates=None):
+    def apply_constraint(self,
+                         constrain_on,
+                         axes=(0,), updates=None):
         """
-        The function that applies the constraints using the functions by using the constrain_param
-        and the constrain_updates functions.
+        This function applies the constraints on constrain_on argument. If updates dictionary
+        is specified, it will be updated with the new constrained value.
 
         Parameters
         ----------
@@ -117,9 +116,11 @@ class NormConstraint(Constraint):
             Theano shared variable that the constraint is going to be applied on.
         axes : tuple, optional
             Axes to apply the norm constraint over. axes are determined by the layer. Default
-            value of this function is (0,).
+            value of this argument is (0,).
         updates : dictionary, optional
-            update dictionary that is being passed to the train function.
+            This argument is a dictionary of theano shared variables as keys and their
+            new(updated) values-usually as theano symbolic expressions- as its elements.
+            This dictionary is being passed to the train function as its given argument.
         """
 
         if updates is None:
@@ -133,4 +134,3 @@ class NormConstraint(Constraint):
             clipped_param = self._clip_norms(update_param, axes, updates)
             updates[constrain_on] = clipped_param
             return updates
-
