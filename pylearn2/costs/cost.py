@@ -1,8 +1,7 @@
 """
 Classes representing loss functions.
-Currently, these are primarily used to specify
-the objective function for the SGD and BGD
-training algorithms.
+Currently, these are primarily used to specify the objective function for the
+SGD and BGD training algorithms.
 """
 
 import functools
@@ -168,27 +167,45 @@ class Cost(object):
 
     def get_fixed_var_descr(self, model, data):
         """
-        .. todo::
-
-            WRITEME
-
         Subclasses should override this if they need variables held
         constant across multiple updates to a minibatch.
 
         TrainingAlgorithms that do multiple updates to a minibatch should
-        respect this. See FixedVarDescr below for details.
+        respect this. See the FixedVarDescr class for details.
+
+        Parameters
+        ----------
+        model : Model
+        data : theano.gof.Variable or tuple
+            A valid member of the Space used to train `model` with this
+            cost.
+        Returns
+        -------
+        fixed_var_descr: FixedVarDescr
+            A description of how to hold the necessary variables constant
         """
         self.get_data_specs(model)[0].validate(data)
-        return FixedVarDescr()
+        fixed_var_descr = FixedVarDescr()
+        return fixed_var_descr
 
     def get_data_specs(self, model):
         """
-        .. todo::
+        Parameters
+        ----------
+        model : Model
+            The model to train with this cost
+        Returns
+        -------
+        data_specs : tuple
+            The tuple should be of length two.
+            The first element of the tuple should be a Space (possibly a
+            CompositeSpace) describing how to format the data.
+            The second element of the tuple describes the source of the
+            data. It probably should be a string or nested tuple of strings.
+        ..todo ::
 
-            WRITEME
-
-        Returns a composite space, describing the format of the data
-        which the cost (and the model) expects.
+            figure out return format for sure. PL seems to have documented
+            this method incorrectly.
         """
         raise NotImplementedError(str(type(self)) + " does not implement " +
                                   "get_data_specs.")
@@ -587,45 +604,58 @@ class FixedVarDescr(object):
 
     def __init__(self):
         """
-        .. todo::
+        Initializes a FixedVarDescr instance.
 
-            WRITEME
+        Creates the following public fields that the user should modify:
 
-        fixed_vars: maps string names to shared variables or some sort of data
-                    structure surrounding shared variables.
-                    Any learning algorithm that does multiple updates on the
-                    same minibatch should pass fixed_vars to the cost's expr
-                    and get_gradient methods as keyword arguments.
+        fixed_vars : dict
+            maps string names to shared variables or some sort of data
+            structure surrounding shared variables.
+            Any learning algorithm that does multiple updates on the same
+            minibatch should pass fixed_vars to the cost's expr and
+            get_gradient methods as keyword arguments.
+
+        on_load_batch : list
+            A list of callable objects that the learning algorithm should
+            call with input data (formatted as self.data_specs) as appropriate
+            whenever a new batch of data is loaded.
+            This will update the shared variables mapped to by fixed_vars.
+
+        data_specs : tuple
+            A (space, source) pair describing the inputs of every function
+            in self.on_load_batch.
+            TODO: it seems likely that this field doesn't work, it looks
+            likely that Pascal broke FixedVarDescr when he moved to the
+            (space, source) setup. The above doc doesn't make a lot of sense,
+            because to give spaces for multiple functions it should be a list
+            of tuples. Below Pascal has made it a single tuple, as documented
+            here, but in `merge` he has made it a dictionary.
         """
+
         self.fixed_vars = {}
 
-        """
-        A list of callable objects that the learning algorithm should
-        call with input data (formatted as self.data_specs) as appropriate
-        whenever a new batch of data is loaded.
-        This will update the shared variables mapped to by fixed_vars.
-
-        TODO: figure out why on_load_batch uses _no_op instead of an
-            empty list--either there is a reason and it should be
-            documented, or there is not reason and it should just be
-            an empty list.
-        """
+        # TODO: figure out why on_load_batch uses _no_op instead of an
+        #    empty list--either there is a reason and it should be
+        #    documented, or there is not reason and it should just be
+        #    an empty list.
         self.on_load_batch = [_no_op]
 
-        """
-        A (space, source) pair describing the inputs of every function
-        in self.on_load_batch.
-        """
         self.data_specs = (NullSpace(), '')
 
 
 def merge(left, right):
     """
-    .. todo::
-
-        WRITEME properly
-
     Combine two FixedVarDescrs
+
+    Parameters
+    ----------
+    left : FixedVarDescr
+    right : FixedVarDescr
+    Returns
+    -------
+    merged : FixedVarDescr
+        a new FixedVarDescr describing all variables and operations
+        described by `left` and `right`
     """
 
     assert left is not right
@@ -633,23 +663,24 @@ def merge(left, right):
     assert left.fixed_vars is not right.fixed_vars
     assert left.on_load_batch is not right.on_load_batch
 
-    rval = FixedVarDescr()
+    merged = FixedVarDescr()
     for key in left.fixed_vars:
         if key in right.fixed_vars:
             raise ValueError("Can't merge these FixedVarDescrs, "
                              "both contain " + key)
     assert not any([key in left.fixed_vars for key in right.fixed_vars])
-    rval.fixed_vars.update(left.fixed_vars)
-    rval.fixed_vars.update(right.fixed_vars)
+    merged.fixed_vars.update(left.fixed_vars)
+    merged.fixed_vars.update(right.fixed_vars)
 
     if left.data_specs == right.data_specs:
         # Combining the on_load_batch functions is easy, as they take
         # the same input arguments
-        rval.data_specs = left.fixed_vars
-        rval.on_load_batch = safe_union(left.on_load_batch,
+        merged.data_specs = left.fixed_vars
+        merged.on_load_batch = safe_union(left.on_load_batch,
                                         right.on_load_batch)
     else:
         # We would have to build a composite data_specs
         raise NotImplementedError()
 
-    return rval
+    return merged
+
