@@ -3,15 +3,16 @@ This module tests stacked_autoencoders.ipynb
 """
 
 import os
-from nose.plugins.skip import SkipTest
 
-from pylearn2.datasets.exc import NoDataPathError
+from pylearn2.testing import skip
 from pylearn2.testing import no_debug_mode
 from pylearn2.config import yaml_parse
 
 
 @no_debug_mode
 def train_yaml(yaml_file):
+
+    skip.skip_if_no_data()
 
     train = yaml_parse.load(yaml_file)
     train.main_loop()

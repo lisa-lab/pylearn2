@@ -3,9 +3,8 @@ This module tests dbm_demo/rbm.yaml
 """
 
 import os
-from nose.plugins.skip import SkipTest
 
-from pylearn2.datasets.exc import NoDataPathError
+from pylearn2.testing import skip
 from pylearn2.testing import no_debug_mode
 from pylearn2.config import yaml_parse
 
@@ -18,6 +17,8 @@ def train_yaml(yaml_file):
 
 
 def train(yaml_file_path, save_path):
+
+    skip.skip_if_no_data()
 
     yaml = open("{0}/rbm.yaml".format(yaml_file_path), 'r').read()
     hyper_params = {'detector_layer_dim': 5,
