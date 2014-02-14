@@ -653,14 +653,8 @@ def merge(left, right):
     merged.fixed_vars.update(left.fixed_vars)
     merged.fixed_vars.update(right.fixed_vars)
 
-    if left.data_specs == right.data_specs:
-        # Combining the on_load_batch functions is easy, as they take
-        # the same input arguments
-        merged.on_load_batch = safe_union(left.on_load_batch,
+    merged.on_load_batch = safe_union(left.on_load_batch,
                                         right.on_load_batch)
-    else:
-        # We would have to build a composite data_specs
-        raise NotImplementedError()
 
     return merged
 
