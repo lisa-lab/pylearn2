@@ -594,26 +594,34 @@ class FixedVarDescr(object):
 
         on_load_batch : list
             A list of callable objects that the learning algorithm should
-            call with input data (formatted as self.get_data_specs(model) as
-            appropriate whenever a new batch of data is loaded.
-            This will update the shared variables mapped to by fixed_vars.
+            call with input data.
+            All of these callables must take an argument with the same
+            (space, source) format as the cost used for training.
+            TODO: It can be hard for a human user to know the right format
+            ahead of time if you use SumOfCosts, make a better way of handling
+            this.
+            PL had added a data_specs field to this class which
+            was meant to define the (space, source) format for each of
+            the members of on_load_batch, but the doc was internally
+            inconsistent, none of the TrainingAlgorithms obeyed it,
+            and the Cost's handling of it was buggy. IG removed this
+            broken functionality so that at least singleton costs can
+            used FixedVarDescr but it would be good to restore functionality
+            to composite costs.
         """
 
         self.fixed_vars = {}
         self.on_load_batch = []
 
-    def _data_specs_err(self):
+    def _data_specs_err(self, x = None):
         raise FixedVarDescrDataSpecsError("The data_specs field of "
                 "FixedVarDescr has been "
                 "removed. While this field existed and was documented at "
-                " one time, no TrainingAlgorithm respected it. The "
+                "one time, no TrainingAlgorithm respected it. The "
                 "data_specs of all members of on_load_batch must match "
                 "those of the cost.")
 
-    def _data_specs_err_set(self, x):
-        self._data_specs_err()
-
-    data_specs = property(_data_specs_err, _data_specs_err_set)
+    data_specs = property(_data_specs_err, _data_specs_err)
 
 
 def merge(left, right):
