@@ -438,3 +438,12 @@ class Model(object):
             raise ValueError('Invalid names argument')
         self.names_to_del = self.names_to_del.union(names)
 
+    def get_atom_axis(self):
+        """
+        Return the axis of the associated weight tensor along which
+        the features/filters/dictionary elements/etc. are indexed.
+
+        Used for things like initialization strategies and applying
+        constraints.
+        """
+        raise NotImplementedError()
