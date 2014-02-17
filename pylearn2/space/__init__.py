@@ -63,13 +63,13 @@ class Space(object):
 
         Parameters
         ----------
-        validate_callbacks:
+        validate_callbacks : list
             Callbacks that are run at the start of a call to validate.
             Each should be a callable with the same signature as validate.
             An example use case is installing an instance-specific error
             handler that provides extra instructions for how to correct an
             input that is in a bad space.
-        np_validate_callacks:
+        np_validate_callacks : list
             similar to validate_callbacks, but run on calls to np_validate
         """
 
@@ -730,7 +730,8 @@ class Conv2DSpace(Space):
                  shape,
                  channels=None,
                  num_channels=None,
-                 axes=None):
+                 axes=None, validate_callbacks = None,
+            np_validate_callbacks = None):
         """
         Initialize a Conv2DSpace.
 
@@ -738,9 +739,9 @@ class Conv2DSpace(Space):
         ----------
         shape : sequence, length 2
             The shape of a single image, i.e. (rows, cols).
-        num_channels: int     (synonym: channels)
+        num_channels : int     (synonym: channels)
             Number of channels in the image, i.e. 3 if RGB.
-        axes: A tuple indicating the semantics of each axis.
+        axes : A tuple indicating the semantics of each axis.
                 'b' : this axis is the batch index of a minibatch.
                 'c' : this axis the channel index of a minibatch.
                 <i> : this is topological axis i (i.e., 0 for rows, 1 for \
@@ -750,7 +751,11 @@ class Conv2DSpace(Space):
                 The pylearn2 image displaying functionality uses \
                     ('b', 0, 1, 'c') for batches and (0, 1, 'c') for images. \
                 theano's conv2d operator uses ('b', 'c', 0, 1) images.
+        validate_callbacks : see Space.__init__
+        np_validate_callbacks : see Space.__init__
         """
+
+        Space.__init__(self, validate_callbacks, np_validate_callbacks)
 
         assert (channels is None) + (num_channels is None) == 1
         if num_channels is None:
@@ -1007,12 +1012,22 @@ class Conv2DSpace(Space):
 
 class CompositeSpace(Space):
     """A Space whose points are tuples of points in other spaces """
-    def __init__(self, components):
+    def __init__(self, components, validate_callbacks = None,
+            np_validate_callbacks = None):
         """
-        .. todo::
+        Members of this space should be tuples, with tuple element i being a
+        valid member of components[i].
 
-            WRITEME
+        Parameters
+        ----------
+        components : list
+            A list of Spaces.
+        validate_callbacks : list
+            see Space.__init__
+        np_validate_callbacks : list
+            see Space.__init__
         """
+        Space.__init__(self, validate_callbacks, np_validate_callbacks)
         assert isinstance(components, (list, tuple))
         self.num_components = len(components)
         for i, component in enumerate(components):

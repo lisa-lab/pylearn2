@@ -537,11 +537,11 @@ class MonitorBasedLRAdjuster(TrainExtension):
                 raise ValueError("""There are no monitoring channels that end with \"objective\". Please specify either channel_name or dataset_name.""")
             elif len(channels) > 1:
                 datasets = algorithm.monitoring_dataset.keys()
-                raise ValueError('There are multiple monitoring channels that ends with \"_objective\". The list of available datasets are: ' + 
+                raise ValueError('There are multiple monitoring channels that ends with \"_objective\". The list of available datasets are: ' +
                                 str(datasets) + ' . Please specify either channel_name or dataset_name in the MonitorBasedLRAdjuster constructor to disambiguate.')
             else:
                 self.channel_name = channels[0]
-                warnings.warn('The channel that has been chosen for monitoring is: ' + 
+                warnings.warn('The channel that has been chosen for monitoring is: ' +
                               str(self.channel_name) + '.')
 
         try:
@@ -824,7 +824,7 @@ def MomentumAdjustor(final_momentum, start, saturate):
     Use learning_rule.MomentumAdjustor instead.
     """
     warnings.warn("sgd.MomentumAdjustor interface is deprecated and will "
-    "become officially unsuported as of May 9, 2014. Please use "
+    "become officially unsupported as of May 9, 2014. Please use "
     "`learning_rule.MomentumAdjustor` instead.")
     return LRMomentumAdjustor(final_momentum, start, saturate)
 
