@@ -40,9 +40,10 @@ class NormConstraint(Constraint):
         Srebro, Nathan, and Adi Shraibman. "Rank, trace-norm and max-norm." Learning Theory.
         Springer Berlin Heidelberg, 2005. 545-560.
 
-    But its use is further popularized in neural networks literature with drop-out in the following publication:
-        Hinton, Geoffrey E., et al. "Improving neural networks by preventing co-adaptation of feature
-        detectors." arXiv preprint arXiv:1207.0580 (2012).
+    But its use is further popularized in neural networks literature with drop-out
+    in the following publication:
+        Hinton, Geoffrey E., et al. "Improving neural networks by preventing co-adaptation of
+        feature detectors." arXiv preprint arXiv:1207.0580 (2012).
     """
     def __init__(self,
                  max_norm=None,
