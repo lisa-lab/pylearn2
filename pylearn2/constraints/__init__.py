@@ -90,12 +90,12 @@ class NormConstraint(Constraint):
 
         Parameters
         ----------
-        constrain_on : Theano shared variable.
+        constrain_on : theano.shared.SharedVariable
             Matrix/tensor that we are going to apply the constraint on.
 
         Returns
         -------
-        clipped_param : theano shared variable
+        clipped_param : theano.shared.SharedVariable
             Parameter that the norm clip is applied on.
         """
         assert axes is not None, ("%s._clip_norms function expects axes "
@@ -125,7 +125,7 @@ class NormConstraint(Constraint):
 
         Parameters
         ----------
-        constrain_on : theano shared variable.
+        constrain_on : theano.shared.SharedVariable
             Theano shared variable that the constraint is going to be
             applied on.
         axes : tuple, optional
