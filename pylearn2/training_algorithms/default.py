@@ -76,11 +76,10 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
             source_tuple = mapping.flatten(source, return_tuple=True)
             # Then, build a flat tuple of these Theano variables
             ipt = tuple(sp.make_theano_batch(name='monitor_%s' % src)
-                    for (sp, src) in safe_zip(space_tuple, source_tuple))
+                        for (sp, src) in safe_zip(space_tuple, source_tuple))
             # Finally, organize them back into a structure expected by the
             # monitoring channels of the model
             nested_ipt = mapping.nest(ipt)
-
 
             channels = model.get_monitoring_channels(nested_ipt)
             if not isinstance(channels, dict):
@@ -95,8 +94,8 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
                 monitoring_dataset = self.monitoring_dataset[dataset_name]
 
                 self.monitor.add_dataset(dataset=monitoring_dataset,
-                                    mode="sequential",
-                                    batch_size=self.batch_size)
+                                         mode="sequential",
+                                         batch_size=self.batch_size)
 
                 for name in channels:
                     J = channels[name]
@@ -106,7 +105,7 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
                     else:
                         prereqs = None
 
-                    self.monitor.add_channel(name= prefix + name,
+                    self.monitor.add_channel(name=prefix + name,
                                              ipt=nested_ipt,
                                              val=J,
                                              dataset=monitoring_dataset,
@@ -142,7 +141,7 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
 
         # Make sure we didn't exit training loop because Model.learn
         # hasn't been updated to new interface yet.
-        if learn_more not in [True,False]:
+        if learn_more not in [True, False]:
             msg = ('The learn method of model %s did not return a boolean ' +
                    'value. Please update your model accordingly.')
             raise ValueError(msg % str(model))
