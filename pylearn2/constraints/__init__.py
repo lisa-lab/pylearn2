@@ -80,7 +80,7 @@ class NormConstraint(Constraint):
         self.max_norm = max_norm
         self.min_norm = min_norm
         self.eps = eps
-        assert min_norm is None and max_norm is None, "%s's constructor expects " % (self.__class__.__name__) + \
+        assert min_norm is not None or max_norm is not None, "%s's constructor expects " % (self.__class__.__name__) + \
                 " either min_norm or max_norm."
 
     def _clip_norms(self,
