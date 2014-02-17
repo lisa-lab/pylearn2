@@ -141,9 +141,6 @@ class NormConstraint(Constraint):
         -------
         updates : OrderedDict
             Dictionary of parameters that the norm constraint is applied on.
-
-        Notes
-        -----
             If `updates` was specified as an argument, the returned value will be
             the same object, after being modified in-place (the value of
             `updates[constrain_on]` will be changed to reflect the value after
