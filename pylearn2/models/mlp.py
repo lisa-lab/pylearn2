@@ -250,7 +250,7 @@ class Layer(Model):
         """
         raise NotImplementedError
 
-    def get_output_axes_def(self):
+    def get_output_axes(self):
         """
 
         Returns
@@ -258,9 +258,9 @@ class Layer(Model):
         This function returns the axes of the output space for constraints.
         """
 
-        return self._output_axes_def
+        return self._output_axes
 
-    def get_input_axes_def(self):
+    def get_input_axes(self):
         """
 
         Returns
@@ -268,7 +268,7 @@ class Layer(Model):
         This function returns the axes of the input space for constraints.
         """
 
-        return self._input_axes_def
+        return self._input_axes
 
     @wraps(Model.censor_updates)
     def censor_updates(self, updates):
@@ -350,8 +350,8 @@ class Layer(Model):
                            "updates": updates
                           }
 
-        input_axes = self.get_input_axes_def()
-        output_axes = self.get_output_axes_def()
+        input_axes = self.get_input_axes()
+        output_axes = self.get_output_axes()
         args_list = []
 
         for weight_constraint in self.weight_constraints:
@@ -951,11 +951,11 @@ class Softmax(Layer):
         del self.self
         del self.init_bias_target_marginals
 
-        self._input_axes_def = (0,)
-        self._output_axes_def = (1,)
+        self._input_axes = (0,)
+        self._output_axes = (1,)
 
         assert isinstance(n_classes, py_integer_types)
-        self.axes_defs = ()
+        self.axess = ()
 
         self.output_space = VectorSpace(n_classes)
         if not no_affine:
@@ -1274,8 +1274,8 @@ class SoftmaxPool(Layer):
         """
         self.__dict__.update(locals())
         del self.self
-        self._input_axes_def = (0,)
-        self._output_axes_def = (1,)
+        self._input_axes = (0,)
+        self._output_axes = (1,)
 
         self.b = sharedX(np.zeros((self.detector_layer_dim,)) + init_bias,
                          name=(layer_name + '_b'))
@@ -1626,8 +1626,8 @@ class Linear(Layer):
         self.__dict__.update(locals())
         del self.self
 
-        self._input_axes_def = (0,)
-        self._output_axes_def = (1,)
+        self._input_axes = (0,)
+        self._output_axes = (1,)
 
         if use_bias:
             self.b = sharedX(np.zeros((self.dim,)) + init_bias,
@@ -2298,8 +2298,8 @@ class ConvRectifiedLinear(Layer):
                                  "sparse_init when calling the constructor of "
                                  "ConvRectifiedLinear and not both.")
 
-        self._input_axes_def = (1, 2, 3)
-        self._output_axes_def = (0,)
+        self._input_axes = (1, 2, 3)
+        self._output_axes = (0,)
 
         self.__dict__.update(locals())
         del self.self
@@ -2473,8 +2473,8 @@ class ConvRectifiedLinear(Layer):
 
         return np.transpose(raw, (outp, rows, cols, inp))
 
-    @wraps(Layer.get_output_axes_def)
-    def get_output_axes_def(self):
+    @wraps(Layer.get_output_axes)
+    def get_output_axes(self):
         """
 
         Returns
@@ -2482,10 +2482,10 @@ class ConvRectifiedLinear(Layer):
         This function returns the output axes.
         """
 
-        return self._output_axes_def
+        return self._output_axes
 
-    @wraps(Layer.get_input_axes_def)
-    def get_input_axes_def(self):
+    @wraps(Layer.get_input_axes)
+    def get_input_axes(self):
         """
 
         Returns
@@ -2493,7 +2493,7 @@ class ConvRectifiedLinear(Layer):
         This function returns the input axes.
         """
 
-        return self._input_axes_def
+        return self._input_axes
 
     @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
