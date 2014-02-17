@@ -134,8 +134,8 @@ class Maxout(Layer):
         detector_layer_dim = num_units * num_pieces
         pool_size = num_pieces
 
-        self._input_axes_def = (0,)
-        self._output_axes_def = (1,)
+        self._input_axes = (0,)
+        self._output_axes = (1,)
 
         if pool_stride is None:
             pool_stride = pool_size
@@ -680,8 +680,8 @@ class MaxoutConvC01B(Layer):
         self.__dict__.update(locals())
         del self.self
 
-        self._input_axes_def = (0, 1, 2)
-        self._output_axes_def = (3,)
+        self._input_axes = (0, 1, 2)
+        self._output_axes = (3,)
 
 
     def get_lr_scalers(self):
@@ -824,8 +824,8 @@ class MaxoutConvC01B(Layer):
         """
         return self.transformer.get_weights_topo()
 
-    @wraps(Layer.get_output_axes_def)
-    def get_output_axes_def(self):
+    @wraps(Layer.get_output_axes)
+    def get_output_axes(self):
         """
 
         Returns
@@ -833,17 +833,17 @@ class MaxoutConvC01B(Layer):
         This function returns the output axes.
         """
 
-        return self._output_axes_def
+        return self._output_axes
 
-    @wraps(Layer.get_input_axes_def)
-    def get_input_axes_def(self):
+    @wraps(Layer.get_input_axes)
+    def get_input_axes(self):
         """
 
         Returns
         -------
         This function returns the input axes.
         """
-        return self._input_axes_def
+        return self._input_axes
 
     def get_monitoring_channels(self):
         """
@@ -1134,8 +1134,8 @@ class MaxoutLocalC01B(Layer):
         self.__dict__.update(locals())
         del self.self
 
-        self._input_axes_def = (0, 1, 5, 6)
-        self._output_axes_def = (2, 3, 4)
+        self._input_axes = (0, 1, 5, 6)
+        self._output_axes = (2, 3, 4)
 
     def get_lr_scalers(self):
         """
@@ -1367,25 +1367,25 @@ class MaxoutLocalC01B(Layer):
 
         return norms
 
-    @wraps(Layer.get_output_axes_def)
-    def get_output_axes_def(self):
+    @wraps(Layer.get_output_axes)
+    def get_output_axes(self):
         """
 
         Returns
         -------
         This function returns the output axes.
         """
-        return self._output_axes_def
+        return self._output_axes
 
-    @wraps(Layer.get_input_axes_def)
-    def get_input_axes_def(self):
+    @wraps(Layer.get_input_axes)
+    def get_input_axes(self):
         """
 
         Returns
         -------
         This function returns the input axes.
         """
-        return self._input_axes_def
+        return self._input_axes
 
     def get_monitoring_channels(self):
         """
