@@ -51,10 +51,13 @@ class NormConstraint(Constraint):
                  is_max_constraint=True,
                  eps=1e-7):
         """
-        This class applies the norm constraint on the parameters. For feedforward layers, norm constraint are
-        usually applied on weights, but for convolutional neural networks constraint is being
-        applied on filters(usually a tensor) along specific axes(usually input). For scaling the parameters
-        to satisfy the specific constraint we have to multiply the parameters $\theta$ with a scale $\alpha$.
+        Apply the norm constraint on the parameters. For feedforward
+        layers, norm constraint are usually applied on weights,
+        but for convolutional neural networks constraint is
+        applied on filters(usually a tensor) along specific
+        axes(usually input). For scaling the parameters
+        to satisfy the specific constraint we have to multiply
+        the parameters $\theta$ with a scale $\alpha$.
         $\alpha$ is collapsed along the axes of '''axes''' argument.
 
         Parameters
@@ -62,14 +65,15 @@ class NormConstraint(Constraint):
         norm : float, optional
             The maximum norm of the parameters.
         is_input_axis : bool, optional
-            This determines whether to perform the dimshuffle along is input axes or output
-            axes. By default this has been set to True.
+            This determines whether to perform the dimshuffle along is
+            input axes or output axes. By default this has been set to True.
         is_max_constraint : bool, optional
-            is_max_constraint is a flag that determines whether to apply constraint as a max norm
-            constraint or min norm constraint. By default this is True.
+            is_max_constraint is a flag that determines whether to apply
+            constraint as a max norm constraint or min norm constraint.
+            By default this is True.
         eps : float
-            Epsilon, a small value to be added to norm for numerical stability to ensure that
-            denominator never becomes 0 (default = 1e-7).
+            Epsilon, a small value to be added to norm for numerical stability
+            to ensure that denominator never becomes 0 (default = 1e-7).
         """
         self.is_input_axis = is_input_axis
         self.is_max_constraint = is_max_constraint
@@ -107,28 +111,31 @@ class NormConstraint(Constraint):
                          constrain_on,
                          axes=(0,), updates=None):
         """
-        This function applies the constraints on constrain_on argument. If updates dictionary
-        is specified, it will be updated with the new constrained value.
+        This function applies the constraints on constrain_on argument.
+        If updates dictionary is specified, it will be updated with
+        the new constrained value.
 
         Parameters
         ----------
         constrain_on : theano shared variable.
-            Theano shared variable that the constraint is going to be applied on.
+            Theano shared variable that the constraint is going to be
+            applied on.
         axes : tuple, optional
-            Axes to apply the norm constraint over. axes are determined by the layer. Default
-            value of this argument is (0,).
+            Axes to apply the norm constraint over. axes are determined
+            by the layer. Default value of this argument is (0,).
         updates : dictionary, optional
-            This argument is a dictionary of theano shared variables as keys and their
-            new(updated) values-usually as theano symbolic expressions- as its elements.
-            This dictionary is being passed to the train function as its given argument.
+            This argument is a dictionary of theano shared variables as
+            keys and their new (updated) values-usually as theano
+            symbolic expressions as its elements. This dictionary
+            is being passed to the train function as its given argument.
         """
 
         if updates is None:
             clipped_param = self._clip_norms(constrain_on, axes)
             return self.constrain_param(constrain_on, axes)
         else:
-            assert constrain_on in updates, "%s.apply_constraint function expects" % (self.__class__.__name__) + \
-                    "constrain_on argument to be in provided updates dictionary."
+            assert constrain_on in updates, ("%s.apply_constraint function expects" %
+            self.__class__.__name__) + "constrain_on argument to be in provided updates dictionary."
 
             update_param = updates[constrain_on]
             clipped_param = self._clip_norms(update_param, axes, updates)
