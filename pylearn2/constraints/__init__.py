@@ -18,30 +18,51 @@ class Constraint(object):
                          constrain_on, axes,
                          updates=None):
         """
+        Apply the constraints on constrain_on argument.
+        If updates dictionary is specified, it will be
+        updated with the new constrained value.
 
         Parameters
         ----------
-        WRITEME
+        constrain_on : theano.shared.SharedVariable
+            Theano shared variable that the constraint is going to be
+            applied on.
+        axes : tuple, optional
+            Axes to apply the constraint over. axes are determined
+            by the layer. Default value of this argument is (0,).
+        updates : dictionary, optional
+            This argument is a dictionary of theano shared variables as
+            keys and their new (updated) values-usually as theano
+            symbolic expressions as its elements. This dictionary
+            is being passed to the train function as its given argument.
 
         Returns
         -------
-        WRITEME
+        updates : OrderedDict
+            Dictionary of parameters that the constraint is applied on.
+            If `updates` was specified as an argument, the returned value will be
+            the same object, after being modified in-place (the value of
+            `updates[constrain_on]` will be changed to reflect the value after
+            applying the constraint).
         """
+
         raise NotImplementedError()
 
 
 class NormConstraint(Constraint):
     """
-    This class is implementing norm constraints. It can be used to implement max/min norm
-    constraints on a matrix, vector or on a tensor such that if the norm constraint computed
-    across specific axis is not satisfied the values are rescaled along those axes.
+    This class is implementing norm constraints. It can be used to
+    implement max/min norm constraints on a matrix, vector or on
+    a tensor such that if the norm constraint computed across specific
+    axis is not satisfied the values are rescaled along those axes.
 
-    Applying norm constraint on the parameters was first proposed in the following paper:
+    Applying norm constraint on the parameters was first proposed
+    in the following paper:
         Srebro, Nathan, and Adi Shraibman. "Rank, trace-norm and max-norm." Learning Theory.
         Springer Berlin Heidelberg, 2005. 545-560.
 
-    But its use is further popularized in neural networks literature with drop-out
-    in the following publication:
+    But its use is further popularized in neural networks literature
+    with drop-out in the following publication:
         Hinton, Geoffrey E., et al. "Improving neural networks by preventing co-adaptation of
         feature detectors." arXiv preprint arXiv:1207.0580 (2012).
     """
@@ -118,34 +139,6 @@ class NormConstraint(Constraint):
     def apply_constraint(self,
                          constrain_on,
                          axes=(0,), updates=None):
-        """
-        This function applies the constraints on constrain_on argument.
-        If updates dictionary is specified, it will be updated with
-        the new constrained value.
-
-        Parameters
-        ----------
-        constrain_on : theano.shared.SharedVariable
-            Theano shared variable that the constraint is going to be
-            applied on.
-        axes : tuple, optional
-            Axes to apply the norm constraint over. axes are determined
-            by the layer. Default value of this argument is (0,).
-        updates : dictionary, optional
-            This argument is a dictionary of theano shared variables as
-            keys and their new (updated) values-usually as theano
-            symbolic expressions as its elements. This dictionary
-            is being passed to the train function as its given argument.
-
-        Returns
-        -------
-        updates : OrderedDict
-            Dictionary of parameters that the norm constraint is applied on.
-            If `updates` was specified as an argument, the returned value will be
-            the same object, after being modified in-place (the value of
-            `updates[constrain_on]` will be changed to reflect the value after
-            applying the constraint).
-        """
 
         if updates is None:
             updates = OrderedDict({})
@@ -156,7 +149,6 @@ class NormConstraint(Constraint):
             assert constrain_on in updates, ("%s.apply_constraint function expects constrain_on "
                                              "argument to be in provided updates dictionary. "
                                              % self.__class__.__name__)
-
             update_param = updates[constrain_on]
             clipped_param = self._clip_norms(update_param, axes, updates)
             updates[constrain_on] = clipped_param
