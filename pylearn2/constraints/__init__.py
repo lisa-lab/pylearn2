@@ -18,8 +18,6 @@ class Constraint(object):
                          constrain_on, axes,
                          updates=None):
         """
-        This is a function that applies the constraint. This function is implemented with weight norm
-        constraint in mind. We should make the interface more generic for other types of constraints.
 
         Parameters
         ----------
@@ -88,13 +86,16 @@ class NormConstraint(Constraint):
                     constrain_on, axes,
                     eps=1e-7):
         """
+
         Parameters
         ----------
         constrain_on : Theano shared variable.
             Matrix/tensor that we are going to apply the constraint on.
+
         Returns
         -------
-        WRITEME
+        clipped_param : theano shared variable
+            Parameter that the norm clip is applied on.
         """
         assert axes is not None, ("%s._clip_norms function expects axes "
                                   "argument to be provided. " % (self.__class__.__name__))
@@ -134,9 +135,11 @@ class NormConstraint(Constraint):
             keys and their new (updated) values-usually as theano
             symbolic expressions as its elements. This dictionary
             is being passed to the train function as its given argument.
+
         Returns
         -------
-        WRITEME
+        updates: OrderedDict
+            Dictionary of parameters that the norm constraint is applied on.
         """
 
         if updates is None:
