@@ -12,7 +12,7 @@ from pylearn2.utils import wraps
 
 class Constraint(object):
     """
-    Base class for implementing different types of constraints.
+    Abstract class for implementing different types of constraints.
     """
     def apply_constraint(self,
                          constrain_on, axes,
@@ -139,8 +139,15 @@ class NormConstraint(Constraint):
 
         Returns
         -------
-        updates: OrderedDict
+        updates : OrderedDict
             Dictionary of parameters that the norm constraint is applied on.
+
+        Notes
+        -----
+            If `updates` was specified as an argument, the returned value will be
+            the same object, after being modified in-place (the value of
+            `updates[constrain_on]` will be changed to reflect the value after
+            applying the constraint).
         """
 
         if updates is None:
