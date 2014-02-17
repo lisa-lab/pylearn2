@@ -325,8 +325,8 @@ class Maxout(Layer):
 
         if self.randomize_pools:
             warnings.warn("randomize_pools makes get_weights multiply by the permutation matrix. "
-                    "If you call set_weights(W) and then call get_weights(), the return value will "
-                    "WP not W.")
+                          "If you call set_weights(W) and then call get_weights(), the return value will "
+                          "WP not W.")
             P = self.permute.get_value()
             return np.dot(W,P)
 
