@@ -80,8 +80,9 @@ class NormConstraint(Constraint):
         self.max_norm = max_norm
         self.min_norm = min_norm
         self.eps = eps
-        assert min_norm is not None or max_norm is not None, "%s's constructor expects " % (self.__class__.__name__) + \
-                " either min_norm or max_norm."
+        assert min_norm is not None or max_norm is not None, ("%s's constructor expects either "
+                                                              "min_norm or max_norm. "
+                                                               % self.__class__.__name__)
 
     def _clip_norms(self,
                     constrain_on, axes,
@@ -91,9 +92,12 @@ class NormConstraint(Constraint):
         ----------
         constrain_on : Theano shared variable.
             Matrix/tensor that we are going to apply the constraint on.
+        Returns
+        -------
+        WRITEME
         """
-        assert axes is not None, "%s._clip_norms function expects" % (self.__class__.__name__) + \
-            "axes argument to be provided."
+        assert axes is not None, ("%s._clip_norms function expects axes "
+                                  "argument to be provided. " % (self.__class__.__name__))
         min_constraint = 0.0
         max_constraint = np.inf
         if self.max_norm is not None:
@@ -130,6 +134,9 @@ class NormConstraint(Constraint):
             keys and their new (updated) values-usually as theano
             symbolic expressions as its elements. This dictionary
             is being passed to the train function as its given argument.
+        Returns
+        -------
+        WRITEME
         """
 
         if updates is None:
@@ -138,8 +145,9 @@ class NormConstraint(Constraint):
             updates[constrain_on] = clipped_param
             return updates
         else:
-            assert constrain_on in updates, ("%s.apply_constraint function expects" %
-            self.__class__.__name__) + "constrain_on argument to be in provided updates dictionary."
+            assert constrain_on in updates, ("%s.apply_constraint function expects constrain_on "
+                                             "argument to be in provided updates dictionary. "
+                                             % self.__class__.__name__)
 
             update_param = updates[constrain_on]
             clipped_param = self._clip_norms(update_param, axes, updates)
