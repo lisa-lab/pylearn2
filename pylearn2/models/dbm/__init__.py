@@ -773,12 +773,20 @@ class Layer(Model):
     def _apply_constraints(self, updates):
         """
         This function applies the max column norm constraint.
-        TODO this function can be made more generic, see: mlp
-        apply_constraints function.
+        over the parameters in the update dictionary.
 
         Parameters
         ---------
-        updates: a dictionary of parameter and their update values.
+        updates : dictionary
+            Dictionary of parameters that the constraint is applied on.
+            If `updates` was specified as an argument, the returned value will be
+            the same object, after being modified in-place (the value of
+            `updates[constrain_on]` will be changed to reflect the value after
+            applying the constraint).
+
+        Notes
+        -----
+        This function does only max column norm constraint for now.
         """
         if getattr(self, 'weight_constraints', None) is not None:
             self.weight_constraints = []
