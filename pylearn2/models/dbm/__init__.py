@@ -784,7 +784,7 @@ class Layer(Model):
             self.weight_constraints = []
 
         if getattr(self, "max_col_norm", None) is not None:
-            constraint = NormConstraint(norm=self.max_col_norm)
+            constraint = NormConstraint(max_norm=self.max_col_norm)
             self.weight_constraints.append(constraint)
 
         W, = self.transformer.get_params()
