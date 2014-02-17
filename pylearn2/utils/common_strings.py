@@ -1,4 +1,8 @@
 environment_variable_essay = """
+Platform-specific instructions for setting environment variables:
+
+Linux
+=====
 On most linux setups, you can define your environment variable by adding this
 line to your ~/.bashrc file:
 
@@ -16,4 +20,10 @@ source ~/.bashrc
 or open a new terminal window. If you're seeing this from an ipython notebook
 you'll need to restart the ipython notebook, or maybe modify os.environ from
 an ipython cell.
+
+Mac OS X
+========
+
+Environment variables on Mac OS X work the same as in Linux, except you should
+modify and run the "source" command on ~/.profile rather than ~/.bashrc.
 """

@@ -282,6 +282,11 @@ in a command prompt on your machine will do the following:
     -open an image viewer in a new process.
     -not return until you have closed the image.
 
+Platform-specific recommendations follow.
+
+Linux
+=====
+
 Acceptable commands include:
     gwenview
     eog --new-instance
@@ -290,4 +295,11 @@ This is assuming that you have gwenview or a version of eog that supports
 --new-instance installed on your machine. If you don't, install one of those,
 or figure out a command that has the above properties that is available from
 your setup.
+
+Mac OS X
+========
+
+Acceptable commands include:
+    open -Wn
+
 """
