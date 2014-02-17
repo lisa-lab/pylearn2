@@ -637,13 +637,13 @@ def estimate_likelihood(W_list, b_list, trainset, testset, free_energy_fn=None,
     # Default configuration for interpolating distributions
     if large_ais:
         betas = numpy.cast[floatX](
-            numpy.hstack((numpy.linspace(0, 0.5, 1e5),
-                         numpy.linspace(0.5, 0.9, 1e5),
+            numpy.hstack((numpy.linspace(0, 0.5, 1e5+1)[:-1],
+                         numpy.linspace(0.5, 0.9, 1e5+1)[:-1],
                          numpy.linspace(0.9, 1.0, 1e5))))
     else:
         betas = numpy.cast[floatX](
-            numpy.hstack((numpy.linspace(0, 0.5, 1e4),
-                         numpy.linspace(0.5, 0.9, 1e4),
+            numpy.hstack((numpy.linspace(0, 0.5, 1e4+1)[:-1],
+                         numpy.linspace(0.5, 0.9, 1e4+1)[:-1],
                          numpy.linspace(0.9, 1.0, 1e4))))
 
     if log_z is None:
