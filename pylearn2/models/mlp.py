@@ -943,8 +943,8 @@ class Softmax(Layer):
                  sparse_init=None, W_lr_scale=None,
                  b_lr_scale=None, max_row_norm=None,
                  no_affine=False,
-                 max_col_norm=None, weight_constraints=None,
-                 init_bias_target_marginals=None):
+                 max_col_norm=None, init_bias_target_marginals=None,
+                 weight_constraints=None):
         """
         .. todo::
 
