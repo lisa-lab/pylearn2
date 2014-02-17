@@ -385,7 +385,6 @@ class DBM(Model):
         """
         self.visible_layer.censor_updates(updates)
         for layer in self.hidden_layers:
-            layer.apply_constraints(updates)
             layer.censor_updates(updates)
 
     def get_input_space(self):
