@@ -18,6 +18,13 @@ def test_obj():
     loaded = load("a: !obj:decimal.Decimal { value : '1.23' }")
     assert_(isinstance(loaded['a'], Decimal))
 
+def test_floats():
+    loaded = load("a: { a: -1.23, b: 1.23e-1 }")
+    assert_(isinstance(loaded['a']['a'], float))
+    assert_(isinstance(loaded['a']['b'], float))
+    assert_( (loaded['a']['a'] +1.23) < 1e-3 )
+    assert_( (loaded['a']['b'] -1.23e-1) < 1e-3)
+
 def test_import():
     loaded = load("a: !import 'decimal.Decimal'")
     assert_(loaded['a'] == Decimal)
