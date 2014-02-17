@@ -46,9 +46,10 @@ class NormConstraint(Constraint):
         Hinton, Geoffrey E., et al. "Improving neural networks by preventing co-adaptation of feature
         detectors." arXiv preprint arXiv:1207.0580 (2012).
     """
-    def __init__(self, norm=None,
+    def __init__(self,
+                 max_norm=None,
+                 min_norm=None,
                  is_input_axis=True,
-                 is_max_constraint=True,
                  eps=1e-7):
         """
         Apply the norm constraint on the parameters. For feedforward
@@ -67,20 +68,20 @@ class NormConstraint(Constraint):
         is_input_axis : bool, optional
             This determines whether to perform the dimshuffle along is
             input axes or output axes. By default this has been set to True.
-        is_max_constraint : bool, optional
-            is_max_constraint is a flag that determines whether to apply
-            constraint as a max norm constraint or min norm constraint.
-            By default this is True.
+        max_norm : float, optional
+            maximum constraint on the norm of the matrix/tensor.
+        min_norm : float, optional
+            minimum constraint on the norm of the matrix/tensor.
         eps : float
             Epsilon, a small value to be added to norm for numerical stability
             to ensure that denominator never becomes 0 (default = 1e-7).
         """
         self.is_input_axis = is_input_axis
-        self.is_max_constraint = is_max_constraint
-        self.norm = norm
+        self.max_norm = max_norm
+        self.min_norm = min_norm
         self.eps = eps
-        assert norm is not None, "%s's constructor expects " % (self.__class__.__name__) + \
-                "norm argument to be provided."
+        assert min_norm is None and max_norm is None, "%s's constructor expects " % (self.__class__.__name__) + \
+                " either min_norm or max_norm."
 
     def _clip_norms(self,
                     constrain_on, axes,
@@ -95,10 +96,11 @@ class NormConstraint(Constraint):
             "axes argument to be provided."
         min_constraint = 0.0
         max_constraint = np.inf
-        if self.is_max_constraint:
-            max_constraint = self.norm
-        else:
-            min_constraint = self.norm
+        if self.max_norm is not None:
+            max_constraint = self.max_norm
+        if self.min_norm is not None:
+            min_constraint = self.min_norm
+
         sqr_param = T.sqr(constrain_on)
         norm = T.sqrt(T.sum(sqr_param, axis=axes, keepdims=True))
         desired_norm = T.clip(norm, min_constraint, max_constraint)
@@ -131,8 +133,10 @@ class NormConstraint(Constraint):
         """
 
         if updates is None:
+            updates = OrderedDict({})
             clipped_param = self._clip_norms(constrain_on, axes)
-            return self.constrain_param(constrain_on, axes)
+            updates[constrain_on] = clipped_param
+            return updates
         else:
             assert constrain_on in updates, ("%s.apply_constraint function expects" %
             self.__class__.__name__) + "constrain_on argument to be in provided updates dictionary."
