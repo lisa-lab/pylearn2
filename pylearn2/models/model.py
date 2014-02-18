@@ -20,6 +20,7 @@ class Model(object):
     """
     A class representing a model with learnable parameters.
     """
+
     __metaclass__ = MetaLibVersion
     _test_batch_size = 2
     
