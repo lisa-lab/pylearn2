@@ -18,8 +18,6 @@ def train_yaml(yaml_file):
 
 def train(yaml_file_path, save_path):
 
-    skip.skip_if_no_data()
-
     yaml = open("{0}/rbm.yaml".format(yaml_file_path), 'r').read()
     hyper_params = {'detector_layer_dim': 500,
                     'monitoring_batches': 10,
@@ -32,6 +30,8 @@ def train(yaml_file_path, save_path):
 
 
 def train_dbm():
+
+    skip.skip_if_no_data()
 
     yaml_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                                   '../dbm_demo'))

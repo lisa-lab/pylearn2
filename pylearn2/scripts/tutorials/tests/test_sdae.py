@@ -12,8 +12,6 @@ from pylearn2.config import yaml_parse
 @no_debug_mode
 def train_yaml(yaml_file):
 
-    skip.skip_if_no_data()
-
     train = yaml_parse.load(yaml_file)
     train.main_loop()
 
@@ -58,6 +56,8 @@ def train_mlp(yaml_file_path, save_path):
 
 
 def test_sda():
+
+    skip.skip_if_no_data()
 
     yaml_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                                   '..'))
