@@ -772,7 +772,7 @@ class Layer(Model):
 
     def _apply_constraints(self, updates):
         """
-        This function applies the max column norm constraint.
+        This function applies the max column norm constraint
         over the parameters in the update dictionary.
 
         Parameters
