@@ -979,7 +979,7 @@ class MonitorChannel(object):
             # If this is channel that has been serialized and then
             # deserialized, the expression is gone, but we should have
             # stored the doc
-            doc = self.doc
+            doc = self.__doc__
 
         return {
             'doc' : doc,
