@@ -4,15 +4,16 @@ Test for multilayer_perceptron.ipynb
 
 import os
 
+import pylearn2
 from pylearn2.termination_criteria import EpochCounter
 from pylearn2.testing.skip import skip_if_no_data
 from pylearn2.config import yaml_parse
-import pylearn2
 
 
 def test_part_2():
     skip_if_no_data()
-    with open(os.path.join(pylearn2.__path__[0], 'scripts', 'tutorials', 'mlp_tutorial_part_2.yaml'), 'r') as f:
+    with open(os.path.join(pylearn2.__path__[0], 'scripts', 'tutorials',
+              'mlp_tutorial_part_2.yaml'), 'r') as f:
         train = f.read()
     f.close()
     hyper_params = {'train_stop': 50,
@@ -27,7 +28,8 @@ def test_part_2():
 
 def test_part_3():
     skip_if_no_data()
-    with open(os.path.join(pylearn2.__path__[0], 'scripts', 'tutorials', 'mlp_tutorial_part_3.yaml'), 'r') as f:
+    with open(os.path.join(pylearn2.__path__[0], 'scripts', 'tutorials',
+              'mlp_tutorial_part_3.yaml'), 'r') as f:
         train_2 = f.read()
     f.close()
     hyper_params = {'train_stop': 50,
@@ -44,7 +46,8 @@ def test_part_3():
 
 def test_part_4():
     skip_if_no_data()
-    with open(os.path.join(pylearn2.__path__[0], 'scripts', 'tutorials', 'mlp_tutorial_part_4.yaml'), 'r') as f:
+    with open(os.path.join(pylearn2.__path__[0], 'scripts', 'tutorials',
+              'mlp_tutorial_part_4.yaml'), 'r') as f:
         train_3 = f.read()
     f.close()
     hyper_params = {'train_stop': 50,
