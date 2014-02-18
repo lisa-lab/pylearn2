@@ -86,7 +86,7 @@ def test_bad_arguments():
     fmt = OneHotFormatter(max_labels=10)
     raised = False
     try:
-        fmt.format(numpy.zeros((2, 3), dtype='int32'))
+        fmt.format(numpy.zeros((2, 3, 4), dtype='int32'))
     except ValueError:
         raised = True
     assert raised
@@ -94,7 +94,7 @@ def test_bad_arguments():
     # Make sure an invalid ndim raises an error for theano_expr().
     raised = False
     try:
-        fmt.theano_expr(theano.tensor.imatrix())
+        fmt.theano_expr(theano.tensor.itensor3())
     except ValueError:
         raised = True
     assert raised

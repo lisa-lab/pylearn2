@@ -12,6 +12,11 @@ Auto Encoder
 .. automodule:: pylearn2.costs.autoencoder
     :members:
 
+MLP
+===
+.. automodule:: pylearn2.costs.mlp
+    :members:
+
 DBM
 ============
 .. automodule:: pylearn2.costs.dbm

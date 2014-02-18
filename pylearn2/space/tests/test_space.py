@@ -10,6 +10,7 @@ from pylearn2.space import Conv2DSpace
 from pylearn2.space import CompositeSpace
 from pylearn2.space import VectorSpace
 from pylearn2.space import Space
+from pylearn2.space import IndexSpace
 from pylearn2.utils import function
 
 
@@ -179,3 +180,62 @@ def test_broadcastable():
     d = Conv2DSpace((5, 5), channels=3,
                     axes=['b', 0, 1, 'c']).make_theano_batch(batch_size=1)
     np.testing.assert_(d.broadcastable[0])
+
+def test_np_format_as_index2vector():
+    # Test 5 random batches for shape, number of non-zeros
+    for _ in xrange(5):
+        max_labels = np.random.randint(2, 10)
+        batch_size = np.random.randint(1, 10)
+        labels = np.random.randint(1, 10)
+        batch = np.random.random_integers(max_labels - 1,
+                                          size=(batch_size, labels))
+        index_space = IndexSpace(dim=labels, max_labels=max_labels)
+        vector_space_merge = VectorSpace(dim=max_labels)
+        vector_space_concatenate = VectorSpace(dim=max_labels * labels)
+        merged = index_space.np_format_as(batch, vector_space_merge)
+        concatenated = index_space.np_format_as(batch, vector_space_concatenate)
+        if batch_size > 1:
+            assert merged.shape == (batch_size, max_labels)
+            assert concatenated.shape == (batch_size, max_labels * labels)
+        else:
+            assert merged.shape == (max_labels,)
+            assert concatenated.shape == (max_labels * labels,)
+        assert np.count_nonzero(merged) <= batch.size
+        assert np.count_nonzero(concatenated) == batch.size
+        assert np.all(np.unique(concatenated) == np.array([0, 1]))
+    # Make sure Theano variables give the same result
+    batch = tensor.lmatrix('batch')
+    single = tensor.lvector('single')
+    batch_size = np.random.randint(2, 10)
+    np_batch = np.random.random_integers(max_labels - 1,
+                                         size=(batch_size, labels))
+    np_single = np.random.random_integers(max_labels - 1,
+                                          size=(labels))
+    f_batch_merge = theano.function(
+        [batch], index_space._format_as(batch, vector_space_merge)
+    )
+    f_batch_concatenate = theano.function(
+        [batch], index_space._format_as(batch, vector_space_concatenate)
+    )
+    f_single_merge = theano.function(
+        [single], index_space._format_as(single, vector_space_merge)
+    )
+    f_single_concatenate = theano.function(
+        [single], index_space._format_as(single, vector_space_concatenate)
+    )
+    np.testing.assert_allclose(
+        f_batch_merge(np_batch),
+        index_space.np_format_as(np_batch, vector_space_merge)
+    )
+    np.testing.assert_allclose(
+        f_batch_concatenate(np_batch),
+        index_space.np_format_as(np_batch, vector_space_concatenate)
+    )
+    np.testing.assert_allclose(
+        f_single_merge(np_single),
+        index_space.np_format_as(np_single, vector_space_merge)
+    )
+    np.testing.assert_allclose(
+        f_single_concatenate(np_single),
+        index_space.np_format_as(np_single, vector_space_concatenate)
+    )

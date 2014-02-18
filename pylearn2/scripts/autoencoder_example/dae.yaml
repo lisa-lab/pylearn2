@@ -1,6 +1,6 @@
 !obj:pylearn2.train.Train {
-    "dataset": !obj:pylearn2.datasets.npy_npz.NpyDataset &dataset {
-        "file" : 'garbage.npy' # Should be an N x 300 matrix on disk.
+    "dataset": !obj:pylearn2.datasets.dense_design_matrix.DenseDesignMatrix &dataset {
+        "X" : !obj:numpy.random.normal { 'size':[5000,300] },
     },
     "model": !obj:pylearn2.models.autoencoder.DenoisingAutoencoder {
         "nvis" : 300,

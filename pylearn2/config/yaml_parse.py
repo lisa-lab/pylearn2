@@ -311,9 +311,14 @@ def initialize():
 
     yaml.add_constructor('!import', constructor_import)
     yaml.add_implicit_resolver(
-        '!import',
-        re.compile(r'(?:[a-zA-Z_][\w_]+\.)+[a-zA-Z_][\w_]+')
+        '!import', re.compile(r'(?:[a-zA-Z_][\w_]+\.)+[a-zA-Z_][\w_]+')
     )
+
+    yaml.add_constructor("!float", constructor_float)
+    yaml.add_implicit_resolver(
+        '!float', re.compile(r' [-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?')
+    )
+
     is_initialized = True
 
 
@@ -370,8 +375,13 @@ def constructor_import(loader, node):
         raise yaml.YAMLError("import tag suffix contains no '.'")
     return try_to_import(value)
 
-
-
+def constructor_float(loader, node):
+    """
+    Callback used by PyYAML when a "!float <str>" tag is encountered.
+    This tag exects a (quoted) string as argument.
+    """
+    value = loader.construct_scalar(node)
+    return float(value)
 
 if __name__ == "__main__":
     initialize()
