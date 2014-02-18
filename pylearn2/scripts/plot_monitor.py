@@ -197,19 +197,13 @@ def main():
         styles += [color+'--' for color in colors]
         styles += [color+':' for color in colors]
 
-        plt.figure()
-        plt.xlabel('# '+x_axis+'s')
-
-        biggest_channel_name_length = 0
+        fig = plt.figure()
+        ax = plt.subplot(1,1,1)
 
         #plot the requested channels
         for idx, code in enumerate(sorted(final_codes)):
 
             channel_name= codebook[code]
-
-            if len(channel_name) > biggest_channel_name_length:
-                biggest_channel_name_length = len(channel_name)
-
             channel = channels[channel_name]
 
             y = np.asarray(channel.val_record)
@@ -238,31 +232,18 @@ def main():
                 assert False
 
 
-            plt.plot( x,
+            ax.plot( x,
                       y,
                       styles[idx % len(styles)],
                       marker = '.',  # added by mkg; adds point markers to lines
                       label = channel_name)
 
-
-        # One subplot needed, will be resized for the legend
-        ax = plt.subplot(1,1,1)
-
-        box = ax.get_position()
-
-        try:
-            x0 = box.x0
-            y0 = box.y0
-            width = box.width
-            height = box.height
-        except:
-            x0, width, y0, height = box
-
-        # Set axis width in function of the longest channel name
-        ax.set_position([x0, y0, width - (0.01 * biggest_channel_name_length + 0.1), height])
-
+        plt.xlabel('# '+x_axis+'s')
         ax.ticklabel_format( scilimits = (-3,3), axis = 'both')
-        plt.legend(bbox_to_anchor=(1.05, 1),  loc=2, borderaxespad=0.)
+
+        handles, labels = ax.get_legend_handles_labels()
+        lgd = ax.legend(handles, labels, loc='upper center', bbox_to_anchor=(0.5,-0.1))
+        fig.subplots_adjust(bottom=0.11 + 0.046 * len(final_codes)) # 0.046 size of 1 legend box
 
         if options.out is None:
           plt.show()
