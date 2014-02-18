@@ -11,11 +11,14 @@ python:
 #Currently we use functools.cmp_to_key that is available only in python 2.7
   - "2.6"
 
+virtualenv:
+    system_site_packages: true
+
 # command to install dependencies
 before_install:
 #zlib1g-dev is needed to allow PIL to uncompress the dataset.
   - sudo apt-get install -qq libatlas3gf-base libatlas-dev liblapack-dev gfortran zlib1g-dev
-    libhdf5-serial-dev
+    libhdf5-serial-dev python-numpy python-scipy 
 
 # The "|| cat ..." part prints the error log if the pip command fails
 install:
@@ -23,9 +26,11 @@ install:
   - "cat `which pip`"
   - "which python"
   - "python --version"
+  - python -c "import numpy; print numpy.__version__"
+  - python -c "import scipy; print scipy.__version__"
 # If we don't install numpy before SciPy, the SciPy installations fails.
 # We can't compile scipy 0.9 sparse stuff  with NumPy 1.5/1.5.1 due to a bug.
-  - "pip install -q numpy==1.6 --use-mirrors"
+#  - "pip install -q numpy==1.6 --use-mirrors"
 # We support scipy 0.7.2, but it is not available on pypi anymore.
 # So we test with 0.9. Our internal buildbot have 0.7.2.
 # We install it later only for the PART that need it.
@@ -38,7 +43,7 @@ install:
   - "pip install -q cython --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
   - "pip install -q tables==2.4.0 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
   - "pip install -q pyyaml --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
-  - "pip install scipy==0.8 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+#  - "pip install scipy==0.8 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
   - "pip install argparse --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
 #More recent version then the one in the os
   - "pip install -q pyflakes --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
