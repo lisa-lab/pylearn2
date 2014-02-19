@@ -13,7 +13,7 @@ __email__ = "wardefar@iro"
 import numpy as np
 from theano import config
 from pylearn2.datasets import DenseDesignMatrix
-from pyleanr2.utils.rng import make_np_rng
+from pylearn2.utils.rng import make_np_rng
 
 
 def _four_regions_labels(points):
