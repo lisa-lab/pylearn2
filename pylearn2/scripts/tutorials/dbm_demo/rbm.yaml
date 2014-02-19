@@ -15,7 +15,9 @@
         # the sampling probabilities should be MNIST.
         raw: &raw_train !obj:pylearn2.datasets.mnist.MNIST {
             which_set: "train",
-            one_hot: 1
+            one_hot: 1,
+            start: 0,
+            stop: %(train_stop)i
         }
     },
     model: !obj:pylearn2.models.dbm.DBM {
@@ -45,7 +47,7 @@
                 # The detector layer is the portion of this layer that
                 # precedes the pooling. We control its size with this
                 # argument. Here we request 500 hidden units.
-                detector_layer_dim: 500,
+                detector_layer_dim: %(detector_layer_dim)i,
                 pool_size: 1,
                 # We initialize the weights by drawing them from W_ij ~ U(-irange, irange)
                 irange: .05,
@@ -70,7 +72,7 @@
                },
                # These arguments say to compute the monitoring channels on 10 batches
                # of the training set.
-               monitoring_batches: 10,
+               monitoring_batches: %(monitoring_batches)i,
                monitoring_dataset : *data,
                # The SumOfCosts allows us to add together a few terms to make a complicated
                # cost function.
@@ -101,7 +103,7 @@
                        ],
            },
            # We tell the RBM to train for 300 epochs
-           termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter { max_epochs: 300 },
+           termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter { max_epochs: %(max_epochs)i },
            update_callbacks: [
                 # This callback makes the learning rate shrink by dividing it by decay_factor after
                 # each sgd step.
@@ -120,9 +122,7 @@
                 saturate: 6
             },
     ],
-    # This saves to save the trained model to the same path as
-    # the yaml file, but replacing .yaml with .pkl
-    save_path: "${PYLEARN2_TRAIN_FILE_FULL_STEM}.pkl",
+    save_path: "%(save_path)s/dbm.pkl",
     # This says to save it every epoch
     save_freq : 1
 }
