@@ -25,6 +25,7 @@ from pylearn2.termination_criteria import TerminationCriterion
 from pylearn2.utils import sharedX
 from pylearn2.space import CompositeSpace, NullSpace
 from pylearn2.utils.data_specs import DataSpecsMapping
+from pylearn2.utils.rng import make_np_rng
 
 
 class BGD(TrainingAlgorithm):
@@ -98,9 +99,7 @@ class BGD(TrainingAlgorithm):
 
         self.bSetup = False
         self.termination_criterion = termination_criterion
-        if seed is None:
-            seed = [2012, 10, 16]
-        self.rng = np.random.RandomState(seed)
+        self.rng = make_np_rng(seed, [2012, 10, 16], which_method=["randn","randint"])
 
     def setup(self, model, dataset):
         """

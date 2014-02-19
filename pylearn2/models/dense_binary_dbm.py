@@ -24,6 +24,7 @@ import theano.tensor as T
 import numpy as np
 import warnings
 from theano.gof.op import get_debug_values, debug_error_message
+from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 from pylearn2.utils import make_name, sharedX, as_floatX
 from pylearn2.expr.information_theory import entropy_binary_vector
 from pylearn2.models.rbm import RBM
