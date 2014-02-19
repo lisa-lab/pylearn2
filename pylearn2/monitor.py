@@ -979,7 +979,11 @@ class MonitorChannel(object):
             # If this is channel that has been serialized and then
             # deserialized, the expression is gone, but we should have
             # stored the doc
-            doc = self.doc
+            if hasattr(self, "doc"):
+                doc = self.doc
+            else:
+                # Support pickle files that are older than the doc system
+                doc = None
 
         return {
             'doc' : doc,
