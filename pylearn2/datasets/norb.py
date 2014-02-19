@@ -279,6 +279,28 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
         return parseNORBFile(file_handle)
 
 
+    def get_topological_view(self, mat=None, single_tensor=True):
+        result = super(SmallNORB, self).get_topological_view(mat)
+
+        if single_tensor:
+            warnings.warn("The single_tensor argument is True by default to "
+                          "maintain backwards compatibility. This argument "
+                          "will be removed, and the behavior will become that "
+                          "of single_tensor=False, as of August 2014.")
+            axes = list(self.axes)
+            axes.remove('b')
+            s_index = axes.index('s')
+            mono_shape = self.shape[:s_index] + [1, ] + self.shape[s_index:]
+            result = tuple(t.reshape(mono_shape) for t in result)
+            result = numpy.concatenate(axis=s_index)
+        else:
+            warnings.warn("The single_tensor argument will be removed on "
+                          "August 2014. The behavior will be the same as "
+                          "single_tensor=False.")
+
+        return result
+
+
 class StereoViewConverter(object):
     """
     Converts stereo image data between two formats:
