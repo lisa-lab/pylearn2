@@ -3,11 +3,11 @@ __author__ = "Ian Goodfellow"
 import time
 
 from theano import function
-from theano.sandbox.rng_mrg import MRG_RandomStreams
 import theano.tensor as T
 
 from pylearn2.sandbox.lisa_rl.bandit.agent import Agent
 from pylearn2.utils import sharedX
+from pylearn2.utils.rng import make_theano_rng
 
 class ClassifierAgent(Agent):
     """
@@ -51,7 +51,7 @@ class ClassifierAgent(Agent):
         X = T.matrix()
         y_hat = self.mlp.fprop(X)
 
-        theano_rng = MRG_RandomStreams(2013 + 11 + 20)
+        theano_rng = make_theano_rng(None, 2013+11+20, which_method="multinomial")
         if self.stochastic:
             a = theano_rng.multinomial(pvals=y_hat, dtype='float32')
         else:
