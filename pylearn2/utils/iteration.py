@@ -479,14 +479,6 @@ class FiniteDatasetIterator(object):
             init_fn = self._convert[i]
             fn = init_fn
             # Compose the functions
-            needs_cast = not (np.dtype(config.floatX) ==
-                              self._raw_data[i].dtype)
-            if needs_cast:
-                if fn is None:
-                    fn = lambda batch: numpy.cast[config.floatX](batch)
-                else:
-                    fn = (lambda batch, fn_=fn:
-                          numpy.cast[config.floatX](fn_(batch)))
 
             # If there is an init_fn, it is supposed to take
             # care of the formatting, and it should be an error
@@ -527,8 +519,8 @@ class FiniteDatasetIterator(object):
         # using numpy.take()
 
         rval = tuple(
-                fn(data[next_index]) if fn else data[next_index]
-                for data, fn in safe_zip(self._raw_data, self._convert))
+            fn(data[next_index]) if fn else data[next_index]
+            for data, fn in safe_zip(self._raw_data, self._convert))
         if not self._return_tuple and len(rval) == 1:
             rval, = rval
         return rval
@@ -577,4 +569,3 @@ class FiniteDatasetIterator(object):
             WRITEME
         """
         return self._subset_iterator.stochastic
-
