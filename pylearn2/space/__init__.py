@@ -421,12 +421,17 @@ class Space(object):
                              str(space) + "because its total dimension is " +
                              str(other_dimension))
 
-        if self == space:
-            rval = batch
-        else:
-            rval = self._format_as_impl(is_numeric, batch, space)
+        return self._format_as_impl(is_numeric, batch, space)
 
-        return rval
+        # Returns the batch untouched if no conversion is necessary.
+        #
+        # Checking if self == space is not enough, since validate() allows
+        # batch to have a different dtype than self.dtype (for
+        # backwards-compatibility reasons).
+        if self == space and str(batch.dtype) == self.dtype:
+            return batch
+
+        return self._format_as_impl(is_numeric, batch, space)
 
     def _format_as_impl(self, is_numeric, batch, target_space):
         """
