@@ -16,16 +16,10 @@ from pylearn2.base import Block, StackedBlocks
 from pylearn2.models import Model
 from pylearn2.utils import sharedX
 from pylearn2.utils.theano_graph import is_pure_elemwise
+from pylearn2.utils.rng import make_np_rng, make_theano_rng
 from pylearn2.space import VectorSpace
 
 theano.config.warn.sum_div_dimshuffle_bug = False
-
-if 0:
-    print 'WARNING: using SLOW rng'
-    RandomStreams = tensor.shared_randomstreams.RandomStreams
-else:
-    import theano.sandbox.rng_mrg
-    RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
 
 
 class Autoencoder(Block, Model):
@@ -83,10 +77,7 @@ class Autoencoder(Block, Model):
         self.nhid = nhid
         self.irange = irange
         self.tied_weights = tied_weights
-        if not hasattr(rng, 'randn'):
-            self.rng = numpy.random.RandomState(rng)
-        else:
-            self.rng = rng
+        self.rng = make_np_rng(rng, which_method="randn")
         self._initialize_hidbias()
         if nvis > 0:
             self._initialize_visbias(nvis)
@@ -96,7 +87,10 @@ class Autoencoder(Block, Model):
             self.weights = None
 
         seed = int(self.rng.randint(2 ** 30))
-        self.s_rng = RandomStreams(seed)
+
+        # why a theano rng? should we remove it?
+        self.s_rng = make_theano_rng(seed, which_method="uniform")
+
         if tied_weights and self.weights is not None:
             self.w_prime = self.weights.T
         else:
@@ -744,8 +738,7 @@ def build_stacked_ae(nvis, nhids, act_enc, act_dec,
         WRITEME properly
 
     Allocate a stack of autoencoders."""
-    if not hasattr(rng, 'randn'):
-        rng = numpy.random.RandomState(rng)
+    rng = make_np_rng(rng, which_method='randn')
     layers = []
     final = {}
     # "Broadcast" arguments if they are singular, or accept sequences if

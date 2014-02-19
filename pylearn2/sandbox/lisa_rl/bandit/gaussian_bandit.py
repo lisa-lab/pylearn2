@@ -4,11 +4,11 @@ import numpy as np
 
 from theano import config
 from theano import function
-from theano.sandbox.rng_mrg import MRG_RandomStreams
 from theano import tensor as T
 
 from pylearn2.sandbox.lisa_rl.bandit.environment import Environment
 from pylearn2.utils import sharedX
+from pylearn2.utils.rng import make_np_rng, make_theano_rng
 
 
 class GaussianBandit(Environment):
@@ -22,10 +22,10 @@ class GaussianBandit(Environment):
     """
 
     def __init__(self, num_arms, mean_std = 1.0, std_std = 1.0):
-        self.rng = np.random.RandomState([2013, 11, 12])
+        self.rng = make_np_rng(None, [2013, 11, 12], which_method="randn")
         self.means = sharedX(self.rng.randn(num_arms) * mean_std)
         self.stds = sharedX(np.abs(self.rng.randn(num_arms) * std_std))
-        self.theano_rng = MRG_RandomStreams(self.rng.randint(2 ** 16))
+        self.theano_rng = make_theano_rng(None, self.rng.randint(2 ** 16), which_method="normal")
 
     def get_action_func(self):
         """

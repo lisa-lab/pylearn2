@@ -17,6 +17,7 @@ import theano
 from theano import tensor
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 from theano.gof.op import get_debug_values
+from pylearn2.utils.rng import make_theano_rng
 
 def stochastic_max_pool_bc01(bc01, pool_shape, pool_stride, image_shape, rng = None):
     """
@@ -43,8 +44,7 @@ def stochastic_max_pool_bc01(bc01, pool_shape, pool_stride, image_shape, rng = N
     batch = bc01.shape[0]
     channel = bc01.shape[1]
 
-    if rng is None:
-        rng = RandomStreams(2022)
+    rng = make_theano_rng(rng, 2022, which_method='multinomial')
 
     # Compute index in pooled space of last needed pool
     # (needed = each input pixel must appear in at least one pool)
@@ -125,8 +125,7 @@ def weighted_max_pool_bc01(bc01, pool_shape, pool_stride, image_shape, rng = Non
     batch = bc01.shape[0]
     channel = bc01.shape[1]
 
-    if rng is None:
-        rng = RandomStreams(2022)
+    rng = make_theano_rng(rng, 2022, which_method='multinomial')
 
     # Compute index in pooled space of last needed pool
     # (needed = each input pixel must appear in at least one pool)

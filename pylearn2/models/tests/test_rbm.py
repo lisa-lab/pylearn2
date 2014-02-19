@@ -2,6 +2,7 @@ from pylearn2.models.rbm import RBM
 import theano.sandbox.rng_mrg
 RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
 from theano import tensor as T
+from pylearn2.utils.rng import make_theano_rng
 
 def test_get_weights():
     #Tests that the RBM, when constructed
@@ -25,7 +26,7 @@ def test_gibbs_step_for_v():
 
     model = RBM(nvis = 2, nhid = 3)
 
-    theano_rng = RandomStreams(17)
+    theano_rng = make_theano_rng(17, which_method='binomial')
 
     X = T.matrix()
 
