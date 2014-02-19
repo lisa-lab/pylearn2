@@ -95,7 +95,7 @@ class FourRegions(DenseDesignMatrix):
 
             WRITEME
         """
-        rng = make_np_rng(rng, _default_seed, which_method='uniform')
+        rng = make_np_rng(rng, self._default_seed, which_method='uniform')
         X = rng.uniform(-1, 1, size=(num_examples, 2))
         if not one_hot:
             y = _four_regions_labels(X)
