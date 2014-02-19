@@ -22,6 +22,7 @@ from theano import tensor as T
 from theano import function
 from pylearn2.datasets.preprocessing import ExtractPatches, ExtractGridPatches, ReassembleGridPatches
 from pylearn2.utils import serial
+from pylearn2.utils.rng import make_np_rng
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix, DefaultViewConverter
 from pylearn2.datasets.cifar10 import CIFAR10
 from pylearn2.datasets.cifar100 import CIFAR100
