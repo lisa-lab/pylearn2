@@ -123,6 +123,11 @@ class Space(object):
         """
         raise NotImplementedError()
 
+    def make_origin_batch(self, n):
+        """ An alias to get_origin_batch """
+
+        return self.get_origin_batch(n)
+
     def make_shared_batch(self, batch_size, name=None, dtype=None):
         """
         .. todo::
@@ -158,6 +163,12 @@ class Space(object):
         raise NotImplementedError()
 
     def make_batch_theano(self, name=None, dtype=None, batch_size=None):
+        """ An alias to make_theano_batch """
+
+        return self.make_theano_batch(name=name, dtype=dtype,
+                                      batch_size=batch_size)
+
+    def get_theano_batch(self, name=None, dtype=None, batch_size=None):
         """ An alias to make_theano_batch """
 
         return self.make_theano_batch(name=name, dtype=dtype,
