@@ -104,7 +104,7 @@ def test_sigmoid_layer_misclass_reporting():
     f = theano.function([batch, target], [tensor.gt(mlp.fprop(batch), 0.5),
                                           rval['misclass']],
                         allow_input_downcast=True)
-    rng = make_np_rng(0, which_method='normal')
+    rng = np.random.RandomState(0)
 
     for _ in range(10):  # repeat a few times for statistical strength
         targets = (rng.uniform(size=(30, 1)) > 0.5).astype('uint8')
