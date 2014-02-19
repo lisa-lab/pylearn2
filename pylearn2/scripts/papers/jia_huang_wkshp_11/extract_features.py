@@ -208,7 +208,7 @@ class FeatureExtractor:
         nvis = input_space.dim
         self.size = int(np.sqrt(nvis/3))
 
-        rng = np.random.RandomState([1,2,3])
+        rng = make_np_rng(None, [1,2,3], which_method="randint")
 
         #Generate the random pooling structure
         num_filters = self.model.mu.get_value().shape[0]

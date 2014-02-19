@@ -12,8 +12,8 @@ except ImportError:
     warnings.warn("Could not import some scipy.linalg functions")
 import theano.tensor as T
 from theano import config
-from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 from pylearn2.utils import sharedX
+from pylearn2.utils.rng import make_theano_rng
 import numpy as np
 N = np
 
@@ -40,7 +40,8 @@ class MND(object):
         self.sigma_inv = solve(self.sigma, N.identity(mu.shape[0]),
                                sym_pos=True)
         self.L = cholesky(self.sigma)
-        self.s_rng = RandomStreams(seed)
+
+        self.s_rng = make_theano_rng(seed, which_method='normal')
 
         #Compute logZ
         #log Z = log 1/( (2pi)^(-k/2) |sigma|^-1/2 )
@@ -122,7 +123,7 @@ class AdditiveDiagonalMND:
         self.beta = sharedX(np.ones((nvis,))*init_beta)
         assert self.beta.ndim == 1
 
-        self.s_rng = RandomStreams(17)
+        self.s_rng = make_theano_rng(None, 17, which_method='normal')
 
     def random_design_matrix(self, X):
         """

@@ -7,6 +7,7 @@ import numpy as N
 import copy
 from theano import config
 import theano.tensor as T
+from pylearn2.utils.rng import make_np_rng
 
 
 class CosDataset(object):
@@ -24,8 +25,7 @@ class CosDataset(object):
             WRITEME
         """
         self.min_x, self.max_x, self.std = min_x, max_x, std
-        if rng is None:
-            rng = N.random.RandomState([17, 2, 946])
+        rng = make_np_rng(rng, [17, 2, 946], which_method=['uniform', 'randn'])
         self.default_rng = copy.copy(rng)
         self.rng = rng
 

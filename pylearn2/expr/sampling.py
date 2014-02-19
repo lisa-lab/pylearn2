@@ -13,6 +13,7 @@ __email__ = "goodfeli@iro"
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 
 from pylearn2.base import Block
+from pylearn2.utils.rng import make_theano_rng
 
 
 class SampleBernoulli(Block):
@@ -29,10 +30,8 @@ class SampleBernoulli(Block):
         """
         super(SampleBernoulli, self).__init__()
         assert theano_rng is None or seed is None
-        if theano_rng is None:
-            if seed is None:
-                seed = 2012 + 11 + 22
-            theano_rng = MRG_RandomStreams(seed)
+        theano_rng = make_theano_rng(theano_rng if theano_rng is not None else seed,
+                                     2012+11+22, which_method='binomial')
         self.__dict__.update(locals())
         del self.self
 
