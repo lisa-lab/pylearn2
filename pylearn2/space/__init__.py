@@ -112,7 +112,6 @@ class Space(object):
         return self.make_theano_batch(name=name, dtype=dtype,
                                       batch_size=batch_size)
 
-
     def get_total_dimension(self):
         """
         Returns a Python int (not a theano iscalar) representing
