@@ -45,6 +45,7 @@ from theano.sandbox.cuda.type import CudaNdarrayType
 from pylearn2.sandbox.tuple_var import TupleVariable
 from pylearn2.utils import py_integer_types
 from pylearn2.utils import sharedX
+from pylearn2.utils import wraps
 
 
 class Space(object):
@@ -74,10 +75,10 @@ class Space(object):
         """
         raise NotImplementedError()
 
-    def make_origin_batch(self, n):
-        """ An alias to get_origin_batch """
+    @wraps(pylearn2.space.get_origin_batch)
+    def make_origin_batch(self, *args, **kwargs):
 
-        return self.get_origin_batch(n)
+        return self.get_origin_batch(*args, **kwargs)
 
     def make_shared_batch(self, batch_size, name=None, dtype=None):
 
@@ -106,11 +107,10 @@ class Space(object):
         return self.make_theano_batch(name=name, dtype=dtype,
                                       batch_size=batch_size)
 
-    def get_theano_batch(self, name=None, dtype=None, batch_size=None):
-        """ An alias to make_theano_batch """
+    @wraps(pylearn2.space.make_theano_batch)
+    def get_theano_batch(self, *args, **kwargs):
 
-        return self.make_theano_batch(name=name, dtype=dtype,
-                                      batch_size=batch_size)
+        return self.make_theano_batch(*args, **kwargs)
 
     def get_total_dimension(self):
         """
