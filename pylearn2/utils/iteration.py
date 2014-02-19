@@ -324,12 +324,13 @@ class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
     fancy = False
     stochastic = True
 
+
 class BatchwiseShuffledSequentialIterator(SequentialSubsetIterator):
     """
     Returns minibatches randomly, but sequential inside each minibatch
     """
 
-    def __init__(self, dataset_size, batch_size, num_batches = None, rng=None):
+    def __init__(self, dataset_size, batch_size, num_batches=None, rng=None):
         """
         .. todo::
 
@@ -405,6 +406,7 @@ def is_stochastic(mode):
     """
     return resolve_iterator_class(mode).stochastic
 
+
 def resolve_iterator_class(mode):
     """
     .. todo::
@@ -434,20 +436,20 @@ class FiniteDatasetIterator(object):
         if topo is not None or targets is not None:
             if data_specs is not None:
                 raise ValueError("In FiniteDatasetIterator, both "
-                        "the `data_specs` argument and deprecated arguments "
-                        "`topo` or `targets` were provided.",
-                        (data_specs, topo, targets))
+                                 "the `data_specs` argument and deprecated "
+                                 "arguments `topo` or `targets` were "
+                                 "provided.", (data_specs, topo, targets))
 
             if convert is not None:
                 raise ValueError("In %s, both the `convert` argument and "
-                        "deprecated arguments `topo` or `targets` were "
-                        "provided." % self.__class__.__name__,
-                        (convert, topo, targets))
+                                 "deprecated arguments `topo` or `targets` "
+                                 "were provided." % self.__class__.__name__,
+                                 (convert, topo, targets))
 
             warnings.warn("Usage of `topo` and `target` arguments are being "
-                    "deprecated, and will be removed around November 7th, "
-                    "2013. `data_specs` should be used instead.",
-                    stacklevel=2)
+                          "deprecated, and will be removed around November "
+                          "7th, 2013. `data_specs` should be used instead.",
+                          stacklevel=2)
             topo = False
             targets = False
             self._deprecated_interface = True
@@ -470,8 +472,10 @@ class FiniteDatasetIterator(object):
                 if self._raw_targets is None:
                     raise ValueError("Can't iterate with targets=True on a "
                                      "dataset object with no targets")
-                self._targets_need_cast = not np.dtype(config.floatX) == self._raw_targets.dtype
-            self._needs_cast = not np.dtype(config.floatX) == self._raw_data.dtype
+                self._targets_need_cast = (not np.dtype(config.floatX) ==
+                                           self._raw_targets.dtype)
+            self._needs_cast = (not np.dtype(config.floatX) ==
+                                self._raw_data.dtype)
         else:
             # Keep only the needed sources in self._raw_data.
             # Remember what source they correspond to in self._source
@@ -574,10 +578,10 @@ class FiniteDatasetIterator(object):
         # when the dataset dtype matches floatX and next_index is not a
         # fancy-index.
         if self._deprecated_interface:
+            features = self._raw_data[next_index]
+
             if self._needs_cast:
-                features = numpy.cast[config.floatX](self._raw_data[next_index])
-            else:
-                features = self._raw_data[next_index]
+                features = numpy.cast[config.floatX](features)
             if self._topo:
                 features = self._dataset.get_topological_view(features)
             if self._targets:
@@ -588,9 +592,9 @@ class FiniteDatasetIterator(object):
             else:
                 return features
         else:
-            rval = tuple(
-                    fn(data[next_index]) if fn else data[next_index]
-                    for data, fn in safe_zip(self._raw_data, self._convert))
+            rval = tuple(fn(data[next_index]) if fn else data[next_index]
+                         for data, fn in safe_zip(self._raw_data,
+                                                  self._convert))
             if not self._return_tuple and len(rval) == 1:
                 rval, = rval
             return rval
@@ -639,4 +643,3 @@ class FiniteDatasetIterator(object):
             WRITEME
         """
         return self._subset_iterator.stochastic
-
