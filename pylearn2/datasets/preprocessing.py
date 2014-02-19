@@ -128,7 +128,6 @@ class BlockPreprocessor(ExamplewisePreprocessor):
         dataset.X = self.block.perform(dataset.X)
 
 
-
 class Pipeline(Preprocessor):
     """
         A Preprocessor that sequentially applies a list
@@ -900,22 +899,37 @@ class ZCA(Preprocessor):
     @staticmethod
     def _gpu_mdmt(mat, diags):
         """
-        Performs the matrix multiplication A * D * A^T.
+        Performs the matrix multiplication M * D * M^T.
 
         First tries to do this on the GPU. If this throws a MemoryError, it
         falls back to the CPU, with a warning message.
         """
 
+        floatX = theano.config.floatX
+
+        # compile theano function
         if not hasattr(ZCA._gpu_mdmt, 'theano_func'):
-            t_mat = theano.tensor.matrix('A')
+            t_mat = theano.tensor.matrix('M')
             t_diags = theano.tensor.vector('D')
             result = theano.tensor.dot(t_mat * t_diags, t_mat.T)
-            ZCA._gpu_mdmt.theano_func = theano.function([t_mat, t_diags],
-                                                        result)
+            ZCA._gpu_mdmt.theano_func = theano.function(
+                [t_mat, t_diags],
+                result,
+                allow_input_downcast=True)
 
         try:
+            # function()-call above had to downcast the data. Emit warnings.
+            if str(mat.dtype) != floatX:
+                warnings.warn('Implicitly converting mat from dtype=%s to '
+                              '%s for gpu' % (mat.dtype, floatX))
+            if str(diags.dtype) != floatX:
+                warnings.warn('Implicitly converting diag from dtype=%s to '
+                              '%s for gpu' % (diags.dtype, floatX))
+
             return ZCA._gpu_mdmt.theano_func(mat, diags)
+
         except MemoryError:
+            # fall back to cpu
             warnings.warn('M * D * M^T was too big to fit on GPU. '
                           'Re-doing with CPU. Consider using '
                           'THEANO_FLAGS="device=cpu" for your next '
@@ -1040,7 +1054,6 @@ class ZCA(Preprocessor):
             warnings.warn()
             self.P_ = numpy.dot(eigv * (1.0 / sqrt_eigs), eigv.T)
 
-        self.P_ = ZCA._gpu_mdmt(eigv, 1.0/sqrt_eigs)
         t2 = time.time()
         assert not numpy.any(numpy.isnan(self.P_))
         self.has_fit_ = True
@@ -1051,6 +1064,19 @@ class ZCA(Preprocessor):
             self.inv_P_ = None
 
     def apply(self, dataset, can_fit=False):
+
+        # Compiles apply.x_minus_mean_times_p(), a numeric Theano function that
+        # evauates dot(X - mean, P)
+        if not hasattr(ZCA, '_x_minus_mean_times_p'):
+            x_symbol = tensor.matrix('X')
+            mean_symbol = tensor.vector('mean')
+            p_symbol = tensor.matrix('P_')
+            new_x_symbol = tensor.dot(x_symbol - mean_symbol, p_symbol)
+            ZCA._x_minus_mean_times_p = theano.function([x_symbol,
+                                                         mean_symbol,
+                                                         p_symbol],
+                                                        new_x_symbol)
+
         X = dataset.get_design_matrix()
         assert X.dtype in ['float32', 'float64']
         if not self.has_fit_:
@@ -1060,16 +1086,9 @@ class ZCA(Preprocessor):
         new_X = ZCA._gpu_matrix_dot(X - self.mean_, self.P_)
         dataset.set_design_matrix(new_X)
 
-    def invert(self):
-        """
-        Do any necessary prep work to be able to support the "inverse" method
-        later.
-        """
-        self.inv_P_ = numpy.linalg.inv(self.P_)
-
     def inverse(self, X):
         assert X.ndim == 2
-        return self._gpu_matrix_dot(X, self.inv_P_) + self.mean_
+        return numpy.dot(X, self.inv_P_) + self.mean_
 
 
 class LeCunLCN(ExamplewisePreprocessor):

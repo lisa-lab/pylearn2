@@ -1,7 +1,12 @@
 """
-.. todo::
-
-    WRITEME
+The DenseDesignMatrix class and related code. Functionality for representing
+data that can be described as a dense matrix (rather than a sparse matrix)
+with each row containing an example and each column corresponding to a
+different feature. DenseDesignMatrix also supports other "views" of the data,
+for example a dataset of images can be viewed either as a matrix of flattened
+images or as a stack of 2D multi-channel images. However, the images must all
+be the same size, so that each image may be mapped to a matrix row by the same
+transformation.
 """
 __authors__ = "Ian Goodfellow and Mehdi Mirza"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
@@ -140,11 +145,6 @@ class DenseDesignMatrix(Dataset):
     def iterator(self, mode=None, batch_size=None, num_batches=None,
                  topo=None, targets=None, rng=None, data_specs=None,
                  return_tuple=False):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         if topo is not None or targets is not None:
             if data_specs is not None:
@@ -251,27 +251,40 @@ class DenseDesignMatrix(Dataset):
 
     def use_design_loc(self, path):
         """
-        .. todo::
+        Caling this function changes the serialization behavior of the object
+        permanently.
 
-            WRITEME properly
-
-        When pickling, save the design matrix to path as a .npy file rather
+        If this function has been called, when the object is serialized, it
+        will save the design matrix to `path` as a .npy file rather
         than pickling the design matrix along with the rest of the dataset
         object. This avoids pickle's unfortunate behavior of using 2X the RAM
         when unpickling.
 
         TODO: Get rid of this logic, use custom array-aware picklers (joblib,
         custom pylearn2 serialization format).
+
+        Parameters
+        ----------
+        path : str
+            The path to save the design matrix to
         """
+
+        if not path.endswith('.npy'):
+            raise ValueError("path should end with '.npy'")
+
         self.design_loc = path
 
     def get_topo_batch_axis(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns
+        -------
+        axis : int
+            The axis of a topological view of this dataset that corresponds to
+            indexing over different examples.
         """
-        return self.view_converter.axes.index('b')
+        axis = self.view_converter.axes.index('b')
+        return axis
+
 
     def enable_compression(self):
         """
@@ -917,10 +930,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
             are not quite nailed down for this yet.
         view_converter : object, optional
             An object for converting between design matrices and \
-            topological views. Currently DefaultViewConverter is \
-            the only type available but later we may want to add \
-            one that uses the retina encoding that the U of T group \
-            uses.
+            topological views.
         rng : object, optional
             A random number generator used for picking random \
             indices into the design matrix when choosing minibatches.

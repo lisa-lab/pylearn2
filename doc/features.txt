@@ -39,9 +39,9 @@ either add it or give you advice about how to do it yourself.
     * Maxout networks
     * PCA
     * Spike-and-Slab Sparse coding
-    * SVMs (we provide a wrapper around scikits.learn that makes it easy to
+    * SVMs (we provide a wrapper around scikit-learn that makes it easy to
             train a multiclass svm on dense training data in a memory
-            efficient way, which doesn't always happen using scikits.learn
+            efficient way, which doesn't always happen using scikit-learn
 	    directly)
     * Partial implementation of DBMs (contact Ian Goodfellow if you would like
       	to complete it)

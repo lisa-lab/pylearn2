@@ -1,4 +1,3 @@
-import warnings
 from theano.sandbox.linalg.ops import alloc_diag
 from pylearn2.models.s3c import S3C
 from pylearn2.models.s3c import SufficientStatistics
@@ -9,8 +8,6 @@ from theano import function
 import numpy as np
 import theano.tensor as T
 from theano import config
-from pylearn2.utils import serial
-
 
 class TestS3C_Misc:
     def setUp(self):
@@ -36,19 +33,12 @@ class TestS3C_Misc:
         try:
             self.tol = 1e-5
 
-            #dataset = serial.load('${GOODFELI_TMP}/cifar10_preprocessed_train_1K.pkl')
 
             X = np.random.RandomState([1,2,3]).randn(1000,108)
-            #dataset.get_batch_design(1000)
-            #X = X[:,0:2]
-            #warnings.warn('hack')
-            #X[0,0] = 1.
-            #X[0,1] = -1.
             m, D = X.shape
             N = 300
 
             self.model = S3C(nvis = D,
-                    #disable_W_update = 1,
                              nhid = N,
                              irange = .5,
                              init_bias_hid = -.1,
@@ -57,7 +47,6 @@ class TestS3C_Misc:
                              max_B = 1e8,
                              tied_B = 1,
                              e_step = E_Step_Scan(
-                                 #h_new_coeff_schedule = [ ],
                                  h_new_coeff_schedule = [ .01 ]
                              ),
                              init_alpha = 1.,
@@ -65,12 +54,6 @@ class TestS3C_Misc:
                              init_mu = 1.,
                              m_step = Grad_M_Step( learning_rate = 1.0 ),
                             )
-
-            #warnings.warn('hack')
-            #W = self.model.W.get_value()
-            #W[0,0] = 1.
-            #W[1,0] = 1.
-            #self.model.W.set_value(W)
 
             self.orig_params = self.model.get_param_values()
 

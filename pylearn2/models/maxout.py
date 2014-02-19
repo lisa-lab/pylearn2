@@ -24,9 +24,10 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
+import functools
+import numpy as np
 import warnings
 
-import numpy as np
 from theano.compat.python2x import OrderedDict
 from theano.gof.op import get_debug_values
 from theano.sandbox import cuda
@@ -401,12 +402,8 @@ class Maxout(Layer):
         # There was an implementation of this, but it was broken
         raise NotImplementedError()
 
+    @functools.wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         W ,= self.transformer.get_params()
 
@@ -417,8 +414,13 @@ class Maxout(Layer):
         row_norms = T.sqrt(sq_W.sum(axis=1))
         col_norms = T.sqrt(sq_W.sum(axis=0))
 
+        row_norms_min = row_norms.min()
+        row_norms_min.__doc__ = "The smallest norm of any row of the " + \
+        "weight matrix W. This is a measure of the least influence any " + \
+        "visible unit has."
+
         return OrderedDict([
-                            ('row_norms_min'  , row_norms.min()),
+                            ('row_norms_min'  , row_norms_min),
                             ('row_norms_mean' , row_norms.mean()),
                             ('row_norms_max'  , row_norms.max()),
                             ('col_norms_min'  , col_norms.min()),
