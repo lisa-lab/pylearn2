@@ -25,6 +25,7 @@ from theano.sandbox.rng_mrg import MRG_RandomStreams
 from pylearn2.expr.nnet import inverse_sigmoid_numpy
 from pylearn2.base import Block
 from pylearn2.utils import block_gradient
+from pylearn2.utils.rng import make_theano_rng
 
 warnings.warn("DBM changing the recursion limit.")
 # We need this to be high enough that the big theano graphs we make
@@ -98,7 +99,7 @@ class DBMSampler(Block):
             WRITEME
         """
         super(DBMSampler, self).__init__()
-        self.theano_rng = MRG_RandomStreams(2012 + 10 + 14)
+        self.theano_rng = make_theano_rng(None, 2012+10+14, which_method="binomial")
         self.dbm = dbm
         assert len(self.dbm.hidden_layers) == 1
 

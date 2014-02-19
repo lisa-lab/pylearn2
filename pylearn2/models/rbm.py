@@ -281,7 +281,8 @@ class RBM(Block, Model):
         if init_bias_vis is None:
             init_bias_vis = 0.0
 
-        self.rng = make_np_rng(rng, 1001, which_method="uniform")
+        rng = make_np_rng(rng, 1001, which_method="uniform")
+        self.rng = rng
 
         if vis_space is None:
             #if we don't specify things in terms of spaces and a transformer,
