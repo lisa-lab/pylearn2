@@ -1277,7 +1277,9 @@ class SoftmaxPool(Layer):
         b_lr_scale : WRITEME
         mask_weights : WRITEME
         max_col_norm : WRITEME
-        weight_constraints: WRITEME
+        weight_constraints : list
+            List of Constraint objects that are going to be applied on
+            the weights.
         """
         self.__dict__.update(locals())
         del self.self
@@ -1625,6 +1627,9 @@ class Linear(Layer):
         copy_input : WRITEME
         use_abs_loss : WRITEME
         use_bias : WRITEME
+        weight_constraints : list
+            List of Constraint objects that are going to be applied on
+            the weights.
         """
 
         if use_bias and init_bias is None:
