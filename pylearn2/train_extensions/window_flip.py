@@ -6,6 +6,7 @@ import warnings
 import numpy
 from . import TrainExtension
 from pylearn2.datasets.preprocessing import CentralWindow
+from pylearn2.utils.rng import make_np_rng
 
 try:
     from ..utils._window_flip import random_window_and_flip_c01b
@@ -106,10 +107,7 @@ class WindowAndFlipC01B(TrainExtension):
                           "any dataset arguments, and therefore does nothing",
                           stacklevel=2)
 
-        if not hasattr(rng, 'random_integers'):
-            self._rng = numpy.random.RandomState(rng)
-        else:
-            self._rng = rng
+        self._rng = make_np_rng(rng, which_method="random_integers")
 
     def setup(self, model, dataset, algorithm):
         """

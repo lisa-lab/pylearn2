@@ -10,11 +10,10 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 import numpy as N
-import theano.sandbox.rng_mrg
 import theano.tensor as T
-RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
 from theano import config
 from scipy.special import gammaln
+from pylearn2.utils.rng import make_theano_rng
 
 
 class UniformHypersphere(object):
@@ -31,7 +30,7 @@ class UniformHypersphere(object):
         """
         self.dim = dim
         self.radius = radius
-        self.s_rng = RandomStreams(42)
+        self.s_rng = make_theano_rng(None, 42, which_method='normal')
         log_C = ((float(self.dim) / 2.) * N.log(N.pi) -
                  gammaln(1. + float(self.dim) / 2.))
         self.logZ = N.log(self.dim) + log_C + (self.dim - 1) * N.log(radius)
