@@ -17,6 +17,7 @@ Presets:
   container is empty after num_examples / batch_size calls
 """
 from __future__ import division
+import warnings
 import numpy
 np = numpy
 from theano import config
