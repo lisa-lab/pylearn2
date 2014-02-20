@@ -46,6 +46,7 @@ from theano.tensor import TensorType
 from pylearn2.utils import py_integer_types
 from pylearn2.utils import safe_zip
 from pylearn2.utils import sharedX
+from pylearn2.utils import wraps
 from pylearn2.format.target_format import OneHotFormatter
 
 if theano.sparse.enable_sparse:
@@ -123,6 +124,11 @@ class Space(object):
         """
         raise NotImplementedError()
 
+    @wraps(pylearn2.space.get_origin_batch)
+    def make_origin_batch(self, *args, **kwargs):
+
+        return self.get_origin_batch(*args, **kwargs)
+
     def make_shared_batch(self, batch_size, name=None, dtype=None):
         """
         .. todo::
@@ -162,6 +168,12 @@ class Space(object):
 
         return self.make_theano_batch(name=name, dtype=dtype,
                                       batch_size=batch_size)
+
+
+    @wraps(pylearn2.space.make_theano_batch)
+    def get_theano_batch(self, *args, **kwargs):
+
+        return self.make_theano_batch(*args, **kwargs)
 
     def get_total_dimension(self):
         """
