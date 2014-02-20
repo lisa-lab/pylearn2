@@ -60,9 +60,18 @@ def run_pyflakes(no_warnings = False):
 
 def _filter(output, no_warnings):
     """
-    .. todo::
-
-        WRITEME
+    Parameters
+    ----------
+    output : str
+        The output of pyflakes for a single.py file
+    no_warnings: bool
+        If True, removes lines corresponding to warnings rather than errors
+    Returns
+    -------
+    rval: None or str
+        `output` with blank lines and optionally lines corresponding to
+        warnings removed, or, if all lines are removed, returns None.
+        A return value of None indicates that the file is validly formatted.
     """
     lines = output.split('\n')
 
