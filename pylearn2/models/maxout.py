@@ -123,7 +123,9 @@ class Maxout(Layer):
             constraint. Constraint is enforced by re-projection (if
             necessary) at the end of each update.
         max_row_norm: Like max_col_norm, but applied to the rows.
-        weight_constraints : WRITEME
+        weight_constraints : list
+            List of Constraint objects that are going to be
+            applied on the weights.
         mask_weights: A binary matrix multiplied by the weights after each
                      update, allowing you to restrict their connectivity.
         min_zero: If true, includes a zero in the set we take a max over
@@ -663,7 +665,9 @@ class MaxoutConvC01B(Layer):
         tied_b: If true, all biases in the same channel are constrained to be the same
                 as each other. Otherwise, each bias at each location is learned independently.
         max_kernel_norm: If specifed, each kernel is constrained to have at most this norm.
-        weight_constraints: WRITEME
+        weight_constraints : list
+            List of Constraint objects that are going to be applied on
+            the weights.
         input_normalization, detector_normalization, output_normalization:
             if specified, should be a callable object. the state of the network is optionally
             replaced with normalization(state) at each of the 3 points in processing:
@@ -1109,7 +1113,9 @@ class MaxoutLocalC01B(Layer):
         fix_kernel_shape: if True, will modify self.kernel_shape to avoid
         having the kernel shape bigger than the implicitly
         zero padded input layer
-        weight_constraints : WRITEME
+        weight_constraints : list
+            List of Constraint objects that are going to be applied on
+            the weights.
         partial_sum: a parameter that controls whether to prefer runtime savings
                     or memory savings when computing the gradient with respect to
                     the kernels. See pylearn2.sandbox.cuda_convnet.weight_acts.py

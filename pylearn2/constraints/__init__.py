@@ -34,16 +34,17 @@ class Constraint(object):
             This argument is a dictionary of theano shared variables as
             keys and their new (updated) values-usually as theano
             symbolic expressions as its elements. This dictionary
-            is being passed to the train function as its given argument.
+            is being passed to the train function as its given
+            argument.
 
         Returns
         -------
         updates : OrderedDict
             Dictionary of parameters that the constraint is applied on.
-            If `updates` was specified as an argument, the returned value will be
-            the same object, after being modified in-place (the value of
-            `updates[constrain_on]` will be changed to reflect the value after
-            applying the constraint).
+            If `updates` was specified as an argument, the returned value
+            will be the same object, after being modified in-place
+            (the value of `updates[constrain_on]` will be changed
+            to reflect the value after applying the constraint).
         """
 
         raise NotImplementedError()
@@ -58,13 +59,14 @@ class NormConstraint(Constraint):
 
     Applying norm constraint on the parameters was first proposed
     in the following paper:
-        Srebro, Nathan, and Adi Shraibman. "Rank, trace-norm and max-norm." Learning Theory.
-        Springer Berlin Heidelberg, 2005. 545-560.
+        Srebro, Nathan, and Adi Shraibman. "Rank, trace-norm and max-norm."
+        Learning Theory. Springer Berlin Heidelberg, 2005. 545-560.
 
     But its use is further popularized in neural networks literature
     with drop-out in the following publication:
-        Hinton, Geoffrey E., et al. "Improving neural networks by preventing co-adaptation of
-        feature detectors." arXiv preprint arXiv:1207.0580 (2012).
+        Hinton, Geoffrey E., et al. "Improving neural networks by
+        preventing co-adaptation of feature detectors."
+        arXiv preprint arXiv:1207.0580 (2012).
     """
     def __init__(self,
                  max_norm=None,
@@ -100,9 +102,10 @@ class NormConstraint(Constraint):
         self.max_norm = max_norm
         self.min_norm = min_norm
         self.eps = eps
-        assert min_norm is not None or max_norm is not None, ("%s's constructor expects either "
-                                                              "min_norm or max_norm. "
-                                                               % self.__class__.__name__)
+        assert (min_norm is not None or
+                max_norm is not None), ("%s's constructor expects either"
+                                        "min_norm or max_norm."
+                                        % self.__class__.__name__)
 
     def _clip_norms(self,
                     constrain_on, axes,
@@ -120,7 +123,8 @@ class NormConstraint(Constraint):
             Parameter that the norm clip is applied on.
         """
         assert axes is not None, ("%s._clip_norms function expects axes "
-                                  "argument to be provided. " % (self.__class__.__name__))
+                                  "argument to be provided. "
+                                  % (self.__class__.__name__))
         min_constraint = 0.0
         max_constraint = np.inf
         if self.max_norm is not None:
@@ -146,8 +150,11 @@ class NormConstraint(Constraint):
             updates[constrain_on] = clipped_param
             return updates
         else:
-            assert constrain_on in updates, ("%s.apply_constraint function expects constrain_on "
-                                             "argument to be in provided updates dictionary. "
+            assert constrain_on in updates, ("%s.apply_constraint function"
+                                             " expects constrain_on "
+                                             " argument to be in "
+                                             "provided updates "
+                                             "dictionary. "
                                              % self.__class__.__name__)
             update_param = updates[constrain_on]
             clipped_param = self._clip_norms(update_param, axes, updates)

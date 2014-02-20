@@ -274,20 +274,27 @@ class Layer(Model):
     def censor_updates(self, updates):
         self._apply_constraints(updates)
 
-    def _perform_constraints(self, args_list, input_axes=None, output_axes=None):
+    def _perform_constraints(self, args_list, input_axes=None,
+                             output_axes=None):
         """
-        Function that applies the constraints with the specified parameters for each constraint.
+        Function that applies the constraints with the specified
+        parameters for each constraint.
 
         Parameters
         ----------
         args_list : list of dictionaries.
-            A list of function arguments(in a dictionary) to pass to apply_constraints function
-            of each constraint.
-        input_axes : WRITEME
-        output_axes : WRITEME
+            A list of function arguments(in a dictionary) to pass to
+            apply_constraints function of each constraint.
+        input_axes : tuple
+            Input axes to perform the norm constraint along.
+        output_axes : tuple
+            Output axes to perform the norm constraint along.
         """
-        assert args_list is not None, "%s.args_list should not be empty." % self.__class__.__name__
-        for constraint_arg, constraint in safe_izip(args_list, self.weight_constraints):
+        assert args_list is not None, ("%s.args_list should not be empty." %
+                                       self.__class__.__name__)
+
+        for constraint_arg, constraint in safe_izip(args_list,
+                                                    self.weight_constraints):
             if constraint.is_input_axis:
                 constraint_arg["axes"] = input_axes
             else:
@@ -305,7 +312,8 @@ class Layer(Model):
 
         Notes
         -----
-        This function assumes that constraints are applied on weights and it uses transformer object.
+        This function assumes that constraints are applied on weights
+        and it uses transformer object.
         """
 
         if self.weight_constraints is None:
@@ -314,38 +322,49 @@ class Layer(Model):
         if getattr(self, "max_col_norm", None) is not None:
             constraint = NormConstraint(max_norm=self.max_col_norm)
             self.weight_constraints.append(constraint)
-            warnings.warn("%s.max_col_norm is deprecated. Please use, weight_constraints "
-                          "instead. max_col_norm argument will be removed on or after 11.08.2014. "
+            warnings.warn("%s.max_col_norm is deprecated. "
+                          "Please use, weight_constraints "
+                          "instead. max_col_norm argument will "
+                          "be removed on or after 11.08.2014. "
                           % self.__class__.__name__)
 
         if getattr(self, "min_col_norm", None) is not None:
             constraint = NormConstraint(min_norm=self.min_col_norm)
             self.weight_constraints.append(constraint)
 
-            warnings.warn("%s.min_col_norm is deprecated. Please use, weight_constraints instead. "
-                          "min_col_norm argument will be removed on or after 11.08.2014."
+            warnings.warn("%s.min_col_norm is deprecated. Please use, "
+                          "weight_constraints instead. "
+                          "min_col_norm argument will be removed "
+                          "on or after 11.08.2014."
                           % self.__class__.__name__)
 
         if getattr(self, "max_kernel_norm", None) is not None:
             constraint = NormConstraint(max_norm=self.max_kernel_norm)
             self.weight_constraints.append(constraint)
-            warnings.warn("%s.max_kernel_norm is deprecated. Please use, weight_constraints instead. "
-                          "max_kernel_norm argument will be removed on or after 11.08.2014. "
+            warnings.warn("%s.max_kernel_norm is deprecated. Please use, "
+                          "weight_constraints instead. "
+                          "max_kernel_norm argument will be removed "
+                          "on or after 11.08.2014. "
                           % self.__class__.__name__)
 
         if getattr(self, "max_row_norm", None) is not None:
-            constraint = NormConstraint(max_norm=self.max_row_norm, is_input_axis=False)
+            constraint = NormConstraint(max_norm=self.max_row_norm,
+                                        is_input_axis=False)
             self.weight_constraints.append(constraint)
-            warnings.warn("%s.max_row_norm is deprecated. Please use, weight_constraints instead. "
-                          "max_row_norm argument will be removed on or after 11.08.2014. "
+            warnings.warn("%s.max_row_norm is deprecated. Please use, "
+                          "weight_constraints instead. "
+                          "max_row_norm argument will be removed on or"
+                          "after 11.08.2014. "
                           % self.__class__.__name__)
 
         if getattr(self, "max_filter_norm", None) is not None:
             constraint = NormConstraint(max_norm=self.max_filter_norm)
             self.weight_constraints.append(constraint)
-            warnings.warn("%s.max_filter_norm is deprecated. Please use, weight_constraints instead. "
-                          "max_filter_norm argument will be removed on or after 11.08.2014. "
-                          % self.__class__.__name__ )
+            warnings.warn("%s.max_filter_norm is deprecated. Please use, "
+                          "weight_constraints instead. "
+                          "max_filter_norm argument will be removed on "
+                          "or after 11.08.2014. "
+                          % self.__class__.__name__)
 
         if self.__class__ == Softmax:
             W = self.W
@@ -366,12 +385,13 @@ class Layer(Model):
 
         self._perform_constraints(args_list, input_axes, output_axes)
 
+
 class MLP(Layer):
     """
     A multilayer perceptron.
 
-    Note that it's possible for an entire MLP to be a single layer of a larger
-    MLP.
+    Note that it's possible for an entire MLP to be a single layer of
+    a larger MLP.
     """
 
     def __init__(self, layers, batch_size=None, input_space=None,
@@ -383,12 +403,12 @@ class MLP(Layer):
             A list of Layer objects. The final layer specifies the output space
             of this MLP.
         batch_size : int, optional
-            If not specified then must be a positive integer. Mostly useful if
-            one of your layers involves a Theano op like convolution that
-            requires a hard-coded batch size.
+            If not specified then must be a positive integer. Mostly
+            useful if one of your layers involves a Theano op like
+            convolution that requires a hard-coded batch size.
         nvis : int, optional
-            Number of "visible units" (input units). Equivalent to specifying
-            `input_space=VectorSpace(dim=nvis)`.
+            Number of "visible units" (input units). Equivalent to
+            specifying `input_space=VectorSpace(dim=nvis)`.
         input_space : Space object, optional
             A Space specifying the kind of input the MLP accepts. If None,
             input space is specified by nvis.
