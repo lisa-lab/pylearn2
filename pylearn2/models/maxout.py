@@ -834,7 +834,8 @@ class MaxoutConvC01B(Layer):
 
         Returns
         -------
-        This function returns the output axes.
+        self._output_axes : tuple
+            This function returns the output axes.
         """
 
         return self._output_axes
@@ -845,7 +846,8 @@ class MaxoutConvC01B(Layer):
 
         Returns
         -------
-        This function returns the input axes.
+        self._output_axes : tuple
+            This function returns the input axes.
         """
         return self._input_axes
 
@@ -1379,7 +1381,8 @@ class MaxoutLocalC01B(Layer):
 
         Returns
         -------
-        This function returns the output axes.
+        self._output_axes : tuple
+            This function returns the output axes.
         """
         return self._output_axes
 
@@ -1389,7 +1392,8 @@ class MaxoutLocalC01B(Layer):
 
         Returns
         -------
-        This function returns the input axes.
+        self._input_axes : tuple
+            This function returns the input axes.
         """
         return self._input_axes
 

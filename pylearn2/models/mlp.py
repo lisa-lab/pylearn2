@@ -255,7 +255,8 @@ class Layer(Model):
 
         Returns
         -------
-        This function returns the axes of the output space for constraints.
+        self._output_axes : tuple
+            This function returns the axes of the output space for constraints.
         """
 
         return self._output_axes
@@ -265,7 +266,8 @@ class Layer(Model):
 
         Returns
         -------
-        This function returns the axes of the input space for constraints.
+        self._input_axes : tuple
+            This function returns the axes of the input space for constraints.
         """
 
         return self._input_axes
@@ -2511,7 +2513,8 @@ class ConvRectifiedLinear(Layer):
 
         Returns
         -------
-        This function returns the output axes.
+        self._output_axes : tuple
+            This function returns the output axes.
         """
 
         return self._output_axes
@@ -2522,7 +2525,8 @@ class ConvRectifiedLinear(Layer):
 
         Returns
         -------
-        This function returns the input axes.
+        self._input_axes : tuple
+            This function returns the input axes.
         """
 
         return self._input_axes
