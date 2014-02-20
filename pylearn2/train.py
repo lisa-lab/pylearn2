@@ -7,6 +7,7 @@ __credits__ = ["Ian Goodfellow"]
 __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
+from datetime import datetime
 import os
 import sys
 from pylearn2.utils import serial
@@ -14,7 +15,7 @@ import logging
 import warnings
 from pylearn2.monitor import Monitor
 from pylearn2.space import NullSpace
-from pylearn2.utils.timing import log_timing
+from pylearn2.utils.timing import log_timing, total_seconds
 from pylearn2.utils import sharedX
 
 
@@ -25,8 +26,8 @@ class Train(object):
     """
     A class representing the main loop of the training script.  Trains the
     specified model using the specified algorithm on the specified dataset.
-    After each call to the training algorithm, the model is saved to save_path.
-    May be enhanced with TrainExtension plugins.
+    After each call to the training algorithm, the model is saved to
+    `save_path`. May be enhanced with `TrainExtension` plugins.
     """
     def __init__(self, dataset, model, algorithm=None, save_path=None,
                  save_freq=0, extensions=None, allow_overwrite=True):
@@ -35,29 +36,27 @@ class Train(object):
 
         Parameters
         ----------
-        dataset : object
-            Object that implements the Dataset interface defined in \
-            `pylearn2.datasets`.
-        model : object
-            Object that implements the Model interface defined in \
-            `pylearn2.models`.
-        algorithm : object, optional
-            Object that implements the TrainingAlgorithm interface \
-            defined in `pylearn2.training_algorithms`.
-        save_path : str, optional
-            Path  to save the (pickled) model.
-        save_freq : int, optional
-            Frequency of saves, in epochs. A frequency of zero disables \
-            automatic saving altogether. A frequency of 1 saves every \
-            epoch. A frequency of 2 saves every other epoch, etc. \
-            (default=0, i.e. never save). Note: when automatic saving is \
-            enabled (eg save_freq > 0), the model is always saved after \
-            learning, even when the final epoch is not a multiple of save_freq.
-        extensions : iterable, optional
-            A collection of TrainExtension objects whose callbacks are \
+        dataset : `pylearn2.datasets.dataset.Dataset`
+        model : `pylearn2.models.model.Model`
+        algorithm : <Optional>
+        `pylearn2.training_algorithms.training_algorithm.TrainingAlgorithm`
+        save_path : <Optional> str
+            Path to save (with pickle / joblib) the model.
+        save_freq : <Optional> int
+            Frequency of saves, in epochs. A frequency of zero disables
+            automatic saving altogether. A frequency of 1 saves every
+            epoch. A frequency of 2 saves every other epoch, etc.
+            (default=0, i.e. never save). Note: when automatic saving is
+            enabled (eg save_freq > 0), the model is always saved after
+            learning, even when the final epoch is not a multiple of
+            `save_freq`.
+        extensions : <Optional> iterable
+            A collection of `TrainExtension` objects whose callbacks are
             triggered at various points in learning.
-        allow_overwrite : bool
-            WRITEME
+        allow_overwrite : <Optional> bool
+            If `True`, will save the model to save_path even if there is already
+            something there. Otherwise, will raise an error if the `save_path`
+            is already occupied.
         """
         self.allow_overwrite = allow_overwrite
         self.first_save = True
@@ -92,23 +91,47 @@ class Train(object):
 
     def setup_extensions(self):
         """
-        .. todo::
-
-            WRITEME
+        Calls setup on all extensions.
         """
         for ext in self.extensions:
             ext.setup(self.model, self.dataset, self.algorithm)
 
-    def main_loop(self):
+    def exceeded_time_budget(self, t0, time_budget):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        dt = total_seconds(datetime.now() - t0)
+        if time_budget is not None and dt >= time_budget:
+            log.warning("Time budget exceeded (%.3f/%d seconds).",
+                        dt, time_budget)
+            self.model.monitor.time_budget_exceeded = True
+            return True
+        else:
+            return False
+
+    def main_loop(self, time_budget=None):
         """
         Repeatedly runs an epoch of the training algorithm, runs any
         epoch-level callbacks, and saves the model.
+
+        Parameters
+        ----------
+        time_budget : int, optional
+            The maximum number of seconds before interrupting
+            training. Default is `None`, no time limit.
         """
+        t0 = datetime.now()
         if self.algorithm is None:
             self.model.monitor = Monitor.get_monitor(self.model)
+            self.model.monitor.time_budget_exceeded = False
             self.setup_extensions()
             self.run_callbacks_and_monitoring()
             while True:
+                if self.exceeded_time_budget(t0, time_budget):
+                    break
+
                 rval = self.model.train_all(dataset=self.dataset)
                 if rval is not None:
                     raise ValueError("Model.train_all should not return " +
@@ -143,6 +166,8 @@ class Train(object):
                                                dataset=self.model.monitor._datasets[0])
             self.run_callbacks_and_monitoring()
             while True:
+                if self.exceeded_time_budget(t0, time_budget):
+                    break
                 with log_timing(log, None, final_msg='Time this epoch:',
                                 callbacks=[self.monitor_time.set_value]):
                     rval = self.algorithm.train(dataset=self.dataset)
@@ -170,9 +195,7 @@ class Train(object):
 
     def run_callbacks_and_monitoring(self):
         """
-        .. todo::
-
-            WRITEME
+        Runs the monitor, then calls Extension.on_monitor for all extensions.
 
         Returns
         -------
@@ -185,7 +208,7 @@ class Train(object):
         for extension in self.extensions:
             try:
                 extension.on_monitor(self.model, self.dataset, self.algorithm)
-            except TypeError, e:
+            except TypeError:
                 logging.warning('Failure during callback ' + str(extension))
                 raise
             # We catch an exception here instead of relying on return
@@ -222,16 +245,17 @@ class Train(object):
 
 class SerializationGuard(object):
     """
-    .. todo::
-
-        WRITEME
+    This class exists to make objects that cannot be serialized. It is used to
+    make sure you don't accidentally put pointers to objects that should not
+    be serialized, such as the dataset, into objects that Train automatically
+    serializes, such as the Model.
     """
 
     def __getstate__(self):
         """
-        .. todo::
-
-            WRITEME
+        This method is called when someone attempts to serialize the object.
+        This method raises an exception to prevent the serialization from
+        occurring.
         """
         raise IOError("You tried to serialize something that should not"
                       " be serialized.")

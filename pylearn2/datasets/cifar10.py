@@ -22,6 +22,14 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
             one_hot = False, start = None, stop = None, axes=('b', 0, 1, 'c'),
             toronto_prepro = False, preprocessor = None):
         """
+        Parameters
+        ----------
+        which_set : str
+            One of 'train', 'test'
+        gcn : float, optional
+            Multiplicative constant to use for global contrast normalization.
+            No global contrast normalization is applied, if None
+
         .. todo::
 
             WRITEME
@@ -134,7 +142,7 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
 
         view_converter = dense_design_matrix.DefaultViewConverter((32,32,3), axes)
 
-        super(CIFAR10,self).__init__(X = X, y = y, view_converter = view_converter)
+        super(CIFAR10, self).__init__(X=X, y=y, view_converter=view_converter)
 
         assert not np.any(np.isnan(self.X))
 
@@ -239,7 +247,8 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
                 file)
         if not os.path.exists(fname):
             raise IOError(fname+" was not found. You probably need to download "
-                    " the CIFAR-10 dataset from http://www.cs.utoronto.ca/~kriz/cifar.html")
+                    "the CIFAR-10 dataset by using the download script in pylearn2/scripts/download_cifar10.sh "
+                    "or manually from http://www.cs.utoronto.ca/~kriz/cifar.html")
         _logger.info('loading file %s' % fname)
         fo = open(fname, 'rb')
         dict = cPickle.load(fo)

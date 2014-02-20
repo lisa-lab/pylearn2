@@ -2,8 +2,14 @@
 
 """
 A script for sequentially stepping through SmallNORB, viewing each image and
-its label. Intended as a demonstration of how to iterate through NORB images,
-and as a way of testing SmallNORB's iterator().
+its label.
+
+Intended as a demonstration of how to iterate through NORB images,
+and as a way of testing SmallNORB's StereoViewConverter.
+
+If you just want an image viewer, consider
+pylearn2/scripts/show_binocular_grayscale_images.py,
+which is not specific to SmallNORB.
 """
 
 __author__ = "Matthew Koichi Grimes"
@@ -13,14 +19,12 @@ __license__ = "3-clause BSD"
 __maintainer__ = __author__
 __email__ = "mkg alum mit edu (@..)"
 
+
 import argparse, pickle, sys
 from matplotlib import pyplot
 from pylearn2.datasets.norb import SmallNORB
-#from pylearn2.gui.patch_viewer import PatchViewer
-# from pylearn2.utils import get_choice
+from pylearn2.utils import safe_zip
 
-# silences warnings about missing docstrings
-#pylint: disable=C0111
 
 def main():
 
@@ -33,7 +37,7 @@ def main():
                             required=True,
                             help=("'train', 'test', or the path to a "
                                   "SmallNORB .pkl file"))
-        return parser.parse_args(sys.argv[1:])
+        return parser.parse_args()
 
     def load_norb(args):
         if args.which_set in ('test', 'train'):
@@ -44,112 +48,53 @@ def main():
 
     args = parse_args()
     norb = load_norb(args)
-    topo_space = norb.get_stereo_data_specs(topo=True, flatten=False)[0]
-    topo_images_space = topo_space.components[0]
-    vec_images_space = norb.get_data_specs()[0].components[0]
-
-    iterator = norb.iterator(mode='sequential',
-                             batch_size=1,
-                             data_specs=norb.get_data_specs())
-
+    topo_space = norb.view_converter.topo_space  # does not include label space
+    vec_space = norb.get_data_specs()[0].components[0]
 
     figure, axes = pyplot.subplots(1, 2, squeeze=True)
-    figure.canvas.set_window_title('Small NORB dataset (%sing set)' %
-                                   norb.which_set)
-    label_text = figure.suptitle("title text",
-                                 x=0.1,
-                                 horizontalalignment="left")
+    figure.suptitle("Press space to step through, or 'q' to quit.")
 
-    def paint_batches(batches):
-        if batches is None:
-            label_text.set_text("Iteration complete. Press 'q' to quit.")
-        else:
-            vec_stereo_pair, labels = batches
-            topo_stereo_pair = vec_images_space.np_format_as(vec_stereo_pair,
-                                                             topo_images_space)
+    def draw_and_increment(iterator):
+        """
+        Draws the image pair currently pointed at by the iterator,
+        then increments the iterator.
+        """
 
-            # print "img shapes: %s, %s, labels: %s" % (topo_stereo_pair[0].shape,
-            #                                           topo_stereo_pair[1].shape,
-            #                                           labels)
+        def draw(batch_pair):
+            for axis, image_batch in safe_zip(axes, batch_pair):
+                assert image_batch.shape[0] == 1
+                grayscale_image = image_batch[0, :, :, 0]
+                axis.imshow(grayscale_image, cmap='gray')
 
-            label_text.set_text("labels: %s" % str(labels))
-            for axis, image in zip(axes, topo_stereo_pair):
-                axis.imshow(image, cmap='gray')
+            figure.canvas.draw()
 
-        figure.canvas.draw()
+        def get_values_and_increment(iterator):
+            try:
+                vec_stereo_pair, labels = norb_iter.next()
+            except StopIteration:
+                return (None, None)
+
+            topo_stereo_pair = vec_space.np_format_as(vec_stereo_pair,
+                                                      topo_space)
+            return topo_stereo_pair, labels
+
+        batch_pair, labels = get_values_and_increment(norb_iter)
+        draw(batch_pair)
+
+    norb_iter = norb.iterator(mode='sequential',
+                              batch_size=1,
+                              data_specs=norb.get_data_specs())
 
     def on_key_press(event):
-        print 'key pressed: "%s"' % event.key
-
-        if event.key == 'right' or event.key == 'space':
-            try:
-                paint_batches(iterator.next())
-            except StopIteration:
-                paint_batches(None)
-
+        if event.key == ' ':
+            draw_and_increment(norb_iter)
         if event.key == 'q':
             sys.exit(0)
 
     figure.canvas.mpl_connect('key_press_event', on_key_press)
+    draw_and_increment(norb_iter)
+    pyplot.show()
 
-    # next() increments iter, but returns the previously pointed-to value.
-    paint_batches(iterator.next())
-                                 #
-
-    # for datum in norb.iterator(mode='sequential',
-    #                            batch_size=1,
-    #                            data_specs=norb.get_data_specs()):
-    #     vec_stereo_pair, labels = datum
-    #     topo_stereo_pair = vec_images_space.np_format_as(vec_stereo_pair,
-    #                                                      topo_images_space)
-
-    #     print "img shapes: %s, %s, labels: %s" % (topo_stereo_pair[0].shape,
-    #                                               topo_stereo_pair[1].shape,
-    #                                               labels)
-    #     sys.exit(0)
-
-
-# print 'Use test set?'
-# choices = {'y': 'test', 'n': 'train'}
-# which_set = choices[get_choice(choices)]
-
-# dataset = FoveatedNORB(which_set=which_set, center=True)
-
-# topo = dataset.get_topological_view()
-
-# b, r, c, ch = topo.shape
-
-# assert ch == 2
-
-# pv = PatchViewer((1, 2), (r, c), is_color=False)
-
-# i = 0
-# while True:
-#     patch = topo[i, :, :, :]
-#     patch = patch / np.abs(patch).max()
-
-#     pv.add_patch(patch[:,:,1], rescale=False)
-#     pv.add_patch(patch[:,:,0], rescale=False)
-
-#     pv.show()
-
-#     print dataset.y[i]
-
-#     choices = {'g': 'goto image', 'q': 'quit'}
-
-#     if i + 1 < b:
-#         choices['n'] = 'next image'
-
-#     choice = get_choice(choices)
-
-#     if choice == 'q':
-#         quit()
-
-#     if choice == 'n':
-#         i += 1
-
-#     if choice == 'g':
-#         i = int(raw_input('index: '))
 
 if __name__ == "__main__":
     main()

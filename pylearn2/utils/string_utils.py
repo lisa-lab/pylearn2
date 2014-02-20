@@ -11,7 +11,7 @@ from pylearn2.utils.python26 import cmp_to_key
 def preprocess(string, environ=None):
     """
     Preprocesses a string, by replacing `${VARNAME}` with
-    `os.environ['VARNAME']`
+    `os.environ['VARNAME']` and ~ with the path to the user's home directory
 
     Parameters
     ----------
@@ -61,6 +61,8 @@ def preprocess(string, environ=None):
         rval.append('}'.join(subsplit[1:]))
 
     rval = ''.join(rval)
+
+    string = os.path.expanduser(string)
 
     return rval
 

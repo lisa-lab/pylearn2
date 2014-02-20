@@ -869,7 +869,6 @@ class Monitor(object):
                                  data_specs=data_specs,
                                  dataset=cur_dataset)
 
-
 class MonitorChannel(object):
     """
     A class representing a specific quantity to be monitored.
@@ -972,8 +971,10 @@ class MonitorChannel(object):
         monitoring after a crash. For now, to make sure no one erroneously
         depends on these bad values, I exclude them from the pickle.
         """
+
         return {
-            'example_record': self.example_record,
+            'doc' : get_monitor_doc(self.val),
+            'example_record' : self.example_record,
             'batch_record' : self.batch_record,
             'time_record' : self.time_record,
             'epoch_record' : self.epoch_record,
@@ -1019,7 +1020,9 @@ def push_monitor(model, name, transfer_experience = False):
 
     Returns
     -------
-    WRITEME
+    model:
+        Returns the model itself so you can use an !obj:push_monitor call as the
+        definition of a model in a YAML file.
     """
 
     assert hasattr(model, 'monitor')
@@ -1078,6 +1081,29 @@ def get_channel(model, dataset, channel, cost, batch_size):
     val_record = channel.val_record
     value ,= val_record
     return value
+
+def get_monitor_doc(var):
+    """
+    Returns the __doc__ field of var or None. This field is used on
+    theano Variables to document the meaning of monitor channels.
+
+    Parameters
+    ----------
+    var: theano.gof.Variable
+        The variable to get the documentation of
+
+    Returns
+    -------
+    doc: str or None
+        var.__doc__ if var has an instance-level doc, otherwise None
+    """
+
+    doc = None
+
+    if var.__doc__ is not var.__class__.__doc__:
+        doc = var.__doc__
+
+    return doc
 
 _err_no_data = "You tried to add a channel to a Monitor that has no dataset."
 _err_ambig_data = ("You added a channel to a Monitor that has multiple " +

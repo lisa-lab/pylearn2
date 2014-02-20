@@ -1,10 +1,38 @@
 """ Training costs for unsupervised learning of energy-based models """
+import warnings
+import sys
 import theano.tensor as T
 from theano import scan
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import py_integer_types
+from theano.compat.python2x import OrderedDict
+from itertools import izip
+from pylearn2.models.rbm import BlockGibbsSampler
+import numpy as np
 
+warnings.warn("Cost changing the recursion limit.")
+# We need this to be high enough that the big theano graphs we make
+# when unrolling inference don't cause python to complain.
+# python intentionally declares stack overflow well before the stack
+# segment is actually exceeded. But we can't make this value too big
+# either, or we'll get seg faults when the python interpreter really
+# does go over the stack segment.
+# IG encountered seg faults on eos3 (a machine at LISA labo) when using
+# 50000 so for now it is set to 40000.
+# I think the actual safe recursion limit can't be predicted in advance
+# because you don't know how big of a stack frame each function will
+# make, so there is not really a "correct" way to do this. Really the
+# python interpreter should provide an option to raise the error
+# precisely when you're going to exceed the stack segment.
+sys.setrecursionlimit(40000)
+
+use_sandbox = True
+if use_sandbox:
+    from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
+else:
+    warnings.warn('using SLOW rng')
+    RandomStreams = T.shared_randomstreams.RandomStreams
 
 class NCE(DefaultDataSpecsMixin, Cost):
     """
@@ -196,3 +224,132 @@ class SMD(DefaultDataSpecsMixin, Cost):
         smd.name = 'SMD('+X_name+')'
 
         return smd
+
+    def get_data_specs(self, model):
+        return (model.get_input_space(), model.get_input_source())
+
+class SML(Cost):
+    """ Stochastic Maximum Likelihood
+
+        See "On the convergence of Markovian stochastic algorithms with rapidly 
+             decreasing ergodicity rates"
+        by Laurent Younes (1998)
+        
+        Also known as Persistent Constrastive Divergence (PCD)
+        See "Training restricted boltzmann machines using approximations to
+             the likelihood gradient" 
+        by Tijmen Tieleman  (2008)
+    """
+
+    def __init__(self, batch_size, nsteps ):
+        """
+            The number of particles fits the batch size.
+
+            Parameters
+            ---------
+            batch_size: int
+                batch size of the training algorithm
+            nsteps: int
+                number of steps made by the block Gibbs sampler
+                between each epoch
+        """
+        super(SML, self).__init__()
+        self.nchains = batch_size
+        self.nsteps  = nsteps
+
+    def get_gradients(self, model, data, **kwargs):
+        cost = self._cost(model,data,**kwargs)
+
+        params = list(model.get_params())
+
+        grads = T.grad(cost, params, disconnected_inputs = 'ignore', 
+                       consider_constant = [self.sampler.particles])
+
+        gradients = OrderedDict(izip(params, grads))
+
+        updates = OrderedDict()
+
+        sampler_updates = self.sampler.updates()
+        updates.update(sampler_updates)
+        return gradients, updates
+
+    def _cost(self, model, data):
+
+        if not hasattr(self,'sampler'):
+            self.sampler = BlockGibbsSampler(
+                rbm=model, 
+                particles=0.5+np.zeros((self.nchains,model.get_input_dim())), 
+                rng=model.rng, 
+                steps=self.nsteps)
+
+        # compute negative phase updates
+        sampler_updates = self.sampler.updates()
+
+        # Compute SML cost
+        pos_v = data
+        neg_v = self.sampler.particles
+
+        ml_cost = (model.free_energy(pos_v).mean()-
+                   model.free_energy(neg_v).mean())
+
+        return ml_cost
+
+    def expr(self, model, data):
+        return None
+
+    def get_data_specs(self, model):
+        return (model.get_input_space(), model.get_input_source())
+
+class CDk(Cost):
+    """ Contrastive Divergence
+
+        See "Training products of experts by minimizing contrastive divergence" 
+        by Geoffrey E. Hinton (2002)
+    """
+
+    def __init__(self, nsteps, seed=42):
+        """
+            Parametes
+            ---------
+            nsteps: int
+                number of Markov chain steps for the negative sample
+            seed: int
+                seed for the random number generator
+        """
+ 
+        super(CDk, self).__init__()
+        self.nsteps  = nsteps
+        self.rng = RandomStreams(seed)
+
+    def _cost(self, model, data):
+        pos_v = data
+        neg_v = data
+        
+        for k in range(self.nsteps):
+            [neg_v, _locals] = model.gibbs_step_for_v(neg_v,self.rng)
+
+        # Compute CD cost
+        ml_cost = (model.free_energy(pos_v).mean()-
+                   model.free_energy(neg_v).mean())
+
+        return ml_cost, neg_v
+
+    def get_gradients(self, model, data, **kwargs):
+        cost, neg_v = self._cost(model,data,**kwargs)
+
+        params = list(model.get_params())
+
+        grads = T.grad(cost, params, disconnected_inputs = 'ignore',
+                       consider_constant = [neg_v])
+
+        gradients = OrderedDict(izip(params, grads))
+
+        updates = OrderedDict()
+
+        return gradients, updates
+
+    def expr(self, model, data):
+        return None
+
+    def get_data_specs(self, model):
+        return (model.get_input_space(), model.get_input_source())

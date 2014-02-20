@@ -1,7 +1,6 @@
 """
-.. todo::
-
-    WRITEME
+A module containing different learning rules for use with the SGD training
+algorithm.
 """
 import numpy as np
 
@@ -38,7 +37,8 @@ class LearningRule():
 
     def get_updates(self, learning_rate, grads, lr_scalers=None):
         """
-        WRITEME
+        Provides the symbolic (theano) description of the updates needed to
+        perform this learning rule.
 
         Parameters
         ----------
@@ -95,9 +95,7 @@ class Momentum(LearningRule):
 
     def add_channels_to_monitor(self, monitor, monitoring_dataset):
         """
-        .. todo::
-
-            WRITEME
+        Activates monitoring of the momentum.
         """
         monitor.add_channel(
             name='momentum',
@@ -108,9 +106,7 @@ class Momentum(LearningRule):
 
     def get_updates(self, learning_rate, grads, lr_scalers=None):
         """
-        .. todo::
-
-            WRITEME
+        Provides the updates for learning with gradient descent + momentum.
         """
 
         updates = OrderedDict()
@@ -132,9 +128,7 @@ class Momentum(LearningRule):
 
 class MomentumAdjustor(TrainExtension):
     """
-    .. todo::
-
-        WRITEME
+    A TrainExtension that implements a linear momentum schedule.
     """
     def __init__(self, final_momentum, start, saturate):
         """
@@ -159,9 +153,7 @@ class MomentumAdjustor(TrainExtension):
 
     def on_monitor(self, model, dataset, algorithm):
         """
-        .. todo::
-
-            WRITEME
+        Updates the momentum according to the linear schedule.
         """
         if hasattr(algorithm, 'learning_rule'):
             momentum = algorithm.learning_rule.momentum
@@ -178,9 +170,7 @@ class MomentumAdjustor(TrainExtension):
 
     def current_momentum(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns the momentum currently desired by the schedule.
         """
         w = self.saturate - self.start
 

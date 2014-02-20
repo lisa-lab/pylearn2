@@ -5,10 +5,9 @@ the objective function for the SGD and BGD
 training algorithms.
 """
 
-# NOTE: As of 2013/12/2 this file is PEP8 compliant. Please keep it that way.
-
-from itertools import izip
+import functools
 import warnings
+from itertools import izip
 
 import theano.tensor as T
 from theano.compat.python2x import OrderedDict
@@ -93,26 +92,27 @@ class Cost(object):
 
         Parameters
         ----------
-        model: a pylearn2 Model instance
+        model : a pylearn2 Model instance
         data : a batch in cost.get_data_specs() form
 
-        returns: gradients, updates
-            gradients:
-                a dictionary mapping from the model's parameters
-                         to their gradients
-                The default implementation is to compute the gradients
-                using T.grad applied to the value returned by expr.
-                However, subclasses may return other values for the gradient.
-                For example, an intractable cost may return a sampling-based
-                approximation to its gradient.
-            updates:
-                a dictionary mapping shared variables to updates that must
-                be applied to them each time these gradients are computed.
-                This is to facilitate computation of sampling-based approximate
-                gradients.
-                The parameters should never appear in the updates dictionary.
-                This would imply that computing their gradient changes
-                their value, thus making the gradient value outdated.
+        Returns
+        -------
+        gradients: OrderedDict
+            a dictionary mapping from the model's parameters
+            to their gradients
+            The default implementation is to compute the gradients
+            using T.grad applied to the value returned by expr.
+            However, subclasses may return other values for the gradient.
+            For example, an intractable cost may return a sampling-based
+            approximation to its gradient.
+        updates: OrderedDict
+            a dictionary mapping shared variables to updates that must
+            be applied to them each time these gradients are computed.
+            This is to facilitate computation of sampling-based approximate
+            gradients.
+            The parameters should never appear in the updates dictionary.
+            This would imply that computing their gradient changes
+            their value, thus making the gradient value outdated.
         """
 
         try:
@@ -442,50 +442,24 @@ class SumOfCosts(Cost):
         return rval
 
 
-class ScaledCost(Cost):
+def scaled_cost(cost, scaling):
     """
-    Represents a given cost scaled by a constant factor.
-    TODO: why would you want to use this? SumOfCosts allows you to scale
-    individual terms, and if this is the only cost, why not just change the
-    learning rate?  If there's an obvious use case or rationale we should
-    document it, if not, we should remove it.
+    Deprecated. Switch to SumOfCosts([[scaling, cost]]), or just quit using it.
+
+    Parameters
+    ----------
+    cost: Cost
+        cost to be scaled
+    scaling : float
+        scaling of the cost
     """
-    def __init__(self, cost, scaling):
-        """
-        Parameters
-        ----------
-        cost: Cost
-            cost to be scaled
-        scaling : float
-            scaling of the cost
-        """
-        self.cost = cost
-        self.supervised = cost.supervised
-        self.scaling = scaling
 
-    def expr(self, model, data):
-        """
-        Returns cost scaled by its scaling factor.
+    warnings.warn("""\
+scaled_cost is deprecated and may be removed on or after 2014-08-05.
+SumOfCosts allows you to scale individual terms, and if this is the only cost,
+you may as well just change the learning rate.""")
 
-        Parameters
-        ----------
-        model : pylearn2.models.model.Model
-            Model for which we want to calculate the scaled cost
-        X : tensor_like
-            Input to the model
-        Y : tensor_like
-            Target, if necessary
-        """
-        self.get_data_specs(model)[0].validate(data)
-        return self.scaling * self.cost(model, data)
-
-    def get_data_specs(self, model):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        return self.cost.get_data_specs(model)
+    return SumOfCosts([[scaling, cost]])
 
 
 class LpPenalty(NullDataSpecsMixin, Cost):
@@ -537,6 +511,7 @@ class CrossEntropy(DefaultDataSpecsMixin, Cost):
 
             WRITEME
         """
+        warnings.warn("CrossEntropy is deprecated. You should use a model-specific cross entropy cost function. CrossEntropy will be removed on or after August 3, 2014", stacklevel=2)
         self.supervised = True
 
     def expr(self, model, data, ** kwargs):
@@ -558,38 +533,22 @@ class MethodCost(Cost):
     A cost specified via the string name of a method of the model.
     """
 
-    def __init__(self, method, data_specs=None, supervised=None):
+    def __init__(self, method, data_specs=None):
         """
-        .. todo::
-
-            WRITEME
-
+        Parameters
+        ----------
         method: a string specifying the name of the method of the model
                 that should be called to generate the objective function.
-        supervised: deprecated argument, ignored
         data_specs: a string specifying the name of a method/property of
                 the model that describe the data specs required by
                 method
         """
-        if supervised is not None:
-            if data_specs is not None:
-                raise TypeError("Deprecated argument 'supervised' and new "
-                                "argument 'data_specs' were both specified.")
-            warnings.warn("Usage of 'supervised' argument of MethodCost "
-                          "is deprecated. Use 'data_specs' to provide the "
-                          "name of a method or property of the model "
-                          "that describes the data specs required by method "
-                          "%s. %s will be used by default."
-                          % (method, method + '_data_specs'),
-                          stacklevel=2)
         self.method = method
         self.data_specs = data_specs
 
     def expr(self, model, data, *args, **kwargs):
         """
-        .. todo::
-
-            WRITEME
+        See Cost.expr for parameter specifications.
 
         Patches calls through to a user-specified method of the model
         """
@@ -597,12 +556,8 @@ class MethodCost(Cost):
         fn = getattr(model, self.method)
         return fn(data, *args, **kwargs)
 
+    @functools.wraps(Cost.get_data_specs)
     def get_data_specs(self, model):
-        """
-        .. todo::
-
-            WRITEME
-        """
         if self.data_specs is not None:
             fn = getattr(model, self.data_specs)
         else:

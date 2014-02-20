@@ -25,7 +25,7 @@ Here we explore some points of the vision statement in more detail:
      out of the box.
 
 * One goal we used to have but no one seems to actually work is supporting the
-  scikit.learn interface. It could make sense to add support for the the scikit-learn
+  scikit-learn interface. It could make sense to add support for the the scikit-learn
   interface to one of our models such as S3C, RBMs, or autoencoders and add it to
 
    * https://github.com/scikit-learn/scikit-learn/wiki/Related-Projects

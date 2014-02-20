@@ -10,15 +10,13 @@ http://www.cs.nyu.edu/~ylclab/data/norb-v1.0-small/
 NORB dataset(s) by Fu Jie Huang and Yann LeCun.
 """
 
-__authors__ = "Matthew Koichi Grimes and Guillaume Desjardins"
+__authors__ = "Guillaume Desjardins and Matthew Koichi Grimes"
 __copyright__ = "Copyright 2010-2014, Universite de Montreal"
 __credits__ = __authors__.split(" and ")
 __license__ = "3-clause BSD"
 __maintainer__ = "Matthew Koichi Grimes"
 __email__ = "mkg alum mit edu (@..)"
 
-# Mostly repackaged code from Pylearn 1's datasets/norb_small.py and
-# io/filetensor.py, as well as Pylearn2's original datasets/norb_small.py
 
 import os, gzip, bz2
 import numpy, theano
@@ -136,7 +134,7 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
         X = theano._asarray(X, theano.config.floatX)
 
         # Formats data as rows in a matrix, for DenseDesignMatrix
-        X = X.reshape(-1, 2*96*96)
+        X = X.reshape(-1, 2*numpy.prod(self.original_image_shape))
 
         # This is uint8
         y = SmallNORB.load(which_set, 'cat')
@@ -144,73 +142,17 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
             y_extra = SmallNORB.load(which_set, 'info')
             y = numpy.hstack((y[:, numpy.newaxis], y_extra))
 
-        datum_shape = (2, 96, 96, 1)  # stereo_image, row, column, channel
+        datum_shape = ((2, ) +  # two stereo images
+                       self.original_image_shape +
+                       (1, ))  # one color channel
+
+        # 's' is the stereo channel: 0 (left) or 1 (right)
         axes = ('b', 's', 0, 1, 'c')
         view_converter = StereoViewConverter(datum_shape, axes)
 
-        # TODO: let labels be accessible by key, like y.category, y.elevation,
-        # etc.
         super(SmallNORB, self).__init__(X=X,
                                         y=y,
                                         view_converter=view_converter)
-
-    def get_stereo_data_specs(self, topo, targets=True, flatten=True):
-        """
-        Returns a (space, sources) pair, where space is a CompositeSpace
-        of two spaces; one for the left stereo image, one for the right.
-        The corresponding sources will be 'features 0' and 'features 1'.
-
-        topo: If True, return topological spaces.
-              Otherwise return vector spaces.
-        targets: If True, include the labels.
-        """
-
-        if topo:
-            space = self.view_converter.topo_space
-        else:
-            conv2d_space = self.view_converter.topo_space.components[0]
-            vector_space = VectorSpace(dim=self.X.shape[1]/2)
-            assert vector_space.dim * 2 == self.X.shape[1], \
-                   ("Somehow, X.shape[1] was odd, despite storing a pair of "
-                    "equally-sized images")
-
-            space = CompositeSpace((vector_space, vector_space))
-
-        sources = ('features 0', 'features 1')
-
-        if targets:
-            space = CompositeSpace((space, VectorSpace(dim=self.y.shape[1])))
-            sources = (sources, 'targets')
-
-        if flatten:
-            def get_components(space):
-                """
-                Returns a flat tuple of the space's components.
-                """
-                if isinstance(space, CompositeSpace):
-                    result = ()
-                    for component in space.components:
-                        result = result + get_components(component)
-                    return result
-                else:
-                    return (space, )
-
-            def flatten_sources(sources):
-                if isinstance(sources, tuple):
-                    result = ()
-                    for subsource in sources:
-                        result = result + flatten_sources(subsource)
-
-                    return result
-                else:
-                    return (sources, )
-
-            space = CompositeSpace(get_components(space))
-            sources = flatten_sources(sources)
-
-        return (space, sources)
-
-
 
     @classmethod
     def load(cls, which_set, filetype):
@@ -311,7 +253,6 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
                 return elem_type, elem_size, shape
 
-
             elem_type, elem_size, shape = readHeader(file_handle, debug)
             beginning = file_handle.tell()
 
@@ -345,9 +286,30 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
             return result
 
-
         file_handle = open(getPath(which_set))
         return parseNORBFile(file_handle)
+
+
+    def get_topological_view(self, mat=None, single_tensor=True):
+        result = super(SmallNORB, self).get_topological_view(mat)
+
+        if single_tensor:
+            warnings.warn("The single_tensor argument is True by default to "
+                          "maintain backwards compatibility. This argument "
+                          "will be removed, and the behavior will become that "
+                          "of single_tensor=False, as of August 2014.")
+            axes = list(self.axes)
+            axes.remove('b')
+            s_index = axes.index('s')
+            mono_shape = self.shape[:s_index] + [1, ] + self.shape[s_index:]
+            result = tuple(t.reshape(mono_shape) for t in result)
+            result = numpy.concatenate(axis=s_index)
+        else:
+            warnings.warn("The single_tensor argument will be removed on "
+                          "August 2014. The behavior will be the same as "
+                          "single_tensor=False.")
+
+        return result
 
 
 class StereoViewConverter(object):
@@ -360,12 +322,14 @@ class StereoViewConverter(object):
         """
         The arguments describe how the data is laid out in the design matrix.
 
-        shape: tuple of 4 ints, describing the shape of each datum.
+        shape: A tuple of 4 ints, describing the shape of each datum.
+               This is the size of each axis in <axes>, excluding the 'b' axis.
+
         axes: tuple of the following elements in any order:
           'b'  batch axis)
           's'  stereo axis)
-          0    image axis 0 (row)
-          1    image axis 1 (column)
+           0   image axis 0 (row)
+           1   image axis 1 (column)
           'c'  channel axis
         """
         shape = tuple(shape)

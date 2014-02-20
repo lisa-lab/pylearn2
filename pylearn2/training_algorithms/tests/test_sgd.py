@@ -6,8 +6,8 @@ from theano.tests import disturb_mem
 import warnings
 
 from pylearn2.costs.cost import Cost
-from pylearn2.costs.cost import CrossEntropy
 from pylearn2.costs.cost import SumOfCosts
+from pylearn2.costs.cost import DefaultDataSpecsMixin
 from pylearn2.devtools.record import Record
 from pylearn2.devtools.record import RecordMode
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
@@ -34,15 +34,21 @@ from pylearn2.utils import safe_union
 from pylearn2.utils import sharedX
 
 
-class DummyCost(Cost):
+class SupervisedDummyCost(DefaultDataSpecsMixin, Cost):
+    supervised = True
+
     def expr(self, model, data):
-        self.get_data_specs(model)[0].validate(data)
+        space, sources = self.get_data_specs(model)
+        space.validate(data)
+        (X, Y) = data
+        return T.square(model(X) - Y).mean()
+
+class DummyCost(DefaultDataSpecsMixin, Cost):
+    def expr(self, model, data):
+        space, sources = self.get_data_specs(model)
+        space.validate(data)
         X = data
         return T.square(model(X) - X).mean()
-
-    def get_data_specs(self, model):
-        return (model.get_input_space(), model.get_input_source())
-
 
 class DummyModel(Model):
 
@@ -208,7 +214,7 @@ def test_sgd_sup():
     learning_rate = 1e-3
     batch_size = 5
 
-    cost = CrossEntropy()
+    cost = SupervisedDummyCost()
 
     # We need to include this so the test actually stops running at some point
     termination_criterion = EpochCounter(5)
@@ -525,7 +531,7 @@ def test_sgd_topo():
     learning_rate = 1e-3
     batch_size = 5
 
-    cost = CrossEntropy()
+    cost = SupervisedDummyCost()
 
     # We need to include this so the test actually stops running at some point
     termination_criterion = EpochCounter(5)
@@ -539,7 +545,6 @@ def test_sgd_topo():
                  save_freq=0, extensions=None)
 
     train.main_loop()
-
 
 def test_sgd_no_mon():
 
@@ -575,7 +580,7 @@ def test_sgd_no_mon():
     learning_rate = 1e-3
     batch_size = 5
 
-    cost = CrossEntropy()
+    cost = SupervisedDummyCost()
 
     # We need to include this so the test actually stops running at some point
     termination_criterion = EpochCounter(5)
@@ -624,7 +629,7 @@ def test_reject_mon_batch_without_mon():
     learning_rate = 1e-3
     batch_size = 5
 
-    cost = CrossEntropy()
+    cost = SupervisedDummyCost()
 
     try:
         algorithm = SGD(learning_rate, cost, batch_size=5,
