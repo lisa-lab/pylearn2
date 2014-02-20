@@ -431,7 +431,7 @@ class IndexSpace(Space):
                 rval = self.formatter.format(batch, sparse=space.sparse,
                                              mode='concatenate')
             else:
-                raise ValueError("Can't convert IndexSpace to"
+                raise ValueError("Can't convert IndexSpace to "
                                  "VectorSpace (%d labels to %d dimensions)"
                                  % (self.dim, space.dim))
             return rval
