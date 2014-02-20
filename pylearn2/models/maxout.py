@@ -1375,28 +1375,6 @@ class MaxoutLocalC01B(Layer):
 
         return norms
 
-    @wraps(Layer.get_output_axes)
-    def get_output_axes(self):
-        """
-
-        Returns
-        -------
-        self._output_axes : tuple
-            This function returns the output axes.
-        """
-        return self._output_axes
-
-    @wraps(Layer.get_input_axes)
-    def get_input_axes(self):
-        """
-
-        Returns
-        -------
-        self._input_axes : tuple
-            This function returns the input axes.
-        """
-        return self._input_axes
-
     def get_monitoring_channels(self):
         """
         .. todo::

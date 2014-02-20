@@ -373,10 +373,7 @@ class Layer(Model):
         else:
             W, = self.transformer.get_params()
 
-        constraint_args = {
-                           "constrain_on": W,
-                           "updates": updates
-                          }
+        constraint_args = {"constrain_on": W, "updates": updates}
 
         input_axes = self.get_input_axes()
         output_axes = self.get_output_axes()
@@ -2506,30 +2503,6 @@ class ConvRectifiedLinear(Layer):
         raw = self.transformer._filters.get_value()
 
         return np.transpose(raw, (outp, rows, cols, inp))
-
-    @wraps(Layer.get_output_axes)
-    def get_output_axes(self):
-        """
-
-        Returns
-        -------
-        self._output_axes : tuple
-            This function returns the output axes.
-        """
-
-        return self._output_axes
-
-    @wraps(Layer.get_input_axes)
-    def get_input_axes(self):
-        """
-
-        Returns
-        -------
-        self._input_axes : tuple
-            This function returns the input axes.
-        """
-
-        return self._input_axes
 
     @wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):

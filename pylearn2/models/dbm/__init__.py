@@ -1305,7 +1305,9 @@ class BinaryVectorMaxPool(HiddenLayer):
         center : WRITEME
         mask_weights : WRITEME
         max_col_norm : WRITEME
-        weight_constraints : WRITEME
+        weight_constraints : list
+            List of Constraint objects that are going to be applied on
+            the weights.
         copies : WRITEME
         """
         self.__dict__.update(locals())
