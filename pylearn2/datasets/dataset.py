@@ -1,7 +1,5 @@
 """
-.. todo::
-
-    WRITEME
+A module defining the Dataset class.
 """
 
 

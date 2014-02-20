@@ -1,7 +1,5 @@
 """
-.. todo::
-
-    WRITEME
+Utilities for running shell scripts and interacting with the terminal
 """
 import subprocess as sp
 import sys
@@ -15,11 +13,13 @@ def run_shell_command(cmd):
     Parameters
     ----------
     cmd : str
-        WRITEME
+        The shell command to run
 
     Returns
     -------
-    WRITEME
+    output, rc
+        output: The string output of the process
+        rc: The numeric return code of the process
     """
     child = sp.Popen(cmd, shell=True, stdout=sp.PIPE, stderr=sp.STDOUT)
     output = child.communicate()[0]

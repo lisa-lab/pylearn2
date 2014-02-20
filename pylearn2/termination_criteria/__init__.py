@@ -9,6 +9,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
+import functools
 import numpy as np
 import warnings
 
@@ -20,15 +21,16 @@ class TerminationCriterion(object):
     """
     def continue_learning(self, model):
         """
-        Returns True if training should continue, False otherwise
+        Returns True if training should continue for this model,
+        False otherwise
 
         Parameters
         ----------
-        model : WRITEME
+        model : a Model instance
 
         Returns
         -------
-        WRITEME
+        True or False as described above
         """
 
         raise NotImplementedError(str(type(self)) + " does not implement " +
@@ -36,12 +38,11 @@ class TerminationCriterion(object):
 
     def __call__(self, model):
         """
-        .. todo::
-
-            WRITEME
+        Support for a deprecated interface.
         """
         warnings.warn("TerminationCriterion.__call__ is deprecated, use " +
-                      "continue_learning", stacklevel=2)
+                      "continue_learning. __call__ will be removed on or " +
+                      "after July 31, 2014.", stacklevel=2)
         return self.continue_learning(model)
 
 class MonitorBased(TerminationCriterion):
@@ -125,19 +126,22 @@ class MatchChannel(TerminationCriterion):
 
     def __init__(self, channel_name, prev_channel_name, prev_monitor_name):
         """
-        .. todo::
-
-            WRITEME
+        Parameters
+        ----------
+        channel_name : str
+            The name of the new channel that we want to match the final value
+            from the previous training run
+        prev_channel_name : str
+            The name of the channel from the previous run that we want to match
+        prev_monitor_name : str
+            The name of the field of the model instance containing the monitor
+            from the previous training run
         """
         self.__dict__.update(locals())
         self.target = None
 
+    @functools.wraps(TerminationCriterion.continue_learning)
     def continue_learning(self, model):
-        """
-        .. todo::
-
-            WRITEME
-        """
         if self.target is None:
             prev_monitor = getattr(model, self.prev_monitor_name)
             channels = prev_monitor.channels
@@ -159,19 +163,18 @@ class ChannelTarget(TerminationCriterion):
 
     def __init__(self, channel_name, target):
         """
-        .. todo::
-
-            WRITEME
+        Parameters
+        ----------
+        channel_name : str
+            The name of the channel to track
+        target : float
+            Quit training after the channel is below this value
         """
         target = float(target)
         self.__dict__.update(locals())
 
+    @functools.wraps(TerminationCriterion.continue_learning)
     def continue_learning(self, model):
-        """
-        .. todo::
-
-            WRITEME
-        """
         monitor = model.monitor
         channels = monitor.channels
         channel = channels[self.channel_name]
@@ -186,18 +189,14 @@ class ChannelInf(TerminationCriterion):
 
     def __init__(self, channel_name):
         """
-        .. todo::
-
-            WRITEME
+        Parameters
+        ----------
+        channel_name : The channel to track.
         """
         self.__dict__.update(locals())
 
+    @functools.wraps(TerminationCriterion.continue_learning)
     def continue_learning(self, model):
-        """
-        .. todo::
-
-            WRITEME
-        """
         monitor = model.monitor
         channels = monitor.channels
         channel = channels[self.channel_name]
@@ -207,9 +206,7 @@ class ChannelInf(TerminationCriterion):
 
 class EpochCounter(TerminationCriterion):
     """
-    .. todo::
-
-        WRITEME
+    Learn for a fixed number of epochs.
     """
     def  __init__(self, max_epochs):
         """
@@ -227,20 +224,14 @@ class EpochCounter(TerminationCriterion):
         self._max_epochs = max_epochs
         self._epochs_done = 0
 
+    @functools.wraps(TerminationCriterion.continue_learning)
     def continue_learning(self, model):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self._epochs_done += 1
         return self._epochs_done < self._max_epochs
 
 class And(TerminationCriterion):
     """
-    .. todo::
-
-        WRITEME
+    Keep learning until any of a set of criteria wants to stop
     """
     def __init__(self, criteria):
         """
@@ -257,20 +248,14 @@ class And(TerminationCriterion):
         """
         self._criteria = list(criteria)
 
+    @functools.wraps(TerminationCriterion.continue_learning)
     def continue_learning(self, model):
-        """
-        .. todo::
-
-            WRITEME
-        """
         return all(criterion.continue_learning(model)
                    for criterion in self._criteria)
 
 class Or(TerminationCriterion):
     """
-    .. todo::
-
-        WRITEME
+    Keep learning as long as any of some set of criteria say to do so.
     """
     def __init__(self, criteria):
         """
@@ -287,11 +272,7 @@ class Or(TerminationCriterion):
         """
         self._criteria = list(criteria)
 
+    @functools.wraps(TerminationCriterion.continue_learning)
     def continue_learning(self, model):
-        """
-        .. todo::
-
-            WRITEME
-        """
         return any(criterion.continue_learning(model)
                    for criterion in self._criteria)
