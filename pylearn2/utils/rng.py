@@ -17,13 +17,7 @@ from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 def make_rng(rng_or_seed=None, default_seed=None,
              which_method=None, constructor=None):
     """
-    Returns a RNG object, using the first of these cases that produces a valid
-    result and doesn't use an argument with the value of None:
-
-    1) rng_or_seed itself
-    2) constructor(rng_or_seed)
-    3) constructor(default_seed)
-    4) constructor(42)
+    Returns a RNG object.
 
     Parameters
     ----------
@@ -39,6 +33,16 @@ def make_rng(rng_or_seed=None, default_seed=None,
         Must return a RNG object.
         constructor is called with rng_or_seed, default_seed or 42
         as argument.
+
+    Notes
+    -----
+    The RNG object is generated using the first of these cases that produces a
+    valid result and doesn't use an argument with the value of None:
+
+    1) rng_or_seed itself
+    2) constructor(rng_or_seed)
+    3) constructor(default_seed)
+    4) constructor(42)
     """
 
     if isinstance(which_method, basestring):
@@ -59,13 +63,7 @@ def make_rng(rng_or_seed=None, default_seed=None,
 
 def make_np_rng(rng_or_seed=None, default_seed=None, which_method=None):
     """
-    Returns a numpy RandomState, using the first of these cases that produces a
-    valid result and doesn't use an argument with the value of None:
-
-    1) rng_or_seed itself
-    2) RandomState(rng_or_seed)
-    3) RandomState(default_seed)
-    4) RandomState(42)
+    Returns a numpy RandomState.
 
     Parameters
     ----------
@@ -77,6 +75,16 @@ def make_np_rng(rng_or_seed=None, default_seed=None, which_method=None):
         One or more methods that must be defined by the RNG object.
         If one or more specified methods are not defined by it, a
         new one will be constructed from RandomState.
+
+    Notes
+    -----
+    The returned RandomState is generated using the first of these cases that
+    produces a valid result and doesn't use an argument with the value of None:
+
+    1) rng_or_seed itself
+    2) RandomState(rng_or_seed)
+    3) RandomState(default_seed)
+    4) RandomState(42)
     """
     return make_rng(rng_or_seed, default_seed, which_method,
                     numpy.random.RandomState)
@@ -84,13 +92,7 @@ def make_np_rng(rng_or_seed=None, default_seed=None, which_method=None):
 
 def make_theano_rng(rng_or_seed=None, default_seed=None, which_method=None):
     """
-    Returns a numpy RandomState, using the first of these cases that produces a
-    valid result and doesn't use an argument with the value of None:
-
-    1) rng_or_seed itself
-    2) RandomState(rng_or_seed)
-    3) RandomState(default_seed)
-    4) RandomState(42)
+    Returns a theano RandomStreams.
 
     Parameters
     ----------
@@ -102,6 +104,16 @@ def make_theano_rng(rng_or_seed=None, default_seed=None, which_method=None):
         One or more methods that must be defined by the RNG object.
         If one or more specified methods are not defined by it, a
         new one will be constructed from RandomState.
+
+    Notes
+    -----
+    The returned RandomStreams is generated using the first of these cases that
+    produces a valid result and doesn't use an argument with the value of None:
+
+    1) rng_or_seed itself
+    2) RandomState(rng_or_seed)
+    3) RandomState(default_seed)
+    4) RandomState(42)
     """
 
     return make_rng(rng_or_seed, default_seed, which_method, RandomStreams)
