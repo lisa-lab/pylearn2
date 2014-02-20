@@ -21,17 +21,18 @@ from pylearn2.utils.shell import run_shell_command
 
 def run_pyflakes(no_warnings = False):
     """
-    .. todo::
+    Return a description of all errors pyflakes finds in Pylearn2.
 
-        WRITEME properly
-
-    Returns a dictionary mapping pylearn2 .py filepaths
-    to outputs from pyflakes.
-
-    Omits files for which there was no output.
-
-    If no_warnings = True, omits pyflakes outputs that don't
-    correspond to actual errors.
+    Parameters
+    ----------
+    no_warnings : bool
+        If True, omits pyflakes outputs that don't correspond to actual
+        errors.
+    Returns
+    -------
+    rval : dict
+        Keys are pylearn2 .py filepaths
+        Values are outputs from pyflakes
     """
 
     files = list_files(".py")
