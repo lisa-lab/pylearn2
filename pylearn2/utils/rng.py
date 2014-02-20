@@ -7,23 +7,6 @@ __credits__ = ["Abhishek Aggarwal", "Xavier Bouthillier"]
 __license__ = "3-clause BSD"
 __email__ = "bouthilx@iro"
 
-# Portions cribbed from the standard library logging module,
-# Copyright 2001-2010 by Vinay Sajip. All Rights Reserved.
-#
-# Permission to use, copy, modify, and distribute this software and its
-# documentation for any purpose and without fee is hereby granted,
-# provided that the above copyright notice appear in all copies and that
-# both that copyright notice and this permission notice appear in
-# supporting documentation, and that the name of Vinay Sajip
-# not be used in advertising or publicity pertaining to distribution
-# of the software without specific, written prior permission.
-# VINAY SAJIP DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
-# ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL
-# VINAY SAJIP BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR
-# ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER
-# IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT
-# OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-
 import numpy
 
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
@@ -58,11 +41,11 @@ def make_rng(rng_or_seed=None, default_seed=None,
         as argument.
     """
 
-    if not isinstance(which_method, list):
+    if isinstance(which_method, basestring):
         which_method = [which_method]
 
     if rng_or_seed is not None and \
-       all([hasattr(rng_or_seed, attr) for attr in which_method]):
+       all(hasattr(rng_or_seed, attr) for attr in which_method):
         rng = rng_or_seed
     elif rng_or_seed is not None:
         rng = constructor(rng_or_seed)
