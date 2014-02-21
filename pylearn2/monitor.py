@@ -469,8 +469,7 @@ class Monitor(object):
                                            givens=g,
                                            updates=u,
                                            mode=self.theano_function_mode,
-                                           name=function_name,
-                                           allow_input_downcast=True))
+                                           name=function_name))
             for a in self.accum:
                 if mode is not None and hasattr(mode, 'record'):
                     for elem in a.maker.fgraph.outputs:
