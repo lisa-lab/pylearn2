@@ -12,6 +12,7 @@ from pylearn2.space import VectorSpace
 from pylearn2.space import Space
 from pylearn2.space import IndexSpace
 from pylearn2.utils import function
+import itertools
 
 
 def test_np_format_as_vector2conv2D():
@@ -180,6 +181,23 @@ def test_broadcastable():
     d = Conv2DSpace((5, 5), channels=3,
                     axes=['b', 0, 1, 'c']).make_theano_batch(batch_size=1)
     np.testing.assert_(d.broadcastable[0])
+
+def test_compare_index():
+    dims = [5, 5, 5, 6]
+    max_labels = [10, 10, 9, 10]
+    index_spaces = [IndexSpace(dim=dim, max_labels=max_label)
+                    for dim, max_label in zip(dims, max_labels)]
+    assert index_spaces[0] == index_spaces[1]
+    assert not any(index_spaces[i] == index_spaces[j]
+                   for i, j in itertools.combinations([1, 2, 3], 2))
+    vector_space = VectorSpace(dim=5)
+    conv2d_space = Conv2DSpace(shape=(8, 8), num_channels=3,
+                               axes=('b', 'c', 0, 1))
+    composite_space = CompositeSpace((index_spaces[0],))
+    assert not any(index_space == vector_space for index_space in index_spaces)
+    assert not any(index_space == composite_space for index_space in index_spaces)
+    assert not any(index_space == conv2d_space for index_space in index_spaces)
+
 
 def test_np_format_as_index2vector():
     # Test 5 random batches for shape, number of non-zeros
