@@ -441,11 +441,11 @@ class IndexSpace(Space):
                                              mode='concatenate')
             else:
                 raise ValueError("Can't convert %s to %s"
-                                 % (str(self), str(space)))
+                                 % (self, space))
             return rval
         else:
             raise ValueError("Can't convert %s to %s"
-                             % (str(self), str(space)))
+                             % (self, space))
 
     @functools.wraps(Space._format_as)
     def _format_as(self, batch, space):
@@ -462,11 +462,11 @@ class IndexSpace(Space):
                                                   mode='concatenate')
             else:
                 raise ValueError("Can't convert %s to %s"
-                                 % (str(self), str(space)))
+                                 % (self, space))
             return rval
         else:
             raise ValueError("Can't convert %s to %s"
-                             % (str(self) to str(space)))
+                             % (self, space))
 
     @functools.wraps(Space.make_theano_batch)
     def make_theano_batch(self, name=None, dtype=None, batch_size=None):
