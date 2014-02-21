@@ -176,6 +176,8 @@ def test_sgd_unspec_num_mon_batch():
     if False in visited:
         print visited
         assert False
+
+
 def test_sgd_sup():
 
     # tests that we can run the sgd algorithm

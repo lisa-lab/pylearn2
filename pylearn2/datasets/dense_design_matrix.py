@@ -145,7 +145,7 @@ class DenseDesignMatrix(Dataset):
     def iterator(self, mode=None, batch_size=None, num_batches=None,
                  topo=None, targets=None, rng=None, data_specs=None,
                  return_tuple=False):
-        print "in DenseDesignMatrix.iterator(), data_specs = %s" % str(data_specs)
+
         if topo is not None or targets is not None:
             if data_specs is not None:
                 raise ValueError('In DenseDesignMatrix.iterator, both the '

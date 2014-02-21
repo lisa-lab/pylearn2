@@ -396,7 +396,6 @@ class Space(object):
 
         self._check_is_numeric(batch)
 
-        print "in np_format_as: batch.shape = %s" % str(batch.shape)
         return self._format_as(is_numeric=True,
                                batch=batch,
                                space=space)
@@ -432,8 +431,6 @@ class Space(object):
         assert isinstance(is_numeric, bool)
 
         self._validate(is_numeric, batch)
-
-        print "in _format_as, batch.shape = %s" % str(batch.shape)
 
         my_dimension = self.get_total_dimension()
         other_dimension = space.get_total_dimension()
@@ -793,8 +790,6 @@ class VectorSpace(SimplyTypedSpace):
     @functools.wraps(Space._format_as_impl)
     def _format_as_impl(self, is_numeric, batch, space):
         to_type = None
-
-        print "In VectorSpace._format_as_impl, batch.shape = %s" % str(batch.shape)
 
         def is_sparse(batch):
             return (isinstance(batch, theano.sparse.SparseVariable) or
