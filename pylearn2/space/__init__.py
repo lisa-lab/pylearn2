@@ -420,8 +420,7 @@ class IndexSpace(Space):
     def __eq__(self, other):
         return (type(self) == type(other) and
                 self.max_labels == other.max_labels and
-                self.dim == other.dim
-                )
+                self.dim == other.dim)
 
     def __ne__(self, other):
         return (not self == other)
