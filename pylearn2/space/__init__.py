@@ -126,7 +126,18 @@ def _dense_to_sparse(batch):
 def _reshape(arg, shape):
     """
     Reshapes a tensor. Supports both symbolic and numeric variables.
+
+    This is a hack that first converts from sparse to dense, reshapes the dense
+    tensor, then re-converts from dense to sparse. It is therefore
+    memory-inefficient and unsuitable for large tensors. It will be replaced by
+    a proper sparse reshaping Op once Theano implements that.
     """
+    warnings.warn("Using pylearn2.space._reshape(), which is a "
+                  "memory-inefficient hack for reshaping sparse tensors. Do "
+                  "not use this on large tensors. This will eventually be "
+                  "replaced by a proper Theano Op for sparse reshaping, once "
+                  "that is written.")
+
 
     if isinstance(arg, tuple):
         raise TypeError("Composite batches not supported.")
@@ -208,13 +219,13 @@ class Space(object):
 
         Parameters
         ----------
-        validate_callbacks:
+        validate_callbacks : list or tuple
             Callbacks that are run at the start of a call to validate.
             Each should be a callable with the same signature as validate.
             An example use case is installing an instance-specific error
             handler that provides extra instructions for how to correct an
             input that is in a bad space.
-        np_validate_callacks:
+        np_validate_callacks : list or tuple
             similar to validate_callbacks, but run on calls to np_validate
         """
 
@@ -294,14 +305,18 @@ class Space(object):
         """
         Returns a batch containing `batch_size` copies of the origin.
 
+        Parameters
+        ----------
+        batch_size: The number of examples in the batch to be returned.
+        dtype : The dtype of the batch to be returned. Default = None.
+                If None, use self.dtype.
+
         Returns
         -------
         batch : ndarray
             A NumPy array in the shape of a batch of `batch_size` points in
             this space (with points being indexed along the first axis),
             each `batch[i]` being a copy of the origin.
-        dtype : The dtype of the batch to be returned. Default = None.
-                If None, use self.dtype.
         """
         raise NotImplementedError()
 
@@ -404,8 +419,9 @@ class Space(object):
 
         Parameters
         ----------
-        is_numeric : bool. Set to True to call np_validate_callbacks,
-                     False to call validate_callbacks.
+        is_numeric : bool.
+             Set to True to call np_validate_callbacks().
+             Set to False to call validate_callbacks().
         batch : WRITEME
         space : Space
             WRITEME
@@ -452,17 +468,20 @@ class Space(object):
         Parameters
         ----------
 
-        is_numeric : bool. Set to True to treat batch as a numeric batch,
-                     False to treat it as a symbolic batch. This is necessary
-                     because sometimes a batch's numeric/symbolicness can be
-                     ambiguous, i.e. when it's the empty tuple ().
+        is_numeric : bool.
+            Set to True to treat batch as a numeric batch, False to treat it as
+            a symbolic batch. This is necessary because sometimes a batch's
+            numeric/symbolicness can be ambiguous, i.e. when it's the empty
+            tuple ().
 
         batch : a numpy.ndarray, scipy.sparse matrix, theano symbol, or a
-                nested tuple thereof. Implementations of this method may assume
-                that batch lies in this space (i.e. that it passed
-                self._validate(batch) without throwing an exception).
+                nested tuple thereof.
+            Implementations of this method may assume that batch lies in this
+            space (i.e. that it passed self._validate(batch) without throwing
+            an exception).
 
-        target_space : A Space subclass. The space to transform batch into.
+        target_space : A Space subclass.
+            The space to transform batch into.
 
         Returns
         -------
@@ -703,9 +722,11 @@ class VectorSpace(SimplyTypedSpace):
             Dimensionality of a vector in this space.
         sparse: bool
             Sparse vector or not
-        dtype: A numpy dtype string (e.g. 'float32') indicating this space's
-               dtype, or None for a dtype-agnostic space.
-        kwargs: passed on to superclass constructor
+        dtype : str
+            A numpy dtype string (e.g. 'float32') indicating this space's
+            dtype, or None for a dtype-agnostic space.
+        kwargs : dict
+            Passed on to superclass constructor.
         """
 
         super(VectorSpace, self).__init__(**kwargs)
@@ -960,18 +981,20 @@ class Conv2DSpace(SimplyTypedSpace):
             The shape of a single image, i.e. (rows, cols).
         num_channels: int     (synonym: channels)
             Number of channels in the image, i.e. 3 if RGB.
-        axes: A tuple indicating the semantics of each axis.
-                'b' : this axis is the batch index of a minibatch.
-                'c' : this axis the channel index of a minibatch.
-                <i> : this is topological axis i (i.e., 0 for rows, 1 for
-                      cols)
+        axes : tuple
+            A tuple indicating the semantics of each axis.
+            'b' : this axis is the batch index of a minibatch.
+            'c' : this axis the channel index of a minibatch.
+            <i> : this is topological axis i (i.e., 0 for rows, 1 for
+                  cols)
 
-                For example, a PIL image has axes (0, 1, 'c') or (0, 1).
-                The pylearn2 image displaying functionality uses
-                    ('b', 0, 1, 'c') for batches and (0, 1, 'c') for images.
-                theano's conv2d operator uses ('b', 'c', 0, 1) images.
-        dtype: A numpy dtype string (e.g. 'float32') indicating this space's
-               dtype, or None for a dtype-agnostic space.
+            For example, a PIL image has axes (0, 1, 'c') or (0, 1).
+            The pylearn2 image displaying functionality uses
+                ('b', 0, 1, 'c') for batches and (0, 1, 'c') for images.
+            theano's conv2d operator uses ('b', 'c', 0, 1) images.
+        dtype : str
+            A numpy dtype string (e.g. 'float32') indicating this space's
+            dtype, or None for a dtype-agnostic space.
         kwargs: passed on to superclass constructor
         """
 
@@ -1485,12 +1508,17 @@ class CompositeSpace(Space):
         Calls get_origin_batch on all subspaces, and returns a (nested)
         tuple containing their return values.
 
-        batch_size: batch size.
+        Parameters
+        ----------
 
-        dtype: the dtype to use for all the get_origin_batch() calls on
-               subspaces. If dtype is None, or a single dtype string, that will
-               be used for all calls. If dtype is a (nested) tuple, it must
-               mirror the tree structure of this CompositeSpace.
+        batch_size : int
+            Batch size.
+
+        dtype : str
+            the dtype to use for all the get_origin_batch() calls on
+            subspaces. If dtype is None, or a single dtype string, that will
+            be used for all calls. If dtype is a (nested) tuple, it must
+            mirror the tree structure of this CompositeSpace.
         """
 
         dtype = self._clean_dtype_arg(dtype)
@@ -1508,13 +1536,21 @@ class CompositeSpace(Space):
         Calls make_theano_batch on all subspaces, and returns a (nested)
         tuple containing their return values.
 
-        n: batch size.
+        Parameters
+        ----------
 
-        dtype: The dtype of the returned batch.
-               If dtype is a string, it will be applied to all components.
-               If dtype is None, C.dtype will be used for each component C.
-               If dtype is a nested tuple, its elements will be applied to
-               corresponding elements in the components.
+        name : str
+            Name of the symbolic variable
+
+        dtype : str
+            The dtype of the returned batch.
+            If dtype is a string, it will be applied to all components.
+            If dtype is None, C.dtype will be used for each component C.
+            If dtype is a nested tuple, its elements will be applied to
+            corresponding elements in the components.
+
+        batch_size : int
+            Batch size.
         """
 
         if name is None:
