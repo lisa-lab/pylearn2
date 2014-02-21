@@ -418,9 +418,10 @@ class IndexSpace(Space):
                     max_labels=self.max_labels)
 
     def __eq__(self, other):
-        return (self.max_labels == other.max_labels and
-                self.dim == other.dim and
-                type(self) == type(other))
+        return (type(self) == type(other) and
+                self.max_labels == other.max_labels and
+                self.dim == other.dim
+                )
 
     def __ne__(self, other):
         return (not self == other)
@@ -439,13 +440,12 @@ class IndexSpace(Space):
                 rval = self.formatter.format(batch, sparse=space.sparse,
                                              mode='concatenate')
             else:
-                raise ValueError("Can't convert IndexSpace to"
-                                 "VectorSpace (%d labels to %d dimensions)"
-                                 % (self.dim, space.dim))
+                raise ValueError("Can't convert %s to %s"
+                                 % (str(self), str(space)))
             return rval
         else:
-            raise ValueError("Can't convert IndexSpace to %(space)s"
-                             % (space.__class__.__name__))
+            raise ValueError("Can't convert %s to %s"
+                             % (str(self), str(space)))
 
     @functools.wraps(Space._format_as)
     def _format_as(self, batch, space):
@@ -461,13 +461,12 @@ class IndexSpace(Space):
                 rval = self.formatter.theano_expr(batch, sparse=space.sparse,
                                                   mode='concatenate')
             else:
-                raise ValueError("Can't convert IndexSpace to"
-                                 "VectorSpace (%d labels to %d dimensions)"
-                                 % (self.dim, space.dim))
+                raise ValueError("Can't convert %s to %s"
+                                 % (str(self), str(space)))
             return rval
         else:
-            raise ValueError("Can't convert IndexSpace to %(space)s"
-                             % (space.__class__.__name__))
+            raise ValueError("Can't convert %s to %s"
+                             % (str(self) to str(space)))
 
     @functools.wraps(Space.make_theano_batch)
     def make_theano_batch(self, name=None, dtype=None, batch_size=None):
