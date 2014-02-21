@@ -412,10 +412,16 @@ class IndexSpace(Space):
         """
         Return a string representation.
         """
-        return '%(classname)s(dim=%(dim)s, max_labels=%(max_labels)s' % \
+        return '%(classname)s(dim=%(dim)s, max_labels=%(max_labels)s)' % \
                dict(classname=self.__class__.__name__,
                     dim=self.dim,
                     max_labels=self.max_labels)
+
+    def __eq__(self, other):
+        return (self.max_labels == other.max_labels and self.dim == other.dim)
+
+    def __ne__(self, other):
+        return (not self == other)
 
     @functools.wraps(Space.get_total_dimension)
     def get_total_dimension(self):
