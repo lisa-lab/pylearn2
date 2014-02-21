@@ -145,7 +145,7 @@ class DenseDesignMatrix(Dataset):
     def iterator(self, mode=None, batch_size=None, num_batches=None,
                  topo=None, targets=None, rng=None, data_specs=None,
                  return_tuple=False):
-
+        print "in DenseDesignMatrix.iterator(), data_specs = %s" % str(data_specs)
         if topo is not None or targets is not None:
             if data_specs is not None:
                 raise ValueError('In DenseDesignMatrix.iterator, both the '
@@ -200,17 +200,18 @@ class DenseDesignMatrix(Dataset):
                 sub_spaces = (space,)
                 sub_sources = (source,)
 
-            convert = []
-            for sp, src in safe_zip(sub_spaces, sub_sources):
-                if (src == 'features' and
-                        getattr(self, 'view_converter', None) is not None):
-                    conv_fn = (lambda batch, self=self, space=sp:
-                               self.view_converter.get_formatted_batch(
-                                   batch,
-                                   space))
-                else:
-                    conv_fn = None
-                convert.append(conv_fn)
+            convert = None
+            # convert = []
+            # for sp, src in safe_zip(sub_spaces, sub_sources):
+            #     if (src == 'features' and
+            #             getattr(self, 'view_converter', None) is not None):
+            #         conv_fn = (lambda batch, self=self, space=sp:
+            #                    self.view_converter.get_formatted_batch(
+            #                        batch,
+            #                        space))
+            #     else:
+            #         conv_fn = None
+            #     convert.append(conv_fn)
 
         # TODO: Refactor
         if mode is None:

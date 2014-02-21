@@ -24,7 +24,7 @@ from theano import config
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_zip
 from pylearn2.utils.data_specs import is_flat_specs
-
+import ipdb
 
 class SubsetIterator(object):
     def __init__(self, dataset_size, batch_size, num_batches, rng=None):
@@ -434,6 +434,8 @@ class FiniteDatasetIterator(object):
             WRITEME
         """
 
+        print "convert = %s" % str(convert)
+
         self._data_specs = data_specs
         self._dataset = dataset
         self._subset_iterator = subset_iterator
@@ -506,11 +508,37 @@ class FiniteDatasetIterator(object):
                 # otherwise they would change in the next iteration
                 # of the loop.
                 if fn is None:
-                    fn = (lambda batch, dspace=dspace, sp=sp:
-                          dspace.np_format_as(batch, sp))
+                    def new_fn_1(batch, dspace=dspace, sp=sp):
+                        print ("in new_fn_1, batch.shape: %s\n"
+                               "dspace: %s\n"
+                               "sp: %s" %
+                               (str(batch.shape),
+                                dspace,
+                                sp))
+                        return dspace.np_format_as(batch, sp)
+
+                    fn = new_fn_1
+
+                    # fn = (lambda batch, dspace=dspace, sp=sp:
+                    #       dspace.np_format_as(batch, sp))
                 else:
-                    fn = (lambda batch, dspace=dspace, sp=sp, fn_=fn:
-                          dspace.np_format_as(fn_(batch), sp))
+                    def new_fn_2(batch, dspace=dspace, sp=sp, fn_=fn):
+                        print ("in new_fn_2, batch.shape: %s\n"
+                               "fn_: %s\n"
+                               "fn_(batch).shape: %s\n"
+                               "dspace: %s\n"
+                               "sp: %s" %
+                               (str(batch.shape),
+                                fn_,
+                                str(fn_(batch).shape),
+                                dspace,
+                                sp))
+                        # ipdb.set_trace()
+                        return dspace.np_format_as(fn_(batch), sp)
+
+                    fn = new_fn_2
+                    # fn = (lambda batch, dspace=dspace, sp=sp, fn_=fn:
+                    #       dspace.np_format_as(fn_(batch), sp))
 
             self._convert[i] = fn
 

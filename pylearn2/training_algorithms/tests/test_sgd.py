@@ -60,7 +60,7 @@ class DummyModel(Model):
     def __call__(self, X):
         # Implemented only so that DummyCost would work
         return X
-    
+
     def get_lr_scalers(self):
         if self.lr_scalers:
             return dict(zip(self._params, self.lr_scalers))
@@ -405,14 +405,16 @@ def test_linear_decay_over_epoch():
     cost = DummyCost()
 
     algorithm = SGD(learning_rate, cost, batch_size=5,
-                 monitoring_batches=3, monitoring_dataset= monitoring_dataset,
-                 termination_criterion=termination_criterion, update_callbacks=None,
-                 init_momentum = None, set_batch_size = False)
+                    monitoring_batches=3, monitoring_dataset= monitoring_dataset,
+                    termination_criterion=termination_criterion, update_callbacks=None,
+                    init_momentum = None, set_batch_size = False)
 
     start = 5
     saturate = 10
     decay_factor = 0.1
-    linear_decay = LinearDecayOverEpoch(start=start, saturate=saturate, decay_factor=decay_factor)
+    linear_decay = LinearDecayOverEpoch(start=start,
+                                        saturate=saturate,
+                                        decay_factor=decay_factor)
 
     train = Train(dataset, model, algorithm, save_path=None,
                  save_freq=0, extensions=[linear_decay])
@@ -420,7 +422,7 @@ def test_linear_decay_over_epoch():
     train.main_loop()
 
     lr = model.monitor.channels['learning_rate']
-    step = (learning_rate - learning_rate * decay_factor)/(saturate - start + 1)
+    step = (learning_rate - learning_rate*decay_factor)/(saturate - start + 1)
 
     for i in xrange(epoch_num + 1):
         actual = lr.val_record[i]
@@ -431,14 +433,16 @@ def test_linear_decay_over_epoch():
         elif (start <= i) and (i < saturate):
             expected = decay_factor * learning_rate + (saturate - i) * step
         if not np.allclose(actual, expected):
-            raise AssertionError("After %d epochs, expected learning rate to be %f, but it is %f." % (
-                i, expected, actual))
+            raise AssertionError("After %d epochs, expected learning rate to "
+                                 "be %f, but it is %f." %
+                                 (i, expected, actual))
 
 def test_monitor_based_lr():
-    # tests that the class MonitorBasedLRAdjuster in sgd.py
-    # gets the learning rate properly over the training epochs
-    # it runs a small softmax and at the end checks the learning values. It runs 2 loops. Each loop evaluates one of the if clauses when checking
-    # the observation channels. Otherwise, longer training epochs are needed to observe both if and elif cases.
+    # tests that the class MonitorBasedLRAdjuster in sgd.py gets the learning
+    # rate properly over the training epochs it runs a small softmax and at the
+    # end checks the learning values. It runs 2 loops. Each loop evaluates one
+    # of the if clauses when checking the observation channels. Otherwise,
+    # longer training epochs are needed to observe both if and elif cases.
 
     high_trigger = 1.0
     shrink_amt = 0.99
@@ -479,13 +483,23 @@ def test_monitor_based_lr():
 
         termination_criterion = EpochCounter(epoch_num)
 
-        algorithm = SGD(learning_rate, cost, batch_size=5,
-                 monitoring_batches=3, monitoring_dataset= monitoring_dataset,
-                 termination_criterion=termination_criterion, update_callbacks=None,
-                 init_momentum = None, set_batch_size = False)
+        algorithm = SGD(learning_rate,
+                        cost,
+                        batch_size=5,
+                        monitoring_batches=3,
+                        monitoring_dataset=monitoring_dataset,
+                        termination_criterion=termination_criterion,
+                        update_callbacks=None,
+                        init_momentum=None,
+                        set_batch_size=False)
 
 
-        monitor_lr = MonitorBasedLRAdjuster(high_trigger=high_trigger, shrink_amt=shrink_amt, low_trigger=low_trigger, grow_amt=grow_amt, min_lr=min_lr, max_lr=max_lr)
+        monitor_lr = MonitorBasedLRAdjuster(high_trigger=high_trigger,
+                                            shrink_amt=shrink_amt,
+                                            low_trigger=low_trigger,
+                                            grow_amt=grow_amt,
+                                            min_lr=min_lr,
+                                            max_lr=max_lr)
 
         train = Train(dataset, model, algorithm, save_path=None,
                  save_freq=0, extensions=[monitor_lr])
@@ -497,7 +511,7 @@ def test_monitor_based_lr():
         lr_monitor = learning_rate
 
         for i in xrange(2 , epoch_num + 1):
-            if v[i-1] > high_trigger * v[i-2] :
+            if v[i-1] > high_trigger * v[i-2]:
                 lr_monitor *= shrink_amt
             elif v[i-1] > low_trigger * v[i-2]:
                 lr_monitor *= grow_amt
@@ -537,12 +551,14 @@ def test_sgd_topo():
     termination_criterion = EpochCounter(5)
 
     algorithm = SGD(learning_rate, cost, batch_size=5,
-                 monitoring_batches=3, monitoring_dataset= monitoring_dataset,
-                 termination_criterion=termination_criterion, update_callbacks=None,
-                 init_momentum = None, set_batch_size = False)
+                    monitoring_batches=3,
+                    monitoring_dataset=monitoring_dataset,
+                    termination_criterion=termination_criterion,
+                    update_callbacks=None,
+                    init_momentum = None, set_batch_size = False)
 
     train = Train(dataset, model, algorithm, save_path=None,
-                 save_freq=0, extensions=None)
+                  save_freq=0, extensions=None)
 
     train.main_loop()
 
