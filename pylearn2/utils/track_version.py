@@ -75,61 +75,23 @@ class LibVersion(object):
         Get version of Python packages.
         """
         repos = os.getenv('PYLEARN2_TRACK_MODULES', None)
-        if repos is not None:
-            repos = repos.split(':')
-            for repo in repos:
-	        try:
-		    __import__(repo)
-		    self.versions[repo] = self._get_git_version(self._get_module_parent_path(sys.modules[repo]))
-	        except ImportError:
-		    self.versions[repo] = None
-        
-        # pylearn.
-        #try:
-	#    import pylearn
-	#    self.versions['pylearn'] = self._get_hg_version(self._get_module_parent_path(pylearn))
-	#except ImportError:
-        #    self.versions['pylearn'] = None
+        default_repos = 'pylearn2:theano:numpy:scipy:'
+        repos = default_repos + repos
+	repos = repos.split(':')
+	for repo in repos:
+	    try:
+		if repo == '':
+		    continue
+		__import__(repo)
+		if hasattr(sys.modules[repo], '__version__'):
+		    v = sys.modules[repo].__version__
+		    if v != 'unknown':
+			self.versions[repo] = v
+			continue
+		self.versions[repo] = self._get_git_version(self._get_module_parent_path(sys.modules[repo]))
+	    except ImportError:
+		self.versions[repo] = None
 
-        # pylearn2.
-        try:
-	    import pylearn2
-	    self.versions['pylearn2'] = self._get_git_version(self._get_module_parent_path(pylearn2))
-	except ImportError:
-	    self.versions['pylearn2'] = None
-
-        # Theano.
-        try:
-	    import theano
-	    v = theano.__version__
-	    if v == 'unknown':
-		v = self._get_git_version(self._get_module_parent_path(theano))
-	    self.versions['theano'] = v
-	except ImportError:
-	    self.versions['theano'] = None
-
-        # Jobman: will only work with old assembla version (there is no version
-        # number currently available when running setup.py).
-        #try:
-	#    import jobman
-	#    self.versions['jobman'] = self._get_hg_version(self._get_module_parent_path(jobman))
-	#except ImportError:
-	#    self.versions['jobman'] = None
-	
-        # Numpy.
-        try:
-	    import numpy
-	    self.versions['numpy'] = numpy.__version__
-	except ImportError:
-	    self.versions['numpy'] = None
-
-        # Scipy.
-        try:
-	    import scipy
-	    self.versions['scipy'] = scipy.__version__
-	except ImportError:
-	    self.versions['scipy'] = None
-	    
 	known = copy.copy(self.versions)
         # Put together all modules with unknown versions.
         unknown = []
@@ -152,12 +114,15 @@ class LibVersion(object):
 
     def _get_git_version(self, root):
         """
-        Return the git revision of a repository.
+        Return the git revision of a repository with the letter 'M'
+        appended to the revision if the repo was modified.
+
+        e.g. 10d3046e85 M
 
         :param root: Root folder of the repository.
 
         :return: A string with the revision hash, or None if it could not be
-        retrieved (e.g. if it is not actually a git repository).
+        retrieved (e.g. if it is not actually a git repository)
         """
         if not os.path.isdir(os.path.join(root, '.git')):
             return None
@@ -167,10 +132,16 @@ class LibVersion(object):
             sub_p = subprocess.Popen(['git', 'rev-parse', 'HEAD'],
                                     stdout=subprocess.PIPE,
                                     stderr=subprocess.PIPE)
-            return sub_p.communicate()[0][0:10].strip()
+	    version = sub_p.communicate()[0][0:10].strip()
+	    sub_p = subprocess.Popen(['git', 'diff', '--name-only'],
+                                    stdout=subprocess.PIPE,
+                                    stderr=subprocess.PIPE)
+	    modified = sub_p.communicate()[0]
+	    if len(modified):
+		version += ' M'
+	    return version
         finally:
             os.chdir(cwd_backup)
-
 
     def _get_hg_version(self, root):
         """
@@ -192,13 +163,11 @@ class LibVersion(object):
         #   changeset:   1517:a6e634b83d88
         return first_line.split(':')[2][0:10]
 
-
     def _get_module_path(self, module):
         """
         Return path to a given module.
         """
         return os.path.realpath(module.__path__[0])
-
 
     def _get_module_parent_path(self, module):
         """
@@ -226,4 +195,3 @@ class LibVersion(object):
 	print 'OS: ', self.exp_env_info['os']	
 	if print_theano_config:
 	    print self.exp_env_info['theano_config']
-
