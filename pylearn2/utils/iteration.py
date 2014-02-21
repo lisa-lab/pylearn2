@@ -482,7 +482,9 @@ class FiniteDatasetIterator(object):
             assert len(convert) == len(source)
             self._convert = convert
 
-        for i, (so, sp) in enumerate(safe_zip(source, sub_spaces)):
+        for i, (so, sp, dt) in enumerate(safe_zip(source,
+                                                  sub_spaces,
+                                                  self._raw_data)):
             idx = dataset_source.index(so)
             dspace = dataset_sub_spaces[idx]
 
@@ -495,7 +497,9 @@ class FiniteDatasetIterator(object):
             # if it does not. If there was no init_fn, then
             # the iterator will try to format using the generic
             # space-formatting functions.
-            needs_format = not init_fn and not sp == dspace
+            needs_format = (not init_fn and
+                            (not sp == dspace) or
+                            str(dt.dtype) != sp.dtype)
             if needs_format:
                 # "dspace" and "sp" have to be passed as parameters
                 # to lambda, in order to capture their current value,
