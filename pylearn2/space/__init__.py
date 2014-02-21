@@ -418,7 +418,9 @@ class IndexSpace(Space):
                     max_labels=self.max_labels)
 
     def __eq__(self, other):
-        return (self.max_labels == other.max_labels and self.dim == other.dim)
+        return (self.max_labels == other.max_labels and
+                self.dim == other.dim and
+                type(self) == type(other))
 
     def __ne__(self, other):
         return (not self == other)
