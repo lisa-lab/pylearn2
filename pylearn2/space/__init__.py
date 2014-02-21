@@ -124,7 +124,7 @@ class Space(object):
         """
         raise NotImplementedError()
 
-    @wraps(pylearn2.space.get_origin_batch)
+    @wraps(get_origin_batch)
     def make_origin_batch(self, *args, **kwargs):
 
         return self.get_origin_batch(*args, **kwargs)
@@ -170,7 +170,7 @@ class Space(object):
                                       batch_size=batch_size)
 
 
-    @wraps(pylearn2.space.make_theano_batch)
+    @wraps(make_theano_batch)
     def get_theano_batch(self, *args, **kwargs):
 
         return self.make_theano_batch(*args, **kwargs)
