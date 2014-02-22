@@ -149,7 +149,7 @@ def instantiate_all(graph):
         for key in graph:
             if should_instantiate(graph[key]):
                 graph[key] = instantiate_all(graph[key])
-            if isinstance(graph[key], str):     # just to be safe.
+            if isinstance(graph[key], basestring):       # preprocess strings
                 graph[key] = preprocess(graph[key], additional_environ)
 
         if hasattr(graph, 'keys'):
