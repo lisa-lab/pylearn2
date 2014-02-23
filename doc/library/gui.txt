@@ -1,0 +1,18 @@
+========================
+Graphical User Interface
+========================
+
+Weights report
+==============
+.. automodule:: pylearn2.gui.get_weights_report
+    :members:
+
+2D graphs
+=========
+.. automodule:: pylearn2.gui.graph_2D
+    :members:
+
+Patch viewer
+============
+.. automodule:: pylearn2.gui.patch_viewer
+    :members:

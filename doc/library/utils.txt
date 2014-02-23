@@ -1,0 +1,143 @@
+=========
+Utilities
+=========
+
+Bit strings
+===========
+.. automodule:: pylearn2.scripts.bit_strings
+    :members:
+
+Call check
+==========
+.. automodule:: pylearn2.scripts.call_check
+    :members:
+
+Common strings
+==============
+.. automodule:: pylearn2.scripts.common_strings
+    :members:
+
+Compile
+=======
+.. automodule:: pylearn2.scripts.compile
+    :members:
+
+Data specifications
+===================
+.. automodule:: pylearn2.scripts.data_specs
+    :members:
+
+Datasets
+========
+.. automodule:: pylearn2.scripts.datasets
+    :members:
+
+Environment
+===========
+.. automodule:: pylearn2.scripts.environ
+    :members:
+
+Exceptions
+==========
+.. automodule:: pylearn2.scripts.exc
+    :members:
+
+General
+=======
+.. automodule:: pylearn2.scripts.general
+    :members:
+
+Image
+=====
+.. automodule:: pylearn2.scripts.image
+    :members:
+
+Insert along axis
+=================
+.. automodule:: pylearn2.scripts.insert_along_axis
+    :members:
+
+Iteration
+=========
+.. automodule:: pylearn2.scripts.iteration
+    :members:
+
+Key aware
+=========
+.. automodule:: pylearn2.scripts.key_aware
+    :members:
+
+Logger
+======
+.. automodule:: pylearn2.scripts.logger
+    :members:
+
+Memory
+======
+.. automodule:: pylearn2.scripts.mem
+    :members:
+
+MNIST
+=====
+.. automodule:: pylearn2.scripts.mnist_ubyte
+    :members:
+
+One Hot Encoding
+================
+.. automodule:: pylearn2.scripts.one_hot
+    :members:
+
+Pooling
+=======
+.. automodule:: pylearn2.scripts.pooling
+    :members:
+
+Python26
+========
+.. automodule:: pylearn2.scripts.python26
+    :members:
+
+Serial
+======
+.. automodule:: pylearn2.scripts.serial
+    :members:
+
+Setup
+=====
+.. automodule:: pylearn2.scripts.setup
+    :members:
+
+Shell
+=====
+.. automodule:: pylearn2.scripts.shell
+    :members:
+
+String utilities
+================
+.. automodule:: pylearn2.scripts.string_utils
+    :members:
+
+Testing
+=======
+.. automodule:: pylearn2.scripts.testing
+    :members:
+
+Theano Graph
+============
+.. automodule:: pylearn2.scripts.theano_graph
+    :members:
+
+Timing
+======
+.. automodule:: pylearn2.scripts.timing
+    :members:
+
+UTLC
+====
+.. automodule:: pylearn2.scripts.utlc
+    :members:
+
+Video
+=====
+.. automodule:: pylearn2.scripts.video
+    :members:

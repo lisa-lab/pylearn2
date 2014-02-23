@@ -1,0 +1,28 @@
+============
+Optimization
+============
+
+Batch Gradient Descent
+======================
+.. automodule:: pylearn2.optimization.batch_gradient_descent
+    :members:
+
+Feature Sign
+============
+.. automodule:: pylearn2.optimization.feature_sign
+    :members:
+
+Linear conjugate
+================
+.. automodule:: pylearn2.optimization.linear_cg
+    :members:
+
+Linesearch
+==========
+.. automodule:: pylearn2.optimization.linesearch
+    :members:
+
+Minimum Residual Norm
+=====================
+.. automodule:: pylearn2.optimization.minres
+    :members:

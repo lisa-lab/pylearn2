@@ -18,6 +18,17 @@ MLP
     :members:
 
 DBM
-============
+===
 .. automodule:: pylearn2.costs.dbm
     :members:
+
+EBM
+===
+.. automodule:: pylearn2.costs.ebm_estimation
+    :members:
+
+GSN
+===
+.. automodule:: pylearn2.costs.gsn
+    :members:
+

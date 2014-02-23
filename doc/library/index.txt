@@ -16,4 +16,14 @@ Library Documentation
    linear
    alex
    scripts
+   config
+   costs
+   devtools
+   distributions
+   energy_functions
+   expr
+   format
+   gui
+   optimization
+   utils
 
