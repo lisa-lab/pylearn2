@@ -830,6 +830,28 @@ class MLP(Layer):
                         str(input_space.get_total_dimension()))
         rval = '\n'.join(rval)
         return rval
+        
+    def jacobian(self, state_below):
+        """
+        Possibly compute the Jacobian faster
+        """
+        fproplist = [state_below] + self.fprop(state_below, True)
+        
+        rval = self.layers[-1].jacobian(fproplist[-2])
+        
+        
+        for layer, fpropval in safe_zip(self.layers[-2::-1], fproplist[-3::-1]):
+            # lower_jacobian = layer.jacobian(fpropval)
+            # rval = rval.dimshuffle((0,1,2,'x'))*lower_jacobian.dimshuffle((0,'x',1,2))
+            # rval = rval.sum(2)
+            
+            act_deriv = layer.activation_derivative(fpropval).dimshuffle((0,'x',1))
+            rval = rval*act_deriv
+            W_layer, = layer.transformer.get_params()
+            rval = T.tensordot(rval, W_layer, axes  = (2,1))
+            
+        
+        return rval
 
 
 class Softmax(Layer):
@@ -1141,6 +1163,16 @@ class Softmax(Layer):
                 col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
                 desired_norms = T.clip(col_norms, 0, self.max_col_norm)
                 updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
+    
+    def jacobian(self, state_below):
+        
+        raise NotImplementedError(str(type(self))+" does not implement jacobian in this case. \
+                                    Too complicated for now.")
+                                    
+    def activation_derivative(self, state_below):
+        
+        raise NotImplementedError(str(type(self))+" does not implement activation_derivative in this case. \
+                                    Might be misleading.")
 
 
 class SoftmaxPool(Layer):
@@ -1473,6 +1505,16 @@ class SoftmaxPool(Layer):
         p.name = self.layer_name + '_p_'
 
         return p
+    
+    def jacobian(self, state_below):
+        
+        raise NotImplementedError(str(type(self))+" does not implement jacobian in this case. \
+                                    Too complicated for now.")
+                                    
+    def activation_derivative(self, state_below):
+        
+        raise NotImplementedError(str(type(self))+" does not implement activation_derivative in this case. \
+                                    Might be misleading.")
 
 
 class Linear(Layer):
@@ -1858,6 +1900,28 @@ class Linear(Layer):
             return T.abs_(Y - Y_hat)
         else:
             return T.sqr(Y - Y_hat)
+    
+    def jacobian(self, state_below):
+        
+        if (self.copy_input or self.softmax_columns):
+            raise NotImplementedError(str(type(self))+" does not implement jacobian in this case. \
+                                    Too complicated for now.")
+        
+        rval, = self.transformer.get_params()
+        rval = rval.T
+        rval = rval.dimshuffle(('x',0,1))
+        
+        return rval
+    
+    def activation_derivative(self, state_below):
+        
+        if (self.copy_input or self.softmax_columns):
+            raise NotImplementedError(str(type(self))+" does not implement activation_derivative in this case. \
+                                    Might be misleading.")
+        
+        rval = T.ones(self.fprop(state_below))
+        
+        return rval
 
 
 class Tanh(Linear):
@@ -1877,6 +1941,32 @@ class Tanh(Linear):
     def cost(self, *args, **kwargs):
 
         raise NotImplementedError()
+    
+    def jacobian(self, state_below):
+        
+        if (self.copy_input or self.softmax_columns):
+            raise NotImplementedError(str(type(self))+" does not implement jacobian in this case. \
+                                    Too complicated for now.")
+        
+        rval = super(Tanh, self).jacobian(state_below)
+        
+        fpropval = self.fprop(state_below)
+        fpropval = fpropval.dimshuffle((0,1,'x'))
+        
+        rval = (1 - fpropval**2)*rval
+        
+        return rval
+    
+    def activation_derivative(self, state_below):
+        
+        if (self.copy_input or self.softmax_columns):
+            raise NotImplementedError(str(type(self))+" does not implement activation_derivative in this case. \
+                                    Might be misleading.")
+        
+        rval = self.fprop(state_below)
+        rval = (1 - rval**2)
+        
+        return rval
 
 
 class Sigmoid(Linear):
@@ -2057,6 +2147,33 @@ class Sigmoid(Linear):
                 incorrect = T.neq(target, prediction).max(axis=1)
                 rval['misclass'] = T.cast(incorrect, config.floatX).mean()
         return rval
+    
+    
+    def jacobian(self, state_below):
+        
+        if (self.copy_input or self.softmax_columns):
+            raise NotImplementedError(str(type(self))+" does not implement jacobian in this case. \
+                                    Too complicated for now.")
+        
+        rval = super(Sigmoid, self).jacobian(state_below)
+        
+        fpropval = self.fprop(state_below)
+        fpropval = fpropval.dimshuffle((0,1,'x'))
+        
+        rval = fpropval*(1 - fpropval)*rval
+        
+        return rval
+    
+    def activation_derivative(self, state_below):
+        
+        if (self.copy_input or self.softmax_columns):
+            raise NotImplementedError(str(type(self))+" does not implement activation_derivative in this case. \
+                                    Might be misleading.")
+        
+        rval = self.fprop(state_below)
+        rval = (1 - rval)*rval
+        
+        return rval
 
 
 class RectifiedLinear(Linear):
@@ -2084,6 +2201,33 @@ class RectifiedLinear(Linear):
     def cost(self, *args, **kwargs):
 
         raise NotImplementedError()
+    
+    def jacobian(self, state_below):
+        
+        if (self.copy_input or self.softmax_columns):
+            raise NotImplementedError(str(type(self))+" does not implement jacobian in this case. \
+                                    Too complicated for now.")
+        
+        rval = super(RectifiedLinear, self).jacobian(state_below)
+        
+        p = self._linear_part(state_below)
+        p = 1*(p > 0.) + self.left_slope * (p < 0.)
+        p = p.dimshuffle((0,1,'x'))
+        
+        rval = p*rval
+        
+        return rval
+    
+    def activation_derivative(self, state_below):
+        
+        if (self.copy_input or self.softmax_columns):
+            raise NotImplementedError(str(type(self))+" does not implement activation_derivative in this case. \
+                                    Might be misleading.")
+        
+        rval = self.fprop(state_below)
+        rval = 1*(rval > 0.) + self.left_slope * (rval < 0.)
+        
+        return rval
 
 
 class Softplus(Linear):
@@ -2109,6 +2253,33 @@ class Softplus(Linear):
     def cost(self, *args, **kwargs):
 
         raise NotImplementedError()
+    
+    def jacobian(self, state_below):
+        
+        if (self.copy_input or self.softmax_columns):
+            raise NotImplementedError(str(type(self))+" does not implement jacobian in this case. \
+                                    Too complicated for now.")
+        
+        rval = super(RectifiedLinear, self).jacobian(state_below)
+        
+        p = self._linear_part(state_below)
+        p = T.nnet.sigmoid(p)
+        p = p.dimshuffle((0,1,'x'))
+        
+        rval = p*rval
+        
+        return rval
+    
+    def activation_derivative(self, state_below):
+        
+        if (self.copy_input or self.softmax_columns):
+            raise NotImplementedError(str(type(self))+" does not implement activation_derivative in this case. \
+                                    Might be misleading.")
+        
+        rval = self.fprop(state_below)
+        rval = T.nnet.sigmoid(rval)
+        
+        return rval
 
 
 class SpaceConverter(Layer):
