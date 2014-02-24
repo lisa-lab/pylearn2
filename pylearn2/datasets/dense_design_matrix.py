@@ -200,18 +200,43 @@ class DenseDesignMatrix(Dataset):
                 sub_spaces = (space,)
                 sub_sources = (source,)
 
-            convert = None
-            # convert = []
-            # for sp, src in safe_zip(sub_spaces, sub_sources):
-            #     if (src == 'features' and
-            #             getattr(self, 'view_converter', None) is not None):
-            #         conv_fn = (lambda batch, self=self, space=sp:
-            #                    self.view_converter.get_formatted_batch(
-            #                        batch,
-            #                        space))
-            #     else:
-            #         conv_fn = None
-            #     convert.append(conv_fn)
+            # DEBUGging code below
+            if isinstance(data_specs[0], CompositeSpace):
+                feature_space = data_specs[0].components[0]
+                if isinstance(feature_space, Conv2DSpace):
+                    assert (tuple(self.view_converter.axes) ==
+                            feature_space.axes), \
+                        "view_converter.axes: %s data_specs' axes: %s" % \
+                        (str(self.view_converter.axes),
+                         str(feature_space.axes))
+                else:
+                    print "feature_space: %s" % feature_space
+            else:
+                print "data_specs[0]: %s" % str(data_specs[0])
+
+
+
+            if hasattr(self, 'view_converter'):
+                print "in DenseDesignMatrix, self.view_converter.topo_space= %s" %\
+                      self.view_converter.topo_space
+                print "...was to be np_formatted to data_specs' feature space %s" %\
+                      data_specs[0].components[0]
+
+            else:
+                print "DenseDesignMatrix didn't have a view_converter. No formatting would've occurred."
+
+            # convert = [None, ] * len(sub_spaces)
+            convert = []
+            for sp, src in safe_zip(sub_spaces, sub_sources):
+                if (src == 'features' and
+                        getattr(self, 'view_converter', None) is not None):
+                    conv_fn = (lambda batch, self=self, space=sp:
+                               self.view_converter.get_formatted_batch(
+                                   batch,
+                                   space))
+                else:
+                    conv_fn = None
+                convert.append(conv_fn)
 
         # TODO: Refactor
         if mode is None:

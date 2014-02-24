@@ -89,7 +89,7 @@ def is_symbolic_batch(batch):
     empty CompositeSpaces, None for NullSpaces).
     """
 
-    return _is_batch_all(batch, lambda x : isinstance(x, theano.gof.Variable))
+    return _is_batch_all(batch, lambda x: isinstance(x, theano.gof.Variable))
 
 
 def is_numeric_batch(batch):
@@ -137,7 +137,6 @@ def _reshape(arg, shape):
                   "not use this on large tensors. This will eventually be "
                   "replaced by a proper Theano Op for sparse reshaping, once "
                   "that is written.")
-
 
     if isinstance(arg, tuple):
         raise TypeError("Composite batches not supported.")
@@ -1027,10 +1026,11 @@ class Conv2DSpace(SimplyTypedSpace):
 
             WRITEME
         """
-        return ("%s(shape=%s, num_channels=%d, dtype=%s)" %
+        return ("%s(shape=%s, num_channels=%d, axes=%s, dtype=%s)" %
                 (self.__class__.__name__,
                  str(self.shape),
                  self.num_channels,
+                 str(self.axes),
                  self.dtype))
 
     def __eq__(self, other):
@@ -1039,10 +1039,15 @@ class Conv2DSpace(SimplyTypedSpace):
 
             WRITEME
         """
+        assert isinstance(self.axes, tuple)
+
+        if isinstance(other, Conv2DSpace):
+            assert isinstance(other.axes, tuple)
+
         return (type(self) == type(other) and
                 self.shape == other.shape and
                 self.num_channels == other.num_channels and
-                tuple(self.axes) == tuple(other.axes) and
+                self.axes == other.axes and
                 self.dtype == other.dtype)
 
     def __hash__(self):

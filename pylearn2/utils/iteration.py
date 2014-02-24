@@ -24,7 +24,7 @@ from theano import config
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_zip
 from pylearn2.utils.data_specs import is_flat_specs
-# import ipdb
+
 
 class SubsetIterator(object):
     def __init__(self, dataset_size, batch_size, num_batches, rng=None):
@@ -493,6 +493,14 @@ class FiniteDatasetIterator(object):
             init_fn = self._convert[i]
             fn = init_fn
             # Compose the functions
+            needs_cast = not (np.dtype(config.floatX) ==
+                              self._raw_data[i].dtype)
+            if needs_cast:
+                if fn is None:
+                    fn = lambda batch: numpy.cast[config.floatX](batch)
+                else:
+                    fn = (lambda batch, fn_=fn:
+                          numpy.cast[config.floatX](fn_(batch)))
 
             # If there is an init_fn, it is supposed to take
             # care of the formatting, and it should be an error
@@ -500,8 +508,9 @@ class FiniteDatasetIterator(object):
             # the iterator will try to format using the generic
             # space-formatting functions.
             needs_format = (not init_fn and
-                            (not sp == dspace) or
-                            str(dt.dtype) != sp.dtype)
+                            (not sp == dspace))
+                            # (not sp == dspace) or
+                            # str(dt.dtype) != sp.dtype)
             if needs_format:
                 # "dspace" and "sp" have to be passed as parameters
                 # to lambda, in order to capture their current value,
@@ -515,6 +524,7 @@ class FiniteDatasetIterator(object):
                         #        (str(batch.shape),
                         #         dspace,
                         #         sp))
+                        print "in FiniteDatasetIterator's new_fn_1, np_formatting from %s to %s." % (dspace, sp)
                         return dspace.np_format_as(batch, sp)
 
                     fn = new_fn_1
@@ -534,6 +544,8 @@ class FiniteDatasetIterator(object):
                         #         dspace,
                         #         sp))
                         # ipdb.set_trace()
+                        assert False, "it seems like this is called afer all"
+                        print "in FiniteDatasetIterator's new_fn_2, np_formatting from %s to %s." % (dspace, sp)
                         return dspace.np_format_as(fn_(batch), sp)
 
                     fn = new_fn_2
