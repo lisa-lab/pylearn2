@@ -50,9 +50,13 @@ Make Weights Image
 
 Show binocular greyscale examples
 =================================
+.. automodule:: pylearn2.scripts.show_binocular_greyscale_examples
+    :members:
 
 Show Examples
 =============
+.. automodule:: pylearn2.scripts.show_examples
+    :members:
 
 Show Weights
 ============
