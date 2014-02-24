@@ -201,7 +201,8 @@ class DenseDesignMatrix(Dataset):
                 sub_sources = (source,)
 
             # DEBUGging code below
-            if isinstance(data_specs[0], CompositeSpace):
+            if isinstance(data_specs[0], CompositeSpace) and \
+                   len(data_specs[0].components) > 0:
                 feature_space = data_specs[0].components[0]
                 if isinstance(feature_space, Conv2DSpace):
                     assert (tuple(self.view_converter.axes) ==
@@ -219,8 +220,8 @@ class DenseDesignMatrix(Dataset):
             if hasattr(self, 'view_converter'):
                 print "in DenseDesignMatrix, self.view_converter.topo_space= %s" %\
                       self.view_converter.topo_space
-                print "...was to be np_formatted to data_specs' feature space %s" %\
-                      data_specs[0].components[0]
+                print "...was to be np_formatted to (one component of) data_specs[0]: %s" %\
+                      data_specs[0]
 
             else:
                 print "DenseDesignMatrix didn't have a view_converter. No formatting would've occurred."

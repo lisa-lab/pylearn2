@@ -10,29 +10,22 @@ __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
 from theano.compat.python2x import OrderedDict
-import copy
-import time
-import warnings
+import copy, time, warnings, logging
+import numpy as np
 
-from theano.printing import var_descriptor
 import theano.sparse
+from theano import config
+from theano import tensor as T
+from theano.printing import var_descriptor
 
 from pylearn2.config import yaml_parse
 from pylearn2.datasets.dataset import Dataset
-from pylearn2.space import CompositeSpace, NullSpace
-from pylearn2.space import Space
-from pylearn2.utils import function
+from pylearn2.space import Space, CompositeSpace, NullSpace
+from pylearn2.utils import function, sharedX, safe_zip, safe_izip
 from pylearn2.utils.iteration import is_stochastic
-from pylearn2.utils import sharedX
-from pylearn2.utils import safe_zip
 from pylearn2.utils.data_specs import DataSpecsMapping
 from pylearn2.utils.string_utils import number_aware_alphabetical_key
-from theano import config
-import numpy as np
-from theano import tensor as T
-from pylearn2.utils import safe_izip
 from pylearn2.utils.timing import log_timing
-import logging
 
 log = logging.getLogger(__name__)
 
