@@ -55,6 +55,7 @@ def test_matrixmul():
     tensor_W = [sharedW(W, dtype) for W in np_W]
     matrixmul = [MatrixMul(W) for W in tensor_W]
     assert all(mm.get_params()[0] == W for mm, W in zip(matrixmul, tensor_W))
+
     fn = [theano.function([x], mm.lmul(x))
           for x, mm in zip(tensor_x, matrixmul)]
     fn_T = [theano.function([x], mm.lmul_T(x))
@@ -73,10 +74,8 @@ def test_make_local_rfs():
     assert W.shape == (300, 4)
     np.testing.assert_allclose(W.sum(axis=0), 75 * np.ones(4))
     np.testing.assert_allclose(W.sum(axis=1), np.ones(300))
+
     matrixmul = make_local_rfs(test_dataset, 4, (5, 5), (5, 5))
     W = matrixmul.get_params()[0].get_value()
     assert W.shape == (300, 4)
-    try:
-        make_local_rfs(test_dataset, 2, (5, 5), (5, 5))
-    except ValueError:
-        pass
+    np.testing.assert_raises(ValueError, make_local_rfs, test_dataset, 2, (5, 5), (5, 5))
