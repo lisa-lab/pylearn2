@@ -9,11 +9,12 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
-from theano.compat.python2x import OrderedDict
 import copy
+import functools
 import time
 import warnings
 
+from theano.compat.python2x import OrderedDict
 from theano.printing import var_descriptor
 import theano.sparse
 
@@ -55,7 +56,6 @@ class Monitor(object):
         Parameters
         ----------
         model : pylearn2.models.model.Model instance
-            WRITEME
         """
         self.training_succeeded = False
         self.model = model
@@ -108,9 +108,11 @@ class Monitor(object):
 
     def set_theano_function_mode(self, mode):
         """
-        .. todo::
-
-            WRITEME
+        Parameters
+        ----------
+        mode : theano.compile.Mode
+            Theano functions for the monitoring channels will be compiled and
+            run using this mode.
         """
         if self.theano_function_mode != mode:
             self._dirty = True
@@ -136,8 +138,8 @@ class Monitor(object):
             The total number of batches. Unnecessary if `mode` is \
             'sequential' and `batch_size` is specified (number of \
             batches will be calculated based on full dataset size).
-        seed : int
-            WRITEME
+        seed : int, optional
+            Optional. The seed to be used for random iteration modes.
         """
         # The user can ommit using lists if only one dataset is set
         if not isinstance(dataset, list):
@@ -276,9 +278,15 @@ class Monitor(object):
 
     def run_prereqs(self, data, dataset):
         """
-        .. todo::
+        Runs all "prerequistie functions" on a batch of data. Always called
+        right before computing the monitoring channels on that batch.
 
-            WRITEME
+        Parameters
+        ----------
+        data : tuple or Variable
+            a member of the Space used as input to the monitoring functions
+        dataset : Dataset
+            the Dataset the data was drawn from
         """
         if dataset not in self.prereqs:
             return
@@ -294,16 +302,21 @@ class Monitor(object):
 
     def get_epochs_seen(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns
+        -------
+        epochs_seen : int
+            The number of epochs the model has been trained on.
+            One "epoch" is one pass through Dataset.iterator.
         """
         return self._epochs_seen
 
     def get_examples_seen(self):
         """
-        Returns the number of examples the model has learned on (assuming that
-        the learning code has been calling Monitor.report_batch correctly)
+        Returns
+        -------
+        examples_seen : int
+            The number of examples the model has learned on (assuming that
+            the learning code has been calling Monitor.report_batch correctly)
         """
         return self._examples_seen
 
@@ -311,15 +324,19 @@ class Monitor(object):
         """
         Call this whenever the model has learned on another batch of examples.
         Report how many examples were learned on.
+
+        Parameters
+        ----------
+        num_examples : int
+            The number of examples learned on in this minibatch.
         """
         self._examples_seen += num_examples
         self._num_batches_seen += 1
 
     def report_epoch(self):
         """
-        .. todo::
-
-            WRITEME
+        Call this whenever the model has completed another "epoch" of learning.
+        We regard one pass through Dataset.iterator as one epoch.
         """
         self._epochs_seen += 1
 
@@ -534,9 +551,13 @@ class Monitor(object):
 
     def __setstate__(self, d):
         """
-        .. todo::
+        Sets the object to have the state described by `d`.
 
-            WRITEME
+        Parameters
+        ----------
+        d : dict
+            A dictionary mapping string names of fields to values for
+            these fields.
         """
         # patch old pkl files
         if '_dataset' in d:
@@ -563,7 +584,7 @@ class Monitor(object):
             The value (function of `ipt`) to be tracked.
         dataset : pylearn2.datasets.Dataset
             Which dataset to compute this channel on
-        prereqs : list of callables that take a list of  numpy tensors
+        prereqs : list of callables that take a list of numpy tensors
             Each prereq must be called exactly once per each new batch of \
             data drawn *from dataset* before the channel value is computed \
             if two channels provide a prereq with exactly the same id, that \
@@ -693,22 +714,25 @@ class Monitor(object):
 
         return rval
 
-    # TODO: find out if monitor.foo below are used anywhere, remove if not.
+    # TODO: find out if this method is used anywhere, remove if not.
     @property
     def batch_size(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns
+        -------
+        batch_size : int
+            The size of the batches used for monitoring
         """
         return self._batch_size
 
+    # TODO: find out if this method is used anywhere, remove if not.
     @property
     def num_batches(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns
+        -------
+        num_batches : int
+            The number of batches used for monitoring
         """
         return self._num_batches
 
@@ -732,7 +756,14 @@ class Monitor(object):
             datasets is {'train' : train_dataset, 'valid' : valid_dataset} \
             you will get channels called 'train_misclass' and 'valid_misclass'.
         cost : pylearn2.costs.Cost
-            WRITEME
+            The cost being optimized by training. The value of the cost will
+            appear as the `objective` channel. Its `get_monitoring_channels`
+            method will also be used to supply other channels.
+        extra_costs : OrderedDict, optional
+            A dictionary mapping channel names to Cost objects.
+            Their value will appear as the specified channel name.
+            They will also provide more monitoring channels via their
+            `get_monitoring_channels` method.
         obj_prereqs : None, or list of functions
             Functions to pass as prerequisites to the `objective` channel.
         cost_monitoring_args : dict
@@ -929,9 +960,10 @@ class MonitorChannel(object):
 
     def __str__(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns
+        -------
+        s : str
+            A reasonably human-readable string representation of the object.
         """
         try:
             graph_input_str = str(self.graph_input)
@@ -960,17 +992,18 @@ class MonitorChannel(object):
 
     def __getstate__(self):
         """
-        .. todo::
-
-            WRITEME
-
-        We need to figure out a good way of saving the other fields. In the
-        current setup, since there's no good way of coordinating with the
-        model/training algorithm, the theano based fields might be invalid
-        after a repickle. This means we can't, for instance, resume a job with
-        monitoring after a crash. For now, to make sure no one erroneously
-        depends on these bad values, I exclude them from the pickle.
+        Returns
+        -------
+        d : dict
+            A dictionary mapping the string names of the fields of the class
+            to values appropriate for pickling.
         """
+        # We need to figure out a good way of saving the other fields. In the
+        # current setup, since there's no good way of coordinating with the
+        # model/training algorithm, the theano based fields might be invalid
+        # after a repickle. This means we can't, for instance, resume a job with
+        # monitoring after a crash. For now, to make sure no one erroneously
+        # depends on these bad values, I exclude them from the pickle.
 
         if hasattr(self, 'val'):
             doc = get_monitor_doc(self.val)
@@ -996,9 +1029,13 @@ class MonitorChannel(object):
 
     def __setstate__(self, d):
         """
-        .. todo::
+        Sets the object to have the state described by `d`.
 
-            WRITEME
+        Parameters
+        ----------
+        d : dict
+            A dictionary mapping string names of fields to values for
+            these fields.
         """
         self.__dict__.update(d)
         if 'batch_record' not in d:
@@ -1054,9 +1091,22 @@ def push_monitor(model, name, transfer_experience = False):
 
 def read_channel(model, channel_name, monitor_name = 'monitor'):
     """
-    .. todo::
+    Returns the last value recorded in a channel.
 
-        WRITEME
+    Parameters
+    ----------
+    model : Model
+        The model to read the channel from
+    channel_name : str
+        The name of the channel to read from
+    monitor_name: str, optional
+        The name of the Monitor to read from
+        (In case you want to read from an old Monitor moved by `push_monitor`)
+
+    Returns
+    -------
+    value : float
+        The last value recorded in this monitoring channel
     """
     return getattr(model, monitor_name).channels[channel_name].val_record[-1]
 
