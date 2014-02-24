@@ -1,0 +1,8 @@
+==========
+Formatting
+==========
+
+Target format
+=============
+.. automodule:: pylearn2.format.target_format
+    :members:

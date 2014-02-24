@@ -9,28 +9,80 @@ Scripts
 Monitoring
 ##########
 
+Diff Monitor
+============
+.. automodule:: pylearn2.scripts.diff_monitor
+    :members:
+
+Num Parameters
+==============
+.. automodule:: pylearn2.scripts.num_parameters
+    :members:
+
 Plot Monitor
 ============
+.. automodule:: pylearn2.scripts.plot_monitor
+    :members:
 
-print_model.py
-==============
+Print Channel Doc
+=================
+.. automodule:: pylearn2.scripts.print_channel_doc
+    :members:
 
-Loads a saved model and prints it out, using the model's __str__ method.
+Print model
+===========
+.. automodule:: pylearn2.scripts.print_model
+    :members:
 
-Print Monitor
-=============
+Summarize Model
+===============
+.. automodule:: pylearn2.scripts.summarize_model
+    :members:
 
 #############
 Visualization
 #############
 
+Make Weights Image
+==================
+.. automodule:: pylearn2.scripts.make_weights_image
+    :members:
+
+Show binocular greyscale examples
+=================================
+.. automodule:: pylearn2.scripts.show_binocular_greyscale_examples
+    :members:
+
 Show Examples
 =============
-
-Show Binocular Grayscale Examples
-=================================
+.. automodule:: pylearn2.scripts.show_examples
+    :members:
 
 Show Weights
 ============
+.. automodule:: pylearn2.scripts.show_weights
+    :members:
 
+#####
+Other
+#####
 
+Find GPU fields
+===============
+.. automodule:: pylearn2.scripts.find_gpu_fields
+    :members:
+
+GPU to CPU pkl
+==============
+.. automodule:: pylearn2.scripts.gpu_pkl_to_cpu_pkl
+    :members:
+
+Pkl inspector
+=============
+.. automodule:: pylearn2.scripts.pkl_inspector
+    :members:
+
+Train
+=====
+.. automodule:: pylearn2.scripts.train
+    :members:

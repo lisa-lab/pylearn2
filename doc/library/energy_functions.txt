@@ -1,0 +1,13 @@
+================
+Energy Functions
+================
+
+Basic
+=====
+.. automodule:: pylearn2.energy_functions.energy_function
+    :members:
+
+RBM Energy
+==========
+.. automodule:: pylearn2.energy_functions.rbm_energy
+    :members:

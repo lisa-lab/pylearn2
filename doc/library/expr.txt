@@ -1,0 +1,58 @@
+===========
+Expressions
+===========
+
+Activations
+===========
+.. automodule:: pylearn2.expr.activations
+    :members:
+
+Basic
+=====
+.. automodule:: pylearn2.expr.basic
+    :members:
+
+Coding
+======
+.. automodule:: pylearn2.expr.coding
+    :members:
+
+Image
+=====
+.. automodule:: pylearn2.expr.image
+    :members:
+
+Information Theory
+==================
+.. automodule:: pylearn2.expr.information_theory
+    :members:
+
+Neural Network
+==============
+.. automodule:: pylearn2.expr.nnet
+    :members:
+
+Normalization
+=============
+.. automodule:: pylearn2.expr.normalize
+    :members:
+
+Preprocessing
+=============
+.. automodule:: pylearn2.expr.preprocessing
+    :members:
+
+Probabilistic Max Pooling
+=========================
+.. automodule:: pylearn2.expr.probabilistic_max_pooling
+    :members:
+
+Sampling
+========
+.. automodule:: pylearn2.expr.sampling
+    :members:
+
+Stochastic Pool
+===============
+.. automodule:: pylearn2.expr.stochastic_pool
+    :members:
