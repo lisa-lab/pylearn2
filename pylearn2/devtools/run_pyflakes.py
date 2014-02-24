@@ -28,6 +28,7 @@ def run_pyflakes(no_warnings = False):
     no_warnings : bool
         If True, omits pyflakes outputs that don't correspond to actual
         errors.
+
     Returns
     -------
     rval : dict
@@ -66,6 +67,7 @@ def _filter(output, no_warnings):
         The output of pyflakes for a single.py file
     no_warnings: bool
         If True, removes lines corresponding to warnings rather than errors
+
     Returns
     -------
     rval: None or str

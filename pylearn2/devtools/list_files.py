@@ -16,7 +16,8 @@ def list_files(suffix=""):
     Parameters
     ----------
     suffix : str
-    Returns :
+    Returns
+    -------
 
     file_list : list
         A list of all files in pylearn2 whose filepath ends with `suffix`
@@ -36,6 +37,7 @@ def _list_files(path, suffix=""):
     path : str
         a filepath
     suffix : str
+
     Returns
     -------
     l : list
