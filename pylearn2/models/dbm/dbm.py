@@ -657,3 +657,7 @@ class DBM(Model):
                 drop_mask = None, V = None)
 
         return recons
+
+    def do_inpainting(self, *args, **kwargs):
+        self.setup_inference_procedure()
+        return self.inference_procedure.do_inpainting(*args, **kwargs)

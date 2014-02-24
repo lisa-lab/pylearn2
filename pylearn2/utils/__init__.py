@@ -294,6 +294,20 @@ class _ElemwiseNoGradient(theano.tensor.Elemwise):
 # communication between parts of the code
 block_gradient = _ElemwiseNoGradient(theano.scalar.identity)
 
+def is_block_gradient(op):
+    """
+    Parameters
+    ----------
+    op : object
+
+    Returns
+    -------
+    is_block_gradient: bool
+        True if op is a gradient-blocking op, False otherwise
+    """
+
+    return isinstance(op, _ElemwiseNoGradient)
+
 
 def safe_union(a, b):
     """
@@ -495,7 +509,7 @@ def wraps(wrapped,
     ...     def f(x):
     ...        '''
     ...        Adds 1 to x
-    ...        
+    ...
     ...        Parameters
     ...        ----------
     ...        x : int
@@ -525,17 +539,17 @@ def wraps(wrapped,
     >>> print c.f.__doc__
 
         Adds 1 to x
-        
+
         Parameters
         ----------
         x : int
             Variable to increment by 1
-    
+
         Returns
         -------
         rval : int
            x incremented by 1
-    
+
         Notes
         -----
         Also prints the incremented value

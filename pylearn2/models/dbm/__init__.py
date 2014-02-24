@@ -248,6 +248,20 @@ def block(l):
 # Make known modules inside this package
 # this needs to come after e.g. flatten(), since DBM depends on flatten()
 from pylearn2.models.dbm.dbm import DBM
-from pylearn2.models.dbm.inference_procedure import InferenceProcedure, WeightDoubling, SuperWeightDoubling
-from pylearn2.models.dbm.layer import Layer, VisibleLayer, HiddenLayer, BinaryVectorMaxPool, Softmax
+from pylearn2.models.dbm.inference_procedure import BiasInit
+from pylearn2.models.dbm.inference_procedure import InferenceProcedure
+from pylearn2.models.dbm.inference_procedure import MoreConsistent
+from pylearn2.models.dbm.inference_procedure import MoreConsistent2
+from pylearn2.models.dbm.inference_procedure import SuperWeightDoubling
+from pylearn2.models.dbm.inference_procedure import WeightDoubling
+from pylearn2.models.dbm.layer import BinaryVector
+from pylearn2.models.dbm.layer import BinaryVectorMaxPool
+from pylearn2.models.dbm.layer import BVMP_Gaussian
+from pylearn2.models.dbm.layer import ConvMaxPool
+from pylearn2.models.dbm.layer import ConvC01B_MaxPool
+from pylearn2.models.dbm.layer import GaussianVisLayer
+from pylearn2.models.dbm.layer import HiddenLayer
+from pylearn2.models.dbm.layer import Layer
+from pylearn2.models.dbm.layer import VisibleLayer
+from pylearn2.models.dbm.layer import Softmax
 from pylearn2.models.dbm.sampling_procedure import SamplingProcedure
