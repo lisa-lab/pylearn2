@@ -549,8 +549,16 @@ class Monitor(object):
 
         return d
 
-    @functools.wraps(object.__setstate__)
     def __setstate__(self, d):
+        """
+        Sets the object to have the state described by `d`.
+
+        Parameters
+        ----------
+        d : dict
+            A dictionary mapping string names of fields to values for
+            these fields.
+        """
         # patch old pkl files
         if '_dataset' in d:
             d['_datasets'] = [ d['_dataset'] ]
@@ -977,8 +985,14 @@ class MonitorChannel(object):
                 name_str,
                 prereqs_str)
 
-    @functools.wraps(object.__getstate__)
     def __getstate__(self):
+        """
+        Returns
+        -------
+        d : dict
+            A dictionary mapping the string names of the fields of the class
+            to values appropriate for pickling.
+        """
         # We need to figure out a good way of saving the other fields. In the
         # current setup, since there's no good way of coordinating with the
         # model/training algorithm, the theano based fields might be invalid
@@ -1008,8 +1022,16 @@ class MonitorChannel(object):
             'val_record': self.val_record
         }
 
-    @functools.wraps(object.__setstate__)
     def __setstate__(self, d):
+        """
+        Sets the object to have the state described by `d`.
+
+        Parameters
+        ----------
+        d : dict
+            A dictionary mapping string names of fields to values for
+            these fields.
+        """
         self.__dict__.update(d)
         if 'batch_record' not in d:
             self.batch_record = [None] * len(self.val_record)
