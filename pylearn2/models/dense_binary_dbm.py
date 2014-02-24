@@ -24,11 +24,12 @@ import theano.tensor as T
 import numpy as np
 import warnings
 from theano.gof.op import get_debug_values, debug_error_message
+from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 from pylearn2.utils import make_name, sharedX, as_floatX
 from pylearn2.expr.information_theory import entropy_binary_vector
-from theano.tensor.shared_randomstreams import RandomStreams
 from pylearn2.models.rbm import RBM
 from pylearn2.expr.nnet import sigmoid_numpy
+from pylearn2.utils.rng import make_np_rng, make_theano_rng
 
 warnings.warn('s3c changing the recursion limit')
 import sys
@@ -214,7 +215,7 @@ class DBM(Model):
 
             WRITEME
         """
-        self.rng = np.random.RandomState([1,2,3])
+        self.rng = make_np_rng([1,2,3], which_method=['randn','uniform'])
 
     def redo_everything(self):
         """
@@ -244,7 +245,7 @@ class DBM(Model):
             if self.num_classes > 0:
                 P = np.zeros((self.negative_chains, self.num_classes)) \
                         + T.nnet.softmax( self.bias_class )
-                temp_theano_rng = RandomStreams(87)
+                temp_theano_rng = make_theano_rng(87, which_method='multinomial')
                 sample_from = Sampler(temp_theano_rng, 'multinomial')
                 values = function([],sample_from(P))()
                 self.Y_chains = sharedX(values, 'Y_chains')

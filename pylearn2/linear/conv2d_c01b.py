@@ -28,8 +28,7 @@ if cuda.cuda_available:
     from theano.sandbox.cuda import gpu_from_host
     from theano.sandbox.cuda import host_from_gpu
 
-from pylearn2.linear.conv2d import default_rng
-from pylearn2.linear.conv2d import default_sparse_rng
+from pylearn2.linear.conv2d import default_seed, default_sparse_seed
 from pylearn2.linear.linear_transform import LinearTransform
 from pylearn2.sandbox.cuda_convnet import check_cuda
 from pylearn2.sandbox.cuda_convnet.filter_acts import FilterActs
@@ -37,6 +36,7 @@ from pylearn2.sandbox.cuda_convnet.filter_acts import ImageActs
 from pylearn2.space import Conv2DSpace
 from pylearn2.utils.call_check import checked_call
 from pylearn2.utils import sharedX
+from pylearn2.utils.rng import make_np_rng
 
 class Conv2D(LinearTransform):
     """
@@ -258,8 +258,7 @@ def make_random_conv2D(irange, input_channels, input_axes, output_axes,
     pylearn2.linear.conv2d.make_random_conv2D
     """
 
-    if rng is None:
-        rng = default_rng()
+    rng = make_np_rng(rng, default_seed, which_method='uniform')
 
     W = sharedX( rng.uniform(-irange,irange,(input_channels, \
             kernel_shape[0], kernel_shape[1], output_channels)))
@@ -285,8 +284,7 @@ def make_sparse_random_conv2D(num_nonzero, input_space, output_space,
     values are sparse
     """
 
-    if rng is None:
-        rng = default_sparse_rng()
+    rng = make_np_rng(rng, default_sparse_seed, which_method=['randn', 'randint'])
 
     W = np.zeros((input_space.num_channels, \
             kernel_shape[0], kernel_shape[1],

@@ -24,6 +24,7 @@ from pylearn2.models import Model
 from pylearn2.models.dbm import init_sigmoid_bias_from_marginals
 from pylearn2.space import VectorSpace, CompositeSpace, Conv2DSpace, Space
 from pylearn2.utils import sharedX, safe_zip, py_integer_types, block_gradient
+from pylearn2.utils.rng import make_theano_rng
 
 
 class Layer(Model):
@@ -1150,7 +1151,7 @@ class BinaryVectorMaxPool(HiddenLayer):
         h_state = sharedX(empty_input)
         p_state = sharedX(empty_output)
 
-        theano_rng = MRG_RandomStreams(numpy_rng.randint(2 ** 16))
+        theano_rng = make_theano_rng(None, numpy_rng.randint(2 ** 16), which_method="binomial")
 
         default_z = T.zeros_like(h_state) + self.b
 
@@ -1687,7 +1688,8 @@ class Softmax(HiddenLayer):
 
         default_z = T.zeros_like(h_state) + self.b
 
-        theano_rng = MRG_RandomStreams(numpy_rng.randint(2 ** 16))
+        theano_rng = make_theano_rng(None, numpy_rng.randint(2 ** 16),
+                                     which_method="binomial")
 
         h_exp = T.nnet.softmax(default_z)
 
@@ -1812,7 +1814,7 @@ class Softmax(HiddenLayer):
             WRITEME
         """
         if noise:
-            theano_rng = MRG_RandomStreams(2012+10+30)
+            theano_rng = make_theano_rng(None, 2012+10+30, which_method="binomial")
             return T.nnet.softmax(theano_rng.normal(avg=0., size=Y.shape, std=1., dtype='float32'))
         rval =  T.nnet.softmax(self.b)
         if not hasattr(self, 'learn_init_inpainting_state'):
@@ -2087,7 +2089,7 @@ class GaussianVisLayer(VisibleLayer):
         masked_mu.name = 'masked_mu'
 
         if noise:
-            theano_rng = theano.sandbox.rng_mrg.MRG_RandomStreams(42)
+            theano_rng = make_theano_rng(None, 42, which_method="binomial")
             unmasked = theano_rng.normal(avg = 0.,
                     std = 1., size = masked_mu.shape,
                     dtype = masked_mu.dtype)
@@ -2753,7 +2755,8 @@ class ConvMaxPool(HiddenLayer):
 
         default_z = T.zeros_like(h_state) + self.broadcasted_bias()
 
-        theano_rng = MRG_RandomStreams(numpy_rng.randint(2 ** 16))
+        theano_rng = make_theano_rng(None, numpy_rng.randint(2 ** 16), 
+                                     which_method="binomial")
 
         p_exp, h_exp, p_sample, h_sample = self.max_pool(
                 z = default_z,
@@ -3254,7 +3257,8 @@ class ConvC01B_MaxPool(HiddenLayer):
 
         default_z = T.zeros_like(h_state) + self.broadcasted_bias()
 
-        theano_rng = MRG_RandomStreams(numpy_rng.randint(2 ** 16))
+        theano_rng = make_theano_rng(None, numpy_rng.randint(2 ** 16), 
+                                     which_method="binomial")
 
         p_exp, h_exp, p_sample, h_sample = self.max_pool(
                 z = default_z,
@@ -3495,7 +3499,8 @@ class BVMP_Gaussian(BinaryVectorMaxPool):
         h_state = sharedX(empty_input)
         p_state = sharedX(empty_output)
 
-        theano_rng = MRG_RandomStreams(numpy_rng.randint(2 ** 16))
+        theano_rng = make_theano_rng(None, numpy_rng.randint(2 ** 16), 
+                                     which_method="binomial")
 
         default_z = T.zeros_like(h_state) + self.b
 
