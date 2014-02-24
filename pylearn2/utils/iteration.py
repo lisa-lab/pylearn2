@@ -493,14 +493,14 @@ class FiniteDatasetIterator(object):
             init_fn = self._convert[i]
             fn = init_fn
             # Compose the functions
-            needs_cast = not (np.dtype(config.floatX) ==
-                              self._raw_data[i].dtype)
-            if needs_cast:
-                if fn is None:
-                    fn = lambda batch: numpy.cast[config.floatX](batch)
-                else:
-                    fn = (lambda batch, fn_=fn:
-                          numpy.cast[config.floatX](fn_(batch)))
+            # needs_cast = not (np.dtype(config.floatX) ==
+            #                   self._raw_data[i].dtype)
+            # if needs_cast:
+            #     if fn is None:
+            #         fn = lambda batch: numpy.cast[config.floatX](batch)
+            #     else:
+            #         fn = (lambda batch, fn_=fn:
+            #               numpy.cast[config.floatX](fn_(batch)))
 
             # If there is an init_fn, it is supposed to take
             # care of the formatting, and it should be an error

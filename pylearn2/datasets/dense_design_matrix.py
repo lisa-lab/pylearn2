@@ -184,7 +184,6 @@ class DenseDesignMatrix(Dataset):
 
             data_specs = (space, source)
             convert = None
-
         else:
             if data_specs is None:
                 data_specs = self._iter_data_specs
@@ -232,11 +231,12 @@ class DenseDesignMatrix(Dataset):
                 if (src == 'features' and
                         getattr(self, 'view_converter', None) is not None):
                     conv_fn = (lambda batch, self=self, space=sp:
-                               self.view_converter.get_formatted_batch(
-                                   batch,
-                                   space))
+                               self.view_converter.get_formatted_batch(batch, space))
+                    # conv_fn = (lambda batch, self=self, space=sp:
+                    #            np.cast[config.floatX](self.view_converter.get_formatted_batch(batch, space)))
                 else:
-                    conv_fn = None
+                    #conv_fn = None
+                    conv_fn = lambda batch: np.cast[config.floatX](batch)
                 convert.append(conv_fn)
 
         # TODO: Refactor
@@ -1226,6 +1226,10 @@ class DefaultViewConverter(object):
             # If a VectorSpace is requested, batch should already be
             # in that space.
             dspace.np_validate(batch)
+            print "in DefaultViewConverter, not converting, only validating"
+            print "s.np_validate(b) with:"
+            print "s: %s" % dspace
+            print "b: %s" % str(batch.shape)
             return batch
         elif isinstance(dspace, Conv2DSpace):
             # design_mat_to_topo_view will return a batch formatted
@@ -1236,6 +1240,11 @@ class DefaultViewConverter(object):
                               "directly, please use the set_axes() method "
                               "instead." % self.__class__.__name__)
                 self._update_topo_space()
+
+            print "in DefaultViewConverter, x.np_format_as(b, y),"
+            print "x: %s" % self.topo_space
+            print "b.shape: %s" % str(topo_batch.shape)
+            print "y: %s" % dspace
             return self.topo_space.np_format_as(topo_batch, dspace)
         else:
             raise ValueError("%s does not know how to format a batch into "
