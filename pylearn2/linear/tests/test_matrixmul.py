@@ -5,6 +5,7 @@ import theano
 from theano import tensor
 import numpy as np
 
+
 def test_matrixmul():
     """
     Tests matrix multiplication for a range of different
@@ -50,6 +51,7 @@ def test_matrixmul():
             ).astype(dtype))
         else:
             assert False
+
     def sharedW(value, dtype):
         return theano.shared(theano._asarray(value, dtype=dtype))
     tensor_W = [sharedW(W, dtype) for W in np_W]
@@ -63,6 +65,7 @@ def test_matrixmul():
     for W, x, x_T, f, f_T in zip(np_W, np_x, np_x_T, fn, fn_T):
         np.testing.assert_allclose(f(x), np.dot(x, W))
         np.testing.assert_allclose(f_T(x_T), np.dot(x_T, W.T))
+
 
 def test_make_local_rfs():
     view_converter = DefaultViewConverter((10, 10, 3))
@@ -78,4 +81,5 @@ def test_make_local_rfs():
     matrixmul = make_local_rfs(test_dataset, 4, (5, 5), (5, 5))
     W = matrixmul.get_params()[0].get_value()
     assert W.shape == (300, 4)
-    np.testing.assert_raises(ValueError, make_local_rfs, test_dataset, 2, (5, 5), (5, 5))
+    np.testing.assert_raises(ValueError, make_local_rfs,
+                             test_dataset, 2, (5, 5), (5, 5))
