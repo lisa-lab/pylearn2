@@ -65,14 +65,14 @@ class Cost(object):
 
     def expr(self, model, data, ** kwargs):
         """
-        .. todo::
-
-            WRITEME
+        Returns a theano expression for the cost function.
 
         Parameters
         ----------
         model: a pylearn2 Model instance
         data : a batch in cost.get_data_specs() form
+        kwargs : dict
+            Optional extra arguments. Not used by the base class.
 
         Returns a symbolic expression for a cost function applied to the
         minibatch of data.
@@ -85,14 +85,17 @@ class Cost(object):
 
     def get_gradients(self, model, data, ** kwargs):
         """
-        .. todo::
-
-            WRITEME
+        Provides the gradients of the cost function with respect to the model
+        parameters. These are not necessarily those obtained by
+        theano.tensor.grad--you may wish to use approximate or even
+        intentionally incorrect gradients in some cases.
 
         Parameters
         ----------
         model : a pylearn2 Model instance
         data : a batch in cost.get_data_specs() form
+        kwargs : dict
+            Optional extra arguments, not used by the base class.
 
         Returns
         -------
@@ -150,17 +153,23 @@ class Cost(object):
         Returns a dictionary mapping channel names to expressions for
         channel values.
 
-        WRITEME: how do you do prereqs in this setup? (there is a way,
-            but I forget how right now)
+        TODO: how do you do prereqs in this setup? (I think PL changed
+        it, not sure if there still is a way in this context)
 
         Parameters
         ----------
-        model: the model to use to compute the monitoring channels
-        data: symbolic expressions for the monitoring data
-
-        kwargs: used so that custom algorithms can use extra variables
-                for monitoring.
-
+        model : Model
+            the model to use to compute the monitoring channels
+        data : batch
+            (a member of self.get_data_specs()[0])
+            symbolic expressions for the monitoring data
+        kwargs : dict
+            used so that custom algorithms can use extra variables
+            for monitoring.
+        Returns
+        -------
+        rval : dict
+            Maps channels names to expressions for channel values.
         """
         self.get_data_specs(model)[0].validate(data)
         return OrderedDict()
@@ -344,12 +353,8 @@ class SumOfCosts(Cost):
         data_specs = (flat_composite_space, flat_sources)
         return data_specs
 
+    @functools.wraps(Cost.get_gradients)
     def get_gradients(self, model, data, ** kwargs):
-        """
-        .. todo::
-
-            WRITEME
-        """
         indiv_results = []
         composite_specs, mapping = self.get_composite_specs_and_mapping(model)
         nested_data = mapping.nest(data)
@@ -383,12 +388,8 @@ class SumOfCosts(Cost):
 
         return grads, updates
 
+    @functools.wraps(Cost.get_monitoring_channels)
     def get_monitoring_channels(self, model, data, ** kwargs):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.get_data_specs(model)[0].validate(data)
         rval = OrderedDict()
         composite_specs, mapping = self.get_composite_specs_and_mapping(model)
@@ -493,24 +494,18 @@ class LpPenalty(NullDataSpecsMixin, Cost):
 
 class CrossEntropy(DefaultDataSpecsMixin, Cost):
     """
-    .. todo::
-
-        WRITEME
+    DEPRECATED
     """
     def __init__(self):
         """
-        .. todo::
-
-            WRITEME
+        DEPRECATED
         """
         warnings.warn("CrossEntropy is deprecated. You should use a model-specific cross entropy cost function. CrossEntropy will be removed on or after August 3, 2014", stacklevel=2)
         self.supervised = True
 
     def expr(self, model, data, ** kwargs):
         """
-        .. todo::
-
-            WRITEME
+        DEPRECATED
         """
         self.get_data_specs(model)[0].validate(data)
 
