@@ -1075,6 +1075,7 @@ def read_channel(model, channel_name, monitor_name = 'monitor'):
     monitor_name: str, optional
         The name of the Monitor to read from
         (In case you want to read from an old Monitor moved by `push_monitor`)
+
     Returns
     -------
     value : float
