@@ -53,6 +53,11 @@ Batch Gradient Descent
 Train Extensions
 ################
 
+Basic
+=====
+.. automodule:: pylearn2.train_extensions.__init__
+    :members:
+
 Best Params
 ===========
 .. automodule:: pylearn2.train_extensions.best_params

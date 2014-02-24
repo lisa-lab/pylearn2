@@ -7,14 +7,27 @@ Basic
 .. automodule:: pylearn2.costs.cost
     :members:
 
+MLP
+===
+
+Basic
+#####
+.. automodule:: pylearn2.costs.mlp
+    :members:
+
+Dropout
+#######
+.. automodule:: pylearn2.costs.mlp.dropout
+    :members:
+
+Missing target cost
+###################
+.. automodule:: pylearn2.costs.mlp.missing_target_cost
+    :members:
+
 Auto Encoder
 ============
 .. automodule:: pylearn2.costs.autoencoder
-    :members:
-
-MLP
-===
-.. automodule:: pylearn2.costs.mlp
     :members:
 
 DBM

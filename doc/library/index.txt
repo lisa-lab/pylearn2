@@ -26,4 +26,7 @@ Library Documentation
    gui
    optimization
    utils
+   termination_criteria
+   space
+   misc
 
