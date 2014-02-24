@@ -75,10 +75,10 @@ class LibVersion(object):
         Get version of Python packages.
         """
         repos = os.getenv('PYLEARN2_TRACK_MODULES', '')
-        default_repos = 'pylearn2:theano:numpy:scipy:'
-        repos = default_repos + repos
-	repos = repos.split(':')
-	for repo in repos:
+        default_repos = 'pylearn2:theano:numpy:scipy'
+        repos = default_repos + ":" + repos
+        repos = set(repos.split(':'))
+        for repo in repos:
 	    try:
 		if repo == '':
 		    continue
