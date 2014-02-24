@@ -958,8 +958,13 @@ class MonitorChannel(object):
         self.epoch_record = []
         self.time_record = []
 
-    @functools.wraps(object.__str__)
     def __str__(self):
+        """
+        Returns
+        -------
+        s : str
+            A reasonably human-readable string representation of the object.
+        """
         try:
             graph_input_str = str(self.graph_input)
         except:
