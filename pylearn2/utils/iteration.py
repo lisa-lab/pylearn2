@@ -512,12 +512,14 @@ class FiniteDatasetIterator(object):
             # needs_format = (not init_fn and
             #                 ((sp != dspace) or
             #                  str(dt.dtype) != sp.dtype))
-            needs_format = not init_fn
-            
-            print "needs_format: %s" % needs_format
-            print "\tinit_fn is None?: %s" % (init_fn is None)
-            print "\tsp == dspace?: %s" % (sp == dspace)
-            print "\tdt.dtype == sp.dtype? %s" % (dt.dtype == sp.dtype)
+            # needs_format = not init_fn
+            needs_format = (init_fn is None)
+
+            # print "needs_format: %s" % needs_format
+            # print "\tinit_fn is None?: %s" % (init_fn is None)
+            # print "\tsp == dspace?: %s" % (sp == dspace)
+            # print "\tdt.dtype == sp.dtype? %s" % (dt.dtype == sp.dtype)
+
             # print "if needs_format was True, we would've attempted"
             # print "\tdspace.np_format_as(batch, sp)"
             # print "\twhere:"
@@ -537,7 +539,8 @@ class FiniteDatasetIterator(object):
                         #        (str(batch.shape),
                         #         dspace,
                         #         sp))
-                        print "in FiniteDatasetIterator's new_fn_1, np_formatting from %s to %s." % (dspace, sp)
+
+                        # print "in FiniteDatasetIterator's new_fn_1, np_formatting from %s to %s." % (dspace, sp)
                         return dspace.np_format_as(batch, sp)
 
                     fn = new_fn_1
@@ -557,8 +560,8 @@ class FiniteDatasetIterator(object):
                         #         dspace,
                         #         sp))
                         # ipdb.set_trace()
-                        assert False, "it seems like this is called afer all"
-                        print "in FiniteDatasetIterator's new_fn_2, np_formatting from %s to %s." % (dspace, sp)
+                        # assert False, "it seems like this is called afer all"
+                        # print "in FiniteDatasetIterator's new_fn_2, np_formatting from %s to %s." % (dspace, sp)
                         return dspace.np_format_as(fn_(batch), sp)
 
                     fn = new_fn_2

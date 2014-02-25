@@ -200,64 +200,64 @@ class DenseDesignMatrix(Dataset):
                 sub_sources = (source,)
 
             # DEBUGging code below
-            if isinstance(data_specs[0], CompositeSpace) and \
-                   len(data_specs[0].components) > 0:
-                feature_space = data_specs[0].components[0]
-                if isinstance(feature_space, Conv2DSpace):
-                    assert (tuple(self.view_converter.axes) ==
-                            feature_space.axes), \
-                        "view_converter.axes: %s data_specs' axes: %s" % \
-                        (str(self.view_converter.axes),
-                         str(feature_space.axes))
-                else:
-                    print "feature_space: %s" % feature_space
-            else:
-                print "data_specs[0]: %s" % str(data_specs[0])
+            # if isinstance(data_specs[0], CompositeSpace) and \
+            #        len(data_specs[0].components) > 0:
+            #     feature_space = data_specs[0].components[0]
+            #     if isinstance(feature_space, Conv2DSpace):
+            #         assert (tuple(self.view_converter.axes) ==
+            #                 feature_space.axes), \
+            #             "view_converter.axes: %s data_specs' axes: %s" % \
+            #             (str(self.view_converter.axes),
+            #              str(feature_space.axes))
+            #     else:
+            #         print "feature_space: %s" % feature_space
+            # else:
+            #     print "data_specs[0]: %s" % str(data_specs[0])
 
 
 
-            if hasattr(self, 'view_converter'):
-                print "in DenseDesignMatrix, self.view_converter.topo_space= %s" %\
-                      self.view_converter.topo_space
-                print "...was to be np_formatted to (one component of) data_specs[0]: %s" %\
-                      data_specs[0]
+            # if hasattr(self, 'view_converter'):
+            #     print "in DenseDesignMatrix, self.view_converter.topo_space= %s" %\
+            #           self.view_converter.topo_space
+            #     print "...was to be np_formatted to (one component of) data_specs[0]: %s" %\
+            #           data_specs[0]
 
-            else:
-                print "DenseDesignMatrix didn't have a view_converter. No formatting would've occurred."
+            # else:
+            #     print "DenseDesignMatrix didn't have a view_converter. No formatting would've occurred."
 
-            print "dataset data_specs: %s" % str(self.get_data_specs())
-            print "target data_specs: %s" % str(data_specs)
-            # assert False, "whoooooo"
+            # print "dataset data_specs: %s" % str(self.get_data_specs())
+            # print "target data_specs: %s" % str(data_specs)
+
 
 
             # convert = [None, ] * len(sub_spaces)
             convert = []
-            def DEBUG_get_dsps():
-                dataset_space = self.get_data_specs()[0]
-                # assert False
-                if isinstance(dataset_space, CompositeSpace):
-                    result = dataset_space.components
-                else:
-                    result = (dataset_space, )
+            # def DEBUG_get_dsps():
+            #     dataset_space = self.get_data_specs()[0]
+            #     # assert False
+            #     if isinstance(dataset_space, CompositeSpace):
+            #         result = dataset_space.components
+            #     else:
+            #         result = (dataset_space, )
 
-                return result
+            #     return result
 
 
-            print "sub_spaces: %s" % str(sub_spaces)
-            print "sub_sources: %s" % str(sub_sources)
-            print "dataset's spaces: %s" % str(DEBUG_get_dsps())
+            # print "sub_spaces: %s" % str(sub_spaces)
+            # print "sub_sources: %s" % str(sub_sources)
+            # print "dataset's spaces: %s" % str(DEBUG_get_dsps())
 
-            for sp, src, dsp in safe_zip(sub_spaces, sub_sources, DEBUG_get_dsps()):
+            for sp, src in safe_zip(sub_spaces, sub_sources):
 
                 if (src == 'features' and
                         getattr(self, 'view_converter', None) is not None):
-                    def convert_with_view_converter(batch, sp=sp, dsp=dsp):
-                        print ""
-                        print "converting from dsp to sp would mean converting"
-                        print "a batch of size %s from" % str(batch.shape)
-                        print "\tfrom %s " % dsp
-                        print "\tto %s." % sp
-                        print "\tInstead, view_converter does the following:"
+                    def convert_with_view_converter(batch, sp=sp):
+                        # print ""
+                        # print "converting from dsp to sp would mean converting"
+                        # print "a batch of size %s from" % str(batch.shape)
+                        # print "\tfrom %s " % dsp
+                        # print "\tto %s." % sp
+                        # print "\tInstead, view_converter does the following:"
 
                         return self.view_converter.get_formatted_batch(batch, sp)
 
