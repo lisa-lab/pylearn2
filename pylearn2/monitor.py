@@ -343,12 +343,14 @@ class Monitor(object):
         """
         Recompiles Theano functions used by this monitor.
 
-        This is needed so that if new channels are added, Theano's
-        optimizations make sure (to the extent that they can) that the new
-        channels and old channels don't have any redundant calculations.
+        This is called any time we need to evaluate the channels and the
+        channel definitions have changed since last we called it, or if the
+        theano functions are unavailable for any other reason (first time they
+        are needed after construction or deserialization, etc.)
 
-        It is also needed to regenerate Theano functions after pickling and
-        unpickling, since Theano functions should not be pickled.
+        All channels are compiled as part of the same theano function so that
+        the theano optimizations can eliminate subexpressions that are shared
+        between multiple channels.
         """
         self._dirty = False
 
@@ -769,6 +771,7 @@ class Monitor(object):
             Dictionary of kwargs that will be passed to \
             `cost.get_monitoring_channels()` (but not for the extra_costs).
         """
+
         if dataset is None:
             return
         if isinstance(dataset, Dataset):
@@ -814,7 +817,7 @@ class Monitor(object):
         space_tuple = mapping.flatten(nested_space, return_tuple=True)
         source_tuple = mapping.flatten(nested_sources, return_tuple=True)
         ipt = tuple(space.make_theano_batch(name='monitor_%s' % source,
-                    batch_size = batch_size)
+                    batch_size = None)
                     for (space, source) in safe_zip(space_tuple, source_tuple))
 
         # Build a nested tuple from ipt, to dispatch the appropriate parts
