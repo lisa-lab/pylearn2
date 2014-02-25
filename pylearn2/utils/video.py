@@ -4,6 +4,8 @@ Utilities for working with videos, pulling out patches, etc.
 import numpy
 import warnings
 
+from pylearn2.utils.rng import make_np_rng
+
 try:
     from pylearn2.utils._video import rgb_to_gray
 except ImportError:
@@ -117,8 +119,7 @@ def spatiotemporal_cubes(file_tuples, shape, n_patches=numpy.inf, rng=None):
     file_lookup = dict(file_tuples)
     patch_length, patch_height, patch_width = shape
     done = 0
-    if not hasattr(rng, 'random_integers'):
-        rng = numpy.random.RandomState(rng)
+    rng = make_np_rng(rng, which_method="random_integers")
     while done < n_patches:
         frame = numpy.random.random_integers(0, len(frame_lookup) - 1)
         filename, file_length, frame_no = frame_lookup[frame]

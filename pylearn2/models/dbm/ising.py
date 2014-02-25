@@ -36,7 +36,6 @@ from collections import OrderedDict
 from theano import function
 from theano.gof.op import get_debug_values
 from theano.compile.sharedvalue import SharedVariable
-from theano.sandbox.rng_mrg import MRG_RandomStreams
 import theano.tensor as T
 import warnings
 
@@ -47,6 +46,7 @@ from pylearn2.models.dbm.layer import HiddenLayer, VisibleLayer
 from pylearn2.space import Conv2DSpace
 from pylearn2.space import VectorSpace
 from pylearn2.utils import sharedX
+from pylearn2.utils.rng import make_theano_rng
 
 
 def init_tanh_bias_from_marginals(dataset, use_y=False):
@@ -888,8 +888,7 @@ class BoltzmannIsingVisible(VisibleLayer):
             updates[self.boltzmann_bias] = bhn
 
         if self.noisy_sampling_b is not None:
-            theano_rng = \
-                MRG_RandomStreams(self.dbm.rng.randint(2**16))
+            theano_rng = make_theano_rng(None, self.dbm.rng.randint(2**16), which_method="normal")
 
             b = updates[self.boltzmann_bias]
             W_above = updates[self.layer_above.W]
@@ -919,7 +918,7 @@ class BoltzmannIsingVisible(VisibleLayer):
                     sharedX(np.zeros((self.dbm.batch_size, self.nvis)))
 
             if self.noisy_sampling_b is not None:
-                theano_rng = MRG_RandomStreams(self.dbm.rng.randint(2**16))
+                theano_rng = make_theano_rng(None, self.dbm.rng.randint(2**16), which_method="normal")
 
                 b = self.boltzmann_bias
                 W_above = self.layer_above.W
@@ -1324,7 +1323,7 @@ class BoltzmannIsingHidden(HiddenLayer):
             updates[self.boltzmann_b] = bhn
 
         if self.noisy_sampling_W is not None:
-            theano_rng = MRG_RandomStreams(self.dbm.rng.randint(2**16))
+            theano_rng = make_theano_rng(None, self.dbm.rng.randint(2**16), which_method="normal")
 
             W = updates[self.W]
             ising_W = 0.25 * W
@@ -1366,7 +1365,7 @@ class BoltzmannIsingHidden(HiddenLayer):
                     sharedX(np.zeros((self.dbm.batch_size, self.dim)))
 
             if self.noisy_sampling_b is not None:
-                theano_rng = MRG_RandomStreams(self.dbm.rng.randint(2**16))
+                theano_rng = make_theano_rng(None, self.dbm.rng.randint(2**16), which_method="normal")
 
                 b = self.boltzmann_b
                 if self.layer_above is not None:

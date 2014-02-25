@@ -24,6 +24,7 @@ from theano import config
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import safe_zip
 from pylearn2.utils.data_specs import is_flat_specs
+from pylearn2.utils.rng import make_np_rng
 
 
 class SubsetIterator(object):
@@ -207,10 +208,7 @@ class ShuffledSequentialSubsetIterator(SequentialSubsetIterator):
             num_batches,
             None
         )
-        if rng is not None and hasattr(rng, 'random_integers'):
-            self._rng = rng
-        else:
-            self._rng = numpy.random.RandomState(rng)
+        self._rng = make_np_rng(rng, which_method=["random_integers", "shuffle"])
         self._shuffled = numpy.arange(self._dataset_size)
         self._rng.shuffle(self._shuffled)
 
@@ -247,10 +245,7 @@ class RandomUniformSubsetIterator(SubsetIterator):
 
             WRITEME
         """
-        if rng is not None and hasattr(rng, 'random_integers'):
-            self._rng = rng
-        else:
-            self._rng = numpy.random.RandomState(rng)
+        self._rng = make_np_rng(rng, which_method=["random_integers", "shuffle"])
         if batch_size is None:
             raise ValueError("batch_size cannot be None for random uniform "
                              "iteration")
@@ -335,11 +330,7 @@ class BatchwiseShuffledSequentialIterator(SequentialSubsetIterator):
 
             WRITEME
         """
-        if rng is not None and hasattr(rng, 'random_integers'):
-            self._rng = rng
-        else:
-            self._rng = numpy.random.RandomState(rng)
-
+        self._rng = make_np_rng(rng, which_method=["random_integers", "shuffle"])
         assert num_batches is None or num_batches >= 0
         self._dataset_size = dataset_size
         if batch_size is None:

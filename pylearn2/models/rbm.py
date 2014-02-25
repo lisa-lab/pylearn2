@@ -23,6 +23,7 @@ from pylearn2.expr.nnet import inverse_sigmoid_numpy
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.space import VectorSpace
 from pylearn2.utils import safe_union
+from pylearn2.utils.rng import make_np_rng, make_theano_rng
 theano.config.warn.sum_div_dimshuffle_bug = False
 
 if 0:
@@ -99,10 +100,10 @@ class Sampler(object):
             RandomStreams object used in training.
         """
         self.__dict__.update(rbm=rbm)
-        if not hasattr(rng, 'randn'):
-            rng = numpy.random.RandomState(rng)
+
+        rng = make_np_rng(rng, which_method="randn")
         seed = int(rng.randint(2 ** 30))
-        self.s_rng = RandomStreams(seed)
+        self.s_rng = make_theano_rng(seed, which_method="binomial")
         self.particles = sharedX(particles, name='particles')
 
     def updates(self):
@@ -280,9 +281,7 @@ class RBM(Block, Model):
         if init_bias_vis is None:
             init_bias_vis = 0.0
 
-        if rng is None:
-            # TODO: global rng configuration stuff.
-            rng = numpy.random.RandomState(1001)
+        rng = make_np_rng(rng, 1001, which_method="uniform")
         self.rng = rng
 
         if vis_space is None:
@@ -432,7 +431,7 @@ class RBM(Block, Model):
             WRITEME
         """
         V = data
-        theano_rng = RandomStreams(42)
+        theano_rng = make_theano_rng(None, 42, which_method="binomial")
 
         #TODO: re-enable this in the case where self.transformer
         #is a matrix multiply
@@ -1054,9 +1053,8 @@ class mu_pooled_ssRBM(RBM):
         W        : matrix of shape nvis x nslab, weights of the nslab linear
                    filters s.
         """
-        if rng is None:
-            # TODO: global rng default seed
-            rng = numpy.random.RandomState(1001)
+
+        rng = make_np_rng(rng, 1001, which_method="rand")
 
         self.nhid = nhid
         self.nslab = nhid * n_s_per_h

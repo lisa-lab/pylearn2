@@ -33,6 +33,7 @@ from pylearn2.datasets.dataset import Dataset
 from pylearn2.datasets import control
 from pylearn2.space import CompositeSpace, Conv2DSpace, VectorSpace, IndexSpace
 from pylearn2.utils import safe_zip
+from pylearn2.utils.rng import make_np_rng
 from theano import config
 
 
@@ -139,10 +140,7 @@ class DenseDesignMatrix(Dataset):
 
         self.compress = False
         self.design_loc = None
-        if hasattr(rng, 'random_integers'):
-            self.rng = rng
-        else:
-            self.rng = np.random.RandomState(rng)
+        self.rng = make_np_rng(rng, which_method="random_integers")
         # Defaults for iterators
         self._iter_mode = resolve_iterator_class('sequential')
         self._iter_topo = False
@@ -540,7 +538,7 @@ class DenseDesignMatrix(Dataset):
         """
 
         if 'default_rng' not in dir(self):
-            self.default_rng = np.random.RandomState([17, 2, 946])
+            self.default_rng = make_np_rng(None, [17, 2, 946], which_method="random_integers")
         self.rng = copy.copy(self.default_rng)
 
     def apply_preprocessor(self, preprocessor, can_fit=False):

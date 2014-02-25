@@ -26,6 +26,7 @@ from pylearn2.space import Conv2DSpace, VectorSpace
 from pylearn2.expr.preprocessing import global_contrast_normalize
 from pylearn2.utils.insert_along_axis import insert_columns
 from pylearn2.utils import sharedX
+from pylearn2.utils.rng import make_np_rng
 
 
 log = logging.getLogger(__name__)
@@ -315,10 +316,7 @@ class ExtractPatches(Preprocessor):
         self.patch_shape = patch_shape
         self.num_patches = num_patches
 
-        if rng is not None:
-            self.start_rng = copy.copy(rng)
-        else:
-            self.start_rng = numpy.random.RandomState([1, 2, 3])
+        self.start_rng = make_np_rng(copy.copy(rng), [1,2,3], which_method="randint")
 
     def apply(self, dataset, can_fit=False):
         rng = copy.copy(self.start_rng)
@@ -1395,7 +1393,7 @@ class ShuffleAndSplit(Preprocessor):
     def apply(self, dataset, can_fit=False):
         start = self.start
         stop = self.stop
-        rng = numpy.random.RandomState(self.seed)
+        rng = make_np_rng(self.seed, which_method="randint")
         X = dataset.X
         y = dataset.y
 

@@ -31,6 +31,7 @@ from pylearn2.utils import make_name
 from pylearn2.utils import safe_izip
 from pylearn2.utils import safe_zip
 from pylearn2.utils import sharedX
+from pylearn2.utils.rng import make_theano_rng
 
 
 class BaseCD(Cost):
@@ -51,8 +52,7 @@ class BaseCD(Cost):
         """
         self.__dict__.update(locals())
         del self.self
-        if self.theano_rng is None:
-            self.theano_rng = MRG_RandomStreams(2012 + 10 + 14)
+        self.theano_rng = make_theano_rng(theano_rng, 2012+10+14, which_method="binomial")
         assert supervised in [True, False]
 
     def expr(self, model, data):
@@ -1067,7 +1067,7 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
             include_prob_V = model.inference_procedure.include_prob_V
             include_prob_Y = model.inference_procedure.include_prob_Y
 
-            theano_rng = MRG_RandomStreams(2012+11+20)
+            theano_rng = make_theano_rng(None, 2012+10+20, which_method="binomial")
             for elem in flatten([model.inference_procedure.V_dropout]):
                 updates[elem] = theano_rng.binomial(p=include_prob_V, size=elem.shape, dtype=elem.dtype, n=1) / include_prob_V
             if "Softmax" in str(type(model.hidden_layers[-1])):
@@ -1336,9 +1336,8 @@ class MaskGen:
         assert X_space is not None
         self.called = True
         assert X.dtype == config.floatX
-        if not hasattr(self, 'seed'):
-            self.seed = default_seed
-        theano_rng = RandomStreams(self.seed)
+        theano_rng = make_theano_rng(getattr(self, 'seed', None), default_seed,
+                                     which_method="binomial")
 
         if X.ndim == 2 and self.sync_channels:
             raise NotImplementedError()
