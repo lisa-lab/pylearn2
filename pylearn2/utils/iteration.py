@@ -509,10 +509,11 @@ class FiniteDatasetIterator(object):
             # space-formatting functions.
             # needs_format = (not init_fn and
             #                 (not sp == dspace))
-            needs_format = (not init_fn and
-                            ((sp != dspace) or
-                             str(dt.dtype) != sp.dtype))
-
+            # needs_format = (not init_fn and
+            #                 ((sp != dspace) or
+            #                  str(dt.dtype) != sp.dtype))
+            needs_format = not init_fn
+            
             print "needs_format: %s" % needs_format
             print "\tinit_fn is None?: %s" % (init_fn is None)
             print "\tsp == dspace?: %s" % (sp == dspace)
