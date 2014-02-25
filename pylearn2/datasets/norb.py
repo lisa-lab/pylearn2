@@ -97,16 +97,18 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
     # the Preprocess class.
     def __init__(self, which_set, multi_target=False):
         """
-        :param which_set: one of ['train', 'test'] :param multi_target: If
-        True, each label is an integer labeling the image catergory. If False,
-        each label is a vector: [category, instance, lighting, elevation,
-        azimuth]. All labels are given as integers. Use the categories,
-        elevation_degrees, and azimuth_degrees arrays to map from these
-        integers to actual values.
+        parameters
+        ----------
 
-        :param multi_target: If False, labels will be integers indicating
-        object category. If True, labels will be vectors of integers,
-        indicating [ category, instance, elevation, azimuth, lighting ].
+        which_set: str
+            Must be 'train' or 'test'.
+
+        multi_target: bool
+            If False, each label is an integer labeling the image catergory. If
+            True, each label is a vector: [category, instance, lighting,
+            elevation, azimuth]. All labels are given as integers. Use the
+            categories, elevation_degrees, and azimuth_degrees arrays to map
+            from these integers to actual values.
         """
 
         assert which_set in ['train', 'test']
