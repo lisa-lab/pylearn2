@@ -925,7 +925,7 @@ class ZCA(Preprocessor):
                 warnings.warn('Implicitly converting diag from dtype=%s to float32 for gpu' % diags.dtype)
 
             return ZCA._gpu_mdmt.theano_func(mat, diags)
-            
+
         except MemoryError:
             # fall back to cpu
             warnings.warn('M * D * M^T was too big to fit on GPU. '
@@ -987,9 +987,16 @@ class ZCA(Preprocessor):
         """
         Used to unpickle.
 
-        state: The dictionary created by __setstate__, presumably unpickled
-        from disk.
+        Parameters
+        ----------
+        state : dict
+            The dictionary created by __setstate__, presumably unpickled
+            from disk.
         """
+
+        # Patch old pickle files
+        if 'matrices_save_path' not in state:
+            state['matrices_save_path'] = None
 
         if state['matrices_save_path'] is not None:
             matrices = numpy.load(state['matrices_save_path'])
