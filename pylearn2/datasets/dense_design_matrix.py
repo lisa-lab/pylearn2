@@ -199,82 +199,18 @@ class DenseDesignMatrix(Dataset):
                 sub_spaces = (space,)
                 sub_sources = (source,)
 
-            # DEBUGging code below
-            # if isinstance(data_specs[0], CompositeSpace) and \
-            #        len(data_specs[0].components) > 0:
-            #     feature_space = data_specs[0].components[0]
-            #     if isinstance(feature_space, Conv2DSpace):
-            #         assert (tuple(self.view_converter.axes) ==
-            #                 feature_space.axes), \
-            #             "view_converter.axes: %s data_specs' axes: %s" % \
-            #             (str(self.view_converter.axes),
-            #              str(feature_space.axes))
-            #     else:
-            #         print "feature_space: %s" % feature_space
-            # else:
-            #     print "data_specs[0]: %s" % str(data_specs[0])
-
-
-
-            # if hasattr(self, 'view_converter'):
-            #     print "in DenseDesignMatrix, self.view_converter.topo_space= %s" %\
-            #           self.view_converter.topo_space
-            #     print "...was to be np_formatted to (one component of) data_specs[0]: %s" %\
-            #           data_specs[0]
-
-            # else:
-            #     print "DenseDesignMatrix didn't have a view_converter. No formatting would've occurred."
-
-            # print "dataset data_specs: %s" % str(self.get_data_specs())
-            # print "target data_specs: %s" % str(data_specs)
-
-
-
-            # convert = [None, ] * len(sub_spaces)
             convert = []
-            # def DEBUG_get_dsps():
-            #     dataset_space = self.get_data_specs()[0]
-            #     # assert False
-            #     if isinstance(dataset_space, CompositeSpace):
-            #         result = dataset_space.components
-            #     else:
-            #         result = (dataset_space, )
-
-            #     return result
-
-
-            # print "sub_spaces: %s" % str(sub_spaces)
-            # print "sub_sources: %s" % str(sub_sources)
-            # print "dataset's spaces: %s" % str(DEBUG_get_dsps())
 
             for sp, src in safe_zip(sub_spaces, sub_sources):
 
-                if (src == 'features' and
-                        getattr(self, 'view_converter', None) is not None):
-                    def convert_with_view_converter(batch, sp=sp):
-                        # print ""
-                        # print "converting from dsp to sp would mean converting"
-                        # print "a batch of size %s from" % str(batch.shape)
-                        # print "\tfrom %s " % dsp
-                        # print "\tto %s." % sp
-                        # print "\tInstead, view_converter does the following:"
-
-                        return self.view_converter.get_formatted_batch(batch, sp)
-
-                    conv_fn = convert_with_view_converter
-                    # conv_fn = (lambda batch, self=self, space=sp:
-                    #            self.view_converter.get_formatted_batch(batch, space))
-                    # conv_fn = (lambda batch, self=self, space=sp:
-                    #            np.cast[config.floatX](self.view_converter.get_formatted_batch(batch, space)))
+                if src == 'features' and \
+                   getattr(self, 'view_converter', None) is not None:
+                    conv_fn = (lambda batch, self=self, space=sp:
+                               self.view_converter.get_formatted_batch(batch,
+                                                                       space))
                 else:
-                    # def just_cast(batch, sp=sp, dsp=dsp):
-                    #     print "just casting, instead of np_formatting from %s to %s" % (dsp, sp)
-                    #     assert dsp == sp, "dataset space: %s\ntarget space: %s" % (dsp, sp)
-                    #     return dsp.np_format_as(batch, sp)
-
-                    # conv_fn = just_cast
                     conv_fn = None
-                    # conv_fn = lambda batch: np.cast[config.floatX](batch)
+
                 convert.append(conv_fn)
 
         # TODO: Refactor
@@ -1261,16 +1197,11 @@ class DefaultViewConverter(object):
         Reformat batch from the internal storage format into dspace.
         """
         if isinstance(dspace, VectorSpace):
-            # If a VectorSpace is requested, batch should already be
-            # in that space.
-            # Validates, then performs a dtype cast if necessary.
+            # If a VectorSpace is requested, batch should already be in that
+            # space. We call np_format_as anyway, in case the batch needs to be
+            # cast to dspace.dtype. This also validates the batch shape, to
+            # check that it's a valid batch in dspace.
             return dspace.np_format_as(batch, dspace)
-            # dspace.np_validate(batch)
-            # print "in DefaultViewConverter, not converting, only validating"
-            # print "s.np_validate(b) with:"
-            # print "s: %s" % dspace
-            # print "b: %s" % str(batch.shape)
-            # return batch
         elif isinstance(dspace, Conv2DSpace):
             # design_mat_to_topo_view will return a batch formatted
             # in a Conv2DSpace, but not necessarily the right one.
@@ -1281,10 +1212,6 @@ class DefaultViewConverter(object):
                               "instead." % self.__class__.__name__)
                 self._update_topo_space()
 
-            print "in DefaultViewConverter, x.np_format_as(b, y),"
-            print "x: %s" % self.topo_space
-            print "b.shape: %s" % str(topo_batch.shape)
-            print "y: %s" % dspace
             return self.topo_space.np_format_as(topo_batch, dspace)
         else:
             raise ValueError("%s does not know how to format a batch into "

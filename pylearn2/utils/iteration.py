@@ -492,81 +492,25 @@ class FiniteDatasetIterator(object):
 
             init_fn = self._convert[i]
             fn = init_fn
-            # Compose the functions
-            # needs_cast = not (np.dtype(config.floatX) ==
-            #                   self._raw_data[i].dtype)
-            # if needs_cast:
-            #     if fn is None:
-            #         fn = lambda batch: numpy.cast[config.floatX](batch)
-            #     else:
-            #         fn = (lambda batch, fn_=fn:
-            #               numpy.cast[config.floatX](fn_(batch)))
 
             # If there is an init_fn, it is supposed to take
             # care of the formatting, and it should be an error
             # if it does not. If there was no init_fn, then
             # the iterator will try to format using the generic
             # space-formatting functions.
-            # needs_format = (not init_fn and
-            #                 (not sp == dspace))
-            # needs_format = (not init_fn and
-            #                 ((sp != dspace) or
-            #                  str(dt.dtype) != sp.dtype))
-            # needs_format = not init_fn
-            needs_format = (init_fn is None)
+            # needs_format = (init_fn is None)
 
-            # print "needs_format: %s" % needs_format
-            # print "\tinit_fn is None?: %s" % (init_fn is None)
-            # print "\tsp == dspace?: %s" % (sp == dspace)
-            # print "\tdt.dtype == sp.dtype? %s" % (dt.dtype == sp.dtype)
-
-            # print "if needs_format was True, we would've attempted"
-            # print "\tdspace.np_format_as(batch, sp)"
-            # print "\twhere:"
-            # print "\tdspace: %s" % dspace
-            # print "\tbatch.shape: %s" % str(batch.shape)
-            # print "\tsp: %s" % sp
-            if needs_format:
+            if init_fn is None:
                 # "dspace" and "sp" have to be passed as parameters
                 # to lambda, in order to capture their current value,
                 # otherwise they would change in the next iteration
                 # of the loop.
                 if fn is None:
-                    def new_fn_1(batch, dspace=dspace, sp=sp):
-                        # print ("in new_fn_1, batch.shape: %s\n"
-                        #        "dspace: %s\n"
-                        #        "sp: %s" %
-                        #        (str(batch.shape),
-                        #         dspace,
-                        #         sp))
-
-                        # print "in FiniteDatasetIterator's new_fn_1, np_formatting from %s to %s." % (dspace, sp)
-                        return dspace.np_format_as(batch, sp)
-
-                    fn = new_fn_1
-
-                    # fn = (lambda batch, dspace=dspace, sp=sp:
-                    #       dspace.np_format_as(batch, sp))
+                    fn = (lambda batch, dspace=dspace, sp=sp:
+                          dspace.np_format_as(batch, sp))
                 else:
-                    def new_fn_2(batch, dspace=dspace, sp=sp, fn_=fn):
-                        # print ("in new_fn_2, batch.shape: %s\n"
-                        #        "fn_: %s\n"
-                        #        "fn_(batch).shape: %s\n"
-                        #        "dspace: %s\n"
-                        #        "sp: %s" %
-                        #        (str(batch.shape),
-                        #         fn_,
-                        #         str(fn_(batch).shape),
-                        #         dspace,
-                        #         sp))
-                        # ipdb.set_trace()
-                        # assert False, "it seems like this is called afer all"
-                        # print "in FiniteDatasetIterator's new_fn_2, np_formatting from %s to %s." % (dspace, sp)
-                        return dspace.np_format_as(fn_(batch), sp)
-
-                    fn = new_fn_2
-                    # fn = (lambda batch, dspace=dspace, sp=sp, fn_=fn:
-                    #       dspace.np_format_as(fn_(batch), sp))
+                    fn = (lambda batch, dspace=dspace, sp=sp, fn_=fn:
+                          dspace.np_format_as(fn_(batch), sp))
 
             self._convert[i] = fn
 
