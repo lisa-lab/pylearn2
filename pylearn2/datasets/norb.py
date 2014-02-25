@@ -18,7 +18,7 @@ __maintainer__ = "Matthew Koichi Grimes"
 __email__ = "mkg alum mit edu (@..)"
 
 
-import os, gzip, bz2
+import os, gzip, bz2, warnings
 import numpy, theano
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.space import VectorSpace, Conv2DSpace, CompositeSpace
@@ -278,7 +278,6 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
         file_handle = open(getPath(which_set))
         return parseNORBFile(file_handle)
 
-
     def get_topological_view(self, mat=None, single_tensor=True):
         result = super(SmallNORB, self).get_topological_view(mat)
 
@@ -287,12 +286,20 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
                           "maintain backwards compatibility. This argument "
                           "will be removed, and the behavior will become that "
                           "of single_tensor=False, as of August 2014.")
-            axes = list(self.axes)
-            axes.remove('b')
+            axes = list(self.view_converter.axes)
             s_index = axes.index('s')
-            mono_shape = self.shape[:s_index] + [1, ] + self.shape[s_index:]
+            assert axes.index('b') == 0
+            num_image_pairs = result[0].shape[0]
+            shape = (num_image_pairs, ) + self.view_converter.shape
+
+            # inserts a singleton dimension where the 's' dimesion will be
+            mono_shape = shape[:s_index] + (1, ) + shape[(s_index+1):]
+
+            for i, res in enumerate(result):
+                print "result %d shape: %s" % (i, str(res.shape))
+
             result = tuple(t.reshape(mono_shape) for t in result)
-            result = numpy.concatenate(axis=s_index)
+            result = numpy.concatenate(result, axis=s_index)
         else:
             warnings.warn("The single_tensor argument will be removed on "
                           "August 2014. The behavior will be the same as "
