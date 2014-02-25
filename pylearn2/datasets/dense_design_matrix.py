@@ -195,7 +195,6 @@ class DenseDesignMatrix(Dataset):
 
             data_specs = (space, source)
             convert = None
-
         else:
             if data_specs is None:
                 data_specs = self._iter_data_specs
@@ -212,15 +211,17 @@ class DenseDesignMatrix(Dataset):
                 sub_sources = (source,)
 
             convert = []
+
             for sp, src in safe_zip(sub_spaces, sub_sources):
-                if (src == 'features' and
-                        getattr(self, 'view_converter', None) is not None):
+
+                if src == 'features' and \
+                   getattr(self, 'view_converter', None) is not None:
                     conv_fn = (lambda batch, self=self, space=sp:
-                               self.view_converter.get_formatted_batch(
-                                   batch,
-                                   space))
+                               self.view_converter.get_formatted_batch(batch,
+                                                                       space))
                 else:
                     conv_fn = None
+
                 convert.append(conv_fn)
 
         # TODO: Refactor
@@ -744,7 +745,7 @@ class DenseDesignMatrix(Dataset):
         rx = np.cast[config.floatX](rx)
         return rx
 
-    def get_batch_topo(self, batch_size, include_labels = False):
+    def get_batch_topo(self, batch_size, include_labels=False):
         """
         .. todo::
 
@@ -947,13 +948,13 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
             indices into the design matrix when choosing minibatches.
         """
 
-        super_args = {'X': X,
-                      'topo_view': topo_view,
-                      'y': y,
-                      'view_converter': view_converter,
-                      'axes': axes,
-                      'rng': rng}
-        super(DenseDesignMatrixPyTables, self).__init__(**super_args)
+        super_self = super(DenseDesignMatrixPyTables, self)
+        super_self.__init__(X=X,
+                            topo_view=topo_view,
+                            y=y,
+                            view_converter=view_converter,
+                            axes=axes,
+                            rng=rng)
         ensure_tables()
         if not hasattr(self, 'filters'):
             self.filters = tables.Filters(complib='blosc', complevel=5)
@@ -992,10 +993,11 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         rows = V.shape[axes.index(0)]
         cols = V.shape[axes.index(1)]
         channels = V.shape[axes.index('c')]
-        self.view_converter = DefaultViewConverter([rows, cols, channels], axes=axes)
+        self.view_converter = DefaultViewConverter([rows, cols, channels],
+                                                   axes=axes)
         X = self.view_converter.topo_view_to_design_mat(V)
         assert not np.any(np.isnan(X))
-        DenseDesignMatrixPyTables.fill_hdf5(file_handle=self.h5file,
+        DenseDesignMatrixPyTables.fill_hdf5(file=self.h5file,
                                             data_x=X,
                                             start=start)
 
@@ -1215,10 +1217,11 @@ class DefaultViewConverter(object):
         Reformat batch from the internal storage format into dspace.
         """
         if isinstance(dspace, VectorSpace):
-            # If a VectorSpace is requested, batch should already be
-            # in that space.
-            dspace.np_validate(batch)
-            return batch
+            # If a VectorSpace is requested, batch should already be in that
+            # space. We call np_format_as anyway, in case the batch needs to be
+            # cast to dspace.dtype. This also validates the batch shape, to
+            # check that it's a valid batch in dspace.
+            return dspace.np_format_as(batch, dspace)
         elif isinstance(dspace, Conv2DSpace):
             # design_mat_to_topo_view will return a batch formatted
             # in a Conv2DSpace, but not necessarily the right one.
@@ -1228,6 +1231,7 @@ class DefaultViewConverter(object):
                               "directly, please use the set_axes() method "
                               "instead." % self.__class__.__name__)
                 self._update_topo_space()
+
             return self.topo_space.np_format_as(topo_batch, dspace)
         else:
             raise ValueError("%s does not know how to format a batch into "
@@ -1299,23 +1303,9 @@ def from_dataset(dataset, num_examples):
 
 def dataset_range(dataset, start, stop):
     """
-    Returns a new dataset formed by extracting a range of examples from an
-    existing dataset.
+    .. todo::
 
-    Parameters
-    ----------
-    dataset : DenseDesignMatrix
-        The existing dataset to extract examples from.
-    start : int
-        Extract examples starting at this index.
-    stop : int
-        Stop extracting examples at this index. Do not include this index
-        itself (like the python `range` builtin)
-
-    Returns
-    -------
-    sub_dataset : DenseDesignMatrix
-        The new dataset containing examples [start, stop).
+        WRITEME
     """
 
     if dataset.X is None:

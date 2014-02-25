@@ -3,18 +3,17 @@ Iterators providing indices for different kinds of iteration over
 datasets.
 
 Presets:
-
-- sequential: iterates through fixed slices of the dataset in sequence
-- shuffled_sequential: iterates through a shuffled version of the dataset
-  in sequence
-- random_slice: on each call to next, returns a slice of the dataset,
-  chosen uniformly at random over contiguous slices
-  samples with replacement, but still reports that
-  container is empty after num_examples / batch_size calls
-- random_uniform: on each call to next, returns a random subset of the
-  dataset.
-  samples with replacement, but still reports that
-  container is empty after num_examples / batch_size calls
+    sequential: iterates through fixed slices of the dataset in sequence
+    shuffled_sequential: iterates through a shuffled version of the dataset
+                 in sequence
+    random_slice: on each call to next, returns a slice of the dataset,
+                  chosen uniformly at random over contiguous slices
+                  samples with replacement, but still reports that
+                  container is empty after num_examples / batch_size calls
+    random_uniform: on each call to next, returns a random subset of the
+                  dataset.
+                  samples with replacement, but still reports that
+                  container is empty after num_examples / batch_size calls
 """
 from __future__ import division
 import warnings
@@ -320,12 +319,13 @@ class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
     fancy = False
     stochastic = True
 
+
 class BatchwiseShuffledSequentialIterator(SequentialSubsetIterator):
     """
     Returns minibatches randomly, but sequential inside each minibatch
     """
 
-    def __init__(self, dataset_size, batch_size, num_batches = None, rng=None):
+    def __init__(self, dataset_size, batch_size, num_batches=None, rng=None):
         """
         .. todo::
 
@@ -396,6 +396,7 @@ def is_stochastic(mode):
         WRITEME
     """
     return resolve_iterator_class(mode).stochastic
+
 
 def resolve_iterator_class(mode):
     """
@@ -480,17 +481,13 @@ class FiniteDatasetIterator(object):
 
             init_fn = self._convert[i]
             fn = init_fn
-            # Compose the functions
 
             # If there is an init_fn, it is supposed to take
             # care of the formatting, and it should be an error
             # if it does not. If there was no init_fn, then
             # the iterator will try to format using the generic
             # space-formatting functions.
-            needs_format = (not init_fn and
-                            (not sp == dspace) or
-                            str(dt.dtype) != sp.dtype)
-            if needs_format:
+            if init_fn is None:
                 # "dspace" and "sp" have to be passed as parameters
                 # to lambda, in order to capture their current value,
                 # otherwise they would change in the next iteration

@@ -89,7 +89,7 @@ def is_symbolic_batch(batch):
     empty CompositeSpaces, None for NullSpaces).
     """
 
-    return _is_batch_all(batch, lambda x : isinstance(x, theano.gof.Variable))
+    return _is_batch_all(batch, lambda x: isinstance(x, theano.gof.Variable))
 
 
 def is_numeric_batch(batch):
@@ -138,7 +138,6 @@ def _reshape(arg, shape):
                   "replaced by a proper Theano Op for sparse reshaping, once "
                   "that is written.")
 
-
     if isinstance(arg, tuple):
         raise TypeError("Composite batches not supported.")
 
@@ -174,9 +173,6 @@ def _cast(arg, dtype):
 
     if dtype is None:
         return arg
-
-    if dtype = 'floatX':
-        dtype = theano.config.floatX  # this'll be 'float32' or 'float64'
 
     assert dtype in tuple(t.dtype for t in theano.scalar.all_types)
 
@@ -248,7 +244,6 @@ class Space(object):
         """
         raise NotImplementedError("__eq__ not implemented in class %s." %
                                   type(self))
-
 
     def __ne__(self, other):
         """
@@ -399,6 +394,7 @@ class Space(object):
         """
 
         self._check_is_numeric(batch)
+
         return self._format_as(is_numeric=True,
                                batch=batch,
                                space=space)
@@ -728,8 +724,7 @@ class VectorSpace(SimplyTypedSpace):
         kwargs : dict
             Passed on to superclass constructor.
         """
-
-        super(VectorSpace, self).__init__(**kwargs)
+        super(VectorSpace, self).__init__(dtype, **kwargs)
 
         self.dim = dim
         self.sparse = sparse
@@ -1032,10 +1027,11 @@ class Conv2DSpace(SimplyTypedSpace):
 
             WRITEME
         """
-        return ("%s(shape=%s, num_channels=%d, dtype=%s)" %
+        return ("%s(shape=%s, num_channels=%d, axes=%s, dtype=%s)" %
                 (self.__class__.__name__,
                  str(self.shape),
                  self.num_channels,
+                 str(self.axes),
                  self.dtype))
 
     def __eq__(self, other):
@@ -1044,10 +1040,15 @@ class Conv2DSpace(SimplyTypedSpace):
 
             WRITEME
         """
+        assert isinstance(self.axes, tuple)
+
+        if isinstance(other, Conv2DSpace):
+            assert isinstance(other.axes, tuple)
+
         return (type(self) == type(other) and
                 self.shape == other.shape and
                 self.num_channels == other.num_channels and
-                tuple(self.axes) == tuple(other.axes) and
+                self.axes == other.axes and
                 self.dtype == other.dtype)
 
     def __hash__(self):
