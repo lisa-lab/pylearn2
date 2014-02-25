@@ -401,7 +401,7 @@ class SGD(TrainingAlgorithm):
         on_load_batch = self.on_load_batch
         for batch in iterator:
             for callback in on_load_batch:
-                callback(mapping.nest(batch))
+                callback(*batch)
             self.sgd_update(*batch)
             # iterator might return a smaller batch if dataset size
             # isn't divisible by batch_size

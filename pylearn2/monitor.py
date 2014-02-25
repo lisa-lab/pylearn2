@@ -10,7 +10,6 @@ __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
 import copy
-import functools
 import time
 import warnings
 
@@ -431,7 +430,7 @@ class Monitor(object):
 
             for (channel_X, X) in safe_izip(channel_inputs, inputs):
                 assert channel_X not in g or g[channel_X] is X
-                assert channel_X.type == X.type
+                assert channel_X.type == X.type, (channel_X.type, X.type)
                 g[channel_X] = X
 
             if batch_size == 0:

@@ -1,7 +1,5 @@
 """
-.. todo::
-
-    WRITEME
+Utilities for working with data format specifications.
 """
 from pylearn2.space import CompositeSpace, NullSpace, Space
 from pylearn2.utils import safe_zip
@@ -246,7 +244,8 @@ class DataSpecsMapping(object):
 
         Parameters
         ----------
-        flat : WRITEME
+        flat : Space or tuple
+            WRITEME
 
         Returns
         -------
