@@ -358,6 +358,37 @@ def test_serialize_twice():
 
     assert x == y
 
+def test_save_load_save():
+
+    """
+    Test that a monitor can be saved, then loaded, and then the loaded
+    copy can be saved again.
+    This only tests that the serialization and deserialization processes
+    don't raise an exception. It doesn't test for correctness at all.
+    """
+
+    model = DummyModel(1)
+    monitor = Monitor.get_monitor(model)
+
+    num_examples = 2
+    num_features = 3
+    num_batches = 1
+    batch_size = 2
+
+    dataset = DummyDataset(num_examples, num_features)
+    monitor.add_dataset(dataset=dataset,
+                            num_batches=num_batches, batch_size=batch_size)
+    vis_batch = T.matrix()
+    mean = vis_batch.mean()
+    data_specs = (monitor.model.get_input_space(),
+                  monitor.model.get_input_source())
+    monitor.add_channel(name='mean', ipt=vis_batch, val=mean, dataset=dataset,
+                        data_specs=data_specs)
+
+    saved = to_string(monitor)
+    monitor = from_string(saved)
+    saved_again = to_string(monitor)
+
 def test_valid_after_serialize():
 
     # Test that serializing the monitor does not ruin it

@@ -1,0 +1,36 @@
+!obj:pylearn2.train.Train {
+    dataset: &train !obj:pylearn2.datasets.mnist.MNIST {
+        which_set: 'train',
+        one_hot: 1,
+        start: 0,
+        stop: 50000
+    },
+    model: !obj:pylearn2.models.mlp.MLP {
+        layers: [
+            !obj:pylearn2.models.mlp.Sigmoid {
+                layer_name: 'h0',
+                dim: 500,
+                sparse_init: 15,
+            }, !obj:pylearn2.models.mlp.Softmax {
+                layer_name: 'y',
+                n_classes: 10,
+                irange: 0.
+            }
+        ],
+        nvis: 784,
+    },
+    algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
+        batch_size: 100,
+        learning_rate: %(learning_rate)f,
+        learning_rule: !obj:pylearn2.training_algorithms.learning_rule.Momentum {
+            init_momentum: %(init_momentum)f,
+        },
+        monitoring_batches: 10,
+        monitoring_dataset : *train,
+        termination_criterion: !obj:pylearn2.termination_criteria.EpochCounter {
+            max_epochs: 1
+        },
+    },
+    save_path: "mlp.pkl",
+    save_freq : 5
+}

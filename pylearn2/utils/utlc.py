@@ -10,7 +10,7 @@ from tempfile import TemporaryFile
 # Third-party imports
 import numpy
 import theano
-from pylearn.datasets.utlc import load_ndarray_dataset, load_sparse_dataset
+from pylearn2.datasets.utlc import load_ndarray_dataset, load_sparse_dataset
 from pylearn2.utils import subdict, sharedX, embed
 
 

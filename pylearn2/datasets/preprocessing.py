@@ -808,18 +808,21 @@ class GlobalContrastNormalization(Preprocessor):
                                           min_divisor=self._min_divisor)
             dataset.set_design_matrix(X)
         else:
-            X = dataset.get_design_matrix()
-            data_size = X.shape[0]
+            data = dataset.get_design_matrix()
+            data_size = data.shape[0]
             last = (numpy.floor(data_size / float(self._batch_size)) *
                     self._batch_size)
             for i in xrange(0, data_size, self._batch_size):
-                if i >= last:
-                    stop = i + numpy.mod(data_size, self._batch_size)
-                else:
-                    stop = i + self._batch_size
+                stop = i + self._batch_size
                 log.info("GCN processing data from %d to %d" % (i, stop))
-                data = self.transform(X[i:stop])
-                dataset.set_design_matrix(data, start=i)
+                X = data[i:stop]
+                X = global_contrast_normalize(X,
+                                          scale=self._scale,
+                                          subtract_mean=self._subtract_mean,
+                                          use_std=self._use_std,
+                                          sqrt_bias=self._sqrt_bias,
+                                          min_divisor=self._min_divisor)
+                dataset.set_design_matrix(X, start=i)
 
 
 class ZCA(Preprocessor):
@@ -1349,7 +1352,8 @@ def lecun_lcn(input, img_shape, kernel_shape, threshold=1e-4):
 
 def gaussian_filter(kernel_shape):
 
-    x = numpy.zeros((kernel_shape, kernel_shape), dtype='float32')
+    x = numpy.zeros((kernel_shape, kernel_shape),
+                    dtype=theano.config.floatX)
 
     def gauss(x, y, sigma=2.0):
         Z = 2 * numpy.pi * sigma**2

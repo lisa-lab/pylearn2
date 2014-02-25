@@ -1,7 +1,5 @@
 """
-.. todo::
-
-    WRITEME
+Code for listing files that belong to the library.
 """
 import pylearn2
 import os
@@ -15,24 +13,37 @@ __email__ = "goodfeli@iro"
 
 def list_files(suffix=""):
     """
-    .. todo::
+    Parameters
+    ----------
+    suffix : str
+    Returns
+    -------
 
-        WRITEME properly
-
-    Lists all files in pylearn2 whose filepath
-    ends with suffix
+    file_list : list
+        A list of all files in pylearn2 whose filepath ends with `suffix`
     """
 
     pl2_path, = pylearn2.__path__
 
-    return _list_files(pl2_path, suffix)
+    file_list = _list_files(pl2_path, suffix)
+
+    return file_list
 
 
 def _list_files(path, suffix=""):
     """
-    .. todo::
+    Parameters
+    ----------
+    path : str
+        a filepath
+    suffix : str
 
-        WRITEME
+    Returns
+    -------
+    l : list
+        A list of all files ending in `suffix` contained within `path`.
+        (If `path` is a file rather than a directory, it is considered to
+        "contain" itself)
     """
     if os.path.isdir(path):
         incomplete = os.listdir(path)
@@ -50,6 +61,7 @@ def _list_files(path, suffix=""):
         return []
 
 if __name__ == '__main__':
+    # Print all .py files in the library
     result = list_files('.py')
     for path in result:
         print path

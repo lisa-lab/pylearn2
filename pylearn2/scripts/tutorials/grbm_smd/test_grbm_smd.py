@@ -7,7 +7,7 @@ from theano import config
 @no_debug_mode
 def test_train_example():
     """ tests that the grbm_smd example script runs correctly """
-    
+
     assert config.mode != "DEBUG_MODE"
     path = pylearn2.__path__[0]
     train_example_path = os.path.join(path, 'scripts', 'tutorials', 'grbm_smd')

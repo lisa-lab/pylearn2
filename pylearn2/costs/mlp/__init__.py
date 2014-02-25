@@ -1,7 +1,5 @@
 """
-.. todo::
-
-    WRITEME
+Costs for use with the MLP model class.
 """
 __authors__ = 'Vincent Archambault-Bouffard, Ian Goodfellow'
 __copyright__ = "Copyright 2013, Universite de Montreal"
@@ -22,9 +20,18 @@ class Default(DefaultDataSpecsMixin, Cost):
 
     def expr(self, model, data, **kwargs):
         """
-        .. todo::
+        Parameters
+        ----------
+        model : MLP
+        data : tuple
+            Should be a valid occupant of
+            CompositeSpace(model.get_input_space(),
+            model.get_output_space())
 
-            WRITEME
+        Returns
+        -------
+        rval : theano.gof.Variable
+            The cost obtained by calling model.cost_from_X(data)
         """
         space, sources = self.get_data_specs(model)
         space.validate(data)
@@ -41,24 +48,33 @@ class WeightDecay(NullDataSpecsMixin, Cost):
 
     def __init__(self, coeffs):
         """
-        .. todo::
+        Parameters
+        ----------
+        coeffs : list
+            One element per layer, specifying the coefficient to multiply
+            with the cost defined by the squared L2 norm of the weights for
+            each layer.
 
-            WRITEME properly
-        
-        coeffs: a list, one element per layer, specifying the coefficient
-                to multiply with the cost defined by the squared L2 norm of the weights
-                for each layer.
-
-                Each element may in turn be a list, ie, for CompositeLayers.
+            Each element may in turn be a list, e.g., for CompositeLayers.
         """
         self.__dict__.update(locals())
         del self.self
 
     def expr(self, model, data, ** kwargs):
         """
-        .. todo::
+        Parameters
+        ----------
+        model : MLP
+        data : tuple
+            Should be a valid occupant of
+            CompositeSpace(model.get_input_space(),
+            model.get_output_space())
 
-            WRITEME
+        Returns
+        -------
+        total_cost : theano.gof.Variable
+            coeff * sum(sqr(weights))
+            added up for each set of weights.
         """
         self.get_data_specs(model)[0].validate(data)
 
@@ -97,29 +113,37 @@ class L1WeightDecay(NullDataSpecsMixin, Cost):
     coeff * sum(abs(weights))
 
     for each set of weights.
-
     """
 
     def __init__(self, coeffs):
         """
-        .. todo::
+        Parameters
+        ----------
+        coeffs : list
+            One element per layer, specifying the coefficient to multiply
+            with the cost defined by the L1 norm of the weights for each
+            layer.
 
-            WRITEME properly
-        
-        coeffs: a list, one element per layer, specifying the coefficient
-                to multiply with the cost defined by the L1 norm of the
-                weights(lasso) for each layer.
-
-                Each element may in turn be a list, ie, for CompositeLayers.
+            Each element may in turn be a list, e.g., for CompositeLayers.
         """
         self.__dict__.update(locals())
         del self.self
 
     def expr(self, model, data, ** kwargs):
         """
-        .. todo::
+        Parameters
+        ----------
+        model : MLP
+        data : tuple
+            Should be a valid occupant of
+            CompositeSpace(model.get_input_space(),
+            model.get_output_space())
 
-            WRITEME
+        Returns
+        -------
+        total_cost : theano.gof.Variable
+            coeff * sum(abs(weights))
+            added up for each set of weights.
         """
         self.get_data_specs(model)[0].validate(data)
         layer_costs = [ layer.get_l1_weight_decay(coeff)

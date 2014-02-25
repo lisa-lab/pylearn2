@@ -4,10 +4,11 @@ Test dbm_metrics script
 import numpy
 import theano
 from theano import tensor as T
+from pylearn2.models.dbm.dbm import DBM
+from pylearn2.models.dbm.layer import BinaryVector, BinaryVectorMaxPool
 from pylearn2.scripts.dbm import dbm_metrics
 from pylearn2 import rbm_tools
 from pylearn2.datasets.mnist import MNIST
-from pylearn2.models.dbm import DBM, BinaryVector, BinaryVectorMaxPool
 from nose.plugins.skip import SkipTest
 from pylearn2.datasets.exc import NoDataPathError
 from pylearn2.testing import no_debug_mode

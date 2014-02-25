@@ -9,7 +9,7 @@ import warnings
 
 
 is_initialized = False
-
+additional_environ = None
 
 def load(stream, overrides=None, environ=None, **kwargs):
     """
@@ -40,17 +40,17 @@ def load(stream, overrides=None, environ=None, **kwargs):
     Other keyword arguments are passed on to `yaml.load`.
     """
     global is_initialized
+    global additional_environ
     if not is_initialized:
         initialize()
+    additional_environ = environ
 
     if isinstance(stream, basestring):
         string = stream
     else:
         string = '\n'.join(stream.readlines())
 
-    processed_string = preprocess(string, environ=environ)
-
-    proxy_graph = yaml.load(processed_string, **kwargs)
+    proxy_graph = yaml.load(string, **kwargs)
 
     if overrides is not None:
         warnings.warn("The 'overrides' keyword is deprecated and will "
@@ -149,6 +149,9 @@ def instantiate_all(graph):
         for key in graph:
             if should_instantiate(graph[key]):
                 graph[key] = instantiate_all(graph[key])
+            if isinstance(graph[key], basestring):       # preprocess strings
+                graph[key] = preprocess(graph[key], additional_environ)
+
         if hasattr(graph, 'keys'):
             for key in graph.keys():
                 if should_instantiate(key):
@@ -311,9 +314,14 @@ def initialize():
 
     yaml.add_constructor('!import', constructor_import)
     yaml.add_implicit_resolver(
-        '!import',
-        re.compile(r'(?:[a-zA-Z_][\w_]+\.)+[a-zA-Z_][\w_]+')
+        '!import', re.compile(r'(?:[a-zA-Z_][\w_]+\.)+[a-zA-Z_][\w_]+')
     )
+
+    yaml.add_constructor("!float", constructor_float)
+    yaml.add_implicit_resolver(
+        '!float', re.compile(r' [-+]?[0-9]*\.?[0-9]+([eE][-+]?[0-9]+)?')
+    )
+
     is_initialized = True
 
 
@@ -341,14 +349,14 @@ def multi_constructor_pkl(loader, tag_suffix, node):
     """
     Callback used by PyYAML when a "!pkl:" tag is encountered.
     """
-
-    mapping = loader.construct_yaml_str(node)
+    global additional_environ
     if tag_suffix != "" and tag_suffix != u"":
         raise AssertionError('Expected tag_suffix to be "" but it is "' + tag_suffix +
                     '": Put space between !pkl: and the filename.')
 
+    mapping = loader.construct_yaml_str(node)
     rval = ObjectProxy(None, {}, yaml.serialize(node))
-    rval.instance = serial.load(mapping)
+    rval.instance = serial.load(preprocess(mapping, additional_environ))
 
     return rval
 
@@ -370,8 +378,13 @@ def constructor_import(loader, node):
         raise yaml.YAMLError("import tag suffix contains no '.'")
     return try_to_import(value)
 
-
-
+def constructor_float(loader, node):
+    """
+    Callback used by PyYAML when a "!float <str>" tag is encountered.
+    This tag exects a (quoted) string as argument.
+    """
+    value = loader.construct_scalar(node)
+    return float(value)
 
 if __name__ == "__main__":
     initialize()

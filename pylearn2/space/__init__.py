@@ -40,7 +40,8 @@ from theano import tensor
 from theano.tensor import TensorType
 from theano.gof.op import get_debug_values
 from theano.sandbox.cuda.type import CudaNdarrayType
-from pylearn2.utils import py_integer_types, safe_zip, sharedX
+from pylearn2.utils import py_integer_types, safe_zip, sharedX, wraps
+from pylearn2.format.target_format import OneHotFormatter
 
 if theano.sparse.enable_sparse:
     # We know scipy.sparse is available
@@ -215,13 +216,13 @@ class Space(object):
 
         Parameters
         ----------
-        validate_callbacks : list or tuple
+        validate_callbacks : list
             Callbacks that are run at the start of a call to validate.
             Each should be a callable with the same signature as validate.
             An example use case is installing an instance-specific error
             handler that provides extra instructions for how to correct an
             input that is in a bad space.
-        np_validate_callacks : list or tuple
+        np_validate_callacks : list
             similar to validate_callbacks, but run on calls to np_validate
         """
 
@@ -291,7 +292,7 @@ class Space(object):
         Returns
         -------
         origin : ndarray
-            An NumPy array, the shape of a single points in this
+            An NumPy array, the shape of a single points in this \
             space, representing the origin.
         """
         raise NotImplementedError()
@@ -343,7 +344,7 @@ class Space(object):
 
         Returns
         -------
-        batch : TensorVariable or SparseVariable
+        batch : TensorVariable, SparseVariable, or tuple thereof
             A batch with the appropriate number of dimensions and \
             appropriate broadcast flags to represent a batch of \
             points in this space.
@@ -351,11 +352,17 @@ class Space(object):
         raise NotImplementedError()
 
     def make_batch_theano(self, name=None, dtype=None, batch_size=None):
-        """An alias for make_theano_batch()"""
+        """ An alias to make_theano_batch """
 
         return self.make_theano_batch(name=name,
                                       dtype=dtype,
                                       batch_size=batch_size)
+
+
+    @wraps(make_theano_batch)
+    def get_theano_batch(self, *args, **kwargs):
+
+        return self.make_theano_batch(*args, **kwargs)
 
     def get_total_dimension(self):
         """
@@ -413,6 +420,9 @@ class Space(object):
 
         Calls the appropriate callbacks, then calls self._format_as_impl().
 
+        Should be invertible, i.e. batch should equal
+        `space._format_as(self._format_as(batch, space), self)`
+
         Parameters
         ----------
         is_numeric : bool.
@@ -441,15 +451,13 @@ class Space(object):
                              str(space) + "because its total dimension is " +
                              str(other_dimension))
 
-        return self._format_as_impl(is_numeric, batch, space)
-
         # Returns the batch untouched if no conversion is necessary.
         #
         # Checking if self == space is not enough, since validate() allows
         # batch to have a different dtype than self.dtype (for
         # backwards-compatibility reasons).
-        if self == space and str(batch.dtype) == self.dtype:
-            return batch
+        # if self == space and (space.dtype is None or str(batch.dtype) == space.dtype):
+        #     return batch
 
         return self._format_as_impl(is_numeric, batch, space)
 
@@ -459,7 +467,7 @@ class Space(object):
         target_space.
 
         Should be invertible, i.e. batch should equal
-        `space.format_as(self.format_as(batch, space), self)`
+        `space._format_as_impl(self._format_as_impl(batch, space), self)`
 
         Parameters
         ----------
@@ -699,6 +707,157 @@ class SimplyTypedSpace(Space):
     @dtype.setter
     def dtype(self, new_dtype):
         self._dtype = super(SimplyTypedSpace, self)._clean_dtype_arg(new_dtype)
+
+
+class IndexSpace(Space):
+    """
+    A space representing indices, for example MNIST labels (0-10) or the
+    indices of words in a dictionary for NLP tasks. A single space can
+    contain multiple indices, for example the word indices of an n-gram.
+
+    IndexSpaces can be converted to VectorSpaces in two ways: Either the
+    labels are converted into one-hot vectors which are then concatenated,
+    or they are converted into a single vector where 1s indicate labels
+    present i.e. for 4 possible labels we have [0, 2] -> [1 0 1 0] or
+    [0, 2] -> [1 0 0 0 0 0 1 0].
+    """
+    def __init__(self, max_labels, dim, **kwargs):
+        """
+        Initialize an IndexSpace.
+
+        Parameters
+        ----------
+        max_labels : int
+            The number of possible classes/labels. This means that
+            all labels should be < max_labels. Example: For MNIST
+            there are 10 numbers and hence max_labels = 10.
+        dim : int
+            The number of indices in one space e.g. for MNIST there is
+            one target label and hence dim = 1. If we have an n-gram
+            of word indices as input to a neurel net language model, dim = n.
+        kwargs: passes on to superclass constructor
+        """
+
+        super(IndexSpace, self).__init__(**kwargs)
+
+        self.max_labels = max_labels
+        self.dim = dim
+        self.formatter = OneHotFormatter(self.max_labels)
+
+    def __str__(self):
+        """
+        Return a string representation.
+        """
+        return '%(classname)s(dim=%(dim)s, max_labels=%(max_labels)s)' % \
+               dict(classname=self.__class__.__name__,
+                    dim=self.dim,
+                    max_labels=self.max_labels)
+
+    def __eq__(self, other):
+        return (type(self) == type(other) and
+                self.max_labels == other.max_labels and
+                self.dim == other.dim)
+
+    def __ne__(self, other):
+        return (not self == other)
+
+    @functools.wraps(Space.get_total_dimension)
+    def get_total_dimension(self):
+        return self.dim
+
+    @functools.wraps(Space.np_format_as)
+    def np_format_as(self, batch, space):
+        if isinstance(space, VectorSpace):
+            if self.max_labels == space.dim:
+                rval = self.formatter.format(batch, sparse=space.sparse,
+                                             mode='merge')
+            elif self.dim * self.max_labels == space.dim:
+                rval = self.formatter.format(batch, sparse=space.sparse,
+                                             mode='concatenate')
+            else:
+                raise ValueError("Can't convert %s to %s"
+                                 % (self, space))
+            return rval
+        else:
+            raise ValueError("Can't convert %s to %s"
+                             % (self, space))
+
+    @functools.wraps(Space._format_as)
+    def _format_as(self, batch, space):
+        """
+        Supports formatting to a VectorSpace where indices are represented
+        by ones in a binary vector.
+        """
+        if isinstance(space, VectorSpace):
+            if self.max_labels == space.dim:
+                rval = self.formatter.theano_expr(batch, sparse=space.sparse,
+                                                  mode='merge')
+            elif self.dim * self.max_labels == space.dim:
+                rval = self.formatter.theano_expr(batch, sparse=space.sparse,
+                                                  mode='concatenate')
+            else:
+                raise ValueError("Can't convert %s to %s"
+                                 % (self, space))
+            return rval
+        else:
+            raise ValueError("Can't convert %s to %s"
+                             % (self, space))
+
+    @functools.wraps(Space.make_theano_batch)
+    def make_theano_batch(self, name=None, dtype=None, batch_size=None):
+        if batch_size == 1:
+            rval = T.lrow(name=name)
+        else:
+            rval = T.lmatrix(name=name)
+        return rval
+
+    @functools.wraps(Space.batch_size)
+    def batch_size(self, batch):
+        self.validate(batch)
+        return batch.shape[0]
+
+    @functools.wraps(Space.np_batch_size)
+    def np_batch_size(self, batch):
+        self.np_validate(batch)
+        return batch.shape[0]
+
+    @functools.wraps(Space._validate)
+    def _validate(self, batch):
+        """
+        .. todo::
+
+            WRITEME
+        """
+        if not isinstance(batch, theano.gof.Variable):
+            raise TypeError("IndexSpace batch should be a theano Variable, "
+                            "got " + str(type(batch)))
+        if not isinstance(batch.type, (theano.tensor.TensorType,
+                                       CudaNdarrayType)):
+            raise TypeError("VectorSpace batch should be TensorType or "
+                            "CudaNdarrayType, got "+str(batch.type))
+        if batch.ndim != 2:
+            raise ValueError('IndexSpace batches must be 2D, got %d '
+                             'dimensions' % batch.ndim)
+        for val in get_debug_values(batch):
+            self.np_validate(val)
+
+    @functools.wraps(Space._np_validate)
+    def _np_validate(self, batch):
+        # Use the 'CudaNdarray' string to avoid importing theano.sandbox.cuda
+        # when it is not available
+        if (not isinstance(batch, np.ndarray)
+            and str(type(batch)) != "<type 'CudaNdarray'>"):
+            raise TypeError("The value of a IndexSpace batch should be a "
+                            "numpy.ndarray, or CudaNdarray, but is %s."
+                            % str(type(batch)))
+        if batch.ndim != 2:
+            raise ValueError("The value of a IndexSpace batch must be "
+                             "2D, got %d dimensions for %s." % (batch.ndim,
+                                                                batch))
+        if batch.shape[1] != self.dim:
+            raise ValueError("The width of a IndexSpace batch must match "
+                             "with the space's dimension, but batch has shape "
+                             "%s and dim = %d." % (str(batch.shape), self.dim))
 
 
 class VectorSpace(SimplyTypedSpace):

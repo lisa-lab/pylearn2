@@ -1,0 +1,5 @@
+!obj:pylearn2.models.softmax_regression.SoftmaxRegression {
+    n_classes: 10,
+    irange: 0.,
+    nvis: 784,
+}

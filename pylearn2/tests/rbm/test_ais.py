@@ -24,9 +24,9 @@ def compute_logz(rbm_params):
     (nvis, nhid) = rbm_params[0].shape
 
     model = rbm.RBM(nvis, nhid)
-    model.weights.set_value(rbm_params[0])
-    model.visbias.set_value(rbm_params[1])
-    model.hidbias.set_value(rbm_params[2])
+    model.transformer.get_params()[0].set_value(rbm_params[0])
+    model.bias_vis.set_value(rbm_params[1])
+    model.bias_hid.set_value(rbm_params[2])
 
     hid = T.matrix('hid')
     hid_fe = model.free_energy_given_h(hid)
@@ -55,9 +55,9 @@ def ais_data(fname, do_exact=True):
     rbm_params = load_rbm_params(fname)
 
     # load data to set visible biases to ML solution
-    from pylearn.datasets import MNIST
-    dataset = MNIST.train_valid_test()
-    data = numpy.asarray(dataset.train.x, dtype=config.floatX)
+    from pylearn2.datasets.mnist import MNIST
+    dataset = MNIST(which_set='train', one_hot=True)
+    data = numpy.asarray(dataset.X, dtype=config.floatX)
 
     # run ais using B=0 model with ML visible biases
     t1 = time.time()

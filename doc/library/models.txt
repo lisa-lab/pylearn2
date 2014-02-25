@@ -49,3 +49,58 @@ Maxout
 ======
 .. automodule:: pylearn2.models.maxout
     :members:
+
+Dense binary DBM
+================
+.. automodule:: pylearn2.models.dense_binary_dbm
+    :members:
+
+Differentiable sparse coding
+============================
+.. automodule:: pylearn2.models.differentiable_sparse_coding
+    :members:
+
+GSN
+===
+.. automodule:: pylearn2.models.gsn
+    :members:
+
+Independent multiclass logistic
+===============================
+.. automodule:: pylearn2.models.independent_multiclass_logistic
+    :members:
+
+Local coordinate coding
+=======================
+.. automodule:: pylearn2.models.local_coordinate_coding
+    :members:
+
+Multivariate normal distribution
+================================
+.. automodule:: pylearn2.models.mnd
+    :members:
+
+Normalized EBM
+==============
+.. automodule:: pylearn2.models.normalized_ebm
+    :members:
+
+S3C
+===
+.. automodule:: pylearn2.models.s3c
+    :members:
+
+Softmax Regression
+==================
+.. automodule:: pylearn2.models.softmax_regression
+    :members:
+
+Sparse Autoencoder
+==================
+.. automodule:: pylearn2.models.sparse_autoencoder
+    :members:
+
+SVM
+===
+.. automodule:: pylearn2.models.svm
+    :members:

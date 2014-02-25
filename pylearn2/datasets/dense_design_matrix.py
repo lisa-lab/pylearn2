@@ -31,7 +31,7 @@ tables = None
 
 from pylearn2.datasets.dataset import Dataset
 from pylearn2.datasets import control
-from pylearn2.space import CompositeSpace, Conv2DSpace, VectorSpace
+from pylearn2.space import CompositeSpace, Conv2DSpace, VectorSpace, IndexSpace
 from pylearn2.utils import safe_zip
 from theano import config
 
@@ -55,7 +55,8 @@ class DenseDesignMatrix(Dataset):
 
     def __init__(self, X=None, topo_view=None, y=None,
                  view_converter=None, axes=('b', 0, 1, 'c'),
-                 rng=_default_seed, preprocessor=None, fit_preprocessor=False):
+                 rng=_default_seed, preprocessor=None, fit_preprocessor=False,
+                 max_labels=None):
         """
         Parameters
         ----------
@@ -79,9 +80,21 @@ class DenseDesignMatrix(Dataset):
         rng : object, optional
             A random number generator used for picking random \
             indices into the design matrix when choosing minibatches.
+        max_labels : int, optional
+            If y contains labels (usually an IndexSpace) then max_labels \
+            must be passed to indicate the total number of possible labels \
+            e.g. 10 for MNIST, or the size of your target vocabulary in a \
+            language model. Note that this is the same as the size of the \
+            output layer in the case the target labels are formatted as \
+            one-hot vectors (in a VectorSpace).
         """
         self.X = X
         self.y = y
+        self.max_labels = max_labels
+
+        if max_labels is not None:
+            assert y is not None
+            assert np.all(y < max_labels)
 
         if topo_view is not None:
             assert view_converter is None
@@ -184,6 +197,7 @@ class DenseDesignMatrix(Dataset):
 
             data_specs = (space, source)
             convert = None
+
         else:
             if data_specs is None:
                 data_specs = self._iter_data_specs
@@ -200,7 +214,6 @@ class DenseDesignMatrix(Dataset):
                 sub_sources = (source,)
 
             convert = []
-
             for sp, src in safe_zip(sub_spaces, sub_sources):
                 if src == 'features' and \
                    getattr(self, 'view_converter', None) is not None:
@@ -643,8 +656,13 @@ class DenseDesignMatrix(Dataset):
             space = X_space
             source = X_source
         else:
-            y_space = VectorSpace(dim=self.y.shape[-1])
-            y_source = 'targets'
+            if self.y.ndim != 2:
+                assert self.max_labels
+                y_space = IndexSpace(max_labels=self.max_labels, dim=1)
+                y_source = 'targets'
+            else:
+                y_space = VectorSpace(dim=self.y.shape[-1])
+                y_source = 'targets'
             space = CompositeSpace((X_space, y_space))
             source = (X_source, y_source)
 
@@ -946,7 +964,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
         """
         assert len(X.shape) == 2
         assert not np.any(np.isnan(X))
-        DenseDesignMatrixPyTables.fill_hdf5(file=self.h5file,
+        DenseDesignMatrixPyTables.fill_hdf5(file_handle=self.h5file,
                                             data_x=X,
                                             start=start)
 
@@ -976,7 +994,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
                                                    axes=axes)
         X = self.view_converter.topo_view_to_design_mat(V)
         assert not np.any(np.isnan(X))
-        DenseDesignMatrixPyTables.fill_hdf5(file=self.h5file,
+        DenseDesignMatrixPyTables.fill_hdf5(file_handle=self.h5file,
                                             data_x=X,
                                             start=start)
 
