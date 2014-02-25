@@ -882,7 +882,8 @@ class ZCA(Preprocessor):
         if not hasattr(ZCA._gpu_matrix_dot, 'theano_func'):
             ma, mb = theano.tensor.matrices('A', 'B')
             mc = theano.tensor.dot(ma, mb)
-            ZCA._gpu_matrix_dot.theano_func = theano.function([ma, mb], mc)
+            ZCA._gpu_matrix_dot.theano_func = theano.function([ma, mb], mc,
+                    allow_input_downcast=True)
 
         theano_func = ZCA._gpu_matrix_dot.theano_func
 
