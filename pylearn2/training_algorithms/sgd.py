@@ -508,13 +508,15 @@ class MonitorBasedLRAdjuster(TrainExtension):
         self.grow_amt = grow_amt
         self.min_lr = min_lr
         self.max_lr = max_lr
+        self.dataset_name = None
         if channel_name is not None:
             self.channel_name = channel_name
         else:
             if dataset_name is not None:
                 self.channel_name = dataset_name + '_objective'
+                self.dataset_name = dataset_name
             else:
-                self.channel_name = 'objective'
+                self.channel_name = None
 
     def on_monitor(self, model, dataset, algorithm):
         """
@@ -524,16 +526,37 @@ class MonitorBasedLRAdjuster(TrainExtension):
         model = algorithm.model
         lr = algorithm.learning_rate
         current_learning_rate = lr.get_value()
-        assert hasattr(model, 'monitor'), ("no monitor associated with " +
-                                           str(model))
+        assert hasattr(model, 'monitor'), ("no monitor associated with " + str(model))
         monitor = model.monitor
+        monitor_channel_specified = True
+
+        if self.channel_name is None:
+            monitor_channel_specified = False
+            channels = [elem for elem in monitor.channels if elem.endswith("objective")]
+            if len(channels) < 1:
+                raise ValueError("""There are no monitoring channels that end with \"objective\". Please specify either channel_name or dataset_name.""")
+            elif len(channels) > 1:
+                datasets = algorithm.monitoring_dataset.keys()
+                raise ValueError('There are multiple monitoring channels that ends with \"_objective\". The list of available datasets are: ' +
+                                str(datasets) + ' . Please specify either channel_name or dataset_name in the MonitorBasedLRAdjuster constructor to disambiguate.')
+            else:
+                self.channel_name = channels[0]
+                warnings.warn('The channel that has been chosen for monitoring is: ' +
+                              str(self.channel_name) + '.')
 
         try:
             v = monitor.channels[self.channel_name].val_record
         except KeyError:
-            raise KeyError('There is no monitoring channel named ' + \
-                    self.channel_name + '. You probably need to specify '
-                    'dataset_name in the MonitorBasedLRAdjuster constructor.')
+            err_input = ''
+            if monitor_channel_specified:
+                if self.dataset_name:
+                    err_input = 'The dataset_name \'' + str(self.dataset_name) + '\' is not valid.'
+                else:
+                    err_input = 'The channel_name \'' + str(self.channel_name) + '\' is not valid.'
+            err_message = 'There is no monitoring channel named \'' + \
+                    str(self.channel_name) + '\'. You probably need to specify a valid monitoring channel by using either ' + \
+                    'dataset_name or channel_name in the MonitorBasedLRAdjuster constructor. ' + err_input
+            raise ValueError(err_message)
 
         if len(v) < 1:
             if monitor.dataset is None:
@@ -557,6 +580,8 @@ class MonitorBasedLRAdjuster(TrainExtension):
             return
 
         rval = current_learning_rate
+
+        print "monitoring channel is %s" %self.channel_name
 
         if v[-1] > self.high_trigger * v[-2]:
             rval *= self.shrink_amt
@@ -799,7 +824,7 @@ def MomentumAdjustor(final_momentum, start, saturate):
     Use learning_rule.MomentumAdjustor instead.
     """
     warnings.warn("sgd.MomentumAdjustor interface is deprecated and will "
-    "become officially unsuported as of May 9, 2014. Please use "
+    "become officially unsupported as of May 9, 2014. Please use "
     "`learning_rule.MomentumAdjustor` instead.")
     return LRMomentumAdjustor(final_momentum, start, saturate)
 

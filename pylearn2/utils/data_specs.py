@@ -114,6 +114,11 @@ class DataSpecsMapping(object):
             # "nested" should actually be a single element
             idx = mapping
             if isinstance(nested, tuple):
+                if len(nested) != 1:
+                    raise ValueError("When mapping is an int, we expect "
+                            "nested to be a single element. But mapping is "
+                            + str(mapping) + " and nested is a tuple of "
+                            "length " + str(len(nested)))
                 nested, = nested
 
             if rval[idx] is None:

@@ -21,17 +21,19 @@ from pylearn2.utils.shell import run_shell_command
 
 def run_pyflakes(no_warnings = False):
     """
-    .. todo::
+    Return a description of all errors pyflakes finds in Pylearn2.
 
-        WRITEME properly
+    Parameters
+    ----------
+    no_warnings : bool
+        If True, omits pyflakes outputs that don't correspond to actual
+        errors.
 
-    Returns a dictionary mapping pylearn2 .py filepaths
-    to outputs from pyflakes.
-
-    Omits files for which there was no output.
-
-    If no_warnings = True, omits pyflakes outputs that don't
-    correspond to actual errors.
+    Returns
+    -------
+    rval : dict
+        Keys are pylearn2 .py filepaths
+        Values are outputs from pyflakes
     """
 
     files = list_files(".py")
@@ -59,9 +61,19 @@ def run_pyflakes(no_warnings = False):
 
 def _filter(output, no_warnings):
     """
-    .. todo::
+    Parameters
+    ----------
+    output : str
+        The output of pyflakes for a single.py file
+    no_warnings: bool
+        If True, removes lines corresponding to warnings rather than errors
 
-        WRITEME
+    Returns
+    -------
+    rval: None or str
+        `output` with blank lines and optionally lines corresponding to
+        warnings removed, or, if all lines are removed, returns None.
+        A return value of None indicates that the file is validly formatted.
     """
     lines = output.split('\n')
 

@@ -10,6 +10,7 @@ __maintainer__ = "David Warde-Farley"
 __all__ = ['one_hot', 'k_hot', "compressed_one_hot"]
 
 import numpy as np
+import warnings
 
 
 def _validate_labels(labels, ndim):
@@ -119,6 +120,10 @@ def one_hot(labels, max_label=None, dtype=None, out=None):
     out : ndarray, (nlabels, max_label + 1)
         The resulting one-hot matrix.
     """
+    warnings.warn("pylearn2.utils.one_hot is deprecated. Use "
+                  "pylearn2.format.target_format.OneHotFomatter "
+                  "instead. pylearn2.utils.one_hot will be removed "
+                  "on or after 13 August 2014", stacklevel=2)
     labels = _validate_labels(labels, 1)
     max_label = _validate_max_label(labels, max_label)
     dtype = _validate_dtype(labels, dtype, out)
@@ -158,6 +163,10 @@ def k_hot(labels, max_label=None, dtype=None, out=None):
         in the same row more than once then there may be less \
         than k elements active in the corresponding row of `out`.
     """
+    warnings.warn("pylearn2.utils.one_hot is deprecated. Use "
+                  "pylearn2.format.target_format.OneHotFomatter "
+                  "instead. pylearn2.utils.one_hot will be removed "
+                  "on or after 13 August 2014", stacklevel=2)
     labels = _validate_labels(labels, 2)
     max_label = _validate_max_label(labels, max_label)
     dtype = _validate_dtype(labels, dtype, out)
@@ -206,6 +215,10 @@ def compressed_one_hot(labels, dtype=None, out=None, simplify_binary=True):
         The array of unique values in `labels` in the order \
         in which the corresponding columns appear in `out`.
     """
+    warnings.warn("pylearn2.utils.one_hot is deprecated. Use "
+                  "pylearn2.format.target_format.OneHotFomatter "
+                  "instead. pylearn2.utils.one_hot will be removed "
+                  "on or after 13 August 2014", stacklevel=2)
     labels = _validate_labels(labels, ndim=1)
     labels_ = labels.copy()
     uniq = np.unique(labels_)

@@ -1,0 +1,13 @@
+!obj:pylearn2.train.Train {
+    dataset: &train %(dataset)s,
+    model: %(model)s,
+    algorithm: %(algorithm)s,
+    extensions: [
+        !obj:pylearn2.train_extensions.best_params.MonitorBasedSaveBest {
+             channel_name: 'valid_y_misclass',
+             save_path: "softmax_regression_best.pkl"
+        },
+    ],
+    save_path: "softmax_regression.pkl",
+    save_freq: 1
+}
