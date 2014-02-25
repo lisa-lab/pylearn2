@@ -6,6 +6,7 @@ import theano
 from theano import tensor, config
 from theano.tensor import nnet
 from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
+from pylearn2.utils.rng import make_np_rng, make_theano_rng
 
 
 def compute_log_z(rbm, free_energy_fn, max_bits=15):
@@ -154,8 +155,7 @@ def rbm_ais(rbm_params, n_runs, visbias_a=None, data=None,
     """
     (weights, visbias, hidbias) = rbm_params
 
-    if rng is None:
-        rng = numpy.random.RandomState(seed)
+    rng = make_np_rng(rng, seed, ['random_sample','rand'])
 
     if data is None:
         if visbias_a is None:
@@ -226,8 +226,8 @@ def rbm_z_ratio(rbmA_params, rbmB_params, n_runs, v0=None,
     # check that both models have the same number of visible units
     assert len(rbmA_params[1]) == len(rbmB_params[1])
 
-    if rng is None:
-        rng = numpy.random.RandomState(seed)
+    rng = make_np_rng(rng, seed, 'rand')
+
     # make sure parameters are in floatX format for GPU support
     rbmA_params = [numpy.asarray(q, dtype=config.floatX) for q in rbmA_params]
     rbmB_params = [numpy.asarray(q, dtype=config.floatX) for q in rbmB_params]
@@ -326,7 +326,7 @@ def rbm_ais_gibbs_for_v(rbmA_params, rbmB_params, beta, v_sample, seed=23098):
     (weights_a, visbias_a, hidbias_a) = rbmA_params
     (weights_b, visbias_b, hidbias_b) = rbmB_params
 
-    theano_rng = RandomStreams(seed)
+    theano_rng = make_theano_rng(seed, which_method='binomial')
 
     # equation 15 (Salakhutdinov & Murray 2008)
     ph_a = nnet.sigmoid((1 - beta) * (tensor.dot(v_sample, weights_a) +

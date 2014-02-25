@@ -14,6 +14,7 @@ import theano
 
 import pylearn2.datasets.filetensor as ft
 from pylearn2.utils.string_utils import preprocess
+from pylearn2.utils.rng import make_np_rng
 
 
 def load_ndarray_dataset(name, normalize=True, transfer=False,
@@ -66,11 +67,11 @@ def load_ndarray_dataset(name, normalize=True, transfer=False,
     valid = load_filetensor(vname)
     test = load_filetensor(tename)
     if randomize_valid:
-        rng = numpy.random.RandomState([1,2,3,4])
+        rng = make_np_rng(None, [1,2,3,4], which_method='permutation')
         perm = rng.permutation(valid.shape[0])
         valid = valid[perm]
     if randomize_test:
-        rng = numpy.random.RandomState([1,2,3,4])
+        rng = make_np_rng(None, [1,2,3,4], which_method='permutation')
         perm = rng.permutation(test.shape[0])
         test = test[perm]
 
@@ -163,11 +164,11 @@ def load_sparse_dataset(name, normalize=True, transfer=False,
     # Data should already be in csr format that support
     # this type of indexing.
     if randomize_valid:
-        rng = numpy.random.RandomState([1,2,3,4])
+        rng = make_np_rng(None, [1,2,3,4], which_method='permutation')
         perm = rng.permutation(valid.shape[0])
         valid = valid[perm]
     if randomize_test:
-        rng = numpy.random.RandomState([1,2,3,4])
+        rng = make_np_rng(None, [1,2,3,4], which_method='permutation')
         perm = rng.permutation(test.shape[0])
         test = test[perm]
 
