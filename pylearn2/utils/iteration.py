@@ -498,8 +498,6 @@ class FiniteDatasetIterator(object):
             # if it does not. If there was no init_fn, then
             # the iterator will try to format using the generic
             # space-formatting functions.
-            # needs_format = (init_fn is None)
-
             if init_fn is None:
                 # "dspace" and "sp" have to be passed as parameters
                 # to lambda, in order to capture their current value,

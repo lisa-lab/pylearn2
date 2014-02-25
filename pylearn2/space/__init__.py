@@ -725,8 +725,6 @@ class VectorSpace(SimplyTypedSpace):
             Passed on to superclass constructor.
         """
         super(VectorSpace, self).__init__(dtype, **kwargs)
-        assert hasattr(self, '_dtype')
-        assert hasattr(self, 'validate_callbacks')
 
         self.dim = dim
         self.sparse = sparse
@@ -737,10 +735,6 @@ class VectorSpace(SimplyTypedSpace):
 
             WRITEME
         """
-        assert hasattr(self, 'dim')
-        assert hasattr(self, 'sparse')
-        assert hasattr(self, 'validate_callbacks')
-        assert hasattr(self, '_dtype')
         return ('%s(dim=%d%s, dtype=%s)' %
                 (self.__class__.__name__,
                  self.dim,
@@ -1000,7 +994,7 @@ class Conv2DSpace(SimplyTypedSpace):
         """
 
         super(Conv2DSpace, self).__init__(dtype, **kwargs)
-        assert hasattr(self, '_dtype')
+
         assert (channels is None) + (num_channels is None) == 1
         if num_channels is None:
             num_channels = channels
@@ -1033,7 +1027,6 @@ class Conv2DSpace(SimplyTypedSpace):
 
             WRITEME
         """
-        assert hasattr(self, '_dtype')
         return ("%s(shape=%s, num_channels=%d, axes=%s, dtype=%s)" %
                 (self.__class__.__name__,
                  str(self.shape),

@@ -202,7 +202,6 @@ class DenseDesignMatrix(Dataset):
             convert = []
 
             for sp, src in safe_zip(sub_spaces, sub_sources):
-
                 if src == 'features' and \
                    getattr(self, 'view_converter', None) is not None:
                     conv_fn = (lambda batch, self=self, space=sp:
@@ -285,7 +284,6 @@ class DenseDesignMatrix(Dataset):
         """
         axis = self.view_converter.axes.index('b')
         return axis
-
 
     def enable_compression(self):
         """
