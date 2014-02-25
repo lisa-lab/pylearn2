@@ -10,7 +10,6 @@ __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
 import copy
-import functools
 import time
 import warnings
 
