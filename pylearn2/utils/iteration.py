@@ -507,10 +507,22 @@ class FiniteDatasetIterator(object):
             # if it does not. If there was no init_fn, then
             # the iterator will try to format using the generic
             # space-formatting functions.
+            # needs_format = (not init_fn and
+            #                 (not sp == dspace))
             needs_format = (not init_fn and
-                            (not sp == dspace))
-                            # (not sp == dspace) or
-                            # str(dt.dtype) != sp.dtype)
+                            ((sp != dspace) or
+                             str(dt.dtype) != sp.dtype))
+
+            print "needs_format: %s" % needs_format
+            print "\tinit_fn is None?: %s" % (init_fn is None)
+            print "\tsp == dspace?: %s" % (sp == dspace)
+            print "\tdt.dtype == sp.dtype? %s" % (dt.dtype == sp.dtype)
+            # print "if needs_format was True, we would've attempted"
+            # print "\tdspace.np_format_as(batch, sp)"
+            # print "\twhere:"
+            # print "\tdspace: %s" % dspace
+            # print "\tbatch.shape: %s" % str(batch.shape)
+            # print "\tsp: %s" % sp
             if needs_format:
                 # "dspace" and "sp" have to be passed as parameters
                 # to lambda, in order to capture their current value,
