@@ -1205,9 +1205,5 @@ def test_batch_size_specialization():
     train.main_loop()
 
 
-
-
-
-
 if __name__ == '__main__':
     test_monitor_based_lr()
