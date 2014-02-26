@@ -13,7 +13,7 @@ from pylearn2.utils.testing import assert_equal, assert_contains, assert_
 
 class DummyDataset(DenseDesignMatrix):
     def __init__(self, axes=('c', 0, 1, 'b')):
-        assert axes in [('c', 0, 1, 'b'), ('b', 0, 1, 'c')]
+        assert_contains([('c', 0, 1, 'b'), ('b', 0, 1, 'c')], axes)
         axes = list(axes)
         vc = DefaultViewConverter((5, 5, 2), axes=axes)
         rng = numpy.random.RandomState([2013, 3, 12])
@@ -71,7 +71,7 @@ def check_window_flip_coverage_C01B(flip, use_old_c01b=False):
         assert_(not (prev_topo == curr_topo).all())
         for b in xrange(topo.shape[-1]):
             hashed = _hash_array(curr_topo[..., b])
-            assert hashed in ref_win[b]
+            assert_contains(ref_win[b], hashed)
             actual_win[b].add(hashed)
 
 
@@ -103,7 +103,7 @@ def check_window_flip_coverage_B01C(flip):
         assert_(not (prev_topo == curr_topo).all())
         for b in xrange(topo.shape[0]):
             hashed = _hash_array(curr_topo[b, ...])
-            assert hashed in ref_win[b]
+            assert_contains(ref_win[b], hashed)
             actual_win[b].add(hashed)
 
 
@@ -149,3 +149,13 @@ def check_padding(axes, use_old_c01b=False):
         wf.on_monitor(None, None, None)
         new_topo = ddata.get_topological_view()
         iters += 1
+
+
+def test_WindowAndFlipC01B_axes_guard():
+    ddata = DummyDataset(axes=('b', 0, 1, 'c'))
+    raised_error = False
+    try:
+        wf = WindowAndFlipC01B(window_shape=(3, 3), randomize=[ddata])
+    except ValueError:
+        raised_error = True
+    assert_equal(raised_error, True)

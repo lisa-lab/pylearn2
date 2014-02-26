@@ -173,7 +173,30 @@ class WindowAndFlip(TrainExtension):
 class WindowAndFlipC01B(WindowAndFlip):
     """
     A specialized version of WindowAndFlip accepting datasets with axes C01B.
-    It exists due to backward compatibility. Note that the old behaviour of
-    raising error when the axes of the datasets are not of C01B is lost.
+    It exists due to backward compatibility.
     """
-    pass
+
+    def __init__(self, window_shape, randomize=None, randomize_once=None,
+            center=None, rng=(2013, 02, 20), pad_randomized=0, flip=True):
+
+        _randomize = randomize if randomize else []
+        _randomize_once = randomize_once if randomize_once else []
+
+        for data in _randomize + _randomize_once:
+            if tuple(data.view_converter.axes) != ('c', 0, 1, 'b'):
+                raise ValueError("Expected axes: %s "
+                                 "Actual axes: %s" %
+                                 (str(data.view_converter.axes),
+                                  str(('c', 0, 1, 'b'))))
+
+        warnings.warn("WindowAndFlipC01B is deprecated, use WindowAndFlip. " +
+                      "WindowAndFlipC01B will be removed on or " +
+                      "after August 25, 2014.", stacklevel=2)
+
+        super(WindowAndFlipC01B, self).__init__(window_shape,
+                                                randomize=randomize,
+                                                randomize_once=randomize_once,
+                                                center=center,
+                                                rng=rng,
+                                                pad_randomized=pad_randomized,
+                                                flip=flip)
