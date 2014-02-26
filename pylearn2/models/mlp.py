@@ -302,13 +302,13 @@ class MLP(Layer):
         self.batch_size = batch_size
         self.force_batch_size = batch_size
 
-        assert input_space is not None or nvis is not None
-        if nvis is not None:
-            input_space = VectorSpace(nvis)
+        if input_space is not None or nvis is not None:
+            if nvis is not None:
+                input_space = VectorSpace(nvis)
 
-        self.input_space = input_space
+            self.input_space = input_space
 
-        self._update_layer_input_spaces()
+            self._update_layer_input_spaces()
 
         self.freeze_set = set([])
 
@@ -334,6 +334,13 @@ class MLP(Layer):
     def get_output_space(self):
 
         return self.layers[-1].get_output_space()
+
+    @wraps(Layer.set_input_space)
+    def set_input_space(self, space):
+        
+        self.input_space = space
+        
+        self._update_layer_input_spaces()
 
     def _update_layer_input_spaces(self):
         """
