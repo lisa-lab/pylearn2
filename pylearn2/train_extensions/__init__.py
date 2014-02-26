@@ -85,6 +85,34 @@ class TrainExtension(object):
             `pylearn2.training_algorithms` interface).
         """
 
+    def get_return_key(self):
+        """
+        A key to use in the dictionary returned from `Train.main_loop()`.
+
+        Returns
+        -------
+        key : str
+            A key to use for specifying return values. The `TrainExtension`
+            base class specifies this to be the name of the instantiated
+            class.
+        """
+        return self.__class__.__name__
+
+    def get_return_value(self):
+        """
+        Values to return in a list under the key specified by
+        `get_return_key()`, in the dictionary returned by
+        `Train.main_loop()`.
+
+        Returns
+        -------
+        value : object
+            An arbitrary value to be returned to the caller of
+            `Train.main_loop()` under the key from `get_return_key()`.
+        """
+        return None
+
+
 class SharedSetter(TrainExtension):
     """
     Sets shared variables to take on the specified values after the
