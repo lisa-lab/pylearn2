@@ -1,4 +1,4 @@
-import os
+import warnings
 
 from .general import is_iterable
 import theano
@@ -316,12 +316,14 @@ def safe_union(a, b):
 
     Parameters
     ----------
-    a : WRITEME
-    b : WRITEME
+    a : list
+    b : list
 
     Returns
     -------
-    WRITEME
+    c : list
+        A list containing one copy of each element that appear in at least one
+        of `a` or `b`.
     """
     if not isinstance(a, list):
         raise TypeError("Expected first argument to be a list, but got " +
@@ -335,7 +337,11 @@ def safe_union(a, b):
 
 # This was moved to theano, but I include a link to avoid breaking
 # old imports
-from theano.printing import hex_digest
+from theano.printing import hex_digest as _hex_digest
+def hex_digest(*args, **kwargs):
+    warnings.warn("hex_digest has been moved into Theano. "
+            "pylearn2.utils.hex_digest will be removed on or after "
+            "2014-08-26")
 
 def function(*args, **kwargs):
     """

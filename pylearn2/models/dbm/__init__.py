@@ -258,6 +258,7 @@ from pylearn2.models.dbm.inference_procedure import WeightDoubling
 from pylearn2.models.dbm.layer import BinaryVector
 from pylearn2.models.dbm.layer import BinaryVectorMaxPool
 from pylearn2.models.dbm.layer import BVMP_Gaussian
+from pylearn2.models.dbm.layer import CompositeLayer
 from pylearn2.models.dbm.layer import ConvMaxPool
 from pylearn2.models.dbm.layer import ConvC01B_MaxPool
 from pylearn2.models.dbm.layer import GaussianVisLayer

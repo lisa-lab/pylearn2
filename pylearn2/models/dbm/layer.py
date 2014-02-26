@@ -13,7 +13,6 @@ import theano
 from theano.compat import OrderedDict
 from theano.gof.op import get_debug_values
 from theano.printing import Print
-from theano.sandbox.rng_mrg import MRG_RandomStreams
 
 from pylearn2.expr.nnet import sigmoid_numpy
 from pylearn2.expr.probabilistic_max_pooling import max_pool_channels, max_pool_b01c, max_pool, max_pool_c01b
@@ -26,6 +25,7 @@ from pylearn2.space import VectorSpace, CompositeSpace, Conv2DSpace, Space
 from pylearn2.utils import is_block_gradient
 from pylearn2.utils import sharedX, safe_zip, py_integer_types, block_gradient
 from pylearn2.utils.rng import make_theano_rng
+from pylearn2.utils import safe_union
 
 
 class Layer(Model):
@@ -2864,7 +2864,7 @@ class ConvMaxPool(HiddenLayer):
 
         default_z = T.zeros_like(h_state) + self.broadcasted_bias()
 
-        theano_rng = make_theano_rng(None, numpy_rng.randint(2 ** 16), 
+        theano_rng = make_theano_rng(None, numpy_rng.randint(2 ** 16),
                                      which_method="binomial")
 
         p_exp, h_exp, p_sample, h_sample = self.max_pool(
@@ -3366,7 +3366,7 @@ class ConvC01B_MaxPool(HiddenLayer):
 
         default_z = T.zeros_like(h_state) + self.broadcasted_bias()
 
-        theano_rng = make_theano_rng(None, numpy_rng.randint(2 ** 16), 
+        theano_rng = make_theano_rng(None, numpy_rng.randint(2 ** 16),
                                      which_method="binomial")
 
         p_exp, h_exp, p_sample, h_sample = self.max_pool(
@@ -3608,7 +3608,7 @@ class BVMP_Gaussian(BinaryVectorMaxPool):
         h_state = sharedX(empty_input)
         p_state = sharedX(empty_output)
 
-        theano_rng = make_theano_rng(None, numpy_rng.randint(2 ** 16), 
+        theano_rng = make_theano_rng(None, numpy_rng.randint(2 ** 16),
                                      which_method="binomial")
 
         default_z = T.zeros_like(h_state) + self.b
@@ -3753,3 +3753,260 @@ class BVMP_Gaussian(BinaryVectorMaxPool):
         h.name = self.layer_name + '_h_' + iter_name
 
         return p, h
+
+class CompositeLayer(HiddenLayer):
+    """
+        A Layer constructing by aligning several other Layer
+        objects side by side
+    """
+
+    def __init__(self, layer_name, components, inputs_to_components = None):
+        """
+            components: A list of layers that are combined to form this layer
+            inputs_to_components: None or dict mapping int to list of int
+                Should be None unless the input space is a CompositeSpace
+                If inputs_to_components[i] contains j, it means input i will
+                be given as input to component j.
+                If an input dodes not appear in the dictionary, it will be given
+                to all components.
+
+                This field allows one CompositeLayer to have another as input
+                without forcing each component to connect to all members
+                of the CompositeLayer below. For example, you might want to
+                have both densely connected and convolutional units in all
+                layers, but a convolutional unit is incapable of taking a
+                non-topological input space.
+        """
+
+        self.layer_name = layer_name
+
+        self.components = list(components)
+        assert isinstance(components, list)
+        for component in components:
+            assert isinstance(component, HiddenLayer)
+        self.num_components = len(components)
+        self.components = list(components)
+
+        if inputs_to_components is None:
+            self.inputs_to_components = None
+        else:
+            if not isinstance(inputs_to_components, dict):
+                raise TypeError("CompositeLayer expected inputs_to_components to be a dict, got "+str(type(inputs_to_components)))
+            self.inputs_to_components = OrderedDict()
+            for key in inputs_to_components:
+                assert isinstance(key, int)
+                assert key >= 0
+                value = inputs_to_components[key]
+                assert isinstance(value, list)
+                assert all([isinstance(elem, int) for elem in value])
+                assert min(value) >= 0
+                assert max(value) < self.num_components
+                self.inputs_to_components[key] = list(value)
+
+    def set_input_space(self, space):
+
+        self.input_space = space
+
+        if not isinstance(space, CompositeSpace):
+            assert self.inputs_to_components is None
+            self.routing_needed = False
+        else:
+            if self.inputs_to_components is None:
+                self.routing_needed = False
+            else:
+                self.routing_needed = True
+                assert max(self.inputs_to_components) < space.num_components
+                # Invert the dictionary
+                self.components_to_inputs = OrderedDict()
+                for i in xrange(self.num_components):
+                    inputs = []
+                    for j in xrange(space.num_components):
+                        if i in self.inputs_to_components[j]:
+                            inputs.append(i)
+                    if len(inputs) < space.num_components:
+                        self.components_to_inputs[i] = inputs
+
+        for i, component in enumerate(self.components):
+            if self.routing_needed and i in self.components_to_inputs:
+                cur_space = space.restrict(self.components_to_inputs[i])
+            else:
+                cur_space = space
+
+            component.set_input_space(cur_space)
+
+        self.output_space = CompositeSpace([ component.get_output_space() for component in self.components ])
+
+    def make_state(self, num_examples, numpy_rng):
+        return tuple(component.make_state(num_examples, numpy_rng) for
+                component in self.components)
+
+    def get_total_state_space(self):
+        return CompositeSpace([component.get_total_state_space() for component in self.components])
+
+    def set_batch_size(self, batch_size):
+        for component in self.components:
+            component.set_batch_size(batch_size)
+
+    def set_dbm(self, dbm):
+        for component in self.components:
+            component.set_dbm(dbm)
+
+    def mf_update(self, state_below, state_above, layer_above = None, double_weights = False, iter_name = None):
+
+        rval = []
+
+        for i, component in enumerate(self.components):
+            if self.routing_needed and i in self.components_to_inputs:
+                cur_state_below =self.input_space.restrict_batch(state_below, self.components_to_inputs[i])
+            else:
+                cur_state_below = state_below
+
+            class RoutingLayer(object):
+                def __init__(self, idx, layer):
+                    self.__dict__.update(locals())
+                    del self.self
+                    self.layer_name = 'route_'+str(idx)+'_'+layer.layer_name
+
+                def downward_message(self, state):
+                    return self.layer.downward_message(state)[self.idx]
+
+            if layer_above is not None:
+                cur_layer_above = RoutingLayer(i, layer_above)
+            else:
+                cur_layer_above = None
+
+            mf_update = component.mf_update(state_below = cur_state_below,
+                                            state_above = state_above,
+                                            layer_above = cur_layer_above,
+                                            double_weights = double_weights,
+                                            iter_name = iter_name)
+
+            rval.append(mf_update)
+
+        return tuple(rval)
+
+    def init_mf_state(self):
+        return tuple([component.init_mf_state() for component in self.components])
+
+
+    def get_weight_decay(self, coeffs):
+        return sum([component.get_weight_decay(coeff) for component, coeff
+            in safe_zip(self.components, coeffs)])
+
+    def upward_state(self, total_state):
+
+        return tuple([component.upward_state(elem)
+            for component, elem in
+            safe_zip(self.components, total_state)])
+
+    def downward_state(self, total_state):
+
+        return tuple([component.downward_state(elem)
+            for component, elem in
+            safe_zip(self.components, total_state)])
+
+    def downward_message(self, downward_state):
+
+        if isinstance(self.input_space, CompositeSpace):
+            num_input_components = self.input_space.num_components
+        else:
+            num_input_components = 1
+
+        rval = [ None ] * num_input_components
+
+        def add(x, y):
+            if x is None:
+                return y
+            if y is None:
+                return x
+            return x + y
+
+        for i, packed in enumerate(safe_zip(self.components, downward_state)):
+            component, state = packed
+            if self.routing_needed and i in self.components_to_inputs:
+                input_idx = self.components_to_inputs[i]
+            else:
+                input_idx = range(num_input_components)
+
+            partial_message = component.downward_message(state)
+
+            if len(input_idx) == 1:
+                partial_message = [ partial_message ]
+
+            assert len(input_idx) == len(partial_message)
+
+            for idx, msg in safe_zip(input_idx, partial_message):
+                rval[idx] = add(rval[idx], msg)
+
+        if len(rval) == 1:
+            rval = rval[0]
+        else:
+            rval = tuple(rval)
+
+        self.input_space.validate(rval)
+
+        return rval
+
+    def get_l1_act_cost(self, state, target, coeff, eps):
+        return sum([ comp.get_l1_act_cost(s, t, c, e) \
+            for comp, s, t, c, e in safe_zip(self.components, state, target, coeff, eps)])
+
+    def get_range_rewards(self, state, coeffs):
+        return sum([comp.get_range_rewards(s, c)
+            for comp, s, c in safe_zip(self.components, state, coeffs)])
+
+    def get_params(self):
+        return reduce(lambda x, y: safe_union(x, y),
+                [component.get_params() for component in self.components])
+
+    def get_weights_topo(self):
+        print 'Get topological weights for which layer?'
+        for i, component in enumerate(self.components):
+            print i,component.layer_name
+        x = raw_input()
+        return self.components[int(x)].get_weights_topo()
+
+    def get_monitoring_channels_from_state(self, state):
+        rval = OrderedDict()
+
+        for layer, s in safe_zip(self.components, state):
+            d = layer.get_monitoring_channels_from_state(s)
+            for key in d:
+                rval[layer.layer_name+'_'+key] = d[key]
+
+        return rval
+
+    def sample(self, state_below = None, state_above = None,
+            layer_above = None,
+            theano_rng = None):
+        rval = []
+
+        for i, component in enumerate(self.components):
+            if self.routing_needed and i in self.components_to_inputs:
+                cur_state_below =self.input_space.restrict_batch(state_below, self.components_to_inputs[i])
+            else:
+                cur_state_below = state_below
+
+            class RoutingLayer(object):
+                def __init__(self, idx, layer):
+                    self.__dict__.update(locals())
+                    del self.self
+                    self.layer_name = 'route_'+str(idx)+'_'+layer.layer_name
+
+                def downward_message(self, state):
+                    return self.layer.downward_message(state)[self.idx]
+
+            if layer_above is not None:
+                cur_layer_above = RoutingLayer(i, layer_above)
+            else:
+                cur_layer_above = None
+
+            sample = component.sample(state_below = cur_state_below,
+                                            state_above = state_above,
+                                            layer_above = cur_layer_above,
+                                            theano_rng = theano_rng)
+
+            rval.append(sample)
+
+        return tuple(rval)
+
