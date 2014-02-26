@@ -5,7 +5,9 @@ of a function or class constructor.
 import functools
 import inspect
 import types
+import warnings
 from pylearn2.utils.string_utils import match
+
 
 def check_call_arguments(to_call, kwargs):
     """
@@ -79,11 +81,56 @@ def check_call_arguments(to_call, kwargs):
             raise TypeError('%s did not get these expected '
                             'arguments: %s' % (orig_to_call, missing))
 
+
+def checked(to_call, *args, **kwargs):
+    """
+    Attempt calling a function or instantiating a class with a given set of
+    mismatch.
+
+    Parameters
+    ----------
+    to_call : class or callable
+        Function or class to examine (in the case of classes, the
+        constructor call signature is analyzed)
+
+    Notes
+    -----
+    Additional positional and keyword arguments are passed along to
+    `to_call`.
+
+    This is a more (to-be) featureful version of the old `checked_call`
+    that respects the same interface as things like `functools.partial`.
+    """
+    # TODO: use hyperopt/pyll code to do parameter name binding for both
+    # posargs and kwargs.
+    if len(args) > 0:
+        warnings.warn("TODO: handle *args")
+    return _checked_call(to_call, kwargs)
+
+
 def checked_call(to_call, kwargs):
+
     """
     Attempt calling a function or instantiating a class with a given set of
     arguments, raising a more helpful exception in the case of argument
     mismatch.
+
+    Parameters
+    ----------
+    to_call : class or callable
+        Function or class to examine (in the case of classes, the constructor
+        call signature is analyzed)
+    kwargs : dict
+        Dictionary mapping parameter names (including positional arguments)
+        to proposed values.
+    """
+    return _checked_call(to_call, kwargs)
+
+
+def _checked_call(to_call, kwargs):
+
+    """
+    Private function, not part of the public API.
 
     Parameters
     ----------
