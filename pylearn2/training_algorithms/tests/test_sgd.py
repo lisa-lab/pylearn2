@@ -149,7 +149,7 @@ def test_sgd_unspec_num_mon_batch():
 
     cost = DummyCost()
 
-    algorithm = SGD(learning_rate, cost, batch_size=5,
+    algorithm = SGD(learning_rate, cost, batch_size=batch_size,
                  monitoring_batches=None, monitoring_dataset=dataset,
                  termination_criterion=None, update_callbacks=None,
                  init_momentum = None, set_batch_size = False)
@@ -218,7 +218,7 @@ def test_sgd_sup():
     # We need to include this so the test actually stops running at some point
     termination_criterion = EpochCounter(5)
 
-    algorithm = SGD(learning_rate, cost, batch_size=5,
+    algorithm = SGD(learning_rate, cost, batch_size=batch_size,
                  monitoring_batches=3, monitoring_dataset= monitoring_dataset,
                  termination_criterion=termination_criterion, update_callbacks=None,
                  init_momentum = None, set_batch_size = False)
@@ -263,7 +263,7 @@ def test_sgd_unsup():
     # We need to include this so the test actually stops running at some point
     termination_criterion = EpochCounter(5)
 
-    algorithm = SGD(learning_rate, cost, batch_size=5,
+    algorithm = SGD(learning_rate, cost, batch_size=batch_size,
                  monitoring_batches=3, monitoring_dataset= monitoring_dataset,
                  termination_criterion=termination_criterion, update_callbacks=None,
                  init_momentum = None, set_batch_size = False)
@@ -293,8 +293,9 @@ def test_linear_decay():
     # it runs a small softmax and at the end checks the learning values.
     # the learning rates are expected to start changing at batch 'start'
     # by an amount of 'step' specified below.
-    # the decrease of the learning rate should continue linearly untill
-    # we reach batch 'saturate' at which the learning rate equals 'learning_rate * decay_factor'
+    # the decrease of the learning rate should continue linearly until
+    # we reach batch 'saturate' at which the learning rate equals
+    # 'learning_rate * decay_factor'
 
     class LearningRateTracker(object):
         def __init__(self):
@@ -372,8 +373,11 @@ def test_linear_decay_over_epoch():
     # tests that the class LinearDecayOverEpoch in sgd.py
     # gets the learning rate properly over the training epochs
     # it runs a small softmax and at the end checks the learning values.
-    # the learning rates are expected to start changing at epoch 'start' by an amount of 'step' specified below.
-    # the decrease of the learning rate should continue linearly untill we reach epoch 'saturate' at which the learning rate equals 'learning_rate * decay_factor'
+    # the learning rates are expected to start changing at epoch 'start' by an
+    # amount of 'step' specified below.
+    # the decrease of the learning rate should continue linearly until we
+    # reach epoch 'saturate' at which the learning rate equals
+    # 'learning_rate * decay_factor'
 
     dim = 3
     m = 10
@@ -403,7 +407,7 @@ def test_linear_decay_over_epoch():
 
     cost = DummyCost()
 
-    algorithm = SGD(learning_rate, cost, batch_size=5,
+    algorithm = SGD(learning_rate, cost, batch_size=batch_size,
                  monitoring_batches=3, monitoring_dataset= monitoring_dataset,
                  termination_criterion=termination_criterion, update_callbacks=None,
                  init_momentum = None, set_batch_size = False)
@@ -436,8 +440,10 @@ def test_linear_decay_over_epoch():
 def test_monitor_based_lr():
     # tests that the class MonitorBasedLRAdjuster in sgd.py
     # gets the learning rate properly over the training epochs
-    # it runs a small softmax and at the end checks the learning values. It runs 2 loops. Each loop evaluates one of the if clauses when checking
-    # the observation channels. Otherwise, longer training epochs are needed to observe both if and elif cases.
+    # it runs a small softmax and at the end checks the learning values. It
+    # runs 2 loops. Each loop evaluates one of the if clauses when checking
+    # the observation channels. Otherwise, longer training epochs are needed
+    # to observe both if and elif cases.
 
     high_trigger = 1.0
     shrink_amt = 0.99
@@ -478,7 +484,7 @@ def test_monitor_based_lr():
 
         termination_criterion = EpochCounter(epoch_num)
 
-        algorithm = SGD(learning_rate, cost, batch_size=5,
+        algorithm = SGD(learning_rate, cost, batch_size=batch_size,
                  monitoring_batches=3, monitoring_dataset= monitoring_dataset,
                  termination_criterion=termination_criterion, update_callbacks=None,
                  init_momentum = None, set_batch_size = False)
@@ -505,7 +511,8 @@ def test_monitor_based_lr():
             assert np.allclose(lr_monitor, lr[i])
 
 def test_bad_monitoring_input_in_monitor_based_lr():
-    # tests that the class MonitorBasedLRAdjuster in sgd.py avoids wrong settings of channel_name or dataset_name in the constructor.
+    # tests that the class MonitorBasedLRAdjuster in sgd.py avoids wrong
+    # settings of channel_name or dataset_name in the constructor.
 
     dim = 3
     m = 10
@@ -532,7 +539,7 @@ def test_bad_monitoring_input_in_monitor_based_lr():
 
     termination_criterion = EpochCounter(epoch_num)
 
-    algorithm = SGD(learning_rate, cost, batch_size=5,
+    algorithm = SGD(learning_rate, cost, batch_size=batch_size,
              monitoring_batches=2, monitoring_dataset= monitoring_dataset,
              termination_criterion=termination_criterion, update_callbacks=None,
              init_momentum = None, set_batch_size = False)
@@ -577,7 +584,9 @@ def test_bad_monitoring_input_in_monitor_based_lr():
     return
 
 def testing_multiple_datasets_in_monitor_based_lr():
-    # tests that the class MonitorBasedLRAdjuster in sgd.py does not take multiple datasets in which multiple channels ending in '_objectives' exist. 
+    # tests that the class MonitorBasedLRAdjuster in sgd.py does not take
+    # multiple datasets in which multiple channels ending in '_objective'
+    # exist.
     # This case happens when the user has not specified either channel_name or dataset_name in the constructor
 
     dim = 3
@@ -607,7 +616,7 @@ def testing_multiple_datasets_in_monitor_based_lr():
 
     termination_criterion = EpochCounter(epoch_num)
 
-    algorithm = SGD(learning_rate, cost, batch_size=5,
+    algorithm = SGD(learning_rate, cost, batch_size=batch_size,
              monitoring_batches=2, monitoring_dataset= {'train': monitoring_train, 'test' : monitoring_test},
              termination_criterion=termination_criterion, update_callbacks=None,
              init_momentum = None, set_batch_size = False)
@@ -621,13 +630,13 @@ def testing_multiple_datasets_in_monitor_based_lr():
         train.main_loop()
     except ValueError:
         return
-        
-    raise AssertionError("MonitorBasedLRAdjuster takes multiple dataset names in which more than one \"objective\" channel exist and the user has not specified " + 
+
+    raise AssertionError("MonitorBasedLRAdjuster takes multiple dataset names in which more than one \"objective\" channel exist and the user has not specified " +
         "either channel_name or database_name in the constructor to disambiguate.")
 
 def testing_multiple_datasets_with_specified_dataset_in_monitor_based_lr():
-    # tests that the class MonitorBasedLRAdjuster in sgd.py can properly use the spcified dataset_name in the constructor when 
-    # multiple datasets exist. 
+    # tests that the class MonitorBasedLRAdjuster in sgd.py can properly use the spcified dataset_name in the constructor when
+    # multiple datasets exist.
 
     dim = 3
     m = 10
@@ -658,7 +667,7 @@ def testing_multiple_datasets_with_specified_dataset_in_monitor_based_lr():
 
     monitoring_dataset= {'train': monitoring_train, 'test' : monitoring_test}
 
-    algorithm = SGD(learning_rate, cost, batch_size=5,
+    algorithm = SGD(learning_rate, cost, batch_size=batch_size,
              monitoring_batches=2, monitoring_dataset= monitoring_dataset,
              termination_criterion=termination_criterion, update_callbacks=None,
              init_momentum = None, set_batch_size = False)
@@ -702,7 +711,7 @@ def test_sgd_topo():
     # We need to include this so the test actually stops running at some point
     termination_criterion = EpochCounter(5)
 
-    algorithm = SGD(learning_rate, cost, batch_size=5,
+    algorithm = SGD(learning_rate, cost, batch_size=batch_size,
                  monitoring_batches=3, monitoring_dataset= monitoring_dataset,
                  termination_criterion=termination_criterion, update_callbacks=None,
                  init_momentum = None, set_batch_size = False)
@@ -751,7 +760,7 @@ def test_sgd_no_mon():
     # We need to include this so the test actually stops running at some point
     termination_criterion = EpochCounter(5)
 
-    algorithm = SGD(learning_rate, cost, batch_size=5,
+    algorithm = SGD(learning_rate, cost, batch_size=batch_size,
                  monitoring_dataset=None,
                  termination_criterion=termination_criterion, update_callbacks=None,
                  init_momentum = None, set_batch_size = False)
@@ -798,7 +807,7 @@ def test_reject_mon_batch_without_mon():
     cost = SupervisedDummyCost()
 
     try:
-        algorithm = SGD(learning_rate, cost, batch_size=5,
+        algorithm = SGD(learning_rate, cost, batch_size=batch_size,
                  monitoring_batches=3, monitoring_dataset=None,
                  update_callbacks=None,
                  init_momentum = None, set_batch_size = False)
@@ -843,7 +852,7 @@ def test_sgd_sequential():
     # We need to include this so the test actually stops running at some point
     termination_criterion = EpochCounter(5)
 
-    algorithm = SGD(learning_rate, cost, batch_size=5,
+    algorithm = SGD(learning_rate, cost, batch_size=batch_size,
                 train_iteration_mode = 'sequential',
                  monitoring_dataset=None,
                  termination_criterion=termination_criterion, update_callbacks=None,
@@ -893,7 +902,7 @@ def test_determinism():
 
         def run_algorithm():
             unsupported_modes = ['random_slice', 'random_uniform']
-            algorithm =  SGD(learning_rate, cost, batch_size=5,
+            algorithm =  SGD(learning_rate, cost, batch_size=batch_size,
                    train_iteration_mode = mode,
                      monitoring_dataset=None,
                      termination_criterion=termination_criterion, update_callbacks=None,
