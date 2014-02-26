@@ -4,6 +4,9 @@
     WRITEME
 """
 global resolvers
+warnings.warn("DEPRECATED: pylearn2.datasets.config is deprecated, and will be "
+              "removed on or after August 26, 2014.")
+
 
 
 def resolve(d):

@@ -3,6 +3,8 @@
 
     WRITEME
 """
+warnings.warn("DEPRECATED: pylearn2.datasets.avicenna is deprecated, and will "
+              "be removed on or after August 26, 2014.")
 from pylearn2.datasets import utlc
 import numpy as N
 
