@@ -104,7 +104,7 @@ def checked(to_call, *args, **kwargs):
     # TODO: use hyperopt/pyll code to do parameter name binding for both
     # posargs and kwargs.
     if len(args) > 0:
-        warnings.warn("TODO: handle *args")
+        raise NotImplementedError("TODO: handle *args")
     return _checked_call(to_call, kwargs)
 
 
