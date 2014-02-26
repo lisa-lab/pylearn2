@@ -3,14 +3,13 @@ import numpy as np
 
 import theano.tensor as T
 from theano.tests import disturb_mem
-import warnings
 
 from pylearn2.costs.cost import Cost
-from pylearn2.costs.cost import SumOfCosts
 from pylearn2.costs.cost import DefaultDataSpecsMixin
+from pylearn2.costs.cost import SumOfCosts
+from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.devtools.record import Record
 from pylearn2.devtools.record import RecordMode
-from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
 from pylearn2.models.model import Model
 from pylearn2.monitor import Monitor
 from pylearn2.space import CompositeSpace
@@ -22,11 +21,11 @@ from pylearn2.testing.cost import SumOfParams
 from pylearn2.testing.datasets import ArangeDataset
 from pylearn2.train import Train
 from pylearn2.training_algorithms.sgd import ExponentialDecay
-from pylearn2.training_algorithms.sgd import MomentumAdjustor
-from pylearn2.training_algorithms.sgd import PolyakAveraging
 from pylearn2.training_algorithms.sgd import LinearDecay
 from pylearn2.training_algorithms.sgd import LinearDecayOverEpoch
+from pylearn2.training_algorithms.sgd import MomentumAdjustor
 from pylearn2.training_algorithms.sgd import MonitorBasedLRAdjuster
+from pylearn2.training_algorithms.sgd import PolyakAveraging
 from pylearn2.training_algorithms.sgd import SGD
 from pylearn2.utils.iteration import _iteration_schemes
 from pylearn2.utils import safe_izip
@@ -60,7 +59,7 @@ class DummyModel(Model):
     def __call__(self, X):
         # Implemented only so that DummyCost would work
         return X
-    
+
     def get_lr_scalers(self):
         if self.lr_scalers:
             return dict(zip(self._params, self.lr_scalers))
