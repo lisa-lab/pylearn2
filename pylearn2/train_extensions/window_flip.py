@@ -184,10 +184,9 @@ class WindowAndFlipC01B(WindowAndFlip):
 
         for data in _randomize + _randomize_once:
             if tuple(data.view_converter.axes) != ('c', 0, 1, 'b'):
-                raise ValueError("Expected axes: %s "
+                raise ValueError("Expected axes: ('c', 0, 1, 'b') "
                                  "Actual axes: %s" %
-                                 (str(data.view_converter.axes),
-                                  str(('c', 0, 1, 'b'))))
+                                 str(tuple(data.view_converter.axes)))
 
         warnings.warn("WindowAndFlipC01B is deprecated, use WindowAndFlip. " +
                       "WindowAndFlipC01B will be removed on or " +
