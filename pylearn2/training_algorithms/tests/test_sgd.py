@@ -1172,5 +1172,42 @@ def test_lr_scalers_momentum():
     assert all(np.allclose(manual_param, sgd_param.get_value()) for manual_param,
             sgd_param in zip(manual, model.get_params()))
 
+def test_batch_size_specialization():
+
+    # Tests that using a batch size of 1 for training and a batch size
+    # other than 1 for monitoring does not result in a crash.
+    # This catches a bug reported in the pylearn-dev@googlegroups.com
+    # e-mail "[pylearn-dev] monitor assertion error: channel_X.type != X.type"
+    # The training data was specialized to a row matrix (theano tensor with
+    # first dim broadcastable) and the monitor ended up with expressions
+    # mixing the specialized and non-specialized version of the expression.
+
+    m = 2
+    rng = np.random.RandomState([25,9,2012])
+    X = np.zeros((m,1))
+    dataset = DenseDesignMatrix(X=X)
+
+    model = SoftmaxModel(1)
+
+    learning_rate = 1e-3
+
+    cost = DummyCost()
+
+    algorithm = SGD(learning_rate, cost, batch_size=1,
+                 monitoring_batches=1, monitoring_dataset=dataset,
+                 termination_criterion=EpochCounter(max_epochs=1),
+                 update_callbacks=None,
+                 set_batch_size = False)
+
+    train = Train(dataset, model, algorithm, save_path=None,
+                 save_freq=0, extensions=None)
+
+    train.main_loop()
+
+
+
+
+
+
 if __name__ == '__main__':
     test_monitor_based_lr()
