@@ -76,8 +76,11 @@ class Layer(Model):
 
     def get_mlp(self):
         """
-        Returns the MLP that this layer belongs to, or None
-        if it has not been assigned to an MLP yet.
+        Returns
+        -------
+        mlp : MLP
+            The MLP that this layer belongs to, or None if it has not been
+            assigned to an MLP yet.
         """
 
         if hasattr(self, 'mlp'):
@@ -87,22 +90,16 @@ class Layer(Model):
 
     def set_mlp(self, mlp):
         """
-        Assigns this layer to an MLP.
+        Assigns this layer to an MLP. This layer will then use the MLP's
+        random number generator, batch size, etc. This layer's name must
+        be unique within the MLP.
 
         Parameters
         ----------
-        mlp : WRITEME
+        mlp : MLP
         """
         assert self.get_mlp() is None
         self.mlp = mlp
-
-    def get_monitoring_channels(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        return OrderedDict()
 
     def get_monitoring_channels_from_state(self, state, target=None):
         """
