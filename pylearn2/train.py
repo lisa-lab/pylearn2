@@ -241,7 +241,7 @@ class Train(object):
 
         Returns
         -------
-        continue_learning: bool
+        continue_learning : bool
             If `False`, signals that at least one train
             extension wants to stop learning.
         """

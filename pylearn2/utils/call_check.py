@@ -51,11 +51,11 @@ def check_call_arguments(to_call, kwargs):
 
         if len(bad_keywords) > 0:
             bad = ', '.join(bad_keywords)
-            args = [ arg for arg in args if arg != 'self' ]
+            args = [arg for arg in args if arg != 'self']
             if len(args) == 0:
                 matched_str = '(It does not support any keywords, actually)'
             else:
-                matched = [ match(keyword, args) for keyword in bad_keywords ]
+                matched = [match(keyword, args) for keyword in bad_keywords]
                 matched_str = 'Did you mean %s?' % (', '.join(matched))
             raise TypeError('%s does not support the following '
                             'keywords: %s. %s' %
@@ -112,7 +112,6 @@ def checked_call(to_call, kwargs):
 
     """
     Attempt calling a function or instantiating a class with a given set of
-    arguments, raising a more helpful exception in the case of argument
     mismatch.
 
     Parameters
@@ -146,6 +145,7 @@ def _checked_call(to_call, kwargs):
     except TypeError:
         check_call_arguments(to_call, kwargs)
         raise
+
 
 def sensible_argument_errors(func):
     """
