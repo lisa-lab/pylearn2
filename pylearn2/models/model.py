@@ -152,6 +152,7 @@ class Model(object):
         """
         pass
 
+
     def get_weights(self):
         """
         Returns
@@ -159,13 +160,26 @@ class Model(object):
         weights : ndarray
             Returns any matrix that is analogous to the weights of the first
             layer of an MLP, such as the dictionary of a sparse coding model.
-            This implementation raises NotImplementedError. For models where this
-            method is not conceptually applicable, do not override it.
-            WRITEME: explain the axes, and get_weights_format (did that method
-            never make it into `Model`? Is it still used by get_weights_report?
+            This implementation raises NotImplementedError. For models where
+            this method is not conceptually applicable, do not override it.
+            Format should be compatible with the return value of
+            self.get_weights_format.
         """
 
-        raise NotImplementedError(str(type(self))+" does not implement get_weights (perhaps by design)")
+        raise NotImplementedError(str(type(self))+" does not implement "
+                "get_weights (perhaps by design)")
+
+    def get_weights_format(self):
+        """
+        Returns
+        -------
+        format : tuple
+            Either ('v', 'h') or ('h', 'v'). ('v', 'h') means self.get_weights
+            returns a matrix of shape (num visible units, num hidden units),
+            while ('h', 'v') means it returns the transpose of this.
+        """
+
+        return ('v', 'h')
 
     def get_weights_topo(self):
         """
