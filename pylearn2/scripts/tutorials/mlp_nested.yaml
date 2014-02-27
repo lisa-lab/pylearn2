@@ -8,7 +8,21 @@
     model: !obj:pylearn2.models.mlp.MLP {
         layers: [!obj:pylearn2.models.mlp.MLP {
         layer_name: 'mlp1', 
-        layers: [!obj:pylearn2.models.mlp.MLP {
+        layers: [
+        !obj:pylearn2.models.mlp.MLP {
+        layer_name: 'mlp3', 
+        layers: [ !obj:pylearn2.models.mlp.Tanh {
+                     layer_name: 'h0',
+                     dim: %(dim_h0)i,
+                     sparse_init: 15
+                 },  !obj:pylearn2.models.mlp.RectifiedLinear {
+                     layer_name: 'h1',
+                     dim: %(dim_h1)i,
+                     sparse_init: %(sparse_init_h1)i
+                 }
+                ]
+        },
+        !obj:pylearn2.models.mlp.MLP {
         layer_name: 'mlp2', 
         layers: [ !obj:pylearn2.models.mlp.Tanh {
                      layer_name: 'h0',
@@ -49,10 +63,10 @@
             !obj:pylearn2.costs.mlp.Default {
             }, 
             !obj:pylearn2.costs.mlp.L1WeightDecay {
-                coeffs: [ [ [ .00005, .00005, .00005 ] ] ]
+                coeffs: [ [ [ .0005, .0005 ], [ .00005, .00005, .00005 ] ] ]
             },
             !obj:pylearn2.costs.mlp.WeightDecay {
-                coeffs: [ [ [ .00005, .00005, .00005 ] ] ]
+                coeffs: [ [ [ .0005, .0005 ], [ .00005, .00005, .00005 ] ] ]
             }
             ]
         },
