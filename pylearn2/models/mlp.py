@@ -312,7 +312,6 @@ class MLP(Layer):
             else:
                 self.layer_names.add(layer.layer_name)
             
-            print layer.layer_name
 
 
         self.layers = layers
