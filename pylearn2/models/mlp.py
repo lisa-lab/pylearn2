@@ -2209,8 +2209,6 @@ class Sigmoid(Linear):
     @wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
         
-        state = self.fprop(state)
-        
         rval = super(Sigmoid, self).get_monitoring_channels_from_state(state,
                                                                        target)
 
@@ -2995,8 +2993,6 @@ class LinearGaussian(Linear):
 
     @wraps(Linear.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
-        
-        state = self.fprop(state)
         
         rval = super(LinearGaussian, self).get_monitoring_channels()
         if target:
