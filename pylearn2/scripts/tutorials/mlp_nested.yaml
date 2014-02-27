@@ -47,7 +47,11 @@
             },
         cost: !obj:pylearn2.costs.cost.SumOfCosts { costs: [
             !obj:pylearn2.costs.mlp.Default {
-            }, !obj:pylearn2.costs.mlp.WeightDecay {
+            }, 
+            !obj:pylearn2.costs.mlp.L1WeightDecay {
+                coeffs: [ [ [ .00005, .00005, .00005 ] ] ]
+            },
+            !obj:pylearn2.costs.mlp.WeightDecay {
                 coeffs: [ [ [ .00005, .00005, .00005 ] ] ]
             }
             ]

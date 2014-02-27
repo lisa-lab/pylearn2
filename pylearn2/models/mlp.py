@@ -558,6 +558,19 @@ class MLP(Layer):
         
         return total_cost
     
+    @wraps(Layer.get_l1_weight_decay)
+    def get_l1_weight_decay(self, coeffs):
+        
+        # check the case where coeffs is a scalar
+        if not hasattr(coeffs, '__iter__'):
+            coeffs = [coeffs]*len(self.layers)
+        
+        layer_costs = [layer.get_l1_weight_decay(coeff) \
+                    for layer, coeff in safe_izip(self.layers, coeffs)]
+        
+        total_cost = reduce(lambda x, y: x + y, layer_costs)
+        
+        return total_cost
     
     @wraps(Model.set_batch_size)
     def set_batch_size(self, batch_size):
