@@ -118,15 +118,7 @@ Original exception: """+str(e))
         raise ValueError("model doesn't support any weights interfaces")
 
     if weights_view is None:
-        if hasattr(model,'get_weights_format'):
-            weights_format = model.get_weights_format()
-        elif hasattr(model, 'weights_format'):
-            weights_format = model.weights_format
-        else:
-            # assume default
-            weights_format = ('v', 'h')
-
-
+        weights_format = model.get_weights_format()
         assert hasattr(weights_format,'__iter__')
         assert len(weights_format) == 2
         assert weights_format[0] in ['v','h']

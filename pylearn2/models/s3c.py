@@ -25,6 +25,7 @@ from pylearn2.base import Block
 from pylearn2.expr.information_theory import entropy_binary_vector
 from pylearn2.models import Model
 from pylearn2.space import VectorSpace
+from pylearn2.utils.rng import make_np_rng
 
 warnings.warn('s3c changing the recursion limit')
 import sys
@@ -458,10 +459,8 @@ class S3C(Model, Block):
 
             WRITEME
         """
-        if self.seed is None:
-            self.rng = np.random.RandomState([1.,2.,3.])
-        else:
-            self.rng = np.random.RandomState(self.seed)
+
+        self.rng = make_np_rng(self.seed, [1,2,3], which_method="uniform")
 
     def redo_everything(self):
         """

@@ -2,12 +2,13 @@ import numpy as np
 from pylearn2.models.s3c import reflection_clip
 from theano import function
 from theano import shared
+from pylearn2.utils.rng import make_np_rng
 
 def test_reflection_clip():
     N = 5
     m = 10
 
-    rng = np.random.RandomState([1,2,3])
+    rng = make_np_rng([1,2,3], which_method='randn')
 
     Mu1_old = rng.randn(m,N)
     Mu1_new = rng.randn(m,N)

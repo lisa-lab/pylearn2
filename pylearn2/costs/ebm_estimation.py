@@ -6,6 +6,7 @@ from theano import scan
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
 from pylearn2.space import CompositeSpace
 from pylearn2.utils import py_integer_types
+from pylearn2.utils.rng import make_theano_rng
 from theano.compat.python2x import OrderedDict
 from itertools import izip
 from pylearn2.models.rbm import BlockGibbsSampler
@@ -26,13 +27,6 @@ warnings.warn("Cost changing the recursion limit.")
 # python interpreter should provide an option to raise the error
 # precisely when you're going to exceed the stack segment.
 sys.setrecursionlimit(40000)
-
-use_sandbox = True
-if use_sandbox:
-    from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
-else:
-    warnings.warn('using SLOW rng')
-    RandomStreams = T.shared_randomstreams.RandomStreams
 
 class NCE(DefaultDataSpecsMixin, Cost):
     """
@@ -319,7 +313,7 @@ class CDk(Cost):
  
         super(CDk, self).__init__()
         self.nsteps  = nsteps
-        self.rng = RandomStreams(seed)
+        self.rng = make_theano_rng(seed, which_method='binomial')
 
     def _cost(self, model, data):
         pos_v = data

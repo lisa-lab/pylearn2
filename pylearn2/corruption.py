@@ -7,6 +7,7 @@ import numpy
 import theano
 from theano import tensor
 T = tensor
+from pylearn2.utils.rng import make_np_rng
 
 # Shortcuts
 theano.config.warn.sum_div_dimshuffle_bug = False
@@ -18,7 +19,7 @@ else:
     import theano.sandbox.rng_mrg
     RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
 
-from pylearn2.expr.activations import identity, rescaled_softmax
+from pylearn2.expr.activations import rescaled_softmax
 
 class Corruptor(object):
     """
@@ -40,8 +41,7 @@ class Corruptor(object):
             used to initialize a RandomStreams.
         """
         # The default rng should be build in a deterministic way
-        if not hasattr(rng, 'randn'):
-            rng = numpy.random.RandomState(rng)
+        rng = make_np_rng(rng, which_method=['randn', 'randint'])
         seed = int(rng.randint(2 ** 30))
         self.s_rng = RandomStreams(seed)
         self.corruption_level = corruption_level
