@@ -491,55 +491,6 @@ class Maxout(Layer):
 
         return p
 
-    def foo(self, state_below):
-        """
-        .. todo::
-
-            WRITEME
-        """
-
-        self.input_space.validate(state_below)
-
-        if self.requires_reformat:
-            state_below = self.input_space.format_as(state_below, self.desired_space)
-
-        z = self.transformer.lmul(state_below) + self.b
-
-        if not hasattr(self, 'randomize_pools'):
-            self.randomize_pools = False
-
-        if not hasattr(self, 'pool_stride'):
-            self.pool_stride = self.pool_size
-
-        if self.randomize_pools:
-            z = T.dot(z, self.permute)
-
-        if not hasattr(self, 'min_zero'):
-            self.min_zero = False
-
-        if self.min_zero:
-            p = 0.
-        else:
-            p = None
-
-        last_start = self.detector_layer_dim  - self.pool_size
-
-        pooling_stack = []
-        for i in xrange(self.pool_size):
-            cur = z[:,i:last_start+i+1:self.pool_stride]
-            cur = cur.reshape((cur.shape[0], cur.shape[1], 1))
-            assert cur.ndim == 3
-            pooling_stack.append(cur)
-        if self.min_zero:
-            pooling_stack.append(T.zeros_like(cur))
-        pooling_stack = T.concatenate(pooling_stack, axis=2)
-        p = pooling_stack.max(axis=2)
-        counts = (T.eq(pooling_stack, p.dimshuffle(0, 1, 'x'))).sum(axis=0)
-
-        p.name = self.layer_name + '_p_'
-
-        return p, counts
-
 class MaxoutConvC01B(Layer):
     """
     Maxout units arranged in a convolutional layer, with
