@@ -208,32 +208,11 @@ class Train(object):
 
         self.model.monitor.training_succeeded = True
 
+        for extension in self.extensions:
+            extension.on_main_loop_terminate(self.model, self.dataset, self.algorithm)
+
         if self.save_freq > 0:
             self.save()
-
-        return handle_extension_returns()
-
-    def handle_extension_returns(self):
-        """
-        Collect return values for various extensions into a dictionary.
-
-        Returns
-        -------
-        return_vals : dict
-            A dictionary mapping identifying keys to lists of return
-            values for that key. Typically, the key will be the class
-            name of the extension.
-        """
-        rvals = {}
-        for extension in self.extensions:
-            try:
-                key = extension.get_return_key()
-                rvals.setdefault(key, []).append(extension.get_return_value())
-            except Exception:
-                log.warning("Failed to get extension return value for %s",
-                            str(extension))
-                continue
-        return rvals
 
     def run_callbacks_and_monitoring(self):
         """
