@@ -111,7 +111,7 @@
             saturate: 500,
             decay_factor: .01
         },
-        !obj:pylearn2.train_extensions.window_flip.WindowAndFlipC01B {
+        !obj:pylearn2.train_extensions.window_flip.WindowAndFlip {
             pad: 8,
             window_shape: *window_shape,
             randomize: [ *train],
