@@ -11,8 +11,9 @@ pylearn2.models.mlp.MLP. You need to make an MLP object in
 order for thse to do anything. For an example of how to build
 an MLP with maxout hidden layers, see pylearn2/scripts/papers/maxout.
 
-Note that maxout is designed for use with dropout, so you really should
-use dropout in your MLP when using these layers.
+Note that maxout is designed for use with dropout, so you probably should
+use dropout in your MLP when using these layers. If not using dropout, it
+is best to use only 2 pieces per unit.
 
 Note to developers / maintainers: when making changes to this module,
 ensure that the changes do not break the examples in
@@ -29,12 +30,12 @@ import numpy as np
 import warnings
 
 from theano.compat.python2x import OrderedDict
-from theano.gof.op import get_debug_values
 from theano.sandbox import cuda
 from theano import tensor as T
 
 from pylearn2.linear.matrixmul import MatrixMul
 from pylearn2.models.mlp import Layer
+from pylearn2.models.model import Model
 from pylearn2.space import Conv2DSpace
 from pylearn2.space import VectorSpace
 from pylearn2.utils import py_integer_types
@@ -59,9 +60,11 @@ class Maxout(Layer):
 
     def __str__(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns
+        -------
+        rval : str
+            A string representation of the object. In this case, just the
+            class name.
         """
         return "Maxout"
 
@@ -84,46 +87,58 @@ class Maxout(Layer):
                  min_zero = False
         ):
         """
-        .. todo::
-
-            WRITEME properly
-
-        layer_name: A name for this layer that will be prepended to
-                    monitoring channels related to this layer.
-        num_units: The number of maxout units to use in this layer.
-        num_pieces: The number of linear pieces to use in each maxout
-                    unit.
-        pool_stride: The distance between the start of each max pooling
-                    region. Defaults to num_pieces, which makes the
-                    pooling regions disjoint. If set to a smaller number,
-                    can do overlapping pools.
-        randomize_pools: Does max pooling over randomized subsets of
-                    the linear responses, rather than over sequential
-                    subsets.
-        irange: if specified, initializes each weight randomly in
+        Parameters
+        ----------
+        layer_name : str
+            A name for this layer that will be prepended to monitoring channels
+            related to this layer. Each layer in an MLP must have a unique
+            name.
+        num_units : int
+            The number of maxout units to use in this layer.
+        num_pieces: int
+            The number of linear pieces to use in each maxout unit.
+        pool_stride : int, optional
+            The distance between the start of each max pooling region. Defaults
+            to num_pieces, which makes the pooling regions disjoint. If set to
+            a smaller number, can do overlapping pools.
+        randomize_pools : bool
+            If True, does max pooling over randomized subsets of the linear
+            responses, rather than over sequential subsets.
+        irange : float, optional
+            If specified, initializes each weight randomly in
             U(-irange, irange)
-        sparse_init: if specified, irange must not be specified.
-                    This is an integer specifying how many weights to make
-                    non-zero. All non-zero weights will be initialized
-                    randomly in N(0, sparse_stdev^2)
-        include_prob: probability of including a weight element in the set
-           of weights initialized to U(-irange, irange). If not included
-           a weight is initialized to 0. This defaults to 1.
-        init_bias: All biases are initialized to this number
-        W_lr_scale: The learning rate on the weights for this layer is
-            multiplied by this scaling factor
-        b_lr_scale: The learning rate on the biases for this layer is
-            multiplied by this scaling factor
-        max_col_norm: The norm of each column of the weight matrix is
-            constrained to have at most this norm. If unspecified, no
-            constraint. Constraint is enforced by re-projection (if
-            necessary) at the end of each update.
-        max_row_norm: Like max_col_norm, but applied to the rows.
-        mask_weights: A binary matrix multiplied by the weights after each
-                     update, allowing you to restrict their connectivity.
-        min_zero: If true, includes a zero in the set we take a max over
-                for each maxout unit. This is equivalent to pooling over
-                rectified linear units.
+        sparse_init : int, optional
+            if specified, irange must not be specified.
+            This is an integer specifying how many weights to make non-zero.
+            All non-zero weights will be initialized randomly in
+            N(0, sparse_stdev^2)
+        include_prob : float, optional
+            probability of including a weight element in the set
+            of weights initialized to U(-irange, irange). If not included
+            a weight is initialized to 0. This defaults to 1.
+        init_bias : float or ndarray, optional
+            A value that can be broadcasted to a numpy vector.
+            All biases are initialized to this number.
+        W_lr_scale: float, optional
+            The learning rate on the weights for this layer is multiplied by
+            this scaling factor
+        b_lr_scale: float, optional
+            The learning rate on the biases for this layer is multiplied by
+            this scaling factor
+        max_col_norm: float, optional
+            The norm of each column of the weight matrix is constrained to
+            have at most this norm. If unspecified, no constraint. Constraint
+            is enforced by re-projection (if necessary) at the end of each
+            update.
+        max_row_norm: float, optional
+            Like max_col_norm, but applied to the rows.
+        mask_weights: ndarray, optional
+            A binary matrix multiplied by the weights after each update,
+            allowing you to restrict their connectivity.
+        min_zero: bool, optional
+            If true, includes a zero in the set we take a max over for each
+            maxout unit. This is equivalent to pooling over rectified
+            linear units.
         """
 
         detector_layer_dim = num_units * num_pieces
@@ -141,12 +156,8 @@ class Maxout(Layer):
         if max_row_norm is not None:
             raise NotImplementedError()
 
+    @functools.wraps(Model.get_lr_scalers)
     def get_lr_scalers(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         if not hasattr(self, 'W_lr_scale'):
             self.W_lr_scale = None
@@ -167,13 +178,15 @@ class Maxout(Layer):
 
     def set_input_space(self, space):
         """
-        .. todo::
+        Tells the layer to use the specified input space.
 
-            WRITEME
+        This resets parameters! The weight matrix is initialized with the
+        size needed to receive input from this space.
 
-        Notes
-        -----
-        This resets parameters!
+        Parameters
+        ----------
+        space : Space
+            The Space that the input will lie in.
         """
 
         self.input_space = space
@@ -247,9 +260,18 @@ class Maxout(Layer):
 
     def censor_updates(self, updates):
         """
-        .. todo::
+        Replaces the values in `updates` if needed to enforce the options set
+        in the __init__ method, including `mask_weights` and `max_col_norm`.
 
-            WRITEME
+        Parameters
+        ----------
+        updates : OrderedDict
+            A dictionary mapping parameters (including parameters not
+            belonging to this model) to updated values of those parameters.
+            The dictionary passed in contains the updates proposed by the
+            learning algorithm. This function modifies the dictionary
+            directly. The modified version will be compiled and executed
+            by the learning algorithm.
         """
 
         # Patch old pickle files
@@ -270,12 +292,8 @@ class Maxout(Layer):
                 desired_norms = T.clip(col_norms, 0, self.max_col_norm)
                 updates[W] = updated_W * (desired_norms / (1e-7 + col_norms))
 
+    @functools.wraps(Model.get_params)
     def get_params(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         assert self.b.name is not None
         W ,= self.transformer.get_params()
         assert W.name is not None
@@ -286,36 +304,24 @@ class Maxout(Layer):
         rval.append(self.b)
         return rval
 
+    @functools.wraps(Layer.get_weight_decay)
     def get_weight_decay(self, coeff):
-        """
-        .. todo::
-
-            WRITEME
-        """
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
+    @functools.wraps(Layer.get_l1_weight_decay)
     def get_l1_weight_decay(self, coeff):
-        """
-        .. todo::
-
-            WRITEME
-        """
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W ,= self.transformer.get_params()
         return coeff * T.abs(W).sum()
 
+    @functools.wraps(Model.get_weights)
     def get_weights(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         if self.requires_reformat:
             # This is not really an unimplemented case.
             # We actually don't know how to format the weights
@@ -337,45 +343,25 @@ class Maxout(Layer):
 
         return W
 
+    @functools.wraps(Layer.set_weights)
     def set_weights(self, weights):
-        """
-        .. todo::
-
-            WRITEME
-        """
         W, = self.transformer.get_params()
         W.set_value(weights)
 
+    @functools.wraps(Layer.set_biases)
     def set_biases(self, biases):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.b.set_value(biases)
 
+    @functools.wraps(Layer.get_biases)
     def get_biases(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         return self.b.get_value()
 
+    @functools.wraps(Model.get_weights_format)
     def get_weights_format(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         return ('v', 'h')
 
+    @functools.wraps(Model.get_weights_view_shape)
     def get_weights_view_shape(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         total = self.detector_layer_dim
         cols = self.pool_size
         if cols == 1:
@@ -388,13 +374,8 @@ class Maxout(Layer):
             rows = rows + 1
         return rows, cols
 
-
+    @functools.wraps(Model.get_weights_topo)
     def get_weights_topo(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         if not isinstance(self.input_space, Conv2DSpace):
             raise NotImplementedError()
@@ -429,12 +410,8 @@ class Maxout(Layer):
                             ])
 
 
+    @functools.wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         P = state
 
@@ -475,12 +452,8 @@ class Maxout(Layer):
 
         return rval
 
+    @functools.wraps(Layer.fprop)
     def fprop(self, state_below):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         self.input_space.validate(state_below)
 
