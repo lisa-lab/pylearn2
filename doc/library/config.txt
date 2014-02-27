@@ -1,0 +1,13 @@
+=============
+Configuration
+=============
+
+YAML parser
+===========
+.. automodule:: pylearn2.config.yaml_parse
+    :members:
+
+Old configuration
+=================
+.. automodule:: pylearn2.config.old_config
+    :members:

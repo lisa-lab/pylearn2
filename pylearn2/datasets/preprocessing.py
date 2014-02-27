@@ -26,6 +26,7 @@ from pylearn2.space import Conv2DSpace, VectorSpace
 from pylearn2.expr.preprocessing import global_contrast_normalize
 from pylearn2.utils.insert_along_axis import insert_columns
 from pylearn2.utils import sharedX
+from pylearn2.utils.rng import make_np_rng
 
 
 log = logging.getLogger(__name__)
@@ -315,10 +316,7 @@ class ExtractPatches(Preprocessor):
         self.patch_shape = patch_shape
         self.num_patches = num_patches
 
-        if rng is not None:
-            self.start_rng = copy.copy(rng)
-        else:
-            self.start_rng = numpy.random.RandomState([1, 2, 3])
+        self.start_rng = make_np_rng(copy.copy(rng), [1,2,3], which_method="randint")
 
     def apply(self, dataset, can_fit=False):
         rng = copy.copy(self.start_rng)
@@ -882,7 +880,8 @@ class ZCA(Preprocessor):
         if not hasattr(ZCA._gpu_matrix_dot, 'theano_func'):
             ma, mb = theano.tensor.matrices('A', 'B')
             mc = theano.tensor.dot(ma, mb)
-            ZCA._gpu_matrix_dot.theano_func = theano.function([ma, mb], mc)
+            ZCA._gpu_matrix_dot.theano_func = theano.function([ma, mb], mc,
+                    allow_input_downcast=True)
 
         theano_func = ZCA._gpu_matrix_dot.theano_func
 
@@ -925,7 +924,7 @@ class ZCA(Preprocessor):
                 warnings.warn('Implicitly converting diag from dtype=%s to float32 for gpu' % diags.dtype)
 
             return ZCA._gpu_mdmt.theano_func(mat, diags)
-            
+
         except MemoryError:
             # fall back to cpu
             warnings.warn('M * D * M^T was too big to fit on GPU. '
@@ -987,9 +986,16 @@ class ZCA(Preprocessor):
         """
         Used to unpickle.
 
-        state: The dictionary created by __setstate__, presumably unpickled
-        from disk.
+        Parameters
+        ----------
+        state : dict
+            The dictionary created by __setstate__, presumably unpickled
+            from disk.
         """
+
+        # Patch old pickle files
+        if 'matrices_save_path' not in state:
+            state['matrices_save_path'] = None
 
         if state['matrices_save_path'] is not None:
             matrices = numpy.load(state['matrices_save_path'])
@@ -1387,7 +1393,7 @@ class ShuffleAndSplit(Preprocessor):
     def apply(self, dataset, can_fit=False):
         start = self.start
         stop = self.stop
-        rng = numpy.random.RandomState(self.seed)
+        rng = make_np_rng(self.seed, which_method="randint")
         X = dataset.X
         y = dataset.y
 

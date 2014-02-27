@@ -31,6 +31,7 @@ from pylearn2.utils import make_name
 from pylearn2.utils import safe_izip
 from pylearn2.utils import safe_zip
 from pylearn2.utils import sharedX
+from pylearn2.utils.rng import make_theano_rng
 
 
 class BaseCD(Cost):
@@ -45,14 +46,13 @@ class BaseCD(Cost):
         .. todo::
 
             WRITEME properly
-        
+
             toronto_neg: If True, use a bit of mean field in the negative phase
                         Ruslan Salakhutdinov's matlab code does this.
         """
         self.__dict__.update(locals())
         del self.self
-        if self.theano_rng is None:
-            self.theano_rng = MRG_RandomStreams(2012 + 10 + 14)
+        self.theano_rng = make_theano_rng(theano_rng, 2012+10+14, which_method="binomial")
         assert supervised in [True, False]
 
     def expr(self, model, data):
@@ -588,7 +588,7 @@ class TorontoSparsity(Cost):
     .. todo::
 
         WRITEME properly
-    
+
     TODO: add link to Ruslan Salakhutdinov's paper that this is based on
     """
     def __init__(self, targets, coeffs, supervised=False):
@@ -694,7 +694,7 @@ class WeightDecay(NullDataSpecsMixin, Cost):
     .. todo::
 
         WRITEME properly
-    
+
     coeff * sum(sqr(weights))
     for each set of weights.
     """
@@ -740,7 +740,7 @@ class WeightDecay(NullDataSpecsMixin, Cost):
         return total_cost
 
 
-class MultiPrediction(Cost):
+class MultiPrediction(DefaultDataSpecsMixin, Cost):
     """
     If you use this class in your research work, please cite:
 
@@ -780,12 +780,18 @@ class MultiPrediction(Cost):
         #assert not (reweight and reweight_correctly)
 
 
-    def get_monitoring_channels(self, model, X, Y = None, drop_mask = None, drop_mask_Y = None, **kwargs):
+    def get_monitoring_channels(self, model, data, drop_mask = None, drop_mask_Y = None, **kwargs):
         """
         .. todo::
 
             WRITEME
         """
+
+        if self.supervised:
+            X, Y = data
+        else:
+            X = data
+            Y = None
 
         if self.supervised:
             assert Y is not None
@@ -800,7 +806,12 @@ class MultiPrediction(Cost):
                 raise NotImplementedError()
             drop_mask = drop_mask.dimshuffle(0,1,2,'x')
 
-        scratch = self(model, X, Y, drop_mask = drop_mask, drop_mask_Y = drop_mask_Y,
+        if Y is None:
+            data = X
+        else:
+            data = (X, Y)
+        scratch = self.expr(model, data, drop_mask = drop_mask,
+                drop_mask_Y = drop_mask_Y,
                 return_locals = True)
 
         history = scratch['history']
@@ -900,13 +911,19 @@ class MultiPrediction(Cost):
 
         return rval
 
-    def __call__(self, model, X, Y = None, drop_mask = None, drop_mask_Y = None,
+    def expr(self, model, data, drop_mask = None, drop_mask_Y = None,
             return_locals = False, include_toronto = True, ** kwargs):
         """
         .. todo::
 
             WRITEME
         """
+
+        if self.supervised:
+            X, Y = data
+        else:
+            X = data
+            Y = None
 
         if not self.supervised:
             assert drop_mask_Y is None
@@ -1003,12 +1020,14 @@ class MultiPrediction(Cost):
 
         return total_cost
 
-    def get_fixed_var_descr(self, model, X, Y):
+    def get_fixed_var_descr(self, model, data):
         """
         .. todo::
 
             WRITEME
         """
+
+        X, Y = data
 
         assert Y is not None
 
@@ -1048,7 +1067,7 @@ class MultiPrediction(Cost):
             include_prob_V = model.inference_procedure.include_prob_V
             include_prob_Y = model.inference_procedure.include_prob_Y
 
-            theano_rng = MRG_RandomStreams(2012+11+20)
+            theano_rng = make_theano_rng(None, 2012+10+20, which_method="binomial")
             for elem in flatten([model.inference_procedure.V_dropout]):
                 updates[elem] = theano_rng.binomial(p=include_prob_V, size=elem.shape, dtype=elem.dtype, n=1) / include_prob_V
             if "Softmax" in str(type(model.hidden_layers[-1])):
@@ -1072,7 +1091,13 @@ class MultiPrediction(Cost):
             WRITEME
         """
 
-        scratch = self(model, X, Y, include_toronto = False, return_locals=True, **kwargs)
+        if Y is None:
+            data = X
+        else:
+            data = (X, Y)
+
+        scratch = self.expr(model, data, include_toronto = False,
+                return_locals=True, **kwargs)
 
         total_cost = scratch['total_cost']
 
@@ -1311,9 +1336,8 @@ class MaskGen:
         assert X_space is not None
         self.called = True
         assert X.dtype == config.floatX
-        if not hasattr(self, 'seed'):
-            self.seed = default_seed
-        theano_rng = RandomStreams(self.seed)
+        theano_rng = make_theano_rng(getattr(self, 'seed', None), default_seed,
+                                     which_method="binomial")
 
         if X.ndim == 2 and self.sync_channels:
             raise NotImplementedError()

@@ -1,7 +1,5 @@
 """
-.. todo::
-
-    WRITEME
+Functionality for display and saving images of collections of images patches.
 """
 import numpy as np
 from pylearn2.datasets.dense_design_matrix import DefaultViewConverter
@@ -14,13 +12,51 @@ import warnings
 def make_viewer(mat, grid_shape=None, patch_shape=None,
                 activation=None, pad=None, is_color = False, rescale = True):
     """
-    .. todo::
-
-        WRITEME properly
-
     Given filters in rows, guesses dimensions of patches
     and nice dimensions for the PatchViewer and returns a PatchViewer
-    containing visualizations of the filters
+    containing visualizations of the filters.
+
+    Parameters
+    ----------
+    mat : ndarray
+        Values should lie in [-1, 1] if `rescale` is False.
+        0. always indicates medium gray, with negative values drawn as
+        blacker and positive values drawn as whiter.
+        A matrix with each row being a different image patch, OR
+        a 4D tensor in ('b', 0, 1, 'c') format.
+        If matrix, we assume it was flattened using the same procedure as a
+        ('b', 0, 1, 'c') DefaultViewConverter uses.
+    grid_shape : tuple, optional
+        A tuple of two ints specifying the shape of the grad in the
+        PatchViewer, in (rows, cols) format. If not specified, this
+        function does its best to choose an aesthetically pleasing
+        value.
+    patch_shape : tupe, optional
+        A tuple of two ints specifying the shape of the patch.
+        If `mat` is 4D, this function gets the patch shape from the shape of
+        `mat`. If `mat` is 2D and patch_shape is not specified, this function
+        assumes the patches are perfectly square.
+    activation : iterable
+        An iterable collection describing some kind of activation value
+        associated with each patch. This is indicated with a border around the
+        patch whose color intensity increases with activation value.
+        The individual activation values may be single floats to draw one
+        border or iterable collections of floats to draw multiple borders with
+        differing intensities around the patch.
+    pad : int, optional
+        The amount of padding to add between patches in the displayed image.
+    is_color : int
+        If True, assume the images are in color.
+        Note needed if `mat` is in ('b', 0, 1, 'c') format since we can just
+        look at its shape[-1].
+    rescale : bool
+        If True, rescale each patch so that its highest magnitude pixel
+        reaches a value of either 0 or 1 depending on the sign of that pixel.
+
+    Returns
+    -------
+    patch_viewer : PatchViewer
+        A PatchViewer containing the patches stored in `mat`.
     """
 
     num_channels = 1

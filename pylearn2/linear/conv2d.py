@@ -21,6 +21,11 @@ from pylearn2.packaged_dependencies.theano_linear.conv2d import Conv2d as OrigCo
 
 from pylearn2.linear.linear_transform import LinearTransform as P2LT
 from pylearn2.utils import sharedX
+from pylearn2.utils.rng import make_np_rng
+
+
+default_seed = [2012, 11, 6, 9]
+default_sparse_seed = [2012, 11, 6]
 
 
 class Conv2D(OrigConv2D):
@@ -232,14 +237,6 @@ class Conv2D(OrigConv2D):
         self._img_shape = tuple([ batch_size ] + list(self._img_shape[1:]))
 
 
-def default_rng():
-    """
-    .. todo::
-
-        WRITEME
-    """
-    return np.random.RandomState([2012, 11, 6, 9])
-
 
 def make_random_conv2D(irange, input_space, output_space,
         kernel_shape, batch_size, \
@@ -252,8 +249,7 @@ def make_random_conv2D(irange, input_space, output_space,
     Creates a Conv2D with random kernels
     """
 
-    if rng is None:
-        rng = default_rng()
+    rng = make_np_rng(rng, default_seed, which_method='uniform')
 
     W = sharedX( rng.uniform(-irange,irange,( output_space.num_channels, input_space.num_channels, \
             kernel_shape[0], kernel_shape[1])))
@@ -265,14 +261,6 @@ def make_random_conv2D(irange, input_space, output_space,
         subsample = subsample, border_mode = border_mode,
         filters_shape = W.get_value(borrow=True).shape, message = message)
 
-
-def default_sparse_rng():
-    """
-    .. todo::
-
-        WRITEME
-    """
-    return np.random.RandomState([2012, 11, 6])
 
 def make_sparse_random_conv2D(num_nonzero, input_space, output_space,
         kernel_shape, batch_size, \
@@ -292,8 +280,7 @@ def make_sparse_random_conv2D(num_nonzero, input_space, output_space,
             "the number of non-zero elements per kernel. Investigate what it's "
             "meant to do.")
 
-    if rng is None:
-        rng = default_sparse_rng()
+    rng = make_np_rng(rng, default_sparse_seed, which_method=['randn','randint'])
 
     W = np.zeros(( output_space.num_channels, input_space.num_channels, \
             kernel_shape[0], kernel_shape[1]))
