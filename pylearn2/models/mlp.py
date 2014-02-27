@@ -34,6 +34,7 @@ from pylearn2.utils import function
 from pylearn2.utils import py_integer_types
 from pylearn2.utils import safe_union
 from pylearn2.utils import safe_zip
+from pylearn2.utils import safe_izip
 from pylearn2.utils import sharedX
 from pylearn2.utils import wraps
 
@@ -258,7 +259,7 @@ class MLP(Layer):
     """
 
     def __init__(self, layers, batch_size=None, input_space=None,
-                 nvis=None, seed=None):
+                 nvis=None, seed=None, layer_name=None):
         """
         Parameters
         ----------
@@ -288,14 +289,31 @@ class MLP(Layer):
         assert isinstance(layers, list)
         assert all(isinstance(layer, Layer) for layer in layers)
         assert len(layers) >= 1
+        
+        if layer_name is not None:
+            self.layer_name = layer_name
+        
         self.layer_names = set()
         for layer in layers:
             assert layer.get_mlp() is None
             if layer.layer_name in self.layer_names:
                 raise ValueError("MLP.__init__ given two or more layers "
                                  "with same name: " + layer.layer_name)
-            layer.set_mlp(self)
-            self.layer_names.add(layer.layer_name)
+            if hasattr(self, "mlp"):
+                if self.mlp is not None:
+                    layer.set_mlp(self.mlp)
+                else:
+                    layer.set_mlp(self)
+            else:
+                layer.set_mlp(self)
+            
+            if layer_name is not None:
+                self.layer_names.add(self.layer_name+'_'+layer.layer_name)
+            else:
+                self.layer_names.add(layer.layer_name)
+            
+            print layer.layer_name
+
 
         self.layers = layers
 
@@ -393,10 +411,73 @@ class MLP(Layer):
         self.freeze_set = self.freeze_set.union(parameter_set)
 
     @wraps(Layer.get_monitoring_channels)
-    def get_monitoring_channels(self, data):
+    def get_monitoring_channels(self, data=None):
+        # if the MLP is the outer MLP (ie MLP is not contained in another structure)
+        if data is not None:
+            X, Y = data
+            state = X
+            rval = OrderedDict()
 
-        X, Y = data
-        state = X
+            for layer in self.layers:
+                ch = layer.get_monitoring_channels()
+                for key in ch:
+                    value = ch[key]
+                    doc = get_monitor_doc(value)
+                    if doc is None:
+                        doc = str(type(layer)) + ".get_monitoring_channels did" + \
+                                " not provide any further documentation for" + \
+                                " this channel."
+                    doc = 'This channel came from a layer called "' + \
+                            layer.layer_name + '" of an MLP.\n' + doc
+                    value.__doc__ = doc
+                    rval[layer.layer_name+'_'+key] = value
+                
+                args = [state]
+                if layer is self.layers[-1]:
+                    args.append(Y)
+                ch = layer.get_monitoring_channels_from_state(*args)
+                if not isinstance(ch, OrderedDict):
+                    raise TypeError(str((type(ch), layer.layer_name)))
+                for key in ch:
+                    value = ch[key]
+                    doc = get_monitor_doc(value)
+                    if doc is None:
+                        doc = str(type(layer)) + \
+                                ".get_monitoring_channels_from_state did" + \
+                                " not provide any further documentation for" + \
+                                " this channel."
+                    doc = 'This channel came from a layer called "' + \
+                            layer.layer_name + '" of an MLP.\n' + doc
+                    value.__doc__ = doc
+                    rval[layer.layer_name+'_'+key] = value
+                    
+                state = layer.fprop(state)
+
+            return rval
+        
+        # if the MLP is part of a bigger structure
+        else:
+            rval = OrderedDict()
+            
+            for layer in self.layers:
+                ch = layer.get_monitoring_channels()
+                for key in ch:
+                    value = ch[key]
+                    doc = get_monitor_doc(value)
+                    if doc is None:
+                        doc = str(type(layer)) + ".get_monitoring_channels did" + \
+                                " not provide any further documentation for" + \
+                                " this channel."
+                    doc = 'This channel came from a layer called "' + \
+                            layer.layer_name + '" of an MLP.\n' + doc
+                    value.__doc__ = doc
+                    rval[layer.layer_name+'_'+key] = value
+            
+            return rval
+    
+    @wraps(Layer.get_monitoring_channels_from_state)
+    def get_monitoring_channels_from_state(self, state, target=None):
+        
         rval = OrderedDict()
 
         for layer in self.layers:
@@ -412,10 +493,9 @@ class MLP(Layer):
                         layer.layer_name + '" of an MLP.\n' + doc
                 value.__doc__ = doc
                 rval[layer.layer_name+'_'+key] = value
-            state = layer.fprop(state)
             args = [state]
-            if layer is self.layers[-1]:
-                args.append(Y)
+            if layer is self.layers[-1] and target is not None:
+                args.append(target)
             ch = layer.get_monitoring_channels_from_state(*args)
             if not isinstance(ch, OrderedDict):
                 raise TypeError(str((type(ch), layer.layer_name)))
@@ -431,6 +511,8 @@ class MLP(Layer):
                         layer.layer_name + '" of an MLP.\n' + doc
                 value.__doc__ = doc
                 rval[layer.layer_name+'_'+key] = value
+            
+            state = layer.fprop(state)
 
         return rval
 
@@ -466,6 +548,21 @@ class MLP(Layer):
 
         return rval
 
+    @wraps(Layer.get_weight_decay)
+    def get_weight_decay(self, coeffs):
+        
+        # check the case where coeffs is a scalar
+        if not hasattr(coeffs, '__iter__'):
+            coeffs = [coeffs]*len(self.layers)
+        
+        layer_costs = [layer.get_weight_decay(coeff) \
+                    for layer, coeff in safe_izip(self.layers, coeffs)]
+        
+        total_cost = reduce(lambda x, y: x + y, layer_costs)
+        
+        return total_cost
+    
+    
     @wraps(Model.set_batch_size)
     def set_batch_size(self, batch_size):
 
@@ -923,7 +1020,8 @@ class Softmax(Layer):
 
     @wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
-
+        
+        state = self.fprop(state)
         mx = state.max(axis=1)
 
         rval = OrderedDict([('mean_max_class', mx.mean()),
@@ -1424,7 +1522,9 @@ class SoftmaxPool(Layer):
 
     @wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state):
-
+        
+        state = self.fprop(state)
+        
         P = state
 
         rval = OrderedDict()
@@ -1780,7 +1880,9 @@ class Linear(Layer):
 
     @wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
-
+        
+        state = self.fprop(state)
+        
         rval = OrderedDict()
 
         mx = state.max(axis=0)
@@ -2047,7 +2149,9 @@ class Sigmoid(Linear):
 
     @wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
-
+        
+        state = self.fprop(state)
+        
         rval = super(Sigmoid, self).get_monitoring_channels_from_state(state,
                                                                        target)
 
@@ -2787,7 +2891,9 @@ class LinearGaussian(Linear):
 
     @wraps(Linear.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
-
+        
+        state = self.fprop(state)
+        
         rval = super(LinearGaussian, self).get_monitoring_channels()
         if target:
             rval['mse'] = T.sqr(state - target).mean()
