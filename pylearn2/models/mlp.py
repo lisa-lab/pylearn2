@@ -529,6 +529,10 @@ class MLP(Layer):
 
     @wraps(Layer.get_params)
     def get_params(self):
+        
+        if not hasattr(self, "input_space"):
+            raise AttributeError("Input space has not been provided.")
+        
 
         rval = []
         for layer in self.layers:
@@ -613,21 +617,37 @@ class MLP(Layer):
 
     @wraps(Layer.get_weights)
     def get_weights(self):
+        
+        if not hasattr(self, "input_space"):
+            raise AttributeError("Input space has not been provided.")
+        
 
         return self.layers[0].get_weights()
 
     @wraps(Layer.get_weights_view_shape)
     def get_weights_view_shape(self):
+        
+        if not hasattr(self, "input_space"):
+            raise AttributeError("Input space has not been provided.")
+        
 
         return self.layers[0].get_weights_view_shape()
 
     @wraps(Layer.get_weights_format)
     def get_weights_format(self):
+        
+        if not hasattr(self, "input_space"):
+            raise AttributeError("Input space has not been provided.")
+        
 
         return self.layers[0].get_weights_format()
 
     @wraps(Layer.get_weights_topo)
     def get_weights_topo(self):
+        
+        if not hasattr(self, "input_space"):
+            raise AttributeError("Input space has not been provided.")
+        
 
         return self.layers[0].get_weights_topo()
 
@@ -835,6 +855,7 @@ class MLP(Layer):
         
         if not hasattr(self, "input_space"):
             raise AttributeError("Input space has not been provided.")
+        
         
         rval = self.layers[0].fprop(state_below)
 
