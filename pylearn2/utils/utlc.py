@@ -11,40 +11,12 @@ from tempfile import TemporaryFile
 import numpy
 import theano
 from pylearn2.datasets.utlc import load_ndarray_dataset, load_sparse_dataset
-from pylearn2.utils import subdict, sharedX, embed
+from pylearn2.utils import subdict, sharedX
 
 
 ##################################################
 # Shortcuts and auxiliary functions
 ##################################################
-
-
-"""
-this function marked deprecated by Ian Goodfellow
-TODO: find all uses of this function and remove it,
-      OR change the comment to explain why it needs to exist
-         if it is just intended to be used on shared variables,
-         shouldn't we just use get_value?
-
-def get_constant(variable, return_scalar=False):
-     Little hack to return the python value of a theano shared variable.
-
-    If return_scalar is True, and the constant is an ndarray of 0 dimensions,
-    the content of that ndarray will be returned instead.
-
-    try:
-        ret = theano.function([],
-                              variable,
-                              mode=theano.compile.Mode(linker='py')
-                              )()
-    except TypeError:
-        ret = variable
-    if isinstance(ret, numpy.ndarray) and ret.ndim == 0:
-        ret = ret.item()
-    return ret
-"""
-
-
 
 def getboth(dict1, dict2, key, default=None):
     """
@@ -252,7 +224,10 @@ def compute_alc(valid_repr, test_repr):
     label = numpy.vstack((_labvalid, _labtest))
 
     print '... computing the ALC'
-    return embed.score(dataset, label)
+    raise NotImplementedError("This got broken by embed no longer being "
+            "where it used to be (if it even still exists, I haven't "
+            "looked for it)")
+    # return embed.score(dataset, label)
 
 
 def lookup_alc(data, transform):
