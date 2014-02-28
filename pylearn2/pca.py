@@ -796,7 +796,7 @@ if __name__ == "__main__":
     """
 
     import argparse
-    from pylearn2.utils import load_data, get_constant
+    from pylearn2.utils import load_data
 
     parser = argparse.ArgumentParser(
         description="Transform the output of a model by Principal Component"
@@ -853,7 +853,7 @@ if __name__ == "__main__":
     train_data, valid_data, test_data = map(lambda(x):
                                             x.get_value(borrow=True), data)
     print >> sys.stderr, "Dataset shapes:", map(lambda(x):
-                                                get_constant(x.shape), data)
+                                                x.get_value().shape, data)
     # PCA base-class constructor arguments.
     conf = {
         'num_components': args.num_components,

@@ -67,7 +67,7 @@ class DenseDesignMatrix(Dataset):
         topo_view : ndarray, optional
             Should be supplied if X is not.  An array whose first \
             dimension is of length number examples. The remaining \
-            dimensions are xamples with topological significance, \
+            dimensions are examples with topological significance, \
             e.g. for images the remaining axes are rows, columns, \
             and channels.
         y : ndarray, 1-dimensional(?), optional
@@ -1277,9 +1277,23 @@ def from_dataset(dataset, num_examples):
 
 def dataset_range(dataset, start, stop):
     """
-    .. todo::
+    Returns a new dataset formed by extracting a range of examples from an
+    existing dataset.
 
-        WRITEME
+    Parameters
+    ----------
+    dataset : DenseDesignMatrix
+        The existing dataset to extract examples from.
+    start : int
+        Extract examples starting at this index.
+    stop : int
+        Stop extracting examples at this index. Do not include this index
+        itself (like the python `range` builtin)
+
+    Returns
+    -------
+    sub_dataset : DenseDesignMatrix
+        The new dataset containing examples [start, stop).
     """
 
     if dataset.X is None:

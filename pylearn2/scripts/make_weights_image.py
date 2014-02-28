@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-#usage: python show_dimred_weights <whitener network>
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -8,16 +7,22 @@ __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 import sys
 from pylearn2.gui import get_weights_report
+import warnings
 
-print 'loading model'
-path = sys.argv[1]
-print 'loading done'
+warnings.warn("make_weights_image.py is deprecated. Use show_weights.py with"
+        " the --out flag. make_weights_image.py may be removed on or after "
+        "2014-08-28.")
 
-rescale = True
+if __name__ == "__main__":
+    print 'loading model'
+    path = sys.argv[1]
+    print 'loading done'
 
-if len(sys.argv) > 2:
-	rescale = eval(sys.argv[2])
+    rescale = True
 
-pv = get_weights_report.get_weights_report(path, rescale)
+    if len(sys.argv) > 2:
+        rescale = eval(sys.argv[2])
 
-pv.save(sys.argv[1]+'.png')
+    pv = get_weights_report.get_weights_report(path, rescale)
+
+    pv.save(sys.argv[1]+'.png')
