@@ -1,6 +1,6 @@
 """Tests for space utilities."""
 import numpy as np
-import scipy, sys, warnings
+import scipy, sys, warnings, itertools
 
 import theano
 from theano import tensor
@@ -215,6 +215,7 @@ def test_broadcastable():
                     axes=['b', 0, 1, 'c']).make_theano_batch(batch_size=1)
     np.testing.assert_(d.broadcastable[0])
 
+
 def test_compare_index():
     dims = [5, 5, 5, 6]
     max_labels = [10, 10, 9, 10]
@@ -228,7 +229,8 @@ def test_compare_index():
                                axes=('b', 'c', 0, 1))
     composite_space = CompositeSpace((index_spaces[0],))
     assert not any(index_space == vector_space for index_space in index_spaces)
-    assert not any(index_space == composite_space for index_space in index_spaces)
+    assert not any(index_space == composite_space
+                   for index_space in index_spaces)
     assert not any(index_space == conv2d_space for index_space in index_spaces)
 
 
@@ -244,7 +246,8 @@ def test_np_format_as_index2vector():
         vector_space_merge = VectorSpace(dim=max_labels)
         vector_space_concatenate = VectorSpace(dim=max_labels * labels)
         merged = index_space.np_format_as(batch, vector_space_merge)
-        concatenated = index_space.np_format_as(batch, vector_space_concatenate)
+        concatenated = index_space.np_format_as(batch,
+                                                vector_space_concatenate)
         if batch_size > 1:
             assert merged.shape == (batch_size, max_labels)
             assert concatenated.shape == (batch_size, max_labels * labels)
@@ -263,16 +266,16 @@ def test_np_format_as_index2vector():
     np_single = np.random.random_integers(max_labels - 1,
                                           size=(labels))
     f_batch_merge = theano.function(
-        [batch], index_space._format_as(batch, vector_space_merge)
+        [batch], index_space.format_as(batch, vector_space_merge)
     )
     f_batch_concatenate = theano.function(
-        [batch], index_space._format_as(batch, vector_space_concatenate)
+        [batch], index_space.format_as(batch, vector_space_concatenate)
     )
     f_single_merge = theano.function(
-        [single], index_space._format_as(single, vector_space_merge)
+        [single], index_space.format_as(single, vector_space_merge)
     )
     f_single_concatenate = theano.function(
-        [single], index_space._format_as(single, vector_space_concatenate)
+        [single], index_space.format_as(single, vector_space_concatenate)
     )
     np.testing.assert_allclose(
         f_batch_merge(np_batch),

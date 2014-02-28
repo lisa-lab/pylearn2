@@ -358,7 +358,6 @@ class Space(object):
                                       dtype=dtype,
                                       batch_size=batch_size)
 
-
     @wraps(make_theano_batch)
     def get_theano_batch(self, *args, **kwargs):
 
@@ -406,6 +405,20 @@ class Space(object):
                                batch=batch,
                                space=space)
 
+    def _check_sizes(self, space):
+        """
+        Called by self._format_as(space), to check whether self and space
+        have compatible sizes. Throws a ValueError if they don't.
+        """
+        my_dimension = self.get_total_dimension()
+        other_dimension = space.get_total_dimension()
+        if my_dimension != other_dimension:
+            raise ValueError(str(self)+" with total dimension " +
+                             str(my_dimension) +
+                             " can't format a batch into " +
+                             str(space) + "because its total dimension is " +
+                             str(other_dimension))
+
     def format_as(self, batch, space):
         self._check_is_symbolic(batch)
         return self._format_as(is_numeric=False,
@@ -439,25 +452,11 @@ class Space(object):
 
         assert isinstance(is_numeric, bool)
 
+        # Checks if batch belongs to this space
         self._validate(is_numeric, batch)
 
-        my_dimension = self.get_total_dimension()
-        other_dimension = space.get_total_dimension()
-
-        if my_dimension != other_dimension:
-            raise ValueError(str(self)+" with total dimension " +
-                             str(my_dimension) +
-                             " can't format a batch into " +
-                             str(space) + "because its total dimension is " +
-                             str(other_dimension))
-
-        # Returns the batch untouched if no conversion is necessary.
-        #
-        # Checking if self == space is not enough, since validate() allows
-        # batch to have a different dtype than self.dtype (for
-        # backwards-compatibility reasons).
-        # if self == space and (space.dtype is None or str(batch.dtype) == space.dtype):
-        #     return batch
+        # checks if self and space have compatible sizes for formatting.
+        self._check_sizes(space)
 
         return self._format_as_impl(is_numeric, batch, space)
 
@@ -709,7 +708,7 @@ class SimplyTypedSpace(Space):
         self._dtype = super(SimplyTypedSpace, self)._clean_dtype_arg(new_dtype)
 
 
-class IndexSpace(Space):
+class IndexSpace(SimplyTypedSpace):
     """
     A space representing indices, for example MNIST labels (0-10) or the
     indices of words in a dictionary for NLP tasks. A single space can
@@ -765,40 +764,39 @@ class IndexSpace(Space):
     def get_total_dimension(self):
         return self.dim
 
-    @functools.wraps(Space.np_format_as)
-    def np_format_as(self, batch, space):
-        if isinstance(space, VectorSpace):
-            if self.max_labels == space.dim:
-                rval = self.formatter.format(batch, sparse=space.sparse,
-                                             mode='merge')
-            elif self.dim * self.max_labels == space.dim:
-                rval = self.formatter.format(batch, sparse=space.sparse,
-                                             mode='concatenate')
-            else:
-                raise ValueError("Can't convert %s to %s"
-                                 % (self, space))
-            return rval
-        else:
-            raise ValueError("Can't convert %s to %s"
-                             % (self, space))
+    @functools.wraps(Space._check_sizes)
+    def _check_sizes(self, space):
+        if not isinstance(space, VectorSpace):
+            raise TypeError('_check_sizes somehow got something other than '
+                            'VectorSpace. This should have been detected in '
+                            '_vaildate_impl')
 
-    @functools.wraps(Space._format_as)
-    def _format_as(self, batch, space):
-        """
-        Supports formatting to a VectorSpace where indices are represented
-        by ones in a binary vector.
-        """
+        if space.dim not in (self.max_labels,              # merged onehots
+                             self.dim * self.max_labels):  # concatenated
+            raise ValueError("Can't convert to VectorSpace of dim %d. "
+                             "Expected either dim=%d (merged one-hots) or %d "
+                             "(concatenated one-hots)" %
+                             (space.dim,
+                              self.max_labels,
+                              self.dim * self.max_labels))
+
+    @functools.wraps(Space._format_as_impl)
+    def _format_as_impl(self, is_numeric, batch, space):
         if isinstance(space, VectorSpace):
             if self.max_labels == space.dim:
-                rval = self.formatter.theano_expr(batch, sparse=space.sparse,
-                                                  mode='merge')
+                mode = 'merge'
             elif self.dim * self.max_labels == space.dim:
-                rval = self.formatter.theano_expr(batch, sparse=space.sparse,
-                                                  mode='concatenate')
+                mode = 'concatenate'
             else:
-                raise ValueError("Can't convert %s to %s"
-                                 % (self, space))
-            return rval
+                raise ValueError("There is a bug. Couldn't format to a "
+                                 "VectorSpace because it had an incorrect "
+                                 "size, but this should've been caught in "
+                                 "IndexSpace._check_sizes().")
+
+            format_func = (self.formatter.format if is_numeric else
+                           self.formatter.theano_expr)
+            return _cast(format_func(batch, sparse=space.sparse, mode=mode),
+                         space.dtype)
         else:
             raise ValueError("Can't convert %s to %s"
                              % (self, space))
@@ -811,53 +809,50 @@ class IndexSpace(Space):
             rval = T.lmatrix(name=name)
         return rval
 
-    @functools.wraps(Space.batch_size)
-    def batch_size(self, batch):
-        self.validate(batch)
+    @functools.wraps(Space._batch_size_impl)
+    def _batch_size_impl(self, is_numeric, batch):
         return batch.shape[0]
 
-    @functools.wraps(Space.np_batch_size)
-    def np_batch_size(self, batch):
-        self.np_validate(batch)
-        return batch.shape[0]
-
-    @functools.wraps(Space._validate)
-    def _validate(self, batch):
+    @functools.wraps(Space._validate_impl)
+    def _validate_impl(self, is_numeric, batch):
         """
         .. todo::
 
             WRITEME
         """
-        if not isinstance(batch, theano.gof.Variable):
-            raise TypeError("IndexSpace batch should be a theano Variable, "
-                            "got " + str(type(batch)))
-        if not isinstance(batch.type, (theano.tensor.TensorType,
-                                       CudaNdarrayType)):
-            raise TypeError("VectorSpace batch should be TensorType or "
-                            "CudaNdarrayType, got "+str(batch.type))
-        if batch.ndim != 2:
-            raise ValueError('IndexSpace batches must be 2D, got %d '
-                             'dimensions' % batch.ndim)
-        for val in get_debug_values(batch):
-            self.np_validate(val)
+        # checks that batch isn't a tuple, checks batch.type against self.dtype
+        super(IndexSpace, self)._validate_impl(is_numeric, batch)
 
-    @functools.wraps(Space._np_validate)
-    def _np_validate(self, batch):
-        # Use the 'CudaNdarray' string to avoid importing theano.sandbox.cuda
-        # when it is not available
-        if (not isinstance(batch, np.ndarray)
-            and str(type(batch)) != "<type 'CudaNdarray'>"):
-            raise TypeError("The value of a IndexSpace batch should be a "
-                            "numpy.ndarray, or CudaNdarray, but is %s."
-                            % str(type(batch)))
-        if batch.ndim != 2:
-            raise ValueError("The value of a IndexSpace batch must be "
-                             "2D, got %d dimensions for %s." % (batch.ndim,
-                                                                batch))
-        if batch.shape[1] != self.dim:
-            raise ValueError("The width of a IndexSpace batch must match "
-                             "with the space's dimension, but batch has shape "
-                             "%s and dim = %d." % (str(batch.shape), self.dim))
+        if is_numeric:
+            # Use the 'CudaNdarray' string to avoid importing
+            # theano.sandbox.cuda when it is not available
+            if not isinstance(batch, np.ndarray) \
+               and str(type(batch)) != "<type 'CudaNdarray'>":
+                raise TypeError("The value of a IndexSpace batch should be a "
+                                "numpy.ndarray, or CudaNdarray, but is %s."
+                                % str(type(batch)))
+            if batch.ndim != 2:
+                raise ValueError("The value of a IndexSpace batch must be "
+                                 "2D, got %d dimensions for %s." % (batch.ndim,
+                                                                    batch))
+            if batch.shape[1] != self.dim:
+                raise ValueError("The width of a IndexSpace batch must match "
+                                 "with the space's dimension, but batch has "
+                                 "shape %s and dim = %d." % (str(batch.shape),
+                                                             self.dim))
+        else:
+            if not isinstance(batch, theano.gof.Variable):
+                raise TypeError("IndexSpace batch should be a theano "
+                                "Variable, got " + str(type(batch)))
+            if not isinstance(batch.type, (theano.tensor.TensorType,
+                                           CudaNdarrayType)):
+                raise TypeError("VectorSpace batch should be TensorType or "
+                                "CudaNdarrayType, got "+str(batch.type))
+            if batch.ndim != 2:
+                raise ValueError('IndexSpace batches must be 2D, got %d '
+                                 'dimensions' % batch.ndim)
+            for val in get_debug_values(batch):
+                self.np_validate(val)
 
 
 class VectorSpace(SimplyTypedSpace):
@@ -953,6 +948,17 @@ class VectorSpace(SimplyTypedSpace):
         def is_sparse(batch):
             return (isinstance(batch, theano.sparse.SparseVariable) or
                     scipy.sparse.issparse(batch))
+
+        if not isinstance(space, IndexSpace):
+            my_dimension = self.get_total_dimension()
+            other_dimension = space.get_total_dimension()
+            if my_dimension != other_dimension:
+                raise ValueError(str(self)+" with total dimension " +
+                                 str(my_dimension) +
+                                 " can't format a batch into " +
+                                 str(space) +
+                                 "because its total dimension is " +
+                                 str(other_dimension))
 
         if isinstance(space, CompositeSpace):
             if isinstance(batch, theano.sparse.SparseVariable):
