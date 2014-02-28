@@ -195,6 +195,7 @@ class DenseDesignMatrix(Dataset):
 
             data_specs = (space, source)
             convert = None
+
         else:
             if data_specs is None:
                 data_specs = self._iter_data_specs
@@ -211,9 +212,7 @@ class DenseDesignMatrix(Dataset):
                 sub_sources = (source,)
 
             convert = []
-
             for sp, src in safe_zip(sub_spaces, sub_sources):
-
                 if src == 'features' and \
                    getattr(self, 'view_converter', None) is not None:
                     conv_fn = (lambda batch, self=self, space=sp:
@@ -296,7 +295,6 @@ class DenseDesignMatrix(Dataset):
         """
         axis = self.view_converter.axes.index('b')
         return axis
-
 
     def enable_compression(self):
         """
@@ -997,7 +995,7 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
                                                    axes=axes)
         X = self.view_converter.topo_view_to_design_mat(V)
         assert not np.any(np.isnan(X))
-        DenseDesignMatrixPyTables.fill_hdf5(file=self.h5file,
+        DenseDesignMatrixPyTables.fill_hdf5(file_handle=self.h5file,
                                             data_x=X,
                                             start=start)
 
@@ -1303,9 +1301,23 @@ def from_dataset(dataset, num_examples):
 
 def dataset_range(dataset, start, stop):
     """
-    .. todo::
+    Returns a new dataset formed by extracting a range of examples from an
+    existing dataset.
 
-        WRITEME
+    Parameters
+    ----------
+    dataset : DenseDesignMatrix
+        The existing dataset to extract examples from.
+    start : int
+        Extract examples starting at this index.
+    stop : int
+        Stop extracting examples at this index. Do not include this index
+        itself (like the python `range` builtin)
+
+    Returns
+    -------
+    sub_dataset : DenseDesignMatrix
+        The new dataset containing examples [start, stop).
     """
 
     if dataset.X is None:

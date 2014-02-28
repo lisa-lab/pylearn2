@@ -901,27 +901,32 @@ class ZCA(Preprocessor):
     @staticmethod
     def _gpu_mdmt(mat, diags):
         """
-        Performs the matrix multiplication A * D * A^T.
+        Performs the matrix multiplication M * D * M^T.
 
         First tries to do this on the GPU. If this throws a MemoryError, it
         falls back to the CPU, with a warning message.
         """
 
+        floatX = theano.config.floatX
+
         # compile theano function
         if not hasattr(ZCA._gpu_mdmt, 'theano_func'):
-            t_mat = theano.tensor.matrix('A')
+            t_mat = theano.tensor.matrix('M')
             t_diags = theano.tensor.vector('D')
             result = theano.tensor.dot(t_mat * t_diags, t_mat.T)
-            ZCA._gpu_mdmt.theano_func = theano.function([t_mat, t_diags],
-                                                        result,
-                                                        allow_input_downcast=True)
+            ZCA._gpu_mdmt.theano_func = theano.function(
+                [t_mat, t_diags],
+                result,
+                allow_input_downcast=True)
 
         try:
             # function()-call above had to downcast the data. Emit warnings.
-            if mat.dtype != numpy.float32:
-                warnings.warn('Implicitly converting mat from dtype=%s to float32 for gpu' % mat.dtype)
-            if diags.dtype != numpy.float32:
-                warnings.warn('Implicitly converting diag from dtype=%s to float32 for gpu' % diags.dtype)
+            if str(mat.dtype) != floatX:
+                warnings.warn('Implicitly converting mat from dtype=%s to '
+                              '%s for gpu' % (mat.dtype, floatX))
+            if str(diags.dtype) != floatX:
+                warnings.warn('Implicitly converting diag from dtype=%s to '
+                              '%s for gpu' % (diags.dtype, floatX))
 
             return ZCA._gpu_mdmt.theano_func(mat, diags)
 
@@ -1013,12 +1018,6 @@ class ZCA(Preprocessor):
         If self.store_inverse is true, this also computes self.inv_P_.
 
         X: a matrix where each row is a datum.
-
-        compute_inverese: Computes the inverse of P_, storing it as inv_P_.
-                          This is not always necessary, but ZCA_Dataset
-                          requires inv_P_. If it's not computed here,
-                          ZCA_Dataset will compute it much less efficiently in
-                          its constructor.
         """
         assert X.dtype in ['float32', 'float64']
         assert not numpy.any(numpy.isnan(X))
