@@ -227,9 +227,13 @@ class Model(object):
 
     def get_lr_scalers(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns
+        -------
+        lr_scalers : OrderedDict
+            A dictionary mapping the parameters of the model to floats. The
+            learning rate will be multiplied by the float for each parameter.
+            If a parameter does not appear in the dictionary, it will use
+            the global learning rate with no scaling.
         """
         return OrderedDict()
 
@@ -254,10 +258,6 @@ class Model(object):
         updates : dict
             A dictionary mapping shared variables to symbolic values they \
             will be updated to
-
-        Returns
-        -------
-        WRITEME
         """
 
         pass

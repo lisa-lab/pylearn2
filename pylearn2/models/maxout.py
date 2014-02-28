@@ -533,61 +533,82 @@ class MaxoutConvC01B(Layer):
                  output_normalization = None,
                  kernel_stride=(1, 1)):
         """
-        .. todo::
-
-            WRITEME properly
-
-        num_channels: The number of output channels the layer should have.
-                      Note that it must internally compute num_channels * num_pieces
-                      convolution channels.
-        num_pieces:   The number of linear pieces used to make each maxout unit.
-        kernel_shape: The shape of the convolution kernel.
-        pool_shape:   The shape of the spatial max pooling. A two-tuple of ints.
-                      This is redundant as cuda-convnet requires the pool shape to
-                      be square.
-        pool_stride:  The stride of the spatial max pooling. Also must be square.
-        layer_name: A name for this layer that will be prepended to
-                    monitoring channels related to this layer.
-        irange: if specified, initializes each weight randomly in
+        Parameters
+        ----------
+        num_channels : int
+            The number of output channels the layer should have.
+            Note that it must internally compute num_channels * num_pieces
+            convolution channels.
+        num_pieces : int
+            The number of linear pieces used to make each maxout unit.
+        kernel_shape : tuple
+            The shape of the convolution kernel.
+        pool_shape : tuple
+            The shape of the spatial max pooling. A two-tuple of ints.
+            This is redundant as cuda-convnet requires the pool shape to
+            be square.
+        pool_stride : tuple
+            The stride of the spatial max pooling. Also must be square.
+        layer_name : str
+            A name for this layer that will be prepended to
+            monitoring channels related to this layer.
+        irange : float
+            if specified, initializes each weight randomly in
             U(-irange, irange)
-        init_bias: All biases are initialized to this number
-        W_lr_scale: The learning rate on the weights for this layer is
+        init_bias : float
+            All biases are initialized to this number
+        W_lr_scale : float
+            The learning rate on the weights for this layer is
             multiplied by this scaling factor
-        b_lr_scale: The learning rate on the biases for this layer is
+        b_lr_scale : float
+            The learning rate on the biases for this layer is
             multiplied by this scaling factor
-        pad: The amount of zero-padding to implicitly add to the boundary of the
+        pad : int
+            The amount of zero-padding to implicitly add to the boundary of the
             image when computing the convolution. Useful for making sure pixels
             at the edge still get to influence multiple hidden units.
-        fix_pool_shape: If True, will modify self.pool_shape to avoid having
+        fix_pool_shape : bool
+            If True, will modify self.pool_shape to avoid having
             pool shape bigger than the entire detector layer.
             If you have this on, you should probably also have
             fix_pool_stride on, since the pool shape might shrink
             smaller than the stride, even if the stride was initially
             valid.
             The "fix" parameters are useful for working with a hyperparameter
-            optimization package, which might often propose sets of hyperparameters
-            that are not feasible, but can easily be projected back into the feasible
-            set.
-        fix_kernel_shape: if True, will modify self.kernel_shape to avoid
-        having the kernel shape bigger than the implicitly
-        zero padded input layer
-
-        partial_sum: a parameter that controls whether to prefer runtime savings
-                    or memory savings when computing the gradient with respect to
-                    the kernels. See pylearn2.sandbox.cuda_convnet.weight_acts.py
-                    for details. The default is to prefer high speed.
-                    Note that changing this setting may change the value of computed
-                    results slightly due to different rounding error.
-        tied_b: If true, all biases in the same channel are constrained to be the same
-                as each other. Otherwise, each bias at each location is learned independently.
-        max_kernel_norm: If specifed, each kernel is constrained to have at most this norm.
-        input_normalization, detector_normalization, output_normalization:
-            if specified, should be a callable object. the state of the network is optionally
-            replaced with normalization(state) at each of the 3 points in processing:
-                input: the input the layer receives can be normalized right away
-                detector: the maxout units can be normalized prior to the spatial pooling
-                output: the output of the layer, after sptial pooling, can be normalized as well
-        kernel_stride: vertical and horizontal pixel stride between
+            optimization package, which might often propose sets of
+            hyperparameters that are not feasible, but can easily be projected
+            back into the feasible set.
+        fix_kernel_shape : bool
+            if True, will modify self.kernel_shape to avoid having the kernel
+            shape bigger than the implicitly zero padded input layer
+        partial_sum : int
+            a parameter that controls whether to prefer runtime savings
+            or memory savings when computing the gradient with respect to
+            the kernels. See pylearn2.sandbox.cuda_convnet.weight_acts.py
+            for details. The default is to prefer high speed.
+            Note that changing this setting may change the value of computed
+            results slightly due to different rounding error.
+        tied_b : bool
+            If true, all biases in the same channel are constrained to be the
+            same as each other. Otherwise, each bias at each location is
+            learned independently.
+        max_kernel_norm: float
+            If specifed, each kernel is constrained to have at most this norm.
+        input_normalization : callable
+            see output normalization
+        detector_normalization : callable
+            see output normalization
+        output_normalization : callable
+            if specified, should be a callable object. the state of the
+            network is optionally replaced with normalization(state) at each
+            of the 3 points in processing:
+                input: the input the layer receives can be normalized right
+                    away
+                detector: the maxout units can be normalized prior to the
+                    spatial pooling
+                output: the output of the layer, after sptial pooling,
+                    can be normalized as well
+        kernel_stride : vertical and horizontal pixel stride between
                        each detector.
         """
         check_cuda(str(type(self)))
@@ -597,12 +618,8 @@ class MaxoutConvC01B(Layer):
         self.__dict__.update(locals())
         del self.self
 
+    @functools.wraps(Model.get_lr_scalers)
     def get_lr_scalers(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         if not hasattr(self, 'W_lr_scale'):
             self.W_lr_scale = None
@@ -623,13 +640,15 @@ class MaxoutConvC01B(Layer):
 
     def set_input_space(self, space):
         """
-        .. todo::
+        Tells the layer to use the specified input space.
 
-            WRITEME
+        This resets parameters! The kernel tensor is initialized with the
+        size needed to receive input from this space.
 
-        Notes
-        -----
-        This resets parameters!
+        Parameters
+        ----------
+        space : Space
+            The Space that the input will lie in.
         """
 
         setup_detector_layer_c01b(layer=self,
@@ -678,9 +697,18 @@ class MaxoutConvC01B(Layer):
 
     def censor_updates(self, updates):
         """
-        .. todo::
+        Replaces the values in `updates` if needed to enforce the options set
+        in the __init__ method, including `max_kernel_norm`.
 
-            WRITEME
+        Parameters
+        ----------
+        updates : OrderedDict
+            A dictionary mapping parameters (including parameters not
+            belonging to this model) to updated values of those parameters.
+            The dictionary passed in contains the updates proposed by the
+            learning algorithm. This function modifies the dictionary
+            directly. The modified version will be compiled and executed
+            by the learning algorithm.
         """
 
         if self.max_kernel_norm is not None:
@@ -691,12 +719,8 @@ class MaxoutConvC01B(Layer):
                 desired_norms = T.clip(row_norms, 0, self.max_kernel_norm)
                 updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle('x', 'x', 'x', 0)
 
+    @functools.wraps(Model.get_params)
     def get_params(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         assert self.b.name is not None
         W ,= self.transformer.get_params()
         assert W.name is not None
@@ -707,57 +731,33 @@ class MaxoutConvC01B(Layer):
         rval.append(self.b)
         return rval
 
+    @functools.wraps(Layer.get_weight_decay)
     def get_weight_decay(self, coeff):
-        """
-        .. todo::
-
-            WRITEME
-        """
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
+    @functools.wraps(Layer.set_weights)
     def set_weights(self, weights):
-        """
-        .. todo::
-
-            WRITEME
-        """
         W, = self.transformer.get_params()
         W.set_value(weights)
 
+    @functools.wraps(Layer.set_biases)
     def set_biases(self, biases):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.b.set_value(biases)
 
+    @functools.wraps(Layer.get_biases)
     def get_biases(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         return self.b.get_value()
 
+    @functools.wraps(Model.get_weights_topo)
     def get_weights_topo(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         return self.transformer.get_weights_topo()
 
+    @functools.wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         W ,= self.transformer.get_params()
 
@@ -773,12 +773,8 @@ class MaxoutConvC01B(Layer):
                             ('kernel_norms_max'  , row_norms.max()),
                             ])
 
+    @functools.wraps(Layer.fprop)
     def fprop(self, state_below):
-        """
-        .. todo::
-
-            WRITEME
-        """
         check_cuda(str(type(self)))
 
         self.input_space.validate(state_below)
@@ -869,12 +865,8 @@ class MaxoutConvC01B(Layer):
 
         return p
 
+    @functools.wraps(Model.get_weights_view_shape)
     def get_weights_view_shape(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         total = self.detector_channels
         cols = self.num_pieces
         if cols == 1:
@@ -887,12 +879,8 @@ class MaxoutConvC01B(Layer):
             rows = rows + 1
         return rows, cols
 
+    @functools.wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         P = state
 
@@ -975,34 +963,44 @@ class MaxoutLocalC01B(Layer):
                  input_groups = 1,
                  kernel_stride=(1, 1)):
         """
-        .. todo::
-
-            WRITEME properly
-
-        num_channels: The number of output channels the layer should have.
-                      Note that it must internally compute num_channels * num_pieces
-                      convolution channels.
-        num_pieces:   The number of linear pieces used to make each maxout unit.
-        kernel_shape: The shape of the convolution kernel.
-        pool_shape:   The shape of the spatial max pooling. A two-tuple of ints.
-                      This is redundant as cuda-convnet requires the pool shape to
-                      be square.
-                      Defaults to None, which means no spatial pooling
-        pool_stride:  The stride of the spatial max pooling. Also must be square.
-                      Defaults to None, which means no spatial pooling.
-        layer_name: A name for this layer that will be prepended to
-                    monitoring channels related to this layer.
-        irange: if specified, initializes each weight randomly in
+        Parameters
+        ----------
+        num_channels : int
+            The number of output channels the layer should have.
+            Note that it must internally compute num_channels * num_pieces
+            convolution channels.
+        num_pieces : int
+            The number of linear pieces used to make each maxout unit.
+        kernel_shape : tuple
+            The shape of the convolution kernel.
+        pool_shape : tuple
+            The shape of the spatial max pooling. A two-tuple of ints.
+            This is redundant as cuda-convnet requires the pool shape to
+            be square.
+            Defaults to None, which means no spatial pooling
+        pool_stride : tuple
+            The stride of the spatial max pooling. Also must be square.
+            Defaults to None, which means no spatial pooling.
+        layer_name : str
+            A name for this layer that will be prepended to
+            monitoring channels related to this layer.
+        irange : float
+            if specified, initializes each weight randomly in
             U(-irange, irange)
-        init_bias: All biases are initialized to this number
-        W_lr_scale: The learning rate on the weights for this layer is
+        init_bias : float
+            All biases are initialized to this number
+        W_lr_scale : float
+            The learning rate on the weights for this layer is
             multiplied by this scaling factor
-        b_lr_scale: The learning rate on the biases for this layer is
+        b_lr_scale : float
+            The learning rate on the biases for this layer is
             multiplied by this scaling factor
-        pad: The amount of zero-padding to implicitly add to the boundary of the
+        pad : int
+            The amount of zero-padding to implicitly add to the boundary of the
             image when computing the convolution. Useful for making sure pixels
             at the edge still get to influence multiple hidden units.
-        fix_pool_shape: If True, will modify self.pool_shape to avoid having
+        fix_pool_shape : bool
+            If True, will modify self.pool_shape to avoid having
             pool shape bigger than the entire detector layer.
             If you have this on, you should probably also have
             fix_pool_stride on, since the pool shape might shrink
@@ -1012,20 +1010,27 @@ class MaxoutLocalC01B(Layer):
             optimization package, which might often propose sets of hyperparameters
             that are not feasible, but can easily be projected back into the feasible
             set.
-        fix_kernel_shape: if True, will modify self.kernel_shape to avoid
-        having the kernel shape bigger than the implicitly
-        zero padded input layer
-
-        partial_sum: a parameter that controls whether to prefer runtime savings
-                    or memory savings when computing the gradient with respect to
-                    the kernels. See pylearn2.sandbox.cuda_convnet.weight_acts.py
-                    for details. The default is to prefer high speed.
-                    Note that changing this setting may change the value of computed
-                    results slightly due to different rounding error.
-        tied_b: If true, all biases in the same channel are constrained to be the same
-                as each other. Otherwise, each bias at each location is learned independently.
-        max_kernel_norm: If specifed, each kernel is constrained to have at most this norm.
-        input_normalization, detector_normalization, output_normalization:
+        fix_kernel_shape : bool
+            if True, will modify self.kernel_shape to avoid
+            having the kernel shape bigger than the implicitly
+            zero padded input layer
+        partial_sum : int
+            a parameter that controls whether to prefer runtime savings
+            or memory savings when computing the gradient with respect to
+            the kernels. See pylearn2.sandbox.cuda_convnet.weight_acts.py
+            for details. The default is to prefer high speed.
+            Note that changing this setting may change the value of computed
+            results slightly due to different rounding error.
+        tied_b : bool
+            If true, all biases in the same channel are constrained to be the same
+            as each other. Otherwise, each bias at each location is learned independently.
+        max_kernel_norm : float
+            If specifed, each kernel is constrained to have at most this norm.
+        input_normalization : callable
+            see output_normalization
+        detector_normalization : callable
+            see output_normalization
+        output_normalization : callable
             if specified, should be a callable object. the state of the network is optionally
             replaced with normalization(state) at each of the 3 points in processing:
                 input: the input the layer receives can be normalized right away
@@ -1040,12 +1045,8 @@ class MaxoutLocalC01B(Layer):
         self.__dict__.update(locals())
         del self.self
 
+    @functools.wraps(Model.get_lr_scalers)
     def get_lr_scalers(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         if not hasattr(self, 'W_lr_scale'):
             self.W_lr_scale = None
@@ -1066,13 +1067,16 @@ class MaxoutLocalC01B(Layer):
 
     def set_input_space(self, space):
         """
-        .. todo::
+        Tells the layer to use the specified input space.
 
-            WRITEME
+        This resets parameters! The weight tensor is initialized with the
+        size needed to receive input from this space.
 
-        Notes
-        -----
-        This resets parameters! """
+        Parameters
+        ----------
+        space : Space
+            The Space that the input will lie in.
+        """
 
         self.input_space = space
 
@@ -1192,9 +1196,18 @@ class MaxoutLocalC01B(Layer):
 
     def censor_updates(self, updates):
         """
-        .. todo::
+        Replaces the values in `updates` if needed to enforce the options set
+        in the __init__ method, including `max_filter_norm`.
 
-            WRITEME
+        Parameters
+        ----------
+        updates : OrderedDict
+            A dictionary mapping parameters (including parameters not
+            belonging to this model) to updated values of those parameters.
+            The dictionary passed in contains the updates proposed by the
+            learning algorithm. This function modifies the dictionary
+            directly. The modified version will be compiled and executed
+            by the learning algorithm.
         """
 
         if self.max_filter_norm is not None:
@@ -1207,12 +1220,8 @@ class MaxoutLocalC01B(Layer):
                 updates[W] = updated_W * (desired_norms / (1e-7 + updated_norms)
                         ).dimshuffle(0, 1, 'x', 'x', 'x', 2, 3)
 
+    @functools.wraps(Model.get_params)
     def get_params(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         assert self.b.name is not None
         W ,= self.transformer.get_params()
         assert W.name is not None
@@ -1223,56 +1232,40 @@ class MaxoutLocalC01B(Layer):
         rval.append(self.b)
         return rval
 
+    @functools.wraps(Layer.get_weight_decay)
     def get_weight_decay(self, coeff):
-        """
-        .. todo::
-
-            WRITEME
-        """
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
         W ,= self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
+    @functools.wraps(Layer.set_weights)
     def set_weights(self, weights):
-        """
-        .. todo::
-
-            WRITEME
-        """
         W, = self.transformer.get_params()
         W.set_value(weights)
 
+    @functools.wraps(Layer.set_biases)
     def set_biases(self, biases):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.b.set_value(biases)
 
+    @functools.wraps(Layer.get_biases)
     def get_biases(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         return self.b.get_value()
 
+    @functools.wraps(Layer.get_weights_topo)
     def get_weights_topo(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         return self.transformer.get_weights_topo()
 
     def get_filter_norms(self, W = None):
         """
-        .. todo::
-
-            WRITEME
+        Returns
+        -------
+        norms : theano 4 tensor
+            A theano expression for the norms of the different filters in
+            the layer.
+            TODO: explain significance of each of the 4 axes, and what
+            order they'll be in.
         """
 
         # TODO: push this into the transformer class itself
@@ -1288,12 +1281,8 @@ class MaxoutLocalC01B(Layer):
 
         return norms
 
+    @functools.wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         filter_norms = self.get_filter_norms()
 
@@ -1303,12 +1292,8 @@ class MaxoutLocalC01B(Layer):
                             ('filter_norms_max'  , filter_norms.max()),
                             ])
 
+    @functools.wraps(Layer.fprop)
     def fprop(self, state_below):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         self.input_space.validate(state_below)
 
@@ -1404,12 +1389,8 @@ class MaxoutLocalC01B(Layer):
 
         return p
 
+    @functools.wraps(Model.get_weights_view_shape)
     def get_weights_view_shape(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
         total = self.detector_channels
         cols = self.num_pieces
         if cols == 1:
@@ -1422,12 +1403,8 @@ class MaxoutLocalC01B(Layer):
             rows = rows + 1
         return rows, cols
 
+    @functools.wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         P = state
 

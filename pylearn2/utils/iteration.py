@@ -3,20 +3,20 @@ Iterators providing indices for different kinds of iteration over
 datasets.
 
 Presets:
-    sequential: iterates through fixed slices of the dataset in sequence
-    shuffled_sequential: iterates through a shuffled version of the dataset
-                 in sequence
-    random_slice: on each call to next, returns a slice of the dataset,
-                  chosen uniformly at random over contiguous slices
-                  samples with replacement, but still reports that
-                  container is empty after num_examples / batch_size calls
-    random_uniform: on each call to next, returns a random subset of the
-                  dataset.
-                  samples with replacement, but still reports that
-                  container is empty after num_examples / batch_size calls
+
+- sequential: iterates through fixed slices of the dataset in sequence
+- shuffled_sequential: iterates through a shuffled version of the dataset
+  in sequence
+- random_slice: on each call to next, returns a slice of the dataset,
+  chosen uniformly at random over contiguous slices
+  samples with replacement, but still reports that
+  container is empty after num_examples / batch_size calls
+- random_uniform: on each call to next, returns a random subset of the
+  dataset.
+  samples with replacement, but still reports that
+  container is empty after num_examples / batch_size calls
 """
 from __future__ import division
-import warnings
 import numpy
 np = numpy
 from theano import config
