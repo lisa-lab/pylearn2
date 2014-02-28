@@ -287,8 +287,7 @@ class MLP(Layer):
         assert all(isinstance(layer, Layer) for layer in layers)
         assert len(layers) >= 1
         
-        if layer_name is not None:
-            self.layer_name = layer_name
+        self.layer_name = layer_name
         
         self.layer_names = set()
         for layer in layers:
@@ -304,10 +303,7 @@ class MLP(Layer):
             else:
                 layer.set_mlp(self)
             
-            if layer_name is not None:
-                self.layer_names.add(self.layer_name+'_'+layer.layer_name)
-            else:
-                self.layer_names.add(layer.layer_name)
+            self.layer_names.add(layer.layer_name)
             
 
 
@@ -366,14 +362,14 @@ class MLP(Layer):
         """
         layers = self.layers
         try:
-            layers[0].set_input_space(self.input_space)
+            layers[0].set_input_space(self.get_input_space())
         except BadInputSpaceError, e:
             raise TypeError("Layer 0 (" + str(layers[0]) + " of type " +
                             str(type(layers[0])) +
                             ") does not support the MLP's "
                             + "specified input space (" +
-                            str(self.input_space) +
-                            " of type " + str(type(self.input_space)) +
+                            str(self.get_input_space()) +
+                            " of type " + str(type(self.get_input_space())) +
                             "). Original exception: " + str(e))
         for i in xrange(1, len(layers)):
             layers[i].set_input_space(layers[i-1].get_output_space())
@@ -428,6 +424,7 @@ class MLP(Layer):
                     value.__doc__ = doc
                     rval[layer.layer_name+'_'+key] = value
                 
+                state = layer.fprop(state)
                 args = [state]
                 if layer is self.layers[-1]:
                     args.append(Y)
@@ -447,7 +444,6 @@ class MLP(Layer):
                     value.__doc__ = doc
                     rval[layer.layer_name+'_'+key] = value
                     
-                state = layer.fprop(state)
 
             return rval
         
@@ -473,7 +469,14 @@ class MLP(Layer):
     
     @wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
+        """
+        Notes
+        -----
+        We are only monitoring the last layer for data dependent channels. 
+        If you want to monitor every inner layer you should implement a 
+        get_monitoring_channels_from_state method. 
         
+        """
         rval = OrderedDict()
 
         for layer in self.layers:
@@ -489,27 +492,27 @@ class MLP(Layer):
                         layer.layer_name + '" of an MLP.\n' + doc
                 value.__doc__ = doc
                 rval[layer.layer_name+'_'+key] = value
-            args = [state]
-            if layer is self.layers[-1] and target is not None:
-                args.append(target)
-            ch = layer.get_monitoring_channels_from_state(*args)
-            if not isinstance(ch, OrderedDict):
-                raise TypeError(str((type(ch), layer.layer_name)))
-            for key in ch:
-                value = ch[key]
-                doc = get_monitor_doc(value)
-                if doc is None:
-                    doc = str(type(layer)) + \
-                            ".get_monitoring_channels_from_state did" + \
-                            " not provide any further documentation for" + \
-                            " this channel."
-                doc = 'This channel came from a layer called "' + \
-                        layer.layer_name + '" of an MLP.\n' + doc
-                value.__doc__ = doc
-                rval[layer.layer_name+'_'+key] = value
             
-            state = layer.fprop(state)
-
+        
+        args = [state]
+        if target is not None:
+            args.append(target)
+        ch = self.layers[-1].get_monitoring_channels_from_state(*args)
+        if not isinstance(ch, OrderedDict):
+            raise TypeError(str((type(ch), self.layers[-1].layer_name)))
+        for key in ch:
+            value = ch[key]
+            doc = get_monitor_doc(value)
+            if doc is None:
+                doc = str(type(self.layers[-1])) + \
+                        ".get_monitoring_channels_from_state did" + \
+                        " not provide any further documentation for" + \
+                        " this channel."
+            doc = 'This channel came from a layer called "' + \
+                    self.layers[-1].layer_name + '" of an MLP.\n' + doc
+            value.__doc__ = doc
+            rval[self.layers[-1].layer_name+'_'+key] = value
+        
         return rval
 
     @wraps(Layer.get_monitoring_data_specs)
@@ -829,7 +832,10 @@ class MLP(Layer):
 
     @wraps(Layer.fprop)
     def fprop(self, state_below, return_all=False):
-
+        
+        if not hasattr(self, "input_space"):
+            raise AttributeError("Input space has not been provided.")
+        
         rval = self.layers[0].fprop(state_below)
 
         rlist = [rval]
@@ -1030,7 +1036,6 @@ class Softmax(Layer):
     @wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
         
-        state = self.fprop(state)
         mx = state.max(axis=1)
 
         rval = OrderedDict([('mean_max_class', mx.mean()),
@@ -1532,8 +1537,6 @@ class SoftmaxPool(Layer):
     @wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state):
         
-        state = self.fprop(state)
-        
         P = state
 
         rval = OrderedDict()
@@ -1934,8 +1937,6 @@ class Linear(Layer):
 
     @wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state, target=None):
-        
-        state = self.fprop(state)
         
         rval = OrderedDict()
 

@@ -1,3 +1,6 @@
+# This yaml file is meant to be used by the script:
+# tests/test_mlp_nested.py
+
 !obj:pylearn2.train.Train {
     dataset: &train !obj:pylearn2.datasets.mnist.MNIST {
         which_set: 'train',
@@ -26,11 +29,11 @@
         layer_name: 'mlp2', 
         layers: [ !obj:pylearn2.models.mlp.Tanh {
                      layer_name: 'h0',
-                     dim: %(dim_h0)i,
+                     dim: %(dim_h2)i,
                      sparse_init: 15
                  },  !obj:pylearn2.models.mlp.RectifiedLinear {
                      layer_name: 'h1',
-                     dim: %(dim_h1)i,
+                     dim: %(dim_h3)i,
                      sparse_init: %(sparse_init_h1)i
                  }, !obj:pylearn2.models.mlp.Softmax {
                      layer_name: 'y',
@@ -39,8 +42,8 @@
                  }
                 ],
         }], 
-        }], 
-        nvis: 784,
+        }],
+        nvis: 784, 
     },
     algorithm: !obj:pylearn2.training_algorithms.sgd.SGD {
         batch_size: 100,
