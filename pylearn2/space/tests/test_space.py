@@ -266,32 +266,35 @@ def test_np_format_as_index2vector():
     np_single = np.random.random_integers(max_labels - 1,
                                           size=(labels))
     f_batch_merge = theano.function(
-        [batch], index_space.format_as(batch, vector_space_merge)
+        [batch], index_space._format_as_impl(False, batch, vector_space_merge)
     )
     f_batch_concatenate = theano.function(
-        [batch], index_space.format_as(batch, vector_space_concatenate)
+        [batch], index_space._format_as_impl(False, batch,
+                                             vector_space_concatenate)
     )
     f_single_merge = theano.function(
-        [single], index_space.format_as(single, vector_space_merge)
+        [single], index_space._format_as_impl(False, single,
+                                              vector_space_merge)
     )
     f_single_concatenate = theano.function(
-        [single], index_space.format_as(single, vector_space_concatenate)
+        [single], index_space._format_as_impl(False, single,
+                                              vector_space_concatenate)
     )
     np.testing.assert_allclose(
         f_batch_merge(np_batch),
-        index_space.np_format_as(np_batch, vector_space_merge)
+        index_space._format_as_impl(True, np_batch, vector_space_merge)
     )
     np.testing.assert_allclose(
         f_batch_concatenate(np_batch),
-        index_space.np_format_as(np_batch, vector_space_concatenate)
+        index_space._format_as_impl(True, np_batch, vector_space_concatenate)
     )
     np.testing.assert_allclose(
         f_single_merge(np_single),
-        index_space.np_format_as(np_single, vector_space_merge)
+        index_space._format_as_impl(True, np_single, vector_space_merge)
     )
     np.testing.assert_allclose(
         f_single_concatenate(np_single),
-        index_space.np_format_as(np_single, vector_space_concatenate)
+        index_space._format_as_impl(True, np_single, vector_space_concatenate)
     )
 
 
