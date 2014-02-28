@@ -999,7 +999,6 @@ class DenseDesignMatrixPyTables(DenseDesignMatrix):
                                             data_x=X,
                                             start=start)
 
-
     def init_hdf5(self, path, shapes):
         """
         .. todo::
