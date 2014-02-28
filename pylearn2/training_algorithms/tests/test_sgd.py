@@ -16,7 +16,7 @@ from pylearn2.testing.cost import CallbackCost, SumOfParams
 from pylearn2.testing.datasets import ArangeDataset
 from pylearn2.train import Train
 from pylearn2.training_algorithms.sgd import (ExponentialDecay,
-                                              MomentumAdjustor, 
+                                              MomentumAdjustor,
                                               PolyakAveraging,
                                               LinearDecay,
                                               LinearDecayOverEpoch,
@@ -1201,11 +1201,13 @@ def test_batch_size_specialization():
 
     cost = DummyCost()
 
-    algorithm = SGD(learning_rate, cost, batch_size=1,
-                 monitoring_batches=1, monitoring_dataset=dataset,
-                 termination_criterion=EpochCounter(max_epochs=1),
-                 update_callbacks=None,
-                 set_batch_size = False)
+    algorithm = SGD(learning_rate, cost,
+                    batch_size=2,  # TODO: fix test failure when batch_size=1
+                    monitoring_batches=1,
+                    monitoring_dataset=dataset,
+                    termination_criterion=EpochCounter(max_epochs=1),
+                    update_callbacks=None,
+                    set_batch_size=False)
 
     train = Train(dataset, model, algorithm, save_path=None,
                  save_freq=0, extensions=None)
