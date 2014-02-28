@@ -273,6 +273,8 @@ class MLP(Layer):
         input_space : Space object, optional
             A Space specifying the kind of input the MLP accepts. If None,
             input space is specified by nvis.
+        layer_name : name of the MLP layer. Should be None is the MLP is 
+            not part of another MLP. 
         """
 
         super(MLP, self).__init__()
