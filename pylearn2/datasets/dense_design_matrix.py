@@ -67,7 +67,7 @@ class DenseDesignMatrix(Dataset):
         topo_view : ndarray, optional
             Should be supplied if X is not.  An array whose first \
             dimension is of length number examples. The remaining \
-            dimensions are xamples with topological significance, \
+            dimensions are examples with topological significance, \
             e.g. for images the remaining axes are rows, columns, \
             and channels.
         y : ndarray, 1-dimensional(?), optional
