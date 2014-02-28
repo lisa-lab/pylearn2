@@ -337,12 +337,14 @@ class Monitor(object):
         """
         Recompiles Theano functions used by this monitor.
 
-        This is needed so that if new channels are added, Theano's
-        optimizations make sure (to the extent that they can) that the new
-        channels and old channels don't have any redundant calculations.
+        This is called any time we need to evaluate the channels and the
+        channel definitions have changed since last we called it, or if the
+        theano functions are unavailable for any other reason (first time they
+        are needed after construction or deserialization, etc.)
 
-        It is also needed to regenerate Theano functions after pickling and
-        unpickling, since Theano functions should not be pickled.
+        All channels are compiled as part of the same theano function so that
+        the theano optimizations can eliminate subexpressions that are shared
+        between multiple channels.
         """
         self._dirty = False
 
@@ -424,7 +426,7 @@ class Monitor(object):
 
             for (channel_X, X) in safe_izip(channel_inputs, inputs):
                 assert channel_X not in g or g[channel_X] is X
-                assert channel_X.type == X.type
+                assert channel_X.type == X.type, (channel_X.type, X.type)
                 g[channel_X] = X
 
             if batch_size == 0:
@@ -764,6 +766,7 @@ class Monitor(object):
             Dictionary of kwargs that will be passed to \
             `cost.get_monitoring_channels()` (but not for the extra_costs).
         """
+
         if dataset is None:
             return
         if isinstance(dataset, Dataset):

@@ -19,8 +19,8 @@ import warnings
 from pylearn2.packaged_dependencies.theano_linear.unshared_conv.localdot import LocalDot
 
 from pylearn2.utils import sharedX
-from pylearn2.linear.conv2d import default_rng
-from pylearn2.linear.conv2d import default_sparse_rng
+from pylearn2.utils.rng import make_np_rng
+from pylearn2.linear.conv2d import default_seed, default_sparse_seed
 from pylearn2.linear.linear_transform import LinearTransform
 
 class Local(LinearTransform, LocalDot):
@@ -96,8 +96,7 @@ def make_random_local(irange, input_channels, input_axes, input_groups,
     Creates a Local with random weights.
     """
 
-    if rng is None:
-        rng = default_rng()
+    rng = make_np_rng(rng, default_seed, which_method='uniform')
 
     def num_pos(img, stride, kwidth):
         img = img + 2 * pad
@@ -137,8 +136,7 @@ def make_sparse_random_local(num_nonzero, input_space, output_space,
     """ Creates a Conv2D with random kernels, where the randomly initialized
     values are sparse"""
 
-    if rng is None:
-        rng = default_sparse_rng()
+    rng = make_np_rng(rng, default_sparse_seed, which_method=['randn','randint'])
 
     W = np.zeros(( output_space.num_channels, input_space.num_channels, \
             kernel_shape[0], kernel_shape[1]))

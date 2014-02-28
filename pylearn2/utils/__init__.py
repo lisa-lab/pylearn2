@@ -1,4 +1,4 @@
-import os
+import warnings
 
 from .general import is_iterable
 import theano
@@ -212,11 +212,12 @@ def get_dataless_dataset(model):
 
     Parameters
     ----------
-    model : WRITEME
+    model : Model
 
     Returns
     -------
-    WRITEME
+    dataset : Dataset
+        The data-less dataset as described above.
     """
 
     global yaml_parse
@@ -248,7 +249,6 @@ def safe_zip(*args):
     return zip(*args)
 
 
-# TODO: Is this a duplicate?
 def safe_izip(*args):
     """
     Like izip, but ensures arguments are of same length
@@ -259,9 +259,10 @@ def safe_izip(*args):
 
 def gpu_mem_free():
     """
-    .. todo::
-
-        WRITEME
+    Returns
+    -------
+    megs_free : float
+        Number of megabytes of memory free on the GPU used by Theano
     """
     global cuda
     if cuda is None:
@@ -271,23 +272,20 @@ def gpu_mem_free():
 
 class _ElemwiseNoGradient(theano.tensor.Elemwise):
     """
-    .. todo::
-
-        WRITEME
+    A Theano Op that applies an elementwise transformation and reports
+    having no gradient.
     """
     def connection_pattern(self, node):
         """
-        .. todo::
-
-            WRITEME
+        Report being disconnected to all inputs in order to have no gradient
+        at all.
         """
         return [[False]]
 
     def grad(self, inputs, output_gradients):
         """
-        .. todo::
-
-            WRITEME
+        Report being disconnected to all inputs in order to have no gradient
+        at all.
         """
         return [theano.gradient.DisconnectedType()()]
 
@@ -299,6 +297,20 @@ class _ElemwiseNoGradient(theano.tensor.Elemwise):
 # communication between parts of the code
 block_gradient = _ElemwiseNoGradient(theano.scalar.identity)
 
+def is_block_gradient(op):
+    """
+    Parameters
+    ----------
+    op : object
+
+    Returns
+    -------
+    is_block_gradient: bool
+        True if op is a gradient-blocking op, False otherwise
+    """
+
+    return isinstance(op, _ElemwiseNoGradient)
+
 
 def safe_union(a, b):
     """
@@ -307,12 +319,14 @@ def safe_union(a, b):
 
     Parameters
     ----------
-    a : WRITEME
-    b : WRITEME
+    a : list
+    b : list
 
     Returns
     -------
-    WRITEME
+    c : list
+        A list containing one copy of each element that appear in at least one
+        of `a` or `b`.
     """
     if not isinstance(a, list):
         raise TypeError("Expected first argument to be a list, but got " +
@@ -326,8 +340,11 @@ def safe_union(a, b):
 
 # This was moved to theano, but I include a link to avoid breaking
 # old imports
-from theano.printing import hex_digest
-
+from theano.printing import hex_digest as _hex_digest
+def hex_digest(*args, **kwargs):
+    warnings.warn("hex_digest has been moved into Theano. "
+            "pylearn2.utils.hex_digest will be removed on or after "
+            "2014-08-26")
 
 def function(*args, **kwargs):
     """
@@ -503,7 +520,7 @@ def wraps(wrapped,
     ...     def f(x):
     ...        '''
     ...        Adds 1 to x
-    ...        
+    ...
     ...        Parameters
     ...        ----------
     ...        x : int
@@ -533,17 +550,17 @@ def wraps(wrapped,
     >>> print c.f.__doc__
 
         Adds 1 to x
-        
+
         Parameters
         ----------
         x : int
             Variable to increment by 1
-    
+
         Returns
         -------
         rval : int
            x incremented by 1
-    
+
         Notes
         -----
         Also prints the incremented value

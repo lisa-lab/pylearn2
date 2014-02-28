@@ -3,7 +3,10 @@ Unit tests for ./preprocessing.py
 """
 
 import numpy as np
+
+from theano import config
 import theano
+
 from pylearn2.utils import as_floatX
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
@@ -209,3 +212,20 @@ def test_zca():
     assert preprocessor.P_.shape == (X.shape[1], X.shape[1])
     assert not is_identity(preprocessor.P_)
     assert is_identity(np.dot(preprocessor.P_, preprocessor.inv_P_))
+
+def test_zca_dtypes():
+    """
+    Confirm that ZCA.fit works regardless of dtype of data and config.floatX
+    """
+
+    orig_floatX = config.floatX
+
+    try:
+        for floatX in ['float32', 'float64']:
+            for dtype in ['float32', 'float64']:
+                rng = np.random.RandomState([1, 2, 3])
+                X = rng.randn(15, 10).astype(dtype)
+                preprocessor = ZCA()
+                preprocessor.fit(X)
+    finally:
+        config.floatX = orig_floatX

@@ -25,6 +25,7 @@ from theano.sandbox.rng_mrg import MRG_RandomStreams
 from pylearn2.expr.nnet import inverse_sigmoid_numpy
 from pylearn2.base import Block
 from pylearn2.utils import block_gradient
+from pylearn2.utils.rng import make_theano_rng
 
 warnings.warn("DBM changing the recursion limit.")
 # We need this to be high enough that the big theano graphs we make
@@ -98,7 +99,7 @@ class DBMSampler(Block):
             WRITEME
         """
         super(DBMSampler, self).__init__()
-        self.theano_rng = MRG_RandomStreams(2012 + 10 + 14)
+        self.theano_rng = make_theano_rng(None, 2012+10+14, which_method="binomial")
         self.dbm = dbm
         assert len(self.dbm.hidden_layers) == 1
 
@@ -248,6 +249,21 @@ def block(l):
 # Make known modules inside this package
 # this needs to come after e.g. flatten(), since DBM depends on flatten()
 from pylearn2.models.dbm.dbm import DBM
-from pylearn2.models.dbm.inference_procedure import InferenceProcedure, WeightDoubling, SuperWeightDoubling
-from pylearn2.models.dbm.layer import Layer, VisibleLayer, HiddenLayer, BinaryVectorMaxPool, Softmax
+from pylearn2.models.dbm.inference_procedure import BiasInit
+from pylearn2.models.dbm.inference_procedure import InferenceProcedure
+from pylearn2.models.dbm.inference_procedure import MoreConsistent
+from pylearn2.models.dbm.inference_procedure import MoreConsistent2
+from pylearn2.models.dbm.inference_procedure import SuperWeightDoubling
+from pylearn2.models.dbm.inference_procedure import WeightDoubling
+from pylearn2.models.dbm.layer import BinaryVector
+from pylearn2.models.dbm.layer import BinaryVectorMaxPool
+from pylearn2.models.dbm.layer import BVMP_Gaussian
+from pylearn2.models.dbm.layer import CompositeLayer
+from pylearn2.models.dbm.layer import ConvMaxPool
+from pylearn2.models.dbm.layer import ConvC01B_MaxPool
+from pylearn2.models.dbm.layer import GaussianVisLayer
+from pylearn2.models.dbm.layer import HiddenLayer
+from pylearn2.models.dbm.layer import Layer
+from pylearn2.models.dbm.layer import VisibleLayer
+from pylearn2.models.dbm.layer import Softmax
 from pylearn2.models.dbm.sampling_procedure import SamplingProcedure
