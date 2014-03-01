@@ -804,9 +804,9 @@ class IndexSpace(SimplyTypedSpace):
     @functools.wraps(Space.make_theano_batch)
     def make_theano_batch(self, name=None, dtype=None, batch_size=None):
         if batch_size == 1:
-            rval = T.lrow(name=name)
+            rval = tensor.lrow(name=name)
         else:
-            rval = T.lmatrix(name=name)
+            rval = tensor.lmatrix(name=name)
         return rval
 
     @functools.wraps(Space._batch_size_impl)
