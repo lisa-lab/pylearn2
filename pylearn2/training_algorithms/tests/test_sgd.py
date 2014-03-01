@@ -1202,7 +1202,7 @@ def test_batch_size_specialization():
     cost = DummyCost()
 
     algorithm = SGD(learning_rate, cost,
-                    batch_size=1,  # TODO: fix test failure when batch_size=1
+                    batch_size=1,
                     monitoring_batches=1,
                     monitoring_dataset=dataset,
                     termination_criterion=EpochCounter(max_epochs=1),
