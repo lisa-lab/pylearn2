@@ -9,30 +9,23 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
-import copy
-import time
-import warnings
+import copy, time, warnings, logging, functools
+import numpy as np
 
 from theano.compat.python2x import OrderedDict
-from theano.printing import var_descriptor
 import theano.sparse
+from theano import config
+from theano import tensor as T
+from theano.printing import var_descriptor
 
 from pylearn2.config import yaml_parse
 from pylearn2.datasets.dataset import Dataset
-from pylearn2.space import CompositeSpace, NullSpace
-from pylearn2.space import Space
-from pylearn2.utils import function
+from pylearn2.space import Space, CompositeSpace, NullSpace
+from pylearn2.utils import function, sharedX, safe_zip, safe_izip
 from pylearn2.utils.iteration import is_stochastic
-from pylearn2.utils import sharedX
-from pylearn2.utils import safe_zip
 from pylearn2.utils.data_specs import DataSpecsMapping
 from pylearn2.utils.string_utils import number_aware_alphabetical_key
-from theano import config
-import numpy as np
-from theano import tensor as T
-from pylearn2.utils import safe_izip
 from pylearn2.utils.timing import log_timing
-import logging
 
 log = logging.getLogger(__name__)
 
@@ -118,7 +111,7 @@ class Monitor(object):
             self.theano_function_mode = mode
 
     def add_dataset(self, dataset, mode='sequential', batch_size=None,
-                    num_batches=None, seed = None):
+                    num_batches=None, seed=None):
         """
         Determines the data used to calculate the values of each channel.
 
@@ -150,9 +143,9 @@ class Monitor(object):
         if not isinstance(num_batches, list):
             num_batches = [num_batches]
         if seed is None:
-            seed = [ None ] * len(dataset)
+            seed = [None] * len(dataset)
         if not isinstance(seed, list):
-            seed = [ seed ]
+            seed = [seed]
         if len(mode) != len(dataset):
             raise ValueError("Received " + str(len(dataset)) +
                              " dataset but " + str(len(mode)) + " modes.")
@@ -248,8 +241,9 @@ class Monitor(object):
                 # end for X
                 if actual_ne != ne:
                     raise RuntimeError("At compile time, your iterator said "
-                            "it had " + str(ne) + " examples total, but at "
-                            "runtime it gave us " + str(actual_ne) + ".")
+                                       "it had %d examples total, but at "
+                                       "runtime it gave us %d." %
+                                       (ne, actual_ne))
         # end for d
 
         log.info("Monitoring step:")
@@ -383,8 +377,8 @@ class Monitor(object):
         givens = OrderedDict()
         # Get the appropriate kind of theano variable to represent the data
         # the model acts on
-        theano_args = self._flat_data_specs[0].make_theano_batch(
-                ['monitoring_%s' % s for s in self._flat_data_specs[1]])
+        batch_names = ['monitoring_%s' % s for s in self._flat_data_specs[1]]
+        theano_args = self._flat_data_specs[0].make_theano_batch(batch_names)
 
         # Get a symbolic expression of the batch size
         # We do it here, rather than for each channel, because channels with an
@@ -408,7 +402,7 @@ class Monitor(object):
             log.info('\t%s' % key)
         it = [d.iterator(mode=i, num_batches=n, batch_size=b,
                          data_specs=self._flat_data_specs,
-                         return_tuple=True) \
+                         return_tuple=True)
               for d, i, n, b in safe_izip(self._datasets, self._iteration_mode,
                                           self._num_batches, self._batch_size)]
         self.num_examples = [np.cast[config.floatX](float(i.num_examples))
@@ -448,7 +442,7 @@ class Monitor(object):
                     raise ValueError("Iterating over 0 examples results in " +
                                      "divide by 0")
                 val = (channel.val * T.cast(batch_size, config.floatX)
-                        / cur_num_examples)
+                       / cur_num_examples)
             u[channel.val_shared] = channel.val_shared + val
 
         with log_timing(log, "Compiling accum"):
@@ -526,7 +520,7 @@ class Monitor(object):
 
         # Patch old pickled monitors
         if not hasattr(self, '_datasets'):
-            self._datasets = [ self._dataset ]
+            self._datasets = [self._dataset]
             del self._dataset
 
         temp = self._datasets
@@ -562,7 +556,7 @@ class Monitor(object):
         """
         # patch old pkl files
         if '_dataset' in d:
-            d['_datasets'] = [ d['_dataset'] ]
+            d['_datasets'] = [d['_dataset']]
             del d['_dataset']
 
         self.__dict__.update(d)
@@ -636,7 +630,8 @@ class Monitor(object):
             flat_ipt = (flat_ipt,)
         inputs = theano.gof.graph.inputs([val])
         for elem in inputs:
-            if not hasattr(elem, 'get_value') and not isinstance(elem, theano.gof.graph.Constant):
+            if not hasattr(elem, 'get_value') and \
+               not isinstance(elem, theano.gof.graph.Constant):
                 if elem not in flat_ipt:
                     raise ValueError("Unspecified input: " + str(elem) +
                                      ". This may be due to an incorrect " +
@@ -817,7 +812,7 @@ class Monitor(object):
         space_tuple = mapping.flatten(nested_space, return_tuple=True)
         source_tuple = mapping.flatten(nested_sources, return_tuple=True)
         ipt = tuple(space.make_theano_batch(name='monitor_%s' % source,
-                    batch_size = None)
+                                            batch_size=None)
                     for (space, source) in safe_zip(space_tuple, source_tuple))
 
         # Build a nested tuple from ipt, to dispatch the appropriate parts
@@ -862,10 +857,10 @@ class Monitor(object):
         for dataset_name in dataset:
             cur_dataset = dataset[dataset_name]
             self.add_dataset(dataset=cur_dataset,
-                                 mode=mode,
-                                 batch_size=batch_size,
-                                 num_batches=num_batches,
-                                 seed=seed)
+                             mode=mode,
+                             batch_size=batch_size,
+                             num_batches=num_batches,
+                             seed=seed)
             if dataset_name == '':
                 dprefix = ''
             else:
@@ -902,6 +897,7 @@ class Monitor(object):
                                  data_specs=data_specs,
                                  dataset=cur_dataset)
 
+
 class MonitorChannel(object):
     """
     A class representing a specific quantity to be monitored.
@@ -936,8 +932,9 @@ class MonitorChannel(object):
             val = T.constant(np.cast[config.floatX](val))
         self.val = val
         self.val_shared = sharedX(0.0, name + "_tracker")
-        assert self.val_shared.dtype == config.floatX
-        if not hasattr(val,'dtype'):
+        assert self.val_shared.dtype == config.floatX, \
+            "expected %s, got %s" % (config.floatX, self.val_shared.dtype)
+        if not hasattr(val, 'dtype'):
             raise TypeError('Monitor channel ' + name + ' has value of type ' +
                             str(type(val)))
         if val.dtype != self.val_shared.dtype:
@@ -988,9 +985,9 @@ class MonitorChannel(object):
             prereqs_str = '<bad prereqs>'
 
         return "MonitorChannel(%s,%s,%s,%s)" % (graph_input_str,
-                val_str,
-                name_str,
-                prereqs_str)
+                                                val_str,
+                                                name_str,
+                                                prereqs_str)
 
     def __getstate__(self):
         """
@@ -1048,10 +1045,10 @@ class MonitorChannel(object):
             # case where you don't add monitoring channels over time.
             self.epoch_record = range(len(self.val_record))
         if 'time_record' not in d:
-            self.time_record = [ None ] * len(self.val_record)
+            self.time_record = [None] * len(self.val_record)
 
 
-def push_monitor(model, name, transfer_experience = False):
+def push_monitor(model, name, transfer_experience=False):
     """
     When you load a model in a yaml file and you want to store its
     old monitor under a different name and start a new monitor, wrap
@@ -1073,8 +1070,8 @@ def push_monitor(model, name, transfer_experience = False):
     Returns
     -------
     model:
-        Returns the model itself so you can use an !obj:push_monitor call as the
-        definition of a model in a YAML file.
+        Returns the model itself so you can use an !obj:push_monitor call as
+        the definition of a model in a YAML file.
     """
 
     assert hasattr(model, 'monitor')
@@ -1091,7 +1088,8 @@ def push_monitor(model, name, transfer_experience = False):
 
     return model
 
-def read_channel(model, channel_name, monitor_name = 'monitor'):
+
+def read_channel(model, channel_name, monitor_name='monitor'):
     """
     Returns the last value recorded in a channel.
 
@@ -1144,8 +1142,9 @@ def get_channel(model, dataset, channel, cost, batch_size):
     channels = monitor.channels
     channel = channels[channel]
     val_record = channel.val_record
-    value ,= val_record
+    value, = val_record
     return value
+
 
 def get_monitor_doc(var):
     """

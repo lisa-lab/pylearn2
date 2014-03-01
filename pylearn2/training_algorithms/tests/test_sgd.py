@@ -3,34 +3,27 @@ import numpy as np
 
 import theano.tensor as T
 from theano.tests import disturb_mem
+import warnings
 
-from pylearn2.costs.cost import Cost
-from pylearn2.costs.cost import DefaultDataSpecsMixin
-from pylearn2.costs.cost import SumOfCosts
+from pylearn2.costs.cost import Cost, SumOfCosts, DefaultDataSpecsMixin
+from pylearn2.devtools.record import Record, RecordMode
 from pylearn2.datasets.dense_design_matrix import DenseDesignMatrix
-from pylearn2.devtools.record import Record
-from pylearn2.devtools.record import RecordMode
 from pylearn2.models.model import Model
 from pylearn2.monitor import Monitor
-from pylearn2.space import CompositeSpace
-from pylearn2.space import Conv2DSpace
-from pylearn2.space import VectorSpace
+from pylearn2.space import CompositeSpace, Conv2DSpace, VectorSpace
 from pylearn2.termination_criteria import EpochCounter
-from pylearn2.testing.cost import CallbackCost
-from pylearn2.testing.cost import SumOfParams
+from pylearn2.testing.cost import CallbackCost, SumOfParams
 from pylearn2.testing.datasets import ArangeDataset
 from pylearn2.train import Train
-from pylearn2.training_algorithms.sgd import ExponentialDecay
-from pylearn2.training_algorithms.sgd import LinearDecay
-from pylearn2.training_algorithms.sgd import LinearDecayOverEpoch
-from pylearn2.training_algorithms.sgd import MomentumAdjustor
-from pylearn2.training_algorithms.sgd import MonitorBasedLRAdjuster
-from pylearn2.training_algorithms.sgd import PolyakAveraging
-from pylearn2.training_algorithms.sgd import SGD
+from pylearn2.training_algorithms.sgd import (ExponentialDecay,
+                                              MomentumAdjustor,
+                                              PolyakAveraging,
+                                              LinearDecay,
+                                              LinearDecayOverEpoch,
+                                              MonitorBasedLRAdjuster,
+                                              SGD)
 from pylearn2.utils.iteration import _iteration_schemes
-from pylearn2.utils import safe_izip
-from pylearn2.utils import safe_union
-from pylearn2.utils import sharedX
+from pylearn2.utils import safe_izip, safe_union, sharedX
 
 
 class SupervisedDummyCost(DefaultDataSpecsMixin, Cost):
@@ -175,6 +168,8 @@ def test_sgd_unspec_num_mon_batch():
     if False in visited:
         print visited
         assert False
+
+
 def test_sgd_sup():
 
     # tests that we can run the sgd algorithm
@@ -408,14 +403,16 @@ def test_linear_decay_over_epoch():
     cost = DummyCost()
 
     algorithm = SGD(learning_rate, cost, batch_size=batch_size,
-                 monitoring_batches=3, monitoring_dataset= monitoring_dataset,
-                 termination_criterion=termination_criterion, update_callbacks=None,
-                 init_momentum = None, set_batch_size = False)
+                    monitoring_batches=3, monitoring_dataset= monitoring_dataset,
+                    termination_criterion=termination_criterion, update_callbacks=None,
+                    init_momentum = None, set_batch_size = False)
 
     start = 5
     saturate = 10
     decay_factor = 0.1
-    linear_decay = LinearDecayOverEpoch(start=start, saturate=saturate, decay_factor=decay_factor)
+    linear_decay = LinearDecayOverEpoch(start=start,
+                                        saturate=saturate,
+                                        decay_factor=decay_factor)
 
     train = Train(dataset, model, algorithm, save_path=None,
                  save_freq=0, extensions=[linear_decay])
@@ -423,7 +420,7 @@ def test_linear_decay_over_epoch():
     train.main_loop()
 
     lr = model.monitor.channels['learning_rate']
-    step = (learning_rate - learning_rate * decay_factor)/(saturate - start + 1)
+    step = (learning_rate - learning_rate*decay_factor)/(saturate - start + 1)
 
     for i in xrange(epoch_num + 1):
         actual = lr.val_record[i]
@@ -434,8 +431,9 @@ def test_linear_decay_over_epoch():
         elif (start <= i) and (i < saturate):
             expected = decay_factor * learning_rate + (saturate - i) * step
         if not np.allclose(actual, expected):
-            raise AssertionError("After %d epochs, expected learning rate to be %f, but it is %f." % (
-                i, expected, actual))
+            raise AssertionError("After %d epochs, expected learning rate to "
+                                 "be %f, but it is %f." %
+                                 (i, expected, actual))
 
 def test_monitor_based_lr():
     # tests that the class MonitorBasedLRAdjuster in sgd.py
@@ -484,13 +482,23 @@ def test_monitor_based_lr():
 
         termination_criterion = EpochCounter(epoch_num)
 
-        algorithm = SGD(learning_rate, cost, batch_size=batch_size,
-                 monitoring_batches=3, monitoring_dataset= monitoring_dataset,
-                 termination_criterion=termination_criterion, update_callbacks=None,
-                 init_momentum = None, set_batch_size = False)
+        algorithm = SGD(learning_rate,
+                        cost,
+                        batch_size=batch_size,
+                        monitoring_batches=3,
+                        monitoring_dataset=monitoring_dataset,
+                        termination_criterion=termination_criterion,
+                        update_callbacks=None,
+                        init_momentum=None,
+                        set_batch_size=False)
 
 
-        monitor_lr = MonitorBasedLRAdjuster(high_trigger=high_trigger, shrink_amt=shrink_amt, low_trigger=low_trigger, grow_amt=grow_amt, min_lr=min_lr, max_lr=max_lr)
+        monitor_lr = MonitorBasedLRAdjuster(high_trigger=high_trigger,
+                                            shrink_amt=shrink_amt,
+                                            low_trigger=low_trigger,
+                                            grow_amt=grow_amt,
+                                            min_lr=min_lr,
+                                            max_lr=max_lr)
 
         train = Train(dataset, model, algorithm, save_path=None,
                  save_freq=0, extensions=[monitor_lr])
@@ -502,7 +510,7 @@ def test_monitor_based_lr():
         lr_monitor = learning_rate
 
         for i in xrange(2 , epoch_num + 1):
-            if v[i-1] > high_trigger * v[i-2] :
+            if v[i-1] > high_trigger * v[i-2]:
                 lr_monitor *= shrink_amt
             elif v[i-1] > low_trigger * v[i-2]:
                 lr_monitor *= grow_amt
@@ -1193,11 +1201,13 @@ def test_batch_size_specialization():
 
     cost = DummyCost()
 
-    algorithm = SGD(learning_rate, cost, batch_size=1,
-                 monitoring_batches=1, monitoring_dataset=dataset,
-                 termination_criterion=EpochCounter(max_epochs=1),
-                 update_callbacks=None,
-                 set_batch_size = False)
+    algorithm = SGD(learning_rate, cost,
+                    batch_size=1,
+                    monitoring_batches=1,
+                    monitoring_dataset=dataset,
+                    termination_criterion=EpochCounter(max_epochs=1),
+                    update_callbacks=None,
+                    set_batch_size=False)
 
     train = Train(dataset, model, algorithm, save_path=None,
                  save_freq=0, extensions=None)

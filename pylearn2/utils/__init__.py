@@ -9,13 +9,13 @@ control = None
 from itertools import izip
 cuda = None
 
-import numpy
-np = numpy
+import numpy as np
 
 from functools import partial
 WRAPPER_ASSIGNMENTS = ('__module__', '__name__')
 WRAPPER_CONCATENATIONS = ('__doc__',)
 WRAPPER_UPDATES = ('__dict__',)
+
 
 def make_name(variable, anon="anonymous_variable"):
     """
@@ -31,7 +31,7 @@ def make_name(variable, anon="anonymous_variable"):
     WRITEME
     """
 
-    if hasattr(variable,'name') and variable.name is not None:
+    if hasattr(variable, 'name') and variable.name is not None:
         return variable.name
 
     return anon
@@ -51,9 +51,10 @@ def sharedX(value, name=None, borrow=False):
     -------
     WRITEME
     """
+
     return theano.shared(theano._asarray(value, dtype=theano.config.floatX),
-         name=name,
-         borrow=borrow)
+                         name=name,
+                         borrow=borrow)
 
 
 def as_floatX(variable):
@@ -72,10 +73,10 @@ def as_floatX(variable):
     """
 
     if isinstance(variable, float):
-        return numpy.cast[theano.config.floatX](variable)
+        return np.cast[theano.config.floatX](variable)
 
-    if isinstance(variable, numpy.ndarray):
-        return numpy.cast[theano.config.floatX](variable)
+    if isinstance(variable, np.ndarray):
+        return np.cast[theano.config.floatX](variable)
 
     return theano.tensor.cast(variable, theano.config.floatX)
 
@@ -92,8 +93,8 @@ def constantX(value):
     -------
     WRITEME
     """
-    return theano.tensor.constant(numpy.asarray(value,
-                                                dtype=theano.config.floatX))
+    return theano.tensor.constant(np.asarray(value,
+                                             dtype=theano.config.floatX))
 
 
 def subdict(d, keys):
@@ -111,7 +112,8 @@ def subdict(d, keys):
     """
     result = {}
     for key in keys:
-        if key in d: result[key] = d[key]
+        if key in d:
+            result[key] = d[key]
     return result
 
 
@@ -140,7 +142,7 @@ class CallbackOp(theano.gof.Op):
     A Theano Op that implements the identity transform but also does an
     arbitrary (user-specified) side effect.
     """
-    view_map = { 0: [0] }
+    view_map = {0: [0]}
 
     def __init__(self, callback):
         """
@@ -235,6 +237,7 @@ def get_dataless_dataset(model):
         control.pop_load_data()
     return rval
 
+
 def safe_zip(*args):
     """
     Like zip, but ensures arguments are of same length
@@ -242,9 +245,10 @@ def safe_zip(*args):
     base = len(args[0])
     for i, arg in enumerate(args[1:]):
         if len(arg) != base:
-            raise ValueError("Argument 0 has length "+str(base)+\
-                " but argument "+str(i+1)+" has length "+str(len(arg)))
+            raise ValueError("Argument 0 has length %d but argument %d has "
+                             "length %d" % (base, i+1, len(arg)))
     return zip(*args)
+
 
 def safe_izip(*args):
     """
@@ -252,6 +256,7 @@ def safe_izip(*args):
     """
     assert all([len(arg) == len(args[0]) for arg in args])
     return izip(*args)
+
 
 def gpu_mem_free():
     """
@@ -265,6 +270,7 @@ def gpu_mem_free():
         from theano.sandbox import cuda
     return cuda.mem_info()[0]/1024./1024
 
+
 class _ElemwiseNoGradient(theano.tensor.Elemwise):
     """
     A Theano Op that applies an elementwise transformation and reports
@@ -275,14 +281,14 @@ class _ElemwiseNoGradient(theano.tensor.Elemwise):
         Report being disconnected to all inputs in order to have no gradient
         at all.
         """
-        return [ [ False ] ]
+        return [[False]]
 
     def grad(self, inputs, output_gradients):
         """
         Report being disconnected to all inputs in order to have no gradient
         at all.
         """
-        return [ theano.gradient.DisconnectedType()() ]
+        return [theano.gradient.DisconnectedType()()]
 
 # Call this on a theano variable to make a copy of that variable
 # No gradient passes through the copying operation
@@ -349,6 +355,7 @@ def function(*args, **kwargs):
     """
     return theano.function(*args, on_unused_input='ignore', **kwargs)
 
+
 def grad(*args, **kwargs):
     """
     A wrapper around theano.gradient.grad that disable the disconnected_inputs
@@ -356,6 +363,7 @@ def grad(*args, **kwargs):
     is an error.
     """
     return theano.gradient.grad(*args, disconnected_inputs='ignore', **kwargs)
+
 
 # Groups of Python types that are often used together in `isinstance`
 py_integer_types = (int, long, np.integer)

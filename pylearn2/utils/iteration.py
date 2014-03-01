@@ -3,18 +3,17 @@ Iterators providing indices for different kinds of iteration over
 datasets.
 
 Presets:
-
-- sequential: iterates through fixed slices of the dataset in sequence
-- shuffled_sequential: iterates through a shuffled version of the dataset
-  in sequence
-- random_slice: on each call to next, returns a slice of the dataset,
-  chosen uniformly at random over contiguous slices
-  samples with replacement, but still reports that
-  container is empty after num_examples / batch_size calls
-- random_uniform: on each call to next, returns a random subset of the
-  dataset.
-  samples with replacement, but still reports that
-  container is empty after num_examples / batch_size calls
+    sequential: iterates through fixed slices of the dataset in sequence
+    shuffled_sequential: iterates through a shuffled version of the dataset
+                 in sequence
+    random_slice: on each call to next, returns a slice of the dataset,
+                  chosen uniformly at random over contiguous slices
+                  samples with replacement, but still reports that
+                  container is empty after num_examples / batch_size calls
+    random_uniform: on each call to next, returns a random subset of the
+                  dataset.
+                  samples with replacement, but still reports that
+                  container is empty after num_examples / batch_size calls
 """
 from __future__ import division
 import numpy
@@ -319,12 +318,13 @@ class RandomSliceSubsetIterator(RandomUniformSubsetIterator):
     fancy = False
     stochastic = True
 
+
 class BatchwiseShuffledSequentialIterator(SequentialSubsetIterator):
     """
     Returns minibatches randomly, but sequential inside each minibatch
     """
 
-    def __init__(self, dataset_size, batch_size, num_batches = None, rng=None):
+    def __init__(self, dataset_size, batch_size, num_batches=None, rng=None):
         """
         .. todo::
 
@@ -396,6 +396,7 @@ def is_stochastic(mode):
     """
     return resolve_iterator_class(mode).stochastic
 
+
 def resolve_iterator_class(mode):
     """
     .. todo::
@@ -422,6 +423,8 @@ class FiniteDatasetIterator(object):
 
             WRITEME
         """
+
+        print "convert = %s" % str(convert)
 
         self._data_specs = data_specs
         self._dataset = dataset
@@ -471,29 +474,21 @@ class FiniteDatasetIterator(object):
             assert len(convert) == len(source)
             self._convert = convert
 
-        for i, (so, sp) in enumerate(safe_zip(source, sub_spaces)):
+        for i, (so, sp, dt) in enumerate(safe_zip(source,
+                                                  sub_spaces,
+                                                  self._raw_data)):
             idx = dataset_source.index(so)
             dspace = dataset_sub_spaces[idx]
 
             init_fn = self._convert[i]
             fn = init_fn
-            # Compose the functions
-            needs_cast = not (np.dtype(config.floatX) ==
-                              self._raw_data[i].dtype)
-            if needs_cast:
-                if fn is None:
-                    fn = lambda batch: numpy.cast[config.floatX](batch)
-                else:
-                    fn = (lambda batch, fn_=fn:
-                          numpy.cast[config.floatX](fn_(batch)))
 
             # If there is an init_fn, it is supposed to take
             # care of the formatting, and it should be an error
             # if it does not. If there was no init_fn, then
             # the iterator will try to format using the generic
             # space-formatting functions.
-            needs_format = not init_fn and not sp == dspace
-            if needs_format:
+            if init_fn is None:
                 # "dspace" and "sp" have to be passed as parameters
                 # to lambda, in order to capture their current value,
                 # otherwise they would change in the next iteration
@@ -526,8 +521,8 @@ class FiniteDatasetIterator(object):
         # using numpy.take()
 
         rval = tuple(
-                fn(data[next_index]) if fn else data[next_index]
-                for data, fn in safe_zip(self._raw_data, self._convert))
+            fn(data[next_index]) if fn else data[next_index]
+            for data, fn in safe_zip(self._raw_data, self._convert))
         if not self._return_tuple and len(rval) == 1:
             rval, = rval
         return rval
@@ -576,4 +571,3 @@ class FiniteDatasetIterator(object):
             WRITEME
         """
         return self._subset_iterator.stochastic
-
