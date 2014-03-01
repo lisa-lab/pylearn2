@@ -812,7 +812,7 @@ class Monitor(object):
         space_tuple = mapping.flatten(nested_space, return_tuple=True)
         source_tuple = mapping.flatten(nested_sources, return_tuple=True)
         ipt = tuple(space.make_theano_batch(name='monitor_%s' % source,
-                                            batch_size=batch_size)
+                                            batch_size=None)
                     for (space, source) in safe_zip(space_tuple, source_tuple))
 
         # Build a nested tuple from ipt, to dispatch the appropriate parts
