@@ -190,47 +190,6 @@ class BGD(TrainingAlgorithm):
                     obj_prereqs=obj_prereqs,
                     cost_monitoring_args=fixed_var_descr.fixed_vars)
 
-            # TODO : Why is this commented?
-            '''
-            channels = model.get_monitoring_channels(theano_args)
-            if not isinstance(channels, dict):
-                raise TypeError("model.get_monitoring_channels must return a "
-                                "dictionary, but it returned " + str(channels))
-            channels.update(self.cost.get_monitoring_channels(model, theano_args, ** fixed_var_descr.fixed_vars))
-
-            for dataset_name in self.monitoring_dataset:
-                if dataset_name == '':
-                    prefix = ''
-                else:
-                    prefix = dataset_name + '_'
-                monitoring_dataset = self.monitoring_dataset[dataset_name]
-                self.monitor.add_dataset(dataset=monitoring_dataset,
-                                    mode="sequential",
-                                    batch_size=self.batch_size,
-                                    num_batches=self.monitoring_batches)
-
-                # The monitor compiles all channels for the same dataset into one function, and
-                # runs all prereqs before calling the function. So we only need to register the
-                # on_load_batch prereq once per monitoring dataset.
-                self.monitor.add_channel(prefix + 'objective',ipt=ipt,val=cost_value,
-                        dataset = monitoring_dataset, prereqs = fixed_var_descr.on_load_batch)
-
-                for name in channels:
-                    J = channels[name]
-                    if isinstance(J, tuple):
-                        assert len(J) == 2
-                        J, prereqs = J
-                    else:
-                        prereqs = None
-
-                    self.monitor.add_channel(name= prefix + name,
-                                             ipt=ipt,
-                                             val=J,
-                                             data_specs=data_specs,
-                                             dataset = monitoring_dataset,
-                                             prereqs=prereqs)
-                '''
-
         params = model.get_params()
 
 

@@ -123,12 +123,13 @@ the art on CIFAR-100.
 The paper reports a test error of 2.45 on the SVHN dataset, which is the state
 of the art for a single model.
 
-Since we can not fit all the data to memory we us PyTables hdf5 file format for storing
-the dataset. By running svhn_pre-processing we make a local copy of the dataset in hdf5
-and apply the pre-processing on it. Our pre-processing consists of first global contrast normalization
-followed by local contrast normalization on each of the RGB channels.
+Since the data is large and might not fit into the memory, we use PyTbales for storing
+the dataset. For pre-processing the data you need to make a copy of data to a local
+path defined by SVHN_LOCAL environment variable. The reason behind is that with
+PyTables any change to the data, will result in change to the data on the disk and
+we do not want to modify the original raw data.
 
-export SVHN_LOCAL_PATH={some local folder}
+export SVHN_LOCAL=/tmp/SVHN/
 python svhn_preprocessing.py
 
 Afterwards we train our model using the svhn.yaml file

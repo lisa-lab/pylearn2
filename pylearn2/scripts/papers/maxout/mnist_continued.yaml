@@ -33,7 +33,6 @@
             },
         cost: &cost !obj:pylearn2.costs.cost.MethodCost {
                 method: 'cost_from_X',
-                supervised: 1
         },
         termination_criterion: !obj:pylearn2.termination_criteria.ChannelTarget {
             target: !obj:pylearn2.monitor.get_channel {

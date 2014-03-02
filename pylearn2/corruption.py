@@ -18,7 +18,7 @@ else:
     import theano.sandbox.rng_mrg
     RandomStreams = theano.sandbox.rng_mrg.MRG_RandomStreams
 
-from pylearn2.expr.activations import identity, rescaled_softmax
+from pylearn2.expr.activations import rescaled_softmax
 
 class Corruptor(object):
     """

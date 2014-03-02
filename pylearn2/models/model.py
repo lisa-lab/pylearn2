@@ -6,10 +6,14 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
+from itertools import izip as izip_no_length_check
+
 from theano.compat.python2x import OrderedDict
 from theano import tensor as T
 
 from pylearn2.space import NullSpace
+from pylearn2.utils import function
+from pylearn2.utils.track_version import MetaLibVersion
 
 
 class Model(object):
@@ -17,6 +21,9 @@ class Model(object):
     A class representing a model with learnable parameters.
     """
 
+    __metaclass__ = MetaLibVersion
+    _test_batch_size = 2
+    
     def get_default_cost(self):
         """
         Returns the default cost to use with this model.
@@ -398,8 +405,7 @@ class Model(object):
             WRITEME
         """
         self.names_to_del = set()
-        self._test_batch_size = 2
-
+   
     def get_test_batch_size(self):
         """
         Batches of examples used to initialize X.tag.test_value should have this
@@ -408,6 +414,17 @@ class Model(object):
         size or to keep the memory usage of testing under control.)
         """
         return self._test_batch_size
+
+    def print_versions(self, print_theano_config=False):
+        """
+        Print version of the various Python packages and basic information
+        about the experiment setup (e.g. cpu, os)
+        e.g. numpy:1.6.1 | pylearn:a6e634b83d | pylearn2:57a156beb0
+             CPU: x86_64
+             OS: Linux-2.6.35.14-106.fc14.x86_64-x86_64-with-fedora-14-Laughlin
+        """
+        self.libv.print_versions()
+        self.libv.print_exp_env_info(print_theano_config)
 
     def register_names_to_del(self, names):
         """
@@ -431,5 +448,17 @@ class Model(object):
             assert all(isinstance(n, basestring) for n in iter(names))
         except (TypeError, AssertionError):
             raise ValueError('Invalid names argument')
+        # Quick check in case __init__ was never called, e.g. by a derived class.
+        if not hasattr(self, 'names_to_del'):
+            self.names_to_del = set()
         self.names_to_del = self.names_to_del.union(names)
 
+    def enforce_constraints(self):
+        """
+        Enforces all constraints encoded by self.censor_updates.
+        """
+        params = self.get_params()
+        updates = OrderedDict(izip_no_length_check(params, params))
+        self.censor_updates(updates)
+        f = function([], updates=updates)
+        f()

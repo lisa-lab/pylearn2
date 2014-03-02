@@ -18,7 +18,7 @@ __maintainer__ = "Matthew Koichi Grimes"
 __email__ = "mkg alum mit edu (@..)"
 
 
-import os, gzip, bz2
+import os, gzip, bz2, warnings
 import numpy, theano
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.space import VectorSpace, Conv2DSpace, CompositeSpace
@@ -108,16 +108,18 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
     # the Preprocess class.
     def __init__(self, which_set, multi_target=False):
         """
-        :param which_set: one of ['train', 'test'] :param multi_target: If
-        True, each label is an integer labeling the image catergory. If False,
-        each label is a vector: [category, instance, lighting, elevation,
-        azimuth]. All labels are given as integers. Use the categories,
-        elevation_degrees, and azimuth_degrees arrays to map from these
-        integers to actual values.
+        parameters
+        ----------
 
-        :param multi_target: If False, labels will be integers indicating
-        object category. If True, labels will be vectors of integers,
-        indicating [ category, instance, elevation, azimuth, lighting ].
+        which_set: str
+            Must be 'train' or 'test'.
+
+        multi_target: bool
+            If False, each label is an integer labeling the image catergory. If
+            True, each label is a vector: [category, instance, lighting,
+            elevation, azimuth]. All labels are given as integers. Use the
+            categories, elevation_degrees, and azimuth_degrees arrays to map
+            from these integers to actual values.
         """
 
         assert which_set in ['train', 'test']
@@ -289,7 +291,6 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
         file_handle = open(getPath(which_set))
         return parseNORBFile(file_handle)
 
-
     def get_topological_view(self, mat=None, single_tensor=True):
         result = super(SmallNORB, self).get_topological_view(mat)
 
@@ -298,12 +299,20 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
                           "maintain backwards compatibility. This argument "
                           "will be removed, and the behavior will become that "
                           "of single_tensor=False, as of August 2014.")
-            axes = list(self.axes)
-            axes.remove('b')
+            axes = list(self.view_converter.axes)
             s_index = axes.index('s')
-            mono_shape = self.shape[:s_index] + [1, ] + self.shape[s_index:]
+            assert axes.index('b') == 0
+            num_image_pairs = result[0].shape[0]
+            shape = (num_image_pairs, ) + self.view_converter.shape
+
+            # inserts a singleton dimension where the 's' dimesion will be
+            mono_shape = shape[:s_index] + (1, ) + shape[(s_index+1):]
+
+            for i, res in enumerate(result):
+                print "result %d shape: %s" % (i, str(res.shape))
+
             result = tuple(t.reshape(mono_shape) for t in result)
-            result = numpy.concatenate(axis=s_index)
+            result = numpy.concatenate(result, axis=s_index)
         else:
             warnings.warn("The single_tensor argument will be removed on "
                           "August 2014. The behavior will be the same as "

@@ -10,9 +10,10 @@ __email__ = "goodfeli@iro"
 from datetime import datetime
 import os
 import sys
-from pylearn2.utils import serial
 import logging
 import warnings
+from pylearn2.utils import serial
+from pylearn2.utils.string_utils import preprocess
 from pylearn2.monitor import Monitor
 from pylearn2.space import NullSpace
 from pylearn2.utils.timing import log_timing, total_seconds
@@ -67,7 +68,7 @@ class Train(object):
             if save_freq == 0:
                 warnings.warn('save_path specified but save_freq is 0 '
                               '(never save). Is this intentional?')
-            self.save_path = save_path
+            self.save_path = preprocess(save_path)
         else:
             if save_freq > 0:
                 phase_variable = 'PYLEARN2_TRAIN_PHASE'
@@ -87,7 +88,8 @@ class Train(object):
                           "data it was trained on")
 
         self.extensions = extensions if extensions is not None else []
-        self.monitor_time = sharedX(value=0, name='seconds_per_epoch')
+        self.training_seconds = sharedX(value=0, name='training_seconds_this_epoch')
+        self.total_seconds = sharedX(value=0, name='total_seconds_last_epoch')
 
     def setup_extensions(self):
         """
@@ -127,6 +129,10 @@ class Train(object):
             self.model.monitor = Monitor.get_monitor(self.model)
             self.model.monitor.time_budget_exceeded = False
             self.setup_extensions()
+            # Model.censor_updates is used by the training algorithm to
+            # enforce constraints after each step of learning. Here we
+            # make sure the constraints are enforced from the start.
+            self.model.enforce_constraints()
             self.run_callbacks_and_monitoring()
             while True:
                 if self.exceeded_time_budget(t0, time_budget):
@@ -150,6 +156,10 @@ class Train(object):
         else:
             self.algorithm.setup(model=self.model, dataset=self.dataset)
             self.setup_extensions()
+            # Model.censor_updates is used by the training algorithm to
+            # enforce constraints after each step of learning. Here we
+            # make sure the constraints are enforced from the start.
+            self.model.enforce_constraints()
             if not hasattr(self.model, 'monitor'):
                 # TODO: is this really necessary? I just put this error here
                 # to prevent an AttributeError later, but I think we could
@@ -159,27 +169,35 @@ class Train(object):
             if len(self.model.monitor._datasets)>0:
                 # This monitoring channel keeps track of a shared variable,
                 # which does not need inputs nor data.
-                self.model.monitor.add_channel(name="monitor_seconds_per_epoch",
+                self.model.monitor.add_channel(name="training_seconds_this_epoch",
                                                ipt=None,
-                                               val=self.monitor_time,
+                                               val=self.training_seconds,
+                                               data_specs=(NullSpace(), ''),
+                                               dataset=self.model.monitor._datasets[0])
+                self.model.monitor.add_channel(name="total_seconds_last_epoch",
+                                               ipt=None,
+                                               val=self.total_seconds,
                                                data_specs=(NullSpace(), ''),
                                                dataset=self.model.monitor._datasets[0])
             self.run_callbacks_and_monitoring()
             while True:
                 if self.exceeded_time_budget(t0, time_budget):
                     break
-                with log_timing(log, None, final_msg='Time this epoch:',
-                                callbacks=[self.monitor_time.set_value]):
-                    rval = self.algorithm.train(dataset=self.dataset)
-                if rval is not None:
-                    raise ValueError("TrainingAlgorithm.train should not " +
-                                     "return anything. Use " +
-                                     "TrainingAlgorithm.continue_learning " +
-                                     "to control whether learning continues.")
-                self.model.monitor.report_epoch()
-                extension_continue = self.run_callbacks_and_monitoring()
-                if self.save_freq > 0 and self.model.monitor._epochs_seen % self.save_freq == 0:
-                    self.save()
+
+                with log_timing(log, None, level=logging.DEBUG,
+                                callbacks=[self.total_seconds.set_value]):
+                    with log_timing(log, None, final_msg='Time this epoch:',
+                                    callbacks=[self.training_seconds.set_value]):
+                        rval = self.algorithm.train(dataset=self.dataset)
+                    if rval is not None:
+                        raise ValueError("TrainingAlgorithm.train should not " +
+                                         "return anything. Use " +
+                                         "TrainingAlgorithm.continue_learning " +
+                                         "to control whether learning continues.")
+                    self.model.monitor.report_epoch()
+                    extension_continue = self.run_callbacks_and_monitoring()
+                    if self.save_freq > 0 and self.model.monitor._epochs_seen % self.save_freq == 0:
+                        self.save()
                 continue_learning = (
                     self.algorithm.continue_learning(self.model) and
                     extension_continue

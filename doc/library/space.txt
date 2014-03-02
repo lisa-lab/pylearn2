@@ -1,0 +1,11 @@
+=====
+Space
+=====
+
+.. contents::
+   :depth: 3
+
+Basic
+=====
+.. automodule:: pylearn2.space.__init__
+    :members:

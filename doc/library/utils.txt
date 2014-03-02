@@ -1,0 +1,146 @@
+=========
+Utilities
+=========
+
+Basic
+=====
+.. automodule:: pylearn2.utils.__init__
+    :members:
+
+Bit strings
+===========
+.. automodule:: pylearn2.utils.bit_strings
+    :members:
+
+Call check
+==========
+.. automodule:: pylearn2.utils.call_check
+    :members:
+
+Common strings
+==============
+.. automodule:: pylearn2.utils.common_strings
+    :members:
+
+Compile
+=======
+.. automodule:: pylearn2.utils.compile
+    :members:
+
+Data specifications
+===================
+.. automodule:: pylearn2.utils.data_specs
+    :members:
+
+Datasets
+========
+.. automodule:: pylearn2.utils.datasets
+    :members:
+
+Environment
+===========
+.. automodule:: pylearn2.utils.environ
+    :members:
+
+Exceptions
+==========
+.. automodule:: pylearn2.utils.exc
+    :members:
+
+General
+=======
+.. automodule:: pylearn2.utils.general
+    :members:
+
+Image
+=====
+.. automodule:: pylearn2.utils.image
+    :members:
+
+Insert along axis
+=================
+.. automodule:: pylearn2.utils.insert_along_axis
+    :members:
+
+Iteration
+=========
+.. automodule:: pylearn2.utils.iteration
+    :members:
+
+Key aware
+=========
+.. automodule:: pylearn2.utils.key_aware
+    :members:
+
+Logger
+======
+.. automodule:: pylearn2.utils.logger
+    :members:
+
+Memory
+======
+.. automodule:: pylearn2.utils.mem
+    :members:
+
+MNIST
+=====
+.. automodule:: pylearn2.utils.mnist_ubyte
+    :members:
+
+One Hot Encoding
+================
+.. automodule:: pylearn2.utils.one_hot
+    :members:
+
+Pooling
+=======
+.. automodule:: pylearn2.utils.pooling
+    :members:
+
+Python26
+========
+.. automodule:: pylearn2.utils.python26
+    :members:
+
+Serial
+======
+.. automodule:: pylearn2.utils.serial
+    :members:
+
+Setup
+=====
+
+Shell
+=====
+.. automodule:: pylearn2.utils.shell
+    :members:
+
+String utilities
+================
+.. automodule:: pylearn2.utils.string_utils
+    :members:
+
+Testing
+=======
+.. automodule:: pylearn2.utils.testing
+    :members:
+
+Theano Graph
+============
+.. automodule:: pylearn2.utils.theano_graph
+    :members:
+
+Timing
+======
+.. automodule:: pylearn2.utils.timing
+    :members:
+
+UTLC
+====
+.. automodule:: pylearn2.utils.utlc
+    :members:
+
+Video
+=====
+.. automodule:: pylearn2.utils.video
+    :members:
