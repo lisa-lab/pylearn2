@@ -12,6 +12,7 @@ from pylearn2.datasets import control
 from pylearn2.utils import serial
 from pylearn2.utils.mnist_ubyte import read_mnist_images
 from pylearn2.utils.mnist_ubyte import read_mnist_labels
+from pylearn2.utils.rng import make_np_rng
 
 
 class MNIST(dense_design_matrix.DenseDesignMatrix):
@@ -87,7 +88,7 @@ class MNIST(dense_design_matrix.DenseDesignMatrix):
                 topo_view -= topo_view.mean(axis=0)
 
             if shuffle:
-                self.shuffle_rng = np.random.RandomState([1, 2, 3])
+                self.shuffle_rng = make_np_rng(None, [1, 2, 3], which_method="shuffle")
                 for i in xrange(topo_view.shape[0]):
                     j = self.shuffle_rng.randint(m)
                     # Copy ensures that memory is not aliased.

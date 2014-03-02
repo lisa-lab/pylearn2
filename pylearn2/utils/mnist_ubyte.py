@@ -1,4 +1,6 @@
-"""Low-level utilities for reading in raw MNIST files."""
+"""
+Low-level utilities for reading in raw MNIST files.
+"""
 
 __author__ = "David Warde-Farley"
 __copyright__ = "Copyright 2012, Universite de Montreal"

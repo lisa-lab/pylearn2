@@ -13,6 +13,7 @@ from pylearn2.models.dbm import flatten
 from pylearn2.models.dbm.inference_procedure import WeightDoubling
 from pylearn2.models.dbm.sampling_procedure import GibbsEvenOdd
 from pylearn2.utils import safe_zip, safe_izip
+from pylearn2.utils.rng import make_np_rng
 
 
 class DBM(Model):
@@ -190,7 +191,7 @@ class DBM(Model):
 
             WRITEME
         """
-        self.rng = np.random.RandomState([2012, 10, 17])
+        self.rng = make_np_rng(None, [2012, 10, 17], which_method="uniform")
 
     def setup_inference_procedure(self):
         """
@@ -657,3 +658,7 @@ class DBM(Model):
                 drop_mask = None, V = None)
 
         return recons
+
+    def do_inpainting(self, *args, **kwargs):
+        self.setup_inference_procedure()
+        return self.inference_procedure.do_inpainting(*args, **kwargs)

@@ -32,6 +32,7 @@ from pylearn2.utils import serial
 from pylearn2.utils import sharedX
 from pylearn2.utils.data_specs import DataSpecsMapping
 from pylearn2.utils.timing import log_timing
+from pylearn2.utils.rng import make_np_rng
 
 
 log = logging.getLogger(__name__)
@@ -185,7 +186,7 @@ class SGD(TrainingAlgorithm):
             train_iteration_mode = 'shuffled_sequential'
         self.train_iteration_mode = train_iteration_mode
         self.first = True
-        self.rng = np.random.RandomState(seed)
+        self.rng = make_np_rng(seed, which_method=["randn","randint"])
         self.theano_function_mode = theano_function_mode
         self.monitoring_costs = monitoring_costs
 
@@ -260,14 +261,12 @@ class SGD(TrainingAlgorithm):
         # the cost
         learning_rate = self.learning_rate
         if self.monitoring_dataset is not None:
-            self.monitor.setup(
-                    dataset=self.monitoring_dataset,
-                    cost=self.cost,
-                    batch_size=self.batch_size,
-                    num_batches=self.monitoring_batches,
-                    extra_costs=self.monitoring_costs,
-                    mode=self.monitor_iteration_mode
-                    )
+            self.monitor.setup(dataset=self.monitoring_dataset,
+                               cost=self.cost,
+                               batch_size=self.batch_size,
+                               num_batches=self.monitoring_batches,
+                               extra_costs=self.monitoring_costs,
+                               mode=self.monitor_iteration_mode)
             dataset_name = self.monitoring_dataset.keys()[0]
             monitoring_dataset = self.monitoring_dataset[dataset_name]
             #TODO: have Monitor support non-data-dependent channels
@@ -400,7 +399,7 @@ class SGD(TrainingAlgorithm):
         on_load_batch = self.on_load_batch
         for batch in iterator:
             for callback in on_load_batch:
-                callback(mapping.nest(batch))
+                callback(*batch)
             self.sgd_update(*batch)
             # iterator might return a smaller batch if dataset size
             # isn't divisible by batch_size

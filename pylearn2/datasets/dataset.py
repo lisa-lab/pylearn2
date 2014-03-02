@@ -2,6 +2,7 @@
 A module defining the Dataset class.
 """
 
+
 class Dataset(object):
     """Abstract interface for Datasets."""
     def get_batch_design(self, batch_size, include_labels=False):

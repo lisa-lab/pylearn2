@@ -23,10 +23,13 @@ class Model(object):
 
     __metaclass__ = MetaLibVersion
     _test_batch_size = 2
-    
+
     def get_default_cost(self):
         """
-        Returns the default cost to use with this model.
+        Returns
+        -------
+        default_cost : Cost
+            The default cost to use with this model.
         """
 
         raise NotImplementedError(str(type(self))+ " does not implement get_default_cost.")
@@ -83,11 +86,19 @@ class Model(object):
 
     def get_weights_view_shape(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns
+        -------
+        shape : tuple
+            Returns a tuple containing two ints. These are used as the
+            `grid_shape` argument to `PatchViewer` when displaying the
+            weights of this model. This can be useful when there is
+            some geometric significance to the order of your weight
+            vectors. For example, the `Maxout` model makes sure that all of
+            the filters for the same hidden unit appear on the same row
+            of the display.
         """
-        raise NotImplementedError(str(type(self))+" does not implement get_weights_view_shape (perhaps by design)")
+        raise NotImplementedError(str(type(self))+" does not implement "
+                "get_weights_view_shape (perhaps by design)")
 
     def get_monitoring_channels(self, data):
         """
@@ -102,7 +113,7 @@ class Model(object):
 
         Returns
         -------
-        channels : dict
+        channels : OrderedDict
             A dictionary with strings as keys, mapping channel names to \
             symbolic values that depend on the variables in `data`.
 
@@ -126,34 +137,64 @@ class Model(object):
         when no monitoring channels are defined, or when none of the channels
         actually need data (for instance, if they only monitor functions
         of the model's parameters).
+
+        WRITEME properly
         """
         return (NullSpace(), '')
 
     def set_batch_size(self, batch_size):
         """
-        .. todo::
-
-            WRITEME
+        Parameters
+        ----------
+        batch_size : int
+            Sets the batch size used by the model.
+            If None, allows the model to use any batch size.
         """
         pass
 
+
     def get_weights(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns
+        -------
+        weights : ndarray
+            Returns any matrix that is analogous to the weights of the first
+            layer of an MLP, such as the dictionary of a sparse coding model.
+            This implementation raises NotImplementedError. For models where
+            this method is not conceptually applicable, do not override it.
+            Format should be compatible with the return value of
+            self.get_weights_format.
         """
 
-        raise NotImplementedError(str(type(self))+" does not implement get_weights (perhaps by design)")
+        raise NotImplementedError(str(type(self))+" does not implement "
+                "get_weights (perhaps by design)")
+
+    def get_weights_format(self):
+        """
+        Returns
+        -------
+        format : tuple
+            Either ('v', 'h') or ('h', 'v'). ('v', 'h') means self.get_weights
+            returns a matrix of shape (num visible units, num hidden units),
+            while ('h', 'v') means it returns the transpose of this.
+        """
+
+        return ('v', 'h')
 
     def get_weights_topo(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns
+        -------
+        weights : ndarray
+            Same as the return value of `get_weights` but formatted as a 4D
+            tensor with the axes being (hidden units, rows, columns,
+            channels). Only applicable for models where the weights can be
+            viewed as 2D-multichannel, and the number of channels is either
+            1 or 3 (because they will be visualized as grayscale or RGB color).
         """
 
-        raise NotImplementedError(str(type(self))+" does not implement get_weights_topo (perhaps by design)")
+        raise NotImplementedError(str(type(self))+" does not implement "
+                "get_weights_topo (perhaps by design)")
 
 
     def score(self, V):
@@ -186,9 +227,13 @@ class Model(object):
 
     def get_lr_scalers(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns
+        -------
+        lr_scalers : OrderedDict
+            A dictionary mapping the parameters of the model to floats. The
+            learning rate will be multiplied by the float for each parameter.
+            If a parameter does not appear in the dictionary, it will use
+            the global learning rate with no scaling.
         """
         return OrderedDict()
 
@@ -213,10 +258,6 @@ class Model(object):
         updates : dict
             A dictionary mapping shared variables to symbolic values they \
             will be updated to
-
-        Returns
-        -------
-        WRITEME
         """
 
         pass
@@ -405,7 +446,7 @@ class Model(object):
             WRITEME
         """
         self.names_to_del = set()
-   
+
     def get_test_batch_size(self):
         """
         Batches of examples used to initialize X.tag.test_value should have this

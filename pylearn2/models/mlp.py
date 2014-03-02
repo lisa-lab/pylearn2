@@ -76,8 +76,11 @@ class Layer(Model):
 
     def get_mlp(self):
         """
-        Returns the MLP that this layer belongs to, or None
-        if it has not been assigned to an MLP yet.
+        Returns
+        -------
+        mlp : MLP
+            The MLP that this layer belongs to, or None if it has not been
+            assigned to an MLP yet.
         """
 
         if hasattr(self, 'mlp'):
@@ -87,39 +90,53 @@ class Layer(Model):
 
     def set_mlp(self, mlp):
         """
-        Assigns this layer to an MLP.
+        Assigns this layer to an MLP. This layer will then use the MLP's
+        random number generator, batch size, etc. This layer's name must
+        be unique within the MLP.
 
         Parameters
         ----------
-        mlp : WRITEME
+        mlp : MLP
         """
         assert self.get_mlp() is None
         self.mlp = mlp
 
-    def get_monitoring_channels(self):
-        """
-        .. todo::
-
-            WRITEME
-        """
-        return OrderedDict()
-
     def get_monitoring_channels_from_state(self, state, target=None):
         """
-        .. todo::
+        Parameters
+        ----------
+        state : member of self.output_space
+            A minibatch of states that this Layer took on during fprop.
+            Provided externally so that we don't need to make a second
+            expression for it. This helps keep the Theano graph smaller
+            so that function compilation runs faster.
+        target : member of self.output_space
+            Should be None unless this is the last layer.
+            If specified, it should be a minibatch of targets for the
+            last layer.
 
-            WRITEME
+        Returns
+        -------
+        channels : OrderedDict
+            A dictionary mapping channel names to monitoring channels of
+            interest for this layer.
         """
+
         return OrderedDict()
 
     def fprop(self, state_below):
         """
         Does the forward prop transformation for this layer.
-        state_below is a minibatch of states for the previous layer.
 
         Parameters
         ----------
-        state_below : WRITEME
+        state_below : member of self.input_space
+            A minibatch of states of the layer below.
+
+        Returns
+        -------
+        state : member of self.output_space
+            A minibatch of states of this layer.
         """
 
         raise NotImplementedError(str(type(self))+" does not implement fprop.")
@@ -190,27 +207,46 @@ class Layer(Model):
 
     def set_weights(self, weights):
         """
-        .. todo::
+        Sets the weights of the layer.
 
-            WRITEME
+        Parameters
+        ----------
+        weights : ndarray
+            A numpy ndarray containing the desired weights of the layer. This
+            docstring is provided by the Layer base class. Layer subclasses
+            should add their own docstring explaining the subclass-specific
+            format of the ndarray.
         """
-        raise NotImplementedError
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                "set_weights.")
 
     def get_biases(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns
+        -------
+        biases : ndarray
+            A numpy ndarray containing the biases of the layer. This docstring
+            is provided by the Layer base class. Layer subclasses should add
+            their own docstring explaining the subclass-specific format of the
+            ndarray.
         """
-        raise NotImplementedError
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                "get_biases (perhaps because the class has no biases).")
 
     def set_biases(self, biases):
         """
-        .. todo::
+        Sets the biases of the layer.
 
-            WRITEME
+        Parameters
+        ----------
+        biases : ndarray
+            A numpy ndarray containing the desired biases of the layer. This
+            docstring is provided by the Layer base class. Layer subclasses
+            should add their own docstring explaining the subclass-specific
+            format of the ndarray.
         """
-        raise NotImplementedError
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                "set_biases (perhaps because the class has no biases).")
 
     def get_weights_format(self):
         """
@@ -222,31 +258,70 @@ class Layer(Model):
 
     def get_weight_decay(self, coeff):
         """
-        .. todo::
+        Provides an expresion for a squared L2 penalty on the weights.
 
-            WRITEME
+        Parameters
+        ----------
+        coeff : float or tuple
+            The coefficient on the weight decay penalty for this layer.
+            This docstring is provided by the Layer base class. Individual
+            Layer subclasses should add their own docstring explaining the
+            format of `coeff` for that particular layer. For most ordinary
+            layers, `coeff` is a single float to multiply by the weight
+            decay term. Layers containing many pieces may take a tuple or
+            nested tuple of floats, and should explain the semantics of
+            the different elements of the tuple.
+
+        Returns
+        -------
+        weight_decay : theano.gof.Variable
+            An expression for the weight decay penalty term for this
+            layer.
         """
-        raise NotImplementedError
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                "get_weight_decay.")
 
     def get_l1_weight_decay(self, coeff):
         """
-        .. todo::
+        Provides an expresion for an L1 penalty on the weights.
 
-            WRITEME
+        Parameters
+        ----------
+        coeff : float or tuple
+            The coefficient on the L1 weight decay penalty for this layer.
+            This docstring is provided by the Layer base class. Individual
+            Layer subclasses should add their own docstring explaining the
+            format of `coeff` for that particular layer. For most ordinary
+            layers, `coeff` is a single float to multiply by the weight
+            decay term. Layers containing many pieces may take a tuple or
+            nested tuple of floats, and should explain the semantics of
+            the different elements of the tuple.
+
+        Returns
+        -------
+        weight_decay : theano.gof.Variable
+            An expression for the L1 weight decay penalty term for this
+            layer.
         """
-        raise NotImplementedError
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                "get_l1_weight_decay.")
 
     def set_input_space(self, space):
         """
-        .. todo::
+        Tells the layer to prepare for input formatted according to the
+        given space.
 
-            WRITEME
+        Parameters
+        ----------
+        space : Space
+            The Space the input to this layer will lie in.
 
         Notes
         -----
         This usually resets parameters.
         """
-        raise NotImplementedError
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                "set_input_space.")
 
 
 class MLP(Layer):
@@ -1477,9 +1552,23 @@ class SoftmaxPool(Layer):
 
 class Linear(Layer):
     """
-    .. todo::
+    A "linear model" in machine learning terminology. This would be more
+    accurately described as an affine model because it adds an offset to
+    the output as well as doing a matrix multiplication. The output is:
 
-        WRITEME
+    output = T.dot(weights, input) + biases
+
+    This class may be used as the output layer of an MLP for regression.
+    It may also be used as a hidden layer. Most hidden layers classes are
+    subclasses of this class that add apply a fixed nonlinearity to the
+    output of the affine transformation provided by this class.
+
+    One notable use of this class is to provide "bottleneck" layers.
+    By using a Linear layer with few hidden units followed by a nonlinear
+    layer such as RectifiedLinear with many hidden units, one essentially
+    gets a RectifiedLinear layer with a factored weight matrix, which can
+    reduce the number of parameters in the model (by making the effective
+    weight matrix low rank).
     """
     def __init__(self,
                  dim,
@@ -1496,15 +1585,17 @@ class Linear(Layer):
                  max_row_norm=None,
                  max_col_norm=None,
                  min_col_norm=None,
-                 softmax_columns=False,
+                 softmax_columns=None,
                  copy_input=0,
                  use_abs_loss=False,
                  use_bias=True):
         """
         Parameters
         ----------
-        dim : WRITEME
-        layer_name : WRITEME
+        dim : int
+            The number of elements in the output of the layer.
+        layer_name : str
+            The name of the layer. All layers in an MLP must have a unique name.
         irange : WRITEME
         istdev : WRITEME
         sparse_init : WRITEME
@@ -1513,20 +1604,49 @@ class Linear(Layer):
             Probability of including a weight element in the set of weights \
             initialized to U(-irange, irange). If not included it is \
             initialized to 0.
-        init_bias : WRITEME
-        W_lr_scale : WRITEME
-        b_lr_scale : WRITEME
-        mask_weights : WRITEME
+        init_bias : float or ndarray
+            Anything that can be broadcasted to a numpy vector.
+            Provides the initial value of the biases of the model.
+            When using this class as an output layer (specifically the Linear
+            class, or subclasses that don't change the output like
+            LinearGaussian, but not subclasses that change the output, like
+            Softmax) it can be a good idea to set this to the return value of
+            the `mean_of_targets` function. This provides the mean value of
+            all the targets in the training set, so the model is initialized
+            to a dummy model that predicts the expected value of each output
+            variable.
+        W_lr_scale : float
+            Multiply the learning rate on the weights by this constant.
+        b_lr_scale : float
+            Multiply the learning rate on the biases by this constant.
+        mask_weights : ndarray, optional
+            If provided, the weights will be multiplied by this mask after each
+            learning update.
         max_row_norm : WRITEME
         max_col_norm : WRITEME
         min_col_norm : WRITEME
-        softmax_columns : WRITEME
+        softmax_columns : DEPRECATED
         copy_input : WRITEME
-        use_abs_loss : WRITEME
-        use_bias : WRITEME
+        use_abs_loss : bool
+            If True, the cost function will be mean absolute error rather
+            than mean squared error.
+            You can think of mean squared error as fitting a Gaussian
+            distribution with variance 1, or as learning to predict the mean
+            of the data.
+            You can think of mean absolute error as fitting a Laplace
+            distribution with variance 1, or as learning to predict the
+            median of the data.
+        use_bias : bool
+            If False, does not add the bias term to the output.
         """
 
         super(Linear, self).__init__()
+
+        if softmax_columns is None:
+            softmax_columns = False
+        else:
+            warnings.warn("The softmax_columns argument is deprecated, and "
+                    "will be removed on or after 2014-08-27.", stacklevel=2)
 
         if use_bias and init_bias is None:
             init_bias = 0.
@@ -1801,11 +1921,15 @@ class Linear(Layer):
 
     def _linear_part(self, state_below):
         """
-        .. todo::
+        Parameters
+        ----------
+        state_below : member of input_space
 
-            WRITEME
+        Returns
+        -------
+        output : theano matrix
+            Affine transformation of state_below
         """
-        # TODO: Refactor More Better(tm)
         self.input_space.validate(state_below)
 
         if self.requires_reformat:
@@ -1828,16 +1952,17 @@ class Linear(Layer):
             z = self.transformer.lmul(state_below)
             if self.use_bias:
                 z += self.b
+
         if self.layer_name is not None:
             z.name = self.layer_name + '_z'
+
         if self.copy_input:
             z = T.concatenate((z, state_below), axis=1)
+
         return z
 
     @wraps(Layer.fprop)
     def fprop(self, state_below):
-
-        # TODO: Refactor More Better(tm)
         p = self._linear_part(state_below)
         return p
 
@@ -2746,14 +2871,59 @@ def L1WeightDecay(*args, **kwargs):
 class LinearGaussian(Linear):
     """
     A Linear layer augmented with a precision vector, for modeling
-    conditionally Gaussian data
+    conditionally Gaussian data.
+
+    Specifically, given an input x, this layer models the distrbution over
+    the output as
+
+    y ~ p(y | x) = N(y | Wx + b, beta^-1)
+
+    i.e., y is conditionally Gaussian with mean Wx + b and variance
+    beta^-1.
+
+    beta is a diagonal precision matrix so beta^-1 is a diagonal covariance
+    matrix.
+
+    Internally, beta is stored as the vector of diagonal values on this
+    matrix.
+
+    Since the output covariance is not a function of the input, this does
+    not provide an example-specific estimate of the error in the mean.
+    However, the vector-valued beta does mean that maximizing log p(y | x)
+    will reweight the mean squared error so that variables that can be
+    estimated easier will receive a higher penalty. This is one way of
+    adapting the model better to heterogenous data.
     """
 
     def __init__(self, init_beta, min_beta, max_beta, beta_lr_scale, **kwargs):
         """
-        .. todo::
-
-            WRITEME
+        Parameters
+        ----------
+        init_beta : float or ndarray
+            Any value > 0 that can be broadcasted to a vector of shape (dim, ).
+            The elements of beta are initialized to this value.
+            A good value is often the precision (inverse variance) of the target
+            variables in the training set, as provided by the
+            `beta_from_targets` function. This is the optimal beta for a dummy
+            model that just predicts the mean target value from the training set.
+        min_beta : float
+            The elements of beta are constrained to be >= this value.
+            This value must be > 0., otherwise the output conditional is not
+            constrained to be a valid probability distribution.
+            A good value is often the precision (inverse variance) of the target
+            variables in the training set, as provided by the
+            `beta_from_targets` function. This is the optimal beta for a dummy
+            model that just predicts the mean target value from the training set.
+            A trained model should always be able to obtain at least this much
+            precision, at least on the training set.
+        max_beta : float
+            The elements of beta are constrained to be <= this value.
+            We impose this constraint because for problems
+            where the training set values can be predicted
+            exactly, beta can grow without bound, which also makes the
+            gradients grow without bound, resulting in numerical problems.
+        kwargs : dict
+            Arguments to the `Linear` superclass.
         """
         super(LinearGaussian, self).__init__(**kwargs)
         self.__dict__.update(locals())
@@ -2817,18 +2987,38 @@ class LinearGaussian(Linear):
 
 def beta_from_design(design, min_var=1e-6, max_var=1e6):
     """
-    .. todo::
+    Parameters
+    ----------
+    design : ndarray
+        A numpy ndarray containing a design matrix
+    min_var : float
+    max_var : float
+        All variances are constrained to lie in the range [min_var, max_var]
+        to avoid numerical issues like infinite precision.
 
-        WRITEME
+    Returns
+    -------
+    beta : ndarray
+        A 1D vector containing the marginal precision of each variable in the
+        design matrix.
     """
     return 1. / np.clip(design.var(axis=0), min_var, max_var)
 
 
 def beta_from_targets(dataset, **kwargs):
     """
-    .. todo::
+    Parameters
+    ----------
+    dataset : DenseDesignMatrix
+        A DenseDesignMatrix with a targets field `y`
+    kwargs : dict
+        Extra arguments to `beta_from_design`
 
-        WRITEME
+    Returns
+    -------
+    beta : ndarray
+        A 1-D vector containing the marginal precision of the *targets* in
+        `dataset`.
     """
     return beta_from_design(dataset.y, **kwargs)
 
@@ -2894,6 +3084,11 @@ class PretrainedLayer(Layer):
     def get_output_space(self):
 
         return self.layer_content.get_output_space()
+
+    @wraps(Layer.get_monitoring_channels)
+    def get_monitoring_channels(self):
+
+        return OrderedDict([])
 
     @wraps(Layer.fprop)
     def fprop(self, state_below):

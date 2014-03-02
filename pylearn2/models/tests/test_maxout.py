@@ -333,7 +333,9 @@ class TestMaxout(unittest.TestCase):
             # Check that the performance is close to the expected one:
             # test_y_misclass: 0.3777000308036804
             misclass_chan = train.algorithm.monitor.channels['test_y_misclass']
-            assert misclass_chan.val_record[-1] < 0.38
+            assert misclass_chan.val_record[-1] < 0.38, \
+                ("misclass_chan.val_record[-1] = %g" %
+                 misclass_chan.val_record[-1])
             # test_y_nll: 1.0978516340255737
             nll_chan = train.algorithm.monitor.channels['test_y_nll']
             assert nll_chan.val_record[-1] < 1.1

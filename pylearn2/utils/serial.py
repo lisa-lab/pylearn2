@@ -56,9 +56,31 @@ def raise_cannot_open(path):
 
 def load(filepath, recurse_depth=0, retry = True):
     """
-    .. todo::
+    Parameters
+    ----------
+    filepath : str
+        A path to a file to load. Should be a pickle, Matlab, or NumPy
+        file.
+    recurse_depth : int
+        End users should not use this argument. It is used by the function
+        itself to implement the `retry` option recursively.
+    retry : bool
+        If True, will make a handful of attempts to load the file before
+        giving up. This can be useful if you are for example calling
+        show_weights.py on a file that is actively being written to by a
+        training script--sometimes the load attempt might fail if the
+        training script writes at the same time show_weights tries to
+        read, but if you try again after a few seconds you should be able
+        to open the file.
 
-        WRITEME
+    Returns
+    -------
+    loaded_object : object
+        The object that was stored in the file.
+
+    ..todo
+
+        Refactor to hide recurse_depth from end users
     """
     try:
         import joblib

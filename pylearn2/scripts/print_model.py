@@ -9,8 +9,9 @@ import sys
 
 from pylearn2.utils import serial
 
-_, model_path = sys.argv
+if __name__ == "__main__":
+    _, model_path = sys.argv
 
-model = serial.load(model_path)
+    model = serial.load(model_path)
 
-print model
+    print model

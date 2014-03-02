@@ -14,6 +14,7 @@ from cython.parallel import prange
 import numpy as np
 cimport numpy as np
 from numpy.random import normal
+from pylearn2.utils.rng import make_np_rng
 cdef extern from "numpy/npy_math.h":
     double NPY_INFINITY
 
@@ -204,8 +205,7 @@ cpdef tuple kmeans(np.ndarray[DTYPE_t, ndim=2] data, np.npy_intp k,
     else:
         means = np.empty((k, nfeat), dtype=dtype)
         # Randomly initialize assignments to uniformly drawn training points.
-        if not hasattr(rng, 'random_integers'):
-            rng = np.random.RandomState(rng)
+	rng = make_np_rng(rng, which_method='random_integers')
         assign = rng.random_integers(0, k - 1, size=ndata).astype(intp)
         # Compute the means from the random initial assignments.
         _compute_means(data, assign, means, counts)

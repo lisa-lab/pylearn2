@@ -6,9 +6,11 @@ import warnings
 import numpy
 from . import TrainExtension
 from pylearn2.datasets.preprocessing import CentralWindow
+from pylearn2.utils.rng import make_np_rng
 
 try:
     from ..utils._window_flip import random_window_and_flip_c01b
+    from ..utils._window_flip import random_window_and_flip_b01c
 except ImportError:
     raise ValueError("You should run setup.py build_ext --inplace in the "
                      "utils directory.")
@@ -45,16 +47,12 @@ def _zero_pad(array, amount, axes=(1, 2)):
     return new_array
 
 
-class WindowAndFlipC01B(TrainExtension):
+class WindowAndFlip(TrainExtension):
     """
     .. todo::
 
         WRITEME
     """
-    # Immutable class-level attribute. This should not be a list, as then
-    # mutating self.axes will cause the class-level attribute to change.
-    # self.axes can be safely assigned to, however.
-    axes = ('c', 0, 1, 'b')
 
     def __init__(self, window_shape, randomize=None, randomize_once=None,
             center=None, rng=(2013, 02, 20), pad_randomized=0, flip=True):
@@ -106,10 +104,7 @@ class WindowAndFlipC01B(TrainExtension):
                           "any dataset arguments, and therefore does nothing",
                           stacklevel=2)
 
-        if not hasattr(rng, 'random_integers'):
-            self._rng = numpy.random.RandomState(rng)
-        else:
-            self._rng = rng
+        self._rng = make_np_rng(rng, which_method="random_integers")
 
     def setup(self, model, dataset, algorithm):
         """
@@ -126,8 +121,6 @@ class WindowAndFlipC01B(TrainExtension):
         # Central windowing of auxiliary datasets (e.g. validation sets)
         preprocessor = CentralWindow(self._window_shape)
         for data in self._center:
-            if not (tuple(data.view_converter.axes) == self.axes):
-                raise ValueError("Expected axes: %s Actual axes: %s" % (str(data.view_converter.axes), str(self.axes)))
             preprocessor.apply(data)
 
         # Do the initial random windowing
@@ -146,11 +139,17 @@ class WindowAndFlipC01B(TrainExtension):
         dataset : WRITEME
         """
         for dataset in datasets:
-            assert tuple(dataset.view_converter.axes) == self.axes
-            arr = random_window_and_flip_c01b(self._original[dataset],
-                                              self._window_shape,
-                                              rng=self._rng, flip=self._flip)
-            dataset.set_topological_view(arr, axes=self.axes)
+            if tuple(dataset.view_converter.axes) == ('c', 0, 1, 'b'):
+                wf_func = random_window_and_flip_c01b
+            elif tuple(dataset.view_converter.axes) == ('b', 0, 1, 'c'):
+                wf_func = random_window_and_flip_b01c
+            else:
+                raise ValueError("Axes of dataset is not supported: %s" %
+                                 (str(dataset.view_converter.axes)))
+            arr = wf_func(self._original[dataset],
+                          self._window_shape,
+                          rng=self._rng, flip=self._flip)
+            dataset.set_topological_view(arr, axes=dataset.view_converter.axes)
 
     def on_monitor(self, model, dataset, algorithm):
         """
@@ -167,3 +166,34 @@ class WindowAndFlipC01B(TrainExtension):
         algorithm = None
 
         self.randomize_datasets(self._randomize)
+
+
+class WindowAndFlipC01B(WindowAndFlip):
+    """
+    A specialized version of WindowAndFlip accepting datasets with axes C01B.
+    It exists due to backward compatibility.
+    """
+
+    def __init__(self, window_shape, randomize=None, randomize_once=None,
+            center=None, rng=(2013, 02, 20), pad_randomized=0, flip=True):
+
+        _randomize = randomize if randomize else []
+        _randomize_once = randomize_once if randomize_once else []
+
+        for data in _randomize + _randomize_once:
+            if tuple(data.view_converter.axes) != ('c', 0, 1, 'b'):
+                raise ValueError("Expected axes: ('c', 0, 1, 'b') "
+                                 "Actual axes: %s" %
+                                 str(tuple(data.view_converter.axes)))
+
+        warnings.warn("WindowAndFlipC01B is deprecated, use WindowAndFlip. " +
+                      "WindowAndFlipC01B will be removed on or " +
+                      "after August 25, 2014.", stacklevel=2)
+
+        super(WindowAndFlipC01B, self).__init__(window_shape,
+                                                randomize=randomize,
+                                                randomize_once=randomize_once,
+                                                center=center,
+                                                rng=rng,
+                                                pad_randomized=pad_randomized,
+                                                flip=flip)

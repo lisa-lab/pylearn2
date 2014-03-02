@@ -37,133 +37,135 @@ found them all.
 """
 import sys
 import types
-_, in_path, out_path = sys.argv
-from pylearn2.utils import serial
-from theano import shared
-model = serial.load(in_path)
+
+if __name__ == '__main__':
+    _, in_path, out_path = sys.argv
+    from pylearn2.utils import serial
+    from theano import shared
+    model = serial.load(in_path)
 
 # map ids of objects we've fixed before to the fixed version, so we don't clone objects when fixing
 # can't use object itself as key because not all objects are hashable
-already_fixed = {}
+    already_fixed = {}
 
 # ids of objects being fixed right now (we don't support cycles)
-currently_fixing = []
+    currently_fixing = []
 
-blacklist = ["im_class", "func_closure", "co_argcount", "co_cellvars", "func_code",
-        "append", "capitalize", "im_self", "func_defaults", "func_name"]
-blacklisted_keys = ["bytearray", "IndexError", "isinstance", "copyright", "main"]
+    blacklist = ["im_class", "func_closure", "co_argcount", "co_cellvars", "func_code",
+            "append", "capitalize", "im_self", "func_defaults", "func_name"]
+    blacklisted_keys = ["bytearray", "IndexError", "isinstance", "copyright", "main"]
 
-postponed_fixes = []
+    postponed_fixes = []
 
-class Placeholder(object):
-    def __init__(self, id_to_sub):
-        self.id_to_sub = id_to_sub
+    class Placeholder(object):
+        def __init__(self, id_to_sub):
+            self.id_to_sub = id_to_sub
 
-class FieldFixer(object):
+    class FieldFixer(object):
 
-    def __init__(self, obj, field, fixed_field):
-        self.obj = obj
-        self.field = field
-        self.fixed_field = fixed_field
+        def __init__(self, obj, field, fixed_field):
+            self.obj = obj
+            self.field = field
+            self.fixed_field = fixed_field
 
-    def apply(self):
-        obj = self.obj
-        field = self.field
-        fixed_field = already_fixed[self.fixed_field.id_to_sub]
-        setattr(obj, field, fixed_field)
+        def apply(self):
+            obj = self.obj
+            field = self.field
+            fixed_field = already_fixed[self.fixed_field.id_to_sub]
+            setattr(obj, field, fixed_field)
 
-def fix(obj, stacklevel=0):
-    prefix = ''.join(['.']*stacklevel)
-    oid = id(obj)
-    canary_oid = oid
-    print prefix + 'fixing '+str(oid)
-    if oid in already_fixed:
-        return already_fixed[oid]
-    if oid in currently_fixing:
-        print 'returning placeholder for '+str(oid)
-        return Placeholder(oid)
-    currently_fixing.append(oid)
-    if hasattr(obj, 'set_value'):
-        # Base case: we found a shared variable, must convert it
-        rval = shared(obj.get_value())
-        # Sabotage its getstate so if something tries to pickle it, we'll find out
-        obj.__getstate__ = None
-    elif obj is None:
-        rval = None
-    elif isinstance(obj, list):
-        print prefix + 'fixing a list'
-        rval = []
-        for i, elem in enumerate(obj):
-            print prefix + '.fixing elem %d' % i
-            fixed_elem = fix(elem, stacklevel + 2)
-            if isinstance(fixed_elem, Placeholder):
-                raise NotImplementedError()
-            rval.append(fixed_elem)
-    elif isinstance(obj, dict):
-        print prefix + 'fixing a dict'
-        rval = obj
-        """
-        rval = {}
-        for key in obj:
-            if key in blacklisted_keys or (isinstance(key, str) and key.endswith('Error')):
-                print prefix + '.%s is blacklisted' % str(key)
-                rval[key] = obj[key]
-                continue
-            print prefix + '.fixing key ' + str(key) + ' of type '+str(type(key))
-            fixed_key = fix(key, stacklevel + 2)
-            if isinstance(fixed_key, Placeholder):
-                raise NotImplementedError()
-            print prefix + '.fixing value for key '+str(key)
-            fixed_value = fix(obj[key], stacklevel + 2)
-            if isinstance(fixed_value, Placeholder):
-                raise NotImplementedError()
-            rval[fixed_key] = fixed_value
-        """
-    elif isinstance(obj, tuple):
-        print prefix + 'fixing a tuple'
-        rval = []
-        for i, elem in enumerate(obj):
-            print prefix + '.fixing elem %d' % i
-            fixed_elem = fix(elem, stacklevel + 2)
-            if isinstance(fixed_elem, Placeholder):
-                raise NotImplementedError()
-            rval.append(fixed_elem)
-        rval = tuple(rval)
-    elif isinstance(obj, (int, float, str)):
-        rval = obj
-    else:
-        print prefix + 'fixing a generic object'
-        field_names = dir(obj)
-        for field in field_names:
-            if isinstance(getattr(obj, field), types.MethodType):
-                print prefix + '.%s is an instancemethod' % field
-                continue
-            if field in blacklist or (field.startswith('__')):
-                print prefix + '.%s is blacklisted' % field
-                continue
-            print prefix + '.fixing field %s' % field
-            updated_field = fix(getattr(obj, field), stacklevel + 2)
-            print prefix + '.applying fix to field %s' % field
-            if isinstance(updated_field, Placeholder):
-                postponed_fixes.append(FieldFixer(obj, field, updated_field))
-            else:
-                try:
-                    setattr(obj, field, updated_field)
-                except Exception, e:
-                    print "Couldn't do that because of exception: "+str(e)
-        rval = obj
-    already_fixed[oid] = rval
-    print prefix+'stored fix for '+str(oid)
-    assert canary_oid == oid
-    del currently_fixing[currently_fixing.index(oid)]
-    return rval
+    def fix(obj, stacklevel=0):
+        prefix = ''.join(['.']*stacklevel)
+        oid = id(obj)
+        canary_oid = oid
+        print prefix + 'fixing '+str(oid)
+        if oid in already_fixed:
+            return already_fixed[oid]
+        if oid in currently_fixing:
+            print 'returning placeholder for '+str(oid)
+            return Placeholder(oid)
+        currently_fixing.append(oid)
+        if hasattr(obj, 'set_value'):
+            # Base case: we found a shared variable, must convert it
+            rval = shared(obj.get_value())
+            # Sabotage its getstate so if something tries to pickle it, we'll find out
+            obj.__getstate__ = None
+        elif obj is None:
+            rval = None
+        elif isinstance(obj, list):
+            print prefix + 'fixing a list'
+            rval = []
+            for i, elem in enumerate(obj):
+                print prefix + '.fixing elem %d' % i
+                fixed_elem = fix(elem, stacklevel + 2)
+                if isinstance(fixed_elem, Placeholder):
+                    raise NotImplementedError()
+                rval.append(fixed_elem)
+        elif isinstance(obj, dict):
+            print prefix + 'fixing a dict'
+            rval = obj
+            """
+            rval = {}
+            for key in obj:
+                if key in blacklisted_keys or (isinstance(key, str) and key.endswith('Error')):
+                    print prefix + '.%s is blacklisted' % str(key)
+                    rval[key] = obj[key]
+                    continue
+                print prefix + '.fixing key ' + str(key) + ' of type '+str(type(key))
+                fixed_key = fix(key, stacklevel + 2)
+                if isinstance(fixed_key, Placeholder):
+                    raise NotImplementedError()
+                print prefix + '.fixing value for key '+str(key)
+                fixed_value = fix(obj[key], stacklevel + 2)
+                if isinstance(fixed_value, Placeholder):
+                    raise NotImplementedError()
+                rval[fixed_key] = fixed_value
+            """
+        elif isinstance(obj, tuple):
+            print prefix + 'fixing a tuple'
+            rval = []
+            for i, elem in enumerate(obj):
+                print prefix + '.fixing elem %d' % i
+                fixed_elem = fix(elem, stacklevel + 2)
+                if isinstance(fixed_elem, Placeholder):
+                    raise NotImplementedError()
+                rval.append(fixed_elem)
+            rval = tuple(rval)
+        elif isinstance(obj, (int, float, str)):
+            rval = obj
+        else:
+            print prefix + 'fixing a generic object'
+            field_names = dir(obj)
+            for field in field_names:
+                if isinstance(getattr(obj, field), types.MethodType):
+                    print prefix + '.%s is an instancemethod' % field
+                    continue
+                if field in blacklist or (field.startswith('__')):
+                    print prefix + '.%s is blacklisted' % field
+                    continue
+                print prefix + '.fixing field %s' % field
+                updated_field = fix(getattr(obj, field), stacklevel + 2)
+                print prefix + '.applying fix to field %s' % field
+                if isinstance(updated_field, Placeholder):
+                    postponed_fixes.append(FieldFixer(obj, field, updated_field))
+                else:
+                    try:
+                        setattr(obj, field, updated_field)
+                    except Exception, e:
+                        print "Couldn't do that because of exception: "+str(e)
+            rval = obj
+        already_fixed[oid] = rval
+        print prefix+'stored fix for '+str(oid)
+        assert canary_oid == oid
+        del currently_fixing[currently_fixing.index(oid)]
+        return rval
 
-model = fix(model)
+    model = fix(model)
 
-assert len(currently_fixing) == 0
+    assert len(currently_fixing) == 0
 
-for fixer in postponed_fixes:
-    fixer.apply()
+    for fixer in postponed_fixes:
+        fixer.apply()
 
-serial.save(out_path, model)
+    serial.save(out_path, model)
 

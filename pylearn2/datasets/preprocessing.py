@@ -26,6 +26,7 @@ from pylearn2.space import Conv2DSpace, VectorSpace
 from pylearn2.expr.preprocessing import global_contrast_normalize
 from pylearn2.utils.insert_along_axis import insert_columns
 from pylearn2.utils import sharedX
+from pylearn2.utils.rng import make_np_rng
 
 
 log = logging.getLogger(__name__)
@@ -315,10 +316,7 @@ class ExtractPatches(Preprocessor):
         self.patch_shape = patch_shape
         self.num_patches = num_patches
 
-        if rng is not None:
-            self.start_rng = copy.copy(rng)
-        else:
-            self.start_rng = numpy.random.RandomState([1, 2, 3])
+        self.start_rng = make_np_rng(copy.copy(rng), [1,2,3], which_method="randint")
 
     def apply(self, dataset, can_fit=False):
         rng = copy.copy(self.start_rng)
@@ -817,11 +815,11 @@ class GlobalContrastNormalization(Preprocessor):
                 log.info("GCN processing data from %d to %d" % (i, stop))
                 X = data[i:stop]
                 X = global_contrast_normalize(X,
-                                          scale=self._scale,
-                                          subtract_mean=self._subtract_mean,
-                                          use_std=self._use_std,
-                                          sqrt_bias=self._sqrt_bias,
-                                          min_divisor=self._min_divisor)
+                                              scale=self._scale,
+                                              subtract_mean=self._subtract_mean,
+                                              use_std=self._use_std,
+                                              sqrt_bias=self._sqrt_bias,
+                                              min_divisor=self._min_divisor)
                 dataset.set_design_matrix(X, start=i)
 
 
@@ -882,7 +880,8 @@ class ZCA(Preprocessor):
         if not hasattr(ZCA._gpu_matrix_dot, 'theano_func'):
             ma, mb = theano.tensor.matrices('A', 'B')
             mc = theano.tensor.dot(ma, mb)
-            ZCA._gpu_matrix_dot.theano_func = theano.function([ma, mb], mc)
+            ZCA._gpu_matrix_dot.theano_func = theano.function([ma, mb], mc,
+                    allow_input_downcast=True)
 
         theano_func = ZCA._gpu_matrix_dot.theano_func
 
@@ -902,30 +901,35 @@ class ZCA(Preprocessor):
     @staticmethod
     def _gpu_mdmt(mat, diags):
         """
-        Performs the matrix multiplication A * D * A^T.
+        Performs the matrix multiplication M * D * M^T.
 
         First tries to do this on the GPU. If this throws a MemoryError, it
         falls back to the CPU, with a warning message.
         """
 
+        floatX = theano.config.floatX
+
         # compile theano function
         if not hasattr(ZCA._gpu_mdmt, 'theano_func'):
-            t_mat = theano.tensor.matrix('A')
+            t_mat = theano.tensor.matrix('M')
             t_diags = theano.tensor.vector('D')
             result = theano.tensor.dot(t_mat * t_diags, t_mat.T)
-            ZCA._gpu_mdmt.theano_func = theano.function([t_mat, t_diags],
-                                                        result,
-                                                        allow_input_downcast=True)
+            ZCA._gpu_mdmt.theano_func = theano.function(
+                [t_mat, t_diags],
+                result,
+                allow_input_downcast=True)
 
         try:
             # function()-call above had to downcast the data. Emit warnings.
-            if mat.dtype != numpy.float32:
-                warnings.warn('Implicitly converting mat from dtype=%s to float32 for gpu' % mat.dtype)
-            if diags.dtype != numpy.float32:
-                warnings.warn('Implicitly converting diag from dtype=%s to float32 for gpu' % diags.dtype)
+            if str(mat.dtype) != floatX:
+                warnings.warn('Implicitly converting mat from dtype=%s to '
+                              '%s for gpu' % (mat.dtype, floatX))
+            if str(diags.dtype) != floatX:
+                warnings.warn('Implicitly converting diag from dtype=%s to '
+                              '%s for gpu' % (diags.dtype, floatX))
 
             return ZCA._gpu_mdmt.theano_func(mat, diags)
-            
+
         except MemoryError:
             # fall back to cpu
             warnings.warn('M * D * M^T was too big to fit on GPU. '
@@ -987,9 +991,16 @@ class ZCA(Preprocessor):
         """
         Used to unpickle.
 
-        state: The dictionary created by __setstate__, presumably unpickled
-        from disk.
+        Parameters
+        ----------
+        state : dict
+            The dictionary created by __setstate__, presumably unpickled
+            from disk.
         """
+
+        # Patch old pickle files
+        if 'matrices_save_path' not in state:
+            state['matrices_save_path'] = None
 
         if state['matrices_save_path'] is not None:
             matrices = numpy.load(state['matrices_save_path'])
@@ -1007,12 +1018,6 @@ class ZCA(Preprocessor):
         If self.store_inverse is true, this also computes self.inv_P_.
 
         X: a matrix where each row is a datum.
-
-        compute_inverese: Computes the inverse of P_, storing it as inv_P_.
-                          This is not always necessary, but ZCA_Dataset
-                          requires inv_P_. If it's not computed here,
-                          ZCA_Dataset will compute it much less efficiently in
-                          its constructor.
         """
         assert X.dtype in ['float32', 'float64']
         assert not numpy.any(numpy.isnan(X))
@@ -1079,7 +1084,7 @@ class ZCA(Preprocessor):
             ZCA._x_minus_mean_times_p = theano.function([x_symbol,
                                                          mean_symbol,
                                                          p_symbol],
-                                                         new_x_symbol)
+                                                        new_x_symbol)
 
         X = dataset.get_design_matrix()
         assert X.dtype in ['float32', 'float64']
@@ -1092,7 +1097,7 @@ class ZCA(Preprocessor):
 
     def inverse(self, X):
         assert X.ndim == 2
-        return numpy.dot(X, self.inv_P_) + self.mean_
+        return self._gpu_matrix_dot(X, self.inv_P_) + self.mean_
 
 
 class LeCunLCN(ExamplewisePreprocessor):
@@ -1387,7 +1392,7 @@ class ShuffleAndSplit(Preprocessor):
     def apply(self, dataset, can_fit=False):
         start = self.start
         stop = self.stop
-        rng = numpy.random.RandomState(self.seed)
+        rng = make_np_rng(self.seed, which_method="randint")
         X = dataset.X
         y = dataset.y
 
