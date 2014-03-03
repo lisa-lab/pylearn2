@@ -6,6 +6,7 @@ SGD and BGD training algorithms.
 
 import functools
 import warnings
+import logging
 from itertools import izip
 
 import theano.tensor as T
@@ -16,6 +17,7 @@ from pylearn2.utils import safe_union
 from pylearn2.space import CompositeSpace, NullSpace
 from pylearn2.utils.data_specs import DataSpecsMapping
 
+logger = logging.getLogger('cost')
 
 class DefaultDataSpecsMixin(object):
     """
@@ -124,8 +126,8 @@ class Cost(object):
             # but still preserve the stack trace, please do so
             # The current code does neither
             e.message += " while calling " + str(type(self)) + ".expr"
-            print str(type(self))
-            print e.message
+            logger.error(str(type(self)))
+            logger.exception(e.message)
             raise e
 
         if cost is None:
@@ -218,6 +220,7 @@ class Cost(object):
         """
         raise NotImplementedError(str(type(self)) + " does not implement " +
                                   "get_data_specs.")
+
 
 
 class SumOfCosts(Cost):
@@ -398,7 +401,7 @@ class SumOfCosts(Cost):
                                                         **kwargs)
                 rval.update(channels)
             except TypeError:
-                print ('SumOfCosts.get_monitoring_channels encountered '
+                logger.error('SumOfCosts.get_monitoring_channels encountered '
                        'TypeError while calling ' +
                        str(type(cost)) + '.get_monitoring_channels')
                 raise
