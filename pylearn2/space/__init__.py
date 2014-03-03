@@ -720,7 +720,7 @@ class IndexSpace(SimplyTypedSpace):
     present i.e. for 4 possible labels we have [0, 2] -> [1 0 1 0] or
     [0, 2] -> [1 0 0 0 0 0 1 0].
     """
-    def __init__(self, max_labels, dim, **kwargs):
+    def __init__(self, max_labels, dim, dtype='int64', **kwargs):
         """
         Initialize an IndexSpace.
 
@@ -734,10 +734,16 @@ class IndexSpace(SimplyTypedSpace):
             The number of indices in one space e.g. for MNIST there is
             one target label and hence dim = 1. If we have an n-gram
             of word indices as input to a neurel net language model, dim = n.
+        dtype : str
+            A numpy dtype string indicating this space's dtype.
+            Must be an integer type e.g. int32 or int64.
         kwargs: passes on to superclass constructor
         """
 
-        super(IndexSpace, self).__init__(**kwargs)
+        if not 'int' in dtype:
+            raise ValueError("The dtype of IndexSpace must be an integer type")
+
+        super(IndexSpace, self).__init__(dtype, **kwargs)
 
         self.max_labels = max_labels
         self.dim = dim
@@ -755,7 +761,8 @@ class IndexSpace(SimplyTypedSpace):
     def __eq__(self, other):
         return (type(self) == type(other) and
                 self.max_labels == other.max_labels and
-                self.dim == other.dim)
+                self.dim == other.dim and
+                self.dtype == other.dtype)
 
     def __ne__(self, other):
         return (not self == other)

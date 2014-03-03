@@ -26,10 +26,18 @@ def test_np_format_as_vector2vector():
 
 def test_np_format_as_index2index():
     index_space_initial = IndexSpace(max_labels=10, dim=1)
+
     index_space_final = IndexSpace(max_labels=10, dim=1)
     data = np.array([[0], [2], [1], [3], [5], [8], [1]])
     rval = index_space_initial.np_format_as(data, index_space_final)
+    assert index_space_initial == index_space_final
     assert np.all(rval == data)
+
+    index_space_downcast = IndexSpace(max_labels=10, dim=1, dtype='int32')
+    rval = index_space_initial.np_format_as(data, index_space_downcast)
+    assert index_space_initial != index_space_downcast
+    assert np.all(rval == data)
+    assert rval.dtype == 'int32' and data.dtype == 'int64'
 
 
 def test_np_format_as_conv2d2conv2d():
