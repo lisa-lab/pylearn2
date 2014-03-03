@@ -455,13 +455,10 @@ class Space(object):
         # Checks if batch belongs to this space
         self._validate(is_numeric, batch)
 
-        # No need to format if it's already in the same space
-        if space == self:
-            return batch
-        else:
-            # checks if self and space have compatible sizes for formatting.
-            self._check_sizes(space)
-            return self._format_as_impl(is_numeric, batch, space)
+        # checks if self and space have compatible sizes for formatting.
+        self._check_sizes(space)
+
+        return self._format_as_impl(is_numeric, batch, space)
 
     def _format_as_impl(self, is_numeric, batch, target_space):
         """
@@ -769,19 +766,22 @@ class IndexSpace(SimplyTypedSpace):
 
     @functools.wraps(Space._check_sizes)
     def _check_sizes(self, space):
-        if not isinstance(space, VectorSpace):
-            raise TypeError('_check_sizes somehow got something other than '
-                            'VectorSpace. This should have been detected in '
-                            '_vaildate_impl')
-
-        if space.dim not in (self.max_labels,              # merged onehots
-                             self.dim * self.max_labels):  # concatenated
-            raise ValueError("Can't convert to VectorSpace of dim %d. "
-                             "Expected either dim=%d (merged one-hots) or %d "
-                             "(concatenated one-hots)" %
-                             (space.dim,
-                              self.max_labels,
-                              self.dim * self.max_labels))
+        if isinstance(space, VectorSpace):
+            if space.dim not in (self.max_labels,              # merged onehots
+                                 self.dim * self.max_labels):  # concatenated
+                raise ValueError("Can't convert to VectorSpace of dim %d. "
+                                 "Expected either dim=%d (merged one-hots) or %d "
+                                 "(concatenated one-hots)" %
+                                 (space.dim,
+                                  self.max_labels,
+                                  self.dim * self.max_labels))
+        elif isinstance(space, IndexSpace):
+            if space.dim != self.dim or space.max_labels != self.max_labels:
+                raise ValueError("Can't convert to IndexSpace of dim %d and "
+                                 "max_labels %d." %
+                                 (space.dim, self.max_labels))
+        else:
+            raise ValueError("Can't convert to " + str(space.__class__))
 
     @functools.wraps(Space._format_as_impl)
     def _format_as_impl(self, is_numeric, batch, space):
@@ -800,6 +800,15 @@ class IndexSpace(SimplyTypedSpace):
                            self.formatter.theano_expr)
             return _cast(format_func(batch, sparse=space.sparse, mode=mode),
                          space.dtype)
+        elif isinstance(space, IndexSpace):
+            if space.dim != self.dim or space.max_labels != self.max_labels:
+                raise ValueError("The two IndexSpaces' dim and max_labels "
+                                 "values don't match. This should have been "
+                                 "catched by IndexSpace._check_sizes().")
+
+            format_func = (self.formatter.format if is_numeric else
+                           self.formatter.theano_expr)
+            return _cast(batch, space.dtype)
         else:
             raise ValueError("Can't convert %s to %s"
                              % (self, space))
