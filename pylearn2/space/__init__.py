@@ -455,10 +455,13 @@ class Space(object):
         # Checks if batch belongs to this space
         self._validate(is_numeric, batch)
 
-        # checks if self and space have compatible sizes for formatting.
-        self._check_sizes(space)
-
-        return self._format_as_impl(is_numeric, batch, space)
+        # No need to format if it's already in the same space
+        if space == self:
+            return batch
+        else:
+            # checks if self and space have compatible sizes for formatting.
+            self._check_sizes(space)
+            return self._format_as_impl(is_numeric, batch, space)
 
     def _format_as_impl(self, is_numeric, batch, target_space):
         """
