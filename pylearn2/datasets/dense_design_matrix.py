@@ -250,10 +250,12 @@ class DenseDesignMatrix(Dataset):
 
     def get_data(self):
         """
-        Returns all the data, as it is internally stored.
-
-        The definition and format of these data are described in
-        `self.get_data_specs()`.
+        Returns
+        -------
+        data : numpy matrix or 2-tuple of matrices
+            Returns all the data, as it is internally stored.
+            The definition and format of these data are described in
+            `self.get_data_specs()`.
         """
         if self.y is None:
             return self.X
