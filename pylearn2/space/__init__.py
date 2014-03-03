@@ -720,7 +720,7 @@ class IndexSpace(SimplyTypedSpace):
     present i.e. for 4 possible labels we have [0, 2] -> [1 0 1 0] or
     [0, 2] -> [1 0 0 0 0 0 1 0].
     """
-    def __init__(self, max_labels, dim, dtype='int32', **kwargs):
+    def __init__(self, max_labels, dim, dtype='int64', **kwargs):
         """
         Initialize an IndexSpace.
 
