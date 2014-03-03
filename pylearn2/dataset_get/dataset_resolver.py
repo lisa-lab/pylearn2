@@ -3,7 +3,9 @@
 """A simple resolution mechanism to find datasets"""
 
 import re,os,urllib
+import logging
 
+logger = logging.getLogger('dataset_get.dataset_resolver')
 
 
 class dataset_resolver:
@@ -97,5 +99,5 @@ class dataset_resolver:
 if __name__=="__main__":
     # simplest tests
     x=dataset_resolver()
-    print x.resolve_dataset("toaster-oven")
-    print x.resolve_dataset("fake-dataset")
+    logger.info(x.resolve_dataset("toaster-oven"))
+    logger.info(x.resolve_dataset("fake-dataset"))
