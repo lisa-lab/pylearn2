@@ -11,7 +11,7 @@ import warnings
 
 is_initialized = False
 additional_environ = None
-logger = logging.getLogger('config')
+logger = logging.getLogger('config.yaml_parse')
 
 def load(stream, overrides=None, environ=None, **kwargs):
     """
