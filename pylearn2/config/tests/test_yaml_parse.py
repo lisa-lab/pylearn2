@@ -2,10 +2,13 @@ import os
 import numpy as np
 import cPickle
 import tempfile
+import logging
 from numpy.testing import assert_
 from pylearn2.config.yaml_parse import load, load_path
 from os import environ
 from decimal import Decimal
+
+logger = logging.getLogger('config.tests')
 
 def test_load_path():
     fd, fname = tempfile.mkstemp()
@@ -41,7 +44,7 @@ def test_import_colon():
 def test_preproc_rhs():
     environ['TEST_VAR'] = '10'
     loaded = load('a: "${TEST_VAR}"')
-    print "loaded['a'] is %s" % loaded['a']
+    logger.info("loaded['a'] is %s", loaded['a'])
     assert_(loaded['a'] == "10")
     del environ['TEST_VAR']
 
