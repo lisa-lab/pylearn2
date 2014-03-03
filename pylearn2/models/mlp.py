@@ -269,21 +269,19 @@ class MLP(Layer):
             requires a hard-coded batch size.
         nvis : int, optional
             Number of "visible units" (input units). Equivalent to specifying
-            `input_space=VectorSpace(dim=nvis)`.
+            `input_space=VectorSpace(dim=nvis)`. Should be None if the MLP is 
+            not part of another MLP. 
         input_space : Space object, optional
             A Space specifying the kind of input the MLP accepts. If None,
-            input space is specified by nvis.
-        layer_name : name of the MLP layer. Should be None is the MLP is 
+            input space is specified by nvis. Should be None if the MLP is 
+            not part of another MLP. 
+        layer_name : name of the MLP layer. Should be None if the MLP is 
             not part of another MLP. 
         """
 
         super(MLP, self).__init__()
 
-        if seed is None:
-            seed = [2013, 1, 4]
-
         self.seed = seed
-        self.setup_rng()
 
         assert isinstance(layers, list)
         assert all(isinstance(layer, Layer) for layer in layers)
@@ -297,16 +295,11 @@ class MLP(Layer):
             if layer.layer_name in self.layer_names:
                 raise ValueError("MLP.__init__ given two or more layers "
                                  "with same name: " + layer.layer_name)
-            if hasattr(self, "mlp"):
-                if self.mlp is not None:
-                    layer.set_mlp(self.mlp)
-                else:
-                    layer.set_mlp(self)
-            else:
-                layer.set_mlp(self)
+            
+            layer.set_mlp(self)
             
             self.layer_names.add(layer.layer_name)
-            
+
 
 
         self.layers = layers
@@ -315,6 +308,11 @@ class MLP(Layer):
         self.force_batch_size = batch_size
 
         if input_space is not None or nvis is not None:
+            self.setup_rng()
+
+            # check if the layer_name is None (the MLP is the outer MLP)
+            assert layer_name is None
+
             if nvis is not None:
                 input_space = VectorSpace(nvis)
 
@@ -335,6 +333,9 @@ class MLP(Layer):
 
             WRITEME
         """
+        if self.seed is None:
+            self.seed = [2013, 1, 4]
+
         self.rng = np.random.RandomState(self.seed)
 
     @wraps(Layer.get_default_cost)
@@ -349,6 +350,10 @@ class MLP(Layer):
 
     @wraps(Layer.set_input_space)
     def set_input_space(self, space):
+
+        if hasattr(self, "mlp"):
+            self.rng = self.mlp.rng
+            self.batch_size = self.mlp.batch_size
         
         self.input_space = space
         
