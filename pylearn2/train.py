@@ -170,12 +170,23 @@ class Train(object):
             if len(self.model.monitor._datasets) > 0:
                 # This monitoring channel keeps track of a shared variable,
                 # which does not need inputs nor data.
+                self.training_seconds.__doc__ = """\
+The number of seconds that were spent in actual training during the most
+recent epoch. This excludes seconds that were spent running callbacks for
+the extensions, computing monitoring channels, etc."""
                 self.model.monitor.add_channel(
                     name="training_seconds_this_epoch",
                     ipt=None,
                     val=self.training_seconds,
                     data_specs=(NullSpace(), ''),
                     dataset=self.model.monitor._datasets[0])
+                self.total_seconds.__doc__ = """\
+The number of seconds that were spent on the entirety of processing for the
+previous epoch. This includes not only training but also the computation of
+the monitoring channels, running TrainExtension callbacks, etc. This value
+is reported for the *previous* epoch because the amount of time spent on
+monitoring for this epoch is not known until the monitoring channels have
+already been reported."""
                 self.model.monitor.add_channel(
                     name="total_seconds_last_epoch",
                     ipt=None,
