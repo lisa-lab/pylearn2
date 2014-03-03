@@ -72,20 +72,19 @@ class Maxout(Layer):
                  layer_name,
                  num_units,
                  num_pieces,
-                 pool_stride = None,
-                 randomize_pools = False,
-                 irange = None,
-                 sparse_init = None,
-                 sparse_stdev = 1.,
-                 include_prob = 1.0,
-                 init_bias = 0.,
-                 W_lr_scale = None,
-                 b_lr_scale = None,
-                 max_col_norm = None,
-                 max_row_norm = None,
-                 mask_weights = None,
-                 min_zero = False
-        ):
+                 pool_stride=None,
+                 randomize_pools=False,
+                 irange=None,
+                 sparse_init=None,
+                 sparse_stdev=1.,
+                 include_prob=1.0,
+                 init_bias=0.,
+                 W_lr_scale=None,
+                 b_lr_scale=None,
+                 max_col_norm=None,
+                 max_row_norm=None,
+                 mask_weights=None,
+                 min_zero=False):
         """
         Parameters
         ----------
@@ -150,8 +149,8 @@ class Maxout(Layer):
         self.__dict__.update(locals())
         del self.self
 
-        self.b = sharedX( np.zeros((self.detector_layer_dim,)) + init_bias, name = layer_name + '_b')
-
+        self.b = sharedX(np.zeros((self.detector_layer_dim,)) + init_bias,
+                         name=(layer_name + '_b'))
 
         if max_row_norm is not None:
             raise NotImplementedError()
@@ -199,15 +198,19 @@ class Maxout(Layer):
             self.input_dim = space.get_total_dimension()
             self.desired_space = VectorSpace(self.input_dim)
 
-
-        if not ((self.detector_layer_dim - self.pool_size) % self.pool_stride == 0):
+        if not (0 == ((self.detector_layer_dim - self.pool_size) %
+                      self.pool_stride)):
             if self.pool_stride == self.pool_size:
-                raise ValueError("detector_layer_dim = %d, pool_size = %d. Should be divisible but remainder is %d" %
-                             (self.detector_layer_dim, self.pool_size, self.detector_layer_dim % self.pool_size))
+                raise ValueError("detector_layer_dim = %d, pool_size = %d. "
+                                 "Should be divisible but remainder is %d" %
+                                 (self.detector_layer_dim,
+                                  self.pool_size,
+                                  self.detector_layer_dim % self.pool_size))
             raise ValueError()
 
         self.h_space = VectorSpace(self.detector_layer_dim)
-        self.pool_layer_dim = (self.detector_layer_dim - self.pool_size)/ self.pool_stride + 1
+        self.pool_layer_dim = ((self.detector_layer_dim - self.pool_size) /
+                               self.pool_stride + 1)
         self.output_space = VectorSpace(self.pool_layer_dim)
 
         rng = self.mlp.rng
@@ -216,15 +219,17 @@ class Maxout(Layer):
             W = rng.uniform(-self.irange,
                             self.irange,
                             (self.input_dim, self.detector_layer_dim)) * \
-                (rng.uniform(0.,1., (self.input_dim, self.detector_layer_dim))
+                (rng.uniform(0., 1., (self.input_dim, self.detector_layer_dim))
                  < self.include_prob)
         else:
             assert self.sparse_init is not None
             W = np.zeros((self.input_dim, self.detector_layer_dim))
+
             def mask_rejects(idx, i):
                 if self.mask_weights is None:
                     return False
                 return self.mask_weights[idx, i] == 0.
+
             for i in xrange(self.detector_layer_dim):
                 assert self.sparse_init <= self.input_dim
                 for j in xrange(self.sparse_init):
@@ -239,23 +244,27 @@ class Maxout(Layer):
 
         self.transformer = MatrixMul(W)
 
-        W ,= self.transformer.get_params()
+        W, = self.transformer.get_params()
         assert W.name is not None
 
         if not hasattr(self, 'randomize_pools'):
             self.randomize_pools = False
 
         if self.randomize_pools:
-            permute = np.zeros((self.detector_layer_dim, self.detector_layer_dim))
+            permute = np.zeros((self.detector_layer_dim,
+                                self.detector_layer_dim))
             for j in xrange(self.detector_layer_dim):
                 i = rng.randint(self.detector_layer_dim)
-                permute[i,j] = 1
+                permute[i, j] = 1
             self.permute = sharedX(permute)
 
         if self.mask_weights is not None:
-            expected_shape =  (self.input_dim, self.detector_layer_dim)
+            expected_shape = (self.input_dim, self.detector_layer_dim)
             if expected_shape != self.mask_weights.shape:
-                raise ValueError("Expected mask with shape "+str(expected_shape)+" but got "+str(self.mask_weights.shape))
+                raise ValueError("Expected mask with shape " +
+                                 str(expected_shape) +
+                                 " but got " +
+                                 str(self.mask_weights.shape))
             self.mask = sharedX(self.mask_weights)
 
     def censor_updates(self, updates):
@@ -279,13 +288,13 @@ class Maxout(Layer):
             self.mask_weights = None
 
         if self.mask_weights is not None:
-            W ,= self.transformer.get_params()
+            W, = self.transformer.get_params()
             if W in updates:
                 updates[W] = updates[W] * self.mask
 
         if self.max_col_norm is not None:
             assert self.max_row_norm is None
-            W ,= self.transformer.get_params()
+            W, = self.transformer.get_params()
             if W in updates:
                 updated_W = updates[W]
                 col_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=0))
@@ -295,7 +304,7 @@ class Maxout(Layer):
     @functools.wraps(Model.get_params)
     def get_params(self):
         assert self.b.name is not None
-        W ,= self.transformer.get_params()
+        W, = self.transformer.get_params()
         assert W.name is not None
         rval = self.transformer.get_params()
         assert not isinstance(rval, set)
@@ -309,7 +318,7 @@ class Maxout(Layer):
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
-        W ,= self.transformer.get_params()
+        W, = self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
     @functools.wraps(Layer.get_l1_weight_decay)
@@ -317,7 +326,7 @@ class Maxout(Layer):
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
-        W ,= self.transformer.get_params()
+        W, = self.transformer.get_params()
         return coeff * T.abs(W).sum()
 
     @functools.wraps(Model.get_weights)
@@ -328,18 +337,19 @@ class Maxout(Layer):
             # in design space. We got the data in topo space
             # and we don't have access to the dataset
             raise NotImplementedError()
-        W ,= self.transformer.get_params()
+        W, = self.transformer.get_params()
         W = W.get_value()
 
         if not hasattr(self, 'randomize_pools'):
             self.randomize_pools = False
 
         if self.randomize_pools:
-            warnings.warn("randomize_pools makes get_weights multiply by the permutation matrix. "
-                    "If you call set_weights(W) and then call get_weights(), the return value will "
-                    "WP not W.")
+            warnings.warn("randomize_pools makes get_weights multiply by the "
+                          "permutation matrix. If you call set_weights(W) and "
+                          "then call get_weights(), the return value will "
+                          "WP not W.")
             P = self.permute.get_value()
-            return np.dot(W,P)
+            return np.dot(W, P)
 
         return W
 
@@ -386,7 +396,7 @@ class Maxout(Layer):
     @functools.wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
 
-        W ,= self.transformer.get_params()
+        W, = self.transformer.get_params()
 
         assert W.ndim == 2
 
@@ -396,19 +406,16 @@ class Maxout(Layer):
         col_norms = T.sqrt(sq_W.sum(axis=0))
 
         row_norms_min = row_norms.min()
-        row_norms_min.__doc__ = "The smallest norm of any row of the " + \
-        "weight matrix W. This is a measure of the least influence any " + \
-        "visible unit has."
+        row_norms_min.__doc__ = ("The smallest norm of any row of the "
+                                 "weight matrix W. This is a measure of the "
+                                 "least influence any visible unit has.")
 
-        return OrderedDict([
-                            ('row_norms_min'  , row_norms_min),
-                            ('row_norms_mean' , row_norms.mean()),
-                            ('row_norms_max'  , row_norms.max()),
-                            ('col_norms_min'  , col_norms.min()),
-                            ('col_norms_mean' , col_norms.mean()),
-                            ('col_norms_max'  , col_norms.max()),
-                            ])
-
+        return OrderedDict([('row_norms_min',  row_norms_min),
+                            ('row_norms_mean', row_norms.mean()),
+                            ('row_norms_max',  row_norms.max()),
+                            ('col_norms_min',  col_norms.min()),
+                            ('col_norms_mean', col_norms.mean()),
+                            ('col_norms_max',  col_norms.max()), ])
 
     @functools.wraps(Layer.get_monitoring_channels_from_state)
     def get_monitoring_channels_from_state(self, state):
@@ -418,9 +425,9 @@ class Maxout(Layer):
         rval = OrderedDict()
 
         if self.pool_size == 1:
-            vars_and_prefixes = [ (P,'') ]
+            vars_and_prefixes = [(P, '')]
         else:
-            vars_and_prefixes = [ (P, 'p_') ]
+            vars_and_prefixes = [(P, 'p_')]
 
         for var, prefix in vars_and_prefixes:
             v_max = var.max(axis=0)
@@ -428,14 +435,14 @@ class Maxout(Layer):
             v_mean = var.mean(axis=0)
             v_range = v_max - v_min
 
-            # max_x.mean_u is "the mean over *u*nits of the max over e*x*amples"
-            # The x and u are included in the name because otherwise its hard
-            # to remember which axis is which when reading the monitor
-            # I use inner.outer rather than outer_of_inner or something like that
-            # because I want mean_x.* to appear next to each other in the alphabetical
-            # list, as these are commonly plotted together
-            for key, val in [
-                             ('max_x.max_u', v_max.max()),
+            # max_x.mean_u is "the mean over *u*nits of the max over
+            # e*x*amples" The x and u are included in the name because
+            # otherwise its hard to remember which axis is which when reading
+            # the monitor I use inner.outer rather than outer_of_inner or
+            # something like that because I want mean_x.* to appear next to
+            # each other in the alphabetical list, as these are commonly
+            # plotted together
+            for key, val in [('max_x.max_u', v_max.max()),
                              ('max_x.mean_u', v_max.mean()),
                              ('max_x.min_u', v_max.min()),
                              ('min_x.max_u', v_min.max()),
@@ -446,8 +453,7 @@ class Maxout(Layer):
                              ('range_x.min_u', v_range.min()),
                              ('mean_x.max_u', v_mean.max()),
                              ('mean_x.mean_u', v_mean.mean()),
-                             ('mean_x.min_u', v_mean.min())
-                             ]:
+                             ('mean_x.min_u', v_mean.min())]:
                 rval[prefix+key] = val
 
         return rval
@@ -458,7 +464,8 @@ class Maxout(Layer):
         self.input_space.validate(state_below)
 
         if self.requires_reformat:
-            state_below = self.input_space.format_as(state_below, self.desired_space)
+            state_below = self.input_space.format_as(state_below,
+                                                     self.desired_space)
 
         z = self.transformer.lmul(state_below) + self.b
 
@@ -479,9 +486,9 @@ class Maxout(Layer):
         else:
             p = None
 
-        last_start = self.detector_layer_dim  - self.pool_size
+        last_start = self.detector_layer_dim - self.pool_size
         for i in xrange(self.pool_size):
-            cur = z[:,i:last_start+i+1:self.pool_stride]
+            cur = z[:, i:last_start+i+1:self.pool_stride]
             if p is None:
                 p = cur
             else:
@@ -490,6 +497,7 @@ class Maxout(Layer):
         p.name = self.layer_name + '_p_'
 
         return p
+
 
 class MaxoutConvC01B(Layer):
     """
@@ -516,21 +524,21 @@ class MaxoutConvC01B(Layer):
                  pool_shape,
                  pool_stride,
                  layer_name,
-                 irange = None,
-                 init_bias = 0.,
-                 W_lr_scale = None,
-                 b_lr_scale = None,
-                 pad = 0,
-                 fix_pool_shape = False,
-                 fix_pool_stride = False,
-                 fix_kernel_shape = False,
-                 partial_sum = 1,
-                 tied_b = False,
-                 max_kernel_norm = None,
-                 input_normalization = None,
-                 detector_normalization = None,
-                 min_zero = False,
-                 output_normalization = None,
+                 irange=None,
+                 init_bias=0.,
+                 W_lr_scale=None,
+                 b_lr_scale=None,
+                 pad=0,
+                 fix_pool_shape=False,
+                 fix_pool_stride=False,
+                 fix_kernel_shape=False,
+                 partial_sum=1,
+                 tied_b=False,
+                 max_kernel_norm=None,
+                 input_normalization=None,
+                 detector_normalization=None,
+                 min_zero=False,
+                 output_normalization=None,
                  kernel_stride=(1, 1)):
         """
         Parameters
@@ -652,8 +660,8 @@ class MaxoutConvC01B(Layer):
         """
 
         setup_detector_layer_c01b(layer=self,
-                input_space=space,
-                rng=self.mlp.rng)
+                                  input_space=space,
+                                  rng=self.mlp.rng)
 
         rng = self.mlp.rng
 
@@ -667,13 +675,15 @@ class MaxoutConvC01B(Layer):
                     assert detector_shape[idx] > 0
                     self.pool_shape[idx] = detector_shape[idx]
                 else:
-                    raise ValueError("Pool shape exceeds detector layer shape on axis %d" % idx)
+                    raise ValueError("Pool shape exceeds detector layer shape "
+                                     "on axis %d" % idx)
 
         map(handle_pool_shape, [0, 1])
 
         assert self.pool_shape[0] == self.pool_shape[1]
         assert self.pool_stride[0] == self.pool_stride[1]
-        assert all(isinstance(elem, py_integer_types) for elem in self.pool_stride)
+        assert all(isinstance(elem, py_integer_types)
+                   for elem in self.pool_stride)
         if self.pool_stride[0] > self.pool_shape[0]:
             if self.fix_pool_stride:
                 warnings.warn("Fixing the pool stride")
@@ -682,16 +692,23 @@ class MaxoutConvC01B(Layer):
                 self.pool_stride = [ps, ps]
             else:
                 raise ValueError("Stride too big.")
-        assert all(isinstance(elem, py_integer_types) for elem in self.pool_stride)
+        assert all(isinstance(elem, py_integer_types)
+                   for elem in self.pool_stride)
 
-        dummy_detector = sharedX(self.detector_space.get_origin_batch(2)[0:16,:,:,:])
+        dummy_detector = sharedX(self.detector_space.get_origin_batch(2)[0:16,
+                                                                         :,
+                                                                         :,
+                                                                         :])
 
-        dummy_p = max_pool_c01b(c01b=dummy_detector, pool_shape=self.pool_shape,
+        dummy_p = max_pool_c01b(c01b=dummy_detector,
+                                pool_shape=self.pool_shape,
                                 pool_stride=self.pool_stride,
                                 image_shape=self.detector_space.shape)
         dummy_p = dummy_p.eval()
-        self.output_space = Conv2DSpace(shape=[dummy_p.shape[1], dummy_p.shape[2]],
-                                        num_channels = self.num_channels, axes = ('c', 0, 1, 'b') )
+        self.output_space = Conv2DSpace(shape=[dummy_p.shape[1],
+                                               dummy_p.shape[2]],
+                                        num_channels=self.num_channels,
+                                        axes=('c', 0, 1, 'b'))
 
         print 'Output space: ', self.output_space.shape
 
@@ -712,17 +729,18 @@ class MaxoutConvC01B(Layer):
         """
 
         if self.max_kernel_norm is not None:
-            W ,= self.transformer.get_params()
+            W, = self.transformer.get_params()
             if W in updates:
                 updated_W = updates[W]
-                row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=(0,1,2)))
+                row_norms = T.sqrt(T.sum(T.sqr(updated_W), axis=(0, 1, 2)))
                 desired_norms = T.clip(row_norms, 0, self.max_kernel_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + row_norms)).dimshuffle('x', 'x', 'x', 0)
+                scales = desired_norms / (1e-7 + row_norms)
+                updates[W] = (updated_W * scales.dimshuffle('x', 'x', 'x', 0))
 
     @functools.wraps(Model.get_params)
     def get_params(self):
         assert self.b.name is not None
-        W ,= self.transformer.get_params()
+        W, = self.transformer.get_params()
         assert W.name is not None
         rval = self.transformer.get_params()
         assert not isinstance(rval, set)
@@ -736,7 +754,7 @@ class MaxoutConvC01B(Layer):
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
-        W ,= self.transformer.get_params()
+        W, = self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
     @functools.wraps(Layer.set_weights)
@@ -759,19 +777,17 @@ class MaxoutConvC01B(Layer):
     @functools.wraps(Layer.get_monitoring_channels)
     def get_monitoring_channels(self):
 
-        W ,= self.transformer.get_params()
+        W, = self.transformer.get_params()
 
         assert W.ndim == 4
 
         sq_W = T.sqr(W)
 
-        row_norms = T.sqrt(sq_W.sum(axis=(0,1,2)))
+        row_norms = T.sqrt(sq_W.sum(axis=(0, 1, 2)))
 
-        return OrderedDict([
-                            ('kernel_norms_min'  , row_norms.min()),
-                            ('kernel_norms_mean' , row_norms.mean()),
-                            ('kernel_norms_max'  , row_norms.max()),
-                            ])
+        return OrderedDict([('kernel_norms_min',  row_norms.min()),
+                            ('kernel_norms_mean', row_norms.mean()),
+                            ('kernel_norms_max',  row_norms.max()), ])
 
     @functools.wraps(Layer.fprop)
     def fprop(self, state_below):
@@ -790,9 +806,8 @@ class MaxoutConvC01B(Layer):
         if not hasattr(self, 'dummy_channels'):
             self.dummy_channels = 0
         if self.dummy_channels > 0:
-            state_below = T.concatenate((state_below,
-                                         T.zeros_like(state_below[0:self.dummy_channels, :, :, :])),
-                                        axis=0)
+            zeros = T.zeros_like(state_below[0:self.dummy_channels, :, :, :])
+            state_below = T.concatenate((state_below, zeros), axis=0)
 
         z = self.transformer.lmul(state_below)
         if not hasattr(self, 'tied_b'):
@@ -801,7 +816,6 @@ class MaxoutConvC01B(Layer):
             b = self.b.dimshuffle(0, 'x', 'x', 'x')
         else:
             b = self.b.dimshuffle(0, 1, 2, 'x')
-
 
         z = z + b
         if self.layer_name is not None:
@@ -818,7 +832,7 @@ class MaxoutConvC01B(Layer):
             if self.num_pieces != 1:
                 s = None
                 for i in xrange(self.num_pieces):
-                    t = z[i::self.num_pieces,:,:,:]
+                    t = z[i::self.num_pieces, :, :, :]
                     if s is None:
                         s = t
                     else:
@@ -835,22 +849,22 @@ class MaxoutConvC01B(Layer):
 
             if self.detector_normalization is not None:
                 raise NotImplementedError("We can't normalize the detector "
-                        "layer because the detector layer never exists as a "
-                        "stage of processing in this implementation.")
+                                          "layer because the detector layer "
+                                          "never exists as a stage of "
+                                          "processing in this implementation.")
             z = max_pool_c01b(c01b=z, pool_shape=self.pool_shape,
                               pool_stride=self.pool_stride,
                               image_shape=self.detector_space.shape)
             if self.num_pieces != 1:
                 s = None
                 for i in xrange(self.num_pieces):
-                    t = z[i::self.num_pieces,:,:,:]
+                    t = z[i::self.num_pieces, :, :, :]
                     if s is None:
                         s = t
                     else:
                         s = T.maximum(s, t)
                 z = s
             p = z
-
 
         self.output_space.validate(p)
 
@@ -886,38 +900,38 @@ class MaxoutConvC01B(Layer):
 
         rval = OrderedDict()
 
-        vars_and_prefixes = [ (P,'') ]
+        vars_and_prefixes = [(P, '')]
 
         for var, prefix in vars_and_prefixes:
             assert var.ndim == 4
-            v_max = var.max(axis=(1,2,3))
-            v_min = var.min(axis=(1,2,3))
-            v_mean = var.mean(axis=(1,2,3))
+            v_max = var.max(axis=(1, 2, 3))
+            v_min = var.min(axis=(1, 2, 3))
+            v_mean = var.mean(axis=(1, 2, 3))
             v_range = v_max - v_min
 
-            # max_x.mean_u is "the mean over *u*nits of the max over e*x*amples"
-            # The x and u are included in the name because otherwise its hard
-            # to remember which axis is which when reading the monitor
-            # I use inner.outer rather than outer_of_inner or something like that
-            # because I want mean_x.* to appear next to each other in the alphabetical
-            # list, as these are commonly plotted together
-            for key, val in [
-                             ('max_x.max_u', v_max.max()),
-                             ('max_x.mean_u', v_max.mean()),
-                             ('max_x.min_u', v_max.min()),
-                             ('min_x.max_u', v_min.max()),
-                             ('min_x.mean_u', v_min.mean()),
-                             ('min_x.min_u', v_min.min()),
-                             ('range_x.max_u', v_range.max()),
+            # max_x.mean_u is "the mean over *u*nits of the max over
+            # e*x*amples" The x and u are included in the name because
+            # otherwise its hard to remember which axis is which when reading
+            # the monitor I use inner.outer rather than outer_of_inner or
+            # something like that because I want mean_x.* to appear next to
+            # each other in the alphabetical list, as these are commonly
+            # plotted together
+            for key, val in [('max_x.max_u',    v_max.max()),
+                             ('max_x.mean_u',   v_max.mean()),
+                             ('max_x.min_u',    v_max.min()),
+                             ('min_x.max_u',    v_min.max()),
+                             ('min_x.mean_u',   v_min.mean()),
+                             ('min_x.min_u',    v_min.min()),
+                             ('range_x.max_u',  v_range.max()),
                              ('range_x.mean_u', v_range.mean()),
-                             ('range_x.min_u', v_range.min()),
-                             ('mean_x.max_u', v_mean.max()),
-                             ('mean_x.mean_u', v_mean.mean()),
-                             ('mean_x.min_u', v_mean.min())
-                             ]:
+                             ('range_x.min_u',  v_range.min()),
+                             ('mean_x.max_u',   v_mean.max()),
+                             ('mean_x.mean_u',  v_mean.mean()),
+                             ('mean_x.min_u',   v_mean.min())]:
                 rval[prefix+key] = val
 
         return rval
+
 
 class MaxoutLocalC01B(Layer):
     """
@@ -945,22 +959,22 @@ class MaxoutLocalC01B(Layer):
                  layer_name,
                  pool_shape=None,
                  pool_stride=None,
-                 irange = None,
-                 init_bias = 0.,
-                 W_lr_scale = None,
-                 b_lr_scale = None,
-                 pad = 0,
-                 fix_pool_shape = False,
-                 fix_pool_stride = False,
-                 fix_kernel_shape = False,
-                 partial_sum = 1,
-                 tied_b = False,
-                 max_filter_norm = None,
-                 input_normalization = None,
-                 detector_normalization = None,
-                 min_zero = False,
-                 output_normalization = None,
-                 input_groups = 1,
+                 irange=None,
+                 init_bias=0.,
+                 W_lr_scale=None,
+                 b_lr_scale=None,
+                 pad=0,
+                 fix_pool_shape=False,
+                 fix_pool_stride=False,
+                 fix_kernel_shape=False,
+                 partial_sum=1,
+                 tied_b=False,
+                 max_filter_norm=None,
+                 input_normalization=None,
+                 detector_normalization=None,
+                 min_zero=False,
+                 output_normalization=None,
+                 input_groups=1,
                  kernel_stride=(1, 1)):
         """
         Parameters
@@ -1007,9 +1021,9 @@ class MaxoutLocalC01B(Layer):
             smaller than the stride, even if the stride was initially
             valid.
             The "fix" parameters are useful for working with a hyperparameter
-            optimization package, which might often propose sets of hyperparameters
-            that are not feasible, but can easily be projected back into the feasible
-            set.
+            optimization package, which might often propose sets of
+            hyperparameters that are not feasible, but can easily be projected
+            back into the feasible set.
         fix_kernel_shape : bool
             if True, will modify self.kernel_shape to avoid
             having the kernel shape bigger than the implicitly
@@ -1022,8 +1036,9 @@ class MaxoutLocalC01B(Layer):
             Note that changing this setting may change the value of computed
             results slightly due to different rounding error.
         tied_b : bool
-            If true, all biases in the same channel are constrained to be the same
-            as each other. Otherwise, each bias at each location is learned independently.
+            If true, all biases in the same channel are constrained to be the
+            same as each other. Otherwise, each bias at each location is
+            learned independently.
         max_kernel_norm : float
             If specifed, each kernel is constrained to have at most this norm.
         input_normalization : callable
@@ -1031,11 +1046,15 @@ class MaxoutLocalC01B(Layer):
         detector_normalization : callable
             see output_normalization
         output_normalization : callable
-            if specified, should be a callable object. the state of the network is optionally
-            replaced with normalization(state) at each of the 3 points in processing:
-                input: the input the layer receives can be normalized right away
-                detector: the maxout units can be normalized prior to the spatial pooling
-                output: the output of the layer, after sptial pooling, can be normalized as well
+            if specified, should be a callable object. the state of the network
+            is optionally replaced with normalization(state) at each of the 3
+            points in processing:
+                input: the input the layer receives can be normalized right
+                away
+                detector: the maxout units can be normalized prior to the
+                spatial pooling
+                output: the output of the layer, after sptial pooling, can be
+                normalized as well
         """
 
         assert (pool_shape is None) == (pool_stride is None)
@@ -1081,8 +1100,9 @@ class MaxoutLocalC01B(Layer):
         self.input_space = space
 
         if not isinstance(self.input_space, Conv2DSpace):
-            raise TypeError("The input to a convolutional layer should be a Conv2DSpace, "
-                    " but layer " + self.layer_name + " got "+str(type(self.input_space)))
+            raise TypeError("The input to a convolutional layer should be a "
+                            "Conv2DSpace,  but layer " + self.layer_name +
+                            " got " + str(type(self.input_space)))
         # note: I think the desired space thing is actually redundant,
         # since LinearTransform will also dimshuffle the axes if needed
         # It's not hurting anything to have it here but we could reduce
@@ -1098,31 +1118,38 @@ class MaxoutLocalC01B(Layer):
         else:
             self.dummy_channels = 0
         self.dummy_space = Conv2DSpace(shape=space.shape,
-                                       channels=space.num_channels + self.dummy_channels,
+                                       channels=(space.num_channels +
+                                                 self.dummy_channels),
                                        axes=('c', 0, 1, 'b'))
 
         rng = self.mlp.rng
 
-        output_shape = [self.input_space.shape[0] + 2 * self.pad - self.kernel_shape[0] + 1,
-                        self.input_space.shape[1] + 2 * self.pad - self.kernel_shape[1] + 1]
+        output_shape = [(self.input_space.shape[i] +
+                         2 * self.pad -
+                         self.kernel_shape[i] + 1) for i in range(2)]
 
         def handle_kernel_shape(idx):
             if self.kernel_shape[idx] < 1:
-                raise ValueError("kernel must have strictly positive size on all axes but has shape: "+str(self.kernel_shape))
+                raise ValueError("kernel must have strictly positive size on "
+                                 "all axes but has shape: " +
+                                 str(self.kernel_shape))
             if output_shape[idx] <= 0:
                 if self.fix_kernel_shape:
-                    self.kernel_shape[idx] = self.input_space.shape[idx] + 2 * self.pad
+                    self.kernel_shape[idx] = (self.input_space.shape[idx] +
+                                              2 * self.pad)
                     assert self.kernel_shape[idx] != 0
                     output_shape[idx] = 1
-                    warnings.warn("Had to change the kernel shape to make network feasible")
+                    warnings.warn("Had to change the kernel shape to make "
+                                  "network feasible")
                 else:
-                    raise ValueError("kernel too big for input (even with zero padding)")
+                    raise ValueError("kernel too big for input (even with "
+                                     "zero padding)")
 
         map(handle_kernel_shape, [0, 1])
 
         self.detector_space = Conv2DSpace(shape=output_shape,
-                                          num_channels = self.detector_channels,
-                                          axes = ('c', 0, 1, 'b'))
+                                          num_channels=self.detector_channels,
+                                          axes=('c', 0, 1, 'b'))
 
         if self.pool_shape is not None:
             def handle_pool_shape(idx):
@@ -1133,13 +1160,15 @@ class MaxoutLocalC01B(Layer):
                         assert output_shape[idx] > 0
                         self.pool_shape[idx] = output_shape[idx]
                     else:
-                        raise ValueError("Pool shape exceeds detector layer shape on axis %d" % idx)
+                        raise ValueError("Pool shape exceeds detector layer "
+                                         "shape on axis %d" % idx)
 
             map(handle_pool_shape, [0, 1])
 
             assert self.pool_shape[0] == self.pool_shape[1]
             assert self.pool_stride[0] == self.pool_stride[1]
-            assert all(isinstance(elem, py_integer_types) for elem in self.pool_stride)
+            assert all(isinstance(elem, py_integer_types)
+                       for elem in self.pool_stride)
             if self.pool_stride[0] > self.pool_shape[0]:
                 if self.fix_pool_stride:
                     warnings.warn("Fixing the pool stride")
@@ -1148,27 +1177,29 @@ class MaxoutLocalC01B(Layer):
                     self.pool_stride = [ps, ps]
                 else:
                     raise ValueError("Stride too big.")
-            assert all(isinstance(elem, py_integer_types) for elem in self.pool_stride)
+            assert all(isinstance(elem, py_integer_types)
+                       for elem in self.pool_stride)
 
         if self.irange is not None:
             self.transformer = local_c01b.make_random_local(
-                    input_groups = self.input_groups,
-                    irange = self.irange,
-                    input_axes = self.desired_space.axes,
-                    image_shape = self.desired_space.shape,
-                    output_axes = self.detector_space.axes,
-                    input_channels = self.dummy_space.num_channels,
-                    output_channels = self.detector_space.num_channels,
-                    kernel_shape = self.kernel_shape,
-                    kernel_stride=self.kernel_stride,
-                    pad = self.pad,
-                    partial_sum = self.partial_sum,
-                    rng = rng)
+                input_groups=self.input_groups,
+                irange=self.irange,
+                input_axes=self.desired_space.axes,
+                image_shape=self.desired_space.shape,
+                output_axes=self.detector_space.axes,
+                input_channels=self.dummy_space.num_channels,
+                output_channels=self.detector_space.num_channels,
+                kernel_shape=self.kernel_shape,
+                kernel_stride=self.kernel_stride,
+                pad=self.pad,
+                partial_sum=self.partial_sum,
+                rng=rng)
         W, = self.transformer.get_params()
         W.name = 'W'
 
         if self.tied_b:
-            self.b = sharedX(np.zeros((self.detector_space.num_channels)) + self.init_bias)
+            self.b = sharedX(np.zeros((self.detector_space.num_channels)) +
+                             self.init_bias)
         else:
             self.b = sharedX(self.detector_space.get_origin() + self.init_bias)
         self.b.name = 'b'
@@ -1180,17 +1211,21 @@ class MaxoutLocalC01B(Layer):
 
         if self.pool_shape is None:
             self.output_space = Conv2DSpace(shape=self.detector_space.shape,
-                    num_channels = self.num_channels,
-                    axes = ('c', 0, 1, 'b'))
+                                            num_channels=self.num_channels,
+                                            axes=('c', 0, 1, 'b'))
         else:
-            dummy_detector = sharedX(self.detector_space.get_origin_batch(2)[0:16,:,:,:])
+            ds = self.detector_space
+            dummy_detector = sharedX(ds.get_origin_batch(2)[0:16, :, :, :])
 
-            dummy_p = max_pool_c01b(c01b=dummy_detector, pool_shape=self.pool_shape,
+            dummy_p = max_pool_c01b(c01b=dummy_detector,
+                                    pool_shape=self.pool_shape,
                                     pool_stride=self.pool_stride,
                                     image_shape=self.detector_space.shape)
             dummy_p = dummy_p.eval()
-            self.output_space = Conv2DSpace(shape=[dummy_p.shape[1], dummy_p.shape[2]],
-                                            num_channels = self.num_channels, axes = ('c', 0, 1, 'b') )
+            self.output_space = Conv2DSpace(shape=[dummy_p.shape[1],
+                                                   dummy_p.shape[2]],
+                                            num_channels=self.num_channels,
+                                            axes=('c', 0, 1, 'b'))
 
         print 'Output space: ', self.output_space.shape
 
@@ -1211,19 +1246,20 @@ class MaxoutLocalC01B(Layer):
         """
 
         if self.max_filter_norm is not None:
-            W ,= self.transformer.get_params()
+            W, = self.transformer.get_params()
             if W in updates:
                 # TODO:    push some of this into the transformer itself
                 updated_W = updates[W]
                 updated_norms = self.get_filter_norms(updated_W)
                 desired_norms = T.clip(updated_norms, 0, self.max_filter_norm)
-                updates[W] = updated_W * (desired_norms / (1e-7 + updated_norms)
-                        ).dimshuffle(0, 1, 'x', 'x', 'x', 2, 3)
+                scales = desired_norms / (1e-7 + updated_norms)
+                updates[W] = (updated_W *
+                              scales.dimshuffle(0, 1, 'x', 'x', 'x', 2, 3))
 
     @functools.wraps(Model.get_params)
     def get_params(self):
         assert self.b.name is not None
-        W ,= self.transformer.get_params()
+        W, = self.transformer.get_params()
         assert W.name is not None
         rval = self.transformer.get_params()
         assert not isinstance(rval, set)
@@ -1237,7 +1273,7 @@ class MaxoutLocalC01B(Layer):
         if isinstance(coeff, str):
             coeff = float(coeff)
         assert isinstance(coeff, float) or hasattr(coeff, 'dtype')
-        W ,= self.transformer.get_params()
+        W, = self.transformer.get_params()
         return coeff * T.sqr(W).sum()
 
     @functools.wraps(Layer.set_weights)
@@ -1257,7 +1293,7 @@ class MaxoutLocalC01B(Layer):
     def get_weights_topo(self):
         return self.transformer.get_weights_topo()
 
-    def get_filter_norms(self, W = None):
+    def get_filter_norms(self, W=None):
         """
         Returns
         -------
@@ -1271,7 +1307,7 @@ class MaxoutLocalC01B(Layer):
         # TODO: push this into the transformer class itself
 
         if W is None:
-            W ,= self.transformer.get_params()
+            W, = self.transformer.get_params()
 
         assert W.ndim == 7
 
@@ -1286,18 +1322,17 @@ class MaxoutLocalC01B(Layer):
 
         filter_norms = self.get_filter_norms()
 
-        return OrderedDict([
-                            ('filter_norms_min'  , filter_norms.min()),
-                            ('filter_norms_mean' , filter_norms.mean()),
-                            ('filter_norms_max'  , filter_norms.max()),
-                            ])
+        return OrderedDict([('filter_norms_min',  filter_norms.min()),
+                            ('filter_norms_mean', filter_norms.mean()),
+                            ('filter_norms_max',  filter_norms.max()), ])
 
     @functools.wraps(Layer.fprop)
     def fprop(self, state_below):
 
         self.input_space.validate(state_below)
 
-        state_below = self.input_space.format_as(state_below, self.desired_space)
+        state_below = self.input_space.format_as(state_below,
+                                                 self.desired_space)
 
         if not hasattr(self, 'input_normalization'):
             self.input_normalization = None
@@ -1310,9 +1345,8 @@ class MaxoutLocalC01B(Layer):
         if not hasattr(self, 'dummy_channels'):
             self.dummy_channels = 0
         if self.dummy_channels > 0:
-            state_below = T.concatenate((state_below,
-                                         T.zeros_like(state_below[0:self.dummy_channels, :, :, :])),
-                                        axis=0)
+            zeros = T.zeros_like(state_below[0:self.dummy_channels, :, :, :])
+            state_below = T.concatenate((state_below, zeros), axis=0)
 
         z = self.transformer.lmul(state_below)
         if not hasattr(self, 'tied_b'):
@@ -1321,7 +1355,6 @@ class MaxoutLocalC01B(Layer):
             b = self.b.dimshuffle(0, 'x', 'x', 'x')
         else:
             b = self.b.dimshuffle(0, 1, 2, 'x')
-
 
         z = z + b
         if self.layer_name is not None:
@@ -1338,7 +1371,7 @@ class MaxoutLocalC01B(Layer):
             if self.num_pieces != 1:
                 s = None
                 for i in xrange(self.num_pieces):
-                    t = z[i::self.num_pieces,:,:,:]
+                    t = z[i::self.num_pieces, :, :, :]
                     if s is None:
                         s = t
                     else:
@@ -1351,30 +1384,32 @@ class MaxoutLocalC01B(Layer):
             if self.pool_shape is None:
                 p = z
             else:
-                p = max_pool_c01b(c01b=z, pool_shape=self.pool_shape,
-                              pool_stride=self.pool_stride,
-                              image_shape=self.detector_space.shape)
+                p = max_pool_c01b(c01b=z,
+                                  pool_shape=self.pool_shape,
+                                  pool_stride=self.pool_stride,
+                                  image_shape=self.detector_space.shape)
         else:
 
             if self.detector_normalization is not None:
                 raise NotImplementedError("We can't normalize the detector "
-                        "layer because the detector layer never exists as a "
-                        "stage of processing in this implementation.")
+                                          "layer because the detector layer "
+                                          "never exists as a stage of "
+                                          "processing in this implementation.")
             if self.pool_shape is not None:
-                z = max_pool_c01b(c01b=z, pool_shape=self.pool_shape,
-                              pool_stride=self.pool_stride,
-                              image_shape=self.detector_space.shape)
+                z = max_pool_c01b(c01b=z,
+                                  pool_shape=self.pool_shape,
+                                  pool_stride=self.pool_stride,
+                                  image_shape=self.detector_space.shape)
             if self.num_pieces != 1:
                 s = None
                 for i in xrange(self.num_pieces):
-                    t = z[i::self.num_pieces,:,:,:]
+                    t = z[i::self.num_pieces, :, :, :]
                     if s is None:
                         s = t
                     else:
                         s = T.maximum(s, t)
                 z = s
             p = z
-
 
         self.output_space.validate(p)
 
@@ -1410,36 +1445,34 @@ class MaxoutLocalC01B(Layer):
 
         rval = OrderedDict()
 
-        vars_and_prefixes = [ (P,'') ]
+        vars_and_prefixes = [(P, '')]
 
         for var, prefix in vars_and_prefixes:
             assert var.ndim == 4
-            v_max = var.max(axis=(1,2,3))
-            v_min = var.min(axis=(1,2,3))
-            v_mean = var.mean(axis=(1,2,3))
+            v_max = var.max(axis=(1, 2, 3))
+            v_min = var.min(axis=(1, 2, 3))
+            v_mean = var.mean(axis=(1, 2, 3))
             v_range = v_max - v_min
 
-            # max_x.mean_u is "the mean over *u*nits of the max over e*x*amples"
-            # The x and u are included in the name because otherwise its hard
-            # to remember which axis is which when reading the monitor
-            # I use inner.outer rather than outer_of_inner or something like that
-            # because I want mean_x.* to appear next to each other in the alphabetical
-            # list, as these are commonly plotted together
-            for key, val in [
-                             ('max_x.max_u', v_max.max()),
-                             ('max_x.mean_u', v_max.mean()),
-                             ('max_x.min_u', v_max.min()),
-                             ('min_x.max_u', v_min.max()),
-                             ('min_x.mean_u', v_min.mean()),
-                             ('min_x.min_u', v_min.min()),
-                             ('range_x.max_u', v_range.max()),
+            # max_x.mean_u is "the mean over *u*nits of the max over
+            # e*x*amples" The x and u are included in the name because
+            # otherwise its hard to remember which axis is which when reading
+            # the monitor I use inner.outer rather than outer_of_inner or
+            # something like that because I want mean_x.* to appear next to
+            # each other in the alphabetical list, as these are commonly
+            # plotted together
+            for key, val in [('max_x.max_u',    v_max.max()),
+                             ('max_x.mean_u',   v_max.mean()),
+                             ('max_x.min_u',    v_max.min()),
+                             ('min_x.max_u',    v_min.max()),
+                             ('min_x.mean_u',   v_min.mean()),
+                             ('min_x.min_u',    v_min.min()),
+                             ('range_x.max_u',  v_range.max()),
                              ('range_x.mean_u', v_range.mean()),
-                             ('range_x.min_u', v_range.min()),
-                             ('mean_x.max_u', v_mean.max()),
-                             ('mean_x.mean_u', v_mean.mean()),
-                             ('mean_x.min_u', v_mean.min())
-                             ]:
+                             ('range_x.min_u',  v_range.min()),
+                             ('mean_x.max_u',   v_mean.max()),
+                             ('mean_x.mean_u',  v_mean.mean()),
+                             ('mean_x.min_u',   v_mean.min())]:
                 rval[prefix+key] = val
 
         return rval
-
