@@ -424,8 +424,6 @@ class FiniteDatasetIterator(object):
             WRITEME
         """
 
-        print "convert = %s" % str(convert)
-
         self._data_specs = data_specs
         self._dataset = dataset
         self._subset_iterator = subset_iterator
