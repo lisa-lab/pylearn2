@@ -129,7 +129,22 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
     # shifted the pixel values from [0:255] by subtracting 127.5. Seems like a
     # form of preprocessing, which might be better implemented separately using
     # the Preprocess class.
-    def __init__(self, which_set, multi_target=False, stop=None):
+    def __init__(self, which_set, multi_target=False):
+        """
+        parameters
+        ----------
+
+        which_set : str
+            Must be 'train' or 'test'.
+
+        multi_target : bool
+            If False, each label is an integer labeling the image catergory. If
+            True, each label is a vector: [category, instance, lighting,
+            elevation, azimuth]. All labels are given as integers. Use the
+            categories, elevation_degrees, and azimuth_degrees arrays to map
+            from these integers to actual values.
+        """
+
         assert which_set in ['train', 'test']
 
         self.which_set = which_set
