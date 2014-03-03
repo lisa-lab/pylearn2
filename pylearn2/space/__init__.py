@@ -806,8 +806,6 @@ class IndexSpace(SimplyTypedSpace):
                                  "values don't match. This should have been "
                                  "catched by IndexSpace._check_sizes().")
 
-            format_func = (self.formatter.format if is_numeric else
-                           self.formatter.theano_expr)
             return _cast(batch, space.dtype)
         else:
             raise ValueError("Can't convert %s to %s"
