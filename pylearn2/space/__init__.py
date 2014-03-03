@@ -858,7 +858,7 @@ class IndexSpace(SimplyTypedSpace):
                                 "Variable, got " + str(type(batch)))
             if not isinstance(batch.type, (theano.tensor.TensorType,
                                            CudaNdarrayType)):
-                raise TypeError("VectorSpace batch should be TensorType or "
+                raise TypeError("IndexSpace batch should be TensorType or "
                                 "CudaNdarrayType, got "+str(batch.type))
             if batch.ndim != 2:
                 raise ValueError('IndexSpace batches must be 2D, got %d '
