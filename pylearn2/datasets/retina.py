@@ -3,8 +3,10 @@ Retina-inspired preprocessing as described in
     Salakhutdinov, R. and Hinton, G. Deep Boltzmann machines.
     In *AISTATS* 2009.
 """
-from dense_design_matrix import DefaultViewConverter
 import numpy
+from pylearn2.datasets.dense_design_matrix import DefaultViewConverter
+from pylearn2.space import Conv2DSpace
+
 
 def foveate_channel(img, rings, output, start_idx):
     """
@@ -237,8 +239,20 @@ class RetinaDecodingBlock(object):
 class RetinaCodingViewConverter(DefaultViewConverter):
 
     def __init__(self, shape, rings):
+        """
+        Parameters
+        ----------
+        shape : iterable
+            List or tuple of three ints: rows, cols, channels
+        rings : WRITEME
+        """
         self.shape = shape
         self.rings = rings
+
+        rows, cols, channels = shape
+
+        self.topo_space = Conv2DSpace(shape=[rows, cols], num_channels=channels)
+
         self.decoder = RetinaDecodingBlock(shape, rings)
         self.encoder = RetinaEncodingBlock(rings)
 

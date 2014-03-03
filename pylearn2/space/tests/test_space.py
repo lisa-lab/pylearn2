@@ -1,11 +1,11 @@
 """Tests for space utilities."""
 import numpy as np
-import scipy, sys, warnings, itertools
+import warnings, itertools
 
 import theano
 from theano import tensor
 
-#from nose.tools import assert_raises  # only introduced in python 2.7
+# Can't use nose.tools.assert_raises, only introduced in python 2.7
 from pylearn2.space import (SimplyTypedSpace,
                             VectorSpace,
                             Conv2DSpace,
@@ -176,17 +176,12 @@ def test_np_format_as_composite_composite():
         assert type(batch_0) == type(batch_1)
         if isinstance(batch_0, tuple):
             if len(batch_0) != len(batch_1):
-                print "returning with length mismatch"
                 return False
 
             return np.all(tuple(batch_equals(b0, b1)
                                 for b0, b1 in zip(batch_0, batch_1)))
         else:
             assert isinstance(batch_0, np.ndarray)
-            print "returning np.all"
-            print "batch0.shape, batch1.shape: ", batch_0.shape, batch_1.shape
-            print "batch_0, batch_1", batch_0, batch_1
-            print "max diff:", np.abs(batch_0 - batch_1).max()
             return np.all(batch_0 == batch_1)
 
     assert batch_equals(new_flat_data, flat_data)
