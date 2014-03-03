@@ -1,11 +1,11 @@
 """Tests for space utilities."""
 import numpy as np
-import scipy, sys, warnings, itertools
+import warnings, itertools
 
 import theano
 from theano import tensor
 
-#from nose.tools import assert_raises  # only introduced in python 2.7
+# Can't use nose.tools.assert_raises, only introduced in python 2.7
 from pylearn2.space import (SimplyTypedSpace,
                             VectorSpace,
                             Conv2DSpace,
