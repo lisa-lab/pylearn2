@@ -32,29 +32,31 @@ class Model(object):
             The default cost to use with this model.
         """
 
-        raise NotImplementedError(str(type(self))+ " does not implement get_default_cost.")
+        raise NotImplementedError(str(type(self)) +
+                                  " does not implement get_default_cost.")
 
     def train_all(self, dataset):
         """
-        If implemented, performs one epoch of training.
-        This method is useful for models with highly specialized training
-        algorithms for which is does not make much sense to factor the training
-        code into a separate class. It is also useful for implementors that want
-        to make their model trainable without enforcing compatibility with
-        pylearn2 TrainingAlgorithms.
+        If implemented, performs one epoch of training.  This method is useful
+        for models with highly specialized training algorithms for which is
+        does not make much sense to factor the training code into a separate
+        class. It is also useful for implementors that want to make their model
+        trainable without enforcing compatibility with pylearn2
+        TrainingAlgorithms.
 
         Parameters
         ----------
         dataset: pylearn2.datasets.dataset.Dataset
             Dataset object to draw training data from
         """
-        raise NotImplementedError(str(type(self))+" does not implement train_all.")
+        raise NotImplementedError(str(type(self)) +
+                                  " does not implement train_all.")
 
     def continue_learning(self):
         """
-        If train_all is used to train the model, this method is used to determine
-        when the training process has converged. This method is called after the
-        monitor has been run on the latest parameters.
+        If train_all is used to train the model, this method is used to
+        determine when the training process has converged. This method is
+        called after the monitor has been run on the latest parameters.
 
         Returns
         -------
@@ -62,8 +64,8 @@ class Model(object):
             True if training should continue
         """
 
-        raise NotImplementedError(str(type(self))+" does not implement continue_learning.")
-
+        raise NotImplementedError(str(type(self)) +
+                                  " does not implement continue_learning.")
 
     def train_batch(self, dataset, batch_size):
         """
@@ -97,8 +99,8 @@ class Model(object):
             the filters for the same hidden unit appear on the same row
             of the display.
         """
-        raise NotImplementedError(str(type(self))+" does not implement "
-                "get_weights_view_shape (perhaps by design)")
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                                  "get_weights_view_shape (perhaps by design)")
 
     def get_monitoring_channels(self, data):
         """
@@ -152,7 +154,6 @@ class Model(object):
         """
         pass
 
-
     def get_weights(self):
         """
         Returns
@@ -166,8 +167,8 @@ class Model(object):
             self.get_weights_format.
         """
 
-        raise NotImplementedError(str(type(self))+" does not implement "
-                "get_weights (perhaps by design)")
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                                  "get_weights (perhaps by design)")
 
     def get_weights_format(self):
         """
@@ -193,9 +194,8 @@ class Model(object):
             1 or 3 (because they will be visualized as grayscale or RGB color).
         """
 
-        raise NotImplementedError(str(type(self))+" does not implement "
-                "get_weights_topo (perhaps by design)")
-
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                                  "get_weights_topo (perhaps by design)")
 
     def score(self, V):
         """
@@ -449,10 +449,10 @@ class Model(object):
 
     def get_test_batch_size(self):
         """
-        Batches of examples used to initialize X.tag.test_value should have this
-        many examples if used as input to the model.  (The model
-        specifies the number of examples in case it needs a fixed batch
-        size or to keep the memory usage of testing under control.)
+        Batches of examples used to initialize X.tag.test_value should have
+        this many examples if used as input to the model.  (The model specifies
+        the number of examples in case it needs a fixed batch size or to keep
+        the memory usage of testing under control.)
         """
         return self._test_batch_size
 
@@ -489,7 +489,8 @@ class Model(object):
             assert all(isinstance(n, basestring) for n in iter(names))
         except (TypeError, AssertionError):
             raise ValueError('Invalid names argument')
-        # Quick check in case __init__ was never called, e.g. by a derived class.
+        # Quick check in case __init__ was never called, e.g. by a derived
+        # class.
         if not hasattr(self, 'names_to_del'):
             self.names_to_del = set()
         self.names_to_del = self.names_to_del.union(names)
