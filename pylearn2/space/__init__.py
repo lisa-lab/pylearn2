@@ -804,7 +804,7 @@ class IndexSpace(SimplyTypedSpace):
             if space.dim != self.dim or space.max_labels != self.max_labels:
                 raise ValueError("The two IndexSpaces' dim and max_labels "
                                  "values don't match. This should have been "
-                                 "catched by IndexSpace._check_sizes().")
+                                 "caught by IndexSpace._check_sizes().")
 
             return _cast(batch, space.dtype)
         else:
