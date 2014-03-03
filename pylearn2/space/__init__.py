@@ -743,7 +743,7 @@ class IndexSpace(SimplyTypedSpace):
         if not 'int' in dtype:
             raise ValueError("The dtype of IndexSpace must be an integer type")
 
-        super(IndexSpace, self).__init__(**kwargs)
+        super(IndexSpace, self).__init__(dtype, **kwargs)
 
         self.max_labels = max_labels
         self.dim = dim
