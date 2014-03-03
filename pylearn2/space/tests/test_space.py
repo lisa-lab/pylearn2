@@ -16,6 +16,32 @@ from pylearn2.space import (SimplyTypedSpace,
 from pylearn2.utils import function, safe_zip
 
 
+def test_np_format_as_vector2vector():
+    vector_space_initial = VectorSpace(dim=8*8*3, sparse=False)
+    vector_space_final = VectorSpace(dim=8*8*3, sparse=False)
+    data = np.arange(5*8*8*3).reshape(5, 8*8*3)
+    rval = vector_space_initial.np_format_as(data, vector_space_final)
+    assert np.all(rval == data)
+
+
+def test_np_format_as_index2index():
+    index_space_initial = IndexSpace(max_labels=10, dim=1)
+    index_space_final = IndexSpace(max_labels=10, dim=1)
+    data = np.array([[0], [2], [1], [3], [5], [8], [1]])
+    rval = index_space_initial.np_format_as(data, index_space_final)
+    assert np.all(rval == data)
+
+
+def test_np_format_as_conv2d2conv2d():
+    conv2d_space_initial = Conv2DSpace(shape=(8, 8), num_channels=3,
+                                       axes=('b', 'c', 0, 1))
+    conv2d_space_final = Conv2DSpace(shape=(8, 8), num_channels=3,
+                                     axes=('b', 'c', 0, 1))
+    data = np.arange(5*8*8*3).reshape(5, 3, 8, 8)
+    rval = conv2d_space_initial.np_format_as(data, conv2d_space_final)
+    assert np.all(rval == data)
+
+
 def test_np_format_as_vector2conv2d():
     vector_space = VectorSpace(dim=8*8*3, sparse=False)
     conv2d_space = Conv2DSpace(shape=(8, 8), num_channels=3,
