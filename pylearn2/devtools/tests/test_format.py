@@ -197,7 +197,13 @@ whitelist = ["rbm_tools.py",
              "corruption.py",
              "sandbox/cuda_convnet/tests/profile_probabilistic_max_pooling.py",
              "training_algorithms/sgd.py",
-             "devtools/nan_guard.py"]
+             "devtools/nan_guard.py",
+             "models/mlp.py",
+             "sandbox/lisa_rl/bandit/gaussian_bandit.py",
+             "config/tests/test_yaml_parse.py",
+             "utils/iteration.py",
+             "utils/track_version.py",
+             "scripts/get_version.py"]
 
 
 def test_format():
