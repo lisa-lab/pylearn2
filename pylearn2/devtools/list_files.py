@@ -3,6 +3,7 @@ Code for listing files that belong to the library.
 """
 import pylearn2
 import os
+import logging
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -10,6 +11,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
+logger = logging.getLogger(__name__)
 
 def list_files(suffix=""):
     """
@@ -64,4 +66,4 @@ if __name__ == '__main__':
     # Print all .py files in the library
     result = list_files('.py')
     for path in result:
-        print path
+        logger.info(path)
