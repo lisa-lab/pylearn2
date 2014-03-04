@@ -216,5 +216,3 @@ def test_format():
             error_message += "File \"%s\", line %s has more than" \
                              " 80 characters\n" % (path, infraction_line)
         raise AssertionError("Format not respected:\n%s" % error_message)
-
-test_format()
