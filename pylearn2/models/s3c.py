@@ -1904,7 +1904,6 @@ class E_Step(object):
         mean_term.name = 'infer_S_hat:mean_term'
 
         assert V.dtype == config.floatX
-        print "B, W, V = ", B.dtype, W.dtype, V.dtype
         assert BW.dtype == config.floatX, \
             "Expected %s, got %s" % (config.floatX, BW.dtype)
         data_term = T.dot(V, BW)

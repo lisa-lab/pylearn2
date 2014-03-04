@@ -10,12 +10,18 @@ http://www.cs.nyu.edu/~ylclab/data/norb-v1.0-small/
 NORB dataset(s) by Fu Jie Huang and Yann LeCun.
 """
 
-# Mostly repackaged code from Pylearn 1's datasets/norb_small.py and
-# io/filetensor.py, as well as Pylearn2's original datasets/norb_small.py
+__authors__ = "Guillaume Desjardins and Matthew Koichi Grimes"
+__copyright__ = "Copyright 2010-2014, Universite de Montreal"
+__credits__ = __authors__.split(" and ")
+__license__ = "3-clause BSD"
+__maintainer__ = "Matthew Koichi Grimes"
+__email__ = "mkg alum mit edu (@..)"
 
-import os, gzip, bz2
+
+import os, gzip, bz2, warnings
 import numpy, theano
 from pylearn2.datasets import dense_design_matrix
+from pylearn2.space import VectorSpace, Conv2DSpace, CompositeSpace
 
 
 class SmallNORB(dense_design_matrix.DenseDesignMatrix):
@@ -39,6 +45,10 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
       elevation = SmallNORB.get_elevation_degrees(label[2])
     """
 
+    # Actual image shape may change, e.g. after being preprocessed by
+    # datasets.preprocessing.Downsample
+    original_image_shape = (96, 96)
+
     _categories = ['animal',  # four-legged animal
                    'human',  # human figure
                    'airplane',
@@ -47,10 +57,17 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
     @classmethod
     def get_category(cls, scalar_label):
+        """
+        Returns the category string corresponding to an integer category label.
+        """
         return cls._categories[int(scalar_label)]
 
     @classmethod
     def get_elevation_degrees(cls, scalar_label):
+        """
+        Returns the elevation, in degrees, corresponding to an integer
+        elevation label.
+        """
         scalar_label = int(scalar_label)
         assert scalar_label >= 0
         assert scalar_label < 9
@@ -58,6 +75,10 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
     @classmethod
     def get_azimuth_degrees(cls, scalar_label):
+        """
+        Returns the azimuth, in degrees, corresponding to an integer
+        label.
+        """
         scalar_label = int(scalar_label)
         assert scalar_label >= 0
         assert scalar_label <= 34
@@ -87,16 +108,18 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
     # the Preprocess class.
     def __init__(self, which_set, multi_target=False):
         """
-        :param which_set: one of ['train', 'test'] :param multi_target: If
-        True, each label is an integer labeling the image catergory. If False,
-        each label is a vector: [category, instance, lighting, elevation,
-        azimuth]. All labels are given as integers. Use the categories,
-        elevation_degrees, and azimuth_degrees arrays to map from these
-        integers to actual values.
+        parameters
+        ----------
 
-        :param multi_target: If False, labels will be integers indicating
-        object category. If True, labels will be vectors of integers,
-        indicating [ category, instance, elevation, azimuth, lighting ].
+        which_set: str
+            Must be 'train' or 'test'.
+
+        multi_target: bool
+            If False, each label is an integer labeling the image catergory. If
+            True, each label is a vector: [category, instance, lighting,
+            elevation, azimuth]. All labels are given as integers. Use the
+            categories, elevation_degrees, and azimuth_degrees arrays to map
+            from these integers to actual values.
         """
 
         assert which_set in ['train', 'test']
@@ -107,10 +130,13 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
         # Casts to the GPU-supported float type, using theano._asarray(), a
         # safer alternative to numpy.asarray().
+        #
+        # TODO: move the dtype-casting to the view_converter's output space,
+        #       once dtypes-for-spaces is merged into master.
         X = theano._asarray(X, theano.config.floatX)
 
         # Formats data as rows in a matrix, for DenseDesignMatrix
-        X = X.reshape(-1, 2*96*96)
+        X = X.reshape(-1, 2*numpy.prod(self.original_image_shape))
 
         # This is uint8
         y = SmallNORB.load(which_set, 'cat')
@@ -118,10 +144,14 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
             y_extra = SmallNORB.load(which_set, 'info')
             y = numpy.hstack((y[:, numpy.newaxis], y_extra))
 
-        view_converter = dense_design_matrix.DefaultViewConverter((2, 96, 96))
+        datum_shape = ((2, ) +  # two stereo images
+                       self.original_image_shape +
+                       (1, ))  # one color channel
 
-        # TODO: let labels be accessible by key, like y.category, y.elevation,
-        # etc.
+        # 's' is the stereo channel: 0 (left) or 1 (right)
+        axes = ('b', 's', 0, 1, 'c')
+        view_converter = StereoViewConverter(datum_shape, axes)
+
         super(SmallNORB, self).__init__(X=X,
                                         y=y,
                                         view_converter=view_converter)
@@ -193,7 +223,7 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
                 key_to_type = {0x1E3D4C51: ('float32', 4),
                                # what is a packed matrix?
-                               # 0x1E3D4C52 : ('packed matrix', 0),
+                               # 0x1E3D4C52: ('packed matrix', 0),
                                0x1E3D4C53: ('float64', 8),
                                0x1E3D4C54: ('int32', 4),
                                0x1E3D4C55: ('uint8', 1),
@@ -260,3 +290,146 @@ class SmallNORB(dense_design_matrix.DenseDesignMatrix):
 
         file_handle = open(getPath(which_set))
         return parseNORBFile(file_handle)
+
+    def get_topological_view(self, mat=None, single_tensor=True):
+        result = super(SmallNORB, self).get_topological_view(mat)
+
+        if single_tensor:
+            warnings.warn("The single_tensor argument is True by default to "
+                          "maintain backwards compatibility. This argument "
+                          "will be removed, and the behavior will become that "
+                          "of single_tensor=False, as of August 2014.")
+            axes = list(self.view_converter.axes)
+            s_index = axes.index('s')
+            assert axes.index('b') == 0
+            num_image_pairs = result[0].shape[0]
+            shape = (num_image_pairs, ) + self.view_converter.shape
+
+            # inserts a singleton dimension where the 's' dimesion will be
+            mono_shape = shape[:s_index] + (1, ) + shape[(s_index+1):]
+
+            for i, res in enumerate(result):
+                print "result %d shape: %s" % (i, str(res.shape))
+
+            result = tuple(t.reshape(mono_shape) for t in result)
+            result = numpy.concatenate(result, axis=s_index)
+        else:
+            warnings.warn("The single_tensor argument will be removed on "
+                          "August 2014. The behavior will be the same as "
+                          "single_tensor=False.")
+
+        return result
+
+
+class StereoViewConverter(object):
+    """
+    Converts stereo image data between two formats:
+      A) A dense design matrix, one stereo pair per row (VectorSpace)
+      B) An image pair (CompositeSpace of two Conv2DSpaces)
+    """
+    def __init__(self, shape, axes=None):
+        """
+        The arguments describe how the data is laid out in the design matrix.
+
+        shape: A tuple of 4 ints, describing the shape of each datum.
+               This is the size of each axis in <axes>, excluding the 'b' axis.
+
+        axes: tuple of the following elements in any order:
+          'b'  batch axis)
+          's'  stereo axis)
+           0   image axis 0 (row)
+           1   image axis 1 (column)
+          'c'  channel axis
+        """
+        shape = tuple(shape)
+
+        if not all(isinstance(s, int) for s in shape):
+            raise TypeError("Shape must be a tuple/list of ints")
+
+        if len(shape) != 4:
+            raise ValueError("Shape array needs to be of length 4, got %s." %
+                             shape)
+
+        datum_axes = list(axes)
+        datum_axes.remove('b')
+        if shape[datum_axes.index('s')] != 2:
+            raise ValueError("Expected 's' axis to have size 2, got %d.\n"
+                             "  axes:       %s\n"
+                             "  shape:      %s" %
+                             (shape[datum_axes.index('s')],
+                              axes,
+                              shape))
+        self.shape = shape
+        self.set_axes(axes)
+
+        def make_conv2d_space(shape, axes):
+            shape_axes = list(axes)
+            shape_axes.remove('b')
+            image_shape = tuple(shape[shape_axes.index(axis)]
+                                for axis in (0, 1))
+            conv2d_axes = list(axes)
+            conv2d_axes.remove('s')
+            return Conv2DSpace(shape=image_shape,
+                               num_channels=shape[shape_axes.index('c')],
+                               axes=conv2d_axes)
+
+        conv2d_space = make_conv2d_space(shape, axes)
+        self.topo_space = CompositeSpace((conv2d_space, conv2d_space))
+        self.storage_space = VectorSpace(dim=numpy.prod(shape))
+
+    def get_formatted_batch(self, batch, space):
+        return self.storage_space.np_format_as(batch, space)
+
+    def design_mat_to_topo_view(self, design_mat):
+        """
+        Called by DenseDesignMatrix.get_formatted_view(), get_batch_topo()
+        """
+        return self.storage_space.np_format_as(design_mat, self.topo_space)
+
+    def design_mat_to_weights_view(self, design_mat):
+        """
+        Called by DenseDesignMatrix.get_weights_view()
+        """
+        return self.design_mat_to_topo_view(design_mat)
+
+    def topo_view_to_design_mat(self, topo_batch):
+        """
+        Used by DenseDesignMatrix.set_topological_view(), .get_design_mat()
+        """
+        return self.topo_space.np_format_as(topo_batch, self.storage_space)
+
+    def view_shape(self):
+        return self.shape
+
+    def weights_view_shape(self):
+        return self.view_shape()
+
+    def set_axes(self, axes):
+        axes = tuple(axes)
+
+        if len(axes) != 5:
+            raise ValueError("Axes must have 5 elements; got %s" % str(axes))
+
+        for required_axis in ('b', 's', 0, 1, 'c'):
+            if required_axis not in axes:
+                raise ValueError("Axes must contain 'b', 's', 0, 1, and 'c'. "
+                                 "Got %s." % str(axes))
+
+        if axes.index('b') != 0:
+            raise ValueError("The 'b' axis must come first (axes = %s)." %
+                             str(axes))
+
+        def get_batchless_axes(axes):
+            axes = list(axes)
+            axes.remove('b')
+            return tuple(axes)
+
+        if hasattr(self, 'axes'):
+            # Reorders the shape vector to match the new axis ordering.
+            assert hasattr(self, 'shape')
+            old_axes = get_batchless_axes(self.axes)
+            new_axes = get_batchless_axes(axes)
+            new_shape = tuple(self.shape[old_axes.index(a)] for a in new_axes)
+            self.shape = new_shape
+
+        self.axes = axes

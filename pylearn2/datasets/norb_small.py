@@ -85,11 +85,9 @@ class FoveatedNORB(dense_design_matrix.DenseDesignMatrix):
             raise ValueError("Unrecognized which_set value: " + which_set)
 
         X = FoveatedNORB.load(which_set)
-
-        # put things in pylearn2's DenseDesignMatrix format
         X = numpy.cast['float32'](X)
 
-        #this is uint8
+        # this is uint8
         y = NORBSmall.load(which_set, 'cat')
         y_extra = NORBSmall.load(which_set, 'info')
 

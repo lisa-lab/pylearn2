@@ -3085,6 +3085,11 @@ class PretrainedLayer(Layer):
 
         return self.layer_content.get_output_space()
 
+    @wraps(Layer.get_monitoring_channels)
+    def get_monitoring_channels(self):
+
+        return OrderedDict([])
+
     @wraps(Layer.fprop)
     def fprop(self, state_below):
 
