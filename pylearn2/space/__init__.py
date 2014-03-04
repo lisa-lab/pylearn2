@@ -650,12 +650,15 @@ class Space(object):
         either be 'float32' or 'float64'.
         """
 
-        if str(dtype) == 'floatX':
+        if isinstance(dtype, np.dtype):
+            dtype = str(dtype)
+
+        if dtype == 'floatX':
             return theano.config.floatX
 
         if dtype is None or \
-           str(dtype) in tuple(x.dtype for x in theano.scalar.all_types):
-            return str(dtype)
+           dtype in tuple(x.dtype for x in theano.scalar.all_types):
+            return dtype
 
         raise TypeError('Unrecognized value "%s" (type %s) for dtype arg' %
                         (dtype, type(dtype)))
