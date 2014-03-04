@@ -759,11 +759,10 @@ class IndexSpace(SimplyTypedSpace):
         Return a string representation.
         """
         return ('%(classname)s(dim=%(dim)s, max_labels=%(max_labels)s, '
-                'dtype=%(dtype)s)') % \
-                dict(classname=self.__class__.__name__,
-                     dim=self.dim,
-                     max_labels=self.max_labels,
-                     dtype=self.dtype)
+                'dtype=%(dtype)s)') % dict(classname=self.__class__.__name__,
+                                           dim=self.dim,
+                                           max_labels=self.max_labels,
+                                           dtype=self.dtype)
 
     def __eq__(self, other):
         return (type(self) == type(other) and
@@ -784,8 +783,8 @@ class IndexSpace(SimplyTypedSpace):
             if space.dim not in (self.max_labels,              # merged onehots
                                  self.dim * self.max_labels):  # concatenated
                 raise ValueError("Can't convert to VectorSpace of dim %d. "
-                                 "Expected either dim=%d (merged one-hots) or %d "
-                                 "(concatenated one-hots)" %
+                                 "Expected either dim=%d (merged one-hots) or "
+                                 "%d (concatenated one-hots)" %
                                  (space.dim,
                                   self.max_labels,
                                   self.dim * self.max_labels))
