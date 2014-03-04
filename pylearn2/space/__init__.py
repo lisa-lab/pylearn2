@@ -707,6 +707,14 @@ class SimplyTypedSpace(Space):
     def dtype(self, new_dtype):
         self._dtype = super(SimplyTypedSpace, self)._clean_dtype_arg(new_dtype)
 
+    def __setstate__(self, state_dict):
+        self.__dict__.update(state_dict)
+
+        # When unpickling a Space that was pickled before Spaces had dtypes,
+        # we need to set the _dtype to the default value.
+        if not '_dtype' in state_dict:
+            self._dtype = theano.config.floatX
+
 
 class IndexSpace(SimplyTypedSpace):
     """
