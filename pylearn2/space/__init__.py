@@ -650,6 +650,9 @@ class Space(object):
         either be 'float32' or 'float64'.
         """
 
+        if isinstance(dtype, np.dtype):
+            dtype = str(dtype)
+
         if dtype == 'floatX':
             return theano.config.floatX
 
@@ -663,7 +666,8 @@ class Space(object):
 
 class SimplyTypedSpace(Space):
     """
-    A space that uses a numpy/theano dtype string for its .dtype property.
+    An abstract base class for Spaces that use a numpy/theano dtype string for
+    its .dtype property.
     """
 
     def __init__(self, dtype='floatX', **kwargs):
@@ -706,6 +710,14 @@ class SimplyTypedSpace(Space):
     @dtype.setter
     def dtype(self, new_dtype):
         self._dtype = super(SimplyTypedSpace, self)._clean_dtype_arg(new_dtype)
+
+    def __setstate__(self, state_dict):
+        self.__dict__.update(state_dict)
+
+        # When unpickling a Space that was pickled before Spaces had dtypes,
+        # we need to set the _dtype to the default value.
+        if not '_dtype' in state_dict:
+            self._dtype = theano.config.floatX
 
 
 class IndexSpace(SimplyTypedSpace):
@@ -753,10 +765,11 @@ class IndexSpace(SimplyTypedSpace):
         """
         Return a string representation.
         """
-        return '%(classname)s(dim=%(dim)s, max_labels=%(max_labels)s)' % \
-               dict(classname=self.__class__.__name__,
-                    dim=self.dim,
-                    max_labels=self.max_labels)
+        return ('%(classname)s(dim=%(dim)s, max_labels=%(max_labels)s, '
+                'dtype=%(dtype)s)') % dict(classname=self.__class__.__name__,
+                                           dim=self.dim,
+                                           max_labels=self.max_labels,
+                                           dtype=self.dtype)
 
     def __eq__(self, other):
         return (type(self) == type(other) and
@@ -777,8 +790,8 @@ class IndexSpace(SimplyTypedSpace):
             if space.dim not in (self.max_labels,              # merged onehots
                                  self.dim * self.max_labels):  # concatenated
                 raise ValueError("Can't convert to VectorSpace of dim %d. "
-                                 "Expected either dim=%d (merged one-hots) or %d "
-                                 "(concatenated one-hots)" %
+                                 "Expected either dim=%d (merged one-hots) or "
+                                 "%d (concatenated one-hots)" %
                                  (space.dim,
                                   self.max_labels,
                                   self.dim * self.max_labels))
