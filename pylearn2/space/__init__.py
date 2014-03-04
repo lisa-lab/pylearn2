@@ -747,15 +747,18 @@ class IndexSpace(SimplyTypedSpace):
         """
         Return a string representation.
         """
-        return '%(classname)s(dim=%(dim)s, max_labels=%(max_labels)s)' % \
-               dict(classname=self.__class__.__name__,
-                    dim=self.dim,
-                    max_labels=self.max_labels)
+        return ('%(classname)s(dim=%(dim)s, max_labels=%(max_labels)s, '
+                'dtype=%(dtype)s)') % \
+                dict(classname=self.__class__.__name__,
+                     dim=self.dim,
+                     max_labels=self.max_labels,
+                     dtype=self.dtype)
 
     def __eq__(self, other):
         return (type(self) == type(other) and
                 self.max_labels == other.max_labels and
-                self.dim == other.dim)
+                self.dim == other.dim and
+                self.dtype == other.dtype)
 
     def __ne__(self, other):
         return (not self == other)
