@@ -23,7 +23,7 @@ import tarfile
 import subprocess
 import logging
 
-logger = logging.getLogger('dataset_get.dataset-get')
+logger = logging.getLogger(__name__)
 
 ########################################
 class package_info:

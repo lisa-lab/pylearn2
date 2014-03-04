@@ -17,7 +17,7 @@ from pylearn2.utils import safe_union
 from pylearn2.space import CompositeSpace, NullSpace
 from pylearn2.utils.data_specs import DataSpecsMapping
 
-logger = logging.getLogger('costs.cost')
+logger = logging.getLogger(__name__)
 
 class DefaultDataSpecsMixin(object):
     """

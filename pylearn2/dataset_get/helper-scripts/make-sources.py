@@ -11,7 +11,7 @@ __licence__   = "BSD 3-Clause http://www.opensource.org/licenses/BSD-3-Clause "
 import sys,os
 import logging
 
-logger = logging.getLogger('dataset_get.helper-scripts.make-sources')
+logger = logging.getLogger(__name__)
 
 ########################################
 def corename( filename ):

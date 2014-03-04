@@ -36,7 +36,7 @@ from pylearn2.utils import safe_zip
 from pylearn2.utils import sharedX
 from pylearn2.utils.rng import make_theano_rng
 
-logger = logging.getLogger('costs.dbm')
+logger = logging.getLogger(__name__)
 
 
 class BaseCD(Cost):

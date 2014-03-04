@@ -5,7 +5,7 @@
 import re,os,urllib
 import logging
 
-logger = logging.getLogger('dataset_get.dataset_resolver')
+logger = logging.getLogger(__name__)
 
 
 class dataset_resolver:

@@ -8,7 +8,7 @@ from pylearn2.config.yaml_parse import load, load_path
 from os import environ
 from decimal import Decimal
 
-logger = logging.getLogger('config.tests')
+logger = logging.getLogger(__name__)
 
 def test_load_path():
     fd, fname = tempfile.mkstemp()
