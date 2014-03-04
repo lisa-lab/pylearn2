@@ -37,12 +37,12 @@ whitelist = ["rbm_tools.py",
              "packaged_dependencies/theano_linear/conv2d.py",
              "packaged_dependencies/theano_linear/imaging.py",
              "packaged_dependencies/theano_linear/pyramid.py",
-             "packaged_dependencies/theano_linear/unshared_conv/" +\
+             "packaged_dependencies/theano_linear/unshared_conv/"
              "test_gpu_unshared_conv.py",
-             "packaged_dependencies/theano_linear/unshared_conv/" +\
+             "packaged_dependencies/theano_linear/unshared_conv/"
              "test_localdot.py",
              "packaged_dependencies/theano_linear/unshared_conv/localdot.py",
-             "packaged_dependencies/theano_linear/unshared_conv/" +\
+             "packaged_dependencies/theano_linear/unshared_conv/"
              "unshared_conv.py",
              "packaged_dependencies/theano_linear/linear.py",
              "packaged_dependencies/theano_linear/test_spconv.py",
@@ -183,7 +183,7 @@ whitelist = ["rbm_tools.py",
              "scripts/tutorials/deep_trainer/run_deep_trainer.py",
              "scripts/tutorials/grbm_smd/make_dataset.py",
              "scripts/tutorials/grbm_smd/test_grbm_smd.py",
-             "scripts/icml_2013_wrepl/multimodal/" +\
+             "scripts/icml_2013_wrepl/multimodal/"
              "extract_layer_2_kmeans_features.py",
              "scripts/icml_2013_wrepl/multimodal/make_submission.py",
              "scripts/icml_2013_wrepl/multimodal/lcn.py",
