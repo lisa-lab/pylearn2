@@ -213,12 +213,10 @@ def test_format():
         if rel_path in whitelist:
             continue
         with open(path) as file:
-            for i, line in enumerate(file.readlines()):
-                if len(line) > 80:
-                    format_infractions.append((path, i+1))
+            for i, line in enumerate(file):
+                if len(line) > 79:
+                    format_infractions.append((path, i + 1))
     if len(format_infractions) > 0:
-        error_message = ""
-        for path, infraction_line in format_infractions:
-            error_message += "File \"%s\", line %s has more than" \
-                             " 80 characters\n" % (path, infraction_line)
-        raise AssertionError("Format not respected:\n%s" % error_message)
+        msg = "\n".join('File "%s" line %d has more than 79 characters'
+              % (fn, line) for fn, line in format_infractions)
+        raise AssertionError("Format not respected:\n%s" % msg)
