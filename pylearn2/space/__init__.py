@@ -666,7 +666,8 @@ class Space(object):
 
 class SimplyTypedSpace(Space):
     """
-    A space that uses a numpy/theano dtype string for its .dtype property.
+    An abstract base class for Spaces that use a numpy/theano dtype string for
+    its .dtype property.
     """
 
     def __init__(self, dtype='floatX', **kwargs):
