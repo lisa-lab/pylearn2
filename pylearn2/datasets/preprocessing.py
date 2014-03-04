@@ -29,7 +29,7 @@ from pylearn2.utils import sharedX
 from pylearn2.utils.rng import make_np_rng
 
 
-log = logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
 convert_axes = Conv2DSpace.convert_numpy
 
@@ -723,9 +723,9 @@ class PCA(object):
         orig_var = orig_data.var(axis=0)
         proc_var = proc_data.var(axis=0)
         assert proc_var[0] > orig_var.max()
-        # TODO: logging
-        print 'original variance: ' + str(orig_var.sum())
-        print 'processed variance: ' + str(proc_var.sum())
+
+        logger.info('original variance: %d', orig_var.sum())
+        logger.info('processed variance: %d', proc_var.sum())
         if hasattr(dataset, 'view_converter'):
             if dataset.view_converter is not None:
                 new_converter = PCA_ViewConverter(self._transform_func,
@@ -822,7 +822,7 @@ class GlobalContrastNormalization(Preprocessor):
                     self._batch_size)
             for i in xrange(0, data_size, self._batch_size):
                 stop = i + self._batch_size
-                log.info("GCN processing data from %d to %d" % (i, stop))
+                logger.info("GCN processing data from %d to %d", i, stop)
                 X = data[i:stop]
                 X = global_contrast_normalize(X,
                                               scale=self._scale,
@@ -1047,8 +1047,8 @@ class ZCA(Preprocessor):
         # Center data
         self.mean_ = numpy.mean(X, axis=0)
         X -= self.mean_
-        # TODO: logging
-        print 'computing zca of a %s matrix' % str(X.shape)
+
+        logger.info('computing zca of a %s matrix', str(X.shape))
         t1 = time.time()
 
         bias = self.filter_bias * scipy.sparse.identity(X.shape[1],
@@ -1056,12 +1056,12 @@ class ZCA(Preprocessor):
 
         covariance = ZCA._gpu_matrix_dot(X.T, X) / X.shape[0] + bias
         t2 = time.time()
-        print "cov estimate took %g seconds" % (t2-t1)
+        logger.info("cov estimate took %g seconds", t2-t1)
 
         t1 = time.time()
         eigs, eigv = linalg.eigh(covariance)
         t2 = time.time()
-        print "eigh() took %g seconds" % (t2 - t1)
+        logger.info("eigh() took %g seconds", t2 - t1)
         assert not numpy.any(numpy.isnan(eigs))
         assert not numpy.any(numpy.isnan(eigv))
         assert eigs.min() > 0
@@ -1176,7 +1176,7 @@ class LeCunLCN(ExamplewisePreprocessor):
             stop = (i + numpy.mod(data_size, self._batch_size)
                     if i >= last else
                     i + self._batch_size)
-            print "LCN processing data from %d to %d" % (i, stop)
+            logger.info("LCN processing data from %d to %d", i, stop)
             transformed = self.transform(convert_axes(
                 dataset.get_topological_view(dataset.X[i:stop, :]),
                 dataset.view_converter.axes, axes))
@@ -1271,7 +1271,7 @@ class RGB_YUV(ExamplewisePreprocessor):
             stop = (i + numpy.mod(data_size, self._batch_size)
                     if i >= last else
                     i + self._batch_size)
-            print "RGB_YUV processing data from %d to %d" % (i, stop)
+            logger.info("RGB_YUV processing data from %d to %d", i, stop)
             data = dataset.get_topological_view(X[i:stop])
             transformed = self.transform(data, dataset.view_converter.axes)
 

@@ -8,7 +8,9 @@ except ImportError:
     warnings.warn("Couldn't import scipy.sparse")
 import theano
 import gzip
+import logging
 floatX = theano.config.floatX
+logger = logging.getLogger(__name__)
 
 class SparseDataset(Dataset):
     """
@@ -20,15 +22,15 @@ class SparseDataset(Dataset):
 
         if self.load_path != None:
             if zipped_npy == True:
-                print '... loading sparse data set from a zip npy file'
+                logger.info('... loading sparse data set from a zip npy file')
                 self.sparse_matrix = scipy.sparse.csr_matrix(
                     numpy.load(gzip.open(load_path)), dtype=floatX)
             else:
-                print '... loading sparse data set from a npy file'
+                logger.info('... loading sparse data set from a npy file')
                 self.sparse_matrix = scipy.sparse.csr_matrix(
                     numpy.load(load_path).item(), dtype=floatX)
         else:
-            print '... building from given sparse dataset'
+            logger.info('... building from given sparse dataset')
             self.sparse_matrix = from_scipy_sparse_dataset
 
         self.data_n_rows = self.sparse_matrix.shape[0]
