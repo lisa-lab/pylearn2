@@ -120,6 +120,7 @@ class SM(DefaultDataSpecsMixin, Cost):
     (Regularized) Score Matching
 
     See:
+
     - "Regularized estimation of image statistics by Score Matching",
       D. Kingma, Y. LeCun, NIPS 2010
     - eqn. 4 of "On Autoencoders and Score Matching for Energy Based Models"
@@ -224,16 +225,15 @@ class SMD(DefaultDataSpecsMixin, Cost):
         return (model.get_input_space(), model.get_input_source())
 
 class SML(Cost):
-    """ Stochastic Maximum Likelihood
+    """
+    Stochastic Maximum Likelihood
 
-        See "On the convergence of Markovian stochastic algorithms with rapidly
-             decreasing ergodicity rates"
-        by Laurent Younes (1998)
+    See "On the convergence of Markovian stochastic algorithms with rapidly
+    decreasing ergodicity rates" by Laurent Younes (1998)
 
-        Also known as Persistent Constrastive Divergence (PCD)
-        See "Training restricted boltzmann machines using approximations to
-             the likelihood gradient"
-        by Tijmen Tieleman  (2008)
+    Also known as Persistent Constrastive Divergence (PCD)
+    See "Training restricted boltzmann machines using approximations to
+    the likelihood gradient" by Tijmen Tieleman  (2008)
     """
 
     def __init__(self, batch_size, nsteps ):

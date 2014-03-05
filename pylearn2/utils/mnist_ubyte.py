@@ -83,7 +83,7 @@ def read_mnist_images(fn, dtype=None):
     -----
     If the dtype provided was boolean, the resulting array will
     be boolean with `True` if the corresponding pixel had a value
-    greater than or equal to 128, `False otherwise.
+    greater than or equal to 128, `False` otherwise.
 
     If the dtype provided was a float or complex dtype, the values
     will be mapped to the unit interval [0, 1], with pixel values

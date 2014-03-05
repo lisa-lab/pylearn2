@@ -28,7 +28,6 @@ from theano import config
 from theano import function
 import time
 from pylearn2.utils import sharedX
-from theano.printing import Print
 from theano.sandbox.rng_mrg import MRG_RandomStreams
 from theano.gof.op import get_debug_values
 import warnings
@@ -36,22 +35,31 @@ import warnings
 
 def max_pool(z, pool_shape, top_down=None, theano_rng=None):
     """
-    .. todo::
+    Parameters
+    ----------
+    z : theano 4-tensor
+        a theano 4-tensor representing input from below
+    pool_shape : tuple
+        tuple of ints. the shape of regions to be pooled
+    top_down : theano 4-tensor, optional
+        a theano 4-tensor representing input from above
+        if None, assumes top-down input is 0
+    theano_rng : MRG_RandomStreams, optional
+        Used for random numbers for sampling
 
-        WRITEME properly
+    Returns
+    -------
+    h : theano 4-tensor
+        the expected value of the detector layer h
+    p : theano 4-tensor
+        the expected value of the pooling layer p
+    h_samples : theano 4-tensor, only returned if theano_rng is not None
+        samples of the detector layer
+    p_samples : theano 4-tensor, only returned if theano_rng is not None
+        samples of the pooling layer
 
-    z : a theano 4-tensor representing input from below
-    pool_shape: tuple of ints. the shape of regions to be pooled
-    top_down: (optional) a theano 4-tensor representing input from above
-                if None, assumes top-down input is 0
-    theano_rng: (optional) a MRG_RandomStreams instance
-
-    returns:
-        a theano 4-tensor for the expected value of the detector layer h
-        a theano 4-tensor for the expected value of the pooling layer p
-        if theano_rng is not None, also returns:
-            a theano 4-tensor of samples of the detector layer
-            a theano 4-tensor of samples of the pooling layer
+    Notes
+    ------
 
     all 4-tensors are formatted with axes ('b', 'c', 0, 1).
     This is for maximum speed when using theano's conv2d
@@ -86,7 +94,6 @@ def max_pool(z, pool_shape, top_down=None, theano_rng=None):
     Then P(h[i] = 1) = softmax( [ z[1], z[2], ..., z[k], -top_down] )[i]
     and P(p = 1) = 1-softmax( [z[1], z[2], ..., z[k], -top_down])[k]
 
-
     This variation of the function assumes that z, top_down, and all
     return values use Conv2D axes ('b', 'c', 0, 1).
     This variation of the function implements the softmax using a
@@ -120,7 +127,7 @@ def max_pool(z, pool_shape, top_down=None, theano_rng=None):
     the pool width, and the thing to multiply with is the hparts stacked
     along the channel axis. Unfortunately, conv2D doesn't work right
     with stride > 2 and is pretty slow for stride 2. Conv3D is used to
-    mitigat some of this, but only has CPU code.
+    mitigate some of this, but only has CPU code.
     """
 
     z_name = z.name
@@ -390,27 +397,35 @@ def max_pool_c01b(z, pool_shape, top_down=None, theano_rng=None):
 
 def max_pool_channels(z, pool_size, top_down=None, theano_rng=None):
     """
-    .. todo::
-
-        WRITEME properly
-
     Unlike Honglak's convolutional max pooling, which pools over spatial
     locations within each channels, this does max pooling in a densely
     connected model. Here we pool groups of channels together.
 
-    z : a theano matrix representing a batch of input from below
-    pool_size: int. the number of features to combine into one pooled unit
-    top_down: (optional) a theano matrix representing input from above
-                if None, assumes top-down input is 0
-    theano_rng: (optional) a MRG_RandomStreams instance
+    Parameters
+    ----------
+    z : theano matrix
+        representings a batch of input from below
+    pool_size : int
+        the number of features to combine into one pooled unit
+    top_down : theano matrix, optional
+        a theano matrix representing input from above
+        if None, assumes top-down input is 0
+    theano_rng : MRG_RandomStreams, optional
+        For random numbers for sampling
 
-    returns:
+    Returns
+    -------
+    h : theano matrix
         a theano matrix for the expected value of the detector layer h
+    p : theano matrix
         a theano matrix for the expected value of the pooling layer p
-        if theano_rng is not None, also returns:
-            a theano matrix of samples of the detector layer
-            a theano matrix of samples of the pooling layer
+    h_samples : theano matrix, only returned if theano_rng is not None
+        a theano matrix of samples of the detector layer
+    p_samples: theano matrix, only returned if theano_rng is not None
+        a theano matrix of samples of the pooling layer
 
+    Notes
+    -----
     all matrices are formatted as (num_example, num_features)
     """
 
