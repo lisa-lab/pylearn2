@@ -56,7 +56,8 @@ def test_batch_gradient_descent():
 
             #make sure the objective function is accurate to first 4 digits
             condition1 = not np.allclose(analytical_obj, actual_obj)
-            condition2 = np.abs(analytical_obj-actual_obj) >= 1e-4 * np.abs(analytical_obj)
+            condition2 = np.abs(analytical_obj-actual_obj) >= 1e-4 * \
+                    np.abs(analytical_obj)
 
             if (config.floatX == 'float64' and condition1) \
                     or (config.floatX == 'float32' and condition2):
@@ -126,21 +127,24 @@ def test_batch_gradient_descent():
                 minimizer._compute_grad(A,b,c)
                 x_grad = minimizer.param_to_grad_shared[x]
                 actual_grad =  x_grad.get_value()
-                correct_grad = 0.5 * np.dot(A,x.get_value())+ 0.5 * np.dot(A.T, x.get_value()) +b
+                correct_grad = 0.5 * np.dot(A,x.get_value())+ 0.5 * \
+                        np.dot(A.T, x.get_value()) +b
                 if not np.allclose(actual_grad, correct_grad):
                     print 'gradient was wrong at convergence point'
                     print 'actual grad: '
                     print actual_grad
                     print 'correct grad: '
                     print correct_grad
-                    print 'max difference: ',np.abs(actual_grad-correct_grad).max()
+                    print 'max difference: ',
+                    np.abs(actual_grad-correct_grad).max()
                     assert False
 
 
                 minimizer._normalize_grad()
                 d = minimizer.param_to_grad_shared[x].get_value()
                 step_len = ( np.dot(b,d) + 0.5 * np.dot(d,np.dot(A,actual_x)) \
-                        + 0.5 * np.dot(actual_x,np.dot(A,d)) ) / np.dot(d, np.dot(A,d))
+                        + 0.5 * np.dot(actual_x,np.dot(A,d)) ) \
+                        / np.dot(d, np.dot(A,d))
 
                 g = np.dot(A,actual_x)+b
                 deriv = np.dot(g,d)
