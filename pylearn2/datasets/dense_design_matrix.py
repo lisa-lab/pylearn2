@@ -50,7 +50,26 @@ def ensure_tables():
 class DenseDesignMatrix(Dataset):
     """
     A class for representing datasets that can be stored as a dense design
-    matrix, such as MNIST or CIFAR10.
+    matrix (and optionally, associated targets).
+
+    Specifically, a design matrix is a matrix where each row contains a single
+    example. Each column within the row is a feature of that example.
+
+    By dense, we mean that every entry in the matrix is explicitly given a
+    value.
+
+    Examples of datasets that can be stored this way include MNIST and
+    CIFAR10.
+
+    Some datasets cannot be stored as a design matrix. For example, a
+    collection of images, each image having a different size, can't be
+    stored in this way, because we can't reshape each image to the same
+    length of matrix row. Some datasets can conceptually be rep
+
+    If you want to store a matrix in dense design matrix format but it is too
+    big to fit in memory, see the DenseDesignMatrixPyTables class defined
+    lower in this file.
+    HERE
     """
     _default_seed = (17, 2, 946)
 
