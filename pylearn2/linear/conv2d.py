@@ -94,7 +94,7 @@ class Conv2D(OrigConv2D):
         with arbitrary axis orders """
 
         # x must be formatted as batch index, channel, topo dim 0, topo dim 1
-        # for use with conv2d
+        # for use with conv2d, so check what the current input space format is
         assert x.ndim == 4
         axes = self.input_space.axes
         assert len(axes) == 4
