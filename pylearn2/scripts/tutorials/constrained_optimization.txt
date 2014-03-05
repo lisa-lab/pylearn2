@@ -1,0 +1,4 @@
+Safari Books Online has published this blog post, which is a short tutorial
+on how to use constrained optimization in Pylearn2:
+
+http://blog.safaribooksonline.com/2014/02/13/constrained-optimization-pylearn2/
