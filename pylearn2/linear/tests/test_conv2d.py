@@ -13,11 +13,12 @@ except:
 
 class TestConv2D(unittest.TestCase):
     def setUp(self):
-        self.image = numpy.random.randint(0, 10,
-                                          (1, 3, 3, 1)).astype('float32')
+        self.image = numpy.random.rand(1, 3, 3, 1).astype(theano.config.floatX)
         self.image_tensor = tensor.tensor4()
         self.input_space = Conv2DSpace((3, 3), 1)
-        self.filters_values = numpy.ones((1, 1, 2, 2)).astype('float32')
+        self.filters_values = numpy.ones(
+            (1, 1, 2, 2), dtype=theano.config.floatX
+        )
         self.filters = theano.shared(value=self.filters_values, name='filters')
         self.conv2d = Conv2D(self.filters, 1, self.input_space)
 
@@ -81,6 +82,18 @@ class TestConv2D(unittest.TestCase):
         output_axes = numpy.transpose(output_axes, mapping)
         numpy.testing.assert_allclose(output, output_axes)
         assert output.shape == output_axes.shape
+
+    def test_channels(self):
+        input_space = Conv2DSpace((3, 3), num_channels=3)
+        filters_values = numpy.ones(
+            (2, 3, 2, 2), dtype=theano.config.floatX
+        )
+        filters = theano.shared(value=filters_values)
+        image = numpy.random.rand(1, 3, 3, 3).astype(theano.config.floatX)
+        conv2d = Conv2D(filters, 1, input_space)
+        f = theano.function([self.image_tensor],
+                            conv2d.lmul(self.image_tensor))
+        assert f(image).shape == (1, 2, 2, 2)
 
     def test_make_random_conv2D(self):
         output_space = Conv2DSpace((2, 2), 1)
