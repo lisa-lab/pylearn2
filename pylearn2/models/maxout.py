@@ -1394,7 +1394,8 @@ class MaxoutLocalC01B(Layer):
                 raise NotImplementedError("We can't normalize the detector "
                                           "layer because the detector layer "
                                           "never exists as a stage of "
-                                          "processing in this implementation.")
+                                          "processing in this "
+                                          "implementation.")
             if self.pool_shape is not None:
                 z = max_pool_c01b(c01b=z,
                                   pool_shape=self.pool_shape,
