@@ -17,14 +17,24 @@ class MNISTPlus(dense_design_matrix.DenseDesignMatrix):
                  azimuth=False, rotation=False, texture=False,
                  center = False, contrast_normalize=False, seed=132987):
         """
-        Creates a DenseDesignMatrix object for the Toronto Face Dataset.
-        :param which_set: dataset to load. One of ['train','valid','test'].
-        :param label_type: string specifies which contents of dictionary are used as "labels"
-        :param azimuth: load version where lighting is a factor of variation
-        :param rotation:load version where MNIST digits are rotated
-        :param texture: load version where MNIST is jointly embossed on a textured background.
-        :param center: if True, remove mean (across examples) for each pixel
-        :param contrast_normalize: if True, for each image, remove mean and divide by standard deviation.
+        Creates a DenseDesignMatrix object for the MNIST-Plus Dataset.
+
+        Parameters
+        ----------
+        which_set : str
+            Which dataset to load. One of ['train','valid','test'].
+        label_type : str, optional
+            A string that specifies which contents of dictionary are used as "labels"
+        azimuth : Bool, optional
+            if True, load version where lighting is a factor of variation
+        rotation : Bool, optional 
+            if True, load version where MNIST digits are rotated
+        texture : Bool, optional
+            if True, load version where MNIST is jointly embossed on a textured background.
+        center : Bool, optional
+            if True, remove mean (across examples) for each pixel
+        contrast_normalize : Bool, optional
+            if True, for each image, remove mean and divide by standard deviation.
         """
         assert which_set in ['train','valid','test']
         assert label_type in [None,'label','azimuth','rotation','texture_id']
