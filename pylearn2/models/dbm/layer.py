@@ -2004,17 +2004,23 @@ class GaussianVisLayer(VisibleLayer):
 
         if init_mu is None:
             init_mu = 0.
-
+        print 'axes', axes
         if nvis is None:
             assert rows is not None
             assert cols is not None
             assert channels is not None
             self.space = Conv2DSpace(shape=[rows,cols], num_channels=channels, axes=axes)
+            # To make GaussianVisLayer compatible with any axis ordering
+            self.batch_axis=list(axes).index('b')  
+            self.axes_to_sum = range(len(axes))
+            self.axes_to_sum.remove(self.batch_axis)
         else:
             assert rows is None
             assert cols is None
             assert channels is None
             self.space = VectorSpace(nvis)
+            self.axes_to_sum = 1
+            self.batch_axis = None
         self.input_space = self.space
 
         origin = self.space.get_origin()
@@ -2034,6 +2040,8 @@ class GaussianVisLayer(VisibleLayer):
             mu_origin = np.zeros((self.space.num_channels,))
         self.mu = sharedX( mu_origin + init_mu, name = 'mu')
         assert self.mu.ndim == mu_origin.ndim
+        
+
 
     def get_monitoring_channels(self):
         """
@@ -2221,19 +2229,21 @@ class GaussianVisLayer(VisibleLayer):
 
             WRITEME
         """
-        raise NotImplementedError("need to support axes")
-        raise NotImplementedError("wasn't implemeneted before axes either")
+        # raise NotImplementedError("need to support axes")
+        # raise NotImplementedError("wasn't implemeneted before axes either")
         assert state_below is None
         assert average_below is None
         self.space.validate(state)
         if average:
             raise NotImplementedError(str(type(self))+" doesn't support integrating out variational parameters yet.")
         else:
-            if self.nvis is None:
-                axis = (1,2,3)
-            else:
-                axis = 1
-            rval =  0.5 * (self.beta * T.sqr(state - self.mu)).sum(axis=axis)
+            # if self.nvis is None:
+            #     axis = (1,2,3)
+            # else:
+            #     axis = 1
+
+            # print(self.axes_to_sum)
+            rval =  0.5 * (self.beta * T.sqr(state - self.mu)).sum(axis=self.axes_to_sum)
         assert rval.ndim == 1
         return rval
 
@@ -2273,17 +2283,20 @@ class GaussianVisLayer(VisibleLayer):
 
             WRITEME
         """
-        raise NotImplementedError("need to support axes")
+        #raise NotImplementedError("need to support axes")
 
         assert state_below is None
         msg = layer_above.downward_message(state_above)
         mu = self.mu
 
         z = msg + mu
-
+        # if self.batch_axis: # if Conv2DSpace, need to integrate out batch axis
+        #     z = T.sum(z,axis=self.batch_axis)
+        #     rval = theano_rng.normal(size = z.shape, avg = z, dtype = z.dtype,
+        #                std = 1. / T.sqrt(T.sum(self.beta,axis=self.batch_axis)))
+        # else:
         rval = theano_rng.normal(size = z.shape, avg = z, dtype = z.dtype,
-                       std = 1. / T.sqrt(self.beta) )
-
+                       std = 1. / T.sqrt(self.beta))
         return rval
 
     def recons_cost(self, V, V_hat_unmasked, drop_mask = None, use_sum=False):
@@ -2341,7 +2354,7 @@ class GaussianVisLayer(VisibleLayer):
 
             WRITEME
         """
-        raise NotImplementedError("need to support axes")
+        # raise NotImplementedError("need to support axes")
 
         shape = [num_examples]
 
@@ -2356,9 +2369,8 @@ class GaussianVisLayer(VisibleLayer):
 
         sample = numpy_rng.randn(*shape)
 
-        sample *= 1./np.sqrt(self.beta.get_value())
+        sample *= (1./np.sqrt(self.beta.get_value()))
         sample += self.mu.get_value()
-
         rval = sharedX(sample, name = 'v_sample_shared')
 
         return rval
