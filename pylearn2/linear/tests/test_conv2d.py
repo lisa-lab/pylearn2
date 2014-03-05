@@ -1,7 +1,7 @@
 import theano
 from theano import tensor
 import numpy
-from pylearn2.linear.conv2d import Conv2D
+from pylearn2.linear.conv2d import Conv2D, make_random_conv2D
 from pylearn2.space import Conv2DSpace
 import unittest
 try:
@@ -81,3 +81,13 @@ class TestConv2D(unittest.TestCase):
         output_axes = numpy.transpose(output_axes, mapping)
         numpy.testing.assert_allclose(output, output_axes)
         assert output.shape == output_axes.shape
+
+    def test_make_random_conv2D(self):
+        output_space = Conv2DSpace((2, 2), 1)
+        conv2d = make_random_conv2D(1, self.input_space, output_space,
+                                    (2, 2), 1)
+        f = theano.function([self.image_tensor],
+                            conv2d.lmul(self.image_tensor))
+        assert f(self.image).shape == (1, 2, 2, 1)
+        assert conv2d.input_space == self.input_space
+        assert conv2d.output_axes == output_space.axes
