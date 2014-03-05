@@ -22,6 +22,7 @@ class open_if_filename(object):
     .. todo::
 
         WRITEME
+
     """
     def __init__(self, f, mode='r', buffering=-1):
         """
