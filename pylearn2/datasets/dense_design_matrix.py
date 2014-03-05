@@ -563,7 +563,8 @@ class DenseDesignMatrix(Dataset):
         """
 
         if 'default_rng' not in dir(self):
-            self.default_rng = make_np_rng(None, [17, 2, 946], which_method="random_integers")
+            self.default_rng = make_np_rng(None, [17, 2, 946],
+                    which_method="random_integers")
         self.rng = copy.copy(self.default_rng)
 
     def apply_preprocessor(self, preprocessor, can_fit=False):
