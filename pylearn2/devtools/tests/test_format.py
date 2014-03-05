@@ -4,7 +4,6 @@ from pylearn2.devtools.list_files import list_files
 
 whitelist = ["rbm_tools.py",
              "training_algorithms/tests/test_bgd.py",
-             "training_algorithms/tests/test_sgd.py",
              "training_algorithms/tests/test_learning_rule.py",
              "training_algorithms/bgd.py",
              "distributions/mnd.py",
@@ -16,7 +15,6 @@ whitelist = ["rbm_tools.py",
              "models/tests/test_mnd.py",
              "models/tests/test_s3c_misc.py",
              "models/gsn.py",
-             "models/model.py",
              "models/dbm/layer.py",
              "models/dbm/__init__.py",
              "models/dbm/dbm.py",
@@ -24,11 +22,9 @@ whitelist = ["rbm_tools.py",
              "models/dbm/inference_procedure.py",
              "models/differentiable_sparse_coding.py",
              "models/local_coordinate_coding.py",
-             "models/maxout.py",
-             "models/s3c.py",
              "models/mnd.py",
+             "models/s3c.py",
              "models/dense_binary_dbm.py",
-             "models/svm.py",
              "models/rbm.py",
              "models/autoencoder.py",
              "tests/test_monitor.py",
@@ -69,7 +65,6 @@ whitelist = ["rbm_tools.py",
              "sandbox/cuda_convnet/tests/test_weight_acts_strided.py",
              "sandbox/cuda_convnet/tests/test_image_acts_strided.py",
              "sandbox/cuda_convnet/tests/test_img_acts.py",
-             "sandbox/cuda_convnet/testsprofile_probabilistic_max_pooling.py",
              "sandbox/cuda_convnet/tests/test_weight_acts.py",
              "sandbox/cuda_convnet/tests/test_stochastic_pool.py",
              "sandbox/cuda_convnet/specialized_bench.py",
@@ -90,7 +85,6 @@ whitelist = ["rbm_tools.py",
              "sandbox/lisa_rl/bandit/plot_reward.py",
              "config/old_config.py",
              "config/yaml_parse.py",
-             "space/tests/test_space.py",
              "datasets/utlc.py",
              "datasets/mnistplus.py",
              "datasets/cos_dataset.py",
@@ -125,7 +119,6 @@ whitelist = ["rbm_tools.py",
              "utils/common_strings.py",
              "utils/serial.py",
              "utils/mem.py",
-             "train.py",
              "format/tests/test_target_format.py",
              "format/target_format.py",
              "dataset_get/dataset-get.py",
@@ -134,7 +127,6 @@ whitelist = ["rbm_tools.py",
              "pca.py",
              "monitor.py",
              "optimization/batch_gradient_descent.py",
-             "optimization/test_batch_gradient_descent.py",
              "optimization/minres.py",
              "costs/ebm_estimation.py",
              "costs/gsn.py",
@@ -193,9 +185,7 @@ whitelist = ["rbm_tools.py",
              "scripts/icml_2013_wrepl/black_box/black_box_dataset.py",
              "scripts/icml_2013_wrepl/black_box/make_submission.py",
              "scripts/diff_monitor.py",
-             "train_extensions/window_flip.py",
              "corruption.py",
-             "sandbox/cuda_convnet/tests/profile_probabilistic_max_pooling.py",
              "training_algorithms/sgd.py",
              "devtools/nan_guard.py",
              "models/mlp.py",
@@ -204,55 +194,8 @@ whitelist = ["rbm_tools.py",
              "utils/iteration.py",
              "utils/track_version.py",
              "scripts/get_version.py",
-             "training_algorithms/default.py",
              "training_algorithms/training_algorithm.py",
-             "distributions/parzen.py",
-             "models/independent_multiclass_logistic.py",
-             "models/normalized_ebm.py",
-             "models/tests/test_dropout.py",
-             "models/tests/test_mlp.py",
-             "models/dbm/sampling_procedure.py",
-             "tests/test_dbm_metrics.py",
-             "packaged_dependencies/theano_linear/unshared_conv/"
-             "gpu_unshared_conv.py",
-             "expr/probabilistic_max_pooling.py",
-             "sandbox/lisa_rl/bandit/simulator.py",
-             "space/__init__.py",
-             "datasets/norb.py",
-             "datasets/iris.py",
-             "datasets/zca_dataset.py",
-             "termination_criteria/__init__.py",
-             "utils/logger.py",
-             "utils/tests/test_one_hot.py",
-             "utils/tests/test_pooling.py",
-             "utils/image.py",
-             "utils/video.py",
-             "utils/string_utils.py",
-             "utils/pooling.py",
-             "utils/__init__.py",
-             "utils/datasets.py",
-             "utils/data_specs.py",
-             "utils/shell.py",
-             "utils/rng.py",
-             "utils/insert_along_axis.py",
-             "utils/call_check.py",
-             "deprecated/classifier.py",
-             "dataset_get/helper-scripts/make-sources.py",
-             "optimization/test_linesearch.py",
-             "optimization/linear_cg.py",
-             "optimization/test_feature_sign.py",
-             "optimization/linesearch.py",
-             "scripts/jobman/experiment.py",
-             "scripts/datasets/step_through_small_norb.py",
-             "scripts/datasets/browse_small_norb.py",
-             "scripts/datasets/make_mnistplus.py",
-             "scripts/tutorials/jobman_demo/utils.py",
-             "scripts/train.py",
-             "base.py",
-             "devtools/tests/test_record.py",
-             "devtools/tests/test_format.py",
-             "train_extensions/__init__.py"]
-
+             ]
 
 def test_format():
     format_infractions = []
@@ -262,9 +205,20 @@ def test_format():
             continue
         with open(path) as file:
             for i, line in enumerate(file):
-                if len(line) > 79:
+                if len(line.rstrip()) > 79:
                     format_infractions.append((path, i + 1))
     if len(format_infractions) > 0:
         msg = "\n".join('File "%s" line %d has more than 79 characters'
               % (fn, line) for fn, line in format_infractions)
         raise AssertionError("Format not respected:\n%s" % msg)
+
+if __name__ == "__main__":
+    print "Files that may be removed from whitelist: "
+    for path in whitelist:
+        with open(path) as file:
+            white = False
+            for i, line in enumerate(file):
+                if len(line.rstrip()) > 79:
+                    white = True
+            if not white:
+                print path
