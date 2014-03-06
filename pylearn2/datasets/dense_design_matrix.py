@@ -142,16 +142,17 @@ class DenseDesignMatrix(Dataset):
 
     - What if my examples aren't best thought of as vectors?
         The DenseDesignMatrix class supports two views of the data, the "design
-        matrix view" in which each example is just a vector, and the "topological
-        view" in which each example is formatted using some kind of data structure
-        with meaningful topology. For example, a dataset of images can be viewed
-        as a design matrix where each row contains a flattened version of each
-        image, or it can be viewed as a 4D tensor, where each example is a 3D
-        subtensor, with one axis corresponding to rows of the image, one axis
-        corresponding to columns of the image, and one axis corresponding to the
-        color channels. This structure can be thought of as having meaninful
-        topology because neighboring coordinates on the row and column axes
-        correspond to neighboring pixels in the image.
+        matrix view" in which each example is just a vector, and the
+        "topological view" in which each example is formatted using some kind
+        of data structure with meaningful topology. For example, a dataset of
+        images can be viewed as a design matrix where each row contains a
+        flattened version of each image, or it can be viewed as a 4D tensor,
+        where each example is a 3D subtensor, with one axis corresponding to
+        rows of the image, one axis corresponding to columns of the image, and
+        one axis corresponding to the color channels. This structure can be
+        thought of as having meaningful topology because neighboring
+        coordinates on the row and column axes correspond to neighboring
+        pixels in the image.
     """
     _default_seed = (17, 2, 946)
 
