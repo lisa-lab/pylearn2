@@ -2,7 +2,10 @@
 # coding: utf-8
 
 """
-prediction code for classification, without using batches
+prediction code for classification, without using batches 
+(it's simpler that way)
+if you run out of memory it could be resolved by implementing a batch version
+the model should be an MLP
 see http://fastml.com/how-to-get-predictions-from-pylearn2/
 author: Zygmunt Zając
 """
@@ -22,7 +25,7 @@ try:
 	out_path = sys.argv[3]
 except IndexError:
 	print "Usage: predict.py <model file> <test file> <output file>"
-	print "       predict.py saved_clf.pkl test_x.csv predictions.csv\n"
+	print "       predict.py saved_model.pkl test_x.csv predictions.csv\n"
 	quit()
 	
 print "loading model..."
@@ -32,6 +35,7 @@ try:
 except Exception, e:
 	print "error loading {}:".format(model_path)
 	print e
+	quit()
 
 print "setting up symbolic expressions..."
 
