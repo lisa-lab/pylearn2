@@ -1,6 +1,7 @@
 """
-A mostly outdated module that isn't used much anymore. See tutorials/*ipynb or
-scripts/train_example to get a quick introduction to the library.
+Feedforward processing objects. Similar to MLP layers, but specialized
+for operation on design matrices rather than generic Spaces, and without
+a concept of parameters.
 """
 # Standard library imports
 import warnings
