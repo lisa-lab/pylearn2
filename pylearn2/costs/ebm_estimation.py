@@ -1,17 +1,20 @@
 """
 Training costs for unsupervised learning of energy-based models
 """
-import warnings
+import functools
+from itertools import izip
+import numpy as np
 import sys
-import theano.tensor as T
+import warnings
+
+from theano.compat.python2x import OrderedDict
 from theano import scan
+import theano.tensor as T
+
 from pylearn2.costs.cost import Cost, DefaultDataSpecsMixin
 from pylearn2.utils import py_integer_types
 from pylearn2.utils.rng import make_theano_rng
-from theano.compat.python2x import OrderedDict
-from itertools import izip
 from pylearn2.models.rbm import BlockGibbsSampler
-import numpy as np
 
 warnings.warn("Cost changing the recursion limit.")
 # We need this to be high enough that the big theano graphs we make
@@ -172,23 +175,19 @@ class SMD(DefaultDataSpecsMixin, Cost):
 
     Note that instead of using half the squared norm we use the mean squared error,
     so that hyperparameters don't depend as much on the # of visible units
+
+    Parameters
+    ----------
+    corruptor : WRITEME
+        WRITEME
     """
 
     def __init__(self, corruptor):
-        """
-        .. todo::
-
-            WRITEME
-        """
         super(SMD, self).__init__()
         self.corruptor = corruptor
 
+    @functools.wraps(Cost.expr)
     def expr(self, model, data):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.get_data_specs(model)[0].validate(data)
         X = data
         X_name = 'X' if X.name is None else X.name
@@ -197,7 +196,6 @@ class SMD(DefaultDataSpecsMixin, Cost):
 
         if corrupted_X.name is None:
             corrupted_X.name = 'corrupt('+X_name+')'
-        #
 
         model_score = model.score(corrupted_X)
         assert len(model_score.type.broadcastable) == len(X.type.broadcastable)
