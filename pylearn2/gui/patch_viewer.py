@@ -136,9 +136,9 @@ class PatchViewer(object):
         for shape in [grid_shape, patch_shape]:
             for elem in shape:
                 if not isinstance(elem, py_integer_types):
-                    raise ValueError("Expected grid_shape and patch_shape to be"
-                                     " pairs of ints, but they are %s and %s"
-                                     " respectively." % (str(grid_shape),
+                    raise ValueError("Expected grid_shape and patch_shape to"
+                                     "be pairs of ints, but they are %s and "
+                                     "%s respectively." % (str(grid_shape),
                                                          str(patch_shape)))
         self.is_color = is_color
         if pad is None:
@@ -234,8 +234,8 @@ class PatchViewer(object):
         if self.is_color:
             assert patch.ndim == 3
             if not (patch.shape[-1] == 3):
-                raise ValueError("Expected color image to have shape[-1]=3, but"
-                                 " shape[-1] is " + str(patch.shape[-1]))
+                raise ValueError("Expected color image to have shape[-1]=3, "
+                                 "but shape[-1] is " + str(patch.shape[-1]))
         else:
             assert patch.ndim in [2, 3]
             if patch.ndim == 3:
