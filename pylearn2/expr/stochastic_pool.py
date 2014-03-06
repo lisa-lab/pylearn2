@@ -15,22 +15,32 @@ __email__ = "mirzamom@iro"
 import numpy
 import theano
 from theano import tensor
-from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 from theano.gof.op import get_debug_values
+from pylearn2.utils.rng import make_theano_rng
 
 def stochastic_max_pool_bc01(bc01, pool_shape, pool_stride, image_shape, rng = None):
     """
+    .. todo::
+
+        WRITEME properly
+
     Stochastic max pooling for training as defined in:
 
     Stochastic Pooling for Regularization of Deep Convolutional Neural Networks
     Matthew D. Zeiler, Rob Fergus
 
-    bc01: minibatch in format (batch size, channels, rows, cols),
-        IMPORTANT: All values should be poitivie
-    pool_shape: shape of the pool region (rows, cols)
-    pool_stride: strides between pooling regions (row stride, col stride)
-    image_shape: avoid doing some of the arithmetic in theano
-    rng: theano random stream
+    Parameters
+    ----------
+    bc01 : theano 4-tensor
+        in format (batch size, channels, rows, cols),
+        IMPORTANT: All values should be positive
+    pool_shape : tuple
+        shape of the pool region (rows, cols)
+    pool_stride : tuple
+        strides between pooling regions (row stride, col stride)
+    image_shape : tuple
+        avoid doing some of the arithmetic in theano
+    rng : theano random stream
     """
     r, c = image_shape
     pr, pc = pool_shape
@@ -39,8 +49,7 @@ def stochastic_max_pool_bc01(bc01, pool_shape, pool_stride, image_shape, rng = N
     batch = bc01.shape[0]
     channel = bc01.shape[1]
 
-    if rng is None:
-        rng = RandomStreams(2022)
+    rng = make_theano_rng(rng, 2022, which_method='multinomial')
 
     # Compute index in pooled space of last needed pool
     # (needed = each input pixel must appear in at least one pool)
@@ -99,6 +108,10 @@ def stochastic_max_pool_bc01(bc01, pool_shape, pool_stride, image_shape, rng = N
 
 def weighted_max_pool_bc01(bc01, pool_shape, pool_stride, image_shape, rng = None):
     """
+    .. todo::
+
+        WRITEME properly
+
     This implements test time probability weighted pooling defined in:
 
     Stochastic Pooling for Regularization of Deep Convolutional Neural Networks
@@ -117,8 +130,7 @@ def weighted_max_pool_bc01(bc01, pool_shape, pool_stride, image_shape, rng = Non
     batch = bc01.shape[0]
     channel = bc01.shape[1]
 
-    if rng is None:
-        rng = RandomStreams(2022)
+    rng = make_theano_rng(rng, 2022, which_method='multinomial')
 
     # Compute index in pooled space of last needed pool
     # (needed = each input pixel must appear in at least one pool)

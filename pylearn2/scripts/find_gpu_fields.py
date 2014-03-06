@@ -4,32 +4,33 @@
 
 import sys
 
-path = sys.argv[1]
+if __name__ == "__main__":
+    path = sys.argv[1]
 
-from pylearn2.utils import serial
-import inspect
+    from pylearn2.utils import serial
+    import inspect
 
-obj = serial.load(path)
+    obj = serial.load(path)
 
-from theano.sandbox.cuda import CudaNdarray
+    from theano.sandbox.cuda import CudaNdarray
 
-visited = set([])
+    visited = set([])
 
-def find(cur_obj, cur_name):
-    global visited
+    def find(cur_obj, cur_name):
+        global visited
 
-    if isinstance(cur_obj, CudaNdarray):
+        if isinstance(cur_obj, CudaNdarray):
+            print cur_name
         print cur_name
-    print cur_name
-    for field, new_obj in inspect.getmembers(cur_obj):
+        for field, new_obj in inspect.getmembers(cur_obj):
 
-        if new_obj in visited:
-            continue
+            if new_obj in visited:
+                continue
 
-        visited = visited.union([new_obj])
+            visited = visited.union([new_obj])
 
-        print visited
+            print visited
 
-        find(new_obj,cur_name+'.'+field)
+            find(new_obj,cur_name+'.'+field)
 
-find(obj,'')
+    find(obj,'')

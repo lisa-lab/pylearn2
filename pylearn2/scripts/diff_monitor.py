@@ -29,94 +29,95 @@ import numpy as np
 # allclose -> compare val record entries with np.allclose(x, y)
 cmp_mode = 'equal'
 
-# Load the records
-_, model_0_path, model_1_path = sys.argv
+if __name__ == "__main__":
+    # Load the records
+    _, model_0_path, model_1_path = sys.argv
 
-model_0, model_1 = [serial.load(path) for path in [model_0_path, model_1_path]]
+    model_0, model_1 = [serial.load(path) for path in [model_0_path, model_1_path]]
 
-monitor_0, monitor_1 = [model.monitor for model in [model_0, model_1]]
+    monitor_0, monitor_1 = [model.monitor for model in [model_0, model_1]]
 
-channels_0, channels_1 = [monitor.channels for monitor in [monitor_0, monitor_1]]
+    channels_0, channels_1 = [monitor.channels for monitor in [monitor_0, monitor_1]]
 
-# Print the difference in which channels were monitored
-intersect = []
-for channel in channels_0:
-    if channel not in channels_1:
-        print channel+' is in model 0 but not model 1'
-    else:
-        intersect.append(channel)
-for channel in channels_1:
-    if channel not in channels_0:
-        print channel+' is in model 1 but not model 0'
-
-# Print the difference in length between the records
-for channel in intersect:
-    channel_0, channel_1 = [d[channel] for d in [channels_0, channels_1]]
-    len_0, len_1 = [len(ch.batch_record) for ch in [channel_0, channel_1]]
-    if len_0 != len_1:
-        print 'Length of',channel,'differs:',len_0,'vs',len_1
-    channel_0.length = min(len_0, len_1)
-
-
-# Print numerical differences between the channels
-record = 0
-clean = intersect
-while len(clean) > 0:
-    bad_channel = []
-    for channel in clean:
-        channel_0 = channels_0[channel]
-        channel_1 = channels_1[channel]
-
-        # Quit scanning channels that we've read all of
-        if record == channel_0.length:
-            bad_channel.append(channel)
-            continue
-
-        ch0 = channel_0.batch_record[record]
-        ch1 = channel_1.batch_record[record]
-        eq = ch0 == ch1
-        both_nan = np.isnan(ch0) and np.isnan(ch1)
-        if not (eq or both_nan):
-            print channel+'.batch_record differs at record entry',record
-            print '\t',channel_0.batch_record[record], 'vs', channel_1.batch_record[record]
-            bad_channel.append(channel)
-            continue
-
-        if not (channel_0.example_record[record] ==
-                channel_1.example_record[record]):
-            print channel+'.example_record differs at record entry',record
-            print '\t',channel_0.example_record[record], 'vs', channel_1.example_record[record]
-            bad_channel.append(channel)
-            continue
-
-        if not (channel_0.epoch_record[record] ==
-                channel_1.epoch_record[record]):
-            print channel+'.epoch_record differs at record entry',record
-            print '\t',channel_0.epoch_record[record], 'vs', channel_1.epoch_record[record]
-            bad_channel.append(channel)
-            continue
-
-        ch0 = channel_0.val_record[record]
-        ch1 = channel_1.val_record[record]
-        both_nan = np.isnan(ch0) and np.isnan(ch1)
-        if both_nan:
-            match = True
+    # Print the difference in which channels were monitored
+    intersect = []
+    for channel in channels_0:
+        if channel not in channels_1:
+            print channel+' is in model 0 but not model 1'
         else:
-            if cmp_mode == 'equal':
-                match = ch0 == ch1
-            elif cmp_mode == 'allclose':
-                match = np.allclose(channel_0.val_record[record],
-                    channel_1.val_record[record])
+            intersect.append(channel)
+    for channel in channels_1:
+        if channel not in channels_0:
+            print channel+' is in model 1 but not model 0'
+
+    # Print the difference in length between the records
+    for channel in intersect:
+        channel_0, channel_1 = [d[channel] for d in [channels_0, channels_1]]
+        len_0, len_1 = [len(ch.batch_record) for ch in [channel_0, channel_1]]
+        if len_0 != len_1:
+            print 'Length of',channel,'differs:',len_0,'vs',len_1
+        channel_0.length = min(len_0, len_1)
+
+
+    # Print numerical differences between the channels
+    record = 0
+    clean = intersect
+    while len(clean) > 0:
+        bad_channel = []
+        for channel in clean:
+            channel_0 = channels_0[channel]
+            channel_1 = channels_1[channel]
+
+            # Quit scanning channels that we've read all of
+            if record == channel_0.length:
+                bad_channel.append(channel)
+                continue
+
+            ch0 = channel_0.batch_record[record]
+            ch1 = channel_1.batch_record[record]
+            eq = ch0 == ch1
+            both_nan = np.isnan(ch0) and np.isnan(ch1)
+            if not (eq or both_nan):
+                print channel+'.batch_record differs at record entry',record
+                print '\t',channel_0.batch_record[record], 'vs', channel_1.batch_record[record]
+                bad_channel.append(channel)
+                continue
+
+            if not (channel_0.example_record[record] ==
+                    channel_1.example_record[record]):
+                print channel+'.example_record differs at record entry',record
+                print '\t',channel_0.example_record[record], 'vs', channel_1.example_record[record]
+                bad_channel.append(channel)
+                continue
+
+            if not (channel_0.epoch_record[record] ==
+                    channel_1.epoch_record[record]):
+                print channel+'.epoch_record differs at record entry',record
+                print '\t',channel_0.epoch_record[record], 'vs', channel_1.epoch_record[record]
+                bad_channel.append(channel)
+                continue
+
+            ch0 = channel_0.val_record[record]
+            ch1 = channel_1.val_record[record]
+            both_nan = np.isnan(ch0) and np.isnan(ch1)
+            if both_nan:
+                match = True
             else:
-                assert False # unrecognized cmp_mode
+                if cmp_mode == 'equal':
+                    match = ch0 == ch1
+                elif cmp_mode == 'allclose':
+                    match = np.allclose(channel_0.val_record[record],
+                        channel_1.val_record[record])
+                else:
+                    assert False # unrecognized cmp_mode
 
-        if not match:
-            print channel+'.val_record differs at record entry',record
-            print '\t',channel_0.val_record[record], 'vs', channel_1.val_record[record]
-            bad_channel.append(channel)
-            continue
+            if not match:
+                print channel+'.val_record differs at record entry',record
+                print '\t',channel_0.val_record[record], 'vs', channel_1.val_record[record]
+                bad_channel.append(channel)
+                continue
 
-    for channel in bad_channel:
-        del clean[clean.index(channel)]
-    record += 1
+        for channel in bad_channel:
+            del clean[clean.index(channel)]
+        record += 1
 

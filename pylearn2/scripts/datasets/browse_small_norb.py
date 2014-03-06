@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import sys, argparse
+import sys, argparse, pickle
 import numpy
 from matplotlib import pyplot
 from pylearn2.datasets import norb
@@ -11,25 +11,50 @@ def main():
         parser = argparse.ArgumentParser(
             description="Browser for SmallNORB dataset.")
 
-        parser.add_argument('--which_set', 
+        parser.add_argument('--which_set',
                             default='train',
-                            help="'train' or 'test'")
+                            help="'train', 'test', or the path to a .pkl file")
+
+        parser.add_argument('--zca',
+                            default=None,
+                            help=("if --which_set points to a .pkl "
+                                  "file storing a ZCA-preprocessed "
+                                  "NORB dataset, you can optionally "
+                                  "enter the preprocessor's .pkl "
+                                  "file path here to undo the "
+                                  "ZCA'ing for visualization "
+                                  "purposes."))
 
         return parser.parse_args()
 
+    def get_data(args):
+        if args.which_set in ('train', 'test'):
+            dataset = norb.SmallNORB(args.which_set, True)
+        else:
+            with open(args.which_set) as norb_file:
+                dataset = pickle.load(norb_file)
+                if len(dataset.y.shape) < 2 or dataset.y.shape[1] == 1:
+                    print("This viewer does not support NORB datasets that "
+                          "only have classification labels.")
+                    sys.exit(1)
 
-    def get_data(which_set):
-        dataset = norb.SmallNORB(which_set, True)
-        num_examples = dataset.get_data()[0].shape[0]
-        iterator = dataset.iterator(mode = 'sequential', 
-                                    batch_size = num_examples,
-                                    topo = True, 
-                                    targets = True)
-        values, labels = iterator.next()
-        return values, numpy.array(labels, 'int')
+            if args.zca is not None:
+                with open(args.zca) as zca_file:
+                    zca = pickle.load(zca_file)
+                    dataset.X = zca.inverse(dataset.X)
+
+        num_examples = dataset.X.shape[0]
+
+        topo_shape = ((num_examples, ) +
+                      tuple(dataset.view_converter.shape))
+        assert topo_shape[-1] == 1
+        topo_shape = topo_shape[:-1]
+        values = dataset.X.reshape(topo_shape)
+        labels = numpy.array(dataset.y, 'int')
+        return values, labels, dataset.which_set
 
     args = parse_args()
-    values, labels = get_data(args.which_set)
+    values, labels, which_set = get_data(args)
 
     # For programming convenience, internally remap the instance labels to be
     # 0-4, and the azimuth labels to be 0-17. The user will still only see the
@@ -60,11 +85,11 @@ def main():
 
         return new_to_old_instance
 
-    new_to_old_instance = remap_instances(args.which_set, labels)
+    new_to_old_instance = remap_instances(which_set, labels)
 
     def get_new_azimuth_degrees(scalar_label):
-        return 20 * scalar_label;
-    
+        return 20 * scalar_label
+
     # Maps a label vector to the corresponding index in <values>
     num_labels_by_type = numpy.array(norb.SmallNORB.num_labels_by_type, 'int')
     num_labels_by_type[instance_index] = len(new_to_old_instance)
@@ -77,21 +102,21 @@ def main():
 
     assert not numpy.any(label_to_index == -1)  # all elements have been set
 
-    figure, axes = pyplot.subplots(1,2, squeeze=True)
+    figure, axes = pyplot.subplots(1, 2, squeeze=True)
 
-    figure.canvas.set_window_title('Small NORB dataset (%sing set)' % 
-                                   args.which_set)
+    figure.canvas.set_window_title('Small NORB dataset (%sing set)' %
+                                   which_set)
 
     # shift subplots down to make more room for the text
     figure.subplots_adjust(bottom=0.05)
 
     num_label_types = len(norb.SmallNORB.num_labels_by_type)
     current_labels = numpy.zeros(num_label_types, 'int')
-    current_label_type = [0,]
+    current_label_type = [0, ]
 
     label_text = figure.suptitle("title text",
-                                 x= .1, 
-                                 horizontalalignment = "left")
+                                 x=0.1,
+                                 horizontalalignment="left")
 
     def redraw(redraw_text, redraw_images):
         if redraw_text:
@@ -107,7 +132,7 @@ def main():
             lt = current_label_type[0]
             lines[lt] = '==> ' + lines[lt]
             text = ('Up/down arrows choose label, left/right arrows change it'
-                    '\n\n' + 
+                    '\n\n' +
                     '\n'.join(lines))
             label_text.set_text(text)
 
@@ -120,7 +145,6 @@ def main():
 
         figure.canvas.draw()
 
-
     def on_key_press(event):
 
         def add_mod(arg, step, size):
@@ -130,14 +154,14 @@ def main():
             current_label_type[0] = add_mod(current_label_type[0],
                                             step,
                                             num_label_types)
+
         def incr_label(step):
             lt = current_label_type[0]
             num_labels = num_labels_by_type[lt]
             current_labels[lt] = add_mod(current_labels[lt], step, num_labels)
 
-            
         if event.key == 'up':
-            incr_label_type(-1);
+            incr_label_type(-1)
             redraw(True, False)
         elif event.key == 'down':
             incr_label_type(1)
@@ -151,10 +175,9 @@ def main():
         elif event.key == 'q':
             sys.exit(0)
 
-
     figure.canvas.mpl_connect('key_press_event', on_key_press)
     redraw(True, True)
-    
+
     pyplot.show()
 
 

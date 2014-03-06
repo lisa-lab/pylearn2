@@ -7,26 +7,20 @@ __maintainer__ = "Pascal Lamblin"
 __email__ = "lamblinp@iro"
 import functools
 
-import warnings
 import numpy as np
 from pylearn2.utils.iteration import (
     FiniteDatasetIterator,
-    FiniteDatasetIteratorPyTables,
     resolve_iterator_class
 )
 N = np
-import copy
 # Don't import tables initially, since it might not be available
 # everywhere.
 tables = None
 
 
 from pylearn2.datasets.dataset import Dataset
-from pylearn2.datasets import control
-from pylearn2.space import VectorSpace, CompositeSpace
 from pylearn2.utils.data_specs import is_flat_specs
-from theano import config
-
+from pylearn2.utils.rng import make_np_rng
 
 def ensure_tables():
     """
@@ -86,10 +80,7 @@ class VectorSpacesDataset(Dataset):
 
         self.compress = False
         self.design_loc = None
-        if hasattr(rng, 'random_integers'):
-            self.rng = rng
-        else:
-            self.rng = np.random.RandomState(rng)
+        self.rng = make_np_rng(rng, which_method='random_integers')
         # Defaults for iterators
         self._iter_mode = resolve_iterator_class('sequential')
 

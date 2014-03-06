@@ -6,12 +6,15 @@ Training
 .. contents::
    :depth: 3
 
-################
-Training Scripts
-################
+#################
+pylearn2.train.py
+#################
+.. automodule:: pylearn2.train
+    :members:
 
-Train
-=====
+#########################
+pylearn2.scripts.train.py
+#########################
 .. automodule:: pylearn2.scripts.train
     :members:
 
@@ -25,18 +28,20 @@ Base Class
 .. automodule:: pylearn2.training_algorithms.training_algorithm
     :members:
 
-
 Default
 =======
 .. automodule:: pylearn2.training_algorithms.default
     :members:
 
+Learning rule
+=============
+.. automodule:: pylearn2.training_algorithms.learning_rule
+    :members:
 
 Stochastic Gradient Descent
 ===========================
 .. automodule:: pylearn2.training_algorithms.sgd
     :members:
-
 
 Batch Gradient Descent
 ===========================
@@ -47,6 +52,11 @@ Batch Gradient Descent
 ################
 Train Extensions
 ################
+
+Basic
+=====
+.. automodule:: pylearn2.train_extensions.__init__
+    :members:
 
 Best Params
 ===========

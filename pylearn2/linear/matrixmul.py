@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -11,6 +16,8 @@ from pylearn2.linear.linear_transform import LinearTransform
 import functools
 import numpy as np
 from pylearn2.utils import sharedX
+from pylearn2.utils.rng import make_np_rng
+
 
 class MatrixMul(LinearTransform):
     """
@@ -28,31 +35,63 @@ class MatrixMul(LinearTransform):
     """
 
     def __init__(self, W):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self._W = W
 
     @functools.wraps(LinearTransform.get_params)
     def get_params(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return [self._W]
 
     def lmul(self, x):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         return T.dot(x, self._W)
 
     def lmul_T(self, x):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return T.dot(x, self._W.T)
 
 
 def make_local_rfs(dataset, nhid, rf_shape, stride, irange = .05, draw_patches = False, rng = None):
     """
-        initializes a weight matrix with local receptive fields
-        param: dataset:
-                the dataset defining the topology of the space (needed to convert
-                    2D patches into subsets of pixels in a 1D filter vector)
-               nhid: # of hidden units to make filters for
-               rf_shape: 2 elem list or tuple giving topological shape of a receptive field
-               stride: 2 elem list or tuple giving offset between receptive fields
-               irange: if draw_patches is false, weights are initialized in U(-irange,irange)
-               draw_patches: if true, weights are drawn from random examples
+    .. todo::
+
+        WRITEME properly
+
+    Initializes a weight matrix with local receptive fields
+
+    Parameters
+    ----------
+    dataset : pylearn2.datasets.dataset.Dataset
+        Dataset defining the topology of the space (needed to convert 2D \
+        patches into subsets of pixels in a 1D filter vector)
+    nhid : int
+        Number of hidden units to make filters for
+    rf_shape : list or tuple (2 elements)
+        Gives topological shape of a receptive field
+    stride : list or tuple (2 elements)
+        Gives offset between receptive fields
+    irange : float
+        If draw_patches is False, weights are initialized in U(-irange,irange)
+    draw_patches : bool
+        If True, weights are drawn from random examples
     """
     s = dataset.view_shape()
     height, width, channels = s
@@ -61,7 +100,7 @@ def make_local_rfs(dataset, nhid, rf_shape, stride, irange = .05, draw_patches =
     last_row = s[0] - rf_shape[0]
     last_col = s[1] - rf_shape[1]
 
-    rng = np.random.RandomState([2012,07,18])
+    rng = make_np_rng(rng, [2012,07,18], which_method='uniform')
 
 
     if stride is not None:

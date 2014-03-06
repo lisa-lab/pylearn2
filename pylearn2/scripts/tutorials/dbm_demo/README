@@ -12,7 +12,10 @@ This directory contains examples of how to use pylearn2 DBMs
     class or the DBM class. This directory contains an example
     of how to do the latter. Just run
 
-    train.py rbm.yaml
+    python train_dbm.py
+
+    This sets hyperparameters(hyper_params) and then runs the 
+    experiment defined in rbm.yaml with those hyper_parameter values.  
 
     See rbm.yaml for further comments.
 

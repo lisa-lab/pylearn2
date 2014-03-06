@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 __authors__ = "Ian Goodfellow"
 __copyright__ = "Copyright 2010-2012, Universite de Montreal"
 __credits__ = ["Ian Goodfellow"]
@@ -7,20 +12,31 @@ __email__ = "goodfeli@iro"
 from sklearn.linear_model import LogisticRegression
 import numpy as np
 
-class IndependentMulticlassLogistic:
 
-    """ Fits a separate logistic regression classifier for each class,
-        makes predictions based on the max output.
-        ie, during training, views a one-hot label vector as a vector
-        of independent binary labels, rather than correctly modeling
-        them as one-hot like softmax would do
-        This is what Jia+Huang used to get state of the art on CIFAR-100
+class IndependentMulticlassLogistic:
+    """
+    Fits a separate logistic regression classifier for each class, makes
+    predictions based on the max output: during training, views a one-hot label
+    vector as a vector of independent binary labels, rather than correctly
+    modeling them as one-hot like softmax would do.
+
+    This is what Jia+Huang used to get state of the art on CIFAR-100
     """
 
     def __init__(self, C):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.C = C
 
     def fit(self, X,y):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         min_y = y.min()
         max_y = y.max()
@@ -42,7 +58,17 @@ class IndependentMulticlassLogistic:
         return Classifier(logistics)
 
 class Classifier:
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, logistics):
+        """
+        .. todo::
+
+            WRITEME
+        """
         assert len(logistics) > 1
 
         num_classes = len(logistics)
@@ -56,6 +82,11 @@ class Classifier:
             self.b[i] = logistics[i].intercept_
 
     def predict(self, X):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         return np.argmax(self.b + np.dot(X,self.W), 1)
 

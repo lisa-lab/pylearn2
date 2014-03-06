@@ -1,4 +1,5 @@
 import os
+import logging
 import gc
 import warnings
 try:
@@ -11,6 +12,7 @@ from theano import config
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.utils.serial import load
 from pylearn2.utils.string_utils import preprocess
+from pylearn2.utils.rng import make_np_rng
 
 
 class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
@@ -40,6 +42,8 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
             mode = 'r'
         else:
             mode = 'r+'
+            logging.warning("Because path is not same as PYLEARN2_DATA_PATH "\
+                "be aware that data might have been modified or pre-processed.")
 
         if mode == 'r' and (scale or center or (start != None) or
                         (stop != None)):
@@ -106,7 +110,7 @@ class SVHN(dense_design_matrix.DenseDesignMatrixPyTables):
                             image_size], [sizes[which_set], 10]))
 
         # For consistency between experiments better to make new random stream
-        rng = numpy.random.RandomState(322)
+        rng = make_np_rng(None, 322, which_method="shuffle")
 
         def design_matrix_view(data_x, data_y):
             """reshape data_x to deisng matrix view
@@ -300,7 +304,7 @@ class SVHN_On_Memory(dense_design_matrix.DenseDesignMatrix):
         image_size = 32 * 32 * 3
 
         # For consistency between experiments better to make new random stream
-        rng = numpy.random.RandomState(322)
+        rng = make_np_rng(None, 322, which_method="shuffle")
 
         def design_matrix_view(data_x, data_y):
             """reshape data_x to deisng matrix view

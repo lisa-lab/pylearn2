@@ -1,0 +1,4 @@
+Safari Books Online has published this blog post, which is a short tutorial
+on how to use momemntum in Pylearn2:
+
+http://blog.safaribooksonline.com/2014/02/14/using-momentum-pylearn2/

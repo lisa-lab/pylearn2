@@ -16,8 +16,12 @@ class CrossChannelNormalizationBC01(object):
     """
     BC01 version of CrossChannelNormalization
     """
-
     def __init__(self, alpha = 1e-4, k=2, beta=0.75, n=5):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.__dict__.update(locals())
         del self.self
 
@@ -25,6 +29,11 @@ class CrossChannelNormalizationBC01(object):
             raise NotImplementedError("Only works with odd n for now")
 
     def __call__(self, bc01):
+        """
+        .. todo::
+
+            WRITEME
+        """
         half = self.n // 2
 
         sq = T.sqr(bc01)
@@ -55,6 +64,9 @@ class CrossChannelNormalization(object):
 
     def __init__(self, alpha = 1e-4, k=2, beta=0.75, n=5):
         """
+        .. todo::
+
+            WRITEME properly
 
         f(c01b)_[i,j,k,l] = c01b[i,j,k,l] / scale[i,j,k,l]
 
@@ -70,6 +82,11 @@ class CrossChannelNormalization(object):
             raise NotImplementedError("Only works with odd n for now")
 
     def __call__(self, c01b):
+        """
+        .. todo::
+
+            WRITEME
+        """
         half = self.n // 2
 
         sq = T.sqr(c01b)
@@ -92,6 +109,10 @@ class CrossChannelNormalization(object):
 class CudaConvNetCrossChannelNormalization(object):
     def __init__(self, alpha=1e-4, beta=0.75, size_f=5, blocked=True):
         """
+        .. todo::
+
+            WRITEME properly
+
         I kept the same parameter names where I was sure they
         actually are the same parameters (with respect to
         CrossChannelNormalization).
@@ -100,5 +121,10 @@ class CudaConvNetCrossChannelNormalization(object):
                                 pow_scale=beta, blocked=blocked)
 
     def __call__(self, c01b):
-        """NOTE: c01b must be CudaNdarrayType."""
+        """
+        .. todo::
+
+            WRITEME properly
+
+        NOTE: c01b must be CudaNdarrayType."""
         return self._op(c01b)[0]

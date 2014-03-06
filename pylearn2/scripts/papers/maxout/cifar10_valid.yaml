@@ -1,13 +1,11 @@
 !obj:pylearn2.train.Train {
-    dataset: &train !obj:galatea.maxout.pad { 
-        amt: 8,
-        dataset: !obj:pylearn2.datasets.zca_dataset.ZCA_Dataset {
+    dataset: &train !obj:pylearn2.datasets.zca_dataset.ZCA_Dataset {
             preprocessed_dataset: !pkl: "${PYLEARN2_DATA_PATH}/cifar10/pylearn2_gcn_whitened/train.pkl",
             preprocessor: !pkl: "${PYLEARN2_DATA_PATH}/cifar10/pylearn2_gcn_whitened/preprocessor.pkl",
             start: 0,
             stop: 40000,
             axes: ['c', 0, 1, 'b']
-    }},
+    },
     model: !obj:pylearn2.models.mlp.MLP {
         batch_size: 128,
         layers: [
@@ -113,7 +111,8 @@
             saturate: 500,
             decay_factor: .01
         },
-        !obj:pylearn2.train_extensions.window_flip.WindowAndFlipC01B {
+        !obj:pylearn2.train_extensions.window_flip.WindowAndFlip {
+            pad: 8,
             window_shape: *window_shape,
             randomize: [ *train],
             center: [ *valid ]

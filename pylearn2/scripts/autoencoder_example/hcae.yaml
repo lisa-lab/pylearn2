@@ -1,8 +1,8 @@
 !obj:pylearn2.train.Train {
-    "dataset": !obj:pylearn2.datasets.npy_npz.NpyDataset &dataset {
-        "file" : 'garbage.npy' # Should be an N x 300 matrix on disk.
+    "dataset": !obj:pylearn2.datasets.dense_design_matrix.DenseDesignMatrix &dataset {
+        "X" : !obj:numpy.random.normal { 'size':[5000,300] },
     },
-    "model": !obj:pylearn2.autoencoder.HigherOrderContractiveAutoencoder {
+    "model": !obj:pylearn2.models.autoencoder.HigherOrderContractiveAutoencoder {
         "nvis" : 300,
         "nhid" : 400,
         "irange" : 0.05,
@@ -13,17 +13,27 @@
         "act_enc": "sigmoid",
         "act_dec": "sigmoid",    # Linear activation on the decoder side.
     },
-    "algorithm": !obj:pylearn2.training_algorithms.sgd.ExhaustiveSGD {
+    "algorithm": !obj:pylearn2.training_algorithms.sgd.SGD {
         "learning_rate" : 1e-3,
         "batch_size" : 10,
         "monitoring_batches" : 5,
         "monitoring_dataset" : *dataset,
-        "cost" : [!obj:pylearn2.costs.autoencoder.MeanBinaryCrossEntropy {},
-                  !obj:pylearn2.costs.autoencoder.ScaleBy {
-                    cost: !obj:pylearn2.costs.autoencoder.ModelMethodPenalty { method_name: contraction_penalty }, coefficient: 0.5 },
-                  !obj:pylearn2.costs.autoencoder.ScaleBy {
-                    cost: !obj:pylearn2.costs.autoencoder.ModelMethodPenalty { method_name: higher_order_penalty}, coefficient: 0.5 }],
-        "termination_criterion" : !obj:pylearn2.training_algorithms.sgd.EpochCounter {
+        cost : !obj:pylearn2.costs.cost.SumOfCosts { 
+            costs: [
+                [1.0, !obj:pylearn2.costs.autoencoder.MeanBinaryCrossEntropy {} ],
+                [0.1, !obj:pylearn2.costs.cost.MethodCost { method: 'contraction_penalty' } ]
+            ]
+        },
+
+        "cost" : !obj:pylearn2.costs.cost.SumOfCosts { 
+            "costs": [
+                [1.0, !obj:pylearn2.costs.autoencoder.MeanBinaryCrossEntropy {} ],
+                [0.5, !obj:pylearn2.costs.cost.MethodCost { "method": 'contraction_penalty' } ],
+                [0.5, !obj:pylearn2.costs.cost.MethodCost { "method": 'higher_order_penalty' } ],
+            ]
+        },
+
+        "termination_criterion" : !obj:pylearn2.termination_criteria.EpochCounter {
             "max_epochs": 20,
         },
     },

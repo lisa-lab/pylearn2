@@ -19,8 +19,8 @@ import warnings
 from pylearn2.packaged_dependencies.theano_linear.unshared_conv.localdot import LocalDot
 
 from pylearn2.utils import sharedX
-from pylearn2.linear.conv2d import default_rng
-from pylearn2.linear.conv2d import default_sparse_rng
+from pylearn2.utils.rng import make_np_rng
+from pylearn2.linear.conv2d import default_seed, default_sparse_seed
 from pylearn2.linear.linear_transform import LinearTransform
 
 class Local(LinearTransform, LocalDot):
@@ -40,6 +40,11 @@ class Local(LinearTransform, LocalDot):
             output_axes = ('c', 0, 1, 'b'),
          kernel_stride=(1, 1), pad=0,
          message = '', partial_sum=None):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         self.input_groups = input_groups
 
@@ -49,12 +54,17 @@ class Local(LinearTransform, LocalDot):
             filters=filters,
             irows=image_shape[0],
             icols=image_shape[1],
-            kernel_stride=kernel_stride,
+            subsample=kernel_stride,
             padding_start=pad,
             message='')
 
 
     def lmul(self, x):
+        """
+        .. todo::
+
+            WRITEME
+        """
 
         reshaped = x.reshape(( self.input_groups, x.shape[0] / self.input_groups, x.shape[1], x.shape[2], x.shape[3]))
 
@@ -63,6 +73,11 @@ class Local(LinearTransform, LocalDot):
         return out.reshape((out.shape[0] * out.shape[1], out.shape[2], out.shape[3], out.shape[4]))
 
     def get_params(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return [self._filters]
 
 
@@ -73,11 +88,15 @@ def make_random_local(irange, input_channels, input_axes, input_groups,
         kernel_shape,
         kernel_stride = (1,1), pad=0, message = "", rng = None,
         partial_sum = None):
-    """ Creates a Local with random weights.
+    """
+    .. todo::
+
+        WRITEME properly
+
+    Creates a Local with random weights.
     """
 
-    if rng is None:
-        rng = default_rng()
+    rng = make_np_rng(rng, default_seed, which_method='uniform')
 
     def num_pos(img, stride, kwidth):
         img = img + 2 * pad
@@ -107,13 +126,17 @@ def make_random_local(irange, input_channels, input_axes, input_groups,
 def make_sparse_random_local(num_nonzero, input_space, output_space,
         kernel_shape, batch_size, \
         kernel_stride = (1,1), border_mode = 'valid', message = "", rng=None):
+    """
+    .. todo::
+
+        WRITEME
+    """
     raise NotImplementedError("Not yet modified after copy-paste from "
             "pylearn2.linear.conv2d_c01b")
     """ Creates a Conv2D with random kernels, where the randomly initialized
     values are sparse"""
 
-    if rng is None:
-        rng = default_sparse_rng()
+    rng = make_np_rng(rng, default_sparse_seed, which_method=['randn','randint'])
 
     W = np.zeros(( output_space.num_channels, input_space.num_channels, \
             kernel_shape[0], kernel_shape[1]))

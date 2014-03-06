@@ -131,6 +131,17 @@ def test_batchwise_dropout():
     print d
     np.testing.assert_(np.any(d[0] != d[1]) or np.any(d[0] != d[2]))
 
+def test_str():
+    """
+    Make sure the __str__ method returns a string
+    """
+
+    mlp = MLP(nvis=2, layers=[Linear(2, 'h0', irange=0),
+                              Linear(2, 'h1', irange=0)])
+
+    s = str(mlp)
+
+    assert isinstance(s, basestring)
 
 if __name__ == "__main__":
     test_masked_fprop()

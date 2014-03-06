@@ -16,21 +16,42 @@ from numpy.testing import assert_
 
 
 def assert_equal(expected, actual):
-    """Equality assertion with a more informative error message."""
+    """
+    Equality assertion with a more informative error message.
+
+    Parameters
+    ----------
+    expected : WRITEME
+    actual : WRITEME
+    """
     if expected != actual:
         raise AssertionError("values not equal, expected: %r, actual: %r" %
                              (expected, actual))
 
 
 def assert_same_object(expected, actual):
-    """Asserting object identity."""
+    """
+    Asserting object identity.
+
+    Parameters
+    ----------
+    expected : WRITEME
+    actual : WRITEME
+    """
     if expected is not actual:
         raise AssertionError("values not identical, expected %r, actual %r" %
                              (expected, actual))
 
 
 def assert_contains(haystack, needle):
-    """Check if `needle` is in `haystack`, with an"""
+    """
+    Check if `needle` is in `haystack`.
+
+    Parameters
+    ----------
+    haystack : WRITEME
+    needle : WRITEME
+    """
     if needle not in haystack:
         raise AssertionError("item %r not found in collection %r" %
                              (needle, haystack))

@@ -30,7 +30,7 @@ install:
 # So we test with 0.9. Our internal buildbot have 0.7.2.
 # We install it later only for the PART that need it.
   - "pip install -q nose==1.0.0 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
-  - "pip install -q PIL --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
+  - "pip install -q Pillow --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
 #numexpr 2.0 need NumPy 1.6 or above. As we support NumPy 1.5,
 #we need an older numexpr version. numexpr is needed for pytables
   - "pip install -q numexpr==1.4.2 --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
@@ -43,8 +43,8 @@ install:
 #More recent version then the one in the os
   - "pip install -q pyflakes --use-mirrors || (cat /home/travis/.pip/pip.log; false)"
 
-  - "pip install -q git+git://git.assembla.com/jobman.git || cat /home/travis/.pip/pip.log"
-  - "pip install -q --no-deps git+git://github.com/Theano/Theano.git || cat /home/travis/.pip/pip.log"
+  - "pip install -q git+git://git.assembla.com/jobman.git || (cat /home/travis/.pip/pip.log; false)"
+  - "pip install -q --no-deps git+git://github.com/Theano/Theano.git || (cat /home/travis/.pip/pip.log ; false)"
   - cd pylearn2/utils/
   # Change this once we have a unified setup file.
   - python setup.py build_ext --inplace
@@ -68,7 +68,7 @@ script:
   - export THEANO_FLAGS=$FLAGS,warn.ignore_bug_before=all,on_opt_error=raise,on_shape_error=raise
   - export TRAVIS=1
   - nosetests --help
-  - theano-nose $PART
+  - theano-nose -v $PART
 
 after_failure:
   - cat /home/travis/.pip/pip.log

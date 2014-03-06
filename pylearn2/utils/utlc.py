@@ -10,46 +10,31 @@ from tempfile import TemporaryFile
 # Third-party imports
 import numpy
 import theano
-from pylearn.datasets.utlc import load_ndarray_dataset, load_sparse_dataset
-from pylearn2.utils import subdict, sharedX, embed
+from pylearn2.datasets.utlc import load_ndarray_dataset, load_sparse_dataset
+from pylearn2.utils import subdict, sharedX
 
 
 ##################################################
 # Shortcuts and auxiliary functions
 ##################################################
 
-
-"""
-this function marked deprecated by Ian Goodfellow
-TODO: find all uses of this function and remove it,
-      OR change the comment to explain why it needs to exist
-         if it is just intended to be used on shared variables,
-         shouldn't we just use get_value?
-
-def get_constant(variable, return_scalar=False):
-     Little hack to return the python value of a theano shared variable.
-
-    If return_scalar is True, and the constant is an ndarray of 0 dimensions,
-    the content of that ndarray will be returned instead.
-
-    try:
-        ret = theano.function([],
-                              variable,
-                              mode=theano.compile.Mode(linker='py')
-                              )()
-    except TypeError:
-        ret = variable
-    if isinstance(ret, numpy.ndarray) and ret.ndim == 0:
-        ret = ret.item()
-    return ret
-"""
-
-
-
 def getboth(dict1, dict2, key, default=None):
     """
     Try to retrieve key from dict1 if exists, otherwise try with dict2.
     If the key is not found in any of them, raise an exception.
+
+    Parameters
+    ----------
+    dict1 : dict
+        WRITEME
+    dict2 : dict
+        WRITEME
+    key : WRITEME
+    default : WRITEME
+
+    Returns
+    -------
+    WRITEME
     """
     try:
         return dict1[key]
@@ -66,6 +51,14 @@ def getboth(dict1, dict2, key, default=None):
 def load_data(conf):
     """
     Loads a specified dataset according to the parameters in the dictionary
+
+    Parameters
+    ----------
+    conf : WRITEME
+
+    Returns
+    -------
+    WRITEME
     """
     print '... loading dataset'
 
@@ -111,6 +104,12 @@ def save_submission(conf, valid_repr, test_repr):
     """
     Create a submission file given a configuration dictionary and a
     representation for valid and test.
+
+    Parameters
+    ----------
+    conf : WRITEME
+    valid_repr : WRITEME
+    test_repr : WRITEME
     """
     print '... creating zipfile'
 
@@ -159,6 +158,12 @@ def create_submission(conf, transform_valid, transform_test=None, features=None)
 
     Note that it always reload the datasets to ensure valid & test
     are not permuted.
+
+    Parameters
+    ----------
+    transform_valid : WRITEME
+    transform_test : WRITEME
+    features : WRITEME
     """
     if transform_test is None:
         transform_test = transform_valid
@@ -195,6 +200,15 @@ def compute_alc(valid_repr, test_repr):
     Note: This proxy won't work in the case of transductive learning
     (This is an assumption) but it seems to be a good proxy in the
     normal case (i.e only train on training set)
+
+    Parameters
+    ----------
+    valid_repr : WRITEME
+    test_repr : WRITEME
+
+    Returns
+    -------
+    WRITEME
     """
 
     # Concatenate the sets, and give different one hot labels for valid and test
@@ -210,10 +224,18 @@ def compute_alc(valid_repr, test_repr):
     label = numpy.vstack((_labvalid, _labtest))
 
     print '... computing the ALC'
-    return embed.score(dataset, label)
+    raise NotImplementedError("This got broken by embed no longer being "
+            "where it used to be (if it even still exists, I haven't "
+            "looked for it)")
+    # return embed.score(dataset, label)
 
 
 def lookup_alc(data, transform):
+    """
+    .. todo::
+
+        WRITEME
+    """
     valid_repr = transform(data[1].get_value(borrow=True))
     test_repr = transform(data[2].get_value(borrow=True))
 

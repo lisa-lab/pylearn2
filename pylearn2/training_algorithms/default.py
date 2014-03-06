@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 from pylearn2.monitor import Monitor
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 from pylearn2.utils import safe_zip
@@ -6,19 +11,35 @@ import theano.tensor as T
 
 
 class DefaultTrainingAlgorithm(TrainingAlgorithm):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, batch_size=None, batches_per_iter=1000,
                  monitoring_batches=-1, monitoring_dataset=None,
                  termination_criterion=None):
         """
-        if batch_size is None, reverts to the force_batch_size field of the
-        model
-        termination_criterion: if specified, can cause the algorithm to terminate
-                before model.learn_batch says to
+        Parameters
+        ----------
+        batch_size : int
+            If batch_size is None, reverts to the `force_batch_size` field of \
+            the model
+        batches_per_iter : int
+            WRITEME
+        monitoring_batches : int
+            WRITEME
+        monitoring_dataset: Dataset or dict
+            A Dataset or a dictionary mapping string dataset names to Datasets
+        termination_criterion : WRITEME
+            If specified, can cause the algorithm to terminate before \
+            `model.learn_batch` says to
         """
         self.batch_size, self.batches_per_iter = batch_size, batches_per_iter
         if monitoring_dataset is None:
             assert monitoring_batches == -1
-        self.monitoring_dataset = monitoring_dataset
+
+        self._set_monitoring_dataset(monitoring_dataset)
         self.monitoring_batches = monitoring_batches
         self.bSetup = False
         self.termination_criterion = termination_criterion
@@ -32,11 +53,12 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
 
         Parameters
         ----------
-        model: a Python object representing the model to train loosely
-        implementing the interface of models.model.Model.
+        model : object
+            Python object representing the model to train loosely \
+            implementing the interface of models.model.Model.
 
-        dataset: a pylearn2.datasets.dataset.Dataset object used to draw
-        training data
+        dataset : pylearn2.datasets.dataset.Dataset
+            Dataset object used to draw training data
         """
         self.model = model
 
@@ -54,37 +76,51 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
             source_tuple = mapping.flatten(source, return_tuple=True)
             # Then, build a flat tuple of these Theano variables
             ipt = tuple(sp.make_theano_batch(name='monitor_%s' % src)
-                    for (sp, src) in safe_zip(space_tuple, source_tuple))
+                        for (sp, src) in safe_zip(space_tuple, source_tuple))
             # Finally, organize them back into a structure expected by the
             # monitoring channels of the model
             nested_ipt = mapping.nest(ipt)
-
-            self.monitor.add_dataset(dataset=self.monitoring_dataset,
-                                mode="sequential",
-                                batch_size=self.batch_size,
-                                num_batches=self.monitoring_batches)
 
             channels = model.get_monitoring_channels(nested_ipt)
             if not isinstance(channels, dict):
                 raise TypeError("model.get_monitoring_channels must return a "
                                 "dictionary, but it returned " + str(channels))
-            for name in channels:
-                J = channels[name]
-                if isinstance(J, tuple):
-                    assert len(J) == 2
-                    J, prereqs = J
-                else:
-                    prereqs = None
 
-                self.monitor.add_channel(name=name,
-                                         ipt=nested_ipt,
-                                         val=J,
-                                         prereqs=prereqs,
-                                         data_specs=(space, source))
+            for dataset_name in self.monitoring_dataset:
+                if dataset_name == '':
+                    prefix = ''
+                else:
+                    prefix = dataset_name + '_'
+                monitoring_dataset = self.monitoring_dataset[dataset_name]
+
+                self.monitor.add_dataset(dataset=monitoring_dataset,
+                                         mode="sequential",
+                                         batch_size=self.batch_size)
+
+                for name in channels:
+                    J = channels[name]
+                    if isinstance(J, tuple):
+                        assert len(J) == 2
+                        J, prereqs = J
+                    else:
+                        prereqs = None
+
+                    self.monitor.add_channel(name=prefix + name,
+                                             ipt=nested_ipt,
+                                             val=J,
+                                             dataset=monitoring_dataset,
+                                             prereqs=prereqs,
+                                             data_specs=(space, source))
+
         self.first = True
         self.bSetup = True
 
     def train(self, dataset):
+        """
+        .. todo::
+
+            WRITEME
+        """
         assert self.bSetup
         model = self.model
         if self.batch_size is None:
@@ -96,7 +132,8 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
                         model.force_batch_size)
 
         for i in xrange(self.batches_per_iter):
-            # model.train_batch and self.train both return False when training should terminate.
+            # model.train_batch and self.train both return False when training
+            # should terminate.
             learn_more = model.train_batch(dataset, batch_size)
             model.monitor.report_batch(batch_size)
             if not learn_more:
@@ -104,16 +141,20 @@ class DefaultTrainingAlgorithm(TrainingAlgorithm):
 
         # Make sure we didn't exit training loop because Model.learn
         # hasn't been updated to new interface yet.
-        if learn_more not in [True,False]:
-            msg = ('The learn method of model %s did not return a boolean value.' +
-                   'Please update your model accordingly.')
+        if learn_more not in [True, False]:
+            msg = ('The learn method of model %s did not return a boolean ' +
+                   'value. Please update your model accordingly.')
             raise ValueError(msg % str(model))
         self.learn_more = learn_more
 
     def continue_learning(self, model):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if self.learn_more:
             if self.termination_criterion is not None:
                 return self.termination_criterion.continue_learning(model)
             return True
         return False
-

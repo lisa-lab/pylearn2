@@ -8,12 +8,21 @@ If you are not working from the LISA lab, you'll need to setup
 the dataset yourself.
 Be sure to follow the "Download and Installation" instructions at
 http://deeplearning.net/software/pylearn2/ to set up your
-PYLEARN2_DATA_PATH directory. Then make a directory called
-${PYLEARN2_DATA_PATH}/cifar10 and put the python version of
-the CIFAR-10 dataset inside of it, with the path
-${PYLEARN2_DATA_PATH}/cifar10/cifar-10-batches-py.
-If you don't have the CIFAR-10 dataset already, you can download it
-from http://www.cs.utoronto.ca/~kriz/cifar.html
+PYLEARN2_DATA_PATH directory.
+
+
+Step 0: Download the CIFAR-10 dataset
+------------------------------------
+People working from the LISA lab can skip this step.
+
+To download the CIFAR-10 dataset and put it in the right place, you can call
+
+pylearn2/scripts/download_cifar10.sh
+
+from this directory. It will get the python dataset from
+http://www.cs.utoronto.ca/~kriz/cifar.html and extract it into
+${PYLEARN2_DATA_PATH}/cifar10/cifar-10-batches-py
+
 
 Once you have the data, there are three steps to do in pylearn2.
 
@@ -38,7 +47,9 @@ pylearn2 datasets.
 As a brief summary, this script will load the CIFAR10 database of
 32x32 color images. It will extract 8x8 pixel patches from them,
 run a regularized version of contrast normalization and whitening
-on them, then save them to cifar10_preprocessed_train.pkl.
+on them, then save the preprocessing parameters to
+cifar10_preprocessed_train.pkl and the preprocessed database to
+train_design.npy.
 
 
 Step 2: Train the model
@@ -61,13 +72,10 @@ cifar_grbm_smd.pkl. This file will contain a gaussian binary
 RBM trained using denoising score matching.
 
 
-
 Step 3: Inspect the model
 -------------------------
-
 pylearn2/scripts/show_weights.py and pylearn2/scripts/plot_monitor.py
 should have executable permissions.
-
 
 From this directory, run
 

@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import os, cPickle, logging
 _logger = logging.getLogger(__name__)
 
@@ -6,10 +11,29 @@ N = np
 from pylearn2.datasets import dense_design_matrix
 from pylearn2.expr.preprocessing import global_contrast_normalize
 
+
 class CIFAR10(dense_design_matrix.DenseDesignMatrix):
+    """
+    .. todo::
+
+        WRITEME
+    """
     def __init__(self, which_set, center = False, rescale = False, gcn = None,
             one_hot = False, start = None, stop = None, axes=('b', 0, 1, 'c'),
             toronto_prepro = False, preprocessor = None):
+        """
+        Parameters
+        ----------
+        which_set : str
+            One of 'train', 'test'
+        gcn : float, optional
+            Multiplicative constant to use for global contrast normalization.
+            No global contrast normalization is applied, if None
+
+        .. todo::
+
+            WRITEME
+        """
 
 
         # note: there is no such thing as the cifar10 validation set;
@@ -118,7 +142,7 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
 
         view_converter = dense_design_matrix.DefaultViewConverter((32,32,3), axes)
 
-        super(CIFAR10,self).__init__(X = X, y = y, view_converter = view_converter)
+        super(CIFAR10, self).__init__(X=X, y=y, view_converter=view_converter)
 
         assert not np.any(np.isnan(self.X))
 
@@ -126,6 +150,11 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
             preprocessor.apply(self)
 
     def adjust_for_viewer(self, X):
+        """
+        .. todo::
+
+            WRITEME
+        """
         #assumes no preprocessing. need to make preprocessors mark the new ranges
         rval = X.copy()
 
@@ -154,6 +183,11 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         return rval
 
     def adjust_to_be_viewed_with(self, X, orig, per_example = False):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # if the scale is set based on the data, display X oring the scale determined
         # by orig
         # assumes no preprocessing. need to make preprocessors mark the new ranges
@@ -188,6 +222,11 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
         return rval
 
     def get_test_set(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return CIFAR10(which_set='test', center=self.center, rescale=self.rescale, gcn=self.gcn,
                 one_hot=self.one_hot, toronto_prepro=self.toronto_prepro, axes=self.axes)
 
@@ -195,8 +234,10 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
     @classmethod
     def _unpickle(cls, file):
         """
-        TODO: wtf is this? why not just use serial.load like the CIFAR-100 class?
-        whoever wrote it shows up as "unknown" in git blame
+        .. todo::
+
+            What is this? why not just use serial.load like the CIFAR-100
+            class? Whoever wrote it shows up as "unknown" in git blame.
         """
         from pylearn2.utils import string_utils
         fname = os.path.join(
@@ -206,7 +247,8 @@ class CIFAR10(dense_design_matrix.DenseDesignMatrix):
                 file)
         if not os.path.exists(fname):
             raise IOError(fname+" was not found. You probably need to download "
-                    " the CIFAR-10 dataset from http://www.cs.utoronto.ca/~kriz/cifar.html")
+                    "the CIFAR-10 dataset by using the download script in pylearn2/scripts/download_cifar10.sh "
+                    "or manually from http://www.cs.utoronto.ca/~kriz/cifar.html")
         _logger.info('loading file %s' % fname)
         fo = open(fname, 'rb')
         dict = cPickle.load(fo)

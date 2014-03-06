@@ -23,9 +23,9 @@ Pylearn2 Vision
 * A machine learning toolbox for easy scientific experimentation.
 * All models/algorithms published by the LISA lab should have reference implementations
   in Pylearn2.
-* Pylearn2 may wrap other libraries such as scikits.learn when this is practical
-* Pylearn2 differs from scikits.learn in that Pylearn2 aims to provide great flexibility
-  and make it possible for a researcher to do almost anything, while scikits.learn
+* Pylearn2 may wrap other libraries such as scikit-learn when this is practical
+* Pylearn2 differs from scikit-learn in that Pylearn2 aims to provide great flexibility
+  and make it possible for a researcher to do almost anything, while scikit-learn
   aims to work as a "black box" that can produce good results even if the user does not
   understand the implementation
 * Dataset interface for vector, images, video, ...
@@ -83,7 +83,7 @@ Dependencies
       manually.
     * The original `Pylearn <http://deeplearning.net/software/pylearn/>`_ project is required
       for loading some datasets, such as the Unsupervised and Transfer Learning Challenge datasets
-    * Some features (SVMs) depend on scikits-learn.
+    * Some features (SVMs) depend on scikit-learn.
 
 License and Citations
 =====================
@@ -117,7 +117,7 @@ Roughly in order of what you'll want to check out:
 * :ref:`features` -- A list of features available in the library.
 * :ref:`overview` -- A detailed but high-level overview of how Pylearn2 works. This is the
   place to start if you want to really learn the library.
-* :ref:`libdoc` -- Documentation of the libray modules.
+* :ref:`libdoc` -- Documentation of the library modules.
 * :ref:`cluster` -- The tools we use at LISA for running Pylearn2 jobs on HPC clusters.
 * :ref:`vision` -- Some more detailed elaboration of some points of the Pylearn2 vision.
 

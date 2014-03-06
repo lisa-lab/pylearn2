@@ -1,3 +1,8 @@
+"""
+.. todo::
+
+    WRITEME
+"""
 import cPickle
 import pickle
 import numpy as np
@@ -10,11 +15,15 @@ from cPickle import BadPickleGet
 io = None
 hdf_reader = None
 import struct
-from pylearn2.utils import environ
 from pylearn2.utils.string_utils import match
 import shutil
 
 def raise_cannot_open(path):
+    """
+    .. todo::
+
+        WRITEME
+    """
     pieces = path.split('/')
     for i in xrange(1,len(pieces)+1):
         so_far = '/'.join(pieces[0:i])
@@ -46,7 +55,33 @@ def raise_cannot_open(path):
     assert False
 
 def load(filepath, recurse_depth=0, retry = True):
+    """
+    Parameters
+    ----------
+    filepath : str
+        A path to a file to load. Should be a pickle, Matlab, or NumPy
+        file.
+    recurse_depth : int
+        End users should not use this argument. It is used by the function
+        itself to implement the `retry` option recursively.
+    retry : bool
+        If True, will make a handful of attempts to load the file before
+        giving up. This can be useful if you are for example calling
+        show_weights.py on a file that is actively being written to by a
+        training script--sometimes the load attempt might fail if the
+        training script writes at the same time show_weights tries to
+        read, but if you try again after a few seconds you should be able
+        to open the file.
 
+    Returns
+    -------
+    loaded_object : object
+        The object that was stored in the file.
+
+    ..todo
+
+        Refactor to hide recurse_depth from end users
+    """
     try:
         import joblib
         joblib_available = True
@@ -55,7 +90,7 @@ def load(filepath, recurse_depth=0, retry = True):
     if recurse_depth == 0:
         filepath = preprocess(filepath)
 
-    if filepath.endswith('.npy'):
+    if filepath.endswith('.npy') or filepath.endswith('.npz'):
         return np.load(filepath)
 
     if filepath.endswith('.mat'):
@@ -104,8 +139,16 @@ def load(filepath, recurse_depth=0, retry = True):
                 if os.path.exists(filepath) and not os.path.isdir(filepath):
                     raise
                 raise_cannot_open(filepath)
-
-
+    except MemoryError, e:
+        # We want to explicitly catch this exception because for MemoryError
+        # __str__ returns the empty string, so some of our default printouts
+        # below don't make a lot of sense.
+        # Also, a lot of users assume any exception is a bug in the library,
+        # so we can cut down on mail to pylearn-users by adding a message
+        # that makes it clear this exception is caused by their machine not
+        # meeting requirements.
+        raise MemoryError("You do not have enough memory to open " +
+                filepath)
     except BadPickleGet, e:
         print ('Failed to open ' + str(filepath) +
                ' due to BadPickleGet with exception string ' + str(e))
@@ -157,7 +200,6 @@ def load(filepath, recurse_depth=0, retry = True):
 
     return obj
 
-
 def save(filepath, obj, on_overwrite = 'ignore'):
     """
     Serialize `object` to a file denoted by `filepath`.
@@ -165,26 +207,25 @@ def save(filepath, obj, on_overwrite = 'ignore'):
     Parameters
     ----------
     filepath : str
-        A filename. If the suffix is `.joblib` and joblib can be
-        imported, `joblib.dump` is used in place of the regular
-        pickling mechanisms; this results in much faster saves by
-        saving arrays as separate .npy files on disk. If the file
-        suffix is `.npy` than `numpy.save` is attempted on `obj`.
+        A filename. If the suffix is `.joblib` and joblib can be \
+        imported, `joblib.dump` is used in place of the regular \
+        pickling mechanisms; this results in much faster saves by \
+        saving arrays as separate .npy files on disk. If the file \
+        suffix is `.npy` than `numpy.save` is attempted on `obj`. \
         Otherwise, (c)pickle is used.
 
     obj : object
         A Python object to be serialized.
 
-    on_overwrite: A string specifying what to do if the file already
-                exists.
-                ignore: just overwrite it
-                backup: make a copy of the file (<filepath>.bak) and
-                        delete it when done saving the new copy.
-                        this allows recovery of the old version of
-                        the file if saving the new one fails
+    on_overwrite: str
+        A string specifying what to do if the file already exists.
+        Possible values include:
+
+        - "ignore" : Just overwrite the existing file.
+        - "backup" : Make a backup copy of the file (<filepath>.bak). Save the
+            new copy. Then delete the backup copy. This allows recovery of the
+            old version of the file if saving the new one fails.
     """
-
-
     filepath = preprocess(filepath)
 
     if os.path.exists(filepath):
@@ -228,7 +269,6 @@ def save(filepath, obj, on_overwrite = 'ignore'):
             finally:
                 sys.setrecursionlimit(old_limit)
 
-
 def get_pickle_protocol():
     """
     Allow configuration of the pickle protocol on a per-machine basis.
@@ -249,6 +289,11 @@ def get_pickle_protocol():
     return int(protocol_str)
 
 def _save(filepath, obj):
+    """
+    .. todo::
+
+        WRITEME
+    """
     try:
         import joblib
         joblib_available = True
@@ -324,18 +369,30 @@ def _save(filepath, obj):
                + str(e) +
                ' (perhaps your object is really big?)')
 
-
 def clone_via_serialize(obj):
+    """
+    .. todo::
+
+        WRITEME
+    """
     s = cPickle.dumps(obj, get_pickle_protocol())
     return cPickle.loads(s)
 
-
 def to_string(obj):
+    """
+    .. todo::
+
+        WRITEME
+    """
     return cPickle.dumps(obj, get_pickle_protocol())
 
 def from_string(s):
-    return cPickle.loads(s)
+    """
+    .. todo::
 
+        WRITEME
+    """
+    return cPickle.loads(s)
 
 def mkdir(filepath):
     """
@@ -343,6 +400,10 @@ def mkdir(filepath):
     directory and nest subdirectories to do so. Raises an error if the
     directory can't be made. Does not raise an error if the directory
     already exists.
+
+    Parameters
+    ----------
+    filepath : WRITEME
     """
     try:
         os.makedirs(filepath)
@@ -351,6 +412,11 @@ def mkdir(filepath):
             raise
 
 def read_int( fin, n = 1):
+    """
+    .. todo::
+
+        WRITEME
+    """
     if n == 1:
         s = fin.read(4)
         if len(s) != 4:
@@ -372,6 +438,11 @@ lush_magic = {
         }
 
 def read_bin_lush_matrix(filepath):
+    """
+    .. todo::
+
+        WRITEME
+    """
     f = open(filepath,'rb')
     try:
         magic = read_int(f)
@@ -407,29 +478,44 @@ def read_bin_lush_matrix(filepath):
 
     return rval
 
-def load_train_file(config_file_path):
-    """Loads and parses a yaml file for a Train object.
-    Publishes the relevant training environment variables"""
+def load_train_file(config_file_path, environ=None):
+    """
+    Loads and parses a yaml file for a Train object.
+    Publishes the relevant training environment variables
+
+    Parameters
+    ----------
+    config_file_path : Path to a config file containing a YAML string
+    describing a pylearn2.train.Train object
+    environ : dict, optional
+        A dictionary used for ${FOO} substitutions in addition to
+        environment variables when parsing the YAML file. If a key appears
+        both in `os.environ` and this dictionary, the value in this
+        dictionary is used.
+
+
+    Returns
+    -------
+    Object described by the YAML string stored in the config file
+    """
     from pylearn2.config import yaml_parse
 
     suffix_to_strip = '.yaml'
 
-    # publish environment variables related to file name
+    # Publish environment variables related to file name
     if config_file_path.endswith(suffix_to_strip):
         config_file_full_stem = config_file_path[0:-len(suffix_to_strip)]
     else:
         config_file_full_stem = config_file_path
 
-    for varname in ["PYLEARN2_TRAIN_FILE_NAME", #this one is deprecated
-            "PYLEARN2_TRAIN_FILE_FULL_STEM"]: #this is the new, accepted name
-        environ.putenv(varname, config_file_full_stem)
+    os.environ["PYLEARN2_TRAIN_FILE_FULL_STEM"] = config_file_full_stem
 
     directory = config_file_path.split('/')[:-1]
     directory = '/'.join(directory)
     if directory != '':
         directory += '/'
-    environ.putenv("PYLEARN2_TRAIN_DIR", directory)
-    environ.putenv("PYLEARN2_TRAIN_BASE_NAME", config_file_path.split('/')[-1] )
-    environ.putenv("PYLEARN2_TRAIN_FILE_STEM", config_file_full_stem.split('/')[-1] )
+    os.environ["PYLEARN2_TRAIN_DIR"] = directory
+    os.environ["PYLEARN2_TRAIN_BASE_NAME"] = config_file_path.split('/')[-1]
+    os.environ["PYLEARN2_TRAIN_FILE_STEM"] = config_file_full_stem.split('/')[-1]
 
-    return yaml_parse.load_path(config_file_path)
+    return yaml_parse.load_path(config_file_path, environ=environ)

@@ -10,7 +10,7 @@ This script computes both an estimate of the partition function of the provided
 DBM model and an estimate of the log-likelihood on the given training and test
 sets.
 
-This is garanteed to work only for DBMs with a BinaryVector visible layer and
+This is guaranteed to work only for DBMs with a BinaryVector visible layer and
 BinaryVectorMaxPool hidden layers with pool sizes of 1.
 
 It uses annealed importance sampling (AIS) to estimate Z, the partition
@@ -343,7 +343,11 @@ def compute_likelihood_given_logz(nsamples, psamples, batch_size, energy_fn,
     for i in xrange(0, len(test_x), batch_size):
 
         # Recast data as floatX and apply preprocessing if required
-        x = numpy.array(test_x[i:i + batch_size, :], dtype=floatX)
+        x = numpy.array(test_x[i:numpy.minimum(test_x.shape[0], i + batch_size), :], dtype=floatX)
+        batch_size0 = len(x)
+        if len(x) < batch_size:
+            # concatenate x to have some dummy entries
+            x = numpy.concatenate((x, numpy.zeros((batch_size-len(x),x.shape[1]), dtype=floatX)), axis=0)
 
         # Perform inference
         inference_fn(x)
@@ -364,11 +368,11 @@ def compute_likelihood_given_logz(nsamples, psamples, batch_size, energy_fn,
                 nsamples[ii].set_value(psample.get_value())
 
         # Compute sum of likelihood for current buffer
-        x_likelihood = numpy.sum(-energy_fn(1.0) + hq - log_z)
+        x_likelihood = numpy.sum((-energy_fn(1.0) + hq - log_z)[:batch_size0])
 
         # Perform moving average of negative likelihood
         # Divide by len(x) and not bufsize, since last buffer might be smaller
-        likelihood = (i * likelihood + x_likelihood) / (i + len(x))
+        likelihood = (i * likelihood + x_likelihood) / (i + batch_size0)
 
     return likelihood
 
@@ -506,7 +510,7 @@ def _e_step(psamples, W_list, b_list, n_steps=100, eps=1e-5):
 
 def estimate_likelihood(W_list, b_list, trainset, testset, free_energy_fn=None,
                         batch_size=100, large_ais=False, log_z=None,
-                        pos_mf_steps=1, pos_sample_steps=0):
+                        pos_mf_steps=50, pos_sample_steps=0):
     """
     Compute estimate of log-partition function and likelihood of trainset and
     testset
@@ -514,8 +518,6 @@ def estimate_likelihood(W_list, b_list, trainset, testset, free_energy_fn=None,
     Parameters
     ----------
     W_list : array-like object of theano shared variables
-        Weight matrices of the DBM. Its first element is ignored, since in the
-        Pylearn2 framework a visible layer does not have a weight matrix.
     b_list : array-like object of theano shared variables
         Biases of the DBM
     trainset : pylearn2.datasets.dataset.Dataset
@@ -531,6 +533,10 @@ def estimate_likelihood(W_list, b_list, trainset, testset, free_energy_fn=None,
     large_ais : boolean
         If True, will use 3e5 chains, instead of 3e4
     log_z : log-partition function (if precomputed)
+    pos_mf_steps: the number of fixed-point iterations for approximate inference
+    pos_sample_steps: same thing as pos_mf_steps
+        when both pos_mf_steps > 0 and pos_sample_steps > 0,
+        pos_mf_steps has a priority
 
     Returns
     -------
@@ -631,13 +637,13 @@ def estimate_likelihood(W_list, b_list, trainset, testset, free_energy_fn=None,
     # Default configuration for interpolating distributions
     if large_ais:
         betas = numpy.cast[floatX](
-            numpy.hstack((numpy.linspace(0, 0.5, 1e5),
-                         numpy.linspace(0.5, 0.9, 1e5),
+            numpy.hstack((numpy.linspace(0, 0.5, 1e5+1)[:-1],
+                         numpy.linspace(0.5, 0.9, 1e5+1)[:-1],
                          numpy.linspace(0.9, 1.0, 1e5))))
     else:
         betas = numpy.cast[floatX](
-            numpy.hstack((numpy.linspace(0, 0.5, 1e4),
-                         numpy.linspace(0.5, 0.9, 1e4),
+            numpy.hstack((numpy.linspace(0, 0.5, 1e4+1)[:-1],
+                         numpy.linspace(0.5, 0.9, 1e4+1)[:-1],
                          numpy.linspace(0.9, 1.0, 1e4))))
 
     if log_z is None:

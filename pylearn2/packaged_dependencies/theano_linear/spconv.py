@@ -18,14 +18,34 @@ from theano.printing import Print
 raise ImportError("THIS OLD CODE'S TESTS ARE BIT-ROTTEN")
 
 class RasterOrders(object):
+    """
+    .. todo::
+
+        WRITEME
+    """
     @staticmethod
     def row_col_channel(row, col, channel, n_rows, n_cols, n_channels):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return row * n_cols * n_channels + col * n_channels + channel
     @staticmethod
     def channel_row_col(row, col, channel, n_rows, n_cols, n_channels):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return channel * n_rows * n_cols + row * n_cols + col
 
 def conv_out_shp(IR, IC, KR, KC, border_mode, subsample):
+    """
+    .. todo::
+
+        WRITEME
+    """
     ssR, ssC = subsample
     def ceildiv(x, y):
         r = x // y
@@ -53,6 +73,22 @@ def sp_extract_patches(IR, IC, KR, KC, CH,
     The original image is presumed to be in row-major, channel-minor order:
     R(0,0) G(0,0) B(0,0) R(0,1), G(0,1), B(0,1), ...
 
+    Parameters
+    ----------
+    IR : WRITEME
+    IC : WRITEME
+    KR : WRITEME
+    KC : WRITEME
+    CH : WRITEME
+    input_raster_order : WRITEME
+    output_raster_order : WRITEME
+    subsample : WRITEME
+    border_mode : WRITEME
+    flip_patches : WRITEME
+
+    Returns
+    -------
+    WRITEME
     """
 
     ssR, ssC = subsample
@@ -94,6 +130,11 @@ def sp_extract_patches(IR, IC, KR, KC, CH,
 
 def conv2d_channel_minor(images, kerns, ishp4, kshp4, subsample=(1,1),
              border_mode='valid'):
+    """
+    .. todo::
+
+        WRITEME
+    """
     # start by computing output dimensions, size, etc
     B, IR, IC, C = ishp4
     K, KR, KC, CH = kshp4
@@ -127,6 +168,11 @@ def conv2d_channel_minor(images, kerns, ishp4, kshp4, subsample=(1,1),
 
 def conv2d(images, kerns, ishp4, kshp4, subsample=(1,1),
              border_mode='valid'):
+    """
+    .. todo::
+
+        WRITEME
+    """
     # start by computing output dimensions, size, etc
     B, C, IR, IC = ishp4
     K, CH, KR, KC = kshp4
@@ -161,6 +207,11 @@ def conv2d(images, kerns, ishp4, kshp4, subsample=(1,1),
 
 
 def register_specialize(lopt, *tags, **kwargs):
+    """
+    .. todo::
+
+        WRITEME
+    """
     theano.compile.optdb['specialize'].register((kwargs and kwargs.pop('name')) or lopt.__name__, lopt, 'fast_run', *tags)
 
 
@@ -169,9 +220,19 @@ class Remove0(Op):
     Remove explicit zeros from a sparse matrix, and resort indices
     """
     def make_node(self, x):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return gof.Apply(self, [x], [x.type()])
 
     def perform(self,node, (x,), (z,)):
+        """
+        .. todo::
+
+            WRITEME
+        """
         if x.format != 'csc':
             raise TypeError('Remove0 only works on csc matrices')
 
@@ -196,6 +257,11 @@ class Remove0(Op):
         z[0] = sparse.csc_matrix((new_data, new_indices, new_indptr), (M,N))
 
     def grad(self, (x,), (gz,)):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return [gz]
 
 remove0 = Remove0()
@@ -207,39 +273,74 @@ class EnsureSortedIndices(Op):
     inplace=False
 
     def __init__(self, inplace):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.inplace=inplace
         if self.inplace:
             self.view_map = {0:[0]}
 
     def make_node(self, x):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return gof.Apply(self, [x], [x.type()])
 
     def perform(self,node, (x,), (z,)):
+        """
+        .. todo::
+
+            WRITEME
+        """
         z[0] = x.ensure_sorted_indices(inplace=self.inplace)
 
     def grad(self, (x,), (gz,)):
+        """
+        .. todo::
+
+            WRITEME
+        """
         return [gz]
 
 ensure_sorted_indices = EnsureSortedIndices(inplace=False)
 
 def clean(x):
+    """
+    .. todo::
+
+        WRITEME
+    """
     return ensure_sorted_indices(remove0(x))
 
 
 def max_pool(images, imgshp, maxpoolshp):
-    """Implements a max pooling layer
+    """
+    Implements a max pooling layer
 
     Takes as input a 2D tensor of shape batch_size x img_size and performs max pooling.
     Max pooling downsamples by taking the max value in a given area, here defined by
     maxpoolshp. Outputs a 2D tensor of shape batch_size x output_size.
 
-    @param images: 2D tensor containing images on which to apply convolution.
-                   Assumed to be of shape batch_size x img_size
-    @param imgshp: tuple containing image dimensions
-    @param maxpoolshp: tuple containing shape of area to max pool over
+    Parameters
+    ----------
+    images : 2D tensor
+        Tensorcontaining images on which to apply convolution. Assumed to be \
+        of shape `batch_size x img_size`
+    imgshp : tuple
+        Tuple containing image dimensions
+    maxpoolshp : tuple
+        Tuple containing shape of area to max pool over
 
-    @output out1: symbolic result (2D tensor)
-    @output out2: logical shape of the output
+    Returns
+    -------
+    out1 : WRITEME
+        Symbolic result (2D tensor)
+    out2 : WRITEME
+        Logical shape of the output
     """
     N = numpy
     poolsize = N.int64(N.prod(maxpoolshp))
@@ -280,44 +381,67 @@ def max_pool(images, imgshp, maxpoolshp):
 
     return tensor.flatten(out3,2), outshp
 class ConvolutionIndices(Op):
-    """This generates a sparse matrix M, which generates a stack of image patches
-       when computing the dot product of M with image patch. Convolution is then
-       simply the dot product of (img x M) and the kernels.
+    """
+    This generates a sparse matrix M, which generates a stack of image patches
+    when computing the dot product of M with image patch. Convolution is then
+    simply the dot product of (img x M) and the kernels.
     """
 
     @staticmethod
     def sparse_eval(inshp, kshp, nkern, (dx,dy)=(1,1), mode='valid'):
+        """
+        .. todo::
+
+            WRITEME
+        """
         # STALE
         return convolution_indices.evaluate(inshp,kshp,(dx,dy),nkern,mode=mode,ws=False)
 
     @staticmethod
     def conv_eval(IR, IC, KR, KC, C, subsample=(1,1), mode='valid'):
+        """
+        .. todo::
+
+            WRITEME
+        """
         raise NotImplementedError('TODO: fix broken method')
         #return convolution_indices.evaluate(IR, IC, KR, KC, C, (dx,dy), mode=mode, ws=True)
 
     # img_shape and ker_shape are (height,width)
     @staticmethod
     def evaluate(imshp,kshp, (dx,dy)=(1,1), nkern=1, mode='valid', ws=True):
-        """Build a sparse matrix which can be used for performing...
-        * convolution: in this case, the dot product of this matrix with the input
-          images will generate a stack of images patches. Convolution is then a
-          tensordot operation of the filters and the patch stack.
-        * sparse local connections: in this case, the sparse matrix allows us to operate
-          the weight matrix as if it were fully-connected. The structured-dot with the
-          input image gives the output for the following layer.
+        """
+        Build a sparse matrix which can be used for performing...
+        * convolution: in this case, the dot product of this matrix with the
+          input images will generate a stack of images patches. Convolution is
+          then a tensordot operation of the filters and the patch stack.
+        * sparse local connections: in this case, the sparse matrix allows us
+          to operate the weight matrix as if it were fully-connected. The
+          structured-dot with the input image gives the output for the
+          following layer.
 
-        @param ker_shape: shape of kernel to apply (smaller than image)
-        @param img_shape: shape of input images
-        @param mode: 'valid' generates output only when kernel and image overlap
-            full' full convolution obtained by zero-padding the input
-        @param ws: True if weight sharing, false otherwise
-        @param (dx,dy): offset parameter. In the case of no weight sharing, gives the
-            pixel offset between two receptive fields. With weight sharing gives the
-            offset between the top-left pixels of the generated patches
+        Parameters
+        ----------
+        ker_shape : tuple
+            Shape of kernel to apply (smaller than image)
+        img_shape: tuple
+            Shape of input images
+        mode : str
+            'valid' generates output only when kernel and image overlap. \
+            'full' full convolution obtained by zero-padding the input
+        ws : bool
+            True if weight sharing, False otherwise
+        (dx,dy) : tuple of int
+            Offset parameter. In the case of no weight sharing, gives the \
+            pixel offset between two receptive fields. With weight sharing \
+            gives the offset between the top-left pixels of the generated \
+            patches
 
-        @rtype: tuple(indices, indptr, logical_shape, sp_type, out_img_shp)
-        @returns: the structure of a sparse matrix, and the logical dimensions of the image
-        which will be the result of filtering.
+        Returns
+        -------
+        rval : tuple(indices, indptr, logical_shape, sp_type, out_img_shp)
+            The structure of a sparse matrix, and the logical dimensions of \
+            the image which will be the result of filtering.
         """
         N = numpy
 
@@ -450,6 +574,11 @@ class ConvolutionIndices(Op):
 
     def perform(self, node, (inshp, kshp),\
                 (out_indices, out_indptr, spmat_shape)):
+        """
+        .. todo::
+
+            WRITEME
+        """
         indices, indptr, spmatshp, outshp = self.evaluate(inshp, kshp)
         out_indices[0] = indices
         out_indptr[0] = indptr
@@ -459,36 +588,51 @@ convolution_indices = ConvolutionIndices()
 
 def applySparseFilter(kerns, kshp, nkern, images, imgshp, step=(1,1), bias=None, mode='valid'):
     """
-     === Input / Output conventions===
-    "images" is assumed to be a matrix of shape batch_size x img_size, where the second
-    dimension represents each image in raster order
+    WRITEME
 
-    Output feature map will have shape:
-       batch_size x number of kernels * output_size
-    IMPORTANT: note that this means that each feature map is contiguous in memory.
-               The memory layout will therefore be:
-               [ <feature_map_0> <feature_map_1> ... <feature_map_n>],
-               where <feature_map> represents a "feature map" in raster order
-    Note that the concept of feature map doesn't really apply to sparse filters without
-    weight sharing. Basically, nkern=1 will generate one output img/feature map,
-    nkern=2 a second feature map, etc.
+    Output feature map will have shape
+    `batch_size x number of kernels * output_size`.
 
-    kerns is a 1D tensor, and assume to be of shape:
-       nkern * N.prod(outshp) x N.prod(kshp)
     Each filter is applied seperately to consecutive output pixels.
 
-    @param kerns: nkern*outsize*ksize vector containing kernels
-    @param kshp: tuple containing actual dimensions of kernel (not symbolic)
-    @param nkern: number of kernels to apply at each pixel in the input image.
-                  nkern=1 will apply a single unique filter for each input pixel.
-    @param images: bsize x imgsize matrix containing images on which to apply filters
-    @param imgshp: tuple containing actual image dimensions (not symbolic)
-    @param step: determines number of pixels between adjacent receptive fields
-                 (tuple containing dx,dy values)
-    @param mode: 'full', 'valid' see CSM.evaluate function for details
-    @output out1: symbolic result
-    @output out2: logical shape of the output img (nkern,height,width)
-                  (after dot product, not of the sparse matrix!)
+    Parameters
+    ----------
+    kerns : 1D tensor_like
+        `nkern * outsize * ksize` vector containing kernels
+    kshp : tuple
+        Tuple containing actual dimensions of kernel (not symbolic)
+    nkern : int
+        Number of kernels to apply at each pixel in the input image. \
+        `nkern = 1` will apply a single unique filter for each input pixel.
+    images : WRITEME
+        `bsize x imgsize` matrix containing images on which to apply filters. \
+        Second dimension represents each image in raster order.
+    imgshp : tuple
+        Tuple containing actual image dimensions (not symbolic)
+    step : WRITEME
+        Determines number of pixels between adjacent receptive fields \
+        (tuple containing dx,dy values)
+    mode : str
+        'full', 'valid' see `CSM.evaluate` function for details
+
+    Returns
+    -------
+    out1 : WRITEME
+        Symbolic result
+    out2 : WRITEME
+        Logical shape of the output img (nkern,height,width) \
+        (after dot product, not of the sparse matrix!)
+
+    Notes
+    -----
+    Note that this means that each feature map is contiguous in memory.
+    The memory layout will therefore be
+    `[ <feature_map_0> <feature_map_1> ... <feature_map_n>]`,
+    where `<feature_map>` represents a "feature map" in raster order.
+
+    Also, the concept of feature map doesn't really apply to sparse filters
+    without weight sharing. Basically, nkern=1 will generate one output
+    img/feature map, nkern=2 a second feature map, etc.
     """
 
     # inshp contains either 2 entries (height,width) or 3 (nfeatures,h,w)
@@ -507,6 +651,3 @@ def applySparseFilter(kerns, kshp, nkern, images, imgshp, step=(1,1), bias=None,
         output += bias
 
     return output, numpy.hstack((nkern,outshp))
-
-
-

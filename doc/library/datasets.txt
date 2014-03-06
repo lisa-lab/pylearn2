@@ -63,4 +63,151 @@ STL 10
 .. automodule:: pylearn2.datasets.stl10
     :members:
 
+Adult
+=====
+.. automodule:: pylearn2.datasets.adult
+    :members:
 
+Binarizer
+=========
+.. automodule:: pylearn2.datasets.binarizer
+    :members:
+
+COS dataset
+===========
+.. automodule:: pylearn2.datasets.cos_dataset
+    :members:
+
+CSV dataset
+===========
+.. automodule:: pylearn2.datasets.csv_dataset
+    :members:
+
+Hepatitis
+=========
+.. automodule:: pylearn2.datasets.hepatitis
+    :members:
+
+Icml07
+======
+.. automodule:: pylearn2.datasets.icml07
+    :members:
+
+Iris
+====
+.. automodule:: pylearn2.datasets.iris
+    :members:
+
+Matlab Dataset
+==============
+.. automodule:: pylearn2.datasets.matlab_dataset
+    :members:
+
+Norb
+====
+.. automodule:: pylearn2.datasets.norb
+    :members:
+
+Small Norb
+==========
+.. automodule:: pylearn2.datasets.norb_small
+    :members:
+
+Npy dataset
+===========
+.. automodule:: pylearn2.datasets.npy_npz
+    :members:
+
+OCR
+===
+.. automodule:: pylearn2.datasets.ocr
+    :members:
+
+Sparse dataset
+==============
+.. automodule:: pylearn2.datasets.sparse_dataset
+    :members:
+
+Toronto Face Dataset
+====================
+.. automodule:: pylearn2.datasets.tfd
+    :members:
+
+NIPS 2011 Transfer Learning Challenge
+=====================================
+.. automodule:: pylearn2.datasets.tl_challenge
+    :members:
+
+Transformer dataset
+===================
+.. automodule:: pylearn2.datasets.transformer_dataset
+    :members:
+
+Vector spaces dataset
+=====================
+.. automodule:: pylearn2.datasets.vector_spaces_dataset
+    :members:
+
+Wiskott
+=======
+.. automodule:: pylearn2.datasets.wiskott
+    :members:
+
+Zca dataset
+===========
+.. automodule:: pylearn2.datasets.zca_dataset
+    :members:
+
+#######################
+Other view converters
+#######################
+
+
+Retina
+====================
+.. automodule:: pylearn2.datasets.retina
+    :members:
+
+#####
+Other
+#####
+
+Config
+======
+.. automodule:: pylearn2.datasets.config
+    :members:
+
+Control
+=======
+.. automodule:: pylearn2.datasets.control
+    :members:
+
+Debug
+=====
+.. automodule:: pylearn2.datasets.debug
+    :members:
+
+Exception
+=========
+.. automodule:: pylearn2.datasets.exc
+    :members:
+
+File Tensor
+===========
+.. automodule:: pylearn2.datasets.filetensor
+    :members:
+
+Four regions
+============
+.. automodule:: pylearn2.datasets.four_regions
+    :members:
+
+Preprocessing
+=============
+.. automodule:: pylearn2.datasets.preprocessing
+    :members:
+
+Utilities
+=========
+.. automodule:: pylearn2.datasets.utlc
+    :members:

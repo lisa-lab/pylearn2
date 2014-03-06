@@ -16,6 +16,10 @@ from theano import tensor as T
 
 def softmax_numpy(x):
     """
+    .. todo::
+
+        WRITEME properly
+
     x: a matrix
     returns a vector, with rval[i] being the softmax of row i of x
     """
@@ -25,6 +29,10 @@ def softmax_numpy(x):
 
 def pseudoinverse_softmax_numpy(x):
     """
+    .. todo::
+
+        WRITEME properly
+
     x: a vector
     returns y, such that softmax(y) = x
     This problem is underdetermined, so we also impose y.mean() = 0
@@ -34,13 +42,28 @@ def pseudoinverse_softmax_numpy(x):
     return rval
 
 def sigmoid_numpy(x):
+    """
+    .. todo::
+
+        WRITEME
+    """
     assert not isinstance(x, theano.gof.Variable)
     return 1. / (1. + np.exp(-x))
 
 def inverse_sigmoid_numpy(x):
+    """
+    .. todo::
+
+        WRITEME
+    """
     return np.log(x / (1. - x))
 
 def arg_of_softmax(Y_hat):
+    """
+    .. todo::
+
+        WRITEME
+    """
     assert hasattr(Y_hat, 'owner')
     owner = Y_hat.owner
     assert owner is not None
@@ -59,6 +82,11 @@ def arg_of_softmax(Y_hat):
     return z
 
 def softmax_ratio(numer, denom):
+    """
+    .. todo::
+
+        WRITEME
+    """
 
     numer_Z = arg_of_softmax(numer)
     denom_Z = arg_of_softmax(denom)

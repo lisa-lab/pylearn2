@@ -1,0 +1,25 @@
+=============
+Distributions
+=============
+
+Multivariate Normal Distribution
+================================
+.. automodule:: pylearn2.distributions.mnd
+    :members:
+
+Multinomial
+===========
+.. automodule:: pylearn2.distributions.multinomial
+    :members:
+
+Parzen
+======
+.. automodule:: pylearn2.distributions.parzen
+    :members:
+
+Uniform Hypersphere
+===================
+.. automodule:: pylearn2.distributions.uniform_hypersphere
+    :members:
+
+

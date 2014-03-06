@@ -6,15 +6,14 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
-import warnings
-
-import numpy as np
+from itertools import izip as izip_no_length_check
 
 from theano.compat.python2x import OrderedDict
 from theano import tensor as T
-from theano import shared
 
 from pylearn2.space import NullSpace
+from pylearn2.utils import function
+from pylearn2.utils.track_version import MetaLibVersion
 
 
 class Model(object):
@@ -22,43 +21,51 @@ class Model(object):
     A class representing a model with learnable parameters.
     """
 
+    __metaclass__ = MetaLibVersion
+    _test_batch_size = 2
+
     def get_default_cost(self):
         """
-        Returns the default cost to use with this model.
+        Returns
+        -------
+        default_cost : Cost
+            The default cost to use with this model.
         """
 
-        raise NotImplementedError(str(type(self))+ " does not implement get_default_cost.")
+        raise NotImplementedError(str(type(self)) +
+                                  " does not implement get_default_cost.")
 
     def train_all(self, dataset):
         """
-        If implemented, performs one epoch of training.
-        This method is useful for models with highly specialized training
-        algorithms for which is does not make much sense to factor the training
-        code into a separate class. It is also useful for implementors that want
-        to make their model trainable without enforcing compatibility with
-        pylearn2 TrainingAlgorithms.
+        If implemented, performs one epoch of training.  This method is useful
+        for models with highly specialized training algorithms for which is
+        does not make much sense to factor the training code into a separate
+        class. It is also useful for implementors that want to make their model
+        trainable without enforcing compatibility with pylearn2
+        TrainingAlgorithms.
 
         Parameters
         ----------
-        dataset: The pylearn2.datasets.dataset.Dataset object to draw training
-                data from
-
-        Return value:
-            None
+        dataset: pylearn2.datasets.dataset.Dataset
+            Dataset object to draw training data from
         """
-        raise NotImplementedError(str(type(self))+" does not implement train_all.")
+        raise NotImplementedError(str(type(self)) +
+                                  " does not implement train_all.")
 
     def continue_learning(self):
         """
-        If train_all is used to train the model, this method is used to determine
-        when the training process has converged. This method is called after the
-        monitor has been run on the latest parameters.
+        If train_all is used to train the model, this method is used to
+        determine when the training process has converged. This method is
+        called after the monitor has been run on the latest parameters.
 
-        Returns: True/False. True indicates training should continue.
+        Returns
+        -------
+        rval : bool
+            True if training should continue
         """
 
-        raise NotImplementedError(str(type(self))+" does not implement continue_learning.")
-
+        raise NotImplementedError(str(type(self)) +
+                                  " does not implement continue_learning.")
 
     def train_batch(self, dataset, batch_size):
         """
@@ -68,17 +75,32 @@ class Model(object):
         ----------
         dataset: pylearn2.datasets.dataset.Dataset
                 The object to draw training data from.
-        batch_size: integer
+        batch_size: int
                 Size of the minibatch to draw from dataset.
 
-        Return value:
-            True if the method should be called again for another update.
+        Returns
+        -------
+        rval : bool
+            True if the method should be called again for another update. \
             False if convergence has been reached.
         """
         raise NotImplementedError()
 
     def get_weights_view_shape(self):
-        raise NotImplementedError(str(type(self))+" does not implement get_weights_view_shape (perhaps by design)")
+        """
+        Returns
+        -------
+        shape : tuple
+            Returns a tuple containing two ints. These are used as the
+            `grid_shape` argument to `PatchViewer` when displaying the
+            weights of this model. This can be useful when there is
+            some geometric significance to the order of your weight
+            vectors. For example, the `Maxout` model makes sure that all of
+            the filters for the same hidden unit appear on the same row
+            of the display.
+        """
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                                  "get_weights_view_shape (perhaps by design)")
 
     def get_monitoring_channels(self, data):
         """
@@ -87,14 +109,14 @@ class Model(object):
         Parameters
         ----------
         data: tensor_like, or (possibly nested) tuple of tensor_likes,
-            as described by `self.get_monitoring_data_specs()`.
-            This is data on which the monitoring quantities will be
-            calculated (e.g., a validation set).
+            This is data on which the monitoring quantities will be \
+            calculated (e.g., a validation set). See \
+            `self.get_monitoring_data_specs()`.
 
         Returns
         -------
-        channels : dict
-            A dictionary with strings as keys, mapping channel names to
+        channels : OrderedDict
+            A dictionary with strings as keys, mapping channel names to \
             symbolic values that depend on the variables in `data`.
 
         Notes
@@ -117,20 +139,63 @@ class Model(object):
         when no monitoring channels are defined, or when none of the channels
         actually need data (for instance, if they only monitor functions
         of the model's parameters).
+
+        WRITEME properly
         """
         return (NullSpace(), '')
 
     def set_batch_size(self, batch_size):
+        """
+        Parameters
+        ----------
+        batch_size : int
+            Sets the batch size used by the model.
+            If None, allows the model to use any batch size.
+        """
         pass
 
     def get_weights(self):
+        """
+        Returns
+        -------
+        weights : ndarray
+            Returns any matrix that is analogous to the weights of the first
+            layer of an MLP, such as the dictionary of a sparse coding model.
+            This implementation raises NotImplementedError. For models where
+            this method is not conceptually applicable, do not override it.
+            Format should be compatible with the return value of
+            self.get_weights_format.
+        """
 
-        raise NotImplementedError(str(type(self))+" does not implement get_weights (perhaps by design)")
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                                  "get_weights (perhaps by design)")
+
+    def get_weights_format(self):
+        """
+        Returns
+        -------
+        format : tuple
+            Either ('v', 'h') or ('h', 'v'). ('v', 'h') means self.get_weights
+            returns a matrix of shape (num visible units, num hidden units),
+            while ('h', 'v') means it returns the transpose of this.
+        """
+
+        return ('v', 'h')
 
     def get_weights_topo(self):
+        """
+        Returns
+        -------
+        weights : ndarray
+            Same as the return value of `get_weights` but formatted as a 4D
+            tensor with the axes being (hidden units, rows, columns,
+            channels). Only applicable for models where the weights can be
+            viewed as 2D-multichannel, and the number of channels is either
+            1 or 3 (because they will be visualized as grayscale or RGB color).
+        """
 
-        raise NotImplementedError(str(type(self))+" does not implement get_weights_topo (perhaps by design)")
-
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                                  "get_weights_topo (perhaps by design)")
 
     def score(self, V):
         """
@@ -140,15 +205,15 @@ class Model(object):
         Parameters
         ----------
         V : tensor_like, 2-dimensional
-            A batch of i.i.d. examples with examples indexed along the
-            first axis and features along the second. This is data on which
-            the monitoring quantities will be calculated (e.g., a validation
+            A batch of i.i.d. examples with examples indexed along the \
+            first axis and features along the second. This is data on which \
+            the monitoring quantities will be calculated (e.g., a validation \
             set).
 
         Returns
         -------
         score : tensor_like
-            The gradient of the negative log probability of the model
+            The gradient of the negative log probability of the model \
             on the given datal.
 
         Notes
@@ -161,13 +226,19 @@ class Model(object):
         return T.grad(-self.free_energy(V).sum(), V)
 
     def get_lr_scalers(self):
+        """
+        Returns
+        -------
+        lr_scalers : OrderedDict
+            A dictionary mapping the parameters of the model to floats. The
+            learning rate will be multiplied by the float for each parameter.
+            If a parameter does not appear in the dictionary, it will use
+            the global learning rate with no scaling.
+        """
         return OrderedDict()
 
     def censor_updates(self, updates):
         """
-        updates: a dictionary mapping shared variables to symbolic values
-                they will be updated to
-
         This method should check all updates that act on shared variables
         held by the model and make sure they are valid. For example, if
         a given hyperparameter is not meant to be learned, censor_updates
@@ -180,32 +251,46 @@ class Model(object):
 
         This is the main mechanism used to make sure that generic training
         algorithms such as those found in pylearn2.training_algorithms
-        respect the specific properties of the models passed to them."""
+        respect the specific properties of the models passed to them.
+
+        Parameters
+        ----------
+        updates : dict
+            A dictionary mapping shared variables to symbolic values they \
+            will be updated to
+        """
+
         pass
 
     def get_input_space(self):
-        """ Returns an instance of pylearn2.space.Space describing
-        the format of the vector space that the model operates on
-        (this is a generalization of get_input_dim) """
+        """
+        Returns an instance of pylearn2.space.Space describing the format of
+        the vector space that the model operates on (this is a generalization
+        of get_input_dim)
+        """
 
         return self.input_space
 
     def get_output_space(self):
-        """ Returns an instance of pylearn2.space.Space describing
-        the format of the vector space that the model outputs
-        (this is a generalization of get_output_dim) """
+        """
+        Returns an instance of pylearn2.space.Space describing the format of
+        the vector space that the model outputs (this is a generalization
+        of get_output_dim)
+        """
 
         return self.output_space
 
     def get_input_source(self):
-        """ Returns a string, stating the source for the input. By default
-        the input source (when is the only one) is called 'features'
+        """
+        Returns a string, stating the source for the input. By default the
+        input source (when is the only one) is called 'features'.
         """
         return 'features'
 
     def get_target_source(self):
-        """ Returns a string, stating the source for the output. By default
-        the output source (when is the only one) is called 'targets'
+        """
+        Returns a string, stating the source for the output. By default the
+        output source (when is the only one) is called 'targets'.
         """
         return 'targets'
 
@@ -217,15 +302,15 @@ class Model(object):
         Parameters
         ----------
         V : tensor_like, 2-dimensional
-            A batch of i.i.d. examples with examples indexed along the
-            first axis and features along the second. This is data on which
-            the monitoring quantities will be calculated (e.g., a validation
+            A batch of i.i.d. examples with examples indexed along the \
+            first axis and features along the second. This is data on which \
+            the monitoring quantities will be calculated (e.g., a validation \
             set).
 
         Returns
         -------
         free_energy : tensor, 1-dimensional
-            A (symbolic) vector of free energies for each data example in
+            A (symbolic) vector of free energies for each data example in \
             `V`, i.e.  `free_energy[i] = F(V[i])`.
         """
         raise NotImplementedError()
@@ -265,13 +350,13 @@ class Model(object):
         Parameters
         ----------
         borrow : bool
-            Flag to be passed to the `.get_value()` method of the
+            Flag to be passed to the `.get_value()` method of the \
             shared variable. If `False`, a copy will always be returned.
 
         Returns
         -------
         params : list
-            A list of `numpy.ndarray` objects containing the current
+            A list of `numpy.ndarray` objects containing the current \
             parameters of the model.
 
         Notes
@@ -293,6 +378,10 @@ class Model(object):
 
     def set_param_values(self, values, borrow=False):
         """
+        .. todo::
+
+            WRITEME properly
+
         Sets the values of the parameters that define the model
         """
         for param, value in zip(self.get_params(), values):
@@ -343,20 +432,40 @@ class Model(object):
         return d
 
     def __setstate__(self, d):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.__dict__.update(d)
 
     def __init__(self):
+        """
+        .. todo::
+
+            WRITEME
+        """
         self.names_to_del = set()
-        self._test_batch_size = 2
 
     def get_test_batch_size(self):
         """
-        Batches of examples used to initialize X.tag.test_value should have this
-        many examples if used as input to the model.  (The model
-        specifies the number of examples in case it needs a fixed batch
-        size or to keep the memory usage of testing under control.)
+        Batches of examples used to initialize X.tag.test_value should have
+        this many examples if used as input to the model.  (The model specifies
+        the number of examples in case it needs a fixed batch size or to keep
+        the memory usage of testing under control.)
         """
         return self._test_batch_size
+
+    def print_versions(self, print_theano_config=False):
+        """
+        Print version of the various Python packages and basic information
+        about the experiment setup (e.g. cpu, os)
+        e.g. numpy:1.6.1 | pylearn:a6e634b83d | pylearn2:57a156beb0
+             CPU: x86_64
+             OS: Linux-2.6.35.14-106.fc14.x86_64-x86_64-with-fedora-14-Laughlin
+        """
+        self.libv.print_versions()
+        self.libv.print_exp_env_info(print_theano_config)
 
     def register_names_to_del(self, names):
         """
@@ -365,7 +474,7 @@ class Model(object):
         Parameters
         ----------
         names : iterable
-            A collection of strings indicating names of fields on this
+            A collection of strings indicating names of fields on this \
             object that should not be pickled.
 
         Notes
@@ -380,47 +489,18 @@ class Model(object):
             assert all(isinstance(n, basestring) for n in iter(names))
         except (TypeError, AssertionError):
             raise ValueError('Invalid names argument')
+        # Quick check in case __init__ was never called, e.g. by a derived
+        # class.
+        if not hasattr(self, 'names_to_del'):
+            self.names_to_del = set()
         self.names_to_del = self.names_to_del.union(names)
 
-    def set_dtype(self, dtype, parent_name = ""):
+    def enforce_constraints(self):
         """
-        Sets the dtype of any shared variables.
-
-        Parameters
-        ----------
-        dtype : object or str
-            A NumPy dtype object, or string representing a known dtype.
+        Enforces all constraints encoded by self.censor_updates.
         """
-
-        warnings.warn("""This method is not safe.
-                To change the dtype of a shared variable it is necessary to
-                allocate a new shared variable. When this method changes
-                the type of a shared variable, other objects might keep
-                pointing at the old shared variable. For example, in a
-                DBM two different RBM objects might share the same shared
-                variable to represent the bias term of one layer of the
-                DBM. Calling set_dtype on the DBM would result in both
-                RBMs having their own shared variable for that bias term.""")
-
-        for field in dir(self):
-            obj = getattr(self, field)
-            if hasattr(obj, 'get_value'):
-                setattr(self, field, shared(np.cast[dtype](obj.get_value()),name = obj.name))
-            if hasattr(obj, 'set_dtype'):
-                if obj.set_dtype.im_self is not None:
-                    obj.set_dtype(dtype, parent_name + '.' + field)
-
-            if isinstance(obj, tuple):
-                raise NotImplementedError("tuples aren't mutable so we need to write code to replace the whole thing if any of its elements needs replacing")
-
-            if isinstance(obj,list):
-                for i, elem in enumerate(obj):
-                    if hasattr(elem, 'get_value'):
-                        obj[i] =  shared(np.cast[dtype](elem.get_value()), name = elem.name)
-                    elif hasattr(elem, 'set_dtype'):
-                        elem.set_dtype(dtype, parent_name + '.' + field + '[]')
-
-        for param in self.get_params():
-            if param.type.dtype != dtype:
-                raise AssertionError(str(self)+' failed to set '+str(param)+\
-                        'of type '+str(type(param))+' to '+str(dtype))
+        params = self.get_params()
+        updates = OrderedDict(izip_no_length_check(params, params))
+        self.censor_updates(updates)
+        f = function([], updates=updates)
+        f()
