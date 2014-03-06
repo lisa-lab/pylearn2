@@ -5,6 +5,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
 import warnings
+import logging
 import numpy as np
 from theano import tensor as T, config
 from theano.compat import OrderedDict
@@ -14,6 +15,8 @@ from pylearn2.models.dbm.inference_procedure import WeightDoubling
 from pylearn2.models.dbm.sampling_procedure import GibbsEvenOdd
 from pylearn2.utils import safe_zip, safe_izip
 from pylearn2.utils.rng import make_np_rng
+
+logger = logging.getLogger(__name__)
 
 
 class DBM(Model):
@@ -605,7 +608,7 @@ class DBM(Model):
             for new, old in safe_zip(flat_q, flat_prev_q):
                 cur_mx = abs(new - old).max()
                 if new is old:
-                    print new, 'is', old
+                    logger.error(new, 'is', old)
                     assert False
                 if mx is None:
                     mx = cur_mx

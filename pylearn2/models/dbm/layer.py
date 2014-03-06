@@ -6,6 +6,7 @@ __maintainer__ = "Ian Goodfellow"
 
 import time
 import warnings
+import logging
 import numpy as np
 
 from theano import tensor as T, function, config
@@ -26,6 +27,8 @@ from pylearn2.utils import is_block_gradient
 from pylearn2.utils import sharedX, safe_zip, py_integer_types, block_gradient
 from pylearn2.utils.rng import make_theano_rng
 from pylearn2.utils import safe_union
+
+logger = logging.getLogger(__name__)
 
 
 class Layer(Model):
@@ -1804,10 +1807,10 @@ class Softmax(HiddenLayer):
 
         t4 = time.time()
 
-        print str(self)+'.make_state took',t4-t1
-        print '\tcompose time:',t2-t1
-        print '\tcompile time:',t3-t2
-        print '\texecute time:',t4-t3
+        logger.info(str(self) + '.make_state took %d', t4 - t1)
+        logger.info('\tcompose time: %d', t2 - t1)
+        logger.info('\tcompile time: %d', t3 - t2)
+        logger.info('\texecute time: %d', t4 - t3)
 
         h_state.name = 'softmax_sample_shared'
 
@@ -2469,7 +2472,7 @@ class ConvMaxPool(HiddenLayer):
                                                 num_channels = self.output_channels,
                 axes = self.output_axes)
 
-        print self.layer_name,': detector shape:',self.h_space.shape,'pool shape:',self.output_space.shape
+        logger.info('%s : detector shape: %s pool shape: %s', self.layer_name, self.h_space.shape, self.output_space.shape)
 
         if tuple(self.output_axes) == ('b', 0, 1, 'c'):
             self.max_pool = max_pool_b01c
@@ -2863,10 +2866,10 @@ class ConvMaxPool(HiddenLayer):
 
         t4 = time.time()
 
-        print str(self)+'.make_state took',t4-t1
-        print '\tcompose time:',t2-t1
-        print '\tcompile time:',t3-t2
-        print '\texecute time:',t4-t3
+        logger.info(str(self) + '.make_state took %d', t4 - t1)
+        logger.info('\tcompose time: %d', t2 - t1)
+        logger.info('\tcompile time: %d', t3 - t2)
+        logger.info('\texecute time: %d', t4 - t3)
 
         p_state.name = 'p_sample_shared'
         h_state.name = 'h_sample_shared'
@@ -2984,7 +2987,7 @@ class ConvC01B_MaxPool(HiddenLayer):
                                                 num_channels = self.output_channels,
                 axes = self.output_axes)
 
-        print self.layer_name,': detector shape:',self.h_space.shape,'pool shape:',self.output_space.shape
+        logger.info('%s: detector shape: %s pool shape: %s', self.layer_name, self.h_space.shape, self.output_space.shape)
 
         assert tuple(self.output_axes) == ('c', 0, 1, 'b')
         self.max_pool = max_pool_c01b
@@ -3352,10 +3355,10 @@ class ConvC01B_MaxPool(HiddenLayer):
 
         t4 = time.time()
 
-        print str(self)+'.make_state took',t4-t1
-        print '\tcompose time:',t2-t1
-        print '\tcompile time:',t3-t2
-        print '\texecute time:',t4-t3
+        logger.info(str(self) + '.make_state took %d', t4 - t1)
+        logger.info('\tcompose time: %d', t2 - t1)
+        logger.info('\tcompile time: %d', t3 - t2)
+        logger.info('\texecute time: %d', t4 - t3)
 
         p_state.name = 'p_sample_shared'
         h_state.name = 'h_sample_shared'
@@ -3917,9 +3920,9 @@ class CompositeLayer(HiddenLayer):
                 [component.get_params() for component in self.components])
 
     def get_weights_topo(self):
-        print 'Get topological weights for which layer?'
+        logger.info('Get topological weights for which layer?')
         for i, component in enumerate(self.components):
-            print i,component.layer_name
+            logger.info('%d %s', i, component.layer_name)
         x = raw_input()
         return self.components[int(x)].get_weights_topo()
 

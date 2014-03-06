@@ -2,7 +2,10 @@ from pylearn2.datasets.mnist import MNIST
 from pylearn2.testing.skip import skip_if_no_sklearn
 import numpy as np
 import unittest
+import logging
 DenseMulticlassSVM = None
+logger = logging.getLogger(__name__)
+
 
 class TestSVM(unittest.TestCase):
     def setUp(self):
@@ -25,13 +28,13 @@ class TestSVM(unittest.TestCase):
 
         f = model.decision_function(X)
 
-        print f
+        logger.info(f)
 
         yhat_f = np.argmax(f,axis=1)
 
         yhat = np.cast[yhat_f.dtype](model.predict(X))
 
-        print yhat_f
-        print yhat
+        logger.info(yhat_f)
+        logger.info(yhat)
 
         assert (yhat_f != yhat).sum() == 0

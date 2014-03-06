@@ -8,6 +8,9 @@ import theano.tensor as T
 from theano import config
 #from pylearn2.utils import serial
 import warnings
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def broadcast(mat, shape_0):
@@ -328,7 +331,7 @@ class Test_S3C_Inference:
 
                 failed = True
 
-                print 'iteration ',i
+                logger.info('iteration %d', i)
                 #print 'max value of new H: ',H[:,i].max()
                 #print 'H for failing g: '
                 failing_h = H[np.abs(g) > self.tol, i]
@@ -345,11 +348,11 @@ class Test_S3C_Inference:
 
                 mask = high_mask * low_mask
 
-                print 'masked failures: ',mask.shape[0],' err ',g_abs_max
+                logger.info('masked failures: %d err %d', mask.shape[0], g_abs_max)
 
                 if mask.sum() > 0:
-                    print 'failing h passing the range mask'
-                    print failing_h[ mask.astype(bool) ]
+                    logger.exception('failing h passing the range mask')
+                    logger.exception(failing_h[ mask.astype(bool) ])
                     raise Exception('after mean field step, gradient of kl divergence'
                             ' wrt freshly updated variational parameter should be 0, '
                             'but here the max magnitude of a gradient element is '
@@ -422,19 +425,19 @@ class Test_S3C_Inference:
             increase = new_kl - prev_kl
 
 
-            print 'failures after iteration ',i,': ',(increase > self.tol).sum()
+            logger.info('failures after iteration %d : %d', i, (increase > self.tol).sum())
 
             mx = increase.max()
 
             if mx > 1e-4:
-                print 'increase amounts of failing examples:'
-                print increase[increase > self.tol]
-                print 'failing H:'
-                print H[increase > self.tol,:]
-                print 'failing Mu1:'
-                print Mu1[increase > self.tol,:]
-                print 'failing V:'
-                print X[increase > self.tol,:]
+                logger.exception('increase amounts of failing examples:')
+                logger.exception(increase[increase > self.tol])
+                logger.exception('failing H:')
+                logger.exception(H[increase > self.tol,:])
+                logger.exception('failing Mu1:')
+                logger.exception(Mu1[increase > self.tol,:])
+                logger.exception('failing V:')
+                logger.exception(X[increase > self.tol,:])
 
 
                 raise Exception('after mean field step in h, kl divergence should decrease, but some elements increased by as much as '+str(mx)+' after updating h_'+str(i))

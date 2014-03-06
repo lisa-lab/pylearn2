@@ -5,7 +5,10 @@ from pylearn2.optimization.batch_gradient_descent import BatchGradientDescent
 from theano import config
 from theano import function
 import warnings
+import logging
 floatX = config.floatX
+logger = logging.getLogger(__name__)
+
 
 class Test_DiagonalMND:
     """ Class for testing DiagonalMND """
@@ -141,8 +144,8 @@ class Test_DiagonalMND:
 
         tol = 6e-5
         if kl > tol:
-            print 'kl:',kl
-            print 'tol:',tol
+            logger.info('kl: %d', kl)
+            logger.info('tol: %d', tol)
         assert kl <= tol
         assert not (kl > tol )
 
@@ -160,8 +163,8 @@ def test_log_partition_function():
 
     ground = np.log( sigma * np.sqrt(2.*np.pi))
 
-    print ground
-    print log_Z
+    logger.info(ground)
+    logger.info(log_Z)
 
     assert np.allclose(ground, log_Z)
 
