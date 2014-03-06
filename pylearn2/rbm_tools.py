@@ -5,7 +5,6 @@ import numpy
 import theano
 from theano import tensor, config
 from theano.tensor import nnet
-from theano.sandbox.rng_mrg import MRG_RandomStreams as RandomStreams
 from pylearn2.utils.rng import make_np_rng, make_theano_rng
 
 
@@ -116,7 +115,8 @@ def rbm_ais(rbm_params, n_runs, visbias_a=None, data=None,
     """
     Implements Annealed Importance Sampling for Binary-Binary RBMs, as
     described in:
-    * Neal, R. M. (1998) ``Annealed importance sampling'', Technical Report No.
+
+    * Neal, R. M. (1998) "Annealed importance sampling", Technical Report No.
       9805 (revised), Dept. of Statistics, University of Toronto, 25 pages
 
     * Ruslan Salakhutdinov, Iain Murray. "On the quantitative analysis of deep
@@ -457,7 +457,7 @@ class AIS(object):
         .. math::
 
             log_w^i += fe_{k-1}(v_{k-1}) - fe_{k}(v_{k-1})
-        
+
         recursively for all temperatures.
 
         Parameters
