@@ -460,7 +460,11 @@ class Model(object):
         """
         Print version of the various Python packages and basic information
         about the experiment setup (e.g. cpu, os)
-        e.g. numpy:1.6.1 | pylearn:a6e634b83d | pylearn2:57a156beb0
+        e.g.
+
+        .. code-block::  none
+
+             numpy:1.6.1 | pylearn:a6e634b83d | pylearn2:57a156beb0
              CPU: x86_64
              OS: Linux-2.6.35.14-106.fc14.x86_64-x86_64-with-fedora-14-Laughlin
         """

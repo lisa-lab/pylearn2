@@ -50,11 +50,6 @@ Maxout
 .. automodule:: pylearn2.models.maxout
     :members:
 
-Dense binary DBM
-================
-.. automodule:: pylearn2.models.dense_binary_dbm
-    :members:
-
 Differentiable sparse coding
 ============================
 .. automodule:: pylearn2.models.differentiable_sparse_coding

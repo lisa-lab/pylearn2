@@ -280,7 +280,6 @@ class S3C(Model, Block):
         requires the following other params:
 
         - local_rf_shape : a 2 tuple
-
         - One of:
 
             - local_rf_stride: a 2 tuple or None
@@ -293,6 +292,7 @@ class S3C(Model, Block):
                 otherwise, they're random patches
                 will initialize the weights to have only local receptive fields. (won't make a sparse
                 matrix or anything like that)
+
         incompatible with random_patches_src for now
     init_unit_W : bool
         if True, initializes weights with unit norm
@@ -1629,7 +1629,7 @@ class E_Step(object):
 
     The structured variational approximation is:
 
-        P(v,h,s) = \Pi_i Q_i (h_i, s_i)
+    P(v,h,s) = \Pi_i Q_i (h_i, s_i)
 
     We alternate between updating the Q parameters over s in parallel and
     updating the q parameters over h in parallel.
@@ -1637,11 +1637,11 @@ class E_Step(object):
     The h parameters are updated with a damping coefficient that is the same
     for all units but changes each time step, specified by the yaml file. The
     slab variables are updated with:
-        optionally: a unit-specific damping designed to ensure stability
-                    by preventing reflections from going too far away
-                    from the origin.
-        optionally: additional damping that is the same for all units but
-                    changes each time step, specified by the yaml file
+
+    - optionally: a unit-specific damping designed to ensure stability
+        by preventing reflections from going too far away from the origin.
+    - optionally: additional damping that is the same for all units but
+        changes each time step, specified by the yaml file
 
     The update equations were derived based on updating h_i independently,
     then updating s_i independently, even though it is possible to solve for
