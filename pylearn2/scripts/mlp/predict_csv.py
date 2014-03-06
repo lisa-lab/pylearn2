@@ -30,7 +30,7 @@ print "loading model..."
 try:
 	model = serial.load(model_path)
 except Exception, e:
-	print model_path + "doesn't seem to be a valid model path, got this error when trying to load it:"
+	print "error loading {}:".format(model_path)
 	print e
 
 print "setting up symbolic expressions..."
