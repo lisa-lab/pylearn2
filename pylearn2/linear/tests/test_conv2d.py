@@ -24,7 +24,7 @@ class TestConv2D(unittest.TestCase):
 
     def test_value_errors(self):
         bad_filters = theano.shared(value=numpy.zeros((1, 3, 2)))
-        with self.assertRaises(TypeError):
+        with self.assertRaises(ValueError):
             Conv2D(bad_filters, 1, self.input_space)
         with self.assertRaises(AssertionError):
             Conv2D(self.filters, 0, self.input_space)
