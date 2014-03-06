@@ -207,6 +207,21 @@ class BlockGibbsSampler(Sampler):
 class RBM(Block, Model):
     """
     A base interface for RBMs, implementing the binary-binary case.
+
+    Notes
+    -----
+
+    The `RBM` class is redundant now that we have a `DBM` class, since
+    an RBM is just a DBM with one hidden layer. Users of pylearn2 should
+    use single-layer DBMs when possible. Not all RBM functionality has
+    been ported to the DBM framework yet, so this is not always possible.
+    (Examples: spike-and-slab RBMs, score matching, denoising score matching)
+    pylearn2 developers should not add new features to the RBM class or
+    add new RBM subclasses. pylearn2 developers should only add documentation
+    and bug fixes to the RBM class and subclasses. pylearn2 developers should
+    finish porting all RBM functionality to the DBM framework, then turn
+    the RBM class into a thin wrapper around the DBM class that allocates
+    a single layer DBM.
     """
     def __init__(self, nvis = None, nhid = None,
             vis_space = None,
@@ -214,7 +229,8 @@ class RBM(Block, Model):
             transformer = None,
             irange=0.5, rng=None, init_bias_vis = None,
             init_bias_vis_marginals = None, init_bias_hid=0.0,
-            base_lr = 1e-3, anneal_start = None, nchains = 100, sml_gibbs_steps = 1,
+            base_lr = 1e-3, anneal_start = None, nchains = 100,
+            sml_gibbs_steps = 1,
             random_patches_src = None,
             monitor_reconstruction = False):
 
@@ -300,9 +316,8 @@ class RBM(Block, Model):
                         W = irange * random_patches_src.T
                         assert W.shape == (nvis, nhid)
                     else:
-                        #assert type(irange) == type(0.01)
-                        #assert irange == 0.01
-                        W = irange * random_patches_src.get_batch_design(nhid).T
+                        W = irange * random_patches_src.get_batch_design(
+                                nhid).T
 
                 self.transformer = MatrixMul(  sharedX(
                         W,
@@ -345,31 +360,50 @@ class RBM(Block, Model):
 
 
         self.__dict__.update(nhid=nhid, nvis=nvis)
-        self._params = safe_union(self.transformer.get_params(), [self.bias_vis, self.bias_hid])
+        self._params = safe_union(self.transformer.get_params(),
+                [self.bias_vis, self.bias_hid])
 
         self.base_lr = base_lr
         self.anneal_start = anneal_start
         self.nchains = nchains
         self.sml_gibbs_steps = sml_gibbs_steps
 
+    def get_default_cost(self):
+        raise NotImplementedError("The RBM class predates the current "
+                "Cost-based training algorithms (SGD and BGD). To train "
+                "the RBM with PCD, use DefaultTrainingAlgorithm rather "
+                "than SGD or BGD. Some RBM subclassess may also be "
+                "trained with SGD or BGD by using the "
+                "Cost classes defined in pylearn2.costs.ebm_estimation. "
+                "Note that it is also possible to make an RBM by allocating "
+                "a DBM with only one hidden layer. The DBM class is newer "
+                "and supports training with SGD / BGD. In the long run we "
+                "should remove the old RBM class and turn it into a wrapper "
+                "around the DBM class that makes a 1-layer DBM.")
+
     def get_input_dim(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns
+        -------
+        dim : int
+            The number of elements in the input, if the input is a vector.
         """
         if not isinstance(self.vis_space, VectorSpace):
-            raise TypeError("Can't describe "+str(type(self.vis_space))+" as a dimensionality number.")
+            raise TypeError("Can't describe " + str(type(self.vis_space))
+                    + " as a dimensionality number.")
+
         return self.vis_space.dim
 
     def get_output_dim(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns
+        -------
+        dim : int
+            The number of elements in the output, if the output is a vector.
         """
         if not isinstance(self.hid_space, VectorSpace):
-            raise TypeError("Can't describe "+str(type(self.hid_space))+" as a dimensionality number.")
+            raise TypeError("Can't describe " + str(type(self.hid_space))
+                    + " as a dimensionality number.")
         return self.hid_space.dim
 
     def get_input_space(self):
@@ -433,10 +467,6 @@ class RBM(Block, Model):
         V = data
         theano_rng = make_theano_rng(None, 42, which_method="binomial")
 
-        #TODO: re-enable this in the case where self.transformer
-        #is a matrix multiply
-        #norms = theano_norms(self.weights)
-
         H = self.mean_h_given_v(V)
 
         h = H.mean(axis=0)
@@ -450,12 +480,8 @@ class RBM(Block, Model):
                  'h_min' : T.min(h),
                  'h_mean': T.mean(h),
                  'h_max' : T.max(h),
-                 #'W_min' : T.min(self.weights),
-                 #'W_max' : T.max(self.weights),
-                 #'W_norms_min' : T.min(norms),
-                 #'W_norms_max' : T.max(norms),
-                 #'W_norms_mean' : T.mean(norms),
-                'reconstruction_error' : self.reconstruction_error(V, theano_rng) }
+                'reconstruction_error' : self.reconstruction_error(V,
+                    theano_rng) }
 
     def get_monitoring_data_specs(self):
         """
@@ -539,7 +565,9 @@ class RBM(Block, Model):
         return rval
 
     def redo_theano(self):
-        """ Compiles the theano function for the default learning rule """
+        """
+        Compiles the theano function for the default learning rule
+        """
 
         init_names = dir(self)
 
@@ -547,18 +575,20 @@ class RBM(Block, Model):
 
         optimizer = _SGDOptimizer(self, self.base_lr, self.anneal_start)
 
-        sampler = sampler = BlockGibbsSampler(self, 0.5 + np.zeros((self.nchains, self.get_input_dim())), self.rng,
-                                                  steps= self.sml_gibbs_steps)
+        sampler = sampler = BlockGibbsSampler(self, 0.5 + np.zeros((
+            self.nchains, self.get_input_dim())), self.rng,
+            steps= self.sml_gibbs_steps)
 
 
         updates = training_updates(visible_batch=minibatch, model=self,
-                                            sampler=sampler, optimizer=optimizer)
+                                   sampler=sampler, optimizer=optimizer)
 
         self.learn_func = theano.function([minibatch], updates=updates)
 
         final_names = dir(self)
 
-        self.register_names_to_del([name for name in final_names if name not in init_names])
+        self.register_names_to_del([name for name in final_names
+            if name not in init_names])
 
     def gibbs_step_for_v(self, v, rng):
         """
@@ -597,7 +627,8 @@ class RBM(Block, Model):
         # For binary hidden units
         # TODO: factor further to extend to other kinds of hidden units
         #       (e.g. spike-and-slab)
-        h_sample = rng.binomial(size = h_mean.shape, n = 1 , p = h_mean, dtype=h_mean.type.dtype)
+        h_sample = rng.binomial(size = h_mean.shape, n = 1 , p = h_mean,
+            dtype=h_mean.type.dtype)
         assert h_sample.type.dtype == v.type.dtype
         # v_mean is always based on h_sample, not h_mean, because we don't
         # want h transmitting more than one bit of information per unit.
@@ -1038,7 +1069,7 @@ class mu_pooled_ssRBM(RBM):
             rng=None):
         """
         .. todo::
-            
+
             WRITEME properly
 
         alpha    : vector of length nslab, diagonal precision term on s.
@@ -1229,7 +1260,7 @@ def build_stacked_RBM(nvis, nhids, batch_size, vis_type='binary',
         input_mean_vis=None, irange=1e-3, rng=None):
     """
     .. todo::
-        
+
         WRITEME properly
 
     Note from IG:
@@ -1370,7 +1401,8 @@ class _SGDOptimizer(_Optimizer):
         """
         if hasattr(params, '__iter__'):
             self.params = params
-        elif hasattr(params, 'get_params') and hasattr(params.get_params, '__call__'):
+        elif hasattr(params, 'get_params') and \
+                hasattr(params.get_params, '__call__'):
             self.params = params.get_params()
         else:
             raise ValueError("SGDOptimizer couldn't figure out what to do "
