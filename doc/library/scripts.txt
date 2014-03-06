@@ -86,3 +86,8 @@ Train
 =====
 .. automodule:: pylearn2.scripts.train
     :members:
+    
+Predict
+=======
+.. automodule:: pylearn2.scripts.mlp.predict_csv
+    :members:
