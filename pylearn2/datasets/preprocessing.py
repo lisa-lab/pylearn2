@@ -57,32 +57,42 @@ class Preprocessor(object):
 
     def apply(self, dataset, can_fit=False):
         """
-            dataset: The dataset to act on.
-            can_fit: If True, the Preprocessor can adapt internal parameters
-                     based on the contents of dataset. Otherwise it must not
-                     fit any parameters, or must re-use old ones.
-                     Subclasses should still have this default to False, so
-                     that the behavior of the preprocessors is uniform.
+        Parameters
+        ----------
+        dataset: Dataset
+            The dataset to act on.
+        can_fit: bool
+            If True, the Preprocessor can adapt internal parameters
+            based on the contents of dataset. Otherwise it must not
+            fit any parameters, or must re-use old ones.
+            Subclasses should still have this default to False, so
+            that the behavior of the preprocessors is uniform.
 
-            Typical usage:
-                # Learn PCA preprocessing and apply it to the training set
-                my_pca_preprocessor.apply(training_set, can_fit = True)
-                # Now apply the same transformation to the test set
-                my_pca_preprocessor.apply(test_set, can_fit = False)
+        Notes
+        -----
+        Typical usage:
 
-            Note: this method must take a dataset, rather than a numpy ndarray,
-                  for a variety of reasons:
-                      1) Preprocessors should work on any dataset, and not all
-                         datasets will store their data as ndarrays.
-                      2) Preprocessors often need to change a dataset's
-                         metadata.  For example, suppose you have a
-                         DenseDesignMatrix dataset of images. If you implement
-                         a fovea Preprocessor that reduces the dimensionality
-                         of images by sampling them finely near the center and
-                         coarsely with blurring at the edges, then your
-                         preprocessor will need to change the way that the
-                         dataset converts example vectors to images for
-                         visualization.
+        .. code-block::  python
+
+            # Learn PCA preprocessing and apply it to the training set
+            my_pca_preprocessor.apply(training_set, can_fit = True)
+            # Now apply the same transformation to the test set
+            my_pca_preprocessor.apply(test_set, can_fit = False)
+
+        This method must take a dataset, rather than a numpy ndarray, for a
+        variety of reasons:
+
+        - Preprocessors should work on any dataset, and not all
+            datasets will store their data as ndarrays.
+        - Preprocessors often need to change a dataset's
+            metadata.  For example, suppose you have a
+            DenseDesignMatrix dataset of images. If you implement
+            a fovea Preprocessor that reduces the dimensionality
+            of images by sampling them finely near the center and
+            coarsely with blurring at the edges, then your
+            preprocessor will need to change the way that the
+            dataset converts example vectors to images for
+            visualization.
         """
 
         raise NotImplementedError(str(type(self)) +
@@ -942,9 +952,9 @@ class ZCA(Preprocessor):
         """
         Analogous to DenseDesignMatrix.use_design_loc().
 
-        If a matrices_save_path is set, when this ZCA is pickled, the P_ and
-        P_inv_ matrices will be saved separately to matrices_save_path, as a
-        numpy .npz archive. This uses half the memory that a normal pickling
+        If a matrices_save_path is set, when this ZCA is pickled, the internal
+        parameter matrices will be saved separately to `matrices_save_path`, as
+        a numpy .npz archive. This uses half the memory that a normal pickling
         does.
         """
         if matrices_save_path is not None:
@@ -1014,11 +1024,20 @@ class ZCA(Preprocessor):
 
     def fit(self, X):
         """
-        Fits this ZCA to a design matrix X. Stores result as self.P_.
-        If self.store_inverse is true, this also computes self.inv_P_.
+        Fits this `ZCA` instance to a design matrix `X`.
 
-        X: a matrix where each row is a datum.
+        Parameters
+        ----------
+        X : ndarray
+            A matrix where each row is a datum.
+
+        Notes
+        -----
+        Implementation details:
+        Stores result as `self.P_`.
+        If self.store_inverse is true, this also computes `self.inv_P_`.
         """
+
         assert X.dtype in ['float32', 'float64']
         assert not numpy.any(numpy.isnan(X))
         assert len(X.shape) == 2
