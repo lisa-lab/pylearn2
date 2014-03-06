@@ -117,6 +117,46 @@ def test_binary_vis_layer_sample():
 
     check_binary_samples(sample, (num_samples, n), mean, tol)
 
+
+def check_gaussian_samples(value, expected_shape, expected_mean, tol, conv):
+    """
+    Tests that a matrix of Gaussian samples (observations in rows, variables
+     in columns)
+    1) Has the right shape
+    2) Is real valued
+    3) Converges to the right mean
+
+    """
+
+
+def test_gaussian_vis_layer_make_state():
+    """
+    Verifies that GaussianVisLayer.make_state creates
+    a shared variable whose value passes check_gaussian_samples
+
+    """
+
+def test_gaussian_vis_layer_make_state_conv():
+    """
+    Verifies that GaussianVisLayer.make_state creates
+    a shared variable whose value passes check_gaussian_samples
+
+    """
+
+def test_gaussian_vis_layer_sample():
+    """
+    Verifies that GaussianVisLayer.sample returns an expression
+    whose value passes check_gaussian_samples
+
+    """
+
+def test_gaussian_vis_layer_sample_conv():
+    """
+    Verifies that GaussianVisLayer.sample returns an expression
+    whose value passes check_gaussian_samples
+
+    """
+
 def check_bvmp_samples(value, num_samples, n, pool_size, mean, tol):
     """
     bvmp=BinaryVectorMaxPool
@@ -408,23 +448,25 @@ def test_bvmp_mf_energy_consistent():
 
 
 def test_bvmp_mf_energy_consistent_center():
+    """
+    A test of the BinaryVectorMaxPool class
+    Verifies that the mean field update is consistent with
+    the energy function when using Gregoire Montavon's centering
+    trick.
 
-    # A test of the BinaryVectorMaxPool class
-    # Verifies that the mean field update is consistent with
-    # the energy function when using Gregoire Montavon's centering
-    # trick.
+    Specifically, in a DBM consisting of (v, h1, h2), the
+    lack of intra-layer connections means that
+    P(h1|v, h2) is factorial so mf_update tells us the true
+    conditional.
+    We also know P(h1[i] | h1[-i], v)
+    = P(h, v) / P(h[-i], v)
+    = P(h, v) / sum_h[i] P(h, v)
+    = exp(-E(h, v)) / sum_h[i] exp(-E(h, v))
+    So we can check that computing P(h[i] | v) with both
+    methods works the same way
 
-    # Specifically, in a DBM consisting of (v, h1, h2), the
-    # lack of intra-layer connections means that
-    # P(h1|v, h2) is factorial so mf_update tells us the true
-    # conditional.
-    # We also know P(h1[i] | h1[-i], v)
-    #  = P(h, v) / P(h[-i], v)
-    #  = P(h, v) / sum_h[i] P(h, v)
-    #  = exp(-E(h, v)) / sum_h[i] exp(-E(h, v))
-    # So we can check that computing P(h[i] | v) with both
-    # methods works the same way
-
+    :return:
+    """
     rng = np.random.RandomState([2012,11,1,613])
 
     def do_test(pool_size_1):
