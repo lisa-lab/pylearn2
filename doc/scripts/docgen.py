@@ -43,8 +43,9 @@ if __name__ == '__main__':
     if options['--test']:
         import sphinx
         sys.path[0:0] = [os.path.join(throot, 'doc')]
-        sphinx.main(['', '-b' 'text', '-W',
-                     '-E', os.path.join(throot, 'doc'), '.'])
+        out = sphinx.main(['', '-b' 'text', '-W',
+                           '-E', os.path.join(throot, 'doc'), '.'])
+        sys.exit(out)
     elif options['--all'] or options['--rst']:
         import sphinx
         sys.path[0:0] = [os.path.join(throot, 'doc')]
