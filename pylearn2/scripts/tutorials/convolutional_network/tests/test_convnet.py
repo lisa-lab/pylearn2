@@ -19,6 +19,8 @@ from pylearn2.config import yaml_parse
 
 
 def test_convolutional_network():
+
+    skip.skip_if_no_data()
     yaml_file_path = os.path.abspath(os.path.join(os.path.dirname(__file__),
                                                   '..'))
     save_path = os.path.dirname(os.path.realpath(__file__))
@@ -41,6 +43,3 @@ def test_convolutional_network():
     except:
         pass
 
-
-if __name__ == '__main__':
-    test_convolutional_network()
