@@ -51,11 +51,20 @@ if theano.sparse.enable_sparse:
 def _is_batch_all(batch, predicate):
     """
     Implementation of is_symbolic_batch() and is_numeric_batch().  Returns True
-    iff predicate() returns True for all components of (possibly coposite)
+    iff predicate() returns True for all components of (possibly composite)
     batch.
 
+    Parameters:
+    ----------
+    batch : any numeric or symbolic batch.
+      This includes numpy.ndarray, theano.gof.Variable, None, or a (nested)
+      tuple thereof.
+
+    predicate : function.
+      A unary function of any non-composite batch that returns True or False.
     """
-    # Catch any accidental use of list in place of tuple.
+    # Catches any CompositeSpace batches that were mistakenly hand-constructed
+    # using nested lists rather than nested tuples.
     assert not isinstance(batch, list)
 
     # Data-less batches such as None or () are valid numeric and symbolic
