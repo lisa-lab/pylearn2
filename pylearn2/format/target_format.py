@@ -58,16 +58,17 @@ class OneHotFormatter(object):
         mode : string
             The way in which to convert the labels to arrays. Takes
             three different options:
-            concatenate : concatenates the one-hot vectors from
-                          multiple labels
-            stack :       returns a matrix where each row is the
-                          one-hot vector of a label
-            merge :       merges the one-hot vectors together to
-                          form a vector where the elements are
-                          the result of an indicator function
-                          NB: As the result of an indicator function
-                          the result is the same in case a label
-                          is duplicated in the input.
+
+            - "concatenate" : concatenates the one-hot vectors from
+                multiple labels
+            - "stack" : returns a matrix where each row is the
+                one-hot vector of a label
+            - "merge" : merges the one-hot vectors together to
+                form a vector where the elements are
+                the result of an indicator function
+                NB: As the result of an indicator function
+                the result is the same in case a label
+                is duplicated in the input.
         sparse : bool
             If true then the return value is sparse matrix. Note that
             if sparse is True, then mode cannot be 'stack' because
@@ -76,9 +77,9 @@ class OneHotFormatter(object):
         Returns
         -------
         one_hot : a NumPy array (can be 1D-3D depending on settings) where
-                  normally the first axis are the different batch items,
-                  the second axis the labels, the third axis the one_hot
-                  vectors. Can be dense or sparse.
+            normally the first axis are the different batch items,
+            the second axis the labels, the third axis the one_hot
+            vectors. Can be dense or sparse.
         """
         if mode not in ('concatenate', 'stack', 'merge'):
             raise ValueError("%s got bad mode argument '%s'" %
@@ -120,8 +121,8 @@ class OneHotFormatter(object):
     def theano_expr(self, targets, mode='stack', sparse=False):
         """
         Return the one-hot transformation as a symbolic expression.
-         If labels appear multiple times, their value in the one-hot
-         vector is incremented.
+        If labels appear multiple times, their value in the one-hot
+        vector is incremented.
 
         Parameters
         ----------
@@ -132,16 +133,17 @@ class OneHotFormatter(object):
         mode : string
             The way in which to convert the labels to arrays. Takes
             three different options:
-            concatenate : concatenates the one-hot vectors from
-                          multiple labels
-            stack :       returns a matrix where each row is the
-                          one-hot vector of a label
-            merge :       merges the one-hot vectors together to
-                          form a vector where the elements are
-                          the result of an indicator function
-                          NB: As the result of an indicator function
-                          the result is the same in case a label
-                          is duplicated in the input.
+
+            - "concatenate" : concatenates the one-hot vectors from
+                multiple labels
+            - "stack" : returns a matrix where each row is the
+                one-hot vector of a label
+            - "merge" : merges the one-hot vectors together to
+                form a vector where the elements are
+                the result of an indicator function
+                NB: As the result of an indicator function
+                the result is the same in case a label
+                is duplicated in the input.
         sparse : bool
             If true then the return value is sparse matrix. Note that
             if sparse is True, then mode cannot be 'stack' because
@@ -239,13 +241,14 @@ def convert_to_one_hot(integer_vector, dtype=None, max_labels=None,
     mode : string
         The way in which to convert the labels to arrays. Takes
         three different options:
-        concatenate : concatenates the one-hot vectors from
-                      multiple labels
-        stack :       returns a matrix where each row is the
-                      one-hot vector of a label
-        merge :       merges the one-hot vectors together to
-                      form a vector where the elements are
-                      the result of an indicator function
+
+        - "concatenate" : concatenates the one-hot vectors from
+            multiple labels
+        - "stack" : returns a matrix where each row is the
+            one-hot vector of a label
+        - "merge" : merges the one-hot vectors together to
+            form a vector where the elements are
+            the result of an indicator function
     sparse : bool
         If true then the return value is sparse matrix. Note that
         if sparse is True, then mode cannot be 'stack' because

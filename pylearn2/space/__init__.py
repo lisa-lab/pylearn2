@@ -51,11 +51,20 @@ if theano.sparse.enable_sparse:
 def _is_batch_all(batch, predicate):
     """
     Implementation of is_symbolic_batch() and is_numeric_batch().  Returns True
-    iff predicate() returns True for all components of (possibly coposite)
+    iff predicate() returns True for all components of (possibly composite)
     batch.
 
+    Parameters:
+    ----------
+    batch : any numeric or symbolic batch.
+      This includes numpy.ndarray, theano.gof.Variable, None, or a (nested)
+      tuple thereof.
+
+    predicate : function.
+      A unary function of any non-composite batch that returns True or False.
     """
-    # Catch any accidental use of list in place of tuple.
+    # Catches any CompositeSpace batches that were mistakenly hand-constructed
+    # using nested lists rather than nested tuples.
     assert not isinstance(batch, list)
 
     # Data-less batches such as None or () are valid numeric and symbolic
@@ -133,11 +142,6 @@ def _reshape(arg, shape):
     memory-inefficient and unsuitable for large tensors. It will be replaced by
     a proper sparse reshaping Op once Theano implements that.
     """
-    warnings.warn("Using pylearn2.space._reshape(), which is a "
-                  "memory-inefficient hack for reshaping sparse tensors. Do "
-                  "not use this on large tensors. This will eventually be "
-                  "replaced by a proper Theano Op for sparse reshaping, once "
-                  "that is written.")
 
     if isinstance(arg, tuple):
         raise TypeError("Composite batches not supported.")
@@ -147,6 +151,11 @@ def _reshape(arg, shape):
     if isinstance(arg, (np.ndarray, theano.tensor.TensorVariable)):
         return arg.reshape(shape)
     elif isinstance(arg, theano.sparse.SparseVariable):
+        warnings.warn("Using pylearn2.space._reshape(), which is a "
+                      "memory-inefficient hack for reshaping sparse tensors. "
+                      "Do not use this on large tensors. This will eventually "
+                      "be replaced by a proper Theano Op for sparse "
+                      "reshaping, once that is written.")
         dense = theano.sparse.dense_from_sparse(arg)
         dense = dense.reshape(shape)
         if arg.format == 'csr':
