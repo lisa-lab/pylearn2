@@ -21,7 +21,7 @@ View Static Versions Online
 
 Here are the links to the static versions of the notebooks that you can view online:
 
-* `Softmax Regression <http://nbviewer.ipython.org/urls/github.com/lisa-lab/pylearn2/raw/master/pylearn2/scripts/tutorials/softmax_regression.ipynb>`_
-* `Multilayer Perceptron <http://nbviewer.ipython.org/urls/github.com/lisa-lab/pylearn2/raw/master/pylearn2/scripts/tutorials/multilayer_perceptron.ipynb>`_
-* `Convolutional Network <http://nbviewer.ipython.org/urls/raw.github.com/lisa-lab/pylearn2/master/pylearn2/scripts/tutorials/convolutional_network.ipynb>`_
-* `Stacked Autoencoders <http://nbviewer.ipython.org/urls/raw.github.com/lisa-lab/pylearn2/master/pylearn2/scripts/tutorials/stacked_autoencoders.ipynb>`_
+* `Softmax Regression <http://nbviewer.ipython.org/urls/github.com/lisa-lab/pylearn2/raw/master/pylearn2/scripts/tutorials/softmax_regression/softmax_regression.ipynb>`_
+* `Multilayer Perceptron <http://nbviewer.ipython.org/urls/github.com/lisa-lab/pylearn2/raw/master/pylearn2/scripts/tutorials/multilayer_perceptron/multilayer_perceptron.ipynb>`_
+* `Convolutional Network <http://nbviewer.ipython.org/urls/raw.github.com/lisa-lab/pylearn2/master/pylearn2/scripts/tutorials/convolutional_network/convolutional_network.ipynb>`_
+* `Stacked Autoencoders <http://nbviewer.ipython.org/urls/raw.github.com/lisa-lab/pylearn2/master/pylearn2/scripts/tutorials/stacked_autoencoders/stacked_autoencoders.ipynb>`_
