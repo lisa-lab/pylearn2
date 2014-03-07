@@ -1,5 +1,7 @@
 #/bin/sh
 
+set -x -e
+
 if [ "x$TEST_DOC" == "xYES" ]; then
     python ./doc/scripts/docgen.py --test
 else
