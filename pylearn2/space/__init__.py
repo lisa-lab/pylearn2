@@ -142,11 +142,6 @@ def _reshape(arg, shape):
     memory-inefficient and unsuitable for large tensors. It will be replaced by
     a proper sparse reshaping Op once Theano implements that.
     """
-    warnings.warn("Using pylearn2.space._reshape(), which is a "
-                  "memory-inefficient hack for reshaping sparse tensors. Do "
-                  "not use this on large tensors. This will eventually be "
-                  "replaced by a proper Theano Op for sparse reshaping, once "
-                  "that is written.")
 
     if isinstance(arg, tuple):
         raise TypeError("Composite batches not supported.")
@@ -156,6 +151,11 @@ def _reshape(arg, shape):
     if isinstance(arg, (np.ndarray, theano.tensor.TensorVariable)):
         return arg.reshape(shape)
     elif isinstance(arg, theano.sparse.SparseVariable):
+        warnings.warn("Using pylearn2.space._reshape(), which is a "
+                      "memory-inefficient hack for reshaping sparse tensors. "
+                      "Do not use this on large tensors. This will eventually "
+                      "be replaced by a proper Theano Op for sparse "
+                      "reshaping, once that is written.")
         dense = theano.sparse.dense_from_sparse(arg)
         dense = dense.reshape(shape)
         if arg.format == 'csr':
