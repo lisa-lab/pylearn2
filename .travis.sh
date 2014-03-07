@@ -3,7 +3,7 @@
 set -x -e
 
 if [ "x$TEST_DOC" = "xYES" ]; then
-    python ./doc/scripts/docgen.py --test
+    python ./doc/scripts/docgen.py --test || exit 1
 else
     # We can't build the test dataset as the original is not
     # present. We can't download the original as it is too big to
