@@ -108,20 +108,22 @@ def stochastic_max_pool_bc01(bc01, pool_shape, pool_stride, image_shape, rng = N
 
 def weighted_max_pool_bc01(bc01, pool_shape, pool_stride, image_shape, rng = None):
     """
-    .. todo::
-
-        WRITEME properly
-
     This implements test time probability weighted pooling defined in:
 
     Stochastic Pooling for Regularization of Deep Convolutional Neural Networks
     Matthew D. Zeiler, Rob Fergus
 
-    bc01: minibatch in format (batch size, channels, rows, cols),
+    Parameters
+    ----------
+    bc01 : theano 4-tensor
+        minibatch in format (batch size, channels, rows, cols),
         IMPORTANT: All values should be poitivie
-    pool_shape: shape of the pool region (rows, cols)
-    pool_stride: strides between pooling regions (row stride, col stride)
-    image_shape: avoid doing some of the arithmetic in theano
+    pool_shape : theano 4-tensor
+        shape of the pool region (rows, cols)
+    pool_stride : tuple
+        strides between pooling regions (row stride, col stride)
+    image_shape : tuple
+        avoid doing some of the arithmetic in theano
     """
     r, c = image_shape
     pr, pc = pool_shape
