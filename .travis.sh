@@ -2,7 +2,7 @@
 
 set -x -e
 
-if [ "x$TEST_DOC" == "xYES" ]; then
+if [ "x$TEST_DOC" = "xYES" ]; then
     python ./doc/scripts/docgen.py --test
 else
     # We can't build the test dataset as the original is not
