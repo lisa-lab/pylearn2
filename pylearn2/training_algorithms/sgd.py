@@ -24,7 +24,8 @@ from pylearn2.space import CompositeSpace, NullSpace
 from pylearn2.train_extensions import TrainExtension
 from pylearn2.training_algorithms.training_algorithm import TrainingAlgorithm
 from pylearn2.training_algorithms.learning_rule import Momentum
-from pylearn2.training_algorithms.learning_rule import MomentumAdjustor as LRMomentumAdjustor
+from pylearn2.training_algorithms.learning_rule import MomentumAdjustor \
+        as LRMomentumAdjustor
 from pylearn2.utils.iteration import is_stochastic
 from pylearn2.utils import py_integer_types, py_float_types
 from pylearn2.utils import safe_zip
@@ -328,9 +329,11 @@ class SGD(TrainingAlgorithm):
                 update.name = 'censor(sgd_update(' + param.name + '))'
             for update_val in get_debug_values(update):
                 if np.any(np.isinf(update_val)):
-                    raise ValueError("debug value of %s contains infs" % update.name)
+                    raise ValueError("debug value of %s contains infs" %
+                            update.name)
                 if np.any(np.isnan(update_val)):
-                    raise ValueError("debug value of %s contains nans" % update.name)
+                    raise ValueError("debug value of %s contains nans" %
+                            update.name)
 
 
         with log_timing(log, 'Compiling sgd_update'):
@@ -416,36 +419,6 @@ class SGD(TrainingAlgorithm):
         else:
             return self.termination_criterion.continue_learning(self.model)
 
-"""
-TODO: implement Nesterov momentum. Easiest way to do it is via equivalence
-between regular momentum and Nesterov momentum described in this note from
-Nicolas Boulanger-Lewandowski:
-
-
-Yes, I found that the following change of variable simplifies the implementation of Nesterov momentum.
-It is in the same form as regular momentum in the sense that both velocity and parameter updates depend
-only on the gradient at the current value of the parameters.
-
-In short:
-
-regular momentum:
-(1) v_t = mu * v_t-1 - lr * gradient_f(params_t)
-(2) params_t = params_t-1 + v_t
-(3) params_t = params_t-1 + mu * v_t-1 - lr * gradient_f(params_t-1)
-
-Nesterov momentum:
-(4) v_t = mu * v_t-1 - lr * gradient_f(params_t-1 + mu * v_t-1)
-(5) params_t = params_t-1 + v_t
-
-alternate formulation for Nesterov momentum:
-(6) v_t = mu * v_t-1 - lr * gradient_f(params_t-1)
-(7) params_t = params_t-1 + mu * v_t - lr * gradient_f(params_t-1)
-(8) params_t = params_t-1 + mu**2 * v_t-1 - (1+mu) * lr * gradient_f(params_t-1)
-
-So with Theano you can use (1) then either (2) or (7)/(8) to have both options.
-
-"""
-
 class MonitorBasedLRAdjuster(TrainExtension):
     """
     A TrainExtension that uses the on_monitor callback to adjust
@@ -509,26 +482,35 @@ class MonitorBasedLRAdjuster(TrainExtension):
         """
         Adjusts the learning rate based on the contents of model.monitor
         """
-        # TODO: more sophisticated error checking here.
         model = algorithm.model
         lr = algorithm.learning_rate
         current_learning_rate = lr.get_value()
-        assert hasattr(model, 'monitor'), ("no monitor associated with " + str(model))
+        assert hasattr(model, 'monitor'), ("no monitor associated with "
+                + str(model))
         monitor = model.monitor
         monitor_channel_specified = True
 
         if self.channel_name is None:
             monitor_channel_specified = False
-            channels = [elem for elem in monitor.channels if elem.endswith("objective")]
+            channels = [elem for elem in monitor.channels
+                    if elem.endswith("objective")]
             if len(channels) < 1:
-                raise ValueError("""There are no monitoring channels that end with \"objective\". Please specify either channel_name or dataset_name.""")
+                raise ValueError("There are no monitoring channels that end "
+                        "with \"objective\". Please specify either "
+                        "channel_name or dataset_name.")
             elif len(channels) > 1:
                 datasets = algorithm.monitoring_dataset.keys()
-                raise ValueError('There are multiple monitoring channels that ends with \"_objective\". The list of available datasets are: ' +
-                                str(datasets) + ' . Please specify either channel_name or dataset_name in the MonitorBasedLRAdjuster constructor to disambiguate.')
+                raise ValueError("There are multiple monitoring channels that"
+                        "end with \"_objective\". The list of available "
+                        "datasets are: " +
+                                str(datasets) + " . Please specify either "
+                                "channel_name or dataset_name in the "
+                                "MonitorBasedLRAdjuster constructor to "
+                                'disambiguate.')
             else:
                 self.channel_name = channels[0]
-                warnings.warn('The channel that has been chosen for monitoring is: ' +
+                warnings.warn('The channel that has been chosen for '
+                        'monitoring is: ' +
                               str(self.channel_name) + '.')
 
         try:
@@ -537,29 +519,35 @@ class MonitorBasedLRAdjuster(TrainExtension):
             err_input = ''
             if monitor_channel_specified:
                 if self.dataset_name:
-                    err_input = 'The dataset_name \'' + str(self.dataset_name) + '\' is not valid.'
+                    err_input = 'The dataset_name \'' + str(
+                            self.dataset_name) + '\' is not valid.'
                 else:
-                    err_input = 'The channel_name \'' + str(self.channel_name) + '\' is not valid.'
+                    err_input = 'The channel_name \'' + str(
+                            self.channel_name) + '\' is not valid.'
             err_message = 'There is no monitoring channel named \'' + \
-                    str(self.channel_name) + '\'. You probably need to specify a valid monitoring channel by using either ' + \
-                    'dataset_name or channel_name in the MonitorBasedLRAdjuster constructor. ' + err_input
+                    str(self.channel_name) + '\'. You probably need to ' + \
+                    'specify a valid monitoring channel by using either ' + \
+                    'dataset_name or channel_name in the ' + \
+                    'MonitorBasedLRAdjuster constructor. ' + err_input
             raise ValueError(err_message)
 
         if len(v) < 1:
             if monitor.dataset is None:
                 assert len(v) == 0
-                raise ValueError("""You're trying to use a monitor-based learning
-                        adjustor but the monitor has no entries because you didn't
-                        specify a monitoring dataset""")
+                raise ValueError("You're trying to use a monitor-based "
+                        "learning rate adjustor but the monitor has no "
+                        "entries because you didn't specify a "
+                        "monitoring dataset.")
 
-            raise ValueError("""For some reason there are no monitor entries,
-                                yet the MonitorBasedLRAdjuster has been called.
-                                This should NEVER happen. The Train object
-                                should call the monitor once on initialization,
-                                then call the callbacks. It seems you are either
-                                calling the callback manually rather than as
-                                part of a training algorithm, or there is a
-                                problem with the Train object.""")
+            raise ValueError("For some reason there are no monitor entries"
+                                 "yet the MonitorBasedLRAdjuster has been "
+                                 "called. This should never happen. The Train"
+                                 " object should call the monitor once on "
+                                 "initialization, then call the callbacks. "
+                                 "It seems you are either calling the "
+                                 "callback manually rather than as part of a "
+                                 "training algorithm, or there is a problem "
+                                "with the Train object.")
         if len(v) == 1:
             #only the initial monitoring has happened
             #no learning has happened, so we can't adjust the learning rate yet
@@ -795,7 +783,8 @@ class LinearDecay(object):
         self._count += 1
         if self._count >= self.start:
             if self._count < self.saturate:
-                new_lr = self._base_lr - self._step * (self._count - self.start + 1)
+                new_lr = self._base_lr - self._step * (self._count
+                        - self.start + 1)
             else:
                 new_lr = self._base_lr * self.decay_factor
         else:
@@ -854,7 +843,8 @@ class OneOverEpoch(TrainExtension):
                                  "the minimum allowed learning rate.")
             self._initialized = True
         self._count += 1
-        algorithm.learning_rate.set_value( np.cast[config.floatX](self.current_lr()))
+        algorithm.learning_rate.set_value(np.cast[config.floatX](
+            self.current_lr()))
 
     def current_lr(self):
         """
@@ -863,7 +853,8 @@ class OneOverEpoch(TrainExtension):
         if self._count < self.start:
             scale = 1
         else:
-            scale = float(self.half_life) / float(self._count - self.start +self.half_life)
+            scale = float(self.half_life) / float(self._count - self.start
+                    + self.half_life)
         lr = self._init_lr * scale
         clipped = max(self.min_lr, lr)
         return clipped
@@ -904,7 +895,8 @@ class LinearDecayOverEpoch(TrainExtension):
                           (self.saturate - self.start + 1))
             self._initialized = True
         self._count += 1
-        algorithm.learning_rate.set_value( np.cast[config.floatX](self.current_lr()))
+        algorithm.learning_rate.set_value(np.cast[config.floatX](
+            self.current_lr()))
 
     def current_lr(self):
         """
@@ -912,7 +904,8 @@ class LinearDecayOverEpoch(TrainExtension):
         """
         if self._count >= self.start:
             if self._count < self.saturate:
-                new_lr = self._init_lr - self._step * (self._count - self.start + 1)
+                new_lr = self._init_lr - self._step * (self._count
+                        - self.start + 1)
             else:
                 new_lr = self._init_lr * self.decay_factor
         else:
@@ -1017,7 +1010,8 @@ class PolyakAveraging(TrainExtension):
                                           algorithm.monitoring_dataset)
             except AttributeError:
                 pass
-        elif self.save_path is not None and self._count > self.start and self._count % self.save_freq == 0:
+        elif self.save_path is not None and self._count > self.start and \
+                self._count % self.save_freq == 0:
             saved_params = OrderedDict()
             for param in model.get_params():
                 saved_params[param] = param.get_value()
