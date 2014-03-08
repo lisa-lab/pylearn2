@@ -4,6 +4,7 @@ strategies.
 """
 # Standard library imports
 from itertools import izip
+import sys
 
 # Third-party imports
 import numpy
@@ -1411,7 +1412,8 @@ class _SGDOptimizer(_Optimizer):
         """
         if hasattr(params, '__iter__'):
             self.params = params
-        elif hasattr(params, 'get_params') and hasattr(params.get_params, '__call__'):
+        elif hasattr(params, 'get_params') and hasattr(
+                params.get_params, '__call__'):
             self.params = params.get_params()
         else:
             raise ValueError("SGDOptimizer couldn't figure out what to do "
@@ -1427,8 +1429,8 @@ class _SGDOptimizer(_Optimizer):
             self.accumulators = {}
             self.e0s = {}
             for param in self.params:
-                self.accumulators[param] = theano.shared(value=as_floatX(0.),
-                                                         name='acc_%s' % param.name)
+                self.accumulators[param] = theano.shared(
+                        value=as_floatX(0.), name='acc_%s' % param.name)
                 self.e0s[param] = as_floatX(base_lr)
 
         # Set up the clipping values
@@ -1553,7 +1555,8 @@ class _SGDOptimizer(_Optimizer):
 
             # Calculate the learning rates for each parameter, in the order
             # they appear in self.params
-            learn_rates = [annealed * self.learning_rates[p] for p in self.params]
+            learn_rates = [annealed * self.learning_rates[p] for p in
+                    self.params]
         return ups, learn_rates
 
     def updates(self, gradients):
@@ -1628,15 +1631,19 @@ class _SGDOptimizer(_Optimizer):
         return self.updates(gradients=grads)
 
     def sgd_updates(self, params, grads, stepsizes):
-        """Return a list of (pairs) that can be used as updates in theano.function to
+        """
+        Return a list of (pairs) that can be used
+        as updates in theano.function to
         implement stochastic gradient descent.
 
-        :param params: variables to adjust in order to minimize some cost
-        :type params: a list of variables (theano.function will require shared variables)
-        :param grads: the gradient on each param (with respect to some cost)
-        :type grads: list of theano expressions
-        :param stepsizes: step by this amount times the negative gradient on each iteration
-        :type stepsizes: [symbolic] scalar or list of one [symbolic] scalar per param
+        Parameters
+        ----------
+        params : list of Variable
+            variables to adjust in order to minimize some cost
+        grads : list of Variable
+            the gradient on each param (with respect to some cost)
+        stepsizes : symbolic scalar or list of one symbolic scalar per param
+            step by this amount times the negative gradient on each iteration
         """
         try:
             iter(stepsizes)
@@ -1644,7 +1651,8 @@ class _SGDOptimizer(_Optimizer):
             stepsizes = [stepsizes for p in params]
         if len(params) != len(grads):
             raise ValueError('params and grads have different lens')
-        updates = [(p, p - step * gp) for (step, p, gp) in zip(stepsizes, params, grads)]
+        updates = [(p, p - step * gp) for (step, p, gp)
+                in zip(stepsizes, params, grads)]
         return updates
 
     def sgd_momentum_updates(self, params, grads, stepsizes, momentum=0.9):
@@ -1659,9 +1667,11 @@ class _SGDOptimizer(_Optimizer):
             momentum = [momentum for p in params]
         if len(params) != len(grads):
             raise ValueError('params and grads have different lens')
-        headings = [theano.shared(numpy.zeros_like(p.get_value(borrow=True))) for p in params]
+        headings = [theano.shared(numpy.zeros_like(p.get_value(borrow=True)))
+                for p in params]
         updates = []
-        for s, p, gp, m, h in zip(stepsizes, params, grads, momentum, headings):
+        for s, p, gp, m, h in zip(stepsizes, params, grads, momentum,
+                headings):
             updates.append((p, p + s * h))
             updates.append((h, m * h - (1.0 - m) * gp))
         return updates
