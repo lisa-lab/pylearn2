@@ -208,19 +208,7 @@ class SGD(TrainingAlgorithm):
             raise ValueError("These params are NaN: "+str(nan_params))
         self.model = model
 
-        batch_size = self.batch_size
-        if hasattr(model, "force_batch_size"):
-            if model.force_batch_size > 0:
-                if batch_size is not None:
-                    if batch_size != model.force_batch_size:
-                        if self.set_batch_size:
-                            model.set_batch_size(batch_size)
-                        else:
-                            raise ValueError("batch_size argument to SGD " +
-                                             "conflicts with model's " +
-                                             "force_batch_size attribute")
-                else:
-                    self.batch_size = model.force_batch_size
+        self._synchronize_batch_size(model)
         model._test_batch_size = self.batch_size
         self.monitor = Monitor.get_monitor(model)
         self.monitor._sanity_check()
