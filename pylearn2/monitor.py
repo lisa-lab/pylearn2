@@ -9,7 +9,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 __email__ = "goodfeli@iro"
 
-import copy, time, warnings, logging, functools
+import copy, time, warnings, logging
 import numpy as np
 
 from theano.compat.python2x import OrderedDict
