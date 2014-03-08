@@ -182,7 +182,6 @@ whitelist = ["rbm_tools.py",
              "scripts/icml_2013_wrepl/black_box/make_submission.py",
              "scripts/diff_monitor.py",
              "corruption.py",
-             "training_algorithms/sgd.py",
              "devtools/nan_guard.py",
              "models/mlp.py",
              "sandbox/lisa_rl/bandit/gaussian_bandit.py",
@@ -190,7 +189,6 @@ whitelist = ["rbm_tools.py",
              "utils/iteration.py",
              "utils/track_version.py",
              "scripts/get_version.py",
-             "training_algorithms/training_algorithm.py",
              ]
 
 def test_format():
