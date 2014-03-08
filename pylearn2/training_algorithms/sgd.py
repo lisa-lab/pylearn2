@@ -49,109 +49,111 @@ class SGD(TrainingAlgorithm):
     learning course notes on the subject:
 
     http://www.iro.umontreal.ca/~pift6266/H10/notes/gradient.html
+
+    Parameters
+    ----------
+    learning_rate : float
+        The learning rate to use. Train object callbacks can change the \
+        learning rate after each epoch. SGD update_callbacks can change \
+        it after each minibatch.
+    cost : pylearn2.costs.cost.Cost
+        Cost object specifying the objective function to be minimized. \
+        Optionally, may be None. In this case, SGD will call the model's \
+        get_default_cost method to obtain the objective function.
+    batch_size : optional, int
+        The size of the batch to be used.
+        If not specified, the model will be asked for the batch size, so
+        you must have specified the batch size there.
+        (Some models are rigidly defined to only work with one batch size)
+    monitoring_batches : optional, int
+        At the start of each epoch, we run "monitoring", to evaluate
+        quantities such as the validation set error.
+        monitoring_batches, if specified, determines the number of batches
+        to draw from the iterator for each monitoring dataset.
+        Unnecessary if not using monitoring or if `monitor_iteration_mode`
+        is 'sequential' and `batch_size` is specified (number of
+        batches will be calculated based on full dataset size).
+        TODO: make it possible to specify different monitoring_batches
+        for each monitoring dataset. The Monitor itself already supports
+        this.
+    monitoring_dataset : optional, a Dataset or dictionary
+        If not specified, no monitoring is used.
+        If specified to be a Dataset, monitor on that Dataset.
+        If specified to be dictionary, the keys should be string names
+        of datasets, and the values should be Datasets. All monitoring
+        channels will be computed for all monitoring Datasets and will
+        have the dataset name and an underscore prepended to them.
+    monitor_iteration_mode : optional, str
+        The iteration mode used to iterate over the examples in all
+        monitoring datasets. If not specified, defaults to 'sequential'.
+        TODO: make it possible to specify different modes for different
+        datasets.
+    termination_criterion : optional, instance of
+        pylearn2.termination_criteria.TerminationCriterion
+        Used to determine when the algorithm should stop running.
+        If not specified, runs forever--or more realistically, until
+        external factors halt the python process (Kansas 1977).
+    update_callbacks : optional, list
+        If specified, each member of the list should be a callable that
+        accepts an SGD instance as its only argument.
+        All callbacks will be called with this SGD instance after each
+        SGD step.
+    learning_rule : training_algorithms.learning_rule.LearningRule
+        A learning rule computes the new parameter values given old \
+        parameters and first-order gradients. If learning_rule is None, \
+        sgd.SGD will update parameters according to the standard SGD \
+        learning rule:
+            param := param - learning_rate * d cost / d param
+        This argument allows more sophisticated learning rules, such
+        as SGD with momentum.
+    init_momentum : **DEPRECATED** option, float
+        Use learning_rule instead.
+        If None, does not use momentum otherwise, use momentum and \
+        initialize the momentum coefficient to init_momentum. Callbacks \
+        can change this over time just like the learning rate. If the \
+        gradient is the same on every step, then the update taken by the \
+        SGD algorithm is scaled by a factor of 1/(1-momentum). See \
+        section 9 of Geoffrey Hinton's "A Practical Guide to Training \
+        Restricted Boltzmann Machines" for details.
+    set_batch_size : optional, bool
+        Defaults to False.
+        If True, and batch_size conflicts with model.force_batch_size, \
+        will call model.set_batch_size(batch_size) in an attempt to \
+        change model.force_batch_size
+    train_iteration_mode : optional, str
+        Defaults to 'shuffled_sequential'.
+        The iteration mode to use for iterating through training examples.
+    batches_per_iter : optional, int
+        The number of batches to draw from the iterator over training
+        examples.
+        If iterational mode is 'sequential' or 'shuffled_sequential', this
+        is unnecessary; when unspecified we will iterate over all examples.
+    theano_function_mode : optional, a valid argument to theano.function's
+        'mode' parameter.
+        The theano mode to compile the updates function with. Note that \
+        pylearn2 includes some wraplinker modes that are not bundled with \
+        theano. See pylearn2.devtools. These extra modes let you do \
+        things like check for NaNs at every step, or record md5 digests \
+        of all computations performed by the update function to help \
+        isolate problems with nondeterminism.
+    monitoring_costs : optional, list
+        a list of Cost instances. The Monitor will also include all
+        channels defined by these Costs, even though we don't train
+        using them.
+    seed : optional, valid argument to np.random.RandomState
+        The seed used for the random number generate to be passed to the
+        training dataset iterator (if any)
     """
     def __init__(self, learning_rate, cost=None, batch_size=None,
                  monitoring_batches=None, monitoring_dataset=None,
                  monitor_iteration_mode='sequential',
                  termination_criterion=None, update_callbacks=None,
-                 learning_rule = None, init_momentum = None, set_batch_size = False,
+                 learning_rule = None, init_momentum = None,
+                 set_batch_size = False,
                  train_iteration_mode = None, batches_per_iter=None,
                  theano_function_mode = None, monitoring_costs=None,
                  seed=[2012, 10, 5]):
         """
-        Parameters
-        ----------
-        learning_rate : float
-            The learning rate to use. Train object callbacks can change the \
-            learning rate after each epoch. SGD update_callbacks can change \
-            it after each minibatch.
-        cost : pylearn2.costs.cost.Cost
-            Cost object specifying the objective function to be minimized. \
-            Optionally, may be None. In this case, SGD will call the model's \
-            get_default_cost method to obtain the objective function.
-        batch_size : optional, int
-            The size of the batch to be used.
-            If not specified, the model will be asked for the batch size, so
-            you must have specified the batch size there.
-            (Some models are rigidly defined to only work with one batch size)
-        monitoring_batches : optional, int
-            At the start of each epoch, we run "monitoring", to evaluate
-            quantities such as the validation set error.
-            monitoring_batches, if specified, determines the number of batches
-            to draw from the iterator for each monitoring dataset.
-            Unnecessary if not using monitoring or if `monitor_iteration_mode`
-            is 'sequential' and `batch_size` is specified (number of
-            batches will be calculated based on full dataset size).
-            TODO: make it possible to specify different monitoring_batches
-            for each monitoring dataset. The Monitor itself already supports
-            this.
-        monitoring_dataset : optional, a Dataset or dictionary
-            If not specified, no monitoring is used.
-            If specified to be a Dataset, monitor on that Dataset.
-            If specified to be dictionary, the keys should be string names
-            of datasets, and the values should be Datasets. All monitoring
-            channels will be computed for all monitoring Datasets and will
-            have the dataset name and an underscore prepended to them.
-        monitor_iteration_mode : optional, str
-            The iteration mode used to iterate over the examples in all
-            monitoring datasets. If not specified, defaults to 'sequential'.
-            TODO: make it possible to specify different modes for different
-            datasets.
-        termination_criterion : optional, instance of
-            pylearn2.termination_criteria.TerminationCriterion
-            Used to determine when the algorithm should stop running.
-            If not specified, runs forever--or more realistically, until
-            external factors halt the python process (Kansas 1977).
-        update_callbacks : optional, list
-            If specified, each member of the list should be a callable that
-            accepts an SGD instance as its only argument.
-            All callbacks will be called with this SGD instance after each
-            SGD step.
-        learning_rule : training_algorithms.learning_rule.LearningRule
-            A learning rule computes the new parameter values given old \
-            parameters and first-order gradients. If learning_rule is None, \
-            sgd.SGD will update parameters according to the standard SGD \
-            learning rule:
-                param := param - learning_rate * d cost / d param
-            This argument allows more sophisticated learning rules, such
-            as SGD with momentum.
-        init_momentum : **DEPRECATED** option, float
-            Use learning_rule instead.
-            If None, does not use momentum otherwise, use momentum and \
-            initialize the momentum coefficient to init_momentum. Callbacks \
-            can change this over time just like the learning rate. If the \
-            gradient is the same on every step, then the update taken by the \
-            SGD algorithm is scaled by a factor of 1/(1-momentum). See \
-            section 9 of Geoffrey Hinton's "A Practical Guide to Training \
-            Restricted Boltzmann Machines" for details.
-        set_batch_size : optional, bool
-            Defaults to False.
-            If True, and batch_size conflicts with model.force_batch_size, \
-            will call model.set_batch_size(batch_size) in an attempt to \
-            change model.force_batch_size
-        train_iteration_mode : optional, str
-            Defaults to 'shuffled_sequential'.
-            The iteration mode to use for iterating through training examples.
-        batches_per_iter : optional, int
-            The number of batches to draw from the iterator over training
-            examples.
-            If iterational mode is 'sequential' or 'shuffled_sequential', this
-            is unnecessary; when unspecified we will iterate over all examples.
-        theano_function_mode : optional, a valid argument to theano.function's
-            'mode' parameter.
-            The theano mode to compile the updates function with. Note that \
-            pylearn2 includes some wraplinker modes that are not bundled with \
-            theano. See pylearn2.devtools. These extra modes let you do \
-            things like check for NaNs at every step, or record md5 digests \
-            of all computations performed by the update function to help \
-            isolate problems with nondeterminism.
-        monitoring_costs : optional, list
-            a list of Cost instances. The Monitor will also include all
-            channels defined by these Costs, even though we don't train
-            using them.
-        seed : optional, valid argument to np.random.RandomState
-            The seed used for the random number generate to be passed to the
-            training dataset iterator (if any)
         """
 
         if isinstance(cost, (list, tuple, set)):
