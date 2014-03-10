@@ -170,7 +170,6 @@ def test_gaussian_vis_layer_make_state():
 
     mean = rng.uniform(1e-6, 1. - 1e-6, (n,))
 
-    #z = inverse_sigmoid_numpy(mean)
     z= mean
 
     layer.set_biases(z.astype(config.floatX))
