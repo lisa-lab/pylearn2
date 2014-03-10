@@ -8,7 +8,7 @@ network.
 
 With this file, it is possible to make a local copy
 (in ${PYLEARN2_LOCAL_DATA_PATH}) of any required file and have multiple
-processes use it simultaneously instead of all acquiring their own copy
+processes use it simultaneously instead of each acquiring its own copy
 over the network.
 
 Whenever a folder or a dataset copy is created locally, it is granted
