@@ -8,6 +8,7 @@ __license__ = "3-clause BSD"
 __maintainer__ = "Ian Goodfellow"
 
 import numpy as np
+import random
 assert hasattr(np, 'exp')
 
 from theano import config
@@ -196,8 +197,13 @@ def test_gaussian_vis_layer_make_state_conv():
     num_samples = 1000
     tol = .042  # tolerated variance
     beta = 1/tol  # precision parameter
+    # axes for batch, rows, cols, channels, can be given in any order
+    axes = ['b', 0, 1, 'c']
+    random.shuffle(axes)
+    axes = tuple(axes)
+    print 'axes:', axes
 
-    layer = GaussianVisLayer(rows=rows, cols=cols, channels=channels, init_beta=beta)
+    layer = GaussianVisLayer(rows=rows, cols=cols, channels=channels, init_beta=beta, axes=axes)
 
     # rng = np.random.RandomState([2012,11,1])
     rng = np.random.RandomState()
@@ -232,7 +238,6 @@ def test_gaussian_vis_layer_sample():
     rows = None
     cols = None
     channels = None
-
 
     class DummyLayer(object):
         """
@@ -288,6 +293,11 @@ def test_gaussian_vis_layer_sample_conv():
     rows = 3
     cols = 3
     channels = 3
+    # axes for batch, rows, cols, channels, can be given in any order
+    axes = ['b', 0, 1, 'c']
+    random.shuffle(axes)
+    axes = tuple(axes)
+    print 'axes:', axes
 
     class DummyLayer(object):
         """
@@ -301,7 +311,7 @@ def test_gaussian_vis_layer_sample_conv():
         def downward_message(self, state):
             return state
 
-    vis = GaussianVisLayer(nvis=None,rows=rows, cols=cols, channels=channels, init_beta=beta)
+    vis = GaussianVisLayer(nvis=None,rows=rows, cols=cols, channels=channels, init_beta=beta, axes=axes)
     hid = DummyLayer()
 
     rng = np.random.RandomState([2012,11,1,259])
