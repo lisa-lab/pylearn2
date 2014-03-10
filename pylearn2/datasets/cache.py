@@ -46,28 +46,28 @@ class LocalDatasetCache:
         path to the local copy of the file. If not, it returns the path to
         the original file.
         """
-        
+
         import pdb
         pdb.set_trace()
-        
+
         remote_name = string_utils.preprocess(filename)
 
         # Check if a local directory for data has been defined. Otherwise,
         # do not locally copy the data
         if self.dataset_local_dir == "":
             self._write("Local cache deactivated : file %s not cached" %
-                       remote_name)
+                        remote_name)
             return remote_name
 
         # Make sure the file to cache exists and really is a file
         if not os.path.exists(remote_name):
             self._write("Error : Specified file %s does not exist" %
-                       remote_name)
+                        remote_name)
             return remote_name
 
         if not os.path.isfile(remote_name):
             self._write("Error : Specified name %s is not a file" %
-                       remote_name)
+                        remote_name)
             return remote_name
 
         # Create the $PYLEARN2_LOCAL_DATA_PATH folder if needed
@@ -92,7 +92,7 @@ class LocalDatasetCache:
             # Check that there is enough space to cache the file
             if not self.check_enough_space(remote_name, local_name):
                 self._write("Not enough free space : file %s not cached" %
-                           remote_name)
+                            remote_name)
                 self.releaseWriteLock()
                 return remote_name
 
@@ -116,7 +116,7 @@ class LocalDatasetCache:
         """
         Print message to the console if verbose
         """
-        
+
         if self.verbose:
             print message
 
