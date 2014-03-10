@@ -1964,6 +1964,11 @@ class GaussianVisLayer(VisibleLayer):
             beta_lr_scale = 'by_sharing',
             axes = ('b', 0, 1, 'c')):
         """
+        .. todo::
+
+            WRITEME
+        """
+        """
             Implements a visible layer that is conditionally gaussian with
             diagonal variance. The layer lives in a Conv2DSpace.
 
@@ -2352,7 +2357,7 @@ class GaussianVisLayer(VisibleLayer):
 
         sample = numpy_rng.randn(*shape)
 
-        sample *= (1./np.sqrt(self.beta.get_value()))
+        sample *= 1./np.sqrt(self.beta.get_value())
         sample += self.mu.get_value()
         rval = sharedX(sample, name = 'v_sample_shared')
 
