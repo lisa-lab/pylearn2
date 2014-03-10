@@ -2,7 +2,9 @@
 This module contains cost functions to use with deep Boltzmann machines
 (pylearn2.models.dbm).
 """
-from pylearn2.models.dbm.layer import BinaryVector, BinaryVectorMaxPool, Softmax
+from pylearn2.models.dbm.layer import BinaryVector
+from pylearn2.models.dbm import BinaryVectorMaxPool
+from pylearn2.models.dbm import Softmax
 
 __authors__ = ["Ian Goodfellow", "Vincent Dumoulin"]
 __copyright__ = "Copyright 2012, Universite de Montreal"
@@ -24,7 +26,6 @@ from pylearn2.costs.cost import Cost
 from pylearn2.costs.cost import (
     FixedVarDescr, DefaultDataSpecsMixin, NullDataSpecsMixin
 )
-from pylearn2.models import dbm
 from pylearn2.models.dbm import flatten
 from pylearn2 import utils
 from pylearn2.utils import make_name
@@ -36,23 +37,32 @@ from pylearn2.utils.rng import make_theano_rng
 
 class BaseCD(Cost):
     """
-    .. todo::
-
-        WRITEME
+    Parameters
+    ----------
+    num_chains : int
+        The number of negative chains to use with PCD / SML.
+        WRITEME : how is this meant to be used with CD? Do you just need to
+        set it to be equal to the batch size? If so: TODO, get rid of this
+        redundant aspect of the interface.
+    num_gibbs_steps : int
+        The number of Gibbs steps to use in the negative phase. (i.e., if
+        you want to use CD-k or PCD-k, this is "k").
+    supervised : bool
+        If True, requests class labels and models the joint distrbution over
+        features and labels.
+    toronto_neg : bool
+        If True, use a bit of mean field in the negative phase.
+        Ruslan Salakhutdinov's matlab code does this.
+    theano_rng : MRG_RandomStreams, optional
+        If specified, uses this object to generate all random numbers.
+        Otherwise, makes its own random number generator.
     """
     def __init__(self, num_chains, num_gibbs_steps, supervised=False,
                  toronto_neg=False, theano_rng=None):
-        """
-        .. todo::
-
-            WRITEME properly
-
-            toronto_neg: If True, use a bit of mean field in the negative phase
-                        Ruslan Salakhutdinov's matlab code does this.
-        """
         self.__dict__.update(locals())
         del self.self
-        self.theano_rng = make_theano_rng(theano_rng, 2012+10+14, which_method="binomial")
+        self.theano_rng = make_theano_rng(theano_rng, 2012+10+14,
+                which_method="binomial")
         assert supervised in [True, False]
 
     def expr(self, model, data):
@@ -327,6 +337,11 @@ class PCD(DefaultDataSpecsMixin, BaseCD):
     markov chain.
 
     TODO add citation to Tieleman paper, Younes paper
+
+    See Also
+    --------
+    BaseCD : The base class of this class (where the constructor
+        parameters are documented)
     """
     def _get_positive_phase(self, model, X, Y=None):
         """
@@ -377,6 +392,11 @@ class VariationalPCD(DefaultDataSpecsMixin, BaseCD):
     markov chain.
 
     TODO add citation to Tieleman paper, Younes paper
+
+    See Also
+    --------
+    BaseCD : The base class of this class (where the constructor
+        parameters are documented)
     """
 
     def expr(self, model, data):
@@ -511,15 +531,11 @@ class MF_L2_ActCost(DefaultDataSpecsMixin, Cost):
     """
     An L2 penalty on the amount that the hidden unit mean field parameters
     deviate from desired target values.
+
+    TODO: write up parameters list
     """
 
     def __init__(self, targets, coeffs, supervised=False):
-        """
-        .. todo::
-
-            WRITEME
-        """
-
         targets = fix(targets)
         coeffs = fix(coeffs)
 
@@ -573,9 +589,18 @@ class MF_L2_ActCost(DefaultDataSpecsMixin, Cost):
 
 def fix(l):
     """
-    .. todo::
+    Parameters
+    ----------
+    l : object
 
-        WRITEME
+    Returns
+    -------
+    l : object
+        If `l` is anything but a string, the return is the
+        same as the input, but it may have been modified in place.
+        If `l` is a string, the return value is `l` converted to a float.
+        If `l` is a list, this function explores all nested lists inside
+        `l` and turns all string members into floats.
     """
     if isinstance(l, list):
         return [fix(elem) for elem in l]
@@ -585,18 +610,10 @@ def fix(l):
 
 class TorontoSparsity(Cost):
     """
-    .. todo::
-
-        WRITEME properly
-
     TODO: add link to Ruslan Salakhutdinov's paper that this is based on
+    TODO: write up parameters list
     """
     def __init__(self, targets, coeffs, supervised=False):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.__dict__.update(locals())
         del self.self
 
@@ -691,24 +708,19 @@ class TorontoSparsity(Cost):
 
 class WeightDecay(NullDataSpecsMixin, Cost):
     """
-    .. todo::
-
-        WRITEME properly
+    A Cost that applies the following cost function:
 
     coeff * sum(sqr(weights))
     for each set of weights.
+
+    Parameters
+    ----------
+    coeffs: a list, one element per layer, specifying the coefficient
+        to put on the L1 activation cost for each layer.
+        Each element may in turn be a list, ie, for CompositeLayers.
     """
 
     def __init__(self, coeffs):
-        """
-        .. todo::
-
-            WRITEME
-
-        coeffs: a list, one element per layer, specifying the coefficient
-                to put on the L1 activation cost for each layer.
-                Each element may in turn be a list, ie, for CompositeLayers.
-        """
         self.__dict__.update(locals())
         del self.self
 
@@ -746,6 +758,10 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
 
     Multi-prediction deep Boltzmann machines. Ian J. Goodfellow, Mehdi Mirza,
     Aaron Courville, and Yoshua Bengio. NIPS 2013.
+
+    .. todo::
+
+            WRITEME : parameters list
     """
     def __init__(self,
             monitor_multi_inference = False,
@@ -770,17 +786,12 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
                     monitor_each_step = False,
                     use_sum = False
                     ):
-        """
-        .. todo::
-
-            WRITEME
-        """
         self.__dict__.update(locals())
         del self.self
-        #assert not (reweight and reweight_correctly)
 
 
-    def get_monitoring_channels(self, model, data, drop_mask = None, drop_mask_Y = None, **kwargs):
+    def get_monitoring_channels(self, model, data, drop_mask = None,
+            drop_mask_Y = None, **kwargs):
         """
         .. todo::
 
@@ -834,7 +845,8 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
         if self.monitor_each_step:
             for ii, packed in enumerate(safe_izip(history, new_history)):
                 state, new_state = packed
-                rval['all_inpaint_costs_after_' + str(ii)] = self.cost_from_states(state,
+                rval['all_inpaint_costs_after_' + str(ii)] = \
+                        self.cost_from_states(state,
                         new_state,
                         model, X, Y, drop_mask, drop_mask_Y,
                         new_drop_mask, new_drop_mask_Y)
@@ -847,7 +859,8 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
 
         final_state = history[-1]
 
-        #empirical beta code--should be moved to gaussian visible layer, should support topo data
+        #empirical beta code--should be moved to gaussian visible layer,
+        #should support topo data
         #V_hat = final_state['V_hat']
         #err = X - V_hat
         #masked_err = err * drop_mask
@@ -927,7 +940,10 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
 
         if not self.supervised:
             assert drop_mask_Y is None
-            Y = None # ignore Y if some other cost is supervised and has made it get passed in
+            # ignore Y if some other cost is supervised and has made it get
+            # passed in (can this still happen after the (space, source)
+            # interface change?)
+            Y = None
         if self.supervised:
             assert Y is not None
             if drop_mask is not None:
@@ -962,7 +978,8 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
             self.noise = False
 
         history = dbm.do_inpainting(X, Y = Y, drop_mask = drop_mask,
-                drop_mask_Y = drop_mask_Y, return_history = True, noise = self.noise,
+                drop_mask_Y = drop_mask_Y, return_history = True,
+                noise = self.noise,
                 niter = self.niter, block_grad = self.block_grad)
         final_state = history[-1]
 
@@ -976,13 +993,17 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
             new_drop_mask = 1. - drop_mask
             if self.supervised:
                 new_drop_mask_Y = 1. - drop_mask_Y
-            new_history = dbm.do_inpainting(X, Y = Y, drop_mask = new_drop_mask,
-                    drop_mask_Y = new_drop_mask_Y, return_history = True, noise = self.noise,
+            new_history = dbm.do_inpainting(X, Y = Y,
+                    drop_mask=new_drop_mask,
+                    drop_mask_Y=new_drop_mask_Y, return_history=True,
+                    noise = self.noise,
                     niter = self.niter, block_grad = self.block_grad)
 
         new_final_state = new_history[-1]
 
-        total_cost, sublocals = self.cost_from_states(final_state, new_final_state, dbm, X, Y, drop_mask, drop_mask_Y, new_drop_mask, new_drop_mask_Y,
+        total_cost, sublocals = self.cost_from_states(final_state,
+                new_final_state, dbm, X, Y, drop_mask, drop_mask_Y,
+                new_drop_mask, new_drop_mask_Y,
                 return_locals=True)
         l1_act_cost = sublocals['l1_act_cost']
         inpaint_cost = sublocals['inpaint_cost']
@@ -996,7 +1017,8 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
             if self.supervised:
                 inpainting_H_hat = inpainting_H_hat[:-1]
                 mf_H_hat = mf_H_hat[:-1]
-                for ihh, mhh in safe_izip(flatten(inpainting_H_hat), flatten(mf_H_hat)):
+                for ihh, mhh in safe_izip(flatten(inpainting_H_hat),
+                        flatten(mf_H_hat)):
                     total_cost += self.robustness * T.sqr(mhh-ihh).sum()
 
         if not hasattr(self, 'toronto_act_targets'):
@@ -1005,7 +1027,8 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
         if self.toronto_act_targets is not None and include_toronto:
             toronto_act_cost = 0.
             H_hat = history[-1]['H_hat']
-            for s, c, t in zip(H_hat, self.toronto_act_coeffs, self.toronto_act_targets):
+            for s, c, t in zip(H_hat, self.toronto_act_coeffs,
+                    self.toronto_act_targets):
                 if c == 0.:
                     continue
                 s, _ = s
@@ -1033,7 +1056,8 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
 
         batch_size = model.batch_size
 
-        drop_mask_X = sharedX(model.get_input_space().get_origin_batch(batch_size))
+        drop_mask_X = sharedX(
+                model.get_input_space().get_origin_batch(batch_size))
         drop_mask_X.name = 'drop_mask'
 
         X_space = model.get_input_space()
@@ -1067,22 +1091,26 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
             include_prob_V = model.inference_procedure.include_prob_V
             include_prob_Y = model.inference_procedure.include_prob_Y
 
-            theano_rng = make_theano_rng(None, 2012+10+20, which_method="binomial")
+            theano_rng = make_theano_rng(None, 2012+10+20,
+                    which_method="binomial")
             for elem in flatten([model.inference_procedure.V_dropout]):
-                updates[elem] = theano_rng.binomial(p=include_prob_V, size=elem.shape, dtype=elem.dtype, n=1) / include_prob_V
+                updates[elem] = theano_rng.binomial(p=include_prob_V,
+                        size=elem.shape, dtype=elem.dtype, n=1) / \
+                                include_prob_V
             if "Softmax" in str(type(model.hidden_layers[-1])):
                 hid = model.inference_procedure.H_dropout[:-1]
                 y = model.inference_procedure.H_dropout[-1]
-                updates[y] = theano_rng.binomial(p=include_prob_Y, size=y.shape, dtype=y.dtype, n=1) / include_prob_Y
+                updates[y] = theano_rng.binomial(p=include_prob_Y,
+                        size=y.shape, dtype=y.dtype, n=1) / include_prob_Y
             else:
                 hid = model.inference_procedure.H_dropout
             for elem in flatten(hid):
-                updates[elem] =  theano_rng.binomial(p=include_prob, size=elem.shape, dtype=elem.dtype, n=1) / include_prob
+                updates[elem] =  theano_rng.binomial(p=include_prob,
+                        size=elem.shape, dtype=elem.dtype, n=1) / include_prob
 
         rval.on_load_batch = [utils.function(inputs, updates=updates)]
 
         return rval
-
 
     def get_gradients(self, model, X, Y = None, **kwargs):
         """
@@ -1102,11 +1130,13 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
         total_cost = scratch['total_cost']
 
         params = list(model.get_params())
-        grads = dict(safe_zip(params, T.grad(total_cost, params, disconnected_inputs='ignore')))
+        grads = dict(safe_zip(params, T.grad(total_cost, params,
+            disconnected_inputs='ignore')))
 
         if self.toronto_act_targets is not None:
             H_hat = scratch['history'][-1]['H_hat']
-            for i, packed in enumerate(safe_zip(H_hat, self.toronto_act_coeffs, self.toronto_act_targets)):
+            for i, packed in enumerate(safe_zip(H_hat,
+                self.toronto_act_coeffs, self.toronto_act_targets)):
                 s, c, t = packed
                 if c == 0.:
                     continue
@@ -1133,7 +1163,8 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
                     assert False
                 sources = [ (fake_s, real_grads) ]
 
-                fake_grads = T.grad(cost=None, known_grads=dict(sources), wrt=[below, ancestor, hack_W, hack_b])
+                fake_grads = T.grad(cost=None, known_grads=dict(sources),
+                        wrt=[below, ancestor, hack_W, hack_b])
 
                 grads[W] = grads[W] + fake_grads[2]
                 grads[b] = grads[b] + fake_grads[3]
@@ -1141,29 +1172,33 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
 
         return grads, OrderedDict()
 
-    def get_inpaint_cost(self, dbm, X, V_hat_unmasked, drop_mask, state, Y, drop_mask_Y):
-        rval = dbm.visible_layer.recons_cost(X, V_hat_unmasked, drop_mask, use_sum=self.use_sum)
+    def get_inpaint_cost(self, dbm, X, V_hat_unmasked, drop_mask, state,
+            Y, drop_mask_Y):
         """
         .. todo::
 
             WRITEME
         """
+        rval = dbm.visible_layer.recons_cost(X, V_hat_unmasked, drop_mask,
+                use_sum=self.use_sum)
 
         if self.supervised:
-            scale = None # pyflakes is too dumb to see that both branches define this
+            # pyflakes is too dumb to see that both branches define `scale`
+            scale = None
             if self.use_sum:
                 scale = 1.
             else:
                 scale = 1. / float(dbm.get_input_space().get_total_dimension())
             Y_hat_unmasked = state['Y_hat_unmasked']
             rval = rval + \
-                    dbm.hidden_layers[-1].recons_cost(Y, Y_hat_unmasked, drop_mask_Y, scale)
+                    dbm.hidden_layers[-1].recons_cost(Y, Y_hat_unmasked,
+                            drop_mask_Y,
+                            scale)
 
         return rval
 
-
-
-    def cost_from_states(self, state, new_state, dbm, X, Y, drop_mask, drop_mask_Y,
+    def cost_from_states(self, state, new_state, dbm, X, Y, drop_mask,
+            drop_mask_Y,
             new_drop_mask, new_drop_mask_Y, return_locals = False):
         """
         .. todo::
@@ -1186,7 +1221,8 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
         if not hasattr(self, 'use_sum'):
             self.use_sum = False
 
-        inpaint_cost = self.get_inpaint_cost(dbm, X, V_hat_unmasked, drop_mask, state, Y, drop_mask_Y)
+        inpaint_cost = self.get_inpaint_cost(dbm, X, V_hat_unmasked, drop_mask,
+                state, Y, drop_mask_Y)
 
         if not hasattr(self, 'both_directions'):
             self.both_directions = False
@@ -1197,13 +1233,16 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
 
             new_V_hat_unmasked = new_state['V_hat_unmasked']
 
-            new_inpaint_cost = dbm.visible_layer.recons_cost(X, new_V_hat_unmasked, new_drop_mask)
+            new_inpaint_cost = dbm.visible_layer.recons_cost(X,
+                    new_V_hat_unmasked, new_drop_mask)
             if self.supervised:
                 new_Y_hat_unmasked = new_state['Y_hat_unmasked']
                 scale = None
-                raise NotImplementedError("This branch appears to be broken, needs to define scale.")
+                raise NotImplementedError("This branch appears to be broken,"
+                        "needs to define scale.")
                 new_inpaint_cost = new_inpaint_cost + \
-                        dbm.hidden_layers[-1].recons_cost(Y, new_Y_hat_unmasked, new_drop_mask_Y, scale)
+                        dbm.hidden_layers[-1].recons_cost(Y,
+                                new_Y_hat_unmasked, new_drop_mask_Y, scale)
             # end if include_Y
             inpaint_cost = 0.5 * inpaint_cost + 0.5 * new_inpaint_cost
         # end if both directions
@@ -1251,12 +1290,15 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
             if self.l1_act_eps is None:
                 self.l1_act_eps = [ None ] * len(self.l1_act_targets)
             for layer, mf_state, targets, coeffs, eps in \
-                    safe_izip(dbm.hidden_layers, state['H_hat'] , self.l1_act_targets, self.l1_act_coeffs, self.l1_act_eps):
+                    safe_izip(dbm.hidden_layers, state['H_hat'],
+                            self.l1_act_targets, self.l1_act_coeffs,
+                            self.l1_act_eps):
 
                 assert not isinstance(targets, str)
 
                 try:
-                    layer_cost = layer.get_l1_act_cost(mf_state, targets, coeffs, eps)
+                    layer_cost = layer.get_l1_act_cost(mf_state, targets,
+                            coeffs, eps)
                 except NotImplementedError:
                     if coeffs == 0.:
                         layer_cost = 0.
@@ -1283,7 +1325,9 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
                 op = owner.op
 
                 if not hasattr(op, 'scalar_op'):
-                    raise ValueError("Expected V_hat_unmasked to be generated by an Elemwise op, got "+str(op)+" of type "+str(type(op)))
+                    raise ValueError("Expected V_hat_unmasked to be generated"
+                            "by an Elemwise op, got " + str(op) + " of type "
+                            + str(type(op)))
                 assert isinstance(op.scalar_op, T.nnet.sigm.ScalarSigmoid)
                 z ,= owner.inputs
 
@@ -1294,9 +1338,10 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
         reweighted_act_cost = None
         if self.reweighted_act_targets is not None:
             reweighted_act_cost = 0.
-            warnings.warn("reweighted_act_cost is hardcoded for sigmoid layers and doesn't check that this is "
-                    "what we get.")
-            for c, t, s in safe_izip(self.reweighted_act_coeffs, self.reweighted_act_targets, state['H_hat']):
+            warnings.warn("reweighted_act_cost is hardcoded for sigmoid "
+                    "layers and doesn't check that this is what we get.")
+            for c, t, s in safe_izip(self.reweighted_act_coeffs,
+                    self.reweighted_act_targets, state['H_hat']):
                 if c == 0:
                     continue
                 s, _ = s
@@ -1306,7 +1351,8 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
                 reweighted_act_cost += c * (weight * d).mean()
             total_cost += reweighted_act_cost
 
-        total_cost.name = 'total_cost(V_hat_unmasked = %s)' % V_hat_unmasked.name
+        total_cost.name = 'total_cost(V_hat_unmasked = %s)' % \
+                V_hat_unmasked.name
 
         if return_locals:
             return total_cost, locals()
@@ -1315,23 +1361,64 @@ class MultiPrediction(DefaultDataSpecsMixin, Cost):
 
 default_seed = 20120712
 class MaskGen:
-    def __init__(self, drop_prob, balance = False, sync_channels = True, drop_prob_y = None, seed = default_seed):
-        """
-        .. todo::
+    """
+    A class that generates masks for multi-prediction training.
 
-            WRITEME
-        """
+    Parameters
+    ----------
+    drop_prob : float
+        The probability of dropping out a unit (making it a target of
+        the training criterion)
+    balance : bool
+        WRITEME
+    sync_channels : bool
+        If True:
+        Rather than dropping each pixel individually, drop spatial locations.
+        i.e., we either drop the red, the green, and the blue pixel at (x, y),
+        or we drop nothing at (x, y).
+        If False:
+        Drop each pixel independently.
+    drop_prob_y : float, optional
+        If specified, use a different drop probability for the class labels.
+    seed : int
+        The seed to use with MRG_RandomStreams for generating the random
+        masks.
+    """
+
+    def __init__(self, drop_prob, balance = False, sync_channels = True,
+            drop_prob_y = None, seed = default_seed):
         self.__dict__.update(locals())
         del self.self
 
 
     def __call__(self, X, Y = None, X_space=None):
         """
-        .. todo::
+        Provides the mask for multi-prediction training. A 1 in the mask
+        corresponds to a variable that should be used as an input to the
+        inference process. A 0 corresponds to a variable that should be
+        used as a prediction target of the multi-prediction training
+        criterion.
 
-            WRITEME
+        Parameters
+        ----------
+        X : Variable
+            A batch of input features to mask for multi-prediction training
+        Y : Variable
+            A batch of input class labels to mask for multi-prediction
+            Training
 
-        Note that calling this repeatedly will yield the same random numbers each time.
+        Returns
+        -------
+        drop_mask : Variable
+            A Theano expression for a random binary mask in the same shape as
+            `X`
+        drop_mask_Y : Variable, only returned if `Y` is not None
+            A Theano expression for a random binary mask in the same shape as
+            `Y`
+
+        Notes
+        -----
+        Calling this repeatedly will yield the same random numbers each time.
         """
         assert X_space is not None
         self.called = True
@@ -1374,8 +1461,8 @@ class MaskGen:
 
             p = flip * (1-p) + (1-flip) * p
 
-        #size needs to have a fixed length at compile time or the
-        #theano random number generator will be angry
+        # size needs to have a fixed length at compile time or the
+        # theano random number generator will be angry
         size = tuple([ X.shape[i] for i in xrange(X.ndim) ])
         if self.sync_channels:
             del size[X_space.axes.index('c')]
@@ -1399,8 +1486,6 @@ class MaskGen:
             assert drop_mask_Y.ndim == 1
             Y_name = make_name(Y, 'anon_Y')
             drop_mask_Y.name = 'drop_mask_Y(%s)' % Y_name
-            #drop_mask = Print('drop_mask',attrs=['sum'])(drop_mask)
-            #drop_mask_Y = Print('drop_mask_Y',attrs=['sum'])(drop_mask_Y)
             return drop_mask, drop_mask_Y
 
         return drop_mask

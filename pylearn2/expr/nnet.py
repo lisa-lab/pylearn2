@@ -60,9 +60,17 @@ def inverse_sigmoid_numpy(x):
 
 def arg_of_softmax(Y_hat):
     """
-    .. todo::
+    Parameters
+    ----------
+    Y_hat : Variable
+        softmax(Z)
 
-        WRITEME
+    Returns
+    -------
+    Z : Variable
+        The variable that was passed to the Softmax op to create `Y_hat`.
+        Raises an error if `Y_hat` is not actually the output of a
+        Softmax.
     """
     assert hasattr(Y_hat, 'owner')
     owner = Y_hat.owner
@@ -83,9 +91,17 @@ def arg_of_softmax(Y_hat):
 
 def softmax_ratio(numer, denom):
     """
-    .. todo::
+    Parameters
+    ----------
+    numer : Variable
+        Output of a softmax.
+    denom : Variable
+        Output of a softmax.
 
-        WRITEME
+    Returns
+    -------
+    ratio : Variable
+        numer / denom, computed in a numerically stable way
     """
 
     numer_Z = arg_of_softmax(numer)
@@ -93,7 +109,8 @@ def softmax_ratio(numer, denom):
     numer_Z -= numer_Z.max(axis=1).dimshuffle(0, 'x')
     denom_Z -= denom_Z.min(axis=1).dimshuffle(0, 'x')
 
-    new_num = T.exp(numer_Z - denom_Z) * (T.exp(denom_Z).sum(axis=1).dimshuffle(0, 'x'))
+    new_num = T.exp(numer_Z - denom_Z) * (T.exp(denom_Z).sum(
+        axis=1).dimshuffle(0, 'x'))
     new_den = (T.exp(numer_Z).sum(axis=1).dimshuffle(0, 'x'))
 
     return new_num / new_den

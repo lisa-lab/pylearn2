@@ -1,7 +1,5 @@
 """
-.. todo::
-
-    WRITEME
+The CIFAR-100 dataset.
 """
 import numpy as np
 N = np
@@ -11,19 +9,14 @@ from pylearn2.utils import serial
 
 class CIFAR100(dense_design_matrix.DenseDesignMatrix):
     """
-    .. todo::
+    The CIFAR-100 dataset.
 
-        WRITEME
+    TODO: write parameters list
     """
     def __init__(self, which_set, center = False,
             gcn = None, toronto_prepro = False,
             axes = ('b', 0, 1, 'c'),
             start = None, stop = None, one_hot = False):
-        """
-        .. todo::
-
-            WRITEME
-        """
 
         assert which_set in ['train','test']
 
@@ -54,7 +47,8 @@ class CIFAR100(dense_design_matrix.DenseDesignMatrix):
             assert not center
             assert not gcn
             if which_set == 'test':
-                raise NotImplementedError("Need to subtract the mean of the *training* set.")
+                raise NotImplementedError(
+                        "Need to subtract the mean of the *training* set.")
             X = X / 255.
             X = X - X.mean(axis=0)
         self.toronto_prepro = toronto_prepro
@@ -67,8 +61,8 @@ class CIFAR100(dense_design_matrix.DenseDesignMatrix):
             X *= gcn
 
         if start is not None:
-            # This needs to come after the prepro so that it doesn't change the pixel
-            # means computed above
+            # This needs to come after the prepro so that it doesn't change
+            # the pixel means computed above
             assert start >= 0
             assert stop > start
             assert stop <= X.shape[0]
@@ -77,9 +71,10 @@ class CIFAR100(dense_design_matrix.DenseDesignMatrix):
             assert X.shape[0] == y.shape[0]
 
         self.axes = axes
-        view_converter = dense_design_matrix.DefaultViewConverter((32,32,3), axes)
+        view_converter = dense_design_matrix.DefaultViewConverter((32,32,3),
+                axes)
 
-        super(CIFAR100,self).__init__(X = X, y =y, view_converter = view_converter)
+        super(CIFAR100,self).__init__(X=X, y=y, view_converter=view_converter)
 
         assert not N.any(N.isnan(self.X))
 
@@ -95,7 +90,8 @@ class CIFAR100(dense_design_matrix.DenseDesignMatrix):
 
             WRITEME
         """
-        #assumes no preprocessing. need to make preprocessors mark the new ranges
+        # assumes no preprocessing. need to make preprocessors mark the new
+        # ranges
         rval = X.copy()
 
         #patch old pkl files
@@ -128,9 +124,11 @@ class CIFAR100(dense_design_matrix.DenseDesignMatrix):
 
             WRITEME
         """
-        # if the scale is set based on the data, display X oring the scale determined
+        # if the scale is set based on the data, display X oring the scale
+        # determined
         # by orig
-        # assumes no preprocessing. need to make preprocessors mark the new ranges
+        # assumes no preprocessing. need to make preprocessors mark the new
+        # ranges
         rval = X.copy()
 
         #patch old pkl files
@@ -167,6 +165,9 @@ class CIFAR100(dense_design_matrix.DenseDesignMatrix):
 
             WRITEME
         """
-        return CIFAR100(which_set='test', center=self.center, rescale=self.rescale, gcn=self.gcn,
-                one_hot=self.one_hot, toronto_prepro=self.toronto_prepro, axes=self.axes)
+        return CIFAR100(which_set='test', center=self.center,
+                rescale=self.rescale,
+                gcn=self.gcn,
+                one_hot=self.one_hot, toronto_prepro=self.toronto_prepro,
+                axes=self.axes)
 
