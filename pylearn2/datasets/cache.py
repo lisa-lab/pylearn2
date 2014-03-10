@@ -11,28 +11,6 @@ With this file, it is possible to make a local copy
 processes use it simultaneously instead of all acquiring their own copy
 over the network.
 
-Workflow:
-
-
-workflow:
-1. Check if ${PYLEARN2_LOCAL_DATA_PATH} exists, if not, create it.
-   This step needs a lock under the dir '/tmp/'
-2. Check if the required dataset D exists under ${PYLEARN2_LOCAL_DATA_PATH}.
-   If yes, load it. END
-   Otherwise:
-       Check if the local node has enough space to maintain a local copy of D.
-          If no, read D directly from remote ${PYLEARN2_DATA_PATH}. END
-          If yes:
-            Get a lock under ${PYLEARN2_LOCAL_DATA_PATH}
-            Check if D has been copied there by some other jobs.
-               If yes, load it, release the lock. END
-               if no,
-                  Check if the local node has enough space to maintain
-                  a local copy of D.  If no, read D directly from
-                  ${PYLEARN2_DATA_PATH}. release lock. END If yes,
-                  copy D from remote server, read it locally. release
-                  lock. END
-
 Whenever a folder or a dataset copy is created locally, it is granted
 the same access as it has under ${PYLEARN2_LOCAL_DATA_PATH}. This is
 gauranteed by default copy.
@@ -46,7 +24,7 @@ from pylearn2.utils import string_utils
 import theano.gof.compilelock as compilelock
 
 
-class DatasetCache:
+class LocalDatasetCache:
 
     def __init__(self, verbose=False):
         default_path = '${PYLEARN2_DATA_PATH}'
@@ -61,7 +39,18 @@ class DatasetCache:
             # Local cache seems to be deactivated
             self.dataset_local_dir = ""
 
-    def load_dataset(self, remote_name):
+    def cacheFile(self, filename):
+        """
+        Caches a file locally if possible. If caching was succesfull, or if
+        the file was previously successfully cached, this method returns the
+        path to the local copy of the file. If not, it returns the path to
+        the original file.
+        """
+        
+        import pdb
+        pdb.set_trace()
+        
+        remote_name = string_utils.preprocess(filename)
 
         # Check if a local directory for data has been defined. Otherwise,
         # do not locally copy the data
@@ -89,12 +78,6 @@ class DatasetCache:
                                   os.path.relpath(remote_name,
                                                   self.dataset_remote_dir))
 
-        # Ensure there is enough space locally to cache the file
-        if not self.check_enough_space(remote_name, local_name):
-            self._write("Not enough free space : file %s not cached" %
-                       remote_name)
-            return remote_name
-
         # Create the folder structure to receive the remote file
         local_folder = os.path.split(local_name)[0]
         self.safe_mkdir(local_folder)
@@ -106,7 +89,7 @@ class DatasetCache:
         # If the file does not exist locally, consider creating it
         if not os.path.exists(local_name):
 
-            # Check again that there is enough space to cache the file
+            # Check that there is enough space to cache the file
             if not self.check_enough_space(remote_name, local_name):
                 self._write("Not enough free space : file %s not cached" %
                            remote_name)
