@@ -103,20 +103,40 @@ class Layer(Model):
 
     def get_monitoring_channels_from_state(self, state, target=None):
         """
-        .. todo::
+        Parameters
+        ----------
+        state : member of self.output_space
+            A minibatch of states that this Layer took on during fprop.
+            Provided externally so that we don't need to make a second
+            expression for it. This helps keep the Theano graph smaller
+            so that function compilation runs faster.
+        target : member of self.output_space
+            Should be None unless this is the last layer.
+            If specified, it should be a minibatch of targets for the
+            last layer.
 
-            WRITEME
+        Returns
+        -------
+        channels : OrderedDict
+            A dictionary mapping channel names to monitoring channels of
+            interest for this layer.
         """
+
         return OrderedDict()
 
     def fprop(self, state_below):
         """
         Does the forward prop transformation for this layer.
-        state_below is a minibatch of states for the previous layer.
 
         Parameters
         ----------
-        state_below : WRITEME
+        state_below : member of self.input_space
+            A minibatch of states of the layer below.
+
+        Returns
+        -------
+        state : member of self.output_space
+            A minibatch of states of this layer.
         """
 
         raise NotImplementedError(str(type(self))+" does not implement fprop.")
@@ -187,27 +207,46 @@ class Layer(Model):
 
     def set_weights(self, weights):
         """
-        .. todo::
+        Sets the weights of the layer.
 
-            WRITEME
+        Parameters
+        ----------
+        weights : ndarray
+            A numpy ndarray containing the desired weights of the layer. This
+            docstring is provided by the Layer base class. Layer subclasses
+            should add their own docstring explaining the subclass-specific
+            format of the ndarray.
         """
-        raise NotImplementedError
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                "set_weights.")
 
     def get_biases(self):
         """
-        .. todo::
-
-            WRITEME
+        Returns
+        -------
+        biases : ndarray
+            A numpy ndarray containing the biases of the layer. This docstring
+            is provided by the Layer base class. Layer subclasses should add
+            their own docstring explaining the subclass-specific format of the
+            ndarray.
         """
-        raise NotImplementedError
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                "get_biases (perhaps because the class has no biases).")
 
     def set_biases(self, biases):
         """
-        .. todo::
+        Sets the biases of the layer.
 
-            WRITEME
+        Parameters
+        ----------
+        biases : ndarray
+            A numpy ndarray containing the desired biases of the layer. This
+            docstring is provided by the Layer base class. Layer subclasses
+            should add their own docstring explaining the subclass-specific
+            format of the ndarray.
         """
-        raise NotImplementedError
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                "set_biases (perhaps because the class has no biases).")
 
     def get_weights_format(self):
         """
@@ -219,31 +258,70 @@ class Layer(Model):
 
     def get_weight_decay(self, coeff):
         """
-        .. todo::
+        Provides an expresion for a squared L2 penalty on the weights.
 
-            WRITEME
+        Parameters
+        ----------
+        coeff : float or tuple
+            The coefficient on the weight decay penalty for this layer.
+            This docstring is provided by the Layer base class. Individual
+            Layer subclasses should add their own docstring explaining the
+            format of `coeff` for that particular layer. For most ordinary
+            layers, `coeff` is a single float to multiply by the weight
+            decay term. Layers containing many pieces may take a tuple or
+            nested tuple of floats, and should explain the semantics of
+            the different elements of the tuple.
+
+        Returns
+        -------
+        weight_decay : theano.gof.Variable
+            An expression for the weight decay penalty term for this
+            layer.
         """
-        raise NotImplementedError
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                "get_weight_decay.")
 
     def get_l1_weight_decay(self, coeff):
         """
-        .. todo::
+        Provides an expresion for an L1 penalty on the weights.
 
-            WRITEME
+        Parameters
+        ----------
+        coeff : float or tuple
+            The coefficient on the L1 weight decay penalty for this layer.
+            This docstring is provided by the Layer base class. Individual
+            Layer subclasses should add their own docstring explaining the
+            format of `coeff` for that particular layer. For most ordinary
+            layers, `coeff` is a single float to multiply by the weight
+            decay term. Layers containing many pieces may take a tuple or
+            nested tuple of floats, and should explain the semantics of
+            the different elements of the tuple.
+
+        Returns
+        -------
+        weight_decay : theano.gof.Variable
+            An expression for the L1 weight decay penalty term for this
+            layer.
         """
-        raise NotImplementedError
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                "get_l1_weight_decay.")
 
     def set_input_space(self, space):
         """
-        .. todo::
+        Tells the layer to prepare for input formatted according to the
+        given space.
 
-            WRITEME
+        Parameters
+        ----------
+        space : Space
+            The Space the input to this layer will lie in.
 
         Notes
         -----
         This usually resets parameters.
         """
-        raise NotImplementedError
+        raise NotImplementedError(str(type(self)) + " does not implement "
+                "set_input_space.")
 
 
 class MLP(Layer):
@@ -3006,6 +3084,11 @@ class PretrainedLayer(Layer):
     def get_output_space(self):
 
         return self.layer_content.get_output_space()
+
+    @wraps(Layer.get_monitoring_channels)
+    def get_monitoring_channels(self):
+
+        return OrderedDict([])
 
     @wraps(Layer.fprop)
     def fprop(self, state_below):

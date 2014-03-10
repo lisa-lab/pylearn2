@@ -1,4 +1,6 @@
-"""Low-level utilities for reading in raw MNIST files."""
+"""
+Low-level utilities for reading in raw MNIST files.
+"""
 
 __author__ = "David Warde-Farley"
 __copyright__ = "Copyright 2012, Universite de Montreal"
@@ -20,6 +22,7 @@ class open_if_filename(object):
     .. todo::
 
         WRITEME
+
     """
     def __init__(self, f, mode='r', buffering=-1):
         """
@@ -80,7 +83,7 @@ def read_mnist_images(fn, dtype=None):
     -----
     If the dtype provided was boolean, the resulting array will
     be boolean with `True` if the corresponding pixel had a value
-    greater than or equal to 128, `False otherwise.
+    greater than or equal to 128, `False` otherwise.
 
     If the dtype provided was a float or complex dtype, the values
     will be mapped to the unit interval [0, 1], with pixel values

@@ -193,7 +193,7 @@ Exception
     :members:
 
 File Tensor
-==========
+===========
 .. automodule:: pylearn2.datasets.filetensor
     :members:
 

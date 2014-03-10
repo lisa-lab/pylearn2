@@ -32,11 +32,26 @@ class DenseMulticlassSVM(OneVsRestClassifier):
 
     def __init__(self, C, kernel='rbf', gamma = 1.0, coef0 = 1.0, degree = 3):
         """
-        .. todo::
-
-            WRITEME
+        Parameters
+        ----------
+        C : float
+            SVM regularization parameter.
+            See SVC.__init__ for details.
+        kernel : str
+            Type of kernel to use.
+            See SVC.__init__ for details.
+        gamma : float
+            Optional parameter of kernel.
+            See SVC.__init__ for details.
+        coef0 : float
+            Optional parameter of kernel.
+            See SVC.__init__ for details.
+        degree : int
+            Degree of kernel, if kernel is polynomial.
+            See SVC.__init__ for details.
         """
-        estimator = SVC(C=C, kernel=kernel, gamma = gamma, coef0 = coef0, degree = degree)
+        estimator = SVC(C=C, kernel=kernel, gamma = gamma, coef0 = coef0,
+                degree = degree)
         super(DenseMulticlassSVM,self).__init__(estimator)
 
     def fit(self, X, y):
@@ -51,8 +66,10 @@ class DenseMulticlassSVM(OneVsRestClassifier):
 
     def decision_function(self, X):
         """
-        .. todo::
-
-            WRITEME
+        X : ndarray
+            A 2D ndarray with each row containing the input features for one
+            example.
         """
-        return np.concatenate( [ estimator.decision_function(X) for estimator in self.estimators_ ], axis = 1)
+        return np.concatenate([estimator.decision_function(X) for estimator in
+            self.estimators_ ], axis = 1)
+

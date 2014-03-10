@@ -77,9 +77,9 @@ class Conv2d(LinearTransform):
         else:
             self._message = filters.name
         if not len(self._img_shape)==4:
-            raise TypeError('need 4-tuple shape', self._img_shape)
+            raise ValueError('need 4-tuple shape', self._img_shape)
         if not len(self._filters_shape)==4:
-            raise TypeError('need 4-tuple shape', self._filters_shape)
+            raise ValueError('need 4-tuple shape', self._filters_shape)
 
     def lmul(self, x):
         """
