@@ -1964,11 +1964,6 @@ class GaussianVisLayer(VisibleLayer):
             beta_lr_scale = 'by_sharing',
             axes = ('b', 0, 1, 'c')):
         """
-        .. todo::
-
-            WRITEME
-        """
-        """
             Implements a visible layer that is conditionally gaussian with
             diagonal variance. The layer lives in a Conv2DSpace.
 
@@ -2004,7 +1999,6 @@ class GaussianVisLayer(VisibleLayer):
 
         if init_mu is None:
             init_mu = 0.
-        print 'axes', axes
         if nvis is None:
             assert rows is not None
             assert cols is not None
@@ -2111,8 +2105,13 @@ class GaussianVisLayer(VisibleLayer):
             updates[self.beta] = T.clip(updated_beta,
                     self.min_beta,1e6)
 
+    def set_biases(self, bias):
+        """
+        set mean parameter
 
-
+        :param bias: Vector of size nvis
+        """
+        self.mu = sharedX(bias, name = 'mu')
 
     def broadcasted_mu(self):
         """
@@ -2229,20 +2228,12 @@ class GaussianVisLayer(VisibleLayer):
 
             WRITEME
         """
-        # raise NotImplementedError("need to support axes")
-        # raise NotImplementedError("wasn't implemeneted before axes either")
         assert state_below is None
         assert average_below is None
         self.space.validate(state)
         if average:
             raise NotImplementedError(str(type(self))+" doesn't support integrating out variational parameters yet.")
         else:
-            # if self.nvis is None:
-            #     axis = (1,2,3)
-            # else:
-            #     axis = 1
-
-            # print(self.axes_to_sum)
             rval =  0.5 * (self.beta * T.sqr(state - self.mu)).sum(axis=self.axes_to_sum)
         assert rval.ndim == 1
         return rval
@@ -2267,7 +2258,6 @@ class GaussianVisLayer(VisibleLayer):
         else:
             rval = z
 
-
         rval.name = 'inpainted_V[unknown_iter]'
 
         if return_unmasked:
@@ -2283,18 +2273,12 @@ class GaussianVisLayer(VisibleLayer):
 
             WRITEME
         """
-        #raise NotImplementedError("need to support axes")
 
         assert state_below is None
         msg = layer_above.downward_message(state_above)
         mu = self.mu
 
         z = msg + mu
-        # if self.batch_axis: # if Conv2DSpace, need to integrate out batch axis
-        #     z = T.sum(z,axis=self.batch_axis)
-        #     rval = theano_rng.normal(size = z.shape, avg = z, dtype = z.dtype,
-        #                std = 1. / T.sqrt(T.sum(self.beta,axis=self.batch_axis)))
-        # else:
         rval = theano_rng.normal(size = z.shape, avg = z, dtype = z.dtype,
                        std = 1. / T.sqrt(self.beta))
         return rval
@@ -2354,7 +2338,6 @@ class GaussianVisLayer(VisibleLayer):
 
             WRITEME
         """
-        # raise NotImplementedError("need to support axes")
 
         shape = [num_examples]
 
