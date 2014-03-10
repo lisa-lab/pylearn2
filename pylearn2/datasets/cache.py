@@ -47,9 +47,6 @@ class LocalDatasetCache:
         the original file.
         """
 
-        import pdb
-        pdb.set_trace()
-
         remote_name = string_utils.preprocess(filename)
 
         # Check if a local directory for data has been defined. Otherwise,
